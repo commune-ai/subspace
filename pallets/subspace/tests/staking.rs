@@ -4,7 +4,7 @@ mod mock;
 use mock::*;
 use mock::{TestXt};
 use frame_support::sp_runtime::DispatchError;
-use pallet_subtensor::{Error, Call as SubtensorCall};
+use pallet_subspace::{Error, Call as SubspaceCall};
 use frame_support::weights::{GetDispatchInfo, DispatchInfo, DispatchClass, Pays};
 
 /***********************************************************
@@ -17,7 +17,7 @@ fn test_add_stake_dispatch_info_ok() {
 	new_test_ext().execute_with(|| {
 		let hotkey = 0;
 		let ammount_staked = 5000;
-        let call = Call::Subtensor(SubtensorCall::add_stake{hotkey, ammount_staked});
+        let call = Call::Subspace(SubspaceCall::add_stake{hotkey, ammount_staked});
 		assert_eq!(call.get_dispatch_info(), DispatchInfo {
 			weight: 0,
 			class: DispatchClass::Normal,
@@ -44,17 +44,17 @@ fn test_add_stake_transaction_fee_ends_up_in_transaction_fee_pool() {
 		let test_neuron = register_ok_neuron(hotkey, test_neuron_cold_key);
 
 		// Verify start situation
-        let start_balance = Subtensor::get_coldkey_balance(&test_neuron_cold_key);
-		let start_stake = Subtensor::get_stake_of_neuron_hotkey_account_by_uid(test_neuron.uid);
+        let start_balance = Subspace::get_coldkey_balance(&test_neuron_cold_key);
+		let start_stake = Subspace::get_stake_of_neuron_hotkey_account_by_uid(test_neuron.uid);
 		assert_eq!(start_balance, 1_000_000_000);
 		assert_eq!(start_stake, 0);
 
 
-		let result = Subtensor::add_stake(<<Test as Config>::Origin>::signed(test_neuron_cold_key), hotkey, ammount_staked);
+		let result = Subspace::add_stake(<<Test as Config>::Origin>::signed(test_neuron_cold_key), hotkey, ammount_staked);
 		assert_ok!(result);
     
 
-		let end_balance = Subtensor::get_coldkey_balance( &test_neuron_cold_key );
+		let end_balance = Subspace::get_coldkey_balance( &test_neuron_cold_key );
 		assert_eq!(end_balance, 500_000_000);
 	});
 }
@@ -69,25 +69,25 @@ fn test_add_stake_ok_no_emission() {
 		let neuron = register_ok_neuron( hotkey_account_id, coldkey_account_id);
 
 		// Give it some $$$ in his coldkey balance
-		Subtensor::add_balance_to_coldkey_account( &coldkey_account_id, 10000 );
+		Subspace::add_balance_to_coldkey_account( &coldkey_account_id, 10000 );
 
 		// Check we have zero staked before transfer
-		assert_eq!(Subtensor::get_stake_of_neuron_hotkey_account_by_uid( neuron.uid ), 0);
+		assert_eq!(Subspace::get_stake_of_neuron_hotkey_account_by_uid( neuron.uid ), 0);
 
 		// Also total stake should be zero
-		assert_eq!(Subtensor::get_total_stake(), 0);
+		assert_eq!(Subspace::get_total_stake(), 0);
 
 		// Transfer to hotkey account, and check if the result is ok
-		assert_ok!(Subtensor::add_stake(<<Test as Config>::Origin>::signed(coldkey_account_id), hotkey_account_id, 10000));
+		assert_ok!(Subspace::add_stake(<<Test as Config>::Origin>::signed(coldkey_account_id), hotkey_account_id, 10000));
 
 		// Check if stake has increased
-		assert_eq!(Subtensor::get_stake_of_neuron_hotkey_account_by_uid(neuron.uid), 10000);
+		assert_eq!(Subspace::get_stake_of_neuron_hotkey_account_by_uid(neuron.uid), 10000);
 
 		// Check if balance has  decreased
-		assert_eq!(Subtensor::get_coldkey_balance(&coldkey_account_id), 0);
+		assert_eq!(Subspace::get_coldkey_balance(&coldkey_account_id), 0);
 
 		// Check if total stake has increased accordingly.
-		assert_eq!(Subtensor::get_total_stake(), 10000);
+		assert_eq!(Subspace::get_total_stake(), 10000);
 	});
 }
 
@@ -101,27 +101,27 @@ fn test_dividends_with_run_to_block() {
 		let initial_stake:u64 = 5000;
 
 		// Subscribe neuron, this will set a self weight
-		Subtensor::set_max_registratations_per_block( 3 );
+		Subspace::set_max_registratations_per_block( 3 );
 		let _adam = register_ok_neuron_with_nonce( 0, coldkey_account_id, 2112321);
 		let neuron_src = register_ok_neuron_with_nonce(neuron_src_hotkey_id, coldkey_account_id, 192213123);
 		let neuron_dest = register_ok_neuron_with_nonce(neuron_dest_hotkey_id, coldkey_account_id, 12323);
 
 		// Add some stake to the hotkey account, so we can test for emission before the transfer takes place
-		Subtensor::add_stake_to_neuron_hotkey_account(neuron_src.uid, initial_stake);
+		Subspace::add_stake_to_neuron_hotkey_account(neuron_src.uid, initial_stake);
 
 		// Check if the initial stake has arrived
-		assert_eq!( Subtensor::get_stake_of_neuron_hotkey_account_by_uid(neuron_src.uid), initial_stake );
+		assert_eq!( Subspace::get_stake_of_neuron_hotkey_account_by_uid(neuron_src.uid), initial_stake );
 
-		assert_eq!( Subtensor::get_neuron_count(), 3 );
+		assert_eq!( Subspace::get_neuron_count(), 3 );
 
 		// Run a couple of blocks to check if emission works
 		run_to_block( 2 );
 
 		// Check if the stake is equal to the inital stake + transfer
-		assert_eq!(Subtensor::get_stake_of_neuron_hotkey_account_by_uid(neuron_src.uid), initial_stake);
+		assert_eq!(Subspace::get_stake_of_neuron_hotkey_account_by_uid(neuron_src.uid), initial_stake);
 
 		// Check if the stake is equal to the inital stake + transfer
-		assert_eq!(Subtensor::get_stake_of_neuron_hotkey_account_by_uid(neuron_dest.uid), 0);
+		assert_eq!(Subspace::get_stake_of_neuron_hotkey_account_by_uid(neuron_dest.uid), 0);
 	});
 }
 
@@ -131,7 +131,7 @@ fn test_add_stake_err_signature() {
 		let hotkey_account_id = 654; // bogus
 		let amount = 20000 ; // Not used
 
-		let result = Subtensor::add_stake(<<Test as Config>::Origin>::none(), hotkey_account_id, amount);
+		let result = Subspace::add_stake(<<Test as Config>::Origin>::none(), hotkey_account_id, amount);
 		assert_eq!(result, DispatchError::BadOrigin.into());
 	});
 }
@@ -143,7 +143,7 @@ fn test_add_stake_err_not_active() {
 		let hotkey_account_id = 54544;
 		let amount = 1337;
 
-		let result = Subtensor::add_stake(<<Test as Config>::Origin>::signed(coldkey_account_id), hotkey_account_id, amount);
+		let result = Subspace::add_stake(<<Test as Config>::Origin>::signed(coldkey_account_id), hotkey_account_id, amount);
 		assert_eq!(result, Err(Error::<Test>::NotRegistered.into()));
 	});
 }
@@ -158,7 +158,7 @@ fn test_add_stake_err_neuron_does_not_belong_to_coldkey() {
 		let _neuron = register_ok_neuron( hotkey_id, coldkey_id );
 
 		// Perform the request which is signed by a different cold key
-		let result = Subtensor::add_stake(<<Test as Config>::Origin>::signed(other_cold_key), hotkey_id, 1000);
+		let result = Subspace::add_stake(<<Test as Config>::Origin>::signed(other_cold_key), hotkey_id, 1000);
 		assert_eq!(result, Err(Error::<Test>::NonAssociatedColdKey.into()));
 	});
 }
@@ -172,8 +172,8 @@ fn test_add_stake_err_not_enough_belance() {
 		let _neuron = register_ok_neuron( hotkey_id, coldkey_id );
 
 		// Lets try to stake with 0 balance in cold key account
-		assert_eq!(Subtensor::get_coldkey_balance(&coldkey_id), 0);
-		let result = Subtensor::add_stake(<<Test as Config>::Origin>::signed(coldkey_id), hotkey_id, 60000);
+		assert_eq!(Subspace::get_coldkey_balance(&coldkey_id), 0);
+		let result = Subspace::add_stake(<<Test as Config>::Origin>::signed(coldkey_id), hotkey_id, 60000);
 
 		assert_eq!(result, Err(Error::<Test>::NotEnoughBalanceToStake.into()));
 	});
@@ -189,7 +189,7 @@ fn test_remove_stake_dispatch_info_ok() {
         let hotkey = 0;
 		let ammount_unstaked = 5000;
 
-		let call = Call::Subtensor(SubtensorCall::remove_stake{hotkey, ammount_unstaked});
+		let call = Call::Subspace(SubspaceCall::remove_stake{hotkey, ammount_unstaked});
 
 		assert_eq!(call.get_dispatch_info(), DispatchInfo {
 			weight: 0,
@@ -210,18 +210,18 @@ fn test_remove_stake_ok_no_emission() {
 		let neuron = register_ok_neuron( hotkey_account_id, coldkey_account_id );
 
 		// Some basic assertions
-		assert_eq!(Subtensor::get_total_stake(), 0);
-		assert_eq!(Subtensor::get_stake_of_neuron_hotkey_account_by_uid(neuron.uid), 0);
-		assert_eq!(Subtensor::get_coldkey_balance(&coldkey_account_id), 0);
+		assert_eq!(Subspace::get_total_stake(), 0);
+		assert_eq!(Subspace::get_stake_of_neuron_hotkey_account_by_uid(neuron.uid), 0);
+		assert_eq!(Subspace::get_coldkey_balance(&coldkey_account_id), 0);
 
 		// Give the neuron some stake to remove
-		Subtensor::add_stake_to_neuron_hotkey_account(neuron.uid, amount);
+		Subspace::add_stake_to_neuron_hotkey_account(neuron.uid, amount);
 
 		// Do the magic
-		assert_ok!(Subtensor::remove_stake(<<Test as Config>::Origin>::signed(coldkey_account_id), hotkey_account_id, amount));
+		assert_ok!(Subspace::remove_stake(<<Test as Config>::Origin>::signed(coldkey_account_id), hotkey_account_id, amount));
 
-		assert_eq!(Subtensor::get_coldkey_balance(&coldkey_account_id), amount as u128);
-		assert_eq!(Subtensor::get_stake_of_neuron_hotkey_account_by_uid(neuron.uid), 0);
+		assert_eq!(Subspace::get_coldkey_balance(&coldkey_account_id), amount as u128);
+		assert_eq!(Subspace::get_stake_of_neuron_hotkey_account_by_uid(neuron.uid), 0);
 	});
 }
 
@@ -231,7 +231,7 @@ fn test_remove_stake_err_signature() {
 		let hotkey_account_id : u64 = 4968585;
 		let amount = 10000; // Amount to be removed
 
-		let result = Subtensor::remove_stake(<<Test as Config>::Origin>::none(), hotkey_account_id, amount);
+		let result = Subspace::remove_stake(<<Test as Config>::Origin>::none(), hotkey_account_id, amount);
 		assert_eq!(result, DispatchError::BadOrigin.into());
 	});
 }
@@ -243,7 +243,7 @@ fn test_remove_stake_err_not_active() {
 		let hotkey_account_id = 54544; // Not active id
 		let amount = 1337;
 
-		let result = Subtensor::add_stake(<<Test as Config>::Origin>::signed(coldkey_account_id), hotkey_account_id, amount);
+		let result = Subspace::add_stake(<<Test as Config>::Origin>::signed(coldkey_account_id), hotkey_account_id, amount);
 		assert_eq!(result, Err(Error::<Test>::NotRegistered.into()));
 	});
 }
@@ -258,7 +258,7 @@ fn test_remove_stake_err_neuron_does_not_belong_to_coldkey() {
 		let _neuron = register_ok_neuron( hotkey_id, coldkey_id );
 
 		// Perform the request which is signed by a different cold key
-		let result = Subtensor::remove_stake(<<Test as Config>::Origin>::signed(other_cold_key), hotkey_id, 1000);
+		let result = Subspace::remove_stake(<<Test as Config>::Origin>::signed(other_cold_key), hotkey_id, 1000);
 		assert_eq!(result, Err(Error::<Test>::NonAssociatedColdKey.into()));
 	});
 }
@@ -272,9 +272,9 @@ fn test_remove_stake_no_enough_stake() {
 
 		let neuron = register_ok_neuron( hotkey_id, coldkey_id );
 
-		assert_eq!(Subtensor::get_stake_of_neuron_hotkey_account_by_uid(neuron.uid), 0);
+		assert_eq!(Subspace::get_stake_of_neuron_hotkey_account_by_uid(neuron.uid), 0);
 
-		let result = Subtensor::remove_stake(<<Test as Config>::Origin>::signed(coldkey_id), hotkey_id, amount);
+		let result = Subspace::remove_stake(<<Test as Config>::Origin>::signed(coldkey_id), hotkey_id, amount);
 		assert_eq!(result, Err(Error::<Test>::NotEnoughStaketoWithdraw.into()));
 	});
 }
@@ -287,7 +287,7 @@ fn test_remove_stake_no_enough_stake() {
 fn test_get_coldkey_balance_no_balance() {
 	new_test_ext().execute_with(|| {
 		let coldkey_account_id = 5454; // arbitrary
-		let result = Subtensor::get_coldkey_balance(&coldkey_account_id);
+		let result = Subspace::get_coldkey_balance(&coldkey_account_id);
 
 		// Arbitrary account should have 0 balance
 		assert_eq!(result, 0);
@@ -303,9 +303,9 @@ fn test_get_coldkey_balance_with_balance() {
 		let amount = 1337;
 
 		// Put the balance on the account
-		Subtensor::add_balance_to_coldkey_account(&coldkey_account_id, amount);
+		Subspace::add_balance_to_coldkey_account(&coldkey_account_id, amount);
 
-		let result = Subtensor::get_coldkey_balance(&coldkey_account_id);
+		let result = Subspace::get_coldkey_balance(&coldkey_account_id);
 
 		// Arbitrary account should have 0 balance
 		assert_eq!(result, amount);
@@ -327,16 +327,16 @@ fn test_add_stake_to_neuron_hotkey_account_ok() {
 		let neuron = register_ok_neuron( hotkey_id, coldkey_id);
 
 		// There is not stake in the system at first, so result should be 0;
-		assert_eq!(Subtensor::get_total_stake(), 0);
+		assert_eq!(Subspace::get_total_stake(), 0);
 
 		// Gogogo
-		Subtensor::add_stake_to_neuron_hotkey_account(neuron.uid, amount);
+		Subspace::add_stake_to_neuron_hotkey_account(neuron.uid, amount);
 
 		// The stake that is now in the account, should equal the amount
-		assert_eq!(Subtensor::get_stake_of_neuron_hotkey_account_by_uid(neuron.uid), amount);
+		assert_eq!(Subspace::get_stake_of_neuron_hotkey_account_by_uid(neuron.uid), amount);
 
 		// The total stake should have been increased by the amount -> 0 + amount = amount
-		assert_eq!(Subtensor::get_total_stake(), amount);
+		assert_eq!(Subspace::get_total_stake(), amount);
 	});
 }
 
@@ -353,20 +353,20 @@ fn test_remove_stake_from_hotkey_account() {
 		let neuron = register_ok_neuron( hotkey_id, coldkey_id);
 
 		// Add some stake that can be removed
-		Subtensor::add_stake_to_neuron_hotkey_account(neuron.uid, amount);
+		Subspace::add_stake_to_neuron_hotkey_account(neuron.uid, amount);
 
 		// Prelimiary checks
-		assert_eq!(Subtensor::get_total_stake(), amount);
-		assert_eq!(Subtensor::get_stake_of_neuron_hotkey_account_by_uid(neuron.uid), amount);
+		assert_eq!(Subspace::get_total_stake(), amount);
+		assert_eq!(Subspace::get_stake_of_neuron_hotkey_account_by_uid(neuron.uid), amount);
 
 		// Remove stake
-		Subtensor::remove_stake_from_neuron_hotkey_account(neuron.uid, amount);
+		Subspace::remove_stake_from_neuron_hotkey_account(neuron.uid, amount);
 
 		// The stake on the hotkey account should be 0
-		assert_eq!(Subtensor::get_stake_of_neuron_hotkey_account_by_uid(neuron.uid), 0);
+		assert_eq!(Subspace::get_stake_of_neuron_hotkey_account_by_uid(neuron.uid), 0);
 
 		// The total amount of stake should be 0
-		assert_eq!(Subtensor::get_total_stake(), 0);
+		assert_eq!(Subspace::get_total_stake(), 0);
 	});
 }
 
@@ -379,9 +379,9 @@ fn test_increase_total_stake_ok() {
 	new_test_ext().execute_with(|| {
 		let increment = 10000;
 
-        assert_eq!(Subtensor::get_total_stake(), 0);
-		Subtensor::increase_total_stake(increment);
-		assert_eq!(Subtensor::get_total_stake(), increment);
+        assert_eq!(Subspace::get_total_stake(), 0);
+		Subspace::increase_total_stake(increment);
+		assert_eq!(Subspace::get_total_stake(), increment);
 	});
 }
 
@@ -393,8 +393,8 @@ fn test_increase_total_stake_panic_overflow() {
 		let increment : u64 = 1;
 
 		// Setup initial total stake
-		Subtensor::increase_total_stake(initial_total_stake);
-		Subtensor::increase_total_stake(increment); // Should trigger panic
+		Subspace::increase_total_stake(initial_total_stake);
+		Subspace::increase_total_stake(increment); // Should trigger panic
 	});
 }
 
@@ -407,11 +407,11 @@ fn test_decrease_total_stake_ok() {
         let initial_total_stake = 10000;
 		let decrement = 5000;
 
-		Subtensor::increase_total_stake(initial_total_stake);
-		Subtensor::decrease_total_stake(decrement);
+		Subspace::increase_total_stake(initial_total_stake);
+		Subspace::decrease_total_stake(decrement);
 
 		// The total stake remaining should be the difference between the initial stake and the decrement
-		assert_eq!(Subtensor::get_total_stake(), initial_total_stake - decrement);
+		assert_eq!(Subspace::get_total_stake(), initial_total_stake - decrement);
 	});
 }
 
@@ -422,8 +422,8 @@ fn test_decrease_total_stake_panic_underflow() {
         let initial_total_stake = 10000;
 		let decrement = 20000;
 
-		Subtensor::increase_total_stake(initial_total_stake);
-		Subtensor::decrease_total_stake(decrement); // Should trigger panic
+		Subspace::increase_total_stake(initial_total_stake);
+		Subspace::decrease_total_stake(decrement); // Should trigger panic
 	});
 }
 
@@ -436,8 +436,8 @@ fn test_add_balance_to_coldkey_account_ok() {
         let coldkey_id = 4444322;
 		let amount = 50000;
 
-		Subtensor::add_balance_to_coldkey_account(&coldkey_id, amount);
-		assert_eq!(Subtensor::get_coldkey_balance(&coldkey_id), amount);
+		Subspace::add_balance_to_coldkey_account(&coldkey_id, amount);
+		assert_eq!(Subspace::get_coldkey_balance(&coldkey_id), amount);
 
 	});
 }
@@ -454,11 +454,11 @@ fn test_remove_balance_from_coldkey_account_ok() {
 		let ammount = 10000; // Arbitrary
 
 		// Put some $$ on the bank
-		Subtensor::add_balance_to_coldkey_account(&coldkey_account_id, ammount);
-		assert_eq!(Subtensor::get_coldkey_balance(&coldkey_account_id), ammount);
+		Subspace::add_balance_to_coldkey_account(&coldkey_account_id, ammount);
+		assert_eq!(Subspace::get_coldkey_balance(&coldkey_account_id), ammount);
 
 		// Should be able to withdraw without hassle
-		let result = Subtensor::remove_balance_from_coldkey_account(&coldkey_account_id, ammount);
+		let result = Subspace::remove_balance_from_coldkey_account(&coldkey_account_id, ammount);
 		assert_eq!(result, true);
 	});
 }
@@ -471,7 +471,7 @@ fn test_remove_balance_from_coldkey_account_failed() {
 
 		// Try to remove stake from the coldkey account. This should fail,
 		// as there is no balance, nor does the account exist
-		let result = Subtensor::remove_balance_from_coldkey_account(&coldkey_account_id, ammount);
+		let result = Subspace::remove_balance_from_coldkey_account(&coldkey_account_id, ammount);
 		assert_eq!(result, false);
 	});
 }
@@ -486,7 +486,7 @@ fn test_neuron_belongs_to_coldkey_ok() {
 		let coldkey_id = 34333;
 
 		let neuron = register_ok_neuron( hotkey_id, coldkey_id );
-		assert_eq!(Subtensor::neuron_belongs_to_coldkey(&neuron, &coldkey_id), true);
+		assert_eq!(Subspace::neuron_belongs_to_coldkey(&neuron, &coldkey_id), true);
 	});
 }
 
@@ -498,7 +498,7 @@ fn test_neurong_belongs_to_coldkey_err() {
 		let other_coldkey_id = 8979879;
 
 		let neuron = register_ok_neuron( hotkey_id, other_coldkey_id);
-		assert_eq!(Subtensor::neuron_belongs_to_coldkey(&neuron, &coldkey_id), false);
+		assert_eq!(Subspace::neuron_belongs_to_coldkey(&neuron, &coldkey_id), false);
 	});
 }
 
@@ -512,8 +512,8 @@ fn test_can_remove_balane_from_coldkey_account_ok() {
 		let initial_amount = 10000;
 		let remove_amount = 5000;
 
-		Subtensor::add_balance_to_coldkey_account(&coldkey_id, initial_amount);
-		assert_eq!(Subtensor::can_remove_balance_from_coldkey_account(&coldkey_id, remove_amount), true);
+		Subspace::add_balance_to_coldkey_account(&coldkey_id, initial_amount);
+		assert_eq!(Subspace::can_remove_balance_from_coldkey_account(&coldkey_id, remove_amount), true);
 	});
 }
 
@@ -525,8 +525,8 @@ fn test_can_remove_balance_from_coldkey_account_err_insufficient_balance() {
 		let initial_amount = 10000;
 		let remove_amount = 20000;
 
-		Subtensor::add_balance_to_coldkey_account(&coldkey_id, initial_amount);
-		assert_eq!(Subtensor::can_remove_balance_from_coldkey_account(&coldkey_id, remove_amount), false);
+		Subspace::add_balance_to_coldkey_account(&coldkey_id, initial_amount);
+		assert_eq!(Subspace::can_remove_balance_from_coldkey_account(&coldkey_id, remove_amount), false);
 	});
 }
 
@@ -542,9 +542,9 @@ fn test_has_enough_stake_yes() {
 
 		let neuron = register_ok_neuron( hotkey_id, coldkey_id );
 
-		Subtensor::add_stake_to_neuron_hotkey_account(neuron.uid, intial_amount);
-		let neuron = Subtensor::get_neuron_for_uid(neuron.uid);
-		assert_eq!(Subtensor::has_enough_stake(&neuron, 5000), true);
+		Subspace::add_stake_to_neuron_hotkey_account(neuron.uid, intial_amount);
+		let neuron = Subspace::get_neuron_for_uid(neuron.uid);
+		assert_eq!(Subspace::has_enough_stake(&neuron, 5000), true);
 	});
 }
 
@@ -556,8 +556,8 @@ fn test_has_enough_stake_no() {
 		let intial_amount = 0;
 
 		let neuron = register_ok_neuron( hotkey_id, coldkey_id );
-		Subtensor::add_stake_to_neuron_hotkey_account(neuron.uid, intial_amount);
-		assert_eq!(Subtensor::has_enough_stake(&neuron, 5000), false);
+		Subspace::add_stake_to_neuron_hotkey_account(neuron.uid, intial_amount);
+		assert_eq!(Subspace::has_enough_stake(&neuron, 5000), false);
 
 	});
 }
@@ -569,6 +569,6 @@ fn test_has_enough_stake_no() {
 #[test]
 fn test_has_hotkey_account_no() {
 	new_test_ext().execute_with(|| {
-        assert_eq!(Subtensor::has_hotkey_account(&8888), false);
+        assert_eq!(Subspace::has_hotkey_account(&8888), false);
 	});
 }

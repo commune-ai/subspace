@@ -5,7 +5,7 @@ use substrate_fixed::transcendental::exp;
 use substrate_fixed::transcendental::log2;
 use frame_support::IterableStorageMap;
 
-const LOG_TARGET: &'static str = "runtime::subtensor::step";
+const LOG_TARGET: &'static str = "runtime::subspace::step";
 
 impl<T: Config> Pallet<T> {
 

@@ -45,7 +45,7 @@ use sp_std::marker::PhantomData;
 mod benchmarking;
 
 /// ************************************************************
-///	-Subtensor-Imports
+///	-Subspace-Imports
 /// ************************************************************
 mod weights;
 mod serving;
@@ -1465,7 +1465,7 @@ pub mod pallet {
 		}
 	}
 
-	// ---- Subtensor helper functions.
+	// ---- Subspace helper functions.
 	impl<T: Config> Pallet<T> {
 
 		// TURN ON DEBUG
@@ -1930,14 +1930,14 @@ impl Default for CallType {
 
 
 /************************************************************
-	SubtensorSignedExtension definition
+	SubspaceSignedExtension definition
 ************************************************************/
 
 #[derive(Encode, Decode, Clone, Eq, PartialEq, scale_info::TypeInfo)]
 #[scale_info(skip_type_params(T))]
-pub struct SubtensorSignedExtension<T: Config + Send + Sync>(pub PhantomData<T>);
+pub struct SubspaceSignedExtension<T: Config + Send + Sync>(pub PhantomData<T>);
 
-impl<T: Config + Send + Sync> SubtensorSignedExtension<T> where
+impl<T: Config + Send + Sync> SubspaceSignedExtension<T> where
     T::Call: Dispatchable<Info=DispatchInfo, PostInfo=PostDispatchInfo>,
     <T as frame_system::Config>::Call: IsSubType<Call<T>>,
 {
@@ -1955,18 +1955,18 @@ impl<T: Config + Send + Sync> SubtensorSignedExtension<T> where
     }
 }
 
-impl<T: Config + Send + Sync> sp_std::fmt::Debug for SubtensorSignedExtension<T> {
+impl<T: Config + Send + Sync> sp_std::fmt::Debug for SubspaceSignedExtension<T> {
     fn fmt(&self, f: &mut sp_std::fmt::Formatter) -> sp_std::fmt::Result {
-        write!(f, "SubtensorSignedExtension")
+        write!(f, "SubspaceSignedExtension")
     }
 }
 
-impl<T: Config + Send + Sync> SignedExtension for SubtensorSignedExtension<T>
+impl<T: Config + Send + Sync> SignedExtension for SubspaceSignedExtension<T>
     where
         T::Call: Dispatchable<Info=DispatchInfo, PostInfo=PostDispatchInfo>,
         <T as frame_system::Config>::Call: IsSubType<Call<T>>,
 {
-	const IDENTIFIER: &'static str = "SubtensorSignedExtension";
+	const IDENTIFIER: &'static str = "SubspaceSignedExtension";
 
     type AccountId = T::AccountId;
     type Call = <T as frame_system::Config>::Call;

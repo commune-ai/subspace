@@ -7,7 +7,7 @@ use sp_io::hashing::sha2_256;
 use sp_io::hashing::keccak_256;
 use frame_system::{ensure_signed};
 
-const LOG_TARGET: &'static str = "runtime::subtensor::registration";
+const LOG_TARGET: &'static str = "runtime::subspace::registration";
 
 impl<T: Config> Pallet<T> {
 

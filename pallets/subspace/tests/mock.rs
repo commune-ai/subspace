@@ -25,7 +25,7 @@ use sp_runtime::{
 	codec::{Codec, Encode, Decode}
 };
 
-use pallet_subtensor::{NeuronMetadata};
+use pallet_subspace::{NeuronMetadata};
 use std::net::{Ipv6Addr, Ipv4Addr};
 use serde::{Serialize, Serializer, Deserialize, de::Error as DeError, Deserializer};
 use std::{fmt::{self, Debug}, ops::Deref, cell::RefCell};
@@ -56,12 +56,12 @@ frame_support::construct_runtime!(
 		System: frame_system::{Pallet, Call, Config, Storage, Event<T>},
 		Sudo: pallet_sudo::{Pallet, Call, Config<T>, Storage, Event<T>},
 		Balances: pallet_balances::{Pallet, Call, Config<T>, Storage, Event<T>},
-		Subtensor: pallet_subtensor::{Pallet, Call, Config, Storage, Event<T>},
+		Subspace: pallet_subspace::{Pallet, Call, Config, Storage, Event<T>},
 	}
 );
 
 #[allow(dead_code)]
-pub type SubtensorCall = pallet_subtensor::Call<Test>;
+pub type SubspaceCall = pallet_subspace::Call<Test>;
 
 #[allow(dead_code)]
 pub type BalanceCall = pallet_balances::Call<Test>;
@@ -185,7 +185,7 @@ impl pallet_balances::Config for Test {
 	type ReserveIdentifier = ();
 }
 
-impl pallet_subtensor::Config for Test {
+impl pallet_subspace::Config for Test {
 	type Event = ();
 	type Currency = Balances;
 	type TransactionByteFee = TransactionByteFee;
@@ -251,7 +251,7 @@ type SignedExtra = (
 	frame_system::CheckEra<Test>,
 	frame_system::CheckNonce<Test>,
 	frame_system::CheckWeight<Test>,
-	pallet_subtensor::SubtensorSignedExtension<Test>,
+	pallet_subspace::SubspaceSignedExtension<Test>,
 	//pallet_transaction_payment::ChargeTransactionPaymentOld<Test>
 );
 
@@ -288,7 +288,7 @@ fn extra(nonce: u64) -> SignedExtra {
 		frame_system::CheckEra::from(Era::Immortal),
 		frame_system::CheckNonce::from(nonce),
 		frame_system::CheckWeight::new(),
-		pallet_subtensor::SubtensorSignedExtension::new(),
+		pallet_subspace::SubspaceSignedExtension::new(),
 		// pallet_transaction_payment::ChargeTransactionPayment::from(0)
 	)
 }
@@ -326,7 +326,7 @@ pub fn test_ext_with_balances(balances : Vec<(u64, u128)>) -> sp_io::TestExterna
 // 	let mut t = frame_system::GenesisConfig::default()
 // 	.build_storage::<Test>()
 // 	.unwrap();
-// 	pallet_subtensor::GenesisConfig {
+// 	pallet_subspace::GenesisConfig {
 // 		stake: vec![]
 // 	}.assimilate_storage::<Test>(&mut t)
 // 		.unwrap();
@@ -335,28 +335,28 @@ pub fn test_ext_with_balances(balances : Vec<(u64, u128)>) -> sp_io::TestExterna
 
 #[allow(dead_code)]
 pub fn register_ok_neuron( hotkey_account_id: u64, coldkey_account_id: u64) -> NeuronMetadata<u64> {
-	let block_number: u64 = Subtensor::get_current_block_as_u64();
-	let (nonce, work): (u64, Vec<u8>) = Subtensor::create_work_for_block_number( block_number, (hotkey_account_id + coldkey_account_id) * 1000000 );
-	let result = Subtensor::register( <<Test as frame_system::Config>::Origin>::signed(hotkey_account_id), block_number, nonce, work, hotkey_account_id, coldkey_account_id );
+	let block_number: u64 = Subspace::get_current_block_as_u64();
+	let (nonce, work): (u64, Vec<u8>) = Subspace::create_work_for_block_number( block_number, (hotkey_account_id + coldkey_account_id) * 1000000 );
+	let result = Subspace::register( <<Test as frame_system::Config>::Origin>::signed(hotkey_account_id), block_number, nonce, work, hotkey_account_id, coldkey_account_id );
 	assert_ok!(result);
-	let neuron = Subtensor::get_neuron_for_hotkey(&hotkey_account_id);
+	let neuron = Subspace::get_neuron_for_hotkey(&hotkey_account_id);
 	neuron
 }
 #[allow(dead_code)]
 pub fn register_ok_neuron_with_nonce( hotkey_account_id: u64, coldkey_account_id: u64, nonce: u64 ) -> NeuronMetadata<u64> {
-	let block_number: u64 = Subtensor::get_current_block_as_u64();
-	let (nonce2, work): (u64, Vec<u8>) = Subtensor::create_work_for_block_number( block_number, nonce );
-	let result = Subtensor::register( <<Test as frame_system::Config>::Origin>::signed(hotkey_account_id), block_number, nonce2, work, hotkey_account_id, coldkey_account_id );
+	let block_number: u64 = Subspace::get_current_block_as_u64();
+	let (nonce2, work): (u64, Vec<u8>) = Subspace::create_work_for_block_number( block_number, nonce );
+	let result = Subspace::register( <<Test as frame_system::Config>::Origin>::signed(hotkey_account_id), block_number, nonce2, work, hotkey_account_id, coldkey_account_id );
 	assert_ok!(result);
-	let neuron = Subtensor::get_neuron_for_hotkey(&hotkey_account_id);
+	let neuron = Subspace::get_neuron_for_hotkey(&hotkey_account_id);
 	neuron
 }
 
 #[allow(dead_code)]
 pub fn serve_axon( hotkey_account_id : u64, version: u32, ip: u128, port: u16, ip_type : u8, modality: u8 ) -> NeuronMetadata<u64> {
-	let result = Subtensor::serve_axon(<<Test as frame_system::Config>::Origin>::signed(hotkey_account_id), version, ip, port, ip_type, modality );
+	let result = Subspace::serve_axon(<<Test as frame_system::Config>::Origin>::signed(hotkey_account_id), version, ip, port, ip_type, modality );
 	assert_ok!(result);
-	let neuron = Subtensor::get_neuron_for_hotkey(&hotkey_account_id);
+	let neuron = Subspace::get_neuron_for_hotkey(&hotkey_account_id);
 	neuron
 }
 
@@ -373,22 +373,22 @@ pub fn serve_axon( hotkey_account_id : u64, version: u32, ip: u128, port: u16, i
 #[allow(dead_code)]
 pub(crate) fn run_to_block(n: u64) {
     while System::block_number() < n {
-		Subtensor::on_finalize(System::block_number());
+		Subspace::on_finalize(System::block_number());
         System::on_finalize(System::block_number());
         System::set_block_number(System::block_number() + 1);
         System::on_initialize(System::block_number());
-		Subtensor::on_initialize(System::block_number());
+		Subspace::on_initialize(System::block_number());
     }
 }
 
 #[allow(dead_code)]
 pub(crate) fn step_block(n: u64) {
 	for _ in 0..n {
-		Subtensor::on_finalize(System::block_number());
+		Subspace::on_finalize(System::block_number());
 		System::on_finalize(System::block_number());
 		System::set_block_number(System::block_number() + 1);
 		System::on_initialize(System::block_number());
-		Subtensor::on_initialize(System::block_number());
+		Subspace::on_initialize(System::block_number());
 	}
 }
 
