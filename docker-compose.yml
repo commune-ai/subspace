@@ -10,16 +10,21 @@ services:
     mem_limit: 10000000000
     memswap_limit: 20000000000
 
+    environment:
+      - NODE_DIR=/subspace/node
+      - CONTRACT_DIR=/subspace/contract
     volumes:
-      # SUBSTRATE BUILD REQUIREMENTS
-      - ./node:/app/node
-      - ./pallets:/app/pallets
-      - ./runtime:/app/runtime
-      - ./target:/app/target
-      - ./Cargo.lock:/app/Cargo.lock
-      - ./Cargo.toml:/app/Cargo.toml
-      - ./scripts:/app/scripts
-      - ./contract:/app/contract
+      # NODE BINDINGS
+      - ./node:${NODE_DIR}/node
+      - ./pallets:${NODE_DIR}/pallets
+      - ./runtime:${NODE_DIR}/runtime
+      - ./target:${NODE_DIR}/target
+      - ./Cargo.lock:${NODE_DIR}/Cargo.lock
+      - ./Cargo.toml:${NODE_DIR}/Cargo.toml
+      - ./scripts:${NODE_DIR}/scripts
+    
+      # CONTRACT BINDINGS
+      - ./contract:${CONTRACT_DIR}/contract
     
     command: bash -c "tail -F anything;"
 
