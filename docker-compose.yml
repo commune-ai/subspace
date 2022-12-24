@@ -1,0 +1,24 @@
+version: "3.2"
+
+services:
+  subspace:
+    network_mode: host
+    container_name: subspace
+    build: ./
+    image: commune/subtensor:latest
+    cpu_count: 4
+    mem_limit: 10000000000
+    memswap_limit: 20000000000
+
+    volumes:
+      # SUBSTRATE BUILD REQUIREMENTS
+      - ./node:/app/node
+      - ./pallets:/app/pallets
+      - ./runtime:/app/runtime
+      - ./target:/app/target
+      - ./Cargo.lock:/app/Cargo.lock
+      - ./Cargo.toml:/app/Cargo.toml
+      - ./scripts:/app/scripts
+    
+    command: bash -c "tail -F anything;"
+
