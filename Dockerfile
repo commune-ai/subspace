@@ -47,3 +47,10 @@ RUN apt-get update \
 RUN rustup update nightly
 RUN rustup target add wasm32-unknown-unknown --toolchain nightly
 RUN apt-get install make
+RUN apt-get install -y pkg-config
+
+# CONTRACTS STUFF
+RUN apt install binaryen
+RUN apt-get install libssl-dev
+RUN cargo install cargo-dylint dylint-link
+RUN cargo install cargo-contract --force

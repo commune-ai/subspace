@@ -19,6 +19,7 @@ services:
       - ./Cargo.lock:/app/Cargo.lock
       - ./Cargo.toml:/app/Cargo.toml
       - ./scripts:/app/scripts
+      - ./contract:/app/contract
     
     command: bash -c "tail -F anything;"
 

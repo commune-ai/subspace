@@ -3,6 +3,7 @@ resolver = "2"
 members = [
     'node',
     'runtime',
+    'contract/flipper'
 ]
 
 [profile.release]

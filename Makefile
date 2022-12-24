@@ -14,3 +14,10 @@ build:
 
 enter:
 	docker exec -it subspace bash
+
+exec:
+	docker exec -it subspace bash -c "${arg}"
+
+node_up:
+	make exec arg="./target/release/subspace-node --dev"
+
