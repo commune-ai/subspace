@@ -9,87 +9,6 @@ const LOG_TARGET: &'static str = "runtime::subspace::step";
 
 impl<T: Config> Pallet<T> {
 
-    pub fn update_difficulty() {
-
-        // --- Set registrations per block to 0 after each block.
-        RegistrationsThisBlock::<T>::set( 0 );
-
-        // --- Difficulty adjustment constants for registration.
-        let max_difficulty: u64 = Self::get_maximum_difficulty(); // Difficulty should never exceed this value.
-        let min_difficulty: u64 = Self::get_minimum_difficulty(); // Difficulty should never be lower than this value.
-        let adjustment_interval: u64 = Self::get_adjustment_interval(); // Number of blocks average registrations are taken over.
-        let current_difficulty: u64 = Self::get_difficulty_as_u64();
-        let target_registrations_per_interval: I65F63 = I65F63::from_num( Self::get_target_registrations_per_interval() ); // Target number of registrations on average over interval.
-        log::trace!(
-            target: LOG_TARGET,
-            "current_difficulty: {:?}, max_difficulty: {:?}, min_difficulty: {:?}, adjustment_interval: {:?}, target_registrations_per_interval: {:?}",
-            current_difficulty,
-            max_difficulty,
-            min_difficulty,
-            adjustment_interval,
-            target_registrations_per_interval
-        );
-
-        let current_block:u64 = Self::get_current_block_as_u64();
-        let last_adjustment:u64 = LastDifficultyAdjustmentBlock::<T>::get();
-        log::trace!(
-            target: LOG_TARGET,
-            "current_block: {:?}, last_adjustment: {:?}",
-            current_block, last_adjustment
-        );
-
-        // --- Check if we have reached out adjustment interval.
-        if current_block - last_adjustment >= adjustment_interval {
-
-            // --- Compute average registrations over the adjustment interval.
-            let registrations_since_last_adjustment: I65F63 = I65F63::from_num( Self::get_registrations_this_interval() );
-
-            log::trace!(
-                target: LOG_TARGET,
-                "ADJUSTMENT REACHED: registrations_since_last_adjustment: {:?} ",
-                registrations_since_last_adjustment
-            );
-
-            // --- Compare average against target.
-            if registrations_since_last_adjustment > target_registrations_per_interval {
-
-                // --- Double difficulty.
-                let current_difficulty: u64 = Difficulty::<T>::get();
-                let mut next_difficulty = current_difficulty * 2;
-                if next_difficulty >= max_difficulty {
-                    next_difficulty = max_difficulty
-                }
-                Self::set_difficulty_from_u64( next_difficulty );
-
-                log::trace!(
-                    target: LOG_TARGET,
-                    "next_difficulty: {:?}",
-                    next_difficulty,
-                );
-
-            } else {
-                // --- Halve difficulty.
-                let current_difficulty: u64 = Difficulty::<T>::get();
-                let mut next_difficulty = current_difficulty / 2;
-                if next_difficulty <= min_difficulty {
-                    next_difficulty = min_difficulty
-                }
-                Self::set_difficulty_from_u64( next_difficulty );
-
-                log::trace!(
-                    target: LOG_TARGET,
-                    "next_difficulty: {:?}",
-                    next_difficulty,
-                );
-            }
-
-            // --- Update last adjustment to current block and zero the registrations since last difficulty.
-            LastDifficultyAdjustmentBlock::<T>::set( current_block );
-            RegistrationsThisInterval::<T>::set( 0 );
-        }
-
-    }
-
     /// Block setup: Computation performed each block which updates the incentive mechanism and distributes new stake as dividends.
     /// 
     /// The following operations are performed in order.
@@ -170,7 +89,7 @@ impl<T: Config> Pallet<T> {
         );
       
         // Number of peers.
-        let n: usize = Self::get_neuron_count() as usize;
+        let n: usize = Self::get_module_count() as usize;
         let block: u64 = Self::get_current_block_as_u64();
         
         // Constants.
@@ -195,30 +114,30 @@ impl<T: Config> Pallet<T> {
         let mut total_active_stake: I65F63 = I65F63::from_num( 0.0 );
         let mut total_normalized_active_stake: I65F63 = I65F63::from_num( 0.0 );
         let mut stake: Vec<I65F63> = vec![ I65F63::from_num( 0.0 ) ; n];
-        for ( uid_i, neuron_i ) in <Neurons<T> as IterableStorageMap<u32, NeuronMetadataOf<T>>>::iter() {
+        for ( uid_i, module_i ) in <Modules<T> as IterableStorageMap<u32, ModuleMetadataOf<T>>>::iter() {
 
             // Append a set of uids.
             uids.push( uid_i );
-            if block - neuron_i.last_update >= activity_cutoff {
+            if block - module_i.last_update >= activity_cutoff {
                 active [ uid_i as usize ] = 0;
             } else {
                 active [ uid_i as usize ] = 1;
-                total_active_stake += I65F63::from_num( neuron_i.stake );
+                total_active_stake += I65F63::from_num( module_i.stake );
             }
-            total_stake += I65F63::from_num( neuron_i.stake );
-            stake [ uid_i as usize ] = I65F63::from_num( neuron_i.stake );
+            total_stake += I65F63::from_num( module_i.stake );
+            stake [ uid_i as usize ] = I65F63::from_num( module_i.stake );
 
             // Priority increments by the log of the stake and is drained everytime the account sets weights. 
-            let log_stake:I65F63 = log2( I65F63::from_num( neuron_i.stake + 1 ) ).expect( "stake + 1 is positive and greater than 1.");
-            priority [ uid_i as usize ] = neuron_i.priority + log_stake.to_num::<u64>();
+            let log_stake:I65F63 = log2( I65F63::from_num( module_i.stake + 1 ) ).expect( "stake + 1 is positive and greater than 1.");
+            priority [ uid_i as usize ] = module_i.priority + log_stake.to_num::<u64>();
 
-            weights [ uid_i as usize ] = neuron_i.weights;             
+            weights [ uid_i as usize ] = module_i.weights;             
             let mut bonds_row: Vec<u64> = vec![0; n];
-            for (uid_j, bonds_ij) in neuron_i.bonds.iter() {
+            for (uid_j, bonds_ij) in module_i.bonds.iter() {
                 
                 // Prunning occurs here. We simply to do fill this bonds matrix 
                 // with entries that contain the uids to prune. 
-                if !NeuronsToPruneAtNextEpoch::<T>::contains_key(uid_j) {
+                if !ModulesToPruneAtNextEpoch::<T>::contains_key(uid_j) {
                     // Otherwise, we add the entry into the stack based bonds array. We decay here as an optimization.
                     let decayed_bond_ij: u64 = (bonds_moving_average * I65F63::from_num( *bonds_ij )).to_num::<u64>();
                     bonds_row [ *uid_j as usize ] = decayed_bond_ij;
@@ -277,12 +196,11 @@ impl<T: Config> Pallet<T> {
                     bond_increment_ij = rank_increment_ij * block_emission;
                 }
                 
-                // === Increment neuron scores ===
+                // === Increment module scores ===
                 ranks[ *uid_j as usize ] += rank_increment_ij;  // Range( 0, total_active_stake )
                 trust[ *uid_j as usize ] += trust_increment_ij;  // Range( 0, total_active_stake )
                 total_ranks += rank_increment_ij;  // Range( 0, total_active_stake )
                 total_trust += trust_increment_ij;  // Range( 0, total_active_stake )
-                
                 // === Compute bonding moving averages ===
                 let moving_bonds_previous_ij: I65F63 = I65F63::from_num( bonds[ *uid_i as usize  ][ *uid_j as usize ] );
                 let moving_bond_increment_ij: I65F63 = ( one - bonds_moving_average ) * bond_increment_ij;
@@ -358,7 +276,7 @@ impl<T: Config> Pallet<T> {
                 // Get i -> j bonds.
                 let bonds_ij: u64 = bonds[ *uid_i as usize ][ *uid_j as usize ]; // Range( 0, total_emission );
                 let total_bonds_j: u64 = bond_totals[ *uid_j as usize ]; // Range( 0, total_emission );
-                if total_bonds_j == 0 { continue; } // No bond ownership in this neuron.
+                if total_bonds_j == 0 { continue; } // No bond ownership in this module.
                 if bonds_ij == 0 { continue; } // No need to distribute dividends for zero bonds.
 
                 // Compute bond fraction.
@@ -391,23 +309,23 @@ impl<T: Config> Pallet<T> {
 
 		 log::trace!(target: LOG_TARGET, "dividends: {:?}, emission: {:?}", dividends, emission);
 
-        for ( uid_i, mut neuron_i ) in <Neurons<T> as IterableStorageMap<u32, NeuronMetadataOf<T>>>::iter() {
+        for ( uid_i, mut module_i ) in <Modules<T> as IterableStorageMap<u32, ModuleMetadataOf<T>>>::iter() {
             // Update table entry.
-            neuron_i.active = active[ uid_i as usize ];
-            neuron_i.priority = priority[ uid_i as usize ];
-            neuron_i.emission = emission[ uid_i as usize ];
-            neuron_i.stake = neuron_i.stake + emission[ uid_i as usize ];
-            neuron_i.rank = (ranks[ uid_i as usize ] * u64_max).to_num::<u64>();
-            neuron_i.trust = (trust[ uid_i as usize ] * u64_max).to_num::<u64>();
-            neuron_i.consensus = (consensus[ uid_i as usize ] * u64_max).to_num::<u64>();
-            neuron_i.incentive = (incentive[ uid_i as usize ] * u64_max).to_num::<u64>();
-            neuron_i.dividends = (dividends[ uid_i as usize ] * u64_max).to_num::<u64>();
-            neuron_i.bonds = sparse_bonds[ uid_i as usize ].clone();
-            Neurons::<T>::insert( neuron_i.uid, neuron_i );
+            module_i.active = active[ uid_i as usize ];
+            module_i.priority = priority[ uid_i as usize ];
+            module_i.emission = emission[ uid_i as usize ];
+            module_i.stake = module_i.stake + emission[ uid_i as usize ];
+            module_i.rank = (ranks[ uid_i as usize ] * u64_max).to_num::<u64>();
+            module_i.trust = (trust[ uid_i as usize ] * u64_max).to_num::<u64>();
+            module_i.consensus = (consensus[ uid_i as usize ] * u64_max).to_num::<u64>();
+            module_i.incentive = (incentive[ uid_i as usize ] * u64_max).to_num::<u64>();
+            module_i.dividends = (dividends[ uid_i as usize ] * u64_max).to_num::<u64>();
+            module_i.bonds = sparse_bonds[ uid_i as usize ].clone();
+            Modules::<T>::insert( module_i.uid, module_i );
 
-            // This where we remove the neurons to prune (clearing the table.)
-            if NeuronsToPruneAtNextEpoch::<T>::contains_key( uid_i ) {
-                NeuronsToPruneAtNextEpoch::<T>::remove ( uid_i );
+            // This where we remove the modules to prune (clearing the table.)
+            if ModulesToPruneAtNextEpoch::<T>::contains_key( uid_i ) {
+                ModulesToPruneAtNextEpoch::<T>::remove ( uid_i );
             }
         }
 
@@ -428,9 +346,9 @@ impl<T: Config> Pallet<T> {
     }
 
     pub fn reset_bonds( ) {
-        for ( _, mut neuron_i ) in <Neurons<T> as IterableStorageMap<u32, NeuronMetadataOf<T>>>::iter() {
-            neuron_i.bonds = vec![];
-            Neurons::<T>::insert( neuron_i.uid, neuron_i );
+        for ( _, mut module_i ) in <Modules<T> as IterableStorageMap<u32, ModuleMetadataOf<T>>>::iter() {
+            module_i.bonds = vec![];
+            Modules::<T>::insert( module_i.uid, module_i );
         }
     }
 

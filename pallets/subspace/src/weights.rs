@@ -6,9 +6,9 @@ impl<T: Config> Pallet<T> {
         // ---- We check the caller signature
         let hotkey_id = ensure_signed(origin)?;
 
-        // ---- We check to see that the calling neuron is in the active set.
+        // ---- We check to see that the calling module is in the active set.
         ensure!(Self::is_hotkey_active(&hotkey_id), Error::<T>::NotRegistered);
-        let mut neuron = Self::get_neuron_for_hotkey(&hotkey_id);
+        let mut module = Self::get_module_for_hotkey(&hotkey_id);
 
         // --- We check that the length of these two lists are equal.
         ensure!(uids_match_values(&uids, &values), Error::<T>::WeightVecNotEqualSize);
@@ -20,26 +20,26 @@ impl<T: Config> Pallet<T> {
         ensure!(!Self::contains_invalid_uids(&uids), Error::<T>::InvalidUid);
 
         // --- We check if the weights have the desired length.
-        ensure!( Self::check_length(neuron.uid, &uids, &values), Error::<T>::NotSettingEnoughWeights);
+        ensure!( Self::check_length(module.uid, &uids, &values), Error::<T>::NotSettingEnoughWeights);
 
         // Normalize weights.
         let normalized_values = normalize(values);
 
         // --- We check if the weights do not exceed the max weight limit.
-        ensure!( Self::max_weight_limited(neuron.uid, &uids, &normalized_values), Error::<T>::MaxWeightExceeded );
+        ensure!( Self::max_weight_limited(module.uid, &uids, &normalized_values), Error::<T>::MaxWeightExceeded );
 
         // Zip weights.
         let mut zipped_weights: Vec<(u32,u32)> = vec![];
         for (uid, val) in uids.iter().zip(normalized_values.iter()) {
             zipped_weights.push((*uid, *val))
         }
-        neuron.weights = zipped_weights;
-        neuron.active = 1; // Set activity back to 1.
-        neuron.priority = 0; // Priority is drained.
-        neuron.last_update = Self::get_current_block_as_u64();
+        module.weights = zipped_weights;
+        module.active = 1; // Set activity back to 1.
+        module.priority = 0; // Priority is drained.
+        module.last_update = Self::get_current_block_as_u64();
 
         // Sink update.
-        Neurons::<T>::insert(neuron.uid, neuron);
+        Modules::<T>::insert(module.uid, module);
 
         // ---- Emit the staking event.
         Self::deposit_event(Event::WeightsSet(hotkey_id));

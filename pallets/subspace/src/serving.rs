@@ -1,7 +1,7 @@
 use super::*;
 
 impl<T: Config> Pallet<T> {
-    pub fn do_serve_axon( origin: T::Origin, version: u32, ip: u128, port: u16, ip_type: u8, modality: u8 ) -> dispatch::DispatchResult {
+    pub fn do_serve_module( origin: T::Origin, version: u32, ip: u128, port: u16, ip_type: u8) -> dispatch::DispatchResult {
 
         // --- We check the callers (hotkey) signature.
         let hotkey_id = ensure_signed(origin)?;
@@ -15,18 +15,18 @@ impl<T: Config> Pallet<T> {
         // --- We get the uid associated with this hotkey account.
         let uid = Self::get_uid_for_hotkey(&hotkey_id);
 
-        // --- We get the neuron assoicated with this hotkey.
-        let mut neuron = Self::get_neuron_for_uid(uid);
-        neuron.version = version;
-        neuron.ip = ip;
-        neuron.port = port;
-        neuron.ip_type = ip_type;
-        neuron.active = 1;
-        neuron.last_update = Self::get_current_block_as_u64();
+        // --- We get the module assoicated with this hotkey.
+        let mut module = Self::get_module_for_uid(uid);
+        module.version = version;
+        module.ip = ip;
+        module.port = port;
+        module.ip_type = ip_type;
+        module.active = 1;
+        module.last_update = Self::get_current_block_as_u64();
 
-        // --- We deposit the neuron updated event
-        Neurons::<T>::insert(uid, neuron);
-        Self::deposit_event(Event::AxonServed(uid));
+        // --- We deposit the module updated event
+        Modules::<T>::insert(uid, module);
+        Self::deposit_event(Event::ModuleServed(uid));
         
         Ok(())
     }
@@ -40,9 +40,9 @@ impl<T: Config> Pallet<T> {
             return true;
         }
 
-        // Hotkey is active, so we are able to find the neuron associated with it
-        let neuron = Self::get_neuron_for_hotkey(hotkey);
-        Self::neuron_belongs_to_coldkey(&neuron, coldkey)
+        // Hotkey is active, so we are able to find the module associated with it
+        let module = Self::get_module_for_hotkey(hotkey);
+        Self::module_belongs_to_coldkey(&module, coldkey)
     }
 }
 

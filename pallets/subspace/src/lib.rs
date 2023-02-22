@@ -68,7 +68,7 @@ pub mod pallet {
 		/// Because this pallet emits events, it depends on the runtime's definition of an event.
 		type Event: From<Event<Self>> + IsType<<Self as frame_system::Config>::Event>;
 
-		/// --- Currency type that will be used to place deposits on neurons
+		/// --- Currency type that will be used to place deposits on modules
 		type Currency: Currency<Self::AccountId> + Send + Sync;
 		
 		/// --- The transaction fee in RAO per byte
@@ -158,18 +158,6 @@ pub mod pallet {
 		#[pallet::constant]
 		type InitialIssuance: Get<u64>;
 
-		/// Initial registration difficulty.
-		#[pallet::constant]
-		type InitialDifficulty: Get<u64>;
-
-		/// Minimum registration difficulty
-		#[pallet::constant]
-		type MinimumDifficulty: Get<u64>;
-
-		/// Maximum registration difficulty
-		#[pallet::constant]
-		type MaximumDifficulty: Get<u64>;
-
 		/// Initial adjustment interval.
 		#[pallet::constant]
 		type InitialAdjustmentInterval: Get<u64>;
@@ -194,14 +182,22 @@ pub mod pallet {
 		/// Initial validator exclude quantile.
 		#[pallet::constant]
 		type InitialValidatorExcludeQuantile: Get<u8>;
+
+		/// Initial validator context pruning length.
+		#[pallet::constant]
+		type InitialValidatorPruneLen: Get<u64>;
+
+		/// Initial validator logits divergence penalty/threshold.
+		#[pallet::constant]
+		type InitialValidatorLogitsDivergence: Get<u64>;
 	}
 
 	pub type AccountIdOf<T> = <T as frame_system::Config>::AccountId;
-	pub type NeuronMetadataOf<T> = NeuronMetadata<AccountIdOf<T>>;
+	pub type ModuleMetadataOf<T> = ModuleMetadata<AccountIdOf<T>>;
 	pub type BalanceOf<T> = <<T as Config>::Currency as Currency<<T as frame_system::Config>::AccountId>>::Balance;
 
 	#[derive(Encode, Decode, Default, TypeInfo)]
-    pub struct NeuronMetadata<AccountId> {
+    pub struct ModuleMetadata<AccountId> {
 
 		/// ---- The endpoint's code version.
         pub version: u32,
@@ -218,9 +214,9 @@ pub mod pallet {
         /// ---- The endpoint's unique identifier.
         pub uid: u32,
 
-        /// ---- The neuron modality. Modalities specify which datatype
-        /// the neuron endpoint can process. This information is non
-        /// verifiable. However, neurons should set this correctly
+        /// ---- The module modality. Modalities specify which datatype
+        /// the module endpoint can process. This information is non
+        /// verifiable. However, modules should set this correctly
         /// in order to be detected by others with this datatype.
         /// The initial modality codes are:
         /// TEXT: 0
@@ -235,11 +231,11 @@ pub mod pallet {
 
         /// ---- The associated coldkey account.
         /// Staking and unstaking transactions must be made by this account.
-        /// The hotkey account (in the Neurons map) has permission to call
+        /// The hotkey account (in the Modules map) has permission to call
         /// subscribe and unsubscribe.
         pub coldkey: AccountId,
 
-		/// ---- Is this neuron active in the incentive mechanism.
+		/// ---- Is this module active in the incentive mechanism.
 		pub active: u32,
 
 		/// ---- Block number of last chain update.
@@ -504,17 +500,6 @@ pub mod pallet {
 		ValueQuery,
 		DefaultDifficulty<T>
 	>;
-
-	#[pallet::type_value] 
-	pub fn DefaultActivityCutoff<T: Config>() -> u64 { T::InitialActivityCutoff::get() }
-	#[pallet::storage]
-	pub type ActivityCutoff<T> = StorageValue<
-		_, 
-		u64, 
-		ValueQuery,
-		DefaultActivityCutoff<T>
-	>;
-
 	#[pallet::type_value] 
 	pub fn DefaultAdjustmentInterval<T: Config>() -> u64 { T::InitialAdjustmentInterval::get() }
 	#[pallet::storage]
@@ -545,45 +530,7 @@ pub mod pallet {
 		DefaultMaxRegistrationsPerBlock<T>
 	>;
 
-	#[pallet::type_value] 
-	pub fn DefaultFoundationDistribution<T: Config>() -> u64 { T::InitialFoundationDistribution::get() }
-	#[pallet::storage]
-	pub type FoundationDistribution<T> = StorageValue<
-		_, 
-		u64, 
-		ValueQuery,
-		DefaultFoundationDistribution<T>
-	>;
 
-	#[pallet::type_value] 
-	pub fn DefaultScalingLawPower<T: Config>() -> u8 { T::InitialScalingLawPower::get() }
-	#[pallet::storage]
-	pub type ScalingLawPower<T> = StorageValue<
-		_, 
-		u8, 
-		ValueQuery,
-		DefaultScalingLawPower<T>
-	>;
-
-	#[pallet::type_value] 
-	pub fn DefaultSynergyScalingLawPower<T: Config>() -> u8{ T::InitialSynergyScalingLawPower::get() }
-	#[pallet::storage]
-	pub type SynergyScalingLawPower<T> = StorageValue<
-		_, 
-		u8, 
-		ValueQuery,
-		DefaultSynergyScalingLawPower<T>
-	>;
-
-	#[pallet::type_value] 
-	pub fn DefaultValidatorExcludeQuantile<T: Config>() -> u8 { T::InitialValidatorExcludeQuantile::get() }
-	#[pallet::storage]
-	pub type ValidatorExcludeQuantile<T> = StorageValue<
-		_, 
-		u8, 
-		ValueQuery,
-		DefaultValidatorExcludeQuantile<T>
-	>;
 
 	/// #[pallet::type_value] 
 	/// pub fn DefaultFoundationAccount<T: Config>() -> u64 { T::InitialFoundationAccount::get() }
@@ -594,12 +541,6 @@ pub mod pallet {
 		OptionQuery
 	>;
 
-	#[pallet::storage]
-	pub type LastDifficultyAdjustmentBlock<T> = StorageValue<
-		_, 
-		u64, 
-		ValueQuery
-	>;
 
 	#[pallet::storage]
 	pub type LastMechansimStepBlock<T> = StorageValue<
@@ -626,7 +567,7 @@ pub mod pallet {
 	/// ---- Maps from hotkey to uid.
 	#[pallet::storage]
 	#[pallet::getter(fn hotkey)]
-    pub(super) type Hotkeys<T:Config> = StorageMap<
+    pub(super) type Keys<T:Config> = StorageMap<
 		_, 
 		Blake2_128Concat, 
 		T::AccountId, 
@@ -644,21 +585,21 @@ pub mod pallet {
 		ValueQuery
 	>;
 
-	/// ---- Maps from uid to neuron.
+	/// ---- Maps from uid to module.
 	#[pallet::storage]
     #[pallet::getter(fn uid)]
-    pub(super) type Neurons<T:Config> = StorageMap<
+    pub(super) type Modules<T:Config> = StorageMap<
 		_, 
 		Identity, 
 		u32, 
-		NeuronMetadataOf<T>, 
+		ModuleMetadataOf<T>, 
 		OptionQuery
 	>;
 
 	/// ---- Maps from uid to uid as a set which we use to record uids to prune at next epoch.
 	#[pallet::storage]
 	#[pallet::getter(fn uid_to_prune)]
-    pub(super) type NeuronsToPruneAtNextEpoch<T:Config> = StorageMap<
+    pub(super) type ModulesToPruneAtNextEpoch<T:Config> = StorageMap<
 		_, 
 		Identity, 
 		u32, 
@@ -738,12 +679,12 @@ pub mod pallet {
 		/// on the chain.
 		WeightsSet(T::AccountId),
 
-		/// --- Event created when a new neuron account has been registered to 
+		/// --- Event created when a new module account has been registered to 
 		/// the chain.
-		NeuronRegistered(u32),
+		ModuleRegistered(u32),
 
-		/// --- Event created when the axon server information is added to the network.
-		AxonServed(u32),
+		/// --- Event created when the module server information is added to the network.
+		ModuleServed(u32),
 
 		/// --- Event created during when stake has been transfered from 
 		/// the coldkey onto the hotkey staking account.
@@ -752,9 +693,6 @@ pub mod pallet {
 		/// --- Event created when stake has been removed from 
 		/// the staking account into the coldkey account.
 		StakeRemoved(T::AccountId, u64),
-
-		/// --- Event created when the difficulty has been set.
-		DifficultySet(u64),
 
 		/// --- Event created when default blocks per step has been set.
 		BlocksPerStepSet(u64),
@@ -813,6 +751,12 @@ pub mod pallet {
 		/// --- Event created when the validator exclude quantile has been set.
 		ValidatorExcludeQuantileSet( u8 ),
 
+		/// --- Event created when the validator pruning length has been set.
+		ValidatorPruneLenSet( u64 ),
+
+		/// --- Event created when the validator logits divergence value has been set.
+		ValidatorLogitsDivergenceSet( u64 ),
+
 		/// --- Event created when the validator default epoch length has been set.
 		ValidatorEpochLenSet(u64),
 
@@ -839,7 +783,7 @@ pub mod pallet {
 		NoneValue,
 		/// Errors should have helpful documentation associated with them.
 		StorageOverflow,
-		 /// ---- Thrown when the user tries to serve an axon which is not of type
+		 /// ---- Thrown when the user tries to serve an module which is not of type
 	    /// 4 (IPv4) or 6 (IPv6).
 		InvalidIpType,
 
@@ -875,10 +819,10 @@ pub mod pallet {
 		ToManyRegistrationsThisBlock,
 
 		/// ---- Thrown when the caller requests setting or removing data from
-		/// a neuron which does not exist in the active set.
+		/// a module which does not exist in the active set.
 		NotRegistered,
 
-		/// ---- Thrown when the caller requests registering a neuron which 
+		/// ---- Thrown when the caller requests registering a module which 
 		/// already exists in the active set.
 		AlreadyRegistered,
 
@@ -971,9 +915,7 @@ pub mod pallet {
 				Self::set_blocks_since_last_step( Self::get_blocks_since_last_step() + 1 );
 			}
 
-			// Make a difficulty update.
-			Self::update_difficulty();
-			
+
 			return 0;
 		}
 	}
@@ -1032,10 +974,10 @@ pub mod pallet {
 			Self::do_set_weights(origin, dests, weights)
 		}
 		
-		/// --- Adds stake to a neuron account. The call is made from the
-		/// coldkey account linked in the neurons's NeuronMetadata.
+		/// --- Adds stake to a module account. The call is made from the
+		/// coldkey account linked in the modules's ModuleMetadata.
 		/// Only the associated coldkey is allowed to make staking and
-		/// unstaking requests. This protects the neuron against
+		/// unstaking requests. This protects the module against
 		/// attacks on its hotkey running in production code.
 		///
 		/// # Args:
@@ -1067,14 +1009,13 @@ pub mod pallet {
 		#[pallet::weight((0, DispatchClass::Normal, Pays::No))]
 		pub fn add_stake(
 			origin:OriginFor<T>, 
-			hotkey: T::AccountId, 
 			ammount_staked: u64
 		) -> DispatchResult {
 			Self::do_add_stake(origin, hotkey, ammount_staked)
 		}
 
 		/// ---- Remove stake from the staking account. The call must be made
-		/// from the coldkey account attached to the neuron metadata. Only this key
+		/// from the coldkey account attached to the module metadata. Only this key
 		/// has permission to make staking and unstaking requests.
 		///
 		/// # Args:
@@ -1103,48 +1044,46 @@ pub mod pallet {
 		#[pallet::weight((0, DispatchClass::Normal, Pays::No))]
 		pub fn remove_stake(
 			origin:OriginFor<T>, 
-			hotkey: T::AccountId, 
 			ammount_unstaked: u64
 		) -> DispatchResult {
 			Self::do_remove_stake(origin, hotkey, ammount_unstaked)
 		}
 
-		/// ---- Serves or updates axon information for the neuron associated with the caller. If the caller
+		/// ---- Serves or updates module information for the module associated with the caller. If the caller
 		/// already registered the metadata is updated. If the caller is not registered this call throws NotRegsitered.
 		///
 		/// # Args:
 		/// 	* 'origin': (<T as frame_system::Config>Origin):
-		/// 		- The caller, a hotkey associated of the registered neuron.
+		/// 		- The caller, a hotkey associated of the registered module.
 		///
 		/// 	* 'ip' (u128):
 		/// 		- The u64 encoded IP address of type 6 or 4.
 		///
 		/// 	* 'port' (u16):
-		/// 		- The port number where this neuron receives RPC requests.
+		/// 		- The port number where this module receives RPC requests.
 		///
 		/// 	* 'ip_type' (u8):
 		/// 		- The ip type one of (4,6).
 		///
 		/// 	* 'modality' (u8):
-		/// 		- The neuron modality type.
+		/// 		- The module modality type.
 		///
 		/// # Event:
-		/// 	* 'AxonServed':
-		/// 		- On subscription of a new neuron to the active set.
+		/// 	* 'ModuleServed':
+		/// 		- On subscription of a new module to the active set.
 		///
 		#[pallet::weight((0, DispatchClass::Normal, Pays::No))]
-		pub fn serve_axon (
+		pub fn serve_module (
 			origin:OriginFor<T>, 
 			version: u32, 
 			ip: u128, 
 			port: u16, 
 			ip_type: u8, 
-			modality: u8 
 		) -> DispatchResult {
-			Self::do_serve_axon( origin, version, ip, port, ip_type, modality )
+			Self::do_serve_module( origin, version, ip, port, ip_type )
 		}
 
-		/// ---- Registers a new neuron to the graph. 
+		/// ---- Registers a new module to the graph. 
 		///
 		/// # Args:
 		/// 	* 'origin': (<T as frame_system::Config>Origin):
@@ -1166,19 +1105,15 @@ pub mod pallet {
 		/// 		- Coldkey to register.
 		///
 		/// # Event:
-		/// 	* 'NeuronRegistered':
-		/// 		- On subscription of a new neuron to the active set.
+		/// 	* 'ModuleRegistered':
+		/// 		- On subscription of a new module to the active set.
 		///
 		#[pallet::weight((0, DispatchClass::Normal, Pays::No))]
 		pub fn register( 
 				origin:OriginFor<T>, 
-				block_number: u64, 
-				nonce: u64, 
-				work: Vec<u8>,
-				hotkey: T::AccountId, 
-				coldkey: T::AccountId 
+				key: T::AccountId 
 		) -> DispatchResult {
-			Self::do_registration(origin, block_number, nonce, work, hotkey, coldkey)
+			Self::do_registration(origin, key)
 		}
 		/// ---- SUDO ONLY FUNCTIONS
 		///
@@ -1189,10 +1124,8 @@ pub mod pallet {
 		/// ONE OF:
 		/// 	* 'adjustment_interval' (u64):
 		/// 	* 'activity_cutoff' (u64):
-		/// 	* 'difficulty' (u64):
 		///
 		/// # Events:
-		///		* 'DifficultySet'
 		/// 	* 'AdjustmentIntervalSet'
 		///		* 'ActivityCuttoffSet'
 		///		* 'TargetRegistrationsPerIntervalSet'
@@ -1217,17 +1150,6 @@ pub mod pallet {
 			ensure_root( origin )?;
 			BondsMovingAverage::<T>::set( bonds_moving_average );
 			Self::deposit_event( Event::BondsMovingAverageSet( bonds_moving_average ) );
-			Ok(())
-		}
-
-		#[pallet::weight((0, DispatchClass::Operational, Pays::No))]
-		pub fn sudo_set_difficulty ( 
-			origin:OriginFor<T>, 
-			difficulty: u64 
-		) -> DispatchResult {
-			ensure_root( origin )?;
-			Difficulty::<T>::set( difficulty );
-			Self::deposit_event( Event::DifficultySet( difficulty ) );
 			Ok(())
 		}
 
@@ -1463,6 +1385,28 @@ pub mod pallet {
 			Self::deposit_event( Event::ValidatorExcludeQuantileSet( validator_exclude_quantile ));
 			Ok(())
 		}
+
+		#[pallet::weight((0, DispatchClass::Operational, Pays::No))]
+		pub fn sudo_set_validator_prune_len( 
+			origin:OriginFor<T>, 
+			validator_prune_len: u64 
+		) -> DispatchResult {
+			ensure_root( origin )?;
+		    ValidatorPruneLen::<T>::set( validator_prune_len );
+			Self::deposit_event( Event::ValidatorPruneLenSet( validator_prune_len ));
+			Ok(())
+		}
+
+		#[pallet::weight((0, DispatchClass::Operational, Pays::No))]
+		pub fn sudo_set_validator_logits_divergence( 
+			origin:OriginFor<T>, 
+			validator_logits_divergence: u64 
+		) -> DispatchResult {
+			ensure_root( origin )?;
+		    ValidatorLogitsDivergence::<T>::set( validator_logits_divergence );
+			Self::deposit_event( Event::ValidatorLogitsDivergenceSet( validator_logits_divergence ));
+			Ok(())
+		}
 	}
 
 	// ---- Subspace helper functions.
@@ -1493,16 +1437,6 @@ pub mod pallet {
 		pub fn set_bonds_moving_average( bonds_moving_average: u64 ) {
 			BondsMovingAverage::<T>::set( bonds_moving_average );
 		}
-		// -- Difficulty.
-		pub fn get_difficulty( ) -> U256 {
-			return U256::from( Self::get_difficulty_as_u64() );
-		}
-		pub fn get_difficulty_as_u64( ) -> u64 {
-			Difficulty::<T>::get()
-		}
-		pub fn set_difficulty_from_u64( difficulty: u64 ) {
-			Difficulty::<T>::set( difficulty );
-		}
 		// -- Activity cuttoff
 		pub fn get_activity_cutoff( ) -> u64 {
 			return ActivityCutoff::<T>::get();
@@ -1529,14 +1463,6 @@ pub mod pallet {
 		}
 		pub fn set_max_registratations_per_block( max_registrations: u64 ){
 			MaxRegistrationsPerBlock::<T>::put( max_registrations );
-		}
-		// -- Minimum difficulty
-		pub fn get_minimum_difficulty( ) -> u64 {
-			return T::MinimumDifficulty::get();
-		}
-		// -- Maximum difficulty
-		pub fn get_maximum_difficulty( ) -> u64 {
-			return T::MaximumDifficulty::get();
 		}
 		// -- Get Block emission.
 		pub fn get_block_emission( ) -> u64 {
@@ -1614,6 +1540,20 @@ pub mod pallet {
 			ValidatorExcludeQuantile::<T>::put( validator_exclude_quantile );
 		}
 
+		pub fn get_validator_prune_len( ) -> u64 {
+			return ValidatorPruneLen::<T>::get();
+		}
+		pub fn set_validator_prune_len( validator_prune_len: u64 ) {
+			ValidatorPruneLen::<T>::put( validator_prune_len );
+		}
+
+		pub fn get_validator_logits_divergence( ) -> u64 {
+			return ValidatorLogitsDivergence::<T>::get();
+		}
+		pub fn set_validator_logits_divergence( validator_logits_divergence: u64 ) {
+			ValidatorLogitsDivergence::<T>::put( validator_logits_divergence );
+		}
+
 		// -- Get step consensus shift (1/kappa)
 		pub fn get_kappa( ) -> u64 {
 			return Kappa::<T>::get();
@@ -1676,93 +1616,93 @@ pub mod pallet {
 			return T::InitialIssuance::get();
 		}
 		pub fn get_lastupdate( ) -> Vec<u64> {
-			let mut result: Vec<u64> = vec![ 0; Self::get_neuron_count() as usize ];
-			for ( uid_i, neuron_i ) in <Neurons<T> as IterableStorageMap<u32, NeuronMetadataOf<T>>>::iter() {
-				result[ uid_i as usize ] = neuron_i.last_update;
+			let mut result: Vec<u64> = vec![ 0; Self::get_module_count() as usize ];
+			for ( uid_i, module_i ) in <Modules<T> as IterableStorageMap<u32, ModuleMetadataOf<T>>>::iter() {
+				result[ uid_i as usize ] = module_i.last_update;
 			}
 			return result
 		}
 		pub fn get_stake( ) -> Vec<u64> {
-			let mut result: Vec<u64> = vec![ 0; Self::get_neuron_count() as usize ];
-			for ( uid_i, neuron_i ) in <Neurons<T> as IterableStorageMap<u32, NeuronMetadataOf<T>>>::iter() {
-				result[ uid_i as usize ] = neuron_i.stake;
+			let mut result: Vec<u64> = vec![ 0; Self::get_module_count() as usize ];
+			for ( uid_i, module_i ) in <Modules<T> as IterableStorageMap<u32, ModuleMetadataOf<T>>>::iter() {
+				result[ uid_i as usize ] = module_i.stake;
 			}
 			return result
 		}
 		pub fn get_ranks( ) -> Vec<u64> {
-			let mut result: Vec<u64> = vec![ 0; Self::get_neuron_count() as usize ];
-			for ( uid_i, neuron_i ) in <Neurons<T> as IterableStorageMap<u32, NeuronMetadataOf<T>>>::iter() {
-				result[ uid_i as usize ] = neuron_i.rank;
+			let mut result: Vec<u64> = vec![ 0; Self::get_module_count() as usize ];
+			for ( uid_i, module_i ) in <Modules<T> as IterableStorageMap<u32, ModuleMetadataOf<T>>>::iter() {
+				result[ uid_i as usize ] = module_i.rank;
 			}
 			return result
 		}
 		pub fn get_trust( ) -> Vec<u64> {
-			let mut result: Vec<u64> = vec![ 0; Self::get_neuron_count() as usize ];
-			for ( uid_i, neuron_i ) in <Neurons<T> as IterableStorageMap<u32, NeuronMetadataOf<T>>>::iter() {
-				result[ uid_i as usize ] = neuron_i.trust;
+			let mut result: Vec<u64> = vec![ 0; Self::get_module_count() as usize ];
+			for ( uid_i, module_i ) in <Modules<T> as IterableStorageMap<u32, ModuleMetadataOf<T>>>::iter() {
+				result[ uid_i as usize ] = module_i.trust;
 			}
 			return result
 		}
 		pub fn get_consensus( ) -> Vec<u64> {
-			let mut result: Vec<u64> = vec![ 0; Self::get_neuron_count() as usize ];
-			for ( uid_i, neuron_i ) in <Neurons<T> as IterableStorageMap<u32, NeuronMetadataOf<T>>>::iter() {
-				result[ uid_i as usize ] = neuron_i.consensus;
+			let mut result: Vec<u64> = vec![ 0; Self::get_module_count() as usize ];
+			for ( uid_i, module_i ) in <Modules<T> as IterableStorageMap<u32, ModuleMetadataOf<T>>>::iter() {
+				result[ uid_i as usize ] = module_i.consensus;
 			}
 			return result
 		}
 		pub fn get_incentive( ) -> Vec<u64> {
-			let mut result: Vec<u64> = vec![ 0; Self::get_neuron_count() as usize ];
-			for ( uid_i, neuron_i ) in <Neurons<T> as IterableStorageMap<u32, NeuronMetadataOf<T>>>::iter() {
-				result[ uid_i as usize ] = neuron_i.incentive;
+			let mut result: Vec<u64> = vec![ 0; Self::get_module_count() as usize ];
+			for ( uid_i, module_i ) in <Modules<T> as IterableStorageMap<u32, ModuleMetadataOf<T>>>::iter() {
+				result[ uid_i as usize ] = module_i.incentive;
 			}
 			return result
 		}
 		pub fn get_dividends( ) -> Vec<u64> {
-			let mut result: Vec<u64> = vec![ 0; Self::get_neuron_count() as usize ];
-			for ( uid_i, neuron_i ) in <Neurons<T> as IterableStorageMap<u32, NeuronMetadataOf<T>>>::iter() {
-				result[ uid_i as usize] = neuron_i.dividends;
+			let mut result: Vec<u64> = vec![ 0; Self::get_module_count() as usize ];
+			for ( uid_i, module_i ) in <Modules<T> as IterableStorageMap<u32, ModuleMetadataOf<T>>>::iter() {
+				result[ uid_i as usize] = module_i.dividends;
 			}
 			return result
 		}
 		pub fn get_emission( ) -> Vec<u64> {
-			let mut result: Vec<u64> = vec![ 0; Self::get_neuron_count() as usize ];
-			for ( uid_i, neuron_i ) in <Neurons<T> as IterableStorageMap<u32, NeuronMetadataOf<T>>>::iter() {
-				result[ uid_i as usize ] = neuron_i.emission;
+			let mut result: Vec<u64> = vec![ 0; Self::get_module_count() as usize ];
+			for ( uid_i, module_i ) in <Modules<T> as IterableStorageMap<u32, ModuleMetadataOf<T>>>::iter() {
+				result[ uid_i as usize ] = module_i.emission;
 			}
 			return result
 		}
 		pub fn get_active( ) -> Vec<u32> {
-			let mut result: Vec<u32> = vec![ 0; Self::get_neuron_count() as usize ];
-			for ( uid_i, neuron_i ) in <Neurons<T> as IterableStorageMap<u32, NeuronMetadataOf<T>>>::iter() {
-				result[ uid_i as usize] = neuron_i.active;
+			let mut result: Vec<u32> = vec![ 0; Self::get_module_count() as usize ];
+			for ( uid_i, module_i ) in <Modules<T> as IterableStorageMap<u32, ModuleMetadataOf<T>>>::iter() {
+				result[ uid_i as usize] = module_i.active;
 			}
 			return result
 		}
-		pub fn get_bonds_for_neuron( neuron: &NeuronMetadataOf<T> ) -> Vec<u64>  {
-			let mut bonds: Vec<u64> = vec![ 0; Self::get_neuron_count() as usize ];
-			for (uid_j, bonds_ij) in neuron.bonds.iter(){
+		pub fn get_bonds_for_module( module: &ModuleMetadataOf<T> ) -> Vec<u64>  {
+			let mut bonds: Vec<u64> = vec![ 0; Self::get_module_count() as usize ];
+			for (uid_j, bonds_ij) in module.bonds.iter(){
 				bonds[ *uid_j as usize ] = *bonds_ij;
 			}
 			return bonds
 		}
 		pub fn get_bonds( ) -> Vec<Vec<u64>>  {
-			let mut bonds: Vec<Vec<u64>> = vec![ vec![]; Self::get_neuron_count() as usize ];
-			for ( uid_i, neuron_i ) in <Neurons<T> as IterableStorageMap<u32, NeuronMetadataOf<T>>>::iter() {
-				bonds[ uid_i as usize ] = Self::get_bonds_for_neuron( &neuron_i );
+			let mut bonds: Vec<Vec<u64>> = vec![ vec![]; Self::get_module_count() as usize ];
+			for ( uid_i, module_i ) in <Modules<T> as IterableStorageMap<u32, ModuleMetadataOf<T>>>::iter() {
+				bonds[ uid_i as usize ] = Self::get_bonds_for_module( &module_i );
 			}
 			return bonds
 		}
-		pub fn get_weights_for_neuron( neuron: &NeuronMetadataOf<T> ) -> Vec<u32>  {
-			let mut weights: Vec<u32> = vec![ 0; Self::get_neuron_count() as usize ];
-			for (uid_j, weights_ij) in neuron.weights.iter(){
+		pub fn get_weights_for_module( module: &ModuleMetadataOf<T> ) -> Vec<u32>  {
+			let mut weights: Vec<u32> = vec![ 0; Self::get_module_count() as usize ];
+			for (uid_j, weights_ij) in module.weights.iter(){
 				weights[ *uid_j as usize ] = *weights_ij;
 			}
 			return weights
 		}
 		pub fn get_weights( ) -> Vec<Vec<u32>>  {
-			let mut weights: Vec<Vec<u32>> = vec![ vec![]; Self::get_neuron_count() as usize ];
-			for ( uid_i, neuron_i ) in <Neurons<T> as IterableStorageMap<u32, NeuronMetadataOf<T>>>::iter() {
-				weights[ uid_i as usize ] = Self::get_weights_for_neuron( &neuron_i );
+			let mut weights: Vec<Vec<u32>> = vec![ vec![]; Self::get_module_count() as usize ];
+			for ( uid_i, module_i ) in <Modules<T> as IterableStorageMap<u32, ModuleMetadataOf<T>>>::iter() {
+				weights[ uid_i as usize ] = Self::get_weights_for_module( &module_i );
 			}
 			return weights
 		}		
@@ -1770,46 +1710,46 @@ pub mod pallet {
 		// Setters
 		pub fn set_stake_from_vector( stake: Vec<u64> ) {
 			let mut total_stake: u64 = 0;
-			for uid_i in 0..Self::get_neuron_count() {
-				let mut neuron = Neurons::<T>::get(uid_i).unwrap();
-				neuron.stake = stake[ uid_i as usize ];
-				Neurons::<T>::insert( uid_i, neuron );
+			for uid_i in 0..Self::get_module_count() {
+				let mut module = Modules::<T>::get(uid_i).unwrap();
+				module.stake = stake[ uid_i as usize ];
+				Modules::<T>::insert( uid_i, module );
 				total_stake += stake[ uid_i as usize ];
 			}
 			TotalStake::<T>::set( total_stake );
 		}
 		pub fn set_last_update_from_vector( last_update: Vec<u64> ) {
-			for uid_i in 0..Self::get_neuron_count() {
-				let mut neuron = Neurons::<T>::get(uid_i).unwrap();
-				neuron.last_update = last_update[ uid_i as usize ];
-				Neurons::<T>::insert( uid_i, neuron );
+			for uid_i in 0..Self::get_module_count() {
+				let mut module = Modules::<T>::get(uid_i).unwrap();
+				module.last_update = last_update[ uid_i as usize ];
+				Modules::<T>::insert( uid_i, module );
 			}
 		}
 		pub fn set_weights_from_matrix( weights: Vec<Vec<u32>> ) {
-			for uid_i in 0..Self::get_neuron_count() {
+			for uid_i in 0..Self::get_module_count() {
 				let mut sparse_weights: Vec<(u32, u32)> = vec![];
-				for uid_j in 0..Self::get_neuron_count() {
+				for uid_j in 0..Self::get_module_count() {
 					let weight_ij: u32 = weights[uid_i as usize][uid_j as usize];
 					if weight_ij != 0 {
 						sparse_weights.push( (uid_j, weight_ij) );
 					}
 				}
-				let mut neuron = Neurons::<T>::get(uid_i).unwrap();
-				neuron.weights = sparse_weights;
-				Neurons::<T>::insert( uid_i, neuron );
+				let mut module = Modules::<T>::get(uid_i).unwrap();
+				module.weights = sparse_weights;
+				Modules::<T>::insert( uid_i, module );
 			}
 		}
 
 		pub fn set_bonds_from_matrix( bonds: Vec<Vec<u64>> ) {
-			for uid_i in 0..Self::get_neuron_count() {
+			for uid_i in 0..Self::get_module_count() {
 				let mut sparse_bonds: Vec<(u32, u64)> = vec![];
-				for uid_j in 0..Self::get_neuron_count() {
+				for uid_j in 0..Self::get_module_count() {
 					let bond_ij: u64 = bonds[uid_i as usize][uid_j as usize];
 					sparse_bonds.push( (uid_j, bond_ij) );
 				}
-				let mut neuron = Neurons::<T>::get(uid_i).unwrap();
-				neuron.bonds = sparse_bonds;
-				Neurons::<T>::insert( uid_i, neuron );
+				let mut module = Modules::<T>::get(uid_i).unwrap();
+				module.bonds = sparse_bonds;
+				Modules::<T>::insert( uid_i, module );
 			}
 		}
 	
@@ -1823,55 +1763,42 @@ pub mod pallet {
 
 		// --- Returns true if the account-id has an active
 		// account on chain.
-		pub fn add_hotkey_to_active_set(hotkey_id: &T::AccountId, uid: u32) {
-			Hotkeys::<T>::insert(&hotkey_id, uid);
-		}
-
-		// --- Returns true if the account-id has an active
-		// account on chain.
-		pub fn is_hotkey_active(hotkey_id: &T::AccountId) -> bool {
-			return Hotkeys::<T>::contains_key(&hotkey_id);
+		pub fn is_key_active(key_id: &T::AccountId) -> bool {
+			return Keys::<T>::contains_key(&key_id);
 		}
 
 		// --- Returns false if the account-id has an active
 		// account on chain.
-		pub fn is_not_active(hotkey_id: &T::AccountId) -> bool {
-			return !Self::is_hotkey_active(hotkey_id);
-		}
 
-		// --- Returns true if the uid is to be prunned at the next epoch.
-		pub fn will_be_prunned ( uid:u32 ) -> bool {
-			return NeuronsToPruneAtNextEpoch::<T>::contains_key( uid );
-		}
 
 		// --- Returns true if the uid is active, i.e. there
-		// is a staking, last_update, and neuron account associated
+		// is a staking, last_update, and module account associated
 		// with this uid.
 		pub fn is_uid_active(uid: u32) -> bool {
-			return Neurons::<T>::contains_key(uid);
+			return Modules::<T>::contains_key(uid);
 		}
 
 		// --- Returns hotkey associated with the hotkey account.
 		// This should be called in conjunction with is_hotkey_active
 		// to ensure this function does not throw an error.
-		pub fn get_uid_for_hotkey(hotkey_id: &T::AccountId) -> u32{
-			return Hotkeys::<T>::get(&hotkey_id);
+		pub fn get_uid_for_key(key_id: &T::AccountId) -> u32{
+			return Keys::<T>::get(&key_id);
 		}
-		pub fn get_neuron_for_uid ( uid: u32 ) -> NeuronMetadataOf<T> {
-			return Neurons::<T>::get( uid ).unwrap();
+		pub fn get_module_for_uid ( uid: u32 ) -> ModuleMetadataOf<T> {
+			return Modules::<T>::get( uid ).unwrap();
 		}
 
-		// --- Returns the neuron associated with the passed hotkey.
-		// The function makes a double mapping from hotkey -> uid -> neuron.
-		pub fn get_neuron_for_hotkey(hotkey_id: &T::AccountId) -> NeuronMetadataOf<T> {
-			let uid = Self::get_uid_for_hotkey(hotkey_id);
-			return Self::get_neuron_for_uid(uid);
+		// --- Returns the module associated with the passed hotkey.
+		// The function makes a double mapping from hotkey -> uid -> module.
+		pub fn get_module_for_key(hotkey_id: &T::AccountId) -> ModuleMetadataOf<T> {
+			let uid = Self::get_module_for_key(hotkey_id);
+			return Self::get_module_for_uid(uid);
 		}
 
 		// --- Returns the next available network uid.
 		// uids increment up to u64:MAX, this allows the chain to
 		// have 18,446,744,073,709,551,615 peers before an overflow.
-		pub fn get_neuron_count() -> u32 {
+		pub fn get_module_count() -> u32 {
 			let uid = N::<T>::get();
 			uid
 		}
@@ -1891,9 +1818,9 @@ pub mod pallet {
 
 		// --- Returns the transaction priority for setting weights.
 		pub fn get_priority_set_weights( hotkey: &T::AccountId, len: u64 ) -> u64 {
-			if Hotkeys::<T>::contains_key( hotkey ) {
-				let uid = Hotkeys::<T>::get( hotkey );
-				let neuron = Neurons::<T>::get( uid ).unwrap();
+			if Keys::<T>::contains_key( hotkey ) {
+				let uid = Keys::<T>::get( hotkey );
+				let module = Modules::<T>::get( uid ).unwrap();
 				// Multiply here by 1_000_000 since len may divide all log values to zero.
 				// a peer with 1 tao will have priority 29 000 000 000 after 1 epoch.
 				// with 10 tao 33 000 000 000
@@ -1901,7 +1828,7 @@ pub mod pallet {
 				// with 1000 tao 39 000 000 000
 				// with 10000 tao 43 000 000 000
 				// division by len will always return a non zero value with which to differentiate. 
-				return neuron.priority * 1_000_000 / len;
+				return module.priority * 1_000_000 / len;
 			} else{
 				return 0;
 			}
@@ -2044,7 +1971,7 @@ impl<T: Config + Send + Sync> SignedExtension for SubspaceSignedExtension<T>
                 let transaction_fee = 0;
                 Ok((CallType::Register, transaction_fee, who.clone()))
             }
-            Some(Call::serve_axon{..}) => {
+            Some(Call::serve_module{..}) => {
                 let transaction_fee = 0;
                 Ok((CallType::Serve, transaction_fee, who.clone()))
             }

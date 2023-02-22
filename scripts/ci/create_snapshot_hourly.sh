@@ -3,7 +3,7 @@
 TAR_SRC=/mnt/chainstorage/node-/chains/nakamoto_mainnet/db/full
 SNAPSHOT_TMP="tmp"
 
-git -C /root/ pull origin master && cargo build --release --manifest-path /root/subtensor/Cargo.toml
+git -C /root/ pull origin master && cargo build --release --manifest-path /root/subspace/Cargo.toml
 
 currenthour=$(date +%H)
 if [[ "$currenthour" == "00" ]]; then
@@ -35,7 +35,7 @@ echo "[+] Removing previous docker images from previous build"
 # Kill dangling docker images from previous builds
 /usr/bin/docker system prune -a -f
 
-echo "[+] Stopping Subtensor and starting database export"
+echo "[+] Stopping Subspace and starting database export"
 # Stop  and start the DB export
 #/usr/local/bin/pm2 describe  > /dev/null
 RUNNING=`/usr/local/bin/pm2 pid `
@@ -62,12 +62,12 @@ if [ "${RUNNING}" -ne 0 ]; then
 		cd ~		
 		# Build docker image
 		echo "[+] Building Docker image from directory ${SNAPSHOT_TMP} and snapshot file ${SNAPSHOT_FILENAME}"
-		DOCKER_BUILDKIT=1 /usr/bin/docker build -t  . --platform linux/x86_64 --build-arg SNAPSHOT_DIR=$SNAPSHOT_TMP --build-arg SNAPSHOT_FILE=$SNAPSHOT_FILENAME  -f /root/subtensor/Dockerfile --squash
+		DOCKER_BUILDKIT=1 /usr/bin/docker build -t  . --platform linux/x86_64 --build-arg SNAPSHOT_DIR=$SNAPSHOT_TMP --build-arg SNAPSHOT_FILE=$SNAPSHOT_FILENAME  -f /root/subspace/Dockerfile --squash
 
 		# Tag new image with latest
 		echo "[+] Tagging new image with latest tag"
-		/usr/bin/docker tag  opentensorfdn/subtensor:latest
-		/usr/bin/docker tag  opentensorfdn/subtensor:$SNAPSHOT_FILENAME
+		/usr/bin/docker tag  opentensorfdn/subspace:latest
+		/usr/bin/docker tag  opentensorfdn/subspace:$SNAPSHOT_FILENAME
 	
 		# now let's push this sum' bitch to dockerhub
 		echo "[+] Pushing Docker image to DockerHub"
@@ -75,7 +75,7 @@ if [ "${RUNNING}" -ne 0 ]; then
 		/usr/bin/docker push opentensorfdn/:$SNAPSHOT_FILENAME
 	
 		# Start the chain again
-		echo "[+] Restarting Subtensor chain"
+		echo "[+] Restarting Subspace chain"
 		/usr/local/bin/pm2 start  --watch
 
 		# Clear tmp file
@@ -88,6 +88,6 @@ if [ "${RUNNING}" -ne 0 ]; then
 	# Empty the snapshot tmp folder
 	rm -rf $SNAPSHOT_TMP/*
 else
-	echo "[+] Subtensor is already stopped!"
+	echo "[+] Subspace is already stopped!"
 fi
 echo "\n"

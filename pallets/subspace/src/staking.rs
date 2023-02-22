@@ -14,14 +14,14 @@ impl<T: Config> Pallet<T> {
 
         // Check if the hotkey is active
         ensure!(Self::is_hotkey_active(&hotkey), Error::<T>::NotRegistered);
-        let neuron = Self::get_neuron_for_hotkey(&hotkey);
+        let module = Self::get_module_for_hotkey(&hotkey);
 
         // Check if uid is active
-        ensure!(Self::is_uid_active(neuron.uid), Error::<T>::NotRegistered);
+        ensure!(Self::is_uid_active(module.uid), Error::<T>::NotRegistered);
 
-        // ---- We check that the NeuronMetadata is linked to the calling
+        // ---- We check that the ModuleMetadata is linked to the calling
         // cold key, otherwise throw a NonAssociatedColdKey error.
-        ensure!(Self::neuron_belongs_to_coldkey(&neuron, &coldkey), Error::<T>::NonAssociatedColdKey);
+        ensure!(Self::module_belongs_to_coldkey(&module, &coldkey), Error::<T>::NonAssociatedColdKey);
 
         // ---- We check that the calling coldkey contains enough funds to
         // create the staking transaction.
@@ -30,7 +30,7 @@ impl<T: Config> Pallet<T> {
 
         ensure!(Self::can_remove_balance_from_coldkey_account(&coldkey, stake_as_balance.unwrap()), Error::<T>::NotEnoughBalanceToStake);
         ensure!(Self::remove_balance_from_coldkey_account(&coldkey, stake_as_balance.unwrap()) == true, Error::<T>::BalanceWithdrawalError);
-        Self::add_stake_to_neuron_hotkey_account(neuron.uid, stake_to_be_added);
+        Self::add_stake_to_module_hotkey_account(module.uid, stake_to_be_added);
 
         // ---- Emit the staking event.
         Self::deposit_event(Event::StakeAdded(hotkey, stake_to_be_added));
@@ -45,7 +45,7 @@ impl<T: Config> Pallet<T> {
     ///
     /// Generally, this function works as follows
     /// 1) A Check is performed to see if the hotkey is active (ie, the node using the key is subscribed)
-    /// 2) The neuron metadata associated with the hotkey is retrieved, and is checked if it is subscribed with the supplied cold key
+    /// 2) The module metadata associated with the hotkey is retrieved, and is checked if it is subscribed with the supplied cold key
     /// 3) If these checks pass, inflation is emitted to the nodes' peers
     /// 4) If the account has enough stake, the requested amount it transferred to the coldkey account
     /// 5) The total amount of stake is reduced after transfer is complete
@@ -62,21 +62,21 @@ impl<T: Config> Pallet<T> {
         // and retrieve the T::AccountId pubkey information.
         let coldkey = ensure_signed(origin)?;
 
-        // ---- We query the Neuron set for the NeuronMetadata stored under
+        // ---- We query the Module set for the ModuleMetadata stored under
         // the passed hotkey.
         ensure!(Self::is_hotkey_active(&hotkey), Error::<T>::NotRegistered);
-        let neuron = Self::get_neuron_for_hotkey(&hotkey);
+        let module = Self::get_module_for_hotkey(&hotkey);
 
         // Check if uid is active
-        ensure!(Self::is_uid_active(neuron.uid), Error::<T>::NotRegistered);
+        ensure!(Self::is_uid_active(module.uid), Error::<T>::NotRegistered);
 
-        // ---- We check that the NeuronMetadata is linked to the calling
+        // ---- We check that the ModuleMetadata is linked to the calling
         // cold key, otherwise throw a NonAssociatedColdKey error.
-        ensure!(Self::neuron_belongs_to_coldkey(&neuron, &coldkey), Error::<T>::NonAssociatedColdKey);
+        ensure!(Self::module_belongs_to_coldkey(&module, &coldkey), Error::<T>::NonAssociatedColdKey);
 
         // ---- We check that the hotkey has enough stake to withdraw
         // and then withdraw from the account.
-        ensure!(Self::has_enough_stake(&neuron, stake_to_be_removed), Error::<T>::NotEnoughStaketoWithdraw);
+        ensure!(Self::has_enough_stake(&module, stake_to_be_removed), Error::<T>::NotEnoughStaketoWithdraw);
         let stake_to_be_added_as_currency = Self::u64_to_balance(stake_to_be_removed);
         ensure!(stake_to_be_added_as_currency.is_some(), Error::<T>::CouldNotConvertToBalance);
 
@@ -84,7 +84,7 @@ impl<T: Config> Pallet<T> {
         // and deposit the balance into the coldkey account. If the coldkey account
         // does not exist it is created.
         Self::add_balance_to_coldkey_account(&coldkey, stake_to_be_added_as_currency.unwrap());
-        Self::remove_stake_from_neuron_hotkey_account(neuron.uid, stake_to_be_removed);
+        Self::remove_stake_from_module_hotkey_account(module.uid, stake_to_be_removed);
 
         // ---- Emit the unstaking event.
         Self::deposit_event(Event::StakeRemoved(hotkey, stake_to_be_removed));
@@ -98,8 +98,8 @@ impl<T: Config> Pallet<T> {
     --==[[  Helper functions   ]]==--
     *********************************/
 
-    pub fn get_stake_of_neuron_hotkey_account_by_uid(uid: u32) -> u64 {
-        return Self::get_neuron_for_uid(uid).stake
+    pub fn get_stake_of_module_hotkey_account_by_uid(uid: u32) -> u64 {
+        return Self::get_module_for_uid(uid).stake
     }
 
     /// Increases the amount of stake of the entire stake pool by the supplied amount
@@ -126,35 +126,35 @@ impl<T: Config> Pallet<T> {
         TotalStake::<T>::put(total_stake.saturating_sub(decrement));
     }
 
-    /// Increases the amount of stake in a neuron's hotkey account by the amount provided
-    /// The uid parameter identifies the neuron holding the hotkey account
+    /// Increases the amount of stake in a module's hotkey account by the amount provided
+    /// The uid parameter identifies the module holding the hotkey account
     ///
     /// Calling function should make sure the uid exists within the system
     /// This function should always increase the total stake, so the operation
-    /// of inserting new stake for a neuron and the increment of the total stake is
+    /// of inserting new stake for a module and the increment of the total stake is
     /// atomic. This is important because at some point the fraction of stake/total stake
     /// is calculated and this should always <= 1. Having this function be atomic, fills this
     /// requirement.
     ///
-    pub fn add_stake_to_neuron_hotkey_account(uid: u32, amount: u64) {
+    pub fn add_stake_to_module_hotkey_account(uid: u32, amount: u64) {
         debug_assert!(Self::is_uid_active(uid));
 
-        let mut neuron: NeuronMetadataOf<T> = Self::get_neuron_for_uid( uid );
-        let prev_stake: u64 = neuron.stake;
+        let mut module: ModuleMetadataOf<T> = Self::get_module_for_uid( uid );
+        let prev_stake: u64 = module.stake;
 
         // This should never happen. If a user has this ridiculous amount of stake,
         // we need to come up with a better solution
         debug_assert!(u64::MAX.saturating_sub(amount) > prev_stake);
 
         let new_stake = prev_stake.saturating_add(amount);
-        neuron.stake = new_stake;
-        Neurons::<T>::insert(uid, neuron);
+        module.stake = new_stake;
+        Modules::<T>::insert(uid, module);
 
         Self::increase_total_stake(amount);
     }
 
-    /// Decreases the amount of stake in a neuron's hotkey account by the amount provided
-    /// The uid parameter identifies the neuron holding the hotkey account.
+    /// Decreases the amount of stake in a module's hotkey account by the amount provided
+    /// The uid parameter identifies the module holding the hotkey account.
     /// When using this function, it is important to also increase another account by the same value,
     /// as otherwise value gets lost.
     ///
@@ -163,17 +163,17 @@ impl<T: Config> Pallet<T> {
     ///
     /// Furthermore, a check to see if the uid is active before this method is called is also required
     ///
-    pub fn remove_stake_from_neuron_hotkey_account(uid: u32, amount: u64) {
+    pub fn remove_stake_from_module_hotkey_account(uid: u32, amount: u64) {
         debug_assert!(Self::is_uid_active(uid));
 
-        let mut neuron: NeuronMetadataOf<T> = Self::get_neuron_for_uid( uid );
-        let hotkey_stake: u64 = neuron.stake;
+        let mut module: ModuleMetadataOf<T> = Self::get_module_for_uid( uid );
+        let hotkey_stake: u64 = module.stake;
 
         // By this point, there should be enough stake in the hotkey account for this to work.
         debug_assert!(hotkey_stake >= amount);
-        neuron.stake = neuron.stake.saturating_sub(amount);
+        module.stake = module.stake.saturating_sub(amount);
 
-        Neurons::<T>::insert(uid, neuron);
+        Modules::<T>::insert(uid, module);
         Self::decrease_total_stake(amount);
     }
 
@@ -202,11 +202,11 @@ impl<T: Config> Pallet<T> {
         };
     }
 
-    /// Checks if the neuron as specified in the neuron parameter has subscribed with the cold key
+    /// Checks if the module as specified in the module parameter has subscribed with the cold key
     /// as specified in the coldkey parameter. See fn subscribe() for more info.
     ///
-    pub fn neuron_belongs_to_coldkey(neuron: &NeuronMetadataOf<T>, coldkey: &T::AccountId) -> bool {
-        return neuron.coldkey == *coldkey;
+    pub fn module_belongs_to_coldkey(module: &ModuleMetadataOf<T>, coldkey: &T::AccountId) -> bool {
+        return module.coldkey == *coldkey;
     }
 
     /// Checks if the coldkey account has enough balance to be able to withdraw the specified amount.
@@ -232,46 +232,46 @@ impl<T: Config> Pallet<T> {
     /// Checks if the hotkey account of the specified account has enough stake to be able to withdraw
     /// the requested amount.
     ///
-    pub fn has_enough_stake(neuron: &NeuronMetadataOf<T>, amount: u64) -> bool {
-        return neuron.stake >= amount;
+    pub fn has_enough_stake(module: &ModuleMetadataOf<T>, amount: u64) -> bool {
+        return module.stake >= amount;
     }
 
     /// Returns true if there is an entry for uid in the Stake map,
     /// false otherwise
     ///
     pub fn has_hotkey_account(uid: &u32) -> bool {
-        return Neurons::<T>::contains_key(*uid);
+        return Modules::<T>::contains_key(*uid);
     }
 
-    /// This calculates the fraction of the total amount of stake the specfied neuron owns.
-    /// This function is part of the algorithm that calculates the emission of this neurons
-    /// to its peers. See fn calculate_emission_for_neuron()
+    /// This calculates the fraction of the total amount of stake the specfied module owns.
+    /// This function is part of the algorithm that calculates the emission of this modules
+    /// to its peers. See fn calculate_emission_for_module()
     ///
     /// This function returns 0 if the total amount of stake is 0, or the amount of stake the
-    /// neuron has is 0.
+    /// module has is 0.
     ///
-    /// Otherwise, it returns the result of neuron_stake / total stake
+    /// Otherwise, it returns the result of module_stake / total stake
     ///
-    pub fn calculate_stake_fraction_for_neuron(neuron: &NeuronMetadataOf<T>) -> U64F64 {
+    pub fn calculate_stake_fraction_for_module(module: &ModuleMetadataOf<T>) -> U64F64 {
         let total_stake = U64F64::from_num(TotalStake::<T>::get());
-        let neuron_stake = U64F64::from_num(neuron.stake);
+        let module_stake = U64F64::from_num(module.stake);
 
         // Total stake is 0, this should virtually never happen, but is still here because it could
         if total_stake == U64F64::from_num(0) {
             return U64F64::from_num(0);
         }
 
-        // Neuron stake is zero. This means there will be nothing to emit
-        if neuron_stake == U64F64::from_num(0) {
+        // Module stake is zero. This means there will be nothing to emit
+        if module_stake == U64F64::from_num(0) {
             return U64F64::from_num(0);
         }
 
-        let stake_fraction = neuron_stake / total_stake;
+        let stake_fraction = module_stake / total_stake;
 
         return stake_fraction;
     }
 
-    /// Calculates the proportion of the stake a neuron has to the total stake.
+    /// Calculates the proportion of the stake a module has to the total stake.
     /// As such, the result of this function should ALWAYS be a number between
     /// 0 and 1 (inclusive).
     pub fn calulate_stake_fraction(stake: u64, total_stake: u64) -> U64F64 {
