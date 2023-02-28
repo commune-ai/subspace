@@ -829,7 +829,6 @@ pub mod pallet {
 		/// ---- Thrown when a stake, unstake or subscribe request is made by a coldkey
 		/// which is not associated with the hotkey account. 
 		/// See: fn add_stake and fn remove_stake.
-		NonAssociatedColdKey,
 
 		/// ---- Thrown when the caller requests removing more stake then there exists 
 		/// in the staking account. See: fn remove_stake.
@@ -872,7 +871,6 @@ pub mod pallet {
                 Error::AlreadyRegistered => "The node with the supplied public key is already registered".print(),
                 Error::NotRegistered  => "The node with the supplied public key is not registered".print(),
                 Error::WeightVecNotEqualSize => "The vec of keys and the vec of values are not of the same size".print(),
-                Error::NonAssociatedColdKey => "The used cold key is not associated with the hot key acccount".print(),
 				Error::StorageValueOutOfRange => "The supplied storage value is outside of its allowed range".print(),
                 _ => "Invalid Error Case".print(),
             }
@@ -999,9 +997,7 @@ pub mod pallet {
 		/// 	* 'NotRegistered':
 		/// 		- If the hotkey account is not active (has not subscribed)
 		///
-		/// 	* 'NonAssociatedColdKey':
-		/// 		- When the calling coldkey is not associated with the hotkey account.
-		///
+
 		/// 	* 'InsufficientBalance':
 		/// 		- When the amount to stake exceeds the amount of balance in the
 		/// 		associated colkey account.
@@ -1034,9 +1030,7 @@ pub mod pallet {
 		/// 		- On successful withdrawl.
 		///
 		/// # Raises:
-		/// 	* 'NonAssociatedColdKey':
-		/// 		- When the calling coldkey is not associated with the hotkey account.
-		///
+
 		/// 	* 'NotEnoughStaketoWithdraw':
 		/// 		- When the amount to unstake exceeds the quantity staked in the
 		/// 		associated hotkey staking account.

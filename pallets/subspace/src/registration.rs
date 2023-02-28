@@ -99,8 +99,8 @@ impl<T: Config> Pallet<T> {
             ModulesToPruneAtNextEpoch::<T>::insert( uid_to_set_in_metagraph, uid_to_set_in_metagraph ); // Subtrate does not contain a set storage item.
             // Finally, we need to unstake all the funds that this peer had staked. 
             // These funds are deposited back into the coldkey account so that no funds are destroyed. 
-            let stake_to_be_added_on_coldkey = Self::u64_to_balance( module_to_prune.stake );
-            Self::add_balance_to_coldkey_account( &module_to_prune.coldkey, stake_to_be_added_on_coldkey.unwrap() );
+            let stake_to_be_added_on_key = Self::u64_to_balance( module_to_prune.stake );
+            Self::add_balance_to_key_account( &module_to_prune.coldkey, stake_to_be_added_on_key.unwrap() );
             Self::decrease_total_stake( module_to_prune.stake );
 
             // Remove hotkey from hotkeys set, 

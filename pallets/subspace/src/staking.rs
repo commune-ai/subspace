@@ -5,35 +5,35 @@ impl<T: Config> Pallet<T> {
      * do_add_stake() - main function called from parent module
      ***********************************************************/
 
-    pub fn do_add_stake(origin: T::Origin, hotkey: T::AccountId, stake_to_be_added: u64) -> dispatch::DispatchResult
+    pub fn do_add_stake(origin: T::Origin, key: T::AccountId, stake_to_be_added: u64) -> dispatch::DispatchResult
     {
         // ---- We check the transaction is signed by the caller
         // and retrieve the T::AccountId pubkey information.
-        let coldkey = ensure_signed(origin)?;
+        let key = ensure_signed(origin)?;
         //debug(&("--- Called add_stake with coldkey id {:?}, hotkey {:?} and amount_staked {:?}", coldkey, hotkey, stake_to_be_added));
 
         // Check if the hotkey is active
-        ensure!(Self::is_hotkey_active(&hotkey), Error::<T>::NotRegistered);
-        let module = Self::get_module_for_hotkey(&hotkey);
+        ensure!(Self::is_key_active(&key), Error::<T>::NotRegistered);
+        let module = Self::get_module_for_key(&key);
 
         // Check if uid is active
         ensure!(Self::is_uid_active(module.uid), Error::<T>::NotRegistered);
 
         // ---- We check that the ModuleMetadata is linked to the calling
-        // cold key, otherwise throw a NonAssociatedColdKey error.
-        ensure!(Self::module_belongs_to_coldkey(&module, &coldkey), Error::<T>::NonAssociatedColdKey);
+        // key, otherwise throw a NonAssociatedColdKey error.
+        ensure!(Self::module_belongs_to_key(&module, &key), Error::<T>::NonAssociatedKey);
 
         // ---- We check that the calling coldkey contains enough funds to
         // create the staking transaction.
         let stake_as_balance = Self::u64_to_balance(stake_to_be_added);
         ensure!(stake_as_balance.is_some(), Error::<T>::CouldNotConvertToBalance);
 
-        ensure!(Self::can_remove_balance_from_coldkey_account(&coldkey, stake_as_balance.unwrap()), Error::<T>::NotEnoughBalanceToStake);
-        ensure!(Self::remove_balance_from_coldkey_account(&coldkey, stake_as_balance.unwrap()) == true, Error::<T>::BalanceWithdrawalError);
-        Self::add_stake_to_module_hotkey_account(module.uid, stake_to_be_added);
+        ensure!(Self::can_remove_balance_from_coldkey_account(&key, stake_as_balance.unwrap()), Error::<T>::NotEnoughBalanceToStake);
+        ensure!(Self::remove_balance_from_coldkey_account(&key, stake_as_balance.unwrap()) == true, Error::<T>::BalanceWithdrawalError);
+        Self::add_stake_to_module(module.uid, stake_to_be_added);
 
         // ---- Emit the staking event.
-        Self::deposit_event(Event::StakeAdded(hotkey, stake_to_be_added));
+        Self::deposit_event(Event::StakeAdded(key, stake_to_be_added));
 
         // --- ok and return.
         Ok(())
@@ -56,23 +56,19 @@ impl<T: Config> Pallet<T> {
     /// - NotEnoughStaketoWithdraw : The ammount of stake available in the hotkey account is lower than the requested amount
     /// - CouldNotConvertToBalance : A conversion error occured while converting stake from u64 to Balance
     ///
-    pub fn do_remove_stake(origin: T::Origin, hotkey: T::AccountId, stake_to_be_removed: u64) -> dispatch::DispatchResult {
+    pub fn do_remove_stake(origin: T::Origin, key: T::AccountId, stake_to_be_removed: u64) -> dispatch::DispatchResult {
 
         // ---- We check the transaction is signed by the caller
         // and retrieve the T::AccountId pubkey information.
-        let coldkey = ensure_signed(origin)?;
+        let key = ensure_signed(origin)?;
 
         // ---- We query the Module set for the ModuleMetadata stored under
         // the passed hotkey.
-        ensure!(Self::is_hotkey_active(&hotkey), Error::<T>::NotRegistered);
-        let module = Self::get_module_for_hotkey(&hotkey);
+        ensure!(Self::is_hotkey_active(&key), Error::<T>::NotRegistered);
+        let module = Self::get_module_for_key(&key);
 
         // Check if uid is active
         ensure!(Self::is_uid_active(module.uid), Error::<T>::NotRegistered);
-
-        // ---- We check that the ModuleMetadata is linked to the calling
-        // cold key, otherwise throw a NonAssociatedColdKey error.
-        ensure!(Self::module_belongs_to_coldkey(&module, &coldkey), Error::<T>::NonAssociatedColdKey);
 
         // ---- We check that the hotkey has enough stake to withdraw
         // and then withdraw from the account.
@@ -83,11 +79,11 @@ impl<T: Config> Pallet<T> {
         // --- We perform the withdrawl by converting the stake to a u64 balance
         // and deposit the balance into the coldkey account. If the coldkey account
         // does not exist it is created.
-        Self::add_balance_to_coldkey_account(&coldkey, stake_to_be_added_as_currency.unwrap());
-        Self::remove_stake_from_module_hotkey_account(module.uid, stake_to_be_removed);
+        Self::add_balance_to_key_account(&coldkey, stake_to_be_added_as_currency.unwrap());
+        Self::remove_stake_from_module(module.uid, stake_to_be_removed);
 
         // ---- Emit the unstaking event.
-        Self::deposit_event(Event::StakeRemoved(hotkey, stake_to_be_removed));
+        Self::deposit_event(Event::StakeRemoved(key, stake_to_be_removed));
 
         // --- Done and ok.
         Ok(())
@@ -98,7 +94,7 @@ impl<T: Config> Pallet<T> {
     --==[[  Helper functions   ]]==--
     *********************************/
 
-    pub fn get_stake_of_module_hotkey_account_by_uid(uid: u32) -> u64 {
+    pub fn get_stake_of_module_key_account_by_uid(uid: u32) -> u64 {
         return Self::get_module_for_uid(uid).stake
     }
 
@@ -136,7 +132,7 @@ impl<T: Config> Pallet<T> {
     /// is calculated and this should always <= 1. Having this function be atomic, fills this
     /// requirement.
     ///
-    pub fn add_stake_to_module_hotkey_account(uid: u32, amount: u64) {
+    pub fn add_stake_to_module(uid: u32, amount: u64) {
         debug_assert!(Self::is_uid_active(uid));
 
         let mut module: ModuleMetadataOf<T> = Self::get_module_for_uid( uid );
@@ -163,14 +159,14 @@ impl<T: Config> Pallet<T> {
     ///
     /// Furthermore, a check to see if the uid is active before this method is called is also required
     ///
-    pub fn remove_stake_from_module_hotkey_account(uid: u32, amount: u64) {
+    pub fn remove_stake_from_module(uid: u32, amount: u64) {
         debug_assert!(Self::is_uid_active(uid));
 
         let mut module: ModuleMetadataOf<T> = Self::get_module_for_uid( uid );
-        let hotkey_stake: u64 = module.stake;
+        let stake: u64 = module.stake;
 
         // By this point, there should be enough stake in the hotkey account for this to work.
-        debug_assert!(hotkey_stake >= amount);
+        debug_assert!(stake >= amount);
         module.stake = module.stake.saturating_sub(amount);
 
         Modules::<T>::insert(uid, module);
@@ -181,7 +177,7 @@ impl<T: Config> Pallet<T> {
     /// The Balance parameter is a from u64 converted number. This is needed for T::Currency to work.
     /// Make sure stake is removed from another account before calling this method, otherwise you'll end up with double the value
     ///
-    pub fn add_balance_to_coldkey_account(coldkey: &T::AccountId, amount: <<T as Config>::Currency as Currency<<T as system::Config>::AccountId>>::Balance) {
+    pub fn add_balance_to_key_account(key: &T::AccountId, amount: <<T as Config>::Currency as Currency<<T as system::Config>::AccountId>>::Balance) {
         T::Currency::deposit_creating(&coldkey, amount); // Infallibe
     }
 
@@ -191,8 +187,8 @@ impl<T: Config> Pallet<T> {
     /// The output of this function MUST be checked before writing the amount to the hotkey account
     ///
     ///
-    pub fn remove_balance_from_coldkey_account(coldkey: &T::AccountId, amount: <<T as Config>::Currency as Currency<<T as system::Config>::AccountId>>::Balance) -> bool {
-        return match T::Currency::withdraw(&coldkey, amount, WithdrawReasons::except(WithdrawReasons::TIP), ExistenceRequirement::KeepAlive) {
+    pub fn remove_balance_from_key_account(coldkey: &T::AccountId, amount: <<T as Config>::Currency as Currency<<T as system::Config>::AccountId>>::Balance) -> bool {
+        return match T::Currency::withdraw(&key, amount, WithdrawReasons::except(WithdrawReasons::TIP), ExistenceRequirement::KeepAlive) {
             Ok(_result) => {
                 true
             }
@@ -205,28 +201,28 @@ impl<T: Config> Pallet<T> {
     /// Checks if the module as specified in the module parameter has subscribed with the cold key
     /// as specified in the coldkey parameter. See fn subscribe() for more info.
     ///
-    pub fn module_belongs_to_coldkey(module: &ModuleMetadataOf<T>, coldkey: &T::AccountId) -> bool {
-        return module.coldkey == *coldkey;
+    pub fn module_belongs_to_key(module: &ModuleMetadataOf<T>, key: &T::AccountId) -> bool {
+        return module.key == *key;
     }
 
     /// Checks if the coldkey account has enough balance to be able to withdraw the specified amount.
     ///
-    pub fn can_remove_balance_from_coldkey_account(coldkey: &T::AccountId, amount: <<T as Config>::Currency as Currency<<T as system::Config>::AccountId>>::Balance) -> bool {
-        let current_balance = Self::get_coldkey_balance(coldkey);
+    pub fn can_remove_balance_from_key_account(key: &T::AccountId, amount: <<T as Config>::Currency as Currency<<T as system::Config>::AccountId>>::Balance) -> bool {
+        let current_balance = Self::get_key_balance(key);
         if amount > current_balance {
             return false;
         }
 
         // This bit is currently untested. @todo
         let new_potential_balance = current_balance - amount;
-        let can_withdraw = T::Currency::ensure_can_withdraw(&coldkey, amount, WithdrawReasons::except(WithdrawReasons::TIP), new_potential_balance).is_ok();
+        let can_withdraw = T::Currency::ensure_can_withdraw(&key, amount, WithdrawReasons::except(WithdrawReasons::TIP), new_potential_balance).is_ok();
         can_withdraw
     }
 
     /// Returns the current balance in the cold key account
     ///
-    pub fn get_coldkey_balance(coldkey: &T::AccountId) -> <<T as Config>::Currency as Currency<<T as system::Config>::AccountId>>::Balance {
-        return T::Currency::free_balance(&coldkey);
+    pub fn get_balance(key: &T::AccountId) -> <<T as Config>::Currency as Currency<<T as system::Config>::AccountId>>::Balance {
+        return T::Currency::free_balance(&key);
     }
 
     /// Checks if the hotkey account of the specified account has enough stake to be able to withdraw
@@ -239,7 +235,7 @@ impl<T: Config> Pallet<T> {
     /// Returns true if there is an entry for uid in the Stake map,
     /// false otherwise
     ///
-    pub fn has_hotkey_account(uid: &u32) -> bool {
+    pub fn has_key_account(uid: &u32) -> bool {
         return Modules::<T>::contains_key(*uid);
     }
 

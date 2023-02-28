@@ -1,19 +1,18 @@
 use super::*;
 
 impl<T: Config> Pallet<T> {
-    pub fn do_serve_module( origin: T::Origin, version: u32, ip: u128, port: u16, ip_type: u8) -> dispatch::DispatchResult {
+    pub fn do_serve_module( origin: T::Origin, version: u32, ip: u128, port: u16, ip_type: u8, ) -> dispatch::DispatchResult {
 
         // --- We check the callers (hotkey) signature.
         let hotkey_id = ensure_signed(origin)?;
 
         // --- We make validy checks on the passed data.
         ensure!( Hotkeys::<T>::contains_key(&hotkey_id), Error::<T>::NotRegistered );        
-        ensure!( is_valid_modality(modality), Error::<T>::InvalidModality );
         ensure!( is_valid_ip_type(ip_type), Error::<T>::InvalidIpType );
         ensure!( is_valid_ip_address(ip_type, ip), Error::<T>::InvalidIpAddress );
   
         // --- We get the uid associated with this hotkey account.
-        let uid = Self::get_uid_for_hotkey(&hotkey_id);
+        let uid = Self::get_uid_for_key(&key_id);
 
         // --- We get the module assoicated with this hotkey.
         let mut module = Self::get_module_for_uid(uid);
@@ -35,22 +34,8 @@ impl<T: Config> Pallet<T> {
      --==[[  Helper functions   ]]==--
     *********************************/
 
-    pub fn specified_coldkey_is_linked_to_hotkey_if_active(hotkey : &T::AccountId, coldkey : &T::AccountId) -> bool {
-        if !Self::is_hotkey_active(hotkey) {
-            return true;
-        }
-
-        // Hotkey is active, so we are able to find the module associated with it
-        let module = Self::get_module_for_hotkey(hotkey);
-        Self::module_belongs_to_coldkey(&module, coldkey)
-    }
 }
 
-
-fn is_valid_modality(modality: u8) -> bool {
-    let allowed_values: Vec<u8> = vec![0];
-    return allowed_values.contains(&modality);
-}
 
 fn is_valid_ip_type(ip_type: u8) -> bool {
     let allowed_values: Vec<u8> = vec![4, 6];
