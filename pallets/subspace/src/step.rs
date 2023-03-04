@@ -94,7 +94,6 @@ impl<T: Config> Pallet<T> {
         
         // Constants.
         let activity_cutoff: u64 = Self::get_activity_cutoff();
-        let bonds_moving_average:I65F63 = I65F63::from_num( Self::get_bonds_moving_average() ) / I65F63::from_num( 1_000_000 );
         let u64_max: I65F63 = I65F63::from_num( u64::MAX );
         let u32_max: I65F63 = I65F63::from_num( u32::MAX );
         let one: I65F63 = I65F63::from_num( 1.0 );
@@ -106,7 +105,6 @@ impl<T: Config> Pallet<T> {
         // To be filled.
         let mut uids: Vec<u32> = vec![];
         let mut active: Vec<u32> = vec![0; n];
-        let mut priority: Vec<u64> = vec![0;n];
         let mut bond_totals: Vec<u64> = vec![0; n];
         let mut bonds: Vec<Vec<u64>> = vec![vec![0;n]; n];
         let mut weights: Vec<Vec<(u32,u32)>> = vec![ vec![]; n ];
@@ -117,44 +115,36 @@ impl<T: Config> Pallet<T> {
         for ( uid_i, module_i ) in <Modules<T> as IterableStorageMap<u32, ModuleMetadataOf<T>>>::iter() {
 
             // Append a set of uids.
-            uids.push( uid_i );
+
+            let mut bonds_row: Vec<u64> = vec![0; n];
+
+            // we want to remove the votes from stale votes to ensure the network is fresh 
+            // # This can change
             if block - module_i.last_update >= activity_cutoff {
                 active [ uid_i as usize ] = 0;
+                module_i.bonds = vec![];
+                module_i.weight = vec![];
+
+                
+
             } else {
+                uids.push( uid_i );
                 active [ uid_i as usize ] = 1;
                 total_active_stake += I65F63::from_num( module_i.stake );
+                stake [ uid_i as usize ] = I65F63::from_num(  module_i.stake );
+                total_stake += I65F63::from_num( module_i.stake );
+                stake [ uid_i as usize ] = I65F63::from_num( module_i.stake );
+                weights [ uid_i as usize ] = module_i.weights; 
+                bonds[ uid_i as usize ] = module_i.bonds; 
             }
-            total_stake += I65F63::from_num( module_i.stake );
-            stake [ uid_i as usize ] = I65F63::from_num( module_i.stake );
+            
 
-            // Priority increments by the log of the stake and is drained everytime the account sets weights. 
-            let log_stake:I65F63 = log2( I65F63::from_num( module_i.stake + 1 ) ).expect( "stake + 1 is positive and greater than 1.");
-            priority [ uid_i as usize ] = module_i.priority + log_stake.to_num::<u64>();
-
-            weights [ uid_i as usize ] = module_i.weights;             
-            let mut bonds_row: Vec<u64> = vec![0; n];
-            for (uid_j, bonds_ij) in module_i.bonds.iter() {
-                
-                // Prunning occurs here. We simply to do fill this bonds matrix 
-                // with entries that contain the uids to prune. 
-                if !ModulesToPruneAtNextEpoch::<T>::contains_key(uid_j) {
-                    // Otherwise, we add the entry into the stack based bonds array. We decay here as an optimization.
-                    let decayed_bond_ij: u64 = (bonds_moving_average * I65F63::from_num( *bonds_ij )).to_num::<u64>();
-                    bonds_row [ *uid_j as usize ] = decayed_bond_ij;
-                    bond_totals [ *uid_j as usize ] += decayed_bond_ij;
-                }
-
-            }
-            bonds[ uid_i as usize ] = bonds_row;
         }
         // Normalize stake based on activity.
         if total_active_stake != 0 {
             for uid_i in uids.iter() {
                 let normalized_active_stake:I65F63 = stake[ *uid_i as usize ] / total_active_stake;
                 stake[ *uid_i as usize ] = normalized_active_stake;
-                if active[ *uid_i as usize ] == 1 {
-                    total_normalized_active_stake += normalized_active_stake;
-                }
             }
         }
 		log::trace!(
@@ -166,11 +156,11 @@ impl<T: Config> Pallet<T> {
         // Computational aspect starts here.
         
         // Compute ranks and trust.
-        let mut total_bonds_purchased: u64 = 0;
-        let mut total_ranks: I65F63 = I65F63::from_num( 0.0 );
-        let mut total_trust: I65F63 = I65F63::from_num( 0.0 );
-        let mut ranks: Vec<I65F63> = vec![ I65F63::from_num( 0.0 ) ; n];
-        let mut trust: Vec<I65F63> = vec![ I65F63::from_num( 0.0 ) ; n];
+        let mut total_bonds: u64 = 0;
+        let mut total_incentive: I65F63 = I65F63::from_num( 0.0 );
+        let mut incentive: Vec<I65F63> = vec![ I65F63::from_num( 0.0 ) ; n];
+
+        
         for uid_i in uids.iter() {
 
             // === Get vars for uid_i ===
@@ -186,28 +176,20 @@ impl<T: Config> Pallet<T> {
                 // === Compute score increments ===
                 // Non active validators dont have the ability to increase ranks.
                 // & bond increments converge to zero for non active validators.
-                let mut rank_increment_ij: I65F63 = I65F63::from_num(0.0);
-                let mut bond_increment_ij: I65F63 = I65F63::from_num(0.0);
-                let mut trust_increment_ij: I65F63 = I65F63::from_num(0.0);
-                if active[ *uid_i as usize ] == 1 { 
-                    let weight_ij: I65F63 = I65F63::from_num( *weight_ij ) / u32_max; // Range( 0, 1 )
-                    trust_increment_ij = stake_i; // Range( 0, 1 )                
-                    rank_increment_ij = stake_i * weight_ij; // Range( 0, total_active_stake )
-                    bond_increment_ij = rank_increment_ij * block_emission;
-                }
-                
+                let mut incentive_ij: I65F63 = I65F63::from_num(0.0);
+                let mut bond_ij: I65F63 = I65F63::from_num(0.0);
+
+                let weight_ij: I65F63 = I65F63::from_num( *weight_ij ) / u32_max; // Range( 0, 1 )
+                incentive_ij = stake_i * weight_ij; // Range( 0, total_active_stake )
+                bond_ij = incentive_ij;
                 // === Increment module scores ===
-                ranks[ *uid_j as usize ] += rank_increment_ij;  // Range( 0, total_active_stake )
-                trust[ *uid_j as usize ] += trust_increment_ij;  // Range( 0, total_active_stake )
-                total_ranks += rank_increment_ij;  // Range( 0, total_active_stake )
-                total_trust += trust_increment_ij;  // Range( 0, total_active_stake )
+                incentives[ *uid_j as usize ] += incentive_ij;  // Range( 0, total_active_stake )
+                total_incentive += incentive_ij;  // Range( 0, total_active_stake )
                 // === Compute bonding moving averages ===
-                let moving_bonds_previous_ij: I65F63 = I65F63::from_num( bonds[ *uid_i as usize  ][ *uid_j as usize ] );
-                let moving_bond_increment_ij: I65F63 = ( one - bonds_moving_average ) * bond_increment_ij;
-                let moving_bond_next_ij: I65F63 = moving_bonds_previous_ij + moving_bond_increment_ij;
-                bonds [ *uid_i as usize  ][ *uid_j as usize ] = moving_bond_next_ij.to_num::<u64>(); // Range( 0, block_emission )
-                bond_totals [ *uid_j as usize ] += moving_bond_increment_ij.to_num::<u64>();
-                total_bonds_purchased += moving_bond_increment_ij.to_num::<u64>();
+                bonds [ *uid_i as usize  ][ *uid_j as usize ] = bond_ij.to_num::<u64>(); // Range( 0, block_emission )
+                bond_totals [ *uid_j as usize ] += bond_ij.to_num::<u64>();
+                total_bonds += bond_ij.to_num::<u64>();
+                
 
             }
         }
@@ -215,17 +197,14 @@ impl<T: Config> Pallet<T> {
         if total_trust > 0 && total_ranks > 0 {
             for uid_i in uids.iter() {
                 ranks[ *uid_i as usize ] = ranks[ *uid_i as usize ] / total_ranks; // Vector will sum to u64_max
-                trust[ *uid_i as usize ] = trust[ *uid_i as usize ] / total_normalized_active_stake; // Vector will sum to u64_max
             }
         }
 		 log::trace!(target: LOG_TARGET, "ranks: {:?}", ranks);
-		 log::trace!(target: LOG_TARGET, "trust: {:?}", trust);
-		 log::trace!(target: LOG_TARGET, "bonds: {:?}, {:?}, {:?}", bonds, bond_totals, total_bonds_purchased);
+		 log::trace!(target: LOG_TARGET, "bonds: {:?}, {:?}, {:?}", bonds, bond_totals, total_bonds);
 
         // Compute consensus, incentive.
         let mut total_incentive: I65F63 = I65F63::from_num( 0.0 );
         let mut consensus: Vec<I65F63> = vec![ I65F63::from_num( 0.0 ) ; n];
-        let mut incentive: Vec<I65F63> = vec![ I65F63::from_num( 0.0 ) ; n];
         if total_ranks != 0 && total_trust != 0 {
             for uid_i in uids.iter() {                    
                 // Get exponentiated trust score.
@@ -312,7 +291,6 @@ impl<T: Config> Pallet<T> {
         for ( uid_i, mut module_i ) in <Modules<T> as IterableStorageMap<u32, ModuleMetadataOf<T>>>::iter() {
             // Update table entry.
             module_i.active = active[ uid_i as usize ];
-            module_i.priority = priority[ uid_i as usize ];
             module_i.emission = emission[ uid_i as usize ];
             module_i.stake = module_i.stake + emission[ uid_i as usize ];
             module_i.rank = (ranks[ uid_i as usize ] * u64_max).to_num::<u64>();
@@ -334,7 +312,7 @@ impl<T: Config> Pallet<T> {
 
         // Update totals.
         TotalEmission::<T>::set( total_emission );
-        TotalBondsPurchased::<T>::set( total_bonds_purchased );
+        TotalBonds::<T>::set( total_bonds );
         TotalIssuance::<T>::mutate( |val| *val += total_new_issuance );
         TotalStake::<T>::mutate( |val| *val += total_emission );
         LastMechansimStepBlock::<T>::set( block );

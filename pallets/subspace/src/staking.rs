@@ -9,10 +9,10 @@ impl<T: Config> Pallet<T> {
     {
         // ---- We check the transaction is signed by the caller
         // and retrieve the T::AccountId pubkey information.
-        let key = ensure_signed(origin)?;
+        let origin_key = ensure_signed(origin)?;
         //debug(&("--- Called add_stake with coldkey id {:?}, hotkey {:?} and amount_staked {:?}", coldkey, hotkey, stake_to_be_added));
 
-        // Check if the hotkey is active
+        // Check if the key is active
         ensure!(Self::is_key_active(&key), Error::<T>::NotRegistered);
         let module = Self::get_module_for_key(&key);
 
@@ -28,8 +28,8 @@ impl<T: Config> Pallet<T> {
         let stake_as_balance = Self::u64_to_balance(stake_to_be_added);
         ensure!(stake_as_balance.is_some(), Error::<T>::CouldNotConvertToBalance);
 
-        ensure!(Self::can_remove_balance_from_coldkey_account(&key, stake_as_balance.unwrap()), Error::<T>::NotEnoughBalanceToStake);
-        ensure!(Self::remove_balance_from_coldkey_account(&key, stake_as_balance.unwrap()) == true, Error::<T>::BalanceWithdrawalError);
+        ensure!(Self::can_remove_balance_from_key_account(&origin_key, stake_as_balance.unwrap()), Error::<T>::NotEnoughBalanceToStake);
+        ensure!(Self::remove_balance_from_key_account(&origin_key, stake_as_balance.unwrap()) == true, Error::<T>::BalanceWithdrawalError);
         Self::add_stake_to_module(module.uid, stake_to_be_added);
 
         // ---- Emit the staking event.
@@ -222,6 +222,11 @@ impl<T: Config> Pallet<T> {
     /// Returns the current balance in the cold key account
     ///
     pub fn get_balance(key: &T::AccountId) -> <<T as Config>::Currency as Currency<<T as system::Config>::AccountId>>::Balance {
+        return T::Currency::free_balance(&key);
+    }
+    /// Returns the current balance in the cold key account
+    ///
+    pub fn get_key_balance(key: &T::AccountId) -> <<T as Config>::Currency as Currency<<T as system::Config>::AccountId>>::Balance {
         return T::Currency::free_balance(&key);
     }
 

@@ -574,7 +574,6 @@ parameter_types! {
 	pub const SDebug:u64 = 1;
 	pub const InitialRho: u64 = 10;
 	pub const InitialKappa: u64 = 2;
-	pub const SelfOwnership: u64 = 2;
 	pub const InitialValidatorBatchSize: u64 = 10;
 	pub const InitialValidatorSequenceLen: u64 = 10;
 	pub const InitialValidatorEpochLen: u64 = 1000;
@@ -583,9 +582,6 @@ parameter_types! {
 	pub const InitialValidatorLogitsDivergence: u64 = 0;
 	
 	// u8 where value (x) represents x * 10^-2
-	pub const InitialScalingLawPower: u8 = 50; // 0.5
-	pub const InitialSynergyScalingLawPower: u8 = 60; // 0.6
-	pub const InitialValidatorExcludeQuantile: u8 = 10; // 0.1
 
 	pub const InitialImmunityPeriod: u64 = 200;
 	pub const InitialBlocksPerStep: u64 = 100;
@@ -616,10 +612,6 @@ impl pallet_subspace::Config for Runtime {
 	type SDebug = SDebug;
 	type InitialRho = InitialRho;
 	type InitialKappa = InitialKappa;
-	type SelfOwnership = SelfOwnership;
-	type InitialScalingLawPower = InitialScalingLawPower;
-	type InitialSynergyScalingLawPower = InitialSynergyScalingLawPower;
-	type InitialValidatorExcludeQuantile = InitialValidatorExcludeQuantile;
 	type InitialValidatorPruneLen = InitialValidatorPruneLen;
 	type InitialValidatorLogitsDivergence = InitialValidatorLogitsDivergence;
 	type InitialValidatorBatchSize = InitialValidatorBatchSize;

@@ -142,10 +142,7 @@ impl<T: Config> Pallet<T> {
         Ok(())
     }
 
-    pub fn get_current_block_as_u64_here( ) -> u64 {
-        let block_as_u64: u64 = TryInto::try_into( system::Pallet::<T>::block_number() ).ok().expect("blockchain will not exceed 2^64 blocks; QED.");
-        block_as_u64
-    }
+
 
     pub fn vec_to_hash( vec_hash: Vec<u8> ) -> H256 {
         let de_ref_hash = &vec_hash; // b: &Vec<u8>
@@ -154,6 +151,16 @@ impl<T: Config> Pallet<T> {
         return real_hash
     }
 
+    pub fn hash_to_vec( hash: H256 ) -> Vec<u8> {
+        let hash_as_bytes: &[u8] = hash.as_bytes();
+        let hash_as_vec: Vec<u8> = hash_as_bytes.iter().cloned().collect();
+        return hash_as_vec
+    }
+    
+    pub fn get_current_block_as_u64_here( ) -> u64 {
+        let block_as_u64: u64 = TryInto::try_into( system::Pallet::<T>::block_number() ).ok().expect("blockchain will not exceed 2^64 blocks; QED.");
+        block_as_u64
+    }
 
     pub fn get_block_hash_from_u64 ( block_number: u64 ) -> H256 {
         let block_number: T::BlockNumber = TryInto::<T::BlockNumber>::try_into( block_number ).ok().expect("convert u64 to block number.");
@@ -173,10 +180,5 @@ impl<T: Config> Pallet<T> {
         return real_hash;
     }
 
-    pub fn hash_to_vec( hash: H256 ) -> Vec<u8> {
-        let hash_as_bytes: &[u8] = hash.as_bytes();
-        let hash_as_vec: Vec<u8> = hash_as_bytes.iter().cloned().collect();
-        return hash_as_vec
-    }
 
 }

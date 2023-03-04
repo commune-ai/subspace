@@ -78,29 +78,10 @@ pub mod pallet {
 		#[pallet::constant]
 		type SDebug: Get<u64>;
 
-		/// Rho constant
-		#[pallet::constant]
-		type InitialRho: Get<u64>;
-
 		/// Kappa constant
 		#[pallet::constant]
 		type InitialKappa: Get<u64>;
 
-		/// Default Batch size.
-		#[pallet::constant]
-		type InitialValidatorBatchSize: Get<u64>;
-
-		/// Default Batch size.
-		#[pallet::constant]
-		type InitialValidatorSequenceLen: Get<u64>;
-
-		/// Default Epoch length.
-		#[pallet::constant]
-		type InitialValidatorEpochLen: Get<u64>;
-
-		/// Default Reset length.
-		#[pallet::constant]
-		type InitialValidatorEpochsPerReset: Get<u64>;
 
 		/// Max UID constant.
 		#[pallet::constant]
@@ -145,10 +126,6 @@ pub mod pallet {
 		/// Blocks per era.
 		#[pallet::constant]
 		type InitialBondsMovingAverage: Get<u64>;
-		
-		/// SelfOwnership constant
-		#[pallet::constant]
-		type SelfOwnership: Get<u64>;
 
 		/// Activity constant
 		#[pallet::constant]
@@ -170,26 +147,6 @@ pub mod pallet {
 		#[pallet::constant]
 		type InitialTargetRegistrationsPerInterval: Get<u64>;
 
-		///// u8 where value (x) represents x * 10^-2
-		/// Initial scaling law power.
-		#[pallet::constant]
-		type InitialScalingLawPower: Get<u8>;
-
-		/// Initial synergy scaling law power.
-		#[pallet::constant]
-		type InitialSynergyScalingLawPower: Get<u8>;
-
-		/// Initial validator exclude quantile.
-		#[pallet::constant]
-		type InitialValidatorExcludeQuantile: Get<u8>;
-
-		/// Initial validator context pruning length.
-		#[pallet::constant]
-		type InitialValidatorPruneLen: Get<u64>;
-
-		/// Initial validator logits divergence penalty/threshold.
-		#[pallet::constant]
-		type InitialValidatorLogitsDivergence: Get<u64>;
 	}
 
 	pub type AccountIdOf<T> = <T as frame_system::Config>::AccountId;
@@ -214,26 +171,10 @@ pub mod pallet {
         /// ---- The endpoint's unique identifier.
         pub uid: u32,
 
-        /// ---- The module modality. Modalities specify which datatype
-        /// the module endpoint can process. This information is non
-        /// verifiable. However, modules should set this correctly
-        /// in order to be detected by others with this datatype.
-        /// The initial modality codes are:
-        /// TEXT: 0
-        /// IMAGE: 1
-        /// TENSOR: 2
-        pub modality: u8,
-
         /// ---- The associated hotkey account.
         /// Registration and changing weights can be made by this
         /// account.
-        pub hotkey: AccountId,
-
-        /// ---- The associated coldkey account.
-        /// Staking and unstaking transactions must be made by this account.
-        /// The hotkey account (in the Modules map) has permission to call
-        /// subscribe and unsubscribe.
-        pub coldkey: AccountId,
+        pub key: AccountId,
 
 		/// ---- Is this module active in the incentive mechanism.
 		pub active: u32,
@@ -246,15 +187,6 @@ pub mod pallet {
 
 		/// ---- The associated stake in this account.
 		pub stake: u64,
-
-		/// ---- The associated rank in this account.
-		pub rank: u64,
-
-		/// ---- The associated trust in this account.
-		pub trust: u64,
-
-		/// ---- The associated consensus in this account.
-		pub consensus: u64,
 
 		/// ---- The associated incentive in this account.
 		pub incentive: u64,
@@ -304,31 +236,12 @@ pub mod pallet {
 	>;
 
 	#[pallet::storage]
-	pub type TotalBondsPurchased<T> = StorageValue<
+	pub type TotalBonds<T> = StorageValue<
 		_, 
 		u64, 
 		ValueQuery
 	>;
 
-	#[pallet::type_value] 
-	pub fn DefaultRho<T: Config>() -> u64 { T::InitialRho::get() }
-	#[pallet::storage]
-	pub type Rho<T> = StorageValue<
-		_, 
-		u64, 
-		ValueQuery,
-		DefaultRho<T>
-	>;
-
-	#[pallet::type_value] 
-	pub fn DefaultKappa<T: Config>() -> u64 { T::InitialKappa::get() }
-	#[pallet::storage]
-	pub type Kappa<T> = StorageValue<
-		_, 
-		u64, 
-		ValueQuery,
-		DefaultKappa<T>
-	>;
 
 	#[pallet::type_value] 
 	pub fn DefaultIncentivePruningDenominator<T: Config>() -> u64 { T::InitialIncentivePruningDenominator::get() }
@@ -360,45 +273,7 @@ pub mod pallet {
 		DefaultStakePruningMin<T>
 	>;
 
-	#[pallet::type_value] 
-	pub fn DefaultValidatorEpochLen<T: Config>() -> u64 { T::InitialValidatorEpochLen::get() }
-	#[pallet::storage]
-	pub type ValidatorEpochLen<T> = StorageValue<
-		_, 
-		u64, 
-		ValueQuery,
-		DefaultValidatorEpochLen<T>
-	>;
 
-	#[pallet::type_value] 
-	pub fn DefaultValidatorEpochsPerReset<T: Config>() -> u64 { T::InitialValidatorEpochsPerReset::get() }
-	#[pallet::storage]
-	pub type ValidatorEpochsPerReset<T> = StorageValue<
-		_, 
-		u64, 
-		ValueQuery,
-		DefaultValidatorEpochsPerReset<T>
-	>;
-
-	#[pallet::type_value] 
-	pub fn DefaultValidatorBatchSize<T: Config>() -> u64 { T::InitialValidatorBatchSize::get() }
-	#[pallet::storage]
-	pub type ValidatorBatchSize<T> = StorageValue<
-		_, 
-		u64, 
-		ValueQuery,
-		DefaultValidatorBatchSize<T>
-	>;
-
-	#[pallet::type_value] 
-	pub fn DefaultValidatorSequenceLen<T: Config>() -> u64 { T::InitialValidatorSequenceLen::get() }
-	#[pallet::storage]
-	pub type ValidatorSequenceLength<T> = StorageValue<
-		_, 
-		u64, 
-		ValueQuery,
-		DefaultValidatorSequenceLen<T>
-	>;
 
 	#[pallet::type_value] 
 	pub fn DefaultMaxAllowedUids<T: Config>() -> u64 { T::InitialMaxAllowedUids::get() }
@@ -709,12 +584,6 @@ pub mod pallet {
 		/// --- Event created when the target registrations per interval has been set.
 		TargetRegistrationsPerIntervalSet(u64),
 
-		/// --- Event created when mechanism rho has been set.
-		RhoSet(u64),
-
-		/// --- Event created when mechanism kappa has been set.
-		KappaSet(u64),
-
 		/// --- Event created when max allowed uids has been set.
 		MaxAllowedUidsSet(u64),
 
@@ -747,27 +616,6 @@ pub mod pallet {
 
 		/// --- Event created when the synergy scaling law power has been set.
 		SynergyScalingLawPowerSet( u8 ),
-
-		/// --- Event created when the validator exclude quantile has been set.
-		ValidatorExcludeQuantileSet( u8 ),
-
-		/// --- Event created when the validator pruning length has been set.
-		ValidatorPruneLenSet( u64 ),
-
-		/// --- Event created when the validator logits divergence value has been set.
-		ValidatorLogitsDivergenceSet( u64 ),
-
-		/// --- Event created when the validator default epoch length has been set.
-		ValidatorEpochLenSet(u64),
-
-		/// --- Event created when the validator default epoch per reset has been set.
-		ValidatorEpochsPerResetSet(u64),
-
-		/// --- Event created when the batch size has been set.
-		ValidatorBatchSizeSet(u64),
-
-		/// --- Event created when the sequence length has been set.
-		ValidatorSequenceLengthSet(u64),
 
 		/// --- Event created when the immunity period has been set.
 		ImmunityPeriodSet(u64),
@@ -1180,27 +1028,6 @@ pub mod pallet {
 			Ok(())
 		}
 
-		#[pallet::weight((0, DispatchClass::Operational, Pays::No))]
-		pub fn sudo_set_rho ( 
-			origin:OriginFor<T>, 
-			rho: u64 
-		) -> DispatchResult {
-			ensure_root( origin )?;
-			Rho::<T>::set( rho );
-			Self::deposit_event( Event::RhoSet( rho ) );
-			Ok(())
-		}
-
-		#[pallet::weight((0, DispatchClass::Operational, Pays::No))]
-		pub fn sudo_set_kappa ( 
-			origin:OriginFor<T>, 
-			kappa: u64 
-		) -> DispatchResult {
-			ensure_root( origin )?;
-			Kappa::<T>::set( kappa );
-			Self::deposit_event( Event::KappaSet( kappa ) );
-			Ok(())
-		}
 
 		#[pallet::weight((0, DispatchClass::Operational, Pays::No))]
 		pub fn sudo_set_max_allowed_uids ( 
@@ -1246,49 +1073,6 @@ pub mod pallet {
 			Ok(())
 		}
 
-		#[pallet::weight((0, DispatchClass::Operational, Pays::No))]
-		pub fn sudo_set_validator_batch_size ( 
-			origin:OriginFor<T>, 
-			validator_batch_size: u64 
-		) -> DispatchResult {
-			ensure_root( origin )?;
-			ValidatorBatchSize::<T>::set( validator_batch_size );
-			Self::deposit_event( Event::ValidatorBatchSizeSet( validator_batch_size ) );
-			Ok(())
-		}
-
-		#[pallet::weight((0, DispatchClass::Operational, Pays::No))]
-		pub fn sudo_set_validator_sequence_length ( 
-			origin:OriginFor<T>, 
-			validator_sequence_length: u64 
-		) -> DispatchResult {
-			ensure_root( origin )?;
-			ValidatorSequenceLength::<T>::set( validator_sequence_length );
-			Self::deposit_event( Event::ValidatorSequenceLengthSet( validator_sequence_length ) );
-			Ok(())
-		}
-
-		#[pallet::weight((0, DispatchClass::Operational, Pays::No))]
-		pub fn sudo_set_validator_epoch_len ( 
-			origin:OriginFor<T>, 
-			validator_epoch_len : u64 
-		) -> DispatchResult {
-			ensure_root( origin )?;
-			ValidatorEpochLen::<T>::set( validator_epoch_len );
-			Self::deposit_event( Event::ValidatorEpochLenSet( validator_epoch_len ) );
-			Ok(())
-		}
-
-		#[pallet::weight((0, DispatchClass::Operational, Pays::No))]
-		pub fn sudo_set_validator_epochs_per_reset ( 
-			origin:OriginFor<T>, 
-			validator_epochs_per_reset : u64 
-		) -> DispatchResult {
-			ensure_root( origin )?;
-			ValidatorEpochsPerReset::<T>::set( validator_epochs_per_reset );
-			Self::deposit_event( Event::ValidatorEpochsPerResetSet( validator_epochs_per_reset ) );
-			Ok(())
-		}
 
 		#[pallet::weight((0, DispatchClass::Operational, Pays::No))]
 		pub fn sudo_set_incentive_pruning_denominator( 
@@ -1368,39 +1152,7 @@ pub mod pallet {
 			Ok(())
 		}
 
-		#[pallet::weight((0, DispatchClass::Operational, Pays::No))]
-		pub fn sudo_set_validator_exclude_quantile( 
-			origin:OriginFor<T>, 
-			validator_exclude_quantile: u8 
-		) -> DispatchResult {
-			ensure_root( origin )?;
-			ensure!( validator_exclude_quantile <= 100, Error::<T>::StorageValueOutOfRange ); // The quantile must be between 0 and 100 => 0% and 100%
-		    ValidatorExcludeQuantile::<T>::set( validator_exclude_quantile );
-			Self::deposit_event( Event::ValidatorExcludeQuantileSet( validator_exclude_quantile ));
-			Ok(())
-		}
 
-		#[pallet::weight((0, DispatchClass::Operational, Pays::No))]
-		pub fn sudo_set_validator_prune_len( 
-			origin:OriginFor<T>, 
-			validator_prune_len: u64 
-		) -> DispatchResult {
-			ensure_root( origin )?;
-		    ValidatorPruneLen::<T>::set( validator_prune_len );
-			Self::deposit_event( Event::ValidatorPruneLenSet( validator_prune_len ));
-			Ok(())
-		}
-
-		#[pallet::weight((0, DispatchClass::Operational, Pays::No))]
-		pub fn sudo_set_validator_logits_divergence( 
-			origin:OriginFor<T>, 
-			validator_logits_divergence: u64 
-		) -> DispatchResult {
-			ensure_root( origin )?;
-		    ValidatorLogitsDivergence::<T>::set( validator_logits_divergence );
-			Self::deposit_event( Event::ValidatorLogitsDivergenceSet( validator_logits_divergence ));
-			Ok(())
-		}
 	}
 
 	// ---- Subspace helper functions.
@@ -1462,13 +1214,7 @@ pub mod pallet {
 		pub fn get_block_emission( ) -> u64 {
 			return 1000000000;
 		}
-		// -- Get step consensus temperature (rho)
-		pub fn get_rho( ) -> u64 {
-			return Rho::<T>::get();
-		}
-		pub fn set_rho( rho: u64 ) {
-			Rho::<T>::put( rho );
-		}
+
 		pub fn get_incentive_pruning_denominator( ) -> u64 {
 			return IncentivePruningDenominator::<T>::get();
 		}
@@ -1488,31 +1234,6 @@ pub mod pallet {
 			StakePruningMin::<T>::put( stake_pruning_min );
 		}
 
-		pub fn get_validator_sequence_length( ) -> u64 {
-			return ValidatorSequenceLength::<T>::get();
-		}
-		pub fn set_validator_sequence_length( validator_sequence_length: u64 ) {
-			ValidatorSequenceLength::<T>::put( validator_sequence_length );
-		}
-		pub fn get_validator_batch_size( ) -> u64 {
-			return ValidatorBatchSize::<T>::get();
-		}
-		pub fn set_validator_batch_size( validator_batch_size: u64 ) {
-			ValidatorBatchSize::<T>::put( validator_batch_size );
-		}
-		pub fn get_validator_epoch_len( ) -> u64 {
-			return ValidatorEpochLen::<T>::get();
-		}
-		pub fn set_validator_epoch_len( validator_epoch_len: u64 ) {
-			ValidatorEpochLen::<T>::put( validator_epoch_len );
-		}
-		pub fn get_validator_epochs_per_reset( ) -> u64 {
-			return ValidatorEpochsPerReset::<T>::get();
-		}
-		pub fn set_validator_epochs_per_reset( validator_epochs_per_reset: u64 ) {
-			ValidatorEpochsPerReset::<T>::put( validator_epochs_per_reset );
-		}
-
 		pub fn get_scaling_law_power( ) -> u8 {
 			return ScalingLawPower::<T>::get();
 		}
@@ -1527,27 +1248,6 @@ pub mod pallet {
 			SynergyScalingLawPower::<T>::put( synergy_scaling_law_power );
 		}
 
-		pub fn get_validator_exclude_quantile( ) -> u8 {
-			return ValidatorExcludeQuantile::<T>::get();
-		}
-		pub fn set_validator_exclude_quantile( validator_exclude_quantile: u8 ) {
-			ValidatorExcludeQuantile::<T>::put( validator_exclude_quantile );
-		}
-
-		pub fn get_validator_prune_len( ) -> u64 {
-			return ValidatorPruneLen::<T>::get();
-		}
-		pub fn set_validator_prune_len( validator_prune_len: u64 ) {
-			ValidatorPruneLen::<T>::put( validator_prune_len );
-		}
-
-		pub fn get_validator_logits_divergence( ) -> u64 {
-			return ValidatorLogitsDivergence::<T>::get();
-		}
-		pub fn set_validator_logits_divergence( validator_logits_divergence: u64 ) {
-			ValidatorLogitsDivergence::<T>::put( validator_logits_divergence );
-		}
-
 		// -- Get step consensus shift (1/kappa)
 		pub fn get_kappa( ) -> u64 {
 			return Kappa::<T>::get();
@@ -1555,10 +1255,7 @@ pub mod pallet {
 		pub fn set_kappa( kappa: u64 ) {
 			Kappa::<T>::put( kappa );
 		}
-		// -- Get self ownership proportion denominator
-		pub fn get_self_ownership( ) -> u64 {
-			return T::SelfOwnership::get();
-		}
+
 		pub fn get_last_mechanism_step_block( ) -> u64 {
 			return LastMechansimStepBlock::<T>::get();
 		}
@@ -1804,16 +1501,10 @@ pub mod pallet {
 			N::<T>::put(uid + 1);
 			uid
 		}
-
-		// --- Returns a vanilla transaction fee for transactions as rao.
-		pub fn calculate_transaction_fee(len: u64) -> u64 {
-			return len * 100;
-		}
-
 		// --- Returns the transaction priority for setting weights.
-		pub fn get_priority_set_weights( hotkey: &T::AccountId, len: u64 ) -> u64 {
-			if Keys::<T>::contains_key( hotkey ) {
-				let uid = Keys::<T>::get( hotkey );
+		pub fn get_priority_set_weights( key: &T::AccountId, len: u64 ) -> u64 {
+			if Keys::<T>::contains_key( key ) {
+				let uid = Keys::<T>::get( key );
 				let module = Modules::<T>::get( uid ).unwrap();
 				// Multiply here by 1_000_000 since len may divide all log values to zero.
 				// a peer with 1 tao will have priority 29 000 000 000 after 1 epoch.
