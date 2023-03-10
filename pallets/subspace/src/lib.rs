@@ -99,21 +99,6 @@ pub mod pallet {
 		#[pallet::constant]
 		type InitialMaxWeightLimit: Get<u32>;
 
-		/// Initial stake pruning denominator
-		#[pallet::constant]
-		type InitialStakePruningDenominator: Get<u64>;
-
-		/// Initial stake pruning min
-		#[pallet::constant]
-		type InitialStakePruningMin: Get<u64>;
-
-		/// Initial incentive pruning denominator
-		#[pallet::constant]
-		type InitialIncentivePruningDenominator: Get<u64>;
-
-		/// Initial foundation distribution
-		#[pallet::constant]
-		type InitialFoundationDistribution: Get<u64>;
 
 		/// Immunity Period Constant.
 		#[pallet::constant]
@@ -123,21 +108,9 @@ pub mod pallet {
 		#[pallet::constant]
 		type InitialBlocksPerStep: Get<u64>;
 
-		/// Blocks per era.
-		#[pallet::constant]
-		type InitialBondsMovingAverage: Get<u64>;
 
-		/// Activity constant
-		#[pallet::constant]
-		type InitialActivityCutoff: Get<u64>;
-
-		/// Initial registration difficulty.
 		#[pallet::constant]
 		type InitialIssuance: Get<u64>;
-
-		/// Initial adjustment interval.
-		#[pallet::constant]
-		type InitialAdjustmentInterval: Get<u64>;
 
 		/// Initial max registrations per block.
 		#[pallet::constant]
@@ -181,9 +154,6 @@ pub mod pallet {
 
 		/// ---- Block number of last chain update.
 		pub last_update: u64,
-
-		/// ---- Transaction priority.
-		pub priority: u64,
 
 		/// ---- The associated stake in this account.
 		pub stake: u64,
@@ -242,36 +212,6 @@ pub mod pallet {
 		ValueQuery
 	>;
 
-
-	#[pallet::type_value] 
-	pub fn DefaultIncentivePruningDenominator<T: Config>() -> u64 { T::InitialIncentivePruningDenominator::get() }
-	#[pallet::storage]
-	pub type IncentivePruningDenominator<T> = StorageValue<
-		_, 
-		u64, 
-		ValueQuery,
-		DefaultIncentivePruningDenominator<T>
-	>;
-
-	#[pallet::type_value] 
-	pub fn DefaultStakePruningDenominator<T: Config>() -> u64 { T::InitialStakePruningDenominator::get() }
-	#[pallet::storage]
-	pub type StakePruningDenominator<T> = StorageValue<
-		_, 
-		u64, 
-		ValueQuery,
-		DefaultStakePruningDenominator<T>
-	>;
-
-	#[pallet::type_value] 
-	pub fn DefaultStakePruningMin<T: Config>() -> u64 { T::InitialStakePruningMin::get() }
-	#[pallet::storage]
-	pub type StakePruningMin<T> = StorageValue<
-		_, 
-		u64, 
-		ValueQuery,
-		DefaultStakePruningMin<T>
-	>;
 
 
 
@@ -356,34 +296,7 @@ pub mod pallet {
 		DefaultBlocksPerStep<T>
 	>;
 
-	#[pallet::type_value] 
-	pub fn DefaultBondsMovingAverage<T: Config>() -> u64 { T::InitialBondsMovingAverage::get() }
-	#[pallet::storage]
-	pub type BondsMovingAverage<T> = StorageValue<
-		_, 
-		u64, 
-		ValueQuery,
-		DefaultBondsMovingAverage<T>
-	>;
 
-	#[pallet::type_value] 
-	pub fn DefaultDifficulty<T: Config>() -> u64 { T::InitialDifficulty::get() }
-	#[pallet::storage]
-	pub type Difficulty<T> = StorageValue<
-		_, 
-		u64, 
-		ValueQuery,
-		DefaultDifficulty<T>
-	>;
-	#[pallet::type_value] 
-	pub fn DefaultAdjustmentInterval<T: Config>() -> u64 { T::InitialAdjustmentInterval::get() }
-	#[pallet::storage]
-	pub type AdjustmentInterval<T> = StorageValue<
-		_, 
-		u64, 
-		ValueQuery,
-		DefaultAdjustmentInterval<T>
-	>;
 
 	#[pallet::type_value] 
 	pub fn DefaultTargetRegistrationsPerInterval<T: Config>() -> u64 { T::InitialTargetRegistrationsPerInterval::get() }
@@ -575,9 +488,6 @@ pub mod pallet {
 		/// --- Event created when bonds moving average set.
 		BondsMovingAverageSet(u64),
 
-		/// --- Event created when the difficulty adjustment interval has been set.
-		AdjustmentIntervalSet(u64),
-
 		/// --- Event created when the activity cuttoff has been set.
 		ActivityCuttoffSet(u64),
 
@@ -596,26 +506,10 @@ pub mod pallet {
 		/// --- Event created when the max weight limit has been set.
 		MaxWeightLimitSet( u32 ),
 
-		/// --- Event created when the incentive pruning denominator has been set.
-		IncentivePruningDenominatorSet( u64 ),
-
-		/// --- Event created when the stake pruning denominator has been set.
-		StakePruningDenominatorSet( u64 ),
-
-		/// --- Event created when the stake pruning min has been set.
-		StakePruningMinSet( u64 ),
 
 		/// --- Event created when the foundation account has been set.
 		FoundationAccountSet( T::AccountId ),
 
-		/// --- Event created when the foundation distribution has been set.
-		FoundationDistributionSet( u64 ),
-
-		/// --- Event created when the scaling law power has been set.
-		ScalingLawPowerSet( u8 ),
-
-		/// --- Event created when the synergy scaling law power has been set.
-		SynergyScalingLawPowerSet( u8 ),
 
 		/// --- Event created when the immunity period has been set.
 		ImmunityPeriodSet(u64),
@@ -656,9 +550,6 @@ pub mod pallet {
 
 		/// ---- Thrown if the supplied pow hash block is in the future or negative
 		InvalidWorkBlock,
-
-		/// ---- Thrown if the supplied pow hash block does not meet the network difficulty.
-		InvalidDifficulty,
 
 		/// ---- Thrown if the supplied pow hash seal does not match the supplied work.
 		InvalidSeal,
@@ -888,7 +779,7 @@ pub mod pallet {
 			origin:OriginFor<T>, 
 			ammount_unstaked: u64
 		) -> DispatchResult {
-			Self::do_remove_stake(origin, hotkey, ammount_unstaked)
+			Self::do_remove_stake(origin, ammount_unstaked)
 		}
 
 		/// ---- Serves or updates module information for the module associated with the caller. If the caller
@@ -964,11 +855,9 @@ pub mod pallet {
 		/// 		- The caller, must be sudo.
 		///
 		/// ONE OF:
-		/// 	* 'adjustment_interval' (u64):
 		/// 	* 'activity_cutoff' (u64):
 		///
 		/// # Events:
-		/// 	* 'AdjustmentIntervalSet'
 		///		* 'ActivityCuttoffSet'
 		///		* 'TargetRegistrationsPerIntervalSet'
 		///
@@ -984,27 +873,7 @@ pub mod pallet {
 			Ok(())
 		}
 
-		#[pallet::weight((0, DispatchClass::Operational, Pays::No))]
-		pub fn sudo_set_bonds_moving_average ( 
-			origin:OriginFor<T>, 
-			bonds_moving_average: u64 
-		) -> DispatchResult {
-			ensure_root( origin )?;
-			BondsMovingAverage::<T>::set( bonds_moving_average );
-			Self::deposit_event( Event::BondsMovingAverageSet( bonds_moving_average ) );
-			Ok(())
-		}
 
-		#[pallet::weight((0, DispatchClass::Operational, Pays::No))]
-		pub fn sudo_set_adjustment_interval ( 
-			origin:OriginFor<T>, 
-			adjustment_interval: u64 
-		) -> DispatchResult {
-			ensure_root( origin )?;
-			AdjustmentInterval::<T>::set( adjustment_interval );
-			Self::deposit_event( Event::AdjustmentIntervalSet( adjustment_interval ) );
-			Ok(())
-		}
 
 		#[pallet::weight((0, DispatchClass::Operational, Pays::No))]
 		pub fn sudo_set_activity_cutoff ( 
@@ -1074,38 +943,6 @@ pub mod pallet {
 		}
 
 
-		#[pallet::weight((0, DispatchClass::Operational, Pays::No))]
-		pub fn sudo_set_incentive_pruning_denominator( 
-			origin:OriginFor<T>, 
-			incentive_pruning_denominator: u64 
-		) -> DispatchResult {
-			ensure_root( origin )?;
-			IncentivePruningDenominator::<T>::set( incentive_pruning_denominator );
-			Self::deposit_event( Event::IncentivePruningDenominatorSet( incentive_pruning_denominator ));
-			Ok(())
-		}
-		
-		#[pallet::weight((0, DispatchClass::Operational, Pays::No))]
-		pub fn sudo_set_stake_pruning_denominator( 
-			origin:OriginFor<T>, 
-			stake_pruning_denominator: u64 
-		) -> DispatchResult {
-			ensure_root( origin )?;
-			StakePruningDenominator::<T>::set( stake_pruning_denominator );
-			Self::deposit_event( Event::StakePruningDenominatorSet( stake_pruning_denominator ));
-			Ok(())
-		}
-
-		#[pallet::weight((0, DispatchClass::Operational, Pays::No))]
-		pub fn sudo_set_stake_pruning_min( 
-			origin:OriginFor<T>, 
-			stake_pruning_min: u64 
-		) -> DispatchResult {
-			ensure_root( origin )?;
-			StakePruningMin::<T>::set( stake_pruning_min );
-			Self::deposit_event( Event::StakePruningMinSet( stake_pruning_min ));
-			Ok(())
-		}
 
 		#[pallet::weight((0, DispatchClass::Operational, Pays::No))]
 		pub fn sudo_set_immunity_period ( 
@@ -1128,29 +965,7 @@ pub mod pallet {
 			Ok(())
 		}
 
-		#[pallet::weight((0, DispatchClass::Operational, Pays::No))]
-		pub fn sudo_set_scaling_law_power( 
-			origin:OriginFor<T>, 
-			scaling_law_power: u8 
-		) -> DispatchResult {
-			ensure_root( origin )?;
-			ensure!( scaling_law_power <= 100, Error::<T>::StorageValueOutOfRange  ); // The power must be between 0 and 100 => 0% and 100%
-			ScalingLawPower::<T>::set( scaling_law_power );
-			Self::deposit_event( Event::ScalingLawPowerSet( scaling_law_power ));
-			Ok(())
-		}
 
-		#[pallet::weight((0, DispatchClass::Operational, Pays::No))]
-		pub fn sudo_set_synergy_scaling_law_power( 
-			origin:OriginFor<T>, 
-			synergy_scaling_law_power: u8 
-		) -> DispatchResult {
-			ensure_root( origin )?;
-			ensure!( synergy_scaling_law_power <= 100, Error::<T>::StorageValueOutOfRange ); // The power must be between 0 and 100 => 0% and 100%
-		    SynergyScalingLawPower::<T>::set( synergy_scaling_law_power );
-			Self::deposit_event( Event::SynergyScalingLawPowerSet( synergy_scaling_law_power ));
-			Ok(())
-		}
 
 
 	}
@@ -1190,13 +1005,7 @@ pub mod pallet {
 		pub fn set_activity_cutoff( cuttoff: u64 ) {
 			ActivityCutoff::<T>::set( cuttoff );
 		}
-		// -- Adjustment Interval.
-		pub fn get_adjustment_interval() -> u64 {
-			AdjustmentInterval::<T>::get()
-		}
-		pub fn set_adjustment_interval( interval: u64 ) {
-			AdjustmentInterval::<T>::put( interval );
-		}
+
 		// -- Target registrations per interval.
 		pub fn get_target_registrations_per_interval() -> u64 {
 			TargetRegistrationsPerInterval::<T>::get()
@@ -1215,46 +1024,8 @@ pub mod pallet {
 			return 1000000000;
 		}
 
-		pub fn get_incentive_pruning_denominator( ) -> u64 {
-			return IncentivePruningDenominator::<T>::get();
-		}
-		pub fn set_incentive_pruning_denominator( incentive_pruning_denominator: u64 ) {
-			IncentivePruningDenominator::<T>::put( incentive_pruning_denominator );
-		}
-		pub fn get_stake_pruning_denominator( ) -> u64 {
-			return StakePruningDenominator::<T>::get();
-		}
-		pub fn set_stake_pruning_denominator( stake_pruning_denominator: u64 ) {
-			StakePruningDenominator::<T>::put( stake_pruning_denominator );
-		}
-		pub fn get_stake_pruning_min( ) -> u64 {
-			return StakePruningMin::<T>::get();
-		}
-		pub fn set_stake_pruning_min( stake_pruning_min: u64 ) {
-			StakePruningMin::<T>::put( stake_pruning_min );
-		}
 
-		pub fn get_scaling_law_power( ) -> u8 {
-			return ScalingLawPower::<T>::get();
-		}
-		pub fn set_scaling_law_power( scaling_law_power: u8 ) {
-			ScalingLawPower::<T>::put( scaling_law_power );
-		}
 
-		pub fn get_synergy_scaling_law_power( ) -> u8 {
-			return SynergyScalingLawPower::<T>::get();
-		}
-		pub fn set_synergy_scaling_law_power( synergy_scaling_law_power: u8 ) {
-			SynergyScalingLawPower::<T>::put( synergy_scaling_law_power );
-		}
-
-		// -- Get step consensus shift (1/kappa)
-		pub fn get_kappa( ) -> u64 {
-			return Kappa::<T>::get();
-		}
-		pub fn set_kappa( kappa: u64 ) {
-			Kappa::<T>::put( kappa );
-		}
 
 		pub fn get_last_mechanism_step_block( ) -> u64 {
 			return LastMechansimStepBlock::<T>::get();
@@ -1431,19 +1202,7 @@ pub mod pallet {
 			}
 		}
 
-		pub fn set_bonds_from_matrix( bonds: Vec<Vec<u64>> ) {
-			for uid_i in 0..Self::get_module_count() {
-				let mut sparse_bonds: Vec<(u32, u64)> = vec![];
-				for uid_j in 0..Self::get_module_count() {
-					let bond_ij: u64 = bonds[uid_i as usize][uid_j as usize];
-					sparse_bonds.push( (uid_j, bond_ij) );
-				}
-				let mut module = Modules::<T>::get(uid_i).unwrap();
-				module.bonds = sparse_bonds;
-				Modules::<T>::insert( uid_i, module );
-			}
-		}
-	
+
 		// Helpers.
 		// --- Returns Option if the u64 converts to a balance
 		// use .unwarp if the result returns .some().

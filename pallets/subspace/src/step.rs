@@ -79,6 +79,8 @@ impl<T: Config> Pallet<T> {
     /// 
     /// Note, operations 1 and 2 are computed together. 
     ////
+
+    pub fn is_module_active( module: ) {}
     pub fn mechanism_step ( emission_this_step: u64 ) {
 
         // The amount this mechanism step emits on this block.
@@ -98,20 +100,16 @@ impl<T: Config> Pallet<T> {
         let u32_max: I65F63 = I65F63::from_num( u32::MAX );
         let one: I65F63 = I65F63::from_num( 1.0 );
         let zero: I65F63 = I65F63::from_num( 0.0 );
-        let rho: I65F63 = I65F63::from_num( Self::get_rho() );
-        let kappa: I65F63 = one / I65F63::from_num( Self::get_kappa() );
         let self_ownership: I65F63 = one / I65F63::from_num( Self::get_self_ownership()  );
 
         // To be filled.
+        let mut weights: Vec<Vec<(u32,u32)>> = vec![ vec![]; n ];
         let mut uids: Vec<u32> = vec![];
         let mut active: Vec<u32> = vec![0; n];
-        let mut bond_totals: Vec<u64> = vec![0; n];
-        let mut bonds: Vec<Vec<u64>> = vec![vec![0;n]; n];
-        let mut weights: Vec<Vec<(u32,u32)>> = vec![ vec![]; n ];
-        let mut total_stake: I65F63 = I65F63::from_num( 0.0 );
-        let mut total_active_stake: I65F63 = I65F63::from_num( 0.0 );
-        let mut total_normalized_active_stake: I65F63 = I65F63::from_num( 0.0 );
+        let mut bonds: Vec<u64> = vec![0;n];
+        let mut total_bonds: I65F63 = I65F63::from_num( 0.0 );
         let mut stake: Vec<I65F63> = vec![ I65F63::from_num( 0.0 ) ; n];
+        let mut total_stake: I65F63 = I65F63::from_num( 0.0 );
         for ( uid_i, module_i ) in <Modules<T> as IterableStorageMap<u32, ModuleMetadataOf<T>>>::iter() {
 
             // Append a set of uids.
@@ -130,8 +128,6 @@ impl<T: Config> Pallet<T> {
             } else {
                 uids.push( uid_i );
                 active [ uid_i as usize ] = 1;
-                total_active_stake += I65F63::from_num( module_i.stake );
-                stake [ uid_i as usize ] = I65F63::from_num(  module_i.stake );
                 total_stake += I65F63::from_num( module_i.stake );
                 stake [ uid_i as usize ] = I65F63::from_num( module_i.stake );
                 weights [ uid_i as usize ] = module_i.weights; 
@@ -141,12 +137,12 @@ impl<T: Config> Pallet<T> {
 
         }
         // Normalize stake based on activity.
-        if total_active_stake != 0 {
+        if total_stake != 0 {
             for uid_i in uids.iter() {
-                let normalized_active_stake:I65F63 = stake[ *uid_i as usize ] / total_active_stake;
-                stake[ *uid_i as usize ] = normalized_active_stake;
+                stake[ *uid_i as usize ] =  stake[ *uid_i as usize ] / total_stake;;
             }
         }
+
 		log::trace!(
 			target: LOG_TARGET,
 			"stake: {:?}",
@@ -194,41 +190,17 @@ impl<T: Config> Pallet<T> {
             }
         }
         // === Normalize ranks + trust ===
-        if total_trust > 0 && total_ranks > 0 {
+        if  total_incentive > 0 {
             for uid_i in uids.iter() {
-                ranks[ *uid_i as usize ] = ranks[ *uid_i as usize ] / total_ranks; // Vector will sum to u64_max
+                incentive[ *uid_i as usize ] = incentive[ *uid_i as usize ] / total_incentive; // Vector will sum to u64_max
             }
         }
 		 log::trace!(target: LOG_TARGET, "ranks: {:?}", ranks);
 		 log::trace!(target: LOG_TARGET, "bonds: {:?}, {:?}, {:?}", bonds, bond_totals, total_bonds);
 
-        // Compute consensus, incentive.
-        let mut total_incentive: I65F63 = I65F63::from_num( 0.0 );
-        let mut consensus: Vec<I65F63> = vec![ I65F63::from_num( 0.0 ) ; n];
-        if total_ranks != 0 && total_trust != 0 {
-            for uid_i in uids.iter() {                    
-                // Get exponentiated trust score.
-                let trust_i: I65F63 = trust[ *uid_i as usize ];
-                let shifted_trust: I65F63 = trust_i - kappa; // Range( -kappa, 1 - kappa )
-                let temperatured_trust: I65F63 = shifted_trust * rho; // Range( -rho * kappa, rho ( 1 - kappa ) )
-                let exponentiated_trust: I65F63 = exp( -temperatured_trust ).expect( "temperatured_trust is on range( -rho * kappa, rho ( 1 - kappa ) )"); // Range( exp(-rho * kappa), exp(rho ( 1 - kappa )) )
-                  
-                // Compute consensus.
-                let ranks_i: I65F63 = ranks[ *uid_i as usize ];
-                let consensus_i: I65F63 = one / (one + exponentiated_trust); // Range( 0, 1 )
-                let incentive_i: I65F63 = ranks_i * consensus_i; // Range( 0, 1 )
-                consensus[ *uid_i as usize ] = consensus_i; // Range( 0, 1 )
-                incentive[ *uid_i as usize ] = incentive_i; // Range( 0, 1 )
-                total_incentive += incentive_i;
-            }
-        }
-        // Normalize Incentive.
-        if total_incentive > 0 {
-            for uid_i in uids.iter() {
-                incentive[ *uid_i as usize ] = incentive[ *uid_i as usize ] / total_incentive; // Vector will sum to u64_max
-            }
-        }
-        log::trace!(target: LOG_TARGET, "incentive: {:?}, consensus: {:?}", incentive, consensus);
+
+
+        log::trace!(target: LOG_TARGET, "incentive: {:?}", incentive);
 
         // Compute dividends.
         let mut total_dividends: I65F63 = I65F63::from_num( 0.0 );
@@ -242,10 +214,6 @@ impl<T: Config> Pallet<T> {
             // Distribute dividends from self-ownership.
             let incentive_i: I65F63 = incentive[ *uid_i as usize ];
             let total_bonds_i: u64 = bond_totals[ *uid_i as usize ]; // Range( 0, total_emission );
-            let mut dividends_ii: I65F63 = incentive_i * self_ownership;
-            if total_bonds_i == 0 {
-                dividends_ii += incentive_i * ( one - self_ownership ); // Add the other half.
-            }
             dividends[ *uid_i as usize ] += dividends_ii; // Range( 0, block_emission / 2 );
             total_dividends += dividends_ii; // Range( 0, block_emission / 2 );
 
@@ -262,14 +230,12 @@ impl<T: Config> Pallet<T> {
                 let bond_fraction_ij: I65F63 = I65F63::from_num( bonds_ij ) / I65F63::from_num( total_bonds_j ); // Range( 0, 1 );
 
                 // Compute incentive owenership fraction.
-                let mut ownership_ji: I65F63 = one - self_ownership; // Range( 0, 1 );
-                ownership_ji = ownership_ji * bond_fraction_ij; // Range( 0, 1 );
 
                 // Compute dividends
-                let dividends_ji: I65F63 = incentive[ *uid_j as usize ] * ownership_ji; // Range( 0, 1 );
+                let dividends_ji: I65F63 = incentive[ *uid_j as usize ] ; // Range( 0, 1 );
                 dividends[ *uid_i as usize ] += dividends_ji; // Range( 0, block_emission / 2 );
                 total_dividends += dividends_ji; // Range( 0, block_emission / 2 );
-                sparse_bonds_row.push( (*uid_j as u32, bonds_ij) );
+                bonds[*uid_j as usize] = bonds_ij;
             }
             sparse_bonds[ *uid_i as usize ] = sparse_bonds_row;
         }
@@ -293,9 +259,6 @@ impl<T: Config> Pallet<T> {
             module_i.active = active[ uid_i as usize ];
             module_i.emission = emission[ uid_i as usize ];
             module_i.stake = module_i.stake + emission[ uid_i as usize ];
-            module_i.rank = (ranks[ uid_i as usize ] * u64_max).to_num::<u64>();
-            module_i.trust = (trust[ uid_i as usize ] * u64_max).to_num::<u64>();
-            module_i.consensus = (consensus[ uid_i as usize ] * u64_max).to_num::<u64>();
             module_i.incentive = (incentive[ uid_i as usize ] * u64_max).to_num::<u64>();
             module_i.dividends = (dividends[ uid_i as usize ] * u64_max).to_num::<u64>();
             module_i.bonds = sparse_bonds[ uid_i as usize ].clone();
