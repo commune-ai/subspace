@@ -7,8 +7,8 @@ impl<T: Config> Pallet<T> {
         let hotkey_id = ensure_signed(origin)?;
 
         // ---- We check to see that the calling module is in the active set.
-        ensure!(Self::is_hotkey_active(&hotkey_id), Error::<T>::NotRegistered);
-        let mut module = Self::get_module_for_hotkey(&hotkey_id);
+        ensure!(Self::is_key_active(&hotkey_id), Error::<T>::NotRegistered);
+        let mut module = Self::get_module_for_key(&hotkey_id);
 
         // --- We check that the length of these two lists are equal.
         ensure!(uids_match_values(&uids, &values), Error::<T>::WeightVecNotEqualSize);
@@ -35,7 +35,6 @@ impl<T: Config> Pallet<T> {
         }
         module.weights = zipped_weights;
         module.active = 1; // Set activity back to 1.
-        module.priority = 0; // Priority is drained.
         module.last_update = Self::get_current_block_as_u64();
 
         // Sink update.
@@ -108,26 +107,6 @@ impl<T: Config> Pallet<T> {
         return false;
     }
 
-    pub fn min_is_allowed_multiple_of_max( weights: &Vec<u32>) -> bool {
-        // We allow the 0 value multiple to be cardinal -> We always return true.
-        let max_allowed_max_min_ratio: u32 = Self::get_max_allowed_max_min_ratio() as u32;
-        if max_allowed_max_min_ratio == 0 {
-            return true;
-        }
-    
-        let min: u32 = *weights.iter().min().unwrap();
-        let max: u32 = *weights.iter().max().unwrap();
-        if min == 0 { 
-            return false;
-        } else {
-            // Check that the min is a allowed multiple of the max.
-            if max / min > max_allowed_max_min_ratio {
-                return false;
-            } else {
-                return true;
-            }
-        }
-    }
 }
 
 fn uids_match_values(uids: &Vec<u32>, values: &Vec<u32>) -> bool {

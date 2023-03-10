@@ -572,14 +572,6 @@ impl_runtime_apis! {
 
 parameter_types! {
 	pub const SDebug:u64 = 1;
-	pub const InitialRho: u64 = 10;
-	pub const InitialKappa: u64 = 2;
-	pub const InitialValidatorBatchSize: u64 = 10;
-	pub const InitialValidatorSequenceLen: u64 = 10;
-	pub const InitialValidatorEpochLen: u64 = 1000;
-	pub const InitialValidatorEpochsPerReset: u64 = 10;
-	pub const InitialValidatorPruneLen: u64 = 0;
-	pub const InitialValidatorLogitsDivergence: u64 = 0;
 	
 	// u8 where value (x) represents x * 10^-2
 
@@ -590,18 +582,7 @@ parameter_types! {
 	pub const InitialMaxAllowedMaxMinRatio: u64 = 10;
 	pub const InitialMaxWeightLimit: u32 = u32::MAX;
 	pub const InitialIssuance: u64 = 548833985028256;
-	pub const InitialBondsMovingAverage: u64 = 900_000;
-	pub const InitialIncentivePruningDenominator: u64 = 1;
-	pub const InitialStakePruningDenominator: u64 = 1;
-	pub const InitialStakePruningMin: u64 = 0;
-	pub const InitialFoundationDistribution: u64 = 0;
-	pub const InitialDifficulty: u64 = 10000000;
-	pub const MinimumDifficulty: u64 = 10000000;
-	pub const InitialActivityCutoff: u64 = 5000;
-	pub const MaximumDifficulty: u64 = u64::MAX/4;
-	pub const InitialAdjustmentInterval: u64 = 100;
 	pub const InitialMaxRegistrationsPerBlock: u64 = 2;
-	pub const InitialTargetRegistrationsPerInterval: u64 = 2;
 }
 
 /// Configure the pallet-template in pallets/template.
@@ -610,32 +591,13 @@ impl pallet_subspace::Config for Runtime {
 	type Event = Event;
 	type TransactionByteFee = ();
 	type SDebug = SDebug;
-	type InitialRho = InitialRho;
-	type InitialKappa = InitialKappa;
-	type InitialValidatorPruneLen = InitialValidatorPruneLen;
-	type InitialValidatorLogitsDivergence = InitialValidatorLogitsDivergence;
-	type InitialValidatorBatchSize = InitialValidatorBatchSize;
-	type InitialValidatorSequenceLen = InitialValidatorSequenceLen;
-	type InitialValidatorEpochLen = InitialValidatorEpochLen;
-	type InitialValidatorEpochsPerReset = InitialValidatorEpochsPerReset;
 	type InitialImmunityPeriod = InitialImmunityPeriod;
 	type InitialMaxAllowedUids = InitialMaxAllowedUids;
 	type InitialMinAllowedWeights = InitialMinAllowedWeights;
-	type InitialBondsMovingAverage = InitialBondsMovingAverage;
 	type InitialMaxAllowedMaxMinRatio = InitialMaxAllowedMaxMinRatio;
 	type InitialMaxWeightLimit = InitialMaxWeightLimit;
-	type InitialStakePruningDenominator = InitialStakePruningDenominator;
-	type InitialStakePruningMin = InitialStakePruningMin;
-	type InitialIncentivePruningDenominator = InitialIncentivePruningDenominator;
-	type InitialFoundationDistribution = InitialFoundationDistribution;
 	type InitialBlocksPerStep = InitialBlocksPerStep;
 	type InitialIssuance = InitialIssuance;
-	type InitialDifficulty = InitialDifficulty;
-	type MinimumDifficulty = MinimumDifficulty;
-	type MaximumDifficulty = MaximumDifficulty;
-	type InitialActivityCutoff = InitialActivityCutoff;
-	type InitialAdjustmentInterval = InitialAdjustmentInterval;
 	type InitialMaxRegistrationsPerBlock = InitialMaxRegistrationsPerBlock;
-	type InitialTargetRegistrationsPerInterval = InitialTargetRegistrationsPerInterval;
 
 }

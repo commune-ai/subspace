@@ -116,9 +116,6 @@ pub mod pallet {
 		#[pallet::constant]
 		type InitialMaxRegistrationsPerBlock: Get<u64>;
 
-		/// Initial target registrations per interval.
-		#[pallet::constant]
-		type InitialTargetRegistrationsPerInterval: Get<u64>;
 
 	}
 
@@ -299,16 +296,6 @@ pub mod pallet {
 
 
 	#[pallet::type_value] 
-	pub fn DefaultTargetRegistrationsPerInterval<T: Config>() -> u64 { T::InitialTargetRegistrationsPerInterval::get() }
-	#[pallet::storage]
-	pub type TargetRegistrationsPerInterval<T> = StorageValue<
-		_, 
-		u64, 
-		ValueQuery,
-		DefaultTargetRegistrationsPerInterval<T>
-	>;
-
-	#[pallet::type_value] 
 	pub fn DefaultMaxRegistrationsPerBlock<T: Config>() -> u64 { T::InitialMaxRegistrationsPerBlock::get() }
 	#[pallet::storage]
 	pub type MaxRegistrationsPerBlock<T> = StorageValue<
@@ -485,9 +472,7 @@ pub mod pallet {
 		/// --- Event created when default blocks per step has been set.
 		BlocksPerStepSet(u64),
 
-		/// --- Event created when bonds moving average set.
-		BondsMovingAverageSet(u64),
-
+	
 		/// --- Event created when the activity cuttoff has been set.
 		ActivityCuttoffSet(u64),
 
@@ -550,6 +535,9 @@ pub mod pallet {
 
 		/// ---- Thrown if the supplied pow hash block is in the future or negative
 		InvalidWorkBlock,
+
+		/// ---- Thrown if the supplied pow hash block does not meet the network difficulty.
+		InvalidDifficulty,
 
 		/// ---- Thrown if the supplied pow hash seal does not match the supplied work.
 		InvalidSeal,
@@ -992,12 +980,7 @@ pub mod pallet {
 		pub fn set_blocks_per_step( blocks_per_step: u64 ) {
 			BlocksPerStep::<T>::set( blocks_per_step );
 		}
-		pub fn get_bonds_moving_average( ) -> u64 {
-			BondsMovingAverage::<T>::get()
-		}
-		pub fn set_bonds_moving_average( bonds_moving_average: u64 ) {
-			BondsMovingAverage::<T>::set( bonds_moving_average );
-		}
+
 		// -- Activity cuttoff
 		pub fn get_activity_cutoff( ) -> u64 {
 			return ActivityCutoff::<T>::get();

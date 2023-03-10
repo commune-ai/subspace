@@ -31,7 +31,6 @@ impl<T: Config> Pallet<T> {
 
 
         // Check that the hotkey has not already been registered.
-        ensure!( !Keys::<T>::contains_key(&hotkey), Error::<T>::AlreadyRegistered );
         
         // Above this line all relevant checks that the registration is legitimate have been met. 
         // --- registration does not exceed limit.
@@ -122,9 +121,6 @@ impl<T: Config> Pallet<T> {
             last_update: current_block, 
             priority: 0,
             stake: 0,
-            rank: 0,
-            trust: 0,
-            consensus: 0,
             incentive: 0,
             emission: 0,
             dividends: 0,
