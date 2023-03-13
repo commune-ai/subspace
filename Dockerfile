@@ -53,4 +53,4 @@ RUN apt-get install -y pkg-config
 RUN apt install binaryen
 RUN apt-get install libssl-dev
 RUN cargo install cargo-dylint dylint-link
-RUN cargo install cargo-contract --force
+# RUN cargo install cargo-contract --force

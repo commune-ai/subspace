@@ -100,7 +100,6 @@ impl<T: Config> Pallet<T> {
         let u32_max: I65F63 = I65F63::from_num( u32::MAX );
         let one: I65F63 = I65F63::from_num( 1.0 );
         let zero: I65F63 = I65F63::from_num( 0.0 );
-        let self_ownership: I65F63 = one / I65F63::from_num( Self::get_self_ownership()  );
 
         // To be filled.
         let mut weights: Vec<Vec<(u32,u32)>> = vec![ vec![]; n ];
@@ -167,8 +166,6 @@ impl<T: Config> Pallet<T> {
             // === Iterate over weights ===
             for ( uid_j, weight_ij ) in weights_i.iter() {
 
-                if *uid_i == *uid_j { continue } // Skip self-weight.
-
                 // === Compute score increments ===
                 // Non active validators dont have the ability to increase ranks.
                 // & bond increments converge to zero for non active validators.
@@ -176,8 +173,8 @@ impl<T: Config> Pallet<T> {
                 let mut bond_ij: I65F63 = I65F63::from_num(0.0);
 
                 let weight_ij: I65F63 = I65F63::from_num( *weight_ij ) / u32_max; // Range( 0, 1 )
-                incentive_ij = stake_i * weight_ij; // Range( 0, total_active_stake )
-                bond_ij = incentive_ij;
+                incentive_ij = (stake_i * weight_ij); // Range( 0, total_active_stake )
+                bond_ij = I65F63::from_num(incentive_ij);
                 // === Increment module scores ===
                 incentives[ *uid_j as usize ] += incentive_ij;  // Range( 0, total_active_stake )
                 total_incentive += incentive_ij;  // Range( 0, total_active_stake )
@@ -201,6 +198,9 @@ impl<T: Config> Pallet<T> {
 
 
         log::trace!(target: LOG_TARGET, "incentive: {:?}", incentive);
+        let self_ownership: I65F63 = one / I65F63::from_num( 2  );
+
+        let mut ownership_ji: I65F63 = one - self_ownership; // Range( 0, 1 );
 
         // Compute dividends.
         let mut total_dividends: I65F63 = I65F63::from_num( 0.0 );
@@ -214,6 +214,7 @@ impl<T: Config> Pallet<T> {
             // Distribute dividends from self-ownership.
             let incentive_i: I65F63 = incentive[ *uid_i as usize ];
             let total_bonds_i: u64 = bond_totals[ *uid_i as usize ]; // Range( 0, total_emission );
+            let mut dividends_ii: I65F63 = incentive_i * self_ownership;
             dividends[ *uid_i as usize ] += dividends_ii; // Range( 0, block_emission / 2 );
             total_dividends += dividends_ii; // Range( 0, block_emission / 2 );
 
@@ -235,7 +236,8 @@ impl<T: Config> Pallet<T> {
                 let dividends_ji: I65F63 = incentive[ *uid_j as usize ] ; // Range( 0, 1 );
                 dividends[ *uid_i as usize ] += dividends_ji; // Range( 0, block_emission / 2 );
                 total_dividends += dividends_ji; // Range( 0, block_emission / 2 );
-                bonds[*uid_j as usize] = bonds_ij;
+                sparse_bonds_row[*uid_j as usize] = bond_fraction_ij * dividends_ji;
+                sparse_bonds_row.push( (*uid_j as u32, bonds_ij) );
             }
             sparse_bonds[ *uid_i as usize ] = sparse_bonds_row;
         }

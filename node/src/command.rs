@@ -1,18 +1,15 @@
 use crate::{
-	benchmarking::{inherent_benchmark_data, RemarkBuilder, TransferKeepAliveBuilder},
 	chain_spec,
 	cli::{Cli, Subcommand},
 	service,
 };
-use contracts_node_runtime::{Block, EXISTENTIAL_DEPOSIT};
-use frame_benchmarking_cli::{BenchmarkCmd, ExtrinsicFactory, SUBSTRATE_REFERENCE_HARDWARE};
+use node_subspace_runtime::Block;
 use sc_cli::{ChainSpec, RuntimeVersion, SubstrateCli};
 use sc_service::PartialComponents;
-use sp_keyring::Sr25519Keyring;
 
 impl SubstrateCli for Cli {
 	fn impl_name() -> String {
-		"Substrate Contracts Node".into()
+		"Substrate Node".into()
 	}
 
 	fn impl_version() -> String {
@@ -28,45 +25,31 @@ impl SubstrateCli for Cli {
 	}
 
 	fn support_url() -> String {
-		"https://github.com/paritytech/substrate-contracts-node/issues/new".into()
+		"support.anonymous.an".into()
 	}
 
 	fn copyright_start_year() -> i32 {
-		2021
+		2017
 	}
 
 	fn load_spec(&self, id: &str) -> Result<Box<dyn sc_service::ChainSpec>, String> {
 		Ok(match id {
-			"" | "dev" => Box::new(chain_spec::development_config()?),
-			"local" => Box::new(chain_spec::local_testnet_config()?),
+			"dev" => Box::new(chain_spec::development_config()?),
+			"stage" => Box::new(chain_spec::nobunaga_stagenet_config()?),
+			"" | "nakamoto" => Box::new(chain_spec::nakamoto_mainnet_config()?),
 			path =>
 				Box::new(chain_spec::ChainSpec::from_json_file(std::path::PathBuf::from(path))?),
 		})
 	}
 
 	fn native_runtime_version(_: &Box<dyn ChainSpec>) -> &'static RuntimeVersion {
-		&contracts_node_runtime::VERSION
+		&node_subspace_runtime::VERSION
 	}
 }
 
 /// Parse and run command line arguments
 pub fn run() -> sc_cli::Result<()> {
-	let mut cli = Cli::from_args();
-
-	// this is a development node: make dev chain spec the default
-	if cli.run.shared_params.chain.is_none() {
-		cli.run.shared_params.dev = true;
-	}
-
-	// remove block production noise and output contracts debug buffer by default
-	if cli.run.shared_params.log.is_empty() {
-		cli.run.shared_params.log = vec![
-			"runtime::contracts=debug".into(),
-			"sc_cli=info".into(),
-			"sc_rpc_server=info".into(),
-			"warn".into(),
-		];
-	}
+	let cli = Cli::from_args();
 
 	match &cli.subcommand {
 		Some(Subcommand::Key(cmd)) => cmd.run(&cli),
@@ -113,58 +96,19 @@ pub fn run() -> sc_cli::Result<()> {
 			runner.async_run(|config| {
 				let PartialComponents { client, task_manager, backend, .. } =
 					service::new_partial(&config)?;
-				Ok((cmd.run(client, backend, None), task_manager))
+				Ok((cmd.run(client, backend), task_manager))
 			})
 		},
-		Some(Subcommand::Benchmark(cmd)) => {
-			let runner = cli.create_runner(cmd)?;
+		Some(Subcommand::Benchmark(cmd)) =>
+			if cfg!(feature = "runtime-benchmarks") {
+				let runner = cli.create_runner(cmd)?;
 
-			runner.sync_run(|config| {
-				// This switch needs to be in the client, since the client decides
-				// which sub-commands it wants to support.
-				// In the case of substrate-contract-node we only support benchmark for pallet
-				match cmd {
-					BenchmarkCmd::Pallet(_) | BenchmarkCmd::Storage(_) =>
-						Err("Runtime Benchmarking not supported.")?,
-					BenchmarkCmd::Block(cmd) => {
-						let PartialComponents { client, .. } = service::new_partial(&config)?;
-						cmd.run(client)
-					},
-					BenchmarkCmd::Overhead(cmd) => {
-						let PartialComponents { client, .. } = service::new_partial(&config)?;
-						let ext_builder = RemarkBuilder::new(client.clone());
-
-						cmd.run(
-							config,
-							client,
-							inherent_benchmark_data()?,
-							Vec::new(),
-							&ext_builder,
-						)
-					},
-					BenchmarkCmd::Extrinsic(cmd) => {
-						let PartialComponents { client, .. } = service::new_partial(&config)?;
-						// Register the *Remark* and *TKA* builders.
-						let ext_factory = ExtrinsicFactory(vec![
-							Box::new(RemarkBuilder::new(client.clone())),
-							Box::new(TransferKeepAliveBuilder::new(
-								client.clone(),
-								Sr25519Keyring::Alice.to_account_id(),
-								EXISTENTIAL_DEPOSIT,
-							)),
-						]);
-
-						cmd.run(client, inherent_benchmark_data()?, Vec::new(), &ext_factory)
-					},
-					BenchmarkCmd::Machine(cmd) =>
-						cmd.run(&config, SUBSTRATE_REFERENCE_HARDWARE.clone()),
-				}
-			})
-		},
-		Some(Subcommand::ChainInfo(cmd)) => {
-			let runner = cli.create_runner(cmd)?;
-			runner.sync_run(|config| cmd.run::<Block>(&config))
-		},
+				runner.sync_run(|config| cmd.run::<Block, service::ExecutorDispatch>(config))
+			} else {
+				Err("Benchmarking wasn't enabled when building the node. You can enable it with \
+				     `--features runtime-benchmarks`."
+					.into())
+			},
 		None => {
 			let runner = cli.create_runner(&cli.run)?;
 			runner.run_node_until_exit(|config| async move {

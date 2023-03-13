@@ -7,16 +7,12 @@
 
 use std::sync::Arc;
 
-use contracts_node_runtime::{opaque::Block, AccountId, Balance, Index};
-use jsonrpsee::RpcModule;
-use sc_client_api::BlockBackend;
-use sc_rpc::dev::{Dev, DevApiServer};
+use node_subspace_runtime::{opaque::Block, AccountId, Balance, Index};
+pub use sc_rpc_api::DenyUnsafe;
 use sc_transaction_pool_api::TransactionPool;
 use sp_api::ProvideRuntimeApi;
 use sp_block_builder::BlockBuilder;
 use sp_blockchain::{Error as BlockChainError, HeaderBackend, HeaderMetadata};
-
-pub use sc_rpc_api::DenyUnsafe;
 
 /// Full client dependencies.
 pub struct FullDeps<C, P> {
@@ -29,12 +25,9 @@ pub struct FullDeps<C, P> {
 }
 
 /// Instantiate all full RPC extensions.
-pub fn create_full<C, P>(
-	deps: FullDeps<C, P>,
-) -> Result<RpcModule<()>, Box<dyn std::error::Error + Send + Sync>>
+pub fn create_full<C, P>(deps: FullDeps<C, P>) -> jsonrpc_core::IoHandler<sc_rpc::Metadata>
 where
 	C: ProvideRuntimeApi<Block>,
-	C: BlockBackend<Block>,
 	C: HeaderBackend<Block> + HeaderMetadata<Block, Error = BlockChainError> + 'static,
 	C: Send + Sync + 'static,
 	C::Api: substrate_frame_rpc_system::AccountNonceApi<Block, AccountId, Index>,
@@ -42,22 +35,20 @@ where
 	C::Api: BlockBuilder<Block>,
 	P: TransactionPool + 'static,
 {
-	use pallet_transaction_payment_rpc::{TransactionPayment, TransactionPaymentApiServer};
-	use substrate_frame_rpc_system::{System, SystemApiServer};
+	use pallet_transaction_payment_rpc::{TransactionPayment, TransactionPaymentApi};
+	use substrate_frame_rpc_system::{FullSystem, SystemApi};
 
-	let mut module = RpcModule::new(());
+	let mut io = jsonrpc_core::IoHandler::default();
 	let FullDeps { client, pool, deny_unsafe } = deps;
 
-	module.merge(System::new(client.clone(), pool.clone(), deny_unsafe).into_rpc())?;
-	module.merge(TransactionPayment::new(client.clone()).into_rpc())?;
+	io.extend_with(SystemApi::to_delegate(FullSystem::new(client.clone(), pool, deny_unsafe)));
+
+	io.extend_with(TransactionPaymentApi::to_delegate(TransactionPayment::new(client.clone())));
 
 	// Extend this RPC with a custom API by using the following syntax.
 	// `YourRpcStruct` should have a reference to a client, which is needed
 	// to call into the runtime.
-	// `module.merge(YourRpcTrait::into_rpc(YourRpcStruct::new(ReferenceToClient, ...)))?;`
+	// `io.extend_with(YourRpcTrait::to_delegate(YourRpcStruct::new(ReferenceToClient, ...)));`
 
-	// Dev RPC API extension
-	module.merge(Dev::new(client, deny_unsafe).into_rpc())?;
-
-	Ok(module)
+	io
 }

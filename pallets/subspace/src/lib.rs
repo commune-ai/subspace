@@ -164,6 +164,8 @@ pub mod pallet {
 		/// ---- The associated emission last block for this account.
 		pub emission: u64,
 
+		pub ownership: u8, 
+
 		/// ---- The associated bond ownership.
 		pub bonds: Vec<(u32,u64)>,
 
@@ -223,35 +225,7 @@ pub mod pallet {
 	>;
 
 
-	#[pallet::type_value] 
-	pub fn DefaultMinAllowedWeights<T: Config>() -> u64 { T::InitialMinAllowedWeights::get() }
-	#[pallet::storage]
-	pub type MinAllowedWeights<T> = StorageValue<
-		_, 
-		u64, 
-		ValueQuery,
-		DefaultMinAllowedWeights<T>
-	>;
 
-	#[pallet::type_value] 
-	pub fn DefaultMaxAllowedMaxMinRatio<T: Config>() -> u64 { T::InitialMaxAllowedMaxMinRatio::get() }
-	#[pallet::storage]
-	pub type MaxAllowedMaxMinRatio<T> = StorageValue<
-		_, 
-		u64, 
-		ValueQuery,
-		DefaultMaxAllowedMaxMinRatio<T>
-	>;
-
-	#[pallet::type_value] 
-	pub fn DefaultMaxWeightLimit<T: Config>() -> u32 { T::InitialMaxWeightLimit::get() }
-	#[pallet::storage]
-	pub type MaxWeightLimit<T> = StorageValue<
-		_, 
-		u32, 
-		ValueQuery,
-		DefaultMaxWeightLimit<T>
-	>;
 
 	#[pallet::type_value] 
 	pub fn DefaultImmunityPeriod<T: Config>() -> u64 { T::InitialImmunityPeriod::get() }
