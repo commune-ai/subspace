@@ -1,29 +1,30 @@
 use super::*;
 
 impl<T: Config> Pallet<T> {
-    pub fn do_serve_module( origin: T::Origin, version: u32, ip: u128, port: u16, ip_type: u8, ) -> dispatch::DispatchResult {
+    pub fn do_serve_module( origin: T::Origin,  name: Vec<u8>,  ip: u128, port: u16, ip_type: u8, self_ownership: u8 ) -> dispatch::DispatchResult {
 
-        // --- We check the callers (hotkey) signature.
-        let hotkey_id = ensure_signed(origin)?;
+        // --- We check the callers (key) signature.
+        let key_id = ensure_signed(origin)?;
 
         // --- We make validy checks on the passed data.
-        ensure!( Hotkeys::<T>::contains_key(&hotkey_id), Error::<T>::NotRegistered );        
+        ensure!( Keys::<T>::contains_key(&key_id), Error::<T>::NotRegistered );        
         ensure!( is_valid_ip_type(ip_type), Error::<T>::InvalidIpType );
         ensure!( is_valid_ip_address(ip_type, ip), Error::<T>::InvalidIpAddress );
   
-        // --- We get the uid associated with this hotkey account.
+        // --- We get the uid associated with this key account.
         let uid = Self::get_uid_for_key(&key_id);
 
-        // --- We get the module assoicated with this hotkey.
+        // --- We get the module assoicated with this key.
         let mut module = Self::get_module_for_uid(uid);
-        module.version = version;
         module.ip = ip;
         module.port = port;
         module.ip_type = ip_type;
         module.active = 1;
+        module.ownership = self_ownership;
         module.last_update = Self::get_current_block_as_u64();
 
         // --- We deposit the module updated event
+        Name2uid::<T>::insert(name.clone(), uid);
         Modules::<T>::insert(uid, module);
         Self::deposit_event(Event::ModuleServed(uid));
         

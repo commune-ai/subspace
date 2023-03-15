@@ -18,6 +18,14 @@ ARG SNAPSHOT_FILE
 # This is being set so that no interactive components are allowed when updating.
 ARG DEBIAN_FRONTEND=noninteractive
 
+LABEL ai.opentensor.image.authors="operations@opentensor.ai" \
+        ai.opentensor.image.vendor="Opentensor Foundation" \
+        ai.opentensor.image.title="opentensor/subspace" \
+        ai.opentensor.image.description="Opentensor subspace Blockchain" \
+        ai.opentensor.image.revision="${VCS_REF}" \
+        ai.opentensor.image.created="${BUILD_DATE}" \
+        ai.opentensor.image.documentation="https://opentensor.gitbook.io/bittensor/"
+
 # show backtraces
 ENV RUST_BACKTRACE 1
 
@@ -37,20 +45,25 @@ RUN apt-get update && \
 # Install cargo and Rust
 RUN curl https://sh.rustup.rs -sSf | sh -s -- -y
 ENV PATH="/root/.cargo/bin:${PATH}"
-WORKDIR /app
-RUN apt-get update \
- && DEBIAN_FRONTEND=noninteractive \
-    apt-get install --no-install-recommends --assume-yes \
-      protobuf-compiler
 
+RUN mkdir -p subspace/scripts
+RUN mkdir -p subspace/specs
 
-RUN rustup update nightly
-RUN rustup target add wasm32-unknown-unknown --toolchain nightly
-RUN apt-get install make
-RUN apt-get install -y pkg-config
+COPY subspace/scripts/init.sh subspace/scripts/init.sh
+COPY subspace/specs/nakamotoChainSpecRaw.json subspace/specs/nakamotoSpecRaw.json
 
-# CONTRACTS STUFF
-RUN apt install binaryen
-RUN apt-get install libssl-dev
-RUN cargo install cargo-dylint dylint-link
-# RUN cargo install cargo-contract --force
+RUN subspace/scripts/init.sh
+
+COPY ./subspace/target/release/node-subspace /usr/local/bin
+
+RUN /usr/local/bin/node-subspace --version
+
+COPY ${SNAPSHOT_DIR}/${SNAPSHOT_FILE}.tar.gz /subspace
+
+RUN mkdir -p /root/.local/share/node-subspace/chains/nakamoto_mainnet/db/full
+RUN tar -zxvf /subspace/${SNAPSHOT_FILE}.tar.gz -C  /root/.local/share/node-subspace/chains/nakamoto_mainnet/db/full
+
+RUN apt remove -y curl
+RUN rm /subspace/${SNAPSHOT_FILE}.tar.gz
+
+EXPOSE 30333 9933 9944

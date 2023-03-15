@@ -35,7 +35,7 @@ echo "[+] Removing previous docker images from previous build"
 # Kill dangling docker images from previous builds
 /usr/bin/docker system prune -a -f
 
-echo "[+] Stopping Subspace and starting database export"
+echo "[+] Stopping subspace and starting database export"
 # Stop  and start the DB export
 #/usr/local/bin/pm2 describe  > /dev/null
 RUNNING=`/usr/local/bin/pm2 pid `
@@ -75,7 +75,7 @@ if [ "${RUNNING}" -ne 0 ]; then
 		/usr/bin/docker push opentensorfdn/:$SNAPSHOT_FILENAME
 	
 		# Start the chain again
-		echo "[+] Restarting Subspace chain"
+		echo "[+] Restarting subspace chain"
 		/usr/local/bin/pm2 start  --watch
 
 		# Clear tmp file
@@ -88,6 +88,6 @@ if [ "${RUNNING}" -ne 0 ]; then
 	# Empty the snapshot tmp folder
 	rm -rf $SNAPSHOT_TMP/*
 else
-	echo "[+] Subspace is already stopped!"
+	echo "[+] subspace is already stopped!"
 fi
 echo "\n"

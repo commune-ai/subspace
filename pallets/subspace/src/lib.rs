@@ -78,6 +78,10 @@ pub mod pallet {
 		#[pallet::constant]
 		type SDebug: Get<u64>;
 
+		/// Initial target registrations per interval.
+		#[pallet::constant]
+		type InitialTargetRegistrationsPerInterval: Get<u64>;
+
 		/// Kappa constant
 		#[pallet::constant]
 		type InitialKappa: Get<u64>;
@@ -87,13 +91,7 @@ pub mod pallet {
 		#[pallet::constant]
 		type InitialMaxAllowedUids: Get<u64>;
 
-		/// Initial min allowed weights.
-		#[pallet::constant]
-		type InitialMinAllowedWeights: Get<u64>;
 
-		/// Initial allowed max min weight ratio
-		#[pallet::constant]
-		type InitialMaxAllowedMaxMinRatio: Get<u64>;
 
 		/// Initial max weight limit.
 		#[pallet::constant]
@@ -141,7 +139,7 @@ pub mod pallet {
         /// ---- The endpoint's unique identifier.
         pub uid: u32,
 
-        /// ---- The associated hotkey account.
+        /// ---- The associated key account.
         /// Registration and changing weights can be made by this
         /// account.
         pub key: AccountId,
@@ -164,13 +162,21 @@ pub mod pallet {
 		/// ---- The associated emission last block for this account.
 		pub emission: u64,
 
-		pub ownership: u8, 
+		pub ownership: u8,
+		
+		pub consensus: u64,
+		pub trust: u64,
+
+		pub url: Vec<u8>,
+		
 
 		/// ---- The associated bond ownership.
 		pub bonds: Vec<(u32,u64)>,
 
 		/// ---- The associated weights ownership.
 		pub weights: Vec<(u32,u32)>,
+
+		pub priority: u64,
     }
 
 	#[pallet::pallet]
@@ -223,9 +229,6 @@ pub mod pallet {
 		ValueQuery,
 		DefaultMaxAllowedUids<T>
 	>;
-
-
-
 
 	#[pallet::type_value] 
 	pub fn DefaultImmunityPeriod<T: Config>() -> u64 { T::InitialImmunityPeriod::get() }
@@ -291,6 +294,17 @@ pub mod pallet {
 	>;
 
 
+	#[pallet::type_value] 
+	pub fn DefaultTargetRegistrationsPerInterval<T: Config>() -> u64 { T::InitialTargetRegistrationsPerInterval::get() }
+	#[pallet::storage]
+	pub type TargetRegistrationsPerInterval<T> = StorageValue<
+		_, 
+		u64, 
+		ValueQuery,
+		DefaultTargetRegistrationsPerInterval<T>
+	>;
+
+
 	#[pallet::storage]
 	pub type LastMechansimStepBlock<T> = StorageValue<
 		_, 
@@ -313,9 +327,9 @@ pub mod pallet {
 	>;
 
 
-	/// ---- Maps from hotkey to uid.
+	/// ---- Maps from key to uid.
 	#[pallet::storage]
-	#[pallet::getter(fn hotkey)]
+	#[pallet::getter(fn key)]
     pub(super) type Keys<T:Config> = StorageMap<
 		_, 
 		Blake2_128Concat, 
@@ -335,6 +349,15 @@ pub mod pallet {
 	>;
 
 	/// ---- Maps from uid to module.
+	#[pallet::storage]
+	pub(super) type Name2uid<T:Config> = StorageMap<
+		_,
+		Blake2_128Concat,
+		Vec<u8>,
+		u32,
+		ValueQuery
+	>;
+	/// ---- Maps from uid to neuron.
 	#[pallet::storage]
     #[pallet::getter(fn uid)]
     pub(super) type Modules<T:Config> = StorageMap<
@@ -436,19 +459,16 @@ pub mod pallet {
 		ModuleServed(u32),
 
 		/// --- Event created during when stake has been transfered from 
-		/// the coldkey onto the hotkey staking account.
+		/// the key onto the key staking account.
 		StakeAdded(T::AccountId, u64),
 
 		/// --- Event created when stake has been removed from 
-		/// the staking account into the coldkey account.
+		/// the staking account into the key account.
 		StakeRemoved(T::AccountId, u64),
 
 		/// --- Event created when default blocks per step has been set.
 		BlocksPerStepSet(u64),
 
-	
-		/// --- Event created when the activity cuttoff has been set.
-		ActivityCuttoffSet(u64),
 
 		/// --- Event created when the target registrations per interval has been set.
 		TargetRegistrationsPerIntervalSet(u64),
@@ -457,10 +477,8 @@ pub mod pallet {
 		MaxAllowedUidsSet(u64),
 
 		/// --- Event created when min allowed weights has been set.
-		MinAllowedWeightsSet(u64),
 
-		/// --- Event created when the max allowed max min ration has been set.
-		MaxAllowedMaxMinRatioSet( u64 ),
+
 
 		/// --- Event created when the max weight limit has been set.
 		MaxWeightLimitSet( u32 ),
@@ -527,8 +545,8 @@ pub mod pallet {
 		/// already exists in the active set.
 		AlreadyRegistered,
 
-		/// ---- Thrown when a stake, unstake or subscribe request is made by a coldkey
-		/// which is not associated with the hotkey account. 
+		/// ---- Thrown when a stake, unstake or subscribe request is made by a key
+		/// which is not associated with the key account. 
 		/// See: fn add_stake and fn remove_stake.
 
 		/// ---- Thrown when the caller requests removing more stake then there exists 
@@ -540,20 +558,20 @@ pub mod pallet {
 		NotEnoughBalanceToStake,
 
 		/// ---- Thrown when the caller tries to add stake, but for some reason the requested
-		/// amount could not be withdrawn from the coldkey account
+		/// amount could not be withdrawn from the key account
 		BalanceWithdrawalError,
 
 		/// ---- Thrown when the dispatch attempts to convert between a u64 and T::balance 
 		/// but the call fails.
 		CouldNotConvertToBalance,
 
+		NonAssociatedKey,
+
 		/// ---- Thrown when the dispatch attempts to set weights on chain with fewer elements 
 		/// than are allowed.
 		NotSettingEnoughWeights,
 
-		/// ---- Thrown when the dispatch attempts to set weights on chain with where the normalized
-		/// max value is more than MaxAllowedMaxMinRatio.
-		MaxAllowedMaxMinRatioExceeded,
+
 
 		/// ---- Thrown when the dispatch attempts to set weights on chain with where any normalized
 		/// weight is more than MaxWeightLimit.
@@ -626,7 +644,7 @@ pub mod pallet {
 	#[pallet::call]
 	impl<T: Config> Pallet<T> {
         /// --- Sets the caller weights for the incentive mechanism. The call can be
-		/// made from the hotkey account so is potentially insecure, however, the damage
+		/// made from the key account so is potentially insecure, however, the damage
 		/// of changing weights is minimal if caught early. This function includes all the
 		/// checks that the passed weights meet the requirements. Stored as u32s they represent
 		/// rational values in the range [0,1] which sum to 1 and can be interpreted as
@@ -640,7 +658,7 @@ pub mod pallet {
 		/// 
 		/// # Args:
 		/// 	* `origin`: (<T as frame_system::Config>Origin):
-		/// 		- The caller, a hotkey who wishes to set their weights.
+		/// 		- The caller, a key who wishes to set their weights.
 		/// 
 		/// 	* `uids` (Vec<u32>):
 		/// 		- The edge endpoint for the weight, i.e. j for w_ij.
@@ -658,7 +676,7 @@ pub mod pallet {
 		/// 		- If the passed weights and uids have unequal size.
 		///
 		/// 	* 'WeightSumToLarge':
-		/// 		- When the calling coldkey is not associated with the hotkey account.
+		/// 		- When the calling key is not associated with the key account.
 		///
 		/// 	* 'InsufficientBalance':
 		/// 		- When the amount to stake exceeds the amount of balance in the
@@ -674,21 +692,21 @@ pub mod pallet {
 		}
 		
 		/// --- Adds stake to a module account. The call is made from the
-		/// coldkey account linked in the modules's ModuleMetadata.
-		/// Only the associated coldkey is allowed to make staking and
+		/// key account linked in the modules's ModuleMetadata.
+		/// Only the associated key is allowed to make staking and
 		/// unstaking requests. This protects the module against
-		/// attacks on its hotkey running in production code.
+		/// attacks on its key running in production code.
 		///
 		/// # Args:
 		/// 	* 'origin': (<T as frame_system::Config>Origin):
-		/// 		- The caller, a coldkey signature associated with the hotkey account.
+		/// 		- The caller, a key signature associated with the key account.
 		///
-		/// 	* 'hotkey' (T::AccountId):
-		/// 		- The hotkey account to add stake to.
+		/// 	* 'key' (T::AccountId):
+		/// 		- The key account to add stake to.
 		///
 		/// 	* 'ammount_staked' (u64):
 		/// 		- The ammount to transfer from the balances account of the cold key
-		/// 		into the staking account of the hotkey.
+		/// 		into the staking account of the key.
 		///
 		/// # Event:
 		/// 	* 'StakeAdded':
@@ -696,7 +714,7 @@ pub mod pallet {
 		///
 		/// # Raises:
 		/// 	* 'NotRegistered':
-		/// 		- If the hotkey account is not active (has not subscribed)
+		/// 		- If the key account is not active (has not subscribed)
 		///
 
 		/// 	* 'InsufficientBalance':
@@ -708,23 +726,23 @@ pub mod pallet {
 			origin:OriginFor<T>, 
 			ammount_staked: u64
 		) -> DispatchResult {
-			Self::do_add_stake(origin, hotkey, ammount_staked)
+			Self::do_add_stake(origin , ammount_staked)
 		}
 
 		/// ---- Remove stake from the staking account. The call must be made
-		/// from the coldkey account attached to the module metadata. Only this key
+		/// from the key account attached to the module metadata. Only this key
 		/// has permission to make staking and unstaking requests.
 		///
 		/// # Args:
 		/// 	* 'origin': (<T as frame_system::Config>Origin):
-		/// 		- The caller, a coldkey signature associated with the hotkey account.
+		/// 		- The caller, a key signature associated with the key account.
 		///
-		/// 	* 'hotkey' (T::AccountId):
-		/// 		- The hotkey account to withdraw stake from.
+		/// 	* 'key' (T::AccountId):
+		/// 		- The key account to withdraw stake from.
 		///
 		/// 	* 'ammount_unstaked' (u64):
 		/// 		- The ammount to transfer from the staking account into the balance
-		/// 		of the coldkey.
+		/// 		of the key.
 		///
 		/// # Event:
 		/// 	* 'StakeRemoved':
@@ -734,7 +752,7 @@ pub mod pallet {
 
 		/// 	* 'NotEnoughStaketoWithdraw':
 		/// 		- When the amount to unstake exceeds the quantity staked in the
-		/// 		associated hotkey staking account.
+		/// 		associated key staking account.
 		///
 		#[pallet::weight((0, DispatchClass::Normal, Pays::No))]
 		pub fn remove_stake(
@@ -749,7 +767,7 @@ pub mod pallet {
 		///
 		/// # Args:
 		/// 	* 'origin': (<T as frame_system::Config>Origin):
-		/// 		- The caller, a hotkey associated of the registered module.
+		/// 		- The caller, a key associated of the registered module.
 		///
 		/// 	* 'ip' (u128):
 		/// 		- The u64 encoded IP address of type 6 or 4.
@@ -770,12 +788,13 @@ pub mod pallet {
 		#[pallet::weight((0, DispatchClass::Normal, Pays::No))]
 		pub fn serve_module (
 			origin:OriginFor<T>, 
-			version: u32, 
+			name: Vec<u8>,
 			ip: u128, 
 			port: u16, 
 			ip_type: u8, 
+			self_ownership: u8,
 		) -> DispatchResult {
-			Self::do_serve_module( origin, version, ip, port, ip_type )
+			Self::do_serve_module( origin, name, ip, port, ip_type , self_ownership)
 		}
 
 		/// ---- Registers a new module to the graph. 
@@ -793,11 +812,11 @@ pub mod pallet {
 		/// 	* 'work' (Vec<u8>):
 		/// 		- Work hash as list of bytes.
 		/// 
-		/// 	* 'hotkey' (T::AccountId,):
-		/// 		- Hotkey to register.
+		/// 	* 'key' (T::AccountId,):
+		/// 		- key to register.
 		/// 
-		/// 	* 'coldkey' (T::AccountId,):
-		/// 		- Coldkey to register.
+		/// 	* 'key' (T::AccountId,):
+		/// 		- key to register.
 		///
 		/// # Event:
 		/// 	* 'ModuleRegistered':
@@ -838,17 +857,6 @@ pub mod pallet {
 
 
 		#[pallet::weight((0, DispatchClass::Operational, Pays::No))]
-		pub fn sudo_set_activity_cutoff ( 
-			origin:OriginFor<T>, 
-			activity_cutoff: u64 
-		) -> DispatchResult {
-			ensure_root( origin )?;
-			ActivityCutoff::<T>::set( activity_cutoff );
-			Self::deposit_event( Event::ActivityCuttoffSet( activity_cutoff ) );
-			Ok(())
-		}
-
-		#[pallet::weight((0, DispatchClass::Operational, Pays::No))]
 		pub fn sudo_target_registrations_per_interval ( 
 			origin:OriginFor<T>, 
 			target_registrations_per_interval: u64 
@@ -871,38 +879,9 @@ pub mod pallet {
 			Ok(())
 		}
 
-		#[pallet::weight((0, DispatchClass::Operational, Pays::No))]
-		pub fn sudo_set_min_allowed_weights ( 
-			origin:OriginFor<T>, 
-			min_allowed_weights: u64 
-		) -> DispatchResult {
-			ensure_root( origin )?;
-			MinAllowedWeights::<T>::set( min_allowed_weights );
-			Self::deposit_event( Event::MinAllowedWeightsSet( min_allowed_weights ) );
-			Ok(())
-		}
 
-		#[pallet::weight((0, DispatchClass::Operational, Pays::No))]
-		pub fn sudo_set_max_allowed_max_min_ratio ( 
-			origin:OriginFor<T>, 
-			max_allowed_max_min_ratio: u64 
-		) -> DispatchResult {
-			ensure_root( origin )?;
-			MaxAllowedMaxMinRatio::<T>::set( max_allowed_max_min_ratio );
-			Self::deposit_event( Event::MaxAllowedMaxMinRatioSet( max_allowed_max_min_ratio ) );
-			Ok(())
-		}
 
-		#[pallet::weight((0, DispatchClass::Operational, Pays::No))]
-		pub fn sudo_set_max_weight_limit ( 
-			origin:OriginFor<T>, 
-			max_weight_limit: u32 
-		) -> DispatchResult {
-			ensure_root( origin )?;
-			MaxWeightLimit::<T>::set( max_weight_limit );
-			Self::deposit_event( Event::MaxWeightLimitSet( max_weight_limit ) );
-			Ok(())
-		}
+
 
 
 
@@ -954,15 +933,6 @@ pub mod pallet {
 		pub fn set_blocks_per_step( blocks_per_step: u64 ) {
 			BlocksPerStep::<T>::set( blocks_per_step );
 		}
-
-		// -- Activity cuttoff
-		pub fn get_activity_cutoff( ) -> u64 {
-			return ActivityCutoff::<T>::get();
-		}
-		pub fn set_activity_cutoff( cuttoff: u64 ) {
-			ActivityCutoff::<T>::set( cuttoff );
-		}
-
 		// -- Target registrations per interval.
 		pub fn get_target_registrations_per_interval() -> u64 {
 			TargetRegistrationsPerInterval::<T>::get()
@@ -993,24 +963,10 @@ pub mod pallet {
 		pub fn set_max_allowed_uids( max_allowed_uids: u64 ) {
 			MaxAllowedUids::<T>::put( max_allowed_uids );
 		}
-		pub fn get_min_allowed_weights( ) -> u64 {
-			return MinAllowedWeights::<T>::get();
-		}
-		pub fn set_min_allowed_weights( min_allowed_weights: u64 ) {
-			MinAllowedWeights::<T>::put( min_allowed_weights );
-		}
-		pub fn get_max_allowed_max_min_ratio( ) -> u64 {
-			return MaxAllowedMaxMinRatio::<T>::get();
-		}
-		pub fn set_max_allowed_max_min_ratio( max_allowed_max_min_ratio: u64 ) {
-			MaxAllowedMaxMinRatio::<T>::put( max_allowed_max_min_ratio );
-		}
-		pub fn get_max_weight_limit( ) -> u32 {
-			return MaxWeightLimit::<T>::get();
-		}
-		pub fn set_max_weight_limit( max_weight_limit: u32 ) {
-			MaxWeightLimit::<T>::put( max_weight_limit );
-		}
+
+
+
+
 		pub fn get_immunity_period( ) -> u64 {
 			return ImmunityPeriod::<T>::get();
 		}
@@ -1048,13 +1004,7 @@ pub mod pallet {
 			}
 			return result
 		}
-		pub fn get_ranks( ) -> Vec<u64> {
-			let mut result: Vec<u64> = vec![ 0; Self::get_module_count() as usize ];
-			for ( uid_i, module_i ) in <Modules<T> as IterableStorageMap<u32, ModuleMetadataOf<T>>>::iter() {
-				result[ uid_i as usize ] = module_i.rank;
-			}
-			return result
-		}
+
 		pub fn get_trust( ) -> Vec<u64> {
 			let mut result: Vec<u64> = vec![ 0; Self::get_module_count() as usize ];
 			for ( uid_i, module_i ) in <Modules<T> as IterableStorageMap<u32, ModuleMetadataOf<T>>>::iter() {
@@ -1185,8 +1135,8 @@ pub mod pallet {
 			return Modules::<T>::contains_key(uid);
 		}
 
-		// --- Returns hotkey associated with the hotkey account.
-		// This should be called in conjunction with is_hotkey_active
+		// --- Returns key associated with the key account.
+		// This should be called in conjunction with is_key_active
 		// to ensure this function does not throw an error.
 		pub fn get_uid_for_key(key_id: &T::AccountId) -> u32{
 			return Keys::<T>::get(&key_id);
@@ -1195,10 +1145,10 @@ pub mod pallet {
 			return Modules::<T>::get( uid ).unwrap();
 		}
 
-		// --- Returns the module associated with the passed hotkey.
-		// The function makes a double mapping from hotkey -> uid -> module.
-		pub fn get_module_for_key(hotkey_id: &T::AccountId) -> ModuleMetadataOf<T> {
-			let uid = Self::get_module_for_key(hotkey_id);
+		// --- Returns the module associated with the passed key.
+		// The function makes a double mapping from key -> uid -> module.
+		pub fn get_module_for_key(key_id: &T::AccountId) -> ModuleMetadataOf<T> {
+			let uid = Self::get_uid_for_key(key_id);
 			return Self::get_module_for_uid(uid);
 		}
 
@@ -1207,7 +1157,7 @@ pub mod pallet {
 		// have 18,446,744,073,709,551,615 peers before an overflow.
 		pub fn get_module_count() -> u32 {
 			let uid = N::<T>::get();
-			uid
+			return uid
 		}
 
 		// --- Returns the next available network uid and increments uid.
@@ -1229,7 +1179,7 @@ pub mod pallet {
 				// with 1000 tao 39 000 000 000
 				// with 10000 tao 43 000 000 000
 				// division by len will always return a non zero value with which to differentiate. 
-				return module.priority * 1_000_000 / len;
+				return module.incentive * 1_000_000 / len;
 			} else{
 				return 0;
 			}

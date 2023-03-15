@@ -16,21 +16,19 @@ impl<T: Config> Pallet<T> {
         key: T::AccountId, 
     ) -> dispatch::DispatchResult {
 
-        // --- Check the callers hotkey signature.
+        // --- Check the callers key signature.
         ensure_signed(origin)?;
 
-        // --- Check that registrations per block and hotkey.
+        // --- Check that registrations per block and key.
         let registrations_this_block: u64 = Self::get_registrations_this_block();
         ensure! ( registrations_this_block < Self::get_max_registratations_per_block(), Error::<T>::ToManyRegistrationsThisBlock ); // Number of registrations this block exceeded.
-        ensure!( !Keys::<T>::contains_key(&hotkey), Error::<T>::AlreadyRegistered );  // Hotkey has already registered.
+        ensure!( !Keys::<T>::contains_key(&key), Error::<T>::AlreadyRegistered );  // key has already registered.
 
         // --- Check block number validity.
         let current_block_number: u64 = Self::get_current_block_as_u64_here();
-        ensure! ( block_number <= current_block_number, Error::<T>::InvalidWorkBlock ); // Can't work on future block.
-        ensure! ( current_block_number - block_number < 3, Error::<T>::InvalidWorkBlock ); // Work must have been done within 3 blocks (stops long range attacks).
 
 
-        // Check that the hotkey has not already been registered.
+        // Check that the key has not already been registered.
         
         // Above this line all relevant checks that the registration is legitimate have been met. 
         // --- registration does not exceed limit.
@@ -56,17 +54,7 @@ impl<T: Config> Pallet<T> {
 
                 // If a module has more than stake_pruning_min they are ranked based on stake
                 // otherwise we prune based on incentive.
-                let mut prunning_score: I65F63;
-                if module_i.stake >= Self::get_stake_pruning_min() {
-                    if Self::get_total_stake() > 0 { // in case stake pruning min == 0
-                        prunning_score = I65F63::from_num( module_i.stake ) / I65F63::from_num( Self::get_total_stake() );
-                    } else {
-                        prunning_score = I65F63::from_num( 0 );
-                    }
-                } else {
-                    prunning_score = I65F63::from_num( module_i.incentive ) / I65F63::from_num( u64::MAX );
-                }
-                
+                let mut prunning_score: I65F63 = I65F63::from_num( module_i.incentive ) / I65F63::from_num( u64::MAX );
                 // Modules that have registered within an immunity period should not be counted in this pruning
                 // unless there are no other peers to prune. This allows new modules the ability to gain incentive before they are cut. 
                 // We use block_at_registration which sets the prunning score above any possible value for stake or incentive.
@@ -97,13 +85,13 @@ impl<T: Config> Pallet<T> {
             // iterable set so that deletions become easier. 
             ModulesToPruneAtNextEpoch::<T>::insert( uid_to_set_in_metagraph, uid_to_set_in_metagraph ); // Subtrate does not contain a set storage item.
             // Finally, we need to unstake all the funds that this peer had staked. 
-            // These funds are deposited back into the coldkey account so that no funds are destroyed. 
+            // These funds are deposited back into the key account so that no funds are destroyed. 
             let stake_to_be_added_on_key = Self::u64_to_balance( module_to_prune.stake );
-            Self::add_balance_to_key_account( &module_to_prune.coldkey, stake_to_be_added_on_key.unwrap() );
-            Self::decrease_total_stake( module_to_prune.stake );
+            Self::add_balance_to_key_account(&key_to_prune, stake_to_be_added_on_key.unwrap() );
+            Self::decrease_total_stake(module_to_prune.stake );
 
-            // Remove hotkey from hotkeys set, 
-            // and to clean up and prune whatever extra hotkeys there are on top of the existing max_allowed_uids
+            // Remove key from keys set, 
+            // and to clean up and prune whatever extra keys there are on top of the existing max_allowed_uids
             if Keys::<T>::contains_key(&key_to_prune) {
                 Keys::<T>::remove( key_to_prune );
             }
@@ -124,6 +112,10 @@ impl<T: Config> Pallet<T> {
             incentive: 0,
             emission: 0,
             dividends: 0,
+            trust: 0,
+            consensus: 0,
+            url: vec![],
+            ownership: 50,
             bonds: vec![],
             weights: vec![(uid_to_set_in_metagraph, u32::MAX)], // self weight set to 1.
         };

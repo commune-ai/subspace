@@ -80,7 +80,6 @@ impl<T: Config> Pallet<T> {
     /// Note, operations 1 and 2 are computed together. 
     ////
 
-    pub fn is_module_active( module: ) {}
     pub fn mechanism_step ( emission_this_step: u64 ) {
 
         // The amount this mechanism step emits on this block.
@@ -95,7 +94,6 @@ impl<T: Config> Pallet<T> {
         let block: u64 = Self::get_current_block_as_u64();
         
         // Constants.
-        let activity_cutoff: u64 = Self::get_activity_cutoff();
         let u64_max: I65F63 = I65F63::from_num( u64::MAX );
         let u32_max: I65F63 = I65F63::from_num( u32::MAX );
         let one: I65F63 = I65F63::from_num( 1.0 );
@@ -105,11 +103,12 @@ impl<T: Config> Pallet<T> {
         let mut weights: Vec<Vec<(u32,u32)>> = vec![ vec![]; n ];
         let mut uids: Vec<u32> = vec![];
         let mut active: Vec<u32> = vec![0; n];
-        let mut bonds: Vec<u64> = vec![0;n];
+        let mut bonds: Vec<Vec<u64>> = vec![vec![]; n];
         let mut total_bonds: I65F63 = I65F63::from_num( 0.0 );
         let mut stake: Vec<I65F63> = vec![ I65F63::from_num( 0.0 ) ; n];
         let mut total_stake: I65F63 = I65F63::from_num( 0.0 );
-        for ( uid_i, module_i ) in <Modules<T> as IterableStorageMap<u32, ModuleMetadataOf<T>>>::iter() {
+        let activity_cutoff = 1000;
+        for ( uid_i, mut module_i ) in <Modules<T> as IterableStorageMap<u32, ModuleMetadataOf<T>>>::iter() {
 
             // Append a set of uids.
 
@@ -120,7 +119,7 @@ impl<T: Config> Pallet<T> {
             if block - module_i.last_update >= activity_cutoff {
                 active [ uid_i as usize ] = 0;
                 module_i.bonds = vec![];
-                module_i.weight = vec![];
+                module_i.weights = vec![];
 
                 
 
@@ -130,7 +129,6 @@ impl<T: Config> Pallet<T> {
                 total_stake += I65F63::from_num( module_i.stake );
                 stake [ uid_i as usize ] = I65F63::from_num( module_i.stake );
                 weights [ uid_i as usize ] = module_i.weights; 
-                bonds[ uid_i as usize ] = module_i.bonds; 
             }
             
 
@@ -153,9 +151,10 @@ impl<T: Config> Pallet<T> {
         // Compute ranks and trust.
         let mut total_bonds: u64 = 0;
         let mut total_incentive: I65F63 = I65F63::from_num( 0.0 );
-        let mut incentive: Vec<I65F63> = vec![ I65F63::from_num( 0.0 ) ; n];
+        let mut incentives: Vec<I65F63> = vec![ I65F63::from_num( 0.0 ) ; n];
 
-        
+        let mut bond_totals: Vec<u64> = vec![0; n];
+
         for uid_i in uids.iter() {
 
             // === Get vars for uid_i ===
@@ -189,17 +188,17 @@ impl<T: Config> Pallet<T> {
         // === Normalize ranks + trust ===
         if  total_incentive > 0 {
             for uid_i in uids.iter() {
-                incentive[ *uid_i as usize ] = incentive[ *uid_i as usize ] / total_incentive; // Vector will sum to u64_max
+                incentives[ *uid_i as usize ] = incentives[ *uid_i as usize ] / total_incentive; // Vector will sum to u64_max
             }
         }
-		 log::trace!(target: LOG_TARGET, "ranks: {:?}", ranks);
+		 log::trace!(target: LOG_TARGET, "incentvies: {:?}", incentives);
 		 log::trace!(target: LOG_TARGET, "bonds: {:?}, {:?}, {:?}", bonds, bond_totals, total_bonds);
 
 
 
-        log::trace!(target: LOG_TARGET, "incentive: {:?}", incentive);
+        log::trace!(target: LOG_TARGET, "incentive: {:?}", incentives);
         let self_ownership: I65F63 = one / I65F63::from_num( 2  );
-
+        let mut ownership_ij: I65F63 = self_ownership; // Range( 0, 1 );
         let mut ownership_ji: I65F63 = one - self_ownership; // Range( 0, 1 );
 
         // Compute dividends.
@@ -212,7 +211,7 @@ impl<T: Config> Pallet<T> {
             let mut sparse_bonds_row: Vec<(u32, u64)> = vec![];
 
             // Distribute dividends from self-ownership.
-            let incentive_i: I65F63 = incentive[ *uid_i as usize ];
+            let incentive_i: I65F63 = incentives[ *uid_i as usize ];
             let total_bonds_i: u64 = bond_totals[ *uid_i as usize ]; // Range( 0, total_emission );
             let mut dividends_ii: I65F63 = incentive_i * self_ownership;
             dividends[ *uid_i as usize ] += dividends_ii; // Range( 0, block_emission / 2 );
@@ -230,13 +229,13 @@ impl<T: Config> Pallet<T> {
                 // Compute bond fraction.
                 let bond_fraction_ij: I65F63 = I65F63::from_num( bonds_ij ) / I65F63::from_num( total_bonds_j ); // Range( 0, 1 );
 
-                // Compute incentive owenership fraction.
+                // Compute incentives owenership fraction.
 
                 // Compute dividends
-                let dividends_ji: I65F63 = incentive[ *uid_j as usize ] ; // Range( 0, 1 );
+                
+                let dividends_ji: I65F63 = incentives[ *uid_j as usize ] * bond_fraction_ij * ownership_ji ; // Range( 0, 1 );
                 dividends[ *uid_i as usize ] += dividends_ji; // Range( 0, block_emission / 2 );
                 total_dividends += dividends_ji; // Range( 0, block_emission / 2 );
-                sparse_bonds_row[*uid_j as usize] = bond_fraction_ij * dividends_ji;
                 sparse_bonds_row.push( (*uid_j as u32, bonds_ij) );
             }
             sparse_bonds[ *uid_i as usize ] = sparse_bonds_row;
@@ -261,7 +260,7 @@ impl<T: Config> Pallet<T> {
             module_i.active = active[ uid_i as usize ];
             module_i.emission = emission[ uid_i as usize ];
             module_i.stake = module_i.stake + emission[ uid_i as usize ];
-            module_i.incentive = (incentive[ uid_i as usize ] * u64_max).to_num::<u64>();
+            module_i.incentive = (incentives[ uid_i as usize ] * u64_max).to_num::<u64>();
             module_i.dividends = (dividends[ uid_i as usize ] * u64_max).to_num::<u64>();
             module_i.bonds = sparse_bonds[ uid_i as usize ].clone();
             Modules::<T>::insert( module_i.uid, module_i );

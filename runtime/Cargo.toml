@@ -2,12 +2,12 @@
 name = "node-subspace-runtime"
 version = "4.0.0-dev"
 description = "A fresh FRAME-based Substrate runtime, ready for hacking."
-authors = ["Marx", "Reagen", "Friedman", "Lenin"]
-homepage = "https://commune.ai"
+authors = ["Const", "Shibshib"]
+homepage = "https://opentensor.ai"
 edition = "2021"
 license = "Unlicense"
 publish = false
-repository = "https://github.com/commune/commune"
+repository = "https://github.com/opentensor/subspacev2"
 
 [package.metadata.docs.rs]
 targets = ["x86_64-unknown-linux-gnu"]

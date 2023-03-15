@@ -4,11 +4,11 @@ impl<T: Config> Pallet<T> {
     pub fn do_set_weights(origin: T::Origin, uids: Vec<u32>, values: Vec<u32>) -> dispatch::DispatchResult
     {
         // ---- We check the caller signature
-        let hotkey_id = ensure_signed(origin)?;
+        let key_id = ensure_signed(origin)?;
 
         // ---- We check to see that the calling module is in the active set.
-        ensure!(Self::is_key_active(&hotkey_id), Error::<T>::NotRegistered);
-        let mut module = Self::get_module_for_key(&hotkey_id);
+        ensure!(Self::is_key_active(&key_id), Error::<T>::NotRegistered);
+        let mut module = Self::get_module_for_key(&key_id);
 
         // --- We check that the length of these two lists are equal.
         ensure!(uids_match_values(&uids, &values), Error::<T>::WeightVecNotEqualSize);
@@ -26,7 +26,6 @@ impl<T: Config> Pallet<T> {
         let normalized_values = normalize(values);
 
         // --- We check if the weights do not exceed the max weight limit.
-        ensure!( Self::max_weight_limited(module.uid, &uids, &normalized_values), Error::<T>::MaxWeightExceeded );
 
         // Zip weights.
         let mut zipped_weights: Vec<(u32,u32)> = vec![];
@@ -41,7 +40,7 @@ impl<T: Config> Pallet<T> {
         Modules::<T>::insert(module.uid, module);
 
         // ---- Emit the staking event.
-        Self::deposit_event(Event::WeightsSet(hotkey_id));
+        Self::deposit_event(Event::WeightsSet(key_id));
 
         // --- Emit the event and return ok.
         Ok(())
@@ -73,39 +72,17 @@ impl<T: Config> Pallet<T> {
 
     // Check if weights have fewer values than are allowed.
     pub fn check_length( uid: u32, uids: &Vec<u32>, weights: &Vec<u32> ) -> bool {
-        let min_allowed_length: usize = Self::get_min_allowed_weights() as usize;
 
         // Check self weight. Allowed to set single value for self weight.
         if Self::is_self_weight(uid, uids, weights) {
             return true;
         }
-        // Check if number of weights exceeds min.
-        if weights.len() >= min_allowed_length {
-            return true;
-        }
+
         // To few weights.
         return false;
     }
 
-    // Checks if none of the normalized weight magnitudes exceed the max weight limit.
-    pub fn max_weight_limited( uid: u32, uids: &Vec<u32>, weights: &Vec<u32> ) -> bool {
 
-        // Allow self weights to exceed max weight limit.
-        if Self::is_self_weight(uid, uids, weights) {
-            return true;
-        }
-
-        let max_weight_limit: u32 = Self::get_max_weight_limit();
-        if max_weight_limit == u32::MAX {
-            return true;
-        }
-    
-        let max: u32 = *weights.iter().max().unwrap();
-        if max <= max_weight_limit { 
-            return true;
-        }
-        return false;
-    }
 
 }
 
