@@ -296,7 +296,6 @@ impl pallet_subspace::Config for Runtime {
 	type InitialMaxWeightLimit = InitialMaxWeightLimit;
 	type InitialBlocksPerStep = InitialBlocksPerStep;
 	type InitialIssuance = InitialIssuance;
-	type InitialAdjustmentInterval = InitialAdjustmentInterval;
 	type InitialMaxRegistrationsPerBlock = InitialMaxRegistrationsPerBlock;
 	type InitialTargetRegistrationsPerInterval = InitialTargetRegistrationsPerInterval;
 
@@ -338,7 +337,7 @@ pub type SignedExtra = (
 	frame_system::CheckNonce<Runtime>,
 	frame_system::CheckWeight<Runtime>,
 	pallet_transaction_payment::ChargeTransactionPayment<Runtime>,
-	pallet_subspace::subspaceSignedExtension<Runtime>
+	pallet_subspace::SubspaceSignedExtension<Runtime>
 );
 /// Unchecked extrinsic type as expected by this runtime.
 pub type UncheckedExtrinsic = generic::UncheckedExtrinsic<Address, Call, Signature, SignedExtra>;

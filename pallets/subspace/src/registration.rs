@@ -3,8 +3,8 @@ use substrate_fixed::types::I65F63;
 use frame_support::{IterableStorageMap};
 use sp_std::convert::TryInto;
 use sp_core::{H256, U256};
-use sp_io::hashing::sha2_256;
-use sp_io::hashing::keccak_256;
+// use sp_io::hashing::sha2_256;
+// use sp_io::hashing::keccak_256;
 use frame_system::{ensure_signed};
 
 const LOG_TARGET: &'static str = "runtime::subspace::registration";
@@ -12,12 +12,11 @@ const LOG_TARGET: &'static str = "runtime::subspace::registration";
 impl<T: Config> Pallet<T> {
 
     pub fn do_registration ( 
-        origin: T::Origin, 
-        key: T::AccountId, 
+        origin: T::Origin
     ) -> dispatch::DispatchResult {
 
         // --- Check the callers key signature.
-        ensure_signed(origin)?;
+        let key = ensure_signed(origin)?;
 
         // --- Check that registrations per block and key.
         let registrations_this_block: u64 = Self::get_registrations_this_block();
@@ -25,7 +24,6 @@ impl<T: Config> Pallet<T> {
         ensure!( !Keys::<T>::contains_key(&key), Error::<T>::AlreadyRegistered );  // key has already registered.
 
         // --- Check block number validity.
-        let current_block_number: u64 = Self::get_current_block_as_u64_here();
 
 
         // Check that the key has not already been registered.
@@ -75,7 +73,6 @@ impl<T: Config> Pallet<T> {
             // Remember which uid is min so we can replace it in the graph.
             let module_to_prune: ModuleMetadataOf<T> = Modules::<T>::get( uid_to_prune ).unwrap();
             uid_to_set_in_metagraph = module_to_prune.uid;
-            let key_to_prune = module_to_prune.key;
 
             // Next we will add this prunned peer to ModulesToPruneAtNextEpoch.
             // We record this set because we need to remove all bonds owned in this uid.
@@ -87,13 +84,13 @@ impl<T: Config> Pallet<T> {
             // Finally, we need to unstake all the funds that this peer had staked. 
             // These funds are deposited back into the key account so that no funds are destroyed. 
             let stake_to_be_added_on_key = Self::u64_to_balance( module_to_prune.stake );
-            Self::add_balance_to_key_account(&key_to_prune, stake_to_be_added_on_key.unwrap() );
+            Self::add_balance_to_key_account(&module_to_prune.key, stake_to_be_added_on_key.unwrap() );
             Self::decrease_total_stake(module_to_prune.stake );
 
             // Remove key from keys set, 
             // and to clean up and prune whatever extra keys there are on top of the existing max_allowed_uids
-            if Keys::<T>::contains_key(&key_to_prune) {
-                Keys::<T>::remove( key_to_prune );
+            if Keys::<T>::contains_key(&module_to_prune.key) {
+                Keys::<T>::remove( module_to_prune.key );
             }
         }
 

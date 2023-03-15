@@ -82,11 +82,6 @@ pub mod pallet {
 		#[pallet::constant]
 		type InitialTargetRegistrationsPerInterval: Get<u64>;
 
-		/// Kappa constant
-		#[pallet::constant]
-		type InitialKappa: Get<u64>;
-
-
 		/// Max UID constant.
 		#[pallet::constant]
 		type InitialMaxAllowedUids: Get<u64>;
@@ -825,9 +820,8 @@ pub mod pallet {
 		#[pallet::weight((0, DispatchClass::Normal, Pays::No))]
 		pub fn register( 
 				origin:OriginFor<T>, 
-				key: T::AccountId 
 		) -> DispatchResult {
-			Self::do_registration(origin, key)
+			Self::do_registration(origin)
 		}
 		/// ---- SUDO ONLY FUNCTIONS
 		///

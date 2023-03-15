@@ -105,7 +105,6 @@ parameter_types! {
 	pub const InitialDifficulty: u64 = 10000;
 	pub const MinimumDifficulty: u64 = 10000;
 	pub const MaximumDifficulty: u64 = u64::MAX/4;
-	pub const InitialAdjustmentInterval: u64 = 100;
 	pub const InitialMaxRegistrationsPerBlock: u64 = 2;
 	pub const InitialTargetRegistrationsPerInterval: u64 = 2;
 }
@@ -213,7 +212,6 @@ impl pallet_subspace::Config for Test {
 	type MinimumDifficulty = MinimumDifficulty;
 	type MaximumDifficulty = MaximumDifficulty;
 	type InitialBlocksPerStep = InitialBlocksPerStep;
-	type InitialAdjustmentInterval = InitialAdjustmentInterval;
 	type InitialMaxRegistrationsPerBlock = InitialMaxRegistrationsPerBlock;
 	type InitialTargetRegistrationsPerInterval = InitialTargetRegistrationsPerInterval;
 
@@ -245,7 +243,7 @@ type SignedExtra = (
 	frame_system::CheckEra<Test>,
 	frame_system::CheckNonce<Test>,
 	frame_system::CheckWeight<Test>,
-	pallet_subspace::subspaceSignedExtension<Test>,
+	pallet_subspace::SubspaceSignedExtension<Test>,
 	//pallet_transaction_payment::ChargeTransactionPaymentOld<Test>
 );
 
@@ -282,7 +280,7 @@ fn extra(nonce: u64) -> SignedExtra {
 		frame_system::CheckEra::from(Era::Immortal),
 		frame_system::CheckNonce::from(nonce),
 		frame_system::CheckWeight::new(),
-		pallet_subspace::subspaceSignedExtension::new(),
+		pallet_subspace::SubspaceSignedExtension::new(),
 		// pallet_transaction_payment::ChargeTransactionPayment::from(0)
 	)
 }

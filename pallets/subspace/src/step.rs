@@ -96,6 +96,7 @@ impl<T: Config> Pallet<T> {
         // Constants.
         let u64_max: I65F63 = I65F63::from_num( u64::MAX );
         let u32_max: I65F63 = I65F63::from_num( u32::MAX );
+        let u8_max: I65F63 = I65F63::from_num( u8::MAX );
         let one: I65F63 = I65F63::from_num( 1.0 );
         let zero: I65F63 = I65F63::from_num( 0.0 );
 
@@ -111,8 +112,6 @@ impl<T: Config> Pallet<T> {
         for ( uid_i, mut module_i ) in <Modules<T> as IterableStorageMap<u32, ModuleMetadataOf<T>>>::iter() {
 
             // Append a set of uids.
-
-            let mut bonds_row: Vec<u64> = vec![0; n];
 
             // we want to remove the votes from stale votes to ensure the network is fresh 
             // # This can change
@@ -197,9 +196,6 @@ impl<T: Config> Pallet<T> {
 
 
         log::trace!(target: LOG_TARGET, "incentive: {:?}", incentives);
-        let self_ownership: I65F63 = one / I65F63::from_num( 2  );
-        let mut ownership_ij: I65F63 = self_ownership; // Range( 0, 1 );
-        let mut ownership_ji: I65F63 = one - self_ownership; // Range( 0, 1 );
 
         // Compute dividends.
         let mut total_dividends: I65F63 = I65F63::from_num( 0.0 );
@@ -212,12 +208,20 @@ impl<T: Config> Pallet<T> {
 
             // Distribute dividends from self-ownership.
             let incentive_i: I65F63 = incentives[ *uid_i as usize ];
-            let total_bonds_i: u64 = bond_totals[ *uid_i as usize ]; // Range( 0, total_emission );
-            let mut dividends_ii: I65F63 = incentive_i * self_ownership;
+            let module_i = Modules::<T>::get(uid_i).unwrap();
+
+            // Compute self ownership.
+            let ownership_i: I65F63 =  I65F63::from_num(module_i.ownership) / u8_max;
+            // Compute other-ownership.
+            let ownership_j: I65F63 = I65F63::from_num(1) - ownership_i  ; // Range( 0, 1 )
+
+
+            let  dividends_ii: I65F63 = incentive_i * ownership_i; 
             dividends[ *uid_i as usize ] += dividends_ii; // Range( 0, block_emission / 2 );
             total_dividends += dividends_ii; // Range( 0, block_emission / 2 );
 
             // Distribute dividends from other-ownership.
+
             for uid_j in uids.iter() {
                 
                 // Get i -> j bonds.
@@ -233,7 +237,7 @@ impl<T: Config> Pallet<T> {
 
                 // Compute dividends
                 
-                let dividends_ji: I65F63 = incentives[ *uid_j as usize ] * bond_fraction_ij * ownership_ji ; // Range( 0, 1 );
+                let dividends_ji: I65F63 = incentives[ *uid_j as usize ] * bond_fraction_ij * ownership_j ; // Range( 0, 1 );
                 dividends[ *uid_i as usize ] += dividends_ji; // Range( 0, block_emission / 2 );
                 total_dividends += dividends_ji; // Range( 0, block_emission / 2 );
                 sparse_bonds_row.push( (*uid_j as u32, bonds_ij) );
@@ -243,7 +247,9 @@ impl<T: Config> Pallet<T> {
         // Normalize dividends. Sanity check.
         let mut total_emission: u64 = 0;
         let mut emission: Vec<u64> = vec![ 0; n];
+        
         if total_dividends != 0 {
+            
             for uid_i in uids.iter() {
                 let dividends_i: I65F63 = dividends[ *uid_i as usize ] / total_dividends;
                 let emission_i: u64 = (block_emission * dividends_i).to_num::<u64>();
