@@ -18,14 +18,6 @@ ARG SNAPSHOT_FILE
 # This is being set so that no interactive components are allowed when updating.
 ARG DEBIAN_FRONTEND=noninteractive
 
-LABEL ai.opentensor.image.authors="operations@opentensor.ai" \
-        ai.opentensor.image.vendor="Opentensor Foundation" \
-        ai.opentensor.image.title="opentensor/subspace" \
-        ai.opentensor.image.description="Opentensor subspace Blockchain" \
-        ai.opentensor.image.revision="${VCS_REF}" \
-        ai.opentensor.image.created="${BUILD_DATE}" \
-        ai.opentensor.image.documentation="https://opentensor.gitbook.io/bittensor/"
-
 # show backtraces
 ENV RUST_BACKTRACE 1
 
@@ -40,30 +32,12 @@ RUN apt-get update && \
         apt-get clean && \
         find /var/lib/apt/lists/ -type f -not -name lock -delete;
 
-
-
 # Install cargo and Rust
 RUN curl https://sh.rustup.rs -sSf | sh -s -- -y
 ENV PATH="/root/.cargo/bin:${PATH}"
 
-RUN mkdir -p subspace/scripts
-RUN mkdir -p subspace/specs
-
-COPY subspace/scripts/init.sh subspace/scripts/init.sh
-COPY subspace/specs/nakamotoChainSpecRaw.json subspace/specs/nakamotoSpecRaw.json
-
-RUN subspace/scripts/init.sh
-
-COPY ./subspace/target/release/node-subspace /usr/local/bin
-
-RUN /usr/local/bin/node-subspace --version
-
-COPY ${SNAPSHOT_DIR}/${SNAPSHOT_FILE}.tar.gz /subspace
-
-RUN mkdir -p /root/.local/share/node-subspace/chains/nakamoto_mainnet/db/full
-RUN tar -zxvf /subspace/${SNAPSHOT_FILE}.tar.gz -C  /root/.local/share/node-subspace/chains/nakamoto_mainnet/db/full
+WORKDIR /subspace
+COPY ./scripts /subspace/scripts
+RUN ./scripts/init.sh
 
 RUN apt remove -y curl
-RUN rm /subspace/${SNAPSHOT_FILE}.tar.gz
-
-EXPOSE 30333 9933 9944

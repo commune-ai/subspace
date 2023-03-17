@@ -210,9 +210,9 @@ impl<T: Config> Pallet<T> {
             let incentive_i: I65F63 = incentives[ *uid_i as usize ];
             let module_i = Modules::<T>::get(uid_i).unwrap();
 
-            // Compute self ownership.
+            // Compute self ownership (i).
             let ownership_i: I65F63 =  I65F63::from_num(module_i.ownership) / u8_max;
-            // Compute other-ownership.
+            // Compute other-ownership (j).
             let ownership_j: I65F63 = I65F63::from_num(1) - ownership_i  ; // Range( 0, 1 )
 
 

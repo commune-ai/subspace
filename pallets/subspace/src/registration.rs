@@ -99,7 +99,6 @@ impl<T: Config> Pallet<T> {
             version: 0,
             ip: 0,
             port: 0,
-            ip_type: 0,
             uid: uid_to_set_in_metagraph,
             key: key.clone(),
             active: 1,

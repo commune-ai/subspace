@@ -1,26 +1,17 @@
 version: "3.2"
 
 services:
-  node-subspace:
-    container_name: node-subspace
-    image: opentensorfdn/subspace:latest
+  subspace:
+    network_mode: host
+    container_name: subspace
+    build: ./
     cpu_count: 4
     mem_limit: 10000000000
     memswap_limit: 20000000000
-    logging:
-      driver: "json-file"
-      options:
-        max-size: "10m"
-        max-file: "5"
-    ports:
-      - "9944:9944"
-      - "30333:30333"
-      - "9933:9933"
-    expose:
-      - "9944"
-      - "30333"
-      - "9933"
-    environment:
-      - CARGO_HOME=/var/www/node-subspace/.cargo
-    command: bash -c "/usr/local/bin/node-subspace --base-path /root/.local/share/node-subspace/ --chain /subspace/specs/nakamotoSpecRaw.json --rpc-external --ws-external --rpc-cors all --no-mdns --ws-max-connections 10000 --in-peers 500 --out-peers 500 --ws-max-out-buffer-capacity 1024 --rpc-max-payload 1000"
+    volumes:
+      # NODE BINDINGS
+      - ${SUBSPACE_PATH}:/subspace
+    
+    # command: bash -c "./target/release/subspace-node --dev"
 
+    command: bash -c "tail -f /dev/null"

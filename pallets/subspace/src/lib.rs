@@ -128,9 +128,6 @@ pub mod pallet {
         /// ---- The endpoint's u16 encoded port.
         pub port: u16,
 
-        /// ---- The endpoint's ip type, 4 for ipv4 and 6 for ipv6.
-        pub ip_type: u8,
-
         /// ---- The endpoint's unique identifier.
         pub uid: u32,
 
@@ -770,8 +767,6 @@ pub mod pallet {
 		/// 	* 'port' (u16):
 		/// 		- The port number where this module receives RPC requests.
 		///
-		/// 	* 'ip_type' (u8):
-		/// 		- The ip type one of (4,6).
 		///
 		/// 	* 'modality' (u8):
 		/// 		- The module modality type.
@@ -786,10 +781,9 @@ pub mod pallet {
 			name: Vec<u8>,
 			ip: u128, 
 			port: u16, 
-			ip_type: u8, 
 			self_ownership: u8,
 		) -> DispatchResult {
-			Self::do_serve_module( origin, name, ip, port, ip_type , self_ownership)
+			Self::do_serve_module( origin, name, ip, port )
 		}
 
 		/// ---- Registers a new module to the graph. 

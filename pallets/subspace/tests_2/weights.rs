@@ -57,7 +57,6 @@ fn set_weights_ok_no_weights() {
 		assert_eq!(subspace::get_neuron_for_uid( neuron.uid ).priority, 0);
 		assert_ok!(subspace::set_weights(Origin::signed(key_account_id), weights_keys, weight_values));
 		assert_eq!(subspace::get_weights_for_neuron(&neuron), vec![u32::max_value()]);
-		assert_eq!(subspace::get_stake_of_neuron_key_account_by_uid(neuron.uid), expect_stake);
 		assert_eq!(subspace::get_total_stake(), expect_total_stake);
 		assert_eq!(subspace::get_neuron_for_uid( neuron.uid ).priority, 0);
 

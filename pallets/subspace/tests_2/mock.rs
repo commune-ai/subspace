@@ -343,8 +343,8 @@ pub fn register_ok_neuron_with_nonce( key_account_id: u64, key_account_id: u64, 
 }
 
 #[allow(dead_code)]
-pub fn serve_module( key_account_id : u64, name: Vec<u8>,  ip: u128, port: u16, ) -> NeuronMetadata<u64> {
-	let result = subspace::serve_module(<<Test as frame_system::Config>::Origin>::signed(key_account_id), name, ip, port );
+pub fn serve_module( key_account_id : u64, name: Vec<u8>, ip: u128, port: u16,  ) -> NeuronMetadata<u64> {
+	let result = subspace::serve_module(<<Test as frame_system::Config>::Origin>::signed(key_account_id), version, ip, port );
 	assert_ok!(result);
 	let neuron = subspace::get_neuron_for_key(&key_account_id);
 	neuron

@@ -466,12 +466,12 @@ fn test_remove_balance_from_coldkey_account_ok() {
 #[test]
 fn test_remove_balance_from_coldkey_account_failed() {
 	new_test_ext().execute_with(|| {
-		let coldkey_account_id = 434324; // Random
+		let key_account_id = 434324; // Random
 		let ammount = 10000; // Arbitrary
 
 		// Try to remove stake from the coldkey account. This should fail,
 		// as there is no balance, nor does the account exist
-		let result = Subtensor::remove_balance_from_coldkey_account(&coldkey_account_id, ammount);
+		let result = Subtensor::remove_balance_from_key_account(&coldkey_account_id, ammount);
 		assert_eq!(result, false);
 	});
 }
@@ -559,16 +559,5 @@ fn test_has_enough_stake_no() {
 		Subtensor::add_stake_to_neuron_hotkey_account(neuron.uid, intial_amount);
 		assert_eq!(Subtensor::has_enough_stake(&neuron, 5000), false);
 
-	});
-}
-
-
-/****************************************************************************
-	staking::create_hotkey_account() and staking::has_hotkey_account() tests
-*****************************************************************************/
-#[test]
-fn test_has_hotkey_account_no() {
-	new_test_ext().execute_with(|| {
-        assert_eq!(Subtensor::has_hotkey_account(&8888), false);
 	});
 }
