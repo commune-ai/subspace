@@ -5,6 +5,41 @@ impl<T: Config> Pallet<T> {
      * do_add_stake() - main function called from parent module
      ***********************************************************/
 
+    pub fn do_loan_stake( origin: T::Origin, key : &T::AccountId,  amount: u64) -> dispatch::DispatchResult
+    {
+        // ---- We check the transaction is signed by the caller
+        // and retrieve the T::AccountId pubkey information.
+        let my_key = ensure_signed(origin)?;
+        //debug(&("--- Called add_stake with key id {:?}, key {:?} and amount_staked {:?}", key, key, stake_to_be_added));
+
+        // Check if the key is active
+        ensure!(Self::is_key_active(&key), Error::<T>::NotRegistered);
+        let module = Self::get_module_for_key(&key);
+
+        // Check if uid is active
+        ensure!(Self::is_uid_active(module.uid), Error::<T>::NotRegistered);
+
+        // ---- We check that the ModuleMetadata is linked to the calling
+        // key, otherwise throw a NonAssociatedkey error.
+        ensure!(Self::module_belongs_to_key(&module, &key), Error::<T>::NonAssociatedKey);
+
+        // ---- We check that the calling key contains enough funds to
+        // create the staking transaction.
+        let stake_as_balance = Self::u64_to_balance(amount);
+        ensure!(stake_as_balance.is_some(), Error::<T>::CouldNotConvertToBalance);
+
+        ensure!(Self::can_remove_balance(&my_key, stake_as_balance.unwrap()), Error::<T>::NotEnoughBalanceToStake);
+        ensure!(Self::remove_balance(&my_key, stake_as_balance.unwrap()) == true, Error::<T>::BalanceWithdrawalError);
+        Self::add_stake_to_module(module.uid, amount);
+
+        // add the amount and uid in the loan 
+
+        // ---- Emit the staking event.
+
+        // --- ok and return.
+        Ok(())
+    }
+
     pub fn do_add_stake(origin: T::Origin, stake_to_be_added: u64) -> dispatch::DispatchResult
     {
         // ---- We check the transaction is signed by the caller
@@ -28,8 +63,8 @@ impl<T: Config> Pallet<T> {
         let stake_as_balance = Self::u64_to_balance(stake_to_be_added);
         ensure!(stake_as_balance.is_some(), Error::<T>::CouldNotConvertToBalance);
 
-        ensure!(Self::can_remove_balance_from_key_account(&key, stake_as_balance.unwrap()), Error::<T>::NotEnoughBalanceToStake);
-        ensure!(Self::remove_balance_from_key_account(&key, stake_as_balance.unwrap()) == true, Error::<T>::BalanceWithdrawalError);
+        ensure!(Self::can_remove_balance(&key, stake_as_balance.unwrap()), Error::<T>::NotEnoughBalanceToStake);
+        ensure!(Self::remove_balance(&key, stake_as_balance.unwrap()) == true, Error::<T>::BalanceWithdrawalError);
         Self::add_stake_to_module(module.uid, stake_to_be_added);
 
         // ---- Emit the staking event.
@@ -38,6 +73,8 @@ impl<T: Config> Pallet<T> {
         // --- ok and return.
         Ok(())
     }
+
+
 
     /// This function removes stake from a key account and puts into a key account.
     /// This function should be called through an extrinsic signed with the keypair's private
@@ -79,7 +116,7 @@ impl<T: Config> Pallet<T> {
         // --- We perform the withdrawl by converting the stake to a u64 balance
         // and deposit the balance into the key account. If the key account
         // does not exist it is created.
-        Self::add_balance_to_key_account(&key, stake_to_be_added_as_currency.unwrap());
+        Self::add_balance(&key, stake_to_be_added_as_currency.unwrap());
         Self::remove_stake_from_module(module.uid, stake_to_be_removed);
 
         // ---- Emit the unstaking event.
@@ -88,6 +125,7 @@ impl<T: Config> Pallet<T> {
         // --- Done and ok.
         Ok(())
     }
+
 
 
     /********************************
@@ -177,7 +215,7 @@ impl<T: Config> Pallet<T> {
     /// The Balance parameter is a from u64 converted number. This is needed for T::Currency to work.
     /// Make sure stake is removed from another account before calling this method, otherwise you'll end up with double the value
     ///
-    pub fn add_balance_to_key_account(key: &T::AccountId, amount: <<T as Config>::Currency as Currency<<T as system::Config>::AccountId>>::Balance) {
+    pub fn add_balance(key: &T::AccountId, amount: <<T as Config>::Currency as Currency<<T as system::Config>::AccountId>>::Balance) {
         T::Currency::deposit_creating(&key, amount); // Infallibe
     }
 
@@ -187,7 +225,7 @@ impl<T: Config> Pallet<T> {
     /// The output of this function MUST be checked before writing the amount to the key account
     ///
     ///
-    pub fn remove_balance_from_key_account(key: &T::AccountId, amount: <<T as Config>::Currency as Currency<<T as system::Config>::AccountId>>::Balance) -> bool {
+    pub fn remove_balance(key: &T::AccountId, amount: <<T as Config>::Currency as Currency<<T as system::Config>::AccountId>>::Balance) -> bool {
         return match T::Currency::withdraw(&key, amount, WithdrawReasons::except(WithdrawReasons::TIP), ExistenceRequirement::KeepAlive) {
             Ok(_result) => {
                 true
@@ -207,7 +245,7 @@ impl<T: Config> Pallet<T> {
 
     /// Checks if the key account has enough balance to be able to withdraw the specified amount.
     ///
-    pub fn can_remove_balance_from_key_account(key: &T::AccountId, amount: <<T as Config>::Currency as Currency<<T as system::Config>::AccountId>>::Balance) -> bool {
+    pub fn can_remove_balance(key: &T::AccountId, amount: <<T as Config>::Currency as Currency<<T as system::Config>::AccountId>>::Balance) -> bool {
         let current_balance = Self::get_key_balance(key);
         if amount > current_balance {
             return false;

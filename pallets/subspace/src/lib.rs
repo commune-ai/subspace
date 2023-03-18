@@ -50,7 +50,6 @@ mod benchmarking;
 mod weights;
 mod serving;
 mod step;
-mod registration;
 mod staking;
 
 #[frame_support::pallet]
@@ -119,9 +118,6 @@ pub mod pallet {
 	#[derive(Encode, Decode, Default, TypeInfo)]
     pub struct ModuleMetadata<AccountId> {
 
-		/// ---- The endpoint's code version.
-        pub version: u32,
-
         /// ---- The endpoint's u128 encoded ip address of type v6 or v4.
         pub ip: u128,
 
@@ -143,7 +139,15 @@ pub mod pallet {
 		pub last_update: u64,
 
 		/// ---- The associated stake in this account.
+		// 
 		pub stake: u64,
+
+		// ---- The associated borrowed_amount in this account.
+		pub stake_borrowed: u64,
+
+
+		// ---- The associated profit share in this account with loaned stake.
+		pub profit_share: u8,
 
 		/// ---- The associated incentive in this account.
 		pub incentive: u64,
@@ -155,21 +159,19 @@ pub mod pallet {
 		pub emission: u64,
 
 		pub ownership: u8,
-		
-		pub consensus: u64,
-		pub trust: u64,
-
+				
 		pub url: Vec<u8>,
 		
-
 		/// ---- The associated bond ownership.
 		pub bonds: Vec<(u32,u64)>,
 
 		/// ---- The associated weights ownership.
 		pub weights: Vec<(u32,u32)>,
 
-		pub priority: u64,
-    }
+
+		// ---- The associated weights ownership when loaning to others
+		pub loans: Vec<(u32,u64)>,
+	}
 
 	#[pallet::pallet]
 	#[pallet::without_storage_info]
@@ -993,20 +995,6 @@ pub mod pallet {
 			return result
 		}
 
-		pub fn get_trust( ) -> Vec<u64> {
-			let mut result: Vec<u64> = vec![ 0; Self::get_module_count() as usize ];
-			for ( uid_i, module_i ) in <Modules<T> as IterableStorageMap<u32, ModuleMetadataOf<T>>>::iter() {
-				result[ uid_i as usize ] = module_i.trust;
-			}
-			return result
-		}
-		pub fn get_consensus( ) -> Vec<u64> {
-			let mut result: Vec<u64> = vec![ 0; Self::get_module_count() as usize ];
-			for ( uid_i, module_i ) in <Modules<T> as IterableStorageMap<u32, ModuleMetadataOf<T>>>::iter() {
-				result[ uid_i as usize ] = module_i.consensus;
-			}
-			return result
-		}
 		pub fn get_incentive( ) -> Vec<u64> {
 			let mut result: Vec<u64> = vec![ 0; Self::get_module_count() as usize ];
 			for ( uid_i, module_i ) in <Modules<T> as IterableStorageMap<u32, ModuleMetadataOf<T>>>::iter() {

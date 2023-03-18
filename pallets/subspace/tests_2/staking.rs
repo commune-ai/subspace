@@ -471,7 +471,7 @@ fn test_remove_balance_from_coldkey_account_failed() {
 
 		// Try to remove stake from the coldkey account. This should fail,
 		// as there is no balance, nor does the account exist
-		let result = Subtensor::remove_balance_from_key_account(&coldkey_account_id, ammount);
+		let result = Subtensor::remove_balance(&coldkey_account_id, ammount);
 		assert_eq!(result, false);
 	});
 }
