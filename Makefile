@@ -13,3 +13,6 @@ enter:
 	docker exec -it subspace bash
 build:
 	cargo build --release
+
+dev:
+	./target/release/node-subspace  --dev
