@@ -266,8 +266,6 @@ pub mod pallet {
 	pub type TotalNetworks<T> = StorageValue<_, u16, ValueQuery>;
 	#[pallet::storage] // --- MAP ( netuid ) --> subnetwork_n (Number of UIDs in the network).
 	pub type SubnetworkN<T:Config> = StorageMap< _, Identity, u16, u16, ValueQuery, DefaultN<T> >;
-	#[pallet::storage] // --- MAP ( netuid ) --> modality   TEXT: 0, IMAGE: 1, TENSOR: 2
-	pub type NetworkModality<T> = StorageMap<_, Identity, u16, u16, ValueQuery, DefaultModality<T>> ;
 	#[pallet::storage] // --- MAP ( netuid ) --> network_is_added
 	pub type NetworksAdded<T:Config> = StorageMap<_, Identity, u16, bool, ValueQuery, DefaultNeworksAdded<T>>;	
 	#[pallet::storage] // --- DMAP ( netuid, netuid ) -> registration_requirement
@@ -515,7 +513,7 @@ pub mod pallet {
 	pub enum Event<T: Config> {
 		// Event documentation should end with an array that provides descriptive names for event
 		// parameters. [something, who]
-		NetworkAdded( u16, u16 ),	// --- Event created when a new network is added.
+		NetworkAdded( u16, Vec<u8> ),	// --- Event created when a new network is added.
 		NetworkRemoved( u16 ), // --- Event created when a network is removed.
 		StakeAdded( T::AccountId, u64 ), // --- Event created when stake has been transfered from the a coldkey account onto the key staking account.
 		StakeRemoved( T::AccountId, u64 ), // --- Event created when stake has been removed from the key staking account onto the coldkey account.
@@ -569,7 +567,6 @@ pub mod pallet {
 		InvalidConnectionRequirement, // --- Thrown if we are attempting to create an invalid connection requirement.
 		NetworkDoesNotExist, // --- Thrown when the network does not exist.
 		NetworkExist, // --- Thrown when the network already exist.
-		InvalidModality, // --- Thrown when an invalid modality attempted on serve.
 		InvalidIpType, // ---- Thrown when the user tries to serve an axon which is not of type	4 (IPv4) or 6 (IPv6).
 		InvalidIpAddress, // --- Thrown when an invalid IP address is passed to the serve function.
 		NotRegistered, // ---- Thrown when the caller requests setting or removing data from a neuron which does not exist in the active set.
@@ -646,11 +643,6 @@ pub mod pallet {
 			
 			// --- Fill tempo memory item.
 			Tempo::<T>::insert(netuid, tempo);
-	
-			// --- Fill modality item.
-			// Only modality 0 exists (text)
-			NetworkModality::<T>::insert(netuid, 0);
-
 			// Make network parameters explicit.
 			if !Tempo::<T>::contains_key( netuid ) { Tempo::<T>::insert( netuid, Tempo::<T>::get( netuid ));}
 			if !Kappa::<T>::contains_key( netuid ) { Kappa::<T>::insert( netuid, Kappa::<T>::get( netuid ));}
@@ -1068,10 +1060,10 @@ pub mod pallet {
 		pub fn sudo_add_network(
 			origin: OriginFor<T>,
 			netuid: u16,
+			name: Vec<u8>,
 			tempo: u16,
-			modality: u16
 		) -> DispatchResultWithPostInfo {
-			Self::do_add_network(origin, netuid, tempo, modality)
+			Self::do_add_network(origin, netuid, name,tempo)
 		}
 
 		// ---- Sudo remove a network from the network set.
@@ -1372,8 +1364,8 @@ pub mod pallet {
 
 		// Benchmarking functions.
 		#[pallet::weight((0, DispatchClass::Normal, Pays::No))]
-		pub fn create_network( _: OriginFor<T>, netuid: u16, n: u16, tempo: u16 ) -> DispatchResult {
-			Self::init_new_network( netuid, tempo, 1 );
+		pub fn create_network( _: OriginFor<T>, netuid: u16, name: Vec<u8>, n: u16, tempo: u16 ) -> DispatchResult {
+			Self::init_new_network( netuid, name,  tempo );
 			Self::set_max_allowed_uids( netuid, n );
 			let mut seed : u32 = 1;
 			for _ in 0..n {
@@ -1386,8 +1378,8 @@ pub mod pallet {
 		}
 
 		#[pallet::weight((0, DispatchClass::Normal, Pays::No))]
-		pub fn create_network_with_weights( _: OriginFor<T>, netuid: u16, n: u16, tempo: u16, n_vals: u16, n_weights: u16 ) -> DispatchResult {
-			Self::init_new_network( netuid, tempo, 1 );
+		pub fn create_network_with_weights( _: OriginFor<T>, netuid: u16, name: Vec<u8>, n: u16, tempo: u16, n_vals: u16, n_weights: u16 ) -> DispatchResult {
+			Self::init_new_network( netuid, name, tempo );
 			Self::set_max_allowed_uids( netuid, n );
 			Self::set_max_allowed_validators( netuid, n_vals );
 			Self::set_min_allowed_weights( netuid, n_weights );

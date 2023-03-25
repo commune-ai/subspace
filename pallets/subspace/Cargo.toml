@@ -7,7 +7,7 @@ homepage = "https://bittensor.com"
 edition = "2021"
 license = "Unlicense"
 publish = false
-repository = "https://github.com/opentensor/subspace"
+repository = "https://github.com/commune-ai/subspace"
 
 [package.metadata.docs.rs]
 targets = ["x86_64-unknown-linux-gnu"]

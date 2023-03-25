@@ -14,108 +14,6 @@ const LOG_TARGET: &'static str = "runtime::subspace::registration";
 impl<T: Config> Pallet<T> {
 
 
-    // ---- The implementation for the extrinsic do_burned_registration: registering by burning TAO.
-    //
-    // # Args:
-    // 	* 'origin': (<T as frame_system::Config>RuntimeOrigin):
-    // 		- The signature of the calling coldkey. 
-    //             Burned registers can only be created by the coldkey.
-    //
-    // 	* 'netuid' (u16):
-    // 		- The u16 network identifier.
-    // 
-    // 	* 'key' ( T::AccountId ):
-    // 		- Key to be registered to the network.
-    //   
-    // # Event:
-    // 	* NeuronRegistered;
-    // 		- On successfully registereing a uid to a neuron slot on a subnetwork.
-    //
-    // # Raises:
-    // 	* 'NetworkDoesNotExist':
-    // 		- Attempting to registed to a non existent network.
-    //
-    // 	* 'TooManyRegistrationsThisBlock':
-    // 		- This registration exceeds the total allowed on this network this block.
-    //
-    // 	* 'AlreadyRegistered':
-    // 		- The key is already registered on this network.
-    //
-    pub fn do_burned_registration( 
-        origin: T::RuntimeOrigin,
-        netuid: u16, 
-    ) -> DispatchResult {
-
-        // --- 1. Check that the caller has signed the transaction. (the coldkey of the pairing)
-        let key = ensure_signed( origin )?; 
-        log::info!("do_registration( netuid:{:?} key:{:?} )", netuid, key );
-
-        // --- 2. Ensure the passed network is valid.
-        ensure!( Self::if_subnet_exist( netuid ), Error::<T>::NetworkDoesNotExist ); 
-
-        // --- 3. Ensure we are not exceeding the max allowed registrations per block.
-        ensure!( Self::get_registrations_this_block( netuid ) < Self::get_max_registrations_per_block( netuid ), Error::<T>::TooManyRegistrationsThisBlock );
-
-        // --- 4. Ensure that the key is not already registered.
-        ensure!( !Uids::<T>::contains_key( netuid, &key ), Error::<T>::AlreadyRegistered );
-
-        // --- 5. Ensure that the key passes the registration requirement
-        ensure!( Self::passes_network_connection_requirement( netuid, &key ), Error::<T>::DidNotPassConnectedNetworkRequirement );
-    
-        // --- 6. Ensure the callers coldkey has enough stake to perform the transaction.
-        let current_block_number: u64 = Self::get_current_block_as_u64();
-        let registration_cost_as_balance = Self::u64_to_balance( Self::get_burn_as_u64( netuid ) ).unwrap();
-        ensure!( Self::can_remove_balance_from_account( &key, registration_cost_as_balance ), Error::<T>::NotEnoughBalanceToStake );
-
-        // --- 7. Ensure the remove operation from the coldkey is a success.
-        ensure!( Self::remove_balance_from_account( &key, registration_cost_as_balance ) == true, Error::<T>::BalanceWithdrawalError );
-        
-        // The burn occurs here.
-        TotalIssuance::<T>::put( TotalIssuance::<T>::get().saturating_sub( Self::get_burn_as_u64( netuid ) ) );
-
-        // --- 8. If the network account does not exist we will create it here.
-        Self::create_account_if_non_existent( &key);         
-
-        // --- 9. Ensure that the pairing is correct.
-
-        // --- 10. Append neuron or prune it.
-        let subnetwork_uid: u16;
-        let current_subnetwork_n: u16 = Self::get_subnetwork_n( netuid );
-
-        // Possibly there is no neuron slots at all.
-        ensure!( Self::get_max_allowed_uids( netuid ) != 0, Error::<T>::NetworkDoesNotExist );
-        
-        if current_subnetwork_n < Self::get_max_allowed_uids( netuid ) {
-            // --- 11.1.1 No replacement required, the uid appends the subnetwork.
-            // We increment the subnetwork count here but not below.
-            subnetwork_uid = current_subnetwork_n;
-
-            // --- 11.1.2 Expand subnetwork with new account.
-            Self::append_neuron( netuid, &key );
-            log::info!("add new neuron account");
-        } else {
-            // --- 12.1.1 Replacement required.
-            // We take the neuron with the lowest pruning score here.
-            subnetwork_uid = Self::get_neuron_to_prune( netuid );
-
-            // --- 12.1.1 Replace the neuron account with the new info.
-            Self::replace_neuron( netuid, subnetwork_uid, &key, current_block_number );
-            log::info!("prune neuron");
-        }
-
-        // --- 13. Record the registration and increment block and interval counters.
-        BurnRegistrationsThisInterval::<T>::mutate( netuid, |val| *val += 1 );
-        RegistrationsThisInterval::<T>::mutate( netuid, |val| *val += 1 );
-        RegistrationsThisBlock::<T>::mutate( netuid, |val| *val += 1 );
-    
-        // --- 14. Deposit successful event.
-        log::info!("NeuronRegistered( netuid:{:?} uid:{:?} key:{:?}  ) ", netuid, subnetwork_uid, key );
-        Self::deposit_event( Event::NeuronRegistered( netuid, subnetwork_uid, key ) );
-
-        // --- 15. Ok and done.
-        Ok(())
-    }
-
     // ---- The implementation for the extrinsic do_registration.
     //
     // # Args:
@@ -125,15 +23,10 @@ impl<T: Config> Pallet<T> {
     // 	* 'netuid' (u16):
     // 		- The u16 network identifier.
     //
-    // 	* 'block_number' ( u64 ):
-    // 		- Block hash used to prove work done.
-    //
+
     // 	* 'nonce' ( u64 ):
     // 		- Positive integer nonce used in POW.
-    //
-    // 	* 'work' ( Vec<u8> ):
-    // 		- Vector encoded bytes representing work done.
-    //
+
     // 	* 'key' ( T::AccountId ):
     // 		- Key to be registered to the network.
     //
@@ -151,18 +44,7 @@ impl<T: Config> Pallet<T> {
     // 	* 'AlreadyRegistered':
     // 		- The key is already registered on this network.
     //
-    // 	* 'InvalidWorkBlock':
-    // 		- The work has been performed on a stale, future, or non existent block.
-    //
-    // 	* 'WorkRepeated':
-    // 		- This work for block has already been used.
-    //
-    // 	* 'InvalidDifficulty':
-    // 		- The work does not match the difficutly.
-    //
-    // 	* 'InvalidSeal':
-    // 		- The seal is incorrect.
-    //
+
     pub fn do_registration( 
         origin: T::RuntimeOrigin,
         netuid: u16
@@ -266,8 +148,7 @@ impl<T: Config> Pallet<T> {
                 if topk_percentile_value > topk_percentile_requirement { return false }
             }
         }
-        // --- 7. If we pass all the active registration requirments we return true allowing the registration to 
-        // continue to the normal difficulty check.s
+
         return true;
     }
 
@@ -331,27 +212,6 @@ impl<T: Config> Pallet<T> {
         }
     } 
 
-    // Determine whether the given hash satisfies the given difficulty.
-    // The test is done by multiplying the two together. If the product
-    // overflows the bounds of U256, then the product (and thus the hash)
-    // was too high.
-    pub fn hash_meets_difficulty(hash: &H256, difficulty: U256) -> bool {
-        let bytes: &[u8] = &hash.as_bytes();
-        let num_hash: U256 = U256::from( bytes );
-        let (value, overflowed) = num_hash.overflowing_mul(difficulty);
-
-		log::trace!(
-			target: LOG_TARGET,
-			"Difficulty: hash: {:?}, hash_bytes: {:?}, hash_as_num: {:?}, difficulty: {:?}, value: {:?} overflowed: {:?}",
-			hash,
-			bytes,
-			num_hash,
-			difficulty,
-			value,
-			overflowed
-		);
-        !overflowed
-    }
 
     pub fn get_block_hash_from_u64 ( block_number: u64 ) -> H256 {
         let block_number: T::BlockNumber = TryInto::<T::BlockNumber>::try_into( block_number ).ok().expect("convert u64 to block number.");
@@ -411,18 +271,5 @@ impl<T: Config> Pallet<T> {
 		);
 
         return seal_hash;
-    }
-
-    // Helper function for creating nonce and work.
-    pub fn create_work_for_block_number( netuid:u16, block_number: u64, start_nonce: u64 ) -> (u64, Vec<u8>) {
-        let difficulty: U256 = Self::get_difficulty(netuid);
-        let mut nonce: u64 = start_nonce;
-        let mut work: H256 = Self::create_seal_hash( block_number, nonce );
-        while !Self::hash_meets_difficulty(&work, difficulty) {
-            nonce = nonce + 1;
-            work = Self::create_seal_hash( block_number, nonce );
-        }
-        let vec_work: Vec<u8> = Self::hash_to_vec( work );
-        return (nonce, vec_work)
     }
 }

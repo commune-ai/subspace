@@ -29,17 +29,15 @@ impl<T: Config> Pallet<T> {
     // 	* 'NetworkExist':
     // 		- Attempting to register an already existing.
     //
-    // 	* 'InvalidModality':
-    // 		- Attempting to register a network with an invalid modality.
-    //
     // 	* 'InvalidTempo':
     // 		- Attempting to register a network with an invalid tempo.
     //
+    
     pub fn do_add_network( 
         origin: T::RuntimeOrigin, 
         netuid: u16, 
+        name: Vec<u8>,
         tempo: u16, 
-        modality: u16 
     ) -> dispatch::DispatchResultWithPostInfo {
 
         // --- 1. Ensure this is a sudo caller.
@@ -48,18 +46,15 @@ impl<T: Config> Pallet<T> {
         // --- 2. Ensure this subnetwork does not already exist.
         ensure!( !Self::if_subnet_exist( netuid ), Error::<T>::NetworkExist );
 
-        // --- 3. Ensure the modality is valid.
-        ensure!( Self::if_modality_is_valid( modality ), Error::<T>::InvalidModality );
-
         // --- 4. Ensure the tempo is valid.
         ensure!( Self::if_tempo_is_valid( tempo ), Error::<T>::InvalidTempo );
 
         // --- 5. Initialize the network and all its parameters.
-        Self::init_new_network( netuid, tempo, modality );
+        Self::init_new_network( netuid, name.clone(), tempo );
         
         // --- 6. Emit the new network event.
-        log::info!("NetworkAdded( netuid:{:?}, modality:{:?} )", netuid, modality);
-        Self::deposit_event( Event::NetworkAdded( netuid, modality ) );
+        log::info!("NetworkAdded( netuid:{:?}, name:{:?} )", netuid, name.clone());
+        Self::deposit_event( Event::NetworkAdded( netuid, name.clone()) );
 
         // --- 7. Ok and return.
         Ok(().into())
@@ -214,7 +209,7 @@ impl<T: Config> Pallet<T> {
 
     // Initializes a new subnetwork under netuid with parameters.
     //
-    pub fn init_new_network( netuid:u16, tempo:u16, modality:u16 ){
+    pub fn init_new_network( netuid:u16, name: Vec<u8>, tempo:u16){
 
         // --- 1. Set network to 0 size.
         SubnetworkN::<T>::insert( netuid, 0 );
@@ -224,9 +219,6 @@ impl<T: Config> Pallet<T> {
         
         // --- 3. Fill tempo memory item.
         Tempo::<T>::insert( netuid, tempo );
-
-        // --- 4 Fill modality item.
-        NetworkModality::<T>::insert( netuid, modality );
 
         // --- 5. Increase total network count.
         TotalNetworks::<T>::mutate( |n| *n += 1 );
@@ -241,9 +233,6 @@ impl<T: Config> Pallet<T> {
 
         // --- 1. Remove network count.
         SubnetworkN::<T>::remove( netuid );
-
-        // --- 2. Remove network modality storage.
-        NetworkModality::<T>::remove( netuid );
 
         // --- 3. Remove netuid from added networks.
         NetworksAdded::<T>::remove( netuid );
@@ -392,12 +381,6 @@ impl<T: Config> Pallet<T> {
         return NetworksAdded::<T>::get( netuid );
     }
 
-    // Returns true if the passed modality is allowed.
-    //
-    pub fn if_modality_is_valid( modality: u16 ) -> bool{
-        let allowed_values: Vec<u16> = vec![0, 1, 2];
-        return allowed_values.contains( &modality );
-    } 
 
     // Returns true if the passed tempo is allowed.
     //
