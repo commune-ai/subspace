@@ -1,4 +1,4 @@
- ```commandline             _      _                                 
+```commandline             _      _                                 
 ███████╗██╗   ██╗██████╗ ████████╗███████╗███╗   ██╗███████╗ ██████╗ ██████╗ 
 ██╔════╝██║   ██║██╔══██╗╚══██╔══╝██╔════╝████╗  ██║██╔════╝██╔═══██╗██╔══██╗
 ███████╗██║   ██║██████╔╝   ██║   █████╗  ██╔██╗ ██║███████╗██║   ██║██████╔╝
@@ -8,130 +8,51 @@
                                                                              
 ```
 
+# **Subspace** <!-- omit in toc -->
+[![Discord Chat](https://img.shields.io/discord/308323056592486420.svg)](https://discord.gg/bittensor)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT) 
+
+</div>
+This repository contains Bittensor's substrate-chain. Subspace contains the trusted logic which:
+
+1. Runs Bittensor's consensus mechanism
+1. Advertises neuron information, IPs, etc
+1. and facilitates value transfer via TAO.
+
+</div>
+
 ## System Requirements
+
 * The binaries in ./bin/release are x86_64 binaries to be used with the Linux kernel.  
-* subspace needs ~286 MiB to run.                      
+* Subspace needs ~286 MiB to run.                      
 * Architectures other than x86_64 are currently not supported.
 * OSs other than Linux and MacOS are currently not supported.               
 
 ## Architectures
-subspace support the following architectures:
+Subspace support the following architectures:
 
 ## Linux x86_64
 Requirements:
 * Linux kernel 2.6.32+,
 * glibc 2.11+
+A fresh FRAME-based [Substrate](https://www.substrate.io/) node, ready for hacking :rocket:
 
 ## MacOS x86_64
 Requirements:
 * MacOS 10.7+ (Lion+)
 
 ## Network requirements
-* subspace needs access to the public internet
-* subspace runs on ipv4
-* subspace listens on the following ports:
+* Subspace needs access to the public internet
+* Subspace runs on ipv4
+* Subspace listens on the following ports:
 1) 9944 - Websocket. This port is used by bittensor. It only accepts connections from localhost. Make sure this port is firewalled off from the public domain.
 2) 9933 - RPC. This port is opened, but not used.
 3) 30333 - p2p socket. This port accepts connections from other subspace nodes. Make sure your firewall(s) allow incoming traffic to this port.
-
 * It is assumed your default outgoing traffic policy is ACCEPT. If not, make sure outbound traffic to port 30333 is allowed.
 
-### Rust Setup
+</div>
 
-First, complete the [basic Rust setup instructions](./docs/rust-setup.md).
-
-### Run
-
-Use Rust's native `cargo` command to build and launch the template node:
-
-```sh
-cargo run --release -- --dev --tmp
-```
-
-### Build
-
-The `cargo run` command will perform an initial build. Use the following command to build the node
-without launching it:
-
-```sh
-cargo build --release
-```
-
-### Embedded Docs
-
-Once the project has been built, the following command can be used to explore all parameters and
-subcommands:
-
-```sh
-./target/release/node-subspace -h
-```
-
-## Run
-
-The provided `cargo run` command will launch a temporary node and its state will be discarded after
-you terminate the process. After the project has been built, there are other ways to launch the
-node.
-
-### Single-Node Development Chain
-
-This command will start the single-node development chain with persistent state:
-
-```bash
-./target/release/node-subspace --dev
-```
-
-Purge the development chain's state:
-
-```bash
-./target/release/node-subspace purge-chain --dev
-```
-
-Start the development chain with detailed logging:
-
-```bash
-RUST_LOG=debug RUST_BACKTRACE=1 ./target/release/node-subspace -lruntime=debug --dev
-```
-
-### run debug with logs.
-
-SKIP_WASM_BUILD=1 RUST_LOG=runtime=debug -- --nocapture
-
-## Run with Docker :whale:
-You can run an up to date Substrate blockchain using
-
-```bash
-docker-compose up
-```
-which will download the hourly blockchain snapshot and compile it into a docker container, then run it locally on your machine. 
-
-You can use 
-```bash
-docker-compose up -d
-```
-to run the blockchain in the background. 
-
-
-# Substrate Node Template
-
-[![Try on playground](https://img.shields.io/badge/Playground-Node_Template-brightgreen?logo=Parity%20Substrate)](https://docs.substrate.io/playground/) [![Matrix](https://img.shields.io/matrix/substrate-technical:matrix.org)](https://matrix.to/#/#substrate-technical:matrix.org)
-
-A fresh FRAME-based [Substrate](https://www.substrate.io/) node, ready for hacking :rocket:
-
-## Getting Started
-
-Follow the steps below to get started with the Node Template, or get it up and running right from
-your browser in just a few clicks using
-the [Substrate Playground](https://docs.substrate.io/playground/) :hammer_and_wrench:
-
-### Using Nix
-
-Install [nix](https://nixos.org/) and optionally [direnv](https://github.com/direnv/direnv) and
-[lorri](https://github.com/target/lorri) for a fully plug and play experience for setting up the
-development environment. To get all the correct dependencies activate direnv `direnv allow` and
-lorri `lorri shell`.
-
-### Rust Setup
-
+### Installation
 First, complete the [basic Rust setup instructions](./docs/rust-setup.md).
 
 ### Run
@@ -157,7 +78,7 @@ Once the project has been built, the following command can be used to explore al
 subcommands:
 
 ```sh
-./target/release/node-template -h
+./target/release/subspace -h
 ```
 
 ## Run
@@ -171,21 +92,38 @@ node.
 This command will start the single-node development chain with non-persistent state:
 
 ```bash
-./target/release/node-template --dev
+./target/release/subspace --dev
 ```
 
 Purge the development chain's state:
 
 ```bash
-./target/release/node-template purge-chain --dev
+./target/release/subspace purge-chain --dev
 ```
 
 Start the development chain with detailed logging:
 
 ```bash
-RUST_BACKTRACE=1 ./target/release/node-template -ldebug --dev
+RUST_BACKTRACE=1 ./target/release/subspace-ldebug --dev
 ```
 
+Running debug with logs.
+```bash
+SKIP_WASM_BUILD=1 RUST_LOG=runtime=debug -- --nocapture
+```
+
+Running individual tests
+```bash
+SKIP_WASM_BUILD=1 RUST_LOG=runtime=debug cargo test <your test name> -- --nocapture
+```
+
+Running code coverage
+```bash
+SKIP_WASM_BUILD=1 RUST_LOG=runtime=debug cargo tarpaulin --skip-clean
+```
+> Note; above requires `cargo-tarpaulin` is installed to the host, eg. `cargo install cargo-tarpaulin`
+
+</div>
 > Development chain means that the state of our chain will be in a tmp folder while the nodes are
 > running. Also, **alice** account will be authority and sudo account as declared in the
 > [genesis state](https://github.com/substrate-developer-hub/substrate-node-template/blob/main/node/src/chain_spec.rs#L49).
@@ -216,7 +154,6 @@ $ ls ./my-chain-state/chains/dev
 db keystore network
 ```
 
-
 ### Connect with Polkadot-JS Apps Front-end
 
 Once the node template is running locally, you can connect it with **Polkadot-JS Apps** front-end
@@ -227,7 +164,7 @@ local node template.
 ### Multi-Node Local Testnet
 
 If you want to see the multi-node consensus algorithm in action, refer to our
-[Start a Private Network tutorial](https://docs.substrate.io/tutorials/v3/private-network).
+[Simulate a network tutorial](https://docs.substrate.io/tutorials/get-started/simulate-network/).
 
 ## Template Structure
 
@@ -242,7 +179,7 @@ Substrate-based blockchain nodes expose a number of capabilities:
 - Networking: Substrate nodes use the [`libp2p`](https://libp2p.io/) networking stack to allow the
   nodes in the network to communicate with one another.
 - Consensus: Blockchains must have a way to come to
-  [consensus](https://docs.substrate.io/v3/advanced/consensus) on the state of the
+  [consensus](https://docs.substrate.io/main-docs/fundamentals/consensus/) on the state of the
   network. Substrate makes it possible to supply custom consensus engines and also ships with
   several consensus mechanisms that have been built on top of
   [Web3 Foundation research](https://research.web3.foundation/en/latest/polkadot/NPoS/index.html).
@@ -251,22 +188,20 @@ Substrate-based blockchain nodes expose a number of capabilities:
 There are several files in the `node` directory - take special note of the following:
 
 - [`chain_spec.rs`](./node/src/chain_spec.rs): A
-  [chain specification](https://docs.substrate.io/v3/runtime/chain-specs) is a
+  [chain specification](https://docs.substrate.io/main-docs/build/chain-spec/) is a
   source code file that defines a Substrate chain's initial (genesis) state. Chain specifications
   are useful for development and testing, and critical when architecting the launch of a
   production chain. Take note of the `development_config` and `testnet_genesis` functions, which
   are used to define the genesis state for the local development chain configuration. These
   functions identify some
-  [well-known accounts](https://docs.substrate.io/v3/tools/subkey#well-known-keys)
+  [well-known accounts](https://docs.substrate.io/reference/command-line-tools/subkey/)
   and use them to configure the blockchain's initial state.
 - [`service.rs`](./node/src/service.rs): This file defines the node implementation. Take note of
   the libraries that this file imports and the names of the functions it invokes. In particular,
   there are references to consensus-related topics, such as the
-  [longest chain rule](https://docs.substrate.io/v3/advanced/consensus#longest-chain-rule),
-  the [Aura](https://docs.substrate.io/v3/advanced/consensus#aura) block authoring
-  mechanism and the
-  [GRANDPA](https://docs.substrate.io/v3/advanced/consensus#grandpa) finality
-  gadget.
+  [block finalization and forks](https://docs.substrate.io/main-docs/fundamentals/consensus/#finalization-and-forks)
+  and other [consensus mechanisms](https://docs.substrate.io/main-docs/fundamentals/consensus/#default-consensus-models)
+  such as Aura for block authoring and GRANDPA for finality.
 
 After the node has been [built](#build), refer to the embedded documentation to learn more about the
 capabilities and configuration parameters that it exposes:
@@ -278,16 +213,15 @@ capabilities and configuration parameters that it exposes:
 ### Runtime
 
 In Substrate, the terms
-"[runtime](https://docs.substrate.io/v3/getting-started/glossary#runtime)" and
-"[state transition function](https://docs.substrate.io/v3/getting-started/glossary#state-transition-function-stf)"
+"runtime" and "state transition function"
 are analogous - they refer to the core logic of the blockchain that is responsible for validating
 blocks and executing the state changes they define. The Substrate project in this repository uses
-the [FRAME](https://docs.substrate.io/v3/runtime/frame) framework to construct a
+[FRAME](https://docs.substrate.io/main-docs/fundamentals/runtime-intro/#frame) to construct a
 blockchain runtime. FRAME allows runtime developers to declare domain-specific logic in modules
 called "pallets". At the heart of FRAME is a helpful
-[macro language](https://docs.substrate.io/v3/runtime/macros) that makes it easy to
+[macro language](https://docs.substrate.io/reference/frame-macros/) that makes it easy to
 create pallets and flexibly compose them to create blockchains that can address
-[a variety of needs](https://www.substrate.io/substrate-users/).
+[a variety of needs](https://substrate.io/ecosystem/projects/).
 
 Review the [FRAME runtime implementation](./runtime/src/lib.rs) included in this template and note
 the following:
@@ -297,8 +231,7 @@ the following:
 - The pallets are composed into a single runtime by way of the
   [`construct_runtime!`](https://crates.parity.io/frame_support/macro.construct_runtime.html)
   macro, which is part of the core
-  [FRAME Support](https://docs.substrate.io/v3/runtime/frame#support-crate)
-  library.
+  FRAME Support [system](https://docs.substrate.io/reference/frame-pallets/#system-pallets) library.
 
 ### Pallets
 
@@ -309,12 +242,12 @@ template pallet that is [defined in the `pallets`](./pallets/template/src/lib.rs
 A FRAME pallet is compromised of a number of blockchain primitives:
 
 - Storage: FRAME defines a rich set of powerful
-  [storage abstractions](https://docs.substrate.io/v3/runtime/storage) that makes
+  [storage abstractions](https://docs.substrate.io/main-docs/build/runtime-storage/) that makes
   it easy to use Substrate's efficient key-value database to manage the evolving state of a
   blockchain.
 - Dispatchables: FRAME pallets define special types of functions that can be invoked (dispatched)
   from outside of the runtime in order to update its state.
-- Events: Substrate uses [events and errors](https://docs.substrate.io/v3/runtime/events-and-errors)
+- Events: Substrate uses [events and errors](https://docs.substrate.io/main-docs/build/events-errors/)
   to notify users of important changes in the runtime.
 - Errors: When a dispatchable fails, it returns an error.
 - Config: The `Config` configuration interface is used to define the types and parameters upon
@@ -346,3 +279,18 @@ by appending your own. A few useful ones are as follow.
 # Check whether the code is compilable
 ./scripts/docker_run.sh cargo check
 ```
+
+
+## 6. License
+The MIT License (MIT)
+Copyright © 2021 Yuma Rao
+
+Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the “Software”), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+
+
+## 7. Acknowledgments
+**parralax**

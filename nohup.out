@@ -1,0 +1,1603 @@
+warning: profiles for the non root package will be ignored, specify profiles at the workspace root:
+package:   /Users/salvatore/subspacev3/runtime/Cargo.toml
+workspace: /Users/salvatore/subspacev3/Cargo.toml
+    Blocking waiting for file lock on build directory
+   Compiling pallet-subspace v4.0.0-dev (/Users/salvatore/subspacev3/pallets/subspace)
+   Compiling node-subspace-runtime v4.0.0-dev (/Users/salvatore/subspacev3/runtime)
+error[E0576]: cannot find method or associated constant `iter_prefix` in trait `IterableStorageMap`
+   --> pallets/subspace/src/block_step.rs:139:98
+    |
+139 |         for ( owning_key_i, stake_i ) in < Stake<T> as IterableStorageMap<T::AccountId,  u64 >>::iter_prefix( key ) {
+    |                                                                                                  ^^^^^^^^^^^ not found in `IterableStorageMap`
+
+error[E0425]: cannot find value `hotkeys` in this scope
+  --> pallets/subspace/src/epoch.rs:54:13
+   |
+54 |             hotkeys.push( (uid_i, key) ); 
+   |             ^^^^^^^ not found in this scope
+
+error[E0425]: cannot find value `hotkeys` in this scope
+  --> pallets/subspace/src/epoch.rs:56:40
+   |
+56 |         log::trace!( "hotkeys: {:?}", &hotkeys );
+   |                                        ^^^^^^^ not found in this scope
+
+error[E0425]: cannot find value `hotkeys` in this scope
+  --> pallets/subspace/src/epoch.rs:60:29
+   |
+60 |         for (uid_i, key) in hotkeys.iter() {
+   |                             ^^^^^^^ not found in this scope
+
+error[E0425]: cannot find value `hotkeys` in this scope
+   --> pallets/subspace/src/epoch.rs:236:31
+    |
+236 |         for ( uid_i, key ) in hotkeys.iter() {
+    |                               ^^^^^^^ not found in this scope
+
+error[E0425]: cannot find value `prev_prometheus` in this scope
+   --> pallets/subspace/src/serving.rs:164:63
+    |
+164 |         ensure!( Self::prometheus_passes_rate_limit( netuid, &prev_prometheus, current_block ), Error::<T>::ServingRateLimitExceeded );  
+    |                                                               ^^^^^^^^^^^^^^^ not found in this scope
+
+error[E0425]: cannot find value `prev_prometheus` in this scope
+   --> pallets/subspace/src/serving.rs:167:9
+    |
+167 |         prev_prometheus.block = Self::get_current_block_as_u64();
+    |         ^^^^^^^^^^^^^^^ not found in this scope
+
+error[E0425]: cannot find value `prev_prometheus` in this scope
+   --> pallets/subspace/src/serving.rs:168:9
+    |
+168 |         prev_prometheus.version = version;
+    |         ^^^^^^^^^^^^^^^ not found in this scope
+
+error[E0425]: cannot find value `prev_prometheus` in this scope
+   --> pallets/subspace/src/serving.rs:169:9
+    |
+169 |         prev_prometheus.ip = ip;
+    |         ^^^^^^^^^^^^^^^ not found in this scope
+
+error[E0425]: cannot find value `prev_prometheus` in this scope
+   --> pallets/subspace/src/serving.rs:170:9
+    |
+170 |         prev_prometheus.port = port;
+    |         ^^^^^^^^^^^^^^^ not found in this scope
+
+error[E0425]: cannot find value `prev_prometheus` in this scope
+   --> pallets/subspace/src/serving.rs:171:9
+    |
+171 |         prev_prometheus.ip_type = ip_type;
+    |         ^^^^^^^^^^^^^^^ not found in this scope
+
+error[E0425]: cannot find value `prev_prometheus` in this scope
+   --> pallets/subspace/src/serving.rs:172:61
+    |
+172 |         Prometheus::<T>::insert( netuid, hotkey_id.clone(), prev_prometheus );
+    |                                                             ^^^^^^^^^^^^^^^ not found in this scope
+
+error[E0576]: cannot find method or associated constant `iter_prefix` in trait `IterableStorageMap`
+   --> pallets/subspace/src/neuron_info.rs:110:125
+    |
+110 | ...rageMap<T::AccountId, T::AccountId, u64> >::iter_prefix( key.clone() )
+    |                                                ^^^^^^^^^^^ not found in `IterableStorageMap`
+
+warning: unused import: `crate::system::ensure_root`
+ --> pallets/subspace/src/registration.rs:5:5
+  |
+5 | use crate::system::ensure_root;
+  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  |
+  = note: `#[warn(unused_imports)]` on by default
+
+warning: unused import: `frame_support::IterableStorageDoubleMap`
+ --> pallets/subspace/src/subnet_info.rs:2:5
+  |
+2 | use frame_support::IterableStorageDoubleMap;
+  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: unused imports: `Deserialize`, `Serialize`
+  --> pallets/subspace/src/lib.rs:77:14
+   |
+77 |     use serde::{Serialize, Deserialize};
+   |                 ^^^^^^^^^  ^^^^^^^^^^^
+
+warning: unused imports: `DisplayFromStr`, `serde_as`
+  --> pallets/subspace/src/lib.rs:78:19
+   |
+78 |     use serde_with::{serde_as, DisplayFromStr};
+   |                      ^^^^^^^^  ^^^^^^^^^^^^^^
+
+warning: unused import: `scale_info::prelude::string::String`
+  --> pallets/subspace/src/lib.rs:80:6
+   |
+80 |     use scale_info::prelude::string::String;
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: use of deprecated struct `pallet::warnings::set_weights`: 
+                     Implicit call indices are deprecated in favour of explicit ones.
+                     Please ensure that all calls have the `pallet::call_index` attribute or that the
+                     `dev-mode` of the pallet is enabled. For more info see:
+                     <https://github.com/paritytech/substrate/pull/12891> and
+                     <https://github.com/paritytech/substrate/pull/11381>.
+   --> pallets/subspace/src/lib.rs:813:10
+    |
+813 |         pub fn set_weights(
+    |                ^^^^^^^^^^^
+    |
+    = note: `#[warn(deprecated)]` on by default
+
+warning: use of deprecated struct `pallet::warnings::add_stake`: 
+                     Implicit call indices are deprecated in favour of explicit ones.
+                     Please ensure that all calls have the `pallet::call_index` attribute or that the
+                     `dev-mode` of the pallet is enabled. For more info see:
+                     <https://github.com/paritytech/substrate/pull/12891> and
+                     <https://github.com/paritytech/substrate/pull/11381>.
+   --> pallets/subspace/src/lib.rs:862:10
+    |
+862 |         pub fn add_stake(
+    |                ^^^^^^^^^
+
+warning: use of deprecated struct `pallet::warnings::remove_stake`: 
+                     Implicit call indices are deprecated in favour of explicit ones.
+                     Please ensure that all calls have the `pallet::call_index` attribute or that the
+                     `dev-mode` of the pallet is enabled. For more info see:
+                     <https://github.com/paritytech/substrate/pull/12891> and
+                     <https://github.com/paritytech/substrate/pull/11381>.
+   --> pallets/subspace/src/lib.rs:904:10
+    |
+904 |         pub fn remove_stake(
+    |                ^^^^^^^^^^^^
+
+warning: use of deprecated struct `pallet::warnings::serve_axon`: 
+                     Implicit call indices are deprecated in favour of explicit ones.
+                     Please ensure that all calls have the `pallet::call_index` attribute or that the
+                     `dev-mode` of the pallet is enabled. For more info see:
+                     <https://github.com/paritytech/substrate/pull/12891> and
+                     <https://github.com/paritytech/substrate/pull/11381>.
+   --> pallets/subspace/src/lib.rs:965:10
+    |
+965 |         pub fn serve_axon(
+    |                ^^^^^^^^^^
+
+warning: use of deprecated struct `pallet::warnings::register`: 
+                     Implicit call indices are deprecated in favour of explicit ones.
+                     Please ensure that all calls have the `pallet::call_index` attribute or that the
+                     `dev-mode` of the pallet is enabled. For more info see:
+                     <https://github.com/paritytech/substrate/pull/12891> and
+                     <https://github.com/paritytech/substrate/pull/11381>.
+    --> pallets/subspace/src/lib.rs:1034:10
+     |
+1034 |         pub fn register( 
+     |                ^^^^^^^^
+
+warning: use of deprecated struct `pallet::warnings::sudo_add_network`: 
+                     Implicit call indices are deprecated in favour of explicit ones.
+                     Please ensure that all calls have the `pallet::call_index` attribute or that the
+                     `dev-mode` of the pallet is enabled. For more info see:
+                     <https://github.com/paritytech/substrate/pull/12891> and
+                     <https://github.com/paritytech/substrate/pull/11381>.
+    --> pallets/subspace/src/lib.rs:1075:10
+     |
+1075 |         pub fn sudo_add_network(
+     |                ^^^^^^^^^^^^^^^^
+
+warning: use of deprecated struct `pallet::warnings::sudo_remove_network`: 
+                     Implicit call indices are deprecated in favour of explicit ones.
+                     Please ensure that all calls have the `pallet::call_index` attribute or that the
+                     `dev-mode` of the pallet is enabled. For more info see:
+                     <https://github.com/paritytech/substrate/pull/12891> and
+                     <https://github.com/paritytech/substrate/pull/11381>.
+    --> pallets/subspace/src/lib.rs:1103:10
+     |
+1103 |         pub fn sudo_remove_network(
+     |                ^^^^^^^^^^^^^^^^^^^
+
+warning: use of deprecated struct `pallet::warnings::sudo_set_emission_values`: 
+                     Implicit call indices are deprecated in favour of explicit ones.
+                     Please ensure that all calls have the `pallet::call_index` attribute or that the
+                     `dev-mode` of the pallet is enabled. For more info see:
+                     <https://github.com/paritytech/substrate/pull/12891> and
+                     <https://github.com/paritytech/substrate/pull/11381>.
+    --> pallets/subspace/src/lib.rs:1124:10
+     |
+1124 |         pub fn sudo_set_emission_values(
+     |                ^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: use of deprecated struct `pallet::warnings::sudo_add_network_connection_requirement`: 
+                     Implicit call indices are deprecated in favour of explicit ones.
+                     Please ensure that all calls have the `pallet::call_index` attribute or that the
+                     `dev-mode` of the pallet is enabled. For more info see:
+                     <https://github.com/paritytech/substrate/pull/12891> and
+                     <https://github.com/paritytech/substrate/pull/11381>.
+    --> pallets/subspace/src/lib.rs:1153:10
+     |
+1153 |         pub fn sudo_add_network_connection_requirement( origin:OriginFor<T>, netuid_a: u16, netuid_b: u16, requirement: u16 ) -> Dispatch...
+     |                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: use of deprecated struct `pallet::warnings::sudo_remove_network_connection_requirement`: 
+                     Implicit call indices are deprecated in favour of explicit ones.
+                     Please ensure that all calls have the `pallet::call_index` attribute or that the
+                     `dev-mode` of the pallet is enabled. For more info see:
+                     <https://github.com/paritytech/substrate/pull/12891> and
+                     <https://github.com/paritytech/substrate/pull/11381>.
+    --> pallets/subspace/src/lib.rs:1170:10
+     |
+1170 |         pub fn sudo_remove_network_connection_requirement( origin:OriginFor<T>, netuid_a: u16, netuid_b: u16 ) -> DispatchResult { 
+     |                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: use of deprecated struct `pallet::warnings::sudo_set_default_take`: 
+                     Implicit call indices are deprecated in favour of explicit ones.
+                     Please ensure that all calls have the `pallet::call_index` attribute or that the
+                     `dev-mode` of the pallet is enabled. For more info see:
+                     <https://github.com/paritytech/substrate/pull/12891> and
+                     <https://github.com/paritytech/substrate/pull/11381>.
+    --> pallets/subspace/src/lib.rs:1190:10
+     |
+1190 |         pub fn sudo_set_default_take( origin:OriginFor<T>, default_take: u16 ) -> DispatchResult {  
+     |                ^^^^^^^^^^^^^^^^^^^^^
+
+warning: use of deprecated struct `pallet::warnings::sudo_set_serving_rate_limit`: 
+                     Implicit call indices are deprecated in favour of explicit ones.
+                     Please ensure that all calls have the `pallet::call_index` attribute or that the
+                     `dev-mode` of the pallet is enabled. For more info see:
+                     <https://github.com/paritytech/substrate/pull/12891> and
+                     <https://github.com/paritytech/substrate/pull/11381>.
+    --> pallets/subspace/src/lib.rs:1195:10
+     |
+1195 |         pub fn sudo_set_serving_rate_limit( origin:OriginFor<T>, netuid: u16, serving_rate_limit: u64 ) -> DispatchResult {  
+     |                ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: use of deprecated struct `pallet::warnings::sudo_set_tx_rate_limit`: 
+                     Implicit call indices are deprecated in favour of explicit ones.
+                     Please ensure that all calls have the `pallet::call_index` attribute or that the
+                     `dev-mode` of the pallet is enabled. For more info see:
+                     <https://github.com/paritytech/substrate/pull/12891> and
+                     <https://github.com/paritytech/substrate/pull/11381>.
+    --> pallets/subspace/src/lib.rs:1201:10
+     |
+1201 |         pub fn sudo_set_tx_rate_limit( origin:OriginFor<T>, tx_rate_limit: u64 ) -> DispatchResult {  
+     |                ^^^^^^^^^^^^^^^^^^^^^^
+
+warning: use of deprecated struct `pallet::warnings::sudo_set_max_burn`: 
+                     Implicit call indices are deprecated in favour of explicit ones.
+                     Please ensure that all calls have the `pallet::call_index` attribute or that the
+                     `dev-mode` of the pallet is enabled. For more info see:
+                     <https://github.com/paritytech/substrate/pull/12891> and
+                     <https://github.com/paritytech/substrate/pull/11381>.
+    --> pallets/subspace/src/lib.rs:1206:10
+     |
+1206 |         pub fn sudo_set_max_burn( origin:OriginFor<T>, netuid: u16, max_burn: u64 ) -> DispatchResult {  
+     |                ^^^^^^^^^^^^^^^^^
+
+warning: use of deprecated struct `pallet::warnings::sudo_set_min_burn`: 
+                     Implicit call indices are deprecated in favour of explicit ones.
+                     Please ensure that all calls have the `pallet::call_index` attribute or that the
+                     `dev-mode` of the pallet is enabled. For more info see:
+                     <https://github.com/paritytech/substrate/pull/12891> and
+                     <https://github.com/paritytech/substrate/pull/11381>.
+    --> pallets/subspace/src/lib.rs:1212:10
+     |
+1212 |         pub fn sudo_set_min_burn( origin:OriginFor<T>, netuid: u16, min_burn: u64 ) -> DispatchResult {  
+     |                ^^^^^^^^^^^^^^^^^
+
+warning: use of deprecated struct `pallet::warnings::sudo_set_burn`: 
+                     Implicit call indices are deprecated in favour of explicit ones.
+                     Please ensure that all calls have the `pallet::call_index` attribute or that the
+                     `dev-mode` of the pallet is enabled. For more info see:
+                     <https://github.com/paritytech/substrate/pull/12891> and
+                     <https://github.com/paritytech/substrate/pull/11381>.
+    --> pallets/subspace/src/lib.rs:1218:10
+     |
+1218 |         pub fn sudo_set_burn( origin:OriginFor<T>, netuid: u16, burn: u64 ) -> DispatchResult {  
+     |                ^^^^^^^^^^^^^
+
+warning: use of deprecated struct `pallet::warnings::sudo_set_max_difficulty`: 
+                     Implicit call indices are deprecated in favour of explicit ones.
+                     Please ensure that all calls have the `pallet::call_index` attribute or that the
+                     `dev-mode` of the pallet is enabled. For more info see:
+                     <https://github.com/paritytech/substrate/pull/12891> and
+                     <https://github.com/paritytech/substrate/pull/11381>.
+    --> pallets/subspace/src/lib.rs:1225:10
+     |
+1225 |         pub fn sudo_set_max_difficulty( origin:OriginFor<T>, netuid: u16, max_difficulty: u64 ) -> DispatchResult {  
+     |                ^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: use of deprecated struct `pallet::warnings::sudo_set_min_difficulty`: 
+                     Implicit call indices are deprecated in favour of explicit ones.
+                     Please ensure that all calls have the `pallet::call_index` attribute or that the
+                     `dev-mode` of the pallet is enabled. For more info see:
+                     <https://github.com/paritytech/substrate/pull/12891> and
+                     <https://github.com/paritytech/substrate/pull/11381>.
+    --> pallets/subspace/src/lib.rs:1231:10
+     |
+1231 |         pub fn sudo_set_min_difficulty( origin:OriginFor<T>, netuid: u16, min_difficulty: u64 ) -> DispatchResult {  
+     |                ^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: use of deprecated struct `pallet::warnings::sudo_set_weights_set_rate_limit`: 
+                     Implicit call indices are deprecated in favour of explicit ones.
+                     Please ensure that all calls have the `pallet::call_index` attribute or that the
+                     `dev-mode` of the pallet is enabled. For more info see:
+                     <https://github.com/paritytech/substrate/pull/12891> and
+                     <https://github.com/paritytech/substrate/pull/11381>.
+    --> pallets/subspace/src/lib.rs:1237:10
+     |
+1237 |         pub fn sudo_set_weights_set_rate_limit( origin:OriginFor<T>, netuid: u16, weights_set_rate_limit: u64 ) -> DispatchResult {  
+     |                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: use of deprecated struct `pallet::warnings::sudo_set_weights_version_key`: 
+                     Implicit call indices are deprecated in favour of explicit ones.
+                     Please ensure that all calls have the `pallet::call_index` attribute or that the
+                     `dev-mode` of the pallet is enabled. For more info see:
+                     <https://github.com/paritytech/substrate/pull/12891> and
+                     <https://github.com/paritytech/substrate/pull/11381>.
+    --> pallets/subspace/src/lib.rs:1243:10
+     |
+1243 |         pub fn sudo_set_weights_version_key( origin:OriginFor<T>, netuid: u16, weights_version_key: u64 ) -> DispatchResult {  
+     |                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: use of deprecated struct `pallet::warnings::sudo_set_bonds_moving_average`: 
+                     Implicit call indices are deprecated in favour of explicit ones.
+                     Please ensure that all calls have the `pallet::call_index` attribute or that the
+                     `dev-mode` of the pallet is enabled. For more info see:
+                     <https://github.com/paritytech/substrate/pull/12891> and
+                     <https://github.com/paritytech/substrate/pull/11381>.
+    --> pallets/subspace/src/lib.rs:1249:10
+     |
+1249 |         pub fn sudo_set_bonds_moving_average( origin:OriginFor<T>, netuid: u16, bonds_moving_average: u64 ) -> DispatchResult {  
+     |                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: use of deprecated struct `pallet::warnings::sudo_set_max_allowed_validators`: 
+                     Implicit call indices are deprecated in favour of explicit ones.
+                     Please ensure that all calls have the `pallet::call_index` attribute or that the
+                     `dev-mode` of the pallet is enabled. For more info see:
+                     <https://github.com/paritytech/substrate/pull/12891> and
+                     <https://github.com/paritytech/substrate/pull/11381>.
+    --> pallets/subspace/src/lib.rs:1255:10
+     |
+1255 |         pub fn sudo_set_max_allowed_validators( origin:OriginFor<T>, netuid: u16, max_allowed_validators: u16 ) -> DispatchResult {  
+     |                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: use of deprecated struct `pallet::warnings::sudo_set_difficulty`: 
+                     Implicit call indices are deprecated in favour of explicit ones.
+                     Please ensure that all calls have the `pallet::call_index` attribute or that the
+                     `dev-mode` of the pallet is enabled. For more info see:
+                     <https://github.com/paritytech/substrate/pull/12891> and
+                     <https://github.com/paritytech/substrate/pull/11381>.
+    --> pallets/subspace/src/lib.rs:1261:10
+     |
+1261 |         pub fn sudo_set_difficulty( origin:OriginFor<T>, netuid: u16, difficulty: u64 ) -> DispatchResult {
+     |                ^^^^^^^^^^^^^^^^^^^
+
+warning: use of deprecated struct `pallet::warnings::sudo_set_adjustment_interval`: 
+                     Implicit call indices are deprecated in favour of explicit ones.
+                     Please ensure that all calls have the `pallet::call_index` attribute or that the
+                     `dev-mode` of the pallet is enabled. For more info see:
+                     <https://github.com/paritytech/substrate/pull/12891> and
+                     <https://github.com/paritytech/substrate/pull/11381>.
+    --> pallets/subspace/src/lib.rs:1267:10
+     |
+1267 |         pub fn sudo_set_adjustment_interval( origin:OriginFor<T>, netuid: u16, adjustment_interval: u16 ) -> DispatchResult { 
+     |                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: use of deprecated struct `pallet::warnings::sudo_set_target_registrations_per_interval`: 
+                     Implicit call indices are deprecated in favour of explicit ones.
+                     Please ensure that all calls have the `pallet::call_index` attribute or that the
+                     `dev-mode` of the pallet is enabled. For more info see:
+                     <https://github.com/paritytech/substrate/pull/12891> and
+                     <https://github.com/paritytech/substrate/pull/11381>.
+    --> pallets/subspace/src/lib.rs:1273:10
+     |
+1273 | ...   pub fn sudo_set_target_registrations_per_interval( origin:OriginFor<T>, netuid: u16, target_registrations_per_interval: u16 ) -> Di...
+     |              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: use of deprecated struct `pallet::warnings::sudo_set_activity_cutoff`: 
+                     Implicit call indices are deprecated in favour of explicit ones.
+                     Please ensure that all calls have the `pallet::call_index` attribute or that the
+                     `dev-mode` of the pallet is enabled. For more info see:
+                     <https://github.com/paritytech/substrate/pull/12891> and
+                     <https://github.com/paritytech/substrate/pull/11381>.
+    --> pallets/subspace/src/lib.rs:1279:10
+     |
+1279 |         pub fn sudo_set_activity_cutoff( origin:OriginFor<T>, netuid: u16, activity_cutoff: u16 ) -> DispatchResult {
+     |                ^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: use of deprecated struct `pallet::warnings::sudo_set_rho`: 
+                     Implicit call indices are deprecated in favour of explicit ones.
+                     Please ensure that all calls have the `pallet::call_index` attribute or that the
+                     `dev-mode` of the pallet is enabled. For more info see:
+                     <https://github.com/paritytech/substrate/pull/12891> and
+                     <https://github.com/paritytech/substrate/pull/11381>.
+    --> pallets/subspace/src/lib.rs:1285:10
+     |
+1285 |         pub fn sudo_set_rho( origin:OriginFor<T>, netuid: u16, rho: u16 ) -> DispatchResult {
+     |                ^^^^^^^^^^^^
+
+warning: use of deprecated struct `pallet::warnings::sudo_set_kappa`: 
+                     Implicit call indices are deprecated in favour of explicit ones.
+                     Please ensure that all calls have the `pallet::call_index` attribute or that the
+                     `dev-mode` of the pallet is enabled. For more info see:
+                     <https://github.com/paritytech/substrate/pull/12891> and
+                     <https://github.com/paritytech/substrate/pull/11381>.
+    --> pallets/subspace/src/lib.rs:1291:10
+     |
+1291 |         pub fn sudo_set_kappa( origin:OriginFor<T>, netuid: u16, kappa: u16 ) -> DispatchResult {
+     |                ^^^^^^^^^^^^^^
+
+warning: use of deprecated struct `pallet::warnings::sudo_set_max_allowed_uids`: 
+                     Implicit call indices are deprecated in favour of explicit ones.
+                     Please ensure that all calls have the `pallet::call_index` attribute or that the
+                     `dev-mode` of the pallet is enabled. For more info see:
+                     <https://github.com/paritytech/substrate/pull/12891> and
+                     <https://github.com/paritytech/substrate/pull/11381>.
+    --> pallets/subspace/src/lib.rs:1297:10
+     |
+1297 |         pub fn sudo_set_max_allowed_uids( origin:OriginFor<T>, netuid: u16, max_allowed_uids: u16 ) -> DispatchResult {
+     |                ^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: use of deprecated struct `pallet::warnings::sudo_set_min_allowed_weights`: 
+                     Implicit call indices are deprecated in favour of explicit ones.
+                     Please ensure that all calls have the `pallet::call_index` attribute or that the
+                     `dev-mode` of the pallet is enabled. For more info see:
+                     <https://github.com/paritytech/substrate/pull/12891> and
+                     <https://github.com/paritytech/substrate/pull/11381>.
+    --> pallets/subspace/src/lib.rs:1303:10
+     |
+1303 |         pub fn sudo_set_min_allowed_weights( origin:OriginFor<T>, netuid: u16, min_allowed_weights: u16 ) -> DispatchResult {
+     |                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: use of deprecated struct `pallet::warnings::sudo_set_validator_batch_size`: 
+                     Implicit call indices are deprecated in favour of explicit ones.
+                     Please ensure that all calls have the `pallet::call_index` attribute or that the
+                     `dev-mode` of the pallet is enabled. For more info see:
+                     <https://github.com/paritytech/substrate/pull/12891> and
+                     <https://github.com/paritytech/substrate/pull/11381>.
+    --> pallets/subspace/src/lib.rs:1309:10
+     |
+1309 |         pub fn sudo_set_validator_batch_size( origin:OriginFor<T>, netuid: u16, validator_batch_size: u16 ) -> DispatchResult {
+     |                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: use of deprecated struct `pallet::warnings::sudo_set_validator_sequence_length`: 
+                     Implicit call indices are deprecated in favour of explicit ones.
+                     Please ensure that all calls have the `pallet::call_index` attribute or that the
+                     `dev-mode` of the pallet is enabled. For more info see:
+                     <https://github.com/paritytech/substrate/pull/12891> and
+                     <https://github.com/paritytech/substrate/pull/11381>.
+    --> pallets/subspace/src/lib.rs:1315:10
+     |
+1315 |         pub fn sudo_set_validator_sequence_length( origin:OriginFor<T>, netuid: u16, validator_sequence_length: u16 ) -> DispatchResult {
+     |                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: use of deprecated struct `pallet::warnings::sudo_set_validator_epochs_per_reset`: 
+                     Implicit call indices are deprecated in favour of explicit ones.
+                     Please ensure that all calls have the `pallet::call_index` attribute or that the
+                     `dev-mode` of the pallet is enabled. For more info see:
+                     <https://github.com/paritytech/substrate/pull/12891> and
+                     <https://github.com/paritytech/substrate/pull/11381>.
+    --> pallets/subspace/src/lib.rs:1321:10
+     |
+1321 |         pub fn sudo_set_validator_epochs_per_reset( origin:OriginFor<T>, netuid: u16, validator_epochs_per_reset: u16 ) -> DispatchResult {
+     |                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: use of deprecated struct `pallet::warnings::sudo_set_validator_exclude_quantile`: 
+                     Implicit call indices are deprecated in favour of explicit ones.
+                     Please ensure that all calls have the `pallet::call_index` attribute or that the
+                     `dev-mode` of the pallet is enabled. For more info see:
+                     <https://github.com/paritytech/substrate/pull/12891> and
+                     <https://github.com/paritytech/substrate/pull/11381>.
+    --> pallets/subspace/src/lib.rs:1327:10
+     |
+1327 |         pub fn sudo_set_validator_exclude_quantile( origin:OriginFor<T>, netuid: u16, validator_exclude_quantile: u16 ) -> DispatchResult {
+     |                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: use of deprecated struct `pallet::warnings::sudo_set_validator_prune_len`: 
+                     Implicit call indices are deprecated in favour of explicit ones.
+                     Please ensure that all calls have the `pallet::call_index` attribute or that the
+                     `dev-mode` of the pallet is enabled. For more info see:
+                     <https://github.com/paritytech/substrate/pull/12891> and
+                     <https://github.com/paritytech/substrate/pull/11381>.
+    --> pallets/subspace/src/lib.rs:1333:10
+     |
+1333 |         pub fn sudo_set_validator_prune_len( origin:OriginFor<T>, netuid: u16, validator_prune_len: u64 ) -> DispatchResult {
+     |                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: use of deprecated struct `pallet::warnings::sudo_set_validator_logits_divergence`: 
+                     Implicit call indices are deprecated in favour of explicit ones.
+                     Please ensure that all calls have the `pallet::call_index` attribute or that the
+                     `dev-mode` of the pallet is enabled. For more info see:
+                     <https://github.com/paritytech/substrate/pull/12891> and
+                     <https://github.com/paritytech/substrate/pull/11381>.
+    --> pallets/subspace/src/lib.rs:1339:10
+     |
+1339 |         pub fn sudo_set_validator_logits_divergence( origin:OriginFor<T>, netuid: u16,validator_logits_divergence: u16 ) -> DispatchResult {
+     |                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: use of deprecated struct `pallet::warnings::sudo_set_validator_epoch_len`: 
+                     Implicit call indices are deprecated in favour of explicit ones.
+                     Please ensure that all calls have the `pallet::call_index` attribute or that the
+                     `dev-mode` of the pallet is enabled. For more info see:
+                     <https://github.com/paritytech/substrate/pull/12891> and
+                     <https://github.com/paritytech/substrate/pull/11381>.
+    --> pallets/subspace/src/lib.rs:1345:10
+     |
+1345 |         pub fn sudo_set_validator_epoch_len( origin:OriginFor<T>, netuid: u16,validator_epoch_length: u16 ) -> DispatchResult {
+     |                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: use of deprecated struct `pallet::warnings::sudo_set_scaling_law_power`: 
+                     Implicit call indices are deprecated in favour of explicit ones.
+                     Please ensure that all calls have the `pallet::call_index` attribute or that the
+                     `dev-mode` of the pallet is enabled. For more info see:
+                     <https://github.com/paritytech/substrate/pull/12891> and
+                     <https://github.com/paritytech/substrate/pull/11381>.
+    --> pallets/subspace/src/lib.rs:1351:10
+     |
+1351 |         pub fn sudo_set_scaling_law_power( origin:OriginFor<T>, netuid: u16, scaling_law_power: u16 ) -> DispatchResult {
+     |                ^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: use of deprecated struct `pallet::warnings::sudo_set_synergy_scaling_law_power`: 
+                     Implicit call indices are deprecated in favour of explicit ones.
+                     Please ensure that all calls have the `pallet::call_index` attribute or that the
+                     `dev-mode` of the pallet is enabled. For more info see:
+                     <https://github.com/paritytech/substrate/pull/12891> and
+                     <https://github.com/paritytech/substrate/pull/11381>.
+    --> pallets/subspace/src/lib.rs:1357:10
+     |
+1357 |         pub fn sudo_set_synergy_scaling_law_power( origin:OriginFor<T>, netuid: u16, synergy_scaling_law_power: u16 ) -> DispatchResult {
+     |                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: use of deprecated struct `pallet::warnings::sudo_set_immunity_period`: 
+                     Implicit call indices are deprecated in favour of explicit ones.
+                     Please ensure that all calls have the `pallet::call_index` attribute or that the
+                     `dev-mode` of the pallet is enabled. For more info see:
+                     <https://github.com/paritytech/substrate/pull/12891> and
+                     <https://github.com/paritytech/substrate/pull/11381>.
+    --> pallets/subspace/src/lib.rs:1363:10
+     |
+1363 |         pub fn sudo_set_immunity_period( origin:OriginFor<T>, netuid: u16, immunity_period: u16 ) -> DispatchResult {
+     |                ^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: use of deprecated struct `pallet::warnings::sudo_set_max_weight_limit`: 
+                     Implicit call indices are deprecated in favour of explicit ones.
+                     Please ensure that all calls have the `pallet::call_index` attribute or that the
+                     `dev-mode` of the pallet is enabled. For more info see:
+                     <https://github.com/paritytech/substrate/pull/12891> and
+                     <https://github.com/paritytech/substrate/pull/11381>.
+    --> pallets/subspace/src/lib.rs:1369:10
+     |
+1369 |         pub fn sudo_set_max_weight_limit( origin:OriginFor<T>, netuid: u16, max_weight_limit: u16 ) -> DispatchResult {
+     |                ^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: use of deprecated struct `pallet::warnings::sudo_set_max_registrations_per_block`: 
+                     Implicit call indices are deprecated in favour of explicit ones.
+                     Please ensure that all calls have the `pallet::call_index` attribute or that the
+                     `dev-mode` of the pallet is enabled. For more info see:
+                     <https://github.com/paritytech/substrate/pull/12891> and
+                     <https://github.com/paritytech/substrate/pull/11381>.
+    --> pallets/subspace/src/lib.rs:1375:10
+     |
+1375 |         pub fn sudo_set_max_registrations_per_block(origin: OriginFor<T>, netuid: u16, max_registrations_per_block: u16 ) -> Dispatc...
+     |                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: use of deprecated struct `pallet::warnings::create_network`: 
+                     Implicit call indices are deprecated in favour of explicit ones.
+                     Please ensure that all calls have the `pallet::call_index` attribute or that the
+                     `dev-mode` of the pallet is enabled. For more info see:
+                     <https://github.com/paritytech/substrate/pull/12891> and
+                     <https://github.com/paritytech/substrate/pull/11381>.
+    --> pallets/subspace/src/lib.rs:1382:10
+     |
+1382 |         pub fn create_network( _: OriginFor<T>, netuid: u16, n: u16, tempo: u16 ) -> DispatchResult {
+     |                ^^^^^^^^^^^^^^
+
+warning: use of deprecated struct `pallet::warnings::create_network_with_weights`: 
+                     Implicit call indices are deprecated in favour of explicit ones.
+                     Please ensure that all calls have the `pallet::call_index` attribute or that the
+                     `dev-mode` of the pallet is enabled. For more info see:
+                     <https://github.com/paritytech/substrate/pull/12891> and
+                     <https://github.com/paritytech/substrate/pull/11381>.
+    --> pallets/subspace/src/lib.rs:1396:10
+     |
+1396 |         pub fn create_network_with_weights( _: OriginFor<T>, netuid: u16, n: u16, tempo: u16, n_vals: u16, n_weights: u16 ) -> Dispatc...
+     |                ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: use of deprecated struct `pallet::warnings::benchmark_epoch_with_weights`: 
+                     Implicit call indices are deprecated in favour of explicit ones.
+                     Please ensure that all calls have the `pallet::call_index` attribute or that the
+                     `dev-mode` of the pallet is enabled. For more info see:
+                     <https://github.com/paritytech/substrate/pull/12891> and
+                     <https://github.com/paritytech/substrate/pull/11381>.
+    --> pallets/subspace/src/lib.rs:1428:10
+     |
+1428 |         pub fn benchmark_epoch_with_weights( _:OriginFor<T> ) -> DispatchResult {
+     |                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: use of deprecated struct `pallet::warnings::benchmark_epoch_without_weights`: 
+                     Implicit call indices are deprecated in favour of explicit ones.
+                     Please ensure that all calls have the `pallet::call_index` attribute or that the
+                     `dev-mode` of the pallet is enabled. For more info see:
+                     <https://github.com/paritytech/substrate/pull/12891> and
+                     <https://github.com/paritytech/substrate/pull/11381>.
+    --> pallets/subspace/src/lib.rs:1435:10
+     |
+1435 |         pub fn benchmark_epoch_without_weights( _:OriginFor<T> ) -> DispatchResult {
+     |                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: use of deprecated struct `pallet::warnings::benchmark_drain_emission`: 
+                     Implicit call indices are deprecated in favour of explicit ones.
+                     Please ensure that all calls have the `pallet::call_index` attribute or that the
+                     `dev-mode` of the pallet is enabled. For more info see:
+                     <https://github.com/paritytech/substrate/pull/12891> and
+                     <https://github.com/paritytech/substrate/pull/11381>.
+    --> pallets/subspace/src/lib.rs:1440:10
+     |
+1440 |         pub fn benchmark_drain_emission( _:OriginFor<T> ) -> DispatchResult {
+     |                ^^^^^^^^^^^^^^^^^^^^^^^^
+
+error[E0599]: no function or associated item named `get_uid_for_net_and_key` found for struct `Pallet` in the current scope
+   --> pallets/subspace/src/registration.rs:251:40
+    |
+251 |                 let uid_b: u16 = Self::get_uid_for_net_and_key( netuid_b, key ).unwrap();
+    |                                        ^^^^^^^^^^^^^^^^^^^^^^^
+    |                                        |
+    |                                        function or associated item not found in `Pallet<T>`
+    |                                        help: there is an associated function with a similar name: `get_uid_for_net_and_hotkey`
+    |
+   ::: pallets/subspace/src/lib.rs:86:5
+    |
+86  |     pub struct Pallet<T>(_);
+    |     -------------------- function or associated item `get_uid_for_net_and_key` not found for this struct
+
+error[E0599]: no function or associated item named `is_registered_on_any_network` found for struct `Pallet` in the current scope
+  --> pallets/subspace/src/serving.rs:73:24
+   |
+73 |         ensure!( Self::is_registered_on_any_network( &hotkey_id ), Error::<T>::NotRegistered );  
+   |                        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   |                        |
+   |                        function or associated item not found in `Pallet<T>`
+   |                        help: there is an associated function with a similar name: `is_key_registered_on_any_network`
+   |
+  ::: pallets/subspace/src/lib.rs:86:5
+   |
+86 |     pub struct Pallet<T>(_);
+   |     -------------------- function or associated item `is_registered_on_any_network` not found for this struct
+
+error[E0599]: no function or associated item named `is_registered_on_any_network` found for struct `Pallet` in the current scope
+   --> pallets/subspace/src/serving.rs:156:24
+    |
+156 |         ensure!( Self::is_registered_on_any_network( &hotkey_id ), Error::<T>::NotRegistered );  
+    |                        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |                        |
+    |                        function or associated item not found in `Pallet<T>`
+    |                        help: there is an associated function with a similar name: `is_key_registered_on_any_network`
+    |
+   ::: pallets/subspace/src/lib.rs:86:5
+    |
+86  |     pub struct Pallet<T>(_);
+    |     -------------------- function or associated item `is_registered_on_any_network` not found for this struct
+
+error[E0599]: no function or associated item named `get_block_number` found for struct `Pallet` in the current scope
+  --> pallets/subspace/src/uids.rs:42:34
+   |
+42 |         let block_number = Self::get_block_number();
+   |                                  ^^^^^^^^^^^^^^^^ function or associated item not found in `Pallet<T>`
+   |
+  ::: pallets/subspace/src/lib.rs:86:5
+   |
+86 |     pub struct Pallet<T>(_);
+   |     -------------------- function or associated item `get_block_number` not found for this struct
+
+error[E0277]: the trait bound `frame_support::pallet_prelude::StorageMap<_GeneratedPrefixForStorageStake<T>, frame_support::Identity, <T as frame_system::Config>::AccountId, u64, frame_support::pallet_prelude::ValueQuery, DefaultAccountTake<T>>: frame_support::storage::generator::StorageDoubleMap<<T as frame_system::Config>::AccountId, <T as frame_system::Config>::AccountId, u64>` is not satisfied
+   --> pallets/subspace/src/delegate_info.rs:28:37
+    |
+28  | ...inator, stake ) in < Stake<T> as IterableStorageDoubleMap<T::AccountId, T::AccountId, u64> >::iter_prefix( delegate.clone() ) {
+    |                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ the trait `frame_support::storage::generator::StorageDoubleMap<<T as frame_system::Config>::AccountId, <T as frame_system::Config>::AccountId, u64>` is not implemented for `frame_support::pallet_prelude::StorageMap<_GeneratedPrefixForStorageStake<T>, frame_support::Identity, <T as frame_system::Config>::AccountId, u64, frame_support::pallet_prelude::ValueQuery, DefaultAccountTake<T>>`
+    |
+    = help: the trait `frame_support::storage::generator::StorageDoubleMap<Key1, Key2, Value>` is implemented for `frame_support::pallet_prelude::StorageDoubleMap<Prefix, Hasher1, Key1, Hasher2, Key2, Value, QueryKind, OnEmpty, MaxValues>`
+    = note: required for `StorageMap<_GeneratedPrefixForStorageStake<T>, Identity, <T as Config>::AccountId, u64, ValueQuery, ...>` to implement `frame_support::StorageDoubleMap<<T as frame_system::Config>::AccountId, <T as frame_system::Config>::AccountId, u64>`
+    = note: the full type name has been written to '/Users/salvatore/subspacev3/target/release/deps/pallet_subspace-85ea5a04f17f148d.long-type-9455095254248548786.txt'
+note: required by a bound in `frame_support::IterableStorageDoubleMap::iter_prefix`
+   --> /Users/salvatore/.cargo/git/checkouts/substrate-7e08433d4c370a21/1837f42/frame/support/src/storage/mod.rs:310:2
+    |
+310 |     StorageDoubleMap<K1, K2, V>
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^ required by this bound in `IterableStorageDoubleMap::iter_prefix`
+
+error[E0277]: the trait bound `frame_support::pallet_prelude::StorageMap<_GeneratedPrefixForStorageStake<T>, frame_support::Identity, <T as frame_system::Config>::AccountId, u64, frame_support::pallet_prelude::ValueQuery, DefaultAccountTake<T>>: frame_support::storage::generator::StorageDoubleMap<<T as frame_system::Config>::AccountId, <T as frame_system::Config>::AccountId, u64>` is not satisfied
+  --> pallets/subspace/src/delegate_info.rs:28:37
+   |
+28 | ...stake ) in < Stake<T> as IterableStorageDoubleMap<T::AccountId, T::AccountId, u64> >::iter_prefix( delegate.clone() ) {
+   |               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ the trait `frame_support::storage::generator::StorageDoubleMap<<T as frame_system::Config>::AccountId, <T as frame_system::Config>::AccountId, u64>` is not implemented for `frame_support::pallet_prelude::StorageMap<_GeneratedPrefixForStorageStake<T>, frame_support::Identity, <T as frame_system::Config>::AccountId, u64, frame_support::pallet_prelude::ValueQuery, DefaultAccountTake<T>>`
+   |
+   = help: the trait `frame_support::storage::generator::StorageDoubleMap<Key1, Key2, Value>` is implemented for `frame_support::pallet_prelude::StorageDoubleMap<Prefix, Hasher1, Key1, Hasher2, Key2, Value, QueryKind, OnEmpty, MaxValues>`
+   = note: required for `StorageMap<_GeneratedPrefixForStorageStake<T>, Identity, <T as Config>::AccountId, u64, ValueQuery, ...>` to implement `IterableStorageDoubleMap<<T as frame_system::Config>::AccountId, <T as frame_system::Config>::AccountId, u64>`
+   = note: the full type name has been written to '/Users/salvatore/subspacev3/target/release/deps/pallet_subspace-85ea5a04f17f148d.long-type-9455095254248548786.txt'
+
+error[E0599]: no function or associated item named `get_registered_networks_for_hotkey` found for struct `Pallet` in the current scope
+  --> pallets/subspace/src/delegate_info.rs:32:35
+   |
+32 |         let registrations = Self::get_registered_networks_for_hotkey( &delegate.clone() );
+   |                                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   |                                   |
+   |                                   function or associated item not found in `Pallet<T>`
+   |                                   help: there is an associated function with a similar name: `get_registered_networks_for_key`
+   |
+  ::: pallets/subspace/src/lib.rs:86:5
+   |
+86 |     pub struct Pallet<T>(_);
+   |     -------------------- function or associated item `get_registered_networks_for_hotkey` not found for this struct
+
+error[E0599]: no function or associated item named `get_owning_for_hotkey` found for struct `Pallet` in the current scope
+  --> pallets/subspace/src/delegate_info.rs:54:27
+   |
+54 |         let owner = Self::get_owning_for_hotkey( &delegate.clone() );
+   |                           ^^^^^^^^^^^^^^^^^^^^^
+   |                           |
+   |                           function or associated item not found in `Pallet<T>`
+   |                           help: there is an associated function with a similar name: `get_weights`
+   |
+  ::: pallets/subspace/src/lib.rs:86:5
+   |
+86 |     pub struct Pallet<T>(_);
+   |     -------------------- function or associated item `get_owning_for_hotkey` not found for this struct
+
+error[E0308]: mismatched types
+  --> pallets/subspace/src/neuron_info.rs:83:19
+   |
+78 |         let key = Self::get_for_net_and_uid(netuid, uid);
+   |                   -------------------------------------- expected due to this value
+...
+83 |             key = key.expect("Key should exist");
+   |                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ expected enum `Result`, found associated type
+   |
+   = note:         expected enum `Result<<T as frame_system::Config>::AccountId, sp_runtime::DispatchError>`
+           found associated type `<T as frame_system::Config>::AccountId`
+   = help: consider constraining the associated type `<T as frame_system::Config>::AccountId` to `Result<<T as frame_system::Config>::AccountId, sp_runtime::DispatchError>`
+   = note: for more information, visit https://doc.rust-lang.org/book/ch19-03-advanced-traits.html
+help: try wrapping the expression in `Ok`
+   |
+83 |             key = Ok(key.expect("Key should exist"));
+   |                   +++                              +
+
+error[E0308]: mismatched types
+   --> pallets/subspace/src/neuron_info.rs:86:54
+    |
+86  |         let axon_info = Self::get_axon_info( netuid, &key.clone() );
+    |                         -------------------          ^^^^^^^^^^^^ expected associated type, found enum `Result`
+    |                         |
+    |                         arguments to this function are incorrect
+    |
+    = note: expected reference `&<T as frame_system::Config>::AccountId`
+               found reference `&Result<<T as frame_system::Config>::AccountId, sp_runtime::DispatchError>`
+    = help: consider constraining the associated type `<T as frame_system::Config>::AccountId` to `Result<<T as frame_system::Config>::AccountId, sp_runtime::DispatchError>` or calling a method that returns `<T as frame_system::Config>::AccountId`
+    = note: for more information, visit https://doc.rust-lang.org/book/ch19-03-advanced-traits.html
+note: associated function defined here
+   --> pallets/subspace/src/serving.rs:206:12
+    |
+206 |     pub fn get_axon_info( netuid: u16, key: &T::AccountId ) -> AxonInfoOf {
+    |            ^^^^^^^^^^^^^               ------------------
+
+error[E0271]: type mismatch resolving `<T as Config>::AccountId == Result<<T as Config>::AccountId, DispatchError>`
+   --> pallets/subspace/src/neuron_info.rs:115:13
+    |
+115 |             key: key.clone(),
+    |             ^^^^^^^^^^^^^^^^ expected associated type, found enum `Result`
+    |
+    = note: expected associated type `<T as frame_system::Config>::AccountId`
+                          found enum `Result<<T as frame_system::Config>::AccountId, sp_runtime::DispatchError>`
+    = help: consider constraining the associated type `<T as frame_system::Config>::AccountId` to `Result<<T as frame_system::Config>::AccountId, sp_runtime::DispatchError>` or calling a method that returns `<T as frame_system::Config>::AccountId`
+    = note: for more information, visit https://doc.rust-lang.org/book/ch19-03-advanced-traits.html
+
+warning: unused import: `frame_support::storage::IterableStorageDoubleMap`
+ --> pallets/subspace/src/block_step.rs:6:5
+  |
+6 | use frame_support::storage::IterableStorageDoubleMap;
+  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Some errors have detailed explanations: E0271, E0277, E0308, E0425, E0576, E0599.
+For more information about an error, try `rustc --explain E0271`.
+warning: `pallet-subspace` (lib) generated 53 warnings
+error: could not compile `pallet-subspace` due to 24 previous errors; 53 warnings emitted
+warning: build failed, waiting for other jobs to finish...
+error: failed to run custom build command for `node-subspace-runtime v4.0.0-dev (/Users/salvatore/subspacev3/runtime)`
+
+Caused by:
+  process didn't exit successfully: `/Users/salvatore/subspacev3/target/release/build/node-subspace-runtime-960d861ed05b6a25/build-script-build` (exit status: 1)
+  --- stdout
+  [1;33mInformation that should be included in a bug report.[0m
+  [1;33mExecuting build command:[0m RUSTFLAGS="-C link-arg=--export-table -Clink-arg=--export=__heap_base -C link-arg=--import-memory  " SKIP_WASM_BUILD="" "rustup" "run" "nightly" "cargo" "rustc" "--target=wasm32-unknown-unknown" "--manifest-path=/Users/salvatore/subspacev3/target/release/wbuild/node-subspace-runtime/Cargo.toml" "--color=always" "--profile" "release"
+  [1;33mUsing rustc version:[0m rustc 1.70.0-nightly (7b4f48927 2023-03-12)
+
+
+  --- stderr
+  [0m[0m[1m[32m   Compiling[0m pallet-subspace v4.0.0-dev (/Users/salvatore/subspacev3/pallets/subspace)
+  [0m[1m[38;5;9merror[E0576][0m[0m[1m: cannot find method or associated constant `iter_prefix` in trait `IterableStorageMap`[0m
+  [0m   [0m[0m[1m[38;5;12m--> [0m[0m/Users/salvatore/subspacev3/pallets/subspace/src/block_step.rs:139:98[0m
+  [0m    [0m[0m[1m[38;5;12m|[0m
+  [0m[1m[38;5;12m139[0m[0m [0m[0m[1m[38;5;12m|[0m[0m [0m[0m        for ( owning_key_i, stake_i ) in < Stake<T> as IterableStorageMap<T::AccountId,  u64 >>::iter_prefix( key ) {[0m
+  [0m    [0m[0m[1m[38;5;12m| [0m[0m                                                                                                 [0m[0m[1m[38;5;9m^^^^^^^^^^^[0m[0m [0m[0m[1m[38;5;9mnot found in `IterableStorageMap`[0m
+
+  [0m[1m[38;5;9merror[E0425][0m[0m[1m: cannot find value `hotkeys` in this scope[0m
+  [0m  [0m[0m[1m[38;5;12m--> [0m[0m/Users/salvatore/subspacev3/pallets/subspace/src/epoch.rs:54:13[0m
+  [0m   [0m[0m[1m[38;5;12m|[0m
+  [0m[1m[38;5;12m54[0m[0m [0m[0m[1m[38;5;12m|[0m[0m [0m[0m            hotkeys.push( (uid_i, key) ); [0m
+  [0m   [0m[0m[1m[38;5;12m| [0m[0m            [0m[0m[1m[38;5;9m^^^^^^^[0m[0m [0m[0m[1m[38;5;9mnot found in this scope[0m
+
+  [0m[1m[38;5;9merror[E0425][0m[0m[1m: cannot find value `hotkeys` in this scope[0m
+  [0m  [0m[0m[1m[38;5;12m--> [0m[0m/Users/salvatore/subspacev3/pallets/subspace/src/epoch.rs:56:40[0m
+  [0m   [0m[0m[1m[38;5;12m|[0m
+  [0m[1m[38;5;12m56[0m[0m [0m[0m[1m[38;5;12m|[0m[0m [0m[0m        log::trace!( "hotkeys: {:?}", &hotkeys );[0m
+  [0m   [0m[0m[1m[38;5;12m| [0m[0m                                       [0m[0m[1m[38;5;9m^^^^^^^[0m[0m [0m[0m[1m[38;5;9mnot found in this scope[0m
+
+  [0m[1m[38;5;9merror[E0425][0m[0m[1m: cannot find value `hotkeys` in this scope[0m
+  [0m  [0m[0m[1m[38;5;12m--> [0m[0m/Users/salvatore/subspacev3/pallets/subspace/src/epoch.rs:60:29[0m
+  [0m   [0m[0m[1m[38;5;12m|[0m
+  [0m[1m[38;5;12m60[0m[0m [0m[0m[1m[38;5;12m|[0m[0m [0m[0m        for (uid_i, key) in hotkeys.iter() {[0m
+  [0m   [0m[0m[1m[38;5;12m| [0m[0m                            [0m[0m[1m[38;5;9m^^^^^^^[0m[0m [0m[0m[1m[38;5;9mnot found in this scope[0m
+
+  [0m[1m[38;5;9merror[E0425][0m[0m[1m: cannot find value `hotkeys` in this scope[0m
+  [0m   [0m[0m[1m[38;5;12m--> [0m[0m/Users/salvatore/subspacev3/pallets/subspace/src/epoch.rs:236:31[0m
+  [0m    [0m[0m[1m[38;5;12m|[0m
+  [0m[1m[38;5;12m236[0m[0m [0m[0m[1m[38;5;12m|[0m[0m [0m[0m        for ( uid_i, key ) in hotkeys.iter() {[0m
+  [0m    [0m[0m[1m[38;5;12m| [0m[0m                              [0m[0m[1m[38;5;9m^^^^^^^[0m[0m [0m[0m[1m[38;5;9mnot found in this scope[0m
+
+  [0m[1m[38;5;9merror[E0425][0m[0m[1m: cannot find value `prev_prometheus` in this scope[0m
+  [0m   [0m[0m[1m[38;5;12m--> [0m[0m/Users/salvatore/subspacev3/pallets/subspace/src/serving.rs:164:63[0m
+  [0m    [0m[0m[1m[38;5;12m|[0m
+  [0m[1m[38;5;12m164[0m[0m [0m[0m[1m[38;5;12m|[0m[0m [0m[0m        ensure!( Self::prometheus_passes_rate_limit( netuid, &prev_prometheus, current_block ), Error::<T>::ServingRateLimitExceeded );  [0m
+  [0m    [0m[0m[1m[38;5;12m| [0m[0m                                                              [0m[0m[1m[38;5;9m^^^^^^^^^^^^^^^[0m[0m [0m[0m[1m[38;5;9mnot found in this scope[0m
+
+  [0m[1m[38;5;9merror[E0425][0m[0m[1m: cannot find value `prev_prometheus` in this scope[0m
+  [0m   [0m[0m[1m[38;5;12m--> [0m[0m/Users/salvatore/subspacev3/pallets/subspace/src/serving.rs:167:9[0m
+  [0m    [0m[0m[1m[38;5;12m|[0m
+  [0m[1m[38;5;12m167[0m[0m [0m[0m[1m[38;5;12m|[0m[0m [0m[0m        prev_prometheus.block = Self::get_current_block_as_u64();[0m
+  [0m    [0m[0m[1m[38;5;12m| [0m[0m        [0m[0m[1m[38;5;9m^^^^^^^^^^^^^^^[0m[0m [0m[0m[1m[38;5;9mnot found in this scope[0m
+
+  [0m[1m[38;5;9merror[E0425][0m[0m[1m: cannot find value `prev_prometheus` in this scope[0m
+  [0m   [0m[0m[1m[38;5;12m--> [0m[0m/Users/salvatore/subspacev3/pallets/subspace/src/serving.rs:168:9[0m
+  [0m    [0m[0m[1m[38;5;12m|[0m
+  [0m[1m[38;5;12m168[0m[0m [0m[0m[1m[38;5;12m|[0m[0m [0m[0m        prev_prometheus.version = version;[0m
+  [0m    [0m[0m[1m[38;5;12m| [0m[0m        [0m[0m[1m[38;5;9m^^^^^^^^^^^^^^^[0m[0m [0m[0m[1m[38;5;9mnot found in this scope[0m
+
+  [0m[1m[38;5;9merror[E0425][0m[0m[1m: cannot find value `prev_prometheus` in this scope[0m
+  [0m   [0m[0m[1m[38;5;12m--> [0m[0m/Users/salvatore/subspacev3/pallets/subspace/src/serving.rs:169:9[0m
+  [0m    [0m[0m[1m[38;5;12m|[0m
+  [0m[1m[38;5;12m169[0m[0m [0m[0m[1m[38;5;12m|[0m[0m [0m[0m        prev_prometheus.ip = ip;[0m
+  [0m    [0m[0m[1m[38;5;12m| [0m[0m        [0m[0m[1m[38;5;9m^^^^^^^^^^^^^^^[0m[0m [0m[0m[1m[38;5;9mnot found in this scope[0m
+
+  [0m[1m[38;5;9merror[E0425][0m[0m[1m: cannot find value `prev_prometheus` in this scope[0m
+  [0m   [0m[0m[1m[38;5;12m--> [0m[0m/Users/salvatore/subspacev3/pallets/subspace/src/serving.rs:170:9[0m
+  [0m    [0m[0m[1m[38;5;12m|[0m
+  [0m[1m[38;5;12m170[0m[0m [0m[0m[1m[38;5;12m|[0m[0m [0m[0m        prev_prometheus.port = port;[0m
+  [0m    [0m[0m[1m[38;5;12m| [0m[0m        [0m[0m[1m[38;5;9m^^^^^^^^^^^^^^^[0m[0m [0m[0m[1m[38;5;9mnot found in this scope[0m
+
+  [0m[1m[38;5;9merror[E0425][0m[0m[1m: cannot find value `prev_prometheus` in this scope[0m
+  [0m   [0m[0m[1m[38;5;12m--> [0m[0m/Users/salvatore/subspacev3/pallets/subspace/src/serving.rs:171:9[0m
+  [0m    [0m[0m[1m[38;5;12m|[0m
+  [0m[1m[38;5;12m171[0m[0m [0m[0m[1m[38;5;12m|[0m[0m [0m[0m        prev_prometheus.ip_type = ip_type;[0m
+  [0m    [0m[0m[1m[38;5;12m| [0m[0m        [0m[0m[1m[38;5;9m^^^^^^^^^^^^^^^[0m[0m [0m[0m[1m[38;5;9mnot found in this scope[0m
+
+  [0m[1m[38;5;9merror[E0425][0m[0m[1m: cannot find value `prev_prometheus` in this scope[0m
+  [0m   [0m[0m[1m[38;5;12m--> [0m[0m/Users/salvatore/subspacev3/pallets/subspace/src/serving.rs:172:61[0m
+  [0m    [0m[0m[1m[38;5;12m|[0m
+  [0m[1m[38;5;12m172[0m[0m [0m[0m[1m[38;5;12m|[0m[0m [0m[0m        Prometheus::<T>::insert( netuid, hotkey_id.clone(), prev_prometheus );[0m
+  [0m    [0m[0m[1m[38;5;12m| [0m[0m                                                            [0m[0m[1m[38;5;9m^^^^^^^^^^^^^^^[0m[0m [0m[0m[1m[38;5;9mnot found in this scope[0m
+
+  [0m[1m[38;5;9merror[E0576][0m[0m[1m: cannot find method or associated constant `iter_prefix` in trait `IterableStorageMap`[0m
+  [0m   [0m[0m[1m[38;5;12m--> [0m[0m/Users/salvatore/subspacev3/pallets/subspace/src/neuron_info.rs:110:125[0m
+  [0m    [0m[0m[1m[38;5;12m|[0m
+  [0m[1m[38;5;12m110[0m[0m [0m[0m[1m[38;5;12m|[0m[0m [0m[0m[1m[38;5;12m...[0m[0mrageMap<T::AccountId, T::AccountId, u64> >::iter_prefix( key.clone() )[0m
+  [0m    [0m[0m[1m[38;5;12m| [0m[0m                                               [0m[0m[1m[38;5;9m^^^^^^^^^^^[0m[0m [0m[0m[1m[38;5;9mnot found in `IterableStorageMap`[0m
+
+  [0m[1m[33mwarning[0m[0m[1m: unused import: `crate::system::ensure_root`[0m
+  [0m [0m[0m[1m[38;5;12m--> [0m[0m/Users/salvatore/subspacev3/pallets/subspace/src/registration.rs:5:5[0m
+  [0m  [0m[0m[1m[38;5;12m|[0m
+  [0m[1m[38;5;12m5[0m[0m [0m[0m[1m[38;5;12m|[0m[0m [0m[0muse crate::system::ensure_root;[0m
+  [0m  [0m[0m[1m[38;5;12m| [0m[0m    [0m[0m[1m[33m^^^^^^^^^^^^^^^^^^^^^^^^^^[0m
+  [0m  [0m[0m[1m[38;5;12m|[0m
+  [0m  [0m[0m[1m[38;5;12m= [0m[0m[1mnote[0m[0m: `#[warn(unused_imports)]` on by default[0m
+
+  [0m[1m[33mwarning[0m[0m[1m: unused import: `frame_support::IterableStorageDoubleMap`[0m
+  [0m [0m[0m[1m[38;5;12m--> [0m[0m/Users/salvatore/subspacev3/pallets/subspace/src/subnet_info.rs:2:5[0m
+  [0m  [0m[0m[1m[38;5;12m|[0m
+  [0m[1m[38;5;12m2[0m[0m [0m[0m[1m[38;5;12m|[0m[0m [0m[0muse frame_support::IterableStorageDoubleMap;[0m
+  [0m  [0m[0m[1m[38;5;12m| [0m[0m    [0m[0m[1m[33m^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^[0m
+
+  [0m[1m[33mwarning[0m[0m[1m: unused imports: `Deserialize`, `Serialize`[0m
+  [0m  [0m[0m[1m[38;5;12m--> [0m[0m/Users/salvatore/subspacev3/pallets/subspace/src/lib.rs:77:14[0m
+  [0m   [0m[0m[1m[38;5;12m|[0m
+  [0m[1m[38;5;12m77[0m[0m [0m[0m[1m[38;5;12m|[0m[0m [0m[0m    use serde::{Serialize, Deserialize};[0m
+  [0m   [0m[0m[1m[38;5;12m| [0m[0m                [0m[0m[1m[33m^^^^^^^^^[0m[0m  [0m[0m[1m[33m^^^^^^^^^^^[0m
+
+  [0m[1m[33mwarning[0m[0m[1m: unused imports: `DisplayFromStr`, `serde_as`[0m
+  [0m  [0m[0m[1m[38;5;12m--> [0m[0m/Users/salvatore/subspacev3/pallets/subspace/src/lib.rs:78:19[0m
+  [0m   [0m[0m[1m[38;5;12m|[0m
+  [0m[1m[38;5;12m78[0m[0m [0m[0m[1m[38;5;12m|[0m[0m [0m[0m    use serde_with::{serde_as, DisplayFromStr};[0m
+  [0m   [0m[0m[1m[38;5;12m| [0m[0m                     [0m[0m[1m[33m^^^^^^^^[0m[0m  [0m[0m[1m[33m^^^^^^^^^^^^^^[0m
+
+  [0m[1m[33mwarning[0m[0m[1m: unused import: `scale_info::prelude::string::String`[0m
+  [0m  [0m[0m[1m[38;5;12m--> [0m[0m/Users/salvatore/subspacev3/pallets/subspace/src/lib.rs:80:6[0m
+  [0m   [0m[0m[1m[38;5;12m|[0m
+  [0m[1m[38;5;12m80[0m[0m [0m[0m[1m[38;5;12m|[0m[0m [0m[0m    use scale_info::prelude::string::String;[0m
+  [0m   [0m[0m[1m[38;5;12m| [0m[0m        [0m[0m[1m[33m^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^[0m
+
+  [0m[1m[33mwarning[0m[0m[1m: use of deprecated struct `pallet::warnings::set_weights`: [0m
+  [0m[1m                     Implicit call indices are deprecated in favour of explicit ones.[0m
+  [0m[1m                     Please ensure that all calls have the `pallet::call_index` attribute or that the[0m
+  [0m[1m                     `dev-mode` of the pallet is enabled. For more info see:[0m
+  [0m[1m                     <https://github.com/paritytech/substrate/pull/12891> and[0m
+  [0m[1m                     <https://github.com/paritytech/substrate/pull/11381>.[0m
+  [0m   [0m[0m[1m[38;5;12m--> [0m[0m/Users/salvatore/subspacev3/pallets/subspace/src/lib.rs:813:10[0m
+  [0m    [0m[0m[1m[38;5;12m|[0m
+  [0m[1m[38;5;12m813[0m[0m [0m[0m[1m[38;5;12m|[0m[0m [0m[0m        pub fn set_weights([0m
+  [0m    [0m[0m[1m[38;5;12m| [0m[0m               [0m[0m[1m[33m^^^^^^^^^^^[0m
+  [0m    [0m[0m[1m[38;5;12m|[0m
+  [0m    [0m[0m[1m[38;5;12m= [0m[0m[1mnote[0m[0m: `#[warn(deprecated)]` on by default[0m
+
+  [0m[1m[33mwarning[0m[0m[1m: use of deprecated struct `pallet::warnings::add_stake`: [0m
+  [0m[1m                     Implicit call indices are deprecated in favour of explicit ones.[0m
+  [0m[1m                     Please ensure that all calls have the `pallet::call_index` attribute or that the[0m
+  [0m[1m                     `dev-mode` of the pallet is enabled. For more info see:[0m
+  [0m[1m                     <https://github.com/paritytech/substrate/pull/12891> and[0m
+  [0m[1m                     <https://github.com/paritytech/substrate/pull/11381>.[0m
+  [0m   [0m[0m[1m[38;5;12m--> [0m[0m/Users/salvatore/subspacev3/pallets/subspace/src/lib.rs:862:10[0m
+  [0m    [0m[0m[1m[38;5;12m|[0m
+  [0m[1m[38;5;12m862[0m[0m [0m[0m[1m[38;5;12m|[0m[0m [0m[0m        pub fn add_stake([0m
+  [0m    [0m[0m[1m[38;5;12m| [0m[0m               [0m[0m[1m[33m^^^^^^^^^[0m
+
+  [0m[1m[33mwarning[0m[0m[1m: use of deprecated struct `pallet::warnings::remove_stake`: [0m
+  [0m[1m                     Implicit call indices are deprecated in favour of explicit ones.[0m
+  [0m[1m                     Please ensure that all calls have the `pallet::call_index` attribute or that the[0m
+  [0m[1m                     `dev-mode` of the pallet is enabled. For more info see:[0m
+  [0m[1m                     <https://github.com/paritytech/substrate/pull/12891> and[0m
+  [0m[1m                     <https://github.com/paritytech/substrate/pull/11381>.[0m
+  [0m   [0m[0m[1m[38;5;12m--> [0m[0m/Users/salvatore/subspacev3/pallets/subspace/src/lib.rs:904:10[0m
+  [0m    [0m[0m[1m[38;5;12m|[0m
+  [0m[1m[38;5;12m904[0m[0m [0m[0m[1m[38;5;12m|[0m[0m [0m[0m        pub fn remove_stake([0m
+  [0m    [0m[0m[1m[38;5;12m| [0m[0m               [0m[0m[1m[33m^^^^^^^^^^^^[0m
+
+  [0m[1m[33mwarning[0m[0m[1m: use of deprecated struct `pallet::warnings::serve_axon`: [0m
+  [0m[1m                     Implicit call indices are deprecated in favour of explicit ones.[0m
+  [0m[1m                     Please ensure that all calls have the `pallet::call_index` attribute or that the[0m
+  [0m[1m                     `dev-mode` of the pallet is enabled. For more info see:[0m
+  [0m[1m                     <https://github.com/paritytech/substrate/pull/12891> and[0m
+  [0m[1m                     <https://github.com/paritytech/substrate/pull/11381>.[0m
+  [0m   [0m[0m[1m[38;5;12m--> [0m[0m/Users/salvatore/subspacev3/pallets/subspace/src/lib.rs:965:10[0m
+  [0m    [0m[0m[1m[38;5;12m|[0m
+  [0m[1m[38;5;12m965[0m[0m [0m[0m[1m[38;5;12m|[0m[0m [0m[0m        pub fn serve_axon([0m
+  [0m    [0m[0m[1m[38;5;12m| [0m[0m               [0m[0m[1m[33m^^^^^^^^^^[0m
+
+  [0m[1m[33mwarning[0m[0m[1m: use of deprecated struct `pallet::warnings::register`: [0m
+  [0m[1m                     Implicit call indices are deprecated in favour of explicit ones.[0m
+  [0m[1m                     Please ensure that all calls have the `pallet::call_index` attribute or that the[0m
+  [0m[1m                     `dev-mode` of the pallet is enabled. For more info see:[0m
+  [0m[1m                     <https://github.com/paritytech/substrate/pull/12891> and[0m
+  [0m[1m                     <https://github.com/paritytech/substrate/pull/11381>.[0m
+  [0m    [0m[0m[1m[38;5;12m--> [0m[0m/Users/salvatore/subspacev3/pallets/subspace/src/lib.rs:1034:10[0m
+  [0m     [0m[0m[1m[38;5;12m|[0m
+  [0m[1m[38;5;12m1034[0m[0m [0m[0m[1m[38;5;12m|[0m[0m [0m[0m        pub fn register( [0m
+  [0m     [0m[0m[1m[38;5;12m| [0m[0m               [0m[0m[1m[33m^^^^^^^^[0m
+
+  [0m[1m[33mwarning[0m[0m[1m: use of deprecated struct `pallet::warnings::sudo_add_network`: [0m
+  [0m[1m                     Implicit call indices are deprecated in favour of explicit ones.[0m
+  [0m[1m                     Please ensure that all calls have the `pallet::call_index` attribute or that the[0m
+  [0m[1m                     `dev-mode` of the pallet is enabled. For more info see:[0m
+  [0m[1m                     <https://github.com/paritytech/substrate/pull/12891> and[0m
+  [0m[1m                     <https://github.com/paritytech/substrate/pull/11381>.[0m
+  [0m    [0m[0m[1m[38;5;12m--> [0m[0m/Users/salvatore/subspacev3/pallets/subspace/src/lib.rs:1075:10[0m
+  [0m     [0m[0m[1m[38;5;12m|[0m
+  [0m[1m[38;5;12m1075[0m[0m [0m[0m[1m[38;5;12m|[0m[0m [0m[0m        pub fn sudo_add_network([0m
+  [0m     [0m[0m[1m[38;5;12m| [0m[0m               [0m[0m[1m[33m^^^^^^^^^^^^^^^^[0m
+
+  [0m[1m[33mwarning[0m[0m[1m: use of deprecated struct `pallet::warnings::sudo_remove_network`: [0m
+  [0m[1m                     Implicit call indices are deprecated in favour of explicit ones.[0m
+  [0m[1m                     Please ensure that all calls have the `pallet::call_index` attribute or that the[0m
+  [0m[1m                     `dev-mode` of the pallet is enabled. For more info see:[0m
+  [0m[1m                     <https://github.com/paritytech/substrate/pull/12891> and[0m
+  [0m[1m                     <https://github.com/paritytech/substrate/pull/11381>.[0m
+  [0m    [0m[0m[1m[38;5;12m--> [0m[0m/Users/salvatore/subspacev3/pallets/subspace/src/lib.rs:1103:10[0m
+  [0m     [0m[0m[1m[38;5;12m|[0m
+  [0m[1m[38;5;12m1103[0m[0m [0m[0m[1m[38;5;12m|[0m[0m [0m[0m        pub fn sudo_remove_network([0m
+  [0m     [0m[0m[1m[38;5;12m| [0m[0m               [0m[0m[1m[33m^^^^^^^^^^^^^^^^^^^[0m
+
+  [0m[1m[33mwarning[0m[0m[1m: use of deprecated struct `pallet::warnings::sudo_set_emission_values`: [0m
+  [0m[1m                     Implicit call indices are deprecated in favour of explicit ones.[0m
+  [0m[1m                     Please ensure that all calls have the `pallet::call_index` attribute or that the[0m
+  [0m[1m                     `dev-mode` of the pallet is enabled. For more info see:[0m
+  [0m[1m                     <https://github.com/paritytech/substrate/pull/12891> and[0m
+  [0m[1m                     <https://github.com/paritytech/substrate/pull/11381>.[0m
+  [0m    [0m[0m[1m[38;5;12m--> [0m[0m/Users/salvatore/subspacev3/pallets/subspace/src/lib.rs:1124:10[0m
+  [0m     [0m[0m[1m[38;5;12m|[0m
+  [0m[1m[38;5;12m1124[0m[0m [0m[0m[1m[38;5;12m|[0m[0m [0m[0m        pub fn sudo_set_emission_values([0m
+  [0m     [0m[0m[1m[38;5;12m| [0m[0m               [0m[0m[1m[33m^^^^^^^^^^^^^^^^^^^^^^^^[0m
+
+  [0m[1m[33mwarning[0m[0m[1m: use of deprecated struct `pallet::warnings::sudo_add_network_connection_requirement`: [0m
+  [0m[1m                     Implicit call indices are deprecated in favour of explicit ones.[0m
+  [0m[1m                     Please ensure that all calls have the `pallet::call_index` attribute or that the[0m
+  [0m[1m                     `dev-mode` of the pallet is enabled. For more info see:[0m
+  [0m[1m                     <https://github.com/paritytech/substrate/pull/12891> and[0m
+  [0m[1m                     <https://github.com/paritytech/substrate/pull/11381>.[0m
+  [0m    [0m[0m[1m[38;5;12m--> [0m[0m/Users/salvatore/subspacev3/pallets/subspace/src/lib.rs:1153:10[0m
+  [0m     [0m[0m[1m[38;5;12m|[0m
+  [0m[1m[38;5;12m1153[0m[0m [0m[0m[1m[38;5;12m|[0m[0m [0m[0m        pub fn sudo_add_network_connection_requirement( origin:OriginFor<T>, netuid_a: u16, netuid_b: u16, requirement: u16 ) -> Dispatch[0m[0m[1m[38;5;12m...[0m
+  [0m     [0m[0m[1m[38;5;12m| [0m[0m               [0m[0m[1m[33m^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^[0m
+
+  [0m[1m[33mwarning[0m[0m[1m: use of deprecated struct `pallet::warnings::sudo_remove_network_connection_requirement`: [0m
+  [0m[1m                     Implicit call indices are deprecated in favour of explicit ones.[0m
+  [0m[1m                     Please ensure that all calls have the `pallet::call_index` attribute or that the[0m
+  [0m[1m                     `dev-mode` of the pallet is enabled. For more info see:[0m
+  [0m[1m                     <https://github.com/paritytech/substrate/pull/12891> and[0m
+  [0m[1m                     <https://github.com/paritytech/substrate/pull/11381>.[0m
+  [0m    [0m[0m[1m[38;5;12m--> [0m[0m/Users/salvatore/subspacev3/pallets/subspace/src/lib.rs:1170:10[0m
+  [0m     [0m[0m[1m[38;5;12m|[0m
+  [0m[1m[38;5;12m1170[0m[0m [0m[0m[1m[38;5;12m|[0m[0m [0m[0m        pub fn sudo_remove_network_connection_requirement( origin:OriginFor<T>, netuid_a: u16, netuid_b: u16 ) -> DispatchResult { [0m
+  [0m     [0m[0m[1m[38;5;12m| [0m[0m               [0m[0m[1m[33m^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^[0m
+
+  [0m[1m[33mwarning[0m[0m[1m: use of deprecated struct `pallet::warnings::sudo_set_default_take`: [0m
+  [0m[1m                     Implicit call indices are deprecated in favour of explicit ones.[0m
+  [0m[1m                     Please ensure that all calls have the `pallet::call_index` attribute or that the[0m
+  [0m[1m                     `dev-mode` of the pallet is enabled. For more info see:[0m
+  [0m[1m                     <https://github.com/paritytech/substrate/pull/12891> and[0m
+  [0m[1m                     <https://github.com/paritytech/substrate/pull/11381>.[0m
+  [0m    [0m[0m[1m[38;5;12m--> [0m[0m/Users/salvatore/subspacev3/pallets/subspace/src/lib.rs:1190:10[0m
+  [0m     [0m[0m[1m[38;5;12m|[0m
+  [0m[1m[38;5;12m1190[0m[0m [0m[0m[1m[38;5;12m|[0m[0m [0m[0m        pub fn sudo_set_default_take( origin:OriginFor<T>, default_take: u16 ) -> DispatchResult {  [0m
+  [0m     [0m[0m[1m[38;5;12m| [0m[0m               [0m[0m[1m[33m^^^^^^^^^^^^^^^^^^^^^[0m
+
+  [0m[1m[33mwarning[0m[0m[1m: use of deprecated struct `pallet::warnings::sudo_set_serving_rate_limit`: [0m
+  [0m[1m                     Implicit call indices are deprecated in favour of explicit ones.[0m
+  [0m[1m                     Please ensure that all calls have the `pallet::call_index` attribute or that the[0m
+  [0m[1m                     `dev-mode` of the pallet is enabled. For more info see:[0m
+  [0m[1m                     <https://github.com/paritytech/substrate/pull/12891> and[0m
+  [0m[1m                     <https://github.com/paritytech/substrate/pull/11381>.[0m
+  [0m    [0m[0m[1m[38;5;12m--> [0m[0m/Users/salvatore/subspacev3/pallets/subspace/src/lib.rs:1195:10[0m
+  [0m     [0m[0m[1m[38;5;12m|[0m
+  [0m[1m[38;5;12m1195[0m[0m [0m[0m[1m[38;5;12m|[0m[0m [0m[0m        pub fn sudo_set_serving_rate_limit( origin:OriginFor<T>, netuid: u16, serving_rate_limit: u64 ) -> DispatchResult {  [0m
+  [0m     [0m[0m[1m[38;5;12m| [0m[0m               [0m[0m[1m[33m^^^^^^^^^^^^^^^^^^^^^^^^^^^[0m
+
+  [0m[1m[33mwarning[0m[0m[1m: use of deprecated struct `pallet::warnings::sudo_set_tx_rate_limit`: [0m
+  [0m[1m                     Implicit call indices are deprecated in favour of explicit ones.[0m
+  [0m[1m                     Please ensure that all calls have the `pallet::call_index` attribute or that the[0m
+  [0m[1m                     `dev-mode` of the pallet is enabled. For more info see:[0m
+  [0m[1m                     <https://github.com/paritytech/substrate/pull/12891> and[0m
+  [0m[1m                     <https://github.com/paritytech/substrate/pull/11381>.[0m
+  [0m    [0m[0m[1m[38;5;12m--> [0m[0m/Users/salvatore/subspacev3/pallets/subspace/src/lib.rs:1201:10[0m
+  [0m     [0m[0m[1m[38;5;12m|[0m
+  [0m[1m[38;5;12m1201[0m[0m [0m[0m[1m[38;5;12m|[0m[0m [0m[0m        pub fn sudo_set_tx_rate_limit( origin:OriginFor<T>, tx_rate_limit: u64 ) -> DispatchResult {  [0m
+  [0m     [0m[0m[1m[38;5;12m| [0m[0m               [0m[0m[1m[33m^^^^^^^^^^^^^^^^^^^^^^[0m
+
+  [0m[1m[33mwarning[0m[0m[1m: use of deprecated struct `pallet::warnings::sudo_set_max_burn`: [0m
+  [0m[1m                     Implicit call indices are deprecated in favour of explicit ones.[0m
+  [0m[1m                     Please ensure that all calls have the `pallet::call_index` attribute or that the[0m
+  [0m[1m                     `dev-mode` of the pallet is enabled. For more info see:[0m
+  [0m[1m                     <https://github.com/paritytech/substrate/pull/12891> and[0m
+  [0m[1m                     <https://github.com/paritytech/substrate/pull/11381>.[0m
+  [0m    [0m[0m[1m[38;5;12m--> [0m[0m/Users/salvatore/subspacev3/pallets/subspace/src/lib.rs:1206:10[0m
+  [0m     [0m[0m[1m[38;5;12m|[0m
+  [0m[1m[38;5;12m1206[0m[0m [0m[0m[1m[38;5;12m|[0m[0m [0m[0m        pub fn sudo_set_max_burn( origin:OriginFor<T>, netuid: u16, max_burn: u64 ) -> DispatchResult {  [0m
+  [0m     [0m[0m[1m[38;5;12m| [0m[0m               [0m[0m[1m[33m^^^^^^^^^^^^^^^^^[0m
+
+  [0m[1m[33mwarning[0m[0m[1m: use of deprecated struct `pallet::warnings::sudo_set_min_burn`: [0m
+  [0m[1m                     Implicit call indices are deprecated in favour of explicit ones.[0m
+  [0m[1m                     Please ensure that all calls have the `pallet::call_index` attribute or that the[0m
+  [0m[1m                     `dev-mode` of the pallet is enabled. For more info see:[0m
+  [0m[1m                     <https://github.com/paritytech/substrate/pull/12891> and[0m
+  [0m[1m                     <https://github.com/paritytech/substrate/pull/11381>.[0m
+  [0m    [0m[0m[1m[38;5;12m--> [0m[0m/Users/salvatore/subspacev3/pallets/subspace/src/lib.rs:1212:10[0m
+  [0m     [0m[0m[1m[38;5;12m|[0m
+  [0m[1m[38;5;12m1212[0m[0m [0m[0m[1m[38;5;12m|[0m[0m [0m[0m        pub fn sudo_set_min_burn( origin:OriginFor<T>, netuid: u16, min_burn: u64 ) -> DispatchResult {  [0m
+  [0m     [0m[0m[1m[38;5;12m| [0m[0m               [0m[0m[1m[33m^^^^^^^^^^^^^^^^^[0m
+
+  [0m[1m[33mwarning[0m[0m[1m: use of deprecated struct `pallet::warnings::sudo_set_burn`: [0m
+  [0m[1m                     Implicit call indices are deprecated in favour of explicit ones.[0m
+  [0m[1m                     Please ensure that all calls have the `pallet::call_index` attribute or that the[0m
+  [0m[1m                     `dev-mode` of the pallet is enabled. For more info see:[0m
+  [0m[1m                     <https://github.com/paritytech/substrate/pull/12891> and[0m
+  [0m[1m                     <https://github.com/paritytech/substrate/pull/11381>.[0m
+  [0m    [0m[0m[1m[38;5;12m--> [0m[0m/Users/salvatore/subspacev3/pallets/subspace/src/lib.rs:1218:10[0m
+  [0m     [0m[0m[1m[38;5;12m|[0m
+  [0m[1m[38;5;12m1218[0m[0m [0m[0m[1m[38;5;12m|[0m[0m [0m[0m        pub fn sudo_set_burn( origin:OriginFor<T>, netuid: u16, burn: u64 ) -> DispatchResult {  [0m
+  [0m     [0m[0m[1m[38;5;12m| [0m[0m               [0m[0m[1m[33m^^^^^^^^^^^^^[0m
+
+  [0m[1m[33mwarning[0m[0m[1m: use of deprecated struct `pallet::warnings::sudo_set_max_difficulty`: [0m
+  [0m[1m                     Implicit call indices are deprecated in favour of explicit ones.[0m
+  [0m[1m                     Please ensure that all calls have the `pallet::call_index` attribute or that the[0m
+  [0m[1m                     `dev-mode` of the pallet is enabled. For more info see:[0m
+  [0m[1m                     <https://github.com/paritytech/substrate/pull/12891> and[0m
+  [0m[1m                     <https://github.com/paritytech/substrate/pull/11381>.[0m
+  [0m    [0m[0m[1m[38;5;12m--> [0m[0m/Users/salvatore/subspacev3/pallets/subspace/src/lib.rs:1225:10[0m
+  [0m     [0m[0m[1m[38;5;12m|[0m
+  [0m[1m[38;5;12m1225[0m[0m [0m[0m[1m[38;5;12m|[0m[0m [0m[0m        pub fn sudo_set_max_difficulty( origin:OriginFor<T>, netuid: u16, max_difficulty: u64 ) -> DispatchResult {  [0m
+  [0m     [0m[0m[1m[38;5;12m| [0m[0m               [0m[0m[1m[33m^^^^^^^^^^^^^^^^^^^^^^^[0m
+
+  [0m[1m[33mwarning[0m[0m[1m: use of deprecated struct `pallet::warnings::sudo_set_min_difficulty`: [0m
+  [0m[1m                     Implicit call indices are deprecated in favour of explicit ones.[0m
+  [0m[1m                     Please ensure that all calls have the `pallet::call_index` attribute or that the[0m
+  [0m[1m                     `dev-mode` of the pallet is enabled. For more info see:[0m
+  [0m[1m                     <https://github.com/paritytech/substrate/pull/12891> and[0m
+  [0m[1m                     <https://github.com/paritytech/substrate/pull/11381>.[0m
+  [0m    [0m[0m[1m[38;5;12m--> [0m[0m/Users/salvatore/subspacev3/pallets/subspace/src/lib.rs:1231:10[0m
+  [0m     [0m[0m[1m[38;5;12m|[0m
+  [0m[1m[38;5;12m1231[0m[0m [0m[0m[1m[38;5;12m|[0m[0m [0m[0m        pub fn sudo_set_min_difficulty( origin:OriginFor<T>, netuid: u16, min_difficulty: u64 ) -> DispatchResult {  [0m
+  [0m     [0m[0m[1m[38;5;12m| [0m[0m               [0m[0m[1m[33m^^^^^^^^^^^^^^^^^^^^^^^[0m
+
+  [0m[1m[33mwarning[0m[0m[1m: use of deprecated struct `pallet::warnings::sudo_set_weights_set_rate_limit`: [0m
+  [0m[1m                     Implicit call indices are deprecated in favour of explicit ones.[0m
+  [0m[1m                     Please ensure that all calls have the `pallet::call_index` attribute or that the[0m
+  [0m[1m                     `dev-mode` of the pallet is enabled. For more info see:[0m
+  [0m[1m                     <https://github.com/paritytech/substrate/pull/12891> and[0m
+  [0m[1m                     <https://github.com/paritytech/substrate/pull/11381>.[0m
+  [0m    [0m[0m[1m[38;5;12m--> [0m[0m/Users/salvatore/subspacev3/pallets/subspace/src/lib.rs:1237:10[0m
+  [0m     [0m[0m[1m[38;5;12m|[0m
+  [0m[1m[38;5;12m1237[0m[0m [0m[0m[1m[38;5;12m|[0m[0m [0m[0m        pub fn sudo_set_weights_set_rate_limit( origin:OriginFor<T>, netuid: u16, weights_set_rate_limit: u64 ) -> DispatchResult {  [0m
+  [0m     [0m[0m[1m[38;5;12m| [0m[0m               [0m[0m[1m[33m^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^[0m
+
+  [0m[1m[33mwarning[0m[0m[1m: use of deprecated struct `pallet::warnings::sudo_set_weights_version_key`: [0m
+  [0m[1m                     Implicit call indices are deprecated in favour of explicit ones.[0m
+  [0m[1m                     Please ensure that all calls have the `pallet::call_index` attribute or that the[0m
+  [0m[1m                     `dev-mode` of the pallet is enabled. For more info see:[0m
+  [0m[1m                     <https://github.com/paritytech/substrate/pull/12891> and[0m
+  [0m[1m                     <https://github.com/paritytech/substrate/pull/11381>.[0m
+  [0m    [0m[0m[1m[38;5;12m--> [0m[0m/Users/salvatore/subspacev3/pallets/subspace/src/lib.rs:1243:10[0m
+  [0m     [0m[0m[1m[38;5;12m|[0m
+  [0m[1m[38;5;12m1243[0m[0m [0m[0m[1m[38;5;12m|[0m[0m [0m[0m        pub fn sudo_set_weights_version_key( origin:OriginFor<T>, netuid: u16, weights_version_key: u64 ) -> DispatchResult {  [0m
+  [0m     [0m[0m[1m[38;5;12m| [0m[0m               [0m[0m[1m[33m^^^^^^^^^^^^^^^^^^^^^^^^^^^^[0m
+
+  [0m[1m[33mwarning[0m[0m[1m: use of deprecated struct `pallet::warnings::sudo_set_bonds_moving_average`: [0m
+  [0m[1m                     Implicit call indices are deprecated in favour of explicit ones.[0m
+  [0m[1m                     Please ensure that all calls have the `pallet::call_index` attribute or that the[0m
+  [0m[1m                     `dev-mode` of the pallet is enabled. For more info see:[0m
+  [0m[1m                     <https://github.com/paritytech/substrate/pull/12891> and[0m
+  [0m[1m                     <https://github.com/paritytech/substrate/pull/11381>.[0m
+  [0m    [0m[0m[1m[38;5;12m--> [0m[0m/Users/salvatore/subspacev3/pallets/subspace/src/lib.rs:1249:10[0m
+  [0m     [0m[0m[1m[38;5;12m|[0m
+  [0m[1m[38;5;12m1249[0m[0m [0m[0m[1m[38;5;12m|[0m[0m [0m[0m        pub fn sudo_set_bonds_moving_average( origin:OriginFor<T>, netuid: u16, bonds_moving_average: u64 ) -> DispatchResult {  [0m
+  [0m     [0m[0m[1m[38;5;12m| [0m[0m               [0m[0m[1m[33m^^^^^^^^^^^^^^^^^^^^^^^^^^^^^[0m
+
+  [0m[1m[33mwarning[0m[0m[1m: use of deprecated struct `pallet::warnings::sudo_set_max_allowed_validators`: [0m
+  [0m[1m                     Implicit call indices are deprecated in favour of explicit ones.[0m
+  [0m[1m                     Please ensure that all calls have the `pallet::call_index` attribute or that the[0m
+  [0m[1m                     `dev-mode` of the pallet is enabled. For more info see:[0m
+  [0m[1m                     <https://github.com/paritytech/substrate/pull/12891> and[0m
+  [0m[1m                     <https://github.com/paritytech/substrate/pull/11381>.[0m
+  [0m    [0m[0m[1m[38;5;12m--> [0m[0m/Users/salvatore/subspacev3/pallets/subspace/src/lib.rs:1255:10[0m
+  [0m     [0m[0m[1m[38;5;12m|[0m
+  [0m[1m[38;5;12m1255[0m[0m [0m[0m[1m[38;5;12m|[0m[0m [0m[0m        pub fn sudo_set_max_allowed_validators( origin:OriginFor<T>, netuid: u16, max_allowed_validators: u16 ) -> DispatchResult {  [0m
+  [0m     [0m[0m[1m[38;5;12m| [0m[0m               [0m[0m[1m[33m^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^[0m
+
+  [0m[1m[33mwarning[0m[0m[1m: use of deprecated struct `pallet::warnings::sudo_set_difficulty`: [0m
+  [0m[1m                     Implicit call indices are deprecated in favour of explicit ones.[0m
+  [0m[1m                     Please ensure that all calls have the `pallet::call_index` attribute or that the[0m
+  [0m[1m                     `dev-mode` of the pallet is enabled. For more info see:[0m
+  [0m[1m                     <https://github.com/paritytech/substrate/pull/12891> and[0m
+  [0m[1m                     <https://github.com/paritytech/substrate/pull/11381>.[0m
+  [0m    [0m[0m[1m[38;5;12m--> [0m[0m/Users/salvatore/subspacev3/pallets/subspace/src/lib.rs:1261:10[0m
+  [0m     [0m[0m[1m[38;5;12m|[0m
+  [0m[1m[38;5;12m1261[0m[0m [0m[0m[1m[38;5;12m|[0m[0m [0m[0m        pub fn sudo_set_difficulty( origin:OriginFor<T>, netuid: u16, difficulty: u64 ) -> DispatchResult {[0m
+  [0m     [0m[0m[1m[38;5;12m| [0m[0m               [0m[0m[1m[33m^^^^^^^^^^^^^^^^^^^[0m
+
+  [0m[1m[33mwarning[0m[0m[1m: use of deprecated struct `pallet::warnings::sudo_set_adjustment_interval`: [0m
+  [0m[1m                     Implicit call indices are deprecated in favour of explicit ones.[0m
+  [0m[1m                     Please ensure that all calls have the `pallet::call_index` attribute or that the[0m
+  [0m[1m                     `dev-mode` of the pallet is enabled. For more info see:[0m
+  [0m[1m                     <https://github.com/paritytech/substrate/pull/12891> and[0m
+  [0m[1m                     <https://github.com/paritytech/substrate/pull/11381>.[0m
+  [0m    [0m[0m[1m[38;5;12m--> [0m[0m/Users/salvatore/subspacev3/pallets/subspace/src/lib.rs:1267:10[0m
+  [0m     [0m[0m[1m[38;5;12m|[0m
+  [0m[1m[38;5;12m1267[0m[0m [0m[0m[1m[38;5;12m|[0m[0m [0m[0m        pub fn sudo_set_adjustment_interval( origin:OriginFor<T>, netuid: u16, adjustment_interval: u16 ) -> DispatchResult { [0m
+  [0m     [0m[0m[1m[38;5;12m| [0m[0m               [0m[0m[1m[33m^^^^^^^^^^^^^^^^^^^^^^^^^^^^[0m
+
+  [0m[1m[33mwarning[0m[0m[1m: use of deprecated struct `pallet::warnings::sudo_set_target_registrations_per_interval`: [0m
+  [0m[1m                     Implicit call indices are deprecated in favour of explicit ones.[0m
+  [0m[1m                     Please ensure that all calls have the `pallet::call_index` attribute or that the[0m
+  [0m[1m                     `dev-mode` of the pallet is enabled. For more info see:[0m
+  [0m[1m                     <https://github.com/paritytech/substrate/pull/12891> and[0m
+  [0m[1m                     <https://github.com/paritytech/substrate/pull/11381>.[0m
+  [0m    [0m[0m[1m[38;5;12m--> [0m[0m/Users/salvatore/subspacev3/pallets/subspace/src/lib.rs:1273:10[0m
+  [0m     [0m[0m[1m[38;5;12m|[0m
+  [0m[1m[38;5;12m1273[0m[0m [0m[0m[1m[38;5;12m|[0m[0m [0m[0m[1m[38;5;12m...[0m[0m   pub fn sudo_set_target_registrations_per_interval( origin:OriginFor<T>, netuid: u16, target_registrations_per_interval: u16 ) -> Di[0m[0m[1m[38;5;12m...[0m
+  [0m     [0m[0m[1m[38;5;12m| [0m[0m             [0m[0m[1m[33m^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^[0m
+
+  [0m[1m[33mwarning[0m[0m[1m: use of deprecated struct `pallet::warnings::sudo_set_activity_cutoff`: [0m
+  [0m[1m                     Implicit call indices are deprecated in favour of explicit ones.[0m
+  [0m[1m                     Please ensure that all calls have the `pallet::call_index` attribute or that the[0m
+  [0m[1m                     `dev-mode` of the pallet is enabled. For more info see:[0m
+  [0m[1m                     <https://github.com/paritytech/substrate/pull/12891> and[0m
+  [0m[1m                     <https://github.com/paritytech/substrate/pull/11381>.[0m
+  [0m    [0m[0m[1m[38;5;12m--> [0m[0m/Users/salvatore/subspacev3/pallets/subspace/src/lib.rs:1279:10[0m
+  [0m     [0m[0m[1m[38;5;12m|[0m
+  [0m[1m[38;5;12m1279[0m[0m [0m[0m[1m[38;5;12m|[0m[0m [0m[0m        pub fn sudo_set_activity_cutoff( origin:OriginFor<T>, netuid: u16, activity_cutoff: u16 ) -> DispatchResult {[0m
+  [0m     [0m[0m[1m[38;5;12m| [0m[0m               [0m[0m[1m[33m^^^^^^^^^^^^^^^^^^^^^^^^[0m
+
+  [0m[1m[33mwarning[0m[0m[1m: use of deprecated struct `pallet::warnings::sudo_set_rho`: [0m
+  [0m[1m                     Implicit call indices are deprecated in favour of explicit ones.[0m
+  [0m[1m                     Please ensure that all calls have the `pallet::call_index` attribute or that the[0m
+  [0m[1m                     `dev-mode` of the pallet is enabled. For more info see:[0m
+  [0m[1m                     <https://github.com/paritytech/substrate/pull/12891> and[0m
+  [0m[1m                     <https://github.com/paritytech/substrate/pull/11381>.[0m
+  [0m    [0m[0m[1m[38;5;12m--> [0m[0m/Users/salvatore/subspacev3/pallets/subspace/src/lib.rs:1285:10[0m
+  [0m     [0m[0m[1m[38;5;12m|[0m
+  [0m[1m[38;5;12m1285[0m[0m [0m[0m[1m[38;5;12m|[0m[0m [0m[0m        pub fn sudo_set_rho( origin:OriginFor<T>, netuid: u16, rho: u16 ) -> DispatchResult {[0m
+  [0m     [0m[0m[1m[38;5;12m| [0m[0m               [0m[0m[1m[33m^^^^^^^^^^^^[0m
+
+  [0m[1m[33mwarning[0m[0m[1m: use of deprecated struct `pallet::warnings::sudo_set_kappa`: [0m
+  [0m[1m                     Implicit call indices are deprecated in favour of explicit ones.[0m
+  [0m[1m                     Please ensure that all calls have the `pallet::call_index` attribute or that the[0m
+  [0m[1m                     `dev-mode` of the pallet is enabled. For more info see:[0m
+  [0m[1m                     <https://github.com/paritytech/substrate/pull/12891> and[0m
+  [0m[1m                     <https://github.com/paritytech/substrate/pull/11381>.[0m
+  [0m    [0m[0m[1m[38;5;12m--> [0m[0m/Users/salvatore/subspacev3/pallets/subspace/src/lib.rs:1291:10[0m
+  [0m     [0m[0m[1m[38;5;12m|[0m
+  [0m[1m[38;5;12m1291[0m[0m [0m[0m[1m[38;5;12m|[0m[0m [0m[0m        pub fn sudo_set_kappa( origin:OriginFor<T>, netuid: u16, kappa: u16 ) -> DispatchResult {[0m
+  [0m     [0m[0m[1m[38;5;12m| [0m[0m               [0m[0m[1m[33m^^^^^^^^^^^^^^[0m
+
+  [0m[1m[33mwarning[0m[0m[1m: use of deprecated struct `pallet::warnings::sudo_set_max_allowed_uids`: [0m
+  [0m[1m                     Implicit call indices are deprecated in favour of explicit ones.[0m
+  [0m[1m                     Please ensure that all calls have the `pallet::call_index` attribute or that the[0m
+  [0m[1m                     `dev-mode` of the pallet is enabled. For more info see:[0m
+  [0m[1m                     <https://github.com/paritytech/substrate/pull/12891> and[0m
+  [0m[1m                     <https://github.com/paritytech/substrate/pull/11381>.[0m
+  [0m    [0m[0m[1m[38;5;12m--> [0m[0m/Users/salvatore/subspacev3/pallets/subspace/src/lib.rs:1297:10[0m
+  [0m     [0m[0m[1m[38;5;12m|[0m
+  [0m[1m[38;5;12m1297[0m[0m [0m[0m[1m[38;5;12m|[0m[0m [0m[0m        pub fn sudo_set_max_allowed_uids( origin:OriginFor<T>, netuid: u16, max_allowed_uids: u16 ) -> DispatchResult {[0m
+  [0m     [0m[0m[1m[38;5;12m| [0m[0m               [0m[0m[1m[33m^^^^^^^^^^^^^^^^^^^^^^^^^[0m
+
+  [0m[1m[33mwarning[0m[0m[1m: use of deprecated struct `pallet::warnings::sudo_set_min_allowed_weights`: [0m
+  [0m[1m                     Implicit call indices are deprecated in favour of explicit ones.[0m
+  [0m[1m                     Please ensure that all calls have the `pallet::call_index` attribute or that the[0m
+  [0m[1m                     `dev-mode` of the pallet is enabled. For more info see:[0m
+  [0m[1m                     <https://github.com/paritytech/substrate/pull/12891> and[0m
+  [0m[1m                     <https://github.com/paritytech/substrate/pull/11381>.[0m
+  [0m    [0m[0m[1m[38;5;12m--> [0m[0m/Users/salvatore/subspacev3/pallets/subspace/src/lib.rs:1303:10[0m
+  [0m     [0m[0m[1m[38;5;12m|[0m
+  [0m[1m[38;5;12m1303[0m[0m [0m[0m[1m[38;5;12m|[0m[0m [0m[0m        pub fn sudo_set_min_allowed_weights( origin:OriginFor<T>, netuid: u16, min_allowed_weights: u16 ) -> DispatchResult {[0m
+  [0m     [0m[0m[1m[38;5;12m| [0m[0m               [0m[0m[1m[33m^^^^^^^^^^^^^^^^^^^^^^^^^^^^[0m
+
+  [0m[1m[33mwarning[0m[0m[1m: use of deprecated struct `pallet::warnings::sudo_set_validator_batch_size`: [0m
+  [0m[1m                     Implicit call indices are deprecated in favour of explicit ones.[0m
+  [0m[1m                     Please ensure that all calls have the `pallet::call_index` attribute or that the[0m
+  [0m[1m                     `dev-mode` of the pallet is enabled. For more info see:[0m
+  [0m[1m                     <https://github.com/paritytech/substrate/pull/12891> and[0m
+  [0m[1m                     <https://github.com/paritytech/substrate/pull/11381>.[0m
+  [0m    [0m[0m[1m[38;5;12m--> [0m[0m/Users/salvatore/subspacev3/pallets/subspace/src/lib.rs:1309:10[0m
+  [0m     [0m[0m[1m[38;5;12m|[0m
+  [0m[1m[38;5;12m1309[0m[0m [0m[0m[1m[38;5;12m|[0m[0m [0m[0m        pub fn sudo_set_validator_batch_size( origin:OriginFor<T>, netuid: u16, validator_batch_size: u16 ) -> DispatchResult {[0m
+  [0m     [0m[0m[1m[38;5;12m| [0m[0m               [0m[0m[1m[33m^^^^^^^^^^^^^^^^^^^^^^^^^^^^^[0m
+
+  [0m[1m[33mwarning[0m[0m[1m: use of deprecated struct `pallet::warnings::sudo_set_validator_sequence_length`: [0m
+  [0m[1m                     Implicit call indices are deprecated in favour of explicit ones.[0m
+  [0m[1m                     Please ensure that all calls have the `pallet::call_index` attribute or that the[0m
+  [0m[1m                     `dev-mode` of the pallet is enabled. For more info see:[0m
+  [0m[1m                     <https://github.com/paritytech/substrate/pull/12891> and[0m
+  [0m[1m                     <https://github.com/paritytech/substrate/pull/11381>.[0m
+  [0m    [0m[0m[1m[38;5;12m--> [0m[0m/Users/salvatore/subspacev3/pallets/subspace/src/lib.rs:1315:10[0m
+  [0m     [0m[0m[1m[38;5;12m|[0m
+  [0m[1m[38;5;12m1315[0m[0m [0m[0m[1m[38;5;12m|[0m[0m [0m[0m        pub fn sudo_set_validator_sequence_length( origin:OriginFor<T>, netuid: u16, validator_sequence_length: u16 ) -> DispatchResult {[0m
+  [0m     [0m[0m[1m[38;5;12m| [0m[0m               [0m[0m[1m[33m^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^[0m
+
+  [0m[1m[33mwarning[0m[0m[1m: use of deprecated struct `pallet::warnings::sudo_set_validator_epochs_per_reset`: [0m
+  [0m[1m                     Implicit call indices are deprecated in favour of explicit ones.[0m
+  [0m[1m                     Please ensure that all calls have the `pallet::call_index` attribute or that the[0m
+  [0m[1m                     `dev-mode` of the pallet is enabled. For more info see:[0m
+  [0m[1m                     <https://github.com/paritytech/substrate/pull/12891> and[0m
+  [0m[1m                     <https://github.com/paritytech/substrate/pull/11381>.[0m
+  [0m    [0m[0m[1m[38;5;12m--> [0m[0m/Users/salvatore/subspacev3/pallets/subspace/src/lib.rs:1321:10[0m
+  [0m     [0m[0m[1m[38;5;12m|[0m
+  [0m[1m[38;5;12m1321[0m[0m [0m[0m[1m[38;5;12m|[0m[0m [0m[0m        pub fn sudo_set_validator_epochs_per_reset( origin:OriginFor<T>, netuid: u16, validator_epochs_per_reset: u16 ) -> DispatchResult {[0m
+  [0m     [0m[0m[1m[38;5;12m| [0m[0m               [0m[0m[1m[33m^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^[0m
+
+  [0m[1m[33mwarning[0m[0m[1m: use of deprecated struct `pallet::warnings::sudo_set_validator_exclude_quantile`: [0m
+  [0m[1m                     Implicit call indices are deprecated in favour of explicit ones.[0m
+  [0m[1m                     Please ensure that all calls have the `pallet::call_index` attribute or that the[0m
+  [0m[1m                     `dev-mode` of the pallet is enabled. For more info see:[0m
+  [0m[1m                     <https://github.com/paritytech/substrate/pull/12891> and[0m
+  [0m[1m                     <https://github.com/paritytech/substrate/pull/11381>.[0m
+  [0m    [0m[0m[1m[38;5;12m--> [0m[0m/Users/salvatore/subspacev3/pallets/subspace/src/lib.rs:1327:10[0m
+  [0m     [0m[0m[1m[38;5;12m|[0m
+  [0m[1m[38;5;12m1327[0m[0m [0m[0m[1m[38;5;12m|[0m[0m [0m[0m        pub fn sudo_set_validator_exclude_quantile( origin:OriginFor<T>, netuid: u16, validator_exclude_quantile: u16 ) -> DispatchResult {[0m
+  [0m     [0m[0m[1m[38;5;12m| [0m[0m               [0m[0m[1m[33m^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^[0m
+
+  [0m[1m[33mwarning[0m[0m[1m: use of deprecated struct `pallet::warnings::sudo_set_validator_prune_len`: [0m
+  [0m[1m                     Implicit call indices are deprecated in favour of explicit ones.[0m
+  [0m[1m                     Please ensure that all calls have the `pallet::call_index` attribute or that the[0m
+  [0m[1m                     `dev-mode` of the pallet is enabled. For more info see:[0m
+  [0m[1m                     <https://github.com/paritytech/substrate/pull/12891> and[0m
+  [0m[1m                     <https://github.com/paritytech/substrate/pull/11381>.[0m
+  [0m    [0m[0m[1m[38;5;12m--> [0m[0m/Users/salvatore/subspacev3/pallets/subspace/src/lib.rs:1333:10[0m
+  [0m     [0m[0m[1m[38;5;12m|[0m
+  [0m[1m[38;5;12m1333[0m[0m [0m[0m[1m[38;5;12m|[0m[0m [0m[0m        pub fn sudo_set_validator_prune_len( origin:OriginFor<T>, netuid: u16, validator_prune_len: u64 ) -> DispatchResult {[0m
+  [0m     [0m[0m[1m[38;5;12m| [0m[0m               [0m[0m[1m[33m^^^^^^^^^^^^^^^^^^^^^^^^^^^^[0m
+
+  [0m[1m[33mwarning[0m[0m[1m: use of deprecated struct `pallet::warnings::sudo_set_validator_logits_divergence`: [0m
+  [0m[1m                     Implicit call indices are deprecated in favour of explicit ones.[0m
+  [0m[1m                     Please ensure that all calls have the `pallet::call_index` attribute or that the[0m
+  [0m[1m                     `dev-mode` of the pallet is enabled. For more info see:[0m
+  [0m[1m                     <https://github.com/paritytech/substrate/pull/12891> and[0m
+  [0m[1m                     <https://github.com/paritytech/substrate/pull/11381>.[0m
+  [0m    [0m[0m[1m[38;5;12m--> [0m[0m/Users/salvatore/subspacev3/pallets/subspace/src/lib.rs:1339:10[0m
+  [0m     [0m[0m[1m[38;5;12m|[0m
+  [0m[1m[38;5;12m1339[0m[0m [0m[0m[1m[38;5;12m|[0m[0m [0m[0m        pub fn sudo_set_validator_logits_divergence( origin:OriginFor<T>, netuid: u16,validator_logits_divergence: u16 ) -> DispatchResult {[0m
+  [0m     [0m[0m[1m[38;5;12m| [0m[0m               [0m[0m[1m[33m^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^[0m
+
+  [0m[1m[33mwarning[0m[0m[1m: use of deprecated struct `pallet::warnings::sudo_set_validator_epoch_len`: [0m
+  [0m[1m                     Implicit call indices are deprecated in favour of explicit ones.[0m
+  [0m[1m                     Please ensure that all calls have the `pallet::call_index` attribute or that the[0m
+  [0m[1m                     `dev-mode` of the pallet is enabled. For more info see:[0m
+  [0m[1m                     <https://github.com/paritytech/substrate/pull/12891> and[0m
+  [0m[1m                     <https://github.com/paritytech/substrate/pull/11381>.[0m
+  [0m    [0m[0m[1m[38;5;12m--> [0m[0m/Users/salvatore/subspacev3/pallets/subspace/src/lib.rs:1345:10[0m
+  [0m     [0m[0m[1m[38;5;12m|[0m
+  [0m[1m[38;5;12m1345[0m[0m [0m[0m[1m[38;5;12m|[0m[0m [0m[0m        pub fn sudo_set_validator_epoch_len( origin:OriginFor<T>, netuid: u16,validator_epoch_length: u16 ) -> DispatchResult {[0m
+  [0m     [0m[0m[1m[38;5;12m| [0m[0m               [0m[0m[1m[33m^^^^^^^^^^^^^^^^^^^^^^^^^^^^[0m
+
+  [0m[1m[33mwarning[0m[0m[1m: use of deprecated struct `pallet::warnings::sudo_set_scaling_law_power`: [0m
+  [0m[1m                     Implicit call indices are deprecated in favour of explicit ones.[0m
+  [0m[1m                     Please ensure that all calls have the `pallet::call_index` attribute or that the[0m
+  [0m[1m                     `dev-mode` of the pallet is enabled. For more info see:[0m
+  [0m[1m                     <https://github.com/paritytech/substrate/pull/12891> and[0m
+  [0m[1m                     <https://github.com/paritytech/substrate/pull/11381>.[0m
+  [0m    [0m[0m[1m[38;5;12m--> [0m[0m/Users/salvatore/subspacev3/pallets/subspace/src/lib.rs:1351:10[0m
+  [0m     [0m[0m[1m[38;5;12m|[0m
+  [0m[1m[38;5;12m1351[0m[0m [0m[0m[1m[38;5;12m|[0m[0m [0m[0m        pub fn sudo_set_scaling_law_power( origin:OriginFor<T>, netuid: u16, scaling_law_power: u16 ) -> DispatchResult {[0m
+  [0m     [0m[0m[1m[38;5;12m| [0m[0m               [0m[0m[1m[33m^^^^^^^^^^^^^^^^^^^^^^^^^^[0m
+
+  [0m[1m[33mwarning[0m[0m[1m: use of deprecated struct `pallet::warnings::sudo_set_synergy_scaling_law_power`: [0m
+  [0m[1m                     Implicit call indices are deprecated in favour of explicit ones.[0m
+  [0m[1m                     Please ensure that all calls have the `pallet::call_index` attribute or that the[0m
+  [0m[1m                     `dev-mode` of the pallet is enabled. For more info see:[0m
+  [0m[1m                     <https://github.com/paritytech/substrate/pull/12891> and[0m
+  [0m[1m                     <https://github.com/paritytech/substrate/pull/11381>.[0m
+  [0m    [0m[0m[1m[38;5;12m--> [0m[0m/Users/salvatore/subspacev3/pallets/subspace/src/lib.rs:1357:10[0m
+  [0m     [0m[0m[1m[38;5;12m|[0m
+  [0m[1m[38;5;12m1357[0m[0m [0m[0m[1m[38;5;12m|[0m[0m [0m[0m        pub fn sudo_set_synergy_scaling_law_power( origin:OriginFor<T>, netuid: u16, synergy_scaling_law_power: u16 ) -> DispatchResult {[0m
+  [0m     [0m[0m[1m[38;5;12m| [0m[0m               [0m[0m[1m[33m^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^[0m
+
+  [0m[1m[33mwarning[0m[0m[1m: use of deprecated struct `pallet::warnings::sudo_set_immunity_period`: [0m
+  [0m[1m                     Implicit call indices are deprecated in favour of explicit ones.[0m
+  [0m[1m                     Please ensure that all calls have the `pallet::call_index` attribute or that the[0m
+  [0m[1m                     `dev-mode` of the pallet is enabled. For more info see:[0m
+  [0m[1m                     <https://github.com/paritytech/substrate/pull/12891> and[0m
+  [0m[1m                     <https://github.com/paritytech/substrate/pull/11381>.[0m
+  [0m    [0m[0m[1m[38;5;12m--> [0m[0m/Users/salvatore/subspacev3/pallets/subspace/src/lib.rs:1363:10[0m
+  [0m     [0m[0m[1m[38;5;12m|[0m
+  [0m[1m[38;5;12m1363[0m[0m [0m[0m[1m[38;5;12m|[0m[0m [0m[0m        pub fn sudo_set_immunity_period( origin:OriginFor<T>, netuid: u16, immunity_period: u16 ) -> DispatchResult {[0m
+  [0m     [0m[0m[1m[38;5;12m| [0m[0m               [0m[0m[1m[33m^^^^^^^^^^^^^^^^^^^^^^^^[0m
+
+  [0m[1m[33mwarning[0m[0m[1m: use of deprecated struct `pallet::warnings::sudo_set_max_weight_limit`: [0m
+  [0m[1m                     Implicit call indices are deprecated in favour of explicit ones.[0m
+  [0m[1m                     Please ensure that all calls have the `pallet::call_index` attribute or that the[0m
+  [0m[1m                     `dev-mode` of the pallet is enabled. For more info see:[0m
+  [0m[1m                     <https://github.com/paritytech/substrate/pull/12891> and[0m
+  [0m[1m                     <https://github.com/paritytech/substrate/pull/11381>.[0m
+  [0m    [0m[0m[1m[38;5;12m--> [0m[0m/Users/salvatore/subspacev3/pallets/subspace/src/lib.rs:1369:10[0m
+  [0m     [0m[0m[1m[38;5;12m|[0m
+  [0m[1m[38;5;12m1369[0m[0m [0m[0m[1m[38;5;12m|[0m[0m [0m[0m        pub fn sudo_set_max_weight_limit( origin:OriginFor<T>, netuid: u16, max_weight_limit: u16 ) -> DispatchResult {[0m
+  [0m     [0m[0m[1m[38;5;12m| [0m[0m               [0m[0m[1m[33m^^^^^^^^^^^^^^^^^^^^^^^^^[0m
+
+  [0m[1m[33mwarning[0m[0m[1m: use of deprecated struct `pallet::warnings::sudo_set_max_registrations_per_block`: [0m
+  [0m[1m                     Implicit call indices are deprecated in favour of explicit ones.[0m
+  [0m[1m                     Please ensure that all calls have the `pallet::call_index` attribute or that the[0m
+  [0m[1m                     `dev-mode` of the pallet is enabled. For more info see:[0m
+  [0m[1m                     <https://github.com/paritytech/substrate/pull/12891> and[0m
+  [0m[1m                     <https://github.com/paritytech/substrate/pull/11381>.[0m
+  [0m    [0m[0m[1m[38;5;12m--> [0m[0m/Users/salvatore/subspacev3/pallets/subspace/src/lib.rs:1375:10[0m
+  [0m     [0m[0m[1m[38;5;12m|[0m
+  [0m[1m[38;5;12m1375[0m[0m [0m[0m[1m[38;5;12m|[0m[0m [0m[0m        pub fn sudo_set_max_registrations_per_block(origin: OriginFor<T>, netuid: u16, max_registrations_per_block: u16 ) -> Dispatc[0m[0m[1m[38;5;12m...[0m
+  [0m     [0m[0m[1m[38;5;12m| [0m[0m               [0m[0m[1m[33m^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^[0m
+
+  [0m[1m[33mwarning[0m[0m[1m: use of deprecated struct `pallet::warnings::create_network`: [0m
+  [0m[1m                     Implicit call indices are deprecated in favour of explicit ones.[0m
+  [0m[1m                     Please ensure that all calls have the `pallet::call_index` attribute or that the[0m
+  [0m[1m                     `dev-mode` of the pallet is enabled. For more info see:[0m
+  [0m[1m                     <https://github.com/paritytech/substrate/pull/12891> and[0m
+  [0m[1m                     <https://github.com/paritytech/substrate/pull/11381>.[0m
+  [0m    [0m[0m[1m[38;5;12m--> [0m[0m/Users/salvatore/subspacev3/pallets/subspace/src/lib.rs:1382:10[0m
+  [0m     [0m[0m[1m[38;5;12m|[0m
+  [0m[1m[38;5;12m1382[0m[0m [0m[0m[1m[38;5;12m|[0m[0m [0m[0m        pub fn create_network( _: OriginFor<T>, netuid: u16, n: u16, tempo: u16 ) -> DispatchResult {[0m
+  [0m     [0m[0m[1m[38;5;12m| [0m[0m               [0m[0m[1m[33m^^^^^^^^^^^^^^[0m
+
+  [0m[1m[33mwarning[0m[0m[1m: use of deprecated struct `pallet::warnings::create_network_with_weights`: [0m
+  [0m[1m                     Implicit call indices are deprecated in favour of explicit ones.[0m
+  [0m[1m                     Please ensure that all calls have the `pallet::call_index` attribute or that the[0m
+  [0m[1m                     `dev-mode` of the pallet is enabled. For more info see:[0m
+  [0m[1m                     <https://github.com/paritytech/substrate/pull/12891> and[0m
+  [0m[1m                     <https://github.com/paritytech/substrate/pull/11381>.[0m
+  [0m    [0m[0m[1m[38;5;12m--> [0m[0m/Users/salvatore/subspacev3/pallets/subspace/src/lib.rs:1396:10[0m
+  [0m     [0m[0m[1m[38;5;12m|[0m
+  [0m[1m[38;5;12m1396[0m[0m [0m[0m[1m[38;5;12m|[0m[0m [0m[0m        pub fn create_network_with_weights( _: OriginFor<T>, netuid: u16, n: u16, tempo: u16, n_vals: u16, n_weights: u16 ) -> Dispatc[0m[0m[1m[38;5;12m...[0m
+  [0m     [0m[0m[1m[38;5;12m| [0m[0m               [0m[0m[1m[33m^^^^^^^^^^^^^^^^^^^^^^^^^^^[0m
+
+  [0m[1m[33mwarning[0m[0m[1m: use of deprecated struct `pallet::warnings::benchmark_epoch_with_weights`: [0m
+  [0m[1m                     Implicit call indices are deprecated in favour of explicit ones.[0m
+  [0m[1m                     Please ensure that all calls have the `pallet::call_index` attribute or that the[0m
+  [0m[1m                     `dev-mode` of the pallet is enabled. For more info see:[0m
+  [0m[1m                     <https://github.com/paritytech/substrate/pull/12891> and[0m
+  [0m[1m                     <https://github.com/paritytech/substrate/pull/11381>.[0m
+  [0m    [0m[0m[1m[38;5;12m--> [0m[0m/Users/salvatore/subspacev3/pallets/subspace/src/lib.rs:1428:10[0m
+  [0m     [0m[0m[1m[38;5;12m|[0m
+  [0m[1m[38;5;12m1428[0m[0m [0m[0m[1m[38;5;12m|[0m[0m [0m[0m        pub fn benchmark_epoch_with_weights( _:OriginFor<T> ) -> DispatchResult {[0m
+  [0m     [0m[0m[1m[38;5;12m| [0m[0m               [0m[0m[1m[33m^^^^^^^^^^^^^^^^^^^^^^^^^^^^[0m
+
+  [0m[1m[33mwarning[0m[0m[1m: use of deprecated struct `pallet::warnings::benchmark_epoch_without_weights`: [0m
+  [0m[1m                     Implicit call indices are deprecated in favour of explicit ones.[0m
+  [0m[1m                     Please ensure that all calls have the `pallet::call_index` attribute or that the[0m
+  [0m[1m                     `dev-mode` of the pallet is enabled. For more info see:[0m
+  [0m[1m                     <https://github.com/paritytech/substrate/pull/12891> and[0m
+  [0m[1m                     <https://github.com/paritytech/substrate/pull/11381>.[0m
+  [0m    [0m[0m[1m[38;5;12m--> [0m[0m/Users/salvatore/subspacev3/pallets/subspace/src/lib.rs:1435:10[0m
+  [0m     [0m[0m[1m[38;5;12m|[0m
+  [0m[1m[38;5;12m1435[0m[0m [0m[0m[1m[38;5;12m|[0m[0m [0m[0m        pub fn benchmark_epoch_without_weights( _:OriginFor<T> ) -> DispatchResult {[0m
+  [0m     [0m[0m[1m[38;5;12m| [0m[0m               [0m[0m[1m[33m^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^[0m
+
+  [0m[1m[33mwarning[0m[0m[1m: use of deprecated struct `pallet::warnings::benchmark_drain_emission`: [0m
+  [0m[1m                     Implicit call indices are deprecated in favour of explicit ones.[0m
+  [0m[1m                     Please ensure that all calls have the `pallet::call_index` attribute or that the[0m
+  [0m[1m                     `dev-mode` of the pallet is enabled. For more info see:[0m
+  [0m[1m                     <https://github.com/paritytech/substrate/pull/12891> and[0m
+  [0m[1m                     <https://github.com/paritytech/substrate/pull/11381>.[0m
+  [0m    [0m[0m[1m[38;5;12m--> [0m[0m/Users/salvatore/subspacev3/pallets/subspace/src/lib.rs:1440:10[0m
+  [0m     [0m[0m[1m[38;5;12m|[0m
+  [0m[1m[38;5;12m1440[0m[0m [0m[0m[1m[38;5;12m|[0m[0m [0m[0m        pub fn benchmark_drain_emission( _:OriginFor<T> ) -> DispatchResult {[0m
+  [0m     [0m[0m[1m[38;5;12m| [0m[0m               [0m[0m[1m[33m^^^^^^^^^^^^^^^^^^^^^^^^[0m
+
+  [0m[1m[38;5;9merror[E0599][0m[0m[1m: no function or associated item named `get_uid_for_net_and_key` found for struct `pallet::Pallet` in the current scope[0m
+  [0m   [0m[0m[1m[38;5;12m--> [0m[0m/Users/salvatore/subspacev3/pallets/subspace/src/registration.rs:251:40[0m
+  [0m    [0m[0m[1m[38;5;12m|[0m
+  [0m[1m[38;5;12m251[0m[0m [0m[0m[1m[38;5;12m|[0m[0m [0m[0m                let uid_b: u16 = Self::get_uid_for_net_and_key( netuid_b, key ).unwrap();[0m
+  [0m    [0m[0m[1m[38;5;12m| [0m[0m                                       [0m[0m[1m[38;5;9m^^^^^^^^^^^^^^^^^^^^^^^[0m
+  [0m    [0m[0m[1m[38;5;12m| [0m[0m                                       [0m[0m[1m[38;5;9m|[0m
+  [0m    [0m[0m[1m[38;5;12m| [0m[0m                                       [0m[0m[1m[38;5;9mfunction or associated item not found in `Pallet<T>`[0m
+  [0m    [0m[0m[1m[38;5;12m| [0m[0m                                       [0m[0m[1m[38;5;9mhelp: there is an associated function with a similar name: `get_uid_for_net_and_hotkey`[0m
+  [0m    [0m[0m[1m[38;5;12m|[0m
+  [0m   [0m[0m[1m[38;5;12m::: [0m[0m/Users/salvatore/subspacev3/pallets/subspace/src/lib.rs:86:5[0m
+  [0m    [0m[0m[1m[38;5;12m|[0m
+  [0m[1m[38;5;12m86[0m[0m  [0m[0m[1m[38;5;12m|[0m[0m [0m[0m    pub struct Pallet<T>(_);[0m
+  [0m    [0m[0m[1m[38;5;12m| [0m[0m    [0m[0m[1m[38;5;12m--------------------[0m[0m [0m[0m[1m[38;5;12mfunction or associated item `get_uid_for_net_and_key` not found for this struct[0m
+
+  [0m[1m[38;5;9merror[E0599][0m[0m[1m: no function or associated item named `is_registered_on_any_network` found for struct `pallet::Pallet` in the current scope[0m
+  [0m  [0m[0m[1m[38;5;12m--> [0m[0m/Users/salvatore/subspacev3/pallets/subspace/src/serving.rs:73:24[0m
+  [0m   [0m[0m[1m[38;5;12m|[0m
+  [0m[1m[38;5;12m73[0m[0m [0m[0m[1m[38;5;12m|[0m[0m [0m[0m        ensure!( Self::is_registered_on_any_network( &hotkey_id ), Error::<T>::NotRegistered );  [0m
+  [0m   [0m[0m[1m[38;5;12m| [0m[0m                       [0m[0m[1m[38;5;9m^^^^^^^^^^^^^^^^^^^^^^^^^^^^[0m
+  [0m   [0m[0m[1m[38;5;12m| [0m[0m                       [0m[0m[1m[38;5;9m|[0m
+  [0m   [0m[0m[1m[38;5;12m| [0m[0m                       [0m[0m[1m[38;5;9mfunction or associated item not found in `Pallet<T>`[0m
+  [0m   [0m[0m[1m[38;5;12m| [0m[0m                       [0m[0m[1m[38;5;9mhelp: there is an associated function with a similar name: `is_key_registered_on_any_network`[0m
+  [0m   [0m[0m[1m[38;5;12m|[0m
+  [0m  [0m[0m[1m[38;5;12m::: [0m[0m/Users/salvatore/subspacev3/pallets/subspace/src/lib.rs:86:5[0m
+  [0m   [0m[0m[1m[38;5;12m|[0m
+  [0m[1m[38;5;12m86[0m[0m [0m[0m[1m[38;5;12m|[0m[0m [0m[0m    pub struct Pallet<T>(_);[0m
+  [0m   [0m[0m[1m[38;5;12m| [0m[0m    [0m[0m[1m[38;5;12m--------------------[0m[0m [0m[0m[1m[38;5;12mfunction or associated item `is_registered_on_any_network` not found for this struct[0m
+
+  [0m[1m[38;5;9merror[E0599][0m[0m[1m: no function or associated item named `is_registered_on_any_network` found for struct `pallet::Pallet` in the current scope[0m
+  [0m   [0m[0m[1m[38;5;12m--> [0m[0m/Users/salvatore/subspacev3/pallets/subspace/src/serving.rs:156:24[0m
+  [0m    [0m[0m[1m[38;5;12m|[0m
+  [0m[1m[38;5;12m156[0m[0m [0m[0m[1m[38;5;12m|[0m[0m [0m[0m        ensure!( Self::is_registered_on_any_network( &hotkey_id ), Error::<T>::NotRegistered );  [0m
+  [0m    [0m[0m[1m[38;5;12m| [0m[0m                       [0m[0m[1m[38;5;9m^^^^^^^^^^^^^^^^^^^^^^^^^^^^[0m
+  [0m    [0m[0m[1m[38;5;12m| [0m[0m                       [0m[0m[1m[38;5;9m|[0m
+  [0m    [0m[0m[1m[38;5;12m| [0m[0m                       [0m[0m[1m[38;5;9mfunction or associated item not found in `Pallet<T>`[0m
+  [0m    [0m[0m[1m[38;5;12m| [0m[0m                       [0m[0m[1m[38;5;9mhelp: there is an associated function with a similar name: `is_key_registered_on_any_network`[0m
+  [0m    [0m[0m[1m[38;5;12m|[0m
+  [0m   [0m[0m[1m[38;5;12m::: [0m[0m/Users/salvatore/subspacev3/pallets/subspace/src/lib.rs:86:5[0m
+  [0m    [0m[0m[1m[38;5;12m|[0m
+  [0m[1m[38;5;12m86[0m[0m  [0m[0m[1m[38;5;12m|[0m[0m [0m[0m    pub struct Pallet<T>(_);[0m
+  [0m    [0m[0m[1m[38;5;12m| [0m[0m    [0m[0m[1m[38;5;12m--------------------[0m[0m [0m[0m[1m[38;5;12mfunction or associated item `is_registered_on_any_network` not found for this struct[0m
+
+  [0m[1m[38;5;9merror[E0599][0m[0m[1m: no function or associated item named `get_block_number` found for struct `pallet::Pallet` in the current scope[0m
+  [0m  [0m[0m[1m[38;5;12m--> [0m[0m/Users/salvatore/subspacev3/pallets/subspace/src/uids.rs:42:34[0m
+  [0m   [0m[0m[1m[38;5;12m|[0m
+  [0m[1m[38;5;12m42[0m[0m [0m[0m[1m[38;5;12m|[0m[0m [0m[0m        let block_number = Self::get_block_number();[0m
+  [0m   [0m[0m[1m[38;5;12m| [0m[0m                                 [0m[0m[1m[38;5;9m^^^^^^^^^^^^^^^^[0m[0m [0m[0m[1m[38;5;9mfunction or associated item not found in `Pallet<T>`[0m
+  [0m   [0m[0m[1m[38;5;12m|[0m
+  [0m  [0m[0m[1m[38;5;12m::: [0m[0m/Users/salvatore/subspacev3/pallets/subspace/src/lib.rs:86:5[0m
+  [0m   [0m[0m[1m[38;5;12m|[0m
+  [0m[1m[38;5;12m86[0m[0m [0m[0m[1m[38;5;12m|[0m[0m [0m[0m    pub struct Pallet<T>(_);[0m
+  [0m   [0m[0m[1m[38;5;12m| [0m[0m    [0m[0m[1m[38;5;12m--------------------[0m[0m [0m[0m[1m[38;5;12mfunction or associated item `get_block_number` not found for this struct[0m
+
+  [0m[1m[38;5;9merror[E0277][0m[0m[1m: the trait bound `frame_support::pallet_prelude::StorageMap<_GeneratedPrefixForStorageStake<T>, frame_support::Identity, <T as frame_system::Config>::AccountId, u64, frame_support::pallet_prelude::ValueQuery, DefaultAccountTake<T>>: frame_support::storage::generator::StorageDoubleMap<<T as frame_system::Config>::AccountId, <T as frame_system::Config>::AccountId, u64>` is not satisfied[0m
+  [0m   [0m[0m[1m[38;5;12m--> [0m[0m/Users/salvatore/subspacev3/pallets/subspace/src/delegate_info.rs:28:37[0m
+  [0m    [0m[0m[1m[38;5;12m|[0m
+  [0m[1m[38;5;12m28[0m[0m  [0m[0m[1m[38;5;12m|[0m[0m [0m[0m[1m[38;5;12m...[0m[0minator, stake ) in < Stake<T> as IterableStorageDoubleMap<T::AccountId, T::AccountId, u64> >::iter_prefix( delegate.clone() ) {[0m
+  [0m    [0m[0m[1m[38;5;12m| [0m[0m                      [0m[0m[1m[38;5;9m^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^[0m[0m [0m[0m[1m[38;5;9mthe trait `frame_support::storage::generator::StorageDoubleMap<<T as frame_system::Config>::AccountId, <T as frame_system::Config>::AccountId, u64>` is not implemented for `frame_support::pallet_prelude::StorageMap<_GeneratedPrefixForStorageStake<T>, frame_support::Identity, <T as frame_system::Config>::AccountId, u64, frame_support::pallet_prelude::ValueQuery, DefaultAccountTake<T>>`[0m
+  [0m    [0m[0m[1m[38;5;12m|[0m
+  [0m    [0m[0m[1m[38;5;12m= [0m[0m[1mhelp[0m[0m: the trait `frame_support::storage::generator::StorageDoubleMap<Key1, Key2, Value>` [0m[0m[1mis[0m[0m implemented for `[0m[0m[1mframe_support::pallet_prelude::StorageDoubleMap<Prefix, Hasher1, Key1, Hasher2, Key2, Value, QueryKind, OnEmpty, MaxValues>[0m[0m`[0m
+  [0m    [0m[0m[1m[38;5;12m= [0m[0m[1mnote[0m[0m: required for `StorageMap<_GeneratedPrefixForStorageStake<T>, Identity, <T as Config>::AccountId, u64, ValueQuery, ...>` to implement `frame_support::StorageDoubleMap<<T as frame_system::Config>::AccountId, <T as frame_system::Config>::AccountId, u64>`[0m
+  [0m    [0m[0m[1m[38;5;12m= [0m[0m[1mnote[0m[0m: the full type name has been written to '/Users/salvatore/subspacev3/target/release/wbuild/node-subspace-runtime/target/wasm32-unknown-unknown/release/deps/pallet_subspace-9f0a78771a529819.long-type-16424547948519160951.txt'[0m
+  [0m[1m[38;5;10mnote[0m[0m: required by a bound in `frame_support::IterableStorageDoubleMap::iter_prefix`[0m
+  [0m   [0m[0m[1m[38;5;12m--> [0m[0m/Users/salvatore/.cargo/git/checkouts/substrate-7e08433d4c370a21/1837f42/frame/support/src/storage/mod.rs:310:2[0m
+  [0m    [0m[0m[1m[38;5;12m|[0m
+  [0m[1m[38;5;12m310[0m[0m [0m[0m[1m[38;5;12m|[0m[0m [0m[0m    StorageDoubleMap<K1, K2, V>[0m
+  [0m    [0m[0m[1m[38;5;12m| [0m[0m    [0m[0m[1m[38;5;10m^^^^^^^^^^^^^^^^^^^^^^^^^^^[0m[0m [0m[0m[1m[38;5;10mrequired by this bound in `IterableStorageDoubleMap::iter_prefix`[0m
+
+  [0m[1m[38;5;9merror[E0277][0m[0m[1m: the trait bound `frame_support::pallet_prelude::StorageMap<_GeneratedPrefixForStorageStake<T>, frame_support::Identity, <T as frame_system::Config>::AccountId, u64, frame_support::pallet_prelude::ValueQuery, DefaultAccountTake<T>>: frame_support::storage::generator::StorageDoubleMap<<T as frame_system::Config>::AccountId, <T as frame_system::Config>::AccountId, u64>` is not satisfied[0m
+  [0m  [0m[0m[1m[38;5;12m--> [0m[0m/Users/salvatore/subspacev3/pallets/subspace/src/delegate_info.rs:28:37[0m
+  [0m   [0m[0m[1m[38;5;12m|[0m
+  [0m[1m[38;5;12m28[0m[0m [0m[0m[1m[38;5;12m|[0m[0m [0m[0m[1m[38;5;12m...[0m[0mstake ) in < Stake<T> as IterableStorageDoubleMap<T::AccountId, T::AccountId, u64> >::iter_prefix( delegate.clone() ) {[0m
+  [0m   [0m[0m[1m[38;5;12m| [0m[0m              [0m[0m[1m[38;5;9m^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^[0m[0m [0m[0m[1m[38;5;9mthe trait `frame_support::storage::generator::StorageDoubleMap<<T as frame_system::Config>::AccountId, <T as frame_system::Config>::AccountId, u64>` is not implemented for `frame_support::pallet_prelude::StorageMap<_GeneratedPrefixForStorageStake<T>, frame_support::Identity, <T as frame_system::Config>::AccountId, u64, frame_support::pallet_prelude::ValueQuery, DefaultAccountTake<T>>`[0m
+  [0m   [0m[0m[1m[38;5;12m|[0m
+  [0m   [0m[0m[1m[38;5;12m= [0m[0m[1mhelp[0m[0m: the trait `frame_support::storage::generator::StorageDoubleMap<Key1, Key2, Value>` [0m[0m[1mis[0m[0m implemented for `[0m[0m[1mframe_support::pallet_prelude::StorageDoubleMap<Prefix, Hasher1, Key1, Hasher2, Key2, Value, QueryKind, OnEmpty, MaxValues>[0m[0m`[0m
+  [0m   [0m[0m[1m[38;5;12m= [0m[0m[1mnote[0m[0m: required for `StorageMap<_GeneratedPrefixForStorageStake<T>, Identity, <T as Config>::AccountId, u64, ValueQuery, ...>` to implement `IterableStorageDoubleMap<<T as frame_system::Config>::AccountId, <T as frame_system::Config>::AccountId, u64>`[0m
+  [0m   [0m[0m[1m[38;5;12m= [0m[0m[1mnote[0m[0m: the full type name has been written to '/Users/salvatore/subspacev3/target/release/wbuild/node-subspace-runtime/target/wasm32-unknown-unknown/release/deps/pallet_subspace-9f0a78771a529819.long-type-16424547948519160951.txt'[0m
+
+  [0m[1m[38;5;9merror[E0599][0m[0m[1m: no function or associated item named `get_registered_networks_for_hotkey` found for struct `pallet::Pallet` in the current scope[0m
+  [0m  [0m[0m[1m[38;5;12m--> [0m[0m/Users/salvatore/subspacev3/pallets/subspace/src/delegate_info.rs:32:35[0m
+  [0m   [0m[0m[1m[38;5;12m|[0m
+  [0m[1m[38;5;12m32[0m[0m [0m[0m[1m[38;5;12m|[0m[0m [0m[0m        let registrations = Self::get_registered_networks_for_hotkey( &delegate.clone() );[0m
+  [0m   [0m[0m[1m[38;5;12m| [0m[0m                                  [0m[0m[1m[38;5;9m^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^[0m
+  [0m   [0m[0m[1m[38;5;12m| [0m[0m                                  [0m[0m[1m[38;5;9m|[0m
+  [0m   [0m[0m[1m[38;5;12m| [0m[0m                                  [0m[0m[1m[38;5;9mfunction or associated item not found in `Pallet<T>`[0m
+  [0m   [0m[0m[1m[38;5;12m| [0m[0m                                  [0m[0m[1m[38;5;9mhelp: there is an associated function with a similar name: `get_registered_networks_for_key`[0m
+  [0m   [0m[0m[1m[38;5;12m|[0m
+  [0m  [0m[0m[1m[38;5;12m::: [0m[0m/Users/salvatore/subspacev3/pallets/subspace/src/lib.rs:86:5[0m
+  [0m   [0m[0m[1m[38;5;12m|[0m
+  [0m[1m[38;5;12m86[0m[0m [0m[0m[1m[38;5;12m|[0m[0m [0m[0m    pub struct Pallet<T>(_);[0m
+  [0m   [0m[0m[1m[38;5;12m| [0m[0m    [0m[0m[1m[38;5;12m--------------------[0m[0m [0m[0m[1m[38;5;12mfunction or associated item `get_registered_networks_for_hotkey` not found for this struct[0m
+
+  [0m[1m[38;5;9merror[E0599][0m[0m[1m: no function or associated item named `get_owning_for_hotkey` found for struct `pallet::Pallet` in the current scope[0m
+  [0m  [0m[0m[1m[38;5;12m--> [0m[0m/Users/salvatore/subspacev3/pallets/subspace/src/delegate_info.rs:54:27[0m
+  [0m   [0m[0m[1m[38;5;12m|[0m
+  [0m[1m[38;5;12m54[0m[0m [0m[0m[1m[38;5;12m|[0m[0m [0m[0m        let owner = Self::get_owning_for_hotkey( &delegate.clone() );[0m
+  [0m   [0m[0m[1m[38;5;12m| [0m[0m                          [0m[0m[1m[38;5;9m^^^^^^^^^^^^^^^^^^^^^[0m
+  [0m   [0m[0m[1m[38;5;12m| [0m[0m                          [0m[0m[1m[38;5;9m|[0m
+  [0m   [0m[0m[1m[38;5;12m| [0m[0m                          [0m[0m[1m[38;5;9mfunction or associated item not found in `Pallet<T>`[0m
+  [0m   [0m[0m[1m[38;5;12m| [0m[0m                          [0m[0m[1m[38;5;9mhelp: there is an associated function with a similar name: `get_weights`[0m
+  [0m   [0m[0m[1m[38;5;12m|[0m
+  [0m  [0m[0m[1m[38;5;12m::: [0m[0m/Users/salvatore/subspacev3/pallets/subspace/src/lib.rs:86:5[0m
+  [0m   [0m[0m[1m[38;5;12m|[0m
+  [0m[1m[38;5;12m86[0m[0m [0m[0m[1m[38;5;12m|[0m[0m [0m[0m    pub struct Pallet<T>(_);[0m
+  [0m   [0m[0m[1m[38;5;12m| [0m[0m    [0m[0m[1m[38;5;12m--------------------[0m[0m [0m[0m[1m[38;5;12mfunction or associated item `get_owning_for_hotkey` not found for this struct[0m
+
+  [0m[1m[38;5;9merror[E0308][0m[0m[1m: mismatched types[0m
+  [0m  [0m[0m[1m[38;5;12m--> [0m[0m/Users/salvatore/subspacev3/pallets/subspace/src/neuron_info.rs:83:19[0m
+  [0m   [0m[0m[1m[38;5;12m|[0m
+  [0m[1m[38;5;12m78[0m[0m [0m[0m[1m[38;5;12m|[0m[0m [0m[0m        let key = Self::get_for_net_and_uid(netuid, uid);[0m
+  [0m   [0m[0m[1m[38;5;12m| [0m[0m                  [0m[0m[1m[38;5;12m--------------------------------------[0m[0m [0m[0m[1m[38;5;12mexpected due to this value[0m
+  [0m[1m[38;5;12m...[0m
+  [0m[1m[38;5;12m83[0m[0m [0m[0m[1m[38;5;12m|[0m[0m [0m[0m            key = key.expect("Key should exist");[0m
+  [0m   [0m[0m[1m[38;5;12m| [0m[0m                  [0m[0m[1m[38;5;9m^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^[0m[0m [0m[0m[1m[38;5;9mexpected `Result<<... as Config>::AccountId, ...>`, found associated type[0m
+  [0m   [0m[0m[1m[38;5;12m|[0m
+  [0m   [0m[0m[1m[38;5;12m= [0m[0m[1mnote[0m[0m:         expected enum `[0m[0m[1mResult<<T as frame_system::Config>::AccountId, sp_runtime::DispatchError>[0m[0m`[0m
+  [0m           found associated type `[0m[0m[1m<T as frame_system::Config>::AccountId[0m[0m`[0m
+  [0m   [0m[0m[1m[38;5;12m= [0m[0m[1mhelp[0m[0m: consider constraining the associated type `<T as frame_system::Config>::AccountId` to `Result<<T as frame_system::Config>::AccountId, sp_runtime::DispatchError>`[0m
+  [0m   [0m[0m[1m[38;5;12m= [0m[0m[1mnote[0m[0m: for more information, visit https://doc.rust-lang.org/book/ch19-03-advanced-traits.html[0m
+  [0m[1m[38;5;14mhelp[0m[0m: try wrapping the expression in `core::prelude::v1::Ok`[0m
+  [0m   [0m[0m[1m[38;5;12m|[0m
+  [0m[1m[38;5;12m83[0m[0m [0m[0m[1m[38;5;12m| [0m[0m            key = [0m[0m[38;5;10mcore::prelude::v1::Ok([0m[0mkey.expect("Key should exist")[0m[0m[38;5;10m)[0m[0m;[0m
+  [0m   [0m[0m[1m[38;5;12m|[0m[0m                   [0m[0m[38;5;10m++++++++++++++++++++++[0m[0m                              [0m[0m[38;5;10m+[0m
+
+  [0m[1m[38;5;9merror[E0308][0m[0m[1m: mismatched types[0m
+  [0m   [0m[0m[1m[38;5;12m--> [0m[0m/Users/salvatore/subspacev3/pallets/subspace/src/neuron_info.rs:86:54[0m
+  [0m    [0m[0m[1m[38;5;12m|[0m
+  [0m[1m[38;5;12m86[0m[0m  [0m[0m[1m[38;5;12m|[0m[0m [0m[0m        let axon_info = Self::get_axon_info( netuid, &key.clone() );[0m
+  [0m    [0m[0m[1m[38;5;12m| [0m[0m                        [0m[0m[1m[38;5;12m-------------------[0m[0m          [0m[0m[1m[38;5;9m^^^^^^^^^^^^[0m[0m [0m[0m[1m[38;5;9mexpected `&<T as Config>::AccountId`, found `&Result<..., ...>`[0m
+  [0m    [0m[0m[1m[38;5;12m| [0m[0m                        [0m[0m[1m[38;5;12m|[0m
+  [0m    [0m[0m[1m[38;5;12m| [0m[0m                        [0m[0m[1m[38;5;12marguments to this function are incorrect[0m
+  [0m    [0m[0m[1m[38;5;12m|[0m
+  [0m    [0m[0m[1m[38;5;12m= [0m[0m[1mnote[0m[0m: expected reference `[0m[0m[1m&<T as frame_system::Config>::AccountId[0m[0m`[0m
+  [0m               found reference `[0m[0m[1m&Result<<T as frame_system::Config>::AccountId, sp_runtime::DispatchError>[0m[0m`[0m
+  [0m    [0m[0m[1m[38;5;12m= [0m[0m[1mhelp[0m[0m: consider constraining the associated type `<T as frame_system::Config>::AccountId` to `Result<<T as frame_system::Config>::AccountId, sp_runtime::DispatchError>` or calling a method that returns `<T as frame_system::Config>::AccountId`[0m
+  [0m    [0m[0m[1m[38;5;12m= [0m[0m[1mnote[0m[0m: for more information, visit https://doc.rust-lang.org/book/ch19-03-advanced-traits.html[0m
+  [0m[1m[38;5;10mnote[0m[0m: associated function defined here[0m
+  [0m   [0m[0m[1m[38;5;12m--> [0m[0m/Users/salvatore/subspacev3/pallets/subspace/src/serving.rs:206:12[0m
+  [0m    [0m[0m[1m[38;5;12m|[0m
+  [0m[1m[38;5;12m206[0m[0m [0m[0m[1m[38;5;12m|[0m[0m [0m[0m    pub fn get_axon_info( netuid: u16, key: &T::AccountId ) -> AxonInfoOf {[0m
+  [0m    [0m[0m[1m[38;5;12m| [0m[0m           [0m[0m[1m[38;5;10m^^^^^^^^^^^^^[0m[0m               [0m[0m[1m[38;5;12m------------------[0m
+
+  [0m[1m[38;5;9merror[E0271][0m[0m[1m: type mismatch resolving `<T as Config>::AccountId == Result<<T as Config>::AccountId, DispatchError>`[0m
+  [0m   [0m[0m[1m[38;5;12m--> [0m[0m/Users/salvatore/subspacev3/pallets/subspace/src/neuron_info.rs:115:13[0m
+  [0m    [0m[0m[1m[38;5;12m|[0m
+  [0m[1m[38;5;12m115[0m[0m [0m[0m[1m[38;5;12m|[0m[0m [0m[0m            key: key.clone(),[0m
+  [0m    [0m[0m[1m[38;5;12m| [0m[0m            [0m[0m[1m[38;5;9m^^^^^^^^^^^^^^^^[0m[0m [0m[0m[1m[38;5;9mexpected associated type, found `Result<<... as Config>::AccountId, ...>`[0m
+  [0m    [0m[0m[1m[38;5;12m|[0m
+  [0m    [0m[0m[1m[38;5;12m= [0m[0m[1mnote[0m[0m: expected associated type `[0m[0m[1m<T as frame_system::Config>::AccountId[0m[0m`[0m
+  [0m                          found enum `[0m[0m[1mResult<<T as frame_system::Config>::AccountId, sp_runtime::DispatchError>[0m[0m`[0m
+  [0m    [0m[0m[1m[38;5;12m= [0m[0m[1mhelp[0m[0m: consider constraining the associated type `<T as frame_system::Config>::AccountId` to `Result<<T as frame_system::Config>::AccountId, sp_runtime::DispatchError>` or calling a method that returns `<T as frame_system::Config>::AccountId`[0m
+  [0m    [0m[0m[1m[38;5;12m= [0m[0m[1mnote[0m[0m: for more information, visit https://doc.rust-lang.org/book/ch19-03-advanced-traits.html[0m
+
+  [0m[1m[33mwarning[0m[0m[1m: unused import: `frame_support::storage::IterableStorageDoubleMap`[0m
+  [0m [0m[0m[1m[38;5;12m--> [0m[0m/Users/salvatore/subspacev3/pallets/subspace/src/block_step.rs:6:5[0m
+  [0m  [0m[0m[1m[38;5;12m|[0m
+  [0m[1m[38;5;12m6[0m[0m [0m[0m[1m[38;5;12m|[0m[0m [0m[0muse frame_support::storage::IterableStorageDoubleMap;[0m
+  [0m  [0m[0m[1m[38;5;12m| [0m[0m    [0m[0m[1m[33m^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^[0m
+
+  [0m[1mSome errors have detailed explanations: E0271, E0277, E0308, E0425, E0576, E0599.[0m
+  [0m[1mFor more information about an error, try `rustc --explain E0271`.[0m
+  [0m[0m[1m[33mwarning[0m[1m:[0m `pallet-subspace` (lib) generated 53 warnings
+  [0m[0m[1m[31merror[0m[1m:[0m could not compile `pallet-subspace` (lib) due to 24 previous errors; 53 warnings emitted
