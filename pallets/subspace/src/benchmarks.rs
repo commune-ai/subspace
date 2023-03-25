@@ -86,7 +86,6 @@ benchmarks! {
 
     let block_number: u64 = Subspace::<T>::get_current_block_as_u64();
     let start_nonce: u64 = (39420842u64 + 100u64*netuid as u64).into();
-    let (nonce, work): (u64, Vec<u8>) = Subspace::<T>::create_work_for_block_number( netuid, block_number, start_nonce );
 
     assert_ok!(Subspace::<T>::do_add_network( RawOrigin::Root.into(), netuid.try_into().unwrap(), name.into(), tempo.into()));
     
@@ -94,7 +93,7 @@ benchmarks! {
     let block_number: u64 = Subspace::<T>::get_current_block_as_u64();
     let key: T::AccountId = account("Alice", 0, seed);
         
-  }: register( RawOrigin::Signed( caller.clone() ), netuid, block_number, nonce, work, key )
+  }: register( RawOrigin::Signed( caller.clone() ), netuid  )
 
  benchmark_epoch_with_weights { 
     let caller: T::AccountId = whitelisted_caller::<AccountIdOf<T>>(); 
@@ -132,7 +131,6 @@ benchmarks! {
     for id in 0..4096 as u16 {
       let block_number: u64 = Subspace::<T>::get_current_block_as_u64();
       let start_nonce: u64 = (39420842u64 + 100u64*id as u64).into();
-      let (nonce, work): (u64, Vec<u8>) = Subspace::<T>::create_work_for_block_number( id, block_number, start_nonce );
       
         let key: T::AccountId = account("Alice", 0, seed);
         seed = seed +1;
@@ -140,7 +138,7 @@ benchmarks! {
       
       let block_number: u64 = Subspace::<T>::get_current_block_as_u64();
       
-      assert_ok!( Subspace::<T>::do_registration(caller_origin.clone(), netuid.try_into().unwrap(), block_number, nonce, work, key.clone() )); 
+      assert_ok!( Subspace::<T>::do_registration(caller_origin.clone(), netuid.try_into().unwrap() )); 
 
       let uid = Subspace::<T>::get_uid_for_net_and_key(netuid, &key.clone()).unwrap();
       Subspace::<T>::set_validator_permit_for_uid(netuid, uid.clone(), true);
@@ -165,11 +163,10 @@ benchmarks! {
 
     let block_number: u64 = Subspace::<T>::get_current_block_as_u64();
     let start_nonce: u64 = (39420842u64 + 100u64*netuid as u64).into();
-    let (nonce, work): (u64, Vec<u8>) = Subspace::<T>::create_work_for_block_number( netuid, block_number, start_nonce );
     let mut seed : u32 = 1;
     let key: T::AccountId = account("Alice", 0, seed);
 
-    assert_ok!( Subspace::<T>::do_registration(caller_origin.clone(), netuid.try_into().unwrap(), block_number, nonce, work, key.clone() ));
+    assert_ok!( Subspace::<T>::do_registration(caller_origin.clone(), netuid.try_into().unwrap() ));
 
     let amount: u64 = 1;
     let amoun_to_be_staked = Subspace::<T>::u64_to_balance( 1000000000);
@@ -192,7 +189,6 @@ benchmarks! {
 
     let block_number: u64 = Subspace::<T>::get_current_block_as_u64();
     let start_nonce: u64 = (39420842u64 + 100u64*netuid as u64).into();
-    let (nonce, work): (u64, Vec<u8>) = Subspace::<T>::create_work_for_block_number( netuid, block_number, start_nonce );
     let mut seed : u32 = 1;
     let key: T::AccountId = caller; 
 
@@ -307,26 +303,6 @@ benchmarks! {
 
   }: sudo_set_serving_rate_limit(RawOrigin::<AccountIdOf<T>>::Root, netuid, serving_rate_limit)
 
-  benchmark_sudo_set_max_difficulty {
-    let netuid: u16 = 1;
-    let max_difficulty: u64 = 100000;
-    let tempo: u16 = 1;
-    let name: Vec<u8> = b"default".to_vec();
-
-    assert_ok!( Subspace::<T>::do_add_network( RawOrigin::Root.into(), netuid.try_into().unwrap(), name.into(), tempo.into()));
-
-  }: sudo_set_max_difficulty(RawOrigin::<AccountIdOf<T>>::Root, netuid, max_difficulty)
-
-  benchmark_sudo_set_min_difficulty {
-    let netuid: u16 = 1;
-    let min_difficulty: u64 = 1000;
-    let tempo: u16 = 1;
-    let name: Vec<u8> = b"default".to_vec();
-
-    assert_ok!( Subspace::<T>::do_add_network( RawOrigin::Root.into(), name.into(), netuid.try_into().unwrap()));
-
-  }: sudo_set_min_difficulty(RawOrigin::<AccountIdOf<T>>::Root, netuid, min_difficulty)
-
   benchmark_sudo_set_weights_set_rate_limit {
     let netuid: u16 = 1; 
     let weights_set_rate_limit: u64 = 3;
@@ -367,15 +343,6 @@ benchmarks! {
 
   }: sudo_set_max_allowed_validators(RawOrigin::<AccountIdOf<T>>::Root, netuid, max_allowed_validators)
 
-  benchmark_sudo_set_difficulty {
-    let netuid: u16 = 1;
-    let tempo: u16 = 1;
-    let name: Vec<u8> = b"default".to_vec();
-    let difficulty: u64 = 1200000;
-
-    assert_ok!( Subspace::<T>::do_add_network( RawOrigin::Root.into(), name.into(), netuid.try_into().unwrap()));
-
-  }: sudo_set_difficulty(RawOrigin::<AccountIdOf<T>>::Root, netuid, difficulty)
 
   benchmark_sudo_set_adjustment_interval {
     let netuid: u16 = 1;
@@ -407,25 +374,6 @@ benchmarks! {
 
   }: sudo_set_activity_cutoff(RawOrigin::<AccountIdOf<T>>::Root, netuid, activity_cutoff)
 
-  benchmark_sudo_set_rho {
-    let netuid: u16 = 1;
-    let tempo: u16 = 1;
-    let name: Vec<u8> = b"default".to_vec();
-    let rho: u16 = 300;
-
-    assert_ok!( Subspace::<T>::do_add_network( RawOrigin::Root.into(), name.into(), netuid.try_into().unwrap()));
-
-  }: sudo_set_rho(RawOrigin::<AccountIdOf<T>>::Root, netuid, rho)
-
-  benchmark_sudo_set_kappa {
-    let netuid: u16 = 1;
-    let tempo: u16 = 1;
-    let name: Vec<u8> = b"default".to_vec();
-    let kappa: u16 = 3;
-
-    assert_ok!( Subspace::<T>::do_add_network( RawOrigin::Root.into(), name.into(), netuid.try_into().unwrap()));
-
-  }: sudo_set_kappa(RawOrigin::<AccountIdOf<T>>::Root, netuid, kappa)
 
   benchmark_sudo_set_max_allowed_uids {
     let netuid: u16 = 1;
@@ -557,19 +505,6 @@ benchmarks! {
 
   }: sudo_set_max_registrations_per_block(RawOrigin::<AccountIdOf<T>>::Root, netuid, max_registrations_per_block)
 
-  benchmark_burned_register {
-    let netuid: u16 = 1;
-    let mut seed : u32 = 1;
-    let key: T::AccountId = account("Alice", 0, seed);
-    let name: Vec<u8> = b"testnet".to_vec();
-    let tempo: u16 = 1;
-    assert_ok!( Subspace::<T>::do_add_network( RawOrigin::Root.into(), netuid.try_into().unwrap(), name.into(), tempo.into()));
-
-    let amoun_to_be_staked = Subspace::<T>::u64_to_balance( 1000000);
-    Subspace::<T>::add_balance_to_account(&key.clone(), amoun_to_be_staked.unwrap());
-
-  }: burned_register(RawOrigin::Signed( key.clone() ), netuid, key)
-
   benchmark_sudo_set_validator_epoch_length {
     let netuid: u16 = 1;
     let tempo: u16 = 1;
@@ -579,34 +514,4 @@ benchmarks! {
 
   }: sudo_set_validator_epoch_len(RawOrigin::<AccountIdOf<T>>::Root, netuid, validator_epoch_len)
 
-  benchmark_sudo_set_burn {
-    let netuid: u16 = 1;
-    let tempo: u16 = 1;
-    let name: Vec<u8> = b"default".to_vec();
-    let burn: u64 = 10;
-
-    assert_ok!( Subspace::<T>::do_add_network( RawOrigin::Root.into(), name.into(), netuid.try_into().unwrap()));
-
-  }: sudo_set_burn(RawOrigin::<AccountIdOf<T>>::Root, netuid, burn)
-
-  benchmark_sudo_set_max_burn {
-    let netuid: u16 = 1;
-    let tempo: u16 = 1;
-    let name: Vec<u8> = b"default".to_vec();
-    let max_burn: u64 = 10;
-
-    assert_ok!( Subspace::<T>::do_add_network( RawOrigin::Root.into(), name.into(), netuid.try_into().unwrap()));
-
-  }: sudo_set_max_burn(RawOrigin::<AccountIdOf<T>>::Root, netuid, max_burn)
-
-  benchmark_sudo_set_min_burn {
-    let netuid: u16 = 1;
-    let tempo: u16 = 1;
-    let name: Vec<u8> = b"default".to_vec();
-    let min_burn: u64 = 10;
-
-    assert_ok!( Subspace::<T>::do_add_network( RawOrigin::Root.into(), name.into(), netuid.try_into().unwrap()));
-
-  }: sudo_set_min_burn(RawOrigin::<AccountIdOf<T>>::Root, netuid, min_burn)
-}
 

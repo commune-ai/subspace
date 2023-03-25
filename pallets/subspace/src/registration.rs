@@ -237,39 +237,4 @@ impl<T: Config> Pallet<T> {
         return hash_as_vec
     }
 
-    pub fn create_seal_hash( block_number_u64: u64, nonce_u64: u64 ) -> H256 {
-        let nonce = U256::from( nonce_u64 );
-        let block_hash_at_number: H256 = Self::get_block_hash_from_u64( block_number_u64 );
-        let block_hash_bytes: &[u8] = block_hash_at_number.as_bytes();
-        let full_bytes: &[u8; 40] = &[
-            nonce.byte(0),  nonce.byte(1),  nonce.byte(2),  nonce.byte(3),
-            nonce.byte(4),  nonce.byte(5),  nonce.byte(6),  nonce.byte(7),
-
-            block_hash_bytes[0], block_hash_bytes[1], block_hash_bytes[2], block_hash_bytes[3],
-            block_hash_bytes[4], block_hash_bytes[5], block_hash_bytes[6], block_hash_bytes[7],
-            block_hash_bytes[8], block_hash_bytes[9], block_hash_bytes[10], block_hash_bytes[11],
-            block_hash_bytes[12], block_hash_bytes[13], block_hash_bytes[14], block_hash_bytes[15],
-
-            block_hash_bytes[16], block_hash_bytes[17], block_hash_bytes[18], block_hash_bytes[19],
-            block_hash_bytes[20], block_hash_bytes[21], block_hash_bytes[22], block_hash_bytes[23],
-            block_hash_bytes[24], block_hash_bytes[25], block_hash_bytes[26], block_hash_bytes[27],
-            block_hash_bytes[28], block_hash_bytes[29], block_hash_bytes[30], block_hash_bytes[31],
-        ];
-        let sha256_seal_hash_vec: [u8; 32] = sha2_256( full_bytes );
-        let keccak_256_seal_hash_vec: [u8; 32] = keccak_256( &sha256_seal_hash_vec );
-        let seal_hash: H256 = H256::from_slice( &keccak_256_seal_hash_vec );
-
-		log::trace!(
-			"\nblock_number: {:?}, \nnonce_u64: {:?}, \nblock_hash: {:?}, \nfull_bytes: {:?}, \nsha256_seal_hash_vec: {:?},  \nkeccak_256_seal_hash_vec: {:?}, \nseal_hash: {:?}",
-			block_number_u64,
-			nonce_u64,
-			block_hash_at_number,
-			full_bytes,
-			sha256_seal_hash_vec,
-            keccak_256_seal_hash_vec,
-			seal_hash
-		);
-
-        return seal_hash;
-    }
 }

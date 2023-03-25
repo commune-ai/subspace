@@ -18,7 +18,6 @@ pub struct SubnetInfo {
     blocks_since_last_step: Compact<u64>,
     tempo: Compact<u16>,
     emission_values: Compact<u64>,
-    burn: Compact<u64>,
 }
 
 impl<T: Config> Pallet<T> {
@@ -36,7 +35,6 @@ impl<T: Config> Pallet<T> {
         let blocks_since_last_step = Self::get_blocks_since_last_step(netuid);
         let tempo = Self::get_tempo(netuid);
         let emission_values = Self::get_emission_value(netuid);
-        let burn: Compact<u64> = Self::get_burn_as_u64(netuid).into();
 
 
 
@@ -51,7 +49,6 @@ impl<T: Config> Pallet<T> {
             blocks_since_last_step: blocks_since_last_step.into(),
             tempo: tempo.into(),
             emission_values: emission_values.into(),
-            burn
         })
 	}
 

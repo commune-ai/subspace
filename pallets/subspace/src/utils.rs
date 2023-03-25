@@ -17,7 +17,6 @@ impl<T: Config> Pallet<T> {
     pub fn set_last_mechanism_step_block( netuid: u16, last_mechanism_step_block: u64 ) { LastMechansimStepBlock::<T>::insert(netuid, last_mechanism_step_block); }
     pub fn set_registrations_this_interval( netuid: u16, registrations_this_interval: u16 ) { RegistrationsThisInterval::<T>::insert(netuid, registrations_this_interval); }
     pub fn set_pow_registrations_this_interval( netuid: u16, pow_registrations_this_interval: u16 ) { POWRegistrationsThisInterval::<T>::insert(netuid, pow_registrations_this_interval); }
-    pub fn set_burn_registrations_this_interval( netuid: u16, burn_registrations_this_interval: u16 ) { BurnRegistrationsThisInterval::<T>::insert(netuid, burn_registrations_this_interval); }
 
     // ========================
 	// ==== Global Getters ====
@@ -27,23 +26,18 @@ impl<T: Config> Pallet<T> {
     pub fn get_current_block_as_u64( ) -> u64 { TryInto::try_into( <frame_system::Pallet<T>>::block_number() ).ok().expect("blockchain will not exceed 2^64 blocks; QED.") }
 
     // ==============================
-	// ==== YumaConsensus params ====
+	// ==== Yuma params ====
 	// ==============================
     pub fn get_rank( netuid:u16 ) -> Vec<u16> { Rank::<T>::get( netuid ) }
-    pub fn get_trust( netuid:u16 ) -> Vec<u16> { Trust::<T>::get( netuid ) }
     pub fn get_active( netuid:u16 ) -> Vec<bool> { Active::<T>::get( netuid ) }
     pub fn get_emission( netuid:u16 ) -> Vec<u64> { Emission::<T>::get( netuid ) }
-    pub fn get_consensus( netuid:u16 ) -> Vec<u16> { Consensus::<T>::get( netuid ) }
     pub fn get_incentive( netuid:u16 ) -> Vec<u16> { Incentive::<T>::get( netuid ) }
     pub fn get_dividends( netuid:u16 ) -> Vec<u16> { Dividends::<T>::get( netuid ) }
     pub fn get_last_update( netuid:u16 ) -> Vec<u64> { LastUpdate::<T>::get( netuid ) }
     pub fn get_pruning_score( netuid:u16 ) -> Vec<u16> { PruningScores::<T>::get( netuid ) }
-    pub fn get_validator_trust( netuid:u16 ) -> Vec<u16> { ValidatorTrust::<T>::get( netuid ) }
     pub fn get_validator_permit( netuid:u16 ) -> Vec<bool> { ValidatorPermit::<T>::get( netuid ) }
 
-    // ==================================
-	// ==== YumaConsensus UID params ====
-	// ==================================
+    
     pub fn set_last_update_for_uid( netuid:u16, uid: u16, last_update: u64 ) { 
         let mut updated_last_update_vec = Self::get_last_update( netuid ); 
         if (uid as usize) < updated_last_update_vec.len() { 
@@ -74,15 +68,12 @@ impl<T: Config> Pallet<T> {
     }
 
     pub fn get_rank_for_uid( netuid:u16, uid: u16) -> u16 { let vec = Rank::<T>::get( netuid ); if (uid as usize) < vec.len() { return vec[uid as usize] } else{ return 0 } }
-    pub fn get_trust_for_uid( netuid:u16, uid: u16) -> u16 { let vec = Trust::<T>::get( netuid ); if (uid as usize) < vec.len() { return vec[uid as usize] } else{ return 0 } }
     pub fn get_emission_for_uid( netuid:u16, uid: u16) -> u64 {let vec =  Emission::<T>::get( netuid ); if (uid as usize) < vec.len() { return vec[uid as usize] } else{ return 0 } }
     pub fn get_active_for_uid( netuid:u16, uid: u16) -> bool { let vec = Active::<T>::get( netuid ); if (uid as usize) < vec.len() { return vec[uid as usize] } else{ return false } }
-    pub fn get_consensus_for_uid( netuid:u16, uid: u16) -> u16 { let vec = Consensus::<T>::get( netuid ); if (uid as usize) < vec.len() { return vec[uid as usize] } else{ return 0 } }
     pub fn get_incentive_for_uid( netuid:u16, uid: u16) -> u16 { let vec = Incentive::<T>::get( netuid ); if (uid as usize) < vec.len() { return vec[uid as usize] } else{ return 0 } }
     pub fn get_dividends_for_uid( netuid:u16, uid: u16) -> u16 { let vec = Dividends::<T>::get( netuid ); if (uid as usize) < vec.len() { return vec[uid as usize] } else{ return 0 } }
     pub fn get_last_update_for_uid( netuid:u16, uid: u16) -> u64 { let vec = LastUpdate::<T>::get( netuid ); if (uid as usize) < vec.len() { return vec[uid as usize] } else{ return 0 } }
     pub fn get_pruning_score_for_uid( netuid:u16, uid: u16) -> u16 { let vec = PruningScores::<T>::get( netuid ); if (uid as usize) < vec.len() { return vec[uid as usize] } else{ return u16::MAX } }
-    pub fn get_validator_trust_for_uid( netuid:u16, uid: u16) -> u16 { let vec = ValidatorTrust::<T>::get( netuid ); if (uid as usize) < vec.len() { return vec[uid as usize] } else{ return 0 } }
     pub fn get_validator_permit_for_uid( netuid:u16, uid: u16) -> bool { let vec = ValidatorPermit::<T>::get( netuid ); if (uid as usize) < vec.len() { return vec[uid as usize] } else{ return false } }
 
     // ============================
@@ -93,12 +84,10 @@ impl<T: Config> Pallet<T> {
     pub fn get_pending_emission( netuid:u16 ) -> u64{ PendingEmission::<T>::get( netuid ) }
     pub fn get_last_adjustment_block( netuid: u16) -> u64 { LastAdjustmentBlock::<T>::get( netuid ) }
     pub fn get_blocks_since_last_step(netuid:u16 ) -> u64 { BlocksSinceLastStep::<T>::get( netuid ) }
-    pub fn get_difficulty( netuid: u16 ) -> U256 { U256::from( Self::get_difficulty_as_u64( netuid ) ) }    
     pub fn get_registrations_this_block( netuid:u16 ) -> u16 { RegistrationsThisBlock::<T>::get( netuid ) }
     pub fn get_last_mechanism_step_block( netuid: u16 ) -> u64 { LastMechansimStepBlock::<T>::get( netuid ) }
     pub fn get_registrations_this_interval( netuid: u16 ) -> u16 { RegistrationsThisInterval::<T>::get( netuid ) } 
     pub fn get_pow_registrations_this_interval( netuid: u16 ) -> u16 { POWRegistrationsThisInterval::<T>::get( netuid ) } 
-    pub fn get_burn_registrations_this_interval( netuid: u16 ) -> u16 { BurnRegistrationsThisInterval::<T>::get( netuid ) } 
     pub fn get_neuron_block_at_registration( netuid: u16, neuron_uid: u16 ) -> u64 { BlockAtRegistration::<T>::get( netuid, neuron_uid )}
 
     // ========================
@@ -148,27 +137,7 @@ impl<T: Config> Pallet<T> {
         Ok(()) 
     }
 
-    pub fn get_min_difficulty( netuid: u16) -> u64 { MinDifficulty::<T>::get( netuid ) }
-    pub fn set_min_difficulty( netuid: u16, min_difficulty: u64 ) { MinDifficulty::<T>::insert( netuid, min_difficulty ); }
-    pub fn do_sudo_set_min_difficulty( origin: T::RuntimeOrigin, netuid: u16, min_difficulty: u64 ) -> DispatchResult { 
-        ensure_root( origin )?;
-        ensure!(Self::if_subnet_exist(netuid), Error::<T>::NetworkDoesNotExist);
-        Self::set_min_difficulty( netuid, min_difficulty );
-        log::info!("MinDifficultySet( netuid: {:?} min_difficulty: {:?} ) ", netuid, min_difficulty);
-        Self::deposit_event( Event::MinDifficultySet( netuid, min_difficulty) );
-        Ok(()) 
-    }
 
-    pub fn get_max_difficulty( netuid: u16) -> u64 { MaxDifficulty::<T>::get( netuid ) }
-    pub fn set_max_difficulty( netuid: u16, max_difficulty: u64 ) { MaxDifficulty::<T>::insert( netuid, max_difficulty ); }
-    pub fn do_sudo_set_max_difficulty( origin: T::RuntimeOrigin, netuid: u16, max_difficulty: u64 ) -> DispatchResult { 
-        ensure_root( origin )?;
-        ensure!(Self::if_subnet_exist(netuid), Error::<T>::NetworkDoesNotExist);
-        Self::set_max_difficulty( netuid, max_difficulty );
-        log::info!("MaxDifficultySet( netuid: {:?} max_difficulty: {:?} ) ", netuid, max_difficulty);
-        Self::deposit_event( Event::MaxDifficultySet( netuid, max_difficulty) );
-        Ok(()) 
-    }
 
     pub fn get_weights_version_key( netuid: u16) -> u64 { WeightsVersionKey::<T>::get( netuid ) }
     pub fn set_weights_version_key( netuid: u16, weights_version_key: u64 ) { WeightsVersionKey::<T>::insert( netuid, weights_version_key ); }
@@ -351,27 +320,7 @@ impl<T: Config> Pallet<T> {
         Ok(())
     }
 
-    pub fn get_kappa( netuid: u16 ) -> u16  { Kappa::<T>::get( netuid ) }
-    pub fn set_kappa( netuid: u16, kappa: u16 ) { Kappa::<T>::insert( netuid, kappa ); }
-    pub fn do_sudo_set_kappa( origin:T::RuntimeOrigin, netuid: u16, kappa: u16 ) -> DispatchResult {
-        ensure_root( origin )?;
-        ensure!(Self::if_subnet_exist(netuid), Error::<T>::NetworkDoesNotExist);
-        Self::set_kappa( netuid, kappa );
-        log::info!("KappaSet( netuid: {:?} kappa: {:?} ) ", netuid, kappa );
-        Self::deposit_event( Event::KappaSet( netuid, kappa) );
-        Ok(())
-    }
-            
-    pub fn get_rho( netuid: u16 ) -> u16  { Rho::<T>::get( netuid ) }
-    pub fn set_rho( netuid: u16, rho: u16 ) { Rho::<T>::insert( netuid, rho ); }
-    pub fn do_sudo_set_rho( origin:T::RuntimeOrigin, netuid: u16, rho: u16 ) -> DispatchResult {
-        ensure_root( origin )?;
-        ensure!(Self::if_subnet_exist(netuid), Error::<T>::NetworkDoesNotExist);
-        Self::set_rho( netuid, rho );
-        log::info!("RhoSet( netuid: {:?} rho: {:?} ) ", netuid, rho );
-        Self::deposit_event( Event::RhoSet( netuid, rho ) );
-        Ok(())
-    }
+        
             
     pub fn get_activity_cutoff( netuid: u16 ) -> u16  { ActivityCutoff::<T>::get( netuid ) }
     pub fn set_activity_cutoff( netuid: u16, activity_cutoff: u16 ) { ActivityCutoff::<T>::insert( netuid, activity_cutoff ); }
@@ -395,49 +344,8 @@ impl<T: Config> Pallet<T> {
         Ok(())
     }
 
-    pub fn get_burn_as_u64( netuid: u16 ) -> u64  { Burn::<T>::get( netuid ) }
-    pub fn set_burn( netuid: u16, burn: u64 ) { Burn::<T>::insert( netuid, burn ); }
-    pub fn do_sudo_set_burn( origin:T::RuntimeOrigin, netuid: u16, burn: u64 ) -> DispatchResult {
-        ensure_root( origin )?;
-        ensure!(Self::if_subnet_exist(netuid), Error::<T>::NetworkDoesNotExist);
-        Self::set_burn( netuid, burn );
-        log::info!("BurnSet( netuid: {:?} burn: {:?} ) ", netuid, burn );
-        Self::deposit_event( Event::BurnSet( netuid, burn ) );
-        Ok(())
-    }
 
-    pub fn get_min_burn_as_u64( netuid: u16 ) -> u64  { MinBurn::<T>::get( netuid ) }
-    pub fn set_min_burn( netuid: u16, min_burn: u64 ) { MinBurn::<T>::insert( netuid, min_burn ); }
-    pub fn do_sudo_set_min_burn( origin:T::RuntimeOrigin, netuid: u16, min_burn: u64 ) -> DispatchResult {
-        ensure_root( origin )?;
-        ensure!(Self::if_subnet_exist(netuid), Error::<T>::NetworkDoesNotExist);
-        Self::set_min_burn( netuid, min_burn );
-        log::info!("MinBurnSet( netuid: {:?} min_burn: {:?} ) ", netuid, min_burn );
-        Self::deposit_event( Event::MinBurnSet( netuid, min_burn ) );
-        Ok(())
-    }
 
-    pub fn get_max_burn_as_u64( netuid: u16 ) -> u64  { MaxBurn::<T>::get( netuid ) }
-    pub fn set_max_burn( netuid: u16, max_burn: u64 ) { MaxBurn::<T>::insert( netuid, max_burn ); }
-    pub fn do_sudo_set_max_burn( origin:T::RuntimeOrigin, netuid: u16, max_burn: u64 ) -> DispatchResult {
-        ensure_root( origin )?;
-        ensure!(Self::if_subnet_exist(netuid), Error::<T>::NetworkDoesNotExist);
-        Self::set_max_burn( netuid, max_burn );
-        log::info!("MaxBurnSet( netuid: {:?} max_burn: {:?} ) ", netuid, max_burn );
-        Self::deposit_event( Event::MaxBurnSet( netuid, max_burn ) );
-        Ok(())
-    }
-    
-    pub fn get_difficulty_as_u64( netuid: u16 ) -> u64  { Difficulty::<T>::get( netuid ) }
-    pub fn set_difficulty( netuid: u16, difficulty: u64 ) { Difficulty::<T>::insert( netuid, difficulty ); }
-    pub fn do_sudo_set_difficulty( origin:T::RuntimeOrigin, netuid: u16, difficulty: u64 ) -> DispatchResult {
-        ensure_root( origin )?;
-        ensure!(Self::if_subnet_exist(netuid), Error::<T>::NetworkDoesNotExist);
-        Self::set_difficulty( netuid, difficulty );
-        log::info!("DifficultySet( netuid: {:?} difficulty: {:?} ) ", netuid, difficulty );
-        Self::deposit_event( Event::DifficultySet( netuid, difficulty ) );
-        Ok(())
-    }
             
     pub fn get_max_allowed_validators( netuid: u16 ) -> u16  { MaxAllowedValidators::<T>::get( netuid ) }
     pub fn set_max_allowed_validators( netuid: u16, max_allowed_validators: u16 ) { MaxAllowedValidators::<T>::insert( netuid, max_allowed_validators ); }

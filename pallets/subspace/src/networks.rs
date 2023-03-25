@@ -251,8 +251,6 @@ impl<T: Config> Pallet<T> {
     pub fn set_default_values_for_all_parameters(netuid: u16){
         // Make network parameters explicit.
         if !Tempo::<T>::contains_key( netuid ) { Tempo::<T>::insert( netuid, Tempo::<T>::get( netuid ));}
-        if !Kappa::<T>::contains_key( netuid ) { Kappa::<T>::insert( netuid, Kappa::<T>::get( netuid ));}
-        if !Difficulty::<T>::contains_key( netuid ) { Difficulty::<T>::insert( netuid, Difficulty::<T>::get( netuid ));}
         if !MaxAllowedUids::<T>::contains_key( netuid ) { MaxAllowedUids::<T>::insert( netuid, MaxAllowedUids::<T>::get( netuid ));}
         if !ImmunityPeriod::<T>::contains_key( netuid ) { ImmunityPeriod::<T>::insert( netuid, ImmunityPeriod::<T>::get( netuid ));}
         if !ActivityCutoff::<T>::contains_key( netuid ) { ActivityCutoff::<T>::insert( netuid, ActivityCutoff::<T>::get( netuid ));}
@@ -264,8 +262,6 @@ impl<T: Config> Pallet<T> {
         if !ValidatorEpochsPerReset::<T>::contains_key( netuid ) { ValidatorEpochsPerReset::<T>::insert( netuid, ValidatorEpochsPerReset::<T>::get( netuid ));}
         if !ValidatorSequenceLength::<T>::contains_key( netuid ) { ValidatorSequenceLength::<T>::insert( netuid, ValidatorSequenceLength::<T>::get( netuid ));}
         if !RegistrationsThisInterval::<T>::contains_key( netuid ) { RegistrationsThisInterval::<T>::insert( netuid, RegistrationsThisInterval::<T>::get( netuid ));}
-        if !POWRegistrationsThisInterval::<T>::contains_key( netuid ) { POWRegistrationsThisInterval::<T>::insert( netuid, POWRegistrationsThisInterval::<T>::get( netuid ));}
-        if !BurnRegistrationsThisInterval::<T>::contains_key( netuid ) { BurnRegistrationsThisInterval::<T>::insert( netuid, BurnRegistrationsThisInterval::<T>::get( netuid ));}
     }
 
     // Explicitly erases all data associated with this network.
@@ -279,21 +275,16 @@ impl<T: Config> Pallet<T> {
         let _ = Weights::<T>::clear_prefix( netuid, u32::max_value(), None );
 
         Rank::<T>::remove( netuid );
-        Trust::<T>::remove( netuid );
         Active::<T>::remove( netuid );
         Emission::<T>::remove( netuid );
         Incentive::<T>::remove( netuid );
-        Consensus::<T>::remove( netuid );
         Dividends::<T>::remove( netuid );
         PruningScores::<T>::remove( netuid );
         LastUpdate::<T>::remove( netuid );
         ValidatorPermit::<T>::remove( netuid );
-        ValidatorTrust::<T>::remove( netuid );
 
         // --- 2. Erase network parameters.
         Tempo::<T>::remove( netuid );
-        Kappa::<T>::remove( netuid );
-        Difficulty::<T>::remove( netuid );
         MaxAllowedUids::<T>::remove( netuid );
         ImmunityPeriod::<T>::remove( netuid );
         ActivityCutoff::<T>::remove( netuid );
@@ -305,8 +296,6 @@ impl<T: Config> Pallet<T> {
         ValidatorEpochsPerReset::<T>::remove( netuid );
         ValidatorSequenceLength::<T>::remove( netuid );
         RegistrationsThisInterval::<T>::remove( netuid );
-        POWRegistrationsThisInterval::<T>::remove( netuid );
-        BurnRegistrationsThisInterval::<T>::remove( netuid );
     }
 
 

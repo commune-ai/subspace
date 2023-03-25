@@ -45,17 +45,14 @@ impl<T: Config> Pallet<T> {
         // 2. Get and increase the uid count.
         SubnetworkN::<T>::insert( netuid, next_uid + 1 );
 
-        // 3. Expand Yuma Consensus with new position.
+        // 3. Expand Yuma with new position.
         Rank::<T>::mutate(netuid, |v| v.push(0) );
-        Trust::<T>::mutate(netuid, |v| v.push(0) );
         Active::<T>::mutate(netuid, |v| v.push( true ) );
         Emission::<T>::mutate(netuid, |v| v.push(0) );
-        Consensus::<T>::mutate(netuid, |v| v.push(0) );
         Incentive::<T>::mutate(netuid, |v| v.push(0) );
         Dividends::<T>::mutate(netuid, |v| v.push(0) );
         LastUpdate::<T>::mutate(netuid, |v| v.push( block_number ) );
         PruningScores::<T>::mutate(netuid, |v| v.push(0) );
-        ValidatorTrust::<T>::mutate(netuid, |v| v.push(0) );
         ValidatorPermit::<T>::mutate(netuid, |v| v.push(false) );
  
         // 4. Insert new account information.

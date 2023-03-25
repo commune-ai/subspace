@@ -15,9 +15,6 @@ pub struct NeuronInfo<T: Config> {
     rank: Compact<u16>,
     emission: Compact<u64>,
     incentive: Compact<u16>,
-    consensus: Compact<u16>,
-    trust: Compact<u16>,
-    validator_trust: Compact<u16>,
     dividends: Compact<u16>,
     last_update: Compact<u64>,
     validator_permit: bool,
@@ -38,9 +35,6 @@ pub struct NeuronInfoLite<T: Config> {
     rank: Compact<u16>,
     emission: Compact<u64>,
     incentive: Compact<u16>,
-    consensus: Compact<u16>,
-    trust: Compact<u16>,
-    validator_trust: Compact<u16>,
     dividends: Compact<u16>,
     last_update: Compact<u64>,
     validator_permit: bool,
@@ -84,9 +78,6 @@ impl<T: Config> Pallet<T> {
         let rank = Self::get_rank_for_uid( netuid, uid as u16 );
         let emission = Self::get_emission_for_uid( netuid, uid as u16 );
         let incentive = Self::get_incentive_for_uid( netuid, uid as u16 );
-        let consensus = Self::get_consensus_for_uid( netuid, uid as u16 );
-        let trust = Self::get_trust_for_uid( netuid, uid as u16 );
-        let validator_trust = Self::get_validator_trust_for_uid( netuid, uid as u16 );
         let dividends = Self::get_dividends_for_uid( netuid, uid as u16 );
         let pruning_score = Self::get_pruning_score_for_uid( netuid, uid as u16 );
         let last_update = Self::get_last_update_for_uid( netuid, uid as u16 );
@@ -113,9 +104,6 @@ impl<T: Config> Pallet<T> {
             rank: rank.into(),
             emission: emission.into(),
             incentive: incentive.into(),
-            consensus: consensus.into(),
-            trust: trust.into(),
-            validator_trust: validator_trust.into(),
             dividends: dividends.into(),
             last_update: last_update.into(),
             validator_permit,

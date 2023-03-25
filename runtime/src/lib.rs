@@ -315,8 +315,6 @@ impl pallet_sudo::Config for Runtime {
 
 // Configure the pallet subspace.
 parameter_types! {
-	pub const SubspaceInitialRho: u16 = 10;
-    pub const SubspaceInitialKappa: u16 = 32_767; // 0.5 = 65535/2 
     pub const SubspaceInitialMaxAllowedUids: u16 = 512;
     pub const SubspaceInitialIssuance: u64 = 0;
     pub const SubspaceInitialMinAllowedWeights: u16 = 1024;
@@ -333,7 +331,6 @@ parameter_types! {
     pub const SubspaceInitialSynergyScalingLawPower: u16 = 50; // 0.5
     pub const SubspaceInitialMaxAllowedValidators: u16 = 100;
     pub const SubspaceInitialTempo: u16 = 0;
-    pub const SubspaceInitialDifficulty: u64 = 1;
     pub const SubspaceInitialAdjustmentInterval: u16 = 100;
     pub const SubspaceInitialTargetRegistrationsPerInterval: u16 = 2;
     pub const SubspaceInitialImmunityPeriod: u16 = 4096;
@@ -343,20 +340,13 @@ parameter_types! {
     pub const SubspaceInitialBondsMovingAverage: u64 = 900_000;
     pub const SubspaceInitialDefaultTake: u16 = 11_796; // 18% honest number.
     pub const SubspaceInitialWeightsVersionKey: u64 = 0;
-    pub const SubspaceInitialMinDifficulty: u64 = 1;
-    pub const SubspaceInitialMaxDifficulty: u64 = 10;
     pub const SubspaceInitialServingRateLimit: u64 = 1000; 
-	pub const SubspaceInitialBurn: u64 = 0; 
-	pub const SubspaceInitialMinBurn: u64 = 0; 
-	pub const SubspaceInitialMaxBurn: u64 = 1_000_000_000;
 	pub const SubspaceInitialTxRateLimit: u64 = 1000;
 }
 
 impl pallet_subspace::Config for Runtime {
 	type RuntimeEvent = RuntimeEvent;
 	type Currency = Balances;
-	type InitialRho = SubspaceInitialRho;
-	type InitialKappa = SubspaceInitialKappa;
 	type InitialMaxAllowedUids = SubspaceInitialMaxAllowedUids;
 	type InitialBondsMovingAverage = SubspaceInitialBondsMovingAverage;
 	type InitialIssuance = SubspaceInitialIssuance;
@@ -373,7 +363,6 @@ impl pallet_subspace::Config for Runtime {
 	type InitialScalingLawPower = SubspaceInitialScalingLawPower;
 	type InitialSynergyScalingLawPower = SubspaceInitialSynergyScalingLawPower;
 	type InitialTempo = SubspaceInitialTempo;
-	type InitialDifficulty = SubspaceInitialDifficulty;
 	type InitialAdjustmentInterval = SubspaceInitialAdjustmentInterval;
 	type InitialTargetRegistrationsPerInterval = SubspaceInitialTargetRegistrationsPerInterval;
 	type InitialImmunityPeriod = SubspaceInitialImmunityPeriod;
@@ -383,12 +372,7 @@ impl pallet_subspace::Config for Runtime {
 	type InitialMaxAllowedValidators = SubspaceInitialMaxAllowedValidators;
 	type InitialDefaultTake = SubspaceInitialDefaultTake;
 	type InitialWeightsVersionKey = SubspaceInitialWeightsVersionKey;
-	type InitialMaxDifficulty = SubspaceInitialMaxDifficulty;
-	type InitialMinDifficulty = SubspaceInitialMinDifficulty;
 	type InitialServingRateLimit = SubspaceInitialServingRateLimit;
-	type InitialBurn = SubspaceInitialBurn;
-	type InitialMaxBurn = SubspaceInitialMaxBurn;
-	type InitialMinBurn = SubspaceInitialMinBurn;
 	type InitialTxRateLimit = SubspaceInitialTxRateLimit;
 }
 

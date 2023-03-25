@@ -106,28 +106,12 @@ pub mod pallet {
 		type InitialMaxWeightsLimit: Get<u16>;
 		#[pallet::constant] // Tempo for each network
 		type InitialTempo: Get<u16>;
-		#[pallet::constant] // Initial Difficulty.
-		type InitialDifficulty: Get<u64>;
-		#[pallet::constant] // Initial Max Difficulty.
-		type InitialMaxDifficulty: Get<u64>;
-		#[pallet::constant] // Initial Min Difficulty.
-		type InitialMinDifficulty: Get<u64>;
-		#[pallet::constant] // Initial Burn.
-		type InitialBurn: Get<u64>;
-		#[pallet::constant] // Initial Max Burn.
-		type InitialMaxBurn: Get<u64>;
-		#[pallet::constant] // Initial Min Burn.
-		type InitialMinBurn: Get<u64>;
 		#[pallet::constant] // Initial adjustment interval.
 		type InitialAdjustmentInterval: Get<u16>;
 		#[pallet::constant] // Initial bonds moving average.
 		type InitialBondsMovingAverage: Get<u64>;
 		#[pallet::constant] // Initial target registrations per interval.
 		type InitialTargetRegistrationsPerInterval: Get<u16>;
-		#[pallet::constant] // Rho constant
-		type InitialRho: Get<u16>;
-		#[pallet::constant] // Kappa constant
-		type InitialKappa: Get<u16>;		
 		#[pallet::constant] // Max UID constant.
 		type InitialMaxAllowedUids: Get<u16>;
 		#[pallet::constant] // Default Batch size.
@@ -204,42 +188,13 @@ pub mod pallet {
     pub type Delegates<T:Config> = StorageMap<_, Blake2_128Concat, T::AccountId, u16, ValueQuery, DefaultDefaultTake<T>>;
 	#[pallet::storage] // --- DMAP ( hot, cold ) --> stake | Returns the stake under a key prefixed by key.
 	pub type Stake<T:Config> = StorageMap<_, Identity, T::AccountId, u64, ValueQuery, DefaultAccountTake<T>>;
-	// =====================================
-	// ==== Difficulty / Registrations =====
-	// =====================================
+
 	#[pallet::type_value] 
 	pub fn DefaultLastAdjustmentBlock<T: Config>() -> u64 { 0 }
 	#[pallet::type_value]
 	pub fn DefaultRegistrationsThisBlock<T: Config>() ->  u16 { 0}
-	#[pallet::type_value]
-	pub fn DefaultBurn<T: Config>() -> u64 { T::InitialBurn::get() }
-	#[pallet::type_value]
-	pub fn DefaultMinBurn<T: Config>() -> u64 { T::InitialMinBurn::get()  }
-	#[pallet::type_value]
-	pub fn DefaultMaxBurn<T: Config>() -> u64 { T::InitialMaxBurn::get() }
-	#[pallet::type_value]
-	pub fn DefaultDifficulty<T: Config>() -> u64 { T::InitialDifficulty::get() }
-	#[pallet::type_value]
-	pub fn DefaultMinDifficulty<T: Config>() -> u64 { T::InitialMinDifficulty::get()  }
-	#[pallet::type_value]
-	pub fn DefaultMaxDifficulty<T: Config>() -> u64 { T::InitialMaxDifficulty::get() }
 	#[pallet::type_value] 
 	pub fn DefaultMaxRegistrationsPerBlock<T: Config>() -> u16 { T::InitialMaxRegistrationsPerBlock::get() }
-
-	#[pallet::storage] // ---- StorageItem Global Used Work.
-    pub type UsedWork<T:Config> = StorageMap<_, Identity, Vec<u8>, u64, ValueQuery>;
-	#[pallet::storage] // --- MAP ( netuid ) --> Difficulty
-	pub type Burn<T> = StorageMap<_, Identity, u16, u64, ValueQuery, DefaultBurn<T> >;
-	#[pallet::storage] // --- MAP ( netuid ) --> Difficulty
-	pub type Difficulty<T> = StorageMap<_, Identity, u16, u64, ValueQuery, DefaultDifficulty<T> >;
-	#[pallet::storage] // --- MAP ( netuid ) --> MinBurn
-	pub type MinBurn<T> = StorageMap<_, Identity, u16, u64, ValueQuery, DefaultMinBurn<T> >;
-	#[pallet::storage] // --- MAP ( netuid ) --> MaxBurn
-	pub type MaxBurn<T> = StorageMap<_, Identity, u16, u64, ValueQuery, DefaultMaxBurn<T> >;
-	#[pallet::storage] // --- MAP ( netuid ) --> MinDifficulty
-	pub type MinDifficulty<T> = StorageMap<_, Identity, u16, u64, ValueQuery, DefaultMinDifficulty<T> >;
-	#[pallet::storage] // --- MAP ( netuid ) --> MaxDifficulty
-	pub type MaxDifficulty<T> = StorageMap<_, Identity, u16, u64, ValueQuery, DefaultMaxDifficulty<T> >;
 	#[pallet::storage] // --- MAP ( netuid ) -->  Block at last adjustment.
 	pub type LastAdjustmentBlock<T> = StorageMap<_, Identity, u16, u64, ValueQuery, DefaultLastAdjustmentBlock<T> >;
 	#[pallet::storage] // --- MAP ( netuid ) --> Registration this Block.
@@ -354,10 +309,6 @@ pub mod pallet {
 	#[pallet::type_value] 
 	pub fn DefaultBlockAtRegistration<T: Config>() -> u64 { 0 }
 	#[pallet::type_value]
-	pub fn DefaultRho<T: Config>() -> u16 { T::InitialRho::get() }
-	#[pallet::type_value]
-	pub fn DefaultKappa<T: Config>() -> u16 { T::InitialKappa::get() }
-	#[pallet::type_value] 
 	pub fn DefaultMaxAllowedUids<T: Config>() -> u16 { T::InitialMaxAllowedUids::get() }
 	#[pallet::type_value] 
 	pub fn DefaultImmunityPeriod<T: Config>() -> u16 { T::InitialImmunityPeriod::get() }
@@ -399,18 +350,12 @@ pub mod pallet {
 	#[pallet::storage]
 	pub type SubnetNamespace<T: Config> = StorageDoubleMap<_, Twox64Concat, u16, Twox64Concat, Vec<u8>, AxonInfo, ValueQuery>;
 	
-	#[pallet::storage] // --- MAP ( netuid ) --> Rho
-	pub type Rho<T> =  StorageMap<_, Identity, u16, u16, ValueQuery, DefaultRho<T> >;
-	#[pallet::storage] // --- MAP ( netuid ) --> Kappa
-	pub type Kappa<T> = StorageMap<_, Identity, u16, u16, ValueQuery, DefaultKappa<T> >;
 	#[pallet::storage] // --- MAP ( netuid ) --> uid, we use to record uids to prune at next epoch.
     pub type NeuronsToPruneAtNextEpoch<T:Config> = StorageMap<_, Identity, u16, u16, ValueQuery>;
 	#[pallet::storage] // --- MAP ( netuid ) --> registrations_this_interval
 	pub type RegistrationsThisInterval<T:Config> = StorageMap<_, Identity, u16, u16, ValueQuery>;
 	#[pallet::storage] // --- MAP ( netuid ) --> pow_registrations_this_interval
 	pub type POWRegistrationsThisInterval<T:Config> = StorageMap<_, Identity, u16, u16, ValueQuery>;
-	#[pallet::storage] // --- MAP ( netuid ) --> burn_registrations_this_interval
-	pub type BurnRegistrationsThisInterval<T:Config> = StorageMap<_, Identity, u16, u16, ValueQuery>;
 	#[pallet::storage] // --- MAP ( netuid ) --> max_allowed_uids
 	pub type MaxAllowedUids<T> = StorageMap<_, Identity, u16, u16, ValueQuery, DefaultMaxAllowedUids<T> >;
 	#[pallet::storage] // --- MAP ( netuid ) --> immunity_period
@@ -455,7 +400,7 @@ pub mod pallet {
 	pub type BlockAtRegistration<T:Config> = StorageDoubleMap<_, Identity, u16, Identity, u16, u64, ValueQuery, DefaultBlockAtRegistration<T> >;
 
 	// =======================================
-	// ==== Subnetwork Consensus Storage  ====
+	// ==== Subnetwork Storage  ====
 	// =======================================
 	#[pallet::type_value] 
 	pub fn EmptyU16Vec<T:Config>() -> Vec<u16> { vec![] }
@@ -482,10 +427,6 @@ pub mod pallet {
 	pub(super) type Active<T:Config> = StorageMap< _, Identity, u16, Vec<bool>, ValueQuery, EmptyBoolVec<T> >;
 	#[pallet::storage] // --- DMAP ( netuid ) --> rank
 	pub(super) type Rank<T:Config> = StorageMap< _, Identity, u16, Vec<u16>, ValueQuery, EmptyU16Vec<T>>;
-	#[pallet::storage] // --- DMAP ( netuid ) --> trust
-	pub(super) type Trust<T:Config> = StorageMap< _, Identity, u16, Vec<u16>, ValueQuery, EmptyU16Vec<T>>;
-	#[pallet::storage] // --- DMAP ( netuid ) --> consensus
-	pub(super) type Consensus<T:Config> = StorageMap< _, Identity, u16, Vec<u16>, ValueQuery, EmptyU16Vec<T>>;
 	#[pallet::storage] // --- DMAP ( netuid ) --> incentive
 	pub(super) type Incentive<T:Config> = StorageMap< _, Identity, u16, Vec<u16>, ValueQuery, EmptyU16Vec<T>>;
 	#[pallet::storage] // --- DMAP ( netuid ) --> dividends
@@ -494,8 +435,6 @@ pub mod pallet {
 	pub(super) type Emission<T:Config> = StorageMap< _, Identity, u16, Vec<u64>, ValueQuery, EmptyU64Vec<T>>;
 	#[pallet::storage] // --- DMAP ( netuid ) --> last_update
 	pub(super) type LastUpdate<T:Config> = StorageMap< _, Identity, u16, Vec<u64>, ValueQuery, EmptyU64Vec<T>>;
-	#[pallet::storage] // --- DMAP ( netuid ) --> validator_trust
-	pub(super) type ValidatorTrust<T:Config> = StorageMap< _, Identity, u16, Vec<u16>, ValueQuery, EmptyU16Vec<T>>;
 	#[pallet::storage] // --- DMAP ( netuid ) --> pruning_scores
 	pub(super) type PruningScores<T:Config> = StorageMap< _, Identity, u16, Vec<u16>, ValueQuery, EmptyU16Vec<T> >;
 	#[pallet::storage] // --- DMAP ( netuid ) --> validator_permit
@@ -523,13 +462,10 @@ pub mod pallet {
 		BulkBalancesSet(u16, u16),
 		MaxAllowedUidsSet( u16, u16 ), // --- Event created when max allowed uids has been set for a subnetwor.
 		MaxWeightLimitSet( u16, u16 ), // --- Event created when the max weight limit has been set.
-		DifficultySet( u16, u64 ), // --- Event created when the difficulty has been set for a subnet.
 		AdjustmentIntervalSet( u16, u16 ), // --- Event created when the adjustment interval is set for a subnet.
 		RegistrationPerIntervalSet( u16, u16 ), // --- Event created when registeration per interval is set for a subnet.
 		MaxRegistrationsPerBlockSet( u16, u16), // --- Event created when we set max registrations per block
 		ActivityCutoffSet( u16, u16 ), // --- Event created when an activity cutoff is set for a subnet.
-		RhoSet( u16, u16 ), // --- Event created when Rho value is set.
-		KappaSet( u16, u16 ), // --- Event created when kappa is set for a subnet.
 		MinAllowedWeightSet( u16, u16 ), // --- Event created when minimun allowed weight is set for a subnet.
 		ValidatorBatchSizeSet( u16, u16 ), // --- Event created when validator batch size is set for a subnet.
 		ValidatorSequenceLengthSet( u16, u16 ), // --- Event created when validator sequence length i set for a subnet.
@@ -552,12 +488,7 @@ pub mod pallet {
 		DelegateAdded( T::AccountId, T::AccountId, u16 ), // --- Event created to signal a key has become a delegate.
 		DefaultTakeSet( u16 ), // --- Event created when the default take is set.
 		WeightsVersionKeySet( u16, u64 ), // --- Event created when weights version key is set for a network.
-		MinDifficultySet( u16, u64 ), // --- Event created when setting min difficutly on a network.
-		MaxDifficultySet( u16, u64 ), // --- Event created when setting max difficutly on a network.
 		ServingRateLimitSet( u16, u64 ), // --- Event created when setting the prometheus serving rate limit.
-		BurnSet( u16, u64 ), // --- Event created when setting burn on a network.
-		MaxBurnSet( u16, u64 ), // --- Event created when setting max burn on a network.
-		MinBurnSet( u16, u64 ), // --- Event created when setting min burn on a network.
 		TxRateLimitSet( u64 ), // --- Event created when setting the transaction rate limit.
 	}
 
@@ -581,10 +512,6 @@ pub mod pallet {
 		NotSettingEnoughWeights, // ---- Thrown when the dispatch attempts to set weights on chain with fewer elements than are allowed.
 		TooManyRegistrationsThisBlock, // ---- Thrown when registrations this block exceeds allowed number.
 		AlreadyRegistered, // ---- Thrown when the caller requests registering a neuron which already exists in the active set.
-		InvalidWorkBlock, // ---- Thrown if the supplied pow hash block is in the future or negative
-		WorkRepeated, // ---- Thrown when the caller attempts to use a repeated work.
-		InvalidDifficulty, // ---- Thrown if the supplied pow hash block does not meet the network difficulty.
-		InvalidSeal, // ---- Thrown if the supplied pow hash seal does not match the supplied work.
 		MaxAllowedUIdsNotAllowed, // ---  Thrown if the vaule is invalid for MaxAllowedUids
 		CouldNotConvertToBalance, // ---- Thrown when the dispatch attempts to convert between a u64 and T::balance but the call fails.
 		StakeAlreadyAdded, // --- Thrown when the caller requests adding stake for a key to the total stake which already added
@@ -645,8 +572,6 @@ pub mod pallet {
 			Tempo::<T>::insert(netuid, tempo);
 			// Make network parameters explicit.
 			if !Tempo::<T>::contains_key( netuid ) { Tempo::<T>::insert( netuid, Tempo::<T>::get( netuid ));}
-			if !Kappa::<T>::contains_key( netuid ) { Kappa::<T>::insert( netuid, Kappa::<T>::get( netuid ));}
-			if !Difficulty::<T>::contains_key( netuid ) { Difficulty::<T>::insert( netuid, Difficulty::<T>::get( netuid ));}
 			if !MaxAllowedUids::<T>::contains_key( netuid ) { MaxAllowedUids::<T>::insert( netuid, MaxAllowedUids::<T>::get( netuid ));}
 			if !ImmunityPeriod::<T>::contains_key( netuid ) { ImmunityPeriod::<T>::insert( netuid, ImmunityPeriod::<T>::get( netuid ));}
 			if !ActivityCutoff::<T>::contains_key( netuid ) { ActivityCutoff::<T>::insert( netuid, ActivityCutoff::<T>::get( netuid ));}
@@ -658,8 +583,6 @@ pub mod pallet {
 			if !ValidatorEpochsPerReset::<T>::contains_key( netuid ) { ValidatorEpochsPerReset::<T>::insert( netuid, ValidatorEpochsPerReset::<T>::get( netuid ));}
 			if !ValidatorSequenceLength::<T>::contains_key( netuid ) { ValidatorSequenceLength::<T>::insert( netuid, ValidatorSequenceLength::<T>::get( netuid ));}
 			if !RegistrationsThisInterval::<T>::contains_key( netuid ) { RegistrationsThisInterval::<T>::insert( netuid, RegistrationsThisInterval::<T>::get( netuid ));}
-			if !POWRegistrationsThisInterval::<T>::contains_key( netuid ) { POWRegistrationsThisInterval::<T>::insert( netuid, POWRegistrationsThisInterval::<T>::get( netuid ));}
-			if !BurnRegistrationsThisInterval::<T>::contains_key( netuid ) { BurnRegistrationsThisInterval::<T>::insert( netuid, BurnRegistrationsThisInterval::<T>::get( netuid ));}
 
 			// Set max allowed uids
 			MaxAllowedUids::<T>::insert(netuid, max_uids);
@@ -670,17 +593,14 @@ pub mod pallet {
 				for (key, stake_uid) in keys.iter() {
 					let (stake, uid) = stake_uid;
 
-					// Expand Yuma Consensus with new position.
+					// Expand Yuma with new position.
 					Rank::<T>::mutate(netuid, |v| v.push(0));
-					Trust::<T>::mutate(netuid, |v| v.push(0));
 					Active::<T>::mutate(netuid, |v| v.push(true));
 					Emission::<T>::mutate(netuid, |v| v.push(0));
-					Consensus::<T>::mutate(netuid, |v| v.push(0));
 					Incentive::<T>::mutate(netuid, |v| v.push(0));
 					Dividends::<T>::mutate(netuid, |v| v.push(0));
 					LastUpdate::<T>::mutate(netuid, |v| v.push(0));
 					PruningScores::<T>::mutate(netuid, |v| v.push(0));
-					ValidatorTrust::<T>::mutate(netuid, |v| v.push(0));
 					ValidatorPermit::<T>::mutate(netuid, |v| v.push(false));
 			
 					// Insert account information.
@@ -978,9 +898,7 @@ pub mod pallet {
 		// 	* 'nonce' ( u64 ):
 		// 		- Positive integer nonce used in POW.
 		//
-		// 	* 'work' ( Vec<u8> ):
-		// 		- Vector encoded bytes representing work done.
-		//
+
 		// 	* 'key' ( T::AccountId ):
 		// 		- Key to be registered to the network.
 		//
@@ -1001,18 +919,7 @@ pub mod pallet {
 		// 	* 'AlreadyRegistered':
 		// 		- The key is already registered on this network.
 		//
-		// 	* 'InvalidWorkBlock':
-		// 		- The work has been performed on a stale, future, or non existent block.
-		//
-		// 	* 'WorkRepeated':
-		// 		- This work for block has already been used.
-		//
-		// 	* 'InvalidDifficulty':
-		// 		- The work does not match the difficutly.
-		//
-		// 	* 'InvalidSeal':
-		// 		- The seal is incorrect.
-		//
+
 		#[pallet::weight((Weight::from_ref_time(91_000_000)
 		.saturating_add(T::DbWeight::get().reads(27))
 		.saturating_add(T::DbWeight::get().writes(22)), DispatchClass::Normal, Pays::No))]
@@ -1187,35 +1094,6 @@ pub mod pallet {
 			Self::do_sudo_set_tx_rate_limit( origin, tx_rate_limit )
 		}
 
-		#[pallet::weight((0, DispatchClass::Operational, Pays::No))]
-		pub fn sudo_set_max_burn( origin:OriginFor<T>, netuid: u16, max_burn: u64 ) -> DispatchResult {  
-			Self::do_sudo_set_max_burn( origin, netuid, max_burn )
-		}
-		#[pallet::weight((Weight::from_ref_time(13_000_000)
-		.saturating_add(T::DbWeight::get().reads(1))
-		.saturating_add(T::DbWeight::get().writes(1)), DispatchClass::Operational, Pays::No))]
-		pub fn sudo_set_min_burn( origin:OriginFor<T>, netuid: u16, min_burn: u64 ) -> DispatchResult {  
-			Self::do_sudo_set_min_burn( origin, netuid, min_burn )
-		}
-		#[pallet::weight((Weight::from_ref_time(14_000_000)
-		.saturating_add(T::DbWeight::get().reads(1))
-		.saturating_add(T::DbWeight::get().writes(1)), DispatchClass::Operational, Pays::No))]
-		pub fn sudo_set_burn( origin:OriginFor<T>, netuid: u16, burn: u64 ) -> DispatchResult {  
-			Self::do_sudo_set_burn( origin, netuid, burn )
-		}
-
-		#[pallet::weight((Weight::from_ref_time(14_000_000)
-		.saturating_add(T::DbWeight::get().reads(1))
-		.saturating_add(T::DbWeight::get().writes(1)), DispatchClass::Operational, Pays::No))]
-		pub fn sudo_set_max_difficulty( origin:OriginFor<T>, netuid: u16, max_difficulty: u64 ) -> DispatchResult {  
-			Self::do_sudo_set_max_difficulty( origin, netuid, max_difficulty )
-		}
-		#[pallet::weight((Weight::from_ref_time(14_000_000)
-		.saturating_add(T::DbWeight::get().reads(1))
-		.saturating_add(T::DbWeight::get().writes(1)), DispatchClass::Operational, Pays::No))]
-		pub fn sudo_set_min_difficulty( origin:OriginFor<T>, netuid: u16, min_difficulty: u64 ) -> DispatchResult {  
-			Self::do_sudo_set_min_difficulty( origin, netuid, min_difficulty )
-		}
 		#[pallet::weight((Weight::from_ref_time(15_000_000)
 		.saturating_add(T::DbWeight::get().reads(1))
 		.saturating_add(T::DbWeight::get().writes(1)), DispatchClass::Operational, Pays::No))]
@@ -1240,12 +1118,7 @@ pub mod pallet {
 		pub fn sudo_set_max_allowed_validators( origin:OriginFor<T>, netuid: u16, max_allowed_validators: u16 ) -> DispatchResult {  
 			Self::do_sudo_set_max_allowed_validators( origin, netuid, max_allowed_validators )
 		}
-		#[pallet::weight((Weight::from_ref_time(13_000_000)
-		.saturating_add(T::DbWeight::get().reads(1))
-		.saturating_add(T::DbWeight::get().writes(1)), DispatchClass::Operational, Pays::No))]
-		pub fn sudo_set_difficulty( origin:OriginFor<T>, netuid: u16, difficulty: u64 ) -> DispatchResult {
-			Self::do_sudo_set_difficulty( origin, netuid, difficulty )
-		}
+
 		#[pallet::weight((Weight::from_ref_time(14_000_000)
 		.saturating_add(T::DbWeight::get().reads(1))
 		.saturating_add(T::DbWeight::get().writes(1)), DispatchClass::Operational, Pays::No))]
@@ -1264,18 +1137,7 @@ pub mod pallet {
 		pub fn sudo_set_activity_cutoff( origin:OriginFor<T>, netuid: u16, activity_cutoff: u16 ) -> DispatchResult {
 			Self::do_sudo_set_activity_cutoff( origin, netuid, activity_cutoff )
 		}
-		#[pallet::weight((Weight::from_ref_time(14_000_000)
-		.saturating_add(T::DbWeight::get().reads(1))
-		.saturating_add(T::DbWeight::get().writes(1)), DispatchClass::Operational, Pays::No))]
-		pub fn sudo_set_rho( origin:OriginFor<T>, netuid: u16, rho: u16 ) -> DispatchResult {
-			Self::do_sudo_set_rho( origin, netuid, rho )
-		}
-		#[pallet::weight((	Weight::from_ref_time(14_000_000)
-		.saturating_add(T::DbWeight::get().reads(1))
-		.saturating_add(T::DbWeight::get().writes(1)), DispatchClass::Operational, Pays::No))]
-		pub fn sudo_set_kappa( origin:OriginFor<T>, netuid: u16, kappa: u16 ) -> DispatchResult {
-			Self::do_sudo_set_kappa( origin, netuid, kappa )
-		}
+
 		#[pallet::weight((Weight::from_ref_time(18_000_000)
 		.saturating_add(T::DbWeight::get().reads(2))
 		.saturating_add(T::DbWeight::get().writes(1)), DispatchClass::Operational, Pays::No))]

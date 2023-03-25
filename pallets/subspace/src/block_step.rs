@@ -157,14 +157,13 @@ impl<T: Config> Pallet<T> {
 
 
 
-    // Adjusts the network difficulties/burns of every active network. Reseting state parameters.
+    // Adjusts the network of every active network. Reseting state parameters.
     //
     pub fn adjust_registration_terms_for_networks( ) {
         
         // --- 1. Iterate through each network.
         for ( netuid, _ )  in <NetworksAdded<T> as IterableStorageMap<u16, bool>>::iter(){
 
-            // --- 2. Pull counters for network difficulty.
             let last_adjustment_block: u64 = Self::get_last_adjustment_block( netuid );
             let adjustment_interval: u16 = Self::get_adjustment_interval( netuid );
             let current_block: u64 = Self::get_current_block_as_u64( ); 
@@ -176,49 +175,16 @@ impl<T: Config> Pallet<T> {
             );
 
             // --- 3. Check if we are at the adjustment interval for this network.
-            // If so, we need to adjust the registration difficulty based on target and actual registrations.
+            // If so, we need to adjust the registration based on target and actual registrations.
             if ( current_block - last_adjustment_block ) >= adjustment_interval as u64 {
 
-                // --- 4. Get the current counters for this network w.r.t burn and difficulty values.
-                let current_burn: u64 = Self::get_burn_as_u64( netuid );
-                let current_difficulty: u64 = Self::get_difficulty_as_u64( netuid );
                 let registrations_this_interval: u16 = Self::get_registrations_this_interval( netuid );
                 let pow_registrations_this_interval: u16 = Self::get_pow_registrations_this_interval( netuid );
-                let burn_registrations_this_interval: u16 = Self::get_burn_registrations_this_interval( netuid );
                 let target_registrations_this_interval: u16 = Self::get_target_registrations_per_interval( netuid );
-                // --- 5. Adjust burn + pow
-                // There are four cases to consider. A, B, C, D
-                if registrations_this_interval > target_registrations_this_interval {
-                    if pow_registrations_this_interval > burn_registrations_this_interval {
-                        // A. There are too many registrations this interval and most of them are pow registrations
-                        // this triggers an increase in the pow difficulty.
-                        // pow_difficulty ++ 
-                        Self::set_difficulty( netuid, Self::adjust_difficulty( netuid, current_difficulty, registrations_this_interval, target_registrations_this_interval ) );
-                    } else {
-                        // B. There are too many registrations this interval and most of them are burn registrations
-                        // this triggers an increase in the burn cost.
-                        // burn_cost ++
-                        Self::set_burn( netuid, Self::adjust_burn( netuid, current_burn, registrations_this_interval, target_registrations_this_interval ) );
-                    }
-                } else {
-                    if pow_registrations_this_interval > burn_registrations_this_interval {
-                        // C. There are not enough registrations this interval and most of them are pow registrations
-                        // this triggers a decrease in the burn cost
-                        // burn_cost --
-                        Self::set_burn( netuid, Self::adjust_burn( netuid, current_burn, registrations_this_interval, target_registrations_this_interval ) );
-                    } else {
-                        // D. There are not enough registrations this interval and most of them are burn registrations
-                        // this triggers a decrease in the pow difficutly
-                        // pow_difficulty ++ 
-                        Self::set_difficulty( netuid, Self::adjust_difficulty( netuid, current_difficulty, registrations_this_interval, target_registrations_this_interval ) );
-                    }
-                }
 
                 // --- 6. Drain all counters for this network for this interval.
                 Self::set_last_adjustment_block( netuid, current_block );
                 Self::set_registrations_this_interval( netuid, 0 );
-                Self::set_pow_registrations_this_interval( netuid, 0 );
-                Self::set_burn_registrations_this_interval( netuid, 0 );
             }
 
             // --- 7. Drain block registrations for each network. Needed for registration rate limits.
@@ -226,42 +192,7 @@ impl<T: Config> Pallet<T> {
         }
     }
 
-    // Performs the difficutly adjustment by multiplying the current difficulty by the ratio ( reg_actual + reg_target / reg_target * reg_target )
-    // We use I110F18 to avoid any overflows on u64. Also min_difficulty and max_difficutly bound the range.
-    //
-    pub fn adjust_difficulty( 
-        netuid: u16,
-        current_difficulty: u64, 
-        registrations_this_interval: u16, 
-        target_registrations_per_interval: u16 
-    ) -> u64 {
-        let next_value: I110F18 = I110F18::from_num( current_difficulty ) * I110F18::from_num( registrations_this_interval + target_registrations_per_interval ) / I110F18::from_num( target_registrations_per_interval + target_registrations_per_interval );
-        if next_value >= I110F18::from_num( Self::get_max_difficulty( netuid ) ){
-            return Self::get_max_difficulty( netuid );
-        } else if next_value <= I110F18::from_num( Self::get_min_difficulty( netuid ) ) {
-            return Self::get_min_difficulty( netuid );
-        } else {
-            return next_value.to_num::<u64>();
-        }
-    }
 
-    // Performs the burn adjustment by multiplying the current difficulty by the ratio ( reg_actual + reg_target / reg_target * reg_target )
-    // We use I110F18 to avoid any overflows on u64. Also min_burn and max_burn bound the range.
-    //
-    pub fn adjust_burn( 
-        netuid: u16,
-        current_burn: u64, 
-        registrations_this_interval: u16, 
-        target_registrations_per_interval: u16 
-    ) -> u64 {
-        let next_value: I110F18 = I110F18::from_num( current_burn ) * I110F18::from_num( registrations_this_interval + target_registrations_per_interval ) / I110F18::from_num( target_registrations_per_interval + target_registrations_per_interval );
-        if next_value >= I110F18::from_num( Self::get_max_burn_as_u64( netuid ) ){
-            return Self::get_max_burn_as_u64( netuid );
-        } else if next_value <= I110F18::from_num( Self::get_min_burn_as_u64( netuid ) ) {
-            return Self::get_min_burn_as_u64( netuid );
-        } else {
-            return next_value.to_num::<u64>();
-        }
-    }
+
 
 }
