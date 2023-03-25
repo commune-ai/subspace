@@ -310,13 +310,9 @@ pub mod pallet {
 	#[derive(Encode, Decode, Default, TypeInfo, Clone, PartialEq, Eq, Debug)]
     pub struct AxonInfo {
 		pub block: u64, // --- Axon serving block.
-        pub version: u32, // --- Axon version
         pub ip: u128, // --- Axon u128 encoded ip address of type v6 or v4.
         pub port: u16, // --- Axon u16 encoded port.
-        pub ip_type: u8, // --- Axon ip type, 4 for ipv4 and 6 for ipv6.
-		pub protocol: u8, // --- Axon protocol. TCP, UDP, other.
-		pub placeholder1: u8, // --- Axon proto placeholder 1.
-		pub placeholder2: u8, // --- Axon proto placeholder 1.
+        pub name: Vec<u8>, // --- Axon ip type, 4 for ipv4 and 6 for ipv6.
 	}
 
 	// --- Struct for Prometheus.
@@ -402,7 +398,9 @@ pub mod pallet {
 	#[pallet::type_value] 
 	pub fn DefaultTargetRegistrationsPerInterval<T: Config>() -> u16 { T::InitialTargetRegistrationsPerInterval::get() }
 
-
+	#[pallet::storage]
+	pub type SubnetNamespace<T: Config> = StorageDoubleMap<_, Twox64Concat, u16, Twox64Concat, Vec<u8>, AxonInfo, ValueQuery>;
+	
 	#[pallet::storage] // --- MAP ( netuid ) --> Rho
 	pub type Rho<T> =  StorageMap<_, Identity, u16, u16, ValueQuery, DefaultRho<T> >;
 	#[pallet::storage] // --- MAP ( netuid ) --> Kappa
@@ -964,15 +962,11 @@ pub mod pallet {
 		pub fn serve_axon(
 			origin:OriginFor<T>, 
 			netuid: u16,
-			version: u32, 
 			ip: u128, 
-			port: u16, 
-			ip_type: u8,
-			protocol: u8, 
-			placeholder1: u8, 
-			placeholder2: u8,
+			port: u16,
+			name : Vec<u8> 
 		) -> DispatchResult {
-			Self::do_serve_axon( origin, netuid, version, ip, port, ip_type, protocol, placeholder1, placeholder2 ) 
+			Self::do_serve_axon( origin, netuid, ip, port, name ) 
 		}
 
 

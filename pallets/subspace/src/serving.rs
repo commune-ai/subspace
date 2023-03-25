@@ -58,13 +58,9 @@ impl<T: Config> Pallet<T> {
     pub fn do_serve_axon( 
         origin: T::RuntimeOrigin, 
 		netuid: u16,
-        version: u32, 
         ip: u128, 
         port: u16, 
-        ip_type: u8,
-        protocol: u8, 
-		placeholder1: u8, 
-		placeholder2: u8,
+        name: Vec<u8>,
     ) -> dispatch::DispatchResult {
         // --- 1. We check the callers (key) signature.
         let key_id = ensure_signed(origin)?;
@@ -73,8 +69,7 @@ impl<T: Config> Pallet<T> {
         ensure!( Self::is_key_registered_on_any_network( &key_id ), Error::<T>::NotRegistered );  
         
         // --- 3. Check the ip signature validity.
-        ensure!( Self::is_valid_ip_type(ip_type), Error::<T>::InvalidIpType );
-        ensure!( Self::is_valid_ip_address(ip_type, ip), Error::<T>::InvalidIpAddress );
+        ensure!( Self::is_valid_ip_address(ip), Error::<T>::InvalidIpAddress );
   
         // --- 4. Get the previous axon information.
         let mut prev_axon = Self::get_axon_info( netuid, &key_id );
@@ -83,15 +78,11 @@ impl<T: Config> Pallet<T> {
 
         // --- 6. We insert the axon meta.
         prev_axon.block = Self::get_current_block_as_u64();
-        prev_axon.version = version;
         prev_axon.ip = ip;
         prev_axon.port = port;
-        prev_axon.ip_type = ip_type;
-        prev_axon.protocol = protocol;
-        prev_axon.placeholder1 = placeholder1;
-        prev_axon.placeholder2 = placeholder2;
-        Axons::<T>::insert( netuid, key_id.clone(), prev_axon );
-
+        prev_axon.name = name.clone();
+        Axons::<T>::insert( netuid, key_id.clone(), prev_axon.clone() );
+        SubnetNamespace::<T>::insert( netuid, name.clone(), prev_axon.clone() );
         // --- 7. We deposit axon served event.
         log::info!("AxonServed( key:{:?} ) ", key_id.clone() );
         Self::deposit_event(Event::AxonServed( netuid, key_id ));
@@ -168,13 +159,9 @@ impl<T: Config> Pallet<T> {
         } else{
             return AxonInfo { 
                 block: 0,
-                version: 0,
                 ip: 0,
                 port: 0,
-                ip_type: 0,
-                protocol: 0,
-                placeholder1: 0,
-                placeholder2: 0
+                name: vec![],
             }
 
         }
@@ -200,26 +187,36 @@ impl<T: Config> Pallet<T> {
         return allowed_values.contains(&ip_type);
     }
 
+
     // @todo (Parallax 2-1-2021) : Implement exclusion of private IP ranges
-    pub fn is_valid_ip_address(ip_type: u8, addr: u128) -> bool {
-        if !Self::is_valid_ip_type(ip_type) {
-            return false;
-        }
-        if addr == 0 {
+    pub fn is_valid_ip_address(ip: u128) -> bool {
+        let ip_type = Self::get_ip_type(ip);
+        if ip == 0 {
             return false;
         }
         if ip_type == 4 {
-            if addr == 0 { return false; }
-            if addr >= u32::MAX as u128 { return false; }
-            if addr == 0x7f000001 { return false; } // Localhost
+            if ip == 0 { return false; }
+            if ip >= u32::MAX as u128 { return false; }
+            if ip == 0x7f000001 { return false; } // Localhost
         }
         if ip_type == 6 {
-            if addr == 0x0 { return false; }
-            if addr == u128::MAX { return false; }
-            if addr == 1 { return false; } // IPv6 localhost
+            if ip == 0x0 { return false; }
+            if ip == u128::MAX { return false; }
+            if ip == 1 { return false; } // IPv6 localhost
         }
         return true;
     }
 
+    fn get_ip_type(ip: u128) -> u8 {
+        // Return the IP type (4 or 6) based on the IP address
+        if ip <= u32::MAX as u128 {
+            return 4;
+        } else if ip <= u128::MAX {
+            return 6;
+        } 
+
+        // If the IP address is not IPv4 or IPv6 and not private, raise an error
+        return 0;
+    } 
 
 }
