@@ -99,32 +99,6 @@ impl<T: Config> Pallet<T> {
 
 
 
-    // ---- The implementation for the extrinsic sudo_remove_network_connect_requirement.
-    // Args:
-    // 	* 'origin': (<T as frame_system::Config>RuntimeOrigin):
-    // 		- The caller, must be sudo.
-    //
-    // 	* `netuid_a` (u16):
-    // 		- The network we are removing the requirment from.
-    //
-    // 	* `netuid_b` (u16):
-    // 		- The required network connection to remove.
-    //   
-    pub fn do_sudo_remove_network_connection_requirement(
-        origin: T::RuntimeOrigin, 
-        netuid_a: u16,
-        netuid_b: u16,
-    ) -> dispatch::DispatchResult {
-        ensure_root( origin )?;
-        ensure!( Self::if_subnet_exist( netuid_a ), Error::<T>::NetworkDoesNotExist );
-        ensure!( Self::if_subnet_exist( netuid_b ), Error::<T>::NetworkDoesNotExist );
-        Self::remove_connection_requirment( netuid_a, netuid_b );
-        log::info!("NetworkConnectionRemoved( netuid_a:{:?}, netuid_b:{:?} )", netuid_a, netuid_b );
-        Self::deposit_event( Event::NetworkConnectionRemoved( netuid_a, netuid_b ) );
-        Ok(())
-    }
-
-
     // ---- The implementation for the extrinsic set_emission_values.
     //
     // # Args:

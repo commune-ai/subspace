@@ -943,23 +943,6 @@ pub mod pallet {
 
 
 
-		// ---- Sudo remove a network connection requirement.
-		// Args:
-		// 	* 'origin': (<T as frame_system::Config>Origin):
-		// 		- The caller, must be sudo.
-		//
-		// 	* `netuid_a` (u16):
-		// 		- The network we are removing the requirment from.
-		//
-		// 	* `netuid_b` (u16):
-		// 		- The required network connection to remove.
-		//   
-		#[pallet::weight((Weight::from_ref_time(15_000_000)
-		.saturating_add(T::DbWeight::get().reads(3)), DispatchClass::Operational, Pays::No))]
-		pub fn sudo_remove_network_connection_requirement( origin:OriginFor<T>, netuid_a: u16, netuid_b: u16 ) -> DispatchResult { 
-			Self::do_sudo_remove_network_connection_requirement( origin, netuid_a, netuid_b )
-		}
-
 		// ==================================
 		// ==== Parameter Sudo calls ========
 		// ==================================
@@ -1147,6 +1130,7 @@ pub enum CallType {
     RemoveStake,
 	AddDelegate,
     Register,
+	AddNetwork,
     Serve,
 	Other,
 }
@@ -1234,7 +1218,14 @@ impl<T: Config + Send + Sync + TypeInfo> SignedExtension for SubspaceSignedExten
                     ..Default::default()
                 })
             }
-            Some(Call::register{..}) => {
+            Some(Call::add_network{..}) => {
+                Ok(ValidTransaction {
+                    priority: Self::get_priority_vanilla(),
+                    ..Default::default()
+                })
+            }
+	
+			Some(Call::register{..}) => {
                 Ok(ValidTransaction {
                     priority: Self::get_priority_vanilla(),
                     ..Default::default()
@@ -1260,7 +1251,7 @@ impl<T: Config + Send + Sync + TypeInfo> SignedExtension for SubspaceSignedExten
 
         match call.is_sub_type() {
             Some(Call::add_stake{..}) => {
-				let transaction_fee = 100000;
+				let transaction_fee = 0;
                 Ok((CallType::AddStake, transaction_fee, who.clone()))
             }
             Some(Call::remove_stake{..}) => {
@@ -1274,6 +1265,10 @@ impl<T: Config + Send + Sync + TypeInfo> SignedExtension for SubspaceSignedExten
 			Some(Call::register{..}) => {
                 let transaction_fee = 0;
                 Ok((CallType::Register, transaction_fee, who.clone()))
+            }
+			Some(Call::add_network{..}) => {
+                let transaction_fee = 0;
+                Ok((CallType::AddNetwork, transaction_fee, who.clone()))
             }
             Some(Call::serve_axon{..}) => {
                 let transaction_fee = 0;
