@@ -37,6 +37,7 @@ impl<T: Config> Pallet<T> {
         origin: T::RuntimeOrigin, 
         netuid: u16, 
         name: Vec<u8>,
+        context: Vec<u8>,
         tempo: u16, 
     ) -> dispatch::DispatchResultWithPostInfo {
 
@@ -96,35 +97,7 @@ impl<T: Config> Pallet<T> {
         Ok(())
     }
 
-    // ---- The implementation for the extrinsic sudo_add_network_connect_requirement.
-    // Args:
-    // 	* 'origin': (<T as frame_system::Config>RuntimeOrigin):
-    // 		- The caller, must be sudo.
-    //
-    // 	* `netuid_a` (u16):
-    // 		- The network we are adding the requirment to (parent network)
-    //
-    // 	* `netuid_b` (u16):
-    // 		- The network we the requirement refers to (child network)
-    //
-    // 	* `prunning_score_requirement` (u16):
-    // 		- The topk percentile prunning score requirement (u16:MAX normalized.)
-    //
-    pub fn do_sudo_add_network_connection_requirement(
-        origin: T::RuntimeOrigin, 
-        netuid_a: u16,
-        netuid_b: u16,
-        requirement: u16
-    ) -> dispatch::DispatchResult {
-        ensure_root( origin )?;
-        ensure!( netuid_a != netuid_b, Error::<T>::InvalidConnectionRequirement );
-        ensure!( Self::if_subnet_exist( netuid_a ), Error::<T>::NetworkDoesNotExist );
-        ensure!( Self::if_subnet_exist( netuid_b ), Error::<T>::NetworkDoesNotExist );
-        Self::add_connection_requirement( netuid_a, netuid_b, requirement );
-        log::info!("NetworkConnectionAdded( netuid_a:{:?}, netuid_b:{:?} requirement: {:?} )", netuid_a, netuid_b, requirement);
-        Self::deposit_event( Event::NetworkConnectionAdded( netuid_a, netuid_b, requirement ) );
-        Ok(())
-    }
+
 
     // ---- The implementation for the extrinsic sudo_remove_network_connect_requirement.
     // Args:
@@ -256,9 +229,7 @@ impl<T: Config> Pallet<T> {
         if !ActivityCutoff::<T>::contains_key( netuid ) { ActivityCutoff::<T>::insert( netuid, ActivityCutoff::<T>::get( netuid ));}
         if !EmissionValues::<T>::contains_key( netuid ) { EmissionValues::<T>::insert( netuid, EmissionValues::<T>::get( netuid ));}   
         if !MaxWeightsLimit::<T>::contains_key( netuid ) { MaxWeightsLimit::<T>::insert( netuid, MaxWeightsLimit::<T>::get( netuid ));}
-        if !ValidatorEpochLen::<T>::contains_key( netuid ) { ValidatorEpochLen::<T>::insert( netuid, ValidatorEpochLen::<T>::get( netuid ));}
         if !MinAllowedWeights::<T>::contains_key( netuid ) { MinAllowedWeights::<T>::insert( netuid, MinAllowedWeights::<T>::get( netuid )); }
-        if !ValidatorEpochsPerReset::<T>::contains_key( netuid ) { ValidatorEpochsPerReset::<T>::insert( netuid, ValidatorEpochsPerReset::<T>::get( netuid ));}
         if !RegistrationsThisInterval::<T>::contains_key( netuid ) { RegistrationsThisInterval::<T>::insert( netuid, RegistrationsThisInterval::<T>::get( netuid ));}
     }
 
@@ -279,7 +250,6 @@ impl<T: Config> Pallet<T> {
         Dividends::<T>::remove( netuid );
         PruningScores::<T>::remove( netuid );
         LastUpdate::<T>::remove( netuid );
-        ValidatorPermit::<T>::remove( netuid );
 
         // --- 2. Erase network parameters.
         Tempo::<T>::remove( netuid );
@@ -288,9 +258,7 @@ impl<T: Config> Pallet<T> {
         ActivityCutoff::<T>::remove( netuid );
         EmissionValues::<T>::remove( netuid );
         MaxWeightsLimit::<T>::remove( netuid );
-        ValidatorEpochLen::<T>::remove( netuid );
         MinAllowedWeights::<T>::remove( netuid );
-        ValidatorEpochsPerReset::<T>::remove( netuid );
         RegistrationsThisInterval::<T>::remove( netuid );
     }
 

@@ -112,14 +112,6 @@ pub mod pallet {
 		type InitialTargetRegistrationsPerInterval: Get<u16>;
 		#[pallet::constant] // Max UID constant.
 		type InitialMaxAllowedUids: Get<u16>;
-		#[pallet::constant] // Default Epoch length.
-		type InitialValidatorEpochLen: Get<u16>;
-		#[pallet::constant] // Default Reset length.
-		type InitialValidatorEpochsPerReset: Get<u16>;
-		#[pallet::constant] // Initial validator exclude quantile.
-		type InitialValidatorExcludeQuantile: Get<u16>;
-		#[pallet::constant] // Initial validator context pruning length.
-		type InitialValidatorPruneLen: Get<u64>; 
 		#[pallet::constant] // Immunity Period Constant.
 		type InitialImmunityPeriod: Get<u16>;
 		#[pallet::constant] // Activity constant
@@ -128,8 +120,6 @@ pub mod pallet {
 		type InitialMaxRegistrationsPerBlock: Get<u16>;
 		#[pallet::constant] // Initial pruning score for each neuron
 		type InitialPruningScore: Get<u16>;	
-		#[pallet::constant] // Initial allowed validators per network.
-		type InitialMaxAllowedValidators: Get<u16>;
 		#[pallet::constant] // Initial default delegation take.
 		type InitialDefaultTake: Get<u16>;
 		#[pallet::constant] // Initial weights version key.
@@ -308,16 +298,8 @@ pub mod pallet {
 	pub fn DefaultWeightsVersionKey<T: Config>() -> u64 { T::InitialWeightsVersionKey::get() }
 	#[pallet::type_value] 
 	pub fn DefaultMinAllowedWeights<T: Config>() -> u16 { T::InitialMinAllowedWeights::get() }
-	#[pallet::type_value] 
-	pub fn DefaultValidatorEpochLen<T: Config>() -> u16 { T::InitialValidatorEpochLen::get() }
-	#[pallet::type_value] 
-	pub fn DefaultMaxAllowedValidators<T: Config>() -> u16 { T::InitialMaxAllowedValidators::get() }
 	#[pallet::type_value]
 	pub fn DefaultAdjustmentInterval<T: Config>() -> u16 { T::InitialAdjustmentInterval::get() }
-	#[pallet::type_value] 
-	pub fn DefaultValidatorPruneLen<T: Config>() -> u64 { T::InitialValidatorPruneLen::get() }
-	#[pallet::type_value] 
-	pub fn DefaultValidatorEpochsPerReset<T: Config>() -> u16 { T::InitialValidatorEpochsPerReset::get() }
 	#[pallet::type_value] 
 	pub fn DefaultTargetRegistrationsPerInterval<T: Config>() -> u16 { T::InitialTargetRegistrationsPerInterval::get() }
 
@@ -340,20 +322,12 @@ pub mod pallet {
 	pub type MaxWeightsLimit<T> = StorageMap< _, Identity, u16, u16, ValueQuery, DefaultMaxWeightsLimit<T> >;
 	#[pallet::storage] // --- MAP ( netuid ) --> weights_version_key
 	pub type WeightsVersionKey<T> = StorageMap<_, Identity, u16, u64, ValueQuery, DefaultWeightsVersionKey<T> >;
-	#[pallet::storage] // --- MAP ( netuid ) --> validator_epoch_len
-	pub type ValidatorEpochLen<T> = StorageMap<_, Identity, u16, u16, ValueQuery, DefaultValidatorEpochLen<T> >; 
 	#[pallet::storage] // --- MAP ( netuid ) --> min_allowed_weights
 	pub type MinAllowedWeights<T> = StorageMap< _, Identity, u16, u16, ValueQuery, DefaultMinAllowedWeights<T> >;
-	#[pallet::storage] // --- MAP ( netuid ) --> max_allowed_validators
-	pub type MaxAllowedValidators<T> = StorageMap<_, Identity, u16, u16, ValueQuery, DefaultMaxAllowedValidators<T> >;
 	#[pallet::storage] // --- MAP ( netuid ) --> adjustment_interval
 	pub type AdjustmentInterval<T> = StorageMap<_, Identity, u16, u16, ValueQuery, DefaultAdjustmentInterval<T> >;
 	#[pallet::storage] // --- MAP ( netuid ) --> weights_set_rate_limit
 	pub type WeightsSetRateLimit<T> = StorageMap<_, Identity, u16, u64, ValueQuery, DefaultWeightsSetRateLimit<T> >;
-	#[pallet::storage] // --- MAP ( netuid ) --> validator_prune_len
-	pub type ValidatorPruneLen<T> = StorageMap<_, Identity, u16, u64, ValueQuery, DefaultValidatorPruneLen<T> >;
-	#[pallet::storage] // --- MAP ( netuid ) --> validator_epochs_per_reset
-	pub type ValidatorEpochsPerReset<T> = StorageMap<_, Identity, u16, u16, ValueQuery, DefaultValidatorEpochsPerReset<T> >;
 	#[pallet::storage] // --- MAP ( netuid ) --> target_registrations_this_interval
 	pub type TargetRegistrationsPerInterval<T> = StorageMap<_, Identity, u16, u16, ValueQuery, DefaultTargetRegistrationsPerInterval<T> >;
 	#[pallet::storage] // --- DMAP ( netuid, uid ) --> block_at_registration
@@ -397,8 +371,6 @@ pub mod pallet {
 	pub(super) type LastUpdate<T:Config> = StorageMap< _, Identity, u16, Vec<u64>, ValueQuery, EmptyU64Vec<T>>;
 	#[pallet::storage] // --- DMAP ( netuid ) --> pruning_scores
 	pub(super) type PruningScores<T:Config> = StorageMap< _, Identity, u16, Vec<u16>, ValueQuery, EmptyU16Vec<T> >;
-	#[pallet::storage] // --- DMAP ( netuid ) --> validator_permit
-    pub(super) type ValidatorPermit<T:Config> = StorageMap<_, Identity, u16, Vec<bool>, ValueQuery, EmptyBoolVec<T> >;
 
 	#[pallet::storage] // --- DMAP ( netuid, uid ) --> weights
     pub(super) type Weights<T:Config> = StorageDoubleMap<_, Identity, u16, Identity, u16, Vec<(u16, u16)>, ValueQuery, DefaultWeights<T> >;
@@ -427,12 +399,8 @@ pub mod pallet {
 		MaxRegistrationsPerBlockSet( u16, u16), // --- Event created when we set max registrations per block
 		ActivityCutoffSet( u16, u16 ), // --- Event created when an activity cutoff is set for a subnet.
 		MinAllowedWeightSet( u16, u16 ), // --- Event created when minimun allowed weight is set for a subnet.
-		ValidatorEpochPerResetSet( u16, u16 ), // --- Event created when validator epoch per reset is set for a subnet.
-		ValidatorEpochLengthSet( u16, u16 ), // --- Event created when the validator epoch length has been set for a subnet.
-		ValidatorPruneLenSet( u16, u64 ), // --- Event created when the validator pruning length has been set.
 		WeightsSetRateLimitSet( u16, u64 ), // --- Event create when weights set rate limit has been set for a subnet.
 		ImmunityPeriodSet( u16, u16), // --- Event created when immunity period is set for a subnet.
-		MaxAllowedValidatorsSet( u16, u16), // --- Event created when setting the max number of allowed validators on a subnet.
 		AxonServed( u16, T::AccountId ), // --- Event created when the axon server information is added to the network.
 		PrometheusServed( u16, T::AccountId ), // --- Event created when the axon server information is added to the network.
 		EmissionValuesSet(), // --- Event created when emission ratios fr all networks is set.
@@ -458,7 +426,6 @@ pub mod pallet {
 		NotEnoughStaketoWithdraw, // ---- Thrown when the caller requests removing more stake then there exists in the staking account. See: fn remove_stake.
 		NotEnoughBalanceToStake, //  ---- Thrown when the caller requests adding more stake than there exists in the cold key account. See: fn add_stake
 		BalanceWithdrawalError, // ---- Thrown when the caller tries to add stake, but for some reason the requested amount could not be withdrawn from the coldkey account
-		NoValidatorPermit, // ---- Thrown when the caller attempts to set non-self weights without being a permitted validator.
 		WeightVecNotEqualSize, // ---- Thrown when the caller attempts to set the weight keys and values but these vectors have different size.
 		DuplicateUids, // ---- Thrown when the caller attempts to set weights with duplicate uids in the weight matrix.
 		InvalidUid, // ---- Thrown when a caller attempts to set weight to at least one uid that does not exist in the metagraph.
@@ -530,9 +497,7 @@ pub mod pallet {
 			if !ActivityCutoff::<T>::contains_key( netuid ) { ActivityCutoff::<T>::insert( netuid, ActivityCutoff::<T>::get( netuid ));}
 			if !EmissionValues::<T>::contains_key( netuid ) { EmissionValues::<T>::insert( netuid, EmissionValues::<T>::get( netuid ));}   
 			if !MaxWeightsLimit::<T>::contains_key( netuid ) { MaxWeightsLimit::<T>::insert( netuid, MaxWeightsLimit::<T>::get( netuid ));}
-			if !ValidatorEpochLen::<T>::contains_key( netuid ) { ValidatorEpochLen::<T>::insert( netuid, ValidatorEpochLen::<T>::get( netuid ));}
 			if !MinAllowedWeights::<T>::contains_key( netuid ) { MinAllowedWeights::<T>::insert( netuid, MinAllowedWeights::<T>::get( netuid )); }
-			if !ValidatorEpochsPerReset::<T>::contains_key( netuid ) { ValidatorEpochsPerReset::<T>::insert( netuid, ValidatorEpochsPerReset::<T>::get( netuid ));}
 			if !RegistrationsThisInterval::<T>::contains_key( netuid ) { RegistrationsThisInterval::<T>::insert( netuid, RegistrationsThisInterval::<T>::get( netuid ));}
 
 			// Set max allowed uids
@@ -552,7 +517,6 @@ pub mod pallet {
 					Dividends::<T>::mutate(netuid, |v| v.push(0));
 					LastUpdate::<T>::mutate(netuid, |v| v.push(0));
 					PruningScores::<T>::mutate(netuid, |v| v.push(0));
-					ValidatorPermit::<T>::mutate(netuid, |v| v.push(false));
 			
 					// Insert account information.
 					Keys::<T>::insert(netuid, uid, key.clone()); // Make key - uid association.
@@ -915,13 +879,14 @@ pub mod pallet {
 		#[pallet::weight((Weight::from_ref_time(50_000_000)
 		.saturating_add(T::DbWeight::get().reads(17))
 		.saturating_add(T::DbWeight::get().writes(20)), DispatchClass::Operational, Pays::No))]
-		pub fn sudo_add_network(
+		pub fn add_network(
 			origin: OriginFor<T>,
 			netuid: u16,
 			name: Vec<u8>,
+			context: Vec<u8>,
 			tempo: u16,
 		) -> DispatchResultWithPostInfo {
-			Self::do_add_network(origin, netuid, name,tempo)
+			Self::do_add_network(origin, netuid, name, context, tempo)
 		}
 
 		// ---- Sudo remove a network from the network set.
@@ -976,26 +941,7 @@ pub mod pallet {
 			)
 		}
 
-		// ---- Sudo add a network connect requirement.
-		// Args:
-		// 	* 'origin': (<T as frame_system::Config>Origin):
-		// 		- The caller, must be sudo.
-		//
-		// 	* `netuid_a` (u16):
-		// 		- The network we are adding the requirment to (parent network)
-		//
-		// 	* `netuid_b` (u16):
-		// 		- The network we the requirement refers to (child network)
-		//
-		// 	* `requirement` (u16):
-		// 		- The topk percentile prunning score requirement (u16:MAX normalized.)
-		//
-		#[pallet::weight((Weight::from_ref_time(17_000_000)
-		.saturating_add(T::DbWeight::get().reads(2))
-		.saturating_add(T::DbWeight::get().writes(1)), DispatchClass::Operational, Pays::No))]
-		pub fn sudo_add_network_connection_requirement( origin:OriginFor<T>, netuid_a: u16, netuid_b: u16, requirement: u16 ) -> DispatchResult { 
-			Self::do_sudo_add_network_connection_requirement( origin, netuid_a, netuid_b, requirement )
-		}
+
 
 		// ---- Sudo remove a network connection requirement.
 		// Args:
@@ -1061,13 +1007,6 @@ pub mod pallet {
 		#[pallet::weight((Weight::from_ref_time(14_000_000)
 		.saturating_add(T::DbWeight::get().reads(1))
 		.saturating_add(T::DbWeight::get().writes(1)), DispatchClass::Operational, Pays::No))]
-		pub fn sudo_set_max_allowed_validators( origin:OriginFor<T>, netuid: u16, max_allowed_validators: u16 ) -> DispatchResult {  
-			Self::do_sudo_set_max_allowed_validators( origin, netuid, max_allowed_validators )
-		}
-
-		#[pallet::weight((Weight::from_ref_time(14_000_000)
-		.saturating_add(T::DbWeight::get().reads(1))
-		.saturating_add(T::DbWeight::get().writes(1)), DispatchClass::Operational, Pays::No))]
 		pub fn sudo_set_adjustment_interval( origin:OriginFor<T>, netuid: u16, adjustment_interval: u16 ) -> DispatchResult { 
 			Self::do_sudo_set_adjustment_interval( origin, netuid, adjustment_interval )
 		}
@@ -1097,18 +1036,6 @@ pub mod pallet {
 			Self::do_sudo_set_min_allowed_weights( origin, netuid, min_allowed_weights )
 		}
 
-		#[pallet::weight((Weight::from_ref_time(13_000_000)
-		.saturating_add(T::DbWeight::get().reads(1))
-		.saturating_add(T::DbWeight::get().writes(1)), DispatchClass::Operational, Pays::No))]
-		pub fn sudo_set_validator_epochs_per_reset( origin:OriginFor<T>, netuid: u16, validator_epochs_per_reset: u16 ) -> DispatchResult {
-			Self::do_sudo_set_validator_epochs_per_reset( origin, netuid, validator_epochs_per_reset )
-		}
-		#[pallet::weight((Weight::from_ref_time(14_000_000)
-		.saturating_add(T::DbWeight::get().reads(1))
-		.saturating_add(T::DbWeight::get().writes(1)), DispatchClass::Operational, Pays::No))]
-		pub fn sudo_set_validator_epoch_len( origin:OriginFor<T>, netuid: u16,validator_epoch_length: u16 ) -> DispatchResult {
-			Self::do_sudo_set_validator_epoch_length( origin, netuid, validator_epoch_length )
-		}
 
 		#[pallet::weight((Weight::from_ref_time(13_000_000)
 		.saturating_add(T::DbWeight::get().reads(1))
@@ -1149,7 +1076,6 @@ pub mod pallet {
 		pub fn create_network_with_weights( _: OriginFor<T>, netuid: u16, name: Vec<u8>, n: u16, tempo: u16, n_vals: u16, n_weights: u16 ) -> DispatchResult {
 			Self::init_new_network( netuid, name, tempo );
 			Self::set_max_allowed_uids( netuid, n );
-			Self::set_max_allowed_validators( netuid, n_vals );
 			Self::set_min_allowed_weights( netuid, n_weights );
 			Self::set_emission_for_network( netuid, 1_000_000_000 );
 			let mut seed : u32 = 1;

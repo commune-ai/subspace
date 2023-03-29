@@ -320,11 +320,6 @@ parameter_types! {
     pub const SubspaceInitialMinAllowedWeights: u16 = 1024;
     pub const SubspaceInitialEmissionValue: u16 = 0;
     pub const SubspaceInitialMaxWeightsLimit: u16 = 262;
-    pub const SubspaceInitialValidatorEpochLen: u16 = 100;
-    pub const SubspaceInitialValidatorEpochsPerReset: u16 = 60;
-    pub const SubspaceInitialValidatorExcludeQuantile: u16 = 6554; // 10% of u16
-    pub const SubspaceInitialValidatorPruneLen: u64 = 1;
-    pub const SubspaceInitialMaxAllowedValidators: u16 = 100;
     pub const SubspaceInitialTempo: u16 = 0;
     pub const SubspaceInitialAdjustmentInterval: u16 = 100;
     pub const SubspaceInitialTargetRegistrationsPerInterval: u16 = 2;
@@ -346,10 +341,6 @@ impl pallet_subspace::Config for Runtime {
 	type InitialMinAllowedWeights = SubspaceInitialMinAllowedWeights;
 	type InitialEmissionValue = SubspaceInitialEmissionValue;
 	type InitialMaxWeightsLimit = SubspaceInitialMaxWeightsLimit;
-	type InitialValidatorEpochLen = SubspaceInitialValidatorEpochLen;
-	type InitialValidatorEpochsPerReset = SubspaceInitialValidatorEpochsPerReset;
-	type InitialValidatorExcludeQuantile = SubspaceInitialValidatorExcludeQuantile;
-	type InitialValidatorPruneLen = SubspaceInitialValidatorPruneLen;
 	type InitialTempo = SubspaceInitialTempo;
 	type InitialAdjustmentInterval = SubspaceInitialAdjustmentInterval;
 	type InitialTargetRegistrationsPerInterval = SubspaceInitialTargetRegistrationsPerInterval;
@@ -357,7 +348,6 @@ impl pallet_subspace::Config for Runtime {
 	type InitialActivityCutoff = SubspaceInitialActivityCutoff;
 	type InitialMaxRegistrationsPerBlock = SubspaceInitialMaxRegistrationsPerBlock;
 	type InitialPruningScore = SubspaceInitialPruningScore;
-	type InitialMaxAllowedValidators = SubspaceInitialMaxAllowedValidators;
 	type InitialDefaultTake = SubspaceInitialDefaultTake;
 	type InitialWeightsVersionKey = SubspaceInitialWeightsVersionKey;
 	type InitialServingRateLimit = SubspaceInitialServingRateLimit;

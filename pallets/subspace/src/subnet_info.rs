@@ -10,7 +10,6 @@ use codec::Compact;
 pub struct SubnetInfo {
     netuid: Compact<u16>,
     immunity_period: Compact<u16>,
-    max_allowed_validators: Compact<u16>,
     min_allowed_weights: Compact<u16>,
     max_weights_limit: Compact<u16>,
     subnetwork_n: Compact<u16>,
@@ -27,7 +26,6 @@ impl<T: Config> Pallet<T> {
         }
 
         let immunity_period = Self::get_immunity_period(netuid);
-        let max_allowed_validators = Self::get_max_allowed_validators(netuid);
         let min_allowed_weights = Self::get_min_allowed_weights(netuid);
         let max_weights_limit = Self::get_max_weight_limit(netuid);
         let subnetwork_n = Self::get_subnetwork_n(netuid);
@@ -41,7 +39,6 @@ impl<T: Config> Pallet<T> {
         return Some(SubnetInfo {
             immunity_period: immunity_period.into(),
             netuid: netuid.into(),
-            max_allowed_validators: max_allowed_validators.into(),
             min_allowed_weights: min_allowed_weights.into(),
             max_weights_limit: max_weights_limit.into(),
             subnetwork_n: subnetwork_n.into(),

@@ -35,7 +35,6 @@ impl<T: Config> Pallet<T> {
     pub fn get_dividends( netuid:u16 ) -> Vec<u16> { Dividends::<T>::get( netuid ) }
     pub fn get_last_update( netuid:u16 ) -> Vec<u64> { LastUpdate::<T>::get( netuid ) }
     pub fn get_pruning_score( netuid:u16 ) -> Vec<u16> { PruningScores::<T>::get( netuid ) }
-    pub fn get_validator_permit( netuid:u16 ) -> Vec<bool> { ValidatorPermit::<T>::get( netuid ) }
 
     
     pub fn set_last_update_for_uid( netuid:u16, uid: u16, last_update: u64 ) { 
@@ -59,13 +58,6 @@ impl<T: Config> Pallet<T> {
         assert!( uid < SubnetworkN::<T>::get( netuid ) );
         PruningScores::<T>::mutate( netuid, |v| v[uid as usize] = pruning_score );
     }
-    pub fn set_validator_permit_for_uid( netuid:u16, uid: u16, validator_permit: bool ) { 
-        let mut updated_validator_permit = Self::get_validator_permit( netuid ); 
-        if (uid as usize) < updated_validator_permit.len() { 
-            updated_validator_permit[uid as usize] = validator_permit;
-            ValidatorPermit::<T>::insert( netuid, updated_validator_permit );
-        }  
-    }
 
     pub fn get_rank_for_uid( netuid:u16, uid: u16) -> u16 { let vec = Rank::<T>::get( netuid ); if (uid as usize) < vec.len() { return vec[uid as usize] } else{ return 0 } }
     pub fn get_emission_for_uid( netuid:u16, uid: u16) -> u64 {let vec =  Emission::<T>::get( netuid ); if (uid as usize) < vec.len() { return vec[uid as usize] } else{ return 0 } }
@@ -74,7 +66,6 @@ impl<T: Config> Pallet<T> {
     pub fn get_dividends_for_uid( netuid:u16, uid: u16) -> u16 { let vec = Dividends::<T>::get( netuid ); if (uid as usize) < vec.len() { return vec[uid as usize] } else{ return 0 } }
     pub fn get_last_update_for_uid( netuid:u16, uid: u16) -> u64 { let vec = LastUpdate::<T>::get( netuid ); if (uid as usize) < vec.len() { return vec[uid as usize] } else{ return 0 } }
     pub fn get_pruning_score_for_uid( netuid:u16, uid: u16) -> u16 { let vec = PruningScores::<T>::get( netuid ); if (uid as usize) < vec.len() { return vec[uid as usize] } else{ return u16::MAX } }
-    pub fn get_validator_permit_for_uid( netuid:u16, uid: u16) -> bool { let vec = ValidatorPermit::<T>::get( netuid ); if (uid as usize) < vec.len() { return vec[uid as usize] } else{ return false } }
 
     // ============================
 	// ==== Subnetwork Getters ====
@@ -173,17 +164,6 @@ impl<T: Config> Pallet<T> {
     }
 
 
-    pub fn get_validator_prune_len( netuid: u16 ) -> u64 { ValidatorPruneLen::<T>::get( netuid ) }
-    pub fn set_validator_prune_len( netuid: u16, validator_prune_len: u64 ) { ValidatorPruneLen::<T>::insert( netuid, validator_prune_len ); }
-    pub fn do_sudo_set_validator_prune_len( origin:T::RuntimeOrigin, netuid: u16, validator_prune_len: u64 ) -> DispatchResult {
-        ensure_root( origin )?;
-        ensure!( Self::if_subnet_exist(netuid), Error::<T>::NetworkDoesNotExist );
-        Self::set_validator_prune_len(netuid, validator_prune_len);
-        log::info!("ValidatorPruneLenSet( netuid: {:?} validator_prune_len: {:?} ) ", netuid, validator_prune_len);
-		Self::deposit_event( Event::ValidatorPruneLenSet( netuid, validator_prune_len ));
-		Ok(())
-    }
-
 
     pub fn get_max_weight_limit( netuid: u16) -> u16 { MaxWeightsLimit::<T>::get( netuid ) }    
     pub fn set_max_weight_limit( netuid: u16, max_weight_limit: u16 ) { MaxWeightsLimit::<T>::insert( netuid, max_weight_limit ); }
@@ -207,28 +187,8 @@ impl<T: Config> Pallet<T> {
         Ok(())
     }
 
-    pub fn get_validator_epochs_per_reset( netuid: u16 )-> u16 { ValidatorEpochsPerReset::<T>::get( netuid ) }
-    pub fn set_validator_epochs_per_reset( netuid: u16, validator_epochs_per_reset: u16 ) { ValidatorEpochsPerReset::<T>::insert( netuid, validator_epochs_per_reset ); }
-    pub fn do_sudo_set_validator_epochs_per_reset( origin:T::RuntimeOrigin, netuid: u16, validator_epochs_per_reset: u16 ) -> DispatchResult {
-        ensure_root( origin )?;
-        ensure!(Self::if_subnet_exist(netuid), Error::<T>::NetworkDoesNotExist);
-        Self::set_validator_epochs_per_reset( netuid, validator_epochs_per_reset );
-        log::info!("ValidatorEpochPerResetSet( netuid: {:?} validator_epochs_per_reset: {:?} ) ", netuid, validator_epochs_per_reset );
-        Self::deposit_event(Event::ValidatorEpochPerResetSet(netuid, validator_epochs_per_reset));
-        Ok(())
-    }
+    
 
-
-    pub fn get_validator_epoch_length( netuid: u16 )-> u16 {ValidatorEpochLen::<T>::get( netuid ) }
-    pub fn set_validator_epoch_length( netuid: u16, validator_epoch_length: u16 ) { ValidatorEpochLen::<T>::insert( netuid, validator_epoch_length ); }
-    pub fn do_sudo_set_validator_epoch_length( origin:T::RuntimeOrigin, netuid: u16, validator_epoch_length: u16 ) -> DispatchResult {
-        ensure_root( origin )?; 
-        ensure!(Self::if_subnet_exist(netuid), Error::<T>::NetworkDoesNotExist);
-        ValidatorEpochLen::<T>::insert( netuid, validator_epoch_length );
-        log::info!("ValidatorEpochLengthSet( netuid: {:?} validator_epoch_length: {:?} ) ", netuid, validator_epoch_length );
-        Self::deposit_event(Event::ValidatorEpochLengthSet(netuid, validator_epoch_length));
-        Ok(())
-    }
 
  
     pub fn get_min_allowed_weights( netuid:u16 ) -> u16 { MinAllowedWeights::<T>::get( netuid ) }
@@ -277,21 +237,6 @@ impl<T: Config> Pallet<T> {
         Self::deposit_event( Event::RegistrationPerIntervalSet( netuid, target_registrations_per_interval) );
         Ok(())
     }
-
-
-
-            
-    pub fn get_max_allowed_validators( netuid: u16 ) -> u16  { MaxAllowedValidators::<T>::get( netuid ) }
-    pub fn set_max_allowed_validators( netuid: u16, max_allowed_validators: u16 ) { MaxAllowedValidators::<T>::insert( netuid, max_allowed_validators ); }
-    pub fn do_sudo_set_max_allowed_validators( origin:T::RuntimeOrigin, netuid: u16, max_allowed_validators: u16 ) -> DispatchResult {
-        ensure_root( origin )?;
-        ensure!(Self::if_subnet_exist(netuid), Error::<T>::NetworkDoesNotExist);
-        Self::set_max_allowed_validators( netuid, max_allowed_validators );
-        log::info!("MaxAllowedValidatorsSet( netuid: {:?} max_allowed_validators: {:?} ) ", netuid, max_allowed_validators );
-        Self::deposit_event( Event::MaxAllowedValidatorsSet( netuid, max_allowed_validators ) );
-        Ok(())
-    }
-
 
     pub fn get_max_registrations_per_block( netuid: u16 ) -> u16 { MaxRegistrationsPerBlock::<T>::get( netuid ) }
     pub fn set_max_registrations_per_block( netuid: u16, max_registrations_per_block: u16 ) { MaxRegistrationsPerBlock::<T>::insert( netuid, max_registrations_per_block ); }

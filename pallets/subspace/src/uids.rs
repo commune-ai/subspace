@@ -53,7 +53,6 @@ impl<T: Config> Pallet<T> {
         Dividends::<T>::mutate(netuid, |v| v.push(0) );
         LastUpdate::<T>::mutate(netuid, |v| v.push( block_number ) );
         PruningScores::<T>::mutate(netuid, |v| v.push(0) );
-        ValidatorPermit::<T>::mutate(netuid, |v| v.push(false) );
  
         // 4. Insert new account information.
         Keys::<T>::insert( netuid, next_uid, new_key.clone() ); // Make key - uid association.
