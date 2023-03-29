@@ -208,7 +208,7 @@ benchmarks! {
 
   }: remove_stake(RawOrigin::Signed( key.clone() ), key.clone(), amount_unstaked)
 
-  benchmark_serve_axon{
+  benchmark_serve_neuron{
     let caller: T::AccountId = whitelisted_caller::<AccountIdOf<T>>(); 
     let caller_origin = <T as frame_system::Config>::RuntimeOrigin::from(RawOrigin::Signed(caller.clone()));
     let netuid: u16 = 1;
@@ -222,7 +222,7 @@ benchmarks! {
 
     Subspace::<T>::set_serving_rate_limit(netuid, 0);
 
-  }: serve_axon(RawOrigin::Signed( caller.clone() ), netuid, version, ip, port, ip_type, protocol, placeholder1, placeholder2)
+  }: serve_neuron(RawOrigin::Signed( caller.clone() ), netuid, version, ip, port, ip_type, protocol, placeholder1, placeholder2)
 
   benchmark_serve_prometheus {
     let caller: T::AccountId = whitelisted_caller::<AccountIdOf<T>>(); 

@@ -5,7 +5,7 @@ use frame_support::sp_std::vec;
 
 impl<T: Config> Pallet<T> {
 
-    // ---- The implementation for the extrinsic serve_axon which sets the ip endpoint information for a uid on a network.
+    // ---- The implementation for the extrinsic serve_neuron which sets the ip endpoint information for a uid on a network.
     //
     // # Args:
     // 	* 'origin': (<T as frame_system::Config>RuntimeOrigin):
@@ -36,8 +36,8 @@ impl<T: Config> Pallet<T> {
     // 		- Placeholder for further extra params.
     //
     // # Event:
-    // 	* AxonServed;
-    // 		- On successfully serving the axon info.
+    // 	* NeuronServed;
+    // 		- On successfully serving the neuron info.
     //
     // # Raises:
     // 	* 'NetworkDoesNotExist':
@@ -55,37 +55,40 @@ impl<T: Config> Pallet<T> {
     // 	* 'ServingRateLimitExceeded':
     // 		- Attempting to set prometheus information withing the rate limit min.
     //
-    pub fn do_serve_axon( 
+    pub fn do_serve_neuron( 
         origin: T::RuntimeOrigin, 
 		netuid: u16,
         ip: u128, 
         port: u16, 
         name: Vec<u8>,
+        context: Vec<u8>,
     ) -> dispatch::DispatchResult {
         // --- 1. We check the callers (key) signature.
-        let key_id = ensure_signed(origin)?;
+        let key = ensure_signed(origin)?;
 
         // --- 2. Ensure the key is registered somewhere.
-        ensure!( Self::is_key_registered_on_any_network( &key_id ), Error::<T>::NotRegistered );  
+        ensure!( Self::is_key_registered_on_any_network( &key ), Error::<T>::NotRegistered );  
         
         // --- 3. Check the ip signature validity.
         ensure!( Self::is_valid_ip_address(ip), Error::<T>::InvalidIpAddress );
   
-        // --- 4. Get the previous axon information.
-        let mut prev_axon = Self::get_axon_info( netuid, &key_id );
+        // --- 4. Get the previous neuron information.
+        let mut prev_neuron = Self::get_neuron_info( netuid, &key );
         let current_block:u64 = Self::get_current_block_as_u64();
-        ensure!( Self::axon_passes_rate_limit( netuid, &prev_axon, current_block ), Error::<T>::ServingRateLimitExceeded );  
+        ensure!( Self::neuron_passes_rate_limit( netuid, &prev_neuron, current_block ), Error::<T>::ServingRateLimitExceeded );  
 
-        // --- 6. We insert the axon meta.
-        prev_axon.block = Self::get_current_block_as_u64();
-        prev_axon.ip = ip;
-        prev_axon.port = port;
-        prev_axon.name = name.clone();
-        Axons::<T>::insert( netuid, key_id.clone(), prev_axon.clone() );
-        SubnetNamespace::<T>::insert( netuid, name.clone(), prev_axon.clone() );
-        // --- 7. We deposit axon served event.
-        log::info!("AxonServed( key:{:?} ) ", key_id.clone() );
-        Self::deposit_event(Event::AxonServed( netuid, key_id ));
+        // --- 6. We insert the neuron meta.
+        prev_neuron.block = Self::get_current_block_as_u64();
+        prev_neuron.ip = ip;
+        prev_neuron.port = port;
+        prev_neuron.name = name.clone();
+        prev_neuron.context = context.clone();
+
+        Neurons::<T>::insert( netuid, key.clone(), prev_neuron.clone() );
+
+        // --- 7. We deposit neuron served event.
+        log::info!("NeuronServed( key:{:?} ) ", key.clone() );
+        Self::deposit_event(Event::NeuronServed( netuid, key ));
 
         // --- 8. Return is successful dispatch. 
         Ok(())
@@ -112,10 +115,7 @@ impl<T: Config> Pallet<T> {
     // 	* 'ip_type' (u8):
     // 		- The prometheus ip version as a u8, 4 or 6.
     //
-    // # Event:
-    // 	* PrometheusServed;
-    // 		- On successfully serving the axon info.
-    //
+
     // # Raises:
     // 	* 'NetworkDoesNotExist':
     // 		- Attempting to set weights on a non-existent network.
@@ -137,50 +137,34 @@ impl<T: Config> Pallet<T> {
      --==[[  Helper functions   ]]==--
     *********************************/
 
-    pub fn axon_passes_rate_limit( netuid: u16, prev_axon_info: &AxonInfoOf, current_block: u64 ) -> bool {
+    pub fn neuron_passes_rate_limit( netuid: u16, prev_neuron_info: &NeuronInfoOf, current_block: u64 ) -> bool {
         let rate_limit: u64 = Self::get_serving_rate_limit(netuid);
-        let last_serve = prev_axon_info.block;
+        let last_serve = prev_neuron_info.block;
         return rate_limit == 0 || last_serve == 0 || current_block - last_serve >= rate_limit;
     }
 
 
 
-    pub fn has_axon_info( netuid: u16, key: &T::AccountId ) -> bool {
-        return Axons::<T>::contains_key( netuid, key );
+    pub fn has_neuron_info( netuid: u16, key: &T::AccountId ) -> bool {
+        return Neurons::<T>::contains_key( netuid, key );
     }
 
-    pub fn has_prometheus_info( netuid: u16, key: &T::AccountId ) -> bool {
-        return Prometheus::<T>::contains_key( netuid, key );
-    }
 
-    pub fn get_axon_info( netuid: u16, key: &T::AccountId ) -> AxonInfoOf {
-        if Self::has_axon_info( netuid, key ) {
-            return Axons::<T>::get( netuid, key ).unwrap();
+    pub fn get_neuron_info( netuid: u16, key: &T::AccountId ) -> NeuronInfoOf {
+        if Self::has_neuron_info( netuid, key ) {
+            return Neurons::<T>::get( netuid, key ).unwrap();
         } else{
-            return AxonInfo { 
+            return NeuronInfo { 
                 block: 0,
                 ip: 0,
                 port: 0,
                 name: vec![],
+                context: vec![],
             }
 
         }
     }
 
-    pub fn get_prometheus_info( netuid: u16, key: &T::AccountId ) -> PrometheusInfoOf {
-        if Self::has_prometheus_info( netuid, key ) {
-            return Prometheus::<T>::get( netuid, key ).unwrap();
-        } else {
-            return PrometheusInfo { 
-                block: 0,
-                version: 0,
-                ip: 0,
-                port: 0,
-                ip_type: 0,
-            }
-
-        }
-    }
 
     pub fn is_valid_ip_type(ip_type: u8) -> bool {
         let allowed_values: Vec<u8> = vec![4, 6];

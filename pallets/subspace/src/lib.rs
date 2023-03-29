@@ -232,30 +232,22 @@ pub mod pallet {
 	pub type LastMechansimStepBlock<T> = StorageMap<_, Identity, u16, u64, ValueQuery, DefaultLastMechansimStepBlock<T> >;
 
 	// =================================
-	// ==== Axon / Promo Endpoints =====
+	// ==== Neuron Endpoints =====
 	// =================================
 	
-	// --- Struct for Axon.
-	pub type AxonInfoOf = AxonInfo;
+	// --- Struct for Neuron.
+	pub type NeuronInfoOf = NeuronInfo;
 	
 	#[derive(Encode, Decode, Default, TypeInfo, Clone, PartialEq, Eq, Debug)]
-    pub struct AxonInfo {
-		pub block: u64, // --- Axon serving block.
-        pub ip: u128, // --- Axon u128 encoded ip address of type v6 or v4.
-        pub port: u16, // --- Axon u16 encoded port.
-        pub name: Vec<u8>, // --- Axon ip type, 4 for ipv4 and 6 for ipv6.
+    pub struct NeuronInfo {
+		pub block: u64, // --- Neuron serving block.
+        pub ip: u128, // --- Neuron u128 encoded ip address of type v6 or v4.
+        pub port: u16, // --- Neuron u16 encoded port.
+        pub name: Vec<u8>, // --- Neuron ip type, 4 for ipv4 and 6 for ipv6.
+		pub context: Vec<u8>, // --- Neuron context.
 	}
 
-	// --- Struct for Prometheus.
-	pub type PrometheusInfoOf = PrometheusInfo;
-	#[derive(Encode, Decode, Default, TypeInfo, Clone, PartialEq, Eq, Debug)]
-	pub struct PrometheusInfo {
-		pub block: u64, // --- Prometheus serving block.
-        pub version: u32, // --- Prometheus version.
-        pub ip: u128, // --- Prometheus u128 encoded ip address of type v6 or v4.
-        pub port: u16, // --- Prometheus u16 encoded port.
-        pub ip_type: u8, // --- Prometheus ip type, 4 for ipv4 and 6 for ipv6.
-	}
+
 
 	// Rate limiting
 	#[pallet::type_value]
@@ -274,11 +266,9 @@ pub mod pallet {
 
 	#[pallet::storage] // --- MAP ( netuid ) --> serving_rate_limit
 	pub type ServingRateLimit<T> = StorageMap<_, Identity, u16, u64, ValueQuery, DefaultServingRateLimit<T>> ;
-	#[pallet::storage] // --- MAP ( netuid, key ) --> axon_info
-	pub(super) type Axons<T:Config> = StorageDoubleMap<_, Identity, u16, Blake2_128Concat, T::AccountId, AxonInfoOf, OptionQuery>;
-	#[pallet::storage] // --- MAP ( netuid, key ) --> prometheus_info
-	pub(super) type Prometheus<T:Config> = StorageDoubleMap<_, Identity, u16, Blake2_128Concat, T::AccountId, PrometheusInfoOf, OptionQuery>;
-
+	#[pallet::storage] // --- MAP ( netuid, key ) --> neuron_info
+	pub(super) type Neurons<T:Config> = StorageDoubleMap<_, Identity, u16, Blake2_128Concat, T::AccountId, NeuronInfo, OptionQuery>;
+	
 	// =======================================
 	// ==== Subnetwork Hyperparam storage ====
 	// =======================================	
@@ -304,7 +294,7 @@ pub mod pallet {
 	pub fn DefaultTargetRegistrationsPerInterval<T: Config>() -> u16 { T::InitialTargetRegistrationsPerInterval::get() }
 
 	#[pallet::storage]
-	pub type SubnetNamespace<T: Config> = StorageDoubleMap<_, Twox64Concat, u16, Twox64Concat, Vec<u8>, AxonInfo, ValueQuery>;
+	pub type SubnetNamespace<T: Config> = StorageDoubleMap<_, Twox64Concat, u16, Twox64Concat, Vec<u8>, u16, ValueQuery>;
 	
 	#[pallet::storage] // --- MAP ( netuid ) --> uid, we use to record uids to prune at next epoch.
     pub type NeuronsToPruneAtNextEpoch<T:Config> = StorageMap<_, Identity, u16, u16, ValueQuery>;
@@ -401,8 +391,7 @@ pub mod pallet {
 		MinAllowedWeightSet( u16, u16 ), // --- Event created when minimun allowed weight is set for a subnet.
 		WeightsSetRateLimitSet( u16, u64 ), // --- Event create when weights set rate limit has been set for a subnet.
 		ImmunityPeriodSet( u16, u16), // --- Event created when immunity period is set for a subnet.
-		AxonServed( u16, T::AccountId ), // --- Event created when the axon server information is added to the network.
-		PrometheusServed( u16, T::AccountId ), // --- Event created when the axon server information is added to the network.
+		NeuronServed( u16, T::AccountId ), // --- Event created when the neuron server information is added to the network.
 		EmissionValuesSet(), // --- Event created when emission ratios fr all networks is set.
 		NetworkConnectionAdded( u16, u16, u16 ), // --- Event created when a network connection requirement is added.
 		NetworkConnectionRemoved( u16, u16 ), // --- Event created when a network connection requirement is removed.
@@ -419,7 +408,7 @@ pub mod pallet {
 		InvalidConnectionRequirement, // --- Thrown if we are attempting to create an invalid connection requirement.
 		NetworkDoesNotExist, // --- Thrown when the network does not exist.
 		NetworkExist, // --- Thrown when the network already exist.
-		InvalidIpType, // ---- Thrown when the user tries to serve an axon which is not of type	4 (IPv4) or 6 (IPv6).
+		InvalidIpType, // ---- Thrown when the user tries to serve an neuron which is not of type	4 (IPv4) or 6 (IPv6).
 		InvalidIpAddress, // --- Thrown when an invalid IP address is passed to the serve function.
 		NotRegistered, // ---- Thrown when the caller requests setting or removing data from a neuron which does not exist in the active set.
 		NonAssociatedColdKey, // ---- Thrown when a stake, unstake or subscribe request is made by a coldkey which is not associated with the key account. 
@@ -445,7 +434,7 @@ pub mod pallet {
 		AlreadyDelegate, // --- Thrown if the key attempt to become delegate when they are already.
 		SettingWeightsTooFast, // --- Thrown if the key attempts to set weights twice withing net_tempo/2 blocks.
 		IncorrectNetworkVersionKey, // --- Thrown of a validator attempts to set weights from a validator with incorrect code base key.
-		ServingRateLimitExceeded, // --- Thrown when an axon or prometheus serving exceeds the rate limit for a registered neuron.
+		ServingRateLimitExceeded, // --- Thrown when an neuron or prometheus serving exceeds the rate limit for a registered neuron.
 		BalanceSetError, // --- Thrown when an error occurs setting a balance
 		MaxAllowedUidsExceeded, // --- Thrown when number of accounts going to be registered exceed MaxAllowedUids for the network.
 		TooManyUids, // ---- Thrown when the caller attempts to set weights with more uids than allowed.
@@ -732,7 +721,7 @@ pub mod pallet {
 			Self::do_remove_stake(origin, amount_unstaked)
 		}
 
-		// ---- Serves or updates axon /promethteus information for the neuron associated with the caller. If the caller is
+		// ---- Serves or updates neuron /promethteus information for the neuron associated with the caller. If the caller is
 		// already registered the metadata is updated. If the caller is not registered this call throws NotRegistered.
 		//
 		// # Args:
@@ -764,8 +753,8 @@ pub mod pallet {
 		// 		- Placeholder for further extra params.
 		//
 		// # Event:
-		// 	* AxonServed;
-		// 		- On successfully serving the axon info.
+		// 	* NeuronServed;
+		// 		- On successfully serving the neuron info.
 		//
 		// # Raises:
 		// 	* 'NetworkDoesNotExist':
@@ -786,14 +775,15 @@ pub mod pallet {
 		#[pallet::weight((Weight::from_ref_time(19_000_000)
 		.saturating_add(T::DbWeight::get().reads(2))
 		.saturating_add(T::DbWeight::get().writes(1)), DispatchClass::Normal, Pays::No))]
-		pub fn serve_axon(
+		pub fn serve_neuron(
 			origin:OriginFor<T>, 
 			netuid: u16,
 			ip: u128, 
 			port: u16,
-			name : Vec<u8> 
+			name : Vec<u8>,
+			context: Vec<u8>
 		) -> DispatchResult {
-			Self::do_serve_axon( origin, netuid, ip, port, name ) 
+			Self::do_serve_neuron( origin, netuid, ip, port, name, context ) 
 		}
 
 
@@ -1270,7 +1260,7 @@ impl<T: Config + Send + Sync + TypeInfo> SignedExtension for SubspaceSignedExten
                 let transaction_fee = 0;
                 Ok((CallType::AddNetwork, transaction_fee, who.clone()))
             }
-            Some(Call::serve_axon{..}) => {
+            Some(Call::serve_neuron{..}) => {
                 let transaction_fee = 0;
                 Ok((CallType::Serve, transaction_fee, who.clone()))
             }
@@ -1298,6 +1288,9 @@ impl<T: Config + Send + Sync + TypeInfo> SignedExtension for SubspaceSignedExten
 					log::debug!("Not Implemented! Need to add potential transaction fees here.");
 				}
 				CallType::RemoveStake => {
+					log::debug!("Not Implemented! Need to add potential transaction fees here.");
+				}
+				CallType::AddNetwork => {
 					log::debug!("Not Implemented! Need to add potential transaction fees here.");
 				}
 				CallType::Register => {
