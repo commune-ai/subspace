@@ -1,11 +1,11 @@
 {
-  "name": "Bittensor",
-  "id": "bittensor",
+  "name": "Commune",
+  "id": "commune",
   "chainType": "Development",
   "bootNodes": [
   ],
   "telemetryEndpoints": null,
-  "protocolId": "bittensor",
+  "protocolId": "commune",
   "properties": null,
   "codeSubstitutes": {},
   "genesis": {

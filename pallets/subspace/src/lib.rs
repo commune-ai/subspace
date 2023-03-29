@@ -732,7 +732,7 @@ pub mod pallet {
 		// 		- The u16 network identifier.
 		//
 		// 	* 'version' (u64):
-		// 		- The bittensor version identifier.
+		// 		- The commune version identifier.
 		//
 		// 	* 'ip' (u64):
 		// 		- The endpoint ip information as a u128 encoded integer.

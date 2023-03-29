@@ -22,7 +22,7 @@ impl<T: Config> Pallet<T> {
     // network. Networks run their epoch when (block_number + netuid + 1 ) % (tempo + 1) = 0
     //
     pub fn blocks_until_next_epoch( netuid: u16, tempo: u16, block_number: u64 ) -> u64 { 
-        if tempo == 0 { return 1000 } // Special case: tempo = 0, the network never runs.
+        if tempo == 0 { return 10 } // Special case: tempo = 0, the network never runs.
         // tempo | netuid | # first epoch block
         //   1        0               0
         //   1        1               1

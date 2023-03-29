@@ -175,9 +175,9 @@ pub fn finney_config() -> Result<ChainSpec, String> {
 
 	Ok(ChainSpec::from_genesis(
 		// Name
-		"Bittensor",
+		"Commune",
 		// ID
-		"bittensor",
+		"commune",
 		ChainType::Development,
 		move || {
 			finney_genesis(
@@ -225,7 +225,7 @@ pub fn finney_config() -> Result<ChainSpec, String> {
 		// Telemetry
 		None,
 		// Protocol ID
-		Some("bittensor"),
+		Some("commune"),
 		None,
 		// Properties
 		None,

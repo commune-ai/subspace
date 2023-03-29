@@ -1,13 +1,13 @@
 # Create your own Subspace
 
 # **Subspace** <!-- omit in toc -->
-[![Discord Chat](https://img.shields.io/discord/308323056592486420.svg)](https://discord.gg/bittensor)
+[![Discord Chat](https://img.shields.io/discord/308323056592486420.svg)](https://discord.gg/commune)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT) 
 
 </div>
-This repository contains Bittensor's substrate-chain. Subspace contains the trusted logic which:
+This repository contains Commune's substrate-chain. Subspace contains the trusted logic which:
 
-1. Runs Bittensor's consensus mechanism
+1. Runs Commune's consensus mechanism
 1. Advertises neuron information, IPs, etc
 1. and facilitates value transfer via TAO.
 
@@ -37,7 +37,7 @@ Requirements:
 * Subspace needs access to the public internet
 * Subspace runs on ipv4
 * Subspace listens on the following ports:
-1) 9944 - Websocket. This port is used by bittensor. It only accepts connections from localhost. Make sure this port is firewalled off from the public domain.
+1) 9944 - Websocket. This port is used by commune. It only accepts connections from localhost. Make sure this port is firewalled off from the public domain.
 2) 9933 - RPC. This port is opened, but not used.
 3) 30333 - p2p socket. This port accepts connections from other subspace nodes. Make sure your firewall(s) allow incoming traffic to this port.
 * It is assumed your default outgoing traffic policy is ACCEPT. If not, make sure outbound traffic to port 30333 is allowed.
