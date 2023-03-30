@@ -139,10 +139,7 @@ impl<T: Config> Pallet<T> {
 
         }
 
-        // --- 5. Last increase final account balance of delegate after 4, since 5 will change the stake proportion of 
-        // the delegate and effect calculation in 4.
-        // Self::increase_stake_on_account( &key, delegate_take );
-        // log::debug!("delkey: {:?} delegate_take: +{:?} ", key,delegate_take );
+
     }
 
 

@@ -19,10 +19,7 @@ impl<T: Config> Pallet<T> {
     //
     // 	* 'values' ( Vec<u16> ):
     // 		- The values of the weights to set on the chain.
-    //
-    // 	* 'version_key' ( u64 ):
-    // 		- The network version key.
-    //
+
     // # Event:
     // 	* WeightsSet;
     // 		- On successfully setting the weights on chain.
@@ -34,9 +31,7 @@ impl<T: Config> Pallet<T> {
     // 	* 'NotRegistered':
     // 		- Attempting to set weights from a non registered account.
     //
-    // 	* 'IncorrectNetworkVersionKey':
-    // 		- Attempting to set weights without having an up-to-date version_key.
-    //
+
     // 	* 'SettingWeightsTooFast':
     // 		- Attempting to set weights faster than the weights_set_rate_limit.
     //
@@ -61,7 +56,7 @@ impl<T: Config> Pallet<T> {
     // 	* 'MaxWeightExceeded':
     // 		- Attempting to set weights with max value exceeding limit.
     //
-    pub fn do_set_weights( origin: T::RuntimeOrigin, netuid: u16, uids: Vec<u16>, values: Vec<u16>, version_key:u64 ) -> dispatch::DispatchResult{
+    pub fn do_set_weights( origin: T::RuntimeOrigin, netuid: u16, uids: Vec<u16>, values: Vec<u16> ) -> dispatch::DispatchResult{
 
         // --- 1. Check the caller's signature. This is the key of a registered account.
         let key = ensure_signed( origin )?;

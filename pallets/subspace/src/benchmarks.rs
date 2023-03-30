@@ -117,7 +117,6 @@ benchmarks! {
     let caller: T::AccountId = whitelisted_caller::<AccountIdOf<T>>(); 
     let caller_origin = <T as frame_system::Config>::RuntimeOrigin::from(RawOrigin::Signed(caller.clone()));
     let netuid: u16 = 1;
-    let version_key: u64 = 1;
     let tempo: u16 = 1;
     let name: Vec<u8> = "DefaultModule".as_bytes().to_vec();
     let context: Vec<u8> = "{'context': 'boo'}".as_bytes().to_vec();= b"default".to_vec();
@@ -149,14 +148,13 @@ benchmarks! {
       weights.push(id.clone());
     }
 
-  }: set_weights(RawOrigin::Signed( signer.clone() ), netuid, dests, weights, version_key)
+  }: set_weights(RawOrigin::Signed( signer.clone() ), netuid, dests, weights)
 
 
   benchmark_add_stake {
     let caller: T::AccountId = whitelisted_caller::<AccountIdOf<T>>(); 
     let caller_origin = <T as frame_system::Config>::RuntimeOrigin::from(RawOrigin::Signed(caller.clone()));
     let netuid: u16 = 1;
-    let version_key: u64 = 1;
     let tempo: u16 = 1;
     let name: Vec<u8> = "DefaultModule".as_bytes().to_vec();
     let context: Vec<u8> = "{'context': 'boo'}".as_bytes().to_vec();= b"default".to_vec();
@@ -183,7 +181,6 @@ benchmarks! {
     let caller: T::AccountId = whitelisted_caller::<AccountIdOf<T>>(); 
     let caller_origin = <T as frame_system::Config>::RuntimeOrigin::from(RawOrigin::Signed(caller.clone()));
     let netuid: u16 = 1;
-    let version_key: u64 = 1;
     let tempo: u16 = 1;
     let name: Vec<u8> = "DefaultModule".as_bytes().to_vec();
     let context: Vec<u8> = "{'context': 'boo'}".as_bytes().to_vec();= b"default".to_vec();

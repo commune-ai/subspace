@@ -120,8 +120,6 @@ pub mod pallet {
 		type InitialMaxRegistrationsPerBlock: Get<u16>;
 		#[pallet::constant] // Initial pruning score for each neuron
 		type InitialPruningScore: Get<u16>;	
-		#[pallet::constant] // Initial default delegation take.
-		type InitialDefaultTake: Get<u16>;
 		#[pallet::constant] // Initial serving rate limit.
 		type InitialServingRateLimit: Get<u64>;
 		#[pallet::constant] // Initial transaction rate limit.
@@ -133,8 +131,6 @@ pub mod pallet {
 	// ============================
 	// ==== Staking + Accounts ====
 	// ============================
-	#[pallet::type_value] 
-	pub fn DefaultDefaultTake<T: Config>() -> u16 { T::InitialDefaultTake::get() }
 	#[pallet::type_value] 
 	pub fn DefaultAccountTake<T: Config>() -> u64 { 0 }
 	#[pallet::type_value]
@@ -148,8 +144,6 @@ pub mod pallet {
 
 	#[pallet::storage] // --- ITEM ( total_stake )
 	pub type TotalStake<T> = StorageValue<_, u64, ValueQuery>;
-	#[pallet::storage] // --- ITEM ( default_take )
-	pub type DefaultTake<T> = StorageValue<_, u16, ValueQuery, DefaultDefaultTake<T>>;
 	#[pallet::storage] // --- ITEM ( global_block_emission )
 	pub type BlockEmission<T> = StorageValue<_, u64, ValueQuery, DefaultBlockEmission<T>>;
 	#[pallet::storage] // --- ITEM ( total_issuance )
@@ -158,10 +152,6 @@ pub mod pallet {
     pub type TotalKeyStake<T:Config> = StorageMap<_, Identity, T::AccountId, u64, ValueQuery, DefaultAccountTake<T>>;
 	#[pallet::storage] // --- MAP ( cold ) --> stake | Returns the total amount of stake under a coldkey.
     pub type TotalColdkeyStake<T:Config> = StorageMap<_, Identity, T::AccountId, u64, ValueQuery, DefaultAccountTake<T>>;
-	#[pallet::storage] // --- MAP ( hot ) --> cold | Returns the controlling coldkey for a key.
-    pub type Owner<T:Config> = StorageMap<_, Blake2_128Concat, T::AccountId, T::AccountId, ValueQuery, DefaultAccount<T>>;
-	#[pallet::storage] // --- MAP ( hot ) --> take | Returns the key delegation take. And signals that this key is open for delegation.
-    pub type Delegates<T:Config> = StorageMap<_, Blake2_128Concat, T::AccountId, u16, ValueQuery, DefaultDefaultTake<T>>;
 	#[pallet::storage] // --- DMAP ( hot, cold ) --> stake | Returns the stake under a key prefixed by key.
 	pub type Stake<T:Config> = StorageMap<_, Identity, T::AccountId, u64, ValueQuery, DefaultAccountTake<T>>;
 
@@ -397,10 +387,7 @@ pub mod pallet {
 		ImmunityPeriodSet( u16, u16), // --- Event created when immunity period is set for a subnet.
 		NeuronServed( u16, T::AccountId ), // --- Event created when the neuron server information is added to the network.
 		EmissionValuesSet(), // --- Event created when emission ratios fr all networks is set.
-		NetworkConnectionAdded( u16, u16, u16 ), // --- Event created when a network connection requirement is added.
-		NetworkConnectionRemoved( u16, u16 ), // --- Event created when a network connection requirement is removed.
 		DelegateAdded( T::AccountId, T::AccountId, u16 ), // --- Event created to signal a key has become a delegate.
-		DefaultTakeSet( u16 ), // --- Event created when the default take is set.
 		ServingRateLimitSet( u16, u64 ), // --- Event created when setting the prometheus serving rate limit.
 		TxRateLimitSet( u64 ), // --- Event created when setting the transaction rate limit.
 	}
@@ -408,7 +395,6 @@ pub mod pallet {
 	// Errors inform users that something went wrong.
 	#[pallet::error]
 	pub enum Error<T> {
-		InvalidConnectionRequirement, // --- Thrown if we are attempting to create an invalid connection requirement.
 		NetworkDoesNotExist, // --- Thrown when the network does not exist.
 		NetworkExist, // --- Thrown when the network already exist.
 		InvalidIpType, // ---- Thrown when the user tries to serve an neuron which is not of type	4 (IPv4) or 6 (IPv6).
@@ -433,10 +419,7 @@ pub mod pallet {
 		InvalidTempo, // --- Thrown when tempo is not valid
 		EmissionValuesDoesNotMatchNetworks, // --- Thrown when number or recieved emission rates does not match number of networks
 		InvalidEmissionValues, // --- Thrown when emission ratios are not valid (did not sum up to 10^9)
-		DidNotPassConnectedNetworkRequirement, // --- Thrown when a key attempts to register into a network without passing the  registration requirment from another network.
-		AlreadyDelegate, // --- Thrown if the key attempt to become delegate when they are already.
 		SettingWeightsTooFast, // --- Thrown if the key attempts to set weights twice withing net_tempo/2 blocks.
-		IncorrectNetworkVersionKey, // --- Thrown of a validator attempts to set weights from a validator with incorrect code base key.
 		ServingRateLimitExceeded, // --- Thrown when an neuron or prometheus serving exceeds the rate limit for a registered neuron.
 		BalanceSetError, // --- Thrown when an error occurs setting a balance
 		MaxAllowedUidsExceeded, // --- Thrown when number of accounts going to be registered exceed MaxAllowedUids for the network.
@@ -517,7 +500,6 @@ pub mod pallet {
 					IsNetworkMember::<T>::insert(key.clone(), netuid, true); // Fill network is member.
 	
 					// Fill stake information.
-					Owner::<T>::insert(key.clone(), coldkey.clone());
 	
 					TotalKeyStake::<T>::insert(key.clone(), stake);
 					TotalColdkeyStake::<T>::insert(coldkey.clone(), TotalColdkeyStake::<T>::get(coldkey).saturating_add(*stake));
@@ -592,9 +574,6 @@ pub mod pallet {
 		// 		- The u16 integer encoded weights. Interpreted as rational
 		// 		values in the range [0,1]. They must sum to in32::MAX.
 		//
-		// 	* 'version_key' ( u64 ):
-    	// 		- The network version key to check if the validator is up to date.
-		//
 		// # Event:
 		// 	* WeightsSet;
 		// 		- On successfully setting the weights on chain.
@@ -631,9 +610,8 @@ pub mod pallet {
 			netuid: u16,
 			dests: Vec<u16>, 
 			weights: Vec<u16>,
-			version_key: u64 
 		) -> DispatchResult {
-			Self::do_set_weights( origin, netuid, dests, weights, version_key )
+			Self::do_set_weights( origin, netuid, dests, weights )
 		}
 
 
@@ -939,22 +917,8 @@ pub mod pallet {
 		// ==================================
 		// ==== Parameter Sudo calls ========
 		// ==================================
-		// Each function sets the corresponding hyper paramter on the specified network
-		// Args:
-		// 	* 'origin': (<T as frame_system::Config>Origin):
-		// 		- The caller, must be sudo.
-		//
-		// 	* `netuid` (u16):
-		// 		- The network identifier.
-		//
-		// 	* `hyperparameter value` (u16):
-		// 		- The value of the hyper parameter.
-		//   
-		#[pallet::weight((Weight::from_ref_time(11_000_000)
-		.saturating_add(T::DbWeight::get().writes(1)), DispatchClass::Operational, Pays::No))]
-		pub fn sudo_set_default_take( origin:OriginFor<T>, default_take: u16 ) -> DispatchResult {  
-			Self::do_sudo_set_default_take( origin, default_take )
-		}
+
+
 		#[pallet::weight((Weight::from_ref_time(10_000_000)
 		.saturating_add(T::DbWeight::get().writes(1)), DispatchClass::Operational, Pays::No))]
 		pub fn sudo_set_serving_rate_limit( origin:OriginFor<T>, netuid: u16, serving_rate_limit: u64 ) -> DispatchResult {  

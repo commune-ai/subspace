@@ -106,18 +106,7 @@ impl<T: Config> Pallet<T> {
         return current_block - prev_tx_block <= rate_limit;
     }
 
-    // ========================
-	// ==== Sudo calls ========
-	// ========================
-    pub fn get_default_take() -> u16 { DefaultTake::<T>::get() }
-    pub fn set_default_take( default_take: u16 ) { DefaultTake::<T>::put( default_take ) }
-    pub fn do_sudo_set_default_take( origin: T::RuntimeOrigin, default_take: u16 ) -> DispatchResult { 
-        ensure_root( origin )?;
-        Self::set_default_take( default_take );
-        log::info!("DefaultTakeSet( default_take: {:?} ) ", default_take);
-        Self::deposit_event( Event::DefaultTakeSet( default_take ) );
-        Ok(()) 
-    }
+
 
 	// Configure tx rate limiting
 	pub fn get_tx_rate_limit() -> u64 { TxRateLimit::<T>::get() }

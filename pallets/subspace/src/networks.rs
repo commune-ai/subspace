@@ -44,6 +44,8 @@ impl<T: Config> Pallet<T> {
         // --- 1. Ensure this is a sudo caller.
         let key = ensure_signed( origin )?;
 
+
+
         // --- 2. Ensure this subnetwork does not already exist.
         ensure!( !Self::if_subnet_exist( netuid ), Error::<T>::NetworkExist );
 
@@ -237,34 +239,6 @@ impl<T: Config> Pallet<T> {
     }
 
 
-    // --- Returns true if a network connection exists.
-    //
-    pub fn network_connection_requirement_exists( netuid_a: u16, netuid_b: u16 ) -> bool {
-        NetworkConnect::<T>::contains_key( netuid_a, netuid_b )
-    }
-
-    // --- Returns the network connection requirment between net A and net B.
-    //
-    pub fn get_network_connection_requirement( netuid_a: u16, netuid_b: u16 ) -> u16 {
-        if Self::network_connection_requirement_exists( netuid_a, netuid_b ){
-            return NetworkConnect::<T>::get( netuid_a, netuid_b ).unwrap();
-        } else {
-            // Should never occur.
-            return u16::MAX;
-        }
-    }
-
-    // --- Adds a network b connection requirement to network a. 
-    //
-    pub fn add_connection_requirement( netuid_a: u16, netuid_b: u16, requirement: u16 ) {
-        NetworkConnect::<T>::insert( netuid_a, netuid_b, requirement );
-    }
-
-    // --- Removes the network b connection requirement from network a. 
-    //
-    pub fn remove_connection_requirment( netuid_a: u16, netuid_b: u16) {
-        if Self::network_connection_requirement_exists(netuid_a, netuid_b) { NetworkConnect::<T>::remove( netuid_a, netuid_b ); }
-    }
 
     // Returns true if the items contain duplicates.
     //
