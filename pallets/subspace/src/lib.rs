@@ -122,8 +122,6 @@ pub mod pallet {
 		type InitialPruningScore: Get<u16>;	
 		#[pallet::constant] // Initial default delegation take.
 		type InitialDefaultTake: Get<u16>;
-		#[pallet::constant] // Initial weights version key.
-		type InitialWeightsVersionKey: Get<u64>;
 		#[pallet::constant] // Initial serving rate limit.
 		type InitialServingRateLimit: Get<u64>;
 		#[pallet::constant] // Initial transaction rate limit.
@@ -236,7 +234,6 @@ pub mod pallet {
 	// =================================
 	
 	// --- Struct for Neuron.
-	pub type NeuronInfoOf = NeuronInfo;
 	
 	#[derive(Encode, Decode, Default, TypeInfo, Clone, PartialEq, Eq, Debug)]
     pub struct NeuronInfo {
@@ -245,6 +242,17 @@ pub mod pallet {
         pub port: u16, // --- Neuron u16 encoded port.
         pub name: Vec<u8>, // --- Neuron ip type, 4 for ipv4 and 6 for ipv6.
 		pub context: Vec<u8>, // --- Neuron context.
+	}
+
+
+
+	#[derive(Encode, Decode, Default, TypeInfo, Clone, PartialEq, Eq, Debug)]
+	pub struct SubnetInfo<T: Config> {
+		pub port: u16, // --- Neuron u16 encoded port.
+		pub name: Vec<u8>, // --- Neuron ip type, 4 for ipv4 and 6 for ipv6.
+		pub context: Vec<u8>, // --- Neuron context.
+		pub keys: Vec<T::AccountId>, // --- Neuron context.
+		// pub key: T::AccountId, // --- Neuron context.
 	}
 
 
@@ -285,8 +293,6 @@ pub mod pallet {
 	#[pallet::type_value] 
 	pub fn DefaultMaxWeightsLimit<T: Config>() -> u16 { T::InitialMaxWeightsLimit::get() }
 	#[pallet::type_value] 
-	pub fn DefaultWeightsVersionKey<T: Config>() -> u64 { T::InitialWeightsVersionKey::get() }
-	#[pallet::type_value] 
 	pub fn DefaultMinAllowedWeights<T: Config>() -> u16 { T::InitialMinAllowedWeights::get() }
 	#[pallet::type_value]
 	pub fn DefaultAdjustmentInterval<T: Config>() -> u16 { T::InitialAdjustmentInterval::get() }
@@ -310,8 +316,6 @@ pub mod pallet {
 	pub type ActivityCutoff<T> = StorageMap<_, Identity, u16, u16, ValueQuery, DefaultActivityCutoff<T> >;
 	#[pallet::storage] // --- MAP ( netuid ) --> max_weight_limit
 	pub type MaxWeightsLimit<T> = StorageMap< _, Identity, u16, u16, ValueQuery, DefaultMaxWeightsLimit<T> >;
-	#[pallet::storage] // --- MAP ( netuid ) --> weights_version_key
-	pub type WeightsVersionKey<T> = StorageMap<_, Identity, u16, u64, ValueQuery, DefaultWeightsVersionKey<T> >;
 	#[pallet::storage] // --- MAP ( netuid ) --> min_allowed_weights
 	pub type MinAllowedWeights<T> = StorageMap< _, Identity, u16, u16, ValueQuery, DefaultMinAllowedWeights<T> >;
 	#[pallet::storage] // --- MAP ( netuid ) --> adjustment_interval
@@ -397,7 +401,6 @@ pub mod pallet {
 		NetworkConnectionRemoved( u16, u16 ), // --- Event created when a network connection requirement is removed.
 		DelegateAdded( T::AccountId, T::AccountId, u16 ), // --- Event created to signal a key has become a delegate.
 		DefaultTakeSet( u16 ), // --- Event created when the default take is set.
-		WeightsVersionKeySet( u16, u64 ), // --- Event created when weights version key is set for a network.
 		ServingRateLimitSet( u16, u64 ), // --- Event created when setting the prometheus serving rate limit.
 		TxRateLimitSet( u64 ), // --- Event created when setting the transaction rate limit.
 	}
@@ -970,18 +973,13 @@ pub mod pallet {
 		pub fn sudo_set_weights_set_rate_limit( origin:OriginFor<T>, netuid: u16, weights_set_rate_limit: u64 ) -> DispatchResult {  
 			Self::do_sudo_set_weights_set_rate_limit( origin, netuid, weights_set_rate_limit )
 		}
-		#[pallet::weight((Weight::from_ref_time(14_000_000)
-		.saturating_add(T::DbWeight::get().reads(1))
-		.saturating_add(T::DbWeight::get().writes(1)), DispatchClass::Operational, Pays::No))]
-		pub fn sudo_set_weights_version_key( origin:OriginFor<T>, netuid: u16, weights_version_key: u64 ) -> DispatchResult {  
-			Self::do_sudo_set_weights_version_key( origin, netuid, weights_version_key )
-		}
+
 
 		#[pallet::weight((Weight::from_ref_time(14_000_000)
 		.saturating_add(T::DbWeight::get().reads(1))
 		.saturating_add(T::DbWeight::get().writes(1)), DispatchClass::Operational, Pays::No))]
 		pub fn sudo_set_adjustment_interval( origin:OriginFor<T>, netuid: u16, adjustment_interval: u16 ) -> DispatchResult { 
-			Self::do_sudo_set_adjustment_interval( origin, netuid, adjustment_interval )
+			Self::do_set_adjustment_interval( origin, netuid, adjustment_interval )
 		}
 		#[pallet::weight((Weight::from_ref_time(14_000_000)
 		.saturating_add(T::DbWeight::get().reads(1))

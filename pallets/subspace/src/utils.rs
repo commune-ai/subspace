@@ -66,14 +66,13 @@ impl<T: Config> Pallet<T> {
     pub fn get_dividends_for_uid( netuid:u16, uid: u16) -> u16 { let vec = Dividends::<T>::get( netuid ); if (uid as usize) < vec.len() { return vec[uid as usize] } else{ return 0 } }
     pub fn get_last_update_for_uid( netuid:u16, uid: u16) -> u64 { let vec = LastUpdate::<T>::get( netuid ); if (uid as usize) < vec.len() { return vec[uid as usize] } else{ return 0 } }
     pub fn get_pruning_score_for_uid( netuid:u16, uid: u16) -> u16 { let vec = PruningScores::<T>::get( netuid ); if (uid as usize) < vec.len() { return vec[uid as usize] } else{ return u16::MAX } }
-    
+
     pub fn get_context_for_uid( netuid:u16, uid: u16) -> Vec<u8> { 
         let key = Self::get_key_for_net_and_uid(netuid, uid);
         let neuron= Neurons::<T>::get( netuid, key ).unwrap();
         return neuron.context.clone();
      }
-    
-    
+
     pub fn get_name_for_uid( netuid:u16, uid: u16) -> Vec<u8> { 
         let key = Self::get_key_for_net_and_uid(netuid, uid);
         let neuron= Neurons::<T>::get( netuid, key ).unwrap();
@@ -104,7 +103,6 @@ impl<T: Config> Pallet<T> {
 		if rate_limit == 0 || prev_tx_block == 0 {
 			return false;
 		}
-
         return current_block - prev_tx_block <= rate_limit;
     }
 
@@ -135,25 +133,13 @@ impl<T: Config> Pallet<T> {
     pub fn get_serving_rate_limit( netuid: u16 ) -> u64 { ServingRateLimit::<T>::get(netuid) }
     pub fn set_serving_rate_limit( netuid: u16, serving_rate_limit: u64 ) { ServingRateLimit::<T>::insert( netuid, serving_rate_limit ) }
     pub fn do_sudo_set_serving_rate_limit( origin: T::RuntimeOrigin, netuid: u16, serving_rate_limit: u64 ) -> DispatchResult { 
-        ensure_root( origin )?;
+        let key = ensure_signed( origin )?;
         Self::set_serving_rate_limit( netuid, serving_rate_limit );
         log::info!("ServingRateLimitSet( serving_rate_limit: {:?} ) ", serving_rate_limit );
         Self::deposit_event( Event::ServingRateLimitSet( netuid, serving_rate_limit ) );
         Ok(()) 
     }
 
-
-
-    pub fn get_weights_version_key( netuid: u16) -> u64 { WeightsVersionKey::<T>::get( netuid ) }
-    pub fn set_weights_version_key( netuid: u16, weights_version_key: u64 ) { WeightsVersionKey::<T>::insert( netuid, weights_version_key ); }
-    pub fn do_sudo_set_weights_version_key( origin: T::RuntimeOrigin, netuid: u16, weights_version_key: u64 ) -> DispatchResult { 
-        ensure_root( origin )?;
-        ensure!(Self::if_subnet_exist(netuid), Error::<T>::NetworkDoesNotExist);
-        Self::set_weights_version_key( netuid, weights_version_key );
-        log::info!("WeightsVersionKeySet( netuid: {:?} weights_version_key: {:?} ) ", netuid, weights_version_key);
-        Self::deposit_event( Event::WeightsVersionKeySet( netuid, weights_version_key) );
-        Ok(()) 
-    }
 
     pub fn get_weights_set_rate_limit( netuid: u16) -> u64 { WeightsSetRateLimit::<T>::get( netuid ) }
     pub fn set_weights_set_rate_limit( netuid: u16, weights_set_rate_limit: u64 ) { WeightsSetRateLimit::<T>::insert( netuid, weights_set_rate_limit ); }
@@ -168,7 +154,7 @@ impl<T: Config> Pallet<T> {
 
     pub fn get_adjustment_interval( netuid: u16) -> u16 { AdjustmentInterval::<T>::get( netuid ) }
     pub fn set_adjustment_interval( netuid: u16, adjustment_interval: u16 ) { AdjustmentInterval::<T>::insert( netuid, adjustment_interval ); }
-    pub fn do_sudo_set_adjustment_interval( origin: T::RuntimeOrigin, netuid: u16, adjustment_interval: u16 ) -> DispatchResult { 
+    pub fn do_set_adjustment_interval( origin: T::RuntimeOrigin, netuid: u16, adjustment_interval: u16 ) -> DispatchResult { 
         ensure_root( origin )?;
         ensure!(Self::if_subnet_exist(netuid), Error::<T>::NetworkDoesNotExist);
         Self::set_adjustment_interval( netuid, adjustment_interval );
@@ -176,8 +162,6 @@ impl<T: Config> Pallet<T> {
         Self::deposit_event( Event::AdjustmentIntervalSet( netuid, adjustment_interval) );
         Ok(()) 
     }
-
-
 
     pub fn get_max_weight_limit( netuid: u16) -> u16 { MaxWeightsLimit::<T>::get( netuid ) }    
     pub fn set_max_weight_limit( netuid: u16, max_weight_limit: u16 ) { MaxWeightsLimit::<T>::insert( netuid, max_weight_limit ); }
@@ -201,10 +185,6 @@ impl<T: Config> Pallet<T> {
         Ok(())
     }
 
-    
-
-
- 
     pub fn get_min_allowed_weights( netuid:u16 ) -> u16 { MinAllowedWeights::<T>::get( netuid ) }
     pub fn set_min_allowed_weights( netuid: u16, min_allowed_weights: u16 ) { MinAllowedWeights::<T>::insert( netuid, min_allowed_weights ); }
     pub fn do_sudo_set_min_allowed_weights( origin:T::RuntimeOrigin, netuid: u16, min_allowed_weights: u16 ) -> DispatchResult {
@@ -231,11 +211,10 @@ impl<T: Config> Pallet<T> {
         
             
     pub fn get_activity_cutoff( netuid: u16 ) -> u16  { ActivityCutoff::<T>::get( netuid ) }
-    pub fn set_activity_cutoff( netuid: u16, activity_cutoff: u16 ) { ActivityCutoff::<T>::insert( netuid, activity_cutoff ); }
     pub fn do_sudo_set_activity_cutoff( origin:T::RuntimeOrigin, netuid: u16, activity_cutoff: u16 ) -> DispatchResult {
-        ensure_root( origin )?;
+        let key = ensure_signed( origin )?;
         ensure!(Self::if_subnet_exist(netuid), Error::<T>::NetworkDoesNotExist);
-        Self::set_activity_cutoff( netuid, activity_cutoff );
+        ActivityCutoff::<T>::insert( netuid, activity_cutoff ); 
         log::info!("ActivityCutoffSet( netuid: {:?} activity_cutoff: {:?} ) ", netuid, activity_cutoff);
         Self::deposit_event( Event::ActivityCutoffSet( netuid, activity_cutoff) );
         Ok(())

@@ -79,8 +79,6 @@ impl<T: Config> Pallet<T> {
         // --- 5. Check to see if the key is registered to the passed network.
         ensure!( Self::is_key_registered_on_network( netuid, &key ), Error::<T>::NotRegistered );
 
-        // --- 6. Ensure version_key is up-to-date.
-        ensure!( Self::check_version_key( netuid, version_key ), Error::<T>::IncorrectNetworkVersionKey );
 
         // --- 7. Get the neuron uid of associated key on network netuid.
         let neuron_uid;
@@ -124,17 +122,7 @@ impl<T: Config> Pallet<T> {
         Ok(())
     }
 
-    // ==========================
-	// ==== Helper functions ====
-	// ==========================
-    
-    // Returns true if version_key is up-to-date.
-    //
-    pub fn check_version_key( netuid: u16, version_key: u64) -> bool {
-        let network_version_key: u64 = WeightsVersionKey::<T>::get( netuid );
-        log::info!("check_version_key( network_version_key:{:?}, version_key:{:?} )", network_version_key, version_key );
-        return network_version_key == 0 || version_key == network_version_key;
-    }
+
 
     // Checks if the neuron has set weights within the weights_set_rate_limit.
     //

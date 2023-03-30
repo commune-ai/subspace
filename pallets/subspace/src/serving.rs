@@ -137,7 +137,7 @@ impl<T: Config> Pallet<T> {
      --==[[  Helper functions   ]]==--
     *********************************/
 
-    pub fn neuron_passes_rate_limit( netuid: u16, prev_neuron_info: &NeuronInfoOf, current_block: u64 ) -> bool {
+    pub fn neuron_passes_rate_limit( netuid: u16, prev_neuron_info: &NeuronInfo, current_block: u64 ) -> bool {
         let rate_limit: u64 = Self::get_serving_rate_limit(netuid);
         let last_serve = prev_neuron_info.block;
         return rate_limit == 0 || last_serve == 0 || current_block - last_serve >= rate_limit;
@@ -150,7 +150,7 @@ impl<T: Config> Pallet<T> {
     }
 
 
-    pub fn get_neuron_info( netuid: u16, key: &T::AccountId ) -> NeuronInfoOf {
+    pub fn get_neuron_info( netuid: u16, key: &T::AccountId ) -> NeuronInfo {
         if Self::has_neuron_info( netuid, key ) {
             return Neurons::<T>::get( netuid, key ).unwrap();
         } else{

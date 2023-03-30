@@ -42,7 +42,7 @@ impl<T: Config> Pallet<T> {
     ) -> dispatch::DispatchResultWithPostInfo {
 
         // --- 1. Ensure this is a sudo caller.
-        ensure_root( origin )?;
+        let key = ensure_signed( origin )?;
 
         // --- 2. Ensure this subnetwork does not already exist.
         ensure!( !Self::if_subnet_exist( netuid ), Error::<T>::NetworkExist );
@@ -81,7 +81,7 @@ impl<T: Config> Pallet<T> {
     pub fn do_remove_network( origin: T::RuntimeOrigin, netuid: u16 ) -> dispatch::DispatchResult {
 
         // --- 1. Ensure the function caller it Sudo.
-        ensure_root( origin )?;
+        let key = ensure_signed( origin )?;
 
         // --- 2. Ensure the network to be removed exists.
         ensure!( Self::if_subnet_exist( netuid ), Error::<T>::NetworkDoesNotExist );
@@ -126,7 +126,7 @@ impl<T: Config> Pallet<T> {
     ) -> dispatch::DispatchResult {
 
         // --- 1. Ensure caller is sudo.
-        ensure_root( origin )?;
+        let key = ensure_signed( origin )?;
 
         // --- 2. Ensure emission values match up to network uids.
         ensure!( netuids.len() == emission.len(), Error::<T>::WeightVecNotEqualSize );

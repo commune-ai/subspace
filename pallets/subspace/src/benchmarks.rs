@@ -299,17 +299,6 @@ benchmarks! {
 
   }: sudo_set_weights_set_rate_limit(RawOrigin::<AccountIdOf<T>>::Root, netuid, weights_set_rate_limit)
 
-  benchmark_sudo_set_weights_version_key {
-    let netuid: u16 = 1; 
-    let weights_version_key: u64 = 1;
-    let tempo: u16 = 1;
-    let name: Vec<u8> = "DefaultModule".as_bytes().to_vec();
-    let context: Vec<u8> = "{'context': 'boo'}".as_bytes().to_vec();= b"default".to_vec();
-
-    assert_ok!( Subspace::<T>::do_add_network( RawOrigin::Root.into(), name.into(), netuid.try_into().unwrap()));
-
-  }: sudo_set_weights_version_key(RawOrigin::<AccountIdOf<T>>::Root, netuid, weights_version_key)
-
 
 
   benchmark_sudo_set_adjustment_interval {
