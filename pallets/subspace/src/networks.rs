@@ -172,6 +172,8 @@ impl<T: Config> Pallet<T> {
         // --- 5. Increase total network count.
         TotalNetworks::<T>::mutate( |n| *n += 1 );
 
+        SubnetNamespace::<T>::insert(name.clone(),  netuid );
+
         // --- 6. Set all default values **explicitly**.
         Self::set_default_values_for_all_parameters( netuid );
     }

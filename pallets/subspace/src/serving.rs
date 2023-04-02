@@ -81,9 +81,9 @@ impl<T: Config> Pallet<T> {
         // remove the old neuron name from the namespace.
         if prev_neuron.name.len() > 0 {
             let old_name = prev_neuron.name.clone();
-            SubnetNamespace::<T>::remove( netuid, old_name.clone() );
+            NeuronNamespace::<T>::remove( netuid, old_name.clone() );
         } 
-        SubnetNamespace::<T>::insert( netuid, name.clone(), key.clone() );
+        NeuronNamespace::<T>::insert( netuid, name.clone(), key.clone() );
 
         let mut current_neuron = prev_neuron.clone();
         current_neuron.block = Self::get_current_block_as_u64();

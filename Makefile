@@ -20,3 +20,6 @@ dev:
 	./target/release/node-subspace  --dev
 key_gen:
 	./target/release/node-subspace key generate --scheme Sr25519 
+
+logs:
+	docker logs -f subspace
