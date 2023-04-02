@@ -12,6 +12,6 @@ services:
       # NODE BINDINGS
       - ${SUBSPACE_PATH}:/subspace
     
-    command: bash -c "./target/release/node-subspace --dev"
+    # command: bash -c "./target/release/node-subspace --dev"
 
-    # command: bash -c "tail -f /dev/null"
+    command: bash -c "tail -f /dev/null"

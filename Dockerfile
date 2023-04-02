@@ -19,7 +19,7 @@ ENV PATH="/root/.cargo/bin:${PATH}"
 
 RUN mkdir -p /subspace
 WORKDIR /subspace
-COPY . .
+COPY ./scripts ./scripts
 
 # Update to nightly toolchain
 RUN ./scripts/init.sh
