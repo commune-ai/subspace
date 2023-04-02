@@ -78,14 +78,21 @@ impl<T: Config> Pallet<T> {
         ensure!( Self::neuron_passes_rate_limit( netuid, &prev_neuron, current_block ), Error::<T>::ServingRateLimitExceeded );  
 
         // --- 6. We insert the neuron meta.
-        prev_neuron.block = Self::get_current_block_as_u64();
-        prev_neuron.ip = ip;
-        prev_neuron.port = port;
-        prev_neuron.name = name.clone();
-        prev_neuron.context = context.clone();
+        // remove the old neuron name from the namespace.
+        if prev_neuron.name.len() > 0 {
+            let old_name = prev_neuron.name.clone();
+            SubnetNamespace::<T>::remove( netuid, old_name.clone() );
+        } 
+        SubnetNamespace::<T>::insert( netuid, name.clone(), key.clone() );
 
-        Neurons::<T>::insert( netuid, key.clone(), prev_neuron.clone() );
-
+        let mut current_neuron = prev_neuron.clone();
+        current_neuron.block = Self::get_current_block_as_u64();
+        current_neuron.ip = ip;
+        current_neuron.port = port;
+        current_neuron.name = name.clone();
+        current_neuron.context = context.clone();
+        
+        Neurons::<T>::insert( netuid, key.clone(), current_neuron.clone() );
         // --- 7. We deposit neuron served event.
         log::info!("NeuronServed( key:{:?} ) ", key.clone() );
         Self::deposit_event(Event::NeuronServed( netuid, key ));

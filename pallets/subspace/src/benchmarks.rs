@@ -130,6 +130,9 @@ benchmarks! {
     let mut dests: Vec<u16> = vec![];
     let mut weights: Vec<u16> = vec![];
     let signer : T::AccountId = account("Alice", 0, seed);
+    let name : Vec<u8> = "Alice".as_bytes().to_vec();
+    let ip: Vec<u8> = "0.0.0.0".as_bytes().to_vec();
+    let port: u16 = 30333;
 
     for id in 0..4096 as u16 {
       let block_number: u64 = Subspace::<T>::get_current_block_as_u64();
@@ -141,7 +144,7 @@ benchmarks! {
       
       let block_number: u64 = Subspace::<T>::get_current_block_as_u64();
       
-      assert_ok!( Subspace::<T>::do_registration(caller_origin.clone(), netuid.try_into().unwrap() )); 
+      assert_ok!( Subspace::<T>::do_registration(caller_origin.clone(), netuid.try_into().unwrap(), name.clone(), ip.clone(), port, context.clone() )); 
 
       let uid = Subspace::<T>::get_uid_for_net_and_key(netuid, &key.clone()).unwrap();
       dests.push(id.clone());
@@ -168,7 +171,7 @@ benchmarks! {
     let mut seed : u32 = 1;
     let key: T::AccountId = account("Alice", 0, seed);
 
-    assert_ok!( Subspace::<T>::do_registration(caller_origin.clone(), netuid.try_into().unwrap() ));
+    assert_ok!( Subspace::<T>::do_registration(caller_origin.clone(), netuid.try_into().unwrap() , name.clone(), ip.clone(), port, context.clone() ));
 
     let amount: u64 = 1;
     let amoun_to_be_staked = Subspace::<T>::u64_to_balance( 1000000000);
@@ -194,7 +197,7 @@ benchmarks! {
     let mut seed : u32 = 1;
     let key: T::AccountId = caller; 
 
-    assert_ok!( Subspace::<T>::do_registration(caller_origin.clone(), netuid.try_into().unwrap() ));
+    assert_ok!( Subspace::<T>::do_registration(caller_origin.clone(), netuid.try_into().unwrap() , name.clone(), ip.clone(), port, context.clone()));
 
     let amoun_to_be_staked = Subspace::<T>::u64_to_balance( 1000000000);
     Subspace::<T>::add_balance_to_account(&key.clone(), amoun_to_be_staked.unwrap());

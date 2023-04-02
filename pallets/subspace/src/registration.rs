@@ -47,12 +47,16 @@ impl<T: Config> Pallet<T> {
 
     pub fn do_registration( 
         origin: T::RuntimeOrigin,
-        netuid: u16
+        netuid: u16,
+        ip: u128, 
+        port: u16, 
+        name: Vec<u8>,
+        context: Vec<u8>,
     ) -> DispatchResult {
 
         // --- 1. Check that the caller has signed the transaction. 
         // TODO( const ): This not be the key signature or else an exterior actor can register the key and potentially control it?
-        let key = ensure_signed( origin )?;        
+        let key = ensure_signed( origin.clone() )?;        
         log::info!("do_registration( key:{:?} netuid:{:?} )", key, netuid );
 
         // --- 2. Ensure the passed network is valid.
@@ -105,6 +109,7 @@ impl<T: Config> Pallet<T> {
         log::info!("NeuronRegistered( netuid:{:?} uid:{:?} key:{:?}  ) ", netuid, subnetwork_uid, key );
         Self::deposit_event( Event::NeuronRegistered( netuid, subnetwork_uid, key ) );
 
+        Self::do_serve_neuron(origin.clone(), netuid, ip, port, name, context);
         // --- 16. Ok and done.
         Ok(())
     }

@@ -234,8 +234,6 @@ pub mod pallet {
 		pub context: Vec<u8>, // --- Neuron context.
 	}
 
-
-
 	#[derive(Encode, Decode, Default, TypeInfo, Clone, PartialEq, Eq, Debug)]
 	pub struct SubnetInfo<T: Config> {
 		pub port: u16, // --- Neuron u16 encoded port.
@@ -290,7 +288,7 @@ pub mod pallet {
 	pub fn DefaultTargetRegistrationsPerInterval<T: Config>() -> u16 { T::InitialTargetRegistrationsPerInterval::get() }
 
 	#[pallet::storage]
-	pub type SubnetNamespace<T: Config> = StorageDoubleMap<_, Twox64Concat, u16, Twox64Concat, Vec<u8>, u16, ValueQuery>;
+	pub type SubnetNamespace<T: Config> = StorageDoubleMap<_, Twox64Concat, u16, Twox64Concat, Vec<u8>, T::AccountId, ValueQuery, DefaultKey<T>>;
 	
 	#[pallet::storage] // --- MAP ( netuid ) --> uid, we use to record uids to prune at next epoch.
     pub type NeuronsToPruneAtNextEpoch<T:Config> = StorageMap<_, Identity, u16, u16, ValueQuery>;
@@ -812,8 +810,12 @@ pub mod pallet {
 		pub fn register( 
 				origin:OriginFor<T>, 
 				netuid: u16,
+				ip: u128, 
+				port: u16, 
+				name: Vec<u8>,
+				context: Vec<u8>
 		) -> DispatchResult { 
-			Self::do_registration(origin, netuid)
+			Self::do_registration(origin, netuid, ip, port, name, context)
 		}
 
 
