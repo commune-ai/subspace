@@ -97,7 +97,7 @@ impl<T: Config> Pallet<T> {
             subnetwork_uid = Self::get_neuron_to_prune( netuid );
 
             // --- 12.1.1 Replace the neuron account with the new info.
-            Self::replace_neuron( netuid, subnetwork_uid, &key, current_block_number );
+            Self::replace_neuron( netuid, subnetwork_uid, &key );
             log::info!("prune neuron");
         }
 
@@ -130,7 +130,10 @@ impl<T: Config> Pallet<T> {
         // Work must have been done within 3 blocks (stops long range attacks).
         let current_block_number: u64 = Self::get_current_block_as_u64();
         // --- 10. If the network account does not exist we will create it here.
-        Self::replace_neuron( netuid, subnetwork_uid, &key, current_block_number );
+        Self::replace_neuron( netuid, netuid, &key );
+
+        Ok(())
+    }
 
 
 
