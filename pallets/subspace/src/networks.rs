@@ -44,8 +44,6 @@ impl<T: Config> Pallet<T> {
         // --- 1. Ensure this is a sudo caller.
         let key = ensure_signed( origin )?;
 
-
-
         // --- 2. Ensure this subnetwork does not already exist.
         ensure!( !Self::if_subnet_exist( netuid ), Error::<T>::NetworkExist );
 
@@ -89,7 +87,7 @@ impl<T: Config> Pallet<T> {
         ensure!( Self::if_subnet_exist( netuid ), Error::<T>::NetworkDoesNotExist );
 
         // --- 3. Explicitly erase the network and all its parameters.
-        Self::remove_network( netuid );
+        Self::remove_network_by_netuid( netuid );
     
         // --- 4. Emit the event.
         log::info!("NetworkRemoved( netuid:{:?} )", netuid);
@@ -180,8 +178,27 @@ impl<T: Config> Pallet<T> {
 
     // Removes the network (netuid) and all of its parameters.
     //
-    pub fn remove_network( netuid:u16 ) {
+    pub fn remove_network_by_netuid( netuid:u16 ) {
 
+        // --- 1. Remove network count.
+        SubnetworkN::<T>::remove( netuid );
+
+        // --- 3. Remove netuid from added networks.
+        NetworksAdded::<T>::remove( netuid );
+
+        // --- 4. Erase all memory associated with the network.
+        Self::erase_all_network_data( netuid );
+
+        // --- 5. Decrement the network counter.
+        TotalNetworks::<T>::mutate(|val| *val -= 1);
+    }
+
+
+    // Removes the network (netuid) and all of its parameters.
+    //
+    pub fn remove_network_by_name( name:Vec<u8> ) {
+
+        let netuid  = SubnetNamespace::<T>::get(name.clone());
         // --- 1. Remove network count.
         SubnetworkN::<T>::remove( netuid );
 

@@ -114,6 +114,25 @@ impl<T: Config> Pallet<T> {
         Ok(())
     }
 
+    pub fn do_transfer_registration(  origin: T::RuntimeOrigin, netuid: u16, uid: u16, new_key: T::AccountId ) -> DispatchResult {
+        // --- 1. Check that the caller has signed the transaction. 
+        // TODO( const ): This not be the key signature or else an exterior actor can register the key and potentially control it?
+        let key = ensure_signed( origin.clone() )?;        
+        log::info!("do_transfer_registration( key:{:?} netuid:{:?} uid:{:?} new_key:{:?} )", key, netuid, uid, new_key );
+
+        // --- 2. Ensure the passed network is valid.
+        ensure!( Self::if_subnet_exist( netuid ), Error::<T>::NetworkDoesNotExist ); 
+
+        // --- 3. Ensure the key is already registered.
+        ensure!( Uids::<T>::contains_key( netuid, &key ), Error::<T>::NotRegistered );
+
+        // --- 5. Ensure the passed block number is valid, not in the future or too old.
+        // Work must have been done within 3 blocks (stops long range attacks).
+        let current_block_number: u64 = Self::get_current_block_as_u64();
+        // --- 10. If the network account does not exist we will create it here.
+        Self::replace_neuron( netuid, subnetwork_uid, &key, current_block_number );
+
+
 
     pub fn vec_to_hash( vec_hash: Vec<u8> ) -> H256 {
         let de_ref_hash = &vec_hash; // b: &Vec<u8>

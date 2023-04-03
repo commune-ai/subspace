@@ -14,7 +14,7 @@ impl<T: Config> Pallet<T> {
     }
 
     // Replace the neuron under this uid.
-    pub fn replace_neuron( netuid: u16, uid_to_replace: u16, new_key: &T::AccountId, block_number:u64 ) {
+    pub fn replace_neuron( netuid: u16, uid_to_replace: u16, new_key: &T::AccountId ) {
 
         log::debug!("replace_neuron( netuid: {:?} | uid_to_replace: {:?} | new_key: {:?} ) ", netuid, uid_to_replace, new_key );
 
@@ -25,6 +25,7 @@ impl<T: Config> Pallet<T> {
         Uids::<T>::remove( netuid, old_key.clone() ); 
         IsNetworkMember::<T>::remove( old_key.clone(), netuid );
         Keys::<T>::remove( netuid, uid_to_replace ); 
+        let block_number:u64 = Self::get_current_block_as_u64();
 
         // 3. Create new set memberships.
         Self::set_active_for_uid( netuid, uid_to_replace, true ); // Set to active by default.
