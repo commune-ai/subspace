@@ -17,7 +17,7 @@ build:
 	cargo build --release
 
 dev:
-	./target/release/node-subspace  --dev
+	./target/release/node-subspace  --dev --ws-port 9944
 key_gen:
 	./target/release/node-subspace key generate --scheme Sr25519 
 
