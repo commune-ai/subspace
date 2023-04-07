@@ -32,26 +32,34 @@ impl<T: Config> Pallet<T> {
     // 	* 'InvalidTempo':
     // 		- Attempting to register a network with an invalid tempo.
     //
+    pub fn get_netuid_for_name( name: Vec<u8> ) -> u16 {
+        let netuid: u16 = SubnetNamespace::<T>::get(name.clone());
+        return netuid;
+    }
     
     pub fn do_add_network( 
         origin: T::RuntimeOrigin, 
-        netuid: u16, 
         name: Vec<u8>,
         context: Vec<u8>,
         tempo: u16, 
+        n: u16,
     ) -> dispatch::DispatchResultWithPostInfo {
+
+        ensure!( n > 0, Error::<T>::InvalidMaxAllowedUids);
+        // ensure!( max_allowed_uids < InitialMaxAllowedUids, Error::<T>::InvalidMaxAllowedUids);
+        ensure!( !Self::if_subnet_name_exists( name.clone() ), Error::<T>::NetworkExist );
+
 
         // --- 1. Ensure this is a sudo caller.
         let key = ensure_signed( origin )?;
 
         // --- 2. Ensure this subnetwork does not already exist.
-        ensure!( !Self::if_subnet_exist( netuid ), Error::<T>::NetworkExist );
 
         // --- 4. Ensure the tempo is valid.
         ensure!( Self::if_tempo_is_valid( tempo ), Error::<T>::InvalidTempo );
 
         // --- 5. Initialize the network and all its parameters.
-        Self::init_new_network( netuid, name.clone(), tempo );
+        let netuid = Self::init_new_network( name.clone(), tempo , n);
         
         // --- 6. Emit the new network event.
         log::info!("NetworkAdded( netuid:{:?}, name:{:?} )", netuid, name.clone());
@@ -156,24 +164,43 @@ impl<T: Config> Pallet<T> {
 
     // Initializes a new subnetwork under netuid with parameters.
     //
-    pub fn init_new_network( netuid:u16, name: Vec<u8>, tempo:u16){
+    pub fn if_subnet_name_exists(name: Vec<u8>) -> bool {
+       
+   
+        return  SubnetNamespace::<T>::contains_key(name.clone());
+    }
 
-        // --- 1. Set network to 0 size.
+
+    pub fn init_new_network(  name: Vec<u8>, tempo:u16, n:u16) -> u16{
+        // --- 1. Get the next network uid.
+        let netuid = TotalNetworks::<T>::get();
+        TotalNetworks::<T>::mutate( |n| *n += 1 );
+
+        // --- 2. Set network neuron count to 0 size.
         SubnetworkN::<T>::insert( netuid, 0 );
 
-        // --- 2. Set this network uid to alive.
+        // --- 3. Set this network uid to alive.
         NetworksAdded::<T>::insert( netuid, true );
         
-        // --- 3. Fill tempo memory item.
+        // --- 4. Fill tempo memory item.
         Tempo::<T>::insert( netuid, tempo );
+
+    
+        MaxAllowedUids::<T>::insert( netuid, n );
 
         // --- 5. Increase total network count.
         TotalNetworks::<T>::mutate( |n| *n += 1 );
 
         SubnetNamespace::<T>::insert(name.clone(),  netuid );
 
+
+
+        
+
         // --- 6. Set all default values **explicitly**.
         Self::set_default_values_for_all_parameters( netuid );
+
+        return netuid;
     }
 
     // Removes the network (netuid) and all of its parameters.
@@ -300,6 +327,7 @@ impl<T: Config> Pallet<T> {
     pub fn if_subnet_exist( netuid: u16 ) -> bool{
         return NetworksAdded::<T>::get( netuid );
     }
+
 
 
     // Returns true if the passed tempo is allowed.

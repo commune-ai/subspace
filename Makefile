@@ -23,3 +23,5 @@ key_gen:
 
 logs:
 	docker logs -f subspace
+add_docker_permissions:
+	./scripts/add_docker_permissions.sh

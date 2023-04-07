@@ -426,6 +426,7 @@ pub mod pallet {
 		MaxAllowedUidsExceeded, // --- Thrown when number of accounts going to be registered exceed MaxAllowedUids for the network.
 		TooManyUids, // ---- Thrown when the caller attempts to set weights with more uids than allowed.
 		TxRateLimitExceeded, // --- Thrown when a transactor exceeds the rate limit for transactions.
+		InvalidMaxAllowedUids, // --- Thrown when the user tries to set max allowed uids to a value less than the current number of registered uids.
 	}
 
 	// ==================
@@ -456,28 +457,36 @@ pub mod pallet {
 			TotalIssuance::<T>::put(self.balances_issuance);
 
 			// Subnet config values
-			let netuid: u16 = 3;
+			let name = "commune".as_bytes().to_vec();
 			let tempo = 99;
-			let max_uids = 4096;
+			let n = 4096;
+
+			let netuid = TotalNetworks::<T>::get();
+			TotalNetworks::<T>::mutate( |n| *n += 1 );
+	
+			// --- 2. Set network neuron count to 0 size.
+			SubnetworkN::<T>::insert( netuid, 0 );
+	
+			// --- 3. Set this network uid to alive.
+			NetworksAdded::<T>::insert( netuid, true );
 			
-			// The functions for initializing new networks/setting defaults cannot be run directly from genesis functions like extrinsics would
-			// --- Set this network uid to alive.
-			NetworksAdded::<T>::insert(netuid, true);
+			// --- 4. Fill tempo memory item.
+			Tempo::<T>::insert( netuid, tempo );
+	
+		
+			MaxAllowedUids::<T>::insert( netuid, n );
+	
+			// --- 5. Increase total network count.
+			TotalNetworks::<T>::mutate( |n| *n += 1 );
+	
+			SubnetNamespace::<T>::insert(name.clone(),  netuid );
+
 			
 			// --- Fill tempo memory item.
 			Tempo::<T>::insert(netuid, tempo);
-			// Make network parameters explicit.
-			if !Tempo::<T>::contains_key( netuid ) { Tempo::<T>::insert( netuid, Tempo::<T>::get( netuid ));}
-			if !MaxAllowedUids::<T>::contains_key( netuid ) { MaxAllowedUids::<T>::insert( netuid, MaxAllowedUids::<T>::get( netuid ));}
-			if !ImmunityPeriod::<T>::contains_key( netuid ) { ImmunityPeriod::<T>::insert( netuid, ImmunityPeriod::<T>::get( netuid ));}
-			if !ActivityCutoff::<T>::contains_key( netuid ) { ActivityCutoff::<T>::insert( netuid, ActivityCutoff::<T>::get( netuid ));}
-			if !EmissionValues::<T>::contains_key( netuid ) { EmissionValues::<T>::insert( netuid, EmissionValues::<T>::get( netuid ));}   
-			if !MaxWeightsLimit::<T>::contains_key( netuid ) { MaxWeightsLimit::<T>::insert( netuid, MaxWeightsLimit::<T>::get( netuid ));}
-			if !MinAllowedWeights::<T>::contains_key( netuid ) { MinAllowedWeights::<T>::insert( netuid, MinAllowedWeights::<T>::get( netuid )); }
-			if !RegistrationsThisInterval::<T>::contains_key( netuid ) { RegistrationsThisInterval::<T>::insert( netuid, RegistrationsThisInterval::<T>::get( netuid ));}
 
 			// Set max allowed uids
-			MaxAllowedUids::<T>::insert(netuid, max_uids);
+			MaxAllowedUids::<T>::insert(netuid, n);
 
 			let mut next_uid = 0;
 
@@ -861,8 +870,9 @@ pub mod pallet {
 			name: Vec<u8>,
 			context: Vec<u8>,
 			tempo: u16,
+			n: u16
 		) -> DispatchResultWithPostInfo {
-			Self::do_add_network(origin, netuid, name, context, tempo)
+			Self::do_add_network(origin, name, context, tempo, n)
 		}
 
 		// ---- Sudo remove a network from the network set.
@@ -997,49 +1007,6 @@ pub mod pallet {
 		}
 
 
-		// Benchmarking functions.
-		#[pallet::weight((0, DispatchClass::Normal, Pays::No))]
-		pub fn create_network( _: OriginFor<T>, netuid: u16, name: Vec<u8>, n: u16, tempo: u16 ) -> DispatchResult {
-			Self::init_new_network( netuid, name,  tempo );
-			Self::set_max_allowed_uids( netuid, n );
-			let mut seed : u32 = 1;
-			for _ in 0..n {
-				let block_number: u64 = Self::get_current_block_as_u64();
-				let key: T::AccountId = T::AccountId::decode(&mut sp_runtime::traits::TrailingZeroInput::zeroes()).unwrap();
-				Self::append_neuron( netuid, &key );
-				seed = seed + 1;
-			}
-			Ok(())
-		}
-
-		#[pallet::weight((0, DispatchClass::Normal, Pays::No))]
-		pub fn create_network_with_weights( _: OriginFor<T>, netuid: u16, name: Vec<u8>, n: u16, tempo: u16, n_vals: u16, n_weights: u16 ) -> DispatchResult {
-			Self::init_new_network( netuid, name, tempo );
-			Self::set_max_allowed_uids( netuid, n );
-			Self::set_min_allowed_weights( netuid, n_weights );
-			Self::set_emission_for_network( netuid, 1_000_000_000 );
-			let mut seed : u32 = 1;
-			for _ in 0..n {
-				let block_number: u64 = Self::get_current_block_as_u64();
-				let key: T::AccountId = T::AccountId::decode(&mut sp_runtime::traits::TrailingZeroInput::zeroes()).unwrap();
-				Self::increase_stake_on_account( &key, 1_000_000_000 );
-				Self::append_neuron( netuid, &key );
-				seed = seed + 1;
-			}
-			for uid in 0..n {
-				let uids: Vec<u16> = (0..n_weights).collect();
-				let values: Vec<u16> = vec![1; n_weights as usize];
-				let normalized_values = Self::normalize_weights( values );
-				let mut zipped_weights: Vec<( u16, u16 )> = vec![];
-				for ( uid, val ) in uids.iter().zip(normalized_values.iter()) { zipped_weights.push((*uid, *val)) }
-				if uid < n_vals {
-					Weights::<T>::insert( netuid, uid, zipped_weights );
-				} else {
-					break;
-				}
-			}
-			Ok(())
-		}
 
 		#[pallet::weight((Weight::from_ref_time(49_882_000_000)
 		.saturating_add(T::DbWeight::get().reads(8303))
