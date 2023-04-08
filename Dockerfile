@@ -22,7 +22,7 @@ WORKDIR /subspace
 COPY ./scripts ./scripts
 
 # Update to nightly toolchain
-RUN ./scripts/init.sh
+RUN ./scripts/install_rust_env.sh
 
 # # Cargo build
 # RUN cargo build --release --features runtime-benchmarks --locked
