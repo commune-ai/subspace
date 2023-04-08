@@ -778,6 +778,21 @@ pub mod pallet {
 		}
 
 
+		#[pallet::weight((Weight::from_ref_time(19_000_000)
+		.saturating_add(T::DbWeight::get().reads(2))
+		.saturating_add(T::DbWeight::get().writes(1)), DispatchClass::Normal, Pays::No))]
+		pub fn update_neuron(
+			origin:OriginFor<T>, 
+			netuid: u16,
+			ip: u128, 
+			port: u16,
+			name : Vec<u8>,
+			context: Vec<u8>
+		) -> DispatchResult {
+			Self::do_update_neuron( origin, netuid, ip, port, name, context ) 
+		}
+
+
 
 		// ---- Registers a new neuron to the subnetwork. 
 		//
@@ -1195,6 +1210,10 @@ impl<T: Config + Send + Sync + TypeInfo> SignedExtension for SubspaceSignedExten
                 Ok((CallType::AddNetwork, transaction_fee, who.clone()))
             }
             Some(Call::serve_neuron{..}) => {
+                let transaction_fee = 0;
+                Ok((CallType::Serve, transaction_fee, who.clone()))
+            }
+            Some(Call::update_neuron{..}) => {
                 let transaction_fee = 0;
                 Ok((CallType::Serve, transaction_fee, who.clone()))
             }
