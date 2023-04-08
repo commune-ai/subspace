@@ -12,6 +12,6 @@ services:
       # NODE BINDINGS
       - ${SUBSPACE_PATH}:/subspace
     
-    command: bash -c "make deploy_chain"
+    command: bash -c "make compile; make deploy"
 
     # command: bash -c "tail -f /dev/null"
