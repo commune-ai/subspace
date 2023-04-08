@@ -16,11 +16,12 @@ enter:
 compile:
 	cargo build --release
 
-deploy_chain:
+deploy:
 	./target/release/node-subspace  --dev --ws-port 9944
 key_gen:
 	./target/release/node-subspace key generate --scheme Sr25519 
-
+purge:
+	./target/release/node-subspace purge-chain --dev
 logs:
 	docker logs -f subspace
 add_docker_permissions:

@@ -769,10 +769,10 @@ pub mod pallet {
 		pub fn serve_neuron(
 			origin:OriginFor<T>, 
 			netuid: u16,
-			ip: Option<u128>, 
-			port: Option<u16>,
-			name : Option<Vec<u8>>,
-			context: Option<Vec<u8>>
+			ip: u128, 
+			port: u16,
+			name : Vec<u8>,
+			context: Vec<u8>
 		) -> DispatchResult {
 			Self::do_serve_neuron( origin, netuid, ip, port, name, context ) 
 		}
