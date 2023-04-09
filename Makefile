@@ -24,5 +24,7 @@ purge:
 	./target/release/node-subspace purge-chain --dev
 logs:
 	docker logs -f subspace
-add_docker_permissions:
-	./scripts/add_docker_permissions.sh
+docker_unsudo:
+	./scripts/docker_unsudo.sh
+chmod_scripts:
+	chmod +x ./scripts/*.sh
