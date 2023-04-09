@@ -12,6 +12,7 @@ source "$HOME/.cargo/env"
 # Set Rust toolchain to 1.68.1
 rustup default 1.68.1
 
+rustup override set 1.68.1
 # Add the wasm32-unknown-unknown target for 1.68.1
 rustup target add wasm32-unknown-unknown --toolchain 1.68.1
 
