@@ -52,19 +52,15 @@ mod benchmarks;
 // =========================
 //	==== Pallet Imports =====
 // =========================
-mod block_step;
-
 mod epoch;
 mod math;
 mod networks;
 mod registration;
 mod staking;
 mod utils;
-mod uids;
 mod weights;
 
-pub mod neuron_info;
-pub mod subnet_info;
+pub mod neuron;
 
 #[frame_support::pallet]
 pub mod pallet {
@@ -343,8 +339,6 @@ pub mod pallet {
 
 	#[pallet::storage] // --- DMAP ( netuid ) --> active
 	pub(super) type Active<T:Config> = StorageMap< _, Identity, u16, Vec<bool>, ValueQuery, EmptyBoolVec<T> >;
-	#[pallet::storage] // --- DMAP ( netuid ) --> rank
-	pub(super) type Rank<T:Config> = StorageMap< _, Identity, u16, Vec<u16>, ValueQuery, EmptyU16Vec<T>>;
 	#[pallet::storage] // --- DMAP ( netuid ) --> incentive
 	pub(super) type Incentive<T:Config> = StorageMap< _, Identity, u16, Vec<u16>, ValueQuery, EmptyU16Vec<T>>;
 	#[pallet::storage] // --- DMAP ( netuid ) --> dividends
@@ -353,8 +347,6 @@ pub mod pallet {
 	pub(super) type Emission<T:Config> = StorageMap< _, Identity, u16, Vec<u64>, ValueQuery, EmptyU64Vec<T>>;
 	#[pallet::storage] // --- DMAP ( netuid ) --> last_update
 	pub(super) type LastUpdate<T:Config> = StorageMap< _, Identity, u16, Vec<u64>, ValueQuery, EmptyU64Vec<T>>;
-	#[pallet::storage] // --- DMAP ( netuid ) --> pruning_scores
-	pub(super) type PruningScores<T:Config> = StorageMap< _, Identity, u16, Vec<u16>, ValueQuery, EmptyU16Vec<T> >;
 
 	#[pallet::storage] // --- DMAP ( netuid, uid ) --> weights
     pub(super) type Weights<T:Config> = StorageDoubleMap<_, Identity, u16, Identity, u16, Vec<(u16, u16)>, ValueQuery, DefaultWeights<T> >;
@@ -495,13 +487,11 @@ pub mod pallet {
 					let (stake, uid) = stake_uid;
 
 					// Expand Yuma with new position.
-					Rank::<T>::mutate(netuid, |v| v.push(0));
 					Active::<T>::mutate(netuid, |v| v.push(true));
 					Emission::<T>::mutate(netuid, |v| v.push(0));
 					Incentive::<T>::mutate(netuid, |v| v.push(0));
 					Dividends::<T>::mutate(netuid, |v| v.push(0));
 					LastUpdate::<T>::mutate(netuid, |v| v.push(0));
-					PruningScores::<T>::mutate(netuid, |v| v.push(0));
 			
 					// Insert account information.
 					Keys::<T>::insert(netuid, uid, key.clone()); // Make key - uid association.

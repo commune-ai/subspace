@@ -28,13 +28,13 @@ impl<T: Config> Pallet<T> {
     // ==============================
 	// ==== Yuma params ====
 	// ==============================
-    pub fn get_rank( netuid:u16 ) -> Vec<u16> { Rank::<T>::get( netuid ) }
     pub fn get_active( netuid:u16 ) -> Vec<bool> { Active::<T>::get( netuid ) }
     pub fn get_emission( netuid:u16 ) -> Vec<u64> { Emission::<T>::get( netuid ) }
     pub fn get_incentive( netuid:u16 ) -> Vec<u16> { Incentive::<T>::get( netuid ) }
     pub fn get_dividends( netuid:u16 ) -> Vec<u16> { Dividends::<T>::get( netuid ) }
     pub fn get_last_update( netuid:u16 ) -> Vec<u64> { LastUpdate::<T>::get( netuid ) }
-    pub fn get_pruning_score( netuid:u16 ) -> Vec<u16> { PruningScores::<T>::get( netuid ) }
+    
+    // Emmision is the same as the Yuma params 
 
     
     pub fn set_last_update_for_uid( netuid:u16, uid: u16, last_update: u64 ) { 
@@ -51,21 +51,13 @@ impl<T: Config> Pallet<T> {
             Active::<T>::insert( netuid, updated_active_vec );
         }  
     }
-    pub fn set_pruning_score_for_uid( netuid:u16, uid: u16, pruning_score: u16 ) {
-        log::info!("netuid = {:?}", netuid);
-        log::info!("SubnetworkN::<T>::get( netuid ) = {:?}", SubnetworkN::<T>::get( netuid ) );
-        log::info!("uid = {:?}", uid );
-        assert!( uid < SubnetworkN::<T>::get( netuid ) );
-        PruningScores::<T>::mutate( netuid, |v| v[uid as usize] = pruning_score );
-    }
 
-    pub fn get_rank_for_uid( netuid:u16, uid: u16) -> u16 { let vec = Rank::<T>::get( netuid ); if (uid as usize) < vec.len() { return vec[uid as usize] } else{ return 0 } }
     pub fn get_emission_for_uid( netuid:u16, uid: u16) -> u64 {let vec =  Emission::<T>::get( netuid ); if (uid as usize) < vec.len() { return vec[uid as usize] } else{ return 0 } }
     pub fn get_active_for_uid( netuid:u16, uid: u16) -> bool { let vec = Active::<T>::get( netuid ); if (uid as usize) < vec.len() { return vec[uid as usize] } else{ return false } }
     pub fn get_incentive_for_uid( netuid:u16, uid: u16) -> u16 { let vec = Incentive::<T>::get( netuid ); if (uid as usize) < vec.len() { return vec[uid as usize] } else{ return 0 } }
     pub fn get_dividends_for_uid( netuid:u16, uid: u16) -> u16 { let vec = Dividends::<T>::get( netuid ); if (uid as usize) < vec.len() { return vec[uid as usize] } else{ return 0 } }
     pub fn get_last_update_for_uid( netuid:u16, uid: u16) -> u64 { let vec = LastUpdate::<T>::get( netuid ); if (uid as usize) < vec.len() { return vec[uid as usize] } else{ return 0 } }
-    pub fn get_pruning_score_for_uid( netuid:u16, uid: u16) -> u16 { let vec = PruningScores::<T>::get( netuid ); if (uid as usize) < vec.len() { return vec[uid as usize] } else{ return u16::MAX } }
+    pub fn get_pruning_score_for_uid( netuid:u16, uid: u16) -> u16 { let vec = Emission::<T>::get( netuid ); if (uid as usize) < vec.len() { return vec[uid as usize] as u16 } else{ return u16::MAX } }
 
     pub fn get_context_for_uid( netuid:u16, uid: u16) -> Vec<u8> { 
         let key = Self::get_key_for_net_and_uid(netuid, uid);

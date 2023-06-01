@@ -398,7 +398,6 @@ pub fn matmul( matrix: &Vec<Vec<I32F32>>, vector: &Vec<I32F32> ) -> Vec<I32F32> 
     let mut result: Vec<I32F32> = vec![ I32F32::from_num( 0.0 ); matrix[0].len() ];
     for i in 0..matrix.len() {
         for j in 0..matrix[i].len() {
-            // Compute ranks: r_j = SUM(i) w_ij * s_i
             // Compute trust scores: t_j = SUM(i) w_ij * s_i
             // result_j = SUM(i) vector_i * matrix_ij
             result[j] += vector[i] * matrix[i][j];
@@ -431,7 +430,6 @@ pub fn matmul_sparse( sparse_matrix: &Vec<Vec<(u16, I32F32)>>, vector: &Vec<I32F
     let mut result: Vec<I32F32> = vec![ I32F32::from_num( 0.0 ); columns as usize ];
     for (i, sparse_row) in sparse_matrix.iter().enumerate() {
         for (j, value) in sparse_row.iter() {
-            // Compute ranks: r_j = SUM(i) w_ij * s_i
             // Compute trust scores: t_j = SUM(i) w_ij * s_i
             // result_j = SUM(i) vector_i * matrix_ij
             result[*j as usize] += vector[i] * value;

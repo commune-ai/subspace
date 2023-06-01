@@ -17,13 +17,11 @@ pub struct NeuronSubnetInfo<T: Config> {
     
     // Subnet Info
     stake: Vec<(T::AccountId, Compact<u64>)>, // map of key to stake on this neuron/key (includes delegations)
-    rank: Compact<u16>,
     emission: Compact<u64>,
     incentive: Compact<u16>,
     dividends: Compact<u16>,
     weights: Vec<(Compact<u16>, Compact<u16>)>, // Vec of (uid, weight)
     bonds: Vec<(Compact<u16>, Compact<u16>)>, // Vec of (uid, bond)
-    pruning_score: Compact<u16>,
 }
 
 
@@ -60,11 +58,9 @@ impl<T: Config> Pallet<T> {
 
                 
         let active = Self::get_active_for_uid( netuid, uid as u16 );
-        let rank = Self::get_rank_for_uid( netuid, uid as u16 );
         let emission = Self::get_emission_for_uid( netuid, uid as u16 );
         let incentive = Self::get_incentive_for_uid( netuid, uid as u16 );
         let dividends = Self::get_dividends_for_uid( netuid, uid as u16 );
-        let pruning_score = Self::get_pruning_score_for_uid( netuid, uid as u16 );
         let last_update = Self::get_last_update_for_uid( netuid, uid as u16 );
         let context = Self::get_context_for_uid( netuid, uid as u16 );
         let name = Self::get_name_for_uid( netuid, uid as u16 );
@@ -89,14 +85,12 @@ impl<T: Config> Pallet<T> {
             netuid: netuid.into(),
             active: active,
             stake: stake,
-            rank: rank.into(),
             emission: emission.into(),
             incentive: incentive.into(),
             dividends: dividends.into(),
             last_update: last_update.into(),
             weights: weights,
             bonds: bonds,
-            pruning_score: pruning_score.into(),
             context: context.clone(),
             name: name.clone()
         };
