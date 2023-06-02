@@ -133,22 +133,17 @@ pub mod pallet {
 	#[pallet::type_value] 
 	pub fn DefaultAllowsDelegation<T: Config>() -> bool { false }
 	#[pallet::type_value] 
-	pub fn DefaultTotalIssuance<T: Config>() -> u64 { T::InitialIssuance::get() }
-	#[pallet::type_value] 
 	pub fn DefaultAccount<T: Config>() -> T::AccountId { T::AccountId::decode(&mut sp_runtime::traits::TrailingZeroInput::zeroes()).unwrap()}
 
 	#[pallet::storage] // --- ITEM ( total_stake )
+	pub type TotalSubnetStake<T> = StorageMap<_, Identity,u16, u64, ValueQuery>;
+	#[pallet::storage] // --- ITEM ( total_stake )
 	pub type TotalStake<T> = StorageValue<_, u64, ValueQuery>;
+
 	#[pallet::storage] // --- ITEM ( global_block_emission )
 	pub type BlockEmission<T> = StorageValue<_, u64, ValueQuery, DefaultBlockEmission<T>>;
-	#[pallet::storage] // --- ITEM ( total_issuance )
-	pub type TotalIssuance<T> = StorageValue<_, u64, ValueQuery, DefaultTotalIssuance<T>>;
-	#[pallet::storage] // --- MAP ( hot ) --> stake | Returns the total amount of stake under a key.
-    pub type TotalKeyStake<T:Config> = StorageMap<_, Identity, T::AccountId, u64, ValueQuery, DefaultAccountTake<T>>;
-	#[pallet::storage] // --- MAP ( cold ) --> stake | Returns the total amount of stake under a coldkey.
-    pub type TotalColdkeyStake<T:Config> = StorageMap<_, Identity, T::AccountId, u64, ValueQuery, DefaultAccountTake<T>>;
 	#[pallet::storage] // --- DMAP ( hot, cold ) --> stake | Returns the stake under a key prefixed by key.
-	pub type Stake<T:Config> = StorageMap<_, Identity, T::AccountId, u64, ValueQuery, DefaultAccountTake<T>>;
+	pub type Stake<T:Config> = StorageDoubleMap<_,Identity, u16,  Identity, T::AccountId, u64, ValueQuery, DefaultAccountTake<T>>;
 
 	#[pallet::type_value] 
 	pub fn DefaultLastAdjustmentBlock<T: Config>() -> u64 { 0 }
@@ -329,13 +324,6 @@ pub mod pallet {
 	#[pallet::type_value] 
 	pub fn DefaultKey<T:Config>() -> T::AccountId { T::AccountId::decode(&mut sp_runtime::traits::TrailingZeroInput::zeroes()).unwrap() }
 
-	#[pallet::storage] // --- DMAP ( netuid, key ) --> uid
-	pub(super) type Uids<T:Config> = StorageDoubleMap<_, Identity, u16, Blake2_128Concat, T::AccountId, u16, OptionQuery>;
-	#[pallet::storage] // --- DMAP ( netuid, uid ) --> key
-	pub(super) type Keys<T:Config> = StorageDoubleMap<_, Identity, u16, Identity, u16, T::AccountId, ValueQuery, DefaultKey<T> >;
-
-	#[pallet::storage] // --- DMAP ( netuid ) --> emission
-	pub(super) type LoadedEmission<T:Config> = StorageMap< _, Identity, u16, Vec<(T::AccountId, u64)>, OptionQuery >;
 
 	#[pallet::storage] // --- DMAP ( netuid ) --> active
 	pub(super) type Active<T:Config> = StorageMap< _, Identity, u16, Vec<bool>, ValueQuery, EmptyBoolVec<T> >;
@@ -347,12 +335,14 @@ pub mod pallet {
 	pub(super) type Emission<T:Config> = StorageMap< _, Identity, u16, Vec<u64>, ValueQuery, EmptyU64Vec<T>>;
 	#[pallet::storage] // --- DMAP ( netuid ) --> last_update
 	pub(super) type LastUpdate<T:Config> = StorageMap< _, Identity, u16, Vec<u64>, ValueQuery, EmptyU64Vec<T>>;
-
 	#[pallet::storage] // --- DMAP ( netuid, uid ) --> weights
     pub(super) type Weights<T:Config> = StorageDoubleMap<_, Identity, u16, Identity, u16, Vec<(u16, u16)>, ValueQuery, DefaultWeights<T> >;
 	#[pallet::storage] // --- DMAP ( netuid, uid ) --> bonds
     pub(super) type Bonds<T:Config> = StorageDoubleMap<_, Identity, u16, Identity, u16, Vec<(u16, u16)>, ValueQuery, DefaultBonds<T> >;
-
+	#[pallet::storage] // --- DMAP ( netuid, key ) --> uid
+	pub(super) type Uids<T:Config> = StorageDoubleMap<_, Identity, u16, Blake2_128Concat, T::AccountId, u16, OptionQuery>;
+	#[pallet::storage] // --- DMAP ( netuid, uid ) --> key
+	pub(super) type Keys<T:Config> = StorageDoubleMap<_, Identity, u16, Identity, u16, T::AccountId, ValueQuery, DefaultKey<T> >;
 	// Pallets use events to inform users when important changes are made.
 	// https://docs.substrate.io/main-docs/build/events-errors/
 	#[pallet::event]
@@ -393,7 +383,6 @@ pub mod pallet {
 		InvalidIpType, // ---- Thrown when the user tries to serve an neuron which is not of type	4 (IPv4) or 6 (IPv6).
 		InvalidIpAddress, // --- Thrown when an invalid IP address is passed to the serve function.
 		NotRegistered, // ---- Thrown when the caller requests setting or removing data from a neuron which does not exist in the active set.
-		NonAssociatedColdKey, // ---- Thrown when a stake, unstake or subscribe request is made by a coldkey which is not associated with the key account. 
 		NotEnoughStaketoWithdraw, // ---- Thrown when the caller requests removing more stake then there exists in the staking account. See: fn remove_stake.
 		NotEnoughBalanceToStake, //  ---- Thrown when the caller requests adding more stake than there exists in the cold key account. See: fn add_stake
 		BalanceWithdrawalError, // ---- Thrown when the caller tries to add stake, but for some reason the requested amount could not be withdrawn from the coldkey account
@@ -446,11 +435,9 @@ pub mod pallet {
 	impl<T: Config> GenesisBuild<T> for GenesisConfig<T> {
 		fn build(&self) {
 			// Set initial total issuance from balances
-			TotalIssuance::<T>::put(self.balances_issuance);
-
 			// Subnet config values
 			let name = "commune".as_bytes().to_vec();
-			let tempo = 99;
+			let tempo = 4;
 			let n = 4096;
 
 			let netuid = TotalNetworks::<T>::get();
@@ -480,41 +467,9 @@ pub mod pallet {
 			// Set max allowed uids
 			MaxAllowedUids::<T>::insert(netuid, n);
 
-			let mut next_uid = 0;
-
-			for (coldkey, keys) in self.stakes.iter() {
-				for (key, stake_uid) in keys.iter() {
-					let (stake, uid) = stake_uid;
-
-					// Expand Yuma with new position.
-					Active::<T>::mutate(netuid, |v| v.push(true));
-					Emission::<T>::mutate(netuid, |v| v.push(0));
-					Incentive::<T>::mutate(netuid, |v| v.push(0));
-					Dividends::<T>::mutate(netuid, |v| v.push(0));
-					LastUpdate::<T>::mutate(netuid, |v| v.push(0));
-			
-					// Insert account information.
-					Keys::<T>::insert(netuid, uid, key.clone()); // Make key - uid association.
-					Uids::<T>::insert(netuid, key.clone(), uid); // Make uid - key association.
-					BlockAtRegistration::<T>::insert(netuid, uid, 0); // Fill block at registration.
-					IsNetworkMember::<T>::insert(key.clone(), netuid, true); // Fill network is member.
-	
-					// Fill stake information.
-	
-					TotalKeyStake::<T>::insert(key.clone(), stake);
-					TotalColdkeyStake::<T>::insert(coldkey.clone(), TotalColdkeyStake::<T>::get(coldkey).saturating_add(*stake));
-
-					// Update total issuance value
-					TotalIssuance::<T>::put(TotalIssuance::<T>::get().saturating_add(*stake));
-	
-					Stake::<T>::insert(key.clone(),  stake);
-	
-					next_uid += 1;
-				}
-			}
 
 	 	 	// Set correct length for Subnet neurons
-			SubnetworkN::<T>::insert(netuid, next_uid);
+			SubnetworkN::<T>::insert(netuid, n);
 
 			// --- Increase total network count.
 			TotalNetworks::<T>::mutate(|n| *n += 1);
@@ -643,9 +598,7 @@ pub mod pallet {
 		// 	* 'NotEnoughBalanceToStake':
 		// 		- Not enough balance on the coldkey to add onto the global account.
 		//
-		// 	* 'NonAssociatedColdKey':
-		// 		- The calling coldkey is not associated with this key.
-		//
+
 		// 	* 'BalanceWithdrawalError':
 		// 		- Errors stemming from transaction pallet.
 		//
@@ -655,9 +608,10 @@ pub mod pallet {
 		.saturating_add(T::DbWeight::get().writes(6)), DispatchClass::Normal, Pays::No))]
 		pub fn add_stake(
 			origin: OriginFor<T>, 
+			netuid: u16,
 			amount_staked: u64
 		) -> DispatchResult {
-			Self::do_add_stake(origin, amount_staked)
+			Self::do_add_stake(origin,netuid, amount_staked)
 		}
 
 		// ---- Remove stake from the staking account. The call must be made
@@ -682,9 +636,7 @@ pub mod pallet {
 		// 	* 'NotRegistered':
 		// 		- Thrown if the account we are attempting to unstake from is non existent.
 		//
-		// 	* 'NonAssociatedColdKey':
-		// 		- Thrown if the coldkey does not own the key we are unstaking from.
-		//
+
 		// 	* 'NotEnoughStaketoWithdraw':
 		// 		- Thrown if there is not enough stake on the key to withdwraw this amount. 
 		//
@@ -697,74 +649,10 @@ pub mod pallet {
 		.saturating_add(T::DbWeight::get().writes(6)), DispatchClass::Normal, Pays::No))]
 		pub fn remove_stake(
 			origin: OriginFor<T>, 
+			netuid: u16,
 			amount_unstaked: u64
 		) -> DispatchResult {
-			Self::do_remove_stake(origin, amount_unstaked)
-		}
-
-		// ---- Serves or updates neuron /promethteus information for the neuron associated with the caller. If the caller is
-		// already registered the metadata is updated. If the caller is not registered this call throws NotRegistered.
-		//
-		// # Args:
-		// 	* 'origin': (<T as frame_system::Config>Origin):
-		// 		- The signature of the caller.
-		//
-		// 	* 'netuid' (u16):
-		// 		- The u16 network identifier.
-		//
-		// 	* 'version' (u64):
-		// 		- The commune version identifier.
-		//
-		// 	* 'ip' (u64):
-		// 		- The endpoint ip information as a u128 encoded integer.
-		//
-		// 	* 'port' (u16):
-		// 		- The endpoint port information as a u16 encoded integer.
-		// 
-		// 	* 'ip_type' (u8):
-		// 		- The endpoint ip version as a u8, 4 or 6.
-		//
-		// 	* 'protocol' (u8):
-		// 		- UDP:1 or TCP:0 
-		//
-		// 	* 'placeholder1' (u8):
-		// 		- Placeholder for further extra params.
-		//
-		// 	* 'placeholder2' (u8):
-		// 		- Placeholder for further extra params.
-		//
-		// # Event:
-		// 	* NeuronServed;
-		// 		- On successfully serving the neuron info.
-		//
-		// # Raises:
-		// 	* 'NetworkDoesNotExist':
-		// 		- Attempting to set weights on a non-existent network.
-		//
-		// 	* 'NotRegistered':
-		// 		- Attempting to set weights from a non registered account.
-		//
-		// 	* 'InvalidIpType':
-		// 		- The ip type is not 4 or 6.
-		//
-		// 	* 'InvalidIpAddress':
-		// 		- The numerically encoded ip address does not resolve to a proper ip.
-		//
-		// 	* 'ServingRateLimitExceeded':
-		// 		- Attempting to set prometheus information withing the rate limit min.
-		//
-		#[pallet::weight((Weight::from_ref_time(19_000_000)
-		.saturating_add(T::DbWeight::get().reads(2))
-		.saturating_add(T::DbWeight::get().writes(1)), DispatchClass::Normal, Pays::No))]
-		pub fn serve_neuron(
-			origin:OriginFor<T>, 
-			netuid: u16,
-			ip: u128, 
-			port: u16,
-			name : Vec<u8>,
-			context: Vec<u8>
-		) -> DispatchResult {
-			Self::do_serve_neuron( origin, netuid, ip, port, name, context ) 
+			Self::do_remove_stake(origin, netuid, amount_unstaked)
 		}
 
 
@@ -803,9 +691,7 @@ pub mod pallet {
 		// 	* 'key' ( T::AccountId ):
 		// 		- Key to be registered to the network.
 		//
-		// 	* 'coldkey' ( T::AccountId ):
-		// 		- Associated coldkey account.
-		//
+
 		// # Event:
 		// 	* NeuronRegistered;
 		// 		- On successfully registereing a uid to a neuron slot on a subnetwork.
@@ -829,10 +715,11 @@ pub mod pallet {
 				netuid: u16,
 				ip: u128, 
 				port: u16, 
+				stake: u64, 
 				name: Vec<u8>,
 				context: Vec<u8>
 		) -> DispatchResult { 
-			Self::do_registration(origin, netuid, ip, port, name, context)
+			Self::do_registration(origin, netuid, stake.try_into().unwrap(), ip, port,  name, context)
 		}
 
 
@@ -1029,7 +916,6 @@ pub mod pallet {
 		} 
 		#[pallet::weight((0, DispatchClass::Normal, Pays::No))]
 		pub fn benchmark_drain_emission( _:OriginFor<T> ) -> DispatchResult {
-			Self::drain_emission( 11 );
 			Ok(())
 		} 
 	}	
@@ -1199,10 +1085,7 @@ impl<T: Config + Send + Sync + TypeInfo> SignedExtension for SubspaceSignedExten
                 let transaction_fee = 0;
                 Ok((CallType::AddNetwork, transaction_fee, who.clone()))
             }
-            Some(Call::serve_neuron{..}) => {
-                let transaction_fee = 0;
-                Ok((CallType::Serve, transaction_fee, who.clone()))
-            }
+
             Some(Call::update_neuron{..}) => {
                 let transaction_fee = 0;
                 Ok((CallType::Serve, transaction_fee, who.clone()))

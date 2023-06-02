@@ -1,4 +1,5 @@
 use super::*;
+use substrate_fixed::types::{I64F64};
 
 impl<T: Config> Pallet<T> { 
 
@@ -26,7 +27,7 @@ impl<T: Config> Pallet<T> {
     // 	* 'NotEnoughBalanceToStake':
     // 		- Not enough balance on the key to add onto the global account.
     //
-    // 	* 'NonAssociatedColdKey':
+    // 	* 'module':
     // 		- The calling key is not associated with this key.
     //
     // 	* 'BalanceWithdrawalError':
@@ -37,10 +38,14 @@ impl<T: Config> Pallet<T> {
     //
 	pub fn do_add_stake(
         origin: T::RuntimeOrigin, 
+        netuid: u16,
         stake_to_be_added: u64
     ) -> dispatch::DispatchResult {
         // --- 1. We check that the transaction is signed by the caller and retrieve the T::AccountId key information.
         let key = ensure_signed( origin )?;
+        
+        
+        
         log::info!("do_add_stake( origin:{:?} stake_to_be_added:{:?} )", key, stake_to_be_added );
 
         // --- 2. We convert the stake u64 into a balancer.
@@ -58,7 +63,7 @@ impl<T: Config> Pallet<T> {
 		ensure!( !Self::exceeds_tx_rate_limit( Self::get_last_tx_block(&key), Self::get_current_block_as_u64() ), Error::<T>::TxRateLimitExceeded );
 
         // --- 8. If we reach here, add the balance to the key.
-        Self::increase_stake_on_account( &key, stake_to_be_added );
+        Self::increase_stake_on_account(netuid, &key, stake_to_be_added );
  
         // --- 9. Emit the staking event.
         log::info!("StakeAdded( key:{:?}, stake_to_be_added:{:?} )", key, stake_to_be_added );
@@ -88,9 +93,6 @@ impl<T: Config> Pallet<T> {
     // 	* 'NotRegistered':
     // 		- Thrown if the account we are attempting to unstake from is non existent.
     //
-    // 	* 'NonAssociatedColdKey':
-    // 		- Thrown if the key does not own the key we are unstaking from.
-    //
     // 	* 'NotEnoughStaketoWithdraw':
     // 		- Thrown if there is not enough stake on the key to withdwraw this amount. 
     //
@@ -103,6 +105,7 @@ impl<T: Config> Pallet<T> {
     //
     pub fn do_remove_stake(
         origin: T::RuntimeOrigin, 
+        netuid: u16,
         stake_to_be_removed: u64
     ) -> dispatch::DispatchResult {
 
@@ -111,7 +114,7 @@ impl<T: Config> Pallet<T> {
         log::info!("do_remove_stake( origin:{:?} stake_to_be_removed:{:?} )", key, stake_to_be_removed );
 
         // --- 4. Ensure that the key has enough stake to withdraw.
-        ensure!( Self::has_enough_stake( &key, stake_to_be_removed ), Error::<T>::NotEnoughStaketoWithdraw );
+        ensure!( Self::has_enough_stake(netuid, &key, stake_to_be_removed ), Error::<T>::NotEnoughStaketoWithdraw );
 
         // --- 5. Ensure that we can conver this u64 to a balance.
         let stake_to_be_added_as_currency = Self::u64_to_balance( stake_to_be_removed );
@@ -121,7 +124,7 @@ impl<T: Config> Pallet<T> {
 		ensure!( !Self::exceeds_tx_rate_limit( Self::get_last_tx_block(&key), Self::get_current_block_as_u64() ), Error::<T>::TxRateLimitExceeded );
 
         // --- 7. We remove the balance from the key.
-        Self::decrease_stake_on_account(  &key, stake_to_be_removed );
+        Self::decrease_stake_on_account(netuid,  &key, stake_to_be_removed );
 
         // --- 8. We add the balancer to the key.  If the above fails we will not credit this key.
         Self::add_balance_to_account( &key, stake_to_be_added_as_currency.unwrap() );
@@ -137,52 +140,47 @@ impl<T: Config> Pallet<T> {
 
     // Returns the total amount of stake in the staking table.
     //
+    pub fn get_total_subnet_stake(netuid:u16) -> u64 { 
+        return TotalSubnetStake::<T>::get(netuid);
+    }
     pub fn get_total_stake() -> u64 { 
         return TotalStake::<T>::get();
     }
 
-    // Increases the total amount of stake by the passed amount.
+
+    // Returns the total amount of stake in the staking table.
     //
-    pub fn increase_total_stake( increment: u64 ) { 
-        TotalStake::<T>::put( Self::get_total_stake().saturating_add( increment ) );
+    pub fn get_token_emmision(netuid:u16) -> u64 { 
+
+        let subnet_stake: I64F64 =I64F64::from_num( Self::get_total_subnet_stake(netuid));
+        let total_stake: I64F64 = I64F64::from_num(Self::get_total_stake());
+        let mut subnet_ratio: I64F64 = I64F64::from_num(0);
+        if total_stake > I64F64::from_num(0) {
+            subnet_ratio =  subnet_stake/total_stake;
+        }
+        let token_emission: u64 = subnet_ratio.to_num::<u64>();
+
+        return token_emission;
+
     }
 
-    // Decreases the total amount of stake by the passed amount.
-    //
-    pub fn decrease_total_stake( decrement: u64 ) { 
-        TotalStake::<T>::put( Self::get_total_stake().saturating_sub( decrement ) );
-    }
-
-    // Returns the total amount of stake under a key (delegative or otherwise)
-    //
-    pub fn get_total_stake_for_key( key: &T::AccountId ) -> u64 { 
-        return TotalKeyStake::<T>::get( key ); 
-    }
 
 
     // Returns the stake under the cold - hot pairing in the staking table.
     //
-    pub fn get_stake( key: &T::AccountId ) -> u64 { 
-        return Stake::<T>::get( key );
+    pub fn get_stake(netuid:u16, key: &T::AccountId ) -> u64 { 
+        return Stake::<T>::get(netuid,  key );
     }
 
-    pub fn key_account_exists( key : &T::AccountId) -> bool {
-        return true ; 
-    }
 
-    // Creates a cold - hot pairing account if the key is not already an active account.
-    //
-    pub fn create_account_if_non_existent(key: &T::AccountId ) {
-        if !Self::key_account_exists( key ) {
-            Stake::<T>::insert( key, 0 ); 
-        }
+    pub fn key_account_exists(netuid:u16, key : &T::AccountId) -> bool {
+        return Uids::<T>::contains_key(netuid, &key) ; 
     }
-
 
     // Returns true if the cold-hot staking account has enough balance to fufil the decrement.
     //
-    pub fn has_enough_stake( key: &T::AccountId, decrement: u64 ) -> bool {
-        return Self::get_stake(  key ) >= decrement;
+    pub fn has_enough_stake(netuid: u16, key: &T::AccountId, decrement: u64 ) -> bool {
+        return Self::get_stake(netuid ,  key ) >= decrement;
     }
 
 
@@ -190,21 +188,19 @@ impl<T: Config> Pallet<T> {
     // Increases the stake on the cold - hot pairing by increment while also incrementing other counters.
     // This function should be called rather than set_stake under account.
     // 
-    pub fn increase_stake_on_account( key: &T::AccountId, increment: u64 ){
-        TotalKeyStake::<T>::insert( key, TotalKeyStake::<T>::get(key).saturating_add( increment ) );
-        Stake::<T>::insert( key, Stake::<T>::get( key).saturating_add( increment ) );
-        TotalStake::<T>::put( TotalStake::<T>::get().saturating_add( increment ) );
-        TotalIssuance::<T>::put( TotalIssuance::<T>::get().saturating_add( increment ) );
+    pub fn increase_stake_on_account(netuid:u16, key: &T::AccountId, increment: u64 ){
+        Stake::<T>::insert(netuid, key, Stake::<T>::get(netuid, key).saturating_add( increment ) );
+        TotalSubnetStake::<T>::insert(netuid , TotalSubnetStake::<T>::get(netuid).saturating_add( increment ) );
+        TotalStake::<T>::put(TotalStake::<T>::get().saturating_add( increment ) );
 
     }
 
     // Decreases the stake on the cold - hot pairing by the decrement while decreasing other counters.
     //
-    pub fn decrease_stake_on_account( key: &T::AccountId, decrement: u64 ){
-        TotalKeyStake::<T>::insert( key, TotalKeyStake::<T>::get(key).saturating_sub( decrement ) );
-        Stake::<T>::insert( key, Stake::<T>::get( key).saturating_sub( decrement ) );
-        TotalStake::<T>::put( TotalStake::<T>::get().saturating_sub( decrement ) );
-        TotalIssuance::<T>::put( TotalIssuance::<T>::get().saturating_sub( decrement ) );
+    pub fn decrease_stake_on_account(netuid:u16, key: &T::AccountId, decrement: u64 ){
+        Stake::<T>::insert( netuid, key, Stake::<T>::get(netuid,  key).saturating_sub( decrement ) );
+        TotalStake::<T>::put(TotalStake::<T>::get().saturating_sub( decrement ) );
+        TotalSubnetStake::<T>::insert(netuid, TotalSubnetStake::<T>::get(netuid).saturating_sub( decrement ) );
     }
 
 	pub fn u64_to_balance( input: u64 ) -> Option<<<T as Config>::Currency as Currency<<T as frame_system::Config>::AccountId>>::Balance> { input.try_into().ok() }

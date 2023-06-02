@@ -84,15 +84,12 @@ benchmarks! {
     let n: u16 = 10;
     let netuid: u16 = 1; //11 is the benchmark network.
     let tempo: u16 = 1;
-        let name: Vec<u8> = "DefaultModule".as_bytes().to_vec();
+    let name: Vec<u8> = "DefaultModule".as_bytes().to_vec();
     let context: Vec<u8> = "{'context': 'boo'}".as_bytes().to_vec();= b"default".to_vec();
 
-    let block_number: u64 = Subspace::<T>::get_current_block_as_u64();
-    let start_nonce: u64 = (39420842u64 + 100u64*netuid as u64).into();
 
     assert_ok!(Subspace::<T>::do_add_network( RawOrigin::Root.into(), netuid.try_into().unwrap(), name.into(), context.into(), tempo.into()));
     
-    let mut seed : u32 = 1;
     let block_number: u64 = Subspace::<T>::get_current_block_as_u64();
     let key: T::AccountId = account("Alice", 0, seed);
         

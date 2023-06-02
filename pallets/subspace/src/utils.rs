@@ -21,7 +21,6 @@ impl<T: Config> Pallet<T> {
     // ========================
 	// ==== Global Getters ====
 	// ========================
-    pub fn get_total_issuance() -> u64 { TotalIssuance::<T>::get() }
     pub fn get_block_emission() -> u64 { BlockEmission::<T>::get() }
     pub fn get_current_block_as_u64( ) -> u64 { TryInto::try_into( <frame_system::Pallet<T>>::block_number() ).ok().expect("blockchain will not exceed 2^64 blocks; QED.") }
 
@@ -83,7 +82,6 @@ impl<T: Config> Pallet<T> {
     pub fn get_registrations_this_block( netuid:u16 ) -> u16 { RegistrationsThisBlock::<T>::get( netuid ) }
     pub fn get_last_mechanism_step_block( netuid: u16 ) -> u64 { LastMechansimStepBlock::<T>::get( netuid ) }
     pub fn get_registrations_this_interval( netuid: u16 ) -> u16 { RegistrationsThisInterval::<T>::get( netuid ) } 
-    pub fn get_pow_registrations_this_interval( netuid: u16 ) -> u16 { POWRegistrationsThisInterval::<T>::get( netuid ) } 
     pub fn get_neuron_block_at_registration( netuid: u16, neuron_uid: u16 ) -> u64 { BlockAtRegistration::<T>::get( netuid, neuron_uid )}
 
     // ========================

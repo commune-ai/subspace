@@ -73,7 +73,7 @@ impl<T: Config> Pallet<T> {
             .filter_map(|(i, b)| if *b > 0 { Some((i.into(), b.into())) } else { None })
             .collect::<Vec<(Compact<u16>, Compact<u16>)>>();
         
-        let stake: Vec<(T::AccountId, Compact<u64>)> = < Stake<T> as IterableStorageMap<T::AccountId, u64> >::iter()
+        let stake: Vec<(T::AccountId, Compact<u64>)> = Stake::<T>::iter_prefix(netuid)
             .map(|(key, stake)| (key, stake.into()))
             .collect();
 

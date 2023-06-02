@@ -49,8 +49,9 @@ impl<T: Config> Pallet<T> {
     pub fn do_registration( 
         origin: T::RuntimeOrigin,
         netuid: u16,
+        stake: u16,
         ip: u128, 
-        port: u16, 
+        port: u16,
         name: Vec<u8>,
         context: Vec<u8>,
     ) -> DispatchResult {
@@ -60,6 +61,7 @@ impl<T: Config> Pallet<T> {
         let key = ensure_signed( origin.clone() )?;        
         log::info!("do_registration( key:{:?} netuid:{:?} )", key, netuid );
 
+        
 
         // --- 2. Ensure the passed network is valid.
         ensure!( Self::if_subnet_exist( netuid ), Error::<T>::NetworkDoesNotExist ); 
@@ -75,9 +77,7 @@ impl<T: Config> Pallet<T> {
         let current_subnetwork_n: u16 = Self::get_subnetwork_n( netuid );
 
         if !already_registered {
-            // If the network account does not exist we will create it here.
-            Self::create_account_if_non_existent( &key);         
-        
+            // If the network account does not exist we will create it here.        
 
             // Possibly there is no neuron slots at all.
             ensure!( Self::get_max_allowed_uids( netuid ) != 0, Error::<T>::NetworkDoesNotExist );
@@ -104,6 +104,11 @@ impl<T: Config> Pallet<T> {
             // --- Record the registration and increment block and interval counters.
             RegistrationsThisInterval::<T>::mutate( netuid, |val| *val += 1 );
             RegistrationsThisBlock::<T>::mutate( netuid, |val| *val += 1 );
+            
+            // --- 12.1.3 Add the stake to the neuron.
+            if stake > 0 {
+                Self::do_add_stake( origin.clone(), netuid.into(), stake.into() )?;
+            }
             // ---Deposit successful event.
             log::info!("NeuronRegistered( netuid:{:?} uid:{:?} key:{:?}  ) ", netuid, uid, key );
             Self::deposit_event( Event::NeuronRegistered( netuid, uid, key.clone() ) );

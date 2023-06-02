@@ -490,9 +490,13 @@ impl<T: Config> Pallet<T> {
     
         // Returns the stake of the uid on network or 0 if it doesnt exist.
         //
-        pub fn get_stake_for_uid_and_subnetwork( netuid: u16, neuron_uid: u16) -> u64 { 
-            if Self::is_uid_exist_on_network( netuid, neuron_uid) {
-                return Self::get_total_stake_for_key( &Self::get_key_for_net_and_uid( netuid, neuron_uid ) ) 
+        pub fn get_stake_for_uid( netuid: u16, neuron_uid: u16) -> u64 { 
+            return Self::get_stake_for_key( netuid, &Self::get_key_for_net_and_uid( netuid, neuron_uid) )
+        }
+
+        pub fn get_stake_for_key( netuid: u16, key: &T::AccountId) -> u64 { 
+            if Self::is_key_registered_on_network( netuid, &key) {
+                return Stake::<T>::get( netuid, &key );
             } else {
                 return 0;
             }
