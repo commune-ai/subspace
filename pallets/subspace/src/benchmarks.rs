@@ -28,8 +28,7 @@ benchmarks! {
     let netuid: u16 = 11; //11 is the benchmark network.
     let tempo: u16 = 1;
     let name: Vec<u8> = "DefaultModule".as_bytes().to_vec();
-    let context: Vec<u8> = "{'context': 'boo'}".as_bytes().to_vec();= "DefaultModule".as_bytes().to_vec();
-    assert_ok!( Subspace::<T>::do_add_network( RawOrigin::Root.into(), netuid.try_into().unwrap(), name.into(), context.into(), tempo.into()));
+    assert_ok!( Subspace::<T>::do_add_network( RawOrigin::Root.into(), netuid.try_into().unwrap(), name.into(),  tempo.into()));
     Subspace::<T>::set_max_allowed_uids( netuid, n ); 
 
     // Lets fill the network with 100 UIDS and no weights.
@@ -55,7 +54,6 @@ benchmarks! {
     let netuid: u16 = 11; //11 is the benchmark network.
     let tempo: u16 = 1;
         let name: Vec<u8> = "DefaultModule".as_bytes().to_vec();
-    let context: Vec<u8> = "{'context': 'boo'}".as_bytes().to_vec();= b"default".to_vec();
     Subspace::<T>::do_add_network( caller_origin.clone(), netuid.try_into().unwrap(), name.into(), tempo.into());
     Subspace::<T>::set_max_allowed_uids( netuid, n ); 
     Subspace::<T>::set_tempo( netuid, tempo );
@@ -85,10 +83,9 @@ benchmarks! {
     let netuid: u16 = 1; //11 is the benchmark network.
     let tempo: u16 = 1;
     let name: Vec<u8> = "DefaultModule".as_bytes().to_vec();
-    let context: Vec<u8> = "{'context': 'boo'}".as_bytes().to_vec();= b"default".to_vec();
 
 
-    assert_ok!(Subspace::<T>::do_add_network( RawOrigin::Root.into(), netuid.try_into().unwrap(), name.into(), context.into(), tempo.into()));
+    assert_ok!(Subspace::<T>::do_add_network( RawOrigin::Root.into(), netuid.try_into().unwrap(), name.into(), tempo.into()));
     
     let block_number: u64 = Subspace::<T>::get_current_block_as_u64();
     let key: T::AccountId = account("Alice", 0, seed);
@@ -103,9 +100,8 @@ benchmarks! {
     let netuid: u16 = 1;
     let tempo: u16 = 1;
     let name: Vec<u8> = "DefaultModule".as_bytes().to_vec();
-    let context: Vec<u8> = "{'context': 'boo'}".as_bytes().to_vec();= b"default".to_vec();
    
-    assert_ok!( Subspace::<T>::do_add_network( RawOrigin::Root.into(), name.into(), context.into(), tempo.into(), n.into()));
+    assert_ok!( Subspace::<T>::do_add_network( RawOrigin::Root.into(), name.into(),  tempo.into(), n.into()));
     Subspace::<T>::set_max_allowed_uids( netuid, 4096 ); 
 
    assert_ok!(Subspace::<T>::do_sudo_set_max_registrations_per_block(RawOrigin::Root.into(), netuid.try_into().unwrap(), 4096 ));
@@ -128,7 +124,7 @@ benchmarks! {
       
       let block_number: u64 = Subspace::<T>::get_current_block_as_u64();
       
-      assert_ok!( Subspace::<T>::do_registration(caller_origin.clone(), netuid.try_into().unwrap(), name.clone(), ip.clone(), port, context.clone() )); 
+      assert_ok!( Subspace::<T>::do_registration(caller_origin.clone(), netuid.try_into().unwrap(), name.clone(), ip.clone(), port )); 
 
       let uid = Subspace::<T>::get_uid_for_net_and_key(netuid, &key.clone()).unwrap();
       dests.push(id.clone());
@@ -144,9 +140,8 @@ benchmarks! {
     let tempo: u16 = 1;
     let n : u32 = 4096;
     let name: Vec<u8> = "DefaultModule".as_bytes().to_vec();
-    let context: Vec<u8> = "{'context': 'boo'}".as_bytes().to_vec();= b"default".to_vec();
 
-    assert_ok!( Subspace::<T>::do_add_network( RawOrigin::Root.into(), name.into(),  context.into(), tempo, n ));
+    assert_ok!( Subspace::<T>::do_add_network( RawOrigin::Root.into(), name.into(),  tempo, n ));
     Subspace::<T>::set_max_allowed_uids( netuid, 4096 ); 
     assert_eq!(Subspace::<T>::get_max_allowed_uids(netuid), 4096);
 
@@ -155,7 +150,7 @@ benchmarks! {
     let mut seed : u32 = 1;
     let key: T::AccountId = account("Alice", 0, seed);
 
-    assert_ok!( Subspace::<T>::do_registration(caller_origin.clone(), netuid.try_into().unwrap() , name.clone(), ip.clone(), port, context.clone() ));
+    assert_ok!( Subspace::<T>::do_registration(caller_origin.clone(), netuid.try_into().unwrap() , name.clone(), ip.clone(), port ));
 
     let amount: u64 = 1;
     let amoun_to_be_staked = Subspace::<T>::u64_to_balance( 1000000000);
@@ -170,10 +165,9 @@ benchmarks! {
     let netuid: u16 = 1;
     let tempo: u16 = 1;
     let name: Vec<u8> = "DefaultModule".as_bytes().to_vec();
-    let context: Vec<u8> = "{'context': 'boo'}".as_bytes().to_vec();= b"default".to_vec();
     let netuid = Subspace::<T>::get_netuid_for_name(name.clone()).unwrap();
 
-    assert_ok!( Subspace::<T>::do_add_network( RawOrigin::Root.into(), name.into(), context.into(), tempo.into(), n.into()));
+    assert_ok!( Subspace::<T>::do_add_network( RawOrigin::Root.into(), name.into(),  tempo.into(), n.into()));
     Subspace::<T>::set_max_allowed_uids( netuid, 4096 ); 
     assert_eq!(Subspace::<T>::get_max_allowed_uids(netuid), 4096);
 
@@ -182,7 +176,7 @@ benchmarks! {
     let mut seed : u32 = 1;
     let key: T::AccountId = caller; 
 
-    assert_ok!( Subspace::<T>::do_registration(caller_origin.clone(), netuid.try_into().unwrap() , name.clone(), ip.clone(), port, context.clone()));
+    assert_ok!( Subspace::<T>::do_registration(caller_origin.clone(), netuid.try_into().unwrap() , name.clone(), ip.clone(), port));
 
     let amoun_to_be_staked = Subspace::<T>::u64_to_balance( 1000000000);
     Subspace::<T>::add_balance_to_account(&key.clone(), amoun_to_be_staked.unwrap());

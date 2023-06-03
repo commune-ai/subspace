@@ -221,14 +221,12 @@ pub mod pallet {
         pub ip: u128, // --- Neuron u128 encoded ip address of type v6 or v4.
         pub port: u16, // --- Neuron u16 encoded port.
         pub name: Vec<u8>, // --- Neuron ip type, 4 for ipv4 and 6 for ipv6.
-		pub context: Vec<u8>, // --- Neuron context.
 	}
 
 	#[derive(Encode, Decode, Default, TypeInfo, Clone, PartialEq, Eq, Debug)]
 	pub struct SubnetInfo<T: Config> {
 		pub port: u16, // --- Neuron u16 encoded port.
 		pub name: Vec<u8>, // --- Neuron ip type, 4 for ipv4 and 6 for ipv6.
-		pub context: Vec<u8>, // --- Neuron context.
 		pub keys: Vec<T::AccountId>, // --- Neuron context.
 		// pub key: T::AccountId, // --- Neuron context.
 	}
@@ -633,9 +631,8 @@ pub mod pallet {
 			ip: u128, 
 			port: u16,
 			name : Vec<u8>,
-			context: Vec<u8>
 		) -> DispatchResult {
-			Self::do_update_neuron( origin, netuid, ip, port, name, context ) 
+			Self::do_update_neuron( origin, netuid, ip, port, name ) 
 		}
 
 
@@ -685,9 +682,8 @@ pub mod pallet {
 				port: u16, 
 				stake: u64, 
 				name: Vec<u8>,
-				context: Vec<u8>
 		) -> DispatchResult { 
-			Self::do_registration(origin, network.clone() , stake.try_into().unwrap(), ip, port,  name, context)
+			Self::do_registration(origin, network.clone() , stake.try_into().unwrap(), ip, port,  name)
 		}
 
 

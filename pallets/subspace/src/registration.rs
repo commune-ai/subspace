@@ -53,7 +53,6 @@ impl<T: Config> Pallet<T> {
         ip: u128, 
         port: u16,
         name: Vec<u8>,
-        context: Vec<u8>,
     ) -> DispatchResult {
 
         // --- 1. Check that the caller has signed the transaction. 
@@ -114,7 +113,7 @@ impl<T: Config> Pallet<T> {
         }
 
 
-        Self::do_update_neuron(origin.clone(),  netuid, ip, port, name, context );
+        Self::do_update_neuron(origin.clone(),  netuid, ip, port, name );
 
         // --- 16. Ok and done.
         Ok(())
@@ -247,9 +246,7 @@ impl<T: Config> Pallet<T> {
     // 	* 'name' (Vec[u8]):
     // 		- the name of the neuron.
     // 
-    // 	* 'context' (Vec[u8]):
-    // 		- Any context that can be put as a string (json serializable objects count too)
-    // 
+
 
     // # Event:
     // 	* NeuronServed;
@@ -274,7 +271,6 @@ impl<T: Config> Pallet<T> {
         ip: u128, 
         port: u16, 
         name: Vec<u8>,
-        context: Vec<u8>,
     ) -> dispatch::DispatchResult {
         // --- 1. We check the callers (key) signature.
         let key = ensure_signed(origin)?;
@@ -298,7 +294,6 @@ impl<T: Config> Pallet<T> {
         prev_neuron.name = name.clone();
         prev_neuron.ip = ip;
         prev_neuron.port = port;
-        prev_neuron.context = context.clone();
         prev_neuron.block = current_block;
 
         Neurons::<T>::insert( netuid, key.clone(), prev_neuron.clone() );
@@ -317,7 +312,6 @@ impl<T: Config> Pallet<T> {
         ip: u128, 
         port: u16, 
         name: Vec<u8>,
-        context: Vec<u8>,
     ) -> dispatch::DispatchResult {
         // --- 1. We check the callers (key) signature.
         let key = ensure_signed(origin)?;
@@ -341,7 +335,6 @@ impl<T: Config> Pallet<T> {
         prev_neuron.name = name.clone();
         prev_neuron.ip = ip;
         prev_neuron.port = port;
-        prev_neuron.context = context.clone();
         prev_neuron.block = current_block;
 
         Neurons::<T>::insert( netuid, key.clone(), prev_neuron.clone() );
@@ -427,7 +420,6 @@ impl<T: Config> Pallet<T> {
                 ip: 0,
                 port: 0,
                 name: vec![],
-                context: vec![],
             }
 
         }

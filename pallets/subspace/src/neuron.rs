@@ -11,7 +11,6 @@ pub struct NeuronSubnetInfo<T: Config> {
     uid: Compact<u16>,
     netuid: Compact<u16>,
     active: bool,
-    context: Vec<u8>,
     name: Vec<u8>,
     last_update: Compact<u64>,
     
@@ -62,7 +61,6 @@ impl<T: Config> Pallet<T> {
         let incentive = Self::get_incentive_for_uid( netuid, uid as u16 );
         let dividends = Self::get_dividends_for_uid( netuid, uid as u16 );
         let last_update = Self::get_last_update_for_uid( netuid, uid as u16 );
-        let context = Self::get_context_for_uid( netuid, uid as u16 );
         let name = Self::get_name_for_uid( netuid, uid as u16 );
 
         let weights = <Weights<T>>::get(netuid, uid).iter()
@@ -91,7 +89,6 @@ impl<T: Config> Pallet<T> {
             last_update: last_update.into(),
             weights: weights,
             bonds: bonds,
-            context: context.clone(),
             name: name.clone()
         };
         

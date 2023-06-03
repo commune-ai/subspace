@@ -112,6 +112,7 @@ impl<T: Config> Pallet<T> {
     pub fn add_network( name: Vec<u8>) -> u16 {
         // ensure!( max_allowed_uids < InitialMaxAllowedUids, Error::<T>::InvalidMaxAllowedUids);
 
+        
         let total_networks = TotalNetworks::<T>::get();
         let max_networks = MaxAllowedSubnets::<T>::get();
         if total_networks >= max_networks{
@@ -147,6 +148,7 @@ impl<T: Config> Pallet<T> {
 
 
     pub fn get_netuid_for_name( name: Vec<u8> ) -> u16 {
+        
         let netuid: u16 = SubnetNamespace::<T>::get(name.clone());
         return netuid;
     }
