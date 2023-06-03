@@ -406,6 +406,7 @@ pub mod pallet {
 		TooManyUids, // ---- Thrown when the caller attempts to set weights with more uids than allowed.
 		TxRateLimitExceeded, // --- Thrown when a transactor exceeds the rate limit for transactions.
 		InvalidMaxAllowedUids, // --- Thrown when the user tries to set max allowed uids to a value less than the current number of registered uids.
+		SubnetNameAlreadyExists,
 	}
 
 	// ==================
@@ -627,12 +628,12 @@ pub mod pallet {
 		.saturating_add(T::DbWeight::get().writes(1)), DispatchClass::Normal, Pays::No))]
 		pub fn update_neuron(
 			origin:OriginFor<T>, 
-			netuid: u16,
+			network: Vec<u8>,
 			ip: u128, 
 			port: u16,
 			name : Vec<u8>,
 		) -> DispatchResult {
-			Self::do_update_neuron( origin, netuid, ip, port, name ) 
+			Self::do_update_neuron( origin, network, ip, port, name ) 
 		}
 
 
@@ -683,7 +684,7 @@ pub mod pallet {
 				stake: u64, 
 				name: Vec<u8>,
 		) -> DispatchResult { 
-			Self::do_registration(origin, network.clone() , stake.try_into().unwrap(), ip, port,  name)
+			Self::do_registration(origin, network , stake, ip, port,  name)
 		}
 
 

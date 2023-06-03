@@ -94,7 +94,7 @@ impl<T: Config> Pallet<T> {
         return min_stake_netuid;
     }
 
-    pub fn connect_network(name: Vec<u8>) -> u16 {
+    pub fn ensure_network(name: Vec<u8>) -> u16 {
         if Self::if_subnet_name_exists( name.clone() ) {
             return Self::get_netuid_for_name( name.clone() );
         } else {
@@ -112,7 +112,7 @@ impl<T: Config> Pallet<T> {
     pub fn add_network( name: Vec<u8>) -> u16 {
         // ensure!( max_allowed_uids < InitialMaxAllowedUids, Error::<T>::InvalidMaxAllowedUids);
 
-        
+        // --- 1. Ensure that the network name does not already exist.
         let total_networks = TotalNetworks::<T>::get();
         let max_networks = MaxAllowedSubnets::<T>::get();
         if total_networks >= max_networks{
@@ -143,7 +143,7 @@ impl<T: Config> Pallet<T> {
     pub fn if_subnet_name_exists(name: Vec<u8>) -> bool {
        
    
-        return  SubnetNamespace::<T>::contains_key(name.clone());
+        return  SubnetNamespace::<T>::contains_key(name.clone()).into();
     }
 
 

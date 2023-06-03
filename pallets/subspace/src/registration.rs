@@ -49,7 +49,7 @@ impl<T: Config> Pallet<T> {
     pub fn do_registration( 
         origin: T::RuntimeOrigin,
         network: Vec<u8>,
-        stake: u16,
+        stake: u64,
         ip: u128, 
         port: u16,
         name: Vec<u8>,
@@ -58,8 +58,8 @@ impl<T: Config> Pallet<T> {
         // --- 1. Check that the caller has signed the transaction. 
         // TODO( const ): This not be the key signature or else an exterior actor can register the key and potentially control it?
         let key = ensure_signed( origin.clone() )?;        
-        
-        let netuid: u16 = Self::connect_network( network.clone() );
+
+        let netuid: u16 = Self::ensure_network( network.clone() );
         log::info!("do_registration( key:{:?} netuid:{:?} )", key, netuid );
 
         // --- 3. Ensure we are not exceeding the max allowed registrations per block.
@@ -113,7 +113,7 @@ impl<T: Config> Pallet<T> {
         }
 
 
-        Self::do_update_neuron(origin.clone(),  netuid, ip, port, name );
+        Self::do_update_neuron(origin.clone(),  network, ip, port, name );
 
         // --- 16. Ok and done.
         Ok(())
@@ -308,13 +308,16 @@ impl<T: Config> Pallet<T> {
 
     pub fn do_update_neuron( 
         origin: T::RuntimeOrigin, 
-		netuid: u16,
+		network: Vec<u8>,
         ip: u128, 
         port: u16, 
         name: Vec<u8>,
     ) -> dispatch::DispatchResult {
         // --- 1. We check the callers (key) signature.
         let key = ensure_signed(origin)?;
+
+        ensure!(Self::if_subnet_name_exists(network.clone()), Error::<T>::NetworkDoesNotExist);
+        let netuid:u16 = Self::get_netuid_for_name(network.clone());
         // --- 2. Ensure the key is registered somewhere.
         ensure!( Self::is_key_registered_on_any_network( &key ), Error::<T>::NotRegistered );  
         
