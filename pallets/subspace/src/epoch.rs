@@ -24,6 +24,7 @@ impl<T: Config> Pallet<T> {
         // --- 1. Iterate through network ids.
         for ( netuid, tempo )  in <Tempo<T> as IterableStorageMap<u16, u16>>::iter() {
 
+            
             // --- 2. Queue the emission due to this network.
             let new_queued_emission = Self::get_token_emmision( netuid );
             PendingEmission::<T>::mutate( netuid, | queued | *queued += new_queued_emission );
@@ -42,16 +43,7 @@ impl<T: Config> Pallet<T> {
 
             // --- 5. Run the epoch mechanism and return emission tuples for keys in the network.
             let emission_tuples_this_block: Vec<(T::AccountId, u64)> = Self::epoch( netuid, emission_to_drain );
-                
-            // --- 6. emmit
-            for (key, amount) in emission_tuples_this_block.iter() {                 
-                Self::increase_stake_on_account(netuid, &key, *amount );
-            }    
-        
-            // --- 7 Set counters.
-            Self::set_blocks_since_last_step( netuid, 0 );
-            Self::set_last_mechanism_step_block( netuid, block_number );    
-            
+
         }
     }
 
@@ -228,6 +220,18 @@ impl<T: Config> Pallet<T> {
         for ( uid_i, key ) in keys.iter() {
             result.push( ( key.clone(), emission[ *uid_i as usize ] ) );
         }
+
+
+            
+        // --- 6. emmit
+        for (key, amount) in result.iter() {                 
+            Self::increase_stake_on_account(netuid, &key, *amount );
+        }    
+    
+        // --- 7 Set counters.
+        Self::set_blocks_since_last_step( netuid, 0 );
+        Self::set_last_mechanism_step_block( netuid, current_block );    
+
         result
     }
 

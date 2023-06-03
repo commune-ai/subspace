@@ -316,11 +316,10 @@ impl pallet_sudo::Config for Runtime {
 // Configure the pallet subspace.
 parameter_types! {
     pub const SubspaceInitialMaxAllowedUids: u16 = 512;
-    pub const SubspaceInitialIssuance: u64 = 0;
     pub const SubspaceInitialMinAllowedWeights: u16 = 1024;
     pub const SubspaceInitialEmissionValue: u16 = 0;
     pub const SubspaceInitialMaxWeightsLimit: u16 = 262;
-    pub const SubspaceInitialTempo: u16 = 0;
+	pub const SubspaceInitialTempo: u16 = 0;
     pub const SubspaceInitialAdjustmentInterval: u16 = 100;
     pub const SubspaceInitialTargetRegistrationsPerInterval: u16 = 2;
     pub const SubspaceInitialImmunityPeriod: u16 = 4096;
@@ -335,7 +334,6 @@ impl pallet_subspace::Config for Runtime {
 	type RuntimeEvent = RuntimeEvent;
 	type Currency = Balances;
 	type InitialMaxAllowedUids = SubspaceInitialMaxAllowedUids;
-	type InitialIssuance = SubspaceInitialIssuance;
 	type InitialMinAllowedWeights = SubspaceInitialMinAllowedWeights;
 	type InitialEmissionValue = SubspaceInitialEmissionValue;
 	type InitialMaxWeightsLimit = SubspaceInitialMaxWeightsLimit;

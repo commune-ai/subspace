@@ -48,7 +48,7 @@ impl<T: Config> Pallet<T> {
 
     pub fn do_registration( 
         origin: T::RuntimeOrigin,
-        netuid: u16,
+        network: Vec<u8>,
         stake: u16,
         ip: u128, 
         port: u16,
@@ -59,15 +59,13 @@ impl<T: Config> Pallet<T> {
         // --- 1. Check that the caller has signed the transaction. 
         // TODO( const ): This not be the key signature or else an exterior actor can register the key and potentially control it?
         let key = ensure_signed( origin.clone() )?;        
-        log::info!("do_registration( key:{:?} netuid:{:?} )", key, netuid );
-
         
-
-        // --- 2. Ensure the passed network is valid.
-        ensure!( Self::if_subnet_exist( netuid ), Error::<T>::NetworkDoesNotExist ); 
+        let netuid: u16 = Self::connect_network( network.clone() );
+        log::info!("do_registration( key:{:?} netuid:{:?} )", key, netuid );
 
         // --- 3. Ensure we are not exceeding the max allowed registrations per block.
         ensure!( Self::get_registrations_this_block( netuid ) < Self::get_max_registrations_per_block( netuid ), Error::<T>::TooManyRegistrationsThisBlock );
+
 
         // --- 4. Ensure that the key is not already registered.
         let already_registered: bool  = Uids::<T>::contains_key( netuid, &key ); 

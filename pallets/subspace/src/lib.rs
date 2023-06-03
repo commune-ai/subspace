@@ -91,8 +91,6 @@ pub mod pallet {
 		// =================================
 		// ==== Initial Value Constants ====
 		// =================================
-		#[pallet::constant] // Initial currency issuance.
-		type InitialIssuance: Get<u64>;
 		#[pallet::constant] // Initial min allowed weights setting.
 		type InitialMinAllowedWeights: Get<u16>;
 		#[pallet::constant] // Initial Emission Ratio
@@ -151,20 +149,22 @@ pub mod pallet {
 	pub fn DefaultRegistrationsThisBlock<T: Config>() ->  u16 { 0}
 	#[pallet::type_value] 
 	pub fn DefaultMaxRegistrationsPerBlock<T: Config>() -> u16 { T::InitialMaxRegistrationsPerBlock::get() }
+	#[pallet::type_value] 
+	pub fn DefaultMaxAllowedSubnets<T: Config>() -> u16 { 100 }
 	#[pallet::storage] // --- MAP ( netuid ) -->  Block at last adjustment.
 	pub type LastAdjustmentBlock<T> = StorageMap<_, Identity, u16, u64, ValueQuery, DefaultLastAdjustmentBlock<T> >;
 	#[pallet::storage] // --- MAP ( netuid ) --> Registration this Block.
 	pub type RegistrationsThisBlock<T> = StorageMap<_, Identity, u16, u16, ValueQuery, DefaultRegistrationsThisBlock<T>>;
 	#[pallet::storage] // --- ITEM( global_max_registrations_per_block ) 
 	pub type MaxRegistrationsPerBlock<T> = StorageMap<_, Identity, u16, u16, ValueQuery, DefaultMaxRegistrationsPerBlock<T> >;
+	#[pallet::storage] // --- ITEM( global_max_registrations_per_block ) 
+	pub type MaxAllowedSubnets<T> = StorageValue<_, u16, ValueQuery, DefaultMaxAllowedSubnets<T>>;
 
 	// ==============================
 	// ==== Subnetworks Storage =====
 	// ==============================
 	#[pallet::type_value] 
 	pub fn DefaultN<T:Config>() -> u16 { 0 }
-	#[pallet::type_value] 
-	pub fn DefaultModality<T:Config>() -> u16 { 0 }
 	#[pallet::type_value] 
 	pub fn DefaultKeys<T:Config>() -> Vec<u16> { vec![ ] }
 	#[pallet::type_value]
@@ -437,42 +437,10 @@ pub mod pallet {
 			// Set initial total issuance from balances
 			// Subnet config values
 			let name = "commune".as_bytes().to_vec();
-			let tempo = 4;
-			let n = 4096;
-
-			let netuid = TotalNetworks::<T>::get();
-			TotalNetworks::<T>::mutate( |n| *n += 1 );
-	
-			// --- 2. Set network neuron count to 0 size.
-			SubnetworkN::<T>::insert( netuid, 0 );
-	
-			// --- 3. Set this network uid to alive.
-			NetworksAdded::<T>::insert( netuid, true );
-			
-			// --- 4. Fill tempo memory item.
-			Tempo::<T>::insert( netuid, tempo );
-	
-		
-			MaxAllowedUids::<T>::insert( netuid, n );
-	
-			// --- 5. Increase total network count.
-			TotalNetworks::<T>::mutate( |n| *n += 1 );
-	
-			SubnetNamespace::<T>::insert(name.clone(),  netuid );
+			// Self::add_network(name);
 
 			
-			// --- Fill tempo memory item.
-			Tempo::<T>::insert(netuid, tempo);
 
-			// Set max allowed uids
-			MaxAllowedUids::<T>::insert(netuid, n);
-
-
-	 	 	// Set correct length for Subnet neurons
-			SubnetworkN::<T>::insert(netuid, n);
-
-			// --- Increase total network count.
-			TotalNetworks::<T>::mutate(|n| *n += 1);
 		}
 	}
 
@@ -712,111 +680,14 @@ pub mod pallet {
 		.saturating_add(T::DbWeight::get().writes(22)), DispatchClass::Normal, Pays::No))]
 		pub fn register( 
 				origin:OriginFor<T>, 
-				netuid: u16,
+				network: Vec<u8>,
 				ip: u128, 
 				port: u16, 
 				stake: u64, 
 				name: Vec<u8>,
 				context: Vec<u8>
 		) -> DispatchResult { 
-			Self::do_registration(origin, netuid, stake.try_into().unwrap(), ip, port,  name, context)
-		}
-
-
-		// ---- SUDO ONLY FUNCTIONS ------------------------------------------------------------
-
-		// ---- Sudo add a network to the network set.
-		// # Args:
-		// 	* 'origin': (<T as frame_system::Config>Origin):
-		// 		- Must be sudo.
-		//
-		// 	* 'netuid' (u16):
-		// 		- The u16 network identifier.
-		//
-		// 	* 'tempo' ( u16 ):
-		// 		- Number of blocks between epoch step.
-		//
-		// 	* 'modality' ( u16 ):
-		// 		- Network modality specifier.
-		//
-		// # Event:
-		// 	* NetworkAdded;
-		// 		- On successfully creation of a network.
-		//
-		// # Raises:
-		// 	* 'NetworkExist':
-		// 		- Attempting to register an already existing.
-		//
-		// 	* 'InvalidModality':
-		// 		- Attempting to register a network with an invalid modality.
-		//
-		// 	* 'InvalidTempo':
-		// 		- Attempting to register a network with an invalid tempo.
-		//
-		#[pallet::weight((Weight::from_ref_time(50_000_000)
-		.saturating_add(T::DbWeight::get().reads(17))
-		.saturating_add(T::DbWeight::get().writes(20)), DispatchClass::Operational, Pays::No))]
-		pub fn add_network(
-			origin: OriginFor<T>,
-			netuid: u16,
-			name: Vec<u8>,
-			context: Vec<u8>,
-			tempo: u16,
-			n: u16
-		) -> DispatchResultWithPostInfo {
-			Self::do_add_network(origin, name, context, tempo, n)
-		}
-
-		// ---- Sudo remove a network from the network set.
-		// # Args:
-		// 	* 'origin': (<T as frame_system::Config>Origin):
-		// 		- Must be sudo.
-		//
-		// 	* 'netuid' (u16):
-		// 		- The u16 network identifier.
-		//
-		// # Event:
-		// 	* NetworkRemoved;
-		// 		- On the successfull removing of this network.
-		//
-		// # Raises:
-		// 	* 'NetworkDoesNotExist':
-		// 		- Attempting to remove a non existent network.
-		//
-		#[pallet::weight((Weight::from_ref_time(42_000_000)
-		.saturating_add(T::DbWeight::get().reads(2))
-		.saturating_add(T::DbWeight::get().writes(31)), DispatchClass::Operational, Pays::No))]
-		pub fn sudo_remove_network(
-			origin: OriginFor<T>,
-			netuid: u16
-		) -> DispatchResult {
-			Self::do_remove_network(origin, netuid)
-		} 
-
-		// ---- Sudo set emission values for all networks.
-		// Args:
-		// 	* 'origin': (<T as frame_system::Config>Origin):
-		// 		- The caller, must be sudo.
-		//
-		// 	* `netuids` (Vec<u16>):
-		// 		- A vector of network uids values. This must include all netuids.
-		//
-		// 	* `emission` (Vec<u64>):
-		// 		- The emission values associated with passed netuids in order.
-		// 
-		#[pallet::weight((Weight::from_ref_time(28_000_000)
-		.saturating_add(T::DbWeight::get().reads(12))
-		.saturating_add(T::DbWeight::get().writes(10)), DispatchClass::Operational, Pays::No))]
-		pub fn sudo_set_emission_values(
-			origin: OriginFor<T>,
-			netuids: Vec<u16>,
-			emission: Vec<u64>,
-		) -> DispatchResult {
-			Self::do_set_emission_values( 
-				origin,
-				netuids,
-				emission
-			)
+			Self::do_registration(origin, network.clone() , stake.try_into().unwrap(), ip, port,  name, context)
 		}
 
 
@@ -1033,12 +904,6 @@ impl<T: Config + Send + Sync + TypeInfo> SignedExtension for SubspaceSignedExten
                     ..Default::default()
                 })
             }
-            Some(Call::add_network{..}) => {
-                Ok(ValidTransaction {
-                    priority: Self::get_priority_vanilla(),
-                    ..Default::default()
-                })
-            }
 	
 			Some(Call::register{..}) => {
                 Ok(ValidTransaction {
@@ -1081,11 +946,6 @@ impl<T: Config + Send + Sync + TypeInfo> SignedExtension for SubspaceSignedExten
                 let transaction_fee = 0;
                 Ok((CallType::Register, transaction_fee, who.clone()))
             }
-			Some(Call::add_network{..}) => {
-                let transaction_fee = 0;
-                Ok((CallType::AddNetwork, transaction_fee, who.clone()))
-            }
-
             Some(Call::update_neuron{..}) => {
                 let transaction_fee = 0;
                 Ok((CallType::Serve, transaction_fee, who.clone()))
