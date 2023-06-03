@@ -165,6 +165,7 @@ benchmarks! {
     let netuid: u16 = 1;
     let tempo: u16 = 1;
     let name: Vec<u8> = "DefaultModule".as_bytes().to_vec();
+    let network: Vec<u8> = "commune".as_bytes().to_vec();
     let netuid = Subspace::<T>::get_netuid_for_name(name.clone()).unwrap();
 
     assert_ok!( Subspace::<T>::do_add_network( RawOrigin::Root.into(), name.into(),  tempo.into(), n.into()));
