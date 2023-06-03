@@ -44,23 +44,17 @@ impl<T: Config> Pallet<T> {
         // --- 1. We check that the transaction is signed by the caller and retrieve the T::AccountId key information.
         let key = ensure_signed( origin )?;
         
-        
+
+		// --- 1. Ensure we don't exceed tx rate limit
+		ensure!( !Self::exceeds_tx_rate_limit( Self::get_last_tx_block(&key), Self::get_current_block_as_u64() ), Error::<T>::TxRateLimitExceeded );
+
         
         log::info!("do_add_stake( origin:{:?} stake_to_be_added:{:?} )", key, stake_to_be_added );
 
-        // --- 2. We convert the stake u64 into a balancer.
+        // --- 2. Checks
         let stake_as_balance = Self::u64_to_balance( stake_to_be_added );
         ensure!( stake_as_balance.is_some(), Error::<T>::CouldNotConvertToBalance );
- 
-        // --- 3. Ensure the callers key has enough stake to perform the transaction.
         ensure!( Self::can_remove_balance_from_account( &key, stake_as_balance.unwrap() ), Error::<T>::NotEnoughBalanceToStake );
-
-
-        // --- 6. Ensure the remove operation from the key is a success.
-        ensure!( Self::remove_balance_from_account( &key, stake_as_balance.unwrap() ) == true, Error::<T>::BalanceWithdrawalError );
-
-		// --- 7. Ensure we don't exceed tx rate limit
-		ensure!( !Self::exceeds_tx_rate_limit( Self::get_last_tx_block(&key), Self::get_current_block_as_u64() ), Error::<T>::TxRateLimitExceeded );
 
         // --- 8. If we reach here, add the balance to the key.
         Self::increase_stake_on_account(netuid, &key, stake_to_be_added );
@@ -113,21 +107,18 @@ impl<T: Config> Pallet<T> {
         let key = ensure_signed( origin )?;
         log::info!("do_remove_stake( origin:{:?} stake_to_be_removed:{:?} )", key, stake_to_be_removed );
 
-        // --- 4. Ensure that the key has enough stake to withdraw.
-        ensure!( Self::has_enough_stake(netuid, &key, stake_to_be_removed ), Error::<T>::NotEnoughStaketoWithdraw );
 
-        // --- 5. Ensure that we can conver this u64 to a balance.
-        let stake_to_be_added_as_currency = Self::u64_to_balance( stake_to_be_removed );
-        ensure!( stake_to_be_added_as_currency.is_some(), Error::<T>::CouldNotConvertToBalance );
 
 		// --- 6. Ensure we don't exceed tx rate limit
 		ensure!( !Self::exceeds_tx_rate_limit( Self::get_last_tx_block(&key), Self::get_current_block_as_u64() ), Error::<T>::TxRateLimitExceeded );
 
+        // --- 5. Ensure that we can conver this u64 to a balance.
+        ensure!( Self::has_enough_stake(netuid, &key, stake_to_be_removed ), Error::<T>::NotEnoughStaketoWithdraw );
+        let stake_to_be_added_as_currency = Self::u64_to_balance( stake_to_be_removed );
+        ensure!( stake_to_be_added_as_currency.is_some(), Error::<T>::CouldNotConvertToBalance );
+
         // --- 7. We remove the balance from the key.
         Self::decrease_stake_on_account(netuid,  &key, stake_to_be_removed );
-
-        // --- 8. We add the balancer to the key.  If the above fails we will not credit this key.
-        Self::add_balance_to_account( &key, stake_to_be_added_as_currency.unwrap() );
 
         // --- 9. Emit the unstaking event.
         log::info!("StakeRemoved( key:{:?}, stake_to_be_removed:{:?} )", key, stake_to_be_removed );
@@ -189,6 +180,12 @@ impl<T: Config> Pallet<T> {
     // This function should be called rather than set_stake under account.
     // 
     pub fn increase_stake_on_account(netuid:u16, key: &T::AccountId, increment: u64 ){
+
+        // --- 2. We convert the stake u64 into a balancer.
+        let stake_as_balance = Self::u64_to_balance( increment );
+        // --- 6. Ensure the remove operation from the key is a success.
+        Self::remove_balance_from_account( &key, stake_as_balance.unwrap() );
+
         Stake::<T>::insert(netuid, key, Stake::<T>::get(netuid, key).saturating_add( increment ) );
         TotalSubnetStake::<T>::insert(netuid , TotalSubnetStake::<T>::get(netuid).saturating_add( increment ) );
         TotalStake::<T>::put(TotalStake::<T>::get().saturating_add( increment ) );
@@ -197,7 +194,12 @@ impl<T: Config> Pallet<T> {
 
     // Decreases the stake on the cold - hot pairing by the decrement while decreasing other counters.
     //
-    pub fn decrease_stake_on_account(netuid:u16, key: &T::AccountId, decrement: u64 ){
+    pub fn decrease_stake_on_account(netuid:u16, key: &T::AccountId, decrement: u64 ) {
+
+        let stake_to_be_added_as_currency = Self::u64_to_balance( decrement );
+
+        // --- 8. We add the balancer to the key.  If the above fails we will not credit this key.
+        Self::add_balance_to_account( &key, stake_to_be_added_as_currency.unwrap() );
         Stake::<T>::insert( netuid, key, Stake::<T>::get(netuid,  key).saturating_sub( decrement ) );
         TotalStake::<T>::put(TotalStake::<T>::get().saturating_sub( decrement ) );
         TotalSubnetStake::<T>::insert(netuid, TotalSubnetStake::<T>::get(netuid).saturating_sub( decrement ) );
