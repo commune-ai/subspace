@@ -13,6 +13,7 @@ extern crate alloc;
 #[derive(Decode, Encode, PartialEq, Eq, Clone, Debug)]
 pub struct SubnetInfo {
     netuid: Compact<u16>,
+    name: Vec<u8>,
     immunity_period: Compact<u16>,
     min_allowed_weights: Compact<u16>,
     max_weights_limit: Compact<u16>,
@@ -20,7 +21,6 @@ pub struct SubnetInfo {
     max_allowed_uids: Compact<u16>,
     blocks_since_last_step: Compact<u64>,
     tempo: Compact<u16>,
-    emission_values: Compact<u64>,
 }
 
 
@@ -89,46 +89,40 @@ impl<T: Config> Pallet<T> {
     pub fn if_subnet_exist( netuid: u16 ) -> bool{
         return SubnetworkN::<T>::contains_key( netuid );
     }
-    pub fn least_staked_netuid() -> u16 {
+    pub fn least_staked_netuid(stake: u64) -> u16 {
         let mut min_stake: u64 = 0;
         let mut min_stake_netuid: u16 = 0;
-        for ( netuid, net_stake ) in <TotalSubnetStake<T> as IterableStorageMap<u16, u64> >::iter(){
-            
-            if net_stake <= min_stake {
-                min_stake = net_stake;
-                min_stake_netuid = netuid;
+        if (stake > min_stake) {
+            for ( netuid, net_stake ) in <TotalSubnetStake<T> as IterableStorageMap<u16, u64> >::iter(){
+                if net_stake <= min_stake {
+                    min_stake = net_stake;
+                    min_stake_netuid = netuid;
+                }
             }
         }
-
         return min_stake_netuid;
     }
 
-    pub fn ensure_network(name: Vec<u8>) -> u16 {
-        if Self::if_subnet_name_exists( name.clone() ) {
-            return Self::get_netuid_for_name( name.clone() );
-        } else {
-            return Self::add_network( name.clone() );
-        }
-            
-    }
 
     pub fn get_network_stake( netuid: u16 ) -> u64 {
         return TotalSubnetStake::<T>::get( netuid );
     }
-
     
 
-    pub fn add_network( name: Vec<u8>) -> u16 {
-        // ensure!( max_allowed_uids < InitialMaxAllowedUids, Error::<T>::InvalidMaxAllowedUids);
+    pub fn add_network( name: Vec<u8>, stake: u64) -> u16 {
 
         // --- 1. Ensure that the network name does not already exist.
         let total_networks = TotalNetworks::<T>::get();
         let max_networks = MaxAllowedSubnets::<T>::get();
-        if total_networks >= max_networks{
-            let netuid = Self::least_staked_netuid();
+        // if networks 
+        let netuid : u16 ; 
+        if total_networks >= max_networks {
+            netuid = Self::least_staked_netuid(stake);
             Self::remove_network_for_netuid( netuid );
+        } else {
+            netuid = TotalNetworks::<T>::get();
+
         }
-        let netuid = TotalNetworks::<T>::get();
         SubnetworkN::<T>::insert( netuid, 1 );
         Self::set_default_values_for_all_parameters( netuid );
         
@@ -213,18 +207,19 @@ impl<T: Config> Pallet<T> {
         }
 
         let immunity_period = Self::get_immunity_period(netuid);
+        let name = Self::get_name_for_netuid(netuid);
         let min_allowed_weights = Self::get_min_allowed_weights(netuid);
         let max_weights_limit = Self::get_max_weight_limit(netuid);
         let subnetwork_n = Self::get_subnetwork_n(netuid);
         let max_allowed_uids = Self::get_max_allowed_uids(netuid);
         let blocks_since_last_step = Self::get_blocks_since_last_step(netuid);
         let tempo = Self::get_tempo(netuid);
-        let emission_values = Self::get_emission_value(netuid);
 
 
 
         return Some(SubnetInfo {
             immunity_period: immunity_period.into(),
+            name: name,
             netuid: netuid.into(),
             min_allowed_weights: min_allowed_weights.into(),
             max_weights_limit: max_weights_limit.into(),
@@ -232,7 +227,6 @@ impl<T: Config> Pallet<T> {
             max_allowed_uids: max_allowed_uids.into(),
             blocks_since_last_step: blocks_since_last_step.into(),
             tempo: tempo.into(),
-            emission_values: emission_values.into(),
         })
 	}
 

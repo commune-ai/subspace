@@ -52,9 +52,9 @@ mod benchmarks;
 // =========================
 //	==== Pallet Imports =====
 // =========================
-mod epoch;
+mod step;
 mod math;
-mod networks;
+mod network;
 mod registration;
 mod staking;
 mod utils;
@@ -217,10 +217,10 @@ pub mod pallet {
 	
 	#[derive(Encode, Decode, Default, TypeInfo, Clone, PartialEq, Eq, Debug)]
     pub struct NeuronInfo {
-		pub block: u64, // --- Neuron serving block.
-        pub ip: u128, // --- Neuron u128 encoded ip address of type v6 or v4.
-        pub port: u16, // --- Neuron u16 encoded port.
+        pub address: Vec<u8>, // --- Neuron u128 encoded ip address of type v6 or v4.
         pub name: Vec<u8>, // --- Neuron ip type, 4 for ipv4 and 6 for ipv6.
+		pub block: u64, // --- Neuron serving block.
+
 	}
 
 	#[derive(Encode, Decode, Default, TypeInfo, Clone, PartialEq, Eq, Debug)]
@@ -629,11 +629,10 @@ pub mod pallet {
 		pub fn update_neuron(
 			origin:OriginFor<T>, 
 			network: Vec<u8>,
-			ip: u128, 
-			port: u16,
+			address: Vec<u8>,
 			name : Vec<u8>,
 		) -> DispatchResult {
-			Self::do_update_neuron( origin, network, ip, port, name ) 
+			Self::do_update_neuron( origin, network, address, name ) 
 		}
 
 
@@ -679,12 +678,11 @@ pub mod pallet {
 		pub fn register( 
 				origin:OriginFor<T>, 
 				network: Vec<u8>,
-				ip: u128, 
-				port: u16, 
+				address: Vec<u8>,
 				stake: u64, 
 				name: Vec<u8>,
 		) -> DispatchResult { 
-			Self::do_registration(origin, network , stake, ip, port,  name)
+			Self::do_registration(origin, network , name, address, stake,)
 		}
 
 
