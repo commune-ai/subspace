@@ -37,7 +37,7 @@ where
 	C::Api: substrate_frame_rpc_system::AccountNonceApi<Block, AccountId, Index>,
 	C::Api: pallet_transaction_payment_rpc::TransactionPaymentRuntimeApi<Block, Balance>,
 	C::Api: BlockBuilder<Block>,
-	C::Api: subspace_custom_rpc_runtime_api::NeuronInfoRuntimeApi<Block>,
+	C::Api: subspace_custom_rpc_runtime_api::ModuleInfoRuntimeApi<Block>,
 	C::Api: subspace_custom_rpc_runtime_api::SubnetInfoRuntimeApi<Block>,
 	P: TransactionPool + 'static
 {

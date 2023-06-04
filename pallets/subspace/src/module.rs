@@ -6,7 +6,7 @@ use alloc::vec::Vec;
 use codec::Compact;
 
 #[derive(Decode, Encode, PartialEq, Eq, Clone, Debug)]
-pub struct NeuronSubnetInfo<T: Config> {
+pub struct ModuleSubnetInfo<T: Config> {
     key: T::AccountId,
     uid: Compact<u16>,
     netuid: Compact<u16>,
@@ -15,7 +15,7 @@ pub struct NeuronSubnetInfo<T: Config> {
     last_update: Compact<u64>,
     
     // Subnet Info
-    stake: Vec<(T::AccountId, Compact<u64>)>, // map of key to stake on this neuron/key (includes delegations)
+    stake: Vec<(T::AccountId, Compact<u64>)>, // map of key to stake on this module/key (includes delegations)
     emission: Compact<u64>,
     incentive: Compact<u16>,
     dividends: Compact<u16>,
@@ -25,34 +25,34 @@ pub struct NeuronSubnetInfo<T: Config> {
 
 
 impl<T: Config> Pallet<T> {
-	pub fn get_neurons(netuid: u16) -> Vec<NeuronSubnetInfo<T>> {
+	pub fn get_modules(netuid: u16) -> Vec<ModuleSubnetInfo<T>> {
         if !Self::if_subnet_exist(netuid) {
             return Vec::new();
         }
 
-        let mut neurons = Vec::new();
+        let mut modules = Vec::new();
         let n = Self::get_subnetwork_n(netuid);
         for uid in 0..n {
             let uid = uid;
             let netuid = netuid;
 
-            let _neuron = Self::get_neuron_subnet_exists(netuid, uid);
-            let neuron;
-            if _neuron.is_none() {
-                break; // No more neurons
+            let _module = Self::get_module_subnet_exists(netuid, uid);
+            let module;
+            if _module.is_none() {
+                break; // No more modules
             } else {
                 // No error, key was registered
-                neuron = _neuron.expect("Neuron should exist");
+                module = _module.expect("Module should exist");
             }
 
-            neurons.push( neuron );
+            modules.push( module );
         }
-        return neurons;
+        return modules;
 	}
 
-    fn get_neuron_subnet_exists(netuid: u16, uid: u16) -> Option<NeuronSubnetInfo<T>> {
+    fn get_module_subnet_exists(netuid: u16, uid: u16) -> Option<ModuleSubnetInfo<T>> {
         let key = Self::get_key_for_net_and_uid(netuid, uid);
-        let neuron_info = Self::get_neuron_info( netuid, &key.clone() );
+        let module_info = Self::get_module_info( netuid, &key.clone() );
 
 
                 
@@ -77,7 +77,7 @@ impl<T: Config> Pallet<T> {
 
         
 
-        let neuron = NeuronSubnetInfo {
+        let module = ModuleSubnetInfo {
             key: key.clone(),
             uid: uid.into(),
             netuid: netuid.into(),
@@ -92,16 +92,16 @@ impl<T: Config> Pallet<T> {
             name: name.clone()
         };
         
-        return Some(neuron);
+        return Some(module);
     }
 
-    pub fn get_neuron(netuid: u16, uid: u16) -> Option<NeuronSubnetInfo<T>> {
+    pub fn get_module(netuid: u16, uid: u16) -> Option<ModuleSubnetInfo<T>> {
         if !Self::if_subnet_exist(netuid) {
             return None;
         }
 
-        let neuron = Self::get_neuron_subnet_exists(netuid, uid);
-        return neuron;
+        let module = Self::get_module_subnet_exists(netuid, uid);
+        return module;
 	}
 
 

@@ -4,37 +4,6 @@ use substrate_fixed::types::{I64F64};
 impl<T: Config> Pallet<T> { 
 
 
-    // ---- The implementation for the extrinsic add_stake: Adds stake to a key account.
-    //
-    // # Args:
-    // 	* 'origin': (<T as frame_system::Config>RuntimeOrigin):
-    // 		- The signature of the caller's key.
-    //
-    // 	* 'key' (T::AccountId):
-    // 		- The associated key account.
-    //
-    // 	* 'stake_to_be_added' (u64):
-    // 		- The amount of stake to be added to the key staking account.
-    //
-    // # Event:
-    // 	* StakeAdded;
-    // 		- On the successfully adding stake to a global account.
-    //
-    // # Raises:
-    // 	* 'CouldNotConvertToBalance':
-    // 		- Unable to convert the passed stake value to a balance.
-    //
-    // 	* 'NotEnoughBalanceToStake':
-    // 		- Not enough balance on the key to add onto the global account.
-    //
-    // 	* 'module':
-    // 		- The calling key is not associated with this key.
-    //
-    // 	* 'BalanceWithdrawalError':
-    // 		- Errors stemming from transaction pallet.
-    //
-	// 	* 'TxRateLimitExceeded':
-    // 		- Thrown if key has hit transaction rate limit
     //
 	pub fn do_add_stake(
         origin: T::RuntimeOrigin, 
@@ -56,47 +25,18 @@ impl<T: Config> Pallet<T> {
         ensure!( stake_as_balance.is_some(), Error::<T>::CouldNotConvertToBalance );
         ensure!( Self::can_remove_balance_from_account( &key, stake_as_balance.unwrap() ), Error::<T>::NotEnoughBalanceToStake );
 
-        // --- 8. If we reach here, add the balance to the key.
+        // --- 4. If we reach here, add the balance to the key.
         Self::increase_stake_on_account(netuid, &key, stake_to_be_added );
  
-        // --- 9. Emit the staking event.
+        // --- 5. Emit the staking event.
         log::info!("StakeAdded( key:{:?}, stake_to_be_added:{:?} )", key, stake_to_be_added );
         Self::deposit_event( Event::StakeAdded( key, stake_to_be_added ) );
 
-        // --- 10. Ok and return.
+        // --- 6. Ok and return.
         Ok(())
     }
 
-    // ---- The implementation for the extrinsic remove_stake: Removes stake from a key account and adds it onto a key.
-    //
-    // # Args:
-    // 	* 'origin': (<T as frame_system::Config>RuntimeOrigin):
-    // 		- The signature of the caller's key.
-    //
-    // 	* 'key' (T::AccountId):
-    // 		- The associated key account.
-    //
-    // 	* 'stake_to_be_added' (u64):
-    // 		- The amount of stake to be added to the key staking account.
-    //
-    // # Event:
-    // 	* StakeRemoved;
-    // 		- On the successfully removing stake from the key account.
-    //
-    // # Raises:
-    // 	* 'NotRegistered':
-    // 		- Thrown if the account we are attempting to unstake from is non existent.
-    //
-    // 	* 'NotEnoughStaketoWithdraw':
-    // 		- Thrown if there is not enough stake on the key to withdwraw this amount. 
-    //
-    // 	* 'CouldNotConvertToBalance':
-    // 		- Thrown if we could not convert this amount to a balance.
-	//
-    // 	* 'TxRateLimitExceeded':
-    // 		- Thrown if key has hit transaction rate limit
-    //
-    //
+
     pub fn do_remove_stake(
         origin: T::RuntimeOrigin, 
         netuid: u16,

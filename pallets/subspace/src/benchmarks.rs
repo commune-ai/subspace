@@ -36,7 +36,7 @@ benchmarks! {
     for uid in 0..n as u16 {
         let block_number: u64 = Subspace::<T>::get_current_block_as_u64();
         let key: T::AccountId = account("Alice", 0, seed);
-        Subspace::<T>::append_neuron( netuid, &key, block_number );
+        Subspace::<T>::append_module( netuid, &key, block_number );
         seed = seed + 1;
     }
 
@@ -64,7 +64,7 @@ benchmarks! {
     for uid in 0..n as u16 {
         let block_number: u64 = Subspace::<T>::get_current_block_as_u64();
         let key: T::AccountId = account("Alice", 0, SEED);
-        Subspace::<T>::append_neuron( netuid, &key, block_number );
+        Subspace::<T>::append_module( netuid, &key, block_number );
         SEED = SEED + 1;
         emission.push( ( key, 1 ) );
     }

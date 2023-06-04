@@ -85,7 +85,7 @@ impl<T: Config> Pallet<T> {
         // Logical negation of inactive.
         let active: Vec<bool> = inactive.iter().map(|&b| !b).collect();
 
-        // Block at registration vector (block when each neuron was most recently registered).
+        // Block at registration vector (block when each module was most recently registered).
         let block_at_registration: Vec<u64> = Self::get_block_at_registration( netuid );
         log::trace!( "Block at registration: {:?}", &block_at_registration );
 
@@ -131,7 +131,7 @@ impl<T: Config> Pallet<T> {
         weights = mask_diag_sparse( &weights );
         // log::trace!( "W (permit+diag): {:?}", &weights );
 
-        // Remove weights referring to deregistered neurons.
+        // Remove weights referring to deregistered modules.
         weights = vec_mask_sparse_matrix( &weights, &last_update, &block_at_registration, &| updated, registered | updated <= registered );
         // log::trace!( "W (permit+diag+outdate): {:?}", &weights );
 
@@ -156,7 +156,7 @@ impl<T: Config> Pallet<T> {
         let mut bonds: Vec<Vec<(u16, I32F32)>> = Self::get_bonds_sparse( netuid );
         // log::trace!( "B: {:?}", &bonds );
         
-        // Remove bonds referring to deregistered neurons.
+        // Remove bonds referring to deregistered modules.
         bonds = vec_mask_sparse_matrix( &bonds, &last_update, &block_at_registration, &| updated, registered | updated <= registered );
         // log::trace!( "B (outdatedmask): {:?}", &bonds );
 
@@ -238,8 +238,8 @@ impl<T: Config> Pallet<T> {
     pub fn get_normalized_stake( netuid:u16 ) -> Vec<I32F32> {
         let n: usize = Self::get_subnetwork_n( netuid ) as usize; 
         let mut stake_64: Vec<I64F64> = vec![ I64F64::from_num(0.0); n ]; 
-        for neuron_uid in 0..n {
-            stake_64[neuron_uid] = I64F64::from_num( Self::get_stake_for_uid( netuid, neuron_uid as u16 ) );
+        for module_uid in 0..n {
+            stake_64[module_uid] = I64F64::from_num( Self::get_stake_for_uid( netuid, module_uid as u16 ) );
         }
         inplace_normalize_64( &mut stake_64 );
         let stake: Vec<I32F32> = vec_fixed64_to_fixed32( stake_64 );
@@ -249,9 +249,9 @@ impl<T: Config> Pallet<T> {
     pub fn get_block_at_registration( netuid:u16 ) -> Vec<u64> { 
         let n: usize = Self::get_subnetwork_n( netuid ) as usize;
         let mut block_at_registration: Vec<u64> = vec![ 0; n ];
-        for neuron_uid in 0..n {
-            if Keys::<T>::contains_key( netuid, neuron_uid as u16 ){
-                block_at_registration[ neuron_uid ] = Self::get_neuron_block_at_registration( netuid, neuron_uid as u16 );
+        for module_uid in 0..n {
+            if Keys::<T>::contains_key( netuid, module_uid as u16 ){
+                block_at_registration[ module_uid ] = Self::get_module_block_at_registration( netuid, module_uid as u16 );
             }
         }
         block_at_registration

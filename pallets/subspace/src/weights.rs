@@ -75,13 +75,13 @@ impl<T: Config> Pallet<T> {
         ensure!( Self::is_key_registered_on_network( netuid, &key ), Error::<T>::NotRegistered );
 
 
-        // --- 7. Get the neuron uid of associated key on network netuid.
-        let neuron_uid;
-        match Self::get_uid_for_net_and_key( netuid, &key ) { Ok(k) => neuron_uid = k, Err(e) => panic!("Error: {:?}", e) } 
+        // --- 7. Get the module uid of associated key on network netuid.
+        let module_uid;
+        match Self::get_uid_for_net_and_key( netuid, &key ) { Ok(k) => module_uid = k, Err(e) => panic!("Error: {:?}", e) } 
 
         // --- 8. Ensure the uid is not setting weights faster than the weights_set_rate_limit.
         let current_block: u64 = Self::get_current_block_as_u64();
-        ensure!( Self::check_rate_limit( netuid, neuron_uid, current_block ), Error::<T>::SettingWeightsTooFast );
+        ensure!( Self::check_rate_limit( netuid, module_uid, current_block ), Error::<T>::SettingWeightsTooFast );
 
  
         // --- 10. Ensure the passed uids contain no duplicates.
@@ -91,27 +91,27 @@ impl<T: Config> Pallet<T> {
         ensure!( !Self::contains_invalid_uids( netuid, &uids ), Error::<T>::InvalidUid );
 
         // --- 12. Ensure that the weights have the required length.
-        ensure!( Self::check_length( netuid, neuron_uid, &uids, &values ), Error::<T>::NotSettingEnoughWeights );
+        ensure!( Self::check_length( netuid, module_uid, &uids, &values ), Error::<T>::NotSettingEnoughWeights );
 
         // --- 13. Normalize the weights.
         let normalized_values = Self::normalize_weights( values );
 
         // --- 14. Ensure the weights are max weight limited 
-        ensure!( Self::max_weight_limited( netuid, neuron_uid, &uids, &normalized_values ), Error::<T>::MaxWeightExceeded );
+        ensure!( Self::max_weight_limited( netuid, module_uid, &uids, &normalized_values ), Error::<T>::MaxWeightExceeded );
 
         // --- 15. Zip weights for sinking to storage map.
         let mut zipped_weights: Vec<( u16, u16 )> = vec![];
         for ( uid, val ) in uids.iter().zip(normalized_values.iter()) { zipped_weights.push((*uid, *val)) }
 
         // --- 16. Set weights under netuid, uid double map entry.
-        Weights::<T>::insert( netuid, neuron_uid, zipped_weights );
+        Weights::<T>::insert( netuid, module_uid, zipped_weights );
 
         // --- 17. Set the activity for the weights on this network.
-        Self::set_last_update_for_uid( netuid, neuron_uid, current_block );
+        Self::set_last_update_for_uid( netuid, module_uid, current_block );
 
         // --- 18. Emit the tracking event.
-        log::info!("WeightsSet( netuid:{:?}, neuron_uid:{:?} )", netuid, neuron_uid );
-        Self::deposit_event( Event::WeightsSet( netuid, neuron_uid ) );
+        log::info!("WeightsSet( netuid:{:?}, module_uid:{:?} )", netuid, module_uid );
+        Self::deposit_event( Event::WeightsSet( netuid, module_uid ) );
 
         // --- 19. Return ok.
         Ok(())
@@ -119,12 +119,12 @@ impl<T: Config> Pallet<T> {
 
 
 
-    // Checks if the neuron has set weights within the weights_set_rate_limit.
+    // Checks if the module has set weights within the weights_set_rate_limit.
     //
-    pub fn check_rate_limit( netuid: u16, neuron_uid: u16, current_block: u64 ) -> bool {
-        if Self::is_uid_exist_on_network( netuid, neuron_uid ){ 
+    pub fn check_rate_limit( netuid: u16, module_uid: u16, current_block: u64 ) -> bool {
+        if Self::is_uid_exist_on_network( netuid, module_uid ){ 
             // --- 1. Ensure that the diff between current and last_set weights is greater than limit.
-            let last_set_weights: u64 = Self::get_last_update_for_uid( netuid, neuron_uid );
+            let last_set_weights: u64 = Self::get_last_update_for_uid( netuid, module_uid );
             if last_set_weights == 0 { return true; } // (Storage default) Never set weights.
             return current_block - last_set_weights >= Self::get_weights_set_rate_limit( netuid );
         }

@@ -8,7 +8,7 @@
 This repository contains Commune's substrate-chain. Subspace contains the trusted logic which:
 
 1. Runs Commune's consensus mechanism
-1. Advertises neuron information, IPs, etc
+1. Advertises module information, IPs, etc
 1. and facilitates value transfer via TAO.
 
 </div>

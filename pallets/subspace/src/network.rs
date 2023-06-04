@@ -245,10 +245,10 @@ impl<T: Config> Pallet<T> {
         return SubnetworkN::<T>::get( netuid ) 
     }
     
-    // Replace the neuron under this uid.
-    pub fn replace_neuron( netuid: u16, uid_to_replace: u16, new_key: &T::AccountId ) {
+    // Replace the module under this uid.
+    pub fn replace_module( netuid: u16, uid_to_replace: u16, new_key: &T::AccountId ) {
 
-        log::debug!("replace_neuron( netuid: {:?} | uid_to_replace: {:?} | new_key: {:?} ) ", netuid, uid_to_replace, new_key );
+        log::debug!("replace_module( netuid: {:?} | uid_to_replace: {:?} | new_key: {:?} ) ", netuid, uid_to_replace, new_key );
 
         // 1. Get the old key under this position.
         let old_key: T::AccountId = Keys::<T>::get( netuid, uid_to_replace );
@@ -268,12 +268,12 @@ impl<T: Config> Pallet<T> {
     }
 
     // Appends the uid to the network.
-    pub fn append_neuron( netuid: u16, new_key: &T::AccountId ) {
+    pub fn append_module( netuid: u16, new_key: &T::AccountId ) {
 
         // 1. Get the next uid. This is always equal to subnetwork_n.
         let next_uid: u16 = Self::get_subnetwork_n( netuid );
         let block_number = Self::get_current_block_as_u64();
-        log::debug!("append_neuron( netuid: {:?} | next_uid: {:?} | new_key: {:?} ) ", netuid, new_key, next_uid );
+        log::debug!("append_module( netuid: {:?} | next_uid: {:?} | new_key: {:?} ) ", netuid, new_key, next_uid );
 
         // 2. Get and increase the uid count.
         SubnetworkN::<T>::insert( netuid, next_uid + 1 );
@@ -306,8 +306,8 @@ impl<T: Config> Pallet<T> {
 
     // Returs the key under the network uid as a Result. Ok if the uid is taken.
     //
-    pub fn get_key_for_net_and_uid( netuid: u16, neuron_uid: u16) ->  T::AccountId {
-        Keys::<T>::try_get(netuid, neuron_uid).unwrap() 
+    pub fn get_key_for_net_and_uid( netuid: u16, module_uid: u16) ->  T::AccountId {
+        Keys::<T>::try_get(netuid, module_uid).unwrap() 
     }
     
 
@@ -319,8 +319,8 @@ impl<T: Config> Pallet<T> {
 
     // Returns the stake of the uid on network or 0 if it doesnt exist.
     //
-    pub fn get_stake_for_uid( netuid: u16, neuron_uid: u16) -> u64 { 
-        return Self::get_stake_for_key( netuid, &Self::get_key_for_net_and_uid( netuid, neuron_uid) )
+    pub fn get_stake_for_uid( netuid: u16, module_uid: u16) -> u64 { 
+        return Self::get_stake_for_key( netuid, &Self::get_key_for_net_and_uid( netuid, module_uid) )
     }
 
     pub fn get_stake_for_key( netuid: u16, key: &T::AccountId) -> u64 { 

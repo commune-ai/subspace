@@ -15,16 +15,16 @@ use std::sync::Arc;
 
 use sp_api::ProvideRuntimeApi;
 
-pub use subspace_custom_rpc_runtime_api::NeuronInfoRuntimeApi;
+pub use subspace_custom_rpc_runtime_api::ModuleInfoRuntimeApi;
 pub use subspace_custom_rpc_runtime_api::SubnetInfoRuntimeApi;
 
 #[rpc(client, server)]
 pub trait SubspaceCustomApi<BlockHash> {
 
-	#[method(name = "neuronInfo_getNeurons")]
-	fn get_neurons(&self, netuid: u16, at: Option<BlockHash>) -> RpcResult<Vec<u8>>;
-	#[method(name = "neuronInfo_getNeuron")]
-	fn get_neuron(&self, netuid: u16, uid: u16, at: Option<BlockHash>) -> RpcResult<Vec<u8>>;
+	#[method(name = "moduleInfo_getModules")]
+	fn get_modules(&self, netuid: u16, at: Option<BlockHash>) -> RpcResult<Vec<u8>>;
+	#[method(name = "moduleInfo_getModule")]
+	fn get_module(&self, netuid: u16, uid: u16, at: Option<BlockHash>) -> RpcResult<Vec<u8>>;
 
 	#[method(name = "subnetInfo_getSubnetInfo")]
 	fn get_subnet_info(&self, netuid: u16, at: Option<BlockHash>) -> RpcResult<Vec<u8>>;
@@ -63,7 +63,7 @@ impl<C, Block> SubspaceCustomApiServer<<Block as BlockT>::Hash> for SubspaceCust
 where
 	Block: BlockT,
 	C: ProvideRuntimeApi<Block> + HeaderBackend<Block> + Send + Sync + 'static,
-	C::Api: NeuronInfoRuntimeApi<Block>,
+	C::Api: ModuleInfoRuntimeApi<Block>,
 	C::Api: SubnetInfoRuntimeApi<Block>,
 	{ 
 
@@ -72,7 +72,7 @@ where
 
 
 
-	fn get_neurons(
+	fn get_modules(
 		&self,
 		netuid: u16,
 		at: Option<<Block as BlockT>::Hash>
@@ -80,16 +80,16 @@ where
 		let api = self.client.runtime_api();
 		let at = at.unwrap_or_else(|| self.client.info().best_hash);
 
-		api.get_neurons(at, netuid).map_err(|e| {
+		api.get_modules(at, netuid).map_err(|e| {
 			CallError::Custom(ErrorObject::owned(
 				Error::RuntimeError.into(),
-				"Unable to get neurons info.",
+				"Unable to get modules info.",
 				Some(e.to_string()),
 			)).into()
 		})
 	}
 
-	fn get_neuron(
+	fn get_module(
 		&self,
 		netuid: u16,
 		uid: u16, at: Option<<Block as BlockT>::Hash>
@@ -97,10 +97,10 @@ where
 		let api = self.client.runtime_api();
 		let at = at.unwrap_or_else(|| self.client.info().best_hash);
 
-		api.get_neuron(at, netuid, uid).map_err(|e| {
+		api.get_module(at, netuid, uid).map_err(|e| {
 			CallError::Custom(ErrorObject::owned(
 				Error::RuntimeError.into(),
-				"Unable to get neuron info.",
+				"Unable to get module info.",
 				Some(e.to_string()),
 			)).into()
 		})
