@@ -319,11 +319,11 @@ parameter_types! {
     pub const SubspaceInitialMinAllowedWeights: u16 = 1024;
     pub const SubspaceInitialEmissionValue: u16 = 0;
     pub const SubspaceInitialMaxWeightsLimit: u16 = 262;
-	pub const SubspaceInitialTempo: u16 = 0;
+	pub const SubspaceInitialTempo: u16 = 100;
     pub const SubspaceInitialAdjustmentInterval: u16 = 100;
     pub const SubspaceInitialTargetRegistrationsPerInterval: u16 = 2;
     pub const SubspaceInitialImmunityPeriod: u16 = 4096;
-    pub const SubspaceInitialActivityCutoff: u16 = 5000;
+    pub const SubspaceInitialActivityCutoff: u16 = 100;
     pub const SubspaceInitialMaxRegistrationsPerBlock: u16 = 50;
     pub const SubspaceInitialPruningScore : u16 = u16::MAX;
     pub const SubspaceInitialServingRateLimit: u64 = 1000; 

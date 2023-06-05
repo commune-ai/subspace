@@ -321,7 +321,7 @@ impl<T: Config> Pallet<T> {
     pub fn adjust_registration_terms_for_networks( ) {
         
         // --- 1. Iterate through each network.
-        for ( netuid, _ )  in <NetworksAdded<T> as IterableStorageMap<u16, bool>>::iter(){
+        for ( netuid, _ )  in <SubnetworkN<T> as IterableStorageMap<u16, u16>>::iter(){
 
             let last_adjustment_block: u64 = Self::get_last_adjustment_block( netuid );
             let adjustment_interval: u16 = Self::get_adjustment_interval( netuid );

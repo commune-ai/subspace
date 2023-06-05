@@ -177,8 +177,6 @@ pub mod pallet {
 	pub type TotalNetworks<T> = StorageValue<_, u16, ValueQuery>;
 	#[pallet::storage] // --- MAP ( netuid ) --> subnetwork_n (Number of UIDs in the network).
 	pub type SubnetworkN<T:Config> = StorageMap< _, Identity, u16, u16, ValueQuery, DefaultN<T> >;
-	#[pallet::storage] // --- MAP ( netuid ) --> network_is_added
-	pub type NetworksAdded<T:Config> = StorageMap<_, Identity, u16, bool, ValueQuery, DefaultNeworksAdded<T>>;	
 	#[pallet::storage] // --- DMAP ( netuid, netuid ) -> registration_requirement
 	pub type NetworkConnect<T:Config> = StorageDoubleMap<_, Identity, u16, Identity, u16, u16, OptionQuery>;
 	#[pallet::storage] // --- DMAP ( key, netuid ) --> bool
@@ -230,6 +228,7 @@ pub mod pallet {
 		pub keys: Vec<T::AccountId>, // --- Module context.
 		// pub key: T::AccountId, // --- Module context.
 	}
+
 
 
 
