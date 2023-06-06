@@ -92,7 +92,7 @@ impl<T: Config> Pallet<T> {
     pub fn least_staked_netuid(stake: u64) -> u16 {
         let mut min_stake: u64 = 0;
         let mut min_stake_netuid: u16 = 0;
-        if (stake > min_stake) {
+        if stake > min_stake {
             for ( netuid, net_stake ) in <TotalSubnetStake<T> as IterableStorageMap<u16, u64> >::iter(){
                 if net_stake <= min_stake {
                     min_stake = net_stake;
@@ -246,37 +246,42 @@ impl<T: Config> Pallet<T> {
     }
     
     // Replace the module under this uid.
-    pub fn replace_module( netuid: u16, uid_to_replace: u16, new_key: &T::AccountId ) {
+    pub fn replace_module( netuid: u16, uid_to_replace: u16, new_key: &T::AccountId, name: Vec<u8>, address: Vec<u8> ) {
 
         log::debug!("replace_module( netuid: {:?} | uid_to_replace: {:?} | new_key: {:?} ) ", netuid, uid_to_replace, new_key );
 
         // 1. Get the old key under this position.
         let old_key: T::AccountId = Keys::<T>::get( netuid, uid_to_replace );
-
+        let uid = Uids::<T>::get( netuid, old_key.clone()).unwrap();
         // 2. Remove previous set memberships.
         Uids::<T>::remove( netuid, old_key.clone() ); 
         IsNetworkMember::<T>::remove( old_key.clone(), netuid );
         Keys::<T>::remove( netuid, uid_to_replace ); 
+        Modules::<T>::remove(netuid, uid );
         let block_number:u64 = Self::get_current_block_as_u64();
-
         // 3. Create new set memberships.
         Self::set_active_for_uid( netuid, uid_to_replace, true ); // Set to active by default.
         Keys::<T>::insert( netuid, uid_to_replace, new_key.clone() ); // Make key - uid association.
         Uids::<T>::insert( netuid, new_key.clone(), uid_to_replace ); // Make uid - key association.
         BlockAtRegistration::<T>::insert( netuid, uid_to_replace, block_number ); // Fill block at registration.
         IsNetworkMember::<T>::insert( new_key.clone(), netuid, true ); // Fill network is member.
+        let module = ModuleInfo{ name:name, address:address, block:block_number} ;
+        Modules::<T>::insert( netuid, uid, module ); // Fill module info.
+
+        // 4. Emit the event.
+        
     }
 
     // Appends the uid to the network.
-    pub fn append_module( netuid: u16, new_key: &T::AccountId ) {
+    pub fn append_module( netuid: u16, key: &T::AccountId , name: Vec<u8>, address: Vec<u8>) {
 
         // 1. Get the next uid. This is always equal to subnetwork_n.
-        let next_uid: u16 = Self::get_subnetwork_n( netuid );
+        let uid: u16 = Self::get_subnetwork_n( netuid );
         let block_number = Self::get_current_block_as_u64();
-        log::debug!("append_module( netuid: {:?} | next_uid: {:?} | new_key: {:?} ) ", netuid, new_key, next_uid );
+        log::debug!("append_module( netuid: {:?} | uid: {:?} | new_key: {:?} ) ", netuid, key, uid );
 
         // 2. Get and increase the uid count.
-        SubnetworkN::<T>::insert( netuid, next_uid + 1 );
+        SubnetworkN::<T>::insert( netuid, uid + 1 );
 
         // 3. Expand Yuma with new position.
         Active::<T>::mutate(netuid, |v| v.push( true ) );
@@ -286,11 +291,20 @@ impl<T: Config> Pallet<T> {
         LastUpdate::<T>::mutate(netuid, |v| v.push( block_number ) );
     
         // 4. Insert new account information.
-        Keys::<T>::insert( netuid, next_uid, new_key.clone() ); // Make key - uid association.
-        Uids::<T>::insert( netuid, new_key.clone(), next_uid ); // Make uid - key association.
-        BlockAtRegistration::<T>::insert( netuid, next_uid, block_number ); // Fill block at registration.
-        IsNetworkMember::<T>::insert( new_key.clone(), netuid, true ); // Fill network is member.
-    }
+        Keys::<T>::insert( netuid, uid, key.clone() ); // Make key - uid association.
+        Uids::<T>::insert( netuid, key.clone(), uid ); // Make uid - key association.
+        BlockAtRegistration::<T>::insert( netuid, uid, block_number ); // Fill block at registration.
+        IsNetworkMember::<T>::insert( key.clone(), netuid, true ); // Fill network is member.
+        ModuleNamespace::<T>::insert( netuid, name. clone(), uid ); // Fill module namespace.
+        // 5. Insert new account information.
+        let module = ModuleInfo {
+            name : name.clone(),
+            address : address,
+            block : block_number
+        };
+
+        Modules::<T>::insert( netuid, uid, module ); // Fill network is member.
+    }   
 
     // Returns true if the uid is set on the network.
     //
@@ -306,21 +320,25 @@ impl<T: Config> Pallet<T> {
 
     // Returs the key under the network uid as a Result. Ok if the uid is taken.
     //
-    pub fn get_key_for_net_and_uid( netuid: u16, module_uid: u16) ->  T::AccountId {
+    pub fn get_key_for_uid( netuid: u16, module_uid: u16) ->  T::AccountId {
         Keys::<T>::try_get(netuid, module_uid).unwrap() 
     }
     
 
     // Returns the uid of the key in the network as a Result. Ok if the key has a slot.
     //
-    pub fn get_uid_for_net_and_key( netuid: u16, key: &T::AccountId) -> Result<u16, DispatchError> { 
+    pub fn get_uid_for_key( netuid: u16, key: &T::AccountId) -> Result<u16, DispatchError> { 
         return Uids::<T>::try_get(netuid, &key).map_err(|_err| Error::<T>::NotRegistered.into()) 
+    }
+
+    pub fn get_uid_for_name ( netuid: u16, name: Vec<u8> ) -> u16  {
+        return ModuleNamespace::<T>::get(netuid, name)
     }
 
     // Returns the stake of the uid on network or 0 if it doesnt exist.
     //
     pub fn get_stake_for_uid( netuid: u16, module_uid: u16) -> u64 { 
-        return Self::get_stake_for_key( netuid, &Self::get_key_for_net_and_uid( netuid, module_uid) )
+        return Self::get_stake_for_key( netuid, &Self::get_key_for_uid( netuid, module_uid) )
     }
 
     pub fn get_stake_for_key( netuid: u16, key: &T::AccountId) -> u64 { 

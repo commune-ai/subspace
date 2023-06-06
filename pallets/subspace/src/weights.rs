@@ -77,7 +77,7 @@ impl<T: Config> Pallet<T> {
 
         // --- 7. Get the module uid of associated key on network netuid.
         let module_uid;
-        match Self::get_uid_for_net_and_key( netuid, &key ) { Ok(k) => module_uid = k, Err(e) => panic!("Error: {:?}", e) } 
+        match Self::get_uid_for_key( netuid, &key ) { Ok(k) => module_uid = k, Err(e) => panic!("Error: {:?}", e) } 
 
         // --- 8. Ensure the uid is not setting weights faster than the weights_set_rate_limit.
         let current_block: u64 = Self::get_current_block_as_u64();

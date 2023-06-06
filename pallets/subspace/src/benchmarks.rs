@@ -126,7 +126,7 @@ benchmarks! {
       
       assert_ok!( Subspace::<T>::do_registration(caller_origin.clone(), netuid.try_into().unwrap(), name.clone(), ip.clone(), port )); 
 
-      let uid = Subspace::<T>::get_uid_for_net_and_key(netuid, &key.clone()).unwrap();
+      let uid = Subspace::<T>::get_uid_for_key(netuid, &key.clone()).unwrap();
       dests.push(id.clone());
       weights.push(id.clone());
     }

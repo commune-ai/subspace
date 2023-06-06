@@ -51,7 +51,7 @@ impl<T: Config> Pallet<T> {
 	}
 
     fn get_module_subnet_exists(netuid: u16, uid: u16) -> Option<ModuleSubnetInfo<T>> {
-        let key = Self::get_key_for_net_and_uid(netuid, uid);
+        let key = Self::get_key_for_uid(netuid, uid);
         let module_info = Self::get_module_info( netuid, &key.clone() );
 
 

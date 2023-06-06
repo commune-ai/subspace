@@ -42,7 +42,7 @@ impl<T: Config> Pallet<T> {
 
         // --- 4. Ensure that the key is not already registered.
         let already_registered: bool  = Uids::<T>::contains_key( netuid, &key ); 
-
+        ensure!( !already_registered, Error::<T>::KeyAlreadyRegistered );
         let current_block_number: u64 = Self::get_current_block_as_u64();
         let mut uid: u16;
         let current_subnetwork_n: u16 = Self::get_subnetwork_n( netuid );
@@ -60,7 +60,7 @@ impl<T: Config> Pallet<T> {
                 uid = current_subnetwork_n;
 
                 // --- 12.1.2 Expand subnetwork with new account.
-                Self::append_module( netuid, &key );
+                Self::append_module( netuid, &key , name.clone(), address.clone());
                 log::info!("add new module account");
             } else {
                 // --- 12.1.1 Replacement required.
@@ -68,7 +68,7 @@ impl<T: Config> Pallet<T> {
                 uid = Self::get_module_to_prune( netuid );
 
                 // --- 12.1.1 Replace the module account with the new info.
-                Self::replace_module( netuid, uid, &key );
+                Self::replace_module( netuid, uid, &key , name.clone(), address.clone());
                 log::info!("prune module");
             }
 
@@ -84,37 +84,12 @@ impl<T: Config> Pallet<T> {
             log::info!("ModuleRegistered( netuid:{:?} uid:{:?} key:{:?}  ) ", netuid, uid, key );
             Self::deposit_event( Event::ModuleRegistered( netuid, uid, key.clone() ) );
     
-        }
+        } 
 
-
-        Self::do_update_module(origin.clone(),  network, address, name );
 
         // --- 16. Ok and done.
         Ok(())
     }
-
-
-    pub fn do_transfer_registration(  origin: T::RuntimeOrigin, netuid: u16, uid: u16, new_key: T::AccountId ) -> DispatchResult {
-        // --- 1. Check that the caller has signed the transaction. 
-        // TODO( const ): This not be the key signature or else an exterior actor can register the key and potentially control it?
-        let key = ensure_signed( origin.clone() )?;        
-        log::info!("do_transfer_registration( key:{:?} netuid:{:?} uid:{:?} new_key:{:?} )", key, netuid, uid, new_key );
-
-        // --- 2. Ensure the passed network is valid.
-        ensure!( Self::if_subnet_exist( netuid ), Error::<T>::NetworkDoesNotExist ); 
-
-        // --- 3. Ensure the key is already registered.
-        ensure!( Uids::<T>::contains_key( netuid, &key ), Error::<T>::NotRegistered );
-
-        // --- 5. Ensure the passed block number is valid, not in the future or too old.
-        // Work must have been done within 3 blocks (stops long range attacks).
-        let current_block_number: u64 = Self::get_current_block_as_u64();
-        // --- 10. If the network account does not exist we will create it here.
-        Self::replace_module( netuid, netuid, &key );
-
-        Ok(())
-    }
-
 
 
     pub fn vec_to_hash( vec_hash: Vec<u8> ) -> H256 {
@@ -210,9 +185,10 @@ impl<T: Config> Pallet<T> {
     ) -> dispatch::DispatchResult {
         // --- 1. We check the callers (key) signature.
         let key = ensure_signed(origin)?;
+        let netuid:u16 = Self::get_netuid_for_name(network.clone());
+        let uid = Self::get_uid_for_key( netuid, &key ).unwrap();
 
         ensure!(Self::if_subnet_name_exists(network.clone()), Error::<T>::NetworkDoesNotExist);
-        let netuid:u16 = Self::get_netuid_for_name(network.clone());
         // --- 2. Ensure the key is registered somewhere.
         ensure!( Self::is_key_registered_on_any_network( &key ), Error::<T>::NotRegistered );  
         
@@ -221,23 +197,34 @@ impl<T: Config> Pallet<T> {
         let current_block: u64 = Self::get_current_block_as_u64(); 
         
         ensure!( Self::module_passes_rate_limit( netuid, &prev_module, current_block ), Error::<T>::ServingRateLimitExceeded );  
+        
+        let mut updated : bool = false ; 
+        if name.len() > 0 {
+            ensure!( name.len() <= MaxModuleNameLength::<T>::get() as usize, Error::<T>::ModuleNameTooLong );
+            if prev_module.name.len() > 0 {
+                let old_name = prev_module.name.clone();
+                ModuleNamespace::<T>::remove( netuid, old_name );
+            } 
+            ensure!(!Self::name_exists(netuid, name.clone()) , Error::<T>::ModuleNameAlreadyExists); 
+            ModuleNamespace::<T>::insert( netuid, name.clone(), uid );
     
-        if prev_module.name.len() > 0 {
-            let old_name = prev_module.name.clone();
-            ModuleNamespace::<T>::remove( netuid, old_name.clone() );
-        } 
-        ensure!(!Self::name_exists(netuid, name.clone()) , Error::<T>::ModuleNameAlreadyExists); 
-        ModuleNamespace::<T>::insert( netuid, name.clone(), key.clone() );
+            prev_module.name = name.clone();
+            updated = true;
+        }
+        if address.len() > 0 {
+            prev_module.address = address.clone();
+            updated = true;
+        }
 
-        prev_module.name = name.clone();
-        prev_module.address = address.clone();
-        prev_module.block = current_block;
+        
 
-        Modules::<T>::insert( netuid, key.clone(), prev_module.clone() );
+        if updated {
+            prev_module.block = current_block;
+            Self::deposit_event(Event::ModuleUpdated( netuid, key.clone() ));
+            Modules::<T>::insert( netuid, uid, prev_module.clone() );
 
-        // --- 7. We deposit module served event.
-        log::info!("ModuleServed( key:{:?} ) ", key.clone() );
-        Self::deposit_event(Event::ModuleServed( netuid, key.clone() ));
+        }
+
 
         // --- 8. Return is successful dispatch. 
         Ok(())
@@ -245,7 +232,7 @@ impl<T: Config> Pallet<T> {
 
 
     pub fn name_exists( netuid: u16, name: Vec<u8> ) -> bool {
-        return ModuleNamespace::<T>::contains_key( netuid, name.clone());
+        return ModuleNamespace::<T>::contains_key( netuid, name.clone() );
         
     }
 
@@ -263,20 +250,23 @@ impl<T: Config> Pallet<T> {
 
 
     pub fn has_module_info( netuid: u16, key: &T::AccountId ) -> bool {
-        return Modules::<T>::contains_key( netuid, key );
+        
+        let uid = Self::get_uid_for_key( netuid, key ).unwrap();
+        return Modules::<T>::contains_key( netuid, uid );
     }
 
 
     pub fn get_module_info( netuid: u16, key: &T::AccountId ) -> ModuleInfo {
-        if Self::has_module_info( netuid, key ) {
-            return Modules::<T>::get( netuid, key ).unwrap();
+        
+        if Self::is_key_registered_on_network(netuid, key) {
+            let uid = Self::get_uid_for_key( netuid, key ).unwrap();
+            return Modules::<T>::get( netuid, uid ).unwrap();
         } else{
             return ModuleInfo { 
                 block: 0,
                 address: vec![],
                 name: vec![],
             }
-
         }
     }
 

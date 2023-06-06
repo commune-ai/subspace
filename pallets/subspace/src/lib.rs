@@ -250,7 +250,7 @@ pub mod pallet {
 	#[pallet::storage] // --- MAP ( netuid ) --> serving_rate_limit
 	pub type ServingRateLimit<T> = StorageMap<_, Identity, u16, u64, ValueQuery, DefaultServingRateLimit<T>> ;
 	#[pallet::storage] // --- MAP ( netuid, key ) --> module_info
-	pub(super) type Modules<T:Config> = StorageDoubleMap<_, Identity, u16, Blake2_128Concat, T::AccountId, ModuleInfo, OptionQuery>;
+	pub(super) type Modules<T:Config> = StorageDoubleMap<_, Identity, u16, Blake2_128Concat, u16, ModuleInfo, OptionQuery>;
 	
 	// =======================================
 	// ==== Subnetwork Hyperparam storage ====
@@ -273,9 +273,12 @@ pub mod pallet {
 	pub fn DefaultAdjustmentInterval<T: Config>() -> u16 { T::InitialAdjustmentInterval::get() }
 	#[pallet::type_value] 
 	pub fn DefaultTargetRegistrationsPerInterval<T: Config>() -> u16 { T::InitialTargetRegistrationsPerInterval::get() }
+	#[pallet::type_value] 
+	pub fn DefaultMaxModuleNameLength<T: Config>() -> u16 { 32 }
+	
 
 	#[pallet::storage]
-	pub type ModuleNamespace<T: Config> = StorageDoubleMap<_, Twox64Concat, u16, Twox64Concat, Vec<u8>, T::AccountId, ValueQuery, DefaultKey<T>>;
+	pub type ModuleNamespace<T: Config> = StorageDoubleMap<_, Twox64Concat, u16, Twox64Concat, Vec<u8>, u16, ValueQuery>;
 	
 	#[pallet::storage] // --- MAP ( netuid ) --> weights_set_rate_limit
 	pub type SubnetNamespace<T: Config> = StorageMap<_, Twox64Concat, Vec<u8>,  u16 , ValueQuery>;
@@ -321,7 +324,9 @@ pub mod pallet {
 	#[pallet::type_value] 
 	pub fn DefaultKey<T:Config>() -> T::AccountId { T::AccountId::decode(&mut sp_runtime::traits::TrailingZeroInput::zeroes()).unwrap() }
 
-
+	
+	#[pallet::storage] // --- DMAP ( netuid ) --> bonds
+	pub(super) type MaxModuleNameLength<T:Config> = StorageValue< _, u16, ValueQuery, DefaultMaxModuleNameLength<T> >;
 	#[pallet::storage] // --- DMAP ( netuid ) --> active
 	pub(super) type Active<T:Config> = StorageMap< _, Identity, u16, Vec<bool>, ValueQuery, EmptyBoolVec<T> >;
 	#[pallet::storage] // --- DMAP ( netuid ) --> incentive
@@ -364,7 +369,7 @@ pub mod pallet {
 		MinAllowedWeightSet( u16, u16 ), // --- Event created when minimun allowed weight is set for a subnet.
 		WeightsSetRateLimitSet( u16, u64 ), // --- Event create when weights set rate limit has been set for a subnet.
 		ImmunityPeriodSet( u16, u16), // --- Event created when immunity period is set for a subnet.
-		ModuleServed( u16, T::AccountId ), // --- Event created when the module server information is added to the network.
+		ModuleUpdated( u16, T::AccountId ), // --- Event created when the module server information is added to the network.
 		EmissionValuesSet(), // --- Event created when emission ratios fr all networks is set.
 		DelegateAdded( T::AccountId, T::AccountId, u16 ), // --- Event created to signal a key has become a delegate.
 		ServingRateLimitSet( u16, u64 ), // --- Event created when setting the prometheus serving rate limit.
@@ -406,6 +411,8 @@ pub mod pallet {
 		TxRateLimitExceeded, // --- Thrown when a transactor exceeds the rate limit for transactions.
 		InvalidMaxAllowedUids, // --- Thrown when the user tries to set max allowed uids to a value less than the current number of registered uids.
 		SubnetNameAlreadyExists,
+		ModuleNameTooLong,
+		KeyAlreadyRegistered
 	}
 
 	// ==================
@@ -539,7 +546,7 @@ pub mod pallet {
 		// --- Returns the transaction priority for setting weights.
 		pub fn get_priority_set_weights( key: &T::AccountId, netuid: u16 ) -> u64 {
 			if Uids::<T>::contains_key( netuid, &key ) {
-				let uid = Self::get_uid_for_net_and_key(netuid, &key.clone()).unwrap();
+				let uid = Self::get_uid_for_key(netuid, &key.clone()).unwrap();
 				let current_block_number: u64 = Self::get_current_block_as_u64();
 				return current_block_number - Self::get_last_update_for_uid(netuid, uid as u16);
 			}
