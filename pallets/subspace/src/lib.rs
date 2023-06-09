@@ -279,7 +279,7 @@ pub mod pallet {
 
 	#[pallet::storage]
 	pub type ModuleNamespace<T: Config> = StorageDoubleMap<_, Twox64Concat, u16, Twox64Concat, Vec<u8>, u16, ValueQuery>;
-	
+
 	#[pallet::storage] // --- MAP ( netuid ) --> weights_set_rate_limit
 	pub type SubnetNamespace<T: Config> = StorageMap<_, Twox64Concat, Vec<u8>,  u16 , ValueQuery>;
 	
@@ -327,8 +327,6 @@ pub mod pallet {
 	
 	#[pallet::storage] // --- DMAP ( netuid ) --> bonds
 	pub(super) type MaxModuleNameLength<T:Config> = StorageValue< _, u16, ValueQuery, DefaultMaxModuleNameLength<T> >;
-	#[pallet::storage] // --- DMAP ( netuid ) --> active
-	pub(super) type Active<T:Config> = StorageMap< _, Identity, u16, Vec<bool>, ValueQuery, EmptyBoolVec<T> >;
 	#[pallet::storage] // --- DMAP ( netuid ) --> incentive
 	pub(super) type Incentive<T:Config> = StorageMap< _, Identity, u16, Vec<u16>, ValueQuery, EmptyU16Vec<T>>;
 	#[pallet::storage] // --- DMAP ( netuid ) --> dividends

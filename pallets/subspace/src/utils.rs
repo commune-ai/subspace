@@ -27,7 +27,6 @@ impl<T: Config> Pallet<T> {
     // ==============================
 	// ==== Yuma params ====
 	// ==============================
-    pub fn get_active( netuid:u16 ) -> Vec<bool> { Active::<T>::get( netuid ) }
     pub fn get_emission( netuid:u16 ) -> Vec<u64> { Emission::<T>::get( netuid ) }
     pub fn get_incentive( netuid:u16 ) -> Vec<u16> { Incentive::<T>::get( netuid ) }
     pub fn get_dividends( netuid:u16 ) -> Vec<u16> { Dividends::<T>::get( netuid ) }
@@ -43,16 +42,8 @@ impl<T: Config> Pallet<T> {
             LastUpdate::<T>::insert( netuid, updated_last_update_vec );
         }  
     }
-    pub fn set_active_for_uid( netuid:u16, uid: u16, active: bool ) { 
-        let mut updated_active_vec = Self::get_active( netuid ); 
-        if (uid as usize) < updated_active_vec.len() { 
-            updated_active_vec[uid as usize] = active;
-            Active::<T>::insert( netuid, updated_active_vec );
-        }  
-    }
 
     pub fn get_emission_for_uid( netuid:u16, uid: u16) -> u64 {let vec =  Emission::<T>::get( netuid ); if (uid as usize) < vec.len() { return vec[uid as usize] } else{ return 0 } }
-    pub fn get_active_for_uid( netuid:u16, uid: u16) -> bool { let vec = Active::<T>::get( netuid ); if (uid as usize) < vec.len() { return vec[uid as usize] } else{ return false } }
     pub fn get_incentive_for_uid( netuid:u16, uid: u16) -> u16 { let vec = Incentive::<T>::get( netuid ); if (uid as usize) < vec.len() { return vec[uid as usize] } else{ return 0 } }
     pub fn get_dividends_for_uid( netuid:u16, uid: u16) -> u16 { let vec = Dividends::<T>::get( netuid ); if (uid as usize) < vec.len() { return vec[uid as usize] } else{ return 0 } }
     pub fn get_last_update_for_uid( netuid:u16, uid: u16) -> u64 { let vec = LastUpdate::<T>::get( netuid ); if (uid as usize) < vec.len() { return vec[uid as usize] } else{ return 0 } }

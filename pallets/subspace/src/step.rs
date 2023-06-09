@@ -62,28 +62,10 @@ impl<T: Config> Pallet<T> {
         let n: u16 = Self::get_subnetwork_n( netuid );
         log::trace!( "n: {:?}", n );
 
-        // ======================
-        // == Active & updated ==
-        // ======================
-
         // Get current block.
         let current_block: u64 = Self::get_current_block_as_u64();
         log::trace!( "current_block: {:?}", current_block );
 
-        // Get activity cutoff.
-        let activity_cutoff: u64 = Self::get_activity_cutoff( netuid ) as u64;
-        log::trace!( "activity_cutoff: {:?}", activity_cutoff );
-
-        // Last update vector.
-        let last_update: Vec<u64> = Self::get_last_update( netuid );
-        log::trace!( "Last update: {:?}", &last_update );
-
-        // Inactive mask.
-        let inactive: Vec<bool> = last_update.iter().map(| updated | *updated + activity_cutoff < current_block ).collect();
-        log::trace!( "Inactive: {:?}", inactive.clone() );
-
-        // Logical negation of inactive.
-        let active: Vec<bool> = inactive.iter().map(|&b| !b).collect();
 
         // Block at registration vector (block when each module was most recently registered).
         let block_at_registration: Vec<u64> = Self::get_block_at_registration( netuid );
@@ -104,19 +86,13 @@ impl<T: Config> Pallet<T> {
         for (uid_i, key) in keys.iter() {
             stake_64[ *uid_i as usize ] = I64F64::from_num( Self::get_stake_for_key(netuid, key ) );
         }
-        inplace_normalize_64( &mut stake_64 );
-        let stake: Vec<I32F32> = vec_fixed64_to_fixed32( stake_64 );
+        let mut stake: Vec<I32F32> = vec_fixed64_to_fixed32( stake_64 );
         // range: I32F32(0, 1)
         log::trace!( "S: {:?}", &stake );
 
-        // Remove inactive stake.
-        let mut active_stake: Vec<I32F32> = stake.clone();
-        inplace_mask_vector( &inactive, &mut active_stake );
-        log::trace!( "S (mask): {:?}", &active_stake );
-
         // Normalize active stake.
-        inplace_normalize( &mut active_stake );
-        log::trace!( "S (mask+norm): {:?}", &active_stake );
+        inplace_normalize( &mut stake );
+        log::trace!( "S (mask+norm): {:?}", &stake );
 
         // =============
         // == Weights ==
@@ -131,10 +107,6 @@ impl<T: Config> Pallet<T> {
         weights = mask_diag_sparse( &weights );
         // log::trace!( "W (permit+diag): {:?}", &weights );
 
-        // Remove weights referring to deregistered modules.
-        weights = vec_mask_sparse_matrix( &weights, &last_update, &block_at_registration, &| updated, registered | updated <= registered );
-        // log::trace!( "W (permit+diag+outdate): {:?}", &weights );
-
         // Normalize remaining weights.
         inplace_row_normalize_sparse( &mut weights );
         // log::trace!( "W (mask+norm): {:?}", &weights );
@@ -144,7 +116,7 @@ impl<T: Config> Pallet<T> {
         // =============================
 
         // Compute incentive: r_j = SUM(i) w_ij * s_i.
-        let mut incentive: Vec<I32F32> = matmul_sparse( &weights, &active_stake, n );
+        let mut incentive: Vec<I32F32> = matmul_sparse( &weights, &stake, n );
         inplace_normalize( &mut incentive );  // range: I32F32(0, 1)
         log::trace!( "Incentive: {:?}", &incentive );
 
@@ -154,18 +126,13 @@ impl<T: Config> Pallet<T> {
 
         // Access network bonds column normalized.
         let mut bonds: Vec<Vec<(u16, I32F32)>> = Self::get_bonds_sparse( netuid );
-        // log::trace!( "B: {:?}", &bonds );
         
-        // Remove bonds referring to deregistered modules.
-        bonds = vec_mask_sparse_matrix( &bonds, &last_update, &block_at_registration, &| updated, registered | updated <= registered );
-        // log::trace!( "B (outdatedmask): {:?}", &bonds );
-
         // Normalize remaining bonds: sum_i b_ij = 1.
         inplace_col_normalize_sparse( &mut bonds, n );
         // log::trace!( "B (mask+norm): {:?}", &bonds );
 
         // Compute bonds delta column normalized.
-        let mut bonds_delta: Vec<Vec<(u16, I32F32)>> = row_hadamard_sparse( &weights, &active_stake ); // ΔB = W◦S (outdated W masked)
+        let mut bonds_delta: Vec<Vec<(u16, I32F32)>> = row_hadamard_sparse( &weights, &stake ); // ΔB = W◦S (outdated W masked)
         // log::trace!( "ΔB: {:?}", &bonds_delta );
 
         // Normalize bonds delta.
@@ -189,11 +156,11 @@ impl<T: Config> Pallet<T> {
 
         // If emission is zero, replace emission with normalized stake.
         if is_zero( &normalized_emission ) { // no weights set | outdated weights | self_weights
-            if is_zero( &active_stake ) { // no active stake
+            if is_zero( &stake ) { // no active stake
                 normalized_emission = stake.clone(); // do not mask inactive, assumes stake is normalized
             }
             else {
-                normalized_emission = active_stake.clone(); // emission proportional to inactive-masked normalized stake
+                normalized_emission = stake.clone(); // emission proportional to inactive-masked normalized stake
             }
         }
         
@@ -213,7 +180,6 @@ impl<T: Config> Pallet<T> {
         Incentive::<T>::insert( netuid, cloned_incentive );
         let cloned_dividends: Vec<u16> = dividends.iter().map(|xi| fixed_proportion_to_u16(*xi)).collect::<Vec<u16>>();
         Dividends::<T>::insert( netuid, cloned_dividends );
-        Active::<T>::insert( netuid, active.clone() );
 
         // Emission tuples ( keys, u64 emission)
         let mut result: Vec<(T::AccountId, u64)> = vec![]; 

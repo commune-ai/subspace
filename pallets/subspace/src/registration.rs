@@ -231,6 +231,21 @@ impl<T: Config> Pallet<T> {
     }
 
 
+
+    pub fn do_deregister_module( 
+        origin: T::RuntimeOrigin, 
+		network: Vec<u8>,
+    ) -> dispatch::DispatchResult {
+        // --- 1. We check the callers (key) signature.
+        let key = ensure_signed(origin)?;
+        let netuid:u16 = Self::get_netuid_for_name(network.clone());
+        let uid = Self::get_uid_for_key( netuid, &key ).unwrap();
+    
+        // --- 8. Return is successful dispatch. 
+        Ok(())
+    }
+
+
     pub fn name_exists( netuid: u16, name: Vec<u8> ) -> bool {
         return ModuleNamespace::<T>::contains_key( netuid, name.clone() );
         
