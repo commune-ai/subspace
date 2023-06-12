@@ -52,48 +52,12 @@ pub fn get_grandpa_from_ss58_addr(s: &str) -> GrandpaId {
 	Ss58Codec::from_ss58check(s).unwrap()
 }
 
-pub fn development_config() -> Result<ChainSpec, String> {
-	let wasm_binary = WASM_BINARY.ok_or_else(|| "Development wasm not available".to_string())?;
 
-	Ok(ChainSpec::from_genesis(
-		// Name
-		"Development",
-		// ID
-		"dev",
-		ChainType::Development,
-		move || {
-			testnet_genesis(
-				wasm_binary,
-				// Initial PoA authorities
-				vec![authority_keys_from_seed("Alice")],
-				// Sudo account
-				get_account_id_from_seed::<sr25519::Public>("Alice"),
-				// Pre-funded accounts
-				vec![
-					get_account_id_from_seed::<sr25519::Public>("Alice"),
-					get_account_id_from_seed::<sr25519::Public>("Bob"),
-					get_account_id_from_seed::<sr25519::Public>("Alice//stash"),
-					get_account_id_from_seed::<sr25519::Public>("Bob//stash"),
-				],
-				true,
-			)
-		},
-		// Bootnodes
-		vec![],
-		// Telemetry
-		None,
-		// Protocol ID
-		None,
-		None,
-		// Properties
-		None,
-		// Extensions
-		None,
-	))
-}
-
-pub fn local_testnet_config() -> Result<ChainSpec, String> {
+pub fn testnet_config() -> Result<ChainSpec, String> {
 	let wasm_binary = WASM_BINARY.ok_or_else(|| "Development wasm not available".to_string())?;
+	
+
+
 
 	Ok(ChainSpec::from_genesis(
 		// Name
@@ -102,7 +66,7 @@ pub fn local_testnet_config() -> Result<ChainSpec, String> {
 		"local_testnet",
 		ChainType::Local,
 		move || {
-			testnet_genesis(
+			newton_genesis(
 				wasm_binary,
 				// Initial PoA authorities
 				vec![authority_keys_from_seed("Alice"), authority_keys_from_seed("Bob")],
@@ -110,20 +74,10 @@ pub fn local_testnet_config() -> Result<ChainSpec, String> {
 				get_account_id_from_seed::<sr25519::Public>("Alice"),
 				// Pre-funded accounts
 				vec![
-					get_account_id_from_seed::<sr25519::Public>("Alice"),
-					get_account_id_from_seed::<sr25519::Public>("Bob"),
-					get_account_id_from_seed::<sr25519::Public>("Charlie"),
-					get_account_id_from_seed::<sr25519::Public>("Dave"),
-					get_account_id_from_seed::<sr25519::Public>("Eve"),
-					get_account_id_from_seed::<sr25519::Public>("Ferdie"),
-					get_account_id_from_seed::<sr25519::Public>("Alice//stash"),
-					get_account_id_from_seed::<sr25519::Public>("Bob//stash"),
-					get_account_id_from_seed::<sr25519::Public>("Charlie//stash"),
-					get_account_id_from_seed::<sr25519::Public>("Dave//stash"),
-					get_account_id_from_seed::<sr25519::Public>("Eve//stash"),
-					get_account_id_from_seed::<sr25519::Public>("Ferdie//stash"),
+					(get_account_id_from_seed::<sr25519::Public>("Alice"), 100_000_000_000),
+					(get_account_id_from_seed::<sr25519::Public>("Bob"),100_000_000_000),
+					(get_account_id_from_seed::<sr25519::Public>("Charlie"),100_000_000_000),
 				],
-				true,
 			)
 		},
 		// Bootnodes
@@ -146,30 +100,12 @@ use serde::{Deserialize};
 use serde_json as json;
 
 // Configure storage from nakamoto data
-pub fn netwon_config() -> Result<ChainSpec, String> {
-	let path: PathBuf = std::path::PathBuf::from("./snapshot.json");
+pub fn mainnet_config() -> Result<ChainSpec, String> {
 	let wasm_binary = WASM_BINARY.ok_or_else(|| "Development wasm not available".to_string())?;
-
-	// We mmap the file into memory first, as this is *a lot* faster than using
-	// `serde_json::from_reader`. See https://github.com/serde-rs/json/issues/160
-	let file = File::open(&path)
-		.map_err(|e| format!("Error opening genesis file `{}`: {}", path.display(), e))?;
-
-	// SAFETY: `mmap` is fundamentally unsafe since technically the file can change
-	//         underneath us while it is mapped; in practice it's unlikely to be a problem
-	let bytes = unsafe {
-		memmap2::Mmap::map(&file)
-			.map_err(|e| format!("Error mmaping genesis file `{}`: {}", path.display(), e))?
-	};
-
-
-	let mut processed_stakes: Vec<(sp_runtime::AccountId32, Vec<(sp_runtime::AccountId32, (u64, u16))>)> = Vec::new();
-	let mut balances_issuance: u64 = 0;
-	let mut processed_balances: Vec<(sp_runtime::AccountId32, u64)> = Vec::new();
 
 	// Give front-ends necessary data to present to users
 	let mut properties = sc_service::Properties::new();
-	properties.insert("tokenSymbol".into(), "MAO".into());
+	properties.insert("tokenSymbol".into(), "COM".into());
 	properties.insert("tokenDecimals".into(), 9.into());
 	properties.insert("ss58Format".into(), 13116.into());
 
@@ -180,7 +116,7 @@ pub fn netwon_config() -> Result<ChainSpec, String> {
 		"commune",
 		ChainType::Development,
 		move || {
-			finney_genesis(
+			newton_genesis(
 				wasm_binary,
 				// Initial PoA authorities (Validators)
 				// aura | grandpa
@@ -189,14 +125,9 @@ pub fn netwon_config() -> Result<ChainSpec, String> {
 					authority_keys_from_seed("Alice"), authority_keys_from_seed("Bob"),
 					], 
 				// Sudo account
-				Ss58Codec::from_ss58check("5G3rrAtAsZiZsRKhi9y7yckwhB6HL8AwD8K3J28YNX4n2tMZ").unwrap(), 
+				Ss58Codec::from_ss58check("5GYs4kBRGo3VH1wgzYEs8UeP2ABSotNNmvaeXs9vJUiGEThJ").unwrap(), 
 				// Pre-funded accounts
-				vec![
-				],
-				true,
-				processed_stakes.clone(),
-				processed_balances.clone(),
-				balances_issuance
+				vec![],
 			)
 		},
 		// Bootnodes
@@ -214,48 +145,14 @@ pub fn netwon_config() -> Result<ChainSpec, String> {
 	))
 }
 
-// Configure initial storage state for FRAME modules.
-fn testnet_genesis(
-	wasm_binary: &[u8],
-	initial_authorities: Vec<(AuraId, GrandpaId)>,
-	root_key: AccountId,
-	endowed_accounts: Vec<AccountId>,
-	_enable_println: bool,
-) -> GenesisConfig {
-	GenesisConfig {
-		system: SystemConfig {
-			// Add Wasm runtime to storage.
-			code: wasm_binary.to_vec(),
-		},
-		balances: BalancesConfig {
-			// Configure endowed accounts with initial balance of 1 << 60.
-			balances: endowed_accounts.iter().cloned().map(|k| (k, 1 << 60)).collect(),
-		},
-		aura: AuraConfig {
-			authorities: initial_authorities.iter().map(|x| (x.0.clone())).collect(),
-		},
-		grandpa: GrandpaConfig {
-			authorities: initial_authorities.iter().map(|x| (x.1.clone(), 1)).collect(),
-		},
-		sudo: SudoConfig {
-			// Assign network admin rights.
-			key: Some(root_key),
-		},
-		transaction_payment: Default::default(),
-		subspace_module: Default::default(),
-	}
-}
+
 
 // Configure initial storage state for FRAME modules.
-fn finney_genesis(
+fn newton_genesis(
 	wasm_binary: &[u8],
 	initial_authorities: Vec<(AuraId, GrandpaId)>,
 	root_key: AccountId,
-	_endowed_accounts: Vec<AccountId>,
-	_enable_println: bool,
-	stakes: Vec<(AccountId, Vec<(AccountId, (u64, u16))>)>,
 	balances: Vec<(AccountId, u64)>,
-	balances_issuance: u64
 
 ) -> GenesisConfig {
 	GenesisConfig {
@@ -279,9 +176,6 @@ fn finney_genesis(
 			key: Some(root_key),
 		},
 		transaction_payment: Default::default(),
-		subspace_module: SubspaceModuleConfig {
-			stakes: stakes,
-			balances_issuance: balances_issuance
-		},
+		subspace_module: Default::default(),
 	}
 }
