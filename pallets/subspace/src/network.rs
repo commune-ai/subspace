@@ -52,7 +52,6 @@ impl<T: Config> Pallet<T> {
         // --- 1. Remove incentive mechanism memory.
         Uids::<T>::clear_prefix( netuid, u32::max_value(), None );
         Keys::<T>::clear_prefix( netuid, u32::max_value(), None );
-        Bonds::<T>::clear_prefix( netuid, u32::max_value(), None );
         Weights::<T>::clear_prefix( netuid, u32::max_value(), None );
 
         Emission::<T>::remove( netuid );

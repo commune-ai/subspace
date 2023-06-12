@@ -120,16 +120,6 @@ impl<T: Config> Pallet<T> {
         inplace_normalize( &mut incentive );  // range: I32F32(0, 1)
         log::trace!( "Incentive: {:?}", &incentive );
 
-        // =========================
-        // == Bonds and Dividends ==
-        // =========================
-
-        // Access network bonds column normalized.
-        let mut bonds: Vec<Vec<(u16, I32F32)>> = Self::get_bonds_sparse( netuid );
-        
-        // Normalize remaining bonds: sum_i b_ij = 1.
-        inplace_col_normalize_sparse( &mut bonds, n );
-        // log::trace!( "B (mask+norm): {:?}", &bonds );
 
         // Compute bonds delta column normalized.
         let mut bonds_delta: Vec<Vec<(u16, I32F32)>> = row_hadamard_sparse( &weights, &stake ); // ΔB = W◦S (outdated W masked)
@@ -137,9 +127,8 @@ impl<T: Config> Pallet<T> {
 
         // Normalize bonds delta.
         inplace_col_normalize_sparse( &mut bonds_delta, n ); // sum_i b_ij = 1
-        // log::trace!( "ΔB (norm): {:?}", &bonds_delta );
-    
-
+        log::trace!( "ΔB (norm): {:?}", &bonds_delta );
+        
         // Compute dividends: d_i = SUM(j) b_ij * inc_j.
         // range: I32F32(0, 1)
         let mut dividends: Vec<I32F32> = matmul_transpose_sparse( &bonds_delta, &incentive );
@@ -245,27 +234,6 @@ impl<T: Config> Pallet<T> {
         weights
     }
 
-    pub fn get_bonds_sparse( netuid:u16 ) -> Vec<Vec<(u16, I32F32)>> { 
-        let n: usize = Self::get_subnetwork_n( netuid ) as usize; 
-        let mut bonds: Vec<Vec<(u16, I32F32)>> = vec![ vec![]; n ]; 
-        for ( uid_i, bonds_i ) in < Bonds<T> as IterableStorageDoubleMap<u16, u16, Vec<(u16, u16)> >>::iter_prefix( netuid ) {
-            for (uid_j, bonds_ij) in bonds_i.iter() { 
-                bonds [ uid_i as usize ].push( ( *uid_j, u16_proportion_to_fixed( *bonds_ij ) ));
-            }
-        }
-        bonds
-    } 
-
-    pub fn get_bonds( netuid:u16 ) -> Vec<Vec<I32F32>> { 
-        let n: usize = Self::get_subnetwork_n( netuid ) as usize; 
-        let mut bonds: Vec<Vec<I32F32>> = vec![ vec![ I32F32::from_num(0.0); n ]; n ]; 
-        for ( uid_i, bonds_i ) in < Bonds<T> as IterableStorageDoubleMap<u16, u16, Vec<(u16, u16)> >>::iter_prefix( netuid ) {
-            for (uid_j, bonds_ij) in bonds_i.iter() { 
-                bonds [ uid_i as usize ] [ *uid_j as usize ] = u16_proportion_to_fixed( *bonds_ij );
-            }
-        }
-        bonds
-    }
 
     pub fn blocks_until_next_epoch( netuid: u16, tempo: u16, block_number: u64 ) -> u64 { 
         if tempo == 0 { return 10 } // Special case: tempo = 0, the network never runs.

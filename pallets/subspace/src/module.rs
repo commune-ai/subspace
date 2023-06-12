@@ -19,7 +19,6 @@ pub struct ModuleSubnetInfo<T: Config> {
     incentive: Compact<u16>,
     dividends: Compact<u16>,
     weights: Vec<(Compact<u16>, Compact<u16>)>, // Vec of (uid, weight)
-    bonds: Vec<(Compact<u16>, Compact<u16>)>, // Vec of (uid, bond)
 }
 
 
@@ -126,10 +125,6 @@ impl<T: Config> Pallet<T> {
             .filter_map(|(i, w)| if *w > 0 { Some((i.into(), w.into())) } else { None })
             .collect::<Vec<(Compact<u16>, Compact<u16>)>>();
         
-        let bonds = <Bonds<T>>::get(netuid, uid).iter()
-            .filter_map(|(i, b)| if *b > 0 { Some((i.into(), b.into())) } else { None })
-            .collect::<Vec<(Compact<u16>, Compact<u16>)>>();
-        
         let stake: Vec<(T::AccountId, Compact<u64>)> = Stake::<T>::iter_prefix(netuid)
             .map(|(key, stake)| (key, stake.into()))
             .collect();
@@ -146,7 +141,6 @@ impl<T: Config> Pallet<T> {
             dividends: dividends.into(),
             last_update: last_update.into(),
             weights: weights,
-            bonds: bonds,
             name: name.clone()
         };
         

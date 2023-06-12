@@ -337,8 +337,6 @@ pub mod pallet {
 	pub(super) type LastUpdate<T:Config> = StorageMap< _, Identity, u16, Vec<u64>, ValueQuery, EmptyU64Vec<T>>;
 	#[pallet::storage] // --- DMAP ( netuid, uid ) --> weights
     pub(super) type Weights<T:Config> = StorageDoubleMap<_, Identity, u16, Identity, u16, Vec<(u16, u16)>, ValueQuery, DefaultWeights<T> >;
-	#[pallet::storage] // --- DMAP ( netuid, uid ) --> bonds
-    pub(super) type Bonds<T:Config> = StorageDoubleMap<_, Identity, u16, Identity, u16, Vec<(u16, u16)>, ValueQuery, DefaultBonds<T> >;
 	#[pallet::storage] // --- DMAP ( netuid, key ) --> uid
 	pub(super) type Uids<T:Config> = StorageDoubleMap<_, Identity, u16, Blake2_128Concat, T::AccountId, u16, OptionQuery>;
 	#[pallet::storage] // --- DMAP ( netuid, uid ) --> key
