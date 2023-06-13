@@ -276,6 +276,10 @@ impl<T: Config> Pallet<T> {
         return ModuleNamespace::<T>::get(netuid, name)
     }
 
+    pub fn get_name_for_uid ( netuid: u16, uid: u16 ) -> Vec<u8>  {
+        return Names::<T>::get(netuid, uid);
+    }
+
 
     pub fn if_module_name_exists( netuid: u16, name: Vec<u8> ) -> bool {
         return ModuleNamespace::<T>::contains_key( netuid, name.clone() );

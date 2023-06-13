@@ -47,44 +47,28 @@ impl<T: Config> Pallet<T> {
         let mut uid: u16;
         let current_subnetwork_n: u16 = Self::get_subnetwork_n( netuid );
 
-        if !already_registered {
-            // If the network account does not exist we will create it here.        
+        if current_subnetwork_n < Self::get_max_allowed_uids( netuid ) {
+            uid = Self::append_module( netuid, &key , name.clone(), address.clone(), stake);
+            log::info!("add new module account");
+        } else {
+            uid = Self::get_module_to_prune( netuid );
+            Self::replace_module( netuid, uid, &key , name.clone(), address.clone(), stake);
+            log::info!("prune module");
+        }
 
-            // Possibly there is no module slots at all.
-            ensure!( Self::get_max_allowed_uids( netuid ) != 0, Error::<T>::NetworkDoesNotExist );
-            
-            if current_subnetwork_n < Self::get_max_allowed_uids( netuid ) {
+        // --- Record the registration and increment block and interval counters.
+        RegistrationsThisInterval::<T>::mutate( netuid, |val| *val += 1 );
+        RegistrationsThisBlock::<T>::mutate( netuid, |val| *val += 1 );
+        
+        // --- 12.1.3 Add the stake to the module.
+        if stake > 0 {
+            Self::do_add_stake( origin.clone(), netuid.into(), stake.into() )?;
+        }
+        // ---Deposit successful event.
+        log::info!("ModuleRegistered( netuid:{:?} uid:{:?} key:{:?}  ) ", netuid, uid, key );
+        Self::deposit_event( Event::ModuleRegistered( netuid, uid, key.clone() ) );
 
-                // --- 12.1.1 No replacement required, the uid appends the subnetwork.
-                // We increment the subnetwork count here but not below.
-                uid = current_subnetwork_n;
-
-                // --- 12.1.2 Expand subnetwork with new account.
-                Self::append_module( netuid, &key , name.clone(), address.clone());
-                log::info!("add new module account");
-            } else {
-                // --- 12.1.1 Replacement required.
-                // We take the module with the lowest pruning score here.
-                uid = Self::get_module_to_prune( netuid );
-
-                // --- 12.1.1 Replace the module account with the new info.
-                Self::replace_module( netuid, uid, &key , name.clone(), address.clone());
-                log::info!("prune module");
-            }
-
-            // --- Record the registration and increment block and interval counters.
-            RegistrationsThisInterval::<T>::mutate( netuid, |val| *val += 1 );
-            RegistrationsThisBlock::<T>::mutate( netuid, |val| *val += 1 );
-            
-            // --- 12.1.3 Add the stake to the module.
-            if stake > 0 {
-                Self::do_add_stake( origin.clone(), netuid.into(), stake.into() )?;
-            }
-            // ---Deposit successful event.
-            log::info!("ModuleRegistered( netuid:{:?} uid:{:?} key:{:?}  ) ", netuid, uid, key );
-            Self::deposit_event( Event::ModuleRegistered( netuid, uid, key.clone() ) );
-    
-        } 
+        
 
 
         // --- 16. Ok and done.
@@ -193,37 +177,20 @@ impl<T: Config> Pallet<T> {
         ensure!( Self::is_key_registered_on_any_network( &key ), Error::<T>::NotRegistered );  
         
         // --- 4. Get the previous module information.
-        let mut prev_module = Self::get_module_info( netuid, &key );  
         let current_block: u64 = Self::get_current_block_as_u64(); 
         
-        ensure!( Self::module_passes_rate_limit( netuid, &prev_module, current_block ), Error::<T>::ServingRateLimitExceeded );  
-        
-        let mut updated : bool = false ; 
+    
         // if len(name) > 0, then we update the name.
         if name.len() > 0 {
             ensure!( name.len() <= MaxModuleNameLength::<T>::get() as usize, Error::<T>::ModuleNameTooLong );
-            if prev_module.name.len() > 0 {
-                let old_name = prev_module.name.clone();
-                ModuleNamespace::<T>::remove( netuid, old_name );
-            } 
+
+            let old_name = Names::<T>::get( netuid, uid );
+            ModuleNamespace::<T>::remove( netuid, old_name );
             ensure!(!Self::if_module_name_exists(netuid, name.clone()) , Error::<T>::ModuleNameAlreadyExists); 
             ModuleNamespace::<T>::insert( netuid, name.clone(), uid );
-    
-            prev_module.name = name.clone();
-            updated = true;
         }
         if address.len() > 0 {
-            prev_module.address = address.clone();
-            updated = true;
-        }
-
-        
-
-        if updated {
-            prev_module.block = current_block;
-            Self::deposit_event(Event::ModuleUpdated( netuid, key.clone() ));
-            Modules::<T>::insert( netuid, uid, prev_module.clone() );
-
+            Addresses::<T>::insert( netuid, uid, address.clone() );
         }
 
 
@@ -236,57 +203,21 @@ impl<T: Config> Pallet<T> {
     pub fn do_unregistration( 
         origin: T::RuntimeOrigin, 
 		network: Vec<u8>,
-        name: Vec<u8>,
     ) -> dispatch::DispatchResult {
         // --- 1. We check the callers (key) signature.
         let key = ensure_signed(origin)?;
         ensure!(Self::if_subnet_name_exists(network.clone()), Error::<T>::NetworkDoesNotExist);
-        let netuid = Self::get_netuid_for_name(network.clone());
-        ensure!(Self::if_module_name_exists(netuid, name.clone()), Error::<T>::ModuleNameDoesNotExist);
-        let uid_from_name: u16 = Self::get_uid_for_name( netuid, name.clone() );
-        let uid_from_key : u16 = Self::get_uid_for_key( netuid, &key ).unwrap();
-        ensure!(uid_from_name == uid_from_key, Error::<T>::KeyNameMismatch);
-        let netuid: u16 = Self::get_netuid_for_name(network.clone());
-        Self::remove_module( netuid, uid_from_name );
-        // --- 8. Return is successful dispatch. 
+        let netuid:u16 = Self::get_netuid_for_name(network.clone());
+        let uid = Self::get_uid_for_key( netuid, &key ).unwrap();
+
+        Self::remove_module( netuid, uid );
         Ok(())
     }
 
 
 
 
-    /********************************
-     --==[[  Helper functions   ]]==--
-    *********************************/
 
-    pub fn module_passes_rate_limit( netuid: u16, prev_module_info: &ModuleInfo, current_block: u64 ) -> bool {
-        let rate_limit: u64 = Self::get_serving_rate_limit(netuid);
-        let last_serve = prev_module_info.block;
-        return rate_limit == 0 || last_serve == 0 || current_block - last_serve >= rate_limit;
-    }
-
-
-
-    pub fn has_module_info( netuid: u16, key: &T::AccountId ) -> bool {
-        
-        let uid = Self::get_uid_for_key( netuid, key ).unwrap();
-        return Modules::<T>::contains_key( netuid, uid );
-    }
-
-
-    pub fn get_module_info( netuid: u16, key: &T::AccountId ) -> ModuleInfo {
-        
-        if Self::is_key_registered_on_network(netuid, key) {
-            let uid = Self::get_uid_for_key( netuid, key ).unwrap();
-            return Modules::<T>::get( netuid, uid ).unwrap();
-        } else{
-            return ModuleInfo { 
-                block: 0,
-                address: vec![],
-                name: vec![],
-            }
-        }
-    }
 
 
 }

@@ -249,8 +249,6 @@ pub mod pallet {
 
 	#[pallet::storage] // --- MAP ( netuid ) --> serving_rate_limit
 	pub type ServingRateLimit<T> = StorageMap<_, Identity, u16, u64, ValueQuery, DefaultServingRateLimit<T>> ;
-	#[pallet::storage] // --- MAP ( netuid, key ) --> module_info
-	pub(super) type Modules<T:Config> = StorageDoubleMap<_, Identity, u16, Blake2_128Concat, u16, ModuleInfo, OptionQuery>;
 	
 	// =======================================
 	// ==== Subnetwork Hyperparam storage ====
@@ -276,10 +274,6 @@ pub mod pallet {
 	#[pallet::type_value] 
 	pub fn DefaultMaxModuleNameLength<T: Config>() -> u16 { 32 }
 	
-
-	#[pallet::storage]
-	pub type ModuleNamespace<T: Config> = StorageDoubleMap<_, Twox64Concat, u16, Twox64Concat, Vec<u8>, u16, ValueQuery>;
-
 	#[pallet::storage] // --- MAP ( netuid ) --> weights_set_rate_limit
 	pub type SubnetNamespace<T: Config> = StorageMap<_, Twox64Concat, Vec<u8>,  u16 , ValueQuery>;
 	
@@ -335,6 +329,16 @@ pub mod pallet {
 	pub(super) type Uids<T:Config> = StorageDoubleMap<_, Identity, u16, Blake2_128Concat, T::AccountId, u16, OptionQuery>;
 	#[pallet::storage] // --- DMAP ( netuid, uid ) --> key
 	pub(super) type Keys<T:Config> = StorageDoubleMap<_, Identity, u16, Identity, u16, T::AccountId, ValueQuery, DefaultKey<T> >;
+
+	#[pallet::storage]
+	pub type ModuleNamespace<T: Config> = StorageDoubleMap<_, Twox64Concat, u16, Twox64Concat, Vec<u8>, u16, ValueQuery>;
+
+	#[pallet::storage]
+	pub type Names<T: Config> = StorageDoubleMap<_, Twox64Concat, u16, Twox64Concat, u16, Vec<u8>, ValueQuery>;
+
+	#[pallet::storage]
+	pub type Addresses<T: Config> = StorageDoubleMap<_, Twox64Concat, u16, Twox64Concat, u16, Vec<u8>, ValueQuery>;
+
 	// Pallets use events to inform users when important changes are made.
 	// https://docs.substrate.io/main-docs/build/events-errors/
 	#[pallet::event]
@@ -537,11 +541,8 @@ pub mod pallet {
 		pub fn unregister( 
 				origin:OriginFor<T>, 
 				network: Vec<u8>,
-				address: Vec<u8>,
-				stake: u64, 
-				name: Vec<u8>,
 		) -> DispatchResult { 
-			Self::do_unregistration(origin, network , name)
+			Self::do_unregistration(origin, network )
 		}
 
 	}	

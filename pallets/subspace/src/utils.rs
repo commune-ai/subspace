@@ -48,11 +48,6 @@ impl<T: Config> Pallet<T> {
     pub fn get_last_update_for_uid( netuid:u16, uid: u16) -> u64 { let vec = LastUpdate::<T>::get( netuid ); if (uid as usize) < vec.len() { return vec[uid as usize] } else{ return 0 } }
     pub fn get_pruning_score_for_uid( netuid:u16, uid: u16) -> u16 { let vec = Emission::<T>::get( netuid ); if (uid as usize) < vec.len() { return vec[uid as usize] as u16 } else{ return u16::MAX } }
 
-    pub fn get_name_for_uid( netuid:u16, uid: u16) -> Vec<u8> { 
-        let module= Modules::<T>::get( netuid, uid ).unwrap();
-        return module.name.clone();
-    
-    }
 
     // ============================
 	// ==== Subnetwork Getters ====

@@ -26,7 +26,7 @@ impl<T: Config> Pallet<T> {
 
 
         // Replace the module under this uid.
-        pub fn replace_module( netuid: u16, uid_to_replace: u16, new_key: &T::AccountId, name: Vec<u8>, address: Vec<u8> ) {
+        pub fn replace_module( netuid: u16, uid_to_replace: u16, new_key: &T::AccountId, name: Vec<u8>, address: Vec<u8>, stake: u64 ) {
 
             log::debug!("replace_module( netuid: {:?} | uid_to_replace: {:?} | new_key: {:?} ) ", netuid, uid_to_replace, new_key );
     
@@ -37,16 +37,16 @@ impl<T: Config> Pallet<T> {
             Uids::<T>::remove( netuid, old_key.clone() ); 
             IsNetworkMember::<T>::remove( old_key.clone(), netuid );
             Keys::<T>::remove( netuid, uid_to_replace ); 
-            Modules::<T>::remove(netuid, uid );
             let block_number:u64 = Self::get_current_block_as_u64();
             // 3. Create new set memberships.
             Keys::<T>::insert( netuid, uid_to_replace, new_key.clone() ); // Make key - uid association.
             Uids::<T>::insert( netuid, new_key.clone(), uid_to_replace ); // Make uid - key association.
             BlockAtRegistration::<T>::insert( netuid, uid_to_replace, block_number ); // Fill block at registration.
             IsNetworkMember::<T>::insert( new_key.clone(), netuid, true ); // Fill network is member.
-            let module = ModuleInfo{ name:name, address:address, block:block_number} ;
-            Modules::<T>::insert( netuid, uid, module ); // Fill module info.
-    
+            Addresses::<T>::insert( netuid, uid, address ); // Fill module info.
+            Self::decrease_all_stake_on_account( netuid, &old_key.clone() );
+            Stake::<T>::remove( netuid, &old_key.clone() ); // Make uid - key association.
+            Self::increase_stake_on_account( netuid, &new_key.clone(), stake );
             // 4. Emit the event.
             
         }
@@ -60,7 +60,7 @@ impl<T: Config> Pallet<T> {
             Uids::<T>::remove( netuid, key.clone() ); 
             IsNetworkMember::<T>::remove( key.clone(), netuid );
             Keys::<T>::remove( netuid, uid ); 
-            Modules::<T>::remove(netuid, uid );
+            Addresses::<T>::remove(netuid, uid );
             BlockAtRegistration::<T>::remove( netuid, uid );
             Keys::<T>::remove( netuid, uid); // Make key - uid association.
             Uids::<T>::remove( netuid, key.clone() ); // Make uid - key association.
@@ -80,7 +80,7 @@ impl<T: Config> Pallet<T> {
     
 
         // Appends the uid to the network.
-        pub fn append_module( netuid: u16, key: &T::AccountId , name: Vec<u8>, address: Vec<u8>) {
+        pub fn append_module( netuid: u16, key: &T::AccountId , name: Vec<u8>, address: Vec<u8>, stake: u64) -> u16{
     
             // 1. Get the next uid. This is always equal to subnetwork_n.
             let uid: u16 = Self::get_subnetwork_n( netuid );
@@ -101,15 +101,13 @@ impl<T: Config> Pallet<T> {
             Uids::<T>::insert( netuid, key.clone(), uid ); // Make uid - key association.
             BlockAtRegistration::<T>::insert( netuid, uid, block_number ); // Fill block at registration.
             IsNetworkMember::<T>::insert( key.clone(), netuid, true ); // Fill network is member.
-            ModuleNamespace::<T>::insert( netuid, name. clone(), uid ); // Fill module namespace.
-            // 5. Insert new account information.
-            let module = ModuleInfo {
-                name : name.clone(),
-                address : address,
-                block : block_number
-            };
+            ModuleNamespace::<T>::insert( netuid, name.clone(), uid ); // Fill module namespace.
+            Addresses::<T>::insert( netuid, uid, address ); // Fill module info.
+
+            Self::increase_stake_on_account( netuid, &key, stake );
+
+            return uid;
     
-            Modules::<T>::insert( netuid, uid, module ); // Fill network is member.
         }   
     
 	pub fn get_modules(netuid: u16) -> Vec<ModuleSubnetInfo<T>> {
@@ -139,10 +137,8 @@ impl<T: Config> Pallet<T> {
 
     fn get_module_subnet_info(netuid: u16, uid: u16) -> Option<ModuleSubnetInfo<T>> {
         let key = Self::get_key_for_uid(netuid, uid);
-        let module_info = Self::get_module_info( netuid, &key.clone() );
 
 
-                
         let emission = Self::get_emission_for_uid( netuid, uid as u16 );
         let incentive = Self::get_incentive_for_uid( netuid, uid as u16 );
         let dividends = Self::get_dividends_for_uid( netuid, uid as u16 );
