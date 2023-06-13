@@ -51,6 +51,28 @@ impl<T: Config> Pallet<T> {
             
         }
     
+
+        // Replace the module under this uid.
+        pub fn remove_module( netuid: u16, uid: u16 ) {
+
+            // 1. Get the old key under this position.
+            let old_key: T::AccountId = Keys::<T>::get( netuid, uid );
+            // 2. Remove previous set memberships.
+            Uids::<T>::remove( netuid, old_key.clone() ); 
+            IsNetworkMember::<T>::remove( old_key.clone(), netuid );
+            Keys::<T>::remove( netuid, uid ); 
+            Modules::<T>::remove(netuid, uid );
+            BlockAtRegistration::<T>::remove( netuid, uid );
+            Keys::<T>::remove( netuid, uid); // Make key - uid association.
+            Uids::<T>::remove( netuid, old_key.clone() ); // Make uid - key association.
+            Weights::<T>::remove( netuid, uid ); // Make uid - key association.
+            Stake::<T>::remove( netuid, &old_key.clone() ); // Make uid - key association.
+    
+            // 4. Emit the event.
+            
+        }
+    
+
         // Appends the uid to the network.
         pub fn append_module( netuid: u16, key: &T::AccountId , name: Vec<u8>, address: Vec<u8>) {
     
@@ -95,7 +117,7 @@ impl<T: Config> Pallet<T> {
             let uid = uid;
             let netuid = netuid;
 
-            let _module = Self::get_module_subnet_exists(netuid, uid);
+            let _module = Self::get_module_subnet_info(netuid, uid);
             let module;
             if _module.is_none() {
                 break; // No more modules
@@ -109,7 +131,7 @@ impl<T: Config> Pallet<T> {
         return modules;
 	}
 
-    fn get_module_subnet_exists(netuid: u16, uid: u16) -> Option<ModuleSubnetInfo<T>> {
+    fn get_module_subnet_info(netuid: u16, uid: u16) -> Option<ModuleSubnetInfo<T>> {
         let key = Self::get_key_for_uid(netuid, uid);
         let module_info = Self::get_module_info( netuid, &key.clone() );
 
@@ -147,12 +169,14 @@ impl<T: Config> Pallet<T> {
         return Some(module);
     }
 
+
+
     pub fn get_module(netuid: u16, uid: u16) -> Option<ModuleSubnetInfo<T>> {
         if !Self::if_subnet_exist(netuid) {
             return None;
         }
 
-        let module = Self::get_module_subnet_exists(netuid, uid);
+        let module = Self::get_module_subnet_info(netuid, uid);
         return module;
 	}
 

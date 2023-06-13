@@ -199,13 +199,14 @@ impl<T: Config> Pallet<T> {
         ensure!( Self::module_passes_rate_limit( netuid, &prev_module, current_block ), Error::<T>::ServingRateLimitExceeded );  
         
         let mut updated : bool = false ; 
+        // if len(name) > 0, then we update the name.
         if name.len() > 0 {
             ensure!( name.len() <= MaxModuleNameLength::<T>::get() as usize, Error::<T>::ModuleNameTooLong );
             if prev_module.name.len() > 0 {
                 let old_name = prev_module.name.clone();
                 ModuleNamespace::<T>::remove( netuid, old_name );
             } 
-            ensure!(!Self::name_exists(netuid, name.clone()) , Error::<T>::ModuleNameAlreadyExists); 
+            ensure!(!Self::if_module_name_exists(netuid, name.clone()) , Error::<T>::ModuleNameAlreadyExists); 
             ModuleNamespace::<T>::insert( netuid, name.clone(), uid );
     
             prev_module.name = name.clone();
@@ -232,24 +233,26 @@ impl<T: Config> Pallet<T> {
 
 
 
-    pub fn do_deregister_module( 
+    pub fn do_unregistration( 
         origin: T::RuntimeOrigin, 
 		network: Vec<u8>,
+        name: Vec<u8>,
     ) -> dispatch::DispatchResult {
         // --- 1. We check the callers (key) signature.
         let key = ensure_signed(origin)?;
-        let netuid:u16 = Self::get_netuid_for_name(network.clone());
-        let uid = Self::get_uid_for_key( netuid, &key ).unwrap();
-    
+        ensure!(Self::if_subnet_name_exists(network.clone()), Error::<T>::NetworkDoesNotExist);
+        let netuid = Self::get_netuid_for_name(network.clone());
+        ensure!(Self::if_module_name_exists(netuid, name.clone()), Error::<T>::ModuleNameDoesNotExist);
+        let uid_from_name: u16 = Self::get_uid_for_name( netuid, name.clone() );
+        let uid_from_key : u16 = Self::get_uid_for_key( netuid, &key ).unwrap();
+        ensure!(uid_from_name == uid_from_key, Error::<T>::KeyNameMismatch);
+        let netuid: u16 = Self::get_netuid_for_name(network.clone());
+        Self::remove_module( netuid, uid_from_name );
         // --- 8. Return is successful dispatch. 
         Ok(())
     }
 
 
-    pub fn name_exists( netuid: u16, name: Vec<u8> ) -> bool {
-        return ModuleNamespace::<T>::contains_key( netuid, name.clone() );
-        
-    }
 
 
     /********************************

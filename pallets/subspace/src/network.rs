@@ -275,6 +275,12 @@ impl<T: Config> Pallet<T> {
         return ModuleNamespace::<T>::get(netuid, name)
     }
 
+
+    pub fn if_module_name_exists( netuid: u16, name: Vec<u8> ) -> bool {
+        return ModuleNamespace::<T>::contains_key( netuid, name.clone() );
+        
+    }
+
     // Returns the stake of the uid on network or 0 if it doesnt exist.
     //
     pub fn get_stake_for_uid( netuid: u16, module_uid: u16) -> u64 { 

@@ -53,6 +53,48 @@ pub fn get_grandpa_from_ss58_addr(s: &str) -> GrandpaId {
 }
 
 
+
+pub fn devnet_config() -> Result<ChainSpec, String> {
+	let wasm_binary = WASM_BINARY.ok_or_else(|| "Development wasm not available".to_string())?;
+	
+
+
+
+	Ok(ChainSpec::from_genesis(
+		// Name
+		"devnet",
+		// ID
+		"devnet",
+		ChainType::Local,
+		move || {
+			network_genesis(
+				wasm_binary,
+				// Initial PoA authorities
+				vec![authority_keys_from_seed("Alice"), authority_keys_from_seed("Bob")],
+				// Sudo account
+				get_account_id_from_seed::<sr25519::Public>("Alice"),
+				// Pre-funded accounts
+				vec![
+					(get_account_id_from_seed::<sr25519::Public>("Alice"), 100_000_000_000),
+					(get_account_id_from_seed::<sr25519::Public>("Bob"),100_000_000_000),
+					(get_account_id_from_seed::<sr25519::Public>("Charlie"),100_000_000_000),
+				],
+			)
+		},
+		// Bootnodes
+		vec![],
+		// Telemetry
+		None,
+		// Protocol ID
+		None,
+		// Properties
+		None,
+		None,
+		// Extensions
+		None,
+	))
+}
+
 pub fn testnet_config() -> Result<ChainSpec, String> {
 	let wasm_binary = WASM_BINARY.ok_or_else(|| "Development wasm not available".to_string())?;
 	
@@ -66,7 +108,7 @@ pub fn testnet_config() -> Result<ChainSpec, String> {
 		"local_testnet",
 		ChainType::Local,
 		move || {
-			newton_genesis(
+			network_genesis(
 				wasm_binary,
 				// Initial PoA authorities
 				vec![authority_keys_from_seed("Alice"), authority_keys_from_seed("Bob")],
@@ -116,7 +158,7 @@ pub fn mainnet_config() -> Result<ChainSpec, String> {
 		"commune",
 		ChainType::Development,
 		move || {
-			newton_genesis(
+			network_genesis(
 				wasm_binary,
 				// Initial PoA authorities (Validators)
 				// aura | grandpa
@@ -148,7 +190,7 @@ pub fn mainnet_config() -> Result<ChainSpec, String> {
 
 
 // Configure initial storage state for FRAME modules.
-fn newton_genesis(
+fn network_genesis(
 	wasm_binary: &[u8],
 	initial_authorities: Vec<(AuraId, GrandpaId)>,
 	root_key: AccountId,
@@ -163,7 +205,7 @@ fn newton_genesis(
 		balances: BalancesConfig {
 			// Configure endowed accounts with initial balance of 1 << 60.
 			//balances: balances.iter().cloned().map(|k| k).collect(),
-			balances: balances.iter().cloned().map(|k| k).collect(),
+			balances: balances.iter().cloned().map(|(k, balance)| (k, balance )).collect(),
 		},
 		aura: AuraConfig {
 			authorities: initial_authorities.iter().map(|x| (x.0.clone())).collect(),

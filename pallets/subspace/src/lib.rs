@@ -283,12 +283,8 @@ pub mod pallet {
 	#[pallet::storage] // --- MAP ( netuid ) --> weights_set_rate_limit
 	pub type SubnetNamespace<T: Config> = StorageMap<_, Twox64Concat, Vec<u8>,  u16 , ValueQuery>;
 	
-	#[pallet::storage] // --- MAP ( netuid ) --> uid, we use to record uids to prune at next epoch.
-    pub type ModulesToPruneAtNextEpoch<T:Config> = StorageMap<_, Identity, u16, u16, ValueQuery>;
 	#[pallet::storage] // --- MAP ( netuid ) --> registrations_this_interval
 	pub type RegistrationsThisInterval<T:Config> = StorageMap<_, Identity, u16, u16, ValueQuery>;
-	#[pallet::storage] // --- MAP ( netuid ) --> pow_registrations_this_interval
-	pub type POWRegistrationsThisInterval<T:Config> = StorageMap<_, Identity, u16, u16, ValueQuery>;
 	#[pallet::storage] // --- MAP ( netuid ) --> max_allowed_uids
 	pub type MaxAllowedUids<T> = StorageMap<_, Identity, u16, u16, ValueQuery, DefaultMaxAllowedUids<T> >;
 	#[pallet::storage] // --- MAP ( netuid ) --> immunity_period
@@ -317,8 +313,6 @@ pub mod pallet {
 	pub fn EmptyU64Vec<T:Config>() -> Vec<u64> { vec![] }
 	#[pallet::type_value] 
 	pub fn EmptyBoolVec<T:Config>() -> Vec<bool> { vec![] }
-	#[pallet::type_value] 
-	pub fn DefaultBonds<T:Config>() -> Vec<(u16, u16)> { vec![] }
 	#[pallet::type_value] 
 	pub fn DefaultWeights<T:Config>() -> Vec<(u16, u16)> { vec![] }
 	#[pallet::type_value] 
@@ -408,7 +402,9 @@ pub mod pallet {
 		InvalidMaxAllowedUids, // --- Thrown when the user tries to set max allowed uids to a value less than the current number of registered uids.
 		SubnetNameAlreadyExists,
 		ModuleNameTooLong,
-		KeyAlreadyRegistered
+		KeyAlreadyRegistered,
+		ModuleNameDoesNotExist,
+		KeyNameMismatch,
 	}
 
 	// ==================

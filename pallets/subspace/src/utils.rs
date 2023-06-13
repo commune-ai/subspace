@@ -16,7 +16,6 @@ impl<T: Config> Pallet<T> {
     pub fn set_registrations_this_block( netuid: u16, registrations_this_block: u16 ) { RegistrationsThisBlock::<T>::insert(netuid, registrations_this_block); }
     pub fn set_last_mechanism_step_block( netuid: u16, last_mechanism_step_block: u64 ) { LastMechansimStepBlock::<T>::insert(netuid, last_mechanism_step_block); }
     pub fn set_registrations_this_interval( netuid: u16, registrations_this_interval: u16 ) { RegistrationsThisInterval::<T>::insert(netuid, registrations_this_interval); }
-    pub fn set_pow_registrations_this_interval( netuid: u16, pow_registrations_this_interval: u16 ) { POWRegistrationsThisInterval::<T>::insert(netuid, pow_registrations_this_interval); }
 
     // ========================
 	// ==== Global Getters ====
