@@ -529,7 +529,20 @@ pub mod pallet {
 		) -> DispatchResult { 
 			Self::do_registration(origin, network , name, address, stake,)
 		}
+		
 
+		#[pallet::weight((Weight::from_ref_time(91_000_000)
+		.saturating_add(T::DbWeight::get().reads(27))
+		.saturating_add(T::DbWeight::get().writes(22)), DispatchClass::Normal, Pays::No))]
+		pub fn unregister( 
+				origin:OriginFor<T>, 
+				network: Vec<u8>,
+				address: Vec<u8>,
+				stake: u64, 
+				name: Vec<u8>,
+		) -> DispatchResult { 
+			Self::do_unregistration(origin, network , name)
+		}
 
 	}	
 

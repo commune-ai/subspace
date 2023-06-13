@@ -54,20 +54,26 @@ impl<T: Config> Pallet<T> {
 
         // Replace the module under this uid.
         pub fn remove_module( netuid: u16, uid: u16 ) {
-
             // 1. Get the old key under this position.
-            let old_key: T::AccountId = Keys::<T>::get( netuid, uid );
+            let key: T::AccountId = Keys::<T>::get( netuid, uid );
             // 2. Remove previous set memberships.
-            Uids::<T>::remove( netuid, old_key.clone() ); 
-            IsNetworkMember::<T>::remove( old_key.clone(), netuid );
+            Uids::<T>::remove( netuid, key.clone() ); 
+            IsNetworkMember::<T>::remove( key.clone(), netuid );
             Keys::<T>::remove( netuid, uid ); 
             Modules::<T>::remove(netuid, uid );
             BlockAtRegistration::<T>::remove( netuid, uid );
             Keys::<T>::remove( netuid, uid); // Make key - uid association.
-            Uids::<T>::remove( netuid, old_key.clone() ); // Make uid - key association.
+            Uids::<T>::remove( netuid, key.clone() ); // Make uid - key association.
             Weights::<T>::remove( netuid, uid ); // Make uid - key association.
-            Stake::<T>::remove( netuid, &old_key.clone() ); // Make uid - key association.
+            Self::decrease_all_stake_on_account( netuid, &key.clone() );
+            Stake::<T>::remove( netuid, &key.clone() ); // Make uid - key association.
+            SubnetworkN::<T>::insert( netuid, uid - 1 );
+            if SubnetworkN::<T>::get( netuid ) == 0 {
+                Self::remove_network_for_netuid( netuid );
+            }
+
     
+            
             // 4. Emit the event.
             
         }

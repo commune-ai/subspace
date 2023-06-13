@@ -60,20 +60,17 @@ impl<T: Config> Pallet<T> {
 
         // --- 1. Check the caller's signature. This is the key of a registered account.
         let key = ensure_signed( origin )?;
+        // --- 2. Check to see if this is a valid network.
+        ensure!( Self::if_subnet_exist( netuid ), Error::<T>::NetworkDoesNotExist );
         log::info!("do_set_weights( origin:{:?} netuid:{:?}, uids:{:?}, values:{:?})", key, netuid, uids, values );
-
-        // --- 2. Check that the length of uid list and value list are equal for this network.
+        // --- 3. Check that the length of uid list and value list are equal for this network.
         ensure!( Self::uids_match_values( &uids, &values ), Error::<T>::WeightVecNotEqualSize );
 
-        // --- 3. Check to see if this is a valid network.
-        ensure!( Self::if_subnet_exist( netuid ), Error::<T>::NetworkDoesNotExist );
-        
         // --- 4. Check to see if the number of uids is within the max allowed uids for this network.
         ensure!( Self::check_len_uids_within_allowed( netuid, &uids ), Error::<T>::TooManyUids);
 
         // --- 5. Check to see if the key is registered to the passed network.
         ensure!( Self::is_key_registered_on_network( netuid, &key ), Error::<T>::NotRegistered );
-
 
         // --- 7. Get the module uid of associated key on network netuid.
         let module_uid;

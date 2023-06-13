@@ -132,6 +132,7 @@ impl<T: Config> Pallet<T> {
 
     }
 
+
     // Decreases the stake on the cold - hot pairing by the decrement while decreasing other counters.
     //
     pub fn decrease_stake_on_account(netuid:u16, key: &T::AccountId, decrement: u64 ) {
@@ -143,6 +144,14 @@ impl<T: Config> Pallet<T> {
         Stake::<T>::insert( netuid, key, Stake::<T>::get(netuid,  key).saturating_sub( decrement ) );
         TotalStake::<T>::put(TotalStake::<T>::get().saturating_sub( decrement ) );
         TotalSubnetStake::<T>::insert(netuid, TotalSubnetStake::<T>::get(netuid).saturating_sub( decrement ) );
+    }
+
+    // Decreases the stake on the cold - hot pairing by the decrement while decreasing other counters.
+    //
+    pub fn decrease_all_stake_on_account(netuid:u16, key: &T::AccountId ) {
+
+        let decrement = Stake::<T>::get(netuid,  &key);
+        Self::decrease_stake_on_account(netuid, &key, decrement );
     }
 
 	pub fn u64_to_balance( input: u64 ) -> Option<<<T as Config>::Currency as Currency<<T as frame_system::Config>::AccountId>>::Balance> { input.try_into().ok() }

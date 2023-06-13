@@ -53,7 +53,6 @@ impl<T: Config> Pallet<T> {
         Uids::<T>::clear_prefix( netuid, u32::max_value(), None );
         Keys::<T>::clear_prefix( netuid, u32::max_value(), None );
         Weights::<T>::clear_prefix( netuid, u32::max_value(), None );
-
         Emission::<T>::remove( netuid );
         Incentive::<T>::remove( netuid );
         Dividends::<T>::remove( netuid );
@@ -76,6 +75,8 @@ impl<T: Config> Pallet<T> {
         }
         // --- 4. Remove all stake.
         Stake::<T>::remove_prefix( netuid, None );
+        let total_network_stake: u16 = TotalSubnetStake::<T>::get( netuid ).try_into().unwrap();
+        TotalSubnetStake::<T>::mutate(netuid, |n| *n -= total_network_stake as u64 );
         TotalSubnetStake::<T>::remove( netuid );
 
 
