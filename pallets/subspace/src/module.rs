@@ -90,7 +90,7 @@ impl<T: Config> Pallet<T> {
             // 2. Get and increase the uid count.
             SubnetworkN::<T>::insert( netuid, uid + 1 );
     
-            // 3. Expand Yomama with new position.
+            // 3. Expand Yuma with new position.
             Emission::<T>::mutate(netuid, |v| v.push(0) );
             Incentive::<T>::mutate(netuid, |v| v.push(0) );
             Dividends::<T>::mutate(netuid, |v| v.push(0) );
