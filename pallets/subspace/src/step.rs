@@ -22,7 +22,7 @@ impl<T: Config> Pallet<T> {
 		Self::adjust_registration_terms_for_networks( );
         
         // --- 1. Iterate through network ids.
-        for ( netuid, epoch )  in <Epoch<T> as IterableStorageMap<u16, u16>>::iter() {
+        for ( netuid, epoch )  in <Tempo<T> as IterableStorageMap<u16, u16>>::iter() {
 
             
             // --- 2. Queue the emission due to this network.

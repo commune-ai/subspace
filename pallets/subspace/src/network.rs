@@ -19,7 +19,7 @@ pub struct SubnetInfo {
     subnetwork_n: Compact<u16>,
     max_allowed_uids: Compact<u16>,
     blocks_since_last_step: Compact<u64>,
-    epoch: Compact<u16>,
+    tempo: Compact<u16>,
 }
 
 
@@ -28,7 +28,7 @@ pub struct SubnetParams {
     immunity_period: u16,
     min_allowed_weights: u16,
     max_allowed_uids: u16,
-    epoch: u16,
+    tempo: u16,
 }
 
 
@@ -73,7 +73,7 @@ impl<T: Config> Pallet<T> {
         immunity_period: u16,
         min_allowed_weights: u16,
         max_allowed_uids: u16,
-        epoch: u16,
+        tempo: u16,
     ) -> DispatchResult {
 
         let key = ensure_signed(origin)?;
@@ -91,7 +91,7 @@ impl<T: Config> Pallet<T> {
             immunity_period: MinAllowedWeights::<T>::get( netuid ),
             min_allowed_weights: ImmunityPeriod::<T>::get( netuid ),
             max_allowed_uids:  MaxAllowedUids::<T>::get( netuid ),
-            epoch: Epoch::<T>::get( netuid ),
+            tempo: Tempo::<T>::get( netuid ),
         }
     }
 
@@ -111,7 +111,7 @@ impl<T: Config> Pallet<T> {
                             default_params.max_allowed_uids, 
                             default_params.immunity_period,
                             default_params.min_allowed_weights,
-                            default_params.epoch);
+                            default_params.tempo);
 
         // --- 16. Ok and done.
         return netuid;
@@ -123,7 +123,7 @@ impl<T: Config> Pallet<T> {
                        max_allowed_uids: u16,
                        immunity_period: u16,
                        min_allowed_weights: u16,
-                       epoch: u16,
+                       tempo: u16,
                     ) -> u16 {
 
         // --- 1. Enfnsure that the network name does not already exist.
@@ -139,7 +139,7 @@ impl<T: Config> Pallet<T> {
 
         }
 
-        Epoch::<T>::insert( netuid, epoch);
+        Tempo::<T>::insert( netuid, tempo);
         MaxAllowedUids::<T>::insert( netuid, max_allowed_uids );
         ImmunityPeriod::<T>::insert( netuid, immunity_period );
         MinAllowedWeights::<T>::insert( netuid, min_allowed_weights );
@@ -224,7 +224,7 @@ impl<T: Config> Pallet<T> {
         SubnetFounder::<T>::remove( netuid );
 
         // --- 2. Erase network parameters.
-        Epoch::<T>::remove( netuid );
+        Tempo::<T>::remove( netuid );
         MaxAllowedUids::<T>::remove( netuid );
         ImmunityPeriod::<T>::remove( netuid );
         MinAllowedWeights::<T>::remove( netuid );
@@ -252,11 +252,6 @@ impl<T: Config> Pallet<T> {
 
     }
 
-    // Returns true if the passed epoch is allowed.
-    //
-    pub fn if_epoch_is_valid(epoch: u16) -> bool {
-        epoch < u16::MAX
-    }
 
 
 	pub fn get_subnet_info(netuid: u16) -> Option<SubnetInfo> {
@@ -270,7 +265,7 @@ impl<T: Config> Pallet<T> {
         let subnetwork_n = Self::get_subnetwork_n(netuid);
         let max_allowed_uids = Self::get_max_allowed_uids(netuid);
         let blocks_since_last_step = Self::get_blocks_since_last_step(netuid);
-        let epoch = Self::get_epoch(netuid);
+        let tempo = Self::get_tempo(netuid);
 
 
 
@@ -282,7 +277,7 @@ impl<T: Config> Pallet<T> {
             subnetwork_n: subnetwork_n.into(),
             max_allowed_uids: max_allowed_uids.into(),
             blocks_since_last_step: blocks_since_last_step.into(),
-            epoch: epoch.into(),
+            tempo: tempo.into(),
         })
 	}
 
@@ -390,7 +385,7 @@ impl<T: Config> Pallet<T> {
     // ========================
 	// ==== Global Setters ====
 	// ========================
-    pub fn set_epoch( netuid: u16, epoch: u16 ) { Epoch::<T>::insert( netuid, epoch ); }
+    pub fn set_tempo( netuid: u16, tempo: u16 ) { Tempo::<T>::insert( netuid, tempo ); }
     pub fn set_last_adjustment_block( netuid: u16, last_adjustment_block: u64 ) { LastAdjustmentBlock::<T>::insert( netuid, last_adjustment_block ); }
     pub fn set_blocks_since_last_step( netuid: u16, blocks_since_last_step: u64 ) { BlocksSinceLastStep::<T>::insert( netuid, blocks_since_last_step ); }
     pub fn set_registrations_this_block( netuid: u16, registrations_this_block: u16 ) { RegistrationsThisBlock::<T>::insert(netuid, registrations_this_block); }
@@ -432,7 +427,7 @@ impl<T: Config> Pallet<T> {
     // ============================
 	// ==== Subnetwork Getters ====
 	// ============================
-    pub fn get_epoch( netuid:u16 ) -> u16{ Epoch::<T>::get( netuid ) }
+    pub fn get_tempo( netuid:u16 ) -> u16{ Tempo::<T>::get( netuid ) }
     pub fn get_pending_emission( netuid:u16 ) -> u64{ PendingEmission::<T>::get( netuid ) }
     pub fn get_last_adjustment_block( netuid: u16) -> u64 { LastAdjustmentBlock::<T>::get( netuid ) }
     pub fn get_blocks_since_last_step(netuid:u16 ) -> u64 { BlocksSinceLastStep::<T>::get( netuid ) }

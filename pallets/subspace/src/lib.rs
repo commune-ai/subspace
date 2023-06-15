@@ -91,8 +91,8 @@ pub mod pallet {
 		// =================================
 		#[pallet::constant] // Initial min allowed weights setting.
 		type InitialMinAllowedWeights: Get<u16>;
-		#[pallet::constant] // Epoch for each network
-		type InitialEpoch: Get<u16>;
+		#[pallet::constant] // Tempo for each network
+		type InitialTempo: Get<u16>;
 		#[pallet::constant] // Initial adjustment interval.
 		type InitialAdjustmentInterval: Get<u16>;
 		#[pallet::constant] // Initial target registrations per interval.
@@ -183,10 +183,10 @@ pub mod pallet {
 	#[pallet::type_value] 
 	pub fn DefaultLastMechansimStepBlock<T: Config>() -> u64 { 0 }
 	#[pallet::type_value]
-	pub fn DefaultEpoch<T: Config>() -> u16 { T::InitialEpoch::get() }
+	pub fn DefaultTempo<T: Config>() -> u16 { T::InitialTempo::get() }
 
 	#[pallet::storage] // --- MAP ( netuid ) --> epoch
-	pub type Epoch<T> = StorageMap<_, Identity, u16, u16, ValueQuery, DefaultEpoch<T> >;
+	pub type Tempo<T> = StorageMap<_, Identity, u16, u16, ValueQuery, DefaultTempo<T> >;
 	#[pallet::storage] // --- MAP ( netuid ) --> pending_emission
 	pub type PendingEmission<T> = StorageMap<_, Identity, u16, u64, ValueQuery, DefaultPendingEmission<T>>;
 	#[pallet::storage] // --- MAP ( netuid ) --> blocks_since_last_step.
@@ -366,8 +366,8 @@ pub mod pallet {
 		CouldNotConvertToBalance, // ---- Thrown when the dispatch attempts to convert between a u64 and T::balance but the call fails.
 		StakeAlreadyAdded, // --- Thrown when the caller requests adding stake for a key to the total stake which already added
 		StorageValueOutOfRange, // --- Thrown when the caller attempts to set a storage value outside of its allowed range.
-		EpochHasNotSet, // --- Thrown when epoch has not set
-		InvalidEpoch, // --- Thrown when epoch is not valid
+		TempoHasNotSet, // --- Thrown when epoch has not set
+		InvalidTempo, // --- Thrown when epoch is not valid
 		SettingWeightsTooFast, // --- Thrown if the key attempts to set weights twice withing net_epoch/2 blocks.
 		BalanceSetError, // --- Thrown when an error occurs setting a balance
 		MaxAllowedUidsExceeded, // --- Thrown when number of accounts going to be registered exceed MaxAllowedUids for the network.
