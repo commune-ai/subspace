@@ -315,19 +315,14 @@ impl pallet_sudo::Config for Runtime {
 
 // Configure the pallet subspace.
 parameter_types! {
-    pub const SubspaceInitialMaxAllowedUids: u16 = 512;
-    pub const SubspaceInitialMinAllowedWeights: u16 = 1024;
-    pub const SubspaceInitialEmissionValue: u16 = 0;
-    pub const SubspaceInitialMaxWeightsLimit: u16 = 262;
-	pub const SubspaceInitialTempo: u16 = 100;
+    pub const SubspaceInitialMaxAllowedUids: u16 = 4096;
+    pub const SubspaceInitialMinAllowedWeights: u16 = 1;
+	pub const SubspaceInitialEpoch: u16 = 100;
     pub const SubspaceInitialAdjustmentInterval: u16 = 100;
     pub const SubspaceInitialTargetRegistrationsPerInterval: u16 = 2;
-    pub const SubspaceInitialImmunityPeriod: u16 = 4096;
-    pub const SubspaceInitialActivityCutoff: u16 = 100;
-    pub const SubspaceInitialMaxRegistrationsPerBlock: u16 = 50;
-    pub const SubspaceInitialPruningScore : u16 = u16::MAX;
-    pub const SubspaceInitialServingRateLimit: u64 = 1000; 
-	pub const SubspaceInitialTxRateLimit: u64 = 1000;
+    pub const SubspaceInitialImmunityPeriod: u16 = 100;
+    pub const SubspaceInitialMaxRegistrationsPerBlock: u16 = 1;
+	pub const SubspaceInitialTxRateLimit: u64 = 1;
 }
 
 impl pallet_subspace::Config for Runtime {
@@ -335,16 +330,11 @@ impl pallet_subspace::Config for Runtime {
 	type Currency = Balances;
 	type InitialMaxAllowedUids = SubspaceInitialMaxAllowedUids;
 	type InitialMinAllowedWeights = SubspaceInitialMinAllowedWeights;
-	type InitialEmissionValue = SubspaceInitialEmissionValue;
-	type InitialMaxWeightsLimit = SubspaceInitialMaxWeightsLimit;
-	type InitialTempo = SubspaceInitialTempo;
+	type InitialEpoch = SubspaceInitialEpoch;
 	type InitialAdjustmentInterval = SubspaceInitialAdjustmentInterval;
 	type InitialTargetRegistrationsPerInterval = SubspaceInitialTargetRegistrationsPerInterval;
 	type InitialImmunityPeriod = SubspaceInitialImmunityPeriod;
-	type InitialActivityCutoff = SubspaceInitialActivityCutoff;
 	type InitialMaxRegistrationsPerBlock = SubspaceInitialMaxRegistrationsPerBlock;
-	type InitialPruningScore = SubspaceInitialPruningScore;
-	type InitialServingRateLimit = SubspaceInitialServingRateLimit;
 	type InitialTxRateLimit = SubspaceInitialTxRateLimit;
 }
 

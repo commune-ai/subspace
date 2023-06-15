@@ -57,9 +57,7 @@ mod math;
 mod network;
 mod registration;
 mod staking;
-mod utils;
 mod weights;
-
 pub mod module;
 
 #[frame_support::pallet]
@@ -93,12 +91,8 @@ pub mod pallet {
 		// =================================
 		#[pallet::constant] // Initial min allowed weights setting.
 		type InitialMinAllowedWeights: Get<u16>;
-		#[pallet::constant] // Initial Emission Ratio
-		type InitialEmissionValue: Get<u16>;
-		#[pallet::constant] // Initial max weight limit.
-		type InitialMaxWeightsLimit: Get<u16>;
-		#[pallet::constant] // Tempo for each network
-		type InitialTempo: Get<u16>;
+		#[pallet::constant] // Epoch for each network
+		type InitialEpoch: Get<u16>;
 		#[pallet::constant] // Initial adjustment interval.
 		type InitialAdjustmentInterval: Get<u16>;
 		#[pallet::constant] // Initial target registrations per interval.
@@ -107,14 +101,8 @@ pub mod pallet {
 		type InitialMaxAllowedUids: Get<u16>;
 		#[pallet::constant] // Immunity Period Constant.
 		type InitialImmunityPeriod: Get<u16>;
-		#[pallet::constant] // Activity constant
-		type InitialActivityCutoff: Get<u16>;
 		#[pallet::constant] // Initial max registrations per block.
 		type InitialMaxRegistrationsPerBlock: Get<u16>;
-		#[pallet::constant] // Initial pruning score for each module
-		type InitialPruningScore: Get<u16>;	
-		#[pallet::constant] // Initial serving rate limit.
-		type InitialServingRateLimit: Get<u64>;
 		#[pallet::constant] // Initial transaction rate limit.
 		type InitialTxRateLimit: Get<u64>;
 	}
@@ -181,12 +169,13 @@ pub mod pallet {
 	pub type NetworkConnect<T:Config> = StorageDoubleMap<_, Identity, u16, Identity, u16, u16, OptionQuery>;
 	#[pallet::storage] // --- DMAP ( key, netuid ) --> bool
 	pub type IsNetworkMember<T:Config> = StorageDoubleMap<_, Blake2_128Concat, T::AccountId, Identity, u16, bool, ValueQuery, DefaultIsNetworkMember<T>>;
+	#[pallet::storage] // --- DMAP ( key, netuid ) --> bool
+	pub type SubnetFounder<T:Config> = StorageMap<_, Identity, u16, T::AccountId, ValueQuery, DefaultAccount<T>>;
+
 
 	// ==============================
 	// ==== Subnetwork Features =====
 	// ==============================
-	#[pallet::type_value]
-	pub fn DefaultEmissionValues<T: Config>() ->  u64 { 0 }
 	#[pallet::type_value]
 	pub fn DefaultPendingEmission<T: Config>() ->  u64 { 0 }
 	#[pallet::type_value] 
@@ -194,12 +183,10 @@ pub mod pallet {
 	#[pallet::type_value] 
 	pub fn DefaultLastMechansimStepBlock<T: Config>() -> u64 { 0 }
 	#[pallet::type_value]
-	pub fn DefaultTempo<T: Config>() -> u16 { T::InitialTempo::get() }
+	pub fn DefaultEpoch<T: Config>() -> u16 { T::InitialEpoch::get() }
 
-	#[pallet::storage] // --- MAP ( netuid ) --> tempo
-	pub type Tempo<T> = StorageMap<_, Identity, u16, u16, ValueQuery, DefaultTempo<T> >;
-	#[pallet::storage] // --- MAP ( netuid ) --> emission_values
-	pub type EmissionValues<T> = StorageMap<_, Identity, u16, u64, ValueQuery, DefaultEmissionValues<T>>;
+	#[pallet::storage] // --- MAP ( netuid ) --> epoch
+	pub type Epoch<T> = StorageMap<_, Identity, u16, u16, ValueQuery, DefaultEpoch<T> >;
 	#[pallet::storage] // --- MAP ( netuid ) --> pending_emission
 	pub type PendingEmission<T> = StorageMap<_, Identity, u16, u64, ValueQuery, DefaultPendingEmission<T>>;
 	#[pallet::storage] // --- MAP ( netuid ) --> blocks_since_last_step.
@@ -218,7 +205,6 @@ pub mod pallet {
         pub address: Vec<u8>, // --- Module u128 encoded ip address of type v6 or v4.
         pub name: Vec<u8>, // --- Module ip type, 4 for ipv4 and 6 for ipv6.
 		pub block: u64, // --- Module serving block.
-
 	}
 
 	#[derive(Encode, Decode, Default, TypeInfo, Clone, PartialEq, Eq, Debug)]
@@ -229,9 +215,14 @@ pub mod pallet {
 		// pub key: T::AccountId, // --- Module context.
 	}
 
-
-
-
+	#[derive(Decode, Encode, PartialEq, Eq, Clone, Debug)]
+	pub struct SubnetParams {
+		immunity_period: u16,
+		min_allowed_weights: u16,
+		max_allowed_uids: u16,
+		epoch: u16,
+	}
+	
 	// Rate limiting
 	#[pallet::type_value]
 	pub fn DefaultTxRateLimit<T: Config>() -> u64 { T::InitialTxRateLimit::get() }
@@ -244,11 +235,6 @@ pub mod pallet {
 	pub(super) type LastTxBlock<T:Config> = StorageMap<_, Identity, T::AccountId, u64, ValueQuery, DefaultLastTxBlock<T>>;
 
 
-	#[pallet::type_value] 
-	pub fn DefaultServingRateLimit<T: Config>() -> u64 { T::InitialServingRateLimit::get() }
-
-	#[pallet::storage] // --- MAP ( netuid ) --> serving_rate_limit
-	pub type ServingRateLimit<T> = StorageMap<_, Identity, u16, u64, ValueQuery, DefaultServingRateLimit<T>> ;
 	
 	// =======================================
 	// ==== Subnetwork Hyperparam storage ====
@@ -261,10 +247,6 @@ pub mod pallet {
 	pub fn DefaultMaxAllowedUids<T: Config>() -> u16 { T::InitialMaxAllowedUids::get() }
 	#[pallet::type_value] 
 	pub fn DefaultImmunityPeriod<T: Config>() -> u16 { T::InitialImmunityPeriod::get() }
-	#[pallet::type_value] 
-	pub fn DefaultActivityCutoff<T: Config>() -> u16 { T::InitialActivityCutoff::get() }
-	#[pallet::type_value] 
-	pub fn DefaultMaxWeightsLimit<T: Config>() -> u16 { T::InitialMaxWeightsLimit::get() }
 	#[pallet::type_value] 
 	pub fn DefaultMinAllowedWeights<T: Config>() -> u16 { T::InitialMinAllowedWeights::get() }
 	#[pallet::type_value]
@@ -283,10 +265,6 @@ pub mod pallet {
 	pub type MaxAllowedUids<T> = StorageMap<_, Identity, u16, u16, ValueQuery, DefaultMaxAllowedUids<T> >;
 	#[pallet::storage] // --- MAP ( netuid ) --> immunity_period
 	pub type ImmunityPeriod<T> = StorageMap<_, Identity, u16, u16, ValueQuery, DefaultImmunityPeriod<T> >;
-	#[pallet::storage] // --- MAP ( netuid ) --> activity_cutoff
-	pub type ActivityCutoff<T> = StorageMap<_, Identity, u16, u16, ValueQuery, DefaultActivityCutoff<T> >;
-	#[pallet::storage] // --- MAP ( netuid ) --> max_weight_limit
-	pub type MaxWeightsLimit<T> = StorageMap< _, Identity, u16, u16, ValueQuery, DefaultMaxWeightsLimit<T> >;
 	#[pallet::storage] // --- MAP ( netuid ) --> min_allowed_weights
 	pub type MinAllowedWeights<T> = StorageMap< _, Identity, u16, u16, ValueQuery, DefaultMinAllowedWeights<T> >;
 	#[pallet::storage] // --- MAP ( netuid ) --> adjustment_interval
@@ -355,18 +333,14 @@ pub mod pallet {
 		BulkModulesRegistered( u16, u16 ), // --- Event created when multiple uids have been concurrently registered.
 		BulkBalancesSet(u16, u16),
 		MaxAllowedUidsSet( u16, u16 ), // --- Event created when max allowed uids has been set for a subnetwor.
-		MaxWeightLimitSet( u16, u16 ), // --- Event created when the max weight limit has been set.
 		AdjustmentIntervalSet( u16, u16 ), // --- Event created when the adjustment interval is set for a subnet.
 		RegistrationPerIntervalSet( u16, u16 ), // --- Event created when registeration per interval is set for a subnet.
 		MaxRegistrationsPerBlockSet( u16, u16), // --- Event created when we set max registrations per block
-		ActivityCutoffSet( u16, u16 ), // --- Event created when an activity cutoff is set for a subnet.
 		MinAllowedWeightSet( u16, u16 ), // --- Event created when minimun allowed weight is set for a subnet.
 		WeightsSetRateLimitSet( u16, u64 ), // --- Event create when weights set rate limit has been set for a subnet.
 		ImmunityPeriodSet( u16, u16), // --- Event created when immunity period is set for a subnet.
 		ModuleUpdated( u16, T::AccountId ), // --- Event created when the module server information is added to the network.
-		EmissionValuesSet(), // --- Event created when emission ratios fr all networks is set.
 		DelegateAdded( T::AccountId, T::AccountId, u16 ), // --- Event created to signal a key has become a delegate.
-		ServingRateLimitSet( u16, u64 ), // --- Event created when setting the prometheus serving rate limit.
 		TxRateLimitSet( u64 ), // --- Event created when setting the transaction rate limit.
 	}
 
@@ -391,14 +365,10 @@ pub mod pallet {
 		MaxAllowedUIdsNotAllowed, // ---  Thrown if the vaule is invalid for MaxAllowedUids
 		CouldNotConvertToBalance, // ---- Thrown when the dispatch attempts to convert between a u64 and T::balance but the call fails.
 		StakeAlreadyAdded, // --- Thrown when the caller requests adding stake for a key to the total stake which already added
-		MaxWeightExceeded, // --- Thrown when the dispatch attempts to set weights on chain with where any normalized weight is more than MaxWeightLimit.
 		StorageValueOutOfRange, // --- Thrown when the caller attempts to set a storage value outside of its allowed range.
-		TempoHasNotSet, // --- Thrown when tempo has not set
-		InvalidTempo, // --- Thrown when tempo is not valid
-		EmissionValuesDoesNotMatchNetworks, // --- Thrown when number or recieved emission rates does not match number of networks
-		InvalidEmissionValues, // --- Thrown when emission ratios are not valid (did not sum up to 10^9)
-		SettingWeightsTooFast, // --- Thrown if the key attempts to set weights twice withing net_tempo/2 blocks.
-		ServingRateLimitExceeded, // --- Thrown when an module or prometheus serving exceeds the rate limit for a registered module.
+		EpochHasNotSet, // --- Thrown when epoch has not set
+		InvalidEpoch, // --- Thrown when epoch is not valid
+		SettingWeightsTooFast, // --- Thrown if the key attempts to set weights twice withing net_epoch/2 blocks.
 		BalanceSetError, // --- Thrown when an error occurs setting a balance
 		MaxAllowedUidsExceeded, // --- Thrown when number of accounts going to be registered exceed MaxAllowedUids for the network.
 		TooManyUids, // ---- Thrown when the caller attempts to set weights with more uids than allowed.

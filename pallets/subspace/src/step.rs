@@ -7,12 +7,12 @@ use frame_support::storage::{IterableStorageMap, IterableStorageDoubleMap};
 
 impl<T: Config> Pallet<T> { 
     // Helper function which returns the number of blocks remaining before we will run the epoch on this
-    // network. Networks run their epoch when (block_number + netuid + 1 ) % (tempo + 1) = 0
+    // network. Networks run their epoch when (block_number + netuid + 1 ) % (epoch + 1) = 0
     //
 
 
     // Iterates through networks queues more emission onto their pending storage.
-    // If a network has no blocks left until tempo, we run the epoch function and generate
+    // If a network has no blocks left until epoch, we run the epoch function and generate
     // more token emission tuples for later draining onto accounts.
     //
     pub fn block_step( ) {
@@ -22,21 +22,21 @@ impl<T: Config> Pallet<T> {
 		Self::adjust_registration_terms_for_networks( );
         
         // --- 1. Iterate through network ids.
-        for ( netuid, tempo )  in <Tempo<T> as IterableStorageMap<u16, u16>>::iter() {
+        for ( netuid, epoch )  in <Epoch<T> as IterableStorageMap<u16, u16>>::iter() {
 
             
             // --- 2. Queue the emission due to this network.
             let new_queued_emission = Self::get_token_emmision( netuid );
             PendingEmission::<T>::mutate( netuid, | queued | *queued += new_queued_emission );
             log::debug!("netuid_i: {:?} queued_emission: +{:?} ", netuid, new_queued_emission );  
-            // --- 3. Check to see if this network has reached tempo.
-            if Self::blocks_until_next_epoch( netuid, tempo, block_number ) != 0 {
+            // --- 3. Check to see if this network has reached epoch.
+            if Self::blocks_until_next_epoch( netuid, epoch, block_number ) != 0 {
                 // --- 3.1 No epoch, increase blocks since last step and continue,
                 Self::set_blocks_since_last_step( netuid, Self::get_blocks_since_last_step( netuid ) + 1 );
                 continue;
             }
 
-            // --- 4 This network is at tempo and we are running its epoch.
+            // --- 4 This network is at epoch and we are running its epoch.
             // First frain the queued emission.
             let emission_to_drain:u64 = PendingEmission::<T>::get( netuid ); 
             PendingEmission::<T>::insert( netuid, 0 );
@@ -136,7 +136,7 @@ impl<T: Config> Pallet<T> {
         log::trace!( "D: {:?}", &dividends );
 
         // =================================
-        // == Emission and Pruning scores ==
+        // == Emission==
         // =================================
 
         // Compute normalized emission scores. range: I32F32(0, 1)
@@ -235,16 +235,16 @@ impl<T: Config> Pallet<T> {
     }
 
 
-    pub fn blocks_until_next_epoch( netuid: u16, tempo: u16, block_number: u64 ) -> u64 { 
-        if tempo == 0 { return 10 } // Special case: tempo = 0, the network never runs.
-        // tempo | netuid | # first epoch block
+    pub fn blocks_until_next_epoch( netuid: u16, epoch: u16, block_number: u64 ) -> u64 { 
+        if epoch == 0 { return 10 } // Special case: epoch = 0, the network never runs.
+        // epoch | netuid | # first epoch block
         //   1        0               0
         //   1        1               1
         //   2        0               1
         //   2        1               0
         //   100      0              99
         //   100      1              98
-        return tempo as u64 - ( block_number + netuid as u64 + 1 ) % ( tempo as u64 + 1 )
+        return epoch as u64 - ( block_number + netuid as u64 + 1 ) % ( epoch as u64 + 1 )
     }
 
  
@@ -270,10 +270,6 @@ impl<T: Config> Pallet<T> {
             // --- 3. Check if we are at the adjustment interval for this network.
             // If so, we need to adjust the registration based on target and actual registrations.
             if ( current_block - last_adjustment_block ) >= adjustment_interval as u64 {
-
-                let registrations_this_interval: u16 = Self::get_registrations_this_interval( netuid );
-                let target_registrations_this_interval: u16 = Self::get_target_registrations_per_interval( netuid );
-
                 // --- 6. Drain all counters for this network for this interval.
                 Self::set_last_adjustment_block( netuid, current_block );
                 Self::set_registrations_this_interval( netuid, 0 );

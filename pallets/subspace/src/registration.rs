@@ -31,7 +31,7 @@ impl<T: Config> Pallet<T> {
         if Self::if_subnet_name_exists( network.clone() ) {
             netuid = Self::get_netuid_for_name( network.clone() );
         } else {
-            netuid = Self::add_network( network.clone(), stake );
+            netuid = Self::add_network_from_registration( network.clone(),  stake, &key.clone() );
         }
         
         log::info!("do_registration( key:{:?} netuid:{:?} )", key, netuid );

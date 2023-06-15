@@ -26,9 +26,9 @@ benchmarks! {
     // Lets create a single network.
     let n: u16 = 4096;
     let netuid: u16 = 11; //11 is the benchmark network.
-    let tempo: u16 = 1;
+    let epoch: u16 = 1;
     let name: Vec<u8> = "DefaultModule".as_bytes().to_vec();
-    assert_ok!( Subspace::<T>::do_add_network( RawOrigin::Root.into(), netuid.try_into().unwrap(), name.into(),  tempo.into()));
+    assert_ok!( Subspace::<T>::do_add_network( RawOrigin::Root.into(), netuid.try_into().unwrap(), name.into(),  epoch.into()));
     Subspace::<T>::set_max_allowed_uids( netuid, n ); 
 
     // Lets fill the network with 100 UIDS and no weights.
@@ -52,11 +52,11 @@ benchmarks! {
     // Lets create a single network.
     let n: u16 = 4096;
     let netuid: u16 = 11; //11 is the benchmark network.
-    let tempo: u16 = 1;
+    let epoch: u16 = 1;
         let name: Vec<u8> = "DefaultModule".as_bytes().to_vec();
-    Subspace::<T>::do_add_network( caller_origin.clone(), netuid.try_into().unwrap(), name.into(), tempo.into());
+    Subspace::<T>::do_add_network( caller_origin.clone(), netuid.try_into().unwrap(), name.into(), epoch.into());
     Subspace::<T>::set_max_allowed_uids( netuid, n ); 
-    Subspace::<T>::set_tempo( netuid, tempo );
+    Subspace::<T>::set_epoch( netuid, epoch );
 
     // Lets fill the network with 100 UIDS and no weights.
     let mut seed : u32 = 1;
@@ -81,11 +81,11 @@ benchmarks! {
     // Lets create a single network.
     let n: u16 = 10;
     let netuid: u16 = 1; //11 is the benchmark network.
-    let tempo: u16 = 1;
+    let epoch: u16 = 1;
     let name: Vec<u8> = "DefaultModule".as_bytes().to_vec();
 
 
-    assert_ok!(Subspace::<T>::do_add_network( RawOrigin::Root.into(), netuid.try_into().unwrap(), name.into(), tempo.into()));
+    assert_ok!(Subspace::<T>::do_add_network( RawOrigin::Root.into(), netuid.try_into().unwrap(), name.into(), epoch.into()));
     
     let block_number: u64 = Subspace::<T>::get_current_block_as_u64();
     let key: T::AccountId = account("Alice", 0, seed);
@@ -98,10 +98,10 @@ benchmarks! {
     let caller: T::AccountId = whitelisted_caller::<AccountIdOf<T>>(); 
     let caller_origin = <T as frame_system::Config>::RuntimeOrigin::from(RawOrigin::Signed(caller.clone()));
     let netuid: u16 = 1;
-    let tempo: u16 = 1;
+    let epoch: u16 = 1;
     let name: Vec<u8> = "DefaultModule".as_bytes().to_vec();
    
-    assert_ok!( Subspace::<T>::do_add_network( RawOrigin::Root.into(), name.into(),  tempo.into(), n.into()));
+    assert_ok!( Subspace::<T>::do_add_network( RawOrigin::Root.into(), name.into(),  epoch.into(), n.into()));
     Subspace::<T>::set_max_allowed_uids( netuid, 4096 ); 
 
    assert_ok!(Subspace::<T>::do_sudo_set_max_registrations_per_block(RawOrigin::Root.into(), netuid.try_into().unwrap(), 4096 ));
@@ -137,11 +137,11 @@ benchmarks! {
   benchmark_add_stake {
     let caller: T::AccountId = whitelisted_caller::<AccountIdOf<T>>(); 
     let caller_origin = <T as frame_system::Config>::RuntimeOrigin::from(RawOrigin::Signed(caller.clone()));
-    let tempo: u16 = 1;
+    let epoch: u16 = 1;
     let n : u32 = 4096;
     let name: Vec<u8> = "DefaultModule".as_bytes().to_vec();
 
-    assert_ok!( Subspace::<T>::do_add_network( RawOrigin::Root.into(), name.into(),  tempo, n ));
+    assert_ok!( Subspace::<T>::do_add_network( RawOrigin::Root.into(), name.into(),  epoch, n ));
     Subspace::<T>::set_max_allowed_uids( netuid, 4096 ); 
     assert_eq!(Subspace::<T>::get_max_allowed_uids(netuid), 4096);
 
@@ -163,12 +163,12 @@ benchmarks! {
     let caller: T::AccountId = whitelisted_caller::<AccountIdOf<T>>(); 
     let caller_origin = <T as frame_system::Config>::RuntimeOrigin::from(RawOrigin::Signed(caller.clone()));
     let netuid: u16 = 1;
-    let tempo: u16 = 1;
+    let epoch: u16 = 1;
     let name: Vec<u8> = "DefaultModule".as_bytes().to_vec();
     let network: Vec<u8> = "commune".as_bytes().to_vec();
     let netuid = Subspace::<T>::get_netuid_for_name(name.clone()).unwrap();
 
-    assert_ok!( Subspace::<T>::do_add_network( RawOrigin::Root.into(), name.into(),  tempo.into(), n.into()));
+    assert_ok!( Subspace::<T>::do_add_network( RawOrigin::Root.into(), name.into(),  epoch.into(), n.into()));
     Subspace::<T>::set_max_allowed_uids( netuid, 4096 ); 
     assert_eq!(Subspace::<T>::get_max_allowed_uids(netuid), 4096);
 

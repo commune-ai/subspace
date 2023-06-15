@@ -75,7 +75,7 @@ subcommands:
 
 ## Run
 
-The provided `cargo run` command will launch a temporary node and its state will be discarded after
+The provided `cargo run` command will launch a epochrary node and its state will be discarded after
 you terminate the process. After the project has been built, there are other ways to launch the
 node.
 
@@ -126,7 +126,7 @@ SKIP_WASM_BUILD=1 RUST_LOG=runtime=debug cargo tarpaulin --skip-clean
 > - Bob//stash
 
 In case of being interested in maintaining the chain' state between runs a base path must be added
-so the db can be stored in the provided folder instead of a temporal one. We could use this folder
+so the db can be stored in the provided folder instead of a epochral one. We could use this folder
 to store different chain databases, as a different folder will be created per different chain that
 is ran. The following commands shows how to use a newly created folder as our db base path.
 
@@ -274,14 +274,13 @@ by appending your own. A few useful ones are as follow.
 
 
 ## 6. License
-The MIT License (MIT)
-Copyright © 2021 Yuma Rao
+IDGAF Copyright © 2023 Yomama
 
-Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the “Software”), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
+Lower Bound is MIT Liscence
+Upper Bound is Infinite
+Fuck shit up, dont blame me if things go south, use code as is, peace.
 
-The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
 
-THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 
 ## 7. Acknowledgments

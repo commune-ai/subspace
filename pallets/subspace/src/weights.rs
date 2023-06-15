@@ -5,57 +5,6 @@ use sp_std::vec::Vec;
 impl<T: Config> Pallet<T> {
 
 
-    // ---- The implementation for the extrinsic set_weights.
-    //
-    // # Args:
-    // 	* 'origin': (<T as frame_system::Config>RuntimeOrigin):
-    // 		- The signature of the calling key.
-    //
-    // 	* 'netuid' (u16):
-    // 		- The u16 network identifier.
-    //
-    // 	* 'uids' ( Vec<u16> ):
-    // 		- The uids of the weights to be set on the chain.
-    //
-    // 	* 'values' ( Vec<u16> ):
-    // 		- The values of the weights to set on the chain.
-
-    // # Event:
-    // 	* WeightsSet;
-    // 		- On successfully setting the weights on chain.
-    //
-    // # Raises:
-    // 	* 'NetworkDoesNotExist':
-    // 		- Attempting to set weights on a non-existent network.
-    //
-    // 	* 'NotRegistered':
-    // 		- Attempting to set weights from a non registered account.
-    //
-
-    // 	* 'SettingWeightsTooFast':
-    // 		- Attempting to set weights faster than the weights_set_rate_limit.
-    //
-    // 	* 'NoValidatorPermit':
-    // 		- Attempting to set non-self weights without a validator permit.
-    //
-    // 	* 'WeightVecNotEqualSize':
-    // 		- Attempting to set weights with uids not of same length.
-    //
-    // 	* 'DuplicateUids':
-    // 		- Attempting to set weights with duplicate uids.
-    // 
-    //     * 'TooManyUids':
-    // 		- Attempting to set weights above the max allowed uids.
-    //
-    // 	* 'InvalidUid':
-    // 		- Attempting to set weights with invalid uids.
-    //
-    // 	* 'NotSettingEnoughWeights':
-    // 		- Attempting to set weights with fewer weights than min.
-    //
-    // 	* 'MaxWeightExceeded':
-    // 		- Attempting to set weights with max value exceeding limit.
-    //
     pub fn do_set_weights( origin: T::RuntimeOrigin, netuid: u16, uids: Vec<u16>, values: Vec<u16> ) -> dispatch::DispatchResult{
 
         // --- 1. Check the caller's signature. This is the key of a registered account.
@@ -78,7 +27,6 @@ impl<T: Config> Pallet<T> {
 
         // --- 8. Ensure the uid is not setting weights faster than the weights_set_rate_limit.
         let current_block: u64 = Self::get_current_block_as_u64();
-        ensure!( Self::check_rate_limit( netuid, module_uid, current_block ), Error::<T>::SettingWeightsTooFast );
 
  
         // --- 10. Ensure the passed uids contain no duplicates.
@@ -92,9 +40,6 @@ impl<T: Config> Pallet<T> {
 
         // --- 13. Normalize the weights.
         let normalized_values = Self::normalize_weights( values );
-
-        // --- 14. Ensure the weights are max weight limited 
-        ensure!( Self::max_weight_limited( netuid, module_uid, &uids, &normalized_values ), Error::<T>::MaxWeightExceeded );
 
         // --- 15. Zip weights for sinking to storage map.
         let mut zipped_weights: Vec<( u16, u16 )> = vec![];
@@ -115,19 +60,6 @@ impl<T: Config> Pallet<T> {
     }
 
 
-
-    // Checks if the module has set weights within the weights_set_rate_limit.
-    //
-    pub fn check_rate_limit( netuid: u16, module_uid: u16, current_block: u64 ) -> bool {
-        if Self::is_uid_exist_on_network( netuid, module_uid ){ 
-            // --- 1. Ensure that the diff between current and last_set weights is greater than limit.
-            let last_set_weights: u64 = Self::get_last_update_for_uid( netuid, module_uid );
-            if last_set_weights == 0 { return true; } // (Storage default) Never set weights.
-            return current_block - last_set_weights >= Self::get_weights_set_rate_limit( netuid );
-        }
-        // --- 3. Non registered peers cant pass.
-        return false;
-    }
 
     // Checks for any invalid uids on this network.
     pub fn contains_invalid_uids( netuid: u16, uids: &Vec<u16> ) -> bool {
@@ -178,23 +110,6 @@ impl<T: Config> Pallet<T> {
         return weights;
     }
 
-    // Returns False if the weights exceed the max_weight_limit for this network.
-    pub fn max_weight_limited( netuid: u16, uid: u16, uids: &Vec<u16>, weights: &Vec<u16> ) -> bool {
-
-        // Allow self weights to exceed max weight limit.
-        if Self::is_self_weight( uid, uids, weights ) { return true; }
-
-        // If the max weight limit it u16 max, return true.
-        let max_weight_limit: u16 = Self::get_max_weight_limit( netuid );
-        if max_weight_limit == u16::MAX { return true; }
-    
-        // Check if the weights max value is less than or equal to the limit.
-        let max: u16 = *weights.iter().max().unwrap();
-        if max <= max_weight_limit { return true; }
-        
-        // The check has failed.
-        return false;
-    }
 
     // Returns true if the uids and weights correspond to a self weight on the uid.
     pub fn is_self_weight( uid: u16, uids: &Vec<u16>, weights: &Vec<u16> ) -> bool {
