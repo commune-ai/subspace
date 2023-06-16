@@ -93,10 +93,6 @@ pub mod pallet {
 		type InitialMinAllowedWeights: Get<u16>;
 		#[pallet::constant] // Tempo for each network
 		type InitialTempo: Get<u16>;
-		#[pallet::constant] // Initial adjustment interval.
-		type InitialAdjustmentInterval: Get<u16>;
-		#[pallet::constant] // Initial target registrations per interval.
-		type InitialTargetRegistrationsPerInterval: Get<u16>;
 		#[pallet::constant] // Max UID constant.
 		type InitialMaxAllowedUids: Get<u16>;
 		#[pallet::constant] // Immunity Period Constant.
@@ -131,16 +127,12 @@ pub mod pallet {
 	#[pallet::storage] // --- DMAP ( hot, cold ) --> stake | Returns the stake under a key prefixed by key.
 	pub type Stake<T:Config> = StorageDoubleMap<_,Identity, u16,  Identity, T::AccountId, u64, ValueQuery, DefaultAccountTake<T>>;
 
-	#[pallet::type_value] 
-	pub fn DefaultLastAdjustmentBlock<T: Config>() -> u64 { 0 }
 	#[pallet::type_value]
 	pub fn DefaultRegistrationsThisBlock<T: Config>() ->  u16 { 0}
 	#[pallet::type_value] 
 	pub fn DefaultMaxRegistrationsPerBlock<T: Config>() -> u16 { T::InitialMaxRegistrationsPerBlock::get() }
 	#[pallet::type_value] 
 	pub fn DefaultMaxAllowedSubnets<T: Config>() -> u16 { 100 }
-	#[pallet::storage] // --- MAP ( netuid ) -->  Block at last adjustment.
-	pub type LastAdjustmentBlock<T> = StorageMap<_, Identity, u16, u64, ValueQuery, DefaultLastAdjustmentBlock<T> >;
 	#[pallet::storage] // --- MAP ( netuid ) --> Registration this Block.
 	pub type RegistrationsThisBlock<T> = StorageMap<_, Identity, u16, u16, ValueQuery, DefaultRegistrationsThisBlock<T>>;
 	#[pallet::storage] // --- ITEM( global_max_registrations_per_block ) 
@@ -240,8 +232,6 @@ pub mod pallet {
 	// ==== Subnetwork Hyperparam storage ====
 	// =======================================	
 	#[pallet::type_value] 
-	pub fn DefaultWeightsSetRateLimit<T: Config>() -> u64 { 0 }
-	#[pallet::type_value] 
 	pub fn DefaultBlockAtRegistration<T: Config>() -> u64 { 0 }
 	#[pallet::type_value]
 	pub fn DefaultMaxAllowedUids<T: Config>() -> u16 { T::InitialMaxAllowedUids::get() }
@@ -249,10 +239,6 @@ pub mod pallet {
 	pub fn DefaultImmunityPeriod<T: Config>() -> u16 { T::InitialImmunityPeriod::get() }
 	#[pallet::type_value] 
 	pub fn DefaultMinAllowedWeights<T: Config>() -> u16 { T::InitialMinAllowedWeights::get() }
-	#[pallet::type_value]
-	pub fn DefaultAdjustmentInterval<T: Config>() -> u16 { T::InitialAdjustmentInterval::get() }
-	#[pallet::type_value] 
-	pub fn DefaultTargetRegistrationsPerInterval<T: Config>() -> u16 { T::InitialTargetRegistrationsPerInterval::get() }
 	#[pallet::type_value] 
 	pub fn DefaultMaxModuleNameLength<T: Config>() -> u16 { 32 }
 	
@@ -265,16 +251,8 @@ pub mod pallet {
 	pub type ImmunityPeriod<T> = StorageMap<_, Identity, u16, u16, ValueQuery, DefaultImmunityPeriod<T> >;
 	#[pallet::storage] // --- MAP ( netuid ) --> min_allowed_weights
 	pub type MinAllowedWeights<T> = StorageMap< _, Identity, u16, u16, ValueQuery, DefaultMinAllowedWeights<T> >;
-	#[pallet::storage] // --- MAP ( netuid ) --> adjustment_interval
-	pub type WeightsSetRateLimit<T> = StorageMap<_, Identity, u16, u64, ValueQuery, DefaultWeightsSetRateLimit<T> >;
-	#[pallet::storage] // --- MAP ( netuid ) --> target_registrations_this_interval
-	pub type TargetRegistrationsPerInterval<T> = StorageMap<_, Identity, u16, u16, ValueQuery, DefaultTargetRegistrationsPerInterval<T> >;
-	#[pallet::storage] // --- DMAP ( netuid, uid ) --> block_at_registration
-	pub type AdjustmentInterval<T> = StorageMap<_, Identity, u16, u16, ValueQuery, DefaultAdjustmentInterval<T> >;
 	#[pallet::storage] // --- MAP ( netuid ) --> weights_set_rate_limit
 	pub type BlockAtRegistration<T:Config> = StorageDoubleMap<_, Identity, u16, Identity, u16, u64, ValueQuery, DefaultBlockAtRegistration<T> >;
-	#[pallet::storage] // --- MAP ( netuid ) --> registrations_this_interval
-	pub type RegistrationsThisInterval<T:Config> = StorageMap<_, Identity, u16, u16, ValueQuery>;
 
 	// =======================================
 	// ==== Subnetwork Storage  ====
@@ -333,11 +311,8 @@ pub mod pallet {
 		BulkModulesRegistered( u16, u16 ), // --- Event created when multiple uids have been concurrently registered.
 		BulkBalancesSet(u16, u16),
 		MaxAllowedUidsSet( u16, u16 ), // --- Event created when max allowed uids has been set for a subnetwor.
-		AdjustmentIntervalSet( u16, u16 ), // --- Event created when the adjustment interval is set for a subnet.
-		RegistrationPerIntervalSet( u16, u16 ), // --- Event created when registeration per interval is set for a subnet.
 		MaxRegistrationsPerBlockSet( u16, u16), // --- Event created when we set max registrations per block
 		MinAllowedWeightSet( u16, u16 ), // --- Event created when minimun allowed weight is set for a subnet.
-		WeightsSetRateLimitSet( u16, u64 ), // --- Event create when weights set rate limit has been set for a subnet.
 		ImmunityPeriodSet( u16, u16), // --- Event created when immunity period is set for a subnet.
 		ModuleUpdated( u16, T::AccountId ), // --- Event created when the module server information is added to the network.
 		DelegateAdded( T::AccountId, T::AccountId, u16 ), // --- Event created to signal a key has become a delegate.

@@ -318,8 +318,6 @@ parameter_types! {
     pub const SubspaceInitialMaxAllowedUids: u16 = 4096;
     pub const SubspaceInitialMinAllowedWeights: u16 = 1;
 	pub const SubspaceInitialTempo: u16 = 100;
-    pub const SubspaceInitialAdjustmentInterval: u16 = 100;
-    pub const SubspaceInitialTargetRegistrationsPerInterval: u16 = 2;
     pub const SubspaceInitialImmunityPeriod: u16 = 100;
     pub const SubspaceInitialMaxRegistrationsPerBlock: u16 = 1;
 	pub const SubspaceInitialTxRateLimit: u64 = 1;
@@ -331,8 +329,6 @@ impl pallet_subspace::Config for Runtime {
 	type InitialMaxAllowedUids = SubspaceInitialMaxAllowedUids;
 	type InitialMinAllowedWeights = SubspaceInitialMinAllowedWeights;
 	type InitialTempo = SubspaceInitialTempo;
-	type InitialAdjustmentInterval = SubspaceInitialAdjustmentInterval;
-	type InitialTargetRegistrationsPerInterval = SubspaceInitialTargetRegistrationsPerInterval;
 	type InitialImmunityPeriod = SubspaceInitialImmunityPeriod;
 	type InitialMaxRegistrationsPerBlock = SubspaceInitialMaxRegistrationsPerBlock;
 	type InitialTxRateLimit = SubspaceInitialTxRateLimit;

@@ -143,7 +143,6 @@ impl<T: Config> Pallet<T> {
         MaxAllowedUids::<T>::insert( netuid, max_allowed_uids );
         ImmunityPeriod::<T>::insert( netuid, immunity_period );
         MinAllowedWeights::<T>::insert( netuid, min_allowed_weights );
-        RegistrationsThisInterval::<T>::insert( netuid, 0);
         SubnetNamespace::<T>::insert( name.clone(), netuid );
 
         // set stat once network is created
@@ -228,7 +227,6 @@ impl<T: Config> Pallet<T> {
         MaxAllowedUids::<T>::remove( netuid );
         ImmunityPeriod::<T>::remove( netuid );
         MinAllowedWeights::<T>::remove( netuid );
-        RegistrationsThisInterval::<T>::remove( netuid );
         SubnetworkN::<T>::remove( netuid );
 
         // --- 3. Erase network stake, and remove network from list of networks.
@@ -386,11 +384,9 @@ impl<T: Config> Pallet<T> {
 	// ==== Global Setters ====
 	// ========================
     pub fn set_tempo( netuid: u16, tempo: u16 ) { Tempo::<T>::insert( netuid, tempo ); }
-    pub fn set_last_adjustment_block( netuid: u16, last_adjustment_block: u64 ) { LastAdjustmentBlock::<T>::insert( netuid, last_adjustment_block ); }
     pub fn set_blocks_since_last_step( netuid: u16, blocks_since_last_step: u64 ) { BlocksSinceLastStep::<T>::insert( netuid, blocks_since_last_step ); }
     pub fn set_registrations_this_block( netuid: u16, registrations_this_block: u16 ) { RegistrationsThisBlock::<T>::insert(netuid, registrations_this_block); }
     pub fn set_last_mechanism_step_block( netuid: u16, last_mechanism_step_block: u64 ) { LastMechansimStepBlock::<T>::insert(netuid, last_mechanism_step_block); }
-    pub fn set_registrations_this_interval( netuid: u16, registrations_this_interval: u16 ) { RegistrationsThisInterval::<T>::insert(netuid, registrations_this_interval); }
 
     // ========================
 	// ==== Global Getters ====
@@ -429,11 +425,9 @@ impl<T: Config> Pallet<T> {
 	// ============================
     pub fn get_tempo( netuid:u16 ) -> u16{ Tempo::<T>::get( netuid ) }
     pub fn get_pending_emission( netuid:u16 ) -> u64{ PendingEmission::<T>::get( netuid ) }
-    pub fn get_last_adjustment_block( netuid: u16) -> u64 { LastAdjustmentBlock::<T>::get( netuid ) }
     pub fn get_blocks_since_last_step(netuid:u16 ) -> u64 { BlocksSinceLastStep::<T>::get( netuid ) }
     pub fn get_registrations_this_block( netuid:u16 ) -> u16 { RegistrationsThisBlock::<T>::get( netuid ) }
     pub fn get_last_mechanism_step_block( netuid: u16 ) -> u64 { LastMechansimStepBlock::<T>::get( netuid ) }
-    pub fn get_registrations_this_interval( netuid: u16 ) -> u16 { RegistrationsThisInterval::<T>::get( netuid ) } 
     pub fn get_module_block_at_registration( netuid: u16, module_uid: u16 ) -> u64 { BlockAtRegistration::<T>::get( netuid, module_uid )}
 
     // ========================
@@ -445,12 +439,6 @@ impl<T: Config> Pallet<T> {
 	// Configure tx rate limiting
 	pub fn get_tx_rate_limit() -> u64 { TxRateLimit::<T>::get() }
     pub fn set_tx_rate_limit( tx_rate_limit: u64 ) { TxRateLimit::<T>::put( tx_rate_limit ) }
-
-    pub fn get_weights_set_rate_limit( netuid: u16) -> u64 { WeightsSetRateLimit::<T>::get( netuid ) }
-    pub fn set_weights_set_rate_limit( netuid: u16, weights_set_rate_limit: u64 ) { WeightsSetRateLimit::<T>::insert( netuid, weights_set_rate_limit ); }
-
-    pub fn get_adjustment_interval( netuid: u16) -> u16 { AdjustmentInterval::<T>::get( netuid ) }
-    pub fn set_adjustment_interval( netuid: u16, adjustment_interval: u16 ) { AdjustmentInterval::<T>::insert( netuid, adjustment_interval ); }
 
     pub fn get_immunity_period(netuid: u16 ) -> u16 { ImmunityPeriod::<T>::get( netuid ) }
     pub fn set_immunity_period( netuid: u16, immunity_period: u16 ) { ImmunityPeriod::<T>::insert( netuid, immunity_period ); }
@@ -470,8 +458,6 @@ impl<T: Config> Pallet<T> {
     pub fn get_max_allowed_uids( netuid: u16 ) -> u16  { MaxAllowedUids::<T>::get( netuid ) }
     pub fn set_max_allowed_uids(netuid: u16, max_allowed: u16) { MaxAllowedUids::<T>::insert( netuid, max_allowed ); }
             
-    pub fn get_target_registrations_per_interval( netuid: u16 ) -> u16 { TargetRegistrationsPerInterval::<T>::get( netuid ) }
-    pub fn set_target_registrations_per_interval( netuid: u16, target_registrations_per_interval: u16 ) { TargetRegistrationsPerInterval::<T>::insert( netuid, target_registrations_per_interval ); }
 
 
     pub fn get_max_registrations_per_block( netuid: u16 ) -> u16 { MaxRegistrationsPerBlock::<T>::get( netuid ) }

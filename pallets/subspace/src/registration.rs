@@ -56,8 +56,6 @@ impl<T: Config> Pallet<T> {
             log::info!("prune module");
         }
 
-        // --- Record the registration and increment block and interval counters.
-        RegistrationsThisInterval::<T>::mutate( netuid, |val| *val += 1 );
         RegistrationsThisBlock::<T>::mutate( netuid, |val| *val += 1 );
         
         // --- 12.1.3 Add the stake to the module.

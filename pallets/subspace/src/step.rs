@@ -19,7 +19,6 @@ impl<T: Config> Pallet<T> {
         let block_number: u64 = Self::get_current_block_as_u64();
         log::debug!("block_step for block: {:?} ", block_number );
         // --- 1. Adjust difficulties.
-		Self::adjust_registration_terms_for_networks( );
         
         // --- 1. Iterate through network ids.
         for ( netuid, epoch )  in <Tempo<T> as IterableStorageMap<u16, u16>>::iter() {
@@ -248,37 +247,6 @@ impl<T: Config> Pallet<T> {
     }
 
  
-
-
-    // Adjusts the network of every active network. Reseting state parameters.
-    //
-    pub fn adjust_registration_terms_for_networks( ) {
-        
-        // --- 1. Iterate through each network.
-        for ( netuid, _ )  in <SubnetworkN<T> as IterableStorageMap<u16, u16>>::iter(){
-
-            let last_adjustment_block: u64 = Self::get_last_adjustment_block( netuid );
-            let adjustment_interval: u16 = Self::get_adjustment_interval( netuid );
-            let current_block: u64 = Self::get_current_block_as_u64( ); 
-            log::debug!("netuid: {:?} last_adjustment_block: {:?} adjustment_interval: {:?} current_block: {:?}", 
-                netuid,
-                last_adjustment_block,
-                adjustment_interval,
-                current_block
-            );
-
-            // --- 3. Check if we are at the adjustment interval for this network.
-            // If so, we need to adjust the registration based on target and actual registrations.
-            if ( current_block - last_adjustment_block ) >= adjustment_interval as u64 {
-                // --- 6. Drain all counters for this network for this interval.
-                Self::set_last_adjustment_block( netuid, current_block );
-                Self::set_registrations_this_interval( netuid, 0 );
-            }
-
-            // --- 7. Drain block registrations for each network. Needed for registration rate limits.
-            Self::set_registrations_this_block( netuid, 0 );
-        }
-    }
 
 
 }
