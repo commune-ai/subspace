@@ -20,17 +20,17 @@ impl<T: Config> Pallet<T> {
         log::debug!("block_step for block: {:?} ", block_number );
         // --- 1. Adjust difficulties.
         // --- 1. Iterate through network ids.
-        for ( netuid, epoch )  in <Tempo<T> as IterableStorageMap<u16, u16>>::iter() {
+        for ( netuid, tempo )  in <Tempo<T> as IterableStorageMap<u16, u16>>::iter() {
 
             RegistrationsThisBlock::<T>::mutate(netuid,  |val| *val = 0 );
             // --- 2. Queue the emission due to this network.
-            let new_queued_emission = Self::get_token_emmision( netuid );
+            let new_queued_emission : u64 = Self::get_token_emmision( netuid );
             PendingEmission::<T>::mutate( netuid, | queued | *queued += new_queued_emission );
             log::debug!("netuid_i: {:?} queued_emission: +{:?} ", netuid, new_queued_emission );  
             // --- 3. Check to see if this network has reached epoch.
-            if Self::blocks_until_next_epoch( netuid, epoch, block_number ) != 0 {
+            if Self::blocks_until_next_epoch( netuid, tempo, block_number ) != 0 {
                 // --- 3.1 No epoch, increase blocks since last step and continue,
-                Self::set_blocks_since_last_step( netuid, Self::get_blocks_since_last_step( netuid ) + 1 );
+                Self::set_blocks_since_last_epoch( netuid, Self::get_blocks_since_last_epoch( netuid ) + 1 );
                 continue;
             }
 
@@ -182,7 +182,7 @@ impl<T: Config> Pallet<T> {
         }    
     
         // --- 7 Set counters.
-        Self::set_blocks_since_last_step( netuid, 0 );
+        Self::set_blocks_since_last_epoch( netuid, 0 );
         Self::set_last_mechanism_step_block( netuid, current_block );    
 
         result
@@ -233,8 +233,8 @@ impl<T: Config> Pallet<T> {
     }
 
 
-    pub fn blocks_until_next_epoch( netuid: u16, epoch: u16, block_number: u64 ) -> u64 { 
-        if epoch == 0 { return 10 } // Special case: epoch = 0, the network never runs.
+    pub fn blocks_until_next_epoch( netuid: u16, tempo: u16, block_number: u64 ) -> u64 { 
+        if tempo == 0 { return 10 } // Special case: epoch = 0, the network never runs.
         // epoch | netuid | # first epoch block
         //   1        0               0
         //   1        1               1
@@ -242,7 +242,7 @@ impl<T: Config> Pallet<T> {
         //   2        1               0
         //   100      0              99
         //   100      1              98
-        return epoch as u64 - ( block_number + netuid as u64 + 1 ) % ( epoch as u64 + 1 )
+        return tempo as u64 - ( block_number + netuid as u64 + 1 ) % ( tempo as u64 + 1 )
     }
 
  

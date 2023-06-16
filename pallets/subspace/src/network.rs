@@ -18,7 +18,7 @@ pub struct SubnetInfo {
     min_allowed_weights: Compact<u16>,
     subnetwork_n: Compact<u16>,
     max_allowed_uids: Compact<u16>,
-    blocks_since_last_step: Compact<u64>,
+    blocks_since_last_epoch: Compact<u64>,
     tempo: Compact<u16>,
 }
 
@@ -262,7 +262,7 @@ impl<T: Config> Pallet<T> {
         let min_allowed_weights = Self::get_min_allowed_weights(netuid);
         let subnetwork_n = Self::get_subnetwork_n(netuid);
         let max_allowed_uids = Self::get_max_allowed_uids(netuid);
-        let blocks_since_last_step = Self::get_blocks_since_last_step(netuid);
+        let blocks_since_last_epoch = Self::get_blocks_since_last_epoch(netuid);
         let tempo = Self::get_tempo(netuid);
 
 
@@ -274,7 +274,7 @@ impl<T: Config> Pallet<T> {
             min_allowed_weights: min_allowed_weights.into(),
             subnetwork_n: subnetwork_n.into(),
             max_allowed_uids: max_allowed_uids.into(),
-            blocks_since_last_step: blocks_since_last_step.into(),
+            blocks_since_last_epoch: blocks_since_last_epoch.into(),
             tempo: tempo.into(),
         })
 	}
@@ -384,7 +384,9 @@ impl<T: Config> Pallet<T> {
 	// ==== Global Setters ====
 	// ========================
     pub fn set_tempo( netuid: u16, tempo: u16 ) { Tempo::<T>::insert( netuid, tempo ); }
-    pub fn set_blocks_since_last_step( netuid: u16, blocks_since_last_step: u64 ) { BlocksSinceLastStep::<T>::insert( netuid, blocks_since_last_step ); }
+    pub fn set_blocks_since_last_epoch( netuid: u16, blocks_since_last_epoch: u64 ) { BlocksSinceLastEpoch::<T>::insert( netuid, blocks_since_last_epoch ); }
+    pub fn get_blocks_since_last_epoch( netuid: u16) -> u64 { BlocksSinceLastEpoch::<T>::get( netuid ) }
+
     pub fn set_registrations_this_block( netuid: u16, registrations_this_block: u16 ) { RegistrationsThisBlock::<T>::insert(netuid, registrations_this_block); }
     pub fn set_last_mechanism_step_block( netuid: u16, last_mechanism_step_block: u64 ) { LastMechansimStepBlock::<T>::insert(netuid, last_mechanism_step_block); }
 
@@ -425,7 +427,6 @@ impl<T: Config> Pallet<T> {
 	// ============================
     pub fn get_tempo( netuid:u16 ) -> u16{ Tempo::<T>::get( netuid ) }
     pub fn get_pending_emission( netuid:u16 ) -> u64{ PendingEmission::<T>::get( netuid ) }
-    pub fn get_blocks_since_last_step(netuid:u16 ) -> u64 { BlocksSinceLastStep::<T>::get( netuid ) }
     pub fn get_registrations_this_block( netuid:u16 ) -> u16 { RegistrationsThisBlock::<T>::get( netuid ) }
     pub fn get_last_mechanism_step_block( netuid: u16 ) -> u64 { LastMechansimStepBlock::<T>::get( netuid ) }
     pub fn get_module_block_at_registration( netuid: u16, module_uid: u16 ) -> u64 { BlockAtRegistration::<T>::get( netuid, module_uid )}

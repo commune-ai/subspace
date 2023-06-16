@@ -171,7 +171,7 @@ pub mod pallet {
 	#[pallet::type_value]
 	pub fn DefaultPendingEmission<T: Config>() ->  u64 { 0 }
 	#[pallet::type_value] 
-	pub fn DefaultBlocksSinceLastStep<T: Config>() -> u64 { 0 }
+	pub fn DefaultBlocksSinceLastEpoch<T: Config>() -> u64 { 0 }
 	#[pallet::type_value] 
 	pub fn DefaultLastMechansimStepBlock<T: Config>() -> u64 { 0 }
 	#[pallet::type_value]
@@ -181,8 +181,8 @@ pub mod pallet {
 	pub type Tempo<T> = StorageMap<_, Identity, u16, u16, ValueQuery, DefaultTempo<T> >;
 	#[pallet::storage] // --- MAP ( netuid ) --> pending_emission
 	pub type PendingEmission<T> = StorageMap<_, Identity, u16, u64, ValueQuery, DefaultPendingEmission<T>>;
-	#[pallet::storage] // --- MAP ( netuid ) --> blocks_since_last_step.
-	pub type BlocksSinceLastStep<T> = StorageMap<_, Identity, u16, u64, ValueQuery, DefaultBlocksSinceLastStep<T>>;
+	#[pallet::storage] // --- MAP ( netuid ) --> blocks_since_last_epoch.
+	pub type BlocksSinceLastEpoch<T> = StorageMap<_, Identity, u16, u64, ValueQuery, DefaultBlocksSinceLastEpoch<T>>;
 	#[pallet::storage] // --- MAP ( netuid ) --> last_mechanism_step_block
 	pub type LastMechansimStepBlock<T> = StorageMap<_, Identity, u16, u64, ValueQuery, DefaultLastMechansimStepBlock<T> >;
 
