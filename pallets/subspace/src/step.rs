@@ -19,11 +19,10 @@ impl<T: Config> Pallet<T> {
         let block_number: u64 = Self::get_current_block_as_u64();
         log::debug!("block_step for block: {:?} ", block_number );
         // --- 1. Adjust difficulties.
-        
         // --- 1. Iterate through network ids.
         for ( netuid, epoch )  in <Tempo<T> as IterableStorageMap<u16, u16>>::iter() {
 
-            
+            RegistrationsThisBlock::<T>::mutate(netuid,  |val| *val = 0 );
             // --- 2. Queue the emission due to this network.
             let new_queued_emission = Self::get_token_emmision( netuid );
             PendingEmission::<T>::mutate( netuid, | queued | *queued += new_queued_emission );
