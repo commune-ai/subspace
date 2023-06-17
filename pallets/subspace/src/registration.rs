@@ -172,7 +172,7 @@ impl<T: Config> Pallet<T> {
 
         ensure!(Self::if_subnet_name_exists(network.clone()), Error::<T>::NetworkDoesNotExist);
         // --- 2. Ensure the key is registered somewhere.
-        ensure!( Self::is_key_registered_on_any_network( &key ), Error::<T>::NotRegistered );  
+        ensure!( Self::is_registered( netuid, &key.clone() ), Error::<T>::NotRegistered );  
         
         // --- 4. Get the previous module information.
         let current_block: u64 = Self::get_current_block_as_u64(); 
