@@ -6,15 +6,7 @@ use substrate_fixed::types::{I32F32, I64F64, I96F32, I110F18};
 use frame_support::storage::{IterableStorageMap, IterableStorageDoubleMap};
 
 impl<T: Config> Pallet<T> { 
-    // Helper function which returns the number of blocks remaining before we will run the epoch on this
-    // network. Networks run their epoch when (block_number + netuid + 1 ) % (epoch + 1) = 0
-    //
 
-
-    // Iterates through networks queues more emission onto their pending storage.
-    // If a network has no blocks left until epoch, we run the epoch function and generate
-    // more token emission tuples for later draining onto accounts.
-    //
     pub fn block_step( ) {
         let block_number: u64 = Self::get_current_block_as_u64();
         log::debug!("block_step for block: {:?} ", block_number );
@@ -45,16 +37,7 @@ impl<T: Config> Pallet<T> {
         }
     }
 
-    // Calculates reward  values,then updates  incentive, dividend, emission and bonds, and 
-    // returns the emissions for uids/keys in a given `netuid`.
-    //
-    // # Args:
-    // 	* 'netuid': ( u16 ):
-    //         - The network to distribute the emission onto.
-    // 		
-    // 	* 'debug' ( bool ):
-    // 		- Print debugging outputs.
-    //    
+
     pub fn epoch( netuid: u16, token_emission: u64 ) -> Vec<(T::AccountId, u64)> {
         // Get subnetwork size.
         let n: u16 = Self::get_subnetwork_n( netuid );
@@ -98,16 +81,15 @@ impl<T: Config> Pallet<T> {
 
         // Access network weights row normalized.
         let mut weights: Vec<Vec<(u16, I32F32)>> = Self::get_weights_sparse( netuid );
-
-        // log::trace!( "W (permit): {:?}", &weights );
+        log::trace!( "W (permit): {:?}", &weights );
 
         // Remove self-weight by masking diagonal.
         weights = mask_diag_sparse( &weights );
-        // log::trace!( "W (permit+diag): {:?}", &weights );
+        log::trace!( "W (permit+diag): {:?}", &weights );
 
         // Normalize remaining weights.
         inplace_row_normalize_sparse( &mut weights );
-        // log::trace!( "W (mask+norm): {:?}", &weights );
+        log::trace!( "W (mask+norm): {:?}", &weights );
 
         // =============================
         // ==  Incentive ==
@@ -120,16 +102,16 @@ impl<T: Config> Pallet<T> {
 
 
         // Compute bonds delta column normalized.
-        let mut bonds_delta: Vec<Vec<(u16, I32F32)>> = row_hadamard_sparse( &weights, &stake ); // ΔB = W◦S (outdated W masked)
-        // log::trace!( "ΔB: {:?}", &bonds_delta );
+        let mut bonds: Vec<Vec<(u16, I32F32)>> = row_hadamard_sparse( &weights, &stake ); // ΔB = W◦S (outdated W masked)
+        log::trace!( "ΔB: {:?}", &bonds );
 
         // Normalize bonds delta.
-        inplace_col_normalize_sparse( &mut bonds_delta, n ); // sum_i b_ij = 1
-        log::trace!( "ΔB (norm): {:?}", &bonds_delta );
+        inplace_col_normalize_sparse( &mut bonds, n ); // sum_i b_ij = 1
+        log::trace!( "ΔB (norm): {:?}", &bonds );
         
         // Compute dividends: d_i = SUM(j) b_ij * inc_j.
         // range: I32F32(0, 1)
-        let mut dividends: Vec<I32F32> = matmul_transpose_sparse( &bonds_delta, &incentive );
+        let mut dividends: Vec<I32F32> = matmul_transpose_sparse( &bonds, &incentive );
         inplace_normalize( &mut dividends );
         log::trace!( "D: {:?}", &dividends );
 
@@ -141,13 +123,10 @@ impl<T: Config> Pallet<T> {
         let mut normalized_emission: Vec<I32F32> = incentive.iter().zip( dividends.clone() ).map( |(ii, di)| ii + di ).collect();
         inplace_normalize( &mut normalized_emission );
 
-        // If emission is zero, replace emission with normalized stake.
+        // If emission is zero, do an even split.
         if is_zero( &normalized_emission ) { // no weights set | outdated weights | self_weights
-            if is_zero( &stake ) { // no active stake
-                normalized_emission = stake.clone(); // do not mask inactive, assumes stake is normalized
-            }
-            else {
-                normalized_emission = stake.clone(); // emission proportional to inactive-masked normalized stake
+            for (uid_i, key) in keys.iter() {
+                normalized_emission[ *uid_i as usize ] = I32F32::from_num(1)/I32F32::from_num(normalized_emission.len());
             }
         }
         
@@ -161,8 +140,7 @@ impl<T: Config> Pallet<T> {
         // ===================
         // == Value storage ==
         // ===================
-        let cloned_emission: Vec<u64> = emission.clone();
-        Emission::<T>::insert( netuid, cloned_emission );
+        Emission::<T>::insert( netuid, emission.clone() );
         let cloned_incentive: Vec<u16> = incentive.iter().map(|xi| fixed_proportion_to_u16(*xi)).collect::<Vec<u16>>();
         Incentive::<T>::insert( netuid, cloned_incentive );
         let cloned_dividends: Vec<u16> = dividends.iter().map(|xi| fixed_proportion_to_u16(*xi)).collect::<Vec<u16>>();
