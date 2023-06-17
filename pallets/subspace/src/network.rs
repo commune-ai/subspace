@@ -11,31 +11,6 @@ use substrate_fixed::types::{I64F64};
 extern crate alloc;
 
 
-#[derive(Decode, Encode, PartialEq, Eq, Clone, Debug)]
-pub struct SubnetInfo {
-    netuid: Compact<u16>,
-    name: Vec<u8>,
-    immunity_period: Compact<u16>,
-    min_allowed_weights: Compact<u16>,
-    subnetwork_n: Compact<u16>,
-    max_allowed_uids: Compact<u16>,
-    blocks_since_last_epoch: Compact<u64>,
-    tempo: Compact<u16>,
-}
-
-
-#[derive(Decode, Encode, PartialEq, Eq, Clone, Debug)]
-pub struct SubnetParams {
-    immunity_period: u16,
-    min_allowed_weights: u16,
-    max_allowed_uids: u16,
-    tempo: u16,
-}
-
-
-
-
-
 
 impl<T: Config> Pallet<T> { 
 
@@ -43,7 +18,7 @@ impl<T: Config> Pallet<T> {
     // Returns true if the subnetwork exists.
     //
     pub fn if_subnet_exist( netuid: u16 ) -> bool{
-        return SubnetworkN::<T>::contains_key( netuid );
+        return SubnetN::<T>::contains_key( netuid );
     }
 
     // get the least staked network
@@ -51,7 +26,7 @@ impl<T: Config> Pallet<T> {
         let mut min_stake: u64 = 0;
         let mut min_stake_netuid: u16 = 0;
         if stake > min_stake {
-            for ( netuid, net_stake ) in <TotalSubnetStake<T> as IterableStorageMap<u16, u64> >::iter(){
+            for ( netuid, net_stake ) in <SubnetTotalStake<T> as IterableStorageMap<u16, u64> >::iter(){
                 if net_stake <= min_stake {
                     min_stake = net_stake;
                     min_stake_netuid = netuid;
@@ -63,7 +38,7 @@ impl<T: Config> Pallet<T> {
 
 
     pub fn get_network_stake( netuid: u16 ) -> u64 {
-        return TotalSubnetStake::<T>::get( netuid );
+        return SubnetTotalStake::<T>::get( netuid );
     }
 
 
@@ -80,20 +55,28 @@ impl<T: Config> Pallet<T> {
         let key = ensure_signed(origin)?;
         // --- 1. Ensure the network name does not already exist.
         ensure!( !Self::if_subnet_name_exists( name.clone() ), Error::<T>::SubnetNameAlreadyExists );
-
+        Self::add_network( &key, name, stake, max_allowed_uids, immunity_period, min_allowed_weights, tempo);
         // --- 16. Ok and done.
         Ok(())
     }
 
 
-    pub fn default_subnet_params() -> SubnetParams {
+    pub fn default_subnet() -> SubnetInfo {
         let netuid: u16 = 0;
-        return SubnetParams {
+        return SubnetInfo {
             immunity_period: MinAllowedWeights::<T>::get( netuid ),
             min_allowed_weights: ImmunityPeriod::<T>::get( netuid ),
             max_allowed_uids:  MaxAllowedUids::<T>::get( netuid ),
             tempo: Tempo::<T>::get( netuid ),
-        }
+            n: SubnetN::<T>::get( netuid ),
+            netuid: netuid,
+            stake: SubnetTotalStake::<T>::get( netuid ),
+            name : Self::get_name_for_netuid( netuid ),
+            emission: SubnetEmission::<T>::get( netuid ),
+        
+        };
+            
+        
     }
 
 
@@ -104,30 +87,36 @@ impl<T: Config> Pallet<T> {
     ) -> u16 {
 
 
-        let default_params  = Self::default_subnet_params();
+        let default_subnet  = Self::default_subnet();
 
         let netuid = Self::add_network( &key, 
                             name.clone(),
-                            stake , 
-                            default_params.max_allowed_uids, 
-                            default_params.immunity_period,
-                            default_params.min_allowed_weights,
-                            default_params.tempo);
+                            default_subnet.stake + stake, 
+                            default_subnet.max_allowed_uids, 
+                            default_subnet.immunity_period,
+                            default_subnet.min_allowed_weights,
+                            default_subnet.tempo);
 
         // --- 16. Ok and done.
         return netuid;
     }
     // Returns the total amount of stake in the staking table.
     //
-    pub fn get_network_emmision(netuid:u16) -> u64 { 
+    pub fn calculate_network_emission(netuid:u16) -> u64 { 
 
         let subnet_stake: I64F64 =I64F64::from_num( Self::get_total_subnet_stake(netuid) + 1);
         let total_stake: I64F64 = I64F64::from_num(Self::get_total_stake());
-        let mut subnet_ratio: I64F64 = I64F64::from_num(1);
+
+        let mut subnet_ratio: I64F64 = I64F64::from_num(0);
         if total_stake > I64F64::from_num(0) {
             subnet_ratio =  subnet_stake/total_stake;
+        } else {
+            let n = TotalSubnets::<T>::get();
+            subnet_ratio = I64F64::from_num(1)/I64F64::from_num(n);
         }
         let token_emission: u64 = subnet_ratio.to_num::<u64>();
+        
+        SubnetEmission::<T>::insert( netuid, token_emission );
 
         return token_emission;
 
@@ -144,7 +133,7 @@ impl<T: Config> Pallet<T> {
                     ) -> u16 {
 
         // --- 1. Enfnsure that the network name does not already exist.
-        let total_networks = TotalNetworks::<T>::get();
+        let total_networks = TotalSubnets::<T>::get();
         let max_networks = MaxAllowedSubnets::<T>::get();
         // if networks exceeds max_networks, remove the least staked network
         let netuid : u16 ; 
@@ -163,9 +152,9 @@ impl<T: Config> Pallet<T> {
         SubnetNamespace::<T>::insert( name.clone(), netuid );
 
         // set stat once network is created
-        TotalNetworks::<T>::mutate( |n| *n += 1 );
+        TotalSubnets::<T>::mutate( |n| *n += 1 );
         SubnetFounder::<T>::insert( netuid, &key.clone() );
-        SubnetworkN::<T>::insert( netuid, 1 );
+        SubnetN::<T>::insert( netuid, 1 );
 
         // --- 6. Emit the new network event.
         log::info!("NetworkAdded( netuid:{:?}, name:{:?} )", netuid, name.clone());
@@ -244,7 +233,7 @@ impl<T: Config> Pallet<T> {
         MaxAllowedUids::<T>::remove( netuid );
         ImmunityPeriod::<T>::remove( netuid );
         MinAllowedWeights::<T>::remove( netuid );
-        SubnetworkN::<T>::remove( netuid );
+        SubnetN::<T>::remove( netuid );
 
         // --- 3. Erase network stake, and remove network from list of networks.
         for ( key, stated_amount ) in <Stake<T> as IterableStorageDoubleMap<u16, T::AccountId, u64> >::iter_prefix(netuid){
@@ -252,12 +241,12 @@ impl<T: Config> Pallet<T> {
         }
         // --- 4. Remove all stake.
         Stake::<T>::remove_prefix( netuid, None );
-        let total_network_stake: u16 = TotalSubnetStake::<T>::get( netuid ).try_into().unwrap();
-        TotalSubnetStake::<T>::mutate(netuid, |n| *n -= total_network_stake as u64 );
-        TotalSubnetStake::<T>::remove( netuid );
+        let total_network_stake: u16 = SubnetTotalStake::<T>::get( netuid ).try_into().unwrap();
+        SubnetTotalStake::<T>::mutate(netuid, |n| *n -= total_network_stake as u64 );
+        SubnetTotalStake::<T>::remove( netuid );
 
 
-        TotalNetworks::<T>::mutate(|val| *val -= 1);
+        TotalSubnets::<T>::mutate(|val| *val -= 1);
         // --- 4. Emit the event.
         log::info!("NetworkRemoved( netuid:{:?} )", netuid);
         Self::deposit_event( Event::NetworkRemoved( netuid ) );
@@ -277,9 +266,8 @@ impl<T: Config> Pallet<T> {
         let immunity_period = Self::get_immunity_period(netuid);
         let name = Self::get_name_for_netuid(netuid);
         let min_allowed_weights = Self::get_min_allowed_weights(netuid);
-        let subnetwork_n = Self::get_subnetwork_n(netuid);
+        let n = Self::get_subnetwork_n(netuid);
         let max_allowed_uids = Self::get_max_allowed_uids(netuid);
-        let blocks_since_last_epoch = Self::get_blocks_since_last_epoch(netuid);
         let tempo = Self::get_tempo(netuid);
 
 
@@ -289,16 +277,18 @@ impl<T: Config> Pallet<T> {
             name: name,
             netuid: netuid.into(),
             min_allowed_weights: min_allowed_weights.into(),
-            subnetwork_n: subnetwork_n.into(),
+            n: n.into(),
             max_allowed_uids: max_allowed_uids.into(),
-            blocks_since_last_epoch: blocks_since_last_epoch.into(),
             tempo: tempo.into(),
+            emission: SubnetEmission::<T>::get(netuid).into(),
+            stake: SubnetTotalStake::<T>::get(netuid).into(),
+            
         })
 	}
 
     pub fn get_subnets_info() -> Vec<Option<SubnetInfo>> {
         let mut subnets_info = Vec::<Option<SubnetInfo>>::new();
-        for ( netuid, net_n ) in < SubnetworkN<T> as IterableStorageMap<u16, u16> >::iter() {
+        for ( netuid, net_n ) in < SubnetN<T> as IterableStorageMap<u16, u16> >::iter() {
             subnets_info.push(Self::get_subnet_info(netuid));
         }
         return subnets_info;
@@ -308,7 +298,7 @@ impl<T: Config> Pallet<T> {
     // Returns the number of filled slots on a network.
     ///
     pub fn get_subnetwork_n( netuid:u16 ) -> u16 { 
-        return SubnetworkN::<T>::get( netuid ) 
+        return SubnetN::<T>::get( netuid ) 
     }
     
 
@@ -372,7 +362,7 @@ impl<T: Config> Pallet<T> {
     //
     pub fn get_number_of_subnets()-> u16 {
         let mut number_of_subnets : u16 = 0;
-        for (_, _)  in <SubnetworkN<T> as IterableStorageMap<u16, u16>>::iter(){
+        for (_, _)  in <SubnetN<T> as IterableStorageMap<u16, u16>>::iter(){
             number_of_subnets = number_of_subnets + 1;
         }
         return number_of_subnets;
@@ -383,17 +373,13 @@ impl<T: Config> Pallet<T> {
 	// ==== Global Setters ====
 	// ========================
     pub fn set_tempo( netuid: u16, tempo: u16 ) { Tempo::<T>::insert( netuid, tempo ); }
-    pub fn set_blocks_since_last_epoch( netuid: u16, blocks_since_last_epoch: u64 ) { BlocksSinceLastEpoch::<T>::insert( netuid, blocks_since_last_epoch ); }
-    pub fn get_blocks_since_last_epoch( netuid: u16) -> u64 { BlocksSinceLastEpoch::<T>::get( netuid ) }
 
     pub fn set_registrations_this_block( netuid: u16, registrations_this_block: u16 ) { RegistrationsThisBlock::<T>::insert(netuid, registrations_this_block); }
-    pub fn set_last_mechanism_step_block( netuid: u16, last_mechanism_step_block: u64 ) { LastMechansimStepBlock::<T>::insert(netuid, last_mechanism_step_block); }
 
     
     // ========================
 	// ==== Global Getters ====
 	// ========================
-    pub fn get_block_emission() -> u64 { BlockEmission::<T>::get() }
     pub fn get_current_block_as_u64( ) -> u64 { TryInto::try_into( <frame_system::Pallet<T>>::block_number() ).ok().expect("blockchain will not exceed 2^64 blocks; QED.") }
 
     // ==============================
@@ -404,7 +390,7 @@ impl<T: Config> Pallet<T> {
     pub fn get_dividends( netuid:u16 ) -> Vec<u16> { Dividends::<T>::get( netuid ) }
     pub fn get_last_update( netuid:u16 ) -> Vec<u64> { LastUpdate::<T>::get( netuid ) }
     
-    // Emmision is the same as the Yomama params 
+    // Emission is the same as the Yomama params 
 
     
     pub fn set_last_update_for_uid( netuid:u16, uid: u16, last_update: u64 ) { 
@@ -428,7 +414,6 @@ impl<T: Config> Pallet<T> {
     pub fn get_tempo( netuid:u16 ) -> u16{ Tempo::<T>::get( netuid ) }
     pub fn get_pending_emission( netuid:u16 ) -> u64{ PendingEmission::<T>::get( netuid ) }
     pub fn get_registrations_this_block( netuid:u16 ) -> u16 { RegistrationsThisBlock::<T>::get( netuid ) }
-    pub fn get_last_mechanism_step_block( netuid: u16 ) -> u64 { LastMechansimStepBlock::<T>::get( netuid ) }
     pub fn get_module_block_at_registration( netuid: u16, module_uid: u16 ) -> u64 { BlockAtRegistration::<T>::get( netuid, module_uid )}
 
     // ========================

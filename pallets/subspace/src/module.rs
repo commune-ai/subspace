@@ -64,8 +64,8 @@ impl<T: Config> Pallet<T> {
             Weights::<T>::remove( netuid, uid ); // Make uid - key association.
             Self::decrease_all_stake_on_account( netuid, &key.clone() );
             Stake::<T>::remove( netuid, &key.clone() ); // Make uid - key association.
-            SubnetworkN::<T>::insert( netuid, uid - 1 );
-            if SubnetworkN::<T>::get( netuid ) == 0 {
+            SubnetN::<T>::insert( netuid, uid - 1 );
+            if SubnetN::<T>::get( netuid ) == 0 {
                 Self::remove_network_for_netuid( netuid );
             }
 
@@ -85,7 +85,7 @@ impl<T: Config> Pallet<T> {
             log::debug!("append_module( netuid: {:?} | uid: {:?} | new_key: {:?} ) ", netuid, key, uid );
     
             // 2. Get and increase the uid count.
-            SubnetworkN::<T>::insert( netuid, uid + 1 );
+            SubnetN::<T>::insert( netuid, uid + 1 );
     
             // 3. Expand Yuma with new position.
             Emission::<T>::mutate(netuid, |v| v.push(0) );

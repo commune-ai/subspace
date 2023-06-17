@@ -10,35 +10,23 @@ impl<T: Config> Pallet<T> {
     pub fn block_step( ) {
         let block_number: u64 = Self::get_current_block_as_u64();
         log::debug!("block_step for block: {:?} ", block_number );
-        // --- 1. Adjust difficulties.
-        // --- 1. Iterate through network ids.
         for ( netuid, tempo )  in <Tempo<T> as IterableStorageMap<u16, u16>>::iter() {
-
             RegistrationsThisBlock::<T>::mutate(netuid,  |val| *val = 0 );
-            // --- 2. Queue the emission due to this network.
-            let new_queued_emission : u64 = Self::get_network_emmision( netuid );
+            let new_queued_emission : u64 = Self::calculate_network_emission( netuid );
             PendingEmission::<T>::mutate( netuid, | queued | *queued += new_queued_emission );
             log::debug!("netuid_i: {:?} queued_emission: +{:?} ", netuid, new_queued_emission );  
-            // --- 3. Check to see if this network has reached epoch.
-            if Self::blocks_until_next_epoch( netuid, tempo, block_number ) != 0 {
-                // --- 3.1 No epoch, increase blocks since last step and continue,
-                Self::set_blocks_since_last_epoch( netuid, Self::get_blocks_since_last_epoch( netuid ) + 1 );
+            if  (block_number + netuid as u64) % (tempo as u64) > 0 {
                 continue;
             }
-
-            // --- 4 This network is at epoch and we are running its epoch.
-            // First frain the queued emission.
-            let emission_to_drain:u64 = PendingEmission::<T>::get( netuid ); 
+            let emission_to_drain:u64 = PendingEmission::<T>::get( netuid ).clone(); 
+            Self::epoch( netuid, emission_to_drain );
             PendingEmission::<T>::insert( netuid, 0 );
-
-            // --- 5. Run the epoch mechanism and return emission tuples for keys in the network.
-            let emission_tuples_this_block: Vec<(T::AccountId, u64)> = Self::epoch( netuid, emission_to_drain );
 
         }
     }
 
 
-    pub fn epoch( netuid: u16, token_emission: u64 ) -> Vec<(T::AccountId, u64)> {
+    pub fn epoch( netuid: u16, token_emission: u64 ) {
         // Get subnetwork size.
         let n: u16 = Self::get_subnetwork_n( netuid );
         log::trace!( "n: {:?}", n );
@@ -65,9 +53,12 @@ impl<T: Config> Pallet<T> {
         // Access network stake as normalized vector.
         let mut stake_64: Vec<I64F64> = vec![ I64F64::from_num(0.0); n as usize ];
         for (uid_i, key) in keys.iter() {
-            stake_64[ *uid_i as usize ] = I64F64::from_num( Self::get_stake_for_key(netuid, key ) );
+            stake_64[ *uid_i as usize ] = I64F64::from_num( Self::get_stake_for_key(netuid, key ) + 1);
         }
         let mut stake: Vec<I32F32> = vec_fixed64_to_fixed32( stake_64 );
+
+
+
         // range: I32F32(0, 1)
         log::trace!( "S: {:?}", &stake );
 
@@ -132,7 +123,7 @@ impl<T: Config> Pallet<T> {
         
         // Compute rao based emission scores. range: I96F32(0, token_emission)
         let float_token_emission: I96F32 = I96F32::from_num( token_emission );
-        let emission: Vec<I96F32> = normalized_emission.iter().map( |e: &I32F32| I96F32::from_num( *e ) * float_token_emission ).collect();
+        let emission: Vec<I96F32> = normalized_emission.iter().map( |e: &I32F32| I96F32::from_num( *e ) ).collect();
         let emission: Vec<u64> = emission.iter().map( |e: &I96F32| e.to_num::<u64>() ).collect();
         log::trace!( "nE: {:?}", &normalized_emission );
         log::trace!( "E: {:?}", &emission );
@@ -159,11 +150,6 @@ impl<T: Config> Pallet<T> {
             Self::increase_stake_on_account(netuid, &key, *amount );
         }    
     
-        // --- 7 Set counters.
-        Self::set_blocks_since_last_epoch( netuid, 0 );
-        Self::set_last_mechanism_step_block( netuid, current_block );    
-
-        result
     }
 
     pub fn get_normalized_stake( netuid:u16 ) -> Vec<I32F32> {

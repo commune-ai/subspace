@@ -106,59 +106,36 @@ pub mod pallet {
 	pub(super) type LastTxBlock<T:Config> = StorageMap<_, Identity, T::AccountId, u64, ValueQuery, DefaultLastTxBlock<T>>;
 
 
+	// ==============================
+	// ==== Subnetwork Features =====
+	// ==============================
+
+	#[derive(Decode, Encode, PartialEq, Eq, Clone, Debug, TypeInfo)]
+	pub struct SubnetInfo {
+
+		// --- parameters
+		pub name: Vec<u8>,
+		pub immunity_period: u16, // how many blocks to wait before rewarding models
+		pub min_allowed_weights: u16, // min number of weights allowed to be registered in this subnet
+		pub max_allowed_uids: u16, // max number of uids allowed to be registered in this subnet
+		pub tempo: u16, // how many blocks to wait before rewarding models
+		// pub mode: u8, // --- 0 for open, 1 for closed.
+		// state variables
+		pub netuid: u16, // --- unique id of the network
+		pub n : u16,
+		pub stake: u64,
+		pub emission: u64,
+	}
+
+
 
 	// ==============================
 	// ==== Subnetworks Storage =====
 	// ==============================
 	#[pallet::type_value] 
 	pub fn DefaultN<T:Config>() -> u16 { 0 }
-
-	#[pallet::storage] // --- ITEM( tota_number_of_existing_networks )
-	pub type TotalNetworks<T> = StorageValue<_, u16, ValueQuery>;
-	#[pallet::storage] // --- MAP ( netuid ) --> subnetwork_n (Number of UIDs in the network).
-	pub type SubnetworkN<T:Config> = StorageMap< _, Identity, u16, u16, ValueQuery, DefaultN<T> >;
-	#[pallet::storage] // --- DMAP ( key, netuid ) --> bool
-	pub type SubnetFounder<T:Config> = StorageMap<_, Identity, u16, T::AccountId, ValueQuery, DefaultAccount<T>>;
-
-	// ==============================
-	// ==== Subnetwork Features =====
-	// ==============================
-
-	#[derive(Decode, Encode, PartialEq, Eq, Clone, Debug)]
-	pub struct SubnetInfo {
-		name: Vec<u8>,
-		immunity_period: u16,
-		min_allowed_weights: u16,
-		max_allowed_uids: u16,
-		tempo: u16,
-		mode: u8, // --- 0 for open, 1 for closed.
-		n : u16,
-		staked: u64,
-	}
-
-	#[pallet::type_value]
-	pub fn DefaultPendingEmission<T: Config>() ->  u64 { 0 }
 	#[pallet::type_value] 
-	pub fn DefaultBlocksSinceLastEpoch<T: Config>() -> u64 { 0 }
-	#[pallet::type_value] 
-	pub fn DefaultLastMechansimStepBlock<T: Config>() -> u64 { 0 }
-	#[pallet::type_value]
-	pub fn DefaultTempo<T: Config>() -> u16 { 1 }
-
-	#[pallet::storage] // --- MAP ( netuid ) --> epoch
-	pub type Tempo<T> = StorageMap<_, Identity, u16, u16, ValueQuery, DefaultTempo<T> >;
-	#[pallet::storage] // --- MAP ( netuid ) --> pending_emission
-	pub type PendingEmission<T> = StorageMap<_, Identity, u16, u64, ValueQuery, DefaultPendingEmission<T>>;
-	#[pallet::storage] // --- MAP ( netuid ) --> blocks_since_last_epoch.
-	pub type BlocksSinceLastEpoch<T> = StorageMap<_, Identity, u16, u64, ValueQuery, DefaultBlocksSinceLastEpoch<T>>;
-	#[pallet::storage] // --- MAP ( netuid ) --> last_mechanism_step_block
-	pub type LastMechansimStepBlock<T> = StorageMap<_, Identity, u16, u64, ValueQuery, DefaultLastMechansimStepBlock<T> >;
-	#[pallet::storage] // --- DMAP ( netuid ) --> bonds
-	pub(super) type MaxModuleNameLength<T:Config> = StorageValue< _, u16, ValueQuery, DefaultMaxModuleNameLength<T> >;
-	
-	// =======================================
-	// ==== Subnetwork Hyperparam storage ====
-	// =======================================	
+	pub fn DefaultEmission<T:Config>() -> u64 { 0 }
 	#[pallet::type_value] 
 	pub fn DefaultBlockAtRegistration<T: Config>() -> u64 { 0 }
 	#[pallet::type_value]
@@ -175,6 +152,26 @@ pub mod pallet {
 	pub fn DefaultMaxRegistrationsPerBlock<T: Config>() -> u16 { 1 }
 	#[pallet::type_value] 
 	pub fn DefaultMaxAllowedSubnets<T: Config>() -> u16 { 1000 }
+	#[pallet::type_value]
+	pub fn DefaultPendingEmission<T: Config>() ->  u64 { 0 }
+	#[pallet::type_value]
+	pub fn DefaultTempo<T: Config>() -> u16 { 1 }
+
+	#[pallet::storage] // --- ITEM( tota_number_of_existing_networks )
+	pub type TotalSubnets<T> = StorageValue<_, u16, ValueQuery>;
+	#[pallet::storage] // --- ITEM( tota_number_of_existing_networks )
+	pub type SubnetEmission<T> = StorageMap< _, Identity, u16, u64, ValueQuery, DefaultEmission<T> >;
+	#[pallet::storage] // --- MAP ( netuid ) --> subnetwork_n (Number of UIDs in the network).
+	pub type SubnetN<T:Config> = StorageMap< _, Identity, u16, u16, ValueQuery, DefaultN<T> >;
+	#[pallet::storage] // --- DMAP ( key, netuid ) --> bool
+	pub type SubnetFounder<T:Config> = StorageMap<_, Identity, u16, T::AccountId, ValueQuery, DefaultAccount<T>>;
+
+	#[pallet::storage] // --- MAP ( netuid ) --> epoch
+	pub type Tempo<T> = StorageMap<_, Identity, u16, u16, ValueQuery, DefaultTempo<T> >;
+	#[pallet::storage] // --- MAP ( netuid ) --> pending_emission
+	pub type PendingEmission<T> = StorageMap<_, Identity, u16, u64, ValueQuery, DefaultPendingEmission<T>>;
+	#[pallet::storage] // --- DMAP ( netuid ) --> bonds
+	pub(super) type MaxModuleNameLength<T:Config> = StorageValue< _, u16, ValueQuery, DefaultMaxModuleNameLength<T> >;
 	
 	#[pallet::storage] // --- MAP ( netuid ) --> weights_set_rate_limit
 	pub type SubnetNamespace<T: Config> = StorageMap<_, Twox64Concat, Vec<u8>,  u16 , ValueQuery>;
@@ -226,34 +223,19 @@ pub mod pallet {
 	#[pallet::storage]
 	pub type Addresses<T: Config> = StorageDoubleMap<_, Twox64Concat, u16, Twox64Concat, u16, Vec<u8>, ValueQuery>;
 
-
-	#[derive(Encode, Decode, Default, TypeInfo, Clone, PartialEq, Eq, Debug)]
-    pub struct ModuleInfo {
-        pub address: Vec<u8>, // --- Module u128 encoded ip address of type v6 or v4.
-        pub name: Vec<u8>, // --- Module ip type, 4 for ipv4 and 6 for ipv6.
-		pub incentive: u64, // --- Module incentive.
-
-	}
-
 	// ============================
 	// ==== Staking + Accounts ====
 	// ============================
 	#[pallet::type_value] 
-	pub fn DefaultAccountTake<T: Config>() -> u64 { 0 }
-	#[pallet::type_value]
-	pub fn DefaultBlockEmission<T: Config>() -> u64 {1_000_000_000}
+	pub fn DefaultStake<T: Config>() -> u64 { 0 }
 	#[pallet::type_value] 
 	pub fn DefaultAccount<T: Config>() -> T::AccountId { T::AccountId::decode(&mut sp_runtime::traits::TrailingZeroInput::zeroes()).unwrap()}
 
 	#[pallet::storage] // --- ITEM ( total_stake )
-	pub type TotalSubnetStake<T> = StorageMap<_, Identity,u16, u64, ValueQuery>;
-	#[pallet::storage] // --- ITEM ( total_stake )
 	pub type TotalStake<T> = StorageValue<_, u64, ValueQuery>;
 
-	#[pallet::storage] // --- ITEM ( global_block_emission )
-	pub type BlockEmission<T> = StorageValue<_, u64, ValueQuery, DefaultBlockEmission<T>>;
 	#[pallet::storage] // --- DMAP ( hot, cold ) --> stake | Returns the stake under a key prefixed by key.
-	pub type Stake<T:Config> = StorageDoubleMap<_,Identity, u16,  Identity, T::AccountId, u64, ValueQuery, DefaultAccountTake<T>>;
+	pub type Stake<T:Config> = StorageDoubleMap<_,Identity, u16,  Identity, T::AccountId, u64, ValueQuery, DefaultStake<T>>;
 	#[pallet::storage] // --- MAP ( netuid ) --> Registration this Block.
 	pub type RegistrationsThisBlock<T> = StorageMap<_, Identity, u16, u16, ValueQuery, DefaultRegistrationsThisBlock<T>>;
 	#[pallet::storage] // --- ITEM( global_max_registrations_per_block ) 
@@ -261,6 +243,8 @@ pub mod pallet {
 	#[pallet::storage] // --- ITEM( global_max_registrations_per_block ) 
 	pub type MaxAllowedSubnets<T> = StorageValue<_, u16, ValueQuery, DefaultMaxAllowedSubnets<T>>;
 
+	#[pallet::storage] // --- ITEM ( total_stake )
+	pub type SubnetTotalStake<T> = StorageMap<_, Identity,u16, u64, ValueQuery>;
 
 	// Pallets use events to inform users when important changes are made.
 	// https://docs.substrate.io/main-docs/build/events-errors/

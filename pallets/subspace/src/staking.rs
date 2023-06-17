@@ -71,30 +71,12 @@ impl<T: Config> Pallet<T> {
     // Returns the total amount of stake in the staking table.
     //
     pub fn get_total_subnet_stake(netuid:u16) -> u64 { 
-        return TotalSubnetStake::<T>::get(netuid);
+        return SubnetTotalStake::<T>::get(netuid);
     }
     pub fn get_total_stake() -> u64 { 
         return TotalStake::<T>::get();
     }
 
-
-    // Returns the total amount of stake in the staking table.
-    //
-    pub fn get_token_emmision(netuid:u16) -> u64 { 
-
-        let subnet_stake: I64F64 =I64F64::from_num( Self::get_total_subnet_stake(netuid));
-        let total_stake: I64F64 = I64F64::from_num(Self::get_total_stake());
-        let mut subnet_ratio: I64F64 = I64F64::from_num(0);
-        if total_stake > I64F64::from_num(0) {
-            subnet_ratio =  subnet_stake/total_stake;
-        } else {
-            subnet_ratio = I64F64::from_num(1);
-        }
-        let token_emission: u64 = subnet_ratio.to_num::<u64>();
-
-        return token_emission;
-
-    }
 
 
 
@@ -128,7 +110,7 @@ impl<T: Config> Pallet<T> {
         Self::remove_balance_from_account( &key, stake_as_balance.unwrap() );
 
         Stake::<T>::insert(netuid, key, Stake::<T>::get(netuid, key).saturating_add( increment ) );
-        TotalSubnetStake::<T>::insert(netuid , TotalSubnetStake::<T>::get(netuid).saturating_add( increment ) );
+        SubnetTotalStake::<T>::insert(netuid , SubnetTotalStake::<T>::get(netuid).saturating_add( increment ) );
         TotalStake::<T>::put(TotalStake::<T>::get().saturating_add( increment ) );
 
     }
@@ -144,7 +126,7 @@ impl<T: Config> Pallet<T> {
         Self::add_balance_to_account( &key, stake_to_be_added_as_currency.unwrap() );
         Stake::<T>::insert( netuid, key, Stake::<T>::get(netuid,  key).saturating_sub( decrement ) );
         TotalStake::<T>::put(TotalStake::<T>::get().saturating_sub( decrement ) );
-        TotalSubnetStake::<T>::insert(netuid, TotalSubnetStake::<T>::get(netuid).saturating_sub( decrement ) );
+        SubnetTotalStake::<T>::insert(netuid, SubnetTotalStake::<T>::get(netuid).saturating_sub( decrement ) );
     }
 
     // Decreases the stake on the cold - hot pairing by the decrement while decreasing other counters.
