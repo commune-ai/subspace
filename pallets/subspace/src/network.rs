@@ -361,24 +361,6 @@ impl<T: Config> Pallet<T> {
         return number_of_subnets;
     }
 
-    // Return a list of all networks a key is registered on.
-    //
-    pub fn get_registered_networks_for_key( key: &T::AccountId )-> Vec<u16> {
-        let mut all_networks: Vec<u16> = vec![];
-        for ( network, is_registered)  in <IsNetworkMember<T> as IterableStorageDoubleMap< T::AccountId, u16, bool >>::iter_prefix( key ){
-            if is_registered { all_networks.push( network ) }
-        }
-        all_networks
-    }
-
-    // Return true if a key is registered on any network.
-    //
-    pub fn is_key_registered_on_any_network( key: &T::AccountId )-> bool {
-        for ( _, is_registered)  in <IsNetworkMember<T> as IterableStorageDoubleMap< T::AccountId, u16, bool >>::iter_prefix( key ){
-            if is_registered { return true }
-        }
-        false
-    }
 
     // ========================
 	// ==== Global Setters ====
@@ -390,6 +372,7 @@ impl<T: Config> Pallet<T> {
     pub fn set_registrations_this_block( netuid: u16, registrations_this_block: u16 ) { RegistrationsThisBlock::<T>::insert(netuid, registrations_this_block); }
     pub fn set_last_mechanism_step_block( netuid: u16, last_mechanism_step_block: u64 ) { LastMechansimStepBlock::<T>::insert(netuid, last_mechanism_step_block); }
 
+    
     // ========================
 	// ==== Global Getters ====
 	// ========================
@@ -463,6 +446,10 @@ impl<T: Config> Pallet<T> {
 
     pub fn get_max_registrations_per_block( netuid: u16 ) -> u16 { MaxRegistrationsPerBlock::<T>::get( netuid ) }
     pub fn set_max_registrations_per_block( netuid: u16, max_registrations_per_block: u16 ) { MaxRegistrationsPerBlock::<T>::insert( netuid, max_registrations_per_block ); }
+
+    pub fn is_registered(netuid: u16, key: &T::AccountId) -> bool {
+        return Uids::<T>::contains_key(netuid, &key)
+    }
 
 }
 

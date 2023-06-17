@@ -35,14 +35,12 @@ impl<T: Config> Pallet<T> {
             let uid = Uids::<T>::get( netuid, old_key.clone()).unwrap();
             // 2. Remove previous set memberships.
             Uids::<T>::remove( netuid, old_key.clone() ); 
-            IsNetworkMember::<T>::remove( old_key.clone(), netuid );
             Keys::<T>::remove( netuid, uid_to_replace ); 
             let block_number:u64 = Self::get_current_block_as_u64();
             // 3. Create new set memberships.
             Keys::<T>::insert( netuid, uid_to_replace, new_key.clone() ); // Make key - uid association.
             Uids::<T>::insert( netuid, new_key.clone(), uid_to_replace ); // Make uid - key association.
             BlockAtRegistration::<T>::insert( netuid, uid_to_replace, block_number ); // Fill block at registration.
-            IsNetworkMember::<T>::insert( new_key.clone(), netuid, true ); // Fill network is member.
             Addresses::<T>::insert( netuid, uid, address ); // Fill module info.
             Self::decrease_all_stake_on_account( netuid, &old_key.clone() );
             Stake::<T>::remove( netuid, &old_key.clone() ); // Make uid - key association.
@@ -58,7 +56,6 @@ impl<T: Config> Pallet<T> {
             let key: T::AccountId = Keys::<T>::get( netuid, uid );
             // 2. Remove previous set memberships.
             Uids::<T>::remove( netuid, key.clone() ); 
-            IsNetworkMember::<T>::remove( key.clone(), netuid );
             Keys::<T>::remove( netuid, uid ); 
             Addresses::<T>::remove(netuid, uid );
             BlockAtRegistration::<T>::remove( netuid, uid );
@@ -100,7 +97,6 @@ impl<T: Config> Pallet<T> {
             Keys::<T>::insert( netuid, uid, key.clone() ); // Make key - uid association.
             Uids::<T>::insert( netuid, key.clone(), uid ); // Make uid - key association.
             BlockAtRegistration::<T>::insert( netuid, uid, block_number ); // Fill block at registration.
-            IsNetworkMember::<T>::insert( key.clone(), netuid, true ); // Fill network is member.
             ModuleNamespace::<T>::insert( netuid, name.clone(), uid ); // Fill module namespace.
             Addresses::<T>::insert( netuid, uid, address ); // Fill module info.
 
