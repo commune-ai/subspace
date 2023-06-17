@@ -17,7 +17,6 @@ opt-level = 3
 
 [dependencies]
 pallet-subspace = { version = "4.0.0-dev", default-features = false, path = "../pallets/subspace" }
-subspace-custom-rpc-runtime-api = { version = "0.0.2", path = "../pallets/subspace/runtime-api", default-features = false }
 smallvec = "1.6.1"
 codec = { package = "parity-scale-codec", version = "3.0.0", default-features = false, features = ["derive"] }
 scale-info = { version = "2.1.1", default-features = false, features = ["derive"] }

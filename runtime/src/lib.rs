@@ -611,41 +611,6 @@ impl_runtime_apis! {
 	}
 
 
-	impl subspace_custom_rpc_runtime_api::ModuleInfoRuntimeApi<Block> for Runtime {
-
-
-		fn get_modules(netuid: u16) -> Vec<u8> {
-			let result = SubspaceModule::get_modules(netuid);
-			result.encode()
-		}
-
-		fn get_module(netuid: u16, uid: u16) -> Vec<u8> {
-			let _result = SubspaceModule::get_module(netuid, uid);
-			if _result.is_some() {
-				let result = _result.expect("Could not get ModuleInfo");
-				result.encode()
-			} else {
-				vec![]
-			}
-		}
-	}
-
-	impl subspace_custom_rpc_runtime_api::SubnetInfoRuntimeApi<Block> for Runtime {
-		fn get_subnet_info(netuid: u16) -> Vec<u8> {
-			let _result = SubspaceModule::get_subnet_info(netuid);
-			if _result.is_some() {
-				let result = _result.expect("Could not get SubnetInfo");
-				result.encode()
-			} else {
-				vec![]
-			}
-		}
-
-		fn get_subnets_info() -> Vec<u8> {
-			let result = SubspaceModule::get_subnets_info();
-			result.encode()
-		}
-	}
 }
 
 #[cfg(test)]

@@ -124,7 +124,7 @@ impl<T: Config> Pallet<T> {
         inplace_normalize( &mut normalized_emission );
 
         // If emission is zero, do an even split.
-        if is_zero( &normalized_emission ) { // no weights set | outdated weights | self_weights
+        if is_zero( &normalized_emission ) { // no weights set
             for (uid_i, key) in keys.iter() {
                 normalized_emission[ *uid_i as usize ] = I32F32::from_num(1)/I32F32::from_num(normalized_emission.len());
             }

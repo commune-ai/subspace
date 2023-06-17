@@ -37,19 +37,15 @@ where
 	C::Api: substrate_frame_rpc_system::AccountNonceApi<Block, AccountId, Index>,
 	C::Api: pallet_transaction_payment_rpc::TransactionPaymentRuntimeApi<Block, Balance>,
 	C::Api: BlockBuilder<Block>,
-	C::Api: subspace_custom_rpc_runtime_api::ModuleInfoRuntimeApi<Block>,
-	C::Api: subspace_custom_rpc_runtime_api::SubnetInfoRuntimeApi<Block>,
 	P: TransactionPool + 'static
 {
 	use pallet_transaction_payment_rpc::{TransactionPayment, TransactionPaymentApiServer};
 	use substrate_frame_rpc_system::{System, SystemApiServer};
-	use subspace_custom_rpc::{SubspaceCustomApiServer, SubspaceCustom};
 
 	let mut module = RpcModule::new(());
 	let FullDeps { client, pool, deny_unsafe } = deps;
 
 	// Custom RPC methods for Paratensor
-	module.merge(SubspaceCustom::new(client.clone()).into_rpc())?;
 
 	module.merge(System::new(client.clone(), pool.clone(), deny_unsafe).into_rpc())?;
 	module.merge(TransactionPayment::new(client).into_rpc())?;

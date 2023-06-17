@@ -65,8 +65,6 @@ frame-benchmarking-cli = { version = "4.0.0-dev", git = "https://github.com/pari
 
 # Local Dependencies
 node-subspace-runtime = { version = "4.0.0-dev", path = "../runtime" }
-subspace-custom-rpc = { path = "../pallets/subspace/rpc" }
-subspace-custom-rpc-runtime-api = { path = "../pallets/subspace/runtime-api" }
 
 # CLI-specific dependencies
 try-runtime-cli = { version = "0.10.0-dev", optional = true, git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.39" }

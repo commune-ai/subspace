@@ -10,7 +10,7 @@ services:
     # memswap_limit: 20000000000
     volumes:
       # NODE BINDINGS
-      - ${SUBSPACE_PATH}:/subspace
+      - ./:/subspace
     
     # command: bash -c "make compile; make deploy"
 

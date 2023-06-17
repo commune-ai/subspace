@@ -1,8 +1,19 @@
+# **NOTE**: This docker file expects to be run in a directory outside of subspace.
+# It also expects two build arguments, the bittensor snapshot directory, and the bittensor
+# snapshot file name.
 
-ARG BASE_IMAGE=ubuntu:20.04
+# This runs typically via the following command:
+# $ docker build -t subspace . --platform linux/x86_64 --build-arg SNAPSHOT_DIR="DIR_NAME" --build-arg SNAPSHOT_FILE="FILENAME.TAR.GZ"  -f subspace/Dockerfile
 
-FROM $BASE_IMAGE as builder
+
+FROM ubuntu:22.10
 SHELL ["/bin/bash", "-c"]
+
+# metadata
+ARG VCS_REF
+ARG BUILD_DATE
+ARG SNAPSHOT_DIR
+ARG SNAPSHOT_FILE
 
 # This is being set so that no interactive components are allowed when updating.
 ARG DEBIAN_FRONTEND=noninteractive
@@ -10,26 +21,31 @@ ARG DEBIAN_FRONTEND=noninteractive
 # show backtraces
 ENV RUST_BACKTRACE 1
 
-# Necessary libraries for Rust execution
-RUN apt-get update && apt-get install -y curl build-essential protobuf-compiler clang git
+# install tools and dependencies
+RUN apt-get update && \
+        DEBIAN_FRONTEND=noninteractive apt-get install -y \
+                ca-certificates \
+                curl \
+		clang && \
+# apt cleanup
+        apt-get autoremove -y && \
+        apt-get clean && \
+        find /var/lib/apt/lists/ -type f -not -name lock -delete;
 
-# # Install cargo and Rust
-# RUN curl https://sh.rustup.rs -sSf | sh -s -- -y
-# ENV PATH="/root/.cargo/bin:${PATH}"
 
-RUN mkdir -p /subspace
-WORKDIR /subspace
-COPY ./scripts ./scripts
 
-# Update to nightly toolchain
-RUN ./scripts/install_rust_env.sh
+# Install cargo and Rust
+RUN curl https://sh.rustup.rs -sSf | sh -s -- -y
+ENV PATH="/root/.cargo/bin:${PATH}"
+WORKDIR /app
+RUN apt-get update \
+ && DEBIAN_FRONTEND=noninteractive \
+    apt-get install --no-install-recommends --assume-yes \
+      protobuf-compiler
 
-# # Cargo build
-# RUN cargo build --release --features runtime-benchmarks --locked
-# EXPOSE 30333 9933 9944
 
-# FROM $BASE_IMAGE
-# COPY --from=builder /subspace/snapshot.json /
-# COPY --from=builder /subspace/target/release/node-subspace /
-# COPY --from=builder /subspace/raw_spec.json .
+RUN rustup update nightly
+RUN rustup target add wasm32-unknown-unknown --toolchain nightly
+RUN apt-get install make
+RUN apt-get install -y pkg-config
 

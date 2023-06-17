@@ -4157,8 +4157,6 @@ dependencies = [
  "sp-keyring",
  "sp-runtime",
  "sp-timestamp",
- "subspace-custom-rpc",
- "subspace-custom-rpc-runtime-api",
  "substrate-build-script-utils",
  "substrate-frame-rpc-system",
  "try-runtime-cli",
@@ -4199,7 +4197,6 @@ dependencies = [
  "sp-std",
  "sp-transaction-pool",
  "sp-version",
- "subspace-custom-rpc-runtime-api",
  "substrate-wasm-builder",
 ]
 
@@ -7892,31 +7889,6 @@ dependencies = [
  "tokio",
  "url",
  "webrtc-util",
-]
-
-[[package]]
-name = "subspace-custom-rpc"
-version = "0.0.2"
-dependencies = [
- "jsonrpsee",
- "pallet-subspace",
- "parity-scale-codec",
- "serde",
- "sp-api",
- "sp-blockchain",
- "sp-rpc",
- "sp-runtime",
- "subspace-custom-rpc-runtime-api",
-]
-
-[[package]]
-name = "subspace-custom-rpc-runtime-api"
-version = "0.0.2"
-dependencies = [
- "frame-support",
- "pallet-subspace",
- "serde",
- "sp-api",
 ]
 
 [[package]]
