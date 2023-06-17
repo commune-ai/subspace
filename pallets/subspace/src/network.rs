@@ -121,13 +121,11 @@ impl<T: Config> Pallet<T> {
     //
     pub fn get_network_emmision(netuid:u16) -> u64 { 
 
-        let subnet_stake: I64F64 =I64F64::from_num( Self::get_total_subnet_stake(netuid));
+        let subnet_stake: I64F64 =I64F64::from_num( Self::get_total_subnet_stake(netuid) + 1);
         let total_stake: I64F64 = I64F64::from_num(Self::get_total_stake());
-        let mut subnet_ratio: I64F64 = I64F64::from_num(0);
+        let mut subnet_ratio: I64F64 = I64F64::from_num(1);
         if total_stake > I64F64::from_num(0) {
             subnet_ratio =  subnet_stake/total_stake;
-        } else {
-            subnet_ratio = I64F64::from_num(1);
         }
         let token_emission: u64 = subnet_ratio.to_num::<u64>();
 
