@@ -7,6 +7,7 @@ use frame_support::storage::IterableStorageMap;
 use frame_support::pallet_prelude::{Decode, Encode};
 use codec::Compact;
 use frame_support::pallet_prelude::{DispatchError, DispatchResult};
+use substrate_fixed::types::{I64F64};
 extern crate alloc;
 
 
@@ -116,6 +117,24 @@ impl<T: Config> Pallet<T> {
         // --- 16. Ok and done.
         return netuid;
     }
+    // Returns the total amount of stake in the staking table.
+    //
+    pub fn get_network_emmision(netuid:u16) -> u64 { 
+
+        let subnet_stake: I64F64 =I64F64::from_num( Self::get_total_subnet_stake(netuid));
+        let total_stake: I64F64 = I64F64::from_num(Self::get_total_stake());
+        let mut subnet_ratio: I64F64 = I64F64::from_num(0);
+        if total_stake > I64F64::from_num(0) {
+            subnet_ratio =  subnet_stake/total_stake;
+        } else {
+            subnet_ratio = I64F64::from_num(1);
+        }
+        let token_emission: u64 = subnet_ratio.to_num::<u64>();
+
+        return token_emission;
+
+    }
+
 
     pub fn add_network(key: &T::AccountId,  
                        name: Vec<u8>,
@@ -131,11 +150,11 @@ impl<T: Config> Pallet<T> {
         let max_networks = MaxAllowedSubnets::<T>::get();
         // if networks exceeds max_networks, remove the least staked network
         let netuid : u16 ; 
-        if total_networks >= max_networks {
+        if total_networks > max_networks {
             netuid = Self::least_staked_netuid(stake);
             Self::remove_network_for_netuid( netuid );
         } else {
-            netuid = total_networks;
+            netuid = total_networks + 1;
 
         }
 

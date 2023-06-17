@@ -87,6 +87,8 @@ impl<T: Config> Pallet<T> {
         let mut subnet_ratio: I64F64 = I64F64::from_num(0);
         if total_stake > I64F64::from_num(0) {
             subnet_ratio =  subnet_stake/total_stake;
+        } else {
+            subnet_ratio = I64F64::from_num(1);
         }
         let token_emission: u64 = subnet_ratio.to_num::<u64>();
 

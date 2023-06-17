@@ -16,7 +16,7 @@ impl<T: Config> Pallet<T> {
 
             RegistrationsThisBlock::<T>::mutate(netuid,  |val| *val = 0 );
             // --- 2. Queue the emission due to this network.
-            let new_queued_emission : u64 = Self::get_token_emmision( netuid );
+            let new_queued_emission : u64 = Self::get_network_emmision( netuid );
             PendingEmission::<T>::mutate( netuid, | queued | *queued += new_queued_emission );
             log::debug!("netuid_i: {:?} queued_emission: +{:?} ", netuid, new_queued_emission );  
             // --- 3. Check to see if this network has reached epoch.
