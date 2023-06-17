@@ -60,7 +60,7 @@ impl<T: Config> Pallet<T> {
         
         // --- 12.1.3 Add the stake to the module.
         // default 1 stake for the module.
-        Self::do_add_stake( origin.clone(), netuid.into(), (stake+1).into() )?;
+        Self::do_add_stake( origin.clone(), netuid.into(), stake.into() )?;
         // ---Deposit successful event.
         log::info!("ModuleRegistered( netuid:{:?} uid:{:?} key:{:?}  ) ", netuid, uid, key );
         Self::deposit_event( Event::ModuleRegistered( netuid, uid, key.clone() ) );
