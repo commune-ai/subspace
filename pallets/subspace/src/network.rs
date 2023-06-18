@@ -114,7 +114,8 @@ impl<T: Config> Pallet<T> {
             let n = TotalSubnets::<T>::get();
             subnet_ratio = I64F64::from_num(1)/I64F64::from_num(n);
         }
-        let token_emission: u64 = subnet_ratio.to_num::<u64>();
+        
+        let token_emission: u64 = (subnet_ratio* I64F64::from_num(1_000_000_000)).to_num::<u64>();
         
         SubnetEmission::<T>::insert( netuid, token_emission );
 

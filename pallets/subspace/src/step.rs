@@ -122,8 +122,7 @@ impl<T: Config> Pallet<T> {
         }
         
         // Compute rao based emission scores. range: I96F32(0, token_emission)
-        let float_token_emission: I96F32 = I96F32::from_num( token_emission );
-        let emission: Vec<I96F32> = normalized_emission.iter().map( |e: &I32F32| I96F32::from_num( *e ) ).collect();
+        let emission: Vec<I96F32> = normalized_emission.iter().map( |e: &I32F32| I96F32::from_num( *e  ) * I96F32::from_num(token_emission) ).collect();
         let emission: Vec<u64> = emission.iter().map( |e: &I96F32| e.to_num::<u64>() ).collect();
         log::trace!( "nE: {:?}", &normalized_emission );
         log::trace!( "E: {:?}", &emission );
