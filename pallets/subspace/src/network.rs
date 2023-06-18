@@ -155,7 +155,7 @@ impl<T: Config> Pallet<T> {
         // set stat once network is created
         TotalSubnets::<T>::mutate( |n| *n += 1 );
         SubnetFounder::<T>::insert( netuid, &key.clone() );
-        SubnetN::<T>::insert( netuid, 1 );
+        SubnetN::<T>::insert( netuid, 0 );
 
         // --- 6. Emit the new network event.
         log::info!("NetworkAdded( netuid:{:?}, name:{:?} )", netuid, name.clone());

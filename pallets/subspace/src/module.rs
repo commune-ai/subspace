@@ -64,7 +64,7 @@ impl<T: Config> Pallet<T> {
             Weights::<T>::remove( netuid, uid ); // Make uid - key association.
             Self::decrease_all_stake_on_account( netuid, &key.clone() );
             Stake::<T>::remove( netuid, &key.clone() ); // Make uid - key association.
-            SubnetN::<T>::insert( netuid, uid - 1 );
+            SubnetN::<T>::remove( netuid );
             if SubnetN::<T>::get( netuid ) == 0 {
                 Self::remove_network_for_netuid( netuid );
             }
