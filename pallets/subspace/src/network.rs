@@ -42,21 +42,19 @@ impl<T: Config> Pallet<T> {
     }
 
 
-    pub fn do_add_network( 
+    pub fn do_remove_network( 
         origin: T::RuntimeOrigin,
         name: Vec<u8>,
-        stake: u64,
-        immunity_period: u16,
-        min_allowed_weights: u16,
-        max_allowed_uids: u16,
-        tempo: u16,
     ) -> DispatchResult {
 
         let key = ensure_signed(origin)?;
         // --- 1. Ensure the network name does not already exist.
+            
+        ensure!( Self::if_subnet_name_exists( name.clone() ), Error::<T>::SubnetNameAlreadyExists );
+        let netuid = Self::get_netuid_for_name( name.clone() );
+        ensure!( Self::is_subnet_founder( netuid, &key ), Error::<T>::NotSubnetFounder );
 
-        ensure!( !Self::if_subnet_name_exists( name.clone() ), Error::<T>::SubnetNameAlreadyExists );
-        Self::add_network( &key, name, stake, max_allowed_uids, immunity_period, min_allowed_weights, tempo);
+        Self::remove_network_fn( name );
         // --- 16. Ok and done.
         Ok(())
     }
@@ -80,13 +78,13 @@ impl<T: Config> Pallet<T> {
 
 
         ensure!( !Self::if_subnet_name_exists( name.clone() ), Error::<T>::SubnetNameAlreadyExists );
-        Self::update_network( name, stake, immunity_period, min_allowed_weights, max_allowed_uids, tempo, founder);
+        Self::update_network_fn( name, stake, immunity_period, min_allowed_weights, max_allowed_uids, tempo, founder);
         // --- 16. Ok and done.
         Ok(())
     }
 
 
-    pub fn update_network(name: Vec<u8>,
+    pub fn update_network_fn(name: Vec<u8>,
                     stake: u64,
                     immunity_period: u16,
                     min_allowed_weights: u16,
@@ -141,13 +139,14 @@ impl<T: Config> Pallet<T> {
 
         let default_subnet  = Self::default_subnet();
 
-        let netuid = Self::add_network( &key, 
+        let netuid = Self::add_network( 
                             name.clone(),
                             default_subnet.stake + stake, 
                             default_subnet.max_allowed_uids, 
                             default_subnet.immunity_period,
                             default_subnet.min_allowed_weights,
-                            default_subnet.tempo);
+                            default_subnet.tempo,
+                            &key, );
 
         // --- 16. Ok and done.
         return netuid;
@@ -176,13 +175,14 @@ impl<T: Config> Pallet<T> {
     }
 
 
-    pub fn add_network(founder: &T::AccountId,  
+    pub fn add_network( 
                        name: Vec<u8>,
                        stake: u64,
                        max_allowed_uids: u16,
                        immunity_period: u16,
                        min_allowed_weights: u16,
                        tempo: u16,
+                       founder: &T::AccountId, 
                     ) -> u16 {
 
         // --- 1. Enfnsure that the network name does not already exist.
@@ -252,7 +252,7 @@ impl<T: Config> Pallet<T> {
     //
     pub fn remove_network_for_netuid( netuid: u16 ) -> u16 {
         let name = Self::get_name_for_netuid( netuid );
-        return Self::remove_network( name );
+        return Self::remove_network_fn( name );
     }
 
     // Returns true if the account is the founder of the network.
@@ -262,7 +262,7 @@ impl<T: Config> Pallet<T> {
     }
 
 
-    pub fn remove_network( name: Vec<u8>) -> u16 {
+    pub fn remove_network_fn( name: Vec<u8>) -> u16 {
         // --- 2. Ensure the network to be removed exists.
         if !Self::if_subnet_name_exists( name.clone() ) {
             return 0;
@@ -294,11 +294,7 @@ impl<T: Config> Pallet<T> {
         }
         // --- 4. Remove all stake.
         Stake::<T>::remove_prefix( netuid, None );
-        let total_network_stake: u16 = SubnetTotalStake::<T>::get( netuid ).try_into().unwrap();
-        SubnetTotalStake::<T>::mutate(netuid, |n| *n -= total_network_stake as u64 );
         SubnetTotalStake::<T>::remove( netuid );
-
-
         TotalSubnets::<T>::mutate(|val| *val -= 1);
         // --- 4. Emit the event.
         log::info!("NetworkRemoved( netuid:{:?} )", netuid);

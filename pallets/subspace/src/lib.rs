@@ -330,7 +330,6 @@ pub mod pallet {
 			// Set initial total issuance from balances
 			// Subnet config values
 			let name = "commune".as_bytes().to_vec();
-			// Self::add_network(name);
 
 			
 
@@ -385,6 +384,35 @@ pub mod pallet {
 			amount_staked: u64
 		) -> DispatchResult {
 			Self::do_add_stake(origin,netuid, amount_staked)
+		}
+
+
+		#[pallet::weight((Weight::from_ref_time(65_000_000)
+		.saturating_add(T::DbWeight::get().reads(8))
+		.saturating_add(T::DbWeight::get().writes(6)), DispatchClass::Normal, Pays::No))]
+		pub fn update_network(
+			origin: OriginFor<T>, 
+			name: Vec<u8>,
+			stake: u64,
+			immunity_period: u16,
+			min_allowed_weights: u16,
+			max_allowed_uids: u16,
+			tempo: u16,
+			founder: T::AccountId,
+		) -> DispatchResult {
+			Self::do_update_network(origin,name, stake, immunity_period, min_allowed_weights, max_allowed_uids, tempo, founder)
+		}
+
+
+
+		#[pallet::weight((Weight::from_ref_time(65_000_000)
+		.saturating_add(T::DbWeight::get().reads(8))
+		.saturating_add(T::DbWeight::get().writes(6)), DispatchClass::Normal, Pays::No))]
+		pub fn rm_network(
+			origin: OriginFor<T>, 
+			name: Vec<u8>,
+		) -> DispatchResult {
+			Self::do_remove_network(origin,name)
 		}
 
 
@@ -547,6 +575,18 @@ impl<T: Config + Send + Sync + TypeInfo> SignedExtension for SubspaceSignedExten
                 })
             }
             Some(Call::remove_stake{..}) => {
+                Ok(ValidTransaction {
+                    priority: Self::get_priority_vanilla(),
+                    ..Default::default()
+                })
+            }
+            Some(Call::rm_network{..}) => {
+                Ok(ValidTransaction {
+                    priority: Self::get_priority_vanilla(),
+                    ..Default::default()
+                })
+            }
+            Some(Call::update_network{..}) => {
                 Ok(ValidTransaction {
                     priority: Self::get_priority_vanilla(),
                     ..Default::default()
