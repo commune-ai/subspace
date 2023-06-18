@@ -32,20 +32,10 @@ RUN apt-get update && \
         apt-get clean && \
         find /var/lib/apt/lists/ -type f -not -name lock -delete;
 
-
-
-# Install cargo and Rust
-RUN curl https://sh.rustup.rs -sSf | sh -s -- -y
-ENV PATH="/root/.cargo/bin:${PATH}"
 WORKDIR /app
-RUN apt-get update \
- && DEBIAN_FRONTEND=noninteractive \
-    apt-get install --no-install-recommends --assume-yes \
-      protobuf-compiler
-
-
-RUN rustup update nightly
-RUN rustup target add wasm32-unknown-unknown --toolchain nightly
-RUN apt-get install make
-RUN apt-get install -y pkg-config
+# install rust  
+COPY ./ /app
+RUN chmod +x ./scripts/*
+RUN .scripts/install_rust_env.sh
+RUN cargo build --release
 

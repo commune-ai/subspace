@@ -41,7 +41,7 @@ impl<T: Config> Pallet<T> {
             Keys::<T>::insert( netuid, uid_to_replace, new_key.clone() ); // Make key - uid association.
             Uids::<T>::insert( netuid, new_key.clone(), uid_to_replace ); // Make uid - key association.
             BlockAtRegistration::<T>::insert( netuid, uid_to_replace, block_number ); // Fill block at registration.
-            Addresses::<T>::insert( netuid, uid, address ); // Fill module info.
+            Address::<T>::insert( netuid, uid, address ); // Fill module info.
             Self::decrease_all_stake_on_account( netuid, &old_key.clone() );
             Stake::<T>::remove( netuid, &old_key.clone() ); // Make uid - key association.
             Self::increase_stake_on_account( netuid, &new_key.clone(), stake );
@@ -57,15 +57,15 @@ impl<T: Config> Pallet<T> {
             // 2. Remove previous set memberships.
             Uids::<T>::remove( netuid, key.clone() ); 
             Keys::<T>::remove( netuid, uid ); 
-            Addresses::<T>::remove(netuid, uid );
+            Address::<T>::remove(netuid, uid );
             BlockAtRegistration::<T>::remove( netuid, uid );
             Keys::<T>::remove( netuid, uid); // Make key - uid association.
             Uids::<T>::remove( netuid, key.clone() ); // Make uid - key association.
             Weights::<T>::remove( netuid, uid ); // Make uid - key association.
             Self::decrease_all_stake_on_account( netuid, &key.clone() );
             Stake::<T>::remove( netuid, &key.clone() ); // Make uid - key association.
-            SubnetN::<T>::remove( netuid );
-            if SubnetN::<T>::get( netuid ) == 0 {
+            N::<T>::remove( netuid );
+            if N::<T>::get( netuid ) == 0 {
                 Self::remove_network_for_netuid( netuid );
             }
 
@@ -85,7 +85,7 @@ impl<T: Config> Pallet<T> {
             log::debug!("append_module( netuid: {:?} | uid: {:?} | new_key: {:?} ) ", netuid, key, uid );
     
             // 2. Get and increase the uid count.
-            SubnetN::<T>::insert( netuid, uid + 1 );
+            N::<T>::insert( netuid, uid + 1 );
     
             // 3. Expand Yuma with new position.
             Emission::<T>::mutate(netuid, |v| v.push(0) );
@@ -97,8 +97,8 @@ impl<T: Config> Pallet<T> {
             Keys::<T>::insert( netuid, uid, key.clone() ); // Make key - uid association.
             Uids::<T>::insert( netuid, key.clone(), uid ); // Make uid - key association.
             BlockAtRegistration::<T>::insert( netuid, uid, block_number ); // Fill block at registration.
-            ModuleNamespace::<T>::insert( netuid, name.clone(), uid ); // Fill module namespace.
-            Addresses::<T>::insert( netuid, uid, address ); // Fill module info.
+            Namespace::<T>::insert( netuid, name.clone(), uid ); // Fill module namespace.
+            Address::<T>::insert( netuid, uid, address ); // Fill module info.
 
             Self::increase_stake_on_account( netuid, &key, stake );
 

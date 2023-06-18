@@ -166,6 +166,7 @@ impl<T: Config> Pallet<T> {
     ) -> dispatch::DispatchResult {
         // --- 1. We check the callers (key) signature.
         let key = ensure_signed(origin)?;
+
         let netuid:u16 = Self::get_netuid_for_name(network.clone());
         let uid = Self::get_uid_for_key( netuid, &key ).unwrap();
 
@@ -179,15 +180,15 @@ impl<T: Config> Pallet<T> {
     
         // if len(name) > 0, then we update the name.
         if name.len() > 0 {
-            ensure!( name.len() <= MaxModuleNameLength::<T>::get() as usize, Error::<T>::ModuleNameTooLong );
+            ensure!( name.len() <= MaxNameLength::<T>::get() as usize, Error::<T>::ModuleNameTooLong );
 
-            let old_name = Names::<T>::get( netuid, uid );
-            ModuleNamespace::<T>::remove( netuid, old_name );
+            let old_name = ReverseNamespace::<T>::get( netuid, uid );
+            Namespace::<T>::remove( netuid, old_name );
             ensure!(!Self::if_module_name_exists(netuid, name.clone()) , Error::<T>::ModuleNameAlreadyExists); 
-            ModuleNamespace::<T>::insert( netuid, name.clone(), uid );
+            Namespace::<T>::insert( netuid, name.clone(), uid );
         }
         if address.len() > 0 {
-            Addresses::<T>::insert( netuid, uid, address.clone() );
+            Address::<T>::insert( netuid, uid, address.clone() );
         }
 
 

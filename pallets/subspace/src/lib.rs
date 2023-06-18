@@ -145,7 +145,7 @@ pub mod pallet {
 	#[pallet::type_value] 
 	pub fn DefaultMinAllowedWeights<T: Config>() -> u16 { 1 }
 	#[pallet::type_value] 
-	pub fn DefaultMaxModuleNameLength<T: Config>() -> u16 { 32 }
+	pub fn DefaultMaxNameLength<T: Config>() -> u16 { 32 }
 	#[pallet::type_value]
 	pub fn DefaultRegistrationsThisBlock<T: Config>() ->  u16 { 0}
 	#[pallet::type_value] 
@@ -162,16 +162,16 @@ pub mod pallet {
 	#[pallet::storage] // --- ITEM( tota_number_of_existing_networks )
 	pub type SubnetEmission<T> = StorageMap< _, Identity, u16, u64, ValueQuery, DefaultEmission<T> >;
 	#[pallet::storage] // --- MAP ( netuid ) --> subnetwork_n (Number of UIDs in the network).
-	pub type SubnetN<T:Config> = StorageMap< _, Identity, u16, u16, ValueQuery, DefaultN<T> >;
+	pub type N<T:Config> = StorageMap< _, Identity, u16, u16, ValueQuery, DefaultN<T> >;
 	#[pallet::storage] // --- DMAP ( key, netuid ) --> bool
-	pub type SubnetFounder<T:Config> = StorageMap<_, Identity, u16, T::AccountId, ValueQuery, DefaultAccount<T>>;
+	pub type Founder<T:Config> = StorageMap<_, Identity, u16, T::AccountId, ValueQuery, DefaultAccount<T>>;
 
 	#[pallet::storage] // --- MAP ( netuid ) --> epoch
 	pub type Tempo<T> = StorageMap<_, Identity, u16, u16, ValueQuery, DefaultTempo<T> >;
 	#[pallet::storage] // --- MAP ( netuid ) --> pending_emission
 	pub type PendingEmission<T> = StorageMap<_, Identity, u16, u64, ValueQuery, DefaultPendingEmission<T>>;
 	#[pallet::storage] // --- DMAP ( netuid ) --> bonds
-	pub(super) type MaxModuleNameLength<T:Config> = StorageValue< _, u16, ValueQuery, DefaultMaxModuleNameLength<T> >;
+	pub(super) type MaxNameLength<T:Config> = StorageValue< _, u16, ValueQuery, DefaultMaxNameLength<T> >;
 	
 	#[pallet::storage] // --- MAP ( netuid ) --> weights_set_rate_limit
 	pub type SubnetNamespace<T: Config> = StorageMap<_, Twox64Concat, Vec<u8>,  u16 , ValueQuery>;
@@ -213,15 +213,12 @@ pub mod pallet {
 	pub(super) type Uids<T:Config> = StorageDoubleMap<_, Identity, u16, Blake2_128Concat, T::AccountId, u16, OptionQuery>;
 	#[pallet::storage] // --- DMAP ( netuid, uid ) --> key
 	pub(super) type Keys<T:Config> = StorageDoubleMap<_, Identity, u16, Identity, u16, T::AccountId, ValueQuery, DefaultKey<T> >;
-
 	#[pallet::storage]
-	pub type ModuleNamespace<T: Config> = StorageDoubleMap<_, Twox64Concat, u16, Twox64Concat, Vec<u8>, u16, ValueQuery>;
-
+	pub type Namespace<T: Config> = StorageDoubleMap<_, Twox64Concat, u16, Twox64Concat, Vec<u8>, u16, ValueQuery>;
 	#[pallet::storage]
-	pub type Names<T: Config> = StorageDoubleMap<_, Twox64Concat, u16, Twox64Concat, u16, Vec<u8>, ValueQuery>;
-
+	pub type ReverseNamespace<T: Config> = StorageDoubleMap<_, Twox64Concat, u16, Twox64Concat, u16, Vec<u8>, ValueQuery>;
 	#[pallet::storage]
-	pub type Addresses<T: Config> = StorageDoubleMap<_, Twox64Concat, u16, Twox64Concat, u16, Vec<u8>, ValueQuery>;
+	pub type Address<T: Config> = StorageDoubleMap<_, Twox64Concat, u16, Twox64Concat, u16, Vec<u8>, ValueQuery>;
 
 	// ============================
 	// ==== Staking + Accounts ====
@@ -233,7 +230,6 @@ pub mod pallet {
 
 	#[pallet::storage] // --- ITEM ( total_stake )
 	pub type TotalStake<T> = StorageValue<_, u64, ValueQuery>;
-
 	#[pallet::storage] // --- DMAP ( hot, cold ) --> stake | Returns the stake under a key prefixed by key.
 	pub type Stake<T:Config> = StorageDoubleMap<_,Identity, u16,  Identity, T::AccountId, u64, ValueQuery, DefaultStake<T>>;
 	#[pallet::storage] // --- MAP ( netuid ) --> Registration this Block.
@@ -242,7 +238,6 @@ pub mod pallet {
 	pub type MaxRegistrationsPerBlock<T> = StorageMap<_, Identity, u16, u16, ValueQuery, DefaultMaxRegistrationsPerBlock<T> >;
 	#[pallet::storage] // --- ITEM( global_max_registrations_per_block ) 
 	pub type MaxAllowedSubnets<T> = StorageValue<_, u16, ValueQuery, DefaultMaxAllowedSubnets<T>>;
-
 	#[pallet::storage] // --- ITEM ( total_stake )
 	pub type SubnetTotalStake<T> = StorageMap<_, Identity,u16, u64, ValueQuery>;
 
@@ -305,6 +300,7 @@ pub mod pallet {
 		KeyAlreadyRegistered,
 		ModuleNameDoesNotExist,
 		KeyNameMismatch,
+		NotSubnetFounder
 	}
 
 	// ==================

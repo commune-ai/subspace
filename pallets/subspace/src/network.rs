@@ -18,7 +18,7 @@ impl<T: Config> Pallet<T> {
     // Returns true if the subnetwork exists.
     //
     pub fn if_subnet_exist( netuid: u16 ) -> bool{
-        return SubnetN::<T>::contains_key( netuid );
+        return N::<T>::contains_key( netuid );
     }
 
     // get the least staked network
@@ -54,11 +54,54 @@ impl<T: Config> Pallet<T> {
 
         let key = ensure_signed(origin)?;
         // --- 1. Ensure the network name does not already exist.
+
         ensure!( !Self::if_subnet_name_exists( name.clone() ), Error::<T>::SubnetNameAlreadyExists );
         Self::add_network( &key, name, stake, max_allowed_uids, immunity_period, min_allowed_weights, tempo);
         // --- 16. Ok and done.
         Ok(())
     }
+
+    pub fn do_update_network( 
+        origin: T::RuntimeOrigin,
+        name: Vec<u8>,
+        stake: u64,
+        immunity_period: u16,
+        min_allowed_weights: u16,
+        max_allowed_uids: u16,
+        tempo: u16,
+        founder: T::AccountId,
+    ) -> DispatchResult {
+
+        let key = ensure_signed(origin)?;
+
+        ensure!( Self::if_subnet_name_exists( name.clone() ), Error::<T>::SubnetNameAlreadyExists );
+        let netuid = Self::get_netuid_for_name( name.clone() );
+        ensure!( Self::is_subnet_founder( netuid, &key ), Error::<T>::NotSubnetFounder );
+
+
+        ensure!( !Self::if_subnet_name_exists( name.clone() ), Error::<T>::SubnetNameAlreadyExists );
+        Self::update_network( name, stake, immunity_period, min_allowed_weights, max_allowed_uids, tempo, founder);
+        // --- 16. Ok and done.
+        Ok(())
+    }
+
+
+    pub fn update_network(name: Vec<u8>,
+                    stake: u64,
+                    immunity_period: u16,
+                    min_allowed_weights: u16,
+                    max_allowed_uids: u16,
+                    tempo: u16,
+                    founder: T::AccountId,) {
+        let netuid = Self::get_netuid_for_name( name.clone() );
+        Tempo::<T>::insert( netuid, tempo);
+        MaxAllowedUids::<T>::insert( netuid, max_allowed_uids );
+        ImmunityPeriod::<T>::insert( netuid, immunity_period );
+        MinAllowedWeights::<T>::insert( netuid, min_allowed_weights );
+        SubnetNamespace::<T>::insert( name.clone(), netuid );
+        Founder::<T>::insert( netuid, founder );
+    }
+
 
 
     pub fn default_subnet() -> SubnetInfo {
@@ -68,16 +111,25 @@ impl<T: Config> Pallet<T> {
             min_allowed_weights: ImmunityPeriod::<T>::get( netuid ),
             max_allowed_uids:  MaxAllowedUids::<T>::get( netuid ),
             tempo: Tempo::<T>::get( netuid ),
-            n: SubnetN::<T>::get( netuid ),
+            n: N::<T>::get( netuid ),
             netuid: netuid,
             stake: SubnetTotalStake::<T>::get( netuid ),
             name : Self::get_name_for_netuid( netuid ),
             emission: SubnetEmission::<T>::get( netuid ),
         
         };
+
             
         
     }
+
+
+    pub fn is_subnet_founder( netuid: u16, key: &T::AccountId ) -> bool {
+        return Founder::<T>::get( netuid) == *key;
+    }
+
+
+
 
 
     pub fn add_network_from_registration( 
@@ -124,7 +176,7 @@ impl<T: Config> Pallet<T> {
     }
 
 
-    pub fn add_network(key: &T::AccountId,  
+    pub fn add_network(founder: &T::AccountId,  
                        name: Vec<u8>,
                        stake: u64,
                        max_allowed_uids: u16,
@@ -151,12 +203,12 @@ impl<T: Config> Pallet<T> {
         ImmunityPeriod::<T>::insert( netuid, immunity_period );
         MinAllowedWeights::<T>::insert( netuid, min_allowed_weights );
         SubnetNamespace::<T>::insert( name.clone(), netuid );
+        Founder::<T>::insert( netuid, founder );
 
         // set stat once network is created
         TotalSubnets::<T>::mutate( |n| *n += 1 );
-        SubnetFounder::<T>::insert( netuid, &key.clone() );
-        SubnetN::<T>::insert( netuid, 0 );
-
+        N::<T>::insert( netuid, 0 );
+        
         // --- 6. Emit the new network event.
         log::info!("NetworkAdded( netuid:{:?}, name:{:?} )", netuid, name.clone());
         Self::deposit_event( Event::NetworkAdded( netuid, name.clone()) );
@@ -205,7 +257,7 @@ impl<T: Config> Pallet<T> {
 
     // Returns true if the account is the founder of the network.
     pub fn is_network_founder( netuid: u16, key: &T::AccountId ) -> bool {
-        let founder = SubnetFounder::<T>::get( netuid );
+        let founder = Founder::<T>::get( netuid );
         return founder == key.clone();
     }
 
@@ -227,14 +279,14 @@ impl<T: Config> Pallet<T> {
         Incentive::<T>::remove( netuid );
         Dividends::<T>::remove( netuid );
         LastUpdate::<T>::remove( netuid );
-        SubnetFounder::<T>::remove( netuid );
+        Founder::<T>::remove( netuid );
 
         // --- 2. Erase network parameters.
         Tempo::<T>::remove( netuid );
         MaxAllowedUids::<T>::remove( netuid );
         ImmunityPeriod::<T>::remove( netuid );
         MinAllowedWeights::<T>::remove( netuid );
-        SubnetN::<T>::remove( netuid );
+        N::<T>::remove( netuid );
 
         // --- 3. Erase network stake, and remove network from list of networks.
         for ( key, stated_amount ) in <Stake<T> as IterableStorageDoubleMap<u16, T::AccountId, u64> >::iter_prefix(netuid){
@@ -289,7 +341,7 @@ impl<T: Config> Pallet<T> {
 
     pub fn get_subnets_info() -> Vec<Option<SubnetInfo>> {
         let mut subnets_info = Vec::<Option<SubnetInfo>>::new();
-        for ( netuid, net_n ) in < SubnetN<T> as IterableStorageMap<u16, u16> >::iter() {
+        for ( netuid, net_n ) in < N<T> as IterableStorageMap<u16, u16> >::iter() {
             subnets_info.push(Self::get_subnet_info(netuid));
         }
         return subnets_info;
@@ -299,7 +351,7 @@ impl<T: Config> Pallet<T> {
     // Returns the number of filled slots on a network.
     ///
     pub fn get_subnetwork_n( netuid:u16 ) -> u16 { 
-        return SubnetN::<T>::get( netuid ) 
+        return N::<T>::get( netuid ) 
     }
     
 
@@ -331,16 +383,16 @@ impl<T: Config> Pallet<T> {
     }
 
     pub fn get_uid_for_name ( netuid: u16, name: Vec<u8> ) -> u16  {
-        return ModuleNamespace::<T>::get(netuid, name)
+        return Namespace::<T>::get(netuid, name)
     }
 
     pub fn get_name_for_uid ( netuid: u16, uid: u16 ) -> Vec<u8>  {
-        return Names::<T>::get(netuid, uid);
+        return ReverseNamespace::<T>::get(netuid, uid);
     }
 
 
     pub fn if_module_name_exists( netuid: u16, name: Vec<u8> ) -> bool {
-        return ModuleNamespace::<T>::contains_key( netuid, name.clone() );
+        return Namespace::<T>::contains_key( netuid, name.clone() );
         
     }
 
@@ -363,7 +415,7 @@ impl<T: Config> Pallet<T> {
     //
     pub fn get_number_of_subnets()-> u16 {
         let mut number_of_subnets : u16 = 0;
-        for (_, _)  in <SubnetN<T> as IterableStorageMap<u16, u16>>::iter(){
+        for (_, _)  in <N<T> as IterableStorageMap<u16, u16>>::iter(){
             number_of_subnets = number_of_subnets + 1;
         }
         return number_of_subnets;
