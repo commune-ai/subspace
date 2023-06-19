@@ -454,17 +454,6 @@ pub mod pallet {
 			Self::do_registration(origin, network , name, address, stake,)
 		}
 		
-
-		#[pallet::weight((Weight::from_ref_time(91_000_000)
-		.saturating_add(T::DbWeight::get().reads(27))
-		.saturating_add(T::DbWeight::get().writes(22)), DispatchClass::Normal, Pays::No))]
-		pub fn unregister( 
-				origin:OriginFor<T>, 
-				network: Vec<u8>,
-		) -> DispatchResult { 
-			Self::do_unregistration(origin, network )
-		}
-
 	}	
 
 	// ---- Subspace helper functions.

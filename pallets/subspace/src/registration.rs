@@ -166,13 +166,12 @@ impl<T: Config> Pallet<T> {
     ) -> dispatch::DispatchResult {
         // --- 1. We check the callers (key) signature.
         let key = ensure_signed(origin)?;
-
-        let netuid:u16 = Self::get_netuid_for_name(network.clone());
-        let uid = Self::get_uid_for_key( netuid, &key ).unwrap();
-
         ensure!(Self::if_subnet_name_exists(network.clone()), Error::<T>::NetworkDoesNotExist);
+        let netuid:u16 = Self::get_netuid_for_name(network.clone());
         // --- 2. Ensure the key is registered somewhere.
         ensure!( Self::is_registered( netuid, &key.clone() ), Error::<T>::NotRegistered );  
+        let uid = Self::get_uid_for_key( netuid, &key ).unwrap();
+
         
         // --- 4. Get the previous module information.
         let current_block: u64 = Self::get_current_block_as_u64(); 
@@ -193,22 +192,6 @@ impl<T: Config> Pallet<T> {
         }
 
         // --- 8. Return is successful dispatch. 
-        Ok(())
-    }
-
-
-
-    pub fn do_unregistration( 
-        origin: T::RuntimeOrigin, 
-		network: Vec<u8>,
-    ) -> dispatch::DispatchResult {
-        // --- 1. We check the callers (key) signature.
-        let key = ensure_signed(origin)?;
-        ensure!(Self::if_subnet_name_exists(network.clone()), Error::<T>::NetworkDoesNotExist);
-        let netuid:u16 = Self::get_netuid_for_name(network.clone());
-        let uid = Self::get_uid_for_key( netuid, &key ).unwrap();
-
-        Self::remove_module( netuid, uid );
         Ok(())
     }
 

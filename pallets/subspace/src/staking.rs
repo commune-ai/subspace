@@ -137,6 +137,14 @@ impl<T: Config> Pallet<T> {
         Self::decrease_stake_on_account(netuid, &key, decrement );
     }
 
+    // Decreases the stake on the cold - hot pairing by the decrement while decreasing other counters.
+    //
+    pub fn remove_all_stake_on_account(netuid:u16, key: &T::AccountId ) {
+
+        Self::decrease_all_stake_on_account(netuid, &key );
+        Stake::<T>::remove(netuid, &key);
+    }
+
 	pub fn u64_to_balance( input: u64 ) -> Option<<<T as Config>::Currency as Currency<<T as frame_system::Config>::AccountId>>::Balance> { input.try_into().ok() }
 
     pub fn add_balance_to_account(key: &T::AccountId, amount: <<T as Config>::Currency as Currency<<T as system::Config>::AccountId>>::Balance) {

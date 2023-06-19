@@ -26,28 +26,35 @@ impl<T: Config> Pallet<T> {
 
 
         // Replace the module under this uid.
-        pub fn replace_module( netuid: u16, uid_to_replace: u16, new_key: &T::AccountId, name: Vec<u8>, address: Vec<u8>, stake: u64 ) {
+        pub fn replace_module( netuid: u16, uid: u16, new_key: &T::AccountId, name: Vec<u8>, address: Vec<u8>, stake: u64 ) {
 
-            log::debug!("remove_network_for_netuid( netuid: {:?} | uid_to_replace: {:?} | new_key: {:?} ) ", netuid, uid_to_replace, new_key );
-    
-            // 1. Get the old key under this position.
-            let old_key: T::AccountId = Keys::<T>::get( netuid, uid_to_replace );
-            let uid = Uids::<T>::get( netuid, old_key.clone()).unwrap();
-            // 2. Remove previous set memberships.
-            Uids::<T>::remove( netuid, old_key.clone() ); 
-            Keys::<T>::remove( netuid, uid_to_replace ); 
+            log::debug!("remove_network_for_netuid( netuid: {:?} | uid : {:?} | new_key: {:?} ) ", netuid, uid, new_key );
+            
             let block_number:u64 = Self::get_current_block_as_u64();
-            // 3. Create new set memberships.
-            Keys::<T>::insert( netuid, uid_to_replace, new_key.clone() ); // Make key - uid association.
-            Uids::<T>::insert( netuid, new_key.clone(), uid_to_replace ); // Make uid - key association.
-            BlockAtRegistration::<T>::insert( netuid, uid_to_replace, block_number ); // Fill block at registration.
+            let old_key: T::AccountId = Keys::<T>::get( netuid, uid );
+            // 2. Remove previous set memberships.
+            Uids::<T>::remove( netuid, old_key.clone() );  // Remove old key - uid association.
+            Uids::<T>::insert( netuid, new_key.clone(), uid ); // Make uid - key association.
+            Keys::<T>::insert( netuid, uid, new_key.clone() ); // Make key - uid association.
+
+            BlockAtRegistration::<T>::insert( netuid, uid, block_number ); // Fill block at registration.
             Address::<T>::insert( netuid, uid, address ); // Fill module info.
+            Namespace::<T>::insert( netuid, name.clone(), uid ); // Fill module namespace.
+            ReverseNamespace::<T>::insert( netuid, uid, name.clone() ); // Fill module namespace.
+
+            // 3. Remove the stake from the old account
             Self::decrease_all_stake_on_account( netuid, &old_key.clone() );
             Stake::<T>::remove( netuid, &old_key.clone() ); // Make uid - key association.
+            
+
             Self::increase_stake_on_account( netuid, &new_key.clone(), stake );
             // 4. Emit the event.
             
         }
+
+
+
+
     
 
         // Replace the module under this uid.
@@ -56,15 +63,13 @@ impl<T: Config> Pallet<T> {
             let key: T::AccountId = Keys::<T>::get( netuid, uid );
             // 2. Remove previous set memberships.
             Uids::<T>::remove( netuid, key.clone() ); 
-            Keys::<T>::remove( netuid, uid ); 
-            Address::<T>::remove(netuid, uid );
-            BlockAtRegistration::<T>::remove( netuid, uid );
-            Keys::<T>::remove( netuid, uid); // Make key - uid association.
-            Uids::<T>::remove( netuid, key.clone() ); // Make uid - key association.
+            Keys::<T>::remove( netuid, uid ); // Make key - uid association.
+            Address::<T>::remove(netuid, uid ); // Make uid - key association.
+            BlockAtRegistration::<T>::remove( netuid, uid ); // Fill block at registration.
             Weights::<T>::remove( netuid, uid ); // Make uid - key association.
-            Self::decrease_all_stake_on_account( netuid, &key.clone() ); // Make uid - key association.
-            Stake::<T>::remove( netuid, &key.clone() ); // Make uid - key association.
-            N::<T>::remove( netuid );
+            Self::remove_all_stake_on_account( netuid, &key.clone() ); // Make uid - key association.
+
+            N::<T>::mutate( netuid, |v| *v -= 1 ); // Decrease the number of modules in the network.
             // 3. Remove the network if it is empty.
             if N::<T>::get( netuid ) == 0 {
                 Self::remove_network_for_netuid( netuid );
@@ -99,6 +104,7 @@ impl<T: Config> Pallet<T> {
             Uids::<T>::insert( netuid, key.clone(), uid ); // Make uid - key association.
             BlockAtRegistration::<T>::insert( netuid, uid, block_number ); // Fill block at registration.
             Namespace::<T>::insert( netuid, name.clone(), uid ); // Fill module namespace.
+            ReverseNamespace::<T>::insert( netuid, uid, name.clone() ); // Fill module namespace.
             Address::<T>::insert( netuid, uid, address ); // Fill module info.
 
             Self::increase_stake_on_account( netuid, &key, stake );
