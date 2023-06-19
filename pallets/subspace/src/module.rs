@@ -28,7 +28,7 @@ impl<T: Config> Pallet<T> {
         // Replace the module under this uid.
         pub fn replace_module( netuid: u16, uid_to_replace: u16, new_key: &T::AccountId, name: Vec<u8>, address: Vec<u8>, stake: u64 ) {
 
-            log::debug!("replace_module( netuid: {:?} | uid_to_replace: {:?} | new_key: {:?} ) ", netuid, uid_to_replace, new_key );
+            log::debug!("remove_network_for_netuid( netuid: {:?} | uid_to_replace: {:?} | new_key: {:?} ) ", netuid, uid_to_replace, new_key );
     
             // 1. Get the old key under this position.
             let old_key: T::AccountId = Keys::<T>::get( netuid, uid_to_replace );
@@ -62,9 +62,10 @@ impl<T: Config> Pallet<T> {
             Keys::<T>::remove( netuid, uid); // Make key - uid association.
             Uids::<T>::remove( netuid, key.clone() ); // Make uid - key association.
             Weights::<T>::remove( netuid, uid ); // Make uid - key association.
-            Self::decrease_all_stake_on_account( netuid, &key.clone() );
+            Self::decrease_all_stake_on_account( netuid, &key.clone() ); // Make uid - key association.
             Stake::<T>::remove( netuid, &key.clone() ); // Make uid - key association.
             N::<T>::remove( netuid );
+            // 3. Remove the network if it is empty.
             if N::<T>::get( netuid ) == 0 {
                 Self::remove_network_for_netuid( netuid );
             }

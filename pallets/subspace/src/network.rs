@@ -54,7 +54,7 @@ impl<T: Config> Pallet<T> {
         let netuid = Self::get_netuid_for_name( name.clone() );
         ensure!( Self::is_subnet_founder( netuid, &key ), Error::<T>::NotSubnetFounder );
 
-        Self::remove_network_fn( name );
+        Self::remove_network_for_name( name );
         // --- 16. Ok and done.
         Ok(())
     }
@@ -252,7 +252,7 @@ impl<T: Config> Pallet<T> {
     //
     pub fn remove_network_for_netuid( netuid: u16 ) -> u16 {
         let name = Self::get_name_for_netuid( netuid );
-        return Self::remove_network_fn( name );
+        return Self::remove_network_for_name( name );
     }
 
     // Returns true if the account is the founder of the network.
@@ -262,7 +262,7 @@ impl<T: Config> Pallet<T> {
     }
 
 
-    pub fn remove_network_fn( name: Vec<u8>) -> u16 {
+    pub fn remove_network_for_name( name: Vec<u8>) -> u16 {
         // --- 2. Ensure the network to be removed exists.
         if !Self::if_subnet_name_exists( name.clone() ) {
             return 0;
