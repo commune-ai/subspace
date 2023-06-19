@@ -24,7 +24,8 @@ impl<T: Config> Pallet<T> {
         let stake_as_balance = Self::u64_to_balance( stake_to_be_added );
         ensure!( stake_as_balance.is_some(), Error::<T>::CouldNotConvertToBalance );
         ensure!( Self::can_remove_balance_from_account( &key, stake_as_balance.unwrap() ), Error::<T>::NotEnoughBalanceToStake );
-
+        
+        Self::remove_balance_from_account( &key, stake_as_balance.unwrap() );
         // --- 4. If we reach here, add the balance to the key.
         Self::increase_stake_on_account(netuid, &key, stake_to_be_added );
  
@@ -107,8 +108,6 @@ impl<T: Config> Pallet<T> {
         // --- 2. We convert the stake u64 into a balancer.
         let stake_as_balance = Self::u64_to_balance( increment );
         // --- 6. Ensure the remove operation from the key is a success.
-        Self::remove_balance_from_account( &key, stake_as_balance.unwrap() );
-
         Stake::<T>::insert(netuid, key, Stake::<T>::get(netuid, key).saturating_add( increment ) );
         SubnetTotalStake::<T>::insert(netuid , SubnetTotalStake::<T>::get(netuid).saturating_add( increment ) );
         TotalStake::<T>::put(TotalStake::<T>::get().saturating_add( increment ) );
@@ -157,7 +156,7 @@ impl<T: Config> Pallet<T> {
 
     pub fn can_remove_balance_from_account(key: &T::AccountId, amount: <<T as Config>::Currency as Currency<<T as system::Config>::AccountId>>::Balance) -> bool {
         let current_balance = Self::get_balance(key);
-        if amount > current_balance {
+        if amount >= current_balance {
             return false;
         }
 
