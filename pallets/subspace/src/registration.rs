@@ -160,14 +160,14 @@ impl<T: Config> Pallet<T> {
 
     pub fn do_update_module( 
         origin: T::RuntimeOrigin, 
-		network: Vec<u8>,
-        address: Vec<u8>, 
+		netuid: u16,
         name: Vec<u8>,
+        address: Vec<u8>, 
     ) -> dispatch::DispatchResult {
         // --- 1. We check the callers (key) signature.
         let key = ensure_signed(origin)?;
-        ensure!(Self::if_subnet_name_exists(network.clone()), Error::<T>::NetworkDoesNotExist);
-        let netuid:u16 = Self::get_netuid_for_name(network.clone());
+        ensure!(Self::if_subnet_netuid_exists(netuid), Error::<T>::NetworkDoesNotExist);
+
         // --- 2. Ensure the key is registered somewhere.
         ensure!( Self::is_registered( netuid, &key.clone() ), Error::<T>::NotRegistered );  
         let uid = Self::get_uid_for_key( netuid, &key ).unwrap();

@@ -392,7 +392,7 @@ pub mod pallet {
 		.saturating_add(T::DbWeight::get().writes(6)), DispatchClass::Normal, Pays::No))]
 		pub fn update_network(
 			origin: OriginFor<T>, 
-			name: Vec<u8>,
+			netuid: u16,
 			stake: u64,
 			immunity_period: u16,
 			min_allowed_weights: u16,
@@ -400,7 +400,7 @@ pub mod pallet {
 			tempo: u16,
 			founder: T::AccountId,
 		) -> DispatchResult {
-			Self::do_update_network(origin,name, stake, immunity_period, min_allowed_weights, max_allowed_uids, tempo, founder)
+			Self::do_update_network(origin,netuid, stake, immunity_period, min_allowed_weights, max_allowed_uids, tempo, founder)
 		}
 
 
@@ -410,9 +410,9 @@ pub mod pallet {
 		.saturating_add(T::DbWeight::get().writes(6)), DispatchClass::Normal, Pays::No))]
 		pub fn rm_network(
 			origin: OriginFor<T>, 
-			name: Vec<u8>,
+			netuid: u16,
 		) -> DispatchResult {
-			Self::do_remove_network(origin,name)
+			Self::do_remove_network(origin,netuid)
 		}
 
 
@@ -433,11 +433,12 @@ pub mod pallet {
 		.saturating_add(T::DbWeight::get().writes(1)), DispatchClass::Normal, Pays::No))]
 		pub fn update_module(
 			origin:OriginFor<T>, 
-			network: Vec<u8>,
-			address: Vec<u8>,
+			netuid: u16,
 			name : Vec<u8>,
+			address: Vec<u8>,
+
 		) -> DispatchResult {
-			Self::do_update_module( origin, network, address, name ) 
+			Self::do_update_module( origin, netuid, name,  address ) 
 		}
 
 

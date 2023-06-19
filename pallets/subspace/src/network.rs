@@ -44,24 +44,23 @@ impl<T: Config> Pallet<T> {
 
     pub fn do_remove_network( 
         origin: T::RuntimeOrigin,
-        name: Vec<u8>,
+        netuid: u16,
     ) -> DispatchResult {
 
         let key = ensure_signed(origin)?;
         // --- 1. Ensure the network name does not already exist.
             
-        ensure!( Self::if_subnet_name_exists( name.clone() ), Error::<T>::SubnetNameAlreadyExists );
-        let netuid = Self::get_netuid_for_name( name.clone() );
+        ensure!( Self::if_subnet_netuid_exists( netuid ), Error::<T>::SubnetNameAlreadyExists );
         ensure!( Self::is_subnet_founder( netuid, &key ), Error::<T>::NotSubnetFounder );
 
-        Self::remove_network_for_name( name );
+        Self::remove_network_for_netuid( netuid );
         // --- 16. Ok and done.
         Ok(())
     }
 
     pub fn do_update_network( 
         origin: T::RuntimeOrigin,
-        name: Vec<u8>,
+        netuid: u16,
         stake: u64,
         immunity_period: u16,
         min_allowed_weights: u16,
@@ -72,31 +71,26 @@ impl<T: Config> Pallet<T> {
 
         let key = ensure_signed(origin)?;
 
-        ensure!( Self::if_subnet_name_exists( name.clone() ), Error::<T>::SubnetNameAlreadyExists );
-        let netuid = Self::get_netuid_for_name( name.clone() );
+        ensure!( Self::if_subnet_netuid_exists( netuid ), Error::<T>::SubnetNameAlreadyExists );
         ensure!( Self::is_subnet_founder( netuid, &key ), Error::<T>::NotSubnetFounder );
 
-
-        ensure!( !Self::if_subnet_name_exists( name.clone() ), Error::<T>::SubnetNameAlreadyExists );
-        Self::update_network_fn( name, stake, immunity_period, min_allowed_weights, max_allowed_uids, tempo, founder);
+        Self::update_network_for_netuid( netuid, stake, immunity_period, min_allowed_weights, max_allowed_uids, tempo, founder);
         // --- 16. Ok and done.
         Ok(())
     }
 
 
-    pub fn update_network_fn(name: Vec<u8>,
+    pub fn update_network_for_netuid(netuid: u16,
                     stake: u64,
                     immunity_period: u16,
                     min_allowed_weights: u16,
                     max_allowed_uids: u16,
                     tempo: u16,
                     founder: T::AccountId,) {
-        let netuid = Self::get_netuid_for_name( name.clone() );
         Tempo::<T>::insert( netuid, tempo);
         MaxAllowedUids::<T>::insert( netuid, max_allowed_uids );
         ImmunityPeriod::<T>::insert( netuid, immunity_period );
         MinAllowedWeights::<T>::insert( netuid, min_allowed_weights );
-        SubnetNamespace::<T>::insert( name.clone(), netuid );
         Founder::<T>::insert( netuid, founder );
     }
 
@@ -226,6 +220,12 @@ impl<T: Config> Pallet<T> {
        
    
         return  SubnetNamespace::<T>::contains_key(name.clone()).into();
+    }
+
+    pub fn if_subnet_netuid_exists(netuid: u16) -> bool {
+       
+   
+        return  SubnetNamespace::<T>::contains_key(Self::get_name_for_netuid(netuid)).into();
     }
 
 
