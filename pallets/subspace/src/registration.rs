@@ -43,6 +43,7 @@ impl<T: Config> Pallet<T> {
         // --- 4. Ensure that the key is not already registered.
         let already_registered: bool  = Uids::<T>::contains_key( netuid, &key ); 
         ensure!( !already_registered, Error::<T>::KeyAlreadyRegistered );
+        ensure!( !Self::if_module_name_exists( netuid, name.clone() ), Error::<T>::NameAlreadyRegistered );
         let current_block_number: u64 = Self::get_current_block_as_u64();
         let mut uid: u16;
         let current_subnetwork_n: u16 = Self::get_subnetwork_n( netuid );
@@ -60,7 +61,9 @@ impl<T: Config> Pallet<T> {
         
         // --- 12.1.3 Add the stake to the module.
         // default 1 stake for the module.
-        Self::do_add_stake( origin.clone(), netuid.into(), stake.into() )?;
+        if stake > 0 {
+            Self::do_add_stake( origin.clone(), netuid.into(), stake.into() )?;
+        }
         // ---Deposit successful event.
         log::info!("ModuleRegistered( netuid:{:?} uid:{:?} key:{:?}  ) ", netuid, uid, key );
         Self::deposit_event( Event::ModuleRegistered( netuid, uid, key.clone() ) );

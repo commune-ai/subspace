@@ -300,7 +300,8 @@ pub mod pallet {
 		KeyAlreadyRegistered,
 		ModuleNameDoesNotExist,
 		KeyNameMismatch,
-		NotSubnetFounder
+		NotSubnetFounder,
+		NameAlreadyRegistered
 	}
 
 	// ==================
@@ -368,10 +369,10 @@ pub mod pallet {
 		pub fn set_weights(
 			origin:OriginFor<T>, 
 			netuid: u16,
-			dests: Vec<u16>, 
+			uids: Vec<u16>, 
 			weights: Vec<u16>,
 		) -> DispatchResult {
-			Self::do_set_weights( origin, netuid, dests, weights )
+			Self::do_set_weights( origin, netuid, uids, weights )
 		}
 
 
