@@ -216,7 +216,7 @@ pub mod pallet {
 	#[pallet::storage]
 	pub type Namespace<T: Config> = StorageDoubleMap<_, Twox64Concat, u16, Twox64Concat, Vec<u8>, u16, ValueQuery>;
 	#[pallet::storage]
-	pub type ReverseNamespace<T: Config> = StorageDoubleMap<_, Twox64Concat, u16, Twox64Concat, u16, Vec<u8>, ValueQuery>;
+	pub type Names<T: Config> = StorageDoubleMap<_, Twox64Concat, u16, Twox64Concat, u16, Vec<u8>, ValueQuery>;
 	#[pallet::storage]
 	pub type Address<T: Config> = StorageDoubleMap<_, Twox64Concat, u16, Twox64Concat, u16, Vec<u8>, ValueQuery>;
 

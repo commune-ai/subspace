@@ -182,12 +182,13 @@ impl<T: Config> Pallet<T> {
     
         // if len(name) > 0, then we update the name.
         if name.len() > 0 {
+            ensure!( Self::if_module_name_exists(netuid, name.clone()) , Error::<T>::ModuleNameAlreadyExists);
             ensure!( name.len() <= MaxNameLength::<T>::get() as usize, Error::<T>::ModuleNameTooLong );
-            let old_name = ReverseNamespace::<T>::get( netuid, uid );
+            let old_name = Names::<T>::get( netuid, uid );
             Namespace::<T>::remove( netuid, old_name );
             ensure!(!Self::if_module_name_exists(netuid, name.clone()) , Error::<T>::ModuleNameAlreadyExists); 
             Namespace::<T>::insert( netuid, name.clone(), uid );
-            ReverseNamespace::<T>::insert( netuid, uid, name.clone() );
+            Names::<T>::insert( netuid, uid, name.clone() );
         }
         // if len(address) > 0, then we update the address.
         if address.len() > 0 {

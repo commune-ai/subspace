@@ -383,7 +383,7 @@ impl<T: Config> Pallet<T> {
     }
 
     pub fn get_name_for_uid ( netuid: u16, uid: u16 ) -> Vec<u8>  {
-        return ReverseNamespace::<T>::get(netuid, uid);
+        return Names::<T>::get(netuid, uid);
     }
 
 

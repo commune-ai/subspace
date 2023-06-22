@@ -40,7 +40,7 @@ impl<T: Config> Pallet<T> {
             BlockAtRegistration::<T>::insert( netuid, uid, block_number ); // Fill block at registration.
             Address::<T>::insert( netuid, uid, address ); // Fill module info.
             Namespace::<T>::insert( netuid, name.clone(), uid ); // Fill module namespace.
-            ReverseNamespace::<T>::insert( netuid, uid, name.clone() ); // Fill module namespace.
+            Names::<T>::insert( netuid, uid, name.clone() ); // Fill module namespace.
 
             // 3. Remove the stake from the old account
             Self::decrease_all_stake_on_account( netuid, &old_key.clone() );
@@ -104,7 +104,7 @@ impl<T: Config> Pallet<T> {
             Uids::<T>::insert( netuid, key.clone(), uid ); // Make uid - key association.
             BlockAtRegistration::<T>::insert( netuid, uid, block_number ); // Fill block at registration.
             Namespace::<T>::insert( netuid, name.clone(), uid ); // Fill module namespace.
-            ReverseNamespace::<T>::insert( netuid, uid, name.clone() ); // Fill module namespace.
+            Names::<T>::insert( netuid, uid, name.clone() ); // Fill module namespace.
             Address::<T>::insert( netuid, uid, address ); // Fill module info.
 
             Self::increase_stake_on_account( netuid, &key, stake );
