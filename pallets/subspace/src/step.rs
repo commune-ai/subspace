@@ -57,8 +57,6 @@ impl<T: Config> Pallet<T> {
         }
         let mut stake: Vec<I32F32> = vec_fixed64_to_fixed32( stake_64 );
 
-
-
         // range: I32F32(0, 1)
         log::trace!( "S: {:?}", &stake );
 
@@ -141,8 +139,6 @@ impl<T: Config> Pallet<T> {
         for ( uid_i, key ) in keys.iter() {
             result.push( ( key.clone(), emission[ *uid_i as usize ] ) );
         }
-
-
             
         // --- 6. emmit
         for (key, amount) in result.iter() {                 
