@@ -301,7 +301,8 @@ pub mod pallet {
 		ModuleNameDoesNotExist,
 		KeyNameMismatch,
 		NotSubnetFounder,
-		NameAlreadyRegistered
+		NameAlreadyRegistered, 
+		NotEnoughStaketoSetWeights,
 	}
 
 	// ==================
@@ -463,7 +464,7 @@ pub mod pallet {
 		// --- Returns the transaction priority for setting weights.
 		pub fn get_priority_set_weights( key: &T::AccountId, netuid: u16 ) -> u64 {
 			if Uids::<T>::contains_key( netuid, &key ) {
-				let uid = Self::get_uid_for_key(netuid, &key.clone()).unwrap();
+				let uid : u16 = Self::get_uid_for_key(netuid, &key.clone());
 				let current_block_number: u64 = Self::get_current_block_as_u64();
 				return current_block_number - Self::get_last_update_for_uid(netuid, uid as u16);
 			}

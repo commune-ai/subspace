@@ -374,8 +374,8 @@ impl<T: Config> Pallet<T> {
 
     // Returns the uid of the key in the network as a Result. Ok if the key has a slot.
     //
-    pub fn get_uid_for_key( netuid: u16, key: &T::AccountId) -> Result<u16, DispatchError> { 
-        return Uids::<T>::try_get(netuid, &key).map_err(|_err| Error::<T>::NotRegistered.into()) 
+    pub fn get_uid_for_key( netuid: u16, key: &T::AccountId) -> u16 { 
+        return Uids::<T>::get(netuid, &key).unwrap()
     }
 
     pub fn get_uid_for_name ( netuid: u16, name: Vec<u8> ) -> u16  {

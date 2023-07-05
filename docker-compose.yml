@@ -1,17 +1,9 @@
-version: "3.2"
-
 services:
   subspace:
-    network_mode: host
-    container_name: subspace
     build: ./
-    # cpu_count: 4
-    # mem_limit: 10000000000
-    # memswap_limit: 20000000000
-    volumes:
-      # NODE BINDINGS
-      - ./:/subspace
-    
-    # command: bash -c "make compile; make deploy"
-
     command: bash -c "tail -f /dev/null"
+    container_name: subspace
+    network_mode: host
+    volumes:
+    - ./:/subspace
+version: '3.2'

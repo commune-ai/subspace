@@ -9,6 +9,11 @@ impl<T: Config> Pallet<T> {
 
         // --- 1. Check the caller's signature. This is the key of a registered account.
         let key = ensure_signed( origin )?;
+
+        let stake: u64 = Self::get_stake_for_key( netuid, &key );
+
+        ensure!( stake > 0, Error::<T>::NotEnoughStaketoSetWeights );
+
         // --- 2. Check to see if this is a valid network.
         ensure!( Self::if_subnet_exist( netuid ), Error::<T>::NetworkDoesNotExist );
         log::info!("do_set_weights( origin:{:?} netuid:{:?}, uids:{:?}, values:{:?})", key, netuid, uids, values );
@@ -22,8 +27,8 @@ impl<T: Config> Pallet<T> {
         ensure!( Self::is_key_registered_on_network( netuid, &key ), Error::<T>::NotRegistered );
 
         // --- 7. Get the module uid of associated key on network netuid.
-        let module_uid;
-        match Self::get_uid_for_key( netuid, &key ) { Ok(k) => module_uid = k, Err(e) => panic!("Error: {:?}", e) } 
+        
+        let module_uid : u16 =   Self::get_uid_for_key( netuid, &key );
 
         // --- 8. Ensure the uid is not setting weights faster than the weights_set_rate_limit.
         let current_block: u64 = Self::get_current_block_as_u64();
