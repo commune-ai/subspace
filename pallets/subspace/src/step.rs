@@ -53,7 +53,7 @@ impl<T: Config> Pallet<T> {
         // Access network stake as normalized vector.
         let mut stake_64: Vec<I64F64> = vec![ I64F64::from_num(0.0); n as usize ];
         for (uid_i, key) in keys.iter() {
-            stake_64[ *uid_i as usize ] = I64F64::from_num( Self::get_stake_for_key(netuid, key ) + 1);
+            stake_64[ *uid_i as usize ] = I64F64::from_num( Self::get_stake_for_key(netuid, key ));
         }
         let mut stake: Vec<I32F32> = vec_fixed64_to_fixed32( stake_64 );
 
