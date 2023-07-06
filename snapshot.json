@@ -1,5 +1,302 @@
 {
-
+    "subnets": [
+        [
+            "commune",
+            1,
+            420,
+            100,
+            4096,
+            "5HarzAYD37Sp3vJs385CLvhDPN52Cb1Q352yxZnDZchznPaS"
+        ],
+        [
+            "bitconnect",
+            1,
+            20,
+            100,
+            4096,
+            "5HarzAYD37Sp3vJs385CLvhDPN52Cb1Q352yxZnDZchznPaS"
+        ],
+        [
+            "dev",
+            1,
+            420,
+            100,
+            4096,
+            "5CCnwKkrdF2SFwRgERbfXQCiqCLuMFLcSAk2vMV3aauqHZdv"
+        ],
+        [
+            "commune",
+            1,
+            420,
+            100,
+            4096,
+            "5HarzAYD37Sp3vJs385CLvhDPN52Cb1Q352yxZnDZchznPaS"
+        ],
+        [
+            "bitconnect",
+            1,
+            20,
+            100,
+            4096,
+            "5HarzAYD37Sp3vJs385CLvhDPN52Cb1Q352yxZnDZchznPaS"
+        ],
+        [
+            "dev",
+            1,
+            420,
+            100,
+            4096,
+            "5CCnwKkrdF2SFwRgERbfXQCiqCLuMFLcSAk2vMV3aauqHZdv"
+        ],
+        [
+            "commune",
+            1,
+            420,
+            100,
+            4096,
+            "5HarzAYD37Sp3vJs385CLvhDPN52Cb1Q352yxZnDZchznPaS"
+        ],
+        [
+            "bitconnect",
+            1,
+            20,
+            100,
+            4096,
+            "5HarzAYD37Sp3vJs385CLvhDPN52Cb1Q352yxZnDZchznPaS"
+        ],
+        [
+            "dev",
+            1,
+            420,
+            100,
+            4096,
+            "5CCnwKkrdF2SFwRgERbfXQCiqCLuMFLcSAk2vMV3aauqHZdv"
+        ]
+    ],
+    "modules": [
+        [
+            "5HarzAYD37Sp3vJs385CLvhDPN52Cb1Q352yxZnDZchznPaS",
+            "model.openai",
+            "fam;1234586",
+            130943500015785
+        ],
+        [
+            "5DhbonFJr6qBhfWnv9T6itcPL6kZVZMb4dAk4CgU7YnxPEpR",
+            "dataset.hf::imdb",
+            "0.0.0.0:50074",
+            30579087013
+        ],
+        [
+            "5CSN5UqAX7vRbCkbtg47CzBcfbt6E7gvKYCGiWFFkQRXhuTc",
+            "model::gptj6b",
+            "0.0.0.0:50093",
+            451198688424
+        ],
+        [
+            "5H1jsebLpiR7J9U1H5ihURYhWUfoLXJK5hd2DMXNQA8q7Z7Q",
+            "model.llama",
+            "162.157.113.207:2062",
+            451198688424
+        ],
+        [
+            "5HLBAAzV57o2kJ89JkFkM8BoduLWMH18atySV1oejF6AT3wn",
+            "module::10",
+            "2607:fea8:85c0:49b0:5c7:23c4:9027:c0f9:50136",
+            26075021401262
+        ],
+        [
+            "5EoGzkLMMR6q6KvwNB9p5exktVKGesLNnkcjbeXFdPtNSauz",
+            "dataset.bt.prompt",
+            "162.157.113.207:2060",
+            7390984263914
+        ],
+        [
+            "5FkFdfGje8uijzWZ7nAjiE8FBVgXKWRHppQG9omegpz9AVMu",
+            "module",
+            "162.157.13.236:4411",
+            26299688067704
+        ],
+        [
+            "5E9MCYoxn48zhYZgkUTBfiCq9wM9aE599Nkra3tEs428CgY2",
+            "dataset.hf::bdon",
+            "0.0.0.0:50126",
+            13403225592
+        ],
+        [
+            "5DDPbHdW9n3DfSVBedWqCcavLrZTQu6HL8zMpq1wd7xSKpb2",
+            "module::jay1",
+            "86.48.7.117:50129",
+            451198688424
+        ],
+        [
+            "5CXPyL4aoHNCv76CENdFGpudALm2M8GTmMnEHNnrupKm3RgM",
+            "dataset.hf::zasu",
+            "0.0.0.0:50070",
+            451198688424
+        ],
+        [
+            "5DZRTLrhNGeq3m5ZeuNeSEGLqq9DBuD9P9YtgqCsP3dj83jZ",
+            "dataset.hf::bro",
+            "66.185.196.183:50053",
+            7390984263914
+        ],
+        [
+            "5HptzG7yVZeoJZun5RY8BSUqqzxpLN9fs6PxKZAJwdrxJRiX",
+            "dataset.hf::sup",
+            "162.157.113.207:2077",
+            7390984263914
+        ],
+        [
+            "5CSkVwUUovhk7wqMMEaqEpP81NNa5v2KHopaaXosUxa5B6N2",
+            "model.openai::10",
+            "99.238.214.3:50137",
+            26037021401262
+        ],
+        [
+            "5Gjdtwg4GACS4QWyEBFuAsxfJDpArEtTrmg6EPVmZDPEUjA3",
+            "model.openai::fam24",
+            "162.157.113.207:50063",
+            22023917849040
+        ],
+        [
+            "5GHCqknkyjDquWMjuvmPJek1gwMe4g8FH9ZsQ5kRMkWQvAJg",
+            "dataset::whadup",
+            "66.185.196.183:50070",
+            7390984263914
+        ],
+        [
+            "5HEagzfDkT4zj6zdsrjuaWTK6VjZxSH2qKp25qTbCrcTCM4r",
+            "dataset.hf::frank",
+            "0.0.0.0:50052",
+            451198688424
+        ],
+        [
+            "5DF9httNmxpEzZdErKNSPU9UBZVXATSVJ4erTqE1GzB5ZTt7",
+            "module::jerk",
+            "0.0.0.0:50058",
+            51561228863
+        ],
+        [
+            "5EtEPd8yieRYT487MZb1YC5DFqyVfJ31N626Sbe53YahZzpz",
+            "sup.dawg",
+            "162.157.113.207:2050",
+            451198688424
+        ],
+        [
+            "5G9RR8eFWEn6pPPhQTsFs3wA1EX6JxJ167axnBpyKTjmnN35",
+            "model.openai::fam2",
+            "70.29.51.72:50060",
+            22035721420418
+        ],
+        [
+            "5ELPJrrGYnmfebPqNZ4nhKEkN1Ni1j2oyKdtv1mSjNWw95am",
+            "model.openai::fam",
+            "70.29.51.72:50143",
+            22886221417016
+        ],
+        [
+            "5GCYc748pyBB47NSZbqWzpezCr9Y8WXdA3x3VTP1LGEqW6Ub",
+            "module::matej",
+            "0.0.0.0:50113",
+            451198688424
+        ],
+        [
+            "5FCmNTexbLhPuuyaR9BWw5nwUjzuxBJhZt7VKnZb4FbxuZKe",
+            "model::gptneo",
+            "0.0.0.0:50135",
+            28803224976
+        ],
+        [
+            "5H8v2bHo2yeghgkaCpwQ1An34HDpYPAdQmq9og9xti99yoUL",
+            "model.openai::fam23",
+            "70.29.51.72:50137",
+            22027292849040
+        ],
+        [
+            "5EevrbtfaeUaHNs2HEszUyeZ7deAspVBAkGrAaHy5QvVuDjb",
+            "dataset.hf::emotion",
+            "0.0.0.0:50085",
+            53487154735
+        ],
+        [
+            "5CHpNoTuLhbrRaWVTorUDSyosqcr3UpDgRBXuswXwecm86tu",
+            "model.openai::huckfirst1",
+            "162.157.113.207:50110",
+            21990806737962
+        ],
+        [
+            "5CAtBMsWQUQ2FqznFKunwYzv2tDLtS49Uj5qKDdPmFi4Spki",
+            "demo::broooo",
+            "162.157.13.236:4876",
+            451198688424
+        ],
+        [
+            "5DRZmY7N5JcgL3GqmkjsUPcMrJU7nDHHW5Z5zafKZxZwyoR8",
+            "module::amsy",
+            "87.197.111.68:50123",
+            451198688424
+        ],
+        [
+            "5EUPK5qrbFU5wFzfAMe1xVT4SLAV53YgeeRB97Z4aPYZUWQk",
+            "model.openai::GPTchat",
+            "0.0.0.0:50087",
+            21685906741011
+        ],
+        [
+            "5EA3FxvgNn2qWzhWDSmDhSMJGbL93aT9HTRjFf9FrRHzAEhN",
+            "model.openai::fred",
+            "144.126.144.183:50125",
+            451198688424
+        ],
+        [
+            "5Dd3fQiqnXEqGkg7hTQ7Ba3WHUw51cnrvLgc4X7DRHTtQj5t",
+            "dataset.hf",
+            "162.157.13.236:4320",
+            15996684091800
+        ],
+        [
+            "5FA1Kx3V8fqrZN8X3PbnPvic5TUdhfGgefpzAQ6wGxAeBS9n",
+            "dataset.hf::henry",
+            "0.0.0.0:50069",
+            451198688424
+        ],
+        [
+            "5HpiPZd8wiVZMJs2gRUeP2ceWg6pVUz1kgd8txfJcRYJrWJA",
+            "module::lucav",
+            "70.26.12.130:50058",
+            451198688424
+        ],
+        [
+            "5HarzAYD37Sp3vJs385CLvhDPN52Cb1Q352yxZnDZchznPaS",
+            "model.openai",
+            "162.157.13.236:4850",
+            0
+        ],
+        [
+            "5CCnwKkrdF2SFwRgERbfXQCiqCLuMFLcSAk2vMV3aauqHZdv",
+            "model.openai::fam",
+            "162.157.13.236:4492",
+            0
+        ],
+        [
+            "5HptzG7yVZeoJZun5RY8BSUqqzxpLN9fs6PxKZAJwdrxJRiX",
+            "dataset.hf::sup",
+            "162.157.113.207:2039",
+            0
+        ],
+        [
+            "5Dxv76er5QbBAcxwRMCHAokxSMRao8cC9wVg1vJetam1ofQq",
+            "dataset.hf::fam",
+            "162.157.13.236:4131",
+            0
+        ],
+        [
+            "5FcDbmw2q15CFNH5FdkNjXVkPPMapGTH1XG9sVFzHyASWjaZ",
+            "model.openai::whadup",
+            "162.157.13.236:4892",
+            0
+        ]
+    ],
     "balances": {
         "5FA1Kx3V8fqrZN8X3PbnPvic5TUdhfGgefpzAQ6wGxAeBS9n": 0,
         "5EUPK5qrbFU5wFzfAMe1xVT4SLAV53YgeeRB97Z4aPYZUWQk": 0,
@@ -48,536 +345,5 @@
         "5DDPbHdW9n3DfSVBedWqCcavLrZTQu6HL8zMpq1wd7xSKpb2": 50000000000000,
         "5FQy5PYbDPrDxHn2J6u4VDAfp9oSHsbvhsibTsf1pS6hnSQF": 0,
         "5CSkVwUUovhk7wqMMEaqEpP81NNa5v2KHopaaXosUxa5B6N2": 0
-    },
-    "subnets": {
-        "3": {
-            "name": "dev",
-            "netuid": 3,
-            "stake": 0,
-            "emission": 0,
-            "n": 4,
-            "tempo": 1,
-            "immunity_period": 420,
-            "min_allowed_weights": 100,
-            "max_allowed_uids": 4096,
-            "ratio": 0.0,
-            "founder": "5CCnwKkrdF2SFwRgERbfXQCiqCLuMFLcSAk2vMV3aauqHZdv",
-            "modules": [
-                {
-                    "uid": 0,
-                    "address": "162.157.13.236:4492",
-                    "name": "model.openai::fam",
-                    "key": "5CCnwKkrdF2SFwRgERbfXQCiqCLuMFLcSAk2vMV3aauqHZdv",
-                    "emission": 0,
-                    "incentive": 0,
-                    "dividends": 0,
-                    "stake": 0,
-                    "balance": 0,
-                    "weight": []
-                },
-                {
-                    "uid": 3,
-                    "address": "162.157.113.207:2039",
-                    "name": "dataset.hf::sup",
-                    "key": "5HptzG7yVZeoJZun5RY8BSUqqzxpLN9fs6PxKZAJwdrxJRiX",
-                    "emission": 0,
-                    "incentive": 0,
-                    "dividends": 0,
-                    "stake": 0,
-                    "balance": 0,
-                    "weight": []
-                },
-                {
-                    "uid": 2,
-                    "address": "162.157.13.236:4131",
-                    "name": "dataset.hf::fam",
-                    "key": "5Dxv76er5QbBAcxwRMCHAokxSMRao8cC9wVg1vJetam1ofQq",
-                    "emission": 0,
-                    "incentive": 0,
-                    "dividends": 0,
-                    "stake": 0,
-                    "balance": 0,
-                    "weight": []
-                },
-                {
-                    "uid": 1,
-                    "address": "162.157.13.236:4892",
-                    "name": "model.openai::whadup",
-                    "key": "5FcDbmw2q15CFNH5FdkNjXVkPPMapGTH1XG9sVFzHyASWjaZ",
-                    "emission": 0,
-                    "incentive": 0,
-                    "dividends": 0,
-                    "stake": 0,
-                    "balance": 0,
-                    "weight": []
-                }
-            ],
-            "block": 510190,
-            "timestamp": 1688487610
-        },
-        "1": {
-            "name": "commune",
-            "netuid": 1,
-            "stake": 393157937230223,
-            "emission": 1000000000,
-            "n": 32,
-            "tempo": 1,
-            "immunity_period": 420,
-            "min_allowed_weights": 100,
-            "max_allowed_uids": 4096,
-            "ratio": 1000000000.0000001,
-            "founder": "5HarzAYD37Sp3vJs385CLvhDPN52Cb1Q352yxZnDZchznPaS",
-            "modules": [
-                {
-                    "uid": 0,
-                    "address": "fam;1234586",
-                    "name": "model.openai",
-                    "key": "5HarzAYD37Sp3vJs385CLvhDPN52Cb1Q352yxZnDZchznPaS",
-                    "emission": 500000000,
-                    "incentive": 0,
-                    "dividends": 65535,
-                    "stake": 130943500015785,
-                    "balance": 50000453184696,
-                    "weight": [
-                        [23, 2047],
-                        [10, 2047],
-                        [16, 2047],
-                        [7, 2047],
-                        [5, 2047],
-                        [8, 2047],
-                        [13, 2047],
-                        [27, 2047],
-                        [1, 2047],
-                        [9, 2047],
-                        [30, 2047],
-                        [12, 2047],
-                        [31, 2047],
-                        [15, 2047],
-                        [25, 2047],
-                        [0, 2047],
-                        [18, 2047],
-                        [6, 2047],
-                        [3, 2047],
-                        [11, 2047],
-                        [2, 2047],
-                        [22, 2047],
-                        [19, 2047],
-                        [17, 2047],
-                        [20, 2047],
-                        [14, 2047],
-                        [28, 2047],
-                        [26, 2047],
-                        [24, 2047],
-                        [29, 2047],
-                        [21, 2047],
-                        [4, 2047]
-                    ]
-                },
-                {
-                    "uid": 29,
-                    "address": "0.0.0.0:50074",
-                    "name": "dataset.hf::imdb",
-                    "key": "5DhbonFJr6qBhfWnv9T6itcPL6kZVZMb4dAk4CgU7YnxPEpR",
-                    "emission": 16129032,
-                    "incentive": 2114,
-                    "dividends": 0,
-                    "stake": 30579087013,
-                    "balance": 0,
-                    "weight": []
-                },
-                {
-                    "uid": 24,
-                    "address": "0.0.0.0:50093",
-                    "name": "model::gptj6b",
-                    "key": "5CSN5UqAX7vRbCkbtg47CzBcfbt6E7gvKYCGiWFFkQRXhuTc",
-                    "emission": 16129032,
-                    "incentive": 2114,
-                    "dividends": 0,
-                    "stake": 451198688424,
-                    "balance": 0,
-                    "weight": []
-                },
-                {
-                    "uid": 18,
-                    "address": "162.157.113.207:2062",
-                    "name": "model.llama",
-                    "key": "5H1jsebLpiR7J9U1H5ihURYhWUfoLXJK5hd2DMXNQA8q7Z7Q",
-                    "emission": 16129032,
-                    "incentive": 2114,
-                    "dividends": 0,
-                    "stake": 451198688424,
-                    "balance": 0,
-                    "weight": []
-                },
-                {
-                    "uid": 3,
-                    "address": "2607:fea8:85c0:49b0:5c7:23c4:9027:c0f9:50136",
-                    "name": "module::10",
-                    "key": "5HLBAAzV57o2kJ89JkFkM8BoduLWMH18atySV1oejF6AT3wn",
-                    "emission": 16129032,
-                    "incentive": 2114,
-                    "dividends": 0,
-                    "stake": 26075021401262,
-                    "balance": 0,
-                    "weight": []
-                },
-                {
-                    "uid": 14,
-                    "address": "162.157.113.207:2060",
-                    "name": "dataset.bt.prompt",
-                    "key": "5EoGzkLMMR6q6KvwNB9p5exktVKGesLNnkcjbeXFdPtNSauz",
-                    "emission": 16129032,
-                    "incentive": 2114,
-                    "dividends": 0,
-                    "stake": 7390984263914,
-                    "balance": 0,
-                    "weight": []
-                },
-                {
-                    "uid": 2,
-                    "address": "162.157.13.236:4411",
-                    "name": "module",
-                    "key": "5FkFdfGje8uijzWZ7nAjiE8FBVgXKWRHppQG9omegpz9AVMu",
-                    "emission": 16129032,
-                    "incentive": 2114,
-                    "dividends": 0,
-                    "stake": 26299688067704,
-                    "balance": 0,
-                    "weight": []
-                },
-                {
-                    "uid": 31,
-                    "address": "0.0.0.0:50126",
-                    "name": "dataset.hf::bdon",
-                    "key": "5E9MCYoxn48zhYZgkUTBfiCq9wM9aE599Nkra3tEs428CgY2",
-                    "emission": 16129032,
-                    "incentive": 2114,
-                    "dividends": 0,
-                    "stake": 13403225592,
-                    "balance": 0,
-                    "weight": []
-                },
-                {
-                    "uid": 21,
-                    "address": "86.48.7.117:50129",
-                    "name": "module::jay1",
-                    "key": "5DDPbHdW9n3DfSVBedWqCcavLrZTQu6HL8zMpq1wd7xSKpb2",
-                    "emission": 16129032,
-                    "incentive": 2114,
-                    "dividends": 0,
-                    "stake": 451198688424,
-                    "balance": 50000000000000,
-                    "weight": []
-                },
-                {
-                    "uid": 25,
-                    "address": "0.0.0.0:50070",
-                    "name": "dataset.hf::zasu",
-                    "key": "5CXPyL4aoHNCv76CENdFGpudALm2M8GTmMnEHNnrupKm3RgM",
-                    "emission": 16129032,
-                    "incentive": 2114,
-                    "dividends": 0,
-                    "stake": 451198688424,
-                    "balance": 0,
-                    "weight": []
-                },
-                {
-                    "uid": 12,
-                    "address": "66.185.196.183:50053",
-                    "name": "dataset.hf::bro",
-                    "key": "5DZRTLrhNGeq3m5ZeuNeSEGLqq9DBuD9P9YtgqCsP3dj83jZ",
-                    "emission": 16129032,
-                    "incentive": 2114,
-                    "dividends": 0,
-                    "stake": 7390984263914,
-                    "balance": 0,
-                    "weight": []
-                },
-                {
-                    "uid": 13,
-                    "address": "162.157.113.207:2077",
-                    "name": "dataset.hf::sup",
-                    "key": "5HptzG7yVZeoJZun5RY8BSUqqzxpLN9fs6PxKZAJwdrxJRiX",
-                    "emission": 16129032,
-                    "incentive": 2114,
-                    "dividends": 0,
-                    "stake": 7390984263914,
-                    "balance": 0,
-                    "weight": []
-                },
-                {
-                    "uid": 4,
-                    "address": "99.238.214.3:50137",
-                    "name": "model.openai::10",
-                    "key": "5CSkVwUUovhk7wqMMEaqEpP81NNa5v2KHopaaXosUxa5B6N2",
-                    "emission": 16129032,
-                    "incentive": 2114,
-                    "dividends": 0,
-                    "stake": 26037021401262,
-                    "balance": 0,
-                    "weight": []
-                },
-                {
-                    "uid": 8,
-                    "address": "162.157.113.207:50063",
-                    "name": "model.openai::fam24",
-                    "key": "5Gjdtwg4GACS4QWyEBFuAsxfJDpArEtTrmg6EPVmZDPEUjA3",
-                    "emission": 16129032,
-                    "incentive": 2114,
-                    "dividends": 0,
-                    "stake": 22023917849040,
-                    "balance": 0,
-                    "weight": []
-                },
-                {
-                    "uid": 11,
-                    "address": "66.185.196.183:50070",
-                    "name": "dataset::whadup",
-                    "key": "5GHCqknkyjDquWMjuvmPJek1gwMe4g8FH9ZsQ5kRMkWQvAJg",
-                    "emission": 16129032,
-                    "incentive": 2114,
-                    "dividends": 0,
-                    "stake": 7390984263914,
-                    "balance": 0,
-                    "weight": []
-                },
-                {
-                    "uid": 26,
-                    "address": "0.0.0.0:50052",
-                    "name": "dataset.hf::frank",
-                    "key": "5HEagzfDkT4zj6zdsrjuaWTK6VjZxSH2qKp25qTbCrcTCM4r",
-                    "emission": 16129032,
-                    "incentive": 2114,
-                    "dividends": 0,
-                    "stake": 451198688424,
-                    "balance": 0,
-                    "weight": []
-                },
-                {
-                    "uid": 28,
-                    "address": "0.0.0.0:50058",
-                    "name": "module::jerk",
-                    "key": "5DF9httNmxpEzZdErKNSPU9UBZVXATSVJ4erTqE1GzB5ZTt7",
-                    "emission": 16129032,
-                    "incentive": 2114,
-                    "dividends": 0,
-                    "stake": 51561228863,
-                    "balance": 0,
-                    "weight": []
-                },
-                {
-                    "uid": 16,
-                    "address": "162.157.113.207:2050",
-                    "name": "sup.dawg",
-                    "key": "5EtEPd8yieRYT487MZb1YC5DFqyVfJ31N626Sbe53YahZzpz",
-                    "emission": 16129032,
-                    "incentive": 2114,
-                    "dividends": 0,
-                    "stake": 451198688424,
-                    "balance": 0,
-                    "weight": []
-                },
-                {
-                    "uid": 6,
-                    "address": "70.29.51.72:50060",
-                    "name": "model.openai::fam2",
-                    "key": "5G9RR8eFWEn6pPPhQTsFs3wA1EX6JxJ167axnBpyKTjmnN35",
-                    "emission": 16129032,
-                    "incentive": 2114,
-                    "dividends": 0,
-                    "stake": 22035721420418,
-                    "balance": 0,
-                    "weight": []
-                },
-                {
-                    "uid": 5,
-                    "address": "70.29.51.72:50143",
-                    "name": "model.openai::fam",
-                    "key": "5ELPJrrGYnmfebPqNZ4nhKEkN1Ni1j2oyKdtv1mSjNWw95am",
-                    "emission": 16129032,
-                    "incentive": 2114,
-                    "dividends": 0,
-                    "stake": 22886221417016,
-                    "balance": 0,
-                    "weight": []
-                },
-                {
-                    "uid": 22,
-                    "address": "0.0.0.0:50113",
-                    "name": "module::matej",
-                    "key": "5GCYc748pyBB47NSZbqWzpezCr9Y8WXdA3x3VTP1LGEqW6Ub",
-                    "emission": 16129032,
-                    "incentive": 2114,
-                    "dividends": 0,
-                    "stake": 451198688424,
-                    "balance": 0,
-                    "weight": []
-                },
-                {
-                    "uid": 30,
-                    "address": "0.0.0.0:50135",
-                    "name": "model::gptneo",
-                    "key": "5FCmNTexbLhPuuyaR9BWw5nwUjzuxBJhZt7VKnZb4FbxuZKe",
-                    "emission": 16129032,
-                    "incentive": 2114,
-                    "dividends": 0,
-                    "stake": 28803224976,
-                    "balance": 0,
-                    "weight": []
-                },
-                {
-                    "uid": 7,
-                    "address": "70.29.51.72:50137",
-                    "name": "model.openai::fam23",
-                    "key": "5H8v2bHo2yeghgkaCpwQ1An34HDpYPAdQmq9og9xti99yoUL",
-                    "emission": 16129032,
-                    "incentive": 2114,
-                    "dividends": 0,
-                    "stake": 22027292849040,
-                    "balance": 0,
-                    "weight": []
-                },
-                {
-                    "uid": 27,
-                    "address": "0.0.0.0:50085",
-                    "name": "dataset.hf::emotion",
-                    "key": "5EevrbtfaeUaHNs2HEszUyeZ7deAspVBAkGrAaHy5QvVuDjb",
-                    "emission": 16129032,
-                    "incentive": 2114,
-                    "dividends": 0,
-                    "stake": 53487154735,
-                    "balance": 0,
-                    "weight": []
-                },
-                {
-                    "uid": 9,
-                    "address": "162.157.113.207:50110",
-                    "name": "model.openai::huckfirst1",
-                    "key": "5CHpNoTuLhbrRaWVTorUDSyosqcr3UpDgRBXuswXwecm86tu",
-                    "emission": 16129032,
-                    "incentive": 2114,
-                    "dividends": 0,
-                    "stake": 21990806737962,
-                    "balance": 0,
-                    "weight": []
-                },
-                {
-                    "uid": 15,
-                    "address": "162.157.13.236:4876",
-                    "name": "demo::broooo",
-                    "key": "5CAtBMsWQUQ2FqznFKunwYzv2tDLtS49Uj5qKDdPmFi4Spki",
-                    "emission": 16129032,
-                    "incentive": 2114,
-                    "dividends": 0,
-                    "stake": 451198688424,
-                    "balance": 0,
-                    "weight": []
-                },
-                {
-                    "uid": 17,
-                    "address": "87.197.111.68:50123",
-                    "name": "module::amsy",
-                    "key": "5DRZmY7N5JcgL3GqmkjsUPcMrJU7nDHHW5Z5zafKZxZwyoR8",
-                    "emission": 16129032,
-                    "incentive": 2114,
-                    "dividends": 0,
-                    "stake": 451198688424,
-                    "balance": 0,
-                    "weight": []
-                },
-                {
-                    "uid": 10,
-                    "address": "0.0.0.0:50087",
-                    "name": "model.openai::GPTchat",
-                    "key": "5EUPK5qrbFU5wFzfAMe1xVT4SLAV53YgeeRB97Z4aPYZUWQk",
-                    "emission": 16129032,
-                    "incentive": 2114,
-                    "dividends": 0,
-                    "stake": 21685906741011,
-                    "balance": 0,
-                    "weight": []
-                },
-                {
-                    "uid": 19,
-                    "address": "144.126.144.183:50125",
-                    "name": "model.openai::fred",
-                    "key": "5EA3FxvgNn2qWzhWDSmDhSMJGbL93aT9HTRjFf9FrRHzAEhN",
-                    "emission": 16129032,
-                    "incentive": 2114,
-                    "dividends": 0,
-                    "stake": 451198688424,
-                    "balance": 0,
-                    "weight": []
-                },
-                {
-                    "uid": 1,
-                    "address": "162.157.13.236:4320",
-                    "name": "dataset.hf",
-                    "key": "5Dd3fQiqnXEqGkg7hTQ7Ba3WHUw51cnrvLgc4X7DRHTtQj5t",
-                    "emission": 16129032,
-                    "incentive": 2114,
-                    "dividends": 0,
-                    "stake": 15996684091800,
-                    "balance": 50110911895820,
-                    "weight": []
-                },
-                {
-                    "uid": 23,
-                    "address": "0.0.0.0:50069",
-                    "name": "dataset.hf::henry",
-                    "key": "5FA1Kx3V8fqrZN8X3PbnPvic5TUdhfGgefpzAQ6wGxAeBS9n",
-                    "emission": 16129032,
-                    "incentive": 2114,
-                    "dividends": 0,
-                    "stake": 451198688424,
-                    "balance": 0,
-                    "weight": []
-                },
-                {
-                    "uid": 20,
-                    "address": "70.26.12.130:50058",
-                    "name": "module::lucav",
-                    "key": "5HpiPZd8wiVZMJs2gRUeP2ceWg6pVUz1kgd8txfJcRYJrWJA",
-                    "emission": 16129032,
-                    "incentive": 2114,
-                    "dividends": 0,
-                    "stake": 451198688424,
-                    "balance": 0,
-                    "weight": []
-                }
-            ],
-            "block": 510190,
-            "timestamp": 1688487610
-        },
-        "2": {
-            "name": "bitconnect",
-            "netuid": 2,
-            "stake": 0,
-            "emission": 0,
-            "n": 1,
-            "tempo": 1,
-            "immunity_period": 20,
-            "min_allowed_weights": 100,
-            "max_allowed_uids": 4096,
-            "ratio": 0.0,
-            "founder": "5HarzAYD37Sp3vJs385CLvhDPN52Cb1Q352yxZnDZchznPaS",
-            "modules": [
-                {
-                    "uid": 0,
-                    "address": "162.157.13.236:4850",
-                    "name": "model.openai",
-                    "key": "5HarzAYD37Sp3vJs385CLvhDPN52Cb1Q352yxZnDZchznPaS",
-                    "emission": 0,
-                    "incentive": 0,
-                    "dividends": 0,
-                    "stake": 0,
-                    "balance": 50000453184696,
-                    "weight": []
-                }
-            ],
-            "block": 510190,
-            "timestamp": 1688487610
-        }
     }
-
 }
