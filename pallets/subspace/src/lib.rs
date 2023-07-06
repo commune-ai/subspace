@@ -115,10 +115,10 @@ pub mod pallet {
 
 		// --- parameters
 		pub name: Vec<u8>,
+		pub tempo: u16, // how many blocks to wait before rewarding models
 		pub immunity_period: u16, // how many blocks to wait before rewarding models
 		pub min_allowed_weights: u16, // min number of weights allowed to be registered in this subnet
 		pub max_allowed_uids: u16, // max number of uids allowed to be registered in this subnet
-		pub tempo: u16, // how many blocks to wait before rewarding models
 		// pub mode: u8, // --- 0 for open, 1 for closed.
 		// state variables
 		pub netuid: u16, // --- unique id of the network
@@ -312,16 +312,18 @@ pub mod pallet {
 	#[pallet::genesis_config]
 	#[cfg(feature = "std")]
 	pub struct GenesisConfig<T: Config> {
-		pub stakes: Vec<(T::AccountId, Vec<(T::AccountId, (u64, u16))>)>,
-		pub balances_issuance: u64
+		// key, name, address, stake
+		pub modules: Vec<Vec<(T::AccountId, Vec<u8>, Vec<u8>, u64)>>,
+		// name, tempo, immunity_period, max_allowed_uids, min_allowed_weight, max_registrations_per_block, max_allowed_weights
+		pub subnets: Vec<(Vec<u8>, u16, u16, u16, u16, T::AccountId)>,
 	}
 
 	#[cfg(feature = "std")]
 	impl<T: Config> Default for GenesisConfig<T> {
 		fn default() -> Self {
 			Self { 
-				stakes: Default::default(),
-				balances_issuance: 0
+				modules: Default::default(),
+				subnets: Default::default(),
 			}
 		}
 	}
@@ -331,8 +333,36 @@ pub mod pallet {
 		fn build(&self) {
 			// Set initial total issuance from balances
 			// Subnet config values
-			let name = "commune".as_bytes().to_vec();
+			
+			for (i, subnet) in self.subnets.iter().enumerate() {
+				let netuid: u16 = i as u16;
+				SubnetNamespace::<T>::insert( subnet.0.clone(), netuid );
+				Tempo::<T>::insert(netuid, subnet.1);
+				ImmunityPeriod::<T>::insert(netuid, subnet.2);
+				MaxAllowedUids::<T>::insert(netuid, subnet.3);
+				MinAllowedWeights::<T>::insert(netuid, subnet.4);
+				Founder::<T>::insert(netuid, subnet.5.clone());
+				TotalSubnets::<T>::mutate( |n| *n += 1 );
+				N::<T>::insert( netuid, 0 );
 
+
+				// for uid, (key, name, address, stake) in self.modules[netuid].iter().enumerate() {
+
+				// 	Keys::<T>::insert((netuid, uid), key);
+				// 	Uids::<T>::insert((netuid, key), uid);
+				// 	Names::<T>::insert((netuid, uid), name);
+				// 	Addresses::<T>::insert((netuid, uid), address);
+					
+				// 	// increase  stake variables
+				// 	Stakes::<T>::insert((netuid, uid), stake);
+				// 	TotalStake::<T>::insert(netuid, TotalStake::<T>::get(netuid) + stake);
+				// 	SubnetTotalStake::<T>::insert(netuid , SubnetTotalStake::<T>::get(netuid).saturating_add( increment ) );
+
+				// 	N::<T>::insert( netuid, N::<T>::get(netuid) + 1 );
+				// 	BlockAtRegistration::<T>::insert((netuid, uid), <frame_system::Pallet<T>>::block_number());
+					
+				// }
+			}
 			
 
 		}
