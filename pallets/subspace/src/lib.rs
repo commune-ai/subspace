@@ -303,6 +303,8 @@ pub mod pallet {
 		NotSubnetFounder,
 		NameAlreadyRegistered, 
 		NotEnoughStaketoSetWeights,
+		NotEnoughStakeToStartNetwork,
+		NetworkRegistrationFailed
 	}
 
 	// ==================
@@ -312,8 +314,8 @@ pub mod pallet {
 	#[pallet::genesis_config]
 	#[cfg(feature = "std")]
 	pub struct GenesisConfig<T: Config> {
-		// key, name, address, stake
-		pub modules: Vec<Vec<(T::AccountId, Vec<u8>, Vec<u8>, u64)>>,
+		// key, name, address, stake, weights 
+		pub modules: Vec<Vec<(T::AccountId, Vec<u8>, Vec<u8>, u64, Vec<(u16, u16)>)>>,
 		// name, tempo, immunity_period, max_allowed_uids, min_allowed_weight, max_registrations_per_block, max_allowed_weights
 		pub subnets: Vec<(Vec<u8>, u16, u16, u16, u16, T::AccountId)>,
 	}
@@ -346,13 +348,15 @@ pub mod pallet {
 				N::<T>::insert( netuid, 0 );
 
 
-			for (uid_usize, (key, name, address, stake)) in self.modules[i].iter().enumerate() {
+			for (uid_usize, (key, name, address, stake, weights)) in self.modules[i].iter().enumerate() {
 				let uid = uid_usize as u16;
 				Keys::<T>::insert(netuid, uid , key);
 				Uids::<T>::insert(netuid, key, uid );
 				Names::<T>::insert(netuid, uid , name);
+				Namespace::<T>::insert(netuid, name, uid);
 				Address::<T>::insert(netuid, uid , address);
-				
+				Weights::<T>::insert(netuid, uid , weights);
+
 				// increase  stake variables
 				Stake::<T>::insert(netuid,key, stake);
 				TotalStake::<T>::mutate( |n| *n += stake );

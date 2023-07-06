@@ -22,23 +22,65 @@ impl<T: Config> Pallet<T> {
     }
 
     // get the least staked network
-    pub fn least_staked_netuid(stake: u64) -> u16 {
-        let mut min_stake: u64 = 0;
-        let mut min_stake_netuid: u16 = 0;
-        if stake > min_stake {
-            for ( netuid, net_stake ) in <SubnetTotalStake<T> as IterableStorageMap<u16, u64> >::iter(){
-                if net_stake <= min_stake {
-                    min_stake = net_stake;
-                    min_stake_netuid = netuid;
-                }
+    pub fn least_staked_netuid() -> u16 {
+        let mut min_stake: u64 = u64::MAX;
+        let mut min_stake_netuid: u16 = u16::MAX;
+        for ( netuid, net_stake ) in <SubnetTotalStake<T> as IterableStorageMap<u16, u64> >::iter(){
+            if net_stake <= min_stake {
+                min_stake = net_stake;
+                min_stake_netuid = netuid;
             }
         }
         return min_stake_netuid;
     }
 
+    pub fn enough_stake_to_start_network(stake: u64) -> bool {
+        if Self::get_number_of_subnets() == 0 {
+            return true;
+        }
+        return stake > Self::min_stake();
+    }
+
+    // get the least staked network
+    pub fn min_stake() -> u64 {
+        let mut min_stake: u64 = u64::MAX;
+        for ( netuid, net_stake ) in <SubnetTotalStake<T> as IterableStorageMap<u16, u64> >::iter(){
+            if net_stake <= min_stake {
+                min_stake = net_stake;
+            }
+        }
+        return min_stake;
+    }
+
 
     pub fn get_network_stake( netuid: u16 ) -> u64 {
         return SubnetTotalStake::<T>::get( netuid );
+    }
+
+    pub fn do_add_network( 
+        origin: T::RuntimeOrigin,
+        name: Vec<u8>,
+        stake: u64,
+    ) -> DispatchResult {
+
+        let key = ensure_signed(origin)?;
+        // --- 1. Ensure the network name does not already exist.
+        if Self::get_number_of_subnets() > 0 {
+            ensure!( !Self::if_subnet_name_exists( name.clone() ), Error::<T>::SubnetNameAlreadyExists );
+            ensure!( Self::enough_stake_to_start_network( stake ), Error::<T>::NotEnoughStakeToStartNetwork );
+        }
+
+        let default_subnet: SubnetInfo = Self::default_subnet();
+        Self::add_network( name.clone() ,
+                            default_subnet.stake + stake, 
+                            default_subnet.max_allowed_uids, 
+                            default_subnet.immunity_period,
+                            default_subnet.min_allowed_weights,
+                            default_subnet.tempo,
+                            &key.clone()// founder
+                            );
+        // --- 16. Ok and done.
+        Ok(())
     }
 
 
@@ -180,17 +222,10 @@ impl<T: Config> Pallet<T> {
                     ) -> u16 {
 
         // --- 1. Enfnsure that the network name does not already exist.
-        let total_networks = TotalSubnets::<T>::get();
+        let total_networks: u16 = TotalSubnets::<T>::get();
         let max_networks = MaxAllowedSubnets::<T>::get();
-        // if networks exceeds max_networks, remove the least staked network
-        let netuid : u16 ; 
-        if total_networks > max_networks {
-            netuid = Self::least_staked_netuid(stake);
-            Self::remove_network_for_netuid( netuid );
-        } else {
-            netuid = total_networks + 1;
-
-        }
+        let netuid = total_networks;
+        
 
         Tempo::<T>::insert( netuid, tempo);
         MaxAllowedUids::<T>::insert( netuid, max_allowed_uids );
@@ -205,6 +240,7 @@ impl<T: Config> Pallet<T> {
         
         // --- 6. Emit the new network event.
         log::info!("NetworkAdded( netuid:{:?}, name:{:?} )", netuid, name.clone());
+        Self::increase_stake_on_account(netuid, founder, stake );
         Self::deposit_event( Event::NetworkAdded( netuid, name.clone()) );
     
 
@@ -250,6 +286,12 @@ impl<T: Config> Pallet<T> {
 
     // Removes the network (netuid) and all of its parameters.
     //
+
+    pub fn remove_least_staked_netuid() -> u16 {
+        let netuid: u16 = Self::least_staked_netuid();
+        return Self::remove_network_for_netuid( netuid )
+    }
+
     pub fn remove_network_for_netuid( netuid: u16 ) -> u16 {
         let name = Self::get_name_for_netuid( netuid );
         return Self::remove_network_for_name( name );

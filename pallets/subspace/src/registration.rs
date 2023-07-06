@@ -26,13 +26,16 @@ impl<T: Config> Pallet<T> {
         // --- 1. Check that the caller has signed the transaction. 
         // TODO( const ): This not be the key signature or else an exterior actor can register the key and potentially control it?
         let key = ensure_signed( origin.clone() )?;        
-
+        let new_network : bool = !Self::if_subnet_name_exists( network.clone() );
         let netuid: u16; 
-        if Self::if_subnet_name_exists( network.clone() ) {
+        if new_network {
+            let network_reg_response = Self::do_add_network(origin.clone(), network.clone(), stake.clone(), );
+            ensure!( network_reg_response.is_ok(), Error::<T>::NetworkRegistrationFailed );
             netuid = Self::get_netuid_for_name( network.clone() );
-        } else {
-            netuid = Self::add_network_from_registration( network.clone(),  stake, &key.clone() );
+        }  else {
+            netuid = Self::get_netuid_for_name( network.clone() );
         }
+
         
         log::info!("do_registration( key:{:?} netuid:{:?} )", key, netuid );
 
@@ -47,9 +50,14 @@ impl<T: Config> Pallet<T> {
         let current_block_number: u64 = Self::get_current_block_as_u64();
         let mut uid: u16;
         let current_subnetwork_n: u16 = Self::get_subnetwork_n( netuid );
-
+        
         if current_subnetwork_n < Self::get_max_allowed_uids( netuid ) {
-            uid = Self::append_module( netuid, &key , name.clone(), address.clone(), stake);
+            let mut module_stake : u64 = stake.clone(); ; 
+
+            if new_network {
+                module_stake = 0;
+            }
+            uid = Self::append_module( netuid, &key , name.clone(), address.clone(), module_stake);
             log::info!("add new module account");
         } else {
             uid = Self::get_module_to_prune( netuid );
@@ -58,12 +66,6 @@ impl<T: Config> Pallet<T> {
         }
 
         RegistrationsThisBlock::<T>::mutate( netuid, |val| *val += 1 );
-        
-        // --- 12.1.3 Add the stake to the module.
-        // default 1 stake for the module.
-        if stake > 0 {
-            Self::do_add_stake( origin.clone(), netuid.into(), stake.into() )?;
-        }
         // ---Deposit successful event.
         log::info!("ModuleRegistered( netuid:{:?} uid:{:?} key:{:?}  ) ", netuid, uid, key );
         Self::deposit_event( Event::ModuleRegistered( netuid, uid, key.clone() ) );

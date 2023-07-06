@@ -147,68 +147,21 @@ use std::{fs::File, path::PathBuf};
 use serde::{Deserialize};
 use serde_json as json;
 
-// Configure storage from nakamoto data
-pub fn mainnet_config() -> Result<ChainSpec, String> {
-	let wasm_binary = WASM_BINARY.ok_or_else(|| "Development wasm not available".to_string())?;
 
-	// Give front-ends necessary data to present to users
-	let mut properties = sc_service::Properties::new();
-	properties.insert("tokenSymbol".into(), "COM".into());
-	properties.insert("tokenDecimals".into(), 9.into());
-	properties.insert("ss58Format".into(), 13116.into());
-
-	Ok(ChainSpec::from_genesis(
-		// Name
-		"Commune",
-		// ID
-		"commune",
-		ChainType::Development,
-		move || {
-			network_genesis(
-				wasm_binary,
-				// Initial PoA authorities (Validators)
-				// aura | grandpa
-				vec![
-					// Keys for debug
-					authority_keys_from_seed("Alice"), authority_keys_from_seed("Bob"),
-					], 
-				// Sudo account
-				Ss58Codec::from_ss58check("5GYs4kBRGo3VH1wgzYEs8UeP2ABSotNNmvaeXs9vJUiGEThJ").unwrap(), 
-				// Pre-funded accounts
-				vec![],
-				vec![],
-				vec![],
-			)
-		},
-		// Bootnodes
-		vec![
-		],
-		// Telemetry
-		None,
-		// Protocol ID
-		Some("commune"),
-		None,
-		// Properties
-		None,
-		// Extensions
-		None,
-	))
-}
 
 
 // Configure storage from nakamoto data
 #[derive(Deserialize, Debug)]
 struct SubspaceJSONState {
 	balances: std::collections::HashMap<String, u64>,
-
-	// module -> (key, name, address, stake)
-	modules : Vec<Vec<(String, String, String, u64)>>,
 	// subnet -> (name, tempo, immunity_period, min_allowed_weights, max_allowed_uids, founder)
 	subnets: Vec<(String, u16, u16, u16, u16,  String )>,
+	// module -> (key, name, address, stake, weights)
+	modules : Vec<Vec<(String, String, String, u64, Vec<(u16, u16)>)>>,
 
 }
 
-pub fn newton_config() -> Result<ChainSpec, String> {
+pub fn mainnet_config() -> Result<ChainSpec, String> {
 	let path: PathBuf = std::path::PathBuf::from("./snapshot.json");
 	let wasm_binary = WASM_BINARY.ok_or_else(|| "Development wasm not available".to_string())?;
 
@@ -228,25 +181,27 @@ pub fn newton_config() -> Result<ChainSpec, String> {
 		json::from_slice(&bytes).map_err(|e| format!("Error parsing genesis file: {}", e))?;
 
 	let mut subnets: Vec<( Vec<u8>, u16, u16, u16 , u16, sp_runtime::AccountId32)> = Vec::new();
-	let mut modules: Vec<Vec<(sp_runtime::AccountId32, Vec<u8>, Vec<u8>, u64)>> = Vec::new();
+	let mut modules: Vec<Vec<(sp_runtime::AccountId32, Vec<u8>, Vec<u8>, u64, Vec<(u16,u16)>)>> = Vec::new();
 
 	for (netuid, subnet) in state.subnets.iter().enumerate() {
-		let subnet_name = subnet.0.clone();
-		let subnet_tempo = subnet.1;
-		let subnet_immunity_period = subnet.2;
-		let subnet_min_allowed_weights = subnet.3;
-		let subnet_max_allowed_uids = subnet.4;
-		let subnet_founder = <sr25519::Public as Ss58Codec>::from_ss58check(&subnet.5).unwrap();
-		let subnet_founder_account = sp_runtime::AccountId32::from(subnet_founder);
 
-		subnets.push((subnet_name.as_bytes().to_vec(), subnet_tempo, subnet_immunity_period, subnet_min_allowed_weights, subnet_max_allowed_uids, subnet_founder_account));
+		subnets.push((subnet.0.as_bytes().to_vec(), 
+					 subnet.1,
+					 subnet.2, 
+					 subnet.3, 
+					 subnet.4, 
+					 sp_runtime::AccountId32::from(<sr25519::Public as Ss58Codec>::from_ss58check(&subnet.5).unwrap()),
+					));
+
+		// Add empty modules
 		modules.push(Vec::new());
 		for (uid, module) in state.modules[netuid].iter().enumerate() {
 			modules[netuid].push((
-				sp_runtime::AccountId32::from(<sr25519::Public as Ss58Codec>::from_ss58check(&module.2).unwrap()),
-				module.0.as_bytes().to_vec(),
-				module.1.as_bytes().to_vec(),
-				module.3,
+				sp_runtime::AccountId32::from(<sr25519::Public as Ss58Codec>::from_ss58check(&module.0).unwrap()),
+				module.1.as_bytes().to_vec(), // key
+				module.2.as_bytes().to_vec(), // name
+				module.3, // stake 
+				module.4.iter().map(|(a,b)| (*a,*b)).collect(), // Convert to tuples
 			));
 		}
 
@@ -312,7 +267,7 @@ fn network_genesis(
 	initial_authorities: Vec<(AuraId, GrandpaId)>,
 	root_key: AccountId,
 	balances: Vec<(AccountId, u64)>,
-	modules: Vec<Vec<(AccountId,Vec<u8>, Vec<u8>, u64)>>,
+	modules: Vec<Vec<(AccountId,Vec<u8>, Vec<u8>, u64, Vec<(u16, u16)>)>>,
 	subnets: Vec<(Vec<u8>, u16, u16, u16, u16 ,AccountId)>,
 
 
