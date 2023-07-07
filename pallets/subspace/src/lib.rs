@@ -341,8 +341,8 @@ pub mod pallet {
 				SubnetNamespace::<T>::insert( subnet.0.clone(), netuid );
 				Tempo::<T>::insert(netuid, subnet.1);
 				ImmunityPeriod::<T>::insert(netuid, subnet.2);
-				MaxAllowedUids::<T>::insert(netuid, subnet.3);
-				MinAllowedWeights::<T>::insert(netuid, subnet.4);
+				MinAllowedWeights::<T>::insert(netuid, subnet.3);
+				MaxAllowedUids::<T>::insert(netuid, subnet.4);
 				Founder::<T>::insert(netuid, subnet.5.clone());
 				TotalSubnets::<T>::mutate( |n| *n += 1 );
 				N::<T>::insert( netuid, 0 );
