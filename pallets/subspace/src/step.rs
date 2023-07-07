@@ -51,11 +51,16 @@ impl<T: Config> Pallet<T> {
         log::trace!( "keys: {:?}", &keys );
 
         // Access network stake as normalized vector.
-        let mut stake_64: Vec<I64F64> = vec![ I64F64::from_num(0.0); n as usize ];
-        for (uid_i, key) in keys.iter() {
-            stake_64[ *uid_i as usize ] = I64F64::from_num( Self::get_stake_for_key(netuid, key ));
+        let mut stake: Vec<I32F32> = vec![ I32F32::from_num(0.0); n as usize ];
+        let mut total_stake : I32F32 = I32F32::from_num(Self::get_total_subnet_stake( netuid ).clone());
+        if total_stake == I32F32::from_num(0.0) {
+            total_stake = I32F32::from_num(1.0);
         }
-        let mut stake: Vec<I32F32> = vec_fixed64_to_fixed32( stake_64 );
+        for (uid_i, key) in keys.iter() {
+
+            stake[ *uid_i as usize ] = I32F32::from_num( Self::get_stake_for_key(netuid, key ).clone()) /  total_stake ;
+        }
+
 
         // range: I32F32(0, 1)
         log::trace!( "S: {:?}", &stake );
@@ -72,8 +77,6 @@ impl<T: Config> Pallet<T> {
         let mut weights: Vec<Vec<(u16, I32F32)>> = Self::get_weights_sparse( netuid );
         log::trace!( "W (permit): {:?}", &weights );
 
-        // Remove self-weight by masking diagonal.
-        weights = mask_diag_sparse( &weights );
         log::trace!( "W (permit+diag): {:?}", &weights );
 
         // Normalize remaining weights.
@@ -85,7 +88,7 @@ impl<T: Config> Pallet<T> {
         // =============================
 
         // Compute incentive: r_j = SUM(i) w_ij * s_i.
-        let mut incentive: Vec<I32F32> = matmul_sparse( &weights, &stake, n );
+        let mut incentive: Vec<I32F32> = matmul_sparse( &weights, &stake);
         inplace_normalize( &mut incentive );  // range: I32F32(0, 1)
         log::trace!( "Incentive: {:?}", &incentive );
 
@@ -100,7 +103,7 @@ impl<T: Config> Pallet<T> {
         
         // Compute dividends: d_i = SUM(j) b_ij * inc_j.
         // range: I32F32(0, 1)
-        let mut dividends: Vec<I32F32> = matmul_transpose_sparse( &bonds, &incentive );
+        let mut dividends: Vec<I32F32> = matmul_transpose_sparse( &bonds, &incentive ).clone();
         inplace_normalize( &mut dividends );
         log::trace!( "D: {:?}", &dividends );
 
@@ -110,18 +113,20 @@ impl<T: Config> Pallet<T> {
 
         // Compute normalized emission scores. range: I32F32(0, 1)
         let mut normalized_emission: Vec<I32F32> = incentive.iter().zip( dividends.clone() ).map( |(ii, di)| ii + di ).collect();
-        inplace_normalize( &mut normalized_emission );
 
         // If emission is zero, do an even split.
         if is_zero( &normalized_emission ) { // no weights set
             for (uid_i, key) in keys.iter() {
-                normalized_emission[ *uid_i as usize ] = I32F32::from_num(1)/I32F32::from_num(normalized_emission.len());
+                normalized_emission[ *uid_i as usize ] = I32F32::from_num(1.0);
             }
         }
+
+        inplace_normalize( &mut normalized_emission );
+
         
         // Compute rao based emission scores. range: I96F32(0, token_emission)
-        let emission: Vec<I96F32> = normalized_emission.iter().map( |e: &I32F32| I96F32::from_num( *e  ) * I96F32::from_num(token_emission) ).collect();
-        let emission: Vec<u64> = emission.iter().map( |e: &I96F32| e.to_num::<u64>() ).collect();
+        let emission: Vec<I64F64> = normalized_emission.iter().map( |e: &I32F32| I64F64::from_num(*e) * I64F64::from_num(token_emission) ).collect();
+        let emission: Vec<u64> = emission.iter().map( |e: &I64F64| e.to_num::<u64>() ).collect();
         log::trace!( "nE: {:?}", &normalized_emission );
         log::trace!( "E: {:?}", &emission );
 
@@ -177,19 +182,10 @@ impl<T: Config> Pallet<T> {
                 weights [ uid_i as usize ].push( ( *uid_j, u16_proportion_to_fixed( *weight_ij ) ));
             }
         }
+        // Remove self-weight by masking diagonal.
+        weights = mask_diag_sparse( &weights );
         weights
     } 
-
-    pub fn get_weights( netuid:u16 ) -> Vec<Vec<I32F32>> { 
-        let n: usize = Self::get_subnetwork_n( netuid ) as usize; 
-        let mut weights: Vec<Vec<I32F32>> = vec![ vec![ I32F32::from_num(0.0); n ]; n ]; 
-        for ( uid_i, weights_i ) in < Weights<T> as IterableStorageDoubleMap<u16,u16, Vec<(u16, u16)> >>::iter_prefix( netuid ) {
-            for (uid_j, weight_ij) in weights_i.iter() { 
-                weights [ uid_i as usize ] [ *uid_j as usize ] = u16_proportion_to_fixed(  *weight_ij );
-            }
-        }
-        weights
-    }
 
 
     pub fn blocks_until_next_epoch( netuid: u16, tempo: u16, block_number: u64 ) -> u64 { 

@@ -191,7 +191,7 @@ impl<T: Config> Pallet<T> {
     //
     pub fn calculate_network_emission(netuid:u16) -> u64 { 
 
-        let subnet_stake: I64F64 =I64F64::from_num( Self::get_total_subnet_stake(netuid) + 1);
+        let subnet_stake: I64F64 =I64F64::from_num( Self::get_total_subnet_stake(netuid));
         let total_stake: I64F64 = I64F64::from_num(Self::get_total_stake());
 
         let mut subnet_ratio: I64F64 = I64F64::from_num(0);
@@ -199,10 +199,15 @@ impl<T: Config> Pallet<T> {
             subnet_ratio =  subnet_stake/total_stake;
         } else {
             let n = TotalSubnets::<T>::get();
-            subnet_ratio = I64F64::from_num(1)/I64F64::from_num(n);
+            if n > 1 {
+                subnet_ratio = I64F64::from_num(1)/I64F64::from_num(n) ;
+            }
+            else { // n == 1
+                subnet_ratio = I64F64::from_num(1);
+            }
         }
         
-        let token_emission: u64 = (subnet_ratio* I64F64::from_num(1_000_000_000)).to_num::<u64>();
+        let token_emission: u64 = (subnet_ratio*I64F64::from_num(1_000_000_000)).to_num::<u64>();
         
         SubnetEmission::<T>::insert( netuid, token_emission );
 
