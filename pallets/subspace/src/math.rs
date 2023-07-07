@@ -441,7 +441,7 @@ pub fn matmul_sparse( sparse_matrix: &Vec<Vec<(u16, I32F32)>>, vector: &Vec<I32F
 // Column-wise sparse_matrix-vector product, row-wise sum: result_i = SUM(j) vector_j * matrix_ij.
 #[allow(dead_code)]
 pub fn matmul_transpose_sparse( sparse_matrix: &Vec<Vec<(u16, I32F32)>>, vector: &Vec<I32F32> ) -> Vec<I32F32> {
-    let mut result: Vec<I32F32> = vec![ I32F32::from_num( 0.0 ); sparse_matrix.len() ];
+    let mut result: Vec<I32F32> = vec![ I32F32::from_num( 0.0 ); vector.len() ];
     for (i, sparse_row) in sparse_matrix.iter().enumerate() {
         for (j, value) in sparse_row.iter() {
             // Compute dividends: d_j = SUM(i) b_ji * inc_i

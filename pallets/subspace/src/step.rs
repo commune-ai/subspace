@@ -51,16 +51,17 @@ impl<T: Config> Pallet<T> {
         log::trace!( "keys: {:?}", &keys );
 
         // Access network stake as normalized vector.
-        let mut stake: Vec<I32F32> = vec![ I32F32::from_num(0.0); n as usize ];
-        let mut total_stake : I32F32 = I32F32::from_num(Self::get_total_subnet_stake( netuid ).clone());
-        if total_stake == I32F32::from_num(0.0) {
-            total_stake = I32F32::from_num(1.0);
+        let mut stake_64: Vec<I64F64> = vec![ I64F64::from_num(0.0); n as usize ];
+        let mut total_stake : I64F64 = I64F64::from_num(Self::get_total_subnet_stake( netuid ).clone());
+        if total_stake == I64F64::from_num(0.0) {
+            total_stake = I64F64::from_num(1.0);
         }
         for (uid_i, key) in keys.iter() {
 
-            stake[ *uid_i as usize ] = I32F32::from_num( Self::get_stake_for_key(netuid, key ).clone()) /  total_stake ;
+            stake_64[ *uid_i as usize ] = I64F64::from_num( Self::get_stake_for_key(netuid, key ).clone()) /  total_stake ;
         }
 
+        let mut stake: Vec<I32F32> = stake_64.iter().map( |x| I32F32::from_num(x.clone()) ).collect();
 
         // range: I32F32(0, 1)
         log::trace!( "S: {:?}", &stake );
