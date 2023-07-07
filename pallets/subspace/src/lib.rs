@@ -429,14 +429,14 @@ pub mod pallet {
 		pub fn update_network(
 			origin: OriginFor<T>, 
 			netuid: u16,
-			stake: u64,
+			name: Vec<u8>,
 			immunity_period: u16,
 			min_allowed_weights: u16,
 			max_allowed_uids: u16,
 			tempo: u16,
 			founder: T::AccountId,
 		) -> DispatchResult {
-			Self::do_update_network(origin,netuid, stake, immunity_period, min_allowed_weights, max_allowed_uids, tempo, founder)
+			Self::do_update_network(origin,netuid, name.clone(), immunity_period, min_allowed_weights, max_allowed_uids, tempo, founder)
 		}
 
 
