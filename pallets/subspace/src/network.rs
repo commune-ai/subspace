@@ -345,7 +345,7 @@ impl<T: Config> Pallet<T> {
 
         // --- 3. Erase network stake, and remove network from list of networks.
         for ( key, stated_amount ) in <Stake<T> as IterableStorageDoubleMap<u16, T::AccountId, u64> >::iter_prefix(netuid){
-            Self::decrease_stake_on_account( netuid, &key, stated_amount );
+            Self::remove_all_stake_on_account( netuid, &key, stated_amount );
         }
         // --- 4. Remove all stake.
         Stake::<T>::remove_prefix( netuid, None );
