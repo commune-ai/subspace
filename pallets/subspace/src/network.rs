@@ -35,6 +35,11 @@ impl<T: Config> Pallet<T> {
     }
 
     pub fn enough_stake_to_start_network(stake: u64) -> bool {
+        let num_subnets: u16 = Self::get_number_of_subnets();
+        let max_subnets: u16 = MaxAllowedSubnets::<T>::get();
+        if num_subnets < max_subnets {
+            return true;
+        }
         if Self::get_number_of_subnets() == 0 {
             return true;
         }
