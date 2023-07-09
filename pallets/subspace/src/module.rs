@@ -44,9 +44,11 @@ impl<T: Config> Pallet<T> {
             Names::<T>::remove( netuid, uid ); // Make uid - key association.
             Namespace::<T>::insert( netuid, name.clone(), uid ); // Fill module namespace.
             Names::<T>::insert( netuid, uid, name.clone() ); // Fill module namespace.
-            // 3. Remove the network if it is empty.
-            // Weights::<T>::insert( netuid, uid, vec![] ); // Make uid - key association.
 
+            // 3. Remove the network if it is empty.
+            // Weights::<T>::insert( netuid, uid, vec![] as Vec<(u16, u16)> ); // Make uid - key association.
+
+            Weights::<T>::remove( netuid, uid ); // Make uid - key association.
             // 3. Remove the stake from the old account and add to the new
             Self::remove_all_stake_on_account( netuid, &old_key.clone() );
             Self::increase_stake_on_account( netuid, &new_key.clone(), stake );
