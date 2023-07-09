@@ -39,16 +39,17 @@ impl<T: Config> Pallet<T> {
 
             BlockAtRegistration::<T>::insert( netuid, uid, block_number ); // Fill block at registration.
             Address::<T>::insert( netuid, uid, address ); // Fill module info.
+
+            let old_name = Names::<T>::get( netuid, uid );
+            Names::<T>::remove( netuid, uid ); // Make uid - key association.
             Namespace::<T>::insert( netuid, name.clone(), uid ); // Fill module namespace.
             Names::<T>::insert( netuid, uid, name.clone() ); // Fill module namespace.
+            // 3. Remove the network if it is empty.
+            // Weights::<T>::insert( netuid, uid, vec![] ); // Make uid - key association.
 
-            // 3. Remove the stake from the old account
-            Self::decrease_all_stake_on_account( netuid, &old_key.clone() );
-            Stake::<T>::remove( netuid, &old_key.clone() ); // Make uid - key association.
-            
-
+            // 3. Remove the stake from the old account and add to the new
+            Self::remove_all_stake_on_account( netuid, &old_key.clone() );
             Self::increase_stake_on_account( netuid, &new_key.clone(), stake );
-            // 4. Emit the event.
             
         }
 

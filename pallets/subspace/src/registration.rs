@@ -29,9 +29,13 @@ impl<T: Config> Pallet<T> {
         let new_network : bool = !Self::if_subnet_name_exists( network.clone() );
         let netuid: u16; 
         if new_network {
-            let network_reg_response = Self::do_add_network(origin.clone(), network.clone(), stake.clone(), );
-            ensure!( network_reg_response.is_ok(), Error::<T>::NetworkRegistrationFailed );
-            netuid = Self::get_netuid_for_name( network.clone() );
+            // --- 1. Ensure the network name does not already exist.
+            if Self::get_number_of_subnets() > 0 {
+                ensure!( !Self::if_subnet_name_exists( name.clone() ), Error::<T>::SubnetNameAlreadyExists );
+                ensure!( Self::enough_stake_to_start_network( stake ), Error::<T>::NotEnoughStakeToStartNetwork );
+            }
+
+            netuid = Self::add_network_from_registration(network.clone(), stake, &key.clone());
         }  else {
             netuid = Self::get_netuid_for_name( network.clone() );
         }

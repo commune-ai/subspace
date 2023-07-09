@@ -172,6 +172,25 @@ impl<T: Config> Pallet<T> {
 
 
 
+    pub fn add_network_from_name( 
+        name: Vec<u8>,
+        key : &T::AccountId,
+    ) -> u16 {
+
+        let default_subnet  = Self::default_subnet();
+
+        let netuid = Self::add_network( 
+                            name.clone(),
+                            default_subnet.stake, 
+                            default_subnet.max_allowed_uids, 
+                            default_subnet.immunity_period,
+                            default_subnet.min_allowed_weights,
+                            default_subnet.tempo,
+                            &key);
+
+        // --- 16. Ok and done.
+        return netuid;
+    }
 
 
     pub fn add_network_from_registration( 
@@ -345,7 +364,7 @@ impl<T: Config> Pallet<T> {
 
         // --- 3. Erase network stake, and remove network from list of networks.
         for ( key, stated_amount ) in <Stake<T> as IterableStorageDoubleMap<u16, T::AccountId, u64> >::iter_prefix(netuid){
-            Self::remove_all_stake_on_account( netuid, &key, stated_amount );
+            Self::remove_all_stake_on_account( netuid, &key );
         }
         // --- 4. Remove all stake.
         Stake::<T>::remove_prefix( netuid, None );
