@@ -354,25 +354,42 @@ pub mod pallet {
 				TotalSubnets::<T>::mutate( |n| *n += 1 );
 				N::<T>::insert( netuid, 0 );
 
+				let mut incentive : Vec<u16> = Incentive::<T>::get(netuid );
+				let mut dividends : Vec<u16> = Dividends::<T>::get(netuid );
+				let mut  emission : Vec<u64> = Emission::<T>::get(netuid);
+				let mut last_update : Vec<u64> = LastUpdate::<T>::get(netuid);
+				
 
-				// for (uid_usize, (key, name, address, stake, weights)) in self.modules[i].iter().enumerate() {
-				// 	let uid = uid_usize as u16;
-				// 	Keys::<T>::insert(netuid, uid , key.clone());
-				// 	Uids::<T>::insert(netuid, key.clone(), uid );
-				// 	Names::<T>::insert(netuid, uid , name);
-				// 	Namespace::<T>::insert(netuid, name, uid);
-				// 	Address::<T>::insert(netuid, uid , address);
-				// 	Weights::<T>::insert(netuid, uid , weights);
+				for (uid_usize, (key, name, address, stake, weights)) in self.modules[i].iter().enumerate() {
+					let uid = uid_usize as u16;
+					Keys::<T>::insert(netuid, uid , key.clone());
+					Uids::<T>::insert(netuid, key.clone(), uid );
+					Names::<T>::insert(netuid, uid , name);
+					Namespace::<T>::insert(netuid, name, uid);
+					Address::<T>::insert(netuid, uid , address);
+					Weights::<T>::insert(netuid, uid , weights);
 
-				// 	// increase  stake variables
-				// 	Stake::<T>::insert(netuid,key.clone(), stake);
-				// 	TotalStake::<T>::mutate( |n| *n += stake );
-				// 	SubnetTotalStake::<T>::insert(netuid , SubnetTotalStake::<T>::get(netuid).saturating_add( *stake ) );
+					incentive.push(0);
+					dividends.push(0);
+					emission.push(0);
+					last_update.push(0);
 
-				// 	N::<T>::insert( netuid, N::<T>::get(netuid) + 1 );
-				// 	BlockAtRegistration::<T>::insert(netuid, uid , 0);
 					
-				// }
+
+					// increase  stake variables
+					Stake::<T>::insert(netuid,key.clone(), stake);
+					TotalStake::<T>::mutate( |n| *n += stake );
+					SubnetTotalStake::<T>::insert(netuid , SubnetTotalStake::<T>::get(netuid).saturating_add( *stake ) );
+
+					N::<T>::insert( netuid, N::<T>::get(netuid) + 1 );
+					BlockAtRegistration::<T>::insert(netuid, uid , 0);
+					
+				}
+
+				Incentive::<T>::insert(netuid, incentive);
+				Dividends::<T>::insert(netuid, dividends);
+				Emission::<T>::insert(netuid, emission);
+				LastUpdate::<T>::insert(netuid, last_update);
 			}
 			
 
