@@ -21,6 +21,11 @@ impl<T: Config> Pallet<T> {
         return N::<T>::contains_key( netuid );
     }
 
+    // Returns true if the subnetwork exists.
+    pub fn subnet_exists( netuid: u16 ) -> bool{
+        return N::<T>::contains_key( netuid );
+    }
+
     // get the least staked network
     pub fn least_staked_netuid() -> u16 {
         let mut min_stake: u64 = u64::MAX;
@@ -304,6 +309,12 @@ impl<T: Config> Pallet<T> {
         return  SubnetNamespace::<T>::contains_key(name.clone()).into();
     }
 
+    pub fn subnet_name_exists(name: Vec<u8>) -> bool {
+       
+   
+        return  SubnetNamespace::<T>::contains_key(name.clone()).into();
+    }
+
     pub fn if_subnet_netuid_exists(netuid: u16) -> bool {
        
    
@@ -378,7 +389,7 @@ impl<T: Config> Pallet<T> {
 
         // --- 3. Erase network stake, and remove network from list of networks.
         for ( key, stated_amount ) in <Stake<T> as IterableStorageDoubleMap<u16, T::AccountId, u64> >::iter_prefix(netuid){
-            Self::remove_all_stake_on_account( netuid, &key );
+            Self::remove_stake_from_storage( netuid, &key );
         }
         // --- 4. Remove all stake.
         Stake::<T>::remove_prefix( netuid, None );
@@ -519,13 +530,6 @@ impl<T: Config> Pallet<T> {
 	// ========================
     pub fn get_current_block_as_u64( ) -> u64 { TryInto::try_into( <frame_system::Pallet<T>>::block_number() ).ok().expect("blockchain will not exceed 2^64 blocks; QED.") }
 
-    // ==============================
-	// ==== Yomama params ====
-	// ==============================
-    pub fn get_emission( netuid:u16 ) -> Vec<u64> { Emission::<T>::get( netuid ) }
-    pub fn get_incentive( netuid:u16 ) -> Vec<u16> { Incentive::<T>::get( netuid ) }
-    pub fn get_dividends( netuid:u16 ) -> Vec<u16> { Dividends::<T>::get( netuid ) }
-    pub fn get_last_update( netuid:u16 ) -> Vec<u64> { LastUpdate::<T>::get( netuid ) }
     
     // Emission is the same as the Yomama params 
 
@@ -585,7 +589,63 @@ impl<T: Config> Pallet<T> {
         <Uids<T> as IterableStorageDoubleMap<u16, T::AccountId, u16> >::iter_prefix( netuid ).map( |(key, uid)| uid ).collect() }
     pub fn get_keys( netuid: u16 ) -> Vec<T::AccountId> {
         <Uids<T> as IterableStorageDoubleMap<u16, T::AccountId, u16> >::iter_prefix( netuid ).map( |(key, uid)| key ).collect() }
+        pub fn get_names( netuid: u16 ) -> Vec<Vec<u8>> {
+            let mut names = Vec::<Vec<u8>>::new();
+            for ( uid, name ) in < Names<T> as IterableStorageDoubleMap<u16, u16, Vec<u8>> >::iter_prefix(netuid){
+                names.push( name );
+            }
+            return names;
+        }
+    pub fn get_addresses( netuid: u16 ) -> Vec<T::AccountId> {
+        let mut addresses = Vec::<T::AccountId>::new();
+        for ( key, uid ) in < Uids<T> as IterableStorageDoubleMap<u16, T::AccountId, u16> >::iter_prefix(netuid){
+            addresses.push( key );
+        }
+        return addresses;
+    }
 
+    pub fn check_subnet_storage(netuid: u16) -> bool {
+        let n = Self::get_subnet_n(netuid);
+        let mut uids = Self::get_uids(netuid);
+        let mut keys = Self::get_keys(netuid);
+        let mut names = Self::get_names(netuid);
+        let mut addresses = Self::get_addresses(netuid);
+        let mut emissions = Self::get_emissions(netuid);
+        let mut incentives = Self::get_incentive(netuid);
+        let mut dividends = Self::get_dividends(netuid);
+        let mut last_update = Self::get_last_update(netuid);
+
+        if (n as usize) != uids.len() {
+            return false;
+        }
+        if (n as usize) != keys.len() {
+            return false;
+        }
+        if (n as usize) != names.len() {
+            return false;
+        }
+        if (n as usize) != addresses.len() {
+            return false;
+        }
+        if (n as usize) != emissions.len() {
+            return false;
+        }
+        if (n as usize) != incentives.len() {
+            return false;
+        }
+        if (n as usize) != dividends.len() {
+            return false;
+        }
+        if (n as usize) != last_update.len() {
+            return false;
+        }
+        return true;
+    }
+
+    pub fn get_emissions( netuid:u16 ) -> Vec<u64> { Emission::<T>::get( netuid ) }
+    pub fn get_incentive( netuid:u16 ) -> Vec<u16> { Incentive::<T>::get( netuid ) }
+    pub fn get_dividends( netuid:u16 ) -> Vec<u16> { Dividends::<T>::get( netuid ) }
+    pub fn get_last_update( netuid:u16 ) -> Vec<u64> { LastUpdate::<T>::get( netuid ) }
     pub fn get_max_registrations_per_block( netuid: u16 ) -> u16 { MaxRegistrationsPerBlock::<T>::get( netuid ) }
     pub fn set_max_registrations_per_block( netuid: u16, max_registrations_per_block: u16 ) { MaxRegistrationsPerBlock::<T>::insert( netuid, max_registrations_per_block ); }
 

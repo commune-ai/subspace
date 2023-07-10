@@ -25,9 +25,7 @@ impl<T: Config> Pallet<T> {
         ensure!( stake_as_balance.is_some(), Error::<T>::CouldNotConvertToBalance );
         ensure!( Self::can_remove_balance_from_account( &key, stake_as_balance.unwrap() ), Error::<T>::NotEnoughBalanceToStake );
         
-        Self::remove_balance_from_account( &key, stake_as_balance.unwrap() );
-        // --- 4. If we reach here, add the balance to the key.
-        Self::increase_stake_on_account(netuid, &key, stake_to_be_added );
+        Self::add_stake_on_account(netuid, &key, stake_to_be_added );
  
         // --- 5. Emit the staking event.
         log::info!("StakeAdded( key:{:?}, stake_to_be_added:{:?} )", key, stake_to_be_added );
@@ -58,7 +56,7 @@ impl<T: Config> Pallet<T> {
         ensure!( stake_to_be_added_as_currency.is_some(), Error::<T>::CouldNotConvertToBalance );
 
         // --- 7. We remove the balance from the key.
-        Self::decrease_stake_on_account(netuid,  &key, stake_to_be_removed );
+        Self::remove_stake_on_account(netuid,  &key, stake_to_be_removed );
 
         // --- 9. Emit the unstaking event.
         log::info!("StakeRemoved( key:{:?}, stake_to_be_removed:{:?} )", key, stake_to_be_removed );
@@ -100,9 +98,24 @@ impl<T: Config> Pallet<T> {
 
 
 
+
     // Increases the stake on the cold - hot pairing by increment while also incrementing other counters.
     // This function should be called rather than set_stake under account.
     // 
+
+    pub fn add_stake_on_account(netuid: u16, key: &T::AccountId, increment: u64 ) -> bool{
+
+        if !Stake::<T>::contains_key(netuid, key) {
+            Stake::<T>::insert(netuid, key, 0);
+        }
+        Self::remove_balance_from_account( key, Self::u64_to_balance( increment ).unwrap() );
+        Self::increase_stake_on_account(netuid, key, increment);
+        
+        return true;
+
+    }
+
+
     pub fn increase_stake_on_account(netuid:u16, key: &T::AccountId, increment: u64 ){
 
         // --- 2. We convert the stake u64 into a balancer.
@@ -118,29 +131,35 @@ impl<T: Config> Pallet<T> {
     // Decreases the stake on the cold - hot pairing by the decrement while decreasing other counters.
     //
     pub fn decrease_stake_on_account(netuid:u16, key: &T::AccountId, decrement: u64 ) {
-
-        let stake_to_be_added_as_currency = Self::u64_to_balance( decrement );
-
         // --- 8. We add the balancer to the key.  If the above fails we will not credit this key.
-        Self::add_balance_to_account( &key, stake_to_be_added_as_currency.unwrap() );
         Stake::<T>::insert( netuid, key, Stake::<T>::get(netuid,  key).saturating_sub( decrement ) );
         TotalStake::<T>::put(TotalStake::<T>::get().saturating_sub( decrement ) );
         SubnetTotalStake::<T>::insert(netuid, SubnetTotalStake::<T>::get(netuid).saturating_sub( decrement ) );
     }
-
     // Decreases the stake on the cold - hot pairing by the decrement while decreasing other counters.
     //
-    pub fn decrease_all_stake_on_account(netuid:u16, key: &T::AccountId ) {
+    pub fn remove_stake_on_account(netuid:u16, key: &T::AccountId, decrement: u64 ) {
 
-        let decrement = Stake::<T>::get(netuid,  &key);
+        let stake_to_be_added_as_currency = Self::u64_to_balance( decrement );
+
+        // --- 8. We add the balancer to the key.  If the above fails we will not credit this key.
         Self::decrease_stake_on_account(netuid, &key, decrement );
+        Self::add_balance_to_account( &key, stake_to_be_added_as_currency.unwrap() );
     }
 
     // Decreases the stake on the cold - hot pairing by the decrement while decreasing other counters.
     //
     pub fn remove_all_stake_on_account(netuid:u16, key: &T::AccountId ) {
 
-        Self::decrease_all_stake_on_account(netuid, &key );
+        let decrement = Stake::<T>::get(netuid,  &key);
+        Self::remove_stake_on_account(netuid, &key, decrement );
+    }
+
+    // Decreases the stake on the cold - hot pairing by the decrement while decreasing other counters.
+    //
+    pub fn remove_stake_from_storage(netuid:u16, key: &T::AccountId ) {
+
+        Self::remove_all_stake_on_account(netuid, &key );
         Stake::<T>::remove(netuid, &key);
     }
 

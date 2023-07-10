@@ -69,8 +69,8 @@ impl<T: Config> Pallet<T> {
             // Weights::<T>::insert( netuid, uid, vec![] as Vec<(u16, u16)> ); // Make uid - key association.
             Weights::<T>::insert( netuid, uid, vec![] as Vec<(u16, u16)> ); // Make uid - key association.
             // 3. Remove the stake from the old account and add to the new
-            Self::remove_all_stake_on_account( netuid, &old_key.clone() );
-            Self::increase_stake_on_account( netuid, &new_key.clone(), stake );
+            Self::remove_stake_from_storage( netuid, &old_key );
+            Self::add_stake_on_account( netuid, &new_key, stake );
             
         }
 
@@ -127,9 +127,6 @@ impl<T: Config> Pallet<T> {
             let block_number = Self::get_current_block_as_u64();
             log::debug!("append_module( netuid: {:?} | uid: {:?} | new_key: {:?} ) ", netuid, key, uid );
     
-            // 2. Get and increase the uid count.
-            N::<T>::insert( netuid, uid + 1 );
-    
             // 3. Expand Yuma with new position.
             Emission::<T>::mutate(netuid, |v| v.push(0) );
             Incentive::<T>::mutate(netuid, |v| v.push(0) );
@@ -143,9 +140,11 @@ impl<T: Config> Pallet<T> {
             Namespace::<T>::insert( netuid, name.clone(), uid ); // Fill module namespace.
             Names::<T>::insert( netuid, uid, name.clone() ); // Fill module namespace.
             Address::<T>::insert( netuid, uid, address.clone() ); // Fill module info.
-
-            Self::increase_stake_on_account( netuid, &key, stake );
-
+            Self::add_stake_on_account( netuid, &key, stake );
+            
+            // 3. Get and increase the uid count.
+            N::<T>::insert( netuid, uid + 1 );
+    
             return uid;
     
         }   

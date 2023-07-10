@@ -25,7 +25,7 @@ benchmarks! {
 
     // Lets create a single network.
     let n: u16 = 4096;
-    let netuid: u16 = 11; //11 is the benchmark network.
+    let netuid: u16 = 0; //11 is the benchmark network.
     let epoch: u16 = 1;
     let name: Vec<u8> = "DefaultModule".as_bytes().to_vec();
     assert_ok!( Subspace::<T>::do_add_network( RawOrigin::Root.into(), netuid.try_into().unwrap(), name.into(),  epoch.into()));
@@ -51,7 +51,7 @@ benchmarks! {
 
     // Lets create a single network.
     let n: u16 = 4096;
-    let netuid: u16 = 11; //11 is the benchmark network.
+    let netuid: u16 = 0; //11 is the benchmark network.
     let epoch: u16 = 1;
         let name: Vec<u8> = "DefaultModule".as_bytes().to_vec();
     Subspace::<T>::do_add_network( caller_origin.clone(), netuid.try_into().unwrap(), name.into(), epoch.into());
@@ -80,7 +80,7 @@ benchmarks! {
 
     // Lets create a single network.
     let n: u16 = 10;
-    let netuid: u16 = 1; //11 is the benchmark network.
+    let netuid: u16 = 0; //11 is the benchmark network.
     let epoch: u16 = 1;
     let name: Vec<u8> = "DefaultModule".as_bytes().to_vec();
 
@@ -97,7 +97,7 @@ benchmarks! {
     // This is a whitelisted caller who can make transaction without weights.
     let caller: T::AccountId = whitelisted_caller::<AccountIdOf<T>>(); 
     let caller_origin = <T as frame_system::Config>::RuntimeOrigin::from(RawOrigin::Signed(caller.clone()));
-    let netuid: u16 = 1;
+    let netuid: u16 = 0;
     let epoch: u16 = 1;
     let name: Vec<u8> = "DefaultModule".as_bytes().to_vec();
    
@@ -162,7 +162,7 @@ benchmarks! {
   benchmark_remove_stake{
     let caller: T::AccountId = whitelisted_caller::<AccountIdOf<T>>(); 
     let caller_origin = <T as frame_system::Config>::RuntimeOrigin::from(RawOrigin::Signed(caller.clone()));
-    let netuid: u16 = 1;
+    let netuid: u16 = 0;
     let epoch: u16 = 1;
     let name: Vec<u8> = "DefaultModule".as_bytes().to_vec();
     let network: Vec<u8> = "commune".as_bytes().to_vec();

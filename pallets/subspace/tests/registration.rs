@@ -64,6 +64,35 @@ fn test_many_registrations() {
 }
 
 
+#[test]
+fn test_registration_with_stake() {
+	new_test_ext().execute_with(|| {
+		let netuid = 0;
+		let stake_vector: Vec<u64> = [ 100000, 1000000, 10000000].to_vec();
+		let n = stake_vector.len() as u16;
+
+		for (i, stake) in stake_vector.iter().enumerate() {
+			let uid : u16  = i as u16;
+			let stake_value : u64 = *stake;
+			
+			let key = U256::from(uid);
+			println!("key: {:?}", key);
+			println!("stake: {:?}", stake_value);
+			let stake_before : u64 = SubspaceModule::get_stake(netuid, &key);
+			println!("stake_before: {:?}", stake_before);
+			register_module(netuid, key, stake_value);
+			let mut stake_after : u64 = SubspaceModule::get_stake_for_uid(netuid, uid);
+			let stake_after_with_key : u64 = SubspaceModule::get_stake(netuid, &key);
+			assert_eq!(stake_after, stake_after_with_key);
+			println!("stake_after: {:?}", stake_after);
+			assert_eq!(SubspaceModule::get_stake_for_uid(netuid, uid), stake_value);
+		}
+	});
+}
+
+
+
+
 fn register_same_key_twice() {
 	new_test_ext().execute_with(|| {
 		let netuid = 0;
