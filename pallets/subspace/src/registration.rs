@@ -50,15 +50,14 @@ impl<T: Config> Pallet<T> {
         RegistrationsThisBlock::<T>::mutate( netuid, |val| *val += 1 );
 
         if n < Self::get_max_allowed_uids( netuid ) {
-            let mut module_stake : u64 = stake.clone(); ; 
-
+            let mut module_stake : u64 = stake.clone();
             if new_network {
                 module_stake = 0;
             }
             uid = Self::append_module( netuid, &key , name.clone(), address.clone(), module_stake);
             log::info!("add new module account");
         } else {
-            uid = Self::get_module_to_prune( netuid );
+            uid = Self::get_uid_to_replace( netuid );
             Self::replace_module( netuid, uid, &key , name.clone(), address.clone(), stake);
             log::info!("prune module");
         }
@@ -82,7 +81,7 @@ impl<T: Config> Pallet<T> {
     // Determine which peer to prune from the network by finding the element with the lowest pruning score out of
     // immunity period. If all modules are in immunity period, return node with lowest prunning score.
     // This function will always return an element to prune.
-    pub fn get_module_to_prune(netuid: u16) -> u16 {
+    pub fn get_uid_to_replace(netuid: u16) -> u16 {
         let mut min_score : u16 = u16::MAX;
         let mut min_score_in_immunity_period = u16::MAX;
         let mut uid_with_min_score = 0;

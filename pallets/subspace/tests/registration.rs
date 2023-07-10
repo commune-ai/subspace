@@ -44,6 +44,41 @@ fn test_registration_ok() {
 }
 
 
+#[test]
+fn test_many_registrations() {
+	new_test_ext().execute_with(|| {
+	let netuid = 0;
+	let stake = 10;
+	let n = 100;
+	SubspaceModule::set_max_registrations_per_block(netuid, n);
+	for i in 0..n {
+		
+		register_module(netuid, U256::from(i), stake);
+		assert_eq!(SubspaceModule::get_subnet_n(netuid), i+1,"Failed at i={}",i);
+	}
+
+
+
+
+});
+}
+
+
+fn register_same_key_twice() {
+	new_test_ext().execute_with(|| {
+		let netuid = 0;
+		let stake = 10;
+		let key = U256::from(1);
+		register_module(netuid, key, stake);
+		register_module(netuid, key, stake);
+	});
+
+
+
+
+}
+
+
 
 
 
