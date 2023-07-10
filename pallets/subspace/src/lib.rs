@@ -355,24 +355,24 @@ pub mod pallet {
 				N::<T>::insert( netuid, 0 );
 
 
-			for (uid_usize, (key, name, address, stake, weights)) in self.modules[i].iter().enumerate() {
-				let uid = uid_usize as u16;
-				Keys::<T>::insert(netuid, uid , key);
-				Uids::<T>::insert(netuid, key, uid );
-				Names::<T>::insert(netuid, uid , name);
-				Namespace::<T>::insert(netuid, name, uid);
-				Address::<T>::insert(netuid, uid , address);
-				Weights::<T>::insert(netuid, uid , weights);
+				// for (uid_usize, (key, name, address, stake, weights)) in self.modules[i].iter().enumerate() {
+				// 	let uid = uid_usize as u16;
+				// 	Keys::<T>::insert(netuid, uid , key.clone());
+				// 	Uids::<T>::insert(netuid, key.clone(), uid );
+				// 	Names::<T>::insert(netuid, uid , name);
+				// 	Namespace::<T>::insert(netuid, name, uid);
+				// 	Address::<T>::insert(netuid, uid , address);
+				// 	Weights::<T>::insert(netuid, uid , weights);
 
-				// increase  stake variables
-				Stake::<T>::insert(netuid,key, stake);
-				TotalStake::<T>::mutate( |n| *n += stake );
-				SubnetTotalStake::<T>::insert(netuid , SubnetTotalStake::<T>::get(netuid).saturating_add( *stake ) );
+				// 	// increase  stake variables
+				// 	Stake::<T>::insert(netuid,key.clone(), stake);
+				// 	TotalStake::<T>::mutate( |n| *n += stake );
+				// 	SubnetTotalStake::<T>::insert(netuid , SubnetTotalStake::<T>::get(netuid).saturating_add( *stake ) );
 
-				N::<T>::insert( netuid, N::<T>::get(netuid) + 1 );
-				BlockAtRegistration::<T>::insert(netuid, uid , 0);
-				
-			}
+				// 	N::<T>::insert( netuid, N::<T>::get(netuid) + 1 );
+				// 	BlockAtRegistration::<T>::insert(netuid, uid , 0);
+					
+				// }
 			}
 			
 

@@ -214,9 +214,9 @@ pub(crate) fn run_to_block(n: u64) {
 #[allow(dead_code)]
 pub fn register_module( netuid: u16, key_account_id: U256, stake: u64 ) {
 
-	// can i format the test in rust
-
-	SubspaceModule::add_balance_to_account( &key_account_id, stake );
+	// can i format the test in rus
+	SubspaceModule::add_balance_to_account( &key, stake );
+	SubspaceModule::increase_stake_on_account( netuid, &key, stake)
 
 	let mut network : Vec<u8> = "test".as_bytes().to_vec();	
 	network.extend(netuid.to_string().as_bytes().to_vec());
@@ -236,9 +236,9 @@ pub fn register_module( netuid: u16, key_account_id: U256, stake: u64 ) {
 
 #[allow(dead_code)]
 pub fn add_network(netuid: u16, key_account_id: U256){
-	let network :Vec<u8> = "test".as_bytes().to_vec();
-	network.extend(netuid.to_string().as_bytes().to_vec());
-	let result = SubspaceModule::add_network(<<Test as Config>::RuntimeOrigin>::root(), network);
+	let network :Vec<u8> = netuid.to_string().as_bytes().to_vec();
+	let origin = <<Test as frame_system::Config>::RuntimeOrigin>::signed(key_account_id);
+	let result = SubspaceModule::add_network(origin, network);
 	SubspaceModule::set_network_registration_allowed( netuid, true );
 	assert_ok!(result);
 }

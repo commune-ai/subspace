@@ -15,9 +15,9 @@ use sp_core::U256;
 #[cfg(not(tarpaulin))]
 fn test_add_stake_dispatch_info_ok() {
 	new_test_ext().execute_with(|| {
-		let hotkey = U256::from(0);
+		let key = U256::from(0);
 		let amount_staked = 5000;
-        let call = RuntimeCall::SubspaceModule(subspaceCall::add_stake{hotkey, amount_staked});
+        let call = RuntimeCall::SubspaceModule(subspaceCall::add_stake{key, amount_staked});
 		assert_eq!(call.get_dispatch_info(), DispatchInfo {
 			weight: frame_support::weights::Weight::from_ref_time(65000000),
 			class: DispatchClass::Normal,
@@ -29,7 +29,6 @@ fn test_add_stake_dispatch_info_ok() {
 fn test_add_stake_ok_no_emission() {
 	new_test_ext().execute_with(|| {
 		let key_account_id = U256::from(533453);
-		let account_id = U256::from(55453);
         let netuid : u16 = 1;
 		let tempo: u16 = 13;
 		let start_nonce: u64 = 0;
@@ -38,19 +37,20 @@ fn test_add_stake_ok_no_emission() {
 		add_network(netuid, tempo, 0);
 		
 		// Register neuron
-		register_ok_neuron( netuid, key_account_id, account_id, start_nonce);
+		register_module( netuid, key_account_id, 0);
 
 		// Give it some $$$ in his coldkey balance
 		SubspaceModule::add_balance_to_account( &account_id, 10000 );
 
 		// Check we have zero staked before transfer
-		assert_eq!(SubspaceModule::get_total_stake_for_hotkey(&key_account_id ), 0);
+		assert_eq!(SubspaceModule::get_stake(netuid, &key_account_id ), 0);
 
 		// Also total stake should be zero
 		assert_eq!(SubspaceModule::get_total_stake(), 0);
 
 		// Transfer to hotkey account, and check if the result is ok
-		assert_ok!(SubspaceModule::add_stake(<<Test as Config>::RuntimeOrigin>::signed(account_id), key_account_id, 10000));
+		let origin = <<Test as Config>::RuntimeOrigin>::signed(account_id);
+		assert_ok!(SubspaceModule::add_stake(origin, key_account_id, 10000));
 
 		// Check if stake has increased
 		assert_eq!(SubspaceModule::get_total_stake_for_hotkey(&key_account_id), 10000);
@@ -81,9 +81,9 @@ fn test_dividends_with_run_to_block() {
 		SubspaceModule::set_max_registrations_per_block( netuid, 3 );
 		SubspaceModule::set_max_allowed_uids(1, 5);
 		
-		register_ok_neuron( netuid, U256::from(0), account_id, 2112321);
-		register_ok_neuron(netuid, neuron_src_hotkey_id, account_id, 192213123);
-		register_ok_neuron(netuid, neuron_dest_hotkey_id, account_id, 12323);
+		register_module( netuid, U256::from(0), account_id, 2112321);
+		register_module(netuid, neuron_src_hotkey_id, account_id, 192213123);
+		register_module(netuid, neuron_dest_hotkey_id, account_id, 12323);
 
 		// Add some stake to the hotkey account, so we can test for emission before the transfer takes place
 		SubspaceModule::increase_stake_on_hotkey_account(&neuron_src_hotkey_id, initial_stake);
@@ -139,7 +139,7 @@ fn test_add_stake_err_neuron_does_not_belong_to_coldkey() {
 		//add network
 		add_network(netuid, tempo, 0);
 		
-		register_ok_neuron( netuid, hotkey_id, coldkey_id, start_nonce);
+		register_module( netuid, hotkey_id, coldkey_id, start_nonce);
 		// Give it some $$$ in his coldkey balance
 		SubspaceModule::add_balance_to_account( &other_cold_key, 100000 );
 
@@ -161,7 +161,7 @@ fn test_add_stake_err_not_enough_belance() {
 		//add network
 		add_network(netuid, tempo, 0);
 		
-		register_ok_neuron( netuid, hotkey_id, coldkey_id, start_nonce);
+		register_module( netuid, hotkey_id, coldkey_id, start_nonce);
 
 		// Lets try to stake with 0 balance in cold key account
 		assert_eq!(SubspaceModule::get_coldkey_balance(&coldkey_id), 0);
@@ -187,7 +187,7 @@ fn test_add_stake_total_balance_no_change() {
 		add_network(netuid, tempo, 0);
 		
 		// Register neuron
-		register_ok_neuron( netuid, key_account_id, account_id, start_nonce);
+		register_module( netuid, key_account_id, account_id, start_nonce);
 
 		// Give it some $$$ in his coldkey balance
 		let initial_balance = 10000;
@@ -255,7 +255,7 @@ fn test_remove_stake_ok_no_emission() {
 		add_network(netuid, tempo, 0);
 		
 		// Let's spin up a neuron
-		register_ok_neuron( netuid, key_account_id, account_id, start_nonce);
+		register_module( netuid, key_account_id, account_id, start_nonce);
 
 		// Some basic assertions
 		assert_eq!(SubspaceModule::get_total_stake(), 0);
@@ -298,7 +298,7 @@ fn test_remove_stake_err_hotkey_does_not_belong_to_coldkey() {
 		//add network
 		add_network(netuid, tempo, 0);
 		
-		register_ok_neuron( netuid, hotkey_id, coldkey_id, start_nonce);
+		register_module( netuid, hotkey_id, coldkey_id, start_nonce);
 
 		// Perform the request which is signed by a different cold key
 		let result = SubspaceModule::remove_stake(<<Test as Config>::RuntimeOrigin>::signed(other_cold_key), hotkey_id, 1000);
@@ -319,7 +319,7 @@ fn test_remove_stake_no_enough_stake() {
 		//add network
 		add_network(netuid, tempo, 0);
 		
-		register_ok_neuron( netuid, hotkey_id, coldkey_id, start_nonce);
+		register_module( netuid, hotkey_id, coldkey_id, start_nonce);
 
 		assert_eq!(SubspaceModule::get_total_stake_for_hotkey(&hotkey_id), 0);
 
@@ -345,7 +345,7 @@ fn test_remove_stake_total_balance_no_change() {
 		add_network(netuid, tempo, 0);
 		
 		// Register neuron
-		register_ok_neuron( netuid, key_account_id, account_id, start_nonce);
+		register_module( netuid, key_account_id, account_id, start_nonce);
 
 		// Some basic assertions
 		assert_eq!(SubspaceModule::get_total_stake(), 0);
@@ -388,7 +388,7 @@ fn test_remove_stake_total_issuance_no_change() {
 		add_network(netuid, tempo, 0);
 		
 		// Register neuron
-		register_ok_neuron( netuid, key_account_id, account_id, start_nonce);
+		register_module( netuid, key_account_id, account_id, start_nonce);
 
 		// Some basic assertions
 		assert_eq!(SubspaceModule::get_total_stake(), 0);
@@ -467,7 +467,7 @@ fn test_add_stake_to_hotkey_account_ok() {
 		//add network
 		add_network(netuid, tempo, 0);
 		
-		register_ok_neuron( netuid, hotkey_id, coldkey_id, start_nonce);
+		register_module( netuid, hotkey_id, coldkey_id, start_nonce);
 
 		// There is not stake in the system at first, so result should be 0;
 		assert_eq!(SubspaceModule::get_total_stake(), 0);
@@ -498,7 +498,7 @@ fn test_remove_stake_from_hotkey_account() {
 		//add network
 		add_network(netuid, tempo, 0);
 		
-		register_ok_neuron( netuid, hotkey_id, coldkey_id, start_nonce);
+		register_module( netuid, hotkey_id, coldkey_id, start_nonce);
 
 		// Add some stake that can be removed
 		SubspaceModule::increase_stake_on_hotkey_account(&hotkey_id, amount);
@@ -532,8 +532,8 @@ fn test_remove_stake_from_hotkey_account_registered_in_various_networks() {
 		add_network(netuid, tempo, 0);
 		add_network(netuid_ex, tempo, 0);
 		//
-		register_ok_neuron( netuid, hotkey_id, coldkey_id, start_nonce);
-		register_ok_neuron( netuid_ex, hotkey_id, coldkey_id, 48141209);
+		register_module( netuid, hotkey_id, coldkey_id, start_nonce);
+		register_module( netuid_ex, hotkey_id, coldkey_id, 48141209);
 		
 		//let neuron_uid = SubspaceModule::get_uid_for_net_and_hotkey(netuid, &hotkey_id);
 		let neuron_uid ;
@@ -647,7 +647,7 @@ fn test_hotkey_belongs_to_coldkey_ok() {
 		let tempo: u16 = 13;
 		let start_nonce: u64 = 0;
 		add_network(netuid, tempo, 0);		
-		register_ok_neuron( netuid, hotkey_id, coldkey_id, start_nonce);
+		register_module( netuid, hotkey_id, coldkey_id, start_nonce);
 		assert_eq!(SubspaceModule::get_owning_coldkey_for_hotkey(&hotkey_id), coldkey_id);
 	});
 }

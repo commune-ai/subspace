@@ -100,11 +100,6 @@ impl<T: Config> Pallet<T> {
             Address::<T>::remove(netuid, replace_uid ); // Make uid - key association.
             BlockAtRegistration::<T>::remove( netuid, replace_uid ); // Fill block at registration.
             Weights::<T>::remove( netuid, replace_uid ); // Make uid - key association.
-            
-            Self::remove_all_stake_on_account( netuid, &key.clone() ); // Make uid - key association.
-            
-            let module_name: Vec<u8> =  Names::<T>::get( netuid, replace_uid );
-            Namespace::<T>::remove( netuid, module_name.clone() ); // Fill module namespace.
             Names::<T>::remove( netuid, replace_uid ); // Make uid - key association.
             N::<T>::mutate( netuid, |v| *v -= 1 ); // Decrease the number of modules in the network.
             
@@ -142,12 +137,12 @@ impl<T: Config> Pallet<T> {
             LastUpdate::<T>::mutate(netuid, |v| v.push( block_number ) );
         
             // 4. Insert new account information.
-            Keys::<T>::insert( netuid, uid, &key.clone() ); // Make key - uid association.
-            Uids::<T>::insert( netuid, &key.clone(), uid ); // Make uid - key association.
+            Keys::<T>::insert( netuid, uid, key.clone() ); // Make key - uid association.
+            Uids::<T>::insert( netuid, key.clone(), uid ); // Make uid - key association.
             BlockAtRegistration::<T>::insert( netuid, uid, block_number ); // Fill block at registration.
             Namespace::<T>::insert( netuid, name.clone(), uid ); // Fill module namespace.
             Names::<T>::insert( netuid, uid, name.clone() ); // Fill module namespace.
-            Address::<T>::insert( netuid, uid, address ); // Fill module info.
+            Address::<T>::insert( netuid, uid, address.clone() ); // Fill module info.
 
             Self::increase_stake_on_account( netuid, &key, stake );
 

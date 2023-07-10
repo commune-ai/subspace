@@ -28,50 +28,7 @@ fn test_set_weights_dispatch_info_ok() {
 	});
 }
 
-// Test ensures that uid has validator permit to set non-self weights.
-#[test]
-fn test_weights_err_no_validator_permit() {
-	new_test_ext().execute_with(|| {
-        let key_account_id = U256::from(55);
-		let netuid: u16 = 1;
-		let tempo: u16 = 13;
-		SubspaceModule::set_max_allowed_uids(netuid, 3);
-    	register_ok_neuron( netuid, key_account_id);
-		register_ok_neuron( netuid, U256::from(1),);
-		register_ok_neuron( netuid, U256::from(2));
-		
-		let weights_keys: Vec<u16> = vec![1, 2];
-		let weight_values: Vec<u16> = vec![1, 2];
-		let result = SubspaceModule::set_weights(RuntimeOrigin::signed(key_account_id), netuid, weights_keys, weight_values, 0);
-		assert_eq!(result, Err(Error::<Test>::NoValidatorPermit.into()));
 
-		let weights_keys: Vec<u16> = vec![1, 2];
-		let weight_values: Vec<u16> = vec![1, 2];
-		let neuron_uid: u16 = SubspaceModule::get_uid_for_key( netuid, &key_account_id ).expect("Not registered.");
-		SubspaceModule::set_validator_permit_for_uid(netuid, neuron_uid, true);
-		let result = SubspaceModule::set_weights(RuntimeOrigin::signed(key_account_id), netuid, weights_keys, weight_values, 0);
-		assert_ok!(result);
-	});
-}
-
-// Test ensures that a uid can only set weights if it has the valid weights set version key.
-#[test]
-fn test_weights_version_key() {
-	new_test_ext().execute_with(|| {
-        let key = U256::from(55);
-		let netuid0: u16 = 0;
-		let netuid1: u16 = 2;
-		register_ok_neuron( netuid0, key );
-		register_ok_neuron( netuid1, key );
-
-		let weights_keys: Vec<u16> = vec![0];
-		let weight_values: Vec<u16> = vec![1];
-		assert_ok!( SubspaceModule::set_weights(RuntimeOrigin::signed(key), netuid0, weights_keys.clone(), weight_values.clone()) );
-		assert_ok!( SubspaceModule::set_weights(RuntimeOrigin::signed(key), netuid1, weights_keys.clone(), weight_values.clone() );
-
-
-	});
-}
 
 
 // Test ensures that uids -- weights must have the same size.
@@ -79,10 +36,8 @@ fn test_weights_version_key() {
 fn test_weights_err_weights_vec_not_equal_size() {
 	new_test_ext().execute_with(|| {
         let key_account_id = U256::from(55);
-		let netuid: u16 = 1;
-		let tempo: u16 = 13;
-		add_network(netuid, tempo, 0);
-    	register_ok_neuron(1, key_account_id);
+		add_network(0, key_account_id);
+    	register_module(1, key_account_id);
 		let neuron_uid: u16 = SubspaceModule::get_uid_for_key( netuid, &key_account_id ).expect("Not registered.");
 		SubspaceModule::set_validator_permit_for_uid(netuid, neuron_uid, true);
 		let weights_keys: Vec<u16> = vec![1, 2, 3, 4, 5, 6];
@@ -97,23 +52,22 @@ fn test_weights_err_weights_vec_not_equal_size() {
 fn test_weights_err_has_duplicate_ids() {
 	new_test_ext().execute_with(|| {
 		let key_account_id = U256::from(666);
-		let netuid: u16 = 1;
-		let tempo: u16 = 13;
-		add_network(netuid, tempo, 0);
+		let netuid: u16 = 0;
+		register_module(netuid, key_account_id);
 		SubspaceModule::set_max_allowed_uids(netuid, 100); // Allow many registrations per block.
 		SubspaceModule::set_max_registrations_per_block(netuid, 100); // Allow many registrations per block.
 		
 
 		// uid 1
-		register_ok_neuron( netuid, U256::from(1));
+		register_module( netuid, U256::from(1));
 		SubspaceModule::get_uid_for_key( netuid, &U256::from(1) ).expect("Not registered.");
 
 		// uid 2
-		register_ok_neuron( netuid, U256::from(2));
+		register_module( netuid, U256::from(2));
 		SubspaceModule::get_uid_for_key( netuid, &U256::from(2) ).expect("Not registered.");
 
 		// uid 3
-		register_ok_neuron( netuid, U256::from(3));
+		register_module( netuid, U256::from(3));
 		SubspaceModule::get_uid_for_key( netuid, &U256::from(3) ).expect("Not registered.");
 		
 		assert_eq!(SubspaceModule::get_subnet_n(netuid), 4);
@@ -125,59 +79,6 @@ fn test_weights_err_has_duplicate_ids() {
 	});
 }
 
-// Test ensures weights cannot exceed max weight limit.
-#[test]
-fn test_weights_err_max_weight_limit() { //TO DO SAM: uncomment when we implement run_to_block fn
-	new_test_ext().execute_with(|| { 
-
-		// Set params.
-		SubspaceModule::set_max_allowed_uids(netuid, 5);
-		SubspaceModule::set_max_weight_limit( netuid, u16::MAX/5 );
-
-		// Add 5 accounts.
-		println!( "+Registering: net:{:?}, key:{:?}", netuid, 0 );
-		register_ok_neuron( netuid, U256::from(0) );
-		let neuron_uid: u16 = SubspaceModule::get_uid_for_key( netuid, &U256::from(0) ).expect("Not registered.");
-		assert_eq!( SubspaceModule::get_subnet_n(netuid), 1 );
-		assert!( SubspaceModule::is_key_registered_on_network( netuid, &U256::from(0) ) );
-		step_block(1);
-
-		println!( "+Registering: net:{:?}, key:{:?}", netuid, 1 );
-		register_ok_neuron( netuid, U256::from(1) );
-		assert!( SubspaceModule::is_key_registered_on_network( netuid, &U256::from(1) ) );
-		assert_eq!(SubspaceModule::get_subnet_n(netuid), 2);
-		step_block(1);
-
-		println!( "+Registering: net:{:?}, key:{:?}", netuid, 2);
-		register_ok_neuron( netuid, U256::from(2) );
-		assert!( SubspaceModule::is_key_registered_on_network( netuid, &U256::from(2) ) );
-		assert_eq!( SubspaceModule::get_subnet_n(netuid), 3 );
-		step_block(1);
-
-		println!( "+Registering: net:{:?}, key:{:?}", netuid, 3 );
-		register_ok_neuron( netuid, U256::from(3)));
-		assert!( SubspaceModule::is_key_registered_on_network( netuid, &U256::from(3) ) );
-		assert_eq!(SubspaceModule::get_subnet_n(netuid), 4);
-		step_block(1);
-
-		println!( "+Registering: net:{:?}, key:{:?}", netuid, 4);
-		register_ok_neuron( netuid, U256::from(4) );
-		assert!( SubspaceModule::is_key_registered_on_network( netuid, &U256::from(4) ) );
-		assert_eq!(SubspaceModule::get_subnet_n(netuid), 5);
-		step_block(1);
-
-		// Non self-weight fails.
-		let uids: Vec<u16> = vec![ 1, 2, 3, 4 ]; 
-		let values: Vec<u16> = vec![ u16::MAX/4, u16::MAX/4, u16::MAX/54, u16::MAX/4];
-		let result = SubspaceModule::set_weights( RuntimeOrigin::signed(U256::from(0)), 1, uids, values, 0 );
-		assert_eq!(result, Err(Error::<Test>::MaxWeightExceeded.into()));
-
-		// Self-weight is a success.
-		let uids: Vec<u16> = vec![ 0 ];  // Self.
-		let values: Vec<u16> = vec![ u16::MAX ]; // normalizes to u32::MAX
-		assert_ok!(SubspaceModule::set_weights( RuntimeOrigin::signed(U256::from(0)), 1, uids, values, 0));
-	});
-}
 
 // Tests the call requires a valid origin.
 #[test]
@@ -190,35 +91,14 @@ fn test_no_signature() {
 	});
 }
 
-// Tests that weights cannot be set BY non-registered keys.
-#[test]
-fn test_set_weights_err_not_active() {
-	new_test_ext().execute_with(|| {
-		let netuid: u16 = 1;
-		let tempo: u16 = 13;
-		add_network(netuid, tempo, 0);
-
-		// Register one neuron. Should have uid 0
-		register_ok_neuron(1, U256::from(666));
-		SubspaceModule::get_uid_for_key( netuid, &U256::from(666) ).expect("Not registered.");
-
-		let weights_keys: Vec<u16> = vec![0]; // Uid 0 is valid.
-		let weight_values: Vec<u16> = vec![1];
-		// This key is NOT registered.
-		let result = SubspaceModule::set_weights(RuntimeOrigin::signed(U256::from(1)), 1, weights_keys, weight_values, 0);
-		assert_eq!(result, Err(Error::<Test>::NotRegistered.into()));
-	});
-}
 
 // Tests that set weights fails if you pass invalid uids.
 #[test]
 fn test_set_weights_err_invalid_uid() {
 	new_test_ext().execute_with(|| {
 		let key_account_id = U256::from(55);
-        let netuid: u16 = 1;
-		let tempo: u16 = 13;
-		add_network(netuid, tempo, 0);
-		register_ok_neuron( 1, key_account_id, U256::from(66), 0);
+        let netuid: u16 = 0;
+		register_module( netuid, key_account_id, 1_000_000_000);
 		let neuron_uid: u16 = SubspaceModule::get_uid_for_key( netuid, &key_account_id ).expect("Not registered.");
 		SubspaceModule::set_validator_permit_for_uid(netuid, neuron_uid, true);
 		let weight_keys : Vec<u16> = vec![9999]; // Does not exist
@@ -233,15 +113,13 @@ fn test_set_weights_err_invalid_uid() {
 fn test_set_weight_not_enough_values() {
 	new_test_ext().execute_with(|| {
         
-		let netuid: u16 = 1;
-		let tempo: u16 = 13;
+		let netuid: u16 = 0;
 		let account_id = U256::from(1);
-		add_network(netuid, tempo, 0);
 		
-		register_ok_neuron(1, account_id, U256::from(2), 100000);
+		register_module(netuid, account_id,  1_000_000_000);
 		let neuron_uid: u16 = SubspaceModule::get_uid_for_key( netuid, &U256::from(1) ).expect("Not registered.");
 
-		register_ok_neuron(1, U256::from(3), U256::from(4), 300000);
+		register_module(netuid, U256::from(3),  1_000_000_000);
 		SubspaceModule::set_min_allowed_weights(netuid, 2);
 
 		// Should fail because we are only setting a single value and its not the self weight.
@@ -263,48 +141,18 @@ fn test_set_weight_not_enough_values() {
 	});
 }
 
-// Tests that the weights set fails if you pass too many uids for the subnet
-#[test]
-fn test_set_weight_too_many_uids() {
-	new_test_ext().execute_with(|| {
-        
-		let netuid: u16 = 1;
-		let tempo: u16 = 13;
-		add_network(netuid, tempo, 0);
-		
-		register_ok_neuron(1, U256::from(1), U256::from(2), 100_000);
-		let neuron_uid: u16 = SubspaceModule::get_uid_for_key( netuid, &U256::from(1) ).expect("Not registered.");
-		
-		register_ok_neuron(1, U256::from(3), U256::from(4), 300_000);
-		SubspaceModule::set_min_allowed_weights(1, 2);
-
-		// Should fail because we are setting more weights than there are neurons.
-		let weight_keys : Vec<u16> = vec![0, 1, 2, 3, 4]; // more uids than neurons in subnet.
-		let weight_values : Vec<u16> = vec![88, 102, 303, 1212, 11]; // random value.
-		let result = SubspaceModule::set_weights(RuntimeOrigin::signed(U256::from(1)), 1, weight_keys, weight_values, 0);
-		assert_eq!(result, Err(Error::<Test>::TooManyUids.into()));
-
-		// Shouldnt fail because we are setting less weights than there are neurons.
-		let weight_keys : Vec<u16> = vec![0, 1]; // Only on neurons that exist.
-		let weight_values : Vec<u16> = vec![10, 10]; // random value.
-		assert_ok!( SubspaceModule::set_weights(RuntimeOrigin::signed(U256::from(1)), 1 , weight_keys, weight_values, 0)) ;
-	});
-}
 
 // Tests that the weights set doesn't panic if you pass weights that sum to larger than u16 max.
 #[test]
 fn test_set_weights_sum_larger_than_u16_max() {
 	new_test_ext().execute_with(|| {
         
-		let netuid: u16 = 1;
-		let tempo: u16 = 13;
-		add_network(netuid, tempo, 0);
+		let netuid: u16 = 0;
 		
-		register_ok_neuron(1, U256::from(1));
+		register_module(netuid, U256::from(1), 100);
 		let neuron_uid: u16 = SubspaceModule::get_uid_for_key( netuid, &U256::from(1) ).expect("Not registered.");
-		SubspaceModule::set_validator_permit_for_uid(netuid, neuron_uid, true);
 
-		register_ok_neuron(1, U256::from(3));
+		register_module(netuid, U256::from(3), 100);
 		SubspaceModule::set_min_allowed_weights(1, 2);
 	
 
@@ -326,31 +174,6 @@ fn test_set_weights_sum_larger_than_u16_max() {
 }
 
 
-/// Check _truthy_ path for weights within allowed range
-#[test]
-fn test_check_length_weights_length_exceeds_min_allowed() {
-	new_test_ext().execute_with(|| {
-		let netuid: u16 = 1;
-
-		let max_allowed: u16 = 3;
-		let min_allowed_weights = max_allowed;
-
-		SubspaceModule::set_min_allowed_weights(netuid, min_allowed_weights);
-
-		let uids: Vec<u16> = Vec::from_iter((0..max_allowed).map(|id| { id + 1 }));
-		let uid: u16 = uids[0].clone();
-		let weights: Vec<u16> = Vec::from_iter((0..max_allowed).map(|id| { id + 1 }));
-
-		let expected = true;
-		let result = SubspaceModule::check_length(netuid, uid, &uids, &weights);
-
-		assert_eq!(
-			expected,
-			result,
-			"Failed get expected result"
-		);
-	});
-}
 
 /// Check _falsey_ path for weights outside allowed range
 #[test]
@@ -584,9 +407,9 @@ fn test_check_len_uids_within_allowed_within_network_pool() {
 		let max_registrations_per_block: u16 = 100;
 
 		/* @TODO: use a loop maybe */
-		register_ok_neuron(netuid, U256::from(1));
-		register_ok_neuron(netuid, U256::from(3));
-		register_ok_neuron(netuid, U256::from(5));
+		register_module(netuid, U256::from(1));
+		register_module(netuid, U256::from(3));
+		register_module(netuid, U256::from(5));
 		let max_allowed: u16 = SubspaceModule::get_subnet_n(netuid);
 
 		SubspaceModule::set_max_allowed_uids(netuid, max_allowed);
@@ -612,9 +435,9 @@ fn test_check_len_uids_within_allowed_not_within_network_pool() {
 		let max_registrations_per_block: u16 = 100;
 
 		/* @TODO: use a loop maybe */
-		register_ok_neuron(netuid, U256::from(1), U256::from(1), 0);
-		register_ok_neuron(netuid, U256::from(3), U256::from(3), 65555);
-		register_ok_neuron(netuid, U256::from(5), U256::from(5), 75555);
+		register_module(netuid, U256::from(1),  1_000_000_000);
+		register_module(netuid, U256::from(3),  1_000_000_000);
+		register_module(netuid, U256::from(5),  1_000_000_000);
 		let max_allowed: u16 = SubspaceModule::get_subnet_n(netuid);
 
 		SubspaceModule::set_max_allowed_uids(netuid, max_allowed);

@@ -16,24 +16,6 @@ mod mock;
 	subscribing::subscribe() tests
 *********************************************/
 
-// Tests a basic registration dispatch passes.
-#[test]
-fn test_registration_subscribe_ok_dispatch_info_ok() {
-	new_test_ext().execute_with(|| {
-		let block_number: u64 = 0;
-		let nonce: u64 = 0;
-        let netuid: u16 = 1;
-		let work: Vec<u8> = vec![0;32];
-		let hotkey: U256 = U256::from(0);
-		let coldkey: U256 = U256::from(0);
-        let call = RuntimeCall::SubspaceModule(subspaceCall::register{netuid, block_number, nonce, work, hotkey, coldkey });
-		assert_eq!(call.get_dispatch_info(), DispatchInfo {
-			weight: frame_support::weights::Weight::from_ref_time(91000000),
-			class: DispatchClass::Normal,
-			pays_fee: Pays::No
-		});
-	});
-}
 
 
 

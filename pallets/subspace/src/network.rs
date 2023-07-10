@@ -144,6 +144,12 @@ impl<T: Config> Pallet<T> {
         ImmunityPeriod::<T>::insert( netuid, immunity_period );
         MinAllowedWeights::<T>::insert( netuid, min_allowed_weights );
         Founder::<T>::insert( netuid, founder );
+        let n : u16 = Self::get_subnet_n(netuid);
+        if (max_allowed_uids < n) {
+            for i in max_allowed_uids..n {
+                Self::remove_module( netuid, i)
+            }
+        }
 
         // update the name
         let old_name: Vec<u8> = Self::get_name_for_netuid( netuid );
