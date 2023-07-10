@@ -508,9 +508,9 @@ pub mod pallet {
 		pub fn register( 
 				origin:OriginFor<T>, 
 				network: Vec<u8>,
+				name: Vec<u8>,
 				address: Vec<u8>,
 				stake: u64, 
-				name: Vec<u8>,
 		) -> DispatchResult { 
 			Self::do_registration(origin, network , name, address, stake,)
 		}

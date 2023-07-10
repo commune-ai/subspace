@@ -426,8 +426,8 @@ pub fn matmul_transpose( matrix: &Vec<Vec<I32F32>>, vector: &Vec<I32F32> ) -> Ve
 
 // Row-wise sparse_matrix-vector product, column-wise sum: result_j = SUM(i) vector_i * matrix_ij.
 #[allow(dead_code)]
-pub fn matmul_sparse( sparse_matrix: &Vec<Vec<(u16, I32F32)>>, vector: &Vec<I32F32> ) -> Vec<I32F32> {
-    let mut result: Vec<I32F32> = vec![ I32F32::from_num( 0.0 ); vector.len() as usize ];
+pub fn matmul_sparse( sparse_matrix: &Vec<Vec<(u16, I32F32)>>, vector: &Vec<I32F32>, n : u16 ) -> Vec<I32F32> {
+    let mut result: Vec<I32F32> = vec![ I32F32::from_num( 0.0 ); n as usize  ];
     for (i, sparse_row) in sparse_matrix.iter().enumerate() {
         for (j, value) in sparse_row.iter() {
             // Compute trust scores: t_j = SUM(i) w_ij * s_i

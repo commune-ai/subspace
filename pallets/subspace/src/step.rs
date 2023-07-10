@@ -89,7 +89,7 @@ impl<T: Config> Pallet<T> {
         // =============================
 
         // Compute incentive: r_j = SUM(i) w_ij * s_i.
-        let mut incentive: Vec<I32F32> = matmul_sparse( &weights, &stake);
+        let mut incentive: Vec<I32F32> = matmul_sparse( &weights, &stake, n );
         inplace_normalize( &mut incentive );  // range: I32F32(0, 1)
         log::trace!( "Incentive: {:?}", &incentive );
 
