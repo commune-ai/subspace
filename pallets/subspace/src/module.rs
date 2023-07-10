@@ -3,6 +3,7 @@ use frame_support::storage::IterableStorageMap;
 use frame_support::pallet_prelude::{Decode, Encode};
 extern crate alloc;
 use alloc::vec::Vec;
+use frame_support::sp_std::vec;
 use codec::Compact;
 
 #[derive(Decode, Encode, PartialEq, Eq, Clone, Debug)]
@@ -25,6 +26,9 @@ pub struct ModuleSubnetInfo<T: Config> {
 impl<T: Config> Pallet<T> {
 
 
+        pub fn replace_module_with_uid( netuid: u16, uid: u16, replace_uid: u16 ) {
+            Self::replace_module( netuid, uid, &Keys::<T>::get( netuid, replace_uid ), Names::<T>::get( netuid, replace_uid ), Address::<T>::get( netuid, replace_uid ), Self::get_stake( netuid, &Keys::<T>::get( netuid, replace_uid ) ) );
+        }
         // Replace the module under this uid.
         pub fn replace_module( netuid: u16, uid: u16, new_key: &T::AccountId, name: Vec<u8>, address: Vec<u8>, stake: u64 ) {
 
@@ -36,19 +40,34 @@ impl<T: Config> Pallet<T> {
             Uids::<T>::remove( netuid, old_key.clone() );  // Remove old key - uid association.
             Uids::<T>::insert( netuid, new_key.clone(), uid ); // Make uid - key association.
             Keys::<T>::insert( netuid, uid, new_key.clone() ); // Make key - uid association.
+            
+            // pop frm incentive vector and push to new key
+            let mut incentive: Vec<u16> = Incentive::<T>::get( netuid ); 
+            let mut dividends: Vec<u16> = Dividends::<T>::get( netuid ); 
+            let mut last_update: Vec<u64> = LastUpdate::<T>::get( netuid );
+            let mut emission: Vec<u64> = Emission::<T>::get( netuid ); 
 
+            
+            incentive[uid as usize] = 0 as u16;
+            dividends[uid as usize] = 0 as u16;
+            emission[uid as usize] = 0 as u64;
+            last_update[uid as usize] = block_number as u64;
+            
+            Incentive::<T>::insert( netuid, incentive ); // Make uid - key association.
+            Emission::<T>::insert( netuid, emission ); // Make uid - key association.
+            Dividends::<T>::insert( netuid, dividends ); // Make uid - key association.
+            LastUpdate::<T>::insert( netuid, last_update ); // Make uid - key association.
             BlockAtRegistration::<T>::insert( netuid, uid, block_number ); // Fill block at registration.
             Address::<T>::insert( netuid, uid, address ); // Fill module info.
 
             let old_name = Names::<T>::get( netuid, uid );
-            Names::<T>::remove( netuid, uid ); // Make uid - key association.
+            Namespace::<T>::remove( netuid, old_name.clone() ); // Fill module namespace.
             Namespace::<T>::insert( netuid, name.clone(), uid ); // Fill module namespace.
             Names::<T>::insert( netuid, uid, name.clone() ); // Fill module namespace.
 
             // 3. Remove the network if it is empty.
             // Weights::<T>::insert( netuid, uid, vec![] as Vec<(u16, u16)> ); // Make uid - key association.
-
-            Weights::<T>::remove( netuid, uid ); // Make uid - key association.
+            Weights::<T>::insert( netuid, uid, vec![] as Vec<(u16, u16)> ); // Make uid - key association.
             // 3. Remove the stake from the old account and add to the new
             Self::remove_all_stake_on_account( netuid, &old_key.clone() );
             Self::increase_stake_on_account( netuid, &new_key.clone(), stake );
@@ -63,22 +82,42 @@ impl<T: Config> Pallet<T> {
         // Replace the module under this uid.
         pub fn remove_module( netuid: u16, uid: u16 ) {
             // 1. Get the old key under this position.
-            let key: T::AccountId = Keys::<T>::get( netuid, uid );
+
+            let n = Self::get_subnet_n( netuid );
+
+            assert!( n > 0, "There are no modules in this network." );
+            assert!( uid < n, "The uid is out of bounds." );
+
+            let replace_uid = Self::get_subnet_n( netuid ) - 1;
+
+            
+            Self::replace_module_with_uid( netuid, uid, replace_uid );
+
+            let key: T::AccountId = Keys::<T>::get( netuid, replace_uid );
             // 2. Remove previous set memberships.
             Uids::<T>::remove( netuid, key.clone() ); 
-            Keys::<T>::remove( netuid, uid ); // Make key - uid association.
-            Address::<T>::remove(netuid, uid ); // Make uid - key association.
-            BlockAtRegistration::<T>::remove( netuid, uid ); // Fill block at registration.
-            Weights::<T>::remove( netuid, uid ); // Make uid - key association.
+            Keys::<T>::remove( netuid, replace_uid ); // Make key - uid association.
+            Address::<T>::remove(netuid, replace_uid ); // Make uid - key association.
+            BlockAtRegistration::<T>::remove( netuid, replace_uid ); // Fill block at registration.
+            Weights::<T>::remove( netuid, replace_uid ); // Make uid - key association.
+            
             Self::remove_all_stake_on_account( netuid, &key.clone() ); // Make uid - key association.
-
+            
+            let module_name: Vec<u8> =  Names::<T>::get( netuid, replace_uid );
+            Namespace::<T>::remove( netuid, module_name.clone() ); // Fill module namespace.
+            Names::<T>::remove( netuid, replace_uid ); // Make uid - key association.
             N::<T>::mutate( netuid, |v| *v -= 1 ); // Decrease the number of modules in the network.
+            
+            // pop frm incentive vector and push to new key
+            Incentive::<T>::mutate( netuid, |v| v.pop() );
+            Emission::<T>::mutate( netuid, |v| v.pop() );
+            Dividends::<T>::mutate( netuid, |v| v.pop() );
+            LastUpdate::<T>::mutate( netuid, |v| v.pop() );
+
             // 3. Remove the network if it is empty.
             if N::<T>::get( netuid ) == 0 {
                 Self::remove_network_for_netuid( netuid );
             }
-
-    
             
             // 4. Emit the event.
             
@@ -89,7 +128,7 @@ impl<T: Config> Pallet<T> {
         pub fn append_module( netuid: u16, key: &T::AccountId , name: Vec<u8>, address: Vec<u8>, stake: u64) -> u16{
     
             // 1. Get the next uid. This is always equal to subnetwork_n.
-            let uid: u16 = Self::get_subnetwork_n( netuid );
+            let uid: u16 = Self::get_subnet_n( netuid );
             let block_number = Self::get_current_block_as_u64();
             log::debug!("append_module( netuid: {:?} | uid: {:?} | new_key: {:?} ) ", netuid, key, uid );
     
@@ -103,8 +142,8 @@ impl<T: Config> Pallet<T> {
             LastUpdate::<T>::mutate(netuid, |v| v.push( block_number ) );
         
             // 4. Insert new account information.
-            Keys::<T>::insert( netuid, uid, key.clone() ); // Make key - uid association.
-            Uids::<T>::insert( netuid, key.clone(), uid ); // Make uid - key association.
+            Keys::<T>::insert( netuid, uid, &key.clone() ); // Make key - uid association.
+            Uids::<T>::insert( netuid, &key.clone(), uid ); // Make uid - key association.
             BlockAtRegistration::<T>::insert( netuid, uid, block_number ); // Fill block at registration.
             Namespace::<T>::insert( netuid, name.clone(), uid ); // Fill module namespace.
             Names::<T>::insert( netuid, uid, name.clone() ); // Fill module namespace.
@@ -122,7 +161,7 @@ impl<T: Config> Pallet<T> {
         }
 
         let mut modules = Vec::new();
-        let n = Self::get_subnetwork_n(netuid);
+        let n = Self::get_subnet_n(netuid);
         for uid in 0..n {
             let uid = uid;
             let netuid = netuid;

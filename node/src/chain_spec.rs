@@ -83,6 +83,7 @@ pub fn devnet_config() -> Result<ChainSpec, String> {
 				],
 				vec![],
 				vec![],
+				0,
 			)
 		},
 		// Bootnodes
@@ -126,6 +127,7 @@ pub fn testnet_config() -> Result<ChainSpec, String> {
 				],
 				vec![],
 				vec![],
+				0,
 			)
 		},
 		// Bootnodes
@@ -159,10 +161,12 @@ struct SubspaceJSONState {
 	// module -> (key, name, address, stake, weights)
 	modules : Vec<Vec<(String, String, String, u64, Vec<(u16, u16)>)>>,
 
+	block: u64,
+
 }
 
 pub fn mainnet_config() -> Result<ChainSpec, String> {
-	let path: PathBuf = std::path::PathBuf::from("./snapshot.json");
+	let path: PathBuf = std::path::PathBuf::from("./snapshots/main.json");
 	let wasm_binary = WASM_BINARY.ok_or_else(|| "Development wasm not available".to_string())?;
 
 	// We mmap the file into memory first, as this is *a lot* faster than using
@@ -180,6 +184,7 @@ pub fn mainnet_config() -> Result<ChainSpec, String> {
 	let state: SubspaceJSONState =
 		json::from_slice(&bytes).map_err(|e| format!("Error parsing genesis file: {}", e))?;
 
+	let block : u64 = state.block;
 	let mut subnets: Vec<( Vec<u8>, u16, u16, u16 , u16, sp_runtime::AccountId32)> = Vec::new();
 	let mut modules: Vec<Vec<(sp_runtime::AccountId32, Vec<u8>, Vec<u8>, u64, Vec<(u16,u16)>)>> = Vec::new();
 
@@ -243,6 +248,7 @@ pub fn mainnet_config() -> Result<ChainSpec, String> {
 				processed_balances.clone(), // balances
 				modules.clone(), // modules,
 				subnets.clone(), // subnets,
+				block,
 				
 			)
 		},
@@ -261,6 +267,8 @@ pub fn mainnet_config() -> Result<ChainSpec, String> {
 	))
 
 }
+
+
 // Configure initial storage state for FRAME modules.
 fn network_genesis(
 	wasm_binary: &[u8],
@@ -269,6 +277,7 @@ fn network_genesis(
 	balances: Vec<(AccountId, u64)>,
 	modules: Vec<Vec<(AccountId,Vec<u8>, Vec<u8>, u64, Vec<(u16, u16)>)>>,
 	subnets: Vec<(Vec<u8>, u16, u16, u16, u16 ,AccountId)>,
+	block: u64,
 
 
 
@@ -298,6 +307,7 @@ fn network_genesis(
 			// Add names to storage.
 			modules: modules,
 			subnets: subnets,
+			block: block,
 		},
 	}
 }

@@ -125,7 +125,7 @@ impl<T: Config> Pallet<T> {
 
     // Returns False is the number of uids exceeds the allowed number of uids for this network.
     pub fn check_len_uids_within_allowed( netuid: u16, uids: &Vec<u16> ) -> bool {
-        let subnetwork_n: u16 = Self::get_subnetwork_n( netuid );
+        let subnetwork_n: u16 = Self::get_subnet_n( netuid );
         // we should expect at most subnetwork_n uids.
         return uids.len() <= subnetwork_n as usize;
     }

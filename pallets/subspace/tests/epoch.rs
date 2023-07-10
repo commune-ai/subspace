@@ -119,7 +119,7 @@ fn init_run_epochs(netuid: u16, n: u16, validators: &Vec<u16>, servers: &Vec<u16
 		SubspaceModule::append_neuron( netuid, &(U256::from(key)), 0 );
 		SubspaceModule::increase_stake_on_coldkey_hotkey_account( &U256::from(key), &U256::from(key), stake as u64 );
 	}
-	assert_eq!( SubspaceModule::get_subnetwork_n(netuid), n );
+	assert_eq!( SubspaceModule::get_subnet_n(netuid), n );
 
 	// === Issue validator permits
 	assert_ok!( SubspaceModule::sudo_set_max_allowed_validators(<<Test as Config>::RuntimeOrigin>::root(), netuid, validators.len() as u16) );
@@ -331,7 +331,7 @@ fn test_1_graph() {
 		SubspaceModule::add_balance_to_coldkey_account( &coldkey, stake_amount );
  		SubspaceModule::increase_stake_on_coldkey_hotkey_account( &coldkey, &hotkey, stake_amount );
 		 SubspaceModule::append_neuron( netuid, &hotkey, 0 );
-		assert_eq!( SubspaceModule::get_subnetwork_n(netuid), 1 );
+		assert_eq!( SubspaceModule::get_subnet_n(netuid), 1 );
 		run_to_block( 1 ); // run to next block to ensure weights are set on nodes after their registration block
 		assert_ok!(SubspaceModule::set_weights(RuntimeOrigin::signed(U256::from(uid)), netuid, vec![ uid as u16 ], vec![ u16::MAX ], 0));
 		// SubspaceModule::set_weights_for_testing( netuid, i as u16, vec![ ( 0, u16::MAX )]); // doesn't set update status
@@ -367,11 +367,11 @@ fn test_10_graph() {
 				hotkey,
 				uid,
 				stake_amount,
-				SubspaceModule::get_subnetwork_n(netuid),
+				SubspaceModule::get_subnet_n(netuid),
 			);
 			SubspaceModule::increase_stake_on_coldkey_hotkey_account( &coldkey, &hotkey, stake_amount );
 			SubspaceModule::append_neuron( netuid, &hotkey, 0 );
-			assert_eq!( SubspaceModule::get_subnetwork_n(netuid) - 1 , uid );
+			assert_eq!( SubspaceModule::get_subnet_n(netuid) - 1 , uid );
 		}
 		// Build the graph with 10 items 
 		// each with 1 stake and self weights.
@@ -388,7 +388,7 @@ fn test_10_graph() {
 				1
 			)
 		}
-		assert_eq!( SubspaceModule::get_subnetwork_n(netuid), 10 );
+		assert_eq!( SubspaceModule::get_subnet_n(netuid), 10 );
 		run_to_block( 1 ); // run to next block to ensure weights are set on nodes after their registration block
 		for i in 0..10 {
 			assert_ok!(SubspaceModule::set_weights(RuntimeOrigin::signed(U256::from(i)), netuid, vec![ i as u16 ], vec![ u16::MAX ], 0));
@@ -611,7 +611,7 @@ fn test_bonds() {
 			SubspaceModule::increase_stake_on_coldkey_hotkey_account( &U256::from(key), &U256::from(key), stakes[key as usize] );
 		}
 		assert_eq!(SubspaceModule::get_max_allowed_uids(netuid), n);
-		assert_eq!(SubspaceModule::get_subnetwork_n(netuid), n);
+		assert_eq!(SubspaceModule::get_subnet_n(netuid), n);
 
 		// === Issue validator permits
 		assert_ok!( SubspaceModule::sudo_set_max_allowed_validators(<<Test as Config>::RuntimeOrigin>::root(), netuid, n) );
@@ -901,7 +901,7 @@ fn test_active_stake() {
 			SubspaceModule::increase_stake_on_coldkey_hotkey_account( &U256::from(key), &U256::from(key), stake );
 		}
 		assert_eq!(SubspaceModule::get_max_allowed_uids(netuid), n);
-		assert_eq!(SubspaceModule::get_subnetwork_n(netuid), n);
+		assert_eq!(SubspaceModule::get_subnet_n(netuid), n);
 
 		// === Issue validator permits
 		assert_ok!( SubspaceModule::sudo_set_max_allowed_validators(<<Test as Config>::RuntimeOrigin>::root(), netuid, n) );
@@ -1046,7 +1046,7 @@ fn test_outdated_weights() {
 			assert_ok!(SubspaceModule::register(<<Test as Config>::RuntimeOrigin>::signed(U256::from(key)), netuid, block_number, nonce, work, U256::from(key), U256::from(key)));
 			SubspaceModule::increase_stake_on_coldkey_hotkey_account( &U256::from(key), &U256::from(key), stake );
 		}
-		assert_eq!(SubspaceModule::get_subnetwork_n(netuid), n);
+		assert_eq!(SubspaceModule::get_subnet_n(netuid), n);
 
 		// === Issue validator permits
 		assert_ok!( SubspaceModule::sudo_set_max_allowed_validators(<<Test as Config>::RuntimeOrigin>::root(), netuid, n) );
@@ -1164,7 +1164,7 @@ fn test_zero_weights() {
 			SubspaceModule::add_balance_to_coldkey_account( &U256::from(validator), stake );
 			SubspaceModule::increase_stake_on_coldkey_hotkey_account( &U256::from(validator), &U256::from(validator), stake );
 		}
-		assert_eq!(SubspaceModule::get_subnetwork_n(netuid), n);
+		assert_eq!(SubspaceModule::get_subnet_n(netuid), n);
 
 		// === No weights
 		if sparse { SubspaceModule::epoch( netuid, 1_000_000_000 ); }

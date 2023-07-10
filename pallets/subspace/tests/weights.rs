@@ -116,7 +116,7 @@ fn test_weights_err_has_duplicate_ids() {
 		register_ok_neuron( netuid, U256::from(3));
 		SubspaceModule::get_uid_for_key( netuid, &U256::from(3) ).expect("Not registered.");
 		
-		assert_eq!(SubspaceModule::get_subnetwork_n(netuid), 4);
+		assert_eq!(SubspaceModule::get_subnet_n(netuid), 4);
 
 		let weights_keys: Vec<u16> = vec![1, 1, 1]; // Contains duplicates
 		let weight_values: Vec<u16> = vec![1, 2, 3];
@@ -138,32 +138,32 @@ fn test_weights_err_max_weight_limit() { //TO DO SAM: uncomment when we implemen
 		println!( "+Registering: net:{:?}, key:{:?}", netuid, 0 );
 		register_ok_neuron( netuid, U256::from(0) );
 		let neuron_uid: u16 = SubspaceModule::get_uid_for_key( netuid, &U256::from(0) ).expect("Not registered.");
-		assert_eq!( SubspaceModule::get_subnetwork_n(netuid), 1 );
+		assert_eq!( SubspaceModule::get_subnet_n(netuid), 1 );
 		assert!( SubspaceModule::is_key_registered_on_network( netuid, &U256::from(0) ) );
 		step_block(1);
 
 		println!( "+Registering: net:{:?}, key:{:?}", netuid, 1 );
 		register_ok_neuron( netuid, U256::from(1) );
 		assert!( SubspaceModule::is_key_registered_on_network( netuid, &U256::from(1) ) );
-		assert_eq!(SubspaceModule::get_subnetwork_n(netuid), 2);
+		assert_eq!(SubspaceModule::get_subnet_n(netuid), 2);
 		step_block(1);
 
 		println!( "+Registering: net:{:?}, key:{:?}", netuid, 2);
 		register_ok_neuron( netuid, U256::from(2) );
 		assert!( SubspaceModule::is_key_registered_on_network( netuid, &U256::from(2) ) );
-		assert_eq!( SubspaceModule::get_subnetwork_n(netuid), 3 );
+		assert_eq!( SubspaceModule::get_subnet_n(netuid), 3 );
 		step_block(1);
 
 		println!( "+Registering: net:{:?}, key:{:?}", netuid, 3 );
 		register_ok_neuron( netuid, U256::from(3)));
 		assert!( SubspaceModule::is_key_registered_on_network( netuid, &U256::from(3) ) );
-		assert_eq!(SubspaceModule::get_subnetwork_n(netuid), 4);
+		assert_eq!(SubspaceModule::get_subnet_n(netuid), 4);
 		step_block(1);
 
 		println!( "+Registering: net:{:?}, key:{:?}", netuid, 4);
 		register_ok_neuron( netuid, U256::from(4) );
 		assert!( SubspaceModule::is_key_registered_on_network( netuid, &U256::from(4) ) );
-		assert_eq!(SubspaceModule::get_subnetwork_n(netuid), 5);
+		assert_eq!(SubspaceModule::get_subnet_n(netuid), 5);
 		step_block(1);
 
 		// Non self-weight fails.
@@ -587,7 +587,7 @@ fn test_check_len_uids_within_allowed_within_network_pool() {
 		register_ok_neuron(netuid, U256::from(1));
 		register_ok_neuron(netuid, U256::from(3));
 		register_ok_neuron(netuid, U256::from(5));
-		let max_allowed: u16 = SubspaceModule::get_subnetwork_n(netuid);
+		let max_allowed: u16 = SubspaceModule::get_subnet_n(netuid);
 
 		SubspaceModule::set_max_allowed_uids(netuid, max_allowed);
 		SubspaceModule::set_max_registrations_per_block(netuid, max_registrations_per_block);
@@ -615,7 +615,7 @@ fn test_check_len_uids_within_allowed_not_within_network_pool() {
 		register_ok_neuron(netuid, U256::from(1), U256::from(1), 0);
 		register_ok_neuron(netuid, U256::from(3), U256::from(3), 65555);
 		register_ok_neuron(netuid, U256::from(5), U256::from(5), 75555);
-		let max_allowed: u16 = SubspaceModule::get_subnetwork_n(netuid);
+		let max_allowed: u16 = SubspaceModule::get_subnet_n(netuid);
 
 		SubspaceModule::set_max_allowed_uids(netuid, max_allowed);
 		SubspaceModule::set_max_registrations_per_block(netuid, max_registrations_per_block);

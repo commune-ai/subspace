@@ -29,29 +29,27 @@ impl<T: Config> Pallet<T> {
         let netuid: u16;       
         let new_network : bool = !Self::if_subnet_name_exists( network.clone() );
         if new_network {
-            // --- 1. Ensure the network name does not already exist.
             ensure!( Self::enough_stake_to_start_network( stake ), Error::<T>::NotEnoughStakeToStartNetwork );
             netuid = Self::add_network_from_registration(network.clone(), stake, &key.clone());
         }  else {
             netuid = Self::get_netuid_for_name( network.clone() );
         }
 
-        
         log::info!("do_registration( key:{:?} netuid:{:?} )", key, netuid );
-
-        // --- 3. Ensure we are not exceeding the max allowed registrations per block.
-        ensure!( Self::get_registrations_this_block( netuid ) < Self::get_max_registrations_per_block( netuid ), Error::<T>::TooManyRegistrationsThisBlock );
-
-
         // --- 4. Ensure that the key is not already registered.
         let already_registered: bool  = Uids::<T>::contains_key( netuid, &key ); 
         ensure!( !already_registered, Error::<T>::KeyAlreadyRegistered );
         ensure!( !Self::if_module_name_exists( netuid, name.clone() ), Error::<T>::NameAlreadyRegistered );
+        
         let current_block_number: u64 = Self::get_current_block_as_u64();
         let mut uid: u16;
-        let current_subnetwork_n: u16 = Self::get_subnetwork_n( netuid );
-        
-        if current_subnetwork_n < Self::get_max_allowed_uids( netuid ) {
+        let n: u16 = Self::get_subnet_n( netuid );
+
+        // --- 3. Ensure we are not exceeding the max allowed registrations per block.
+        ensure!( Self::get_registrations_this_block( netuid ) < Self::get_max_registrations_per_block( netuid ), Error::<T>::TooManyRegistrationsThisBlock );
+        RegistrationsThisBlock::<T>::mutate( netuid, |val| *val += 1 );
+
+        if n < Self::get_max_allowed_uids( netuid ) {
             let mut module_stake : u64 = stake.clone(); ; 
 
             if new_network {
@@ -65,15 +63,11 @@ impl<T: Config> Pallet<T> {
             log::info!("prune module");
         }
 
-        RegistrationsThisBlock::<T>::mutate( netuid, |val| *val += 1 );
         // ---Deposit successful event.
         log::info!("ModuleRegistered( netuid:{:?} uid:{:?} key:{:?}  ) ", netuid, uid, key );
         Self::deposit_event( Event::ModuleRegistered( netuid, uid, key.clone() ) );
 
-        
-
-
-        // --- 16. Ok and done.
+        // --- 5. Ok and done.
         Ok(())
     }
 
@@ -93,30 +87,18 @@ impl<T: Config> Pallet<T> {
         let mut min_score_in_immunity_period = u16::MAX;
         let mut uid_with_min_score = 0;
         let mut uid_with_min_score_in_immunity_period: u16 =  0;
-        if Self::get_subnetwork_n( netuid ) == 0 { return 0 } // If there are no modules in this network.
-        for module_uid_i in 0..Self::get_subnetwork_n( netuid ) {
+        if Self::get_subnet_n( netuid ) == 0 { return 0 } // If there are no modules in this network.
+        for module_uid_i in 0..Self::get_subnet_n( netuid ) {
             let block_at_registration: u64 = Self::get_module_block_at_registration( netuid, module_uid_i );
             let current_block :u64 = Self::get_current_block_as_u64();
             let immunity_period: u64 = Self::get_immunity_period(netuid) as u64;
             let mut pruning_score = Self::get_pruning_score_for_uid( netuid,  module_uid_i);
 
-            if min_score == pruning_score {
+            // Find min pruning score.
+            if min_score >= pruning_score { 
                 if current_block - block_at_registration <  immunity_period { //module is in immunity period
                     if min_score_in_immunity_period > pruning_score {
                         min_score_in_immunity_period = pruning_score; 
-                        uid_with_min_score_in_immunity_period = module_uid_i;
-                    }
-                }
-                else {
-                    min_score = pruning_score; 
-                    uid_with_min_score = module_uid_i;
-                }
-            }
-            // Find min pruning score.
-            else if min_score > pruning_score { 
-                if current_block - block_at_registration <  immunity_period { //module is in immunity period
-                    if min_score_in_immunity_period > pruning_score {
-                         min_score_in_immunity_period = pruning_score; 
                         uid_with_min_score_in_immunity_period = module_uid_i;
                     }
                 }

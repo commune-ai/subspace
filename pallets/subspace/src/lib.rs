@@ -318,6 +318,8 @@ pub mod pallet {
 		pub modules: Vec<Vec<(T::AccountId, Vec<u8>, Vec<u8>, u64, Vec<(u16, u16)>)>>,
 		// name, tempo, immunity_period, max_allowed_uids, min_allowed_weight, max_registrations_per_block, max_allowed_weights
 		pub subnets: Vec<(Vec<u8>, u16, u16, u16, u16, T::AccountId)>,
+
+		pub block: u64,
 	}
 
 	#[cfg(feature = "std")]
@@ -326,6 +328,7 @@ pub mod pallet {
 			Self { 
 				modules: Default::default(),
 				subnets: Default::default(),
+				block: Default::default(),
 			}
 		}
 	}
@@ -335,6 +338,10 @@ pub mod pallet {
 		fn build(&self) {
 			// Set initial total issuance from balances
 			// Subnet config values
+			let block = self.block;
+			// Module config values
+			// set block to genesis block
+			<frame_system::Pallet<T>>::set_block_number(T::BlockNumber::from(block as u32));
 			
 			for (i, subnet) in self.subnets.iter().enumerate() {
 				let netuid: u16 = i as u16;

@@ -54,7 +54,7 @@ fn test_registration_ok() {
 		assert_ok!(SubspaceModule::register(<<Test as Config>::RuntimeOrigin>::signed(hotkey_account_id), netuid, block_number, nonce, work, hotkey_account_id, coldkey_account_id));
 
 		// Check if neuron has added to the specified network(netuid)
-		assert_eq!(SubspaceModule::get_subnetwork_n(netuid), 1);
+		assert_eq!(SubspaceModule::get_subnet_n(netuid), 1);
 
 		//check if hotkey is added to the Hotkeys
 		assert_eq!(SubspaceModule::get_owning_coldkey_for_hotkey(&hotkey_account_id), coldkey_account_id);

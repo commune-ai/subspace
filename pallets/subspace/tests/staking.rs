@@ -92,7 +92,7 @@ fn test_dividends_with_run_to_block() {
 		assert_eq!( SubspaceModule::get_total_stake_for_hotkey(&neuron_src_hotkey_id), initial_stake );
 
 		// Check if all three neurons are registered
-		assert_eq!( SubspaceModule::get_subnetwork_n(netuid), 3 );
+		assert_eq!( SubspaceModule::get_subnet_n(netuid), 3 );
 
 		// Run a couple of blocks to check if emission works
 		run_to_block( 2 );

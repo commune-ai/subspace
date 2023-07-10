@@ -397,7 +397,7 @@ impl<T: Config> Pallet<T> {
         let immunity_period = Self::get_immunity_period(netuid);
         let name = Self::get_name_for_netuid(netuid);
         let min_allowed_weights = Self::get_min_allowed_weights(netuid);
-        let n = Self::get_subnetwork_n(netuid);
+        let n = Self::get_subnet_n(netuid);
         let max_allowed_uids = Self::get_max_allowed_uids(netuid);
         let tempo = Self::get_tempo(netuid);
 
@@ -428,7 +428,7 @@ impl<T: Config> Pallet<T> {
 
     // Returns the number of filled slots on a network.
     ///
-    pub fn get_subnetwork_n( netuid:u16 ) -> u16 { 
+    pub fn get_subnet_n( netuid:u16 ) -> u16 { 
         return N::<T>::get( netuid ) 
     }
     
@@ -536,7 +536,7 @@ impl<T: Config> Pallet<T> {
     pub fn get_incentive_for_uid( netuid:u16, uid: u16) -> u16 { let vec = Incentive::<T>::get( netuid ); if (uid as usize) < vec.len() { return vec[uid as usize] } else{ return 0 } }
     pub fn get_dividends_for_uid( netuid:u16, uid: u16) -> u16 { let vec = Dividends::<T>::get( netuid ); if (uid as usize) < vec.len() { return vec[uid as usize] } else{ return 0 } }
     pub fn get_last_update_for_uid( netuid:u16, uid: u16) -> u64 { let vec = LastUpdate::<T>::get( netuid ); if (uid as usize) < vec.len() { return vec[uid as usize] } else{ return 0 } }
-    pub fn get_pruning_score_for_uid( netuid:u16, uid: u16) -> u16 { let vec = Emission::<T>::get( netuid ); if (uid as usize) < vec.len() { return vec[uid as usize] as u16 } else{ return u16::MAX } }
+    pub fn get_pruning_score_for_uid( netuid:u16, uid: u16) -> u16 { let vec = Emission::<T>::get( netuid ); if (uid as usize) < vec.len() { return vec[uid as usize] as u16 } else{ return 0 } }
 
 
     // ============================
@@ -562,7 +562,7 @@ impl<T: Config> Pallet<T> {
 
     pub fn get_min_allowed_weights( netuid:u16 ) -> u16 {
         let min_allowed_weights = MinAllowedWeights::<T>::get( netuid ) ; 
-        let n = Self::get_subnetwork_n(netuid);
+        let n = Self::get_subnet_n(netuid);
         // if n < min_allowed_weights, then return n
         if (n < min_allowed_weights) {
             return n;
