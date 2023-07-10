@@ -93,9 +93,9 @@ impl<T: Config> Pallet<T> {
             
             Self::replace_module_with_uid( netuid, uid, replace_uid );
 
-            let key: T::AccountId = Keys::<T>::get( netuid, replace_uid );
+            let replace_key: T::AccountId = Keys::<T>::get( netuid, replace_uid );
             // 2. Remove previous set memberships.
-            Uids::<T>::remove( netuid, key.clone() ); 
+            Uids::<T>::remove( netuid, &replace_key.clone() ); 
             Keys::<T>::remove( netuid, replace_uid ); // Make key - uid association.
             Address::<T>::remove(netuid, replace_uid ); // Make uid - key association.
             BlockAtRegistration::<T>::remove( netuid, replace_uid ); // Fill block at registration.

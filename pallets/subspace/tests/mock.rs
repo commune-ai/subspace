@@ -160,18 +160,29 @@ pub(crate) fn run_to_block(n: u64) {
 }
 
 #[allow(dead_code)]
+pub fn add_balance( key: U256, balance: u64 ) {
+	SubspaceModule::add_balance_to_account( &key, balance );
+}
+#[allow(dead_code)]
 pub fn increase_stake( netuid: u16, key: U256, stake: u64 ) {
-	SubspaceModule::add_balance_to_account( &key, stake );
+	SubspaceModule::remove_balance_from_account( &key, stake );
 	SubspaceModule::increase_stake_on_account( netuid, &key, stake)
 }
 
 #[allow(dead_code)]
 pub fn decrease_stake( netuid: u16, key: U256, stake: u64 ) {
+	SubspaceModule::add_balance_to_account( &key, stake );
 	SubspaceModule::decrease_stake_on_account( netuid, &key, stake)
 }
 
+
+pub fn get_origin( key: U256 ) -> RuntimeOrigin {
+	let origin = <<Test as frame_system::Config>::RuntimeOrigin>::signed(key);
+	return origin;
+}
+
 #[allow(dead_code)]
-pub fn register_module( netuid: u16, key_account_id: U256, stake: u64 ) {
+pub fn register_module( netuid: u16, key: U256, stake: u64 ) {
 
 	// can i format the test in rus
 	
@@ -180,13 +191,12 @@ pub fn register_module( netuid: u16, key_account_id: U256, stake: u64 ) {
 
 
 	let mut name : Vec<u8> = "module".as_bytes().to_vec();	
-	name.extend(key_account_id.to_string().as_bytes().to_vec());
+	name.extend(key.to_string().as_bytes().to_vec());
 
 	let address: Vec<u8> = "0.0.0.0:30333".as_bytes().to_vec();
 
 	let block_number: u64 = SubspaceModule::get_current_block_as_u64();
-	let origin = <<Test as frame_system::Config>::RuntimeOrigin>::signed(key_account_id);
-
+	let origin = get_origin(key);
 	let is_new_subnet: bool = !SubspaceModule::if_subnet_exist(netuid);
 
 
@@ -198,16 +208,16 @@ pub fn register_module( netuid: u16, key_account_id: U256, stake: u64 ) {
 	}
 
 	assert_ok!(result);
-	log::info!("Register ok neuron: network: {:?}, key: {:?}", name.clone(), key_account_id );
+	log::info!("Register ok neuron: network: {:?}, key: {:?}", name.clone(), key );
 }
 
 
 #[allow(dead_code)]
-pub fn add_network(netuid: u16, key_account_id: U256){
+pub fn add_network(netuid: u16, key: U256){
 
 	let network :Vec<u8> = netuid.to_string().as_bytes().to_vec();
 	let stake : u64 = 1_000_000_000;
-	let origin = <<Test as frame_system::Config>::RuntimeOrigin>::signed(key_account_id);
+	let origin = get_origin(key);
 	let result = SubspaceModule::do_add_network(origin, network, stake);
 
 	assert_ok!(result);
@@ -217,7 +227,7 @@ pub fn add_network(netuid: u16, key_account_id: U256){
 
 #[allow(dead_code)]
 pub fn remove_network(netuid: u16, key: U256){
-	let origin = <<Test as frame_system::Config>::RuntimeOrigin>::signed(key);
+	let origin = get_origin(key);
 	let result = SubspaceModule::do_remove_network(origin, netuid);
 	assert_ok!(result);
 }
@@ -235,7 +245,7 @@ pub fn uddate_network(netuid: u16,
 
 	let name :Vec<u8> = netuid.to_string().as_bytes().to_vec();
 	let founder : U256 = key.clone();
-	let origin = <<Test as frame_system::Config>::RuntimeOrigin>::signed(key);
+	let origin = get_origin(key);
 	let result = SubspaceModule::update_network(origin, netuid, name, tempo, immunity_period, min_allowed_weights, max_allowed_uids,founder);
 	assert_ok!(result);
 }
@@ -243,14 +253,14 @@ pub fn uddate_network(netuid: u16,
 
 #[allow(dead_code)]
 pub fn remove_stake(netuid: u16, key: U256, amount: u64){
-	let origin = <<Test as frame_system::Config>::RuntimeOrigin>::signed(key);
+	let origin = get_origin(key);
 	let result = SubspaceModule::remove_stake(origin, netuid, amount);
 
 	assert_ok!(result);
 }
 #[allow(dead_code)]
 pub fn add_stake(netuid: u16, key: U256, amount: u64){
-	let origin = <<Test as frame_system::Config>::RuntimeOrigin>::signed(key);
+	let origin = get_origin(key);
 	let result = SubspaceModule::add_stake(origin, netuid, amount);
 
 	assert_ok!(result);

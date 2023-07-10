@@ -39,6 +39,15 @@ impl<T: Config> Pallet<T> {
         return min_stake_netuid;
     }
 
+    pub fn get_max_allowed_subnets() -> u16 {
+        return MaxAllowedSubnets::<T>::get();
+    }
+    pub fn set_max_allowed_subnets( max_subnets: u16 ) {
+        MaxAllowedSubnets::<T>::put( max_subnets );
+    }
+
+    
+
     pub fn enough_stake_to_start_network(stake: u64) -> bool {
         let num_subnets: u16 = Self::get_number_of_subnets();
         let max_subnets: u16 = MaxAllowedSubnets::<T>::get();
@@ -145,21 +154,27 @@ impl<T: Config> Pallet<T> {
 
         // update the network
         Tempo::<T>::insert( netuid, tempo);
-        MaxAllowedUids::<T>::insert( netuid, max_allowed_uids );
+        let n : u16 = Self::get_subnet_n(netuid);
+
+
         ImmunityPeriod::<T>::insert( netuid, immunity_period );
         MinAllowedWeights::<T>::insert( netuid, min_allowed_weights );
         Founder::<T>::insert( netuid, founder );
-        let n : u16 = Self::get_subnet_n(netuid);
-        if (max_allowed_uids < n) {
+        // remove the modules if the max_allowed_uids is less than the current number of modules
+        if max_allowed_uids < n {
             for i in max_allowed_uids..n {
-                Self::remove_module( netuid, i)
+                Self::remove_module( netuid, Self::get_lowest_uid( netuid ));
             }
         }
+        MaxAllowedUids::<T>::insert( netuid, max_allowed_uids );
 
-        // update the name
-        let old_name: Vec<u8> = Self::get_name_for_netuid( netuid );
-        SubnetNamespace::<T>::remove( old_name.clone() );
-        SubnetNamespace::<T>::insert( name.clone(), netuid)
+
+        if name.len() > 0 {
+            // update the name
+            let old_name: Vec<u8> = Self::get_name_for_netuid( netuid );
+            SubnetNamespace::<T>::remove( old_name.clone() );
+            SubnetNamespace::<T>::insert( name.clone(), netuid)       
+         }
 
     }
 
@@ -588,14 +603,20 @@ impl<T: Config> Pallet<T> {
     pub fn get_uids( netuid: u16 ) -> Vec<u16> {
         <Uids<T> as IterableStorageDoubleMap<u16, T::AccountId, u16> >::iter_prefix( netuid ).map( |(key, uid)| uid ).collect() }
     pub fn get_keys( netuid: u16 ) -> Vec<T::AccountId> {
-        <Uids<T> as IterableStorageDoubleMap<u16, T::AccountId, u16> >::iter_prefix( netuid ).map( |(key, uid)| key ).collect() }
-        pub fn get_names( netuid: u16 ) -> Vec<Vec<u8>> {
-            let mut names = Vec::<Vec<u8>>::new();
-            for ( uid, name ) in < Names<T> as IterableStorageDoubleMap<u16, u16, Vec<u8>> >::iter_prefix(netuid){
-                names.push( name );
-            }
-            return names;
+        <Uids<T> as IterableStorageDoubleMap<u16, T::AccountId, u16> >::iter_prefix( netuid ).map( |(key, uid)| key ).collect() 
+    }
+
+    pub fn get_uid_key_tuples( netuid: u16 ) -> Vec<(u16, T::AccountId)> {
+        return <Keys<T> as IterableStorageDoubleMap<u16, u16, T::AccountId,> >::iter_prefix( netuid ).map( |(uid, key)| (uid, key) ).collect()
+    }
+
+    pub fn get_names( netuid: u16 ) -> Vec<Vec<u8>> {
+        let mut names = Vec::<Vec<u8>>::new();
+        for ( uid, name ) in < Names<T> as IterableStorageDoubleMap<u16, u16, Vec<u8>> >::iter_prefix(netuid){
+            names.push( name );
         }
+        return names;
+    }
     pub fn get_addresses( netuid: u16 ) -> Vec<T::AccountId> {
         let mut addresses = Vec::<T::AccountId>::new();
         for ( key, uid ) in < Uids<T> as IterableStorageDoubleMap<u16, T::AccountId, u16> >::iter_prefix(netuid){

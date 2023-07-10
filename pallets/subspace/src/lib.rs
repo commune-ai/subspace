@@ -152,7 +152,7 @@ pub mod pallet {
 	#[pallet::type_value] 
 	pub fn DefaultMaxRegistrationsPerBlock<T: Config>() -> u16 { 1 }
 	#[pallet::type_value] 
-	pub fn DefaultMaxAllowedSubnets<T: Config>() -> u16 { 1000 }
+	pub fn DefaultMaxAllowedSubnets<T: Config>() -> u16 { 100 }
 	#[pallet::type_value]
 	pub fn DefaultPendingEmission<T: Config>() ->  u64 { 0 }
 	#[pallet::type_value]
@@ -469,7 +469,7 @@ pub mod pallet {
 		#[pallet::weight((Weight::from_ref_time(65_000_000)
 		.saturating_add(T::DbWeight::get().reads(8))
 		.saturating_add(T::DbWeight::get().writes(6)), DispatchClass::Normal, Pays::No))]
-		pub fn rm_network(
+		pub fn remove_network(
 			origin: OriginFor<T>, 
 			netuid: u16,
 		) -> DispatchResult {
@@ -631,7 +631,7 @@ impl<T: Config + Send + Sync + TypeInfo> SignedExtension for SubspaceSignedExten
                     ..Default::default()
                 })
             }
-            Some(Call::rm_network{..}) => {
+            Some(Call::remove_network{..}) => {
                 Ok(ValidTransaction {
                     priority: Self::get_priority_vanilla(),
                     ..Default::default()

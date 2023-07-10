@@ -44,12 +44,8 @@ impl<T: Config> Pallet<T> {
         // == Stake ==
         // ===========
 
-        let mut keys: Vec<(u16, T::AccountId)> = vec![];
-        for ( uid_i, key ) in < Keys<T> as IterableStorageDoubleMap<u16, u16, T::AccountId >>::iter_prefix( netuid ) {
-            keys.push( (uid_i, key) ); 
-        }
+        let mut keys: Vec<(u16, T::AccountId)> = Self::get_uid_key_tuples( netuid );
         log::trace!( "keys: {:?}", &keys );
-
         // Access network stake as normalized vector.
         let mut stake_64: Vec<I64F64> = vec![ I64F64::from_num(0.0); n as usize ];
         let mut total_stake : I64F64 = I64F64::from_num(Self::get_total_subnet_stake( netuid ).clone());
@@ -62,6 +58,7 @@ impl<T: Config> Pallet<T> {
         }
 
         let mut stake: Vec<I32F32> = stake_64.iter().map( |x| I32F32::from_num(x.clone()) ).collect();
+
 
         // range: I32F32(0, 1)
         log::trace!( "S: {:?}", &stake );
@@ -153,16 +150,6 @@ impl<T: Config> Pallet<T> {
     
     }
 
-    pub fn get_normalized_stake( netuid:u16 ) -> Vec<I32F32> {
-        let n: usize = Self::get_subnet_n( netuid ) as usize; 
-        let mut stake_64: Vec<I64F64> = vec![ I64F64::from_num(0.0); n ]; 
-        for module_uid in 0..n {
-            stake_64[module_uid] = I64F64::from_num( Self::get_stake_for_uid( netuid, module_uid as u16 ) );
-        }
-        inplace_normalize_64( &mut stake_64 );
-        let stake: Vec<I32F32> = vec_fixed64_to_fixed32( stake_64 );
-        stake
-    }
 
     pub fn get_block_at_registration( netuid:u16 ) -> Vec<u64> { 
         let n: usize = Self::get_subnet_n( netuid ) as usize;

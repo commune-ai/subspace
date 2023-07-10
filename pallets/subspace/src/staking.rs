@@ -1,5 +1,5 @@
 use super::*;
-use substrate_fixed::types::{I64F64};
+use substrate_fixed::types::{I64F64, I32F32};
 
 impl<T: Config> Pallet<T> { 
 
@@ -84,7 +84,7 @@ impl<T: Config> Pallet<T> {
     pub fn get_stake(netuid:u16, key: &T::AccountId ) -> u64 { 
         return Stake::<T>::get(netuid,  key );
     }
-
+    
 
     pub fn key_account_exists(netuid:u16, key : &T::AccountId) -> bool {
         return Uids::<T>::contains_key(netuid, &key) ; 

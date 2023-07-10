@@ -11,25 +11,38 @@ use sp_core::U256;
 
 
 #[test]
-fn test_add_network() { 
+fn test_add_subnets() { 
         new_test_ext().execute_with(|| {
-        let modality = 0;
         let tempo: u16 = 13;
-        add_network(0, U256::from(0));
-        assert_eq!(SubspaceModule::get_number_of_subnets(), 1);
-        add_network( 1, U256::from(0));
-        assert_eq!(SubspaceModule::get_number_of_subnets(), 2); 
-});}
+        let num_subnets: u16 = 100;
+        let stake_per_module : u64 = 1_000_000_000;
+        
+        for i in 0..num_subnets {
+            register_module(i, U256::from(0), stake_per_module);
 
-
-#[test]
-fn test_add_many_subnets() { 
-        new_test_ext().execute_with(|| {
-        for i in 0..100 {
-            add_network(i, U256::from(0));
+            assert_eq!(SubspaceModule::get_subnet_n(i), 1);
             assert_eq!(SubspaceModule::get_number_of_subnets(), i+1);
         }
 });}
+
+#[test]
+fn test_remove_subnet() { 
+        new_test_ext().execute_with(|| {
+        let tempo: u16 = 13;
+        let num_subnets: u16 = 100;
+        let stake_per_module : u64 = 1_000_000_000;
+        let key = U256::from(0);
+        let netuid : u16 = 0;
+        register_module(netuid, key, stake_per_module);
+        let origin = get_origin(key);
+        SubspaceModule::remove_network(origin, netuid);
+        });
+    }
+
+
+    
+    
+
 
 
 
