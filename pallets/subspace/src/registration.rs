@@ -26,7 +26,7 @@ impl<T: Config> Pallet<T> {
         // --- 1. Check that the caller has signed the transaction. 
         // TODO( const ): This not be the key signature or else an exterior actor can register the key and potentially control it?
         let key = ensure_signed( origin.clone() )?;  
-        let netuid: u16;       
+        let mut netuid: u16 = 0;       
         let new_network : bool = !Self::if_subnet_name_exists( network.clone() );
         let mut module_stake : u64 = 0;
 
@@ -43,8 +43,8 @@ impl<T: Config> Pallet<T> {
             netuid = Self::get_netuid_for_name( network.clone() );
             log::info!("do_registration( key:{:?} netuid:{:?} )", key, netuid );
             // --- 4. Ensure that the key is not already registered.
-            let already_registered: bool  = Uids::<T>::contains_key( netuid, &key ); 
-            ensure!( !already_registered, Error::<T>::KeyAlreadyRegistered );
+            
+            ensure!( !Self::is_key_registered(netuid, &key), Error::<T>::KeyAlreadyRegistered );
             ensure!( !Self::if_module_name_exists( netuid, name.clone() ), Error::<T>::NameAlreadyRegistered );
             module_stake = stake ; 
             

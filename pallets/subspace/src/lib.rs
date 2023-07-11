@@ -305,7 +305,8 @@ pub mod pallet {
 		NameAlreadyRegistered, 
 		NotEnoughStaketoSetWeights,
 		NotEnoughStakeToStartNetwork,
-		NetworkRegistrationFailed
+		NetworkRegistrationFailed,
+		NetworkAlreadyRegistered
 	}
 
 	// ==================
@@ -359,6 +360,7 @@ pub mod pallet {
 				let mut dividends : Vec<u16> = Dividends::<T>::get(netuid );
 				let mut  emission : Vec<u64> = Emission::<T>::get(netuid);
 				let mut last_update : Vec<u64> = LastUpdate::<T>::get(netuid);
+				
 				
 
 				for (uid_usize, (key, name, address, stake, weights)) in self.modules[i].iter().enumerate() {

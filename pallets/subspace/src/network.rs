@@ -479,6 +479,11 @@ impl<T: Config> Pallet<T> {
         return Uids::<T>::contains_key( netuid, key ) 
     }
 
+    pub fn is_key_registered( netuid:u16, key: &T::AccountId ) -> bool { 
+        return Uids::<T>::contains_key( netuid, key ) 
+    }
+
+
     // Returs the key under the network uid as a Result. Ok if the uid is taken.
     //
     pub fn get_key_for_uid( netuid: u16, module_uid: u16) ->  T::AccountId {

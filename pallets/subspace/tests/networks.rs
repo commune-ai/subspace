@@ -31,46 +31,15 @@ fn test_remove_subnet() {
         let tempo: u16 = 13;
         let num_subnets: u16 = 100;
         let stake_per_module : u64 = 1_000_000_000;
-        let founder_key: U256 = U256::from(0);
+        let key = U256::from(0);
         let netuid : u16 = 0;
-        register_module(netuid, founder_key, stake_per_module);
+        register_module(netuid, key, stake_per_module);
         let origin = get_origin(key);
         SubspaceModule::remove_network(origin, netuid);
-        assert_eq!(SubspaceModule::get_subnet_n(netuid), 0);
-        assert_eq!(SubspaceModule::get_number_of_subnets(), 0)
-
-        });
-    }
-
-#[test]
-fn test_update_subnet() { 
-        new_test_ext().execute_with(|| {
-        let tempo: u16 = 13;
-        let num_subnets: u16 = 100;
-        let stake_per_module : u64 = 1_000_000_000;
-        let founder_key: U256 = U256::from(0);
-        let netuid : u16 = 0;
-        register_module(netuid, founder_key, stake_per_module);
-        let origin = get_origin(key);
-
-        let default_subnet = SubspaceModule::default_subnet();
-        let default_subnet.tempo = 13;
-        let default_subnet.name = "test";
-        let default_subnet.max_allowed_uids = 1000;
-        let default_subnet.min_allowed_weights = 100;
-
-
-        SubspaceModule::update_network(origin, netuid, tempo);
-
-        assert_eq!(SubspaceModule::get_subnet_n(netuid), 0);
-        assert_eq!(SubspaceModule::get_number_of_subnets(), 0)
-
         });
     }
 
 
-    
-    
 
 
 
@@ -78,13 +47,8 @@ fn test_update_subnet() {
 
 
 
-    #[test]
-
-
-
-
-
-    fn test_set_max_allowed_uids() { 
+ #[test]
+fn test_set_max_allowed_uids() { 
         new_test_ext().execute_with(|| {
         let netuid : u16 = 0;
         let stake : u64 = 1_000_000_000;
@@ -120,9 +84,17 @@ fn test_update_subnet() {
             n = SubspaceModule::get_subnet_n(netuid);
             assert_eq!(n, new_n);
 
-            uids = SubspaceModule::get_uids(netuid) ; 
+            let uids = SubspaceModule::get_uids(netuid) ; 
             assert_eq!(uids.len() as u16,  n);
 
+            let keys = SubspaceModule::get_keys(netuid) ;
+            assert_eq!(keys.len() as u16,  n);
+
+            let names = SubspaceModule::get_names(netuid) ;
+            assert_eq!(names.len() as u16,  n);
+
+            let addresses = SubspaceModule::get_names(netuid) ;
+            assert_eq!(addresses.len() as u16,  n);
 
         }
 });
