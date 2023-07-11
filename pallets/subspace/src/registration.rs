@@ -28,37 +28,36 @@ impl<T: Config> Pallet<T> {
         let key = ensure_signed( origin.clone() )?;  
         let netuid: u16;       
         let new_network : bool = !Self::if_subnet_name_exists( network.clone() );
+        let mut module_stake : u64 = 0;
+
+        // --- 2. Ensure we are not exceeding the max allowed registrations per block.
+        ensure!( Self::get_registrations_this_block( netuid ) < Self::get_max_registrations_per_block( netuid ), Error::<T>::TooManyRegistrationsThisBlock );
+        RegistrationsThisBlock::<T>::mutate( netuid, |val| *val += 1 );
+
         if new_network {
+            // --- 2. Ensure that the network name is not already registered.
+            ensure!( !Self::if_subnet_name_exists( network.clone() ), Error::<T>::NetworkAlreadyRegistered );
             ensure!( Self::enough_stake_to_start_network( stake ), Error::<T>::NotEnoughStakeToStartNetwork );
             netuid = Self::add_network_from_registration(network.clone(), stake, &key.clone());
         }  else {
             netuid = Self::get_netuid_for_name( network.clone() );
+            log::info!("do_registration( key:{:?} netuid:{:?} )", key, netuid );
+            // --- 4. Ensure that the key is not already registered.
+            let already_registered: bool  = Uids::<T>::contains_key( netuid, &key ); 
+            ensure!( !already_registered, Error::<T>::KeyAlreadyRegistered );
+            ensure!( !Self::if_module_name_exists( netuid, name.clone() ), Error::<T>::NameAlreadyRegistered );
+            module_stake = stake ; 
+            
         }
 
-        log::info!("do_registration( key:{:?} netuid:{:?} )", key, netuid );
-        // --- 4. Ensure that the key is not already registered.
-        let already_registered: bool  = Uids::<T>::contains_key( netuid, &key ); 
-        ensure!( !already_registered, Error::<T>::KeyAlreadyRegistered );
-        ensure!( !Self::if_module_name_exists( netuid, name.clone() ), Error::<T>::NameAlreadyRegistered );
-        
-        let current_block_number: u64 = Self::get_current_block_as_u64();
         let mut uid: u16;
         let n: u16 = Self::get_subnet_n( netuid );
 
-        // --- 3. Ensure we are not exceeding the max allowed registrations per block.
-        ensure!( Self::get_registrations_this_block( netuid ) < Self::get_max_registrations_per_block( netuid ), Error::<T>::TooManyRegistrationsThisBlock );
-        RegistrationsThisBlock::<T>::mutate( netuid, |val| *val += 1 );
-
         if n < Self::get_max_allowed_uids( netuid ) {
-            let mut module_stake : u64 = stake.clone();
-            if new_network {
-                module_stake = 0;
-            }
             uid = Self::append_module( netuid, &key , name.clone(), address.clone(), module_stake);
-            log::info!("add new module account");
         } else {
             uid = Self::get_lowest_uid( netuid );
-            Self::replace_module( netuid, uid, &key , name.clone(), address.clone(), stake);
+            Self::replace_module( netuid, uid, &key , name.clone(), address.clone(), module_stake);
             log::info!("prune module");
         }
 

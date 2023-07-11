@@ -306,7 +306,7 @@ impl<T: Config> Pallet<T> {
         
         // --- 6. Emit the new network event.
         log::info!("NetworkAdded( netuid:{:?}, name:{:?} )", netuid, name.clone());
-        Self::increase_stake_on_account(netuid, founder, stake );
+        Self::add_stake_on_account(netuid, &founder, stake );
         Self::deposit_event( Event::NetworkAdded( netuid, name.clone()) );
     
 
