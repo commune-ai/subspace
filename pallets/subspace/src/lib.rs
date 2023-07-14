@@ -112,7 +112,7 @@ pub mod pallet {
 	// ==============================
 
 	#[derive(Decode, Encode, PartialEq, Eq, Clone, Debug, TypeInfo)]
-	pub struct SubnetInfo {
+	pub struct SubnetInfo<T: Config> {
 
 		// --- parameters
 		pub name: Vec<u8>,
@@ -127,6 +127,7 @@ pub mod pallet {
 		pub n : u16,
 		pub stake: u64,
 		pub emission: u64,
+		pub founder: T::AccountId,
 	}
 
 

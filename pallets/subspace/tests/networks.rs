@@ -41,11 +41,22 @@ fn test_remove_subnet() {
 
 
 
+    #[test]
+    fn test_update_subnet() { 
+            new_test_ext().execute_with(|| {
+            // creates a subnet when you register a module
+            let netuid : u16 = 0;
+            let stake : u64 = 1_000_000_000;
+            let key = U256::from(0);
+            register_module(netuid, key, stake);
+            let params = SubspaceModule::get_subnet(netuid);
 
-
-
-
-
+            
+            SubspaceModule::update_network(get_origin(key), netuid, params.name, params.immunity_period, params.min_allowed_weights, params.max_allowed_weights, params.max_allowed_uids, params.tempo, params.founder );
+            });
+        }
+    
+    
 
  #[test]
 fn test_set_max_allowed_uids() { 

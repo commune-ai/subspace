@@ -92,7 +92,7 @@ impl<T: Config> Pallet<T> {
             ensure!( Self::enough_stake_to_start_network( stake ), Error::<T>::NotEnoughStakeToStartNetwork );
         }
 
-        let default_subnet: SubnetInfo = Self::default_subnet();
+        let default_subnet: SubnetInfo<T> = Self::default_subnet();
         Self::add_network( name.clone() ,
                             default_subnet.stake + stake, 
                             default_subnet.max_allowed_uids, 
@@ -190,8 +190,14 @@ impl<T: Config> Pallet<T> {
     }
 
 
+    pub fn subnet_params() -> SubnetInfo<T> {
+        Self::default_subnet()
 
-    pub fn default_subnet() -> SubnetInfo {
+            
+        
+    }
+
+    pub fn default_subnet() -> SubnetInfo<T> {
         let netuid: u16 = 0;
         return SubnetInfo {
             immunity_period: ImmunityPeriod::<T>::get( netuid ) ,
@@ -204,6 +210,7 @@ impl<T: Config> Pallet<T> {
             stake: SubnetTotalStake::<T>::get( netuid ),
             name : Self::get_name_for_netuid( netuid ),
             emission: SubnetEmission::<T>::get( netuid ),
+            founder: Founder::<T>::get( netuid ),
         
         };
 
@@ -436,40 +443,27 @@ impl<T: Config> Pallet<T> {
 
 
 
-	pub fn get_subnet_info(netuid: u16) -> Option<SubnetInfo> {
-        if !Self::if_subnet_exist(netuid) {
-            return None;
-        }
-
-        let immunity_period = Self::get_immunity_period(netuid);
-        let name = Self::get_name_for_netuid(netuid);
-        let min_allowed_weights = Self::get_min_allowed_weights(netuid);
-        let max_allowed_weights = Self::get_max_allowed_weights(netuid);
-        let n = Self::get_subnet_n(netuid);
-        let max_allowed_uids = Self::get_max_allowed_uids(netuid);
-        let tempo = Self::get_tempo(netuid);
-
-
-
-        return Some(SubnetInfo {
-            immunity_period: immunity_period.into(),
-            name: name,
+	pub fn get_subnet(netuid: u16) -> SubnetInfo<T> {
+        return SubnetInfo {
             netuid: netuid.into(),
-            min_allowed_weights: min_allowed_weights.into(),
-            max_allowed_weights: max_allowed_uids.into(),
-            n: n.into(),
-            max_allowed_uids: max_allowed_uids.into(),
-            tempo: tempo.into(),
+            immunity_period: Self::get_immunity_period(netuid).into(),
+            name: Self::get_name_for_netuid(netuid),
+            min_allowed_weights: Self::get_min_allowed_weights(netuid).into(),
+            max_allowed_weights:  Self::get_max_allowed_weights(netuid).into(),
+            n: Self::get_subnet_n(netuid).into(),
+            max_allowed_uids: Self::get_max_allowed_uids(netuid).into(),
+            tempo: Self::get_tempo(netuid).into(),
             emission: SubnetEmission::<T>::get(netuid).into(),
             stake: SubnetTotalStake::<T>::get(netuid).into(),
+            founder: Founder::<T>::get(netuid),
             
-        })
+        };
 	}
 
-    pub fn get_subnets_info() -> Vec<Option<SubnetInfo>> {
-        let mut subnets_info = Vec::<Option<SubnetInfo>>::new();
+    pub fn get_subnets() -> Vec<SubnetInfo<T>> {
+        let mut subnets_info = Vec::<SubnetInfo<T>>::new();
         for ( netuid, net_n ) in < N<T> as IterableStorageMap<u16, u16> >::iter() {
-            subnets_info.push(Self::get_subnet_info(netuid));
+            subnets_info.push(Self::get_subnet(netuid));
         }
         return subnets_info;
 	}
