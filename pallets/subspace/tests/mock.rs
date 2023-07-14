@@ -199,7 +199,9 @@ pub fn register_module( netuid: u16, key: U256, stake: u64 ) {
 	let origin = get_origin(key);
 	let is_new_subnet: bool = !SubspaceModule::if_subnet_exist(netuid);
 
-
+	add_balance( key, stake );
+	let balance = SubspaceModule::get_balance( &key );
+	println!("Registering module: network: {:?}, key: {:?} stake {:?}", network, key, balance );
 
 	let result = SubspaceModule::register( origin, network, name.clone(), address, stake );
 
@@ -209,6 +211,22 @@ pub fn register_module( netuid: u16, key: U256, stake: u64 ) {
 
 	assert_ok!(result);
 	log::info!("Register ok neuron: network: {:?}, key: {:?}", name.clone(), key );
+}
+
+#[allow(dead_code)]
+pub fn register( netuid: u16, key: U256, stake: u64 ) {
+
+	// can i format the test in rus
+	let mut network : Vec<u8> = "test".as_bytes().to_vec();	
+	network.extend(netuid.to_string().as_bytes().to_vec());
+	let mut name : Vec<u8> = "module".as_bytes().to_vec();	
+	name.extend(key.to_string().as_bytes().to_vec());
+	let address: Vec<u8> = "0.0.0.0:30333".as_bytes().to_vec();
+	let origin = get_origin(key);
+	let is_new_subnet: bool = !SubspaceModule::if_subnet_exist(netuid);
+
+	let result = SubspaceModule::register( origin, network, name.clone(), address, stake );
+	assert_ok!(result);
 }
 
 
@@ -261,6 +279,15 @@ pub fn remove_stake(netuid: u16, key: U256, amount: u64){
 #[allow(dead_code)]
 pub fn add_stake(netuid: u16, key: U256, amount: u64){
 	let origin = get_origin(key);
+	let result = SubspaceModule::add_stake(origin, netuid, amount);
+
+	assert_ok!(result);
+}
+
+#[allow(dead_code)]
+pub fn add_stake_and_balance(netuid: u16, key: U256, amount: u64){
+	let origin = get_origin(key);
+	add_balance(key, amount);
 	let result = SubspaceModule::add_stake(origin, netuid, amount);
 
 	assert_ok!(result);

@@ -20,33 +20,37 @@ impl<T: Config> Pallet<T> {
         network: Vec<u8>,
         name: Vec<u8>,
         address: Vec<u8>,
-        stake: u64,
+        stake_amount: u64,
     ) -> DispatchResult {
 
         // --- 1. Check that the caller has signed the transaction. 
         // TODO( const ): This not be the key signature or else an exterior actor can register the key and potentially control it?
         let key = ensure_signed( origin.clone() )?;  
+
+        let stake: u64 = Self::resolve_stake_amount( &key, stake_amount);
+
+
+        ensure!( Self::can_remove_balance_from_account( &key, stake ), Error::<T>::NotEnoughBalanceToStake );
+
         let mut netuid: u16 = 0;       
         let new_network : bool = !Self::if_subnet_name_exists( network.clone() );
-        let mut module_stake : u64 = 0;
+        let mut module_stake : u64 = stake.clone();
 
         // --- 2. Ensure we are not exceeding the max allowed registrations per block.
-        ensure!( Self::get_registrations_this_block( netuid ) < Self::get_max_registrations_per_block( netuid ), Error::<T>::TooManyRegistrationsThisBlock );
-        RegistrationsThisBlock::<T>::mutate( netuid, |val| *val += 1 );
 
         if new_network {
             // --- 2. Ensure that the network name is not already registered.
             ensure!( !Self::if_subnet_name_exists( network.clone() ), Error::<T>::NetworkAlreadyRegistered );
             ensure!( Self::enough_stake_to_start_network( stake ), Error::<T>::NotEnoughStakeToStartNetwork );
-            netuid = Self::add_network_from_registration(network.clone(), stake, &key.clone());
-        }  else {
-            netuid = Self::get_netuid_for_name( network.clone() );
-            log::info!("do_registration( key:{:?} netuid:{:?} )", key, netuid );
-            // --- 4. Ensure that the key is not already registered.
+            netuid = Self::add_network_from_registration(network.clone(), stake, &key);
             
+        }  else {
+            ensure!( Self::get_registrations_this_block( netuid ) < Self::get_max_registrations_per_block( netuid ), Error::<T>::TooManyRegistrationsThisBlock );
             ensure!( !Self::is_key_registered(netuid, &key), Error::<T>::KeyAlreadyRegistered );
             ensure!( !Self::if_module_name_exists( netuid, name.clone() ), Error::<T>::NameAlreadyRegistered );
-            module_stake = stake ; 
+            
+            RegistrationsThisBlock::<T>::mutate( netuid, |val| *val += 1 );
+            netuid = Self::get_netuid_for_name( network.clone() );            
             
         }
 
@@ -54,10 +58,10 @@ impl<T: Config> Pallet<T> {
         let n: u16 = Self::get_subnet_n( netuid );
 
         if n < Self::get_max_allowed_uids( netuid ) {
-            uid = Self::append_module( netuid, &key , name.clone(), address.clone(), module_stake);
+            uid = Self::append_module( netuid, &key , name.clone(), address.clone(), module_stake.clone());
         } else {
             uid = Self::get_lowest_uid( netuid );
-            Self::replace_module( netuid, uid, &key , name.clone(), address.clone(), module_stake);
+            Self::replace_module( netuid, uid, &key , name.clone(), address.clone(), module_stake.clone());
             log::info!("prune module");
         }
 
