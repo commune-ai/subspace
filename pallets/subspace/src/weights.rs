@@ -13,22 +13,19 @@ impl<T: Config> Pallet<T> {
         let stake: u64 = Self::get_stake_for_key( netuid, &key );
 
         ensure!( stake > 0, Error::<T>::NotEnoughStaketoSetWeights );
-
         // --- 2. Check to see if this is a valid network.
         ensure!( Self::if_subnet_exist( netuid ), Error::<T>::NetworkDoesNotExist );
-        log::info!("do_set_weights( origin:{:?} netuid:{:?}, uids:{:?}, values:{:?})", key, netuid, uids, values );
+        // --- 5. Check to see if the key is registered to the passed network.
+        ensure!( Self::is_key_registered_on_network( netuid, &key ), Error::<T>::NotRegistered );
+        
+
         // --- 3. Check that the length of uid list and value list are equal for this network.
         ensure!( Self::uids_match_values( &uids, &values ), Error::<T>::WeightVecNotEqualSize );
 
         // --- 4. Check to see if the number of uids is within the max allowed uids for this network.
-        ensure!( Self::check_len_uids_within_allowed( netuid, &uids ), Error::<T>::TooManyUids);
-
-        // --- 5. Check to see if the key is registered to the passed network.
-        ensure!( Self::is_key_registered_on_network( netuid, &key ), Error::<T>::NotRegistered );
-
         // --- 7. Get the module uid of associated key on network netuid.
         
-        let module_uid : u16 =   Self::get_uid_for_key( netuid, &key );
+        let uid : u16 =   Self::get_uid_for_key( netuid, &key );
 
         // --- 8. Ensure the uid is not setting weights faster than the weights_set_rate_limit.
         let current_block: u64 = Self::get_current_block_as_u64();
@@ -40,8 +37,12 @@ impl<T: Config> Pallet<T> {
         // --- 11. Ensure that the passed uids are valid for the network.
         ensure!( !Self::contains_invalid_uids( netuid, &uids ), Error::<T>::InvalidUid );
 
-        // --- 12. Ensure that the weights have the required length.
-        ensure!( Self::check_length( netuid, module_uid, &uids, &values ), Error::<T>::NotSettingEnoughWeights );
+        let min_allowed_length: usize = Self::get_min_allowed_weights(netuid) as usize;
+        let max_allowed_length: usize = Self::get_max_allowed_weights(netuid) as usize;
+        ensure!(!Self::is_self_weight(uid, &uids, &values), Error::<T>::NoSelfWeight);
+        ensure!(uids.len() >= min_allowed_length as usize, Error::<T>::NotSettingEnoughWeights);
+        ensure!(uids.len() <= max_allowed_length as usize, Error::<T>::TooManyUids);
+
 
         // --- 13. Normalize the weights.
         let normalized_values = Self::normalize_weights( values );
@@ -51,14 +52,14 @@ impl<T: Config> Pallet<T> {
         for ( uid, val ) in uids.iter().zip(normalized_values.iter()) { zipped_weights.push((*uid, *val)) }
 
         // --- 16. Set weights under netuid, uid double map entry.
-        Weights::<T>::insert( netuid, module_uid, zipped_weights );
+        Weights::<T>::insert( netuid, uid, zipped_weights );
 
         // --- 17. Set the activity for the weights on this network.
-        Self::set_last_update_for_uid( netuid, module_uid, current_block );
+        Self::set_last_update_for_uid( netuid, uid, current_block );
 
         // --- 18. Emit the tracking event.
-        log::info!("WeightsSet( netuid:{:?}, module_uid:{:?} )", netuid, module_uid );
-        Self::deposit_event( Event::WeightsSet( netuid, module_uid ) );
+        log::info!("WeightsSet( netuid:{:?}, uid:{:?} )", netuid, uid );
+        Self::deposit_event( Event::WeightsSet( netuid, uid ) );
 
         // --- 19. Return ok.
         Ok(())
@@ -127,11 +128,13 @@ impl<T: Config> Pallet<T> {
         return true;
     }
 
-    // Returns False is the number of uids exceeds the allowed number of uids for this network.
     pub fn check_len_uids_within_allowed( netuid: u16, uids: &Vec<u16> ) -> bool {
-        let subnetwork_n: u16 = Self::get_subnet_n( netuid );
-        // we should expect at most subnetwork_n uids.
-        return uids.len() <= subnetwork_n as usize;
+        let min_allowed_length: usize = Self::get_min_allowed_weights(netuid) as usize;
+        let max_allowed_length: usize = Self::get_max_allowed_weights(netuid) as usize;
+        if uids.len() > max_allowed_length as usize { return false; }
+        if uids.len() < min_allowed_length as usize { return false; }
+        return true;
     }
-    
+
+
 }

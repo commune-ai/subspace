@@ -111,15 +111,18 @@ fn test_set_weights_err_invalid_uid() {
 #[test]
 fn test_set_weight_not_enough_values() {
 	new_test_ext().execute_with(|| {
+
         
 		let netuid: u16 = 0;
-		let account_id = U256::from(1);
-        SubspaceModule::set_max_registrations_per_block(netuid, 100);
-
+		let n = 100;
+        SubspaceModule::set_max_registrations_per_block(netuid, n);
+		let account_id = U256::from(0);
 		register_module(netuid, account_id,  1_000_000_000);
-		let neuron_uid: u16 = SubspaceModule::get_uid_for_key( netuid, &U256::from(1) );
+		let neuron_uid: u16 = SubspaceModule::get_uid_for_key( netuid, &U256::from(account_id) );
+		for i in 1..n {
+			register_module(netuid, U256::from(i),  1_000_000_000);
+		}
 
-		register_module(netuid, U256::from(3),  1_000_000_000);
 		SubspaceModule::set_min_allowed_weights(netuid, 2);
 
 		// Should fail because we are only setting a single value and its not the self weight.
@@ -129,18 +132,49 @@ fn test_set_weight_not_enough_values() {
 		assert_eq!(result, Err(Error::<Test>::NotSettingEnoughWeights.into()));
 
 		// Shouldnt fail because we setting a single value but it is the self weight.
+		
 		let weight_keys : Vec<u16> = vec![0]; // self weight.
 		let weight_values : Vec<u16> = vec![88]; // random value.
-		assert_ok!( SubspaceModule::set_weights(RuntimeOrigin::signed(account_id), netuid , weight_keys, weight_values)) ;
-
+		let result = SubspaceModule::set_weights(RuntimeOrigin::signed(account_id), netuid , weight_keys, weight_values) ;
+		assert_eq!(result, Err(Error::<Test>::NoSelfWeight.into()));
+		
 		// Should pass because we are setting enough values.
-		let weight_keys : Vec<u16> = vec![0, 1]; // self weight. 
+		let weight_keys : Vec<u16> = vec![1, 2]; // self weight. 
 		let weight_values : Vec<u16> = vec![10, 10]; // random value.
-		SubspaceModule::set_min_allowed_weights(1, 1);
+		SubspaceModule::set_min_allowed_weights(netuid, 1);
 		assert_ok!( SubspaceModule::set_weights(RuntimeOrigin::signed(account_id), netuid,  weight_keys, weight_values)) ;
 	});
 }
 
+// Tests that set weights fails if you dont pass enough values.
+#[test]
+fn test_set_max_allowed_uids() {
+	new_test_ext().execute_with(|| {
+
+        
+		let netuid: u16 = 0;
+		let n = 100;
+        SubspaceModule::set_max_registrations_per_block(netuid, n);
+		let account_id = U256::from(0);
+		register_module(netuid, account_id,  1_000_000_000);
+		let neuron_uid: u16 = SubspaceModule::get_uid_for_key( netuid, &U256::from(account_id) );
+		for i in 1..n {
+			register_module(netuid, U256::from(i),  1_000_000_000);
+		}
+
+		let max_allowed_uids : u16 = 10;
+
+		SubspaceModule::set_max_allowed_weights(netuid, max_allowed_uids);
+
+		// Should fail because we are only setting a single value and its not the self weight.
+		let weight_keys : Vec<u16> = (0..max_allowed_uids).collect(); // not weight.
+		let weight_values : Vec<u16> = vec![1; max_allowed_uids as usize]; // random value.
+		let result = SubspaceModule::set_weights(RuntimeOrigin::signed(account_id), netuid, weight_keys, weight_values);
+		assert_ok!(result);
+	
+
+	});
+}
 
 
 /// Check do nothing path

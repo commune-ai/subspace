@@ -98,6 +98,7 @@ impl<T: Config> Pallet<T> {
                             default_subnet.max_allowed_uids, 
                             default_subnet.immunity_period,
                             default_subnet.min_allowed_weights,
+                            default_subnet.max_allowed_weights,
                             default_subnet.tempo,
                             &key.clone()// founder
                             );
@@ -128,6 +129,7 @@ impl<T: Config> Pallet<T> {
         name: Vec<u8>,
         immunity_period: u16,
         min_allowed_weights: u16,
+        max_allowed_weights: u16,
         max_allowed_uids: u16,
         tempo: u16,
         founder: T::AccountId,
@@ -138,7 +140,14 @@ impl<T: Config> Pallet<T> {
         ensure!( Self::if_subnet_netuid_exists( netuid ), Error::<T>::SubnetNameAlreadyExists );
         ensure!( Self::is_subnet_founder( netuid, &key ), Error::<T>::NotSubnetFounder );
 
-        Self::update_network_for_netuid( netuid, name.clone(), immunity_period, min_allowed_weights, max_allowed_uids, tempo, founder);
+        Self::update_network_for_netuid( netuid, 
+                                        name.clone(), 
+                                        immunity_period, 
+                                        min_allowed_weights, 
+                                        max_allowed_weights, 
+                                        max_allowed_uids, 
+                                        tempo, 
+                                        founder);
         // --- 16. Ok and done.
         Ok(())
     }
@@ -148,6 +157,7 @@ impl<T: Config> Pallet<T> {
                     name: Vec<u8>,
                     immunity_period: u16,
                     min_allowed_weights: u16,
+                    max_allowed_weights: u16,
                     max_allowed_uids: u16,
                     tempo: u16,
                     founder: T::AccountId,) {
@@ -159,6 +169,7 @@ impl<T: Config> Pallet<T> {
 
         ImmunityPeriod::<T>::insert( netuid, immunity_period );
         MinAllowedWeights::<T>::insert( netuid, min_allowed_weights );
+        MaxAllowedWeights::<T>::insert( netuid, max_allowed_weights );
         Founder::<T>::insert( netuid, founder );
         // remove the modules if the max_allowed_uids is less than the current number of modules
         if max_allowed_uids < n {
@@ -183,8 +194,9 @@ impl<T: Config> Pallet<T> {
     pub fn default_subnet() -> SubnetInfo {
         let netuid: u16 = 0;
         return SubnetInfo {
-            immunity_period: MinAllowedWeights::<T>::get( netuid ),
-            min_allowed_weights: ImmunityPeriod::<T>::get( netuid ),
+            immunity_period: ImmunityPeriod::<T>::get( netuid ) ,
+            min_allowed_weights: MinAllowedWeights::<T>::get( netuid ),
+            max_allowed_weights: MaxAllowedWeights::<T>::get( netuid ),
             max_allowed_uids:  MaxAllowedUids::<T>::get( netuid ),
             tempo: Tempo::<T>::get( netuid ),
             n: N::<T>::get( netuid ),
@@ -217,6 +229,7 @@ impl<T: Config> Pallet<T> {
                             name.clone(),
                             default_subnet.stake, 
                             default_subnet.max_allowed_uids, 
+                            default_subnet.max_allowed_weights,
                             default_subnet.immunity_period,
                             default_subnet.min_allowed_weights,
                             default_subnet.tempo,
@@ -242,6 +255,7 @@ impl<T: Config> Pallet<T> {
                             default_subnet.max_allowed_uids, 
                             default_subnet.immunity_period,
                             default_subnet.min_allowed_weights,
+                            default_subnet.max_allowed_weights,
                             default_subnet.tempo,
                             &key, );
 
@@ -283,6 +297,7 @@ impl<T: Config> Pallet<T> {
                        max_allowed_uids: u16,
                        immunity_period: u16,
                        min_allowed_weights: u16,
+                       max_allowed_weights: u16,
                        tempo: u16,
                        founder: &T::AccountId, 
                     ) -> u16 {
@@ -297,6 +312,7 @@ impl<T: Config> Pallet<T> {
         MaxAllowedUids::<T>::insert( netuid, max_allowed_uids );
         ImmunityPeriod::<T>::insert( netuid, immunity_period );
         MinAllowedWeights::<T>::insert( netuid, min_allowed_weights );
+        MaxAllowedWeights::<T>::insert( netuid, max_allowed_weights );
         SubnetNamespace::<T>::insert( name.clone(), netuid );
         Founder::<T>::insert( netuid, founder );
 
@@ -428,6 +444,7 @@ impl<T: Config> Pallet<T> {
         let immunity_period = Self::get_immunity_period(netuid);
         let name = Self::get_name_for_netuid(netuid);
         let min_allowed_weights = Self::get_min_allowed_weights(netuid);
+        let max_allowed_weights = Self::get_max_allowed_weights(netuid);
         let n = Self::get_subnet_n(netuid);
         let max_allowed_uids = Self::get_max_allowed_uids(netuid);
         let tempo = Self::get_tempo(netuid);
@@ -439,6 +456,7 @@ impl<T: Config> Pallet<T> {
             name: name,
             netuid: netuid.into(),
             min_allowed_weights: min_allowed_weights.into(),
+            max_allowed_weights: max_allowed_uids.into(),
             n: n.into(),
             max_allowed_uids: max_allowed_uids.into(),
             tempo: tempo.into(),
@@ -600,6 +618,18 @@ impl<T: Config> Pallet<T> {
         }
         }
     pub fn set_min_allowed_weights( netuid: u16, min_allowed_weights: u16 ) { MinAllowedWeights::<T>::insert( netuid, min_allowed_weights ); }
+
+    pub fn get_max_allowed_weights( netuid:u16 ) -> u16 {
+            let max_allowed_weights = MaxAllowedWeights::<T>::get( netuid ) ; 
+            let n = Self::get_subnet_n(netuid);
+            // if n < min_allowed_weights, then return n
+            if (n < max_allowed_weights) {
+                return n;
+            } else {
+                return max_allowed_weights;
+            }
+        }
+    pub fn set_max_allowed_weights( netuid: u16, max_allowed_weights: u16 ) { MaxAllowedWeights::<T>::insert( netuid, max_allowed_weights ); }
 
     pub fn get_max_allowed_uids( netuid: u16 ) -> u16  { MaxAllowedUids::<T>::get( netuid ) }
     pub fn set_max_allowed_uids(netuid: u16, max_allowed: u16) { MaxAllowedUids::<T>::insert( netuid, max_allowed ); }

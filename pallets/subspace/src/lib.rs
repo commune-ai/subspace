@@ -119,6 +119,7 @@ pub mod pallet {
 		pub tempo: u16, // how many blocks to wait before rewarding models
 		pub immunity_period: u16, // how many blocks to wait before rewarding models
 		pub min_allowed_weights: u16, // min number of weights allowed to be registered in this subnet
+		pub max_allowed_weights: u16, // max number of weights allowed to be registered in this subnet
 		pub max_allowed_uids: u16, // max number of uids allowed to be registered in this subnet
 		// pub mode: u8, // --- 0 for open, 1 for closed.
 		// state variables
@@ -145,6 +146,8 @@ pub mod pallet {
 	pub fn DefaultImmunityPeriod<T: Config>() -> u16 { 100 }
 	#[pallet::type_value] 
 	pub fn DefaultMinAllowedWeights<T: Config>() -> u16 { 1 }
+	#[pallet::type_value] 
+	pub fn DefaultMaxAllowedWeights<T: Config>() -> u16 { 420 }
 	#[pallet::type_value] 
 	pub fn DefaultMaxNameLength<T: Config>() -> u16 { 32 }
 	#[pallet::type_value]
@@ -182,6 +185,8 @@ pub mod pallet {
 	pub type ImmunityPeriod<T> = StorageMap<_, Identity, u16, u16, ValueQuery, DefaultImmunityPeriod<T> >;
 	#[pallet::storage] // --- MAP ( netuid ) --> min_allowed_weights
 	pub type MinAllowedWeights<T> = StorageMap< _, Identity, u16, u16, ValueQuery, DefaultMinAllowedWeights<T> >;
+	#[pallet::storage] // --- MAP ( netuid ) --> min_allowed_weights
+	pub type MaxAllowedWeights<T> = StorageMap< _, Identity, u16, u16, ValueQuery, DefaultMaxAllowedWeights<T> >;
 	#[pallet::storage] // --- MAP ( netuid ) --> weights_set_rate_limit
 	pub type BlockAtRegistration<T:Config> = StorageDoubleMap<_, Identity, u16, Identity, u16, u64, ValueQuery, DefaultBlockAtRegistration<T> >;
 
@@ -306,7 +311,8 @@ pub mod pallet {
 		NotEnoughStaketoSetWeights,
 		NotEnoughStakeToStartNetwork,
 		NetworkRegistrationFailed,
-		NetworkAlreadyRegistered
+		NetworkAlreadyRegistered,
+		NoSelfWeight
 	}
 
 	// ==================
@@ -459,11 +465,19 @@ pub mod pallet {
 			name: Vec<u8>,
 			immunity_period: u16,
 			min_allowed_weights: u16,
+			max_allowed_weights: u16,
 			max_allowed_uids: u16,
 			tempo: u16,
 			founder: T::AccountId,
 		) -> DispatchResult {
-			Self::do_update_network(origin,netuid, name.clone(), immunity_period, min_allowed_weights, max_allowed_uids, tempo, founder)
+			Self::do_update_network(origin,netuid, 
+									name.clone(), 
+									immunity_period, 
+									min_allowed_weights,
+									max_allowed_weights,  
+									max_allowed_uids, 
+									tempo, 
+									founder)
 		}
 
 
