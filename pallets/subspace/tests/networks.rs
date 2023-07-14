@@ -42,17 +42,35 @@ fn test_remove_subnet() {
 
 
     #[test]
-    fn test_update_subnet() { 
+    fn test_set_tempo() { 
             new_test_ext().execute_with(|| {
             // creates a subnet when you register a module
             let netuid : u16 = 0;
-            let stake : u64 = 1_000_000_000;
+            let stake : u64 = 0;
             let key = U256::from(0);
+            let tempo = 1;
             register_module(netuid, key, stake);
-            let params = SubspaceModule::get_subnet(netuid);
+            let mut params  = SubspaceModule::get_subnet(netuid);
+            SubspaceModule::update_network(get_origin(key), 
+                                            netuid, params.name, 
+                                            params.immunity_period, 
+                                            params.min_allowed_weights, 
+                                            params.max_allowed_weights, 
+                                            params.max_allowed_uids, 
+                                            tempo, // change tempo
+                                            params.founder );
+
+            let total_blocks = 100;
 
             
-            SubspaceModule::update_network(get_origin(key), netuid, params.name, params.immunity_period, params.min_allowed_weights, params.max_allowed_weights, params.max_allowed_uids, params.tempo, params.founder );
+            for i in 0..total_blocks {
+                step_block(1);
+                let total_stake = SubspaceModule::get_total_subnet_stake(netuid);
+                println!("block number: {} stake {}", i, total_stake);
+
+                assert_eq!(total_stake, (i+1)*1_000_000_000);
+            }
+
             });
         }
     
