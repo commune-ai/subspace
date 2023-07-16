@@ -107,7 +107,8 @@ fn test_emission_ratio() {
         let subnet_emission : u64  = SubspaceModule::get_subnet_emission(netuid);
         emissions_per_subnet.push(subnet_emission);
         let expected_emission_factor : f64 = 1.0 / (netuids.len() as f64);
-        let expected_emission : u64 = 1_000_000_000 / (i as u64 + 1);
+        let emission_per_block = SubspaceModule::get_total_emission_per_block();
+        let expected_emission : u64 = emission_per_block / (i as u64 + 1);
         let block = block_number();
         // magnitude of difference between expected and actual emission
         let mut delta : f64 = 0.0;
@@ -117,7 +118,7 @@ fn test_emission_ratio() {
             delta = expected_emission as f64 - subnet_emission as f64;
         }
         assert!(delta <= max_delta, "emission {} is too far from expected emission {} ", subnet_emission, expected_emission);
-        assert!(block== 0 , "block {} is not 0", block);
+        assert!(block == 0 , "block {} is not 0", block);
         println!("block {} subnet_emission {} ", block, subnet_emission);
     }
 

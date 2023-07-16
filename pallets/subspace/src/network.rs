@@ -269,15 +269,36 @@ impl<T: Config> Pallet<T> {
         // --- 16. Ok and done.
         return netuid;
     }
+
+
     // Returns the total amount of stake in the staking table.
-    //
+    pub fn get_total_emission_per_block() -> u64 {
+        let total_stake: u64 = Self::get_total_stake();
+        let mut emission_per_block : u64 = 4_000_000_000;
+        let halving_total_stake_checkpoints: Vec<u64> = vec![2_000_000, 12_000_000, 22_000_000, 32_000_000].iter().map(|x| x*1_000_000_000).collect();
+        
+        for (i, having_stake) in halving_total_stake_checkpoints.iter().enumerate() {
+            let halving_factor = 2u64.pow(i as u32);
+            if total_stake < *having_stake {
+                emission_per_block = emission_per_block / halving_factor;
+                break;
+            }
+
+        }
+
+
+        return emission_per_block;
+    }
 
 
 
     pub fn calculate_network_emission(netuid:u16) -> u64 { 
 
+
         let subnet_stake: I64F64 =I64F64::from_num( Self::get_total_subnet_stake(netuid));
-        let total_stake: I64F64 = I64F64::from_num(Self::get_total_stake());
+
+        let total_stake_u64: u64 = Self::get_total_stake();
+        let total_stake: I64F64 = I64F64::from_num(total_stake_u64);
 
         let mut subnet_ratio: I64F64 = I64F64::from_num(0);
         if total_stake > I64F64::from_num(0) {
@@ -291,8 +312,9 @@ impl<T: Config> Pallet<T> {
                 subnet_ratio = I64F64::from_num(1);
             }
         }
-        
-        let token_emission: u64 = (subnet_ratio*I64F64::from_num(1_000_000_000)).to_num::<u64>();
+
+        let total_emission_per_block: u64  = Self::get_total_emission_per_block();
+        let token_emission: u64 = (subnet_ratio*I64F64::from_num(total_emission_per_block)).to_num::<u64>();
         
         SubnetEmission::<T>::insert( netuid, token_emission );
 
