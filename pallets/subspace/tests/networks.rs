@@ -39,45 +39,97 @@ fn test_remove_subnet() {
         });
     }
 
+fn test_set_single_temple(tempo:u16) {
+    new_test_ext().execute_with(|| {
+        // creates a subnet when you register a module
+        let netuid : u16 = 0;
+        let stake : u64 = 0;
+        let key = U256::from(0);
+        let tempos: Vec<u16> = vec![2,4];
+        register_module(netuid, key, stake);
+        let mut params  = SubspaceModule::get_subnet(netuid);
 
+        let total_blocks = 100;
+        let emission_per_block : u64 = SubspaceModule::get_subnet_emission(netuid);
+        let mut total_stake: u64 = 0;
+        let tempo = 5;
+        SubspaceModule::update_network(get_origin(key), 
+                                        netuid, 
+                                        params.name.clone(), 
+                                        params.immunity_period, 
+                                        params.min_allowed_weights, 
+                                        params.max_allowed_weights, 
+                                        params.max_allowed_uids, 
+                                        tempo, // change tempo
+                                        params.founder );
+        let previous_total_stake : u64 = block_number()* emission_per_block;
+        
+        for i in 0..tempo {
 
-    #[test]
-    fn test_set_tempo() { 
-            new_test_ext().execute_with(|| {
-            // creates a subnet when you register a module
-            let netuid : u16 = 0;
-            let stake : u64 = 0;
-            let key = U256::from(0);
-            let tempo = 1;
-            register_module(netuid, key, stake);
-            let mut params  = SubspaceModule::get_subnet(netuid);
-            SubspaceModule::update_network(get_origin(key), 
-                                            netuid, params.name, 
-                                            params.immunity_period, 
-                                            params.min_allowed_weights, 
-                                            params.max_allowed_weights, 
-                                            params.max_allowed_uids, 
-                                            tempo, // change tempo
-                                            params.founder );
-
-            let total_blocks = 100;
-
+            step_block(1);
+            // get_block_number() is a function in mock.rs
             
-            for i in 0..total_blocks {
-                step_block(1);
-                let total_stake = SubspaceModule::get_total_subnet_stake(netuid);
-                println!("block number: {} stake {}", i, total_stake);
-
-                assert_eq!(total_stake, (i+1)*1_000_000_000);
-            }
-
-            });
+            println!("tempo {} block number: {} stake {}", tempo,  block_number(), SubspaceModule::get_total_subnet_stake(netuid));
+            
         }
-    
+        total_stake = SubspaceModule::get_total_subnet_stake(netuid) + stake;
+        assert_eq!(total_stake, (tempo as u64)*emission_per_block + previous_total_stake);
+        
+
+        });
+    }
+
+
+
+
+#[test]
+fn test_set_tempo() { 
+    for tempo in [1,2,4,8,16, 32, 64, 128] {
+        test_set_single_temple(tempo);
+
+    }
+}
+
+
+
+#[test]
+fn test_emission_ratio() { 
+    new_test_ext().execute_with(|| {
+    let netuids : Vec<u16> = [0,1,2,3,4,5,6,7,8,9].to_vec();
+    let stake_per_module : u64 = 1_000_000_000;
+    let mut emissions_per_subnet : Vec<u64> = Vec::new();
+    let max_delta : f64 = 1.0;
+
+    for i in 0..netuids.len() {
+        let key = U256::from(netuids[i]);
+        let netuid = netuids[i];
+        register_module(netuid,key, stake_per_module);
+        let subnet_emission : u64  = SubspaceModule::get_subnet_emission(netuid);
+        emissions_per_subnet.push(subnet_emission);
+        let expected_emission_factor : f64 = 1.0 / (netuids.len() as f64);
+        let expected_emission : u64 = 1_000_000_000 / (i as u64 + 1);
+        let block = block_number();
+        // magnitude of difference between expected and actual emission
+        let mut delta : f64 = 0.0;
+        if subnet_emission > expected_emission {
+            delta = subnet_emission as f64 - expected_emission as f64;
+        } else {
+            delta = expected_emission as f64 - subnet_emission as f64;
+        }
+        assert!(delta <= max_delta, "emission {} is too far from expected emission {} ", subnet_emission, expected_emission);
+        assert!(block== 0 , "block {} is not 0", block);
+        println!("block {} subnet_emission {} ", block, subnet_emission);
+    }
+
+
+});
+
+}
+
     
 
  #[test]
-fn test_set_max_allowed_uids() { 
+ fn test_set_max_allowed_uids() { 
         new_test_ext().execute_with(|| {
         let netuid : u16 = 0;
         let stake : u64 = 1_000_000_000;

@@ -146,6 +146,9 @@ pub(crate) fn step_block(n: u16) {
 		System::on_initialize(System::block_number());
 		SubspaceModule::on_initialize(System::block_number());
 	}
+}#[allow(dead_code)]
+pub(crate) fn  block_number() -> u64 {
+	return System::block_number();
 }
 
 #[allow(dead_code)]

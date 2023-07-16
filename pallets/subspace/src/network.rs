@@ -271,6 +271,9 @@ impl<T: Config> Pallet<T> {
     }
     // Returns the total amount of stake in the staking table.
     //
+
+
+
     pub fn calculate_network_emission(netuid:u16) -> u64 { 
 
         let subnet_stake: I64F64 =I64F64::from_num( Self::get_total_subnet_stake(netuid));
@@ -297,7 +300,10 @@ impl<T: Config> Pallet<T> {
 
     }
 
-
+    pub fn get_subnet_emission(netuid: u16) -> u64 {
+        return  Self::calculate_network_emission(netuid);
+    }
+    
     pub fn add_network( 
                        name: Vec<u8>,
                        stake: u64,
