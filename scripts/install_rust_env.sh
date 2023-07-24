@@ -18,7 +18,7 @@ rustup install nightly-2023-01-01
 rustup override set nightly-2023-01-01
 rustup target add wasm32-unknown-unknown
 
-apt-get install libclang-dev
-apt-get install protobuf-compiler
+# apt-get install libclang-dev
+# apt-get install protobuf-compiler
 
 

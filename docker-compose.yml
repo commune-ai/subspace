@@ -5,5 +5,5 @@ services:
     container_name: subspace
     network_mode: host
     volumes:
-    - ./:/subspace
+    - ./:/app
 version: '3.2'
