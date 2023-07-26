@@ -32,9 +32,21 @@ RUN apt-get update && \
         apt-get clean && \
         find /var/lib/apt/lists/ -type f -not -name lock -delete;
 
-WORKDIR /subspace
+WORKDIR /app
 # install rust  
-COPY ./scripts /subspace/scripts
-RUN chmod +x /subspace/scripts/*
-RUN ./scripts/install_rust_env.sh
+COPY ./scripts /app/scripts
+RUN chmod +x /app/scripts/*
+RUN /app/scripts/install_rust_env.sh
+
+COPY ./pallets /app/pallets
+COPY ./runtime /app/node
+COPY ./node /app/subspace
+COPY ./target /app/target
+COPY ./.env /app/.env
+COPY ./Cargo.toml /app/Cargo.toml
+
+RUN cargo build --release
+
+
+
 

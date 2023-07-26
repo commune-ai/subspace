@@ -105,8 +105,8 @@ impl<T: Config> Pallet<T> {
             
             // pop frm incentive vector and push to new key
             Incentive::<T>::mutate( netuid, |v| v.pop() );
-            Emission::<T>::mutate( netuid, |v| v.pop() );
             Dividends::<T>::mutate( netuid, |v| v.pop() );
+            Emission::<T>::mutate( netuid, |v| v.pop() );
             LastUpdate::<T>::mutate( netuid, |v| v.pop() );
 
             // 3. Remove the network if it is empty.

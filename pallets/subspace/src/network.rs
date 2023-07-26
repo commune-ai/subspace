@@ -179,7 +179,6 @@ impl<T: Config> Pallet<T> {
         }
         MaxAllowedUids::<T>::insert( netuid, max_allowed_uids );
 
-
         if name.len() > 0 {
             // update the name
             let old_name: Vec<u8> = Self::get_name_for_netuid( netuid );
