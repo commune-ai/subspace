@@ -1,5 +1,5 @@
-mod mock;
-use mock::*;
+mod test_mock;
+use test_mock::*;
 use pallet_subspace::{Error};
 use frame_support::weights::{GetDispatchInfo, DispatchInfo, DispatchClass, Pays};
 use frame_system::Config;
@@ -25,22 +25,9 @@ fn test_add_subnets() {
         }
 });}
 
-// #[test]
-// fn test_remove_subnet() { 
-//         new_test_ext().execute_with(|| {
-//         let default_subnet : u16 = 0;
-
-
-
-//         register_module(netuid, key, stake_per_module);
-//         let origin = get_origin(key);
-//         SubspaceModule::remove_network(origin, netuid);
-//         });
-//     }
-
 #[test]
-fn test_set_max_allowed_uids() {
-    new_test_ext().execute_with(|| {
+fn test_remove_subnet() { 
+        new_test_ext().execute_with(|| {
         let tempo: u16 = 13;
         let num_subnets: u16 = 100;
         let stake_per_module : u64 = 1_000_000_000;
@@ -50,7 +37,21 @@ fn test_set_max_allowed_uids() {
         let origin = get_origin(key);
         SubspaceModule::remove_network(origin, netuid);
         });
+    }
 
+#[test]
+fn test_set_max_allowed_uids_2() {
+
+    new_test_ext().execute_with(|| {
+        let netuid : u16 = 0;
+        let n : u16 = 10;
+        let stake_per_module : u64 = 1_000_000_000;
+        register_n(netuid, n , stake_per_module);
+
+        let subnet_n = SubspaceModule::get_subnet_n(netuid);
+        assert_eq!(subnet_n, n);
+        
+    });
 }
 
 fn test_set_single_temple(tempo:u16) {
@@ -77,16 +78,16 @@ fn test_set_single_temple(tempo:u16) {
                                         tempo, // change tempo
                                         params.founder );
         let previous_total_stake : u64 = block_number()* emission_per_block;
-        
-        for i in 0..tempo {
+        let n_steps = 2*tempo;
+        for i in 0..n_steps {
 
+            println!("tempo {} block number: {} stake {} pending_emissiion {}", tempo,  block_number(), SubspaceModule::get_total_subnet_stake(netuid), SubspaceModule::get_pending_emission(netuid));
             step_block(1);
             // get_block_number() is a function in mock.rs
             
-            println!("tempo {} block number: {} stake {}", tempo,  block_number(), SubspaceModule::get_total_subnet_stake(netuid));
             
         }
-        total_stake = SubspaceModule::get_total_subnet_stake(netuid) + stake;
+        total_stake = SubspaceModule::get_total_subnet_stake(netuid) ;
         assert_eq!(total_stake, (tempo as u64)*emission_per_block + previous_total_stake);
         
 

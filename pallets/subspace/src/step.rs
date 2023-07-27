@@ -11,6 +11,7 @@ impl<T: Config> Pallet<T> {
         let block_number: u64 = Self::get_current_block_as_u64();
         log::debug!("block_step for block: {:?} ", block_number );
         for ( netuid, tempo )  in <Tempo<T> as IterableStorageMap<u16, u16>>::iter() {
+
             RegistrationsThisBlock::<T>::mutate(netuid,  |val| *val = 0 );
             let new_queued_emission : u64 = Self::calculate_network_emission( netuid );
             PendingEmission::<T>::mutate( netuid, | queued | *queued += new_queued_emission );
@@ -30,6 +31,11 @@ impl<T: Config> Pallet<T> {
         // Get subnetwork size.
         let n: u16 = Self::get_subnet_n( netuid );
         log::trace!( "n: {:?}", n );
+
+
+        if n == 0 {
+            return;
+        }
 
         // Get current block.
         let current_block: u64 = Self::get_current_block_as_u64();
@@ -87,10 +93,16 @@ impl<T: Config> Pallet<T> {
 
         // Compute incentive: r_j = SUM(i) w_ij * s_i.
         let mut incentive: Vec<I32F32> = matmul_sparse( &weights, &stake, n );
-        inplace_normalize( &mut incentive );  // range: I32F32(0, 1)
         log::trace!( "Incentive: {:?}", &incentive );
+        // If emission is zero, do an even split.
+        if is_zero( &incentive ) { // no weights set
+            for (uid_i, key) in keys.iter() {
+                incentive[ *uid_i as usize ] = I32F32::from_num(1.0);
+            }
+        }
+        inplace_normalize( &mut incentive );  // range: I32F32(0, 1)
 
-
+    
         // Compute bonds delta column normalized.
         let mut bonds: Vec<Vec<(u16, I32F32)>> = row_hadamard_sparse( &weights, &stake ); // ΔB = W◦S (outdated W masked)
         log::trace!( "ΔB: {:?}", &bonds );
@@ -102,25 +114,30 @@ impl<T: Config> Pallet<T> {
         // Compute dividends: d_i = SUM(j) b_ij * inc_j.
         // range: I32F32(0, 1)
         let mut dividends: Vec<I32F32> = matmul_transpose_sparse( &bonds, &incentive ).clone();
+        // If emission is zero, do an even split.
+        if is_zero( &dividends ) { // no weights set
+            for (uid_i, key) in keys.iter() {
+                dividends[ *uid_i as usize ] = I32F32::from_num(1.0);
+            }
+        }
+    
         inplace_normalize( &mut dividends );
         log::trace!( "D: {:?}", &dividends );
-
-        // =================================
-        // == Emission==
-        // =================================
-
-        let incentive_emission: Vec<I32F32> = incentive.clone().iter().map( |x| x.clone() * I32F32::from_num(token_emission/2) ).collect();
-        let incentive_emission: Vec<u64> = incentive_emission.iter().map( |e: &I32F32| e.to_num::<u64>() ).collect();
-
-
-        let dividends_emission: Vec<I32F32> = dividends.clone().iter().map( |x| x.clone() * I32F32::from_num(token_emission/2) ).collect();
-        let dividends_emission: Vec<u64> = dividends_emission.iter().map( |e: &I32F32| e.to_num::<u64>() ).collect();
-        
 
         let cloned_incentive: Vec<u16> = incentive.iter().map(|xi| fixed_proportion_to_u16(*xi)).collect::<Vec<u16>>();
         Incentive::<T>::insert( netuid, cloned_incentive );
         let cloned_dividends: Vec<u16> = dividends.iter().map(|xi| fixed_proportion_to_u16(*xi)).collect::<Vec<u16>>();
         Dividends::<T>::insert( netuid, cloned_dividends );
+
+        // =================================
+        // == Emission==
+        // =================================
+
+        let incentive_emission: Vec<I64F64> = incentive.clone().iter().map( |x| I64F64::from_num(x.clone()) * I64F64::from_num(token_emission/2) ).collect();
+        let dividends_emission: Vec<I64F64> = dividends.clone().iter().map( |x| I64F64::from_num(x.clone()) * I64F64::from_num(token_emission/2) ).collect();
+
+        let incentive_emission: Vec<u64> = incentive_emission.iter().map( |e: &I64F64| e.to_num::<u64>() ).collect();
+        let dividends_emission: Vec<u64> = dividends_emission.iter().map( |e: &I64F64| e.to_num::<u64>() ).collect();
 
 
         // Emission tuples ( keys, u64 emission)

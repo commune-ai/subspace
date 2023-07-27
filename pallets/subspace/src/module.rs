@@ -70,6 +70,7 @@ impl<T: Config> Pallet<T> {
             Weights::<T>::insert( netuid, uid, vec![] as Vec<(u16, u16)> ); // Make uid - key association.
             // 3. Remove the stake from the old account and add to the new
             Self::remove_stake_from_storage( netuid, &old_key );
+            Self::remove_delegate_stake_from_storage( netuid, &old_key );
 
             // add stake to new key
             Self::add_stake_on_account( netuid, &new_key, stake );
@@ -117,8 +118,9 @@ impl<T: Config> Pallet<T> {
                 Self::remove_network_for_netuid( netuid );
             }
 
-
             Self::remove_stake_from_storage( netuid, &replace_key );
+            Self::remove_delegate_stake_from_storage( netuid, &replace_key );
+
             
             // 4. Emit the event.
             

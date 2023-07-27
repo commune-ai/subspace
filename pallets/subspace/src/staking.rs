@@ -153,7 +153,7 @@ impl<T: Config> Pallet<T> {
     pub fn add_stake_on_account(netuid: u16, key: &T::AccountId, amount: u64 ) -> bool{
 
         if !Stake::<T>::contains_key(netuid, key) {
-            return false;
+            Stake::<T>::insert(netuid, key, 0);
         }
 
 
@@ -186,7 +186,7 @@ impl<T: Config> Pallet<T> {
 
     pub fn get_delegate_from_stake_vector(netuid:u16, uid: u16 ) -> Vec<(T::AccountId, u64)> { 
         
-        return DelegateFromStake::<T>::get(netuid, uid);
+        return DelegateFromStake::<T>::get(netuid, uid).into_iter().collect::<Vec<(T::AccountId, u64)>>();
     }
     pub fn get_total_delegate_from_stake(netuid:u16, uid: u16 ) ->  u64 { 
         let delegate_from_stake_vector: Vec<(T::AccountId, u64)> = Self::get_delegate_from_stake_vector(netuid, uid);
@@ -207,7 +207,7 @@ impl<T: Config> Pallet<T> {
     }
 
 
-    pub fn get_ownership_for_uid(netuid:u16, uid: u16, ) -> Vec<(T::AccountId, I64F64)> { 
+    pub fn get_ownership_for_uid(netuid:u16, uid: u16 ) -> Vec<(T::AccountId, I64F64)> { 
         
         let delegate_from_stake_vector: Vec<(T::AccountId, u64)> = Self::get_delegate_from_stake_vector(netuid, uid);
 
@@ -256,6 +256,13 @@ impl<T: Config> Pallet<T> {
     pub fn add_delegate_stake_on_account(netuid: u16, key: &T::AccountId, uid: u16, amount: u64 ) -> bool{
         Self::increase_delegate_stake(netuid, key, uid, amount);
         Self::remove_balance_from_account( key, Self::u64_to_balance( amount ).unwrap() );
+        
+        return true;
+
+    }
+    pub fn remove_delegate_stake_on_account(netuid: u16, key: &T::AccountId, uid: u16, amount: u64 ) -> bool{
+        Self::decrease_delegate_stake(netuid, key, uid, amount);
+        Self::add_balance_to_account( key, Self::u64_to_balance( amount ).unwrap() );
         
         return true;
 
@@ -356,26 +363,30 @@ impl<T: Config> Pallet<T> {
         return true;
 
     }
+    pub fn remove_delegate_stake_from_storage(netuid: u16, key: &T::AccountId) {
+        let uid = Self::get_uid_for_key(netuid, key);
+        Self::remove_delegate_stake_from_storage_for_uid(netuid, uid);
 
-    pub fn remove_all_delegate_stake_on_account(netuid: u16, key: &T::AccountId, uid: u16 ) -> bool{
-
-        let mut delegete_to_stake_vector: Vec<(u16, u64)> = Self::get_delegate_to_stake_vector(netuid, key);
-
-        for (i, (k_uid, v)) in delegete_to_stake_vector.iter().enumerate() {
-            Self::remove_delegate_stake_on_account(netuid, key, *k_uid, *v);
-        }
-        return true;
     }
+    
 
+    pub fn remove_delegate_stake_from_storage_for_uid(netuid: u16, uid: u16 ) -> bool{
 
-    pub fn remove_delegate_stake_on_account(netuid: u16, key: &T::AccountId, uid: u16, amount: u64 ) -> bool{
+        let mut delegete_from_stake_vector: Vec<(T::AccountId, u64)> = Self::get_delegate_from_stake_vector(netuid, uid);
 
-        Self::decrease_delegate_stake(netuid, key, uid, amount);
-        Self::add_balance_to_account( key, Self::u64_to_balance( amount ).unwrap() );
+        for (i, (key, amount)) in delegete_from_stake_vector.iter().enumerate() {
+            Self::remove_delegate_stake_on_account(netuid, key, uid, *amount);
+            
+        }
+        DelegateFromStake::<T>::remove(netuid, uid);
+
         
         return true;
-
     }
+
+
+
+
 
     pub fn increase_stake_on_account(netuid:u16, key: &T::AccountId, amount: u64 ){
         Stake::<T>::insert(netuid, key, Stake::<T>::get(netuid, key).saturating_add( amount ) );

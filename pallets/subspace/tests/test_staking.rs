@@ -1,7 +1,7 @@
 use frame_support::{assert_ok, traits::Currency};
 use frame_system::{Config};
-mod mock;
-use mock::*;
+mod test_mock;
+use test_mock::*;
 use frame_support::sp_runtime::DispatchError;
 use pallet_subspace::{Error};
 use frame_support::dispatch::{GetDispatchInfo, DispatchInfo, DispatchClass, Pays};

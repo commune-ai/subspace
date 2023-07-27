@@ -1,4 +1,4 @@
-use crate::mock::*;
+use crate::test_mock::*;
 use rand::{Rng, thread_rng, SeedableRng, rngs::StdRng, seq::SliceRandom, distributions::Uniform};
 use sp_core::U256;
 use substrate_fixed::types::{I32F32, I64F64};
@@ -6,7 +6,7 @@ use substrate_fixed::transcendental::{PI, cos, ln, sqrt};
 use frame_system::Config;
 use frame_support::assert_ok;
 use std::time::Instant;
-mod mock;
+mod test_mock;
 
 
 

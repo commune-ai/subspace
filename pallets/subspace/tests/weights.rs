@@ -1,5 +1,5 @@
-mod mock;
-use mock::*;
+mod test_mock;
+use test_mock::*;
 use pallet_subspace::{Error};
 use frame_system::Config;
 use frame_support::dispatch::{GetDispatchInfo, DispatchInfo, DispatchClass, Pays};

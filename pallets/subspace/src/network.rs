@@ -247,10 +247,10 @@ impl<T: Config> Pallet<T> {
     pub fn get_total_emission_per_block() -> u64 {
         let total_stake: u64 = Self::get_total_stake();
         let mut emission_per_block : u64 = 4_000_000_000;
-        let halving_total_stake_checkpoints: Vec<u64> = vec![2_000_000, 12_000_000, 22_000_000, 32_000_000].iter().map(|x| x*1_000_000_000).collect();
+        let halving_total_stake_checkpoints: Vec<u64> = vec![10_000_000, 20_000_000, 30_000_000, 40_000_000].iter().map(|x| x*1_000_000_000).collect();
         
         for (i, having_stake) in halving_total_stake_checkpoints.iter().enumerate() {
-            let halving_factor = 2u64.pow(i as u32);
+            let halving_factor = 2u64.pow((i) as u32);
             if total_stake < *having_stake {
                 emission_per_block = emission_per_block / halving_factor;
                 break;
@@ -505,7 +505,7 @@ impl<T: Config> Pallet<T> {
     // Returns the uid of the key in the network as a Result. Ok if the key has a slot.
     //
     pub fn get_uid_for_key( netuid: u16, key: &T::AccountId) -> u16 { 
-        return Uids::<T>::get(netuid, &key).unwrap()
+        return Uids::<T>::get(netuid, key).unwrap_or(0)
     }
 
     pub fn get_uid_for_name ( netuid: u16, name: Vec<u8> ) -> u16  {

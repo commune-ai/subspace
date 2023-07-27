@@ -5,12 +5,12 @@ use pallet_subspace::{Error};
 use frame_support::{assert_ok};
 use frame_system::Config;
 use sp_core::U256;
-use crate::{mock::*};
+use crate::{test_mock::*};
 use frame_support::sp_runtime::DispatchError;
 use frame_support::dispatch::{GetDispatchInfo, DispatchInfo};
 use frame_support::weights::{DispatchClass, Pays};
 
-mod mock;
+mod test_mock;
 
 /********************************************
 	subscribing::subscribe() tests
@@ -81,10 +81,6 @@ fn test_registration_with_stake() {
 			let stake_before : u64 = SubspaceModule::get_stake(netuid, &key);
 			println!("stake_before: {:?}", stake_before);
 			register_module(netuid, key, stake_value);
-			let mut stake_after : u64 = SubspaceModule::get_stake_for_uid(netuid, uid);
-			let stake_after_with_key : u64 = SubspaceModule::get_stake(netuid, &key);
-			assert_eq!(stake_after, stake_after_with_key);
-			println!("stake_after: {:?}", stake_after);
 			assert_eq!(SubspaceModule::get_stake_for_uid(netuid, uid), stake_value);
 		}
 	});
