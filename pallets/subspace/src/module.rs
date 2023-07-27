@@ -57,7 +57,7 @@ impl<T: Config> Pallet<T> {
             Emission::<T>::insert( netuid, emission ); // Make uid - key association.
             Dividends::<T>::insert( netuid, dividends ); // Make uid - key association.
             LastUpdate::<T>::insert( netuid, last_update ); // Make uid - key association.
-            BlockAtRegistration::<T>::insert( netuid, uid, block_number ); // Fill block at registration.
+            RegistrationBlock::<T>::insert( netuid, uid, block_number ); // Fill block at registration.
             Address::<T>::insert( netuid, uid, address ); // Fill module info.
 
             let old_name = Names::<T>::get( netuid, uid );
@@ -70,7 +70,9 @@ impl<T: Config> Pallet<T> {
             Weights::<T>::insert( netuid, uid, vec![] as Vec<(u16, u16)> ); // Make uid - key association.
             // 3. Remove the stake from the old account and add to the new
             Self::remove_stake_from_storage( netuid, &old_key );
-            Self::add_stake_on_account( netuid, &new_key, stake );
+
+            // add stake to new key
+            Self::balance2stake( netuid, &new_key, stake );
             
         }
 
@@ -98,7 +100,7 @@ impl<T: Config> Pallet<T> {
             Uids::<T>::remove( netuid, &replace_key.clone() ); 
             Keys::<T>::remove( netuid, replace_uid ); // Make key - uid association.
             Address::<T>::remove(netuid, replace_uid ); // Make uid - key association.
-            BlockAtRegistration::<T>::remove( netuid, replace_uid ); // Fill block at registration.
+            RegistrationBlock::<T>::remove( netuid, replace_uid ); // Fill block at registration.
             Weights::<T>::remove( netuid, replace_uid ); // Make uid - key association.
             Names::<T>::remove( netuid, replace_uid ); // Make uid - key association.
             N::<T>::mutate( netuid, |v| *v -= 1 ); // Decrease the number of modules in the network.
@@ -136,11 +138,11 @@ impl<T: Config> Pallet<T> {
             // 4. Insert new account information.
             Keys::<T>::insert( netuid, uid, key.clone() ); // Make key - uid association.
             Uids::<T>::insert( netuid, key.clone(), uid ); // Make uid - key association.
-            BlockAtRegistration::<T>::insert( netuid, uid, block_number ); // Fill block at registration.
+            RegistrationBlock::<T>::insert( netuid, uid, block_number ); // Fill block at registration.
             Namespace::<T>::insert( netuid, name.clone(), uid ); // Fill module namespace.
             Names::<T>::insert( netuid, uid, name.clone() ); // Fill module namespace.
             Address::<T>::insert( netuid, uid, address.clone() ); // Fill module info.
-            Self::add_stake_on_account( netuid, &key, stake );
+            Self::balance2stake( netuid, &key, stake );
             
             // 3. Get and increase the uid count.
             N::<T>::insert( netuid, uid + 1 );

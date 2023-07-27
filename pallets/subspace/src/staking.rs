@@ -33,6 +33,42 @@ impl<T: Config> Pallet<T> {
     }
 
 
+
+    //
+	pub fn do_delegate(
+        origin: T::RuntimeOrigin, 
+        netuid: u16,
+        to: T::AccountId,
+        stake_to_be_added: u64
+    ) -> dispatch::DispatchResult {
+        // --- 1. We check that the transaction is signed by the caller and retrieve the T::AccountId key information.
+        let key = ensure_signed( origin )?;
+        
+
+		// --- 1. Ensure we don't exceed tx rate limit
+		// ensure!( !Self::exceeds_tx_rate_limit(&key), Error::<T>::TxRateLimitExceeded);
+
+        
+        log::info!("do_add_stake( origin:{:?} stake_to_be_added:{:?} )", key, stake_to_be_added );
+        
+        ensure!( Self::can_remove_balance_from_account( &key, stake_to_be_added ), Error::<T>::NotEnoughBalanceToStake );
+
+        self::add_delegate_stake_on_account(netuid, &key, stake_to_be_added );
+
+        Self::add_stake_on_account(netuid, &to, stake_to_be_added );
+ 
+        // --- 5. Emit the staking event.
+        log::info!("StakeAdded( key:{:?}, stake_to_be_added:{:?} )", key, stake_to_be_added );
+        Self::deposit_event( Event::StakeAdded( key, stake_to_be_added ) );
+
+        // --- 6. Ok and return.
+        Ok(())
+    }
+
+
+
+
+
     pub fn do_remove_stake(
         origin: T::RuntimeOrigin, 
         netuid: u16,
@@ -103,15 +139,47 @@ impl<T: Config> Pallet<T> {
     pub fn add_stake_on_account(netuid: u16, key: &T::AccountId, increment: u64 ) -> bool{
 
         if !Stake::<T>::contains_key(netuid, key) {
-            Stake::<T>::insert(netuid, key, 0);
+            return false;
         }
 
 
-        
         Self::remove_balance_from_account( key, Self::u64_to_balance( increment ).unwrap() );
         Self::increase_stake_on_account(netuid, key, increment);
         
         return true;
+
+    }
+
+
+    pub fn get_delegated_stake_vector(netuid:u16, key:&T::AccountId, ) -> Vec<(T::AccountId, u64)> { { 
+        return DelegatedStake::<T>::iter_prefix(netuid, key).map(|(k, v)| (k, v)).collect::<Vec<_>>();
+
+    }
+
+
+
+    pub fn add_delegate_stake_on_account(netuid: u16, key: &T::AccountId, increment: u64 ) -> bool{
+
+        if !Stake::<T>::contains_key(netuid, key) {
+            return false;
+        }
+
+
+        Self::remove_balance_from_account( key, Self::u64_to_balance( increment ).unwrap() );
+        Self::increase_stake_on_account(netuid, key, increment);
+        
+        return true;
+
+    }
+
+
+
+
+
+    pub fn increase_stake_on_account(netuid:u16, key: &T::AccountId, increment: u64 ){
+        Stake::<T>::insert(netuid, key, Stake::<T>::get(netuid, key).saturating_add( increment ) );
+        SubnetTotalStake::<T>::insert(netuid , SubnetTotalStake::<T>::get(netuid).saturating_add( increment ) );
+        TotalStake::<T>::put(TotalStake::<T>::get().saturating_add( increment ) );
 
     }
 

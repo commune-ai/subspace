@@ -162,25 +162,25 @@ impl<T: Config> Pallet<T> {
                     tempo: u16,
                     founder: T::AccountId,) {
 
-        // update the network
-        Tempo::<T>::insert( netuid, tempo);
         let n : u16 = Self::get_subnet_n(netuid);
 
-
+        // update the network
+        Tempo::<T>::insert( netuid, tempo);
         ImmunityPeriod::<T>::insert( netuid, immunity_period );
         MinAllowedWeights::<T>::insert( netuid, min_allowed_weights );
         MaxAllowedWeights::<T>::insert( netuid, max_allowed_weights );
         Founder::<T>::insert( netuid, founder );
         // remove the modules if the max_allowed_uids is less than the current number of modules
+        MaxAllowedUids::<T>::insert( netuid, max_allowed_uids );
+
         if max_allowed_uids < n {
             for i in max_allowed_uids..n {
                 Self::remove_module( netuid, Self::get_lowest_uid( netuid ));
             }
         }
-        MaxAllowedUids::<T>::insert( netuid, max_allowed_uids );
 
         if name.len() > 0 {
-            // update the name
+            // update the name if it is not empty
             let old_name: Vec<u8> = Self::get_name_for_netuid( netuid );
             SubnetNamespace::<T>::remove( old_name.clone() );
             SubnetNamespace::<T>::insert( name.clone(), netuid)       
@@ -188,12 +188,8 @@ impl<T: Config> Pallet<T> {
 
     }
 
-
     pub fn subnet_params() -> SubnetInfo<T> {
         Self::default_subnet()
-
-            
-        
     }
 
     pub fn default_subnet() -> SubnetInfo<T> {
@@ -212,8 +208,6 @@ impl<T: Config> Pallet<T> {
             founder: Founder::<T>::get( netuid ),
         
         };
-
-            
         
     }
 
@@ -613,7 +607,7 @@ impl<T: Config> Pallet<T> {
     pub fn get_tempo( netuid:u16 ) -> u16{ Tempo::<T>::get( netuid ) }
     pub fn get_pending_emission( netuid:u16 ) -> u64{ PendingEmission::<T>::get( netuid ) }
     pub fn get_registrations_this_block( netuid:u16 ) -> u16 { RegistrationsThisBlock::<T>::get( netuid ) }
-    pub fn get_module_block_at_registration( netuid: u16, module_uid: u16 ) -> u64 { BlockAtRegistration::<T>::get( netuid, module_uid )}
+    pub fn get_module_block_at_registration( netuid: u16, module_uid: u16 ) -> u64 { RegistrationBlock::<T>::get( netuid, module_uid )}
 
     // ========================
 	// ==== Rate Limiting =====

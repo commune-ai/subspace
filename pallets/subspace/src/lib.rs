@@ -189,7 +189,7 @@ pub mod pallet {
 	#[pallet::storage] // --- MAP ( netuid ) --> min_allowed_weights
 	pub type MaxAllowedWeights<T> = StorageMap< _, Identity, u16, u16, ValueQuery, DefaultMaxAllowedWeights<T> >;
 	#[pallet::storage] // --- MAP ( netuid ) --> weights_set_rate_limit
-	pub type BlockAtRegistration<T:Config> = StorageDoubleMap<_, Identity, u16, Identity, u16, u64, ValueQuery, DefaultBlockAtRegistration<T> >;
+	pub type RegistrationBlock<T:Config> = StorageDoubleMap<_, Identity, u16, Identity, u16, u64, ValueQuery, DefaultBlockAtRegistration<T> >;
 
 	// =======================================
 	// ==== Subnetwork Storage  ====
@@ -226,12 +226,15 @@ pub mod pallet {
 	pub type Names<T: Config> = StorageDoubleMap<_, Twox64Concat, u16, Twox64Concat, u16, Vec<u8>, ValueQuery>;
 	#[pallet::storage]
 	pub type Address<T: Config> = StorageDoubleMap<_, Twox64Concat, u16, Twox64Concat, u16, Vec<u8>, ValueQuery>;
-
+	#[pallet::storage] // --- DMAP ( hot, cold ) --> stake | Returns the stake under a key prefixed by key.
+	pub type ProfitShareRatio<T:Config> = StorageDoubleMap<_,Identity, u16,  Identity, u16,  u16, ValueQuery, DefaultStake<T>>;
+	
 	// ============================
 	// ==== Staking + Accounts ====
 	// ============================
 	#[pallet::type_value] 
 	pub fn DefaultStake<T: Config>() -> u64 { 0 }
+	
 	#[pallet::type_value] 
 	pub fn DefaultAccount<T: Config>() -> T::AccountId { T::AccountId::decode(&mut sp_runtime::traits::TrailingZeroInput::zeroes()).unwrap()}
 
@@ -239,6 +242,10 @@ pub mod pallet {
 	pub type TotalStake<T> = StorageValue<_, u64, ValueQuery>;
 	#[pallet::storage] // --- DMAP ( hot, cold ) --> stake | Returns the stake under a key prefixed by key.
 	pub type Stake<T:Config> = StorageDoubleMap<_,Identity, u16,  Identity, T::AccountId, u64, ValueQuery, DefaultStake<T>>;
+	#[pallet::storage] // --- DMAP ( hot, cold ) --> stake | Returns the stake under a key prefixed by key.
+	pub type DelegateOwnership<T:Config> = StorageDoubleMap<_,Identity, u16,  Identity, u16, Vec<(T::AccountId, u16)>, ValueQuery>;
+	#[pallet::storage] // --- DMAP ( hot, cold ) --> stake | Returns the stake under a key prefixed by key.
+	pub type DelegateStake<T:Config> = StorageDoubleMap<_,Identity, u16,  Identity, T::AccountId, Vec<(T::AccountId, u64)>, ValueQuery>;
 	#[pallet::storage] // --- MAP ( netuid ) --> Registration this Block.
 	pub type RegistrationsThisBlock<T> = StorageMap<_, Identity, u16, u16, ValueQuery, DefaultRegistrationsThisBlock<T>>;
 	#[pallet::storage] // --- ITEM( global_max_registrations_per_block ) 
@@ -392,7 +399,7 @@ pub mod pallet {
 					SubnetTotalStake::<T>::insert(netuid , SubnetTotalStake::<T>::get(netuid).saturating_add( *stake ) );
 
 					N::<T>::insert( netuid, N::<T>::get(netuid) + 1 );
-					BlockAtRegistration::<T>::insert(netuid, uid , 0);
+					RegistrationBlock::<T>::insert(netuid, uid , 0);
 					
 				}
 
