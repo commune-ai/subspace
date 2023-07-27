@@ -25,9 +25,22 @@ fn test_add_subnets() {
         }
 });}
 
+// #[test]
+// fn test_remove_subnet() { 
+//         new_test_ext().execute_with(|| {
+//         let default_subnet : u16 = 0;
+
+
+
+//         register_module(netuid, key, stake_per_module);
+//         let origin = get_origin(key);
+//         SubspaceModule::remove_network(origin, netuid);
+//         });
+//     }
+
 #[test]
-fn test_remove_subnet() { 
-        new_test_ext().execute_with(|| {
+fn test_set_max_allowed_uids() {
+    new_test_ext().execute_with(|| {
         let tempo: u16 = 13;
         let num_subnets: u16 = 100;
         let stake_per_module : u64 = 1_000_000_000;
@@ -37,7 +50,8 @@ fn test_remove_subnet() {
         let origin = get_origin(key);
         SubspaceModule::remove_network(origin, netuid);
         });
-    }
+
+}
 
 fn test_set_single_temple(tempo:u16) {
     new_test_ext().execute_with(|| {
@@ -78,6 +92,9 @@ fn test_set_single_temple(tempo:u16) {
 
         });
     }
+
+
+
 
 
 

@@ -227,7 +227,7 @@ pub mod pallet {
 	#[pallet::storage]
 	pub type Address<T: Config> = StorageDoubleMap<_, Twox64Concat, u16, Twox64Concat, u16, Vec<u8>, ValueQuery>;
 	#[pallet::storage] // --- DMAP ( hot, cold ) --> stake | Returns the stake under a key prefixed by key.
-	pub type ProfitShareRatio<T:Config> = StorageDoubleMap<_,Identity, u16,  Identity, u16,  u16, ValueQuery, DefaultStake<T>>;
+	pub type ProfitShareRatio<T:Config> = StorageDoubleMap<_,Identity, u16,  Identity, u16,  u16, ValueQuery>;
 	
 	// ============================
 	// ==== Staking + Accounts ====
@@ -242,7 +242,7 @@ pub mod pallet {
 	pub type TotalStake<T> = StorageValue<_, u64, ValueQuery>;
 	#[pallet::storage] // --- DMAP ( hot, cold ) --> stake | Returns the stake under a key prefixed by key.
 	pub type Stake<T:Config> = StorageDoubleMap<_,Identity, u16,  Identity, T::AccountId, u64, ValueQuery, DefaultStake<T>>;
-	#[pallet::storage] // --- DMAP ( netuid, uid ) --> Vec<(delegater, stake )> | Returns the stake under a key prefixed by key.
+	#[pallet::storage] // --- DMAP ( netuid, key ) --> Vec<(delegater, stake )> | Returns the stake under a key prefixed by key.
 	pub type DelegateFromStake<T:Config> = StorageDoubleMap<_,Identity, u16,  Identity, u16, Vec<(T::AccountId, u64)>, ValueQuery>;
 	#[pallet::storage] // --- DMAP ( netuid, uid ) --> Vec<(uid, stake )> | Returns the stake under a key prefixed by key.
 	pub type DelegateToStake<T:Config> = StorageDoubleMap<_,Identity, u16,  Identity, T::AccountId, Vec<(u16, u64)>, ValueQuery>;

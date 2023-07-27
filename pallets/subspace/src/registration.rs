@@ -88,7 +88,8 @@ impl<T: Config> Pallet<T> {
         let mut min_score : u16 = u16::MAX;
         let mut min_score_in_immunity_period = u16::MAX;
         let mut uid_with_min_score = 0;
-        let mut uid_with_min_score_in_immunity_period: u16 =  0;
+        let n = Self::get_subnet_n( netuid );
+        let mut uid_with_min_score_in_immunity_period: u16 =  n as u16 - 1 ;
         if Self::get_subnet_n( netuid ) == 0 { return 0 } // If there are no modules in this network.
         for module_uid_i in 0..Self::get_subnet_n( netuid ) {
             let block_at_registration: u64 = Self::get_module_block_at_registration( netuid, module_uid_i );

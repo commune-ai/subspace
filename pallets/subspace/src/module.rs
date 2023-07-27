@@ -72,7 +72,7 @@ impl<T: Config> Pallet<T> {
             Self::remove_stake_from_storage( netuid, &old_key );
 
             // add stake to new key
-            Self::balance2stake( netuid, &new_key, stake );
+            Self::add_stake_on_account( netuid, &new_key, stake );
             
         }
 
@@ -111,10 +111,14 @@ impl<T: Config> Pallet<T> {
             Emission::<T>::mutate( netuid, |v| v.pop() );
             LastUpdate::<T>::mutate( netuid, |v| v.pop() );
 
+
             // 3. Remove the network if it is empty.
             if N::<T>::get( netuid ) == 0 {
                 Self::remove_network_for_netuid( netuid );
             }
+
+
+            Self::remove_stake_from_storage( netuid, &replace_key );
             
             // 4. Emit the event.
             
@@ -142,7 +146,7 @@ impl<T: Config> Pallet<T> {
             Namespace::<T>::insert( netuid, name.clone(), uid ); // Fill module namespace.
             Names::<T>::insert( netuid, uid, name.clone() ); // Fill module namespace.
             Address::<T>::insert( netuid, uid, address.clone() ); // Fill module info.
-            Self::balance2stake( netuid, &key, stake );
+            Self::add_stake_on_account( netuid, &key, stake );
             
             // 3. Get and increase the uid count.
             N::<T>::insert( netuid, uid + 1 );

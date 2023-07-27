@@ -109,44 +109,48 @@ impl<T: Config> Pallet<T> {
         // == Emission==
         // =================================
 
-        // Compute normalized emission scores. range: I32F32(0, 1)
-        let mut normalized_emission: Vec<I32F32> = incentive.iter().zip( dividends.clone() ).map( |(ii, di)| ii + di ).collect();
+        let incentive_emission: Vec<I32F32> = incentive.clone().iter().map( |x| x.clone() * I32F32::from_num(token_emission/2) ).collect();
+        let incentive_emission: Vec<u64> = incentive_emission.iter().map( |e: &I32F32| e.to_num::<u64>() ).collect();
 
-        // If emission is zero, do an even split.
-        if is_zero( &normalized_emission ) { // no weights set
-            for (uid_i, key) in keys.iter() {
-                normalized_emission[ *uid_i as usize ] = I32F32::from_num(1.0);
-            }
-        }
 
-        inplace_normalize( &mut normalized_emission );
-
+        let dividends_emission: Vec<I32F32> = dividends.clone().iter().map( |x| x.clone() * I32F32::from_num(token_emission/2) ).collect();
+        let dividends_emission: Vec<u64> = dividends_emission.iter().map( |e: &I32F32| e.to_num::<u64>() ).collect();
         
-        // Compute rao based emission scores. range: I96F32(0, token_emission)
-        let emission: Vec<I64F64> = normalized_emission.iter().map( |e: &I32F32| I64F64::from_num(*e) * I64F64::from_num(token_emission) ).collect();
-        let emission: Vec<u64> = emission.iter().map( |e: &I64F64| e.to_num::<u64>() ).collect();
-        log::trace!( "nE: {:?}", &normalized_emission );
-        log::trace!( "E: {:?}", &emission );
 
-        // ===================
-        // == Value storage ==
-        // ===================
-        Emission::<T>::insert( netuid, emission.clone() );
         let cloned_incentive: Vec<u16> = incentive.iter().map(|xi| fixed_proportion_to_u16(*xi)).collect::<Vec<u16>>();
         Incentive::<T>::insert( netuid, cloned_incentive );
         let cloned_dividends: Vec<u16> = dividends.iter().map(|xi| fixed_proportion_to_u16(*xi)).collect::<Vec<u16>>();
         Dividends::<T>::insert( netuid, cloned_dividends );
 
+
         // Emission tuples ( keys, u64 emission)
         let mut result: Vec<(T::AccountId, u64)> = vec![]; 
         for ( uid_i, key ) in keys.iter() {
-            result.push( ( key.clone(), emission[ *uid_i as usize ] ) );
+            result.push( ( key.clone(), incentive_emission[ *uid_i as usize ] ) );
         }
+
+
+        // Dividends tuples ( keys, u64 dividends)
+        for ( uid_i, key ) in keys.iter() {
+            if dividends_emission[ *uid_i as usize ] > 0 {
+                let ownership_emission_for_key: Vec<(T::AccountId, u64)>  = Self::get_ownership_emission_for_key( netuid, key, dividends_emission[ *uid_i as usize ] );
+                for (owner_key, amount) in ownership_emission_for_key.iter() {                 
+                    result.push( ( owner_key.clone(), *amount ) );
+                }
+            }
+        }
+
+        let emission: Vec<u64> = incentive_emission.iter().zip( dividends_emission.iter() ).map( |(x, y)| x + y ).collect();
+        // ===================
+        // == Value storage ==
+        // ===================
+        Emission::<T>::insert( netuid, emission.clone() );
             
         // --- 6. emmit
         for (key, amount) in result.iter() {                 
             Self::increase_stake_on_account(netuid, &key, *amount );
         }    
+        
     
     }
 

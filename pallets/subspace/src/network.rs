@@ -218,27 +218,6 @@ impl<T: Config> Pallet<T> {
 
 
 
-    pub fn add_network_from_name( 
-        name: Vec<u8>,
-        key : &T::AccountId,
-    ) -> u16 {
-
-        let default_subnet  = Self::default_subnet();
-
-        let netuid = Self::add_network( 
-                            name.clone(),
-                            default_subnet.stake, 
-                            default_subnet.max_allowed_uids, 
-                            default_subnet.max_allowed_weights,
-                            default_subnet.immunity_period,
-                            default_subnet.min_allowed_weights,
-                            default_subnet.tempo,
-                            &key);
-
-        // --- 16. Ok and done.
-        return netuid;
-    }
-
 
     pub fn add_network_from_registration( 
         name: Vec<u8>,
