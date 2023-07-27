@@ -4,14 +4,8 @@ services:
     command: bash -c "tail -f /dev/null"
     container_name: subspace
     network_mode: host
-    volumes:
-      - ./node:/app/node
-      - ./pallets:/app/pallets
-      - ./runtime:/app/runtime
-      - ./target:/app/target
-      - ./specs:/app/specs
-      - ./Cargo.toml:/app/Cargo.toml
-      - ./Cargo.lock:/app/Cargo.lock
+    # volumes:
+    #   - ./:/app
 
     # - ./:/app
 version: '3.2'

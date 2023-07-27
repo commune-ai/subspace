@@ -9,12 +9,6 @@
 FROM ubuntu:22.10
 SHELL ["/bin/bash", "-c"]
 
-# metadata
-ARG VCS_REF
-ARG BUILD_DATE
-ARG SNAPSHOT_DIR
-ARG SNAPSHOT_FILE
-
 # This is being set so that no interactive components are allowed when updating.
 ARG DEBIAN_FRONTEND=noninteractive
 
@@ -32,19 +26,30 @@ RUN apt-get update && \
         apt-get clean && \
         find /var/lib/apt/lists/ -type f -not -name lock -delete;
 
-WORKDIR /app
-# install rust  
-COPY ./scripts /app/scripts
-RUN chmod +x /app/scripts/*
-RUN /app/scripts/install_rust_env.sh
+# Install cargo and Rust
+RUN curl https://sh.rustup.rs -sSf | sh -s -- -y
 
-COPY ./pallets /app/pallets
-COPY ./runtime /app/node
-COPY ./node /app/subspace
-COPY ./target /app/target
-COPY ./.env /app/.env
-COPY ./Cargo.toml /app/Cargo.toml
+ENV PATH="/root/.cargo/bin:${PATH}"
+RUN . "$HOME/.cargo/env"
+RUN echo "*** Initialized WASM build environment with Rust 1.68.1"
 
+RUN rustup install nightly-2023-01-01
+RUN rustup override set nightly-2023-01-01
+RUN rustup target add wasm32-unknown-unknown
+
+
+# # Use the "yes" command to automatically provide 'Y' as the answer
+# RUN bash -c "yes | apt-get install libclang-dev"
+# RUN bash -c "yes | apt-get install protobuf-compiler"
+
+
+WORKDIR /subspace
+RUN apt-get update
+RUN yes | apt-get install libclang-dev
+RUN yes | apt-get install protobuf-compiler
+RUN apt-get install make
+
+COPY . .
 RUN cargo build --release
 
 
