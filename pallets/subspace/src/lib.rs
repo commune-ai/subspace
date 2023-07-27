@@ -242,10 +242,10 @@ pub mod pallet {
 	pub type TotalStake<T> = StorageValue<_, u64, ValueQuery>;
 	#[pallet::storage] // --- DMAP ( hot, cold ) --> stake | Returns the stake under a key prefixed by key.
 	pub type Stake<T:Config> = StorageDoubleMap<_,Identity, u16,  Identity, T::AccountId, u64, ValueQuery, DefaultStake<T>>;
-	#[pallet::storage] // --- DMAP ( hot, cold ) --> stake | Returns the stake under a key prefixed by key.
-	pub type DelegateOwnership<T:Config> = StorageDoubleMap<_,Identity, u16,  Identity, u16, Vec<(T::AccountId, u16)>, ValueQuery>;
-	#[pallet::storage] // --- DMAP ( hot, cold ) --> stake | Returns the stake under a key prefixed by key.
-	pub type DelegateStake<T:Config> = StorageDoubleMap<_,Identity, u16,  Identity, T::AccountId, Vec<(T::AccountId, u64)>, ValueQuery>;
+	#[pallet::storage] // --- DMAP ( netuid, uid ) --> Vec<(delegater, stake )> | Returns the stake under a key prefixed by key.
+	pub type DelegateFromStake<T:Config> = StorageDoubleMap<_,Identity, u16,  Identity, u16, Vec<(T::AccountId, u64)>, ValueQuery>;
+	#[pallet::storage] // --- DMAP ( netuid, uid ) --> Vec<(uid, stake )> | Returns the stake under a key prefixed by key.
+	pub type DelegateToStake<T:Config> = StorageDoubleMap<_,Identity, u16,  Identity, T::AccountId, Vec<(u16, u64)>, ValueQuery>;
 	#[pallet::storage] // --- MAP ( netuid ) --> Registration this Block.
 	pub type RegistrationsThisBlock<T> = StorageMap<_, Identity, u16, u16, ValueQuery, DefaultRegistrationsThisBlock<T>>;
 	#[pallet::storage] // --- ITEM( global_max_registrations_per_block ) 

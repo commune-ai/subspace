@@ -151,18 +151,59 @@ impl<T: Config> Pallet<T> {
     }
 
 
-    pub fn get_delegated_stake_vector(netuid:u16, key:&T::AccountId, ) -> Vec<(T::AccountId, u64)> { { 
-        return DelegatedStake::<T>::iter_prefix(netuid, key).map(|(k, v)| (k, v)).collect::<Vec<_>>();
+    pub fn get_delegate_to_stak_vecotr(netuid:u16, key:&T::AccountId, ) -> Vec<(u16, u64)> { 
+        return DelegeteToStake::<T>::iter_prefix(netuid, key).map(|(k, v)| (k, v)).collect::<Vec<_>>();
+    }
+    pub fn get_delegate_from_stake_vector(netuid:u16, uid: u16 ) -> Vec<(T::AccountId, u64)> { 
+        return DelegateFromStake::<T>::iter_prefix(netuid, uid).map(|(k, v)| (k, v)).collect::<Vec<_>>();
+    }
+    pub fn get_total_delegate_from_stake(netuid:u16, uid: u16 ) -> Vec<(T::AccountId, u64)> { 
+        let delegate_from_stake_vector: Vec<(T::AccountId, u64)> = Self::get_delegate_from_stake_vector(netuid, uid);
+        let mut total_delegate_from_stake: u64 = 0;
+        for (k, v) in delegate_from_stake_vector {
+            total_delegate_from_stake += v;
+        }
+        return total_delegate_from_stake;
+    }
+    pub fn get_total_delegate_to_stake(netuid:u16, key:&T::AccountId, ) -> Vec<(u16, u64)> { 
+        let delegate_to_stake_vector: Vec<(u16, u64)> = Self::get_delegate_to_stake_vector(netuid, key);
+        let mut total_delegate_to_stake: u64 = 0;
+        for (k, v) in delegate_to_stake_vector {
+            total_delegate_to_stake += v;
+        }
+        let module_stake: u64 = Self::get_stake_for_uid(netuid, key);
+        return total_delegate_to_stake;
+    }
 
+    pub fn get_delegete_ownership_for_uid(netuid:u16, uid:&T::AccountId, ) -> Vec<(T::AccountId, I64F64)> { 
+        
+        let delegate_from_stake_vector: Vec<(T::AccountId, u64)> = Self::get_delegate_from_stake_vector(netuid, key);
+        let total_delegate_from_stake: I64F64 = I64F64::from_num(Self::get_total_delegate_from_stake_for_uid(netuid, key));
+
+        if total_delegate_from_stake == I64F64::from_num(0) {
+            return Vec::new();
+        }
+
+
+        let mut ownership_vector: Vec<(T::AccountId, I64F64)> = Vec::new();
+        for (k, v) in delegate_from_stake_vector {
+            let ownership = I64F64::from_num(v) / I64F64::from_num(total_delegate_from_stake);
+            ownership_vector.push( (k, ownership) );
+        }
+
+        return ownership_vector;
     }
 
 
 
     pub fn add_delegate_stake_on_account(netuid: u16, key: &T::AccountId, increment: u64 ) -> bool{
 
-        if !Stake::<T>::contains_key(netuid, key) {
-            return false;
+        let delegete_stake_vector: Vec<(T::AccountId, u64)> = Self::get_delegate_stake_vector(netuid, key);
+        let mut total_stake: u64 = 0;
+        for (k, v) in delegete_stake_vector {
+            total_stake += v;
         }
+
 
 
         Self::remove_balance_from_account( key, Self::u64_to_balance( increment ).unwrap() );
