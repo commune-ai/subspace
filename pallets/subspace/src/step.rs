@@ -139,6 +139,8 @@ impl<T: Config> Pallet<T> {
         let incentive_emission: Vec<u64> = incentive_emission.iter().map( |e: &I64F64| e.to_num::<u64>() ).collect();
         let dividends_emission: Vec<u64> = dividends_emission.iter().map( |e: &I64F64| e.to_num::<u64>() ).collect();
 
+        
+
 
         // Emission tuples ( keys, u64 emission)
         let mut result: Vec<(T::AccountId, u64)> = vec![]; 
