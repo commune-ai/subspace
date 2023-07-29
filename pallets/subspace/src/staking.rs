@@ -53,6 +53,25 @@ impl<T: Config> Pallet<T> {
         Ok(())
     }
 
+    //
+	pub fn do_remove_delegate_stake(
+        origin: T::RuntimeOrigin, 
+        netuid: u16,
+        to: T::AccountId,
+        amount: u64
+    ) -> dispatch::DispatchResult {
+        // --- 1. We check that the transaction is signed by the caller and retrieve the T::AccountId key information.
+        let key = ensure_signed( origin )?;
+        
+
+        ensure!( Self::is_registered( netuid, &key.clone() ), Error::<T>::NotRegistered );  
+        ensure!( Self::can_remove_balance_from_account( &key, amount ), Error::<T>::NotEnoughBalanceToStake );
+        let uid: u16 = Self::get_uid_for_key( netuid, &key.clone() );
+        Self::remove_delegate_stake_on_account(netuid, &key, uid, amount );
+        Ok(())
+    }
+
+
 
         //
 	pub fn do_remove_delegate_stake(
@@ -253,7 +272,7 @@ impl<T: Config> Pallet<T> {
         return emission_vector;
     }
 
-    pub fn add_delegate_stake_on_account(netuid: u16, key: &T::AccountId, uid: u16, amount: u64 ) -> bool{
+    pub fn add_stake_to_module(netuid: u16, key: &T::AccountId, module_key: &T::AccountId, amount: u64 ) -> bool{
         Self::increase_delegate_stake(netuid, key, uid, amount);
         Self::remove_balance_from_account( key, Self::u64_to_balance( amount ).unwrap() );
         

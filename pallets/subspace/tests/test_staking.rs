@@ -103,3 +103,24 @@ fn test_stake() {
 }
 
 
+
+#[test]
+fn test_delegate_stake() {
+	new_test_ext().execute_with(|| {
+        let max_uids: u16 = 10;
+        
+        let token_amount : u64 = 1_000_000_000;
+        let balance : u64 = 10 * token_amount;
+        let netuid : u16 = 0;
+        let key : U256 = U256::from(0);
+        let stake : u64 = balance;
+
+        register_module(netuid, key, stake);
+
+
+
+
+
+	});
+}
+

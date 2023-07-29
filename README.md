@@ -20,6 +20,7 @@ This repository contains Commune's substrate-chain. Subspace contains the truste
 * Architectures other than x86_64 are currently not supported.
 * OSs other than Linux and MacOS are currently not supported.               
 
+
 ## Architectures
 Subspace support the following architectures:
 
@@ -70,7 +71,7 @@ Once the project has been built, the following command can be used to explore al
 subcommands:
 
 ```sh
-./target/release/subspace -h
+./target/release/node-subspace -h
 ```
 
 ## Run

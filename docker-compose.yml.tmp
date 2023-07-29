@@ -1,0 +1,7 @@
+services:
+  subspace:
+    build: ./
+    command: bash -c "tail -f /dev/null"
+    container_name: subspace
+    network_mode: host
+version: '3.2'
