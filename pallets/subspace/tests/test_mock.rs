@@ -282,14 +282,14 @@ pub fn uddate_network(netuid: u16,
 #[allow(dead_code)]
 pub fn remove_stake(netuid: u16, key: U256, amount: u64){
 	let origin = get_origin(key);
-	let result = SubspaceModule::remove_stake(origin, netuid, amount);
+	let result = SubspaceModule::remove_stake(origin, netuid, key, amount);
 
 	assert_ok!(result);
 }
 #[allow(dead_code)]
 pub fn add_stake(netuid: u16, key: U256, amount: u64){
 	let origin = get_origin(key);
-	let result = SubspaceModule::add_stake(origin, netuid, amount);
+	let result = SubspaceModule::add_stake(origin, netuid, key, amount);
 
 	assert_ok!(result);
 }
@@ -298,7 +298,7 @@ pub fn add_stake(netuid: u16, key: U256, amount: u64){
 pub fn add_stake_and_balance(netuid: u16, key: U256, amount: u64){
 	let origin = get_origin(key);
 	add_balance(key, amount);
-	let result = SubspaceModule::add_stake(origin, netuid, amount);
+	let result = SubspaceModule::add_stake(origin, netuid, key, amount);
 
 	assert_ok!(result);
 }

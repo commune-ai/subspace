@@ -70,12 +70,12 @@ fn test_stake() {
                 assert_eq!(SubspaceModule::get_balance(key), 0);
 
                 // REMOVE STAKE
-                SubspaceModule::remove_stake(get_origin(*key), netuid, amount_staked);
+                SubspaceModule::remove_stake(get_origin(*key), netuid, *key, amount_staked);
                 assert_eq!(SubspaceModule::get_balance(key), amount_staked);
                 assert_eq!(SubspaceModule::get_stake_for_uid(netuid, uid), 0);
 
                 // ADD STAKE AGAIN LOL
-                SubspaceModule::add_stake(get_origin(*key), netuid, amount_staked);
+                SubspaceModule::add_stake(get_origin(*key), netuid, *key, amount_staked);
                 assert_eq!(SubspaceModule::get_stake_for_uid(netuid, uid), amount_staked);
                 assert_eq!(SubspaceModule::get_balance(key), 0);
 

@@ -461,7 +461,6 @@ pub mod pallet {
 		pub fn add_stake(
 			origin: OriginFor<T>, 
 			netuid: u16,
-			amount_staked: u64,
 			module_key: T::AccountId,
 			amount: u64
 		) -> DispatchResult {
