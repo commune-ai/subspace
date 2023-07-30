@@ -246,9 +246,9 @@ pub mod pallet {
 	#[pallet::storage] // --- DMAP ( hot, cold ) --> stake | Returns the stake under a key prefixed by key.
 	pub type Stake<T:Config> = StorageDoubleMap<_,Identity, u16,  Identity, T::AccountId, u64, ValueQuery, DefaultStake<T>>;
 	#[pallet::storage] // --- DMAP ( netuid, key ) --> Vec<(delegater, stake )> | Returns the stake under a key prefixed by key.
-	pub type DelegateFromStake<T:Config> = StorageDoubleMap<_,Identity, u16,  Identity, u16, Vec<(T::AccountId, u64)>, ValueQuery>;
+	pub type StakeFrom<T:Config> = StorageDoubleMap<_,Identity, u16,  Identity, u16, Vec<(T::AccountId, u64)>, ValueQuery>;
 	#[pallet::storage] // --- DMAP ( netuid, uid ) --> Vec<(uid, stake )> | Returns the stake under a key prefixed by key.
-	pub type DelegateToStake<T:Config> = StorageDoubleMap<_,Identity, u16,  Identity, T::AccountId, Vec<(u16, u64)>, ValueQuery>;
+	pub type StakeTo<T:Config> = StorageDoubleMap<_,Identity, u16,  Identity, T::AccountId, Vec<(u16, u64)>, ValueQuery>;
 	#[pallet::storage] // --- MAP ( netuid ) --> Registration this Block.
 	pub type RegistrationsThisBlock<T> = StorageMap<_, Identity, u16, u16, ValueQuery, DefaultRegistrationsThisBlock<T>>;
 	#[pallet::storage] // --- ITEM( global_max_registrations_per_block ) 
@@ -462,8 +462,9 @@ pub mod pallet {
 			origin: OriginFor<T>, 
 			netuid: u16,
 			amount_staked: u64
+			module_key: T::AccountId,
 		) -> DispatchResult {
-			Self::do_add_stake(origin,netuid, amount_staked)
+			Self::do_add_stake(origin,netuid, amount_staked, module_key)
 		}
 
 
@@ -510,10 +511,13 @@ pub mod pallet {
 		pub fn remove_stake(
 			origin: OriginFor<T>, 
 			netuid: u16,
-			amount_unstaked: u64
+			module_key: T::AccountId,
+			amount: u64
+
 		) -> DispatchResult {
-			Self::do_remove_stake(origin, netuid, amount_unstaked)
+			Self::do_remove_stake(origin, netuid, module_key)
 		}
+
 
 
 		#[pallet::weight((Weight::from_ref_time(19_000_000)
@@ -653,6 +657,19 @@ impl<T: Config + Send + Sync + TypeInfo> SignedExtension for SubspaceSignedExten
                 })
             }
             Some(Call::remove_stake{..}) => {
+                Ok(ValidTransaction {
+                    priority: Self::get_priority_vanilla(),
+                    ..Default::default()
+                })
+            }
+
+			Some(Call::add_delegate_stake{..}) => {
+                Ok(ValidTransaction {
+                    priority: Self::get_priority_vanilla(),
+                    ..Default::default()
+                })
+            }
+            Some(Call::remove_delegate_stake{..}) => {
                 Ok(ValidTransaction {
                     priority: Self::get_priority_vanilla(),
                     ..Default::default()
