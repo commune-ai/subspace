@@ -19,8 +19,9 @@ impl<T: Config> Pallet<T> {
 
 		// --- 1. Ensure we don't exceed tx rate limit
 		// ensure!( !Self::exceeds_tx_rate_limit(&key), Error::<T>::TxRateLimitExceeded);
-
         
+        ensure!( Self::is_registered( netuid, &module_key.clone() ), Error::<T>::NotRegistered );  
+
         log::info!("do_add_stake( origin:{:?} stake_to_be_added:{:?} )", key, amount );
         
         ensure!( Self::can_remove_balance_from_account( &key, amount ), Error::<T>::NotEnoughBalanceToStake );
@@ -46,6 +47,8 @@ impl<T: Config> Pallet<T> {
         let key = ensure_signed( origin )?;
         log::info!("do_remove_stake( origin:{:?} stake_to_be_removed:{:?} )", key, amount );
 
+
+        ensure!( Self::is_registered( netuid, &module_key.clone() ), Error::<T>::NotRegistered );  
 
 		// --- 6. Ensure we don't exceed tx rate limit
 		// ensure!( !Self::exceeds_tx_rate_limit(&key), Error::<T>::TxRateLimitExceeded );
