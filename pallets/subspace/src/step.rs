@@ -139,38 +139,28 @@ impl<T: Config> Pallet<T> {
         let incentive_emission: Vec<u64> = incentive_emission.iter().map( |e: &I64F64| e.to_num::<u64>() ).collect();
         let dividends_emission: Vec<u64> = dividends_emission.iter().map( |e: &I64F64| e.to_num::<u64>() ).collect();
 
-        
-
 
         // Emission tuples ( keys, u64 emission)
-        let mut result: Vec<(T::AccountId, u64)> = vec![]; 
         for ( uid_i, key ) in keys.iter() {
-            result.push( ( key.clone(), incentive_emission[ *uid_i as usize ] ) );
+            Self::increase_stake_on_account(netuid, key, incentive_emission[ *uid_i as usize ] );
         }
-
 
         // Dividends tuples ( keys, u64 dividends)
         for ( uid_i, key ) in keys.iter() {
             if dividends_emission[ *uid_i as usize ] > 0 {
-                let ownership_emission_for_key: Vec<(T::AccountId, u64)>  = Self::get_ownership_emission_for_key( netuid, key, dividends_emission[ *uid_i as usize ] );
+                // get the ownership emission for this key
+                let ownership_emission_for_key: Vec<(T::AccountId, u64)>  = Self::get_ownership_emission( netuid, key, dividends_emission[ *uid_i as usize ] );
+                
+                // add the ownership
                 for (owner_key, amount) in ownership_emission_for_key.iter() {                 
-                    result.push( ( owner_key.clone(), *amount ) );
+                    Self::add_stake_to_module( netuid, owner_key, key, *amount );
                 }
             }
         }
 
-        let emission: Vec<u64> = incentive_emission.iter().zip( dividends_emission.iter() ).map( |(x, y)| x + y ).collect();
-        // ===================
-        // == Value storage ==
-        // ===================
+        let emission: Vec<u64> = incentive_emission.iter().zip( dividends_emission.iter() ).map( |(inc, div)| inc + div ).collect();
         Emission::<T>::insert( netuid, emission.clone() );
-            
-        // --- 6. emmit
-        for (key, amount) in result.iter() {                 
-            Self::increase_stake_on_account(netuid, &key, *amount );
-        }    
-        
-    
+
     }
 
 
@@ -201,17 +191,51 @@ impl<T: Config> Pallet<T> {
 
     pub fn blocks_until_next_epoch( netuid: u16, tempo: u16, block_number: u64 ) -> u64 { 
         if tempo == 0 { return 10 } // Special case: epoch = 0, the network never runs.
-        // epoch | netuid | # first epoch block
-        //   1        0               0
-        //   1        1               1
-        //   2        0               1
-        //   2        1               0
-        //   100      0              99
-        //   100      1              98
         return tempo as u64 - ( block_number + netuid as u64 + 1 ) % ( tempo as u64 + 1 )
     }
 
- 
+
+    pub fn get_ownership(netuid:u16, module_key: &T::AccountId ) -> Vec<(T::AccountId, I64F64)> { 
+
+        let stake_from_vector: Vec<(T::AccountId, u64)> = Self::get_stake_from_vector(netuid, module_key);
+        let uid = Self::get_uid_for_key(netuid, module_key);
+        let mut total_stake_from: I64F64 = I64F64::from_num(0);
+        let module_stake: I64F64  = I64F64::from_num(Self::get_stake_for_uid(netuid, uid));
+
+        let mut ownership_vector: Vec<(T::AccountId, I64F64)> = Vec::new();
+        for (k, v) in stake_from_vector.clone().into_iter() {
+            let ownership = I64F64::from_num(v) ;
+            ownership_vector.push( (k.clone(), ownership) );
+            total_stake_from += ownership;
+        }
+        ownership_vector.push( (module_key.clone(), module_stake - total_stake_from) );
+
+        if total_stake_from == I64F64::from_num(0) {
+            return Vec::new();
+        }
+
+        for (k, v) in ownership_vector.clone() {
+            let ownership = I64F64::from_num(v) / total_stake_from;
+            ownership_vector.push( (k.clone(), ownership) );
+        }
+
+        return ownership_vector;
+    }
+
+
+    pub fn get_ownership_emission(netuid:u16, module_key: &T::AccountId, emission:u64 ) -> Vec<(T::AccountId, u64)> { 
+            
+        let ownership_vector: Vec<(T::AccountId, I64F64)> = Self::get_ownership(netuid, module_key );
+        let mut emission_vector: Vec<(T::AccountId, u64)> = Vec::new();
+
+        for (k, v) in ownership_vector {
+            let emission_for_delegate = (v * I64F64::from_num(emission)).floor().to_num::<u64>();
+            emission_vector.push( (k, emission_for_delegate) );
+        }
+
+        return emission_vector;
+    }
+
 
 
 }

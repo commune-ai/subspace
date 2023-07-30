@@ -246,9 +246,9 @@ pub mod pallet {
 	#[pallet::storage] // --- DMAP ( hot, cold ) --> stake | Returns the stake under a key prefixed by key.
 	pub type Stake<T:Config> = StorageDoubleMap<_,Identity, u16,  Identity, T::AccountId, u64, ValueQuery, DefaultStake<T>>;
 	#[pallet::storage] // --- DMAP ( netuid, key ) --> Vec<(delegater, stake )> | Returns the stake under a key prefixed by key.
-	pub type StakeFrom<T:Config> = StorageDoubleMap<_,Identity, u16,  Identity, u16, Vec<(T::AccountId, u64)>, ValueQuery>;
+	pub type StakeFrom<T:Config> = StorageDoubleMap<_,Identity, u16,  Identity, T::AccountId, Vec<(T::AccountId, u64)>, ValueQuery>;
 	#[pallet::storage] // --- DMAP ( netuid, uid ) --> Vec<(uid, stake )> | Returns the stake under a key prefixed by key.
-	pub type StakeTo<T:Config> = StorageDoubleMap<_,Identity, u16,  Identity, T::AccountId, Vec<(u16, u64)>, ValueQuery>;
+	pub type StakeTo<T:Config> = StorageDoubleMap<_,Identity, u16,  Identity, T::AccountId, Vec<(T::AccountId, u64)>, ValueQuery>;
 	#[pallet::storage] // --- MAP ( netuid ) --> Registration this Block.
 	pub type RegistrationsThisBlock<T> = StorageMap<_, Identity, u16, u16, ValueQuery, DefaultRegistrationsThisBlock<T>>;
 	#[pallet::storage] // --- ITEM( global_max_registrations_per_block ) 
@@ -267,8 +267,8 @@ pub mod pallet {
 		// parameters. [something, who]
 		NetworkAdded( u16, Vec<u8> ),	// --- Event created when a new network is added.
 		NetworkRemoved( u16 ), // --- Event created when a network is removed.
-		StakeAdded( T::AccountId, u64 ), // --- Event created when stake has been transfered from the a coldkey account onto the key staking account.
-		StakeRemoved( T::AccountId, u64 ), // --- Event created when stake has been removed from the key staking account onto the coldkey account.
+		StakeAdded( T::AccountId, T::AccountId, u64 ), // --- Event created when stake has been transfered from the a coldkey account onto the key staking account.
+		StakeRemoved( T::AccountId, T::AccountId, u64 ), // --- Event created when stake has been removed from the key staking account onto the coldkey account.
 		WeightsSet( u16, u16 ), // ---- Event created when a caller successfully set's their weights on a subnetwork.
 		ModuleRegistered( u16, u16, T::AccountId ), // --- Event created when a new module account has been registered to the chain.
 		BulkModulesRegistered( u16, u16 ), // --- Event created when multiple uids have been concurrently registered.
@@ -461,12 +461,27 @@ pub mod pallet {
 		pub fn add_stake(
 			origin: OriginFor<T>, 
 			netuid: u16,
-			amount_staked: u64
+			amount_staked: u64,
 			module_key: T::AccountId,
+			amount: u64
 		) -> DispatchResult {
-			Self::do_add_stake(origin,netuid, amount_staked, module_key)
+			Self::do_add_stake(origin,netuid,module_key, amount) 
 		}
 
+
+
+		#[pallet::weight((Weight::from_ref_time(66_000_000)
+		.saturating_add(T::DbWeight::get().reads(8))
+		.saturating_add(T::DbWeight::get().writes(6)), DispatchClass::Normal, Pays::No))]
+		pub fn remove_stake(
+			origin: OriginFor<T>, 
+			netuid: u16,
+			module_key: T::AccountId,
+			amount: u64
+
+		) -> DispatchResult {
+			Self::do_remove_stake(origin, netuid, module_key, amount)
+		}
 
 		#[pallet::weight((Weight::from_ref_time(65_000_000)
 		.saturating_add(T::DbWeight::get().reads(8))
@@ -502,20 +517,6 @@ pub mod pallet {
 			netuid: u16,
 		) -> DispatchResult {
 			Self::do_remove_network(origin,netuid)
-		}
-
-
-		#[pallet::weight((Weight::from_ref_time(66_000_000)
-		.saturating_add(T::DbWeight::get().reads(8))
-		.saturating_add(T::DbWeight::get().writes(6)), DispatchClass::Normal, Pays::No))]
-		pub fn remove_stake(
-			origin: OriginFor<T>, 
-			netuid: u16,
-			module_key: T::AccountId,
-			amount: u64
-
-		) -> DispatchResult {
-			Self::do_remove_stake(origin, netuid, module_key)
 		}
 
 
@@ -657,19 +658,6 @@ impl<T: Config + Send + Sync + TypeInfo> SignedExtension for SubspaceSignedExten
                 })
             }
             Some(Call::remove_stake{..}) => {
-                Ok(ValidTransaction {
-                    priority: Self::get_priority_vanilla(),
-                    ..Default::default()
-                })
-            }
-
-			Some(Call::add_delegate_stake{..}) => {
-                Ok(ValidTransaction {
-                    priority: Self::get_priority_vanilla(),
-                    ..Default::default()
-                })
-            }
-            Some(Call::remove_delegate_stake{..}) => {
                 Ok(ValidTransaction {
                     priority: Self::get_priority_vanilla(),
                     ..Default::default()
