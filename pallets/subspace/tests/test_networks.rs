@@ -46,7 +46,7 @@ fn test_set_max_allowed_uids_2() {
         let netuid : u16 = 0;
         let n : u16 = 10;
         let stake_per_module : u64 = 1_000_000_000;
-        register_n(netuid, n , stake_per_module);
+        register_n_modules(netuid, n , stake_per_module);
 
         let subnet_n = SubspaceModule::get_subnet_n(netuid);
         assert_eq!(subnet_n, n);

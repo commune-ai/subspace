@@ -185,11 +185,12 @@ pub fn get_origin( key: U256 ) -> RuntimeOrigin {
 }
 
 
-pub fn register_n( netuid: u16,  n: u16 , stake: u64, ) {
+pub fn register_n_modules( netuid: u16,  n: u16 , stake: u64, ) {
 	for i in 0..n {
 		register_module( netuid, U256::from(i), stake );
 	}
 }
+
 #[allow(dead_code)]
 pub fn register_module( netuid: u16, key: U256, stake: u64 ) {
 

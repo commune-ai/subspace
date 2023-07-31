@@ -155,7 +155,6 @@ impl<T: Config> Pallet<T> {
 
     pub fn increase_stake_to_module(netuid: u16, key: &T::AccountId,  module_key: &T::AccountId, amount: u64 ) -> bool{
 
-        let mut stake_to_vector: Vec<(T::AccountId, u64)> = Self::get_stake_to_vector(netuid, key);
 
         let mut stake_from_vector: Vec<(T::AccountId, u64)> = Self::get_stake_from_vector(netuid, module_key);
         let mut found_key_in_vector:bool= false;
@@ -170,6 +169,7 @@ impl<T: Config> Pallet<T> {
         }
 
         let mut found_key_in_vector:bool= false;
+        let mut stake_to_vector: Vec<(T::AccountId, u64)> = Self::get_stake_to_vector(netuid, key);
 
         for (i, (k, v)) in stake_to_vector.clone().iter().enumerate() {
             if k == module_key {
@@ -260,7 +260,7 @@ impl<T: Config> Pallet<T> {
         
         Self::set_stake_to_vector(netuid, key, stake_to_vector);
         Self::set_stake_from_vector(netuid, module_key, stake_from_vector);
-        Self::decrease_stake_on_account( netuid, key, amount );
+        Self::decrease_stake_on_account( netuid, module_key, amount );
         
         return true;
 

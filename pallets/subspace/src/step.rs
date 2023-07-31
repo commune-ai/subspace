@@ -149,7 +149,7 @@ impl<T: Config> Pallet<T> {
         for ( uid_i, key ) in keys.iter() {
             if dividends_emission[ *uid_i as usize ] > 0 {
                 // get the ownership emission for this key
-                let ownership_emission_for_key: Vec<(T::AccountId, u64)>  = Self::get_ownership_emission( netuid, key, dividends_emission[ *uid_i as usize ] );
+                let ownership_emission_for_key: Vec<(T::AccountId, u64)>  = Self::get_ownership_ratios_emission( netuid, key, dividends_emission[ *uid_i as usize ] );
                 
                 // add the ownership
                 for (owner_key, amount) in ownership_emission_for_key.iter() {                 
@@ -195,37 +195,35 @@ impl<T: Config> Pallet<T> {
     }
 
 
-    pub fn get_ownership(netuid:u16, module_key: &T::AccountId ) -> Vec<(T::AccountId, I64F64)> { 
+    pub fn get_ownership_ratios(netuid:u16, module_key: &T::AccountId ) -> Vec<(T::AccountId, I64F64)> { 
 
         let stake_from_vector: Vec<(T::AccountId, u64)> = Self::get_stake_from_vector(netuid, module_key);
         let uid = Self::get_uid_for_key(netuid, module_key);
         let mut total_stake_from: I64F64 = I64F64::from_num(0);
-        let module_stake: I64F64  = I64F64::from_num(Self::get_stake_for_uid(netuid, uid));
 
         let mut ownership_vector: Vec<(T::AccountId, I64F64)> = Vec::new();
+
         for (k, v) in stake_from_vector.clone().into_iter() {
             let ownership = I64F64::from_num(v) ;
             ownership_vector.push( (k.clone(), ownership) );
             total_stake_from += ownership;
         }
-        ownership_vector.push( (module_key.clone(), module_stake - total_stake_from) );
-
         if total_stake_from == I64F64::from_num(0) {
-            return Vec::new();
+            ownership_vector = Vec::new();
+
+        } else {
+            ownership_vector = ownership_vector.into_iter().map( |(k, v)| (k, v / total_stake_from) ).collect();
+
         }
 
-        for (k, v) in ownership_vector.clone() {
-            let ownership = I64F64::from_num(v) / total_stake_from;
-            ownership_vector.push( (k.clone(), ownership) );
-        }
 
         return ownership_vector;
     }
 
 
-    pub fn get_ownership_emission(netuid:u16, module_key: &T::AccountId, emission:u64 ) -> Vec<(T::AccountId, u64)> { 
+    pub fn get_ownership_ratios_emission(netuid:u16, module_key: &T::AccountId, emission:u64 ) -> Vec<(T::AccountId, u64)> { 
             
-        let ownership_vector: Vec<(T::AccountId, I64F64)> = Self::get_ownership(netuid, module_key );
+        let ownership_vector: Vec<(T::AccountId, I64F64)> = Self::get_ownership_ratios(netuid, module_key );
         let mut emission_vector: Vec<(T::AccountId, u64)> = Vec::new();
 
         for (k, v) in ownership_vector {
