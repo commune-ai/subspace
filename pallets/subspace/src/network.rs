@@ -94,13 +94,13 @@ impl<T: Config> Pallet<T> {
 
         let default_subnet: SubnetInfo<T> = Self::default_subnet();
         Self::add_network( name.clone() ,
-                            default_subnet.stake + stake, 
-                            default_subnet.max_allowed_uids, 
-                            default_subnet.immunity_period,
+                            default_subnet.tempo,
+                            default_subnet.immunity_period,     
                             default_subnet.min_allowed_weights,
                             default_subnet.max_allowed_weights,
-                            default_subnet.tempo,
-                            &key.clone()// founder
+                            default_subnet.max_allowed_uids, 
+                            &key.clone(),// founder
+                            default_subnet.stake + stake, //stake
                             );
         // --- 16. Ok and done.
         Ok(())
@@ -222,21 +222,23 @@ impl<T: Config> Pallet<T> {
     pub fn add_network_from_registration( 
         name: Vec<u8>,
         stake: u64,
-        key : &T::AccountId,
+        founder_key : &T::AccountId,
     ) -> u16 {
 
+        // use default parameters
 
         let default_subnet  = Self::default_subnet();
 
         let netuid = Self::add_network( 
                             name.clone(),
-                            default_subnet.stake + stake, 
-                            default_subnet.max_allowed_uids, 
-                            default_subnet.immunity_period,
-                            default_subnet.min_allowed_weights,
-                            default_subnet.max_allowed_weights,
                             default_subnet.tempo,
-                            &key, );
+                            default_subnet.immunity_period,
+                            default_subnet.min_allowed_weights, 
+                            default_subnet.max_allowed_weights,
+                            default_subnet.max_allowed_uids,
+                            &founder_key, // founder, 
+                            stake,
+                        );
 
         // --- 16. Ok and done.
         return netuid;
@@ -300,13 +302,13 @@ impl<T: Config> Pallet<T> {
     
     pub fn add_network( 
                        name: Vec<u8>,
-                       stake: u64,
-                       max_allowed_uids: u16,
+                       tempo: u16,
                        immunity_period: u16,
                        min_allowed_weights: u16,
                        max_allowed_weights: u16,
-                       tempo: u16,
+                       max_allowed_uids: u16,
                        founder: &T::AccountId, 
+                       stake: u64,
                     ) -> u16 {
 
         // --- 1. Enfnsure that the network name does not already exist.
