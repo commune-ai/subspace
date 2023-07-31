@@ -55,95 +55,6 @@ pub fn get_grandpa_from_ss58_addr(s: &str) -> GrandpaId {
 }
 
 
-
-pub fn devnet_config() -> Result<ChainSpec, String> {
-	let wasm_binary = WASM_BINARY.ok_or_else(|| "Development wasm not available".to_string())?;
-	
-
-
-
-	Ok(ChainSpec::from_genesis(
-		// Name
-		"devnet",
-		// ID
-		"devnet",
-		ChainType::Local,
-		move || {
-			network_genesis(
-				wasm_binary,
-				// Initial PoA authorities
-				vec![authority_keys_from_seed("Alice"), authority_keys_from_seed("Bob")],
-				// Sudo account
-				get_account_id_from_seed::<sr25519::Public>("Alice"),
-				// Pre-funded accounts
-				vec![
-					(get_account_id_from_seed::<sr25519::Public>("Alice"), 100_000_000_000),
-					(get_account_id_from_seed::<sr25519::Public>("Bob"),100_000_000_000),
-					(get_account_id_from_seed::<sr25519::Public>("Charlie"),100_000_000_000),
-				],
-				vec![],
-				vec![],
-				0,
-			)
-		},
-		// Bootnodes
-		vec![],
-		// Telemetry
-		None,
-		// Protocol ID
-		None,
-		// Properties
-		None,
-		None,
-		// Extensions
-		None,
-	))
-}
-
-pub fn testnet_config() -> Result<ChainSpec, String> {
-	let wasm_binary = WASM_BINARY.ok_or_else(|| "Development wasm not available".to_string())?;
-	
-
-
-
-	Ok(ChainSpec::from_genesis(
-		// Name
-		"Local Testnet",
-		// ID
-		"local_testnet",
-		ChainType::Local,
-		move || {
-			network_genesis(
-				wasm_binary,
-				// Initial PoA authorities
-				vec![authority_keys_from_seed("Alice"), authority_keys_from_seed("Bob")],
-				// Sudo account
-				get_account_id_from_seed::<sr25519::Public>("Alice"),
-				// Pre-funded accounts
-				vec![
-					(get_account_id_from_seed::<sr25519::Public>("Alice"), 100_000_000_000),
-					(get_account_id_from_seed::<sr25519::Public>("Bob"),100_000_000_000),
-					(get_account_id_from_seed::<sr25519::Public>("Charlie"),100_000_000_000),
-				],
-				vec![],
-				vec![],
-				0,
-			)
-		},
-		// Bootnodes
-		vec![],
-		// Telemetry
-		None,
-		// Protocol ID
-		None,
-		// Properties
-		None,
-		None,
-		// Extensions
-		None,
-	))
-}
-
 // Includes for nakamoto genesis
 use std::{fs::File, path::PathBuf};
 use serde::{Deserialize};
@@ -152,21 +63,26 @@ use serde_json as json;
 
 
 
+
+
 // Configure storage from nakamoto data
 #[derive(Deserialize, Debug)]
 struct SubspaceJSONState {
 	balances: std::collections::HashMap<String, u64>,
-	// subnet -> (name, tempo, immunity_period, min_allowed_weights, max_allowed_uids, founder)
-	subnets: Vec<(String, u16, u16, u16, u16,  String )>,
+	// subnet -> (name, tempo, immunity_period, min_allowed_weights, max_allowed_weights, max_allowed_uids, founder)
+	subnets: Vec<(String, u16, u16, u16, u16, u16, String )>,
 	// module -> (key, name, address, stake, weights)
 	modules : Vec<Vec<(String, String, String, u64, Vec<(u16, u16)>)>>,
 
-	block: u64,
+	block: u32,
+
+	version : u16, //
 
 }
 
-pub fn mainnet_config() -> Result<ChainSpec, String> {
-	let path: PathBuf = std::path::PathBuf::from("./snapshots/main.json");
+
+pub fn generate_config(network:String) -> Result<ChainSpec, String> {
+	let path: PathBuf = std::path::PathBuf::from(format!("./snapshots/{}.json", network));
 	let wasm_binary = WASM_BINARY.ok_or_else(|| "Development wasm not available".to_string())?;
 
 	// We mmap the file into memory first, as this is *a lot* faster than using
@@ -184,21 +100,23 @@ pub fn mainnet_config() -> Result<ChainSpec, String> {
 	let state: SubspaceJSONState =
 		json::from_slice(&bytes).map_err(|e| format!("Error parsing genesis file: {}", e))?;
 
-	let block : u64 = state.block;
-	let mut subnets: Vec<( Vec<u8>, u16, u16, u16 , u16, sp_runtime::AccountId32)> = Vec::new();
+	let block : u32 = state.block;
+	// (name, tempo, immunity_period, min_allowed_weights, max_allowed_weights, max_allowed_uids, founder)
+	let mut subnets: Vec<( Vec<u8>, u16, u16, u16 , u16, u16, sp_runtime::AccountId32)> = Vec::new();
 	let mut modules: Vec<Vec<(sp_runtime::AccountId32, Vec<u8>, Vec<u8>, u64, Vec<(u16,u16)>)>> = Vec::new();
 
 	for (netuid, subnet) in state.subnets.iter().enumerate() {
 
-		subnets.push((subnet.0.as_bytes().to_vec(), 
-					 subnet.1,
-					 subnet.2, 
-					 subnet.3, 
-					 subnet.4, 
-					 sp_runtime::AccountId32::from(<sr25519::Public as Ss58Codec>::from_ss58check(&subnet.5).unwrap()),
+		subnets.push((subnet.0.as_bytes().to_vec(),  // name
+					 subnet.1, // tempo
+					 subnet.2, // immunity_period
+					 subnet.3, // min_allowed_weights
+					 subnet.4, // max_allowed_weights
+					 subnet.5, //  max_allowed_uids
+					 sp_runtime::AccountId32::from(<sr25519::Public as Ss58Codec>::from_ss58check(&subnet.6).unwrap()),
 					));
 
-		// Add empty modules
+		// Add  modules
 		modules.push(Vec::new());
 		for (uid, module) in state.modules[netuid].iter().enumerate() {
 			modules[netuid].push((
@@ -227,9 +145,12 @@ pub fn mainnet_config() -> Result<ChainSpec, String> {
 	properties.insert("tokenSymbol".into(), "C".into());
 	properties.insert("tokenDecimals".into(), 9.into());
 	properties.insert("ss58Format".into(), 13116.into());
+
+
+
 	Ok(ChainSpec::from_genesis(
 		// Name
-		"Commune",
+		"commune",
 		// ID
 		"commune",
 		ChainType::Development,
@@ -268,6 +189,17 @@ pub fn mainnet_config() -> Result<ChainSpec, String> {
 
 }
 
+pub fn mainnet_config() -> Result<ChainSpec, String> {
+	return generate_config("main".to_string());
+}
+
+pub fn devnet_config() -> Result<ChainSpec, String> {
+	return generate_config("dev".to_string());
+}
+pub fn testnet_config() -> Result<ChainSpec, String> {
+	return generate_config("dev".to_string());
+}
+
 
 // Configure initial storage state for FRAME modules.
 fn network_genesis(
@@ -276,8 +208,8 @@ fn network_genesis(
 	root_key: AccountId,
 	balances: Vec<(AccountId, u64)>,
 	modules: Vec<Vec<(AccountId,Vec<u8>, Vec<u8>, u64, Vec<(u16, u16)>)>>,
-	subnets: Vec<(Vec<u8>, u16, u16, u16, u16 ,AccountId)>,
-	block: u64,
+	subnets: Vec<(Vec<u8>, u16, u16, u16, u16, u16 ,AccountId)>,
+	block: u32,
 
 
 
