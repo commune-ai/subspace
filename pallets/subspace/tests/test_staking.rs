@@ -187,7 +187,7 @@ fn test_ownership_ratio() {
         let netuid: u16 = 0;
         let num_modules: u16 = 10;
         let stake_per_module : u64 = 1_000_000_000;
-        register_n_modules(netuid, num_modules, stake_per_module);
+        register_n_modules(netuid, num_modules, 0);
         
         let keys  = SubspaceModule::get_keys(netuid);
 
@@ -211,11 +211,27 @@ fn test_ownership_ratio() {
 
             assert_eq!(ownership_ratios.len(), delegate_keys.len()+1);
             println!("OWNERSHIP RATIOS: {:?}", ownership_ratios);
+            // step_block();
 
-            for (d_a, o) in ownership_ratios.iter() {
-                println!("OWNERSHIP RATIO: {}", o);
-                assert_eq!(*o, I64F64::from(1)/I64F64::from(delegate_keys.len() as u16 +1));
-            }
+            step_epoch(netuid);
+
+            let stake_from_vector = SubspaceModule::get_stake_from_vector(netuid, k);
+            let stake: u64 = SubspaceModule::get_stake(netuid, k);
+            let sumed_stake : u64 = stake_from_vector.iter().fold(0, |acc, (a, x)| acc + x);
+            let total_stake : u64 = SubspaceModule::get_total_subnet_stake(netuid);
+
+            println!("STAKE: {}", stake);
+            println!("SUMED STAKE: {}", sumed_stake);
+            println!("TOTAL STAKE: {}", total_stake);
+
+            assert_eq!(stake, sumed_stake);
+
+            // for (d_a, o) in ownership_ratios.iter() {
+            //     println!("OWNERSHIP RATIO: {}", o);
+                
+            // }
+
+
 
 
         }

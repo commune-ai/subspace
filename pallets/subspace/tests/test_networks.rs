@@ -78,7 +78,9 @@ fn test_set_single_temple(tempo:u16) {
                                         tempo, // change tempo
                                         params.founder );
         let previous_total_stake : u64 = block_number()* emission_per_block;
-        let n_steps = 2*tempo;
+
+        let n_epochs = 2;
+        let n_steps = n_epochs*tempo;
         for i in 0..n_steps {
 
             println!("tempo {} block number: {} stake {} pending_emissiion {}", tempo,  block_number(), SubspaceModule::get_total_subnet_stake(netuid), SubspaceModule::get_pending_emission(netuid));
@@ -88,7 +90,12 @@ fn test_set_single_temple(tempo:u16) {
             
         }
         total_stake = SubspaceModule::get_total_subnet_stake(netuid) ;
-        assert_eq!(total_stake, (tempo as u64)*emission_per_block + previous_total_stake);
+
+        let incentives : Vec<u16> = SubspaceModule::get_incentive(netuid);
+        let dividends : Vec<u16>= SubspaceModule::get_dividends(netuid);
+        println!("incentives {:?}", incentives);
+        println!("dividends {:?}", dividends);
+        assert_eq!(total_stake, (tempo as u64)*emission_per_block*(n_epochs as u64) + previous_total_stake);
         
 
         });

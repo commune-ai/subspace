@@ -394,7 +394,7 @@ pub mod pallet {
 					emission.push(0);
 					last_update.push(0);
 
-					
+					self::Pallet::<T>::get_total_subnet_stake(netuid);
 
 					// increase  stake variables
 					Stake::<T>::insert(netuid,key.clone(), stake);

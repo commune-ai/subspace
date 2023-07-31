@@ -142,15 +142,13 @@ impl<T: Config> Pallet<T> {
 
         // Emission tuples ( keys, u64 emission)
         for ( uid_i, key ) in keys.iter() {
-            Self::increase_stake_on_account(netuid, key, incentive_emission[ *uid_i as usize ] );
-        }
-
-        // Dividends tuples ( keys, u64 dividends)
-        for ( uid_i, key ) in keys.iter() {
+            if incentive_emission[ *uid_i as usize ] > 0 {
+                // add the stake to the module
+                Self::add_stake_to_module( netuid, key, key, incentive_emission[ *uid_i as usize ]  );
+            }
             if dividends_emission[ *uid_i as usize ] > 0 {
                 // get the ownership emission for this key
                 let ownership_emission_for_key: Vec<(T::AccountId, u64)>  = Self::get_ownership_ratios_emission( netuid, key, dividends_emission[ *uid_i as usize ] );
-                
                 // add the ownership
                 for (owner_key, amount) in ownership_emission_for_key.iter() {                 
                     Self::add_stake_to_module( netuid, owner_key, key, *amount );
@@ -227,7 +225,7 @@ impl<T: Config> Pallet<T> {
         let mut emission_vector: Vec<(T::AccountId, u64)> = Vec::new();
 
         for (k, v) in ownership_vector {
-            let emission_for_delegate = (v * I64F64::from_num(emission)).floor().to_num::<u64>();
+            let emission_for_delegate = (v * I64F64::from_num(emission)).to_num::<u64>();
             emission_vector.push( (k, emission_for_delegate) );
         }
 
