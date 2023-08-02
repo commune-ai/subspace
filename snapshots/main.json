@@ -3,10 +3,10 @@
     "subnets": [
         [
             "commune",
-            1,
-            50,
-            420,
             100,
+            200,
+            200,
+            200,
             4096,
             "5HarzAYD37Sp3vJs385CLvhDPN52Cb1Q352yxZnDZchznPaS"
         ],

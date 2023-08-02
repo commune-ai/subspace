@@ -101,8 +101,10 @@ impl<T: Config> Pallet<T> {
             Address::<T>::remove(netuid, replace_uid ); // Make uid - key association.
             RegistrationBlock::<T>::remove( netuid, replace_uid ); // Fill block at registration.
             Weights::<T>::remove( netuid, replace_uid ); // Make uid - key association.
-            Names::<T>::remove( netuid, replace_uid ); // Make uid - key association.
             N::<T>::mutate( netuid, |v| *v -= 1 ); // Decrease the number of modules in the network.
+            let replace_uid_name: Vec<u8>= Names::<T>::get( netuid, replace_uid );
+            Names::<T>::remove( netuid, replace_uid ); // Make uid - key association.
+            Namespace::<T>::remove( netuid, replace_uid_name ); // Fill module namespace.
             
             // pop frm incentive vector and push to new key
             Incentive::<T>::mutate( netuid, |v| v.pop() );
