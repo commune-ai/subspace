@@ -29,8 +29,10 @@ impl<T: Config> Pallet<T> {
 
         let stake: u64 = Self::resolve_stake_amount( &key, stake_amount);
 
-
-        ensure!( Self::can_remove_balance_from_account( &key, stake ), Error::<T>::NotEnoughBalanceToStake );
+        if stake > 0 {
+            // --- 1. Check that the caller has enough balance to stake.
+            ensure!( Self::can_remove_balance_from_account( &key, stake ), Error::<T>::NotEnoughBalanceToStake );
+        }
 
         let mut netuid: u16 = 0;       
         let new_network : bool = !Self::if_subnet_name_exists( network.clone() );
@@ -62,7 +64,7 @@ impl<T: Config> Pallet<T> {
         } else {
             uid = Self::get_lowest_uid( netuid );
             Self::replace_module( netuid, uid, &key , name.clone(), address.clone(), module_stake.clone());
-            log::info!("prune module");
+            log::info!("prune module {:?} from network {:?} ", uid, netuid);
         }
 
         // ---Deposit successful event.
@@ -86,41 +88,54 @@ impl<T: Config> Pallet<T> {
     // This function will always return an element to prune.
     pub fn get_lowest_uid(netuid: u16) -> u16 {
         let mut min_score : u16 = u16::MAX;
-        let mut min_score_in_immunity_period = u16::MAX;
         let mut uid_with_min_score = 0;
         let n = Self::get_subnet_n( netuid );
-        let mut uid_with_min_score_in_immunity_period: u16 =  n as u16 - 1 ;
-        if Self::get_subnet_n( netuid ) == 0 { return 0 } // If there are no modules in this network.
+        let current_block :u64 = Self::get_current_block_as_u64();
+        let mut uids_in_immunity_period: Vec<u16> = Vec::new();
+        let mut uid_found: bool= false;
         for module_uid_i in 0..Self::get_subnet_n( netuid ) {
             let block_at_registration: u64 = Self::get_module_block_at_registration( netuid, module_uid_i );
-            let current_block :u64 = Self::get_current_block_as_u64();
             let immunity_period: u64 = Self::get_immunity_period(netuid) as u64;
             let mut pruning_score = Self::get_pruning_score_for_uid( netuid,  module_uid_i);
 
             // Find min pruning score.
+            
             if min_score >= pruning_score { 
-                if current_block - block_at_registration <  immunity_period { //module is in immunity period
-                    if min_score_in_immunity_period > pruning_score {
-                        min_score_in_immunity_period = pruning_score; 
-                        uid_with_min_score_in_immunity_period = module_uid_i;
-                    }
-                }
-                else {
+                if current_block - block_at_registration >  immunity_period { 
+                    uid_found = true;
+                    //module is in immunity period
                     min_score = pruning_score; 
                     uid_with_min_score = module_uid_i;
-                }
+                    } else {
+                        uids_in_immunity_period.push(module_uid_i);
+                    }
             }
+
         }
-        if min_score == u16::MAX { //all neuorns are in immunity period
-            return uid_with_min_score_in_immunity_period;
+        let max_immunity_uids: u16 = Self::get_max_immunity_uids(netuid) as u16;
+        
+        if uids_in_immunity_period.len()  > (max_immunity_uids as usize) {
+            // If more than half of the modules are in immunity period, return the last one.
+            uid_with_min_score = Self::random_idx( uids_in_immunity_period.len() as u16 );
+
         }
-        else {
-            // We replace the pruning score here with u16 max to ensure that all peers always have a 
-            // pruning score. In the event that every peer has been pruned this function will prune
-            // the last element in the network continually.
-            return uid_with_min_score;
-        }
+        // If all modules are in immunity period, return node with lowest prunning score.
+
+        
+
+        return uid_with_min_score;
     } 
+
+    // Returns a random index in range 0..n.
+    pub fn random_idx( n: u16 ) -> u16 {
+        let block_number: u64 = Self::get_current_block_as_u64();
+        // take the modulos of the blocknumber
+        let idx: u16 = ((block_number % u16::MAX as u64) % (n as u64)) as u16;
+        return idx
+
+
+
+    }
 
 
 

@@ -313,7 +313,7 @@ impl<T: Config> Pallet<T> {
         }
         let amount = amount_as_balance.unwrap();
         let current_balance = Self::get_balance(key);
-        if amount > current_balance {
+        if amount >= current_balance {
             return false;
         }
         // This bit is currently untested. @todo

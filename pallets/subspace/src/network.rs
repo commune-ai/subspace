@@ -580,8 +580,10 @@ impl<T: Config> Pallet<T> {
     pub fn get_dividends_for_uid( netuid:u16, uid: u16) -> u16 { let vec = Dividends::<T>::get( netuid ); if (uid as usize) < vec.len() { return vec[uid as usize] } else{ return 0 } }
     pub fn get_last_update_for_uid( netuid:u16, uid: u16) -> u64 { let vec = LastUpdate::<T>::get( netuid ); if (uid as usize) < vec.len() { return vec[uid as usize] } else{ return 0 } }
     pub fn get_pruning_score_for_uid( netuid:u16, uid: u16) -> u16 { let vec = Emission::<T>::get( netuid ); if (uid as usize) < vec.len() { return vec[uid as usize] as u16 } else{ return 0 } }
+    pub fn get_max_immunity_ratio( netuid:u16 ) -> u16 { MaxImmunityRatio::<T>::get( netuid ) }
+    pub fn get_max_immunity_uids( netuid:u16 ) -> u16 { MaxImmunityRatio::<T>::get( Self::get_max_immunity_ratio(netuid) * Self::get_max_allowed_uids(netuid) / 100 ) }
 
-
+    pub fn set_max_immunity_ratio( netuid:u16, max_immunity_ratio: u16 )  { MaxImmunityRatio::<T>::insert( netuid, max_immunity_ratio ) }
     // ============================
 	// ==== Subnetwork Getters ====
 	// ============================

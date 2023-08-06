@@ -19,11 +19,30 @@ impl<T: Config> Pallet<T> {
             if  (block_number + netuid as u64) % (tempo as u64) > 0 {
                 continue;
             }
-            let emission_to_drain:u64 = PendingEmission::<T>::get( netuid ).clone(); 
+            let emission_to_drain:u64 = PendingEmission::<T>::get( netuid ).clone();
             Self::epoch( netuid, emission_to_drain );
             PendingEmission::<T>::insert( netuid, 0 );
+            // Self::deregister_uids_with_zero_emission( netuid );
 
         }
+    }
+
+    pub fn deregister_uids_with_zero_emission( netuid: u16 ) {
+        let uids: Vec<u16> = Self::get_uids_with_zero_emission( netuid );
+        for uid in uids {
+            Self::remove_module( netuid, uid );
+        }
+    }
+
+    pub fn get_uids_with_zero_emission( netuid: u16 ) -> Vec<u16> {
+        let mut uids: Vec<u16> = Vec::new();
+        let emissions : Vec<u64> = Self::get_emissions( netuid );
+        for ( uid , emission ) in emissions.iter().enumerate() {
+            if *emission == 0 {
+                uids.push( uid as u16) ;
+            }
+        }
+        return uids; 
     }
 
 

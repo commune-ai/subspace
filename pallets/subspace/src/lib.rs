@@ -143,9 +143,8 @@ pub mod pallet {
 	pub fn DefaultStake<T: Config>() -> u64 { 0 }
 	#[pallet::type_value] 
 	pub fn DefaultAccount<T: Config>() -> T::AccountId { T::AccountId::decode(&mut sp_runtime::traits::TrailingZeroInput::zeroes()).unwrap()}
-
-
-
+	#[pallet::type_value] 
+	pub fn DefaultMaxImmunityRatio<T: Config>() -> u16 { 20 } // out of 100
 
 	#[pallet::storage] // --- ITEM ( tx_rate_limit )
 	pub(super) type TxRateLimit<T> = StorageValue<_, u64, ValueQuery, DefaultTxRateLimit<T>>;
@@ -203,6 +202,8 @@ pub mod pallet {
 	pub type MinAllowedWeights<T> = StorageMap< _, Identity, u16, u16, ValueQuery, DefaultMinAllowedWeights<T> >;
 	#[pallet::storage] // --- MAP ( netuid ) --> min_allowed_weights
 	pub type MaxAllowedWeights<T> = StorageMap< _, Identity, u16, u16, ValueQuery, DefaultMaxAllowedWeights<T> >;
+	#[pallet::storage] // --- MAP ( netuid ) --> min_allowed_weights
+	pub type MaxImmunityRatio<T> = StorageMap< _, Identity, u16, u16, ValueQuery, DefaultMaxImmunityRatio<T> >;
 
 
 
@@ -366,9 +367,9 @@ pub mod pallet {
 				self::Pallet::<T>::add_network(subnet.0.clone(), // name
 											   subnet.1, // tempo 
 											   subnet.2, // immunity_period
-											   subnet.3, // min_allowed_uids
-											   subnet.4, // max_allowed_uids
-											   subnet.5,  // min_allowed_weight
+											   subnet.3, // min_allowed_weights
+											   subnet.4, // max_allowed_weights
+											   subnet.5,  // max_allowed_uids
 											   &subnet.6, // founder
 											   0 as u64 // stake
 											);

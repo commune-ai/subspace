@@ -1,7 +1,24 @@
+
 use frame_support::sp_std::vec;
 use frame_support::inherent::Vec;
 use substrate_fixed::transcendental::exp;
 use substrate_fixed::types::{I32F32, I64F64};
+
+#[allow(dead_code)]
+pub fn bottom_k_u16(vector: &Vec<u16>, k: usize) -> Vec<u16> {
+    let mut vec_clone = vector.clone();
+    vec_clone.sort(); // Sorting in ascending order
+    vec_clone.into_iter().take(k).collect()
+}
+
+pub fn top_k_u16(vector: &Vec<u16>, k: usize) -> Vec<u16> {
+    let mut vec_clone = vector.clone();
+    vec_clone.sort(); // Sorting in ascending order
+    vec_clone.into_iter().rev().take(k).collect()
+}
+
+
+
 
 #[allow(dead_code)]
 pub fn fixed(val: f32) -> I32F32 { I32F32::from_num(val) }
@@ -74,6 +91,8 @@ pub fn exp_safe(input: I32F32) -> I32F32 {
     }
     output
 }
+
+
 
 // Sigmoid safe function with I32F32 output of I32F32 input with offset kappa and (recommended) scaling 0 < rho <= 40.
 #[allow(dead_code)]
