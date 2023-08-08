@@ -152,6 +152,50 @@ impl<T: Config> Pallet<T> {
         Ok(())
     }
 
+    pub fn do_propose_network_update( 
+        origin: T::RuntimeOrigin,
+        netuid: u16,
+        name: Vec<u8>,
+        immunity_period: u16,
+        min_allowed_weights: u16,
+        max_allowed_weights: u16,
+        max_allowed_uids: u16,
+        tempo: u16,
+        vote_period: u16,
+        vote_threshold: u16,
+        founder: T::AccountId,
+    ) -> DispatchResult {
+
+        let key = ensure_signed(origin)?;
+
+        ensure!( Self::if_subnet_netuid_exists( netuid ), Error::<T>::SubnetNameAlreadyExists );
+        ensure!( Self::is_subnet_founder( netuid, &key ), Error::<T>::NotSubnetFounder );
+
+        
+        let params : SubnetParams<T>=  SubnetParams{
+            name: name.clone(),
+            immunity_period: immunity_period,
+            min_allowed_weights: min_allowed_weights,
+            max_allowed_weights: max_allowed_weights,
+            max_allowed_uids: max_allowed_uids,
+            tempo: tempo,
+            founder: founder.clone(),
+            vote_period: vote_period,
+            vote_threshold: vote_threshold,
+        };
+        let proposal  = SubnetProposal{
+            params: params,
+            stake : Self::get_stake_for_key(netuid, &key ),
+            proposer: key.clone(),
+        };
+
+
+
+        // --- 16. Ok and done.
+        Ok(())
+    }
+
+
 
     pub fn update_network_for_netuid(netuid: u16,
                     name: Vec<u8>,

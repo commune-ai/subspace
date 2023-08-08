@@ -152,6 +152,8 @@ pub mod pallet {
 	#[pallet::type_value] 
 	pub fn DefaultVoteThreshold<T: Config>() -> u16 { 50 } // out of 100
 
+	
+
 
 
 	// ============================
@@ -200,6 +202,7 @@ pub mod pallet {
 		pub vote_period: u16, // out of 100
 
 	}
+
 	#[pallet::storage] // --- MAP ( netuid ) --> max_allowed_uids
 	pub type MaxAllowedUids<T> = StorageMap<_, Identity, u16, u16, ValueQuery, DefaultMaxAllowedUids<T> >;
 	#[pallet::storage] // --- MAP ( netuid ) --> immunity_period
@@ -214,14 +217,26 @@ pub mod pallet {
 	pub type Founder<T:Config> = StorageMap<_, Identity, u16, T::AccountId, ValueQuery, DefaultAccount<T>>;
 	#[pallet::storage] // --- MAP ( netuid ) --> epoch
 	pub type Tempo<T> = StorageMap<_, Identity, u16, u16, ValueQuery, DefaultTempo<T> >;
+
+
+	// =======================================
+	// ==== Voting  ====
+	// =======================================
+
+	
 	#[pallet::storage] // --- MAP ( netuid ) --> epoch
 	pub type VotePeriod<T> = StorageMap<_, Identity, u16, u16, ValueQuery, DefaultVotePeriod<T> >;
 	#[pallet::storage] // --- MAP ( netuid ) --> epoch
 	pub type VoteThreshold<T> = StorageMap<_, Identity, u16, u16, ValueQuery, DefaultVoteThreshold<T> >;
 
-
-
-
+	#[derive(Decode, Encode, PartialEq, Eq, Clone, Debug, TypeInfo)]
+	pub struct SubnetProposal<T: Config> {
+		// --- parameters
+		pub params: SubnetParams<T>,
+		pub proposer: T::AccountId,
+		pub stake: u64 ,
+	}
+	
 	// =======================================
 	// ==== Subnet INFO  ====
 	// =======================================
@@ -510,6 +525,35 @@ pub mod pallet {
 		}
 
 
+		#[pallet::weight((Weight::from_ref_time(65_000_000)
+		.saturating_add(T::DbWeight::get().reads(8))
+		.saturating_add(T::DbWeight::get().writes(6)), DispatchClass::Normal, Pays::No))]
+		pub fn propose_network_update(
+			origin: OriginFor<T>, 
+			netuid: u16,
+			name: Vec<u8>,
+			immunity_period: u16,
+			min_allowed_weights: u16,
+			max_allowed_weights: u16,
+			max_allowed_uids: u16,
+			tempo: u16,
+			vote_period: u16,
+			vote_threshold: u16,
+			founder: T::AccountId,
+		) -> DispatchResult {
+
+			Self::do_propose_network_update(origin,netuid, 
+									name.clone(), 
+									immunity_period, 
+									min_allowed_weights,
+									max_allowed_weights,  
+									max_allowed_uids, 
+									tempo, 
+									vote_period,
+									vote_threshold,
+									founder)
+		}
+
 
 		#[pallet::weight((Weight::from_ref_time(65_000_000)
 		.saturating_add(T::DbWeight::get().reads(8))
@@ -677,6 +721,13 @@ impl<T: Config + Send + Sync + TypeInfo> SignedExtension for SubspaceSignedExten
                     ..Default::default()
                 })
             }
+
+			Some(Call::propose_network_update{..}) => {
+                Ok(ValidTransaction {
+                    priority: Self::get_priority_vanilla(),
+                    ..Default::default()
+                })
+            }
 	
 			Some(Call::register{..}) => {
                 Ok(ValidTransaction {
@@ -720,6 +771,10 @@ impl<T: Config + Send + Sync + TypeInfo> SignedExtension for SubspaceSignedExten
                 Ok((CallType::Register, transaction_fee, who.clone()))
             }
             Some(Call::update_module{..}) => {
+                let transaction_fee = 0;
+                Ok((CallType::Serve, transaction_fee, who.clone()))
+            }
+			Some(Call::propose_network_update{..}) => {
                 let transaction_fee = 0;
                 Ok((CallType::Serve, transaction_fee, who.clone()))
             }
