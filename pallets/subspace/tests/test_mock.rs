@@ -1,3 +1,5 @@
+// disable all warnings
+#![allow(warnings)]
 use frame_support::{assert_ok, parameter_types, traits::{Everything, Hooks}, weights};
 use frame_system::{limits, EnsureNever, EnsureRoot, RawOrigin};
 use frame_support::traits::{StorageMapShim, Hash};

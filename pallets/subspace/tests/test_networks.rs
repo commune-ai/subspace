@@ -61,6 +61,42 @@ fn test_set_max_allowed_uids_2() {
     });
 }
 
+fn test_min_immunity_ratio(netuid: u16) {
+    new_test_ext().execute_with(|| {
+        // creates a subnet when you register a module
+        let netuid : u16 = 0;
+        let stake_per_module : u64 = 1_000_000_000;
+        let key = U256::from(netuid);
+        let max_immunity_ratio : u16 = 50;
+        let n: u16 = 100;
+        SubspaceModule::set_max_immunity_ratio(netuid, max_immunity_ratio);
+        SubspaceModule::set_max_allowed_uids(netuid, n);
+
+
+        let topk : usize =  ((n * max_immunity_ratio) / 100) as usize;
+
+
+
+
+        register_n_modules(netuid, n, stake_per_module);
+
+        let uids: Vec<u16> = SubspaceModule::get_uids(netuid)[..topk].to_vec();
+        let keys : Vec<U256> = SubspaceModule::get_keys(netuid)[..topk].to_vec();
+        let weights : Vec<u16> = uids.iter().map(|x| 1).collect();
+        SubspaceModule::set_weights(get_origin(key) ,netuid, uids, weights);
+
+        register_n_modules(netuid, n*10 , stake_per_module);
+
+        let new_keys : Vec<U256> = SubspaceModule::get_keys(netuid)[..topk].to_vec();
+        for i in 0..topk {
+            assert_eq!(keys[i], new_keys[i]);
+        }
+
+        });
+    }
+
+
+
 fn test_set_single_temple(tempo:u16) {
     new_test_ext().execute_with(|| {
         // creates a subnet when you register a module
