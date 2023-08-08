@@ -26,9 +26,9 @@ impl<T: Config> Pallet<T> {
         // --- 1. Check that the caller has signed the transaction. 
         // TODO( const ): This not be the key signature or else an exterior actor can register the key and potentially control it?
         let key = ensure_signed( origin.clone() )?;  
-
-        let stake: u64 = Self::resolve_stake_amount( &key, stake_amount);
-
+        // --- 2. Ensure we are not exceeding the max allowed registrations per block.
+        ensure!( Self::get_registrations_this_block() <= Self::get_max_registrations_per_block( ), Error::<T>::TooManyRegistrationsThisBlock );
+        let stake: u64 = Self::resolve_stake_amount( &key ,stake_amount );
         if stake > 0 {
             // --- 1. Check that the caller has enough balance to stake.
             ensure!( Self::can_remove_balance_from_account( &key, stake ), Error::<T>::NotEnoughBalanceToStake );
@@ -38,8 +38,6 @@ impl<T: Config> Pallet<T> {
         let new_network : bool = !Self::if_subnet_name_exists( network.clone() );
         let mut module_stake : u64 = stake.clone();
 
-        // --- 2. Ensure we are not exceeding the max allowed registrations per block.
-
         if new_network {
             // --- 2. Ensure that the network name is not already registered.
             ensure!( !Self::if_subnet_name_exists( network.clone() ), Error::<T>::NetworkAlreadyRegistered );
@@ -47,16 +45,16 @@ impl<T: Config> Pallet<T> {
             netuid = Self::add_network_from_registration(network.clone(), stake, &key);
             
         }  else {
-            ensure!( Self::get_registrations_this_block( netuid ) < Self::get_max_registrations_per_block( netuid ), Error::<T>::TooManyRegistrationsThisBlock );
             ensure!( !Self::is_key_registered(netuid, &key), Error::<T>::KeyAlreadyRegistered );
             ensure!( !Self::if_module_name_exists( netuid, name.clone() ), Error::<T>::NameAlreadyRegistered );
             
-            RegistrationsThisBlock::<T>::mutate( netuid, |val| *val += 1 );
+            RegistrationsThisBlock::<T>::mutate( |val| *val += 1 );
             netuid = Self::get_netuid_for_name( network.clone() );            
             
         }
 
         let mut uid: u16;
+
         let n: u16 = Self::get_subnet_n( netuid );
 
         if n < Self::get_max_allowed_uids( netuid ) {

@@ -92,15 +92,15 @@ impl<T: Config> Pallet<T> {
             ensure!( Self::enough_stake_to_start_network( stake ), Error::<T>::NotEnoughStakeToStartNetwork );
         }
 
-        let default_subnet: SubnetInfo<T> = Self::default_subnet();
+        let subnet_params: SubnetParams<T> = Self::default_subnet_params();
         Self::add_network( name.clone() ,
-                            default_subnet.tempo,
-                            default_subnet.immunity_period,     
-                            default_subnet.min_allowed_weights,
-                            default_subnet.max_allowed_weights,
-                            default_subnet.max_allowed_uids, 
+                            subnet_params.tempo,
+                            subnet_params.immunity_period,     
+                            subnet_params.min_allowed_weights,
+                            subnet_params.max_allowed_weights,
+                            subnet_params.max_allowed_uids, 
                             &key.clone(),// founder
-                            default_subnet.stake + stake, //stake
+                            stake, //stake
                             );
         // --- 16. Ok and done.
         Ok(())
@@ -188,26 +188,41 @@ impl<T: Config> Pallet<T> {
 
     }
 
-    pub fn subnet_params() -> SubnetInfo<T> {
-        Self::default_subnet()
-    }
 
-    pub fn default_subnet() -> SubnetInfo<T> {
-        let netuid: u16 = 0;
-        return SubnetInfo {
+    pub fn get_subnet_params(netuid:u16 ) -> SubnetParams<T> {
+        SubnetParams{
             immunity_period: ImmunityPeriod::<T>::get( netuid ) ,
             min_allowed_weights: MinAllowedWeights::<T>::get( netuid ),
             max_allowed_weights: MaxAllowedWeights::<T>::get( netuid ),
             max_allowed_uids:  MaxAllowedUids::<T>::get( netuid ),
             tempo: Tempo::<T>::get( netuid ),
-            n: N::<T>::get( netuid ),
+            founder: Founder::<T>::get( netuid ),
+            name: <Vec<u8>>::new(),
+            vote_period: VotePeriod::<T>::get( netuid ),
+            vote_threshold: VoteThreshold::<T>::get( netuid ),
+        }
+    }
+    pub fn default_subnet_params() -> SubnetParams<T> {
+        let default_netuid : u16 = Self::get_number_of_subnets() + 1;
+        return Self::get_subnet_params( default_netuid );
+    }
+
+
+	pub fn get_subnet(netuid: u16) -> SubnetInfo<T> {
+        let subnet_params: SubnetParams<T> = Self::get_subnet_params( netuid );
+        return SubnetInfo {
+            params: subnet_params,
             netuid: netuid,
             stake: SubnetTotalStake::<T>::get( netuid ),
-            name : Self::get_name_for_netuid( netuid ),
             emission: SubnetEmission::<T>::get( netuid ),
-            founder: Founder::<T>::get( netuid ),
+            n: N::<T>::get( netuid ),
         
         };
+	}
+
+    pub fn default_subnet() -> SubnetInfo<T> {
+        let netuid: u16 = Self::get_number_of_subnets() + 1;
+        return Self::get_subnet( netuid );
         
     }
 
@@ -215,8 +230,6 @@ impl<T: Config> Pallet<T> {
     pub fn is_subnet_founder( netuid: u16, key: &T::AccountId ) -> bool {
         return Founder::<T>::get( netuid) == *key;
     }
-
-
 
 
     pub fn add_network_from_registration( 
@@ -227,15 +240,15 @@ impl<T: Config> Pallet<T> {
 
         // use default parameters
 
-        let default_subnet  = Self::default_subnet();
+        let params  = Self::default_subnet_params();
 
         let netuid = Self::add_network( 
                             name.clone(),
-                            default_subnet.tempo,
-                            default_subnet.immunity_period,
-                            default_subnet.min_allowed_weights, 
-                            default_subnet.max_allowed_weights,
-                            default_subnet.max_allowed_uids,
+                            params.tempo,
+                            params.immunity_period,
+                            params.min_allowed_weights, 
+                            params.max_allowed_weights,
+                            params.max_allowed_uids,
                             &founder_key, // founder, 
                             stake,
                         );
@@ -445,22 +458,6 @@ impl<T: Config> Pallet<T> {
 
 
 
-	pub fn get_subnet(netuid: u16) -> SubnetInfo<T> {
-        return SubnetInfo {
-            netuid: netuid.into(),
-            immunity_period: Self::get_immunity_period(netuid).into(),
-            name: Self::get_name_for_netuid(netuid),
-            min_allowed_weights: Self::get_min_allowed_weights(netuid).into(),
-            max_allowed_weights:  Self::get_max_allowed_weights(netuid).into(),
-            n: Self::get_subnet_n(netuid).into(),
-            max_allowed_uids: Self::get_max_allowed_uids(netuid).into(),
-            tempo: Self::get_tempo(netuid).into(),
-            emission: SubnetEmission::<T>::get(netuid).into(),
-            stake: SubnetTotalStake::<T>::get(netuid).into(),
-            founder: Founder::<T>::get(netuid),
-            
-        };
-	}
 
     pub fn get_subnets() -> Vec<SubnetInfo<T>> {
         let mut subnets_info = Vec::<SubnetInfo<T>>::new();
@@ -555,7 +552,7 @@ impl<T: Config> Pallet<T> {
 	// ========================
     pub fn set_tempo( netuid: u16, tempo: u16 ) { Tempo::<T>::insert( netuid, tempo ); }
 
-    pub fn set_registrations_this_block( netuid: u16, registrations_this_block: u16 ) { RegistrationsThisBlock::<T>::insert(netuid, registrations_this_block); }
+    pub fn set_registrations_this_block(registrations_this_block: u16 ) { RegistrationsThisBlock::<T>::set(registrations_this_block); }
 
     
     // ========================
@@ -589,7 +586,7 @@ impl<T: Config> Pallet<T> {
 	// ============================
     pub fn get_tempo( netuid:u16 ) -> u16{ Tempo::<T>::get( netuid ) }
     pub fn get_pending_emission( netuid:u16 ) -> u64{ PendingEmission::<T>::get( netuid ) }
-    pub fn get_registrations_this_block( netuid:u16 ) -> u16 { RegistrationsThisBlock::<T>::get( netuid ) }
+    pub fn get_registrations_this_block(  ) -> u16 { RegistrationsThisBlock::<T>::get(  ) }
     pub fn get_module_block_at_registration( netuid: u16, module_uid: u16 ) -> u64 { RegistrationBlock::<T>::get( netuid, module_uid )}
 
     // ========================
@@ -699,8 +696,8 @@ impl<T: Config> Pallet<T> {
     pub fn get_incentive( netuid:u16 ) -> Vec<u16> { Incentive::<T>::get( netuid ) }
     pub fn get_dividends( netuid:u16 ) -> Vec<u16> { Dividends::<T>::get( netuid ) }
     pub fn get_last_update( netuid:u16 ) -> Vec<u64> { LastUpdate::<T>::get( netuid ) }
-    pub fn get_max_registrations_per_block( netuid: u16 ) -> u16 { MaxRegistrationsPerBlock::<T>::get( netuid ) }
-    pub fn set_max_registrations_per_block( netuid: u16, max_registrations_per_block: u16 ) { MaxRegistrationsPerBlock::<T>::insert( netuid, max_registrations_per_block ); }
+    pub fn get_max_registrations_per_block(  ) -> u16 { MaxRegistrationsPerBlock::<T>::get( ) }
+    pub fn set_max_registrations_per_block( max_registrations_per_block: u16 ) { MaxRegistrationsPerBlock::<T>::set(max_registrations_per_block ); }
 
     pub fn is_registered(netuid: u16, key: &T::AccountId) -> bool {
         return Uids::<T>::contains_key(netuid, &key)

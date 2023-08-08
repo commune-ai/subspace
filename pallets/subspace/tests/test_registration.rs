@@ -50,7 +50,7 @@ fn test_many_registrations() {
 	let netuid = 0;
 	let stake = 10;
 	let n = 100;
-	SubspaceModule::set_max_registrations_per_block(netuid, n);
+	SubspaceModule::set_max_registrations_per_block( n);
 	for i in 0..n {
 		
 		register_module(netuid, U256::from(i), stake);
@@ -81,6 +81,7 @@ fn test_registration_with_stake() {
 			let stake_before : u64 = SubspaceModule::get_stake(netuid, &key);
 			println!("stake_before: {:?}", stake_before);
 			register_module(netuid, key, stake_value);
+			println!("balance: {:?}", SubspaceModule::get_balance_as_u64(&key));
 			assert_eq!(SubspaceModule::get_stake_for_uid(netuid, uid), stake_value);
 		}
 	});

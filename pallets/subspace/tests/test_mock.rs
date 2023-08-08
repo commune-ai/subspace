@@ -220,6 +220,9 @@ pub fn register_module( netuid: u16, key: U256, stake: u64 ) {
 	let block_number: u64 = SubspaceModule::get_current_block_as_u64();
 	let origin = get_origin(key);
 	let is_new_subnet: bool = !SubspaceModule::if_subnet_exist(netuid);
+	if is_new_subnet {
+		SubspaceModule::set_max_registrations_per_block(1000)
+	}
 
 	add_balance( key, stake );
 	let balance = SubspaceModule::get_balance( &key );
@@ -227,9 +230,6 @@ pub fn register_module( netuid: u16, key: U256, stake: u64 ) {
 
 	let result = SubspaceModule::register( origin, network, name.clone(), address, stake );
 
-	if is_new_subnet {
-		SubspaceModule::set_max_registrations_per_block(netuid, 1000)
-	}
 
 	assert_ok!(result);
 	log::info!("Register ok neuron: network: {:?}, key: {:?}", name.clone(), key );

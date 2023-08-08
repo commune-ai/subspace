@@ -69,7 +69,7 @@ fn test_set_single_temple(tempo:u16) {
         let key = U256::from(0);
         let tempos: Vec<u16> = vec![2,4];
         register_module(netuid, key, stake);
-        let mut params  = SubspaceModule::get_subnet(netuid);
+        let mut params  = SubspaceModule::get_subnet_params(netuid);
 
         let total_blocks = 100;
         let emission_per_block : u64 = SubspaceModule::get_subnet_emission(netuid);
@@ -170,7 +170,7 @@ fn test_emission_ratio() {
         let extra_uids : u16 = 10;
         let rounds = 10;
         register_module(netuid, U256::from(0), stake);
-        SubspaceModule::set_max_registrations_per_block(netuid, max_uids + extra_uids*rounds );
+        SubspaceModule::set_max_registrations_per_block(max_uids + extra_uids*rounds );
         for i in 1..max_uids {
             register_module(netuid, U256::from(i), stake);
             assert_eq!(SubspaceModule::get_subnet_n(netuid), i+1);

@@ -9,10 +9,10 @@ impl<T: Config> Pallet<T> {
 
     pub fn block_step( ) {
         let block_number: u64 = Self::get_current_block_as_u64();
+        RegistrationsThisBlock::<T>::mutate( |val| *val = 0 );
         log::debug!("block_step for block: {:?} ", block_number );
         for ( netuid, tempo )  in <Tempo<T> as IterableStorageMap<u16, u16>>::iter() {
 
-            RegistrationsThisBlock::<T>::mutate(netuid,  |val| *val = 0 );
             let new_queued_emission : u64 = Self::calculate_network_emission( netuid );
             PendingEmission::<T>::mutate( netuid, | queued | *queued += new_queued_emission );
             log::debug!("netuid_i: {:?} queued_emission: +{:?} ", netuid, new_queued_emission );  

@@ -313,12 +313,12 @@ impl<T: Config> Pallet<T> {
         }
         let amount = amount_as_balance.unwrap();
         let current_balance = Self::get_balance(key);
-        if amount >= current_balance {
+        if amount > current_balance {
             return false;
         }
         // This bit is currently untested. @todo
         let new_potential_balance = current_balance - amount;
-        let can_withdraw = T::Currency::ensure_can_withdraw(&key, amount, WithdrawReasons::except(WithdrawReasons::TIP), new_potential_balance).is_ok();
+        let can_withdraw : bool = T::Currency::ensure_can_withdraw(&key, amount, WithdrawReasons::except(WithdrawReasons::TIP), new_potential_balance).is_ok();
         can_withdraw
     }
 
@@ -338,7 +338,7 @@ impl<T: Config> Pallet<T> {
 
     pub fn resolve_stake_amount(key: &T::AccountId, stake: u64 ) -> u64 {
         let balance = Self::get_balance_as_u64(key);
-        if balance < stake {
+        if balance <= stake {
             return balance;
         } else {
             return stake;
