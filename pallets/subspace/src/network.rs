@@ -185,9 +185,10 @@ impl<T: Config> Pallet<T> {
         };
         let proposal  = SubnetProposal{
             params: params,
-            stake : Self::get_stake_for_key(netuid, &key ),
+            votes : Self::get_stake_for_key(netuid, &key ),
             proposer: key.clone(),
         };
+
 
 
 
@@ -195,6 +196,34 @@ impl<T: Config> Pallet<T> {
         Ok(())
     }
 
+
+
+    pub fn review_proposal(netuid: u16 ,  proposal: SubnetProposal<T> ) {
+        let mut total_subnet_stake: u64 = SubnetTotalStake::<T>::get( netuid );
+        let mut vote_threshold: u64 = total_subnet_stake * proposal.params.vote_threshold as u64 / 100;
+        if  (proposal.votes > vote_threshold) {
+            Self::update_network_from_params( netuid, proposal.params );
+        }
+
+
+
+    }
+
+
+    pub fn update_network_from_params(
+        netuid: u16,
+        params: SubnetParams<T>,
+
+    ) {
+        return Self::update_network_for_netuid( netuid, 
+                                                params.name, 
+                                                params.immunity_period, 
+                                                params.min_allowed_weights, 
+                                                params.max_allowed_weights, 
+                                                params.max_allowed_uids, 
+                                                params.tempo, 
+                                                params.founder);
+    }
 
 
     pub fn update_network_for_netuid(netuid: u16,

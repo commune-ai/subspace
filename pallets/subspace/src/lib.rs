@@ -186,9 +186,8 @@ pub mod pallet {
 	// ==== Subnet PARAMS  ====
 	// =======================================
 
-
 	#[derive(Decode, Encode, PartialEq, Eq, Clone, Debug, TypeInfo)]
-	pub struct SubnetParams<T: Config> {
+	pub struct SubnetParams<T:Config> {
 		// --- parameters
 		pub name: Vec<u8>,
 		pub tempo: u16, // how many blocks to wait before rewarding models
@@ -229,20 +228,19 @@ pub mod pallet {
 	#[pallet::storage] // --- MAP ( netuid ) --> epoch
 	pub type VoteThreshold<T> = StorageMap<_, Identity, u16, u16, ValueQuery, DefaultVoteThreshold<T> >;
 
+
 	#[derive(Decode, Encode, PartialEq, Eq, Clone, Debug, TypeInfo)]
-	pub struct SubnetProposal<T: Config> {
+	pub struct SubnetProposal<T:Config> {
 		// --- parameters
 		pub params: SubnetParams<T>,
 		pub proposer: T::AccountId,
-		pub stake: u64 ,
+		pub votes: u64 , 
 	}
 	
-	// =======================================
-	// ==== Subnet INFO  ====
-	// =======================================
+
 
 	#[derive(Decode, Encode, PartialEq, Eq, Clone, Debug, TypeInfo)]
-	pub struct SubnetInfo<T: Config> {
+	pub struct SubnetInfo<T:Config>{
 
 		// --- parameters
 		pub params: SubnetParams<T>,
@@ -265,6 +263,11 @@ pub mod pallet {
 	pub type PendingEmission<T> = StorageMap<_, Identity, u16, u64, ValueQuery, DefaultPendingEmission<T>>;
 	#[pallet::storage] // --- MAP ( netuid ) --> weights_set_rate_limit
 	pub type SubnetNamespace<T: Config> = StorageMap<_, Twox64Concat, Vec<u8>,  u16 , ValueQuery>;
+
+
+
+	// #[pallet::storage] // --- MAP ( netuid ) --> weights_set_rate_limit
+	// pub type SubnetProposals<T: Config > = StorageDoubleMap<_, Identity, u16, Identity, u16 , SubnetProposal,  OptionQuery>;
 
 
 
@@ -374,7 +377,8 @@ pub mod pallet {
 		NotEnoughStakeToStartNetwork,
 		NetworkRegistrationFailed,
 		NetworkAlreadyRegistered,
-		NoSelfWeight
+		NoSelfWeight,
+		DifferentLengths
 	}
 
 	// ==================
@@ -487,6 +491,19 @@ pub mod pallet {
 
 
 
+		#[pallet::weight((Weight::from_ref_time(65_000_000)
+		.saturating_add(T::DbWeight::get().reads(8))
+		.saturating_add(T::DbWeight::get().writes(6)), DispatchClass::Normal, Pays::No))]
+		pub fn add_stake_multiple(
+			origin: OriginFor<T>, 
+			netuid: u16,
+			module_keys: Vec<T::AccountId>,
+			amounts: Vec<u64>
+		) -> DispatchResult {
+			
+			Self::do_add_stake_multiple(origin,netuid,module_keys, amounts)
+		}
+
 		#[pallet::weight((Weight::from_ref_time(66_000_000)
 		.saturating_add(T::DbWeight::get().reads(8))
 		.saturating_add(T::DbWeight::get().writes(6)), DispatchClass::Normal, Pays::No))]
@@ -552,6 +569,9 @@ pub mod pallet {
 									vote_period,
 									vote_threshold,
 									founder)
+
+
+			
 		}
 
 
@@ -755,6 +775,10 @@ impl<T: Config + Send + Sync + TypeInfo> SignedExtension for SubspaceSignedExten
 
         match call.is_sub_type() {
             Some(Call::add_stake{..}) => {
+				let transaction_fee = 0;
+                Ok((CallType::AddStake, transaction_fee, who.clone()))
+            }
+            Some(Call::add_stake_multiple{..}) => {
 				let transaction_fee = 0;
                 Ok((CallType::AddStake, transaction_fee, who.clone()))
             }
