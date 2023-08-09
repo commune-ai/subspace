@@ -18,7 +18,12 @@ pub fn top_k_u16(vector: &Vec<u16>, k: usize) -> Vec<u16> {
 }
 
 
-
+pub fn top_percentile_u16(vector: &Vec<u16>, percentile: I32F32) -> Vec<u16> {
+    let mut vec_clone = vector.clone();
+    vec_clone.sort(); // Sorting in ascending order
+    let k : usize = (I32F32::from_num(vec_clone.len()) * percentile).to_num::<u16>() as usize;
+    vec_clone.into_iter().rev().take(k).collect()
+}
 
 #[allow(dead_code)]
 pub fn fixed(val: f32) -> I32F32 { I32F32::from_num(val) }
