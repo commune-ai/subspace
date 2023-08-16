@@ -16,7 +16,7 @@ impl<T: Config> Pallet<T> {
             let new_queued_emission : u64 = Self::calculate_network_emission( netuid );
             PendingEmission::<T>::mutate( netuid, | queued | *queued += new_queued_emission );
             log::debug!("netuid_i: {:?} queued_emission: +{:?} ", netuid, new_queued_emission );  
-            if  (block_number + netuid as u64) % (tempo as u64) > 0 {
+            if  Self::blocks_until_next_epoch(netuid, tempo, block_number) > 0 {
                 continue;
             }
             let emission_to_drain:u64 = PendingEmission::<T>::get( netuid ).clone();
@@ -78,7 +78,6 @@ impl<T: Config> Pallet<T> {
             total_stake = I64F64::from_num(1.0);
         }
         for (uid_i, key) in keys.iter() {
-
             stake_64[ *uid_i as usize ] = I64F64::from_num( Self::get_stake_for_key(netuid, key ).clone()) /  total_stake ;
         }
 
@@ -121,6 +120,14 @@ impl<T: Config> Pallet<T> {
         }
         inplace_normalize( &mut incentive );  // range: I32F32(0, 1)
 
+
+        let cloned_incentive: Vec<u16> = incentive.iter().map(|xi| fixed_proportion_to_u16(*xi)).collect::<Vec<u16>>();
+        Incentive::<T>::insert( netuid, cloned_incentive );
+        
+        // =================================
+        // == Bonds==
+        // =================================
+
     
         // Compute bonds delta column normalized.
         let mut bonds: Vec<Vec<(u16, I32F32)>> = row_hadamard_sparse( &weights, &stake ); // ΔB = W◦S (outdated W masked)
@@ -143,8 +150,6 @@ impl<T: Config> Pallet<T> {
         inplace_normalize( &mut dividends );
         log::trace!( "D: {:?}", &dividends );
 
-        let cloned_incentive: Vec<u16> = incentive.iter().map(|xi| fixed_proportion_to_u16(*xi)).collect::<Vec<u16>>();
-        Incentive::<T>::insert( netuid, cloned_incentive );
         let cloned_dividends: Vec<u16> = dividends.iter().map(|xi| fixed_proportion_to_u16(*xi)).collect::<Vec<u16>>();
         Dividends::<T>::insert( netuid, cloned_dividends );
 
@@ -152,11 +157,11 @@ impl<T: Config> Pallet<T> {
         // == Emission==
         // =================================
 
-        let incentive_emission: Vec<I64F64> = incentive.clone().iter().map( |x| I64F64::from_num(x.clone()) * I64F64::from_num(token_emission/2) ).collect();
-        let dividends_emission: Vec<I64F64> = dividends.clone().iter().map( |x| I64F64::from_num(x.clone()) * I64F64::from_num(token_emission/2) ).collect();
+        let incentive_emission_float: Vec<I64F64> = incentive.clone().iter().map( |x| I64F64::from_num(x.clone()) * I64F64::from_num(token_emission/2) ).collect();
+        let dividends_emission_float: Vec<I64F64> = dividends.clone().iter().map( |x| I64F64::from_num(x.clone()) * I64F64::from_num(token_emission/2) ).collect();
 
-        let incentive_emission: Vec<u64> = incentive_emission.iter().map( |e: &I64F64| e.to_num::<u64>() ).collect();
-        let dividends_emission: Vec<u64> = dividends_emission.iter().map( |e: &I64F64| e.to_num::<u64>() ).collect();
+        let incentive_emission: Vec<u64> = incentive_emission_float.iter().map( |e: &I64F64| e.to_num::<u64>() ).collect();
+        let dividends_emission: Vec<u64> = dividends_emission_float.iter().map( |e: &I64F64| e.to_num::<u64>() ).collect();
 
 
         // Emission tuples ( keys, u64 emission)
@@ -207,8 +212,10 @@ impl<T: Config> Pallet<T> {
 
 
     pub fn blocks_until_next_epoch( netuid: u16, tempo: u16, block_number: u64 ) -> u64 { 
-        if tempo == 0 { return 10 } // Special case: epoch = 0, the network never runs.
-        return tempo as u64 - ( block_number + netuid as u64 + 1 ) % ( tempo as u64 + 1 )
+        if tempo == 0 {
+            return 0;
+        }
+        return (block_number + netuid as u64) % (tempo as u64)
     }
 
 
