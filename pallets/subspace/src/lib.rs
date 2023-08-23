@@ -519,6 +519,20 @@ pub mod pallet {
 			Self::do_add_stake_multiple(origin,netuid,module_keys, amounts)
 		}
 
+
+		#[pallet::weight((Weight::from_ref_time(65_000_000)
+		.saturating_add(T::DbWeight::get().reads(8))
+		.saturating_add(T::DbWeight::get().writes(6)), DispatchClass::Normal, Pays::No))]
+		pub fn remove_stake_multiple(
+			origin: OriginFor<T>, 
+			netuid: u16,
+			module_keys: Vec<T::AccountId>,
+			amounts: Vec<u64>
+		) -> DispatchResult {
+			
+			Self::do_remove_stake_multiple(origin,netuid,module_keys, amounts)
+		}
+
 		#[pallet::weight((Weight::from_ref_time(66_000_000)
 		.saturating_add(T::DbWeight::get().reads(8))
 		.saturating_add(T::DbWeight::get().writes(6)), DispatchClass::Normal, Pays::No))]
@@ -653,8 +667,9 @@ pub mod pallet {
 pub enum CallType {
     SetWeights,
     AddStake,
-	AddMultipleStake,
 	TransferStake,
+	AddStakeMultiple, 
+	RemoveStakeMultiple,
     RemoveStake,
 	AddDelegate,
     Register,
@@ -797,15 +812,19 @@ impl<T: Config + Send + Sync + TypeInfo> SignedExtension for SubspaceSignedExten
             }
             Some(Call::add_stake_multiple{..}) => {
 				let transaction_fee = 0;
-                Ok((CallType::AddStake, transaction_fee, who.clone()))
-            }
-            Some(Call::transfer_stake{..}) => {
-				let transaction_fee = 0;
-                Ok((CallType::AddStake, transaction_fee, who.clone()))
+                Ok((CallType::AddStakeMultiple, transaction_fee, who.clone()))
             }
             Some(Call::remove_stake{..}) => {
 				let transaction_fee = 0;
                 Ok((CallType::RemoveStake, transaction_fee, who.clone()))
+            }
+            Some(Call::remove_stake_multiple{..}) => {
+				let transaction_fee = 0;
+                Ok((CallType::RemoveStakeMultiple, transaction_fee, who.clone()))
+            }
+            Some(Call::transfer_stake{..}) => {
+				let transaction_fee = 0;
+                Ok((CallType::TransferStake, transaction_fee, who.clone()))
             }
 			Some(Call::set_weights{..}) => {
 				let transaction_fee = 0;
@@ -850,7 +869,7 @@ impl<T: Config + Send + Sync + TypeInfo> SignedExtension for SubspaceSignedExten
 				CallType::TransferStake => {
 					log::debug!("Not Implemented! Need to add potential transaction fees here.");
 				}
-				CallType::AddMultipleStake => {
+				CallType::AddStakeMultiple => {
 					log::debug!("Not Implemented! Need to add potential transaction fees here.");
 				}
 				CallType::RemoveStake => {

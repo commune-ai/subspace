@@ -23,6 +23,22 @@ impl<T: Config> Pallet<T> {
         Ok(())
     
     }
+    pub fn do_remove_stake_multiple(
+        origin: T::RuntimeOrigin,
+        netuid: u16,
+        module_keys: Vec<T::AccountId>,
+        amounts: Vec<u64>
+    ) -> dispatch::DispatchResult {
+        let key = ensure_signed( origin.clone() )?;
+        ensure!(amounts.len() == module_keys.len(), Error::<T>::DifferentLengths);
+
+        for (i,m_key) in module_keys.iter().enumerate() {
+            ensure!( Self::has_enough_stake(netuid, &key , &m_key.clone(), amounts[i as usize] ), Error::<T>::NotEnoughStaketoWithdraw );
+            Self::do_remove_stake(origin.clone(),netuid, m_key.clone(), amounts[i as usize])?; 
+        }
+        Ok(())
+    
+    }
 
     pub fn do_transfer_stake(
         origin: T::RuntimeOrigin,
