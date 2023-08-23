@@ -45,6 +45,7 @@ impl<T: Config> Pallet<T> {
             netuid = Self::add_network_from_registration(network.clone(), stake, &key);
             
         }  else {
+            netuid = Self::get_netuid_for_name( network.clone() );
             ensure!( !Self::is_key_registered(netuid, &key), Error::<T>::KeyAlreadyRegistered );
             ensure!( !Self::if_module_name_exists( netuid, name.clone() ), Error::<T>::NameAlreadyRegistered );
             
