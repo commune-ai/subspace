@@ -494,6 +494,21 @@ pub mod pallet {
 		#[pallet::weight((Weight::from_ref_time(65_000_000)
 		.saturating_add(T::DbWeight::get().reads(8))
 		.saturating_add(T::DbWeight::get().writes(6)), DispatchClass::Normal, Pays::No))]
+		pub fn transfer_stake(
+			origin: OriginFor<T>, 
+			netuid: u16,
+			module_key: T::AccountId,
+			new_module_key: T::AccountId,
+			amount: u64
+		) -> DispatchResult {
+			Self::do_transfer_stake(origin,netuid,module_key, new_module_key, amount)
+		}
+
+
+
+		#[pallet::weight((Weight::from_ref_time(65_000_000)
+		.saturating_add(T::DbWeight::get().reads(8))
+		.saturating_add(T::DbWeight::get().writes(6)), DispatchClass::Normal, Pays::No))]
 		pub fn add_stake_multiple(
 			origin: OriginFor<T>, 
 			netuid: u16,
@@ -638,6 +653,8 @@ pub mod pallet {
 pub enum CallType {
     SetWeights,
     AddStake,
+	AddMultipleStake,
+	TransferStake,
     RemoveStake,
 	AddDelegate,
     Register,
@@ -782,6 +799,10 @@ impl<T: Config + Send + Sync + TypeInfo> SignedExtension for SubspaceSignedExten
 				let transaction_fee = 0;
                 Ok((CallType::AddStake, transaction_fee, who.clone()))
             }
+            Some(Call::transfer_stake{..}) => {
+				let transaction_fee = 0;
+                Ok((CallType::AddStake, transaction_fee, who.clone()))
+            }
             Some(Call::remove_stake{..}) => {
 				let transaction_fee = 0;
                 Ok((CallType::RemoveStake, transaction_fee, who.clone()))
@@ -823,6 +844,13 @@ impl<T: Config + Send + Sync + TypeInfo> SignedExtension for SubspaceSignedExten
 					log::debug!("Not Implemented!");
 				}
 				CallType::AddStake => {
+					log::debug!("Not Implemented! Need to add potential transaction fees here.");
+				}
+
+				CallType::TransferStake => {
+					log::debug!("Not Implemented! Need to add potential transaction fees here.");
+				}
+				CallType::AddMultipleStake => {
 					log::debug!("Not Implemented! Need to add potential transaction fees here.");
 				}
 				CallType::RemoveStake => {

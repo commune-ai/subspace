@@ -23,6 +23,23 @@ impl<T: Config> Pallet<T> {
         Ok(())
     
     }
+
+    pub fn do_transfer_stake(
+        origin: T::RuntimeOrigin,
+        netuid: u16,
+        module_key: T::AccountId,
+        new_module_key: T::AccountId,
+        amount: u64
+    ) -> dispatch::DispatchResult {
+        let key = ensure_signed( origin.clone() )?;
+        ensure!( Self::is_registered( netuid, &module_key.clone() ), Error::<T>::NotRegistered );  
+        ensure!( Self::is_registered( netuid, &new_module_key.clone() ), Error::<T>::NotRegistered );  
+        ensure!( Self::has_enough_stake(netuid, &key , &module_key, amount ), Error::<T>::NotEnoughStaketoWithdraw );
+        Self::do_remove_stake(origin.clone(), netuid, module_key.clone(), amount)?;
+        Self::do_add_stake(origin.clone(), netuid, new_module_key.clone(), amount)?;
+        Ok(())
+    }
+
     //
 	pub fn do_add_stake(
         origin: T::RuntimeOrigin, 
