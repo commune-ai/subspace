@@ -11,10 +11,8 @@ SHELL ["/bin/bash", "-c"]
 
 # This is being set so that no interactive components are allowed when updating.
 ARG DEBIAN_FRONTEND=noninteractive
-
 # show backtraces
 ENV RUST_BACKTRACE 1
-
 
 # Necessary libraries for Rust execution
 RUN apt-get update && apt-get install -y curl build-essential protobuf-compiler clang git
