@@ -495,11 +495,11 @@ pub mod pallet {
 		.saturating_add(T::DbWeight::get().reads(8))
 		.saturating_add(T::DbWeight::get().writes(6)), DispatchClass::Normal, Pays::No))]
 		pub fn transfer_stake(
-			origin: OriginFor<T>, 
-			netuid: u16,
-			module_key: T::AccountId,
-			new_module_key: T::AccountId,
-			amount: u64
+			origin: OriginFor<T>,  // --- The account that is calling this function.
+			netuid: u16, // --- The network id.
+			module_key: T::AccountId, // --- The module key.
+			new_module_key: T::AccountId, // --- The new module key.
+			amount: u64 // --- The amount of stake to transfer.
 		) -> DispatchResult {
 			Self::do_transfer_stake(origin,netuid,module_key, new_module_key, amount)
 		}

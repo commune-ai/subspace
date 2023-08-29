@@ -1,11 +1,27 @@
+
+version: "3.2"
+
 services:
   subspace:
     build: ./
-    command: bash -c "tail -f /dev/null"
+    container_name: node-subtensor
+    # image: opentensor/subtensor:latest
+    cpu_count: 4
     container_name: subspace
     network_mode: host
-    # volumes:
-    #   - ./:/app
-
-    # - ./:/app
-version: '3.2'
+    mem_limit: 40000000000
+    memswap_limit: 80000000000
+    environment:
+      - CARGO_HOME=/var/www/node-subtensor/.cargo
+    command:
+      - /bin/bash
+      - -c
+      - |
+        ./node-subtensor \
+          --base-path /tmp/blockchain \
+          --chain ./raw_spec.json \
+          --rpc-external --rpc-cors all \
+          --ws-external --no-mdns \
+          --ws-max-connections 10000 --in-peers 500 --out-peers 500 \
+          --bootnodes /dns/bootnode.finney.opentensor.ai/tcp/30333/ws/p2p/12D3KooWRwbMb85RWnT8DSXSYMWQtuDwh4LJzndoRrTDotTR5gDC \
+          --sync warp
