@@ -186,6 +186,26 @@ impl<T: Config> Pallet<T> {
     }
 
 
+    pub fn stale_modules_outside_immunity( netuid: u16 ) -> Vec<u16> {
+        // get the modules that are 0 and outside of the immunity period
+        let mut uids: Vec<u16> = Vec::new();
+        let block_number: u64 = Self::get_current_block_as_u64();
+        let immunity_period : u16 = Self::get_immunity_period( netuid );
+        let emission_vector : Vec<u64> = Self::get_emissions( netuid );
+        for ( uid, block_at_registration ) in <RegistrationBlock<T> as IterableStorageDoubleMap<u16, u16, u64>>::iter_prefix( netuid ) {
+            if (block_at_registration + immunity_period as u64) < block_number {
+                if emission_vector[ uid as usize ] == 0 {
+                    Self::remove_module( netuid, uid );
+                }                
+            }
+        }
+
+
+
+        return uids;
+    }
+
+
     pub fn get_block_at_registration( netuid:u16 ) -> Vec<u64> { 
         let n: usize = Self::get_subnet_n( netuid ) as usize;
         let mut block_at_registration: Vec<u64> = vec![ 0; n ];
