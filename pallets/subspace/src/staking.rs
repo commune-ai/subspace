@@ -134,6 +134,12 @@ impl<T: Config> Pallet<T> {
         return Stake::<T>::get(netuid,  key );
     }
     
+    // // Returns the stake under the cold - hot pairing in the staking table.
+    // //
+    // pub fn get_stake_for_uid(netuid:u16, uid: u16 ) -> u64 { 
+    //     return Stake::<T>::get(netuid,  Self::get_key_for_uid(netuid, uid) );
+    // }
+    
     // Returns the stake under the cold - hot pairing in the staking table.
     pub fn key_account_exists(netuid:u16, key : &T::AccountId) -> bool {
         return Uids::<T>::contains_key(netuid, &key) ; 
@@ -239,10 +245,6 @@ impl<T: Config> Pallet<T> {
     }
 
     pub fn add_stake_to_module(netuid: u16, key: &T::AccountId, module_key: &T::AccountId, mut amount: u64 ) -> bool{
-        let balance: u64 = Self::get_balance_as_u64(key);
-        if amount > balance{
-            amount = balance;
-        }
         Self::increase_stake_to_module(netuid, key, module_key, amount);
         Self::remove_balance_from_account( key, Self::u64_to_balance( amount ).unwrap() );
         

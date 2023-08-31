@@ -238,6 +238,10 @@ impl<T: Config> Pallet<T> {
         return (block_number + netuid as u64) % (tempo as u64)
     }
 
+    pub fn get_ownership_ratios_for_uid(netuid:u16, uid:u16) -> Vec<(T::AccountId, I64F64)> {
+        return Self::get_ownership_ratios( netuid, &Self::get_key_for_uid(netuid, uid) );
+    }
+
 
     pub fn get_ownership_ratios(netuid:u16, module_key: &T::AccountId ) -> Vec<(T::AccountId, I64F64)> { 
 
@@ -253,7 +257,7 @@ impl<T: Config> Pallet<T> {
             total_stake_from += ownership;
         }
         if total_stake_from == I64F64::from_num(0) {
-            ownership_vector = Vec::new();
+            ownership_vector[0].1 = I64F64::from_num(1.0);
 
         } else {
             ownership_vector = ownership_vector.into_iter().map( |(k, v)| (k, v / total_stake_from) ).collect();

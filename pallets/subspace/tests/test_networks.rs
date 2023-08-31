@@ -122,22 +122,31 @@ fn test_set_single_temple(tempo:u16) {
                                         params.founder );
         let previous_total_stake : u64 = block_number()* emission_per_block;
 
-        let n_epochs = 2;
+        let n_epochs = 3;
         let n_steps = n_epochs*tempo;
         for i in 0..n_steps {
 
             println!("tempo {} block number: {} stake {} pending_emissiion {}", tempo,  block_number(), SubspaceModule::get_total_subnet_stake(netuid), SubspaceModule::get_pending_emission(netuid));
             step_block(1);
             // get_block_number() is a function in mock.rs
+            let incentives : Vec<u16> = SubspaceModule::get_incentive(netuid);
+            let dividends : Vec<u16>= SubspaceModule::get_dividends(netuid);
+            let emissions : Vec<u64> = SubspaceModule::get_emissions(netuid);
+
+            println!("emission {:?}", emissions);
+            println!("incentives {:?}", incentives);
+            println!("dividends {:?}", dividends);
+            println!("ownership {:?}", SubspaceModule::get_ownership_ratios_for_uid( netuid, 0 ));
+            println!("EMMISSIONS {:?}", SubspaceModule::get_ownership_ratios_emission(netuid, &U256::from(0),emissions[0] ));
             
+            let stake : u64 = SubspaceModule::get_stake_for_uid(netuid, 0);
+            println!("stake {:?}", stake);
+            total_stake = SubspaceModule::get_total_subnet_stake(netuid) ;
+            println!("total stake {}", total_stake);
             
         }
-        total_stake = SubspaceModule::get_total_subnet_stake(netuid) ;
 
-        let incentives : Vec<u16> = SubspaceModule::get_incentive(netuid);
-        let dividends : Vec<u16>= SubspaceModule::get_dividends(netuid);
-        println!("incentives {:?}", incentives);
-        println!("dividends {:?}", dividends);
+
         assert_eq!(total_stake, (tempo as u64)*emission_per_block*(n_epochs as u64) + previous_total_stake);
         
 
