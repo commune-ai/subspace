@@ -75,9 +75,7 @@ impl<T: Config> Pallet<T> {
         log::info!("do_add_stake( origin:{:?} stake_to_be_added:{:?} )", key, amount );
         
         ensure!( Self::can_remove_balance_from_account( &key, amount ), Error::<T>::NotEnoughBalanceToStake );
-
         Self::add_stake_to_module(netuid, &key, &module_key, amount );
- 
         // --- 5. Emit the staking event.
         log::info!("StakeAdded( key:{:?}, stake_to_be_added:{:?} )", key, amount );
         Self::deposit_event( Event::StakeAdded( key, module_key, amount) );
@@ -240,7 +238,11 @@ impl<T: Config> Pallet<T> {
 
     }
 
-    pub fn add_stake_to_module(netuid: u16, key: &T::AccountId, module_key: &T::AccountId, amount: u64 ) -> bool{
+    pub fn add_stake_to_module(netuid: u16, key: &T::AccountId, module_key: &T::AccountId, mut amount: u64 ) -> bool{
+        let balance: u64 = Self::get_balance_as_u64(key);
+        if amount > balance{
+            amount = balance;
+        }
         Self::increase_stake_to_module(netuid, key, module_key, amount);
         Self::remove_balance_from_account( key, Self::u64_to_balance( amount ).unwrap() );
         
@@ -369,7 +371,7 @@ impl<T: Config> Pallet<T> {
         // This bit is currently untested. @todo
         let new_potential_balance = current_balance - amount;
         let can_withdraw : bool = T::Currency::ensure_can_withdraw(&key, amount, WithdrawReasons::except(WithdrawReasons::TIP), new_potential_balance).is_ok();
-        can_withdraw
+        return can_withdraw
     }
 
     pub fn get_balance(key: &T::AccountId) -> <<T as Config>::Currency as Currency<<T as system::Config>::AccountId>>::Balance {
