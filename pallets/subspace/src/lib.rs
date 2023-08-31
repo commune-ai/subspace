@@ -412,8 +412,8 @@ pub mod pallet {
 		fn build(&self) {
 			// Set initial total issuance from balances
 			// Subnet config values
-			let block: u32 = self.block;
-			frame_system::Pallet::<T>::set_block_number(T::BlockNumber::from(block));
+			// let block: u32 = self.block;
+			// frame_system::Pallet::<T>::set_block_number(T::BlockNumber::from(block));
 			
 			for ( subnet_idx, subnet) in self.subnets.iter().enumerate() {
 				let netuid: u16 = subnet_idx as u16;

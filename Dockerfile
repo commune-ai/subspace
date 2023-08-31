@@ -21,9 +21,7 @@ WORKDIR /subspace
 
 COPY ./scripts ./scripts
 # Install cargo and Rust
-RUN curl https://sh.rustup.rs -sSf | sh -s -- -y
-ENV PATH="/root/.cargo/bin:${PATH}"
-# Update to nightly toolchain
+
 RUN ./scripts/install_rust_env.sh
 
 # Copy the source code

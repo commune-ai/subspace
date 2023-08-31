@@ -92,7 +92,8 @@ impl<T: Config> Pallet<T> {
         let current_block :u64 = Self::get_current_block_as_u64();
         let mut uids_in_immunity_period: Vec<u16> = Vec::new();
         let mut uid_found: bool= false;
-        for module_uid_i in 0..Self::get_subnet_n( netuid ) {
+        let n: u16 = Self::get_subnet_n( netuid );
+        for module_uid_i in 0..n {
             let block_at_registration: u64 = Self::get_module_block_at_registration( netuid, module_uid_i );
             let immunity_period: u64 = Self::get_immunity_period(netuid) as u64;
             let mut pruning_score = Self::get_pruning_score_for_uid( netuid,  module_uid_i);
@@ -101,13 +102,12 @@ impl<T: Config> Pallet<T> {
             
             if min_score >= pruning_score { 
                 if current_block - block_at_registration >  immunity_period { 
-                    uid_found = true;
                     //module is in immunity period
                     min_score = pruning_score; 
                     uid_with_min_score = module_uid_i;
-                    } else {
-                        uids_in_immunity_period.push(module_uid_i);
-                    }
+                } else {
+                    uids_in_immunity_period.push(module_uid_i);
+                }
             }
 
         }
