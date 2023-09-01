@@ -94,7 +94,7 @@ impl<T: Config> Pallet<T> {
         let mut uid_found: bool= false;
         let n: u16 = Self::get_subnet_n( netuid );
         for module_uid_i in 0..n {
-            let block_at_registration: u64 = Self::get_module_block_at_registration( netuid, module_uid_i );
+            let block_at_registration: u64 = Self::get_module_registration_block( netuid, module_uid_i );
             let immunity_period: u64 = Self::get_immunity_period(netuid) as u64;
             let mut pruning_score = Self::get_pruning_score_for_uid( netuid,  module_uid_i);
 

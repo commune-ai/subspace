@@ -22,6 +22,8 @@ WORKDIR /subspace
 COPY ./scripts ./scripts
 # Install cargo and Rust
 
+RUN apt-get update && apt-get install -y clang 
+ENV PATH="/root/.cargo/bin:${PATH}"
 RUN ./scripts/install_rust_env.sh
 
 # Copy the source code

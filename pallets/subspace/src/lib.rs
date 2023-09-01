@@ -284,10 +284,13 @@ pub mod pallet {
 	pub type Names<T: Config> = StorageDoubleMap<_, Twox64Concat, u16, Twox64Concat, u16, Vec<u8>, ValueQuery>;
 	#[pallet::storage] 
 	pub type Address<T: Config> = StorageDoubleMap<_, Twox64Concat, u16, Twox64Concat, u16, Vec<u8>, ValueQuery>;
-	#[pallet::storage] // --- DMAP ( hot, cold ) --> stake | Returns the stake under a key prefixed by key.
-	pub type ProfitShareRatio<T:Config> = StorageDoubleMap<_,Identity, u16,  Identity, u16,  u16, ValueQuery>;
 	#[pallet::storage] // --- MAP ( netuid ) --> weights_set_rate_limit
 	pub type RegistrationBlock<T:Config> = StorageDoubleMap<_, Identity, u16, Identity, u16, u64, ValueQuery, DefaultBlockAtRegistration<T> >;
+
+	// =======================================
+	// ==== Module Staking Variables  ====
+	// =======================================
+
 	#[pallet::storage] // --- DMAP ( hot, cold ) --> stake | Returns the stake under a key prefixed by key.
 	pub type Stake<T:Config> = StorageDoubleMap<_,Identity, u16,  Identity, T::AccountId, u64, ValueQuery, DefaultStake<T>>;
 	#[pallet::storage] // --- DMAP ( netuid, key ) --> Vec<(delegater, stake )> | Returns the stake under a key prefixed by key.

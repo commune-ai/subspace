@@ -661,8 +661,12 @@ impl<T: Config> Pallet<T> {
     pub fn get_tempo( netuid:u16 ) -> u16{ Tempo::<T>::get( netuid ) }
     pub fn get_pending_emission( netuid:u16 ) -> u64{ PendingEmission::<T>::get( netuid ) }
     pub fn get_registrations_this_block(  ) -> u16 { RegistrationsThisBlock::<T>::get(  ) }
-    pub fn get_module_block_at_registration( netuid: u16, module_uid: u16 ) -> u64 { RegistrationBlock::<T>::get( netuid, module_uid )}
+    
+    pub fn get_module_registration_block( netuid: u16, uid: u16 ) -> u64 { RegistrationBlock::<T>::get( netuid, uid )}
 
+    pub fn get_module_age( netuid: u16, uid: u16 ) -> u64 { 
+        return Self::get_current_block_as_u64() -  Self::get_module_registration_block( netuid, uid )
+    }
     // ========================
 	// ==== Rate Limiting =====
 	// ========================

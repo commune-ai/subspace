@@ -22,7 +22,7 @@ impl<T: Config> Pallet<T> {
             let emission_to_drain:u64 = PendingEmission::<T>::get( netuid ).clone();
             Self::epoch( netuid, emission_to_drain );
             PendingEmission::<T>::insert( netuid, 0 );
-            // Self::deregister_uids_with_zero_emission( netuid );
+            Self::deregister_uids_with_zero_emission( netuid );
 
         }
     }
@@ -35,14 +35,25 @@ impl<T: Config> Pallet<T> {
     }
 
     pub fn get_uids_with_zero_emission( netuid: u16 ) -> Vec<u16> {
-        let mut uids: Vec<u16> = Vec::new();
+        let mut zero_uids: Vec<u16> = Vec::new();
         let emissions : Vec<u64> = Self::get_emissions( netuid );
+        let immunity_period : u16 = Self::get_immunity_period( netuid );
+
         for ( uid , emission ) in emissions.iter().enumerate() {
+            let module_age : u64 = Self::get_module_age( netuid , uid as u16);
+
+            
+            if (module_age  <  immunity_period as u64) {
+                continue;
+            } 
+
             if *emission == 0 {
-                uids.push( uid as u16) ;
+                
+                zero_uids.push( uid as u16) ;
             }
+
         }
-        return uids; 
+        return zero_uids; 
     }
 
 
@@ -211,7 +222,7 @@ impl<T: Config> Pallet<T> {
         let mut block_at_registration: Vec<u64> = vec![ 0; n ];
         for module_uid in 0..n {
             if Keys::<T>::contains_key( netuid, module_uid as u16 ){
-                block_at_registration[ module_uid ] = Self::get_module_block_at_registration( netuid, module_uid as u16 );
+                block_at_registration[ module_uid ] = Self::get_module_registration_block( netuid, module_uid as u16 );
             }
         }
         block_at_registration
@@ -255,6 +266,7 @@ impl<T: Config> Pallet<T> {
             let ownership = I64F64::from_num(v) ;
             ownership_vector.push( (k.clone(), ownership) );
             total_stake_from += ownership;
+            
         }
         if total_stake_from == I64F64::from_num(0) {
             ownership_vector[0].1 = I64F64::from_num(1.0);
