@@ -135,6 +135,10 @@ impl<T: Config> Pallet<T> {
         return Stake::<T>::get(netuid,  key );
     }
     
+
+    pub fn get_stakes(netuid:u16) -> Vec<u64> { 
+        return Stake::<T>::iter_prefix(netuid).map(|(_, v)| v).collect::<Vec<u64>>();
+    }
     // // Returns the stake under the cold - hot pairing in the staking table.
     // //
     // pub fn get_stake_for_uid(netuid:u16, uid: u16 ) -> u64 { 

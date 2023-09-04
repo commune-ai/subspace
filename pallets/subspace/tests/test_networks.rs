@@ -129,7 +129,7 @@ fn test_set_single_temple(tempo:u16) {
             println!("tempo {} block number: {} stake {} pending_emissiion {}", tempo,  block_number(), SubspaceModule::get_total_subnet_stake(netuid), SubspaceModule::get_pending_emission(netuid));
             step_block(1);
             // get_block_number() is a function in mock.rs
-            let incentives : Vec<u16> = SubspaceModule::get_incentive(netuid);
+            let incentives : Vec<u16> = SubspaceModule::get_incentives(netuid);
             let dividends : Vec<u16>= SubspaceModule::get_dividends(netuid);
             let emissions : Vec<u64> = SubspaceModule::get_emissions(netuid);
 

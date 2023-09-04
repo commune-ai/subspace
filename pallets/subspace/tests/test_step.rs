@@ -16,7 +16,7 @@ fn check_network_stats(netuid:u16) {
     let emission_buffer : u64 = 1_000; // the numbers arent perfect but we want to make sure they fall within a range (10_000 / 2**64)
 
     let subnet_emission: u64 = SubspaceModule::get_subnet_emission( netuid );
-    let incentives : Vec<u16> = SubspaceModule::get_incentive(netuid);
+    let incentives : Vec<u16> = SubspaceModule::get_incentives(netuid);
     let dividends : Vec<u16>= SubspaceModule::get_dividends(netuid);
     let emissions : Vec<u64> = SubspaceModule::get_emissions(netuid);
     let total_incentives : u16 = incentives.iter().sum();
@@ -46,7 +46,7 @@ fn test_no_weights() {
         let keys = SubspaceModule::get_keys( netuid );
         let uids = SubspaceModule::get_uids( netuid );
         
-        let incentives : Vec<u16> = SubspaceModule::get_incentive(netuid);
+        let incentives : Vec<u16> = SubspaceModule::get_incentives(netuid);
         let dividends : Vec<u16>= SubspaceModule::get_dividends(netuid);
         let emissions : Vec<u64> = SubspaceModule::get_emissions(netuid);
         let total_incentives : u16 = incentives.iter().sum();
@@ -67,7 +67,7 @@ fn test_dividends() {
 	new_test_ext().execute_with(|| {
     // CONSSTANTS
     let netuid: u16 = 0;
-    let n : u16 = 100;
+    let n : u16 = 10;
     let n_list : Vec<u16> = vec![10, 50, 100, 1000];
     let blocks_per_epoch_list : u64 = 1;
     let stake_per_module : u64 = 10_000;
@@ -76,6 +76,7 @@ fn test_dividends() {
     register_n_modules( netuid, n, stake_per_module );
     SubspaceModule::set_tempo( netuid, 1 );
     SubspaceModule::set_max_allowed_weights(netuid, n );
+    SubspaceModule::set_min_allowed_weights(netuid, 0 );
 
     // for i in 0..n {
 
@@ -88,24 +89,31 @@ fn test_dividends() {
 
     
     // do a list of ones for weights
-    let weight_uids : Vec<u16> = [1,2].to_vec();
-
+    let weight_uids : Vec<u16> = [2,3].to_vec();
     // do a list of ones for weights
     let weight_values : Vec<u16> = [1,1].to_vec();
-
-    
     set_weights(netuid, keys[0], weight_uids.clone() , weight_values.clone() );
+    set_weights(netuid, keys[1], weight_uids.clone() , weight_values.clone() );
 
-    stake_k1 = SubspaceModule::get_stake_for_uid(netuid, 1);
-    stake_k2 = SubspaceModule::get_stake_for_uid(netuid, 2);
-
-    incentive_k1 = SubspaceModule::get_incentive_for_uid(netuid, 1);
-    incentive_k2 = SubspaceModule::get_incentive_for_uid(netuid, 2);
-
-    dividens = SubspaceModule::get_dividends_for_uid(netuid, 1);
-    dividens_k2 = SubspaceModule::get_dividends_for_uid(netuid, 2);
-    assert !( stake_k1 == stake_k2 );
     step_block( 1 );
+    let incentives : Vec<u16> = SubspaceModule::get_incentives(netuid);
+    let dividends : Vec<u16>= SubspaceModule::get_dividends(netuid);
+    let emissions : Vec<u64> = SubspaceModule::get_emissions(netuid);
+    let stakes : Vec<u64> = SubspaceModule::get_stakes(netuid);
+
+
+
+    // evaluate votees
+    assert !( incentives[2]> 0);
+    assert !( dividends[2] == dividends[3] );
+    assert !( incentives[2] == incentives[3] );
+    assert !( stakes[2] == stakes[3] );
+    assert !( emissions[2] == emissions[3] );
+
+    // evaluate voters
+    assert !( dividends[0] == dividends[1] );
+    assert !( incentives[0] == incentives[1] );
+    assert !( stakes[0] == stakes[1] );
     check_network_stats(netuid);
 
     

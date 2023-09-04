@@ -708,10 +708,14 @@ impl<T: Config> Pallet<T> {
     pub fn set_max_allowed_uids(netuid: u16, max_allowed: u16) { MaxAllowedUids::<T>::insert( netuid, max_allowed ); }
     
     pub fn get_uids( netuid: u16 ) -> Vec<u16> {
-        <Uids<T> as IterableStorageDoubleMap<u16, T::AccountId, u16> >::iter_prefix( netuid ).map( |(key, uid)| uid ).collect() }
-    pub fn get_keys( netuid: u16 ) -> Vec<T::AccountId> {
-        <Uids<T> as IterableStorageDoubleMap<u16, T::AccountId, u16> >::iter_prefix( netuid ).map( |(key, uid)| key ).collect() 
+        <Uids<T> as IterableStorageDoubleMap<u16, T::AccountId, u16> >::iter_prefix( netuid ).map( |(key, uid)| uid ).collect() 
     }
+    pub fn get_keys( netuid: u16 ) -> Vec<T::AccountId> {
+        let uids : Vec<u16> = Self::get_uids( netuid );
+        let keys : Vec<T::AccountId> = uids.iter().map( |uid| Self::get_key_for_uid( netuid, *uid ) ).collect();
+        return keys;
+    }
+
 
     pub fn get_uid_key_tuples( netuid: u16 ) -> Vec<(u16, T::AccountId)> {
         return <Keys<T> as IterableStorageDoubleMap<u16, u16, T::AccountId,> >::iter_prefix( netuid ).map( |(uid, key)| (uid, key) ).collect()
@@ -739,7 +743,7 @@ impl<T: Config> Pallet<T> {
         let mut names = Self::get_names(netuid);
         let mut addresses = Self::get_addresses(netuid);
         let mut emissions = Self::get_emissions(netuid);
-        let mut incentives = Self::get_incentive(netuid);
+        let mut incentives = Self::get_incentives(netuid);
         let mut dividends = Self::get_dividends(netuid);
         let mut last_update = Self::get_last_update(netuid);
 
@@ -771,7 +775,7 @@ impl<T: Config> Pallet<T> {
     }
 
     pub fn get_emissions( netuid:u16 ) -> Vec<u64> { Emission::<T>::get( netuid ) }
-    pub fn get_incentive( netuid:u16 ) -> Vec<u16> { Incentive::<T>::get( netuid ) }
+    pub fn get_incentives( netuid:u16 ) -> Vec<u16> { Incentive::<T>::get( netuid ) }
     pub fn get_dividends( netuid:u16 ) -> Vec<u16> { Dividends::<T>::get( netuid ) }
     pub fn get_last_update( netuid:u16 ) -> Vec<u64> { LastUpdate::<T>::get( netuid ) }
     pub fn get_max_registrations_per_block(  ) -> u16 { MaxRegistrationsPerBlock::<T>::get( ) }
