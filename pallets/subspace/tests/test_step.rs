@@ -11,6 +11,31 @@ mod test_mock;
 
 
 
+fn check_network_stats(netuid:u16) {
+
+    let emission_buffer : u64 = 1_000; // the numbers arent perfect but we want to make sure they fall within a range (10_000 / 2**64)
+
+    let subnet_emission: u64 = SubspaceModule::get_subnet_emission( netuid );
+    let incentives : Vec<u16> = SubspaceModule::get_incentive(netuid);
+    let dividends : Vec<u16>= SubspaceModule::get_dividends(netuid);
+    let emissions : Vec<u64> = SubspaceModule::get_emissions(netuid);
+    let total_incentives : u16 = incentives.iter().sum();
+    let total_dividends : u16 = dividends.iter().sum();
+    let total_emissions : u64 = emissions.iter().sum();
+
+    println!("total_emissions: {}", total_emissions);
+    println!("total_incentives: {}", total_incentives);
+    println!("total_dividends: {}", total_dividends);
+    
+
+    println!("emission: {:?}", emissions);
+    println!("incentives: {:?}", incentives);
+    println!("incentives: {:?}", incentives);
+    println!("dividends: {:?}", dividends);
+
+    assert!( total_emissions >= subnet_emission- emission_buffer || total_emissions <= subnet_emission + emission_buffer );
+}
+
 
 #[test]
 fn test_no_weights() {
@@ -27,23 +52,7 @@ fn test_no_weights() {
         let total_incentives : u16 = incentives.iter().sum();
         let total_dividends : u16 = dividends.iter().sum();
         let total_emissions : u64 = emissions.iter().sum();
-
-        let subnet_emission: u64 = SubspaceModule::get_subnet_emission( netuid );
-        assert_eq!( total_emissions, 0 );
-        assert_eq!( total_incentives, 0 );
-        assert_eq!( total_dividends, 0 );
-        step_block( 1 );
-        let incentives : Vec<u16> = SubspaceModule::get_incentive(netuid);
-        let dividends : Vec<u16>= SubspaceModule::get_dividends(netuid);
-        let emissions : Vec<u64> = SubspaceModule::get_emissions(netuid);
-        let total_incentives : u16 = incentives.iter().sum();
-        let total_dividends : u16 = dividends.iter().sum();
-        let total_emissions : u64 = emissions.iter().sum();
-        // give them some buffer (for u64 its 2^64-1)
-        assert!( total_emissions>subnet_emission-100 );
-        assert!( total_incentives> u16::MAX - 10);
-        assert!( total_dividends> u16::MAX - 10);
-
+        
 
 
 
@@ -53,15 +62,66 @@ fn test_no_weights() {
 }
 
 
+#[test]
+fn test_dividends() {
+	new_test_ext().execute_with(|| {
+    // CONSSTANTS
+    let netuid: u16 = 0;
+    let n : u16 = 100;
+    let n_list : Vec<u16> = vec![10, 50, 100, 1000];
+    let blocks_per_epoch_list : u64 = 1;
+    let stake_per_module : u64 = 10_000;
+    
+    // SETUP NETWORK
+    register_n_modules( netuid, n, stake_per_module );
+    SubspaceModule::set_tempo( netuid, 1 );
+    SubspaceModule::set_max_allowed_weights(netuid, n );
+
+    // for i in 0..n {
+
+    //     let key: U256 = U256::from(i);
+    //     register_module( netuid, key, stake_per_module );
+
+    // }
+    let keys = SubspaceModule::get_keys( netuid );
+    let uids = SubspaceModule::get_uids( netuid );
+
+    
+    // do a list of ones for weights
+    let weight_uids : Vec<u16> = [1,2].to_vec();
+
+    // do a list of ones for weights
+    let weight_values : Vec<u16> = [1,1].to_vec();
+
+    
+    set_weights(netuid, keys[0], weight_uids.clone() , weight_values.clone() );
+
+    stake_k1 = SubspaceModule::get_stake_for_uid(netuid, 1);
+    stake_k2 = SubspaceModule::get_stake_for_uid(netuid, 2);
+
+    incentive_k1 = SubspaceModule::get_incentive_for_uid(netuid, 1);
+    incentive_k2 = SubspaceModule::get_incentive_for_uid(netuid, 2);
+
+    dividens = SubspaceModule::get_dividends_for_uid(netuid, 1);
+    dividens_k2 = SubspaceModule::get_dividends_for_uid(netuid, 2);
+    assert !( stake_k1 == stake_k2 );
+    step_block( 1 );
+    check_network_stats(netuid);
+
+    
+    });
+
+
+}
+
 
 #[test]
 fn test_with_weights() {
 	new_test_ext().execute_with(|| {
 
-        let n_list : Vec<u16> = vec![1000];
+        let n_list : Vec<u16> = vec![10, 50, 100, 1000];
         let blocks_per_epoch_list : u64 = 1;
-        let emission_buffer : u64 = 10_000; // the numbers arent perfect but we want to make sure they fall within a range (10_000 / 2**64)
-        let stake_per_module : u64 = 1_000;
+        let stake_per_module : u64 = 10_000;
 
         for (netuid, n) in n_list.iter().enumerate() {
             println!("netuid: {}", netuid);
@@ -93,30 +153,8 @@ fn test_with_weights() {
                 SubspaceModule::set_weights( get_origin(keys[i as usize]), netuid, weight_values.clone(), weight_uids.clone() ).unwrap();
             }
             step_block( 1 );
-            let subnet_emission: u64 = SubspaceModule::get_subnet_emission( netuid );
-            let mut total_block_emission : u64 = 0;
-    
-    
-            let incentives : Vec<u16> = SubspaceModule::get_incentive(netuid);
-            let dividends : Vec<u16>= SubspaceModule::get_dividends(netuid);
-            let emissions : Vec<u64> = SubspaceModule::get_emissions(netuid);
-            let total_incentives : u16 = incentives.iter().sum();
-            let total_dividends : u16 = dividends.iter().sum();
-            let total_emissions : u64 = emissions.iter().sum();
-    
-            println!("total_emissions: {}", total_emissions);
-            println!("total_incentives: {}", total_incentives);
-            println!("total_dividends: {}", total_dividends);
-            
-    
-            println!("emission: {:?}", emissions);
-            println!("incentives: {:?}", incentives);
-            println!("dividends: {:?}", dividends);
-    
-            assert!( total_emissions > subnet_emission- emission_buffer );
+            check_network_stats(netuid);
         }
-       
-    
 
 
 

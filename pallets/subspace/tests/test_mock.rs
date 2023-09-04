@@ -118,6 +118,11 @@ impl pallet_subspace::Config for Test {
 //	system::GenesisConfig::default().build_storage::<Test>().unwrap().into()
 //}
 
+#[allow(dead_code)]
+pub fn set_weights( netuid: u16, key: U256, uids: Vec<u16>, values: Vec<u16> ) {
+	SubspaceModule::set_weights( get_origin(key), netuid, uids.clone(), values.clone() ).unwrap();
+}
+
 // Build genesis storage according to the mock runtime.
 #[allow(dead_code)]
 pub fn new_test_ext() -> sp_io::TestExternalities {
@@ -197,6 +202,7 @@ pub fn get_origin( key: U256 ) -> RuntimeOrigin {
 	let origin = <<Test as frame_system::Config>::RuntimeOrigin>::signed(key);
 	return origin;
 }
+
 
 
 pub fn register_n_modules( netuid: u16,  n: u16 , stake: u64, ) {

@@ -73,8 +73,9 @@ impl<T: Config> Pallet<T> {
         ensure!( Self::is_registered( netuid, &module_key.clone() ), Error::<T>::NotRegistered );  
 
         log::info!("do_add_stake( origin:{:?} stake_to_be_added:{:?} )", key, amount );
-        
-        ensure!( Self::can_remove_balance_from_account( &key, amount ), Error::<T>::NotEnoughBalanceToStake );
+
+        let balance: u64 = Self::get_balance_as_u64(&key);
+        ensure!( balance >= amount, Error::<T>::NotEnoughBalanceToStake );
         Self::add_stake_to_module(netuid, &key, &module_key, amount );
         // --- 5. Emit the staking event.
         log::info!("StakeAdded( key:{:?}, stake_to_be_added:{:?} )", key, amount );
