@@ -334,7 +334,7 @@ impl<T: Config> Pallet<T> {
     // Returns the total amount of stake in the staking table.
     pub fn get_total_emission_per_block() -> u64 {
         let total_stake: u64 = Self::get_total_stake();
-        let mut emission_per_block : u64 = 4_000_000_000;
+        let mut emission_per_block : u64 = 2_000_000_000; // assuming 2 second block times
         let halving_total_stake_checkpoints: Vec<u64> = vec![10_000_000, 20_000_000, 30_000_000, 40_000_000].iter().map(|x| x*1_000_000_000).collect();
         
         for (i, having_stake) in halving_total_stake_checkpoints.iter().enumerate() {
