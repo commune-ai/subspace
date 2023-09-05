@@ -247,7 +247,8 @@ impl<T: Config> Pallet<T> {
         MaxAllowedUids::<T>::insert( netuid, max_allowed_uids );
 
         if max_allowed_uids < n {
-            for i in max_allowed_uids..n {
+            let remainder_n: u16 = n - max_allowed_uids;
+            for i in 0..remainder_n {
                 Self::remove_module( netuid, Self::get_lowest_uid( netuid ));
             }
         }

@@ -347,7 +347,7 @@ impl<T: Config> Pallet<T> {
 
         let stake_from_vector: Vec<(T::AccountId, u64)> = Self::get_stake_from_vector(netuid, key);
         for (i, (m_key, m_stake_amount)) in stake_from_vector.iter().enumerate() {
-            Self::remove_stake_from_module(netuid, m_key, key, *m_stake_amount);
+            Self::remove_stake_from_module(netuid, key, m_key, *m_stake_amount);
         }
 
         StakeFrom::<T>::remove(netuid, key);
