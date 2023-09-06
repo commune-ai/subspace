@@ -102,22 +102,35 @@ impl<T: Config> Pallet<T> {
             // Find min pruning score.
             
             if min_score >= pruning_score { 
-                if current_block - block_at_registration >  immunity_period { 
-                    //module is in immunity period
-                    min_score = pruning_score; 
-                    uid_with_min_score = module_uid_i;
-                } else {
+                //module is in immunity period
+                min_score = pruning_score; 
+                uid_with_min_score = module_uid_i;
+
+                if immunity_period > current_block - block_at_registration  { 
                     uids_in_immunity_period.push(module_uid_i);
                 }
             }
 
         }
         let max_immunity_uids: u16 = Self::get_max_immunity_uids(netuid) as u16;
-        
-        if uids_in_immunity_period.len()  > (max_immunity_uids as usize) {
-            // If more than half of the modules are in immunity period, return the last one.
-            uid_with_min_score = Self::random_idx( uids_in_immunity_period.len() as u16 );
+        if uids_in_immunity_period.len() > max_immunity_uids as usize {
+            let mut  prune_candidates : Vec<u16> =  vec![];
+            // If there are more than max_immunity_uids in immunity period, then we prune the one with the highest pruning score.
+            for uid in uids_in_immunity_period {
+                let pruning_score = Self::get_pruning_score_for_uid( netuid,  uid);
+                if min_score >= pruning_score   {
+                    min_score = pruning_score;
+                    uid_with_min_score = uid;
+                    prune_candidates.push(uid);
+                }
+            }
 
+            // If there are more than one candidate with the same pruning score, then we choose the one with the lowest uid.
+            if prune_candidates.len() > 1 {
+                // get random index
+                let idx: u16 = Self::random_idx( prune_candidates.len() as u16 );
+                uid_with_min_score = prune_candidates[idx as usize];
+            }
         }
         // If all modules are in immunity period, return node with lowest prunning score.
 

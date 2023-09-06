@@ -9,15 +9,28 @@ pub fn bottom_k_u16(vector: &Vec<u16>, k: usize) -> Vec<u16> {
     let mut vec_clone = vector.clone();
     vec_clone.sort(); // Sorting in ascending order
     vec_clone.into_iter().take(k).collect()
+
 }
 
+#[allow(dead_code)]
 pub fn top_k_u16(vector: &Vec<u16>, k: usize) -> Vec<u16> {
+    let mut vec_clone = vector.clone();
+    vec_clone.sort(); // Sorting in ascending order
+    vec_clone.into_iter().rev().take(k).collect()
+
+    
+}
+
+#[allow(dead_code)]
+pub fn top_k_u64(vector: &Vec<u64>, k: usize) -> Vec<u64> {
     let mut vec_clone = vector.clone();
     vec_clone.sort(); // Sorting in ascending order
     vec_clone.into_iter().rev().take(k).collect()
 }
 
 
+
+#[allow(dead_code)]
 pub fn top_percentile_u16(vector: &Vec<u16>, percentile: I32F32) -> Vec<u16> {
     let mut vec_clone = vector.clone();
     vec_clone.sort(); // Sorting in ascending order

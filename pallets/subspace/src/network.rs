@@ -7,7 +7,7 @@ use frame_support::storage::IterableStorageMap;
 use frame_support::pallet_prelude::{Decode, Encode};
 use codec::Compact;
 use frame_support::pallet_prelude::{DispatchError, DispatchResult};
-use substrate_fixed::types::{I64F64};
+use substrate_fixed::types::{I64F64, I32F32};
 extern crate alloc;
 
 
@@ -651,7 +651,7 @@ impl<T: Config> Pallet<T> {
     pub fn get_dividends_for_uid( netuid:u16, uid: u16) -> u16 { let vec = Dividends::<T>::get( netuid ); if (uid as usize) < vec.len() { return vec[uid as usize] } else{ return 0 } }
     pub fn get_last_update_for_uid( netuid:u16, uid: u16) -> u64 { let vec = LastUpdate::<T>::get( netuid ); if (uid as usize) < vec.len() { return vec[uid as usize] } else{ return 0 } }
     pub fn get_pruning_score_for_uid( netuid:u16, uid: u16) -> u16 { let vec = Emission::<T>::get( netuid ); if (uid as usize) < vec.len() { return vec[uid as usize] as u16 } else{ return 0 } }
-    pub fn get_max_immunity_uids( netuid:u16 ) -> u16 { MaxImmunityRatio::<T>::get( Self::get_max_immunity_ratio(netuid) * Self::get_max_allowed_uids(netuid) / 100 ) }
+    pub fn get_max_immunity_uids( netuid:u16 ) -> u16 { MaxImmunityRatio::<T>::get( (I32F32::from_num(Self::get_max_immunity_ratio(netuid)) * I32F32::from_num(Self::get_max_allowed_uids(netuid)) / I32F32::from_num(100)).to_num::<u16>() ) }
 
     pub fn get_max_immunity_ratio( netuid:u16 ) -> u16 { MaxImmunityRatio::<T>::get( netuid ) }
 
@@ -709,7 +709,8 @@ impl<T: Config> Pallet<T> {
     pub fn set_max_allowed_uids(netuid: u16, max_allowed: u16) { MaxAllowedUids::<T>::insert( netuid, max_allowed ); }
     
     pub fn get_uids( netuid: u16 ) -> Vec<u16> {
-        <Uids<T> as IterableStorageDoubleMap<u16, T::AccountId, u16> >::iter_prefix( netuid ).map( |(key, uid)| uid ).collect() 
+        let n = Self::get_subnet_n(netuid);
+        return (0..n).collect();
     }
     pub fn get_keys( netuid: u16 ) -> Vec<T::AccountId> {
         let uids : Vec<u16> = Self::get_uids( netuid );
