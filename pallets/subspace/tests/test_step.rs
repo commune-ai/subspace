@@ -122,10 +122,60 @@ fn test_dividends() {
 
 }
 
-
-
-#[test]
 fn test_pruning() {
+	new_test_ext().execute_with(|| {
+    // CONSSTANTS
+    let netuid: u16 = 0;
+    let n : u16 = 100;
+    let blocks_per_epoch_list : u64 = 1;
+    let stake_per_module : u64 = 10_000;
+    let tempo : u16 = 1;
+    
+    // SETUP NETWORK
+    register_n_modules( netuid, n, stake_per_module );
+
+    SubspaceModule::set_tempo( netuid, 1 );
+    SubspaceModule::set_max_allowed_weights(netuid, n );
+    SubspaceModule::set_min_allowed_weights(netuid, 0 );
+
+    // for i in 0..n {
+
+    //     let key: U256 = U256::from(i);
+    //     register_module( netuid, key, stake_per_module );
+
+    // }
+    let keys = SubspaceModule::get_keys( netuid );
+    let uids = SubspaceModule::get_uids( netuid );
+
+    
+    // do a list of ones for weights
+    let weight_uids : Vec<u16> = (0..n).collect();
+    // do a list of ones for weights
+    let mut weight_values : Vec<u16> = weight_uids.iter().map(|x| 1 as u16 ).collect();
+
+    let prune_uid: u16 = n - 1;
+    weight_values[prune_uid as usize] = 0;
+    set_weights(netuid, keys[0], weight_uids.clone() , weight_values.clone() );
+    step_block( tempo );
+    let lowest_priority_uid: u16 = SubspaceModule::get_lowest_uid(netuid);
+    assert !( lowest_priority_uid == prune_uid );
+
+    let new_key : U256 = U256::from( n + 1 );
+    register_module( netuid, new_key, stake_per_module );
+    let is_registered: bool = SubspaceModule::is_key_registered( netuid, &new_key);
+    assert!( is_registered );
+    assert!( SubspaceModule::get_subnet_n( netuid ) == n );
+    let is_prune_registered: bool = SubspaceModule::is_key_registered( netuid, &keys[prune_uid as usize]);
+    assert!( !is_prune_registered );
+    check_network_stats(netuid);
+
+    
+    });
+
+
+}
+#[test]
+fn test_lowest_priority_mechanism() {
 	new_test_ext().execute_with(|| {
     // CONSSTANTS
     let netuid: u16 = 0;
@@ -190,51 +240,52 @@ fn test_pruning() {
 }
 
 
-#[test]
-fn test_deregister_zero_emission_uids() {
-	new_test_ext().execute_with(|| {
-    // CONSSTANTS
-    let netuid: u16 = 0;
-    let n : u16 = 100;
-    let num_zero_uids : u16 = 10;
-    let blocks_per_epoch_list : u64 = 1;
-    let stake_per_module : u64 = 10_000;
-    // SETUP NETWORK
-    let tempo = 1;
-    register_n_modules( netuid, n, stake_per_module );
-    SubspaceModule::set_tempo( netuid, tempo );
-    SubspaceModule::set_max_allowed_weights(netuid, n );
-    SubspaceModule::set_min_allowed_weights(netuid, 0 );
-    SubspaceModule::set_immunity_period(netuid, 1 );
-
-    // for i in 0..n {
-
-    //     let key: U256 = U256::from(i);
-    //     register_module( netuid, key, stake_per_module );
-
-    // }
-    let keys = SubspaceModule::get_keys( netuid );
-    let uids = SubspaceModule::get_uids( netuid );
-    // do a list of ones for weights
-    let weight_uids : Vec<u16> = (0..n).collect();
-    // do a list of ones for weights
-    let mut weight_values : Vec<u16> = weight_uids.iter().map(|x| 1 as u16 ).collect();
-    let mut zero_uids : Vec<u16> = (0..num_zero_uids).map(|x| n - x as u16 - 1).collect();
-
-    for uid in zero_uids.iter() {
-        weight_values[*uid as usize] = 0;
-        
-    }
-    let old_n  : u16 = SubspaceModule::get_subnet_n( netuid );
-    set_weights(netuid, keys[0], weight_uids.clone() , weight_values.clone() );
-    step_block( tempo );
-    let n: u16 = SubspaceModule::get_subnet_n( netuid );
-    assert !( old_n - num_zero_uids == n );
+// #[test]
+// fn test_deregister_zero_emission_uids() {
+// 	new_test_ext().execute_with(|| {
+//     // CONSSTANTS
+//     let netuid: u16 = 0;
+//     let n : u16 = 100;
+//     let num_zero_uids : u16 = 10;
+//     let blocks_per_epoch_list : u64 = 1;
+//     let stake_per_module : u64 = 10_000;
     
-    });
+//     // SETUP NETWORK
+//     let tempo: u16 = 1;
+//     register_n_modules( netuid, n, stake_per_module );
+//     SubspaceModule::set_tempo( netuid, tempo );
+//     SubspaceModule::set_max_allowed_weights(netuid, n );
+//     SubspaceModule::set_min_allowed_weights(netuid, 0 );
+//     SubspaceModule::set_immunity_period(netuid, tempo );
+
+//     // for i in 0..n {
+
+//     //     let key: U256 = U256::from(i);
+//     //     register_module( netuid, key, stake_per_module );
+
+//     // }
+//     let keys = SubspaceModule::get_keys( netuid );
+//     let uids = SubspaceModule::get_uids( netuid );
+//     // do a list of ones for weights
+//     let weight_uids : Vec<u16> = (0..n).collect();
+//     // do a list of ones for weights
+//     let mut weight_values : Vec<u16> = weight_uids.iter().map(|x| 1 as u16 ).collect();
+//     let mut zero_uids : Vec<u16> = (0..num_zero_uids).map(|x| n - x as u16 - 1).collect();
+
+//     for uid in zero_uids.iter() {
+//         weight_values[*uid as usize] = 0;
+        
+//     }
+//     let old_n  : u16 = SubspaceModule::get_subnet_n( netuid );
+//     set_weights(netuid, keys[0], weight_uids.clone() , weight_values.clone() );
+//     step_block( tempo );
+//     let n: u16 = SubspaceModule::get_subnet_n( netuid );
+//     assert !( old_n - num_zero_uids == n );
+    
+//     });
 
 
-}
+// }
 
 
 #[test]

@@ -288,6 +288,8 @@ impl<T: Config> Pallet<T> {
             stake_from_vector.remove(end_idx);
         }
 
+        Self::set_stake_from_vector(netuid, module_key, stake_from_vector);
+
 
 
         // TO STAKE 
@@ -312,14 +314,23 @@ impl<T: Config> Pallet<T> {
 
         
         Self::set_stake_to_vector(netuid, key, stake_to_vector);
-        Self::set_stake_from_vector(netuid, module_key, stake_from_vector);
-        Self::decrease_stake_on_account( netuid, module_key, amount );
-        
+
+        Self::decrease_stake_on_account(netuid, module_key, amount);
         Self::add_balance_to_account( key, Self::u64_to_balance( amount ).unwrap() );
 
         return true;
 
     }
+
+
+    pub fn decrease_stake_on_account(netuid: u16,  key: &T::AccountId, amount: u64){
+        // --- 8. We add the balancer to the key.  If the above fails we will not credit this key.
+        Stake::<T>::insert( netuid, key, Stake::<T>::get(netuid,  key).saturating_sub( amount ) );
+        TotalStake::<T>::put(TotalStake::<T>::get().saturating_sub( amount ) );
+        SubnetTotalStake::<T>::insert(netuid, SubnetTotalStake::<T>::get(netuid).saturating_sub( amount ) );      
+    }  
+            
+    
 
     pub fn increase_stake_on_account(netuid:u16, key: &T::AccountId, amount: u64 ){
         Stake::<T>::insert(netuid, key, Stake::<T>::get(netuid, key).saturating_add( amount ) );
@@ -329,14 +340,6 @@ impl<T: Config> Pallet<T> {
 
     }
 
-    // Decreases the stake on the cold - hot pairing by the amount while decreasing other counters.
-    //
-    pub fn decrease_stake_on_account(netuid:u16, key: &T::AccountId, amount: u64 ) {
-        // --- 8. We add the balancer to the key.  If the above fails we will not credit this key.
-        Stake::<T>::insert( netuid, key, Stake::<T>::get(netuid,  key).saturating_sub( amount ) );
-        TotalStake::<T>::put(TotalStake::<T>::get().saturating_sub( amount ) );
-        SubnetTotalStake::<T>::insert(netuid, SubnetTotalStake::<T>::get(netuid).saturating_sub( amount ) );
-    }
 
     // Decreases the stake on the cold - hot pairing by the amount while decreasing other counters.
     //

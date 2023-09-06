@@ -89,11 +89,7 @@ impl<T: Config> Pallet<T> {
             // 1. Get the old key under this position.
 
             let n = Self::get_subnet_n( netuid );
-
-            assert!( n > 0, "There are no modules in this network." );
-            assert!( uid < n, "The uid is out of bounds." );
-
-            let replace_uid = Self::get_subnet_n( netuid ) - 1;
+            let replace_uid = n - 1;
             Self::replace_module_with_uid( netuid, uid, replace_uid );
             let replace_key: T::AccountId = Keys::<T>::get( netuid, replace_uid );
             let replace_uid_name: Vec<u8>= Names::<T>::get( netuid, replace_uid );

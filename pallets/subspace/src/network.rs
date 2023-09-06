@@ -263,6 +263,15 @@ impl<T: Config> Pallet<T> {
     }
 
 
+    pub fn get_total_subnet_balance( netuid: u16 ) -> u64 {
+        let mut total_subnet_balance: u64 = 0;
+        for ( key, stated_amount ) in <Stake<T> as IterableStorageDoubleMap<u16, T::AccountId, u64> >::iter_prefix(netuid){
+            total_subnet_balance = Self::get_balance_as_u64( &key ) + total_subnet_balance;
+        }
+        return total_subnet_balance;
+    }
+
+
     pub fn get_subnet_params(netuid:u16 ) -> SubnetParams<T> {
         SubnetParams{
             immunity_period: ImmunityPeriod::<T>::get( netuid ) ,
@@ -785,6 +794,10 @@ impl<T: Config> Pallet<T> {
 
     pub fn is_registered(netuid: u16, key: &T::AccountId) -> bool {
         return Uids::<T>::contains_key(netuid, &key)
+    }
+
+    pub fn is_uid_registered(netuid: u16, uid: u16) -> bool {
+        return Keys::<T>::contains_key(netuid, uid)
     }
 
 }
