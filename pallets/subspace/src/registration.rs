@@ -85,6 +85,7 @@ impl<T: Config> Pallet<T> {
     // Determine which peer to prune from the network by finding the element with the lowest pruning score out of
     // immunity period. If all modules are in immunity period, return node with lowest prunning score.
     // This function will always return an element to prune.
+
     pub fn get_lowest_uid(netuid: u16) -> u16 {
         let mut min_score : u16 = u16::MAX;
         let mut uid_with_min_score = 0;
@@ -139,6 +140,8 @@ impl<T: Config> Pallet<T> {
 
 
 
+
+
     pub fn get_block_hash_from_u64 ( block_number: u64 ) -> H256 {
         let block_number: T::BlockNumber = TryInto::<T::BlockNumber>::try_into( block_number ).ok().expect("convert u64 to block number.");
         let block_hash_at_number: <T as frame_system::Config>::Hash = system::Pallet::<T>::block_hash( block_number );
@@ -186,9 +189,9 @@ impl<T: Config> Pallet<T> {
         // if len(name) > 0, then we update the name.
         if name.len() > 0 {
             ensure!( name.len() <= MaxNameLength::<T>::get() as usize, Error::<T>::ModuleNameTooLong );
+            ensure!(!Self::if_module_name_exists(netuid, name.clone()) , Error::<T>::ModuleNameAlreadyExists); 
             let old_name = Names::<T>::get( netuid, uid ); // Get the old name.
             Namespace::<T>::remove( netuid, old_name ); // Remove the old name from the namespace.
-            ensure!(!Self::if_module_name_exists(netuid, name.clone()) , Error::<T>::ModuleNameAlreadyExists); 
             Namespace::<T>::insert( netuid, name.clone(), uid );
             Names::<T>::insert( netuid, uid, name.clone() );
         }

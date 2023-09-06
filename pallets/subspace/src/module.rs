@@ -27,7 +27,13 @@ impl<T: Config> Pallet<T> {
 
 
         pub fn replace_module_with_uid( netuid: u16, uid: u16, replace_uid: u16 ) {
-            Self::replace_module( netuid, uid, &Keys::<T>::get( netuid, replace_uid ), Names::<T>::get( netuid, replace_uid ), Address::<T>::get( netuid, replace_uid ), Self::get_stake( netuid, &Keys::<T>::get( netuid, replace_uid ) ) );
+            // 1. Get the old key under this position.
+            let old_key: T::AccountId = Keys::<T>::get( netuid, uid );
+            let old_name: Vec<u8> = Names::<T>::get( netuid, uid );
+            let old_address: Vec<u8> = Address::<T>::get( netuid, uid );
+            let old_stake: u64 = Self::get_stake( netuid, &old_key );
+            // 2. Remove previous set memberships.
+            Self::replace_module(netuid, uid, &old_key, old_name, old_address, old_stake );
         }
         // Replace the module under this uid.
         pub fn replace_module( netuid: u16, uid: u16, new_key: &T::AccountId, name: Vec<u8>, address: Vec<u8>, stake: u64 ) {
@@ -69,9 +75,7 @@ impl<T: Config> Pallet<T> {
             // Weights::<T>::insert( netuid, uid, vec![] as Vec<(u16, u16)> ); // Make uid - key association.
             Weights::<T>::insert( netuid, uid, vec![] as Vec<(u16, u16)> ); // Make uid - key association.
             // 3. Remove the stake from the old account and add to the new
-            Self::remove_stake_from_storage( netuid, &old_key );
-            // add stake to new key
-            Self::add_stake_to_module( netuid, &new_key,  &new_key , stake );
+
             
         }
 
@@ -90,30 +94,27 @@ impl<T: Config> Pallet<T> {
             assert!( uid < n, "The uid is out of bounds." );
 
             let replace_uid = Self::get_subnet_n( netuid ) - 1;
-
-            
             Self::replace_module_with_uid( netuid, uid, replace_uid );
-
             let replace_key: T::AccountId = Keys::<T>::get( netuid, replace_uid );
+            let replace_uid_name: Vec<u8>= Names::<T>::get( netuid, replace_uid );
+
             // 2. Remove previous set memberships.
             Uids::<T>::remove( netuid, &replace_key.clone() ); 
             Keys::<T>::remove( netuid, replace_uid ); // Make key - uid association.
             Address::<T>::remove(netuid, replace_uid ); // Make uid - key association.
             RegistrationBlock::<T>::remove( netuid, replace_uid ); // Fill block at registration.
-            Weights::<T>::remove( netuid, replace_uid ); // Make uid - key association.
-            N::<T>::mutate( netuid, |v| *v -= 1 ); // Decrease the number of modules in the network.
-            let replace_uid_name: Vec<u8>= Names::<T>::get( netuid, replace_uid );
             Names::<T>::remove( netuid, replace_uid ); // Make uid - key association.
             Namespace::<T>::remove( netuid, replace_uid_name ); // Fill module namespace.
-            
-            // pop frm incentive vector and push to new key
+
+            // pop incentive vector and push to new key
             Incentive::<T>::mutate( netuid, |v| v.pop() );
             Dividends::<T>::mutate( netuid, |v| v.pop() );
             Emission::<T>::mutate( netuid, |v| v.pop() );
             LastUpdate::<T>::mutate( netuid, |v| v.pop() );
-
+            Weights::<T>::remove( netuid, replace_uid ); // Make uid - key association.
 
             // 3. Remove the network if it is empty.
+            N::<T>::mutate( netuid, |v| *v -= 1 ); // Decrease the number of modules in the network.
             if N::<T>::get( netuid ) == 0 {
                 Self::remove_network_for_netuid( netuid );
             }

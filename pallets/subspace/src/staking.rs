@@ -107,7 +107,7 @@ impl<T: Config> Pallet<T> {
         ensure!( stake_to_be_added_as_currency.is_some(), Error::<T>::CouldNotConvertToBalance );
 
         // --- 7. We remove the balance from the key.
-        Self::remove_stake_from_module(netuid,  &key, &module_key, amount );
+        Self::decrease_stake(netuid,  &key, &module_key, amount );
 
         // --- 9. Emit the unstaking event.
         log::info!("StakeRemoved( key:{:?}, stake_to_be_removed:{:?} )", key, amount );
@@ -211,26 +211,29 @@ impl<T: Config> Pallet<T> {
 
     // INCREASE   
 
-    pub fn increase_stake_to_module(netuid: u16, key: &T::AccountId,  module_key: &T::AccountId, amount: u64 ) -> bool{
+    pub fn increase_stake(netuid: u16, key: &T::AccountId,  module_key: &T::AccountId, amount: u64 ) -> bool{
 
 
         let mut stake_from_vector: Vec<(T::AccountId, u64)> = Self::get_stake_from_vector(netuid, module_key);
         let mut found_key_in_vector:bool= false;
         for (i, (k, v)) in stake_from_vector.clone().iter().enumerate() {
-            if k == key {
+            if *k == *key {
                 stake_from_vector[i] = (k.clone(), *v + amount);
                 found_key_in_vector = true;
             }
         }
+
+        // if we didnt find the key in the vector, we need to add it
         if !found_key_in_vector {
             stake_from_vector.push( (key.clone(), amount) );
         }
 
+        // reset the stake to vector, as we have updated the stake_to_vector
         let mut found_key_in_vector:bool= false;
         let mut stake_to_vector: Vec<(T::AccountId, u64)> = Self::get_stake_to_vector(netuid, key);
 
         for (i, (k, v)) in stake_to_vector.clone().iter().enumerate() {
-            if k == module_key {
+            if *k == *module_key {
                 stake_to_vector[i] = (k.clone(), *v + amount);
                 found_key_in_vector = true;
             }
@@ -249,7 +252,7 @@ impl<T: Config> Pallet<T> {
     }
 
     pub fn add_stake_to_module(netuid: u16, key: &T::AccountId, module_key: &T::AccountId, mut amount: u64 ) -> bool{
-        Self::increase_stake_to_module(netuid, key, module_key, amount);
+        Self::increase_stake(netuid, key, module_key, amount);
         Self::remove_balance_from_account( key, Self::u64_to_balance( amount ).unwrap() );
         
         return true;
@@ -259,19 +262,7 @@ impl<T: Config> Pallet<T> {
 
 
 
-
-
-    pub fn remove_stake_from_module(netuid: u16, key: &T::AccountId, module_key: &T::AccountId, amount: u64 ) -> bool{
-        Self::decrease_stake_from_module(netuid, key, module_key, amount);
-        Self::add_balance_to_account( key, Self::u64_to_balance( amount ).unwrap() );
-        
-        return true;
-
-    }
-
-
-
-    pub fn decrease_stake_from_module(netuid: u16, key: &T::AccountId, module_key: &T::AccountId, amount: u64 ) -> bool{
+    pub fn decrease_stake(netuid: u16, key: &T::AccountId, module_key: &T::AccountId, amount: u64 ) -> bool{
 
         // FROM DELEGATE STAKE
         let mut stake_to_vector: Vec<(T::AccountId, u64)> = Self::get_stake_to_vector(netuid, key);
@@ -280,19 +271,21 @@ impl<T: Config> Pallet<T> {
         let mut idx_to_replace:usize = usize::MAX;
 
         let mut end_idx:usize = stake_from_vector.len() - 1;
-        for (i, (m_key, m_stake_amount)) in stake_from_vector.clone().iter().enumerate() {
-            if *m_key == *key {
-                let remaining_stake: u64 = *m_stake_amount - amount;
-                stake_from_vector[i] = (m_key.clone(), remaining_stake);
+        for (i, (k, stake_amount)) in stake_from_vector.clone().iter().enumerate() {
+            if *k == *key {
+                let remaining_stake: u64 = *stake_amount - amount;
+                stake_from_vector[i] = (k.clone(), remaining_stake);
                 if remaining_stake == 0 {
-                    // we need to remove this entry
+                    // we need to remove this entry if its zero
                     idx_to_replace = i;
                 }
+                break;
 
             }
         }
         if idx_to_replace != usize::MAX {
-            stake_from_vector.remove(idx_to_replace);
+            stake_from_vector.swap(idx_to_replace, end_idx);
+            stake_from_vector.remove(end_idx);
         }
 
 
@@ -302,17 +295,19 @@ impl<T: Config> Pallet<T> {
         end_idx = stake_to_vector.len() - 1;
 
         for (i, (k, v)) in stake_to_vector.clone().iter().enumerate() {
-            if k == module_key {
+            if *k == *module_key {
                 let remaining_stake: u64 = *v - amount;
                 stake_to_vector[i] = (k.clone(), remaining_stake);
                 if remaining_stake == 0 {
                     idx_to_replace = i;
                 }
+                break; 
             }
         }
 
         if idx_to_replace != usize::MAX {
-            stake_to_vector.remove(idx_to_replace);
+            stake_to_vector.swap(idx_to_replace, end_idx);
+            stake_to_vector.remove(end_idx);
         }
 
         
@@ -320,6 +315,8 @@ impl<T: Config> Pallet<T> {
         Self::set_stake_from_vector(netuid, module_key, stake_from_vector);
         Self::decrease_stake_on_account( netuid, module_key, amount );
         
+        Self::add_balance_to_account( key, Self::u64_to_balance( amount ).unwrap() );
+
         return true;
 
     }
@@ -343,15 +340,15 @@ impl<T: Config> Pallet<T> {
 
     // Decreases the stake on the cold - hot pairing by the amount while decreasing other counters.
     //
-    pub fn remove_stake_from_storage(netuid:u16, key: &T::AccountId ) {
+    pub fn remove_stake_from_storage(netuid:u16, module_key: &T::AccountId ) {
 
-        let stake_from_vector: Vec<(T::AccountId, u64)> = Self::get_stake_from_vector(netuid, key);
-        for (i, (m_key, m_stake_amount)) in stake_from_vector.iter().enumerate() {
-            Self::remove_stake_from_module(netuid, key, m_key, *m_stake_amount);
+        let stake_from_vector: Vec<(T::AccountId, u64)> = Self::get_stake_from_vector(netuid, module_key);
+        for (i, (delegate_key, delegate_stake_amount)) in stake_from_vector.iter().enumerate() {
+            Self::decrease_stake(netuid, delegate_key, module_key, *delegate_stake_amount);
         }
 
-        StakeFrom::<T>::remove(netuid, key);
-        Stake::<T>::remove(netuid, &key);
+        StakeFrom::<T>::remove(netuid, &module_key);
+        Stake::<T>::remove(netuid, &module_key);
     }
 
 	pub fn u64_to_balance( input: u64 ) -> Option<<<T as Config>::Currency as Currency<<T as frame_system::Config>::AccountId>>::Balance> { input.try_into().ok() }

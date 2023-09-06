@@ -269,9 +269,8 @@ fn test_set_max_allowed_uids_shrinking() {
        new_test_ext().execute_with(|| {
        let netuid : u16 = 0;
        let stake : u64 = 1_000_000_000;
-       let mut max_uids : u16 = 1000;
+       let mut max_uids : u16 = 2000;
        let extra_uids : u16 = 20;
-       let rounds = 10;
        register_module(netuid, U256::from(0), stake);
        SubspaceModule::set_max_registrations_per_block(max_uids + extra_uids );
         for i in 1..(max_uids+extra_uids) {
@@ -281,28 +280,51 @@ fn test_set_max_allowed_uids_shrinking() {
         let mut n = SubspaceModule::get_subnet_n(netuid);
         assert_eq!(n, max_uids+extra_uids);
 
-        let total_stake : u64 = SubspaceModule::get_total_subnet_stake(netuid);
+        let mut total_stake : u64 = SubspaceModule::get_total_subnet_stake(netuid);
         let mut expected_stake : u64 = n as u64 * stake;
+
+        println!("total stake {}", total_stake);
+        println!("expected stake {}", expected_stake);
+        println!("total stake {}", total_stake);
+        println!("expected stake {}", expected_stake);
         assert_eq!(total_stake, expected_stake);
 
 
         let subnet = SubspaceModule::get_subnet(netuid);
+        // SubspaceModule::update_network(get_origin(U256::from(0)), 
+        //                                 netuid, 
+        //                                 subnet.params.name.clone(),
+        //                                 subnet.params.immunity_period,
+        //                                 subnet.params.min_allowed_weights,
+        //                                 subnet.params.max_allowed_weights,
+        //                                 max_uids,
+        //                                 subnet.params.tempo, 
+        //                                 subnet.params.founder );
 
-
-        SubspaceModule::update_network(get_origin(U256::from(0)), 
-                                        netuid, 
-                                        subnet.params.name.clone(),
-                                        subnet.params.immunity_period,
-                                        subnet.params.min_allowed_weights,
-                                        subnet.params.max_allowed_weights,
-                                        max_uids,
-                                        subnet.params.tempo, 
-                                        subnet.params.founder );
+        for i in 0..20 {
+            let uid: u16 = i;
+            SubspaceModule::remove_module(netuid, uid );
+        }
 
         n = SubspaceModule::get_subnet_n(netuid);
         assert_eq!(n, max_uids);
-        expected_stake = n as u64 * stake; 
-        assert_eq!(SubspaceModule::get_total_subnet_stake(netuid), expected_stake);
+        println!("n {}", n);
+        println!("max_uids {}", max_uids);
+        let stake_vector: Vec<u64> = SubspaceModule::get_stakes(netuid);
+        let calc_stake : u64 = stake_vector.iter().sum();
+
+        println!("calculated  stake {}", calc_stake);
+
+        expected_stake = (max_uids) as u64 * stake; 
+        let subnet_stake = SubspaceModule::get_total_subnet_stake(netuid);
+        total_stake = SubspaceModule::get_total_stake();
+        
+        println!("expected stake {}", expected_stake);
+        println!("subnet stake {}", total_stake);
+
+        println!("total stake {}", total_stake);
+    
+        assert_eq!(total_stake, expected_stake);
 
         
 

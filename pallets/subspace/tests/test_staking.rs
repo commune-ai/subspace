@@ -67,22 +67,22 @@ fn test_stake() {
 
                 uid = SubspaceModule::get_uid_for_key(netuid, &key);
                 // SubspaceModule::add_stake(get_origin(*key), netuid, amount_staked);
-                assert_eq!(SubspaceModule::get_stake_for_uid(netuid, uid), amount_staked);
+                assert_eq!(SubspaceModule::get_stake(netuid, key), amount_staked);
                 assert_eq!(SubspaceModule::get_balance(key), 0);
 
                 // REMOVE STAKE
                 SubspaceModule::remove_stake(get_origin(*key), netuid, *key, amount_staked);
                 assert_eq!(SubspaceModule::get_balance(key), amount_staked);
-                assert_eq!(SubspaceModule::get_stake_for_uid(netuid, uid), 0);
+                assert_eq!(SubspaceModule::get_stake(netuid, key), 0);
 
                 // ADD STAKE AGAIN LOL
                 SubspaceModule::add_stake(get_origin(*key), netuid, *key, amount_staked);
-                assert_eq!(SubspaceModule::get_stake_for_uid(netuid, uid), amount_staked);
+                assert_eq!(SubspaceModule::get_stake(netuid, key), amount_staked);
                 assert_eq!(SubspaceModule::get_balance(key), 0);
 
 
                 // AT THE END WE SHOULD HAVE THE SAME TOTAL STAKE
-                subnet_stake += SubspaceModule::get_stake_for_uid(netuid, uid).clone();
+                subnet_stake += SubspaceModule::get_stake(netuid, key).clone();
 
 
 
