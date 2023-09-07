@@ -59,12 +59,13 @@ impl<T: Config> Pallet<T> {
             emission[uid as usize] = emission[ replace_uid as usize];
             last_update[uid as usize] = emission[ replace_uid as usize];
             
-            // pop the last element
+            // pop the last element (which is now a duplicate)
             incentive.pop();
             dividends.pop();
             emission.pop();
             last_update.pop();
 
+            // update the vectors
             Incentive::<T>::insert( netuid, incentive ); // Make uid - key association.
             Dividends::<T>::insert( netuid, dividends ); // Make uid - key association.
             Emission::<T>::insert( netuid, emission ); // Make uid - key association.

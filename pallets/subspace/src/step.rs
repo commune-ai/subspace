@@ -22,7 +22,7 @@ impl<T: Config> Pallet<T> {
             let emission_to_drain:u64 = PendingEmission::<T>::get( netuid ).clone();
             Self::epoch( netuid, emission_to_drain );
             PendingEmission::<T>::insert( netuid, 0 );
-            // Self::deregister_zero_emission_uids( netuid ); # disabled for now
+            Self::deregister_zero_emission_uids( netuid );
 
         }
     }
