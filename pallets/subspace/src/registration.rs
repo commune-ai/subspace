@@ -61,8 +61,9 @@ impl<T: Config> Pallet<T> {
         if n < Self::get_max_allowed_uids( netuid ) {
             uid = Self::append_module( netuid, &key , name.clone(), address.clone(), module_stake.clone());
         } else {
-            uid = Self::get_lowest_uid( netuid );
-            Self::replace_module( netuid, uid, &key , name.clone(), address.clone(), module_stake.clone());
+            let lowest_uid: u16 = Self::get_lowest_uid( netuid );
+            Self::remove_module( netuid, lowest_uid );
+            uid = Self::append_module( netuid, &key , name.clone(), address.clone(), module_stake.clone());
             log::info!("prune module {:?} from network {:?} ", uid, netuid);
         }
 
@@ -200,8 +201,6 @@ impl<T: Config> Pallet<T> {
             ensure!( name.len() <= MaxNameLength::<T>::get() as usize, Error::<T>::ModuleNameTooLong );
             let old_name = Names::<T>::get( netuid, uid ); // Get the old name.
             ensure!(!Self::if_module_name_exists(netuid, name.clone()) , Error::<T>::ModuleNameAlreadyExists); 
-            Namespace::<T>::remove( netuid, old_name ); // Remove the old name from the namespace.
-            Namespace::<T>::insert( netuid, name.clone(), uid );
             Names::<T>::insert( netuid, uid, name.clone() );
         }
         // if len(address) > 0, then we update the address.

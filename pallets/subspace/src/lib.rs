@@ -278,12 +278,6 @@ pub mod pallet {
 	pub(super) type Uids<T:Config> = StorageDoubleMap<_, Identity, u16, Blake2_128Concat, T::AccountId, u16, OptionQuery>;
 	#[pallet::storage] // --- DMAP ( netuid, uid ) --> key
 	pub(super) type Keys<T:Config> = StorageDoubleMap<_, Identity, u16, Identity, u16, T::AccountId, ValueQuery, DefaultKey<T> >;
-
-
-
-	
-	#[pallet::storage] // --- ( netuid, name ) --> uid
-	pub type Namespace<T: Config> = StorageDoubleMap<_, Twox64Concat, u16, Twox64Concat, Vec<u8>, u16, ValueQuery>;
 	#[pallet::storage] // ( netuid, uid ) --> name
 	pub type Names<T: Config> = StorageDoubleMap<_, Twox64Concat, u16, Twox64Concat, u16, Vec<u8>, ValueQuery>;
 	#[pallet::storage] 

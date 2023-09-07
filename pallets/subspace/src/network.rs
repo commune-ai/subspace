@@ -590,17 +590,18 @@ impl<T: Config> Pallet<T> {
         return Uids::<T>::get(netuid, key).unwrap_or(0)
     }
 
-    pub fn get_uid_for_name ( netuid: u16, name: Vec<u8> ) -> u16  {
-        return Namespace::<T>::get(netuid, name)
-    }
-
     pub fn get_name_for_uid ( netuid: u16, uid: u16 ) -> Vec<u8>  {
         return Names::<T>::get(netuid, uid);
     }
 
 
     pub fn if_module_name_exists( netuid: u16, name: Vec<u8> ) -> bool {
-        return Namespace::<T>::contains_key( netuid, name.clone() );
+        for ( uid, _name ) in <Names<T> as IterableStorageDoubleMap<u16, u16, Vec<u8>>>::iter_prefix(netuid){
+            if _name == name {
+                return true;
+            }
+        }
+        return false;
         
     }
 
