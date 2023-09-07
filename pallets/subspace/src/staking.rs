@@ -75,7 +75,7 @@ impl<T: Config> Pallet<T> {
         log::info!("do_add_stake( origin:{:?} stake_to_be_added:{:?} )", key, amount );
 
         ensure!( Self::has_enough_balance(&key, amount), Error::<T>::NotEnoughBalanceToStake );
-        Self::add_stake_to_module(netuid, &key, &module_key, amount );
+        Self::increase_stake(netuid, &key, &module_key, amount );
         // --- 5. Emit the staking event.
         log::info!("StakeAdded( key:{:?}, stake_to_be_added:{:?} )", key, amount );
         Self::deposit_event( Event::StakeAdded( key, module_key, amount) );
@@ -245,27 +245,20 @@ impl<T: Config> Pallet<T> {
 
         Self::set_stake_to_vector(netuid, key, stake_to_vector);
         Self::set_stake_from_vector(netuid, module_key, stake_from_vector);
-        Self::increase_stake_on_account(netuid, module_key, amount);
-        
-        return true;
 
-    }
-
-    pub fn add_stake_to_module(netuid: u16, key: &T::AccountId, module_key: &T::AccountId, mut amount: u64 ) -> bool{
-        Self::increase_stake(netuid, key, module_key, amount);
+        Stake::<T>::insert(netuid, module_key, Stake::<T>::get(netuid, module_key).saturating_add( amount ) );
+        SubnetTotalStake::<T>::insert(netuid , SubnetTotalStake::<T>::get(netuid).saturating_add( amount ) );
+        TotalStake::<T>::put(TotalStake::<T>::get().saturating_add( amount ) );
         Self::remove_balance_from_account( key, Self::u64_to_balance( amount ).unwrap() );
-        
         return true;
 
     }
-
 
 
 
     pub fn decrease_stake(netuid: u16, key: &T::AccountId, module_key: &T::AccountId, amount: u64 ) -> bool{
 
         // FROM DELEGATE STAKE
-        let mut stake_to_vector: Vec<(T::AccountId, u64)> = Self::get_stake_to_vector(netuid, key);
         let mut stake_from_vector: Vec<(T::AccountId, u64)> = Self::get_stake_from_vector(netuid, module_key).clone();
 
         let mut idx_to_replace:usize = usize::MAX;
@@ -288,10 +281,11 @@ impl<T: Config> Pallet<T> {
             stake_from_vector.remove(end_idx);
         }
 
+
         Self::set_stake_from_vector(netuid, module_key, stake_from_vector);
 
 
-
+        let mut stake_to_vector: Vec<(T::AccountId, u64)> = Self::get_stake_to_vector(netuid, key);
         // TO STAKE 
         idx_to_replace = usize::MAX;
         end_idx = stake_to_vector.len() - 1;
@@ -315,30 +309,20 @@ impl<T: Config> Pallet<T> {
         
         Self::set_stake_to_vector(netuid, key, stake_to_vector);
 
-        Self::decrease_stake_on_account(netuid, module_key, amount);
-        Self::add_balance_to_account( key, Self::u64_to_balance( amount ).unwrap() );
+        // --- 8. We add the balancer to the key.  If the above fails we will not credit this key.
+        Stake::<T>::insert( netuid, module_key, Stake::<T>::get(netuid,  module_key).saturating_sub( amount ) );
+        TotalStake::<T>::put(TotalStake::<T>::get().saturating_sub( amount ) );
+        SubnetTotalStake::<T>::insert(netuid, SubnetTotalStake::<T>::get(netuid).saturating_sub( amount ) );    
 
+        
+        Self::add_balance_to_account( key, Self::u64_to_balance( amount ).unwrap() );
         return true;
 
     }
 
-
-    pub fn decrease_stake_on_account(netuid: u16,  key: &T::AccountId, amount: u64){
-        // --- 8. We add the balancer to the key.  If the above fails we will not credit this key.
-        Stake::<T>::insert( netuid, key, Stake::<T>::get(netuid,  key).saturating_sub( amount ) );
-        TotalStake::<T>::put(TotalStake::<T>::get().saturating_sub( amount ) );
-        SubnetTotalStake::<T>::insert(netuid, SubnetTotalStake::<T>::get(netuid).saturating_sub( amount ) );      
-    }  
-            
     
 
-    pub fn increase_stake_on_account(netuid:u16, key: &T::AccountId, amount: u64 ){
-        Stake::<T>::insert(netuid, key, Stake::<T>::get(netuid, key).saturating_add( amount ) );
-        SubnetTotalStake::<T>::insert(netuid , SubnetTotalStake::<T>::get(netuid).saturating_add( amount ) );
-        TotalStake::<T>::put(TotalStake::<T>::get().saturating_add( amount ) );
-        
-
-    }
+ 
 
 
     // Decreases the stake on the cold - hot pairing by the amount while decreasing other counters.

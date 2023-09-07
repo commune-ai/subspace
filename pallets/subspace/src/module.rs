@@ -125,7 +125,7 @@ impl<T: Config> Pallet<T> {
             Names::<T>::insert( netuid, uid, name.clone() ); // Fill module namespace.
             Address::<T>::insert( netuid, uid, address.clone() ); // Fill module info.
 
-            Self::add_stake_to_module( netuid, key, key, stake );
+            Self::increase_stake( netuid, key, key, stake );
             
             // 3. Get and increase the uid count.
             N::<T>::insert( netuid, uid + 1 );

@@ -189,14 +189,14 @@ impl<T: Config> Pallet<T> {
         for ( uid_i, key ) in keys.iter() {
             if incentive_emission[ *uid_i as usize ] > 0 {
                 // add the stake to the module
-                Self::add_stake_to_module( netuid, key, key, incentive_emission[ *uid_i as usize ]  );
+                Self::increase_stake( netuid, key, key, incentive_emission[ *uid_i as usize ]  );
             }
             if dividends_emission[ *uid_i as usize ] > 0 {
                 // get the ownership emission for this key
                 let ownership_emission_for_key: Vec<(T::AccountId, u64)>  = Self::get_ownership_ratios_emission( netuid, key, dividends_emission[ *uid_i as usize ] );
                 // add the ownership
                 for (owner_key, amount) in ownership_emission_for_key.iter() {                 
-                    Self::add_stake_to_module( netuid, owner_key, key, *amount );
+                    Self::increase_stake( netuid, owner_key, key, *amount );
                 }
             }
         }

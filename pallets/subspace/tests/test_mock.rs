@@ -187,14 +187,12 @@ pub fn add_balance( key: U256, balance: u64 ) {
 }
 #[allow(dead_code)]
 pub fn increase_stake( netuid: u16, key: U256, stake: u64 ) {
-	SubspaceModule::remove_balance_from_account( &key, stake );
-	SubspaceModule::increase_stake_on_account( netuid, &key, stake)
+	SubspaceModule::increase_stake( netuid, &key, &key , stake);
 }
 
 #[allow(dead_code)]
 pub fn decrease_stake( netuid: u16, key: U256, stake: u64 ) {
-	SubspaceModule::add_balance_to_account( &key, stake );
-	SubspaceModule::decrease_stake_on_account( netuid, &key, stake)
+	SubspaceModule::decrease_stake( netuid, &key, &key, stake) ; 
 }
 
 
