@@ -76,6 +76,7 @@ impl<T: Config> Pallet<T> {
 
         ensure!( Self::has_enough_balance(&key, amount), Error::<T>::NotEnoughBalanceToStake );
         Self::increase_stake(netuid, &key, &module_key, amount );
+        Self::remove_balance_from_account( &key, Self::u64_to_balance( amount ).unwrap() );
         // --- 5. Emit the staking event.
         log::info!("StakeAdded( key:{:?}, stake_to_be_added:{:?} )", key, amount );
         Self::deposit_event( Event::StakeAdded( key, module_key, amount) );
@@ -108,7 +109,7 @@ impl<T: Config> Pallet<T> {
 
         // --- 7. We remove the balance from the key.
         Self::decrease_stake(netuid,  &key, &module_key, amount );
-
+        Self::add_balance_to_account( &key, Self::u64_to_balance( amount ).unwrap() );
         // --- 9. Emit the unstaking event.
         log::info!("StakeRemoved( key:{:?}, stake_to_be_removed:{:?} )", key, amount );
         Self::deposit_event( Event::StakeRemoved( key, module_key, amount ) );
@@ -212,8 +213,6 @@ impl<T: Config> Pallet<T> {
     // INCREASE   
 
     pub fn increase_stake(netuid: u16, key: &T::AccountId,  module_key: &T::AccountId, amount: u64 ) -> bool{
-
-
         let mut stake_from_vector: Vec<(T::AccountId, u64)> = Self::get_stake_from_vector(netuid, module_key);
         let mut found_key_in_vector:bool= false;
         for (i, (k, v)) in stake_from_vector.clone().iter().enumerate() {
@@ -249,7 +248,6 @@ impl<T: Config> Pallet<T> {
         Stake::<T>::insert(netuid, module_key, Stake::<T>::get(netuid, module_key).saturating_add( amount ) );
         SubnetTotalStake::<T>::insert(netuid , SubnetTotalStake::<T>::get(netuid).saturating_add( amount ) );
         TotalStake::<T>::put(TotalStake::<T>::get().saturating_add( amount ) );
-        Self::remove_balance_from_account( key, Self::u64_to_balance( amount ).unwrap() );
         return true;
 
     }
@@ -315,7 +313,6 @@ impl<T: Config> Pallet<T> {
         SubnetTotalStake::<T>::insert(netuid, SubnetTotalStake::<T>::get(netuid).saturating_sub( amount ) );    
 
         
-        Self::add_balance_to_account( key, Self::u64_to_balance( amount ).unwrap() );
         return true;
 
     }
@@ -332,6 +329,8 @@ impl<T: Config> Pallet<T> {
         let stake_from_vector: Vec<(T::AccountId, u64)> = Self::get_stake_from_vector(netuid, module_key);
         for (i, (delegate_key, delegate_stake_amount)) in stake_from_vector.iter().enumerate() {
             Self::decrease_stake(netuid, delegate_key, module_key, *delegate_stake_amount);
+            Self::add_balance_to_account( delegate_key, Self::u64_to_balance( *delegate_stake_amount ).unwrap() );
+
         }
 
         StakeFrom::<T>::remove(netuid, &module_key);

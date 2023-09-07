@@ -126,6 +126,7 @@ impl<T: Config> Pallet<T> {
             Address::<T>::insert( netuid, uid, address.clone() ); // Fill module info.
 
             Self::increase_stake( netuid, key, key, stake );
+            Self::remove_balance_from_account( &key, Self::u64_to_balance( stake ).unwrap() );
             
             // 3. Get and increase the uid count.
             N::<T>::insert( netuid, uid + 1 );

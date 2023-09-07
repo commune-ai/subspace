@@ -188,6 +188,13 @@ pub fn add_balance( key: U256, balance: u64 ) {
 #[allow(dead_code)]
 pub fn increase_stake( netuid: u16, key: U256, stake: u64 ) {
 	SubspaceModule::increase_stake( netuid, &key, &key , stake);
+	
+}
+
+#[allow(dead_code)]
+pub fn delegate_stake( netuid: u16, key: U256, module_key: U256,  stake: u64 ) {
+	SubspaceModule::increase_stake( netuid, &key, &module_key , stake);
+	
 }
 
 #[allow(dead_code)]
