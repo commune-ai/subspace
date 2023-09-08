@@ -390,9 +390,11 @@ pub mod pallet {
 	#[cfg(feature = "std")]
 	pub struct GenesisConfig<T: Config> {
 		// key, name, address, stake, weights 
-		pub modules: Vec<Vec<(T::AccountId, Vec<u8>, Vec<u8>, u64, Vec<(u16, u16)>)>>,
+		pub modules: Vec<Vec<(T::AccountId, Vec<u8>, Vec<u8>, Vec<(u16, u16)>)>>,
 		// name, tempo, immunity_period, max_allowed_uids, min_allowed_weight, max_registrations_per_block, max_allowed_weights
 		pub subnets: Vec<(Vec<u8>, u16, u16, u16, u16, u16, T::AccountId)>,
+
+		pub stake_to: Vec<Vec<(T::AccountId, Vec<(T::AccountId, u64)>)>>,
 
 		pub block: u32,
 	}
@@ -403,6 +405,7 @@ pub mod pallet {
 			Self { 
 				modules: Default::default(),
 				subnets: Default::default(),
+				stake_to: Default::default(),
 				block: Default::default(),
 			}
 		}
@@ -427,11 +430,21 @@ pub mod pallet {
 											   &subnet.6, // founder
 											   0 as u64 // stake
 											);
-				for (uid_usize, (key, name, address, stake, weights)) in self.modules[subnet_idx].iter().enumerate() {
+				for (uid_usize, (key, name, address, weights)) in self.modules[subnet_idx].iter().enumerate() {
 					let uid = uid_usize as u16;
-					self::Pallet::<T>::append_module(netuid, key, name.clone(), address.clone(), *stake);
+					self::Pallet::<T>::append_module(netuid, key, name.clone(), address.clone(), 0);
 					Weights::<T>::insert(netuid, uid , weights);
 					
+				}
+			}
+			// Now we can add the stake to the network
+			for ( subnet_idx, subnet) in self.subnets.iter().enumerate() {
+				let netuid: u16 = subnet_idx as u16;
+
+				for (key, stake_to) in self.stake_to[netuid as usize].iter() {
+					for (module_key, stake_amount) in stake_to {
+						self::Pallet::<T>::increase_stake(netuid, key, module_key, *stake_amount);
+					}
 				}
 			}
 			

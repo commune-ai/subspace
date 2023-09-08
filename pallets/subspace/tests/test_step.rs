@@ -358,3 +358,55 @@ fn test_blocks_until_epoch(){
 
     });
 }
+
+
+fn random_weights_test() {
+	new_test_ext().execute_with(|| {
+    // CONSSTANTS
+    let netuid: u16 = 0;
+    let n : u16 = 1000;
+    let blocks_per_epoch_list : u64 = 1;
+    let stake_per_module : u64 = 10_000;
+    let tempo : u16 = 1;
+    
+    // SETUP NETWORK
+    register_n_modules( netuid, n, stake_per_module );
+
+    SubspaceModule::set_tempo( netuid, 1 );
+    SubspaceModule::set_max_allowed_weights(netuid, n );
+    SubspaceModule::set_min_allowed_weights(netuid, 1 );
+
+    // do a list of ones for weights
+
+    let keys: Vec<U256> = SubspaceModule::get_keys( netuid );
+
+    let num_blocks : u64 = 1000;
+
+    
+    for i in 0..num_blocks {
+        let mut weight_uids : Vec<u16> = (0..n).collect();
+        weight_uids.shuffle(&mut thread_rng());
+        // do a list of ones for weights
+        // normal distribution
+        let mut rng = thread_rng();
+        let mut weight_values : Vec<u16> = weight_uids.iter().map(|x| rng.gen_range(0..100) as u16 ).collect();
+        weight_values.shuffle(&mut thread_rng());
+        set_weights(netuid, keys[0], weight_uids.clone() , weight_values.clone() );
+
+
+        
+        let lowest_priority_uid: u16 = SubspaceModule::get_lowest_uid(netuid);
+        let lowest_priority_key: U256 = SubspaceModule::get_key_for_uid(netuid, lowest_priority_uid);
+        step_block( tempo );
+        let new_key : U256 = U256::from( n + 1 );
+        register_module( netuid, new_key, stake_per_module );
+        assert!( SubspaceModule::is_key_registered( netuid, &lowest_priority_key) );
+        assert!( SubspaceModule::get_subnet_n( netuid ) == n );
+    }
+
+
+    
+    });
+
+
+}

@@ -71,12 +71,16 @@ struct SubspaceJSONState {
 	balances: std::collections::HashMap<String, u64>,
 	// subnet -> (name, tempo, immunity_period, min_allowed_weights, max_allowed_weights, max_allowed_uids, founder)
 	subnets: Vec<(String, u16, u16, u16, u16, u16, String )>,
-	// module -> (key, name, address, stake, weights)
-	modules : Vec<Vec<(String, String, String, u64, Vec<(u16, u16)>)>>,
+	
+	// subnet -> module -> (key, name, address, stake, weights)
+	modules : Vec<Vec<(String, String, String, Vec<(u16, u16)>)>>,
 
+	// subnet -> key -> (module_key, amount)
+	stake_to: Vec<Vec<(String, Vec<(String, u64)>)>>,
+
+	// block at sync
 	block: u32,
 
-	version : u16, //
 
 }
 
@@ -103,7 +107,8 @@ pub fn generate_config(network:String) -> Result<ChainSpec, String> {
 	let block : u32 = state.block;
 	// (name, tempo, immunity_period, min_allowed_weights, max_allowed_weights, max_allowed_uids, founder)
 	let mut subnets: Vec<( Vec<u8>, u16, u16, u16 , u16, u16, sp_runtime::AccountId32)> = Vec::new();
-	let mut modules: Vec<Vec<(sp_runtime::AccountId32, Vec<u8>, Vec<u8>, u64, Vec<(u16,u16)>)>> = Vec::new();
+	let mut modules: Vec<Vec<(sp_runtime::AccountId32, Vec<u8>, Vec<u8>, Vec<(u16,u16)>)>> = Vec::new();
+	let mut stake_to: Vec<Vec<(sp_runtime::AccountId32,Vec<(sp_runtime::AccountId32, u64)>)>> = Vec::new();
 
 	for (netuid, subnet) in state.subnets.iter().enumerate() {
 
@@ -123,22 +128,30 @@ pub fn generate_config(network:String) -> Result<ChainSpec, String> {
 				sp_runtime::AccountId32::from(<sr25519::Public as Ss58Codec>::from_ss58check(&module.0).unwrap()),
 				module.1.as_bytes().to_vec(), // key
 				module.2.as_bytes().to_vec(), // name
-				module.3, // stake 
-				module.4.iter().map(|(a,b)| (*a,*b)).collect(), // Convert to tuples
+				module.3.iter().map(|(a,b)| (*a,*b)).collect(), // Convert to tuples
 			));
 		}
+		stake_to.push(Vec::new());
+		for (key_str, key_stake_to) in state.stake_to[netuid].iter() {	
+			stake_to[netuid].push((
+				sp_runtime::AccountId32::from(<sr25519::Public as Ss58Codec>::from_ss58check(&key_str).unwrap()),
+				key_stake_to.iter().map(|(a,b)| (sp_runtime::AccountId32::from(<sr25519::Public as Ss58Codec>::from_ss58check(&a).unwrap()), *b)).collect(),
+
+			));
+		}
+	
+	
 
 	}
 
-	let mut balances_issuance: u64 = 0;
 	let mut processed_balances: Vec<(sp_runtime::AccountId32, u64)> = Vec::new();
 	for (key_str, amount) in state.balances.iter() {
 		let key = <sr25519::Public as Ss58Codec>::from_ss58check(&key_str).unwrap();
 		let key_account = sp_runtime::AccountId32::from(key);
 
 		processed_balances.push((key_account, *amount));
-		balances_issuance += *amount;
 	}
+
 
 	// Give front-ends necessary data to present to users
 	let mut properties = sc_service::Properties::new();
@@ -169,6 +182,7 @@ pub fn generate_config(network:String) -> Result<ChainSpec, String> {
 				processed_balances.clone(), // balances
 				modules.clone(), // modules,
 				subnets.clone(), // subnets,
+				stake_to.clone(), // stake_to,
 				block,
 				
 			)
@@ -207,8 +221,9 @@ fn network_genesis(
 	initial_authorities: Vec<(AuraId, GrandpaId)>,
 	root_key: AccountId,
 	balances: Vec<(AccountId, u64)>,
-	modules: Vec<Vec<(AccountId,Vec<u8>, Vec<u8>, u64, Vec<(u16, u16)>)>>,
+	modules: Vec<Vec<(AccountId,Vec<u8>, Vec<u8>, Vec<(u16, u16)>)>>,
 	subnets: Vec<(Vec<u8>, u16, u16, u16, u16, u16 ,AccountId)>,
+	stake_to: Vec<Vec<(AccountId, Vec<(AccountId, u64)>)>>,
 	block: u32,
 
 
@@ -240,6 +255,7 @@ fn network_genesis(
 			modules: modules,
 			subnets: subnets,
 			block: block,
+			stake_to: stake_to,
 		},
 	}
 }
