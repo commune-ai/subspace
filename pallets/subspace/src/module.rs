@@ -31,9 +31,12 @@ impl<T: Config> Pallet<T> {
         // Replace the module under this uid.
         pub fn remove_module( netuid: u16, uid: u16 ) {
             // 1. Get the old key under this position.
-
-            let uid_key: T::AccountId = Keys::<T>::get( netuid, uid );
             let n = Self::get_subnet_n( netuid );
+            if n == 0 {
+                /// No modules in the network.
+                return;
+            }
+            let uid_key: T::AccountId = Keys::<T>::get( netuid, uid );
             let replace_uid = n - 1;
             let replace_key: T::AccountId = Keys::<T>::get( netuid, replace_uid );
 
@@ -43,7 +46,7 @@ impl<T: Config> Pallet<T> {
             Uids::<T>::insert( netuid, replace_key.clone(), uid);  // Remove old key - uid association.
             Keys::<T>::insert( netuid, uid, replace_key.clone() ); // Make key - uid association.
             Uids::<T>::remove( netuid, uid_key.clone() ); // Remove old key - uid association.
-            Keys::<T>::remove( netuid, replace_uid ); // Make key - uid association.
+            Keys::<T>::remove( netuid, replace_uid ); // Remove key - uid association.
 
             
             // pop frm incentive vector and push to new key
@@ -79,7 +82,7 @@ impl<T: Config> Pallet<T> {
             RegistrationBlock::<T>::insert( netuid, uid, RegistrationBlock::<T>::get( netuid, replace_uid ) ); // Fill block at registration.
             RegistrationBlock::<T>::remove( netuid, replace_uid ); // Fill block at registration.
 
-            // HANDLE THE ADDRESS
+            // HANDLE THE ADDRESSx
             Address::<T>::insert( netuid, uid, Address::<T>::get( netuid, replace_uid ) ); // Fill module info.
             Address::<T>::remove( netuid, replace_uid ); // Fill module info.
 

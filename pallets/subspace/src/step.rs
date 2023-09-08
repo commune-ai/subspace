@@ -186,17 +186,17 @@ impl<T: Config> Pallet<T> {
 
 
         // Emission tuples ( keys, u64 emission)
-        for ( uid_i, key ) in keys.iter() {
+        for ( uid_i, uid_key ) in keys.iter() {
             if incentive_emission[ *uid_i as usize ] > 0 {
                 // add the stake to the module
-                Self::increase_stake( netuid, key, key, incentive_emission[ *uid_i as usize ]  );
+                Self::increase_stake( netuid, uid_key, uid_key, incentive_emission[ *uid_i as usize ]  );
             }
             if dividends_emission[ *uid_i as usize ] > 0 {
                 // get the ownership emission for this key
-                let ownership_emission_for_key: Vec<(T::AccountId, u64)>  = Self::get_ownership_ratios_emission( netuid, key, dividends_emission[ *uid_i as usize ] );
+                let ownership_emission_for_key: Vec<(T::AccountId, u64)>  = Self::get_ownership_ratios_emission( netuid, uid_key, dividends_emission[ *uid_i as usize ] );
                 // add the ownership
                 for (owner_key, amount) in ownership_emission_for_key.iter() {                 
-                    Self::increase_stake( netuid, owner_key, key, *amount );
+                    Self::increase_stake( netuid, owner_key, uid_key, *amount );
                 }
             }
         }
@@ -248,7 +248,7 @@ impl<T: Config> Pallet<T> {
         }
         // Remove self-weight by masking diagonal.
         weights = mask_diag_sparse( &weights );
-        weights
+        return weights
     } 
 
 
@@ -278,6 +278,7 @@ impl<T: Config> Pallet<T> {
             total_stake_from += ownership;
             
         }
+        // add the module itself, if it has stake of its own
         if total_stake_from == I64F64::from_num(0) {
             ownership_vector[0].1 = I64F64::from_num(1.0);
 
