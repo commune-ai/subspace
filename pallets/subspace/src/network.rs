@@ -8,6 +8,7 @@ use frame_support::pallet_prelude::{Decode, Encode};
 use codec::Compact;
 use frame_support::pallet_prelude::{DispatchError, DispatchResult};
 use substrate_fixed::types::{I64F64, I32F32};
+use frame_support::traits::Currency;
 extern crate alloc;
 
 
@@ -266,7 +267,7 @@ impl<T: Config> Pallet<T> {
     pub fn get_total_subnet_balance( netuid: u16 ) -> u64 {
         let mut total_subnet_balance: u64 = 0;
         for ( key, stated_amount ) in <Stake<T> as IterableStorageDoubleMap<u16, T::AccountId, u64> >::iter_prefix(netuid){
-            total_subnet_balance = Self::get_balance_as_u64( &key ) + total_subnet_balance;
+            total_subnet_balance = Self::get_balance_u64( &key ) + total_subnet_balance;
         }
         return total_subnet_balance;
     }
@@ -341,15 +342,32 @@ impl<T: Config> Pallet<T> {
     }
 
 
+    // pub fn total_balance() -> u64 {
+    //     let mut total_balance: u64 = 0;
+    //     // iterate through all of the accounts with balance (noo stake)
+        
+    //     for ( key, stated_amount ) in <Stake<T> as IterableStorageDoubleMap<u16, T::AccountId, u64> >::iter(){
+    //         total_balance = Self::get_balance_u64( &key ) + total_balance;
+    //     }
+    //     return total_balance;
+    // }
+
+
+    pub fn market_cap() -> u64 {
+        let total_stake: u64 = Self::total_stake();
+        return total_stake ;
+    }
+
+
     // Returns the total amount of stake in the staking table.
     pub fn get_total_emission_per_block() -> u64 {
-        let total_stake: u64 = Self::get_total_stake();
+        let market_cap: u64 = Self::market_cap();
         let mut emission_per_block : u64 = 2_000_000_000; // assuming 2 second block times
         let halving_total_stake_checkpoints: Vec<u64> = vec![10_000_000, 20_000_000, 30_000_000, 40_000_000].iter().map(|x| x*1_000_000_000).collect();
         
         for (i, having_stake) in halving_total_stake_checkpoints.iter().enumerate() {
             let halving_factor = 2u64.pow((i) as u32);
-            if total_stake < *having_stake {
+            if market_cap < *having_stake {
                 emission_per_block = emission_per_block / halving_factor;
                 break;
             }
@@ -366,9 +384,7 @@ impl<T: Config> Pallet<T> {
 
 
         let subnet_stake: I64F64 =I64F64::from_num( Self::get_total_subnet_stake(netuid));
-
-        let total_stake_u64: u64 = Self::get_total_stake();
-        let total_stake: I64F64 = I64F64::from_num(total_stake_u64);
+        let total_stake: I64F64 = I64F64::from_num(Self::total_stake());
 
         let mut subnet_ratio: I64F64 = I64F64::from_num(0);
         if total_stake > I64F64::from_num(0) {
@@ -662,7 +678,7 @@ impl<T: Config> Pallet<T> {
     pub fn get_last_update_for_uid( netuid:u16, uid: u16) -> u64 { let vec = LastUpdate::<T>::get( netuid ); if (uid as usize) < vec.len() { return vec[uid as usize] } else{ return 0 } }
     pub fn get_pruning_score_for_uid( netuid:u16, uid: u16) -> u16 { let vec = Emission::<T>::get( netuid ); if (uid as usize) < vec.len() { return vec[uid as usize] as u16 } else{ return 0 } }
     pub fn get_max_immunity_uids( netuid:u16 ) -> u16 { 
-        let max_allowed_uids: I32F32 = I32F32::from_num(Self::get_subnet_n(netuid));
+        let max_allowed_uids: I32F32 = I32F32::from_num(Self::get_max_allowed_uids(netuid));
         let immunity_ratio: I32F32 = I32F32::from_num(Self::get_max_immunity_ratio(netuid))/ I32F32::from_num(100);
         return (max_allowed_uids*immunity_ratio).to_num::<u16>();
     }

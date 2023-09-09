@@ -90,7 +90,7 @@ fn test_stake() {
             }
             assert_eq!(SubspaceModule::get_total_subnet_stake(netuid), subnet_stake);
             total_stake += subnet_stake.clone();
-            assert_eq!(SubspaceModule::get_total_stake(), total_stake);
+            assert_eq!(SubspaceModule::total_stake(), total_stake);
             subnet_stake = 0;
             println!("TOTAL STAKE: {}", total_stake);
             println!("TOTAL SUBNET STAKE: {}", SubspaceModule::get_total_subnet_stake(netuid));
@@ -166,7 +166,7 @@ fn test_delegate_stake() {
             }
             assert_eq!(SubspaceModule::get_total_subnet_stake(netuid), subnet_stake);
             total_stake += subnet_stake.clone();
-            assert_eq!(SubspaceModule::get_total_stake(), total_stake);
+            assert_eq!(SubspaceModule::total_stake(), total_stake);
             subnet_stake = 0;
             println!("TOTAL STAKE: {}", total_stake);
             println!("TOTAL SUBNET STAKE: {}", SubspaceModule::get_total_subnet_stake(netuid));

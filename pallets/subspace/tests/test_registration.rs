@@ -81,7 +81,7 @@ fn test_registration_with_stake() {
 			let stake_before : u64 = SubspaceModule::get_stake(netuid, &key);
 			println!("stake_before: {:?}", stake_before);
 			register_module(netuid, key, stake_value);
-			println!("balance: {:?}", SubspaceModule::get_balance_as_u64(&key));
+			println!("balance: {:?}", SubspaceModule::get_balance_u64(&key));
 			assert_eq!(SubspaceModule::get_stake_for_uid(netuid, uid), stake_value);
 		}
 	});

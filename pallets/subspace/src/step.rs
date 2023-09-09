@@ -113,14 +113,12 @@ impl<T: Config> Pallet<T> {
         log::trace!( "S (mask+norm): {:?}", &stake );
 
         // =============
-        // == Weights ==
+        // == Weights (N x N) Sparsified ==
         // =============
 
         // Access network weights row normalized.
         let mut weights: Vec<Vec<(u16, I32F32)>> = Self::get_weights_sparse( netuid );
         log::trace!( "W (permit): {:?}", &weights );
-
-        log::trace!( "W (permit+diag): {:?}", &weights );
 
         // Normalize remaining weights.
         inplace_row_normalize_sparse( &mut weights );

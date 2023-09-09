@@ -27,10 +27,6 @@ impl<T: Config> Pallet<T> {
         
         let uid : u16 =   Self::get_uid_for_key( netuid, &key );
 
-        // --- 8. Ensure the uid is not setting weights faster than the weights_set_rate_limit.
-        let current_block: u64 = Self::get_current_block_as_u64();
-
- 
         // --- 10. Ensure the passed uids contain no duplicates.
         ensure!( !Self::has_duplicate_uids( &uids ), Error::<T>::DuplicateUids );
 
@@ -54,6 +50,8 @@ impl<T: Config> Pallet<T> {
         // --- 16. Set weights under netuid, uid double map entry.
         Weights::<T>::insert( netuid, uid, zipped_weights );
 
+        // --- 8. Ensure the uid is not setting weights faster than the weights_set_rate_limit.
+        let current_block: u64 = Self::get_current_block_as_u64();
         // --- 17. Set the activity for the weights on this network.
         Self::set_last_update_for_uid( netuid, uid, current_block );
 

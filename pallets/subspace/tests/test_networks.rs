@@ -158,12 +158,13 @@ fn test_emission_ratio() {
     let netuids : Vec<u16> = [0,1,2,3,4,5,6,7,8,9].to_vec();
     let stake_per_module : u64 = 1_000_000_000;
     let mut emissions_per_subnet : Vec<u64> = Vec::new();
-    let max_delta : f64 = 1.0;
+    let max_delta : f64 =1.0;
+    let n:u16 = 10;
 
     for i in 0..netuids.len() {
         let key = U256::from(netuids[i]);
         let netuid = netuids[i];
-        register_module(netuid,key, stake_per_module);
+        register_n_modules(netuid, 1, stake_per_module);
         let subnet_emission : u64  = SubspaceModule::get_subnet_emission(netuid);
         emissions_per_subnet.push(subnet_emission);
         let expected_emission_factor : f64 = 1.0 / (netuids.len() as f64);
@@ -178,6 +179,7 @@ fn test_emission_ratio() {
         } else {
             delta = expected_emission as f64 - subnet_emission as f64;
         }
+
         assert!(delta <= max_delta, "emission {} is too far from expected emission {} ", subnet_emission, expected_emission);
         assert!(block == 0 , "block {} is not 0", block);
         println!("block {} subnet_emission {} ", block, subnet_emission);
@@ -278,7 +280,7 @@ fn test_set_max_allowed_uids_shrinking() {
         let og_keys = SubspaceModule::get_keys(netuid) ;
         let mut old_total_subnet_balance : u64 = 0;
         for key in og_keys.clone() {
-            old_total_subnet_balance = old_total_subnet_balance + SubspaceModule::get_balance_as_u64( &key);
+            old_total_subnet_balance = old_total_subnet_balance + SubspaceModule::get_balance_u64( &key);
         }
 
         let subnet = SubspaceModule::get_subnet(netuid);
@@ -294,7 +296,7 @@ fn test_set_max_allowed_uids_shrinking() {
 
         let mut new_total_subnet_balance : u64 = 0;
         for key in og_keys.clone() {
-            new_total_subnet_balance = new_total_subnet_balance + SubspaceModule::get_balance_as_u64( &key);
+            new_total_subnet_balance = new_total_subnet_balance + SubspaceModule::get_balance_u64( &key);
         }
         println!("old total subnet balance {}", old_total_subnet_balance);
         println!("new total subnet balance {}", new_total_subnet_balance);
@@ -318,7 +320,7 @@ fn test_set_max_allowed_uids_shrinking() {
 
         expected_stake = (max_uids) as u64 * stake; 
         let subnet_stake = SubspaceModule::get_total_subnet_stake(netuid);
-        total_stake = SubspaceModule::get_total_stake();
+        total_stake = SubspaceModule::total_stake();
     
         assert_eq!(total_stake, expected_stake);
 

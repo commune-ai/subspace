@@ -359,49 +359,140 @@ fn test_blocks_until_epoch(){
     });
 }
 
-
-fn random_weights_test() {
+#[test]
+fn simulation_final_boss() {
 	new_test_ext().execute_with(|| {
     // CONSSTANTS
     let netuid: u16 = 0;
-    let n : u16 = 1000;
+    let n : u16 = 100;
     let blocks_per_epoch_list : u64 = 1;
     let stake_per_module : u64 = 10_000;
     let tempo : u16 = 1;
-    
+    let num_blocks : u64 = 100;
+    let min_stake : u64 = 10;
+
     // SETUP NETWORK
-    register_n_modules( netuid, n, stake_per_module );
+    for i in 0..n {
+
+        let key: U256 = U256::from(i);
+        register_module( netuid, key, stake_per_module );
+    }
+
+
+    let mut keys : Vec<U256> = SubspaceModule::get_keys( netuid );
+
+
+
+    for i in 0..n {
+
+        let key: U256 = U256::from(i);
+        let mut weight_uids : Vec<u16> = (0..n).collect();
+        weight_uids.shuffle(&mut thread_rng());
+
+        // shuffle the stakers
+        let stake_ratio : u16 = thread_rng().gen_range(0..n) as u16;
+        keys.shuffle(&mut thread_rng());
+        let mut staker_keys : Vec<U256> = keys.clone()[0..stake_ratio as usize].to_vec();
+
+
+        for mut staker_key in staker_keys.iter() {
+            let staker_stake : u64 = SubspaceModule::get_self_stake( netuid, staker_key );
+            let stake_balance : u64 = SubspaceModule::get_balance_u64( staker_key );
+
+            if staker_stake < min_stake {
+                continue;
+            }
+            println!("staker_stake: {:?}", staker_stake);
+
+            let stake_amount: u64 = thread_rng().gen_range(1..staker_stake) as u64;
+            let origin = get_origin(*staker_key);
+
+            println!("staker_key: {:?}", staker_key);
+            println!("stake_amount: {:?}", stake_amount);
+            println!("staker_stake: {:?}", staker_stake);
+            
+            SubspaceModule::remove_stake(origin.clone(), netuid, *staker_key, stake_amount ).unwrap();
+            let stake_balance : u64 = SubspaceModule::get_balance_u64( staker_key );
+            println!("stake_balance: {:?}", stake_balance);
+
+            SubspaceModule::add_stake(origin, netuid, key, stake_amount ).unwrap();
+        }
+    }
 
     SubspaceModule::set_tempo( netuid, 1 );
     SubspaceModule::set_max_allowed_weights(netuid, n );
     SubspaceModule::set_min_allowed_weights(netuid, 1 );
+    SubspaceModule::set_max_allowed_uids(netuid, n );
+    
 
     // do a list of ones for weights
 
     let keys: Vec<U256> = SubspaceModule::get_keys( netuid );
+    let mut expected_total_stake: u64 = SubspaceModule::get_total_subnet_stake( netuid );
 
-    let num_blocks : u64 = 1000;
-
-    
     for i in 0..num_blocks {
         let mut weight_uids : Vec<u16> = (0..n).collect();
         weight_uids.shuffle(&mut thread_rng());
         // do a list of ones for weights
         // normal distribution
-        let mut rng = thread_rng();
-        let mut weight_values : Vec<u16> = weight_uids.iter().map(|x| rng.gen_range(0..100) as u16 ).collect();
-        weight_values.shuffle(&mut thread_rng());
-        set_weights(netuid, keys[0], weight_uids.clone() , weight_values.clone() );
 
+        for i in 0..n {
+            let mut rng = thread_rng();
+            let mut weight_values : Vec<u16> = weight_uids.iter().map(|x| rng.gen_range(0..100) as u16 ).collect();
+            weight_values.shuffle(&mut thread_rng());
+            let key_stake: u64 = SubspaceModule::get_stake( netuid, &keys[i as usize] );
+            if key_stake == 0 {
+                continue;
+            }
 
+            set_weights(netuid, keys[i as usize], weight_uids.clone() , weight_values.clone() );
+        }
+
+        step_block( tempo );
+
+       
         
         let lowest_priority_uid: u16 = SubspaceModule::get_lowest_uid(netuid);
         let lowest_priority_key: U256 = SubspaceModule::get_key_for_uid(netuid, lowest_priority_uid);
-        step_block( tempo );
-        let new_key : U256 = U256::from( n + 1 );
+        let mut lowest_priority_stake: u64 = SubspaceModule::get_stake( netuid, &lowest_priority_key );
+        let mut lowest_priority_balance: u64 = SubspaceModule::get_balance_u64(&lowest_priority_key );
+        println!("lowest_priority_stake (BEFORE DEREG): {}", lowest_priority_stake);
+        println!("lowest_priority_balance (BEFORE DEREG): {}", lowest_priority_balance);
+        
+        let new_key : U256 = U256::from( n + i as u16 + 1 );
         register_module( netuid, new_key, stake_per_module );
-        assert!( SubspaceModule::is_key_registered( netuid, &lowest_priority_key) );
+        assert!( !SubspaceModule::is_key_registered( netuid, &lowest_priority_key) );
         assert!( SubspaceModule::get_subnet_n( netuid ) == n );
+
+        expected_total_stake += SubspaceModule::get_subnet_emission( netuid ) as u64 + stake_per_module;
+        expected_total_stake -= lowest_priority_stake;
+
+
+        lowest_priority_stake = SubspaceModule::get_stake( netuid, &lowest_priority_key );
+        lowest_priority_balance = SubspaceModule::get_balance_u64( &lowest_priority_key );
+        println!("lowest_priority_stake (AFTER DEREG): {}", lowest_priority_stake);
+        println!("lowest_priority_balance (BEFORE DEREG): {}", lowest_priority_balance);
+
+        assert!( lowest_priority_stake == 0 );
+        assert!( SubspaceModule::get_stake( netuid, &new_key ) == stake_per_module );
+        let emissions: Vec<u64> = SubspaceModule::get_emissions( netuid );
+
+        let sumed_emission  : u64 = emissions.iter().sum();
+        let expected_emission : u64 = SubspaceModule::get_subnet_emission( netuid )  as u64;
+        println!("sumed_emission: {}", sumed_emission);
+        println!("expected_emission: {}", expected_emission);
+
+        let delta : u64 = 10_000_000;
+        assert!( sumed_emission > expected_emission - delta || sumed_emission < expected_emission + delta );
+
+
+
+        let total_stake = SubspaceModule::get_total_subnet_stake( netuid );
+        assert!( total_stake > expected_total_stake - delta  || total_stake < expected_total_stake + delta , "total_stake: {} != expected_total_stake: {}", total_stake, expected_total_stake );
+    
+
+    
+
     }
 
 

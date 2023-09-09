@@ -154,7 +154,7 @@ pub fn normalize( x: &Vec<I32F32> ) -> Vec<I32F32> {
 #[allow(dead_code)]
 pub fn inplace_normalize( x: &mut Vec<I32F32> ) {
     let x_sum: I32F32 = x.iter().sum();
-    if x_sum == I32F32::from_num( 0.0 as f32 ){ return }
+    if x_sum == I32F32::from_num( 0.0 ){ return }
     for i in 0..x.len() {
         x[i] = x[i]/x_sum;
     }

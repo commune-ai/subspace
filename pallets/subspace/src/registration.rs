@@ -124,6 +124,10 @@ impl<T: Config> Pallet<T> {
             lowest_priority_uid = uid_with_min_score;
         }
 
+        if lowest_priority_uid == u16::MAX {
+            lowest_priority_uid = uid_with_min_score;
+        }
+
 
         return lowest_priority_uid;
     } 

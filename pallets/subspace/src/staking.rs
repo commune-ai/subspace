@@ -125,7 +125,7 @@ impl<T: Config> Pallet<T> {
     }
 
     // Returns the total amount of stake in the staking table.
-    pub fn get_total_stake() -> u64 { 
+    pub fn total_stake() -> u64 { 
         return TotalStake::<T>::get();
     }
 
@@ -139,11 +139,6 @@ impl<T: Config> Pallet<T> {
     pub fn get_stakes(netuid:u16) -> Vec<u64> { 
         return Stake::<T>::iter_prefix(netuid).map(|(_, v)| v).collect::<Vec<u64>>();
     }
-    // // Returns the stake under the cold - hot pairing in the staking table.
-    // //
-    // pub fn get_stake_for_uid(netuid:u16, uid: u16 ) -> u64 { 
-    //     return Stake::<T>::get(netuid,  Self::get_key_for_uid(netuid, uid) );
-    // }
     
     // Returns the stake under the cold - hot pairing in the staking table.
     pub fn key_account_exists(netuid:u16, key : &T::AccountId) -> bool {
@@ -154,6 +149,10 @@ impl<T: Config> Pallet<T> {
     //
     pub fn has_enough_stake(netuid: u16, key: &T::AccountId,  module_key: &T::AccountId, amount: u64 ) -> bool {
         return Self::get_stake_to_module(netuid , key, module_key ) >= amount;
+    }
+
+    pub fn get_self_stake(netuid:u16, key: &T::AccountId ) -> u64 { 
+        return Self::get_stake_to_module(netuid, key, key);
     }
 
     pub fn get_stake_to_module(netuid:u16, key: &T::AccountId, module_key: &T::AccountId ) -> u64 { 
@@ -167,8 +166,6 @@ impl<T: Config> Pallet<T> {
 
         return state_to;
     }
-
-
 
     pub fn get_stake_to_vector(netuid:u16, key:&T::AccountId, ) -> Vec<(T::AccountId, u64)> { 
         return StakeTo::<T>::get(netuid, key);
@@ -241,7 +238,7 @@ impl<T: Config> Pallet<T> {
         if !found_key_in_vector {
             stake_to_vector.push( (module_key.clone(), amount) );
         }
-
+        
         Self::set_stake_to_vector(netuid, key, stake_to_vector);
         Self::set_stake_from_vector(netuid, module_key, stake_from_vector);
 
@@ -369,16 +366,16 @@ impl<T: Config> Pallet<T> {
 
     pub fn balance_to_u64( input: <<T as Config>::Currency as Currency<<T as system::Config>::AccountId>>::Balance) -> u64 { input.try_into().ok().unwrap() }
 
-    pub fn get_balance_as_u64(key: &T::AccountId) -> u64 {
+    pub fn get_balance_u64(key: &T::AccountId) -> u64 {
         return Self::balance_to_u64( Self::get_balance(key) );
     }
 
     pub fn has_enough_balance(key: &T::AccountId, amount: u64 ) -> bool {
-        return Self::get_balance_as_u64(key) >= amount;
+        return Self::get_balance_u64(key) >= amount;
     }
 
     pub fn resolve_stake_amount(key: &T::AccountId, stake: u64 ) -> u64 {
-        let balance = Self::get_balance_as_u64(key);
+        let balance = Self::get_balance_u64(key);
         if balance <= stake {
             return balance;
         } else {
