@@ -372,7 +372,7 @@ fn simulation_final_boss() {
     let stake_per_module : u64 = 10_000;
     let tempo : u16 = 1;
     let num_blocks : u64 = 100;
-    let min_stake : u64 = 10;
+    let min_stake : u64 = 1000;
 
     // SETUP NETWORK
     for i in 0..n {
@@ -454,6 +454,7 @@ fn simulation_final_boss() {
         let test_key = keys.choose(&mut thread_rng()).unwrap();
         let test_uid = SubspaceModule::get_uid_for_key( netuid, test_key );
         let test_key_stake_before : u64 = SubspaceModule::get_stake( netuid, test_key );
+        let test_key_stake_from_vector_before : Vec<(U256, u64)> = SubspaceModule::get_stake_from_vector( netuid, test_key );
 
 
         step_block( tempo );
@@ -466,9 +467,28 @@ fn simulation_final_boss() {
 
         let test_key_stake_difference : u64 = test_key_stake - test_key_stake_before;
         let test_key_emission = emissions[test_uid as usize];
-        let emission_delta : u64 = 100;
-        assert!( test_key_stake_difference > test_key_emission - emission_delta || test_key_stake_difference < test_key_emission + emission_delta, "test_key_stake_difference: {} != test_key_emission: {}", test_key_stake_difference, test_key_emission ); 
+        let errror_delta : u64 = (test_key_emission as f64 * 0.001) as u64;
+        assert!( test_key_stake_difference > test_key_emission - errror_delta || test_key_stake_difference < test_key_emission + errror_delta, "test_key_stake_difference: {} != test_key_emission: {}", test_key_stake_difference, test_key_emission ); 
         
+        println!("test_uid {}", test_uid);
+        println!("test_key_stake_from_vector_before: {:?}", test_key_stake_from_vector_before);
+        println!("test_key_stake_from_vector: {:?}", test_key_stake_from_vector);
+        for (i,(stake_key, stake_amount)) in test_key_stake_from_vector.iter().enumerate() {
+            let stake_ratio : f64 = *stake_amount as f64 / test_key_stake as f64;
+
+            let expected_emission : u64 = (test_key_emission as f64 * stake_ratio) as u64;
+            println!("expected_emission: {}", expected_emission);
+            println!("emissions[i]: {}", emissions[i]);
+            println!("stake_amount: {}", stake_amount);
+            println!("test_key_stake_from_vector_before[i].1): {}", test_key_stake_from_vector_before[i].1);
+
+            let errror_delta : u64 = (*stake_amount as f64 * 0.001) as u64;
+
+            let test_key_difference : u64 = stake_amount - test_key_stake_from_vector_before[i].1;
+            assert!( test_key_difference < expected_emission + errror_delta ||  test_key_difference > expected_emission - errror_delta ,  "test_key_difference: {} != expected_emission: {}", test_key_difference, expected_emission );
+            
+        }
+
 
         // check stake key
         
