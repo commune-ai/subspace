@@ -511,8 +511,11 @@ fn simulation_final_boss() {
         expected_total_stake += SubspaceModule::get_subnet_emission( netuid ) as u64 + stake_per_module;
         expected_total_stake -= lowest_priority_stake;
 
+        // CHECK THE LOWEST PRIORITY MECHANISM
+
         lowest_priority_stake = SubspaceModule::get_stake( netuid, &lowest_priority_key );
         lowest_priority_balance = SubspaceModule::get_balance_u64( &lowest_priority_key );
+
         println!("lowest_priority_stake (AFTER DEREG): {}", lowest_priority_stake);
         println!("lowest_priority_balance (BEFORE DEREG): {}", lowest_priority_balance);
 
