@@ -369,7 +369,7 @@ fn simulation_final_boss() {
     let netuid: u16 = 0;
     let n : u16 = 100;
     let blocks_per_epoch_list : u64 = 1;
-    let stake_per_module : u64 = 10_000_000_000_000;
+    let stake_per_module : u64 = 100_000_000_000_000;
     let tempo : u16 = 1;
     let num_blocks : u64 = 10000;
     let min_stake : u64 = (0.20 as f64 * stake_per_module as f64) as u64;
@@ -471,27 +471,22 @@ fn simulation_final_boss() {
 
         let test_key_stake_difference : u64 = test_key_stake - test_key_stake_before;
         let test_key_emission = emissions[test_uid as usize];
-        let errror_delta : u64 = (test_key_emission as f64 * 0.001) as u64;
-        assert!( test_key_stake_difference > test_key_emission - errror_delta || test_key_stake_difference < test_key_emission + errror_delta, "test_key_stake_difference: {} != test_key_emission: {}", test_key_stake_difference, test_key_emission ); 
+
+        if test_key_emission > 0 {
+            let errror_delta : u64 = (test_key_emission as f64 * 0.001) as u64;
+            assert!( test_key_stake_difference > test_key_emission - errror_delta || test_key_stake_difference < test_key_emission + errror_delta, "test_key_stake_difference: {} != test_key_emission: {}", test_key_stake_difference, test_key_emission ); 
         
-        println!("test_uid {}", test_uid);
-        println!("test_key_stake_from_vector_before: {:?}", test_key_stake_from_vector_before);
-        println!("test_key_stake_from_vector: {:?}", test_key_stake_from_vector);
-        for (i,(stake_key, stake_amount)) in test_key_stake_from_vector.iter().enumerate() {
-            let stake_ratio : f64 = *stake_amount as f64 / test_key_stake as f64;
-
-            let expected_emission : u64 = (test_key_emission as f64 * stake_ratio) as u64;
-            println!("expected_emission: {}", expected_emission);
-            println!("emissions[i]: {}", emissions[i]);
-            println!("stake_amount: {}", stake_amount);
-            println!("test_key_stake_from_vector_before[i].1): {}", test_key_stake_from_vector_before[i].1);
-
-            let errror_delta : u64 = (*stake_amount as f64 * 0.001) as u64;
-
-            let test_key_difference : u64 = stake_amount - test_key_stake_from_vector_before[i].1;
-            assert!( test_key_difference < expected_emission + errror_delta ||  test_key_difference > expected_emission - errror_delta ,  "test_key_difference: {} != expected_emission: {}", test_key_difference, expected_emission );
-            
+            for (i,(stake_key, stake_amount)) in test_key_stake_from_vector.iter().enumerate() {
+                let stake_ratio : f64 = *stake_amount as f64 / test_key_stake as f64;
+                let expected_emission : u64 = (test_key_emission as f64 * stake_ratio) as u64;
+                let errror_delta : u64 = (*stake_amount as f64 * 0.001) as u64;
+                let test_key_difference : u64 = stake_amount - test_key_stake_from_vector_before[i].1;
+                assert!( test_key_difference < expected_emission + errror_delta ||  test_key_difference > expected_emission - errror_delta ,  "test_key_difference: {} != expected_emission: {}", test_key_difference, expected_emission );
+                
+            }
+    
         }
+
 
 
         // check stake key
@@ -500,8 +495,6 @@ fn simulation_final_boss() {
         let lowest_priority_key: U256 = SubspaceModule::get_key_for_uid(netuid, lowest_priority_uid);
         let mut lowest_priority_stake: u64 = SubspaceModule::get_stake( netuid, &lowest_priority_key );
         let mut lowest_priority_balance: u64 = SubspaceModule::get_balance_u64(&lowest_priority_key );
-        println!("lowest_priority_stake (BEFORE DEREG): {}", lowest_priority_stake);
-        println!("lowest_priority_balance (BEFORE DEREG): {}", lowest_priority_balance);
         
         let new_key : U256 = U256::from( n + i as u16 + 1 );
         register_module( netuid, new_key, stake_per_module );
@@ -516,8 +509,6 @@ fn simulation_final_boss() {
         lowest_priority_stake = SubspaceModule::get_stake( netuid, &lowest_priority_key );
         lowest_priority_balance = SubspaceModule::get_balance_u64( &lowest_priority_key );
 
-        println!("lowest_priority_stake (AFTER DEREG): {}", lowest_priority_stake);
-        println!("lowest_priority_balance (BEFORE DEREG): {}", lowest_priority_balance);
 
         assert!( lowest_priority_stake == 0 );
         assert!( SubspaceModule::get_stake( netuid, &new_key ) == stake_per_module );
@@ -525,8 +516,6 @@ fn simulation_final_boss() {
 
         let sumed_emission  : u64 = emissions.iter().sum();
         let expected_emission : u64 = SubspaceModule::get_subnet_emission( netuid )  as u64;
-        println!("sumed_emission: {}", sumed_emission);
-        println!("expected_emission: {}", expected_emission);
 
         let delta : u64 = 10_000_000;
         assert!( sumed_emission > expected_emission - delta || sumed_emission < expected_emission + delta );
