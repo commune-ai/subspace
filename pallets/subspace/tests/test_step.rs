@@ -359,6 +359,9 @@ fn test_blocks_until_epoch(){
     });
 }
 
+
+
+
 #[test]
 fn simulation_final_boss() {
 	new_test_ext().execute_with(|| {
@@ -448,9 +451,26 @@ fn simulation_final_boss() {
             set_weights(netuid, keys[i as usize], weight_uids.clone() , weight_values.clone() );
         }
 
-        step_block( tempo );
+        let test_key = keys.choose(&mut thread_rng()).unwrap();
+        let test_uid = SubspaceModule::get_uid_for_key( netuid, test_key );
+        let test_key_stake_before : u64 = SubspaceModule::get_stake( netuid, test_key );
 
-       
+
+        step_block( tempo );
+        let emissions : Vec<u64> = SubspaceModule::get_emissions( netuid );
+
+        let test_key_stake : u64 = SubspaceModule::get_stake( netuid, test_key );
+        let test_key_stake_from_vector : Vec<(U256, u64)> = SubspaceModule::get_stake_from_vector( netuid, test_key );
+        let test_key_stake_from_vector_sum : u64 = test_key_stake_from_vector.iter().map(|x| x.1 ).sum();
+        assert!( test_key_stake == test_key_stake_from_vector_sum, "test_key_stake: {} != test_key_stake_from_vector_sum: {}", test_key_stake, test_key_stake_from_vector_sum );
+
+        let test_key_stake_difference : u64 = test_key_stake - test_key_stake_before;
+        let test_key_emission = emissions[test_uid as usize];
+        let emission_delta : u64 = 100;
+        assert!( test_key_stake_difference > test_key_emission - emission_delta || test_key_stake_difference < test_key_emission + emission_delta, "test_key_stake_difference: {} != test_key_emission: {}", test_key_stake_difference, test_key_emission ); 
+        
+
+        // check stake key
         
         let lowest_priority_uid: u16 = SubspaceModule::get_lowest_uid(netuid);
         let lowest_priority_key: U256 = SubspaceModule::get_key_for_uid(netuid, lowest_priority_uid);
@@ -466,7 +486,6 @@ fn simulation_final_boss() {
 
         expected_total_stake += SubspaceModule::get_subnet_emission( netuid ) as u64 + stake_per_module;
         expected_total_stake -= lowest_priority_stake;
-
 
         lowest_priority_stake = SubspaceModule::get_stake( netuid, &lowest_priority_key );
         lowest_priority_balance = SubspaceModule::get_balance_u64( &lowest_priority_key );
