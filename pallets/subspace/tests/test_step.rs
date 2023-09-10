@@ -369,9 +369,9 @@ fn simulation_final_boss() {
     let netuid: u16 = 0;
     let n : u16 = 100;
     let blocks_per_epoch_list : u64 = 1;
-    let stake_per_module : u64 = 10_000_000_000;
+    let stake_per_module : u64 = 10_000_000_000_000;
     let tempo : u16 = 1;
-    let num_blocks : u64 = 100;
+    let num_blocks : u64 = 10000;
     let min_stake : u64 = (0.20 as f64 * stake_per_module as f64) as u64;
 
     // SETUP NETWORK
