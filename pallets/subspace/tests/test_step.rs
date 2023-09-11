@@ -161,7 +161,16 @@ fn test_pruning() {
     assert !( lowest_priority_uid == prune_uid );
 
     let new_key : U256 = U256::from( n + 1 );
+    let lowest_priority_staker_vector: Vec<(U256, u64)> = SubspaceModule::get_stake_from_vector( netuid, &keys[lowest_priority_uid as usize] );
+    let lowest_priority_stakers_balance_before: Vec<u64> = lowest_priority_staker_vector.iter().map(|x| SubspaceModule::get_balance_u64( &x.0 ) ).collect();
     register_module( netuid, new_key, stake_per_module );
+
+    for (i, (staker_key, staker_stake)) in lowest_priority_staker_vector.iter().enumerate() {
+        let expected_balance : u64 = lowest_priority_stakers_balance_before[i] - staker_stake;
+        let actual_balance : u64 = SubspaceModule::get_balance_u64( staker_key );
+        assert!( expected_balance == actual_balance , "expected_balance: {} != actual_balance: {}", expected_balance, actual_balance);
+    }
+
     let is_registered: bool = SubspaceModule::is_key_registered( netuid, &new_key);
     assert!( is_registered );
     assert!( SubspaceModule::get_subnet_n( netuid ) == n );
@@ -371,7 +380,7 @@ fn simulation_final_boss() {
     let blocks_per_epoch_list : u64 = 1;
     let stake_per_module : u64 = 100_000_000_000_000;
     let tempo : u16 = 10;
-    let num_blocks : u64 = 10000;
+    let num_blocks : u64 = 10;
     let min_stake : u64 = (0.20 as f64 * stake_per_module as f64) as u64;
 
     // SETUP ADD MODULES
@@ -423,6 +432,8 @@ fn simulation_final_boss() {
 
     let keys: Vec<U256> = SubspaceModule::get_keys( netuid );
     let mut expected_total_stake: u64 = SubspaceModule::get_total_subnet_stake( netuid );
+    let mut expected_total_balance: u64 = SubspaceModule::get_total_subnet_balance( netuid );
+
     let mut calculated_total_stake: u64 = keys.iter().map(|x| SubspaceModule::get_stake( netuid, x ) ).sum();
     assert!( expected_total_stake == calculated_total_stake, "expected_total_stake: {} != calculated_total_stake: {}", expected_total_stake, calculated_total_stake );
         
@@ -457,6 +468,8 @@ fn simulation_final_boss() {
         step_block( tempo );
 
         let emissions : Vec<u64> = SubspaceModule::get_emissions( netuid );
+        let total_emission : u64 = emissions.iter().sum();
+        expected_total_balance = expected_total_balance + total_emission;
 
         let test_key_stake : u64 = SubspaceModule::get_stake( netuid, test_key );
         let test_key_stake_from_vector : Vec<(U256, u64)> = SubspaceModule::get_stake_from_vector( netuid, test_key );
@@ -487,10 +500,13 @@ fn simulation_final_boss() {
         let lowest_priority_key: U256 = SubspaceModule::get_key_for_uid(netuid, lowest_priority_uid);
         let mut lowest_priority_stake: u64 = SubspaceModule::get_stake( netuid, &lowest_priority_key );
         let mut lowest_priority_balance: u64 = SubspaceModule::get_balance_u64(&lowest_priority_key );
+
+        assert!(lowest_priority_balance== 0, "lowest_priority_balance: {} != 0", lowest_priority_balance );
         assert!( SubspaceModule::is_key_registered( netuid, &lowest_priority_key) );
         println!("lowest_priority_key: {:?}", lowest_priority_key);
         println!("lowest_priority_stake: {:?}", lowest_priority_stake);
         println!("lowest_priority_balance: {:?}", lowest_priority_balance);
+        let lowest_prioirty_self_stake: u64 = SubspaceModule::get_self_stake( netuid, &lowest_priority_key );
 
         let new_key : U256 = U256::from( n + i as u16 + 1 );
         register_module( netuid, new_key, stake_per_module);
@@ -501,11 +517,13 @@ fn simulation_final_boss() {
         assert!( SubspaceModule::get_subnet_n( netuid ) == n );
 
         assert!( !SubspaceModule::is_key_registered( netuid, &lowest_priority_key) );
+
         println!("lowest_priority_key: {:?}", lowest_priority_key);
         println!("lowest_priority_stake: {:?}", lowest_priority_stake);
         println!("lowest_priority_balance: {:?}", lowest_priority_balance);
         let emissions : Vec<u64> = SubspaceModule::get_emissions( netuid );
         let total_emission : u64 = emissions.iter().sum();
+        
 
         println!("subnet total_emission: {:?}", total_emission);
         println!("expected_total_stake: {:?}", expected_total_stake);
@@ -515,11 +533,10 @@ fn simulation_final_boss() {
 
         expected_total_stake = (expected_total_stake + total_emission + stake_per_module)  - lowest_priority_stake;
 
-        // CHECK THE LOWEST PRIORITY MECHANISM
-
-        lowest_priority_stake = SubspaceModule::get_stake( netuid, &lowest_priority_key );
+        // CHECK THE LOWEST PRIORITY MECHANIS
         lowest_priority_balance = SubspaceModule::get_balance_u64( &lowest_priority_key );
-
+        assert!( lowest_priority_balance == lowest_prioirty_self_stake, "lowest_priority_balance: {} != lowest_priority_stake: {}", lowest_priority_balance, lowest_priority_stake );
+        lowest_priority_stake = SubspaceModule::get_stake( netuid, &lowest_priority_key );
         assert!( lowest_priority_stake == 0 );
         assert!( SubspaceModule::get_stake( netuid, &new_key ) == stake_per_module );
         let emissions: Vec<u64> = SubspaceModule::get_emissions( netuid );
@@ -532,6 +549,7 @@ fn simulation_final_boss() {
 
         let total_stake = SubspaceModule::get_total_subnet_stake( netuid );
         assert!( total_stake > expected_total_stake - delta  || total_stake < expected_total_stake + delta , "total_stake: {} != expected_total_stake: {}", total_stake, expected_total_stake );
+        let actual_total_balance: u64 = SubspaceModule::get_total_subnet_balance( netuid );
     }
     });
 }

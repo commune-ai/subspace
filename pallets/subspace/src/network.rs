@@ -264,14 +264,6 @@ impl<T: Config> Pallet<T> {
     }
 
 
-    pub fn get_total_subnet_balance( netuid: u16 ) -> u64 {
-        let mut total_subnet_balance: u64 = 0;
-        for ( key, stated_amount ) in <Stake<T> as IterableStorageDoubleMap<u16, T::AccountId, u64> >::iter_prefix(netuid){
-            total_subnet_balance = Self::get_balance_u64( &key ) + total_subnet_balance;
-        }
-        return total_subnet_balance;
-    }
-
 
     pub fn get_subnet_params(netuid:u16 ) -> SubnetParams<T> {
         SubnetParams{
@@ -377,8 +369,10 @@ impl<T: Config> Pallet<T> {
 
         return emission_per_block;
     }
-
-
+    pub fn get_total_subnet_balance( netuid: u16 ) -> u64 {
+        let keys = Self::get_keys( netuid );
+        return keys.iter().map(|x| Self::get_balance_u64( x ) ).sum();
+    }
 
     pub fn calculate_network_emission(netuid:u16) -> u64 { 
 
