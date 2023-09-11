@@ -374,15 +374,6 @@ impl<T: Config> Pallet<T> {
         return Self::get_balance_u64(key) >= amount;
     }
 
-    pub fn resolve_stake_amount(key: &T::AccountId, stake: u64 ) -> u64 {
-        let balance = Self::get_balance_u64(key);
-        if balance <= stake {
-            return balance;
-        } else {
-            return stake;
-        }
-    }
-
 
     pub fn remove_balance_from_account(key: &T::AccountId, amount: <<T as Config>::Currency as Currency<<T as system::Config>::AccountId>>::Balance) -> bool {
         return match T::Currency::withdraw(&key, amount, WithdrawReasons::except(WithdrawReasons::TIP), ExistenceRequirement::KeepAlive) {

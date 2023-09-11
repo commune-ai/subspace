@@ -239,7 +239,6 @@ fn test_lowest_priority_mechanism() {
     println!("dividends: {:?}", dividends);
     println!("incentives: {:?}", incentives);
     assert !( lowest_priority_uid == prune_uid );
-
     check_network_stats(netuid);
 
     
@@ -376,7 +375,7 @@ fn simulation_final_boss() {
 	new_test_ext().execute_with(|| {
     // CONSSTANTS
     let netuid: u16 = 0;
-    let n : u16 = 100;
+    let n : u16 = 1000;
     let blocks_per_epoch_list : u64 = 1;
     let stake_per_module : u64 = 100_000_000_000_000;
     let tempo : u16 = 10;

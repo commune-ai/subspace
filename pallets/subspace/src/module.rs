@@ -108,7 +108,7 @@ impl<T: Config> Pallet<T> {
     
 
         // Appends the uid to the network.
-        pub fn append_module( netuid: u16, key: &T::AccountId , name: Vec<u8>, address: Vec<u8>, stake: u64 ) -> u16{
+        pub fn append_module( netuid: u16, key: &T::AccountId , name: Vec<u8>, address: Vec<u8> ) -> u16{
     
             // 1. Get the next uid. This is always equal to subnetwork_n.
             let uid: u16 = Self::get_subnet_n( netuid );
@@ -127,10 +127,6 @@ impl<T: Config> Pallet<T> {
             RegistrationBlock::<T>::insert( netuid, uid, block_number ); // Fill block at registration.
             Names::<T>::insert( netuid, uid, name.clone() ); // Fill module namespace.
             Address::<T>::insert( netuid, uid, address.clone() ); // Fill module info.
-
-            Self::increase_stake( netuid, key, key, stake );
-            Self::remove_balance_from_account( &key, Self::u64_to_balance( stake ).unwrap() );
-            
             // 3. Get and increase the uid count.
             N::<T>::insert( netuid, uid + 1 );
     

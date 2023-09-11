@@ -217,7 +217,7 @@ pub fn register_n_modules( netuid: u16,  n: u16 , stake: u64, ) {
 }
 
 #[allow(dead_code)]
-pub fn register_module( netuid: u16, key: U256, stake: u64 ) {
+pub fn register_module( netuid: u16, key: U256, stake: u64 ) -> DispatchResult{
 
 	// can i format the test in rus
 	
@@ -244,8 +244,10 @@ pub fn register_module( netuid: u16, key: U256, stake: u64 ) {
 	let result = SubspaceModule::register( origin, network, name.clone(), address, stake );
 
 
-	assert_ok!(result);
 	log::info!("Register ok neuron: network: {:?}, key: {:?}", name.clone(), key );
+	
+
+	return result;
 }
 
 #[allow(dead_code)]

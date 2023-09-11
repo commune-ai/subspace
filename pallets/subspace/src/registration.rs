@@ -28,21 +28,16 @@ impl<T: Config> Pallet<T> {
         let key = ensure_signed( origin.clone() )?;  
         // --- 2. Ensure we are not exceeding the max allowed registrations per block.
         ensure!( Self::get_registrations_this_block() <= Self::get_max_registrations_per_block( ), Error::<T>::TooManyRegistrationsThisBlock );
-        let stake: u64 = Self::resolve_stake_amount( &key ,stake_amount );
-        if stake > 0 {
-            // --- 1. Check that the caller has enough balance to stake.
-            ensure!( Self::can_remove_balance_from_account( &key, stake ), Error::<T>::NotEnoughBalanceToStake );
-        }
+        ensure!(Self::has_enough_balance( &key, stake_amount ), Error::<T>::NotEnoughBalanceToRegister);
 
         let mut netuid: u16 = 0;       
         let new_network : bool = !Self::if_subnet_name_exists( network.clone() );
-        let mut module_stake : u64 = stake.clone();
 
         if new_network {
             // --- 2. Ensure that the network name is not already registered.
             ensure!( !Self::if_subnet_name_exists( network.clone() ), Error::<T>::NetworkAlreadyRegistered );
-            ensure!( Self::enough_stake_to_start_network( stake ), Error::<T>::NotEnoughStakeToStartNetwork );
-            netuid = Self::add_network_from_registration(network.clone(), stake, &key);
+            ensure!( Self::enough_stake_to_start_network( stake_amount ), Error::<T>::NotEnoughStakeToStartNetwork );
+            netuid = Self::add_network_from_registration(network.clone(), stake_amount, &key);
             
         }  else {
             netuid = Self::get_netuid_for_name( network.clone() );
@@ -54,18 +49,22 @@ impl<T: Config> Pallet<T> {
             
         }
 
+
+
         let mut uid: u16;
 
         let n: u16 = Self::get_subnet_n( netuid );
 
         if n < Self::get_max_allowed_uids( netuid ) {
-            uid = Self::append_module( netuid, &key , name.clone(), address.clone(), module_stake.clone());
+            uid = Self::append_module( netuid, &key , name.clone(), address.clone());
         } else {
             let lowest_uid: u16 = Self::get_lowest_uid( netuid );
             Self::remove_module( netuid, lowest_uid );
-            uid = Self::append_module( netuid, &key , name.clone(), address.clone(), module_stake.clone());
+            uid = Self::append_module( netuid, &key , name.clone(), address.clone());
             log::info!("prune module {:?} from network {:?} ", uid, netuid);
         }
+
+        Self::do_add_stake(origin.clone(),  netuid, key.clone(), stake_amount );
 
         // ---Deposit successful event.
         log::info!("ModuleRegistered( netuid:{:?} uid:{:?} key:{:?}  ) ", netuid, uid, key );
