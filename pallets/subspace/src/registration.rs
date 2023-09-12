@@ -28,7 +28,7 @@ impl<T: Config> Pallet<T> {
         let key = ensure_signed( origin.clone() )?;  
         // --- 2. Ensure we are not exceeding the max allowed registrations per block.
         ensure!( Self::get_registrations_this_block() <= Self::get_max_registrations_per_block( ), Error::<T>::TooManyRegistrationsThisBlock );
-        ensure!(Self::has_enough_balance( &key, stake_amount ), Error::<T>::NotEnoughBalanceToRegister);
+        ensure!(Self::has_enough_balance( &key, stake_amount ) || stake_amount == 0, Error::<T>::NotEnoughBalanceToRegister);
 
         let mut netuid: u16 = 0;       
         let new_network : bool = !Self::if_subnet_name_exists( network.clone() );
@@ -64,8 +64,9 @@ impl<T: Config> Pallet<T> {
             log::info!("prune module {:?} from network {:?} ", uid, netuid);
         }
 
-        Self::do_add_stake(origin.clone(),  netuid, key.clone(), stake_amount );
-
+        if stake_amount > 0 {
+            Self::do_add_stake(origin.clone(),  netuid, key.clone(), stake_amount );
+        }
         // ---Deposit successful event.
         log::info!("ModuleRegistered( netuid:{:?} uid:{:?} key:{:?}  ) ", netuid, uid, key );
         Self::deposit_event( Event::ModuleRegistered( netuid, uid, key.clone() ) );
