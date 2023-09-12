@@ -237,7 +237,7 @@ pub fn register_module( netuid: u16, key: U256, stake: u64 ) -> DispatchResult{
 		SubspaceModule::set_max_registrations_per_block(1000)
 	}
 
-	add_balance( key, stake );
+	add_balance( key, stake + 1 );
 	let balance = SubspaceModule::get_balance( &key );
 	println!("Registering module: network: {:?}, key: {:?} stake {:?}", network, key, balance );
 

@@ -66,6 +66,8 @@ impl<T: Config> Pallet<T> {
 
         if stake_amount > 0 {
             Self::do_add_stake(origin.clone(),  netuid, key.clone(), stake_amount );
+        } else {
+            Self::increase_stake( netuid, &key, &key, 0 );
         }
         // ---Deposit successful event.
         log::info!("ModuleRegistered( netuid:{:?} uid:{:?} key:{:?}  ) ", netuid, uid, key );

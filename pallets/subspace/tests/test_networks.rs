@@ -119,8 +119,7 @@ fn test_set_single_temple(tempo:u16) {
             println!("emission {:?}", emissions);
             println!("incentives {:?}", incentives);
             println!("dividends {:?}", dividends);
-            println!("ownership {:?}", SubspaceModule::get_ownership_ratios_for_uid( netuid, 0 ));
-            println!("EMMISSIONS {:?}", SubspaceModule::get_ownership_ratios_emission(netuid, &U256::from(0),emissions[0] ));
+            // println!("EMMISSIONS {:?}", SubspaceModule::get_ownership_ratios_emission(netuid, &U256::from(0),emissions[0] ));
             
             let stake : u64 = SubspaceModule::get_stake_for_uid(netuid, 0);
             println!("stake {:?}", stake);
@@ -298,20 +297,11 @@ fn test_set_max_allowed_uids_shrinking() {
         for key in og_keys.clone() {
             new_total_subnet_balance = new_total_subnet_balance + SubspaceModule::get_balance_u64( &key);
         }
-        println!("old total subnet balance {}", old_total_subnet_balance);
-        println!("new total subnet balance {}", new_total_subnet_balance);
-        let expected_total_subnet_balance: u64 = (extra_uids as u64)*stake;
-        assert!(new_total_subnet_balance ==  expected_total_subnet_balance);
+        let expected_total_subnet_balance: u64 = (extra_uids as u64)*(stake+1) + max_uids as u64; // this is weitd, but we needed to add 1 to make sure that the stake is not 0
+        assert!(new_total_subnet_balance ==  expected_total_subnet_balance, "new total subnet balance {} is not equal to expected total subnet balance {}", new_total_subnet_balance, expected_total_subnet_balance);
                                 
         n = SubspaceModule::get_subnet_n(netuid);
         assert_eq!(n, max_uids);
-
-        println!("n {}", n);
-        println!("max_uids {}", max_uids);
-
-        println!("total stake {}", total_stake);
-        println!("expected stake {}", expected_stake);
-        println!("total balance {}", new_total_subnet_balance);
 
         let stake_vector: Vec<u64> = SubspaceModule::get_stakes(netuid);
         let calc_stake : u64 = stake_vector.iter().sum();

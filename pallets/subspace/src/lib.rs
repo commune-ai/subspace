@@ -380,7 +380,9 @@ pub mod pallet {
 		NetworkAlreadyRegistered,
 		NoSelfWeight,
 		DifferentLengths,
-		NotEnoughBalanceToRegister
+		NotEnoughBalanceToRegister, 
+		StakeNotAdded,
+		BalanceNotRemoved,
 	}
 
 	// ==================

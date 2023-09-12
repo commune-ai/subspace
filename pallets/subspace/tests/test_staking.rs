@@ -68,17 +68,17 @@ fn test_stake() {
                 uid = SubspaceModule::get_uid_for_key(netuid, &key);
                 // SubspaceModule::add_stake(get_origin(*key), netuid, amount_staked);
                 assert_eq!(SubspaceModule::get_stake(netuid, key), amount_staked);
-                assert_eq!(SubspaceModule::get_balance(key), 0);
+                assert_eq!(SubspaceModule::get_balance(key), 1);
 
                 // REMOVE STAKE
                 SubspaceModule::remove_stake(get_origin(*key), netuid, *key, amount_staked);
-                assert_eq!(SubspaceModule::get_balance(key), amount_staked);
+                assert_eq!(SubspaceModule::get_balance(key), amount_staked+1);
                 assert_eq!(SubspaceModule::get_stake(netuid, key), 0);
 
                 // ADD STAKE AGAIN LOL
                 SubspaceModule::add_stake(get_origin(*key), netuid, *key, amount_staked);
                 assert_eq!(SubspaceModule::get_stake(netuid, key), amount_staked);
-                assert_eq!(SubspaceModule::get_balance(key), 0);
+                assert_eq!(SubspaceModule::get_balance(key), 1);
 
 
                 // AT THE END WE SHOULD HAVE THE SAME TOTAL STAKE
@@ -129,7 +129,7 @@ fn test_delegate_stake() {
                 println!(" KEY {} KEY STAKE {} STAKING AMOUNT {} ",key, SubspaceModule::get_stake(netuid, key), amount_staked);
                 
                 let delegate_key: U256 = delegate_key_vector[i];
-                add_balance(delegate_key, amount_staked);
+                add_balance(delegate_key, amount_staked + 1);
 
 
                 register_module(netuid, *key, 0);
@@ -141,11 +141,11 @@ fn test_delegate_stake() {
                 uid = SubspaceModule::get_uid_for_key(netuid, &key);
                 // SubspaceModule::add_stake(get_origin(*key), netuid, amount_staked);
                 assert_eq!(SubspaceModule::get_stake_for_uid(netuid, uid), amount_staked);
-                assert_eq!(SubspaceModule::get_balance(&delegate_key), 0);
+                assert_eq!(SubspaceModule::get_balance(&delegate_key), 1);
                 assert_eq!(SubspaceModule::get_stake_to_vector(netuid, &delegate_key).len(), 1);
                 // REMOVE STAKE
                 SubspaceModule::remove_stake(get_origin(delegate_key), netuid, *key, amount_staked);
-                assert_eq!(SubspaceModule::get_balance(&delegate_key), amount_staked);
+                assert_eq!(SubspaceModule::get_balance(&delegate_key), amount_staked+1);
                 assert_eq!(SubspaceModule::get_stake_for_uid(netuid, uid), 0);
                 assert_eq!(SubspaceModule::get_stake_to_vector(netuid, &delegate_key).len(), 0);
 
@@ -153,7 +153,7 @@ fn test_delegate_stake() {
                 // ADD STAKE AGAIN LOL
                 SubspaceModule::add_stake(get_origin(delegate_key), netuid, *key, amount_staked);
                 assert_eq!(SubspaceModule::get_stake_for_uid(netuid, uid), amount_staked);
-                assert_eq!(SubspaceModule::get_balance(&delegate_key), 0);
+                assert_eq!(SubspaceModule::get_balance(&delegate_key), 1);
                 assert_eq!(SubspaceModule::get_stake_to_vector(netuid, &delegate_key).len(), 1);
 
 
@@ -192,9 +192,9 @@ fn test_ownership_ratio() {
         let keys  = SubspaceModule::get_keys(netuid);
 
         for (k_i, k) in keys.iter().enumerate() {
-            let delegate_keys : Vec<U256> = (0..num_modules).map(|i| U256::from(i + num_modules)).collect();
+            let delegate_keys : Vec<U256> = (0..num_modules).map(|i| U256::from(i + num_modules + 1)).collect();
             for d in delegate_keys.iter() {
-                add_balance(*d, stake_per_module);
+                add_balance(*d, stake_per_module+1);
             }
 
             let pre_delegate_stake_from_vector = SubspaceModule::get_stake_from_vector(netuid, k);

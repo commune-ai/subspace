@@ -75,8 +75,19 @@ impl<T: Config> Pallet<T> {
         log::info!("do_add_stake( origin:{:?} stake_to_be_added:{:?} )", key, amount );
 
         ensure!( Self::has_enough_balance(&key, amount), Error::<T>::NotEnoughBalanceToStake );
+
+        let stake_before_add: u64 = Self::get_stake_to_module(netuid, &key, &module_key.clone() );
+        let balance_before_add: u64 = Self::get_balance_u64(&key);
+
         Self::increase_stake(netuid, &key, &module_key, amount );
         Self::remove_balance_from_account( &key, Self::u64_to_balance( amount ).unwrap() );
+
+        let stake_after_add: u64 = Self::get_stake_to_module(netuid, &key, &module_key.clone() );
+        let balance_after_add: u64 = Self::get_balance_u64(&key);
+
+        ensure!( stake_after_add == stake_before_add + amount, Error::<T>::StakeNotAdded );
+        ensure!( balance_after_add == balance_before_add - amount, Error::<T>::BalanceNotRemoved );
+        
         // --- 5. Emit the staking event.
         log::info!("StakeAdded( key:{:?}, stake_to_be_added:{:?} )", key, amount );
         Self::deposit_event( Event::StakeAdded( key, module_key, amount) );

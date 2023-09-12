@@ -500,7 +500,7 @@ fn simulation_final_boss() {
         let mut lowest_priority_stake: u64 = SubspaceModule::get_stake( netuid, &lowest_priority_key );
         let mut lowest_priority_balance: u64 = SubspaceModule::get_balance_u64(&lowest_priority_key );
 
-        assert!(lowest_priority_balance== 0, "lowest_priority_balance: {} != 0", lowest_priority_balance );
+        assert!(lowest_priority_balance== 1, "lowest_priority_balance: {} != 0", lowest_priority_balance );
         assert!( SubspaceModule::is_key_registered( netuid, &lowest_priority_key) );
         println!("lowest_priority_key: {:?}", lowest_priority_key);
         println!("lowest_priority_stake: {:?}", lowest_priority_stake);
@@ -534,7 +534,7 @@ fn simulation_final_boss() {
 
         // CHECK THE LOWEST PRIORITY MECHANIS
         lowest_priority_balance = SubspaceModule::get_balance_u64( &lowest_priority_key );
-        assert!( lowest_priority_balance == lowest_prioirty_self_stake, "lowest_priority_balance: {} != lowest_priority_stake: {}", lowest_priority_balance, lowest_priority_stake );
+        assert!( lowest_priority_balance == lowest_prioirty_self_stake + 1, "lowest_priority_balance: {} != lowest_priority_stake: {}", lowest_priority_balance, lowest_priority_stake );
         lowest_priority_stake = SubspaceModule::get_stake( netuid, &lowest_priority_key );
         assert!( lowest_priority_stake == 0 );
         assert!( SubspaceModule::get_stake( netuid, &new_key ) == stake_per_module );
