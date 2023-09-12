@@ -80,7 +80,8 @@ impl<T: Config> Pallet<T> {
         let balance_before_add: u64 = Self::get_balance_u64(&key);
 
         Self::increase_stake(netuid, &key, &module_key, amount );
-        Self::remove_balance_from_account( &key, Self::u64_to_balance( amount ).unwrap() );
+        let removed_balance : bool = Self::remove_balance_from_account( &key, Self::u64_to_balance( amount ).unwrap() );
+        ensure!( removed_balance, Error::<T>::BalanceNotRemoved );
 
         let stake_after_add: u64 = Self::get_stake_to_module(netuid, &key, &module_key.clone() );
         let balance_after_add: u64 = Self::get_balance_u64(&key);
@@ -382,7 +383,7 @@ impl<T: Config> Pallet<T> {
     }
 
     pub fn has_enough_balance(key: &T::AccountId, amount: u64 ) -> bool {
-        return Self::get_balance_u64(key) > amount;
+        return Self::get_balance_u64(key) >= amount;
     }
 
 
