@@ -383,7 +383,7 @@ impl<T: Config> Pallet<T> {
     }
 
     pub fn has_enough_balance(key: &T::AccountId, amount: u64 ) -> bool {
-        return Self::get_balance_u64(key) >= amount;
+        return Self::get_balance_u64(key) > amount;
     }
 
 
