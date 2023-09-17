@@ -122,7 +122,7 @@ pub mod pallet {
 	#[pallet::type_value]
 	pub fn DefaultRegistrationsThisBlock<T: Config>() ->  u16 { 0}
 	#[pallet::type_value] 
-	pub fn DefaultMaxRegistrationsPerBlock<T: Config>() -> u16 { 1 }
+	pub fn DefaultMaxRegistrationsPerBlock<T: Config>() -> u16 { 100 }
 	#[pallet::type_value] 
 	pub fn DefaultMaxAllowedSubnets<T: Config>() -> u16 { 100 }
 	#[pallet::type_value] 
