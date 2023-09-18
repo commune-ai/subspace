@@ -679,7 +679,15 @@ impl<T: Config> Pallet<T> {
 
     pub fn get_max_immunity_ratio( netuid:u16 ) -> u16 { MaxImmunityRatio::<T>::get( netuid ) }
 
-    pub fn set_max_immunity_ratio( netuid:u16, max_immunity_ratio: u16 )  { MaxImmunityRatio::<T>::insert( netuid, max_immunity_ratio ) }
+    pub fn set_max_immunity_ratio( netuid:u16, mut max_immunity_ratio: u16 )  { 
+        let max_value : u16 = 75; 
+        if max_immunity_ratio > max_value {
+            max_immunity_ratio =  max_value; 
+        } 
+            
+        MaxImmunityRatio::<T>::insert( netuid, max_immunity_ratio ) 
+    
+    }
     // ============================
 	// ==== Subnetwork Getters ====
 	// ============================
