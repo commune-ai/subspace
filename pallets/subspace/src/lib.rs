@@ -146,7 +146,7 @@ pub mod pallet {
 	#[pallet::type_value] 
 	pub fn DefaultAccount<T: Config>() -> T::AccountId { T::AccountId::decode(&mut sp_runtime::traits::TrailingZeroInput::zeroes()).unwrap()}
 	#[pallet::type_value] 
-	pub fn DefaultMaxImmunityRatio<T: Config>() -> u16 { 20 } // out of 100
+	pub fn DefaultMaxImmunityRatio<T: Config>() -> u16 { 50 } // out of 100
 	#[pallet::type_value] 
 	pub fn DefaultVotePeriod<T: Config>() -> u16 { 100 } // out of 100
 	#[pallet::type_value] 
