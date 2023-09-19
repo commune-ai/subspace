@@ -166,17 +166,16 @@ pub mod pallet {
 	pub(super) type LastTxBlock<T:Config> = StorageMap<_, Identity, T::AccountId, u64, ValueQuery, DefaultLastTxBlock<T>>;
 	#[pallet::storage] // --- DMAP ( netuid ) --> bonds
 	pub(super) type MaxNameLength<T:Config> = StorageValue< _, u16, ValueQuery, DefaultMaxNameLength<T> >;
-	
+	#[pallet::storage] // --- DMAP ( netuid ) --> bonds
+	pub(super) type MaxAllowedSubnets<T:Config> = StorageValue< _, u16, ValueQuery, DefaultMaxAllowedSubnets<T> >;
+	#[pallet::storage] // --- DMAP ( netuid ) --> bonds
+	pub(super) type MaxAllowedModules<T:Config> = StorageValue< _, u16, ValueQuery, DefaultMaxAllowedSubnets<T> >;
 	#[pallet::storage] // --- ITEM ( total_stake )
 	pub type TotalStake<T> = StorageValue<_, u64, ValueQuery>;
 	#[pallet::storage] // --- ITEM ( registrations_this block ) --> Registration this Block.
 	pub type RegistrationsThisBlock<T> = StorageValue<_,  u16, ValueQuery, DefaultRegistrationsThisBlock<T>>;
 	#[pallet::storage] // --- ITEM( global_max_registrations_per_block ) 
 	pub type MaxRegistrationsPerBlock<T> = StorageValue<_, u16, ValueQuery, DefaultMaxRegistrationsPerBlock<T> >;
-	#[pallet::storage] // --- ITEM( global_max_registrations_per_block ) 
-	pub type MaxAllowedSubnets<T> = StorageValue<_, u16, ValueQuery, DefaultMaxAllowedSubnets<T>>;
-	#[pallet::storage] // --- ITEM ( total_stake )
-	pub type MaxAllowedModules<T> = StorageValue<_, u16, ValueQuery, DefaultMaxAllowedModules<T>>;
 	#[pallet::storage] // --- ITEM ( total_stake )
 	pub type SubnetTotalStake<T> = StorageMap<_, Identity,u16, u64, ValueQuery>;
 
@@ -195,6 +194,7 @@ pub mod pallet {
 		pub min_allowed_weights: u16, // min number of weights allowed to be registered in this subnet
 		pub max_allowed_weights: u16, // max number of weights allowed to be registered in this subnet
 		pub max_allowed_uids: u16, // max number of uids allowed to be registered in this subnet
+		pub max_immunity_ratio: u16, // max number of uids allowed to be registered in this subnet
 		pub founder: T::AccountId, // founder of the network
 		// pub democratic: bool
 		pub vote_threshold: u16, // out of 100
@@ -395,7 +395,7 @@ pub mod pallet {
 		// key, name, address, stake, weights 
 		pub modules: Vec<Vec<(T::AccountId, Vec<u8>, Vec<u8>, Vec<(u16, u16)>)>>,
 		// name, tempo, immunity_period, max_allowed_uids, min_allowed_weight, max_registrations_per_block, max_allowed_weights
-		pub subnets: Vec<(Vec<u8>, u16, u16, u16, u16, u16, T::AccountId)>,
+		pub subnets: Vec<(Vec<u8>, u16, u16, u16, u16, u16, u16, T::AccountId)>,
 
 		pub stake_to: Vec<Vec<(T::AccountId, Vec<(T::AccountId, u64)>)>>,
 
@@ -430,7 +430,8 @@ pub mod pallet {
 											   subnet.3, // min_allowed_weights
 											   subnet.4, // max_allowed_weights
 											   subnet.5,  // max_allowed_uids
-											   &subnet.6, // founder
+											   subnet.6, // immunity_ratio
+											   &subnet.7, // founder
 											   0 as u64 // stake
 											);
 				for (uid_usize, (key, name, address, weights)) in self.modules[subnet_idx].iter().enumerate() {
@@ -574,6 +575,7 @@ pub mod pallet {
 			min_allowed_weights: u16,
 			max_allowed_weights: u16,
 			max_allowed_uids: u16,
+			max_immunity_ratio: u16,
 			tempo: u16,
 			founder: T::AccountId,
 		) -> DispatchResult {
@@ -583,6 +585,7 @@ pub mod pallet {
 									min_allowed_weights,
 									max_allowed_weights,  
 									max_allowed_uids, 
+									max_immunity_ratio,
 									tempo, 
 									founder)
 		}
@@ -599,6 +602,7 @@ pub mod pallet {
 			min_allowed_weights: u16,
 			max_allowed_weights: u16,
 			max_allowed_uids: u16,
+			max_immunity_ratio: u16,
 			tempo: u16,
 			vote_period: u16,
 			vote_threshold: u16,
@@ -611,6 +615,7 @@ pub mod pallet {
 									min_allowed_weights,
 									max_allowed_weights,  
 									max_allowed_uids, 
+									max_immunity_ratio,
 									tempo, 
 									vote_period,
 									vote_threshold,

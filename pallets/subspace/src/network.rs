@@ -40,13 +40,6 @@ impl<T: Config> Pallet<T> {
         return min_stake_netuid;
     }
 
-    pub fn get_max_allowed_subnets() -> u16 {
-        return MaxAllowedSubnets::<T>::get();
-    }
-    pub fn set_max_allowed_subnets( max_subnets: u16 ) {
-        MaxAllowedSubnets::<T>::put( max_subnets );
-    }
-
     
 
     pub fn enough_stake_to_start_network(stake: u64) -> bool {
@@ -100,6 +93,7 @@ impl<T: Config> Pallet<T> {
                             subnet_params.min_allowed_weights,
                             subnet_params.max_allowed_weights,
                             subnet_params.max_allowed_uids, 
+                            subnet_params.max_immunity_ratio,
                             &key.clone(),// founder
                             stake, //stake
                             );
@@ -132,6 +126,7 @@ impl<T: Config> Pallet<T> {
         min_allowed_weights: u16,
         max_allowed_weights: u16,
         max_allowed_uids: u16,
+        max_immunity_ratio: u16,
         tempo: u16,
         founder: T::AccountId,
     ) -> DispatchResult {
@@ -147,6 +142,7 @@ impl<T: Config> Pallet<T> {
                                         min_allowed_weights, 
                                         max_allowed_weights, 
                                         max_allowed_uids, 
+                                        max_immunity_ratio,
                                         tempo, 
                                         founder);
         // --- 16. Ok and done.
@@ -161,6 +157,7 @@ impl<T: Config> Pallet<T> {
         min_allowed_weights: u16,
         max_allowed_weights: u16,
         max_allowed_uids: u16,
+        max_immunity_ratio: u16,
         tempo: u16,
         vote_period: u16,
         vote_threshold: u16,
@@ -179,6 +176,7 @@ impl<T: Config> Pallet<T> {
             min_allowed_weights: min_allowed_weights,
             max_allowed_weights: max_allowed_weights,
             max_allowed_uids: max_allowed_uids,
+            max_immunity_ratio: max_immunity_ratio,
             tempo: tempo,
             founder: founder.clone(),
             vote_period: vote_period,
@@ -222,6 +220,7 @@ impl<T: Config> Pallet<T> {
                                                 params.min_allowed_weights, 
                                                 params.max_allowed_weights, 
                                                 params.max_allowed_uids, 
+                                                params.max_immunity_ratio,
                                                 params.tempo, 
                                                 params.founder);
     }
@@ -229,23 +228,44 @@ impl<T: Config> Pallet<T> {
 
     pub fn update_network_for_netuid(netuid: u16,
                     name: Vec<u8>,
-                    immunity_period: u16,
-                    min_allowed_weights: u16,
-                    max_allowed_weights: u16,
-                    max_allowed_uids: u16,
+                    mut immunity_period: u16,
+                    mut min_allowed_weights: u16,
+                    mut max_allowed_weights: u16,
+                    mut max_allowed_uids: u16,
+                    mut max_immunity_ratio: u16,
                     tempo: u16,
                     founder: T::AccountId,) {
 
         let n : u16 = Self::get_subnet_n(netuid);
 
-        // update the network
+        // TEMPO, IMMUNITY_PERIOD, MIN_ALLOWED_WEIGHTS, MAX_ALLOWED_WEIGHTS, MAX_ALLOWED_UIDS, MAX_IMMUNITY_RATIO
         Tempo::<T>::insert( netuid, tempo);
+        MaxAllowedUids::<T>::insert( netuid, max_allowed_uids );
+
+        // IMMUNITY PERIOD AND MAX IMMUNITY RATIO
+
         ImmunityPeriod::<T>::insert( netuid, immunity_period );
-        MinAllowedWeights::<T>::insert( netuid, min_allowed_weights );
+
+        // make sure the max_immunity_ratio NOT GREATER  than 99 percent
+        if max_immunity_ratio > 99 {
+            max_immunity_ratio = 99;
+        }
+        MaxImmunityRatio::<T>::insert( netuid, max_immunity_ratio );
+
+        // MAX_ALLOWED_WEIGHTS
+        if max_allowed_weights > max_allowed_uids {
+            max_allowed_weights = max_allowed_uids;
+        }
         MaxAllowedWeights::<T>::insert( netuid, max_allowed_weights );
+
+        // MIN_ALLOWED_WEIGHTS
+        // make sure the min_allowed_weights is less than the max_allowed_weights
+        if min_allowed_weights > max_allowed_weights {
+            min_allowed_weights = max_allowed_weights;
+        }
+        MinAllowedWeights::<T>::insert( netuid, min_allowed_weights );
         Founder::<T>::insert( netuid, founder );
         // remove the modules if the max_allowed_uids is less than the current number of modules
-        MaxAllowedUids::<T>::insert( netuid, max_allowed_uids );
 
         if max_allowed_uids < n {
             let remainder_n: u16 = n - max_allowed_uids;
@@ -271,6 +291,7 @@ impl<T: Config> Pallet<T> {
             min_allowed_weights: MinAllowedWeights::<T>::get( netuid ),
             max_allowed_weights: MaxAllowedWeights::<T>::get( netuid ),
             max_allowed_uids:  MaxAllowedUids::<T>::get( netuid ),
+            max_immunity_ratio: MaxImmunityRatio::<T>::get( netuid ),
             tempo: Tempo::<T>::get( netuid ),
             founder: Founder::<T>::get( netuid ),
             name: <Vec<u8>>::new(),
@@ -325,6 +346,7 @@ impl<T: Config> Pallet<T> {
                             params.min_allowed_weights, 
                             params.max_allowed_weights,
                             params.max_allowed_uids,
+                            params.max_immunity_ratio,
                             &founder_key, // founder, 
                             stake,
                         );
@@ -413,6 +435,7 @@ impl<T: Config> Pallet<T> {
                        min_allowed_weights: u16,
                        max_allowed_weights: u16,
                        max_allowed_uids: u16,
+                       max_immunity_ratio: u16,
                        founder: &T::AccountId, 
                        stake: u64,
                     ) -> u16 {
@@ -428,6 +451,7 @@ impl<T: Config> Pallet<T> {
         ImmunityPeriod::<T>::insert( netuid, immunity_period );
         MinAllowedWeights::<T>::insert( netuid, min_allowed_weights );
         MaxAllowedWeights::<T>::insert( netuid, max_allowed_weights );
+        MaxImmunityRatio::<T>::insert( netuid, max_immunity_ratio );
         SubnetNamespace::<T>::insert( name.clone(), netuid );
         Founder::<T>::insert( netuid, founder );
 
@@ -494,28 +518,36 @@ impl<T: Config> Pallet<T> {
         return Self::remove_network_for_netuid( netuid )
     }
 
-    pub fn remove_network_for_netuid( netuid: u16 ) -> u16 {
-        let name = Self::get_name_for_netuid( netuid );
-        return Self::remove_network_for_name( name );
-    }
-
     // Returns true if the account is the founder of the network.
     pub fn is_network_founder( netuid: u16, key: &T::AccountId ) -> bool {
         let founder = Founder::<T>::get( netuid );
         return founder == key.clone();
     }
 
+    pub fn remove_network_for_name( name: Vec<u8> ) -> u16 {
+        let netuid = Self::get_netuid_for_name( name.clone() );
+        return Self::remove_network_for_netuid( netuid );
+    }
 
-    pub fn remove_network_for_name( name: Vec<u8>) -> u16 {
+
+    pub fn remove_network_for_netuid( netuid: u16) -> u16 {
         // --- 2. Ensure the network to be removed exists.
-        if !Self::if_subnet_name_exists( name.clone() ) {
+        if !Self::if_subnet_exist( netuid ) {
             return 0;
         }
-        let netuid = Self::get_netuid_for_name( name.clone() );
-        SubnetNamespace::<T>::remove( name.clone() );
-        // --- 4. Erase all memory associated with the network.
+        let name : Vec<u8> = Self::get_name_for_netuid( netuid );
 
-        // --- 1. Remove incentive mechanism memory.
+        // --- 1. Erase network stake, and remove network from list of networks.
+        for ( key, stated_amount ) in <Stake<T> as IterableStorageDoubleMap<u16, T::AccountId, u64> >::iter_prefix(netuid){
+            Self::remove_stake_from_storage( netuid, &key );
+        }
+        // --- 4. Remove all stake.
+        Stake::<T>::remove_prefix( netuid, None );
+        SubnetTotalStake::<T>::remove( netuid );
+
+        SubnetNamespace::<T>::remove( name.clone() );
+        Names::<T>::clear_prefix( netuid, u32::max_value(), None );
+        Address::<T>::clear_prefix( netuid, u32::max_value(), None );
         Uids::<T>::clear_prefix( netuid, u32::max_value(), None );
         Keys::<T>::clear_prefix( netuid, u32::max_value(), None );
         Weights::<T>::clear_prefix( netuid, u32::max_value(), None );
@@ -530,15 +562,10 @@ impl<T: Config> Pallet<T> {
         MaxAllowedUids::<T>::remove( netuid );
         ImmunityPeriod::<T>::remove( netuid );
         MinAllowedWeights::<T>::remove( netuid );
+        MaxAllowedWeights::<T>::remove( netuid );
+        MaxImmunityRatio::<T>::remove( netuid );
+        
         N::<T>::remove( netuid );
-
-        // --- 3. Erase network stake, and remove network from list of networks.
-        for ( key, stated_amount ) in <Stake<T> as IterableStorageDoubleMap<u16, T::AccountId, u64> >::iter_prefix(netuid){
-            Self::remove_stake_from_storage( netuid, &key );
-        }
-        // --- 4. Remove all stake.
-        Stake::<T>::remove_prefix( netuid, None );
-        SubnetTotalStake::<T>::remove( netuid );
         TotalSubnets::<T>::mutate(|val| *val -= 1);
         // --- 4. Emit the event.
         log::info!("NetworkRemoved( netuid:{:?} )", netuid);
@@ -676,18 +703,20 @@ impl<T: Config> Pallet<T> {
         let immunity_ratio: I32F32 = I32F32::from_num(Self::get_max_immunity_ratio(netuid))/ I32F32::from_num(100);
         return (max_allowed_uids*immunity_ratio).to_num::<u16>();
     }
+    pub fn get_max_allowed_subnets() -> u16 { MaxAllowedSubnets::<T>::get() }
+    pub fn set_max_allowed_subnets( max_allowed_subnets:u16 ) { MaxAllowedSubnets::<T>::set( max_allowed_subnets ) }
 
     pub fn get_max_immunity_ratio( netuid:u16 ) -> u16 { MaxImmunityRatio::<T>::get( netuid ) }
-
-    pub fn set_max_immunity_ratio( netuid:u16, mut max_immunity_ratio: u16 )  { 
-        let max_value : u16 = 75; 
-        if max_immunity_ratio > max_value {
-            max_immunity_ratio =  max_value; 
-        } 
-            
-        MaxImmunityRatio::<T>::insert( netuid, max_immunity_ratio ) 
-    
-    }
+    pub fn set_max_immunity_ratio( netuid:u16, mut max_immunity_ratio: u16 )  {
+        // set the max immunity ratio, but cap it at 99%
+        let max_immunity_ratio_value : u16 = 99;
+        if max_immunity_ratio > max_immunity_ratio_value {
+            MaxImmunityRatio::<T>::insert( netuid, max_immunity_ratio_value );
+        } else {
+            MaxImmunityRatio::<T>::insert( netuid, max_immunity_ratio );
+        }
+        
+        }
     // ============================
 	// ==== Subnetwork Getters ====
 	// ============================

@@ -14,20 +14,22 @@ use sp_core::U256;
 fn test_add_subnets() { 
         new_test_ext().execute_with(|| {
         let tempo: u16 = 13;
-        let num_subnets: u16 = 100;
+        let num_subnets: u16 = 1000;
         let mut stake_per_module : u64 = 1_000_000_000;
-        let max_allowed_subnets : u16 = SubspaceModule::get_max_allowed_subnets();
-        println!("MAX ALLOWED SUBNETS: {}", max_allowed_subnets);
+        let mut max_allowed_subnets : u16 = SubspaceModule::get_max_allowed_subnets();
 
         for i in 0..num_subnets {
 
-            if (i + 1) % max_allowed_subnets == 0 {
-                stake_per_module = stake_per_module + 1_000;
-            }
             register_module(i, U256::from(0), stake_per_module);
 
-            assert_eq!(SubspaceModule::get_subnet_n(i), 1);
-            assert_eq!(SubspaceModule::get_number_of_subnets(), i+1);
+            let mut expected_subnets = i + 1 ; 
+            if expected_subnets > max_allowed_subnets {
+                expected_subnets = max_allowed_subnets;
+            }   else {
+                
+                assert_eq!(SubspaceModule::get_subnet_n(i), 1);
+            }
+            assert_eq!(SubspaceModule::get_number_of_subnets(), expected_subnets, "number of subnets is not equal to expected subnets");
 
         }
 });}
@@ -101,6 +103,7 @@ fn test_set_single_temple(tempo:u16) {
                                         params.min_allowed_weights, 
                                         params.max_allowed_weights, 
                                         params.max_allowed_uids, 
+                                        params.max_immunity_ratio,
                                         tempo, // change tempo
                                         params.founder );
         let previous_total_stake : u64 = block_number()* emission_per_block;
@@ -290,6 +293,7 @@ fn test_set_max_allowed_uids_shrinking() {
                                         subnet.params.min_allowed_weights,
                                         subnet.params.max_allowed_weights,
                                         max_uids,
+                                        subnet.params.max_immunity_ratio,
                                         subnet.params.tempo, 
                                         subnet.params.founder );
 
