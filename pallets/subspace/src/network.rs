@@ -706,6 +706,7 @@ impl<T: Config> Pallet<T> {
     pub fn get_max_allowed_subnets() -> u16 { MaxAllowedSubnets::<T>::get() }
     pub fn set_max_allowed_subnets( max_allowed_subnets:u16 ) { MaxAllowedSubnets::<T>::set( max_allowed_subnets ) }
 
+
     pub fn get_max_immunity_ratio( netuid:u16 ) -> u16 { MaxImmunityRatio::<T>::get( netuid ) }
     pub fn set_max_immunity_ratio( netuid:u16, mut max_immunity_ratio: u16 )  {
         // set the max immunity ratio, but cap it at 99%
