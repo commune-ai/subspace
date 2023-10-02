@@ -6,8 +6,7 @@
 # $ docker build -t subspace . --platform linux/x86_64 --build-arg SNAPSHOT_DIR="DIR_NAME" --build-arg SNAPSHOT_FILE="FILENAME.TAR.GZ"  -f subspace/Dockerfile
 
 
-FROM ubuntu:22.10
-SHELL ["/bin/bash", "-c"]
+FROM ubuntu:22.04
 
 # This is being set so that no interactive components are allowed when updating.
 ARG DEBIAN_FRONTEND=noninteractive
