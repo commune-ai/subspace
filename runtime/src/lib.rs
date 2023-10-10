@@ -314,6 +314,12 @@ impl pallet_sudo::Config for Runtime {
 	type RuntimeCall = RuntimeCall;
 }
 
+impl pallet_utility::Config for Runtime {
+	type RuntimeEvent = RuntimeEvent;
+	type RuntimeCall = RuntimeCall;
+	type PalletsOrigin = OriginCaller;
+	type WeightInfo = pallet_utility::weights::SubstrateWeight<Runtime>;
+}
 
 impl pallet_subspace::Config for Runtime {
 	type RuntimeEvent = RuntimeEvent;
@@ -336,6 +342,7 @@ construct_runtime!(
 		Balances: pallet_balances,
 		TransactionPayment: pallet_transaction_payment,
 		Sudo: pallet_sudo,
+		Utility: pallet_utility,
 		SubspaceModule: pallet_subspace
 	}
 );
@@ -385,6 +392,7 @@ mod benches {
 		[pallet_balances, Balances]
 		[pallet_subspace, SubspaceModule]
 		[pallet_timestamp, Timestamp]
+		[pallet_utility, Utility]
 	);
 }
 
