@@ -81,6 +81,9 @@ struct SubspaceJSONState {
 	// block at sync
 	block: u32,
 
+	// version
+	version : u32,
+
 
 }
 
