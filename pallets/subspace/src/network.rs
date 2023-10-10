@@ -372,13 +372,21 @@ impl<T: Config> Pallet<T> {
         return total_stake ;
     }
 
+    pub fn get_unit_emission() -> u64 {
+        return UnitEmission::<T>::get()
+    }
+
+    pub fn get_unit_emission_per_block() -> u64 {
+        return UnitEmission::<T>::get() * 4
+    }
+
 
     // Returns the total amount of stake in the staking table.
     pub fn get_total_emission_per_block() -> u64 {
         let market_cap: u64 = Self::market_cap();
-        let mut emission_per_block : u64 = 4_000_000_000; // assuming 4 second block times
-        let halving_total_stake_checkpoints: Vec<u64> = vec![10_000_000, 20_000_000, 30_000_000, 40_000_000].iter().map(|x| x*1_000_000_000).collect();
-        
+        let mut unit_emission : u64 = Self::get_unit_emission();
+        let mut emission_per_block : u64 = 4 * unit_emission; // assuming 4 second block times
+        let halving_total_stake_checkpoints: Vec<u64> = vec![10_000_000, 20_000_000, 30_000_000, 40_000_000].iter().map(|x| x * unit_emission).collect();
         for (i, having_stake) in halving_total_stake_checkpoints.iter().enumerate() {
             let halving_factor = 2u64.pow((i) as u32);
             if market_cap < *having_stake {

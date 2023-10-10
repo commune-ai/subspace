@@ -151,15 +151,16 @@ pub mod pallet {
 	pub fn DefaultVotePeriod<T: Config>() -> u16 { 100 } // out of 100
 	#[pallet::type_value] 
 	pub fn DefaultVoteThreshold<T: Config>() -> u16 { 50 } // out of 100
-
-	
+	#[pallet::type_value] 
+	pub fn DefaultUnitEmission<T: Config>() -> u64 { 2380952381 } 
 
 
 
 	// ============================
 	// ==== Global Variables ====
 	// ============================
-
+	#[pallet::storage] // --- ITEM ( tx_rate_limit )
+	pub(super) type UnitEmission<T> = StorageValue<_, u64, ValueQuery, DefaultUnitEmission<T>>;
 	#[pallet::storage] // --- ITEM ( tx_rate_limit )
 	pub(super) type TxRateLimit<T> = StorageValue<_, u64, ValueQuery, DefaultTxRateLimit<T>>;
 	#[pallet::storage] // --- MAP ( key ) --> last_block
