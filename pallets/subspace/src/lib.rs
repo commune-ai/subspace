@@ -152,7 +152,7 @@ pub mod pallet {
 	#[pallet::type_value] 
 	pub fn DefaultVoteThreshold<T: Config>() -> u16 { 50 } // out of 100
 	#[pallet::type_value] 
-	pub fn DefaultUnitEmission<T: Config>() -> u64 { 2380952381 } 
+	pub fn DefaultUnitEmission<T: Config>() -> u64 { 23809523810 } 
 
 
 
