@@ -16,9 +16,8 @@ impl<T: Config> Pallet<T> {
         let amounts_sum: u64 = amounts.iter().sum();
         ensure!(Self::has_enough_balance( &key, amounts_sum), Error::<T>::NotEnoughStaketoWithdraw);
         ensure!(amounts.len() == module_keys.len(), Error::<T>::DifferentLengths);
-
         for (i,m_key) in module_keys.iter().enumerate() {
-            Self::do_add_stake(origin.clone(),netuid, m_key.clone(), amounts[i as usize])?; 
+            ensure!(Self::do_add_stake(origin.clone(),netuid, m_key.clone(), amounts[i as usize])?, Error::<T>::StakeNotAdded)
         }
         Ok(())
     
@@ -34,7 +33,7 @@ impl<T: Config> Pallet<T> {
 
         for (i,m_key) in module_keys.iter().enumerate() {
             ensure!( Self::has_enough_stake(netuid, &key , &m_key.clone(), amounts[i as usize] ), Error::<T>::NotEnoughStaketoWithdraw );
-            Self::do_remove_stake(origin.clone(),netuid, m_key.clone(), amounts[i as usize])?; 
+            ensure!(Self::do_remove_stake(origin.clone(),netuid, m_key.clone(), amounts[i as usize])?, Error::<T>::StakeNotRemoved)
         }
         Ok(())
     
@@ -51,8 +50,8 @@ impl<T: Config> Pallet<T> {
         ensure!( Self::is_registered( netuid, &module_key.clone() ), Error::<T>::NotRegistered );  
         ensure!( Self::is_registered( netuid, &new_module_key.clone() ), Error::<T>::NotRegistered );  
         ensure!( Self::has_enough_stake(netuid, &key , &module_key, amount ), Error::<T>::NotEnoughStaketoWithdraw );
-        Self::do_remove_stake(origin.clone(), netuid, module_key.clone(), amount)?;
-        Self::do_add_stake(origin.clone(), netuid, new_module_key.clone(), amount)?;
+        ensure!( Self::do_remove_stake(origin.clone(), netuid, module_key.clone(), amount)?;, Error::<T>::StakeNotRemoved)
+        ensure!( Self::do_add_stake(origin.clone(), netuid, new_module_key.clone(), amount)?;, Error::<T>::StakeNotAdded)
         Ok(())
     }
 
@@ -350,26 +349,6 @@ impl<T: Config> Pallet<T> {
 
     pub fn add_balance_to_account(key: &T::AccountId, amount: <<T as Config>::Currency as Currency<<T as system::Config>::AccountId>>::Balance) {
         T::Currency::deposit_creating(&key, amount); // Infallibe
-    }
-
-    pub fn set_balance_on_account(key: &T::AccountId, amount: <<T as Config>::Currency as Currency<<T as system::Config>::AccountId>>::Balance) {
-        T::Currency::make_free_balance_be(&key, amount); 
-    }
-
-    pub fn can_remove_balance_from_account(key: &T::AccountId, amount_64: u64) -> bool {
-        let amount_as_balance = Self::u64_to_balance( amount_64 );
-        if amount_as_balance.is_none() {
-            return false;
-        }
-        let amount = amount_as_balance.unwrap();
-        let current_balance = Self::get_balance(key);
-        if amount > current_balance {
-            return false;
-        }
-        // This bit is currently untested. @todo
-        let new_potential_balance = current_balance - amount;
-        let can_withdraw : bool = T::Currency::ensure_can_withdraw(&key, amount, WithdrawReasons::except(WithdrawReasons::TIP), new_potential_balance).is_ok();
-        return can_withdraw
     }
 
     pub fn get_balance(key: &T::AccountId) -> <<T as Config>::Currency as Currency<<T as system::Config>::AccountId>>::Balance {

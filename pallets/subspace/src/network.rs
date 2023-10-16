@@ -40,6 +40,20 @@ impl<T: Config> Pallet<T> {
         return min_stake_netuid;
     }
 
+
+    // get the least staked network
+    pub fn least_staked_module() -> u16 {
+        let mut min_stake: u64 = u64::MAX;
+        let mut min_stake_netuid: u16 = u16::MAX;
+        for ( module_key, net_stake ) in <Stake<T> as IterableDoubleStorageMap<u16, u64> >::iter_prefix(){
+            if net_stake <= min_stake {
+                min_stake = net_stake;
+                min_stake_netuid = netuid;
+            }
+        }
+        return min_stake_netuid;
+    }
+
     
 
     pub fn enough_stake_to_start_network(stake: u64) -> bool {
@@ -54,15 +68,30 @@ impl<T: Config> Pallet<T> {
             return true;
         }
         // if we have reached the max number of subnets, then we can start a new one if the stake is greater than the least staked network
-        return stake > Self::min_stake();
+        return stake > Self::min_subnet_stake();
     }
 
     // get the least staked network
-    pub fn min_stake() -> u64 {
+    pub fn min_subnet_stake() -> u64 {
         let mut min_stake: u64 = u64::MAX;
         for ( netuid, net_stake ) in <SubnetTotalStake<T> as IterableStorageMap<u16, u64> >::iter(){
             if net_stake <= min_stake {
                 min_stake = net_stake;
+            }
+        }
+        return min_stake;
+    }
+
+
+
+    // get the least staked network
+    pub fn min_stake_key(netuid:u16 ) -> u64 {
+        let mut min_stake: u64 = u64::MAX;
+        let mut module_key : T:AccountId;
+        for ( m_key, net_stake ) in <Stake<T> as IterableStorageDoubleMap<u16, T::AccountId> >::iter_prefix(netuid){
+            if net_stake <= min_stake {
+                module_key = m_key;
+                min_stake = m_key;
             }
         }
         return min_stake;
@@ -256,14 +285,28 @@ impl<T: Config> Pallet<T> {
         if max_allowed_weights > max_allowed_uids {
             max_allowed_weights = max_allowed_uids;
         }
+        let old_max_allowed_weights: u16 = MaxAllowedWeights::<T>::get( netuid );
+        if max_allowed_weights < old_max_allowed_weights {
+            for ( uid_i, weights_i ) in < Weights<T> as IterableStorageDoubleMap<u16 ,u16, Vec<(u16, u16)> >>::iter_prefix( netuid ) {
+                let mut weights: Vec<(u16, u16)> = weights_i.clone();
+                let mut new_weights: Vec<(u16, u16)> = Vec::new();
+                for ( module_uid_i, weight_i ) in weights {
+                    if module_uid_i < max_allowed_weights {
+                        new_weights.push( ( module_uid_i, weight_i ) );
+                    }
+                }
+                Weights::<T>::insert( netuid, uid_i, new_weights );
+            }
+        }
         MaxAllowedWeights::<T>::insert( netuid, max_allowed_weights );
-
+        
         // MIN_ALLOWED_WEIGHTS
         // make sure the min_allowed_weights is less than the max_allowed_weights
         if min_allowed_weights > max_allowed_weights {
             min_allowed_weights = max_allowed_weights;
         }
         MinAllowedWeights::<T>::insert( netuid, min_allowed_weights );
+
         Founder::<T>::insert( netuid, founder );
         // remove the modules if the max_allowed_uids is less than the current number of modules
 
@@ -773,7 +816,13 @@ impl<T: Config> Pallet<T> {
                 return max_allowed_weights;
             }
         }
-    pub fn set_max_allowed_weights( netuid: u16, max_allowed_weights: u16 ) { MaxAllowedWeights::<T>::insert( netuid, max_allowed_weights ); }
+    pub fn set_max_allowed_weights( netuid: u16, max_allowed_weights: u16 ) {
+             MaxAllowedWeights::<T>::insert( netuid, max_allowed_weights );
+
+
+             }
+
+
 
     pub fn get_max_allowed_uids( netuid: u16 ) -> u16  { MaxAllowedUids::<T>::get( netuid ) }
     pub fn set_max_allowed_uids(netuid: u16, max_allowed: u16) { MaxAllowedUids::<T>::insert( netuid, max_allowed ); }

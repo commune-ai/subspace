@@ -22,50 +22,9 @@ impl<T: Config> Pallet<T> {
             let emission_to_drain:u64 = PendingEmission::<T>::get( netuid ).clone();
             Self::epoch( netuid, emission_to_drain );
             PendingEmission::<T>::insert( netuid, 0 );
-            // Self::deregister_zero_emission_uids( netuid );
 
         }
     }
-
-    pub fn deregister_zero_emission_uids( netuid: u16 ) {
-        let zero_keys:  Vec<T::AccountId> = Self::get_zero_emission_keys( netuid );
-        for key in zero_keys {
-            let uid: u16 = Self::get_uid_for_key( netuid, &key );
-            Self::remove_module( netuid, uid );
-        }
-    }
-
-    pub fn get_zero_emission_keys(netuid: u16) -> Vec<T::AccountId> {
-        let mut zero_keys: Vec<T::AccountId> = Vec::new();
-        let zero_uids: Vec<u16> = Self::get_zero_emission_uids( netuid );
-        for uid in zero_uids {
-            zero_keys.push( Self::get_key_for_uid( netuid, uid ) );
-        }
-        return zero_keys; 
-    }
-
-    pub fn get_zero_emission_uids( netuid: u16 ) -> Vec<u16> {
-        let mut zero_uids: Vec<u16> = Vec::new();
-        let emissions : Vec<u64> = Self::get_emissions( netuid );
-        let immunity_period : u16 = Self::get_immunity_period( netuid );
-
-        for ( uid , emission ) in emissions.iter().enumerate() {
-            let module_age : u64 = Self::get_module_age( netuid , uid as u16);
-
-            
-            if (module_age  <  immunity_period as u64) {
-                continue;
-            } 
-
-            if *emission == 0 {
-                
-                zero_uids.push( uid as u16) ;
-            }
-
-        }
-        return zero_uids; 
-    }
-
 
     pub fn epoch( netuid: u16, token_emission: u64 ) {
         // Get subnetwork size.
@@ -170,6 +129,7 @@ impl<T: Config> Pallet<T> {
         // Compute dividends: d_i = SUM(j) b_ij * inc_j.
         // range: I32F32(0, 1)
         let mut dividends: Vec<I32F32> = matmul_transpose_sparse( &bonds, &incentive ).clone();
+        
         // If emission is zero, do an even split.
         if is_zero( &dividends ) { // no weights set
             for (uid_i, key) in keys.iter() {

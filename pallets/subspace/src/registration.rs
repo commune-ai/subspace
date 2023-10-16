@@ -43,11 +43,13 @@ impl<T: Config> Pallet<T> {
             netuid = Self::get_netuid_for_name( network.clone() );
             ensure!( !Self::is_key_registered(netuid, &key), Error::<T>::KeyAlreadyRegistered );
             ensure!( !Self::if_module_name_exists( netuid, name.clone() ), Error::<T>::NameAlreadyRegistered );
-            
-            RegistrationsThisBlock::<T>::mutate( |val| *val += 1 );
             netuid = Self::get_netuid_for_name( network.clone() );            
             
         }
+
+        Self::is_too_many_registrations( netuid );
+
+        RegistrationsThisBlock::<T>::mutate( |val| *val += 1 );
 
 
 
@@ -65,7 +67,7 @@ impl<T: Config> Pallet<T> {
         }
 
         if stake_amount > 0 {
-            Self::do_add_stake(origin.clone(),  netuid, key.clone(), stake_amount );
+            ensuare!(Self::do_add_stake(origin.clone(),  netuid, key.clone(), stake_amount ).is_ok(), Error::<T>::StakeNotAdded);
         } else {
             Self::increase_stake( netuid, &key, &key, 0 );
         }
@@ -89,47 +91,61 @@ impl<T: Config> Pallet<T> {
     // immunity period. If all modules are in immunity period, return node with lowest prunning score.
     // This function will always return an element to prune.
 
+    pub fn is_too_many_registrations( netuid: u16 ) -> bool {
+        let registrations: u16 = Self::get_registrations_this_block( netuid );
+        let max_registrations_per_block: u16 = Self::get_max_registrations_per_block( netuid );
+        let max_total_registrations_per_block: u16 = Self::get_max_total_registrations_per_block( netuid );
+
+        
+        if n >= max_allowed_uids {
+            return true;
+        } else {
+            return false;
+        }
+    }
+    
     pub fn get_lowest_uid(netuid: u16) -> u16 {
         let mut min_score : u16 = u16::MAX;
         let mut uid_with_min_score = 0;
         let n = Self::get_subnet_n( netuid );
         let current_block :u64 = Self::get_current_block_as_u64();
-        let mut uids_in_immunity_period: Vec<u16> = Vec::new();
-        let mut uid_found: bool= false;
+        let mut lowest_priority_uid_in_immunity: Vec<u16> = Vec::new();
         let n: u16 = Self::get_subnet_n( netuid );
         let mut  lowest_priority_uid : u16 = u16::MAX;
+        let mut lowest_priority_uids: Vec<u16> = Vec::new();
+        
         for module_uid_i in 0..n {
             let block_at_registration: u64 = Self::get_module_registration_block( netuid, module_uid_i );
             let immunity_period: u64 = Self::get_immunity_period(netuid) as u64;
             let mut pruning_score = Self::get_pruning_score_for_uid( netuid,  module_uid_i);
-
             // Find min pruning score.
-            
             if min_score >= pruning_score { 
-
                 min_score = pruning_score;
-                uid_with_min_score = module_uid_i;
-
                 if immunity_period > current_block - block_at_registration  { 
-                    uids_in_immunity_period.push(module_uid_i);
+                    lowest_priority_uid_in_immunity.push(module_uid_i);
                 } else {
-                    lowest_priority_uid = module_uid_i;
+                    lowest_priority_uids_out_immunity.push(module_uid_i)
                 }
+            } else {
+                lowest_priority_uid_in_immunity = Vec::new();
+                lowest_priority_uids_out_immunity = Vec::new();   
             }
-        
 
-        }
-
-        let max_immunity_uids = Self::get_max_immunity_uids(netuid);
-
-        if uids_in_immunity_period.len() as u16 >= max_immunity_uids {
-            lowest_priority_uid = uid_with_min_score;
         }
 
         if lowest_priority_uid == u16::MAX {
-            lowest_priority_uid = uid_with_min_score;
+            // if all modules are in immunity period, return node with lowest prunning score.
+            lowest_priority_uid = Self::random_idx( n as u16 );
+        } else {
+            // 
+            if lowest_priority_uid_in_immunity.len() as u16 >= Self::get_max_immunity_uids(netuid) {
+                let idx: u16 = Self::random_idx( lowest_priority_uid_in_immunity.len() as u16 );
+                lowest_priority_uid = lowest_priority_uid_in_immunity[idx as usize];
+            } else {
+                let idx: u16 = Self::random_idx( lowest_priority_uid_out_immunity.len() as u16 );
+                lowest_priority_uid = lowest_priority_uids_out_immunity[idx as usize];
+            }
         }
-
 
         return lowest_priority_uid;
     } 
