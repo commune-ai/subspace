@@ -40,9 +40,10 @@ pub use frame_support::{
 	},
 	weights::{
 		constants::{
-			BlockExecutionWeight, ExtrinsicBaseWeight, RocksDbWeight, WEIGHT_REF_TIME_PER_SECOND, 
+			BlockExecutionWeight, ExtrinsicBaseWeight, RocksDbWeight, WEIGHT_REF_TIME_PER_SECOND,
 		},
-		IdentityFee, Weight, WeightToFeeCoefficients, WeightToFeeCoefficient, WeightToFeePolynomial
+		IdentityFee, Weight, WeightToFeeCoefficient, WeightToFeeCoefficients,
+		WeightToFeePolynomial,
 	},
 	StorageValue,
 };
@@ -343,7 +344,7 @@ construct_runtime!(
 		TransactionPayment: pallet_transaction_payment,
 		Sudo: pallet_sudo,
 		Utility: pallet_utility,
-		SubspaceModule: pallet_subspace
+		SubspaceModule: pallet_subspace,
 	}
 );
 
@@ -363,7 +364,6 @@ pub type SignedExtra = (
 	frame_system::CheckNonce<Runtime>,
 	frame_system::CheckWeight<Runtime>,
 	pallet_transaction_payment::ChargeTransactionPayment<Runtime>,
-	
 );
 
 // Unchecked extrinsic type as expected by this runtime.
