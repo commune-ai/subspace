@@ -6,7 +6,7 @@ use substrate_fixed::types::{I32F32, I64F64, I96F32, I110F18};
 use frame_support::storage::{IterableStorageMap, IterableStorageDoubleMap};
 
 impl<T: Config> Pallet<T> { 
-
+    
     pub fn block_step( ) {
         let block_number: u64 = Self::get_current_block_as_u64();
         RegistrationsThisBlock::<T>::mutate( |val| *val = 0 );

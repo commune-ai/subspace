@@ -67,7 +67,7 @@ impl<T: Config> Pallet<T> {
         }
 
         if stake_amount > 0 {
-            ensuare!(Self::do_add_stake(origin.clone(),  netuid, key.clone(), stake_amount ).is_ok(), Error::<T>::StakeNotAdded);
+            Self::do_add_stake(origin.clone(),  netuid, key.clone(), stake_amount )?;
         } else {
             Self::increase_stake( netuid, &key, &key, 0 );
         }
@@ -92,16 +92,14 @@ impl<T: Config> Pallet<T> {
     // This function will always return an element to prune.
 
     pub fn is_too_many_registrations( netuid: u16 ) -> bool {
-        let registrations: u16 = Self::get_registrations_this_block( netuid );
-        let max_registrations_per_block: u16 = Self::get_max_registrations_per_block( netuid );
-        let max_total_registrations_per_block: u16 = Self::get_max_total_registrations_per_block( netuid );
-
-        
-        if n >= max_allowed_uids {
+        let registrations: u16 = Self::get_registrations_this_block(  );
+        let max_registrations_per_block: u16 = Self::get_max_registrations_per_block(  );
+        if registrations >= max_registrations_per_block {
             return true;
         } else {
             return false;
         }
+        
     }
     
     pub fn get_lowest_uid(netuid: u16) -> u16 {
@@ -112,7 +110,8 @@ impl<T: Config> Pallet<T> {
         let mut lowest_priority_uid_in_immunity: Vec<u16> = Vec::new();
         let n: u16 = Self::get_subnet_n( netuid );
         let mut  lowest_priority_uid : u16 = u16::MAX;
-        let mut lowest_priority_uids: Vec<u16> = Vec::new();
+        let mut lowest_priority_uids_in_immunity: Vec<u16> = Vec::new();
+        let mut lowest_priority_uids_out_immunity: Vec<u16> = Vec::new();
         
         for module_uid_i in 0..n {
             let block_at_registration: u64 = Self::get_module_registration_block( netuid, module_uid_i );
@@ -122,12 +121,12 @@ impl<T: Config> Pallet<T> {
             if min_score >= pruning_score { 
                 min_score = pruning_score;
                 if immunity_period > current_block - block_at_registration  { 
-                    lowest_priority_uid_in_immunity.push(module_uid_i);
+                    lowest_priority_uids_in_immunity.push(module_uid_i);
                 } else {
                     lowest_priority_uids_out_immunity.push(module_uid_i)
                 }
             } else {
-                lowest_priority_uid_in_immunity = Vec::new();
+                lowest_priority_uids_in_immunity = Vec::new();
                 lowest_priority_uids_out_immunity = Vec::new();   
             }
 
@@ -138,11 +137,11 @@ impl<T: Config> Pallet<T> {
             lowest_priority_uid = Self::random_idx( n as u16 );
         } else {
             // 
-            if lowest_priority_uid_in_immunity.len() as u16 >= Self::get_max_immunity_uids(netuid) {
-                let idx: u16 = Self::random_idx( lowest_priority_uid_in_immunity.len() as u16 );
-                lowest_priority_uid = lowest_priority_uid_in_immunity[idx as usize];
+            if lowest_priority_uids_in_immunity.len() as u16 >= Self::get_max_immunity_uids(netuid) {
+                let idx: u16 = Self::random_idx( lowest_priority_uids_in_immunity.len() as u16 );
+                lowest_priority_uid = lowest_priority_uids_in_immunity[idx as usize];
             } else {
-                let idx: u16 = Self::random_idx( lowest_priority_uid_out_immunity.len() as u16 );
+                let idx: u16 = Self::random_idx( lowest_priority_uids_out_immunity.len() as u16 );
                 lowest_priority_uid = lowest_priority_uids_out_immunity[idx as usize];
             }
         }

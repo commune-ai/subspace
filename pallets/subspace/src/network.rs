@@ -41,18 +41,18 @@ impl<T: Config> Pallet<T> {
     }
 
 
-    // get the least staked network
-    pub fn least_staked_module() -> u16 {
-        let mut min_stake: u64 = u64::MAX;
-        let mut min_stake_netuid: u16 = u16::MAX;
-        for ( module_key, net_stake ) in <Stake<T> as IterableDoubleStorageMap<u16, u64> >::iter_prefix(){
-            if net_stake <= min_stake {
-                min_stake = net_stake;
-                min_stake_netuid = netuid;
-            }
-        }
-        return min_stake_netuid;
-    }
+    // // get the least staked network
+    // pub fn least_staked_module() -> u16 {
+    //     let mut min_stake: u64 = u64::MAX;
+    //     let mut min_stake_netuid: u16 = u16::MAX;
+    //     for ( module_key, net_stake ) in <Stake<T> as IterableDoubleStorageMap<u16, u64> >::iter_prefix(){
+    //         if net_stake <= min_stake {
+    //             min_stake = net_stake;
+    //             min_stake_netuid = netuid;
+    //         }
+    //     }
+    //     return min_stake_netuid;
+    // }
 
     
 
@@ -85,13 +85,13 @@ impl<T: Config> Pallet<T> {
 
 
     // get the least staked network
-    pub fn min_stake_key(netuid:u16 ) -> u64 {
+    pub fn min_stake_key_value(netuid:u16 ) -> u64 {
         let mut min_stake: u64 = u64::MAX;
-        let mut module_key : T:AccountId;
-        for ( m_key, net_stake ) in <Stake<T> as IterableStorageDoubleMap<u16, T::AccountId> >::iter_prefix(netuid){
+        let mut module_key : T::AccountId;
+        for ( m_key, net_stake ) in <Stake<T> as IterableStorageDoubleMap<u16, T::AccountId, u64> >::iter_prefix(netuid){
             if net_stake <= min_stake {
                 module_key = m_key;
-                min_stake = m_key;
+                min_stake = net_stake;
             }
         }
         return min_stake;

@@ -196,8 +196,6 @@ pub mod pallet {
 		pub max_allowed_weights: u16, // max number of weights allowed to be registered in this subnet
 		pub max_allowed_uids: u16, // max number of uids allowed to be registered in this subnet
 		pub max_immunity_ratio: u16, // max number of uids allowed to be registered in this subnet
-		pub max_registrations_per_block: u16, // max 
-		pub modules_per_ip: u16,
 		pub founder: T::AccountId, // founder of the network
 		pub vote_threshold: u16, // out of 100
 		pub vote_period: u16, // out of 100
@@ -213,7 +211,7 @@ pub mod pallet {
 	#[pallet::storage] // --- MAP ( netuid ) --> min_allowed_weights
 	pub type MaxAllowedWeights<T> = StorageMap< _, Identity, u16, u16, ValueQuery, DefaultMaxAllowedWeights<T> >;
 	#[pallet::storage] // --- MAP ( netuid ) --> min_allowed_weights
-	pub type MaxRegistrationsPerBlock<T> = StorageMap< _, Identity, u16, u16, ValueQuery, DefaultMaxRegistrationsPerBlock<T> >;
+	pub type MaxRegistrations<T> = StorageMap< _, Identity, u16, u16, ValueQuery, DefaultMaxRegistrationsPerBlock<T> >;
 	#[pallet::storage] // --- MAP ( netuid ) --> min_allowed_weights
 	pub type MaxImmunityRatio<T> = StorageMap< _, Identity, u16, u16, ValueQuery, DefaultMaxImmunityRatio<T> >;
 	#[pallet::storage] // --- DMAP ( key, netuid ) --> bool
@@ -391,8 +389,7 @@ pub mod pallet {
 		NotEnoughBalanceToRegister, 
 		StakeNotAdded,
 		BalanceNotRemoved,
-		StakeNotRemoved,
-		StakeNotAdded
+		StakeNotRemoved
 	}
 
 	// ==================
@@ -547,19 +544,6 @@ pub mod pallet {
 			Self::do_add_stake_multiple(origin,netuid,module_keys, amounts)
 		}
 
-
-		#[pallet::weight((Weight::from_ref_time(0)
-		.saturating_add(T::DbWeight::get().reads(0))
-		.saturating_add(T::DbWeight::get().writes(0)), DispatchClass::Normal, Pays::No))]
-		pub fn transfer_stake(
-			origin: OriginFor<T>, 
-			netuid: u16,
-			from_key:T::AccountId,
-			to_key: T::AccountId
-		) -> DispatchResult {
-			
-			Self::do_transfer_stake(origin,netuid,module_keys, amounts)
-		}
 
 
 
