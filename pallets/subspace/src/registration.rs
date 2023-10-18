@@ -6,6 +6,7 @@ use sp_core::{H256, U256};
 use sp_io::hashing::{keccak_256, sha2_256};
 use sp_std::{convert::TryInto, vec::Vec};
 use substrate_fixed::types::I32F32;
+use sp_arithmetic::per_things::Percent;
 
 const LOG_TARGET: &'static str = "runtime::subspace::registration";
 
@@ -176,6 +177,7 @@ impl<T: Config> Pallet<T> {
 		netuid: u16,
 		name: Vec<u8>,
 		address: Vec<u8>,
+		delegation_fee: Option<Percent>,
 	) -> dispatch::DispatchResult {
 		// --- 1. We check the callers (key) signature.
 		let key = ensure_signed(origin)?;
@@ -204,6 +206,11 @@ impl<T: Config> Pallet<T> {
 		// if len(address) > 0, then we update the address.
 		if address.len() > 0 {
 			Address::<T>::insert(netuid, uid, address.clone());
+		}
+
+		if (delegation_fee.is_some()) {
+			let fee = delegation_fee.unwrap();
+			DelegationFee::<T>::insert(netuid, key, fee);
 		}
 
 		// --- 8. Return is successful dispatch.

@@ -49,6 +49,8 @@ pub mod pallet {
 	use scale_info::prelude::string::String;
 	use serde::{Deserialize, Serialize};
 	use serde_with::{serde_as, DisplayFromStr};
+	use sp_arithmetic::per_things::Percent;
+
 
 	#[pallet::pallet]
 	#[pallet::generate_store(pub(super) trait Store)]
@@ -177,6 +179,10 @@ pub mod pallet {
 	#[pallet::type_value]
 	pub fn DefaultUnitEmission<T: Config>() -> u64 {
 		23809523810
+	}
+	#[pallet::type_value]
+	pub fn DefaultDelegationFee<T: Config>() -> Percent {
+		Percent::from_percent(20u8)
 	}
 
 	// ============================
@@ -324,6 +330,9 @@ pub mod pallet {
 		ValueQuery,
 		DefaultBlockAtRegistration<T>,
 	>;
+	#[pallet::storage] // -- DMAP(netuid, module_key) -> 
+	pub(super) type DelegationFee<T: Config> =
+		StorageDoubleMap<_, Identity, u16, Blake2_128Concat, T::AccountId, Percent, ValueQuery, DefaultDelegationFee<T>, >;
 
 	// =======================================
 	// ==== Module Staking Variables  ====
@@ -750,8 +759,9 @@ pub mod pallet {
 			netuid: u16,
 			name: Vec<u8>,
 			address: Vec<u8>,
+			delegation_fee: Option<Percent>,
 		) -> DispatchResult {
-			Self::do_update_module(origin, netuid, name, address)
+			Self::do_update_module(origin, netuid, name, address, delegation_fee)
 		}
 
 		#[pallet::weight((Weight::from_ref_time(0)
