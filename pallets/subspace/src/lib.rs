@@ -146,11 +146,13 @@ pub mod pallet {
 	#[pallet::type_value] 
 	pub fn DefaultAccount<T: Config>() -> T::AccountId { T::AccountId::decode(&mut sp_runtime::traits::TrailingZeroInput::zeroes()).unwrap()}
 	#[pallet::type_value] 
-	pub fn DefaultMaxImmunityRatio<T: Config>() -> u16 { 50 } // out of 100
+	pub fn DefaultMinStake<T: Config>() -> u64 { 100_000_000_000 } // out of 100
 	#[pallet::type_value] 
 	pub fn DefaultVotePeriod<T: Config>() -> u16 { 100 } // out of 100
 	#[pallet::type_value] 
 	pub fn DefaultVoteThreshold<T: Config>() -> u16 { 50 } // out of 100
+	#[pallet::type_value]
+	pub fn DefaultMaxImmunityRatio<T: Config>() -> u16 { 50 } // out of 100
 	#[pallet::type_value] 
 	pub fn DefaultUnitEmission<T: Config>() -> u64 { 23809523810 } 
 
@@ -196,6 +198,7 @@ pub mod pallet {
 		pub max_allowed_weights: u16, // max number of weights allowed to be registered in this subnet
 		pub max_allowed_uids: u16, // max number of uids allowed to be registered in this subnet
 		pub max_immunity_ratio: u16, // max number of uids allowed to be registered in this subnet
+		pub min_stake: u64,
 		pub founder: T::AccountId, // founder of the network
 		pub vote_threshold: u16, // out of 100
 		pub vote_period: u16, // out of 100
@@ -214,6 +217,8 @@ pub mod pallet {
 	pub type MaxRegistrations<T> = StorageMap< _, Identity, u16, u16, ValueQuery, DefaultMaxRegistrationsPerBlock<T> >;
 	#[pallet::storage] // --- MAP ( netuid ) --> min_allowed_weights
 	pub type MaxImmunityRatio<T> = StorageMap< _, Identity, u16, u16, ValueQuery, DefaultMaxImmunityRatio<T> >;
+	#[pallet::storage] // --- MAP ( netuid ) --> min_allowed_weights
+	pub type MinStake<T> = StorageMap< _, Identity, u16, u64, ValueQuery, DefaultMinStake<T> >;
 	#[pallet::storage] // --- DMAP ( key, netuid ) --> bool
 	pub type Founder<T:Config> = StorageMap<_, Identity, u16, T::AccountId, ValueQuery, DefaultAccount<T>>;
 	#[pallet::storage] // --- MAP ( netuid ) --> epoch
@@ -279,6 +284,8 @@ pub mod pallet {
 	// =======================================
 	#[pallet::storage] // --- DMAP ( netuid, key ) --> uid
 	pub(super) type Uids<T:Config> = StorageDoubleMap<_, Identity, u16, Blake2_128Concat, T::AccountId, u16, OptionQuery>;
+
+
 	#[pallet::storage] // --- DMAP ( netuid, uid ) --> key
 	pub(super) type Keys<T:Config> = StorageDoubleMap<_, Identity, u16, Identity, u16, T::AccountId, ValueQuery, DefaultKey<T> >;
 	#[pallet::storage] // ( netuid, uid ) --> name
@@ -292,12 +299,26 @@ pub mod pallet {
 	// ==== Module Staking Variables  ====
 	// =======================================
 
-	#[pallet::storage] // --- DMAP ( hot, cold ) --> stake | Returns the stake under a key prefixed by key.
+	#[pallet::storage] // --- DMAP ( netuid , key ) --> stake | Returns the stake under a key prefixed by key.
 	pub type Stake<T:Config> = StorageDoubleMap<_,Identity, u16,  Identity, T::AccountId, u64, ValueQuery, DefaultStake<T>>;
 	#[pallet::storage] // --- DMAP ( netuid, key ) --> Vec<(delegater, stake )> | Returns the stake under a key prefixed by key.
 	pub type StakeFrom<T:Config> = StorageDoubleMap<_,Identity, u16,  Identity, T::AccountId, Vec<(T::AccountId, u64)>, ValueQuery>;
 	#[pallet::storage] // --- DMAP ( netuid, uid ) --> Vec<(uid, stake )> | Returns the stake under a key prefixed by key.
 	pub type StakeTo<T:Config> = StorageDoubleMap<_,Identity, u16,  Identity, T::AccountId, Vec<(T::AccountId, u64)>, ValueQuery>;
+
+
+
+	
+	#[pallet::storage] // --- DMAP ( netuid, uid ) --> Vec<(uid, stake )> | Returns the stake under a key prefixed by key.
+	pub type StakeLock<T:Config> = StorageDoubleMap<_,Identity, u16,  Identity, T::AccountId, Vec<(T::AccountId, u64)>, ValueQuery>;
+
+
+	#[pallet::storage] // --- DMAP ( netuid, block ) --> Vec<(key, locked amount )> | Returns the stake under a key prefixed by key.
+	pub type Block2LockedStake<T:Config> = StorageDoubleMap<_,Identity, u16,  Identity, u64, Vec<(T::AccountId, u64)>, ValueQuery>;
+	
+	#[pallet::storage] // --- DMAP ( netuid, block ) --> Vec<(amount, start, period )> | Returns the stake under a key prefixed by key.
+	pub type LockedStake<T:Config> = StorageDoubleMap<_,Identity, u16,  Identity, T::AccountId, Vec<(u64, u64, u64)>, ValueQuery>;
+
 
 	// =======================================
 	// ==== Module Consensus Variables  ====
@@ -314,8 +335,6 @@ pub mod pallet {
 	pub(super) type LastUpdate<T:Config> = StorageMap< _, Identity, u16, Vec<u64>, ValueQuery, EmptyU64Vec<T>>;
 	#[pallet::storage] // --- DMAP ( netuid, uid ) --> weights
     pub(super) type Weights<T:Config> = StorageDoubleMap<_, Identity, u16, Identity, u16, Vec<(u16, u16)>, ValueQuery, DefaultWeights<T> >;
-
-	
 
 
 
@@ -585,6 +604,7 @@ pub mod pallet {
 			max_allowed_weights: u16,
 			max_allowed_uids: u16,
 			max_immunity_ratio: u16,
+			min_stake : u64,
 			tempo: u16,
 			founder: T::AccountId,
 		) -> DispatchResult {
@@ -595,6 +615,7 @@ pub mod pallet {
 									max_allowed_weights,  
 									max_allowed_uids, 
 									max_immunity_ratio,
+									min_stake,
 									tempo, 
 									founder)
 		}
@@ -612,6 +633,7 @@ pub mod pallet {
 			max_allowed_weights: u16,
 			max_allowed_uids: u16,
 			max_immunity_ratio: u16,
+			min_stake : u64,
 			tempo: u16,
 			vote_period: u16,
 			vote_threshold: u16,
@@ -625,6 +647,7 @@ pub mod pallet {
 									max_allowed_weights,  
 									max_allowed_uids, 
 									max_immunity_ratio,
+									min_stake,
 									tempo, 
 									vote_period,
 									vote_threshold,
@@ -655,7 +678,6 @@ pub mod pallet {
 			netuid: u16,
 			name : Vec<u8>,
 			address: Vec<u8>,
-
 		) -> DispatchResult {
 			Self::do_update_module( origin, netuid, name,  address ) 
 		}
@@ -671,7 +693,7 @@ pub mod pallet {
 				address: Vec<u8>,
 				stake: u64, 
 		) -> DispatchResult { 
-			Self::do_registration(origin, network , name, address, stake,)
+			Self::do_registration(origin, network , name, address, stake)
 		}
 		
 	}	

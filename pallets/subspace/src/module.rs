@@ -129,6 +129,10 @@ impl<T: Config> Pallet<T> {
             Address::<T>::insert( netuid, uid, address.clone() ); // Fill module info.
             // 3. Get and increase the uid count.
             N::<T>::insert( netuid, uid + 1 );
+
+            // 4. Emit the event.
+            Self::increase_stake( netuid, &key, &key, 0 );
+
     
             return uid;
     

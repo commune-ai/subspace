@@ -42,7 +42,7 @@ impl<T: Config> Pallet<T> {
 
 
     // get the least staked network
-    pub fn least_staked_key(netuid:u16) -> T::AccountId {
+    pub fn least_staked_module_key(netuid:u16) -> T::AccountId {
         let mut min_stake: u64 = u64::MAX;
         let mut min_stake_uid: u16 = 0;
         let mut module_key : T::AccountId = Self::get_subnet_params(netuid).founder;
@@ -56,13 +56,10 @@ impl<T: Config> Pallet<T> {
         return module_key;
     }
 
-
-    
-    pub fn least_staked_uid(netuid:u16) -> u16{
-        return Self::get_uid_for_key(netuid, &Self::least_staked_key(netuid));
+    pub fn least_staked_module_uid(netuid:u16) -> u16{
+        // least_staked_module_uid
+        return Self::get_uid_for_key(netuid, &Self::least_staked_module_key(netuid));
     }
-
-    
 
     pub fn enough_stake_to_start_network(stake: u64) -> bool {
         let num_subnets: u16 = Self::get_number_of_subnets();
@@ -79,6 +76,16 @@ impl<T: Config> Pallet<T> {
         return stake > Self::min_subnet_stake();
     }
 
+
+    pub fn enough_stake_to_register(netuid:u16, stake: u64) -> bool {
+        let min_stake = Self::min_stake_key_value(netuid);
+        return MinStake::<T>::get( netuid ) <= stake
+    }
+
+
+
+
+
     // get the least staked network
     pub fn min_subnet_stake() -> u64 {
         let mut min_stake: u64 = u64::MAX;
@@ -89,8 +96,6 @@ impl<T: Config> Pallet<T> {
         }
         return min_stake;
     }
-
-
 
     // get the least staked network
     pub fn min_stake_key_value(netuid:u16 ) -> u64 {
@@ -107,7 +112,6 @@ impl<T: Config> Pallet<T> {
         }
         return min_stake;
     }
-
 
     pub fn get_network_stake( netuid: u16 ) -> u64 {
         return SubnetTotalStake::<T>::get( netuid );
@@ -158,6 +162,7 @@ impl<T: Config> Pallet<T> {
         Ok(())
     }
 
+
     pub fn do_update_network( 
         origin: T::RuntimeOrigin,
         netuid: u16,
@@ -167,6 +172,7 @@ impl<T: Config> Pallet<T> {
         max_allowed_weights: u16,
         max_allowed_uids: u16,
         max_immunity_ratio: u16,
+        min_stake : u64,
         tempo: u16,
         founder: T::AccountId,
     ) -> DispatchResult {
@@ -183,6 +189,7 @@ impl<T: Config> Pallet<T> {
                                         max_allowed_weights, 
                                         max_allowed_uids, 
                                         max_immunity_ratio,
+                                        min_stake,
                                         tempo, 
                                         founder);
         // --- 16. Ok and done.
@@ -198,6 +205,7 @@ impl<T: Config> Pallet<T> {
         max_allowed_weights: u16,
         max_allowed_uids: u16,
         max_immunity_ratio: u16,
+        min_stake : u64,
         tempo: u16,
         vote_period: u16,
         vote_threshold: u16,
@@ -217,6 +225,7 @@ impl<T: Config> Pallet<T> {
             max_allowed_weights: max_allowed_weights,
             max_allowed_uids: max_allowed_uids,
             max_immunity_ratio: max_immunity_ratio,
+            min_stake : min_stake,
             tempo: tempo,
             founder: founder.clone(),
             vote_period: vote_period,
@@ -261,6 +270,7 @@ impl<T: Config> Pallet<T> {
                                                 params.max_allowed_weights, 
                                                 params.max_allowed_uids, 
                                                 params.max_immunity_ratio,
+                                                params.min_stake,
                                                 params.tempo, 
                                                 params.founder);
     }
@@ -273,6 +283,7 @@ impl<T: Config> Pallet<T> {
                     mut max_allowed_weights: u16,
                     mut max_allowed_uids: u16,
                     mut max_immunity_ratio: u16,
+                    mut min_stake : u64,
                     tempo: u16,
                     founder: T::AccountId,) {
 
@@ -350,6 +361,7 @@ impl<T: Config> Pallet<T> {
             founder: Founder::<T>::get( netuid ),
             name: <Vec<u8>>::new(),
             vote_period: VotePeriod::<T>::get( netuid ),
+            min_stake: MinStake::<T>::get( netuid ),
             vote_threshold: VoteThreshold::<T>::get( netuid ),
         }
     }
@@ -380,6 +392,10 @@ impl<T: Config> Pallet<T> {
 
     pub fn is_subnet_founder( netuid: u16, key: &T::AccountId ) -> bool {
         return Founder::<T>::get( netuid) == *key;
+    }
+
+    pub fn get_subnet_founder(netuid: u16) -> T::AccountId {
+        return Founder::<T>::get( netuid);
     }
 
 
@@ -756,7 +772,16 @@ impl<T: Config> Pallet<T> {
     pub fn get_incentive_for_uid( netuid:u16, uid: u16) -> u16 { let vec = Incentive::<T>::get( netuid ); if (uid as usize) < vec.len() { return vec[uid as usize] } else{ return 0 } }
     pub fn get_dividends_for_uid( netuid:u16, uid: u16) -> u16 { let vec = Dividends::<T>::get( netuid ); if (uid as usize) < vec.len() { return vec[uid as usize] } else{ return 0 } }
     pub fn get_last_update_for_uid( netuid:u16, uid: u16) -> u64 { let vec = LastUpdate::<T>::get( netuid ); if (uid as usize) < vec.len() { return vec[uid as usize] } else{ return 0 } }
-    pub fn get_pruning_score_for_uid( netuid:u16, uid: u16) -> u16 { let vec = Emission::<T>::get( netuid ); if (uid as usize) < vec.len() { return vec[uid as usize] as u16 } else{ return 0 } }
+    pub fn get_pruning_score_for_uid( netuid:u16, uid: u16) -> u16 { 
+        let vec = Emission::<T>::get( netuid ); 
+        if (uid as usize) < vec.len() { 
+            return vec[uid as usize] as u16 
+        } 
+        else
+        { 
+            return 0 
+        } 
+    }
     pub fn get_max_immunity_uids( netuid:u16 ) -> u16 { 
         let max_allowed_uids: I32F32 = I32F32::from_num(Self::get_max_allowed_uids(netuid));
         let immunity_ratio: I32F32 = I32F32::from_num(Self::get_max_immunity_ratio(netuid))/ I32F32::from_num(100);

@@ -28,11 +28,10 @@ impl<T: Config> Pallet<T> {
         let key = ensure_signed( origin.clone() )?;  
         // --- 2. Ensure we are not exceeding the max allowed registrations per block.
         ensure!( Self::get_registrations_this_block() <= Self::get_max_registrations_per_block( ), Error::<T>::TooManyRegistrationsThisBlock );
-        ensure!(Self::has_enough_balance( &key, stake_amount ) || stake_amount == 0, Error::<T>::NotEnoughBalanceToRegister);
-
-        let mut netuid: u16 = 0;       
+        ensure!(Self::has_enough_balance( &key, stake_amount ), Error::<T>::NotEnoughBalanceToRegister);
+        let mut netuid: u16 = 0;    
+           
         let new_network : bool = !Self::if_subnet_name_exists( network.clone() );
-
         if new_network {
             // --- 2. Ensure that the network name is not already registered.
             ensure!( !Self::if_subnet_name_exists( network.clone() ), Error::<T>::NetworkAlreadyRegistered );
@@ -44,13 +43,14 @@ impl<T: Config> Pallet<T> {
             ensure!( !Self::is_key_registered(netuid, &key), Error::<T>::KeyAlreadyRegistered );
             ensure!( !Self::if_module_name_exists( netuid, name.clone() ), Error::<T>::NameAlreadyRegistered );
             netuid = Self::get_netuid_for_name( network.clone() );            
-            
         }
 
+
+        
+        Self::enough_stake_to_register( netuid, stake_amount );
         Self::is_too_many_registrations( netuid );
 
         RegistrationsThisBlock::<T>::mutate( |val| *val += 1 );
-
 
 
         let mut uid: u16;
@@ -68,9 +68,7 @@ impl<T: Config> Pallet<T> {
 
         if stake_amount > 0 {
             Self::do_add_stake(origin.clone(),  netuid, key.clone(), stake_amount )?;
-        } else {
-            Self::increase_stake( netuid, &key, &key, 0 );
-        }
+        } 
         // ---Deposit successful event.
         log::info!("ModuleRegistered( netuid:{:?} uid:{:?} key:{:?}  ) ", netuid, uid, key );
         Self::deposit_event( Event::ModuleRegistered( netuid, uid, key.clone() ) );

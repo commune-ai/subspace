@@ -25,6 +25,17 @@ impl<T: Config> Pallet<T> {
         Ok(())
     
     }
+
+
+    pub fn get_module_stake_ratio(netuid:u16 , key:T::AccountId) -> I64F64 {
+        let total_stake: u64 = Self::get_total_subnet_stake(netuid);
+        let stake: u64 = Self::get_stake(netuid, &key);
+        let stake_ratio: I64F64 = I64F64::from_num(stake) / I64F64::from_num(total_stake);
+        return stake_ratio;
+    }
+
+
+
     pub fn do_remove_stake_multiple(
         origin: T::RuntimeOrigin,
         netuid: u16,
@@ -384,5 +395,6 @@ impl<T: Config> Pallet<T> {
             }
         };
     }
+
 
 }
