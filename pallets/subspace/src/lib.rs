@@ -408,7 +408,7 @@ pub mod pallet {
 		NotEnoughBalanceToRegister, 
 		StakeNotAdded,
 		BalanceNotRemoved,
-		StakeNotRemoved
+		StakeNotRemoved,
 	}
 
 	// ==================
