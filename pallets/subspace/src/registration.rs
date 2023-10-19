@@ -102,36 +102,43 @@ impl<T: Config> Pallet<T> {
 		let mut uids_in_immunity_period: Vec<u16> = Vec::new();
 		let mut uid_found: bool = false;
 		let n: u16 = Self::get_subnet_n(netuid);
-		let mut lowest_priority_uid: u16 = u16::MAX;
+		let mut lowest_priority_uid: u16 = 0;
+		let mut pruning_scores: Vec<u16> = Vec::new();
+
 		for module_uid_i in 0..n {
 			let block_at_registration: u64 =
 				Self::get_module_registration_block(netuid, module_uid_i);
 			let immunity_period: u64 = Self::get_immunity_period(netuid) as u64;
-			let mut pruning_score = Self::get_pruning_score_for_uid(netuid, module_uid_i);
-
+			pruning_scores.push(Self::get_pruning_score_for_uid(netuid, module_uid_i));
 			// Find min pruning score.
 
-			if min_score >= pruning_score {
-				min_score = pruning_score;
-				uid_with_min_score = module_uid_i;
-
-				if immunity_period > current_block - block_at_registration {
-					uids_in_immunity_period.push(module_uid_i);
-				} else {
-					lowest_priority_uid = module_uid_i;
-				}
+			if min_score > pruning_scores[module_uid_i as usize] {
+				min_score = pruning_scores[module_uid_i as usize];
+				lowest_priority_uid = module_uid_i;
 			}
 		}
 
+		let mut n_immunity_uids : u16 = 0;
+		for module_uid_i in 0..n {
+			let uid_in_immunity_period : bool = Self::uid_in_immunity(netuid, module_uid_i) ;
+			if uid_in_immunity_period {
+				n_immunity_uids += 1;
+			}
+
+			if pruning_scores[module_uid_i as usize] == min_score {
+				if uid_in_immunity_period {
+					uids_in_immunity_period.push(module_uid_i);
+				} 
+			}
+
+		}
+
 		let max_immunity_uids = Self::get_max_immunity_uids(netuid);
-
-		if uids_in_immunity_period.len() as u16 >= max_immunity_uids {
-			lowest_priority_uid = uid_with_min_score;
+		if n_immunity_uids as u16 >= max_immunity_uids {
+			let idx: usize = Self::random_idx(uids_in_immunity_period.len() as u16) as usize;
+			lowest_priority_uid = uids_in_immunity_period[idx];
 		}
 
-		if lowest_priority_uid == u16::MAX {
-			lowest_priority_uid = uid_with_min_score;
-		}
 
 		return lowest_priority_uid
 	}

@@ -265,6 +265,13 @@ impl<T: Config> Pallet<T> {
 		}
 	}
 
+	pub fn uid_in_immunity(netuid: u16, uid: u16) -> bool {
+		let block_at_registration: u64 = Self::get_module_registration_block(netuid, uid);
+		let immunity_period: u64 = Self::get_immunity_period(netuid) as u64;
+		let current_block: u64 = Self::get_current_block_as_u64();
+		return current_block - block_at_registration < immunity_period
+	}
+
 	pub fn get_subnet_params(netuid: u16) -> SubnetParams<T> {
 		SubnetParams {
 			immunity_period: ImmunityPeriod::<T>::get(netuid),
