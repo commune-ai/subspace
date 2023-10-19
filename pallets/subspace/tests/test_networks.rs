@@ -99,12 +99,13 @@ fn test_set_single_temple(tempo:u16) {
         SubspaceModule::update_network(get_origin(key), 
                                         netuid, 
                                         params.name.clone(), 
+                                        tempo, // change tempo
                                         params.immunity_period, 
                                         params.min_allowed_weights, 
                                         params.max_allowed_weights, 
                                         params.max_allowed_uids, 
                                         params.max_immunity_ratio,
-                                        tempo, // change tempo
+                                        params.min_stake,
                                         params.founder );
         let previous_total_stake : u64 = block_number()* emission_per_block;
 
@@ -289,12 +290,13 @@ fn test_set_max_allowed_uids_shrinking() {
         SubspaceModule::update_network(get_origin(U256::from(0)), 
                                         netuid, 
                                         subnet.params.name.clone(),
+                                        subnet.params.tempo, 
                                         subnet.params.immunity_period,
                                         subnet.params.min_allowed_weights,
                                         subnet.params.max_allowed_weights,
                                         max_uids,
                                         subnet.params.max_immunity_ratio,
-                                        subnet.params.tempo, 
+                                        subnet.params.min_stake,
                                         subnet.params.founder );
 
         let mut new_total_subnet_balance : u64 = 0;

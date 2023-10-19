@@ -289,14 +289,15 @@ pub fn remove_network(netuid: u16, key: U256){
 
 
 #[allow(dead_code)]
-pub fn uddate_network(netuid: u16,
+pub fn update_network(netuid: u16,
 					  key: U256,
 					  tempo: u16,
 					  immunity_period: u16,
 					  max_allowed_uids: u16,
 					  min_allowed_weights: u16,
 					  max_allowed_weights: u16,
-					  max_allowed_ratio: u16
+					  max_allowed_ratio: u16,
+					  min_stake: u64
 
 
 ){
@@ -304,7 +305,7 @@ pub fn uddate_network(netuid: u16,
 	let name :Vec<u8> = netuid.to_string().as_bytes().to_vec();
 	let founder : U256 = key.clone();
 	let origin = get_origin(key);
-	let result = SubspaceModule::update_network(origin, netuid, name, tempo, immunity_period, min_allowed_weights, max_allowed_weights, max_allowed_uids , max_allowed_ratio, founder);
+	let result = SubspaceModule::update_network(origin, netuid, name, tempo, immunity_period, min_allowed_weights, max_allowed_weights, max_allowed_uids , max_allowed_ratio, min_stake, founder);
 	assert_ok!(result);
 }
 

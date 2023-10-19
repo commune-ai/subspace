@@ -17,7 +17,6 @@ impl<T: Config> Pallet<T> {
         ensure!(amounts.len() == module_keys.len(), Error::<T>::DifferentLengths);
         for (i,m_key) in module_keys.iter().enumerate() {
             ensure!( Self::is_registered( netuid, &m_key.clone() ), Error::<T>::NotRegistered );
-            Self::do_add_stake(origin.clone(),netuid, m_key.clone(), amounts[i as usize])?;
         }
         for (i,m_key) in module_keys.iter().enumerate() {
             Self::do_add_stake(origin.clone(),netuid, m_key.clone(), amounts[i as usize])?;
@@ -34,6 +33,12 @@ impl<T: Config> Pallet<T> {
         return stake_ratio;
     }
 
+    pub fn get_stake_ratio(netuid:u16 , amount:u64) -> I64F64 {
+        let total_stake: u64 = Self::get_total_subnet_stake(netuid);
+        let stake_ratio: I64F64 = I64F64::from_num(amount) / I64F64::from_num(total_stake);
+        return stake_ratio;
+    }
+
 
 
     pub fn do_remove_stake_multiple(
@@ -44,10 +49,9 @@ impl<T: Config> Pallet<T> {
     ) -> dispatch::DispatchResult {
         let key = ensure_signed( origin.clone() )?;
         ensure!(amounts.len() == module_keys.len(), Error::<T>::DifferentLengths);
-
         for (i,m_key) in module_keys.iter().enumerate() {
             ensure!( Self::is_registered( netuid, &m_key.clone() ), Error::<T>::NotRegistered );
-            ensure!( Self::has_enough_stake(netuid, &key , &m_key.clone(), amounts[i as usize] ), Error::<T>::NotEnoughStaketoWithdraw );
+            ensure!(Self::has_enough_stake(netuid, &key, &m_key, amounts[i]), Error::<T>::NotEnoughStaketoWithdraw);
         }
 
         for (i,m_key) in module_keys.iter().enumerate() {

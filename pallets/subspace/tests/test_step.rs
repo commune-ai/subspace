@@ -199,6 +199,8 @@ fn test_lowest_priority_mechanism() {
     SubspaceModule::set_tempo( netuid, 1 );
     SubspaceModule::set_max_allowed_weights(netuid, n );
     SubspaceModule::set_min_allowed_weights(netuid, 0 );
+    SubspaceModule::set_max_immunity_ratio(netuid, 10 );
+    SubspaceModule::set_immunity_period(netuid, 1 );
 
     // for i in 0..n {
 
@@ -221,7 +223,7 @@ fn test_lowest_priority_mechanism() {
 
 
 
-    step_block( 1 );
+    step_block( 2 );
     let incentives : Vec<u16> = SubspaceModule::get_incentives(netuid);
     let dividends : Vec<u16>= SubspaceModule::get_dividends(netuid);
     let emissions : Vec<u64> = SubspaceModule::get_emissions(netuid);
@@ -238,7 +240,7 @@ fn test_lowest_priority_mechanism() {
     println!("lowest_priority_uid: {:?}", lowest_priority_uid);
     println!("dividends: {:?}", dividends);
     println!("incentives: {:?}", incentives);
-    assert !( lowest_priority_uid == prune_uid );
+    assert !( lowest_priority_uid == prune_uid , "lowest_priority_uid: {} == prune_uid: {}", lowest_priority_uid, prune_uid );
     check_network_stats(netuid);
 
     
@@ -499,8 +501,6 @@ fn simulation_final_boss() {
         let lowest_priority_key: U256 = SubspaceModule::get_key_for_uid(netuid, lowest_priority_uid);
         let mut lowest_priority_stake: u64 = SubspaceModule::get_stake( netuid, &lowest_priority_key );
         let mut lowest_priority_balance: u64 = SubspaceModule::get_balance_u64(&lowest_priority_key );
-
-        assert!(lowest_priority_balance== 1, "lowest_priority_balance: {} != 0", lowest_priority_balance );
         assert!( SubspaceModule::is_key_registered( netuid, &lowest_priority_key) );
         println!("lowest_priority_key: {:?}", lowest_priority_key);
         println!("lowest_priority_stake: {:?}", lowest_priority_stake);

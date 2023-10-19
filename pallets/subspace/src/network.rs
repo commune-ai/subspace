@@ -167,13 +167,13 @@ impl<T: Config> Pallet<T> {
         origin: T::RuntimeOrigin,
         netuid: u16,
         name: Vec<u8>,
+        tempo: u16,
         immunity_period: u16,
         min_allowed_weights: u16,
         max_allowed_weights: u16,
         max_allowed_uids: u16,
         max_immunity_ratio: u16,
         min_stake : u64,
-        tempo: u16,
         founder: T::AccountId,
     ) -> DispatchResult {
 
