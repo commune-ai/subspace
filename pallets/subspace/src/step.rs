@@ -211,9 +211,13 @@ impl<T: Config> Pallet<T> {
 						uid_key,
 						dividends_emission[*uid_i as usize],
 					);
+				let delegation_fee = Self::get_delegation_fee(netuid, uid_key);
 				// add the ownership
 				for (owner_key, amount) in ownership_emission_for_key.iter() {
-					Self::increase_stake(netuid, owner_key, uid_key, *amount);
+					let to_module = delegation_fee.mul_floor(*amount);
+					let to_owner = amount.saturating_sub(to_module);
+					Self::increase_stake(netuid, owner_key, uid_key, to_owner);
+					Self::increase_stake(netuid, uid_key, uid_key, to_module);
 				}
 			}
 		}

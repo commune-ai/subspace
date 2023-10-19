@@ -2,6 +2,7 @@ use super::*;
 use substrate_fixed::types::{I32F32, I64F64};
 // import vec
 use sp_std::vec::Vec;
+use sp_arithmetic::per_things::Percent;
 
 impl<T: Config> Pallet<T> {
 	pub fn do_add_stake_multiple(
@@ -159,6 +160,11 @@ impl<T: Config> Pallet<T> {
 	// Returns the stake under the cold - hot pairing in the staking table.
 	pub fn key_account_exists(netuid: u16, key: &T::AccountId) -> bool {
 		return Uids::<T>::contains_key(netuid, &key)
+	}
+
+	// Returns the delegation fee of a module
+	pub fn get_delegation_fee(netuid: u16, module_key: &T::AccountId) -> Percent {
+		DelegationFee::<T>::get(netuid, module_key)
 	}
 
 	// Returns true if the cold-hot staking account has enough balance to fufil the amount.
