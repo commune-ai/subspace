@@ -121,7 +121,8 @@ pub fn generate_config(network: String) -> Result<ChainSpec, String> {
 		modules.push(Vec::new());
 		for (uid, module) in state.modules[netuid].iter().enumerate() {
 			modules[netuid].push((
-				sp_runtime::AccountId32::from(					 // module_key
+				sp_runtime::AccountId32::from(
+					// module_key
 					<sr25519::Public as Ss58Codec>::from_ss58check(&module.0).unwrap(),
 				),
 				module.1.as_bytes().to_vec(),                     // name
