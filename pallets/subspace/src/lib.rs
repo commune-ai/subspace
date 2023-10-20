@@ -833,12 +833,25 @@ pub mod pallet {
 			}
 			return 0
 		}
-	}
-}
+		// --- Returns the transaction priority for setting weights.
+		pub fn get_priority_stake(key: &T::AccountId, netuid: u16) -> u64 {
+			if Uids::<T>::contains_key(netuid, &key) {
+				return Self::get_stake(netuid, key);
+			}
+			return 0
+			
+		}
+		pub fn get_priority_balance(key: &T::AccountId) -> u64 {
+			return Self::get_balance_u64(key);
+
+		}}
+
 
 /************************************************************
 	CallType definition
 ************************************************************/
+	}
+
 #[derive(Debug, PartialEq)]
 pub enum CallType {
 	SetWeights,
@@ -871,10 +884,10 @@ where
 		Self(Default::default())
 	}
 
-	pub fn get_priority_vanilla() -> u64 {
+	pub fn get_priority_vanilla(who: &T::AccountId) -> u64 {
 		// Return high priority so that every extrinsic except set_weights function will
 		// have a higher priority than the set_weights call
-		return u64::max_value()
+		return Pallet::<T>::get_priority_balance(who)
 	}
 
 	pub fn get_priority_set_weights(who: &T::AccountId, netuid: u16) -> u64 {
@@ -927,33 +940,33 @@ where
 				Ok(ValidTransaction { priority, longevity: 1, ..Default::default() })
 			},
 			Some(Call::add_stake { .. }) => Ok(ValidTransaction {
-				priority: Self::get_priority_vanilla(),
+				priority: Self::get_priority_vanilla(who),
 				..Default::default()
 			}),
 			Some(Call::remove_stake { .. }) => Ok(ValidTransaction {
-				priority: Self::get_priority_vanilla(),
+				priority: Self::get_priority_vanilla(who),
 				..Default::default()
 			}),
 			Some(Call::remove_network { .. }) => Ok(ValidTransaction {
-				priority: Self::get_priority_vanilla(),
+				priority: Self::get_priority_vanilla(who),
 				..Default::default()
 			}),
 			Some(Call::update_network { .. }) => Ok(ValidTransaction {
-				priority: Self::get_priority_vanilla(),
+				priority: Self::get_priority_vanilla(who),
 				..Default::default()
 			}),
 
 			Some(Call::propose_network_update { .. }) => Ok(ValidTransaction {
-				priority: Self::get_priority_vanilla(),
+				priority: Self::get_priority_vanilla(who),
 				..Default::default()
 			}),
 
 			Some(Call::register { .. }) => Ok(ValidTransaction {
-				priority: Self::get_priority_vanilla(),
+				priority: Self::get_priority_vanilla(who),
 				..Default::default()
 			}),
 			_ => Ok(ValidTransaction {
-				priority: Self::get_priority_vanilla(),
+				priority: Self::get_priority_vanilla(who),
 				..Default::default()
 			}),
 		}

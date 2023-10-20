@@ -1,0 +1,151 @@
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+
+running 2 tests
+test tests::check_whitelist ... ok
+test __construct_runtime_integrity_test::runtime_integrity_tests ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+
+running 46 tests
+test math::tests::test_math_clip_sparse ... ok
+test math::tests::test_math_col_clip_sparse ... ok
+test math::tests::test_math_clip ... ok
+test math::tests::test_math_col_sum ... ok
+test math::tests::test_math_col_sum_sparse ... ok
+test math::tests::test_math_exp_safe ... ok
+test math::tests::test_math_hadamard ... ok
+test math::tests::test_math_hadamard_sparse ... ok
+test math::tests::test_math_inplace_clip ... ok
+test math::tests::test_math_inplace_col_clip ... ok
+test math::tests::test_math_inplace_col_normalize_sparse ... ok
+test math::tests::test_math_inplace_col_normalize ... ok
+test math::tests::test_math_inplace_mask_diag ... ok
+test math::tests::test_math_inplace_mask_matrix ... ok
+test math::tests::test_math_inplace_mask_rows ... ok
+test math::tests::test_math_inplace_mask_vector ... ok
+test math::tests::test_math_inplace_normalize ... ok
+test math::tests::test_math_inplace_normalize_64 ... ok
+test math::tests::test_math_inplace_row_normalize ... ok
+test math::tests::test_math_inplace_row_normalize_sparse ... ok
+test math::tests::test_math_is_topk ... ok
+test math::tests::test_math_mask_diag_sparse ... ok
+test math::tests::test_math_mask_rows_sparse ... ok
+test math::tests::test_math_mat_ema ... ok
+test math::tests::test_math_matmul ... ok
+test math::tests::test_math_matmul_transpose ... ok
+test math::tests::test_math_matmul2 ... ok
+test math::tests::test_math_normalize ... ok
+test math::tests::test_math_row_hadamard ... ok
+test math::tests::test_math_row_hadamard_sparse ... ok
+test math::tests::test_math_row_sum ... ok
+test math::tests::test_math_row_sum_sparse ... ok
+test math::tests::test_math_sigmoid_safe ... ok
+test math::tests::test_math_sparse_mat_ema ... ok
+test math::tests::test_math_sparse_matmul ... ok
+test math::tests::test_math_sum ... ok
+test math::tests::test_math_u64_normalization ... ok
+test math::tests::test_math_to_num ... ok
+test math::tests::test_math_vec_mask_sparse_matrix ... ok
+test math::tests::test_math_vec_to_fixed ... ok
+test math::tests::test_math_vec_to_mat_fixed ... ok
+test math::tests::test_math_vec_to_sparse_mat_fixed ... ok
+test math::tests::test_math_vecdiv ... ok
+test math::tests::test_math_weighted_median_col ... ok
+test math::tests::test_math_weighted_median_col_sparse ... ok
+test math::tests::test_math_weighted_median ... ok
+
+test result: ok. 46 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.12s
+
+
+running 1 test
+test __construct_runtime_integrity_test::runtime_integrity_tests ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+
+running 7 tests
+test test_mock::__construct_runtime_integrity_test::runtime_integrity_tests ... ok
+test test_remove_subnet ... ok
+test test_emission_ratio ... ok
+test test_set_tempo ... ok
+test test_add_subnets ... ok
+test test_set_max_allowed_uids_growing ... ok
+test test_set_max_allowed_uids_shrinking ... ok
+
+test result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.91s
+
+
+running 4 tests
+test test_mock::__construct_runtime_integrity_test::runtime_integrity_tests ... ok
+test test_registration_ok ... ok
+test test_registration_with_stake ... ok
+test test_many_registrations ... ok
+
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+
+
+running 4 tests
+test test_mock::__construct_runtime_integrity_test::runtime_integrity_tests ... ok
+test test_stake ... ok
+test test_delegate_stake ... ok
+test test_ownership_ratio ... ok
+
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.02s
+
+
+running 7 tests
+test test_mock::__construct_runtime_integrity_test::runtime_integrity_tests ... ok
+test test_blocks_until_epoch ... ok
+test test_no_weights ... ok
+test test_dividends ... ok
+test test_lowest_priority_mechanism ... ok
+test test_with_weights ... ok
+test simulation_final_boss ... ok
+
+test result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 6.53s
+
+
+running 15 tests
+test test_is_self_weight_uid_in_uids ... ok
+test test_normalize_weights_does_not_mutate_when_sum_is_zero ... ok
+test test_mock::__construct_runtime_integrity_test::runtime_integrity_tests ... ok
+test test_is_self_weight_weights_length_not_one ... ok
+test test_no_signature ... ok
+test test_normalize_weights_does_not_mutate_when_sum_not_zero ... ok
+test test_is_self_weight_uid_not_in_uids ... ok
+test test_set_weights_dispatch_info_ok ... ok
+test test_check_len_uids_within_allowed_not_within_network_pool ... ok
+test test_check_len_uids_within_allowed_within_network_pool ... ok
+test test_set_weights_err_invalid_uid ... ok
+test test_weights_err_weights_vec_not_equal_size ... ok
+test test_weights_err_has_duplicate_ids ... ok
+test test_set_weight_not_enough_values ... ok
+test test_set_max_allowed_uids ... ok
+
+test result: ok. 15 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.02s
+
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
