@@ -2,11 +2,11 @@ use super::*;
 use crate::system::ensure_root;
 use frame_support::{pallet_prelude::DispatchResult, sp_std::vec};
 use frame_system::ensure_signed;
+use sp_arithmetic::per_things::Percent;
 use sp_core::{H256, U256};
 use sp_io::hashing::{keccak_256, sha2_256};
 use sp_std::{convert::TryInto, vec::Vec};
 use substrate_fixed::types::I32F32;
-use sp_arithmetic::per_things::Percent;
 
 const LOG_TARGET: &'static str = "runtime::subspace::registration";
 
@@ -119,9 +119,9 @@ impl<T: Config> Pallet<T> {
 			}
 		}
 
-		let mut n_immunity_uids : u16 = 0;
+		let mut n_immunity_uids: u16 = 0;
 		for module_uid_i in 0..n {
-			let uid_in_immunity_period : bool = Self::uid_in_immunity(netuid, module_uid_i) ;
+			let uid_in_immunity_period: bool = Self::uid_in_immunity(netuid, module_uid_i);
 			if uid_in_immunity_period {
 				n_immunity_uids += 1;
 			}
@@ -129,9 +129,8 @@ impl<T: Config> Pallet<T> {
 			if pruning_scores[module_uid_i as usize] == min_score {
 				if uid_in_immunity_period {
 					uids_in_immunity_period.push(module_uid_i);
-				} 
+				}
 			}
-
 		}
 
 		let max_immunity_uids = Self::get_max_immunity_uids(netuid);
@@ -139,7 +138,6 @@ impl<T: Config> Pallet<T> {
 			let idx: usize = Self::random_idx(uids_in_immunity_period.len() as u16) as usize;
 			lowest_priority_uid = uids_in_immunity_period[idx];
 		}
-
 
 		return lowest_priority_uid
 	}
