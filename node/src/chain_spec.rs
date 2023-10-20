@@ -110,8 +110,8 @@ pub fn generate_config(network: String) -> Result<ChainSpec, String> {
 			subnet.2,                     // immunity_period
 			subnet.3,                     // min_allowed_weights
 			subnet.4,                     // max_allowed_weights
-			subnet.5,                     //  max_allowed_uids
-			subnet.6,                     // founder
+			subnet.5,                     // max_allowed_uids
+			subnet.6,                     // immunity_ratio
 			sp_runtime::AccountId32::from(
 				<sr25519::Public as Ss58Codec>::from_ss58check(&subnet.7).unwrap(),
 			),
@@ -121,12 +121,12 @@ pub fn generate_config(network: String) -> Result<ChainSpec, String> {
 		modules.push(Vec::new());
 		for (uid, module) in state.modules[netuid].iter().enumerate() {
 			modules[netuid].push((
-				sp_runtime::AccountId32::from(
+				sp_runtime::AccountId32::from(					 // module_key
 					<sr25519::Public as Ss58Codec>::from_ss58check(&module.0).unwrap(),
 				),
-				module.1.as_bytes().to_vec(),                     // key
-				module.2.as_bytes().to_vec(),                     // name
-				module.3.iter().map(|(a, b)| (*a, *b)).collect(), // Convert to tuples
+				module.1.as_bytes().to_vec(),                     // name
+				module.2.as_bytes().to_vec(),                     // address
+				module.3.iter().map(|(a, b)| (*a, *b)).collect(), // weights: Convert to tuples
 			));
 		}
 		stake_to.push(Vec::new());

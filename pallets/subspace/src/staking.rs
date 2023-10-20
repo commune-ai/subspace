@@ -1,8 +1,8 @@
 use super::*;
 use substrate_fixed::types::{I32F32, I64F64};
 // import vec
-use sp_std::vec::Vec;
 use sp_arithmetic::per_things::Percent;
+use sp_std::vec::Vec;
 
 impl<T: Config> Pallet<T> {
 	pub fn do_add_stake_multiple(
