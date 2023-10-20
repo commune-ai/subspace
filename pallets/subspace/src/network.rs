@@ -355,6 +355,10 @@ impl<T: Config> Pallet<T> {
 		return UnitEmission::<T>::get()
 	}
 
+	pub fn set_unit_emission(unit_emission: u64) {
+		UnitEmission::<T>::put(unit_emission)
+	}
+
 	pub fn get_unit_emission_per_block() -> u64 {
 		return UnitEmission::<T>::get() * 4
 	}
@@ -757,6 +761,14 @@ impl<T: Config> Pallet<T> {
 		TxRateLimit::<T>::put(tx_rate_limit)
 	}
 
+	pub fn get_max_name_length() -> u16 {
+		MaxNameLength::<T>::get()
+	}
+
+	pub fn set_max_name_length(max_name_length: u16) {
+		MaxNameLength::<T>::put(max_name_length)
+	}
+
 	pub fn get_immunity_period(netuid: u16) -> u16 {
 		ImmunityPeriod::<T>::get(netuid)
 	}
@@ -797,6 +809,14 @@ impl<T: Config> Pallet<T> {
 	}
 	pub fn set_max_allowed_uids(netuid: u16, max_allowed: u16) {
 		MaxAllowedUids::<T>::insert(netuid, max_allowed);
+	}
+
+	pub fn get_max_allowed_modules() -> u16 {
+		MaxAllowedModules::<T>::get()
+	}
+
+	pub fn set_max_allowed_modules(max_allowed_modules: u16) {
+		MaxAllowedModules::<T>::put(max_allowed_modules)
 	}
 
 	pub fn get_uids(netuid: u16) -> Vec<u16> {
