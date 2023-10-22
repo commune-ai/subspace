@@ -28,7 +28,7 @@ impl<T: Config> Pallet<T> {
 			Error::<T>::TooManyRegistrationsThisBlock
 		);
 		ensure!(
-			Self::has_enough_balance(&key, stake_amount) || stake_amount == 0,
+			Self::has_enough_balance(&key, stake_amount),
 			Error::<T>::NotEnoughBalanceToRegister
 		);
 
