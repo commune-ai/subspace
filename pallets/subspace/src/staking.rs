@@ -1,5 +1,8 @@
 use super::*;
 use substrate_fixed::types::{I32F32, I64F64};
+
+use frame_support::storage::{IterableStorageDoubleMap};
+
 // import vec
 use sp_arithmetic::per_things::Percent;
 use sp_std::vec::Vec;
@@ -138,12 +141,16 @@ impl<T: Config> Pallet<T> {
 	// Returns the total amount of stake in the staking table.
 	//
 	pub fn get_total_subnet_stake(netuid: u16) -> u64 {
-		return SubnetTotalStake::<T>::get(netuid)
+		return TotalStake::<T>::get(netuid)
 	}
 
 	// Returns the total amount of stake in the staking table.
 	pub fn total_stake() -> u64 {
-		return TotalStake::<T>::get()
+		let mut total_stake: u64 = 0;
+		for (netuid, subnet_total_stake) in TotalStake::<T>::iter() {
+			total_stake += subnet_total_stake;
+		}
+		return total_stake
 	}
 
 	// Returns the stake under the cold - hot pairing in the staking table.
@@ -291,11 +298,10 @@ impl<T: Config> Pallet<T> {
 			module_key,
 			Stake::<T>::get(netuid, module_key).saturating_add(amount),
 		);
-		SubnetTotalStake::<T>::insert(
+		TotalStake::<T>::insert(
 			netuid,
-			SubnetTotalStake::<T>::get(netuid).saturating_add(amount),
+			TotalStake::<T>::get(netuid).saturating_add(amount),
 		);
-		TotalStake::<T>::put(TotalStake::<T>::get().saturating_add(amount));
 		return true
 	}
 
@@ -359,10 +365,9 @@ impl<T: Config> Pallet<T> {
 			module_key,
 			Stake::<T>::get(netuid, module_key).saturating_sub(amount),
 		);
-		TotalStake::<T>::put(TotalStake::<T>::get().saturating_sub(amount));
-		SubnetTotalStake::<T>::insert(
+		TotalStake::<T>::insert(
 			netuid,
-			SubnetTotalStake::<T>::get(netuid).saturating_sub(amount),
+			TotalStake::<T>::get(netuid).saturating_sub(amount),
 		);
 
 		return true
@@ -470,4 +475,25 @@ impl<T: Config> Pallet<T> {
 			Err(_error) => false,
 		}
 	}
+
+
+    // get the least staked network
+    pub fn least_staked_module_key(netuid:u16) -> T::AccountId {
+        let mut min_stake: u64 = u64::MAX;
+        let mut min_stake_uid: u16 = 0;
+        let mut module_key : T::AccountId = Self::get_subnet_params(netuid).founder;
+        for ( m_key , m_stake ) in <Stake<T> as IterableStorageDoubleMap<u16, T::AccountId, u64> >::iter_prefix(netuid){
+            if m_stake <= min_stake {
+                min_stake = m_stake;
+                module_key = m_key;
+            }
+        }
+
+        return module_key;
+    }
+
+    pub fn least_staked_module_uid(netuid:u16) -> u16{
+        // least_staked_module_uid
+        return Self::get_uid_for_key(netuid, &Self::least_staked_module_key(netuid));
+    }
 }

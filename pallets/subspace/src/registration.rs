@@ -25,12 +25,14 @@ impl<T: Config> Pallet<T> {
 		// --- 2. Ensure we are not exceeding the max allowed registrations per block.
 		ensure!(
 			Self::get_registrations_this_block() <= Self::get_max_registrations_per_block(),
-			Error::<T>::TooManyRegistrationsThisBlock
+			Error::<T>::TooManyRegistrationsPerBlock
 		);
 		ensure!(
 			Self::has_enough_balance(&key, stake_amount),
 			Error::<T>::NotEnoughBalanceToRegister
 		);
+
+		
 
 		let mut netuid: u16 = 0;
 		let new_network: bool = !Self::if_subnet_name_exists(network.clone());
@@ -53,8 +55,8 @@ impl<T: Config> Pallet<T> {
 				!Self::if_module_name_exists(netuid, name.clone()),
 				Error::<T>::NameAlreadyRegistered
 			);
-
-			RegistrationsThisBlock::<T>::mutate(|val| *val += 1);
+			ensure!(Self::enough_stake_to_register(netuid, stake_amount),Error::<T>::NotEnoughStakeToRegister);
+			RegistrationsPerBlock::<T>::mutate(|val| *val += 1);
 			netuid = Self::get_netuid_for_name(network.clone());
 		}
 
@@ -82,6 +84,22 @@ impl<T: Config> Pallet<T> {
 
 		// --- 5. Ok and done.
 		Ok(())
+	}
+
+	pub fn enough_stake_to_register(netuid:u16, stake_amount: u64) -> bool {
+		let mut min_stake: u64 = MinStake::<T>::get(netuid);
+		let registrations_per_block : u16 = RegistrationsPerBlock::<T>::get();
+		let max_registrations_per_block : u16 = MaxRegistrationsPerBlock::<T>::get();
+		
+		let mut factor = I32F32::from_num(registrations_per_block) / I32F32::from_num(max_registrations_per_block);
+
+		// convert factor to u8
+		let factor = factor.to_num::<u8>();
+		for i in 0..factor {
+			min_stake = min_stake * 2;
+		}
+
+		return stake_amount > min_stake
 	}
 
 	pub fn vec_to_hash(vec_hash: Vec<u8>) -> H256 {
@@ -221,4 +239,6 @@ impl<T: Config> Pallet<T> {
 		// --- 8. Return is successful dispatch.
 		Ok(())
 	}
+
+	
 }
