@@ -222,6 +222,7 @@ impl<T: Config> Pallet<T> {
 			}
 		}
 
+		// calculate the total emission
 		let emission: Vec<u64> = incentive_emission
 			.iter()
 			.zip(dividends_emission.iter())
