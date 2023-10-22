@@ -10,7 +10,7 @@ use substrate_fixed::types::{I110F18, I32F32, I64F64, I96F32};
 impl<T: Config> Pallet<T> {
 	pub fn block_step() {
 		let block_number: u64 = Self::get_current_block_as_u64();
-		RegistrationsThisBlock::<T>::mutate(|val| *val = 0);
+		RegistrationsPerBlock::<T>::mutate(|val| *val = 0);
 		log::debug!("block_step for block: {:?} ", block_number);
 		for (netuid, tempo) in <Tempo<T> as IterableStorageMap<u16, u16>>::iter() {
 			let new_queued_emission: u64 = Self::calculate_network_emission(netuid);
@@ -22,45 +22,9 @@ impl<T: Config> Pallet<T> {
 			let emission_to_drain: u64 = PendingEmission::<T>::get(netuid).clone();
 			Self::epoch(netuid, emission_to_drain);
 			PendingEmission::<T>::insert(netuid, 0);
-			// Self::deregister_zero_emission_uids( netuid );
 		}
 	}
 
-	pub fn deregister_zero_emission_uids(netuid: u16) {
-		let zero_keys: Vec<T::AccountId> = Self::get_zero_emission_keys(netuid);
-		for key in zero_keys {
-			let uid: u16 = Self::get_uid_for_key(netuid, &key);
-			Self::remove_module(netuid, uid);
-		}
-	}
-
-	pub fn get_zero_emission_keys(netuid: u16) -> Vec<T::AccountId> {
-		let mut zero_keys: Vec<T::AccountId> = Vec::new();
-		let zero_uids: Vec<u16> = Self::get_zero_emission_uids(netuid);
-		for uid in zero_uids {
-			zero_keys.push(Self::get_key_for_uid(netuid, uid));
-		}
-		return zero_keys
-	}
-
-	pub fn get_zero_emission_uids(netuid: u16) -> Vec<u16> {
-		let mut zero_uids: Vec<u16> = Vec::new();
-		let emissions: Vec<u64> = Self::get_emissions(netuid);
-		let immunity_period: u16 = Self::get_immunity_period(netuid);
-
-		for (uid, emission) in emissions.iter().enumerate() {
-			let module_age: u64 = Self::get_module_age(netuid, uid as u16);
-
-			if (module_age < immunity_period as u64) {
-				continue
-			}
-
-			if *emission == 0 {
-				zero_uids.push(uid as u16);
-			}
-		}
-		return zero_uids
-	}
 
 	pub fn epoch(netuid: u16, token_emission: u64) {
 		// Get subnetwork size.

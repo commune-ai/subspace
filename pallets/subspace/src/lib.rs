@@ -110,7 +110,7 @@ pub mod pallet {
 		32
 	}
 	#[pallet::type_value]
-	pub fn DefaultRegistrationsThisBlock<T: Config>() -> u16 {
+	pub fn DefaultRegistrationsPerBlock<T: Config>() -> u16 {
 		0
 	}
 	#[pallet::type_value]
@@ -181,6 +181,10 @@ pub mod pallet {
 	pub fn DefaultDelegationFee<T: Config>() -> Percent {
 		Percent::from_percent(20u8)
 	}
+	#[pallet::type_value]
+	pub fn DefaultMinStake<T: Config>() -> u64 {
+		0
+	}
 
 	// ============================
 	// ==== Global Variables ====
@@ -202,16 +206,14 @@ pub mod pallet {
 	#[pallet::storage] // --- ITEM ( max_allowed_modules )
 	pub(super) type MaxAllowedModules<T: Config> =
 		StorageValue<_, u16, ValueQuery, DefaultMaxAllowedModules<T>>;
-	#[pallet::storage] // --- ITEM ( total_stake )
-	pub type TotalStake<T> = StorageValue<_, u64, ValueQuery>;
 	#[pallet::storage] // --- ITEM ( registrations_this block )
-	pub type RegistrationsThisBlock<T> =
-		StorageValue<_, u16, ValueQuery, DefaultRegistrationsThisBlock<T>>;
+	pub type RegistrationsPerBlock<T> =
+		StorageValue<_, u16, ValueQuery, DefaultRegistrationsPerBlock<T>>;
 	#[pallet::storage] // --- ITEM( global_max_registrations_per_block )
 	pub type MaxRegistrationsPerBlock<T> =
 		StorageValue<_, u16, ValueQuery, DefaultMaxRegistrationsPerBlock<T>>;
 	#[pallet::storage] // --- MAP ( netuid ) --> subnet_total_stake
-	pub type SubnetTotalStake<T> = StorageMap<_, Identity, u16, u64, ValueQuery>;
+	pub type TotalStake<T> = StorageMap<_, Identity, u16, u64, ValueQuery>;
 
 	// =========================
 	// ==== Subnet PARAMS ====
@@ -238,12 +240,16 @@ pub mod pallet {
 	#[pallet::storage] // --- MAP ( netuid ) --> max_allowed_uids
 	pub type MaxAllowedUids<T> =
 		StorageMap<_, Identity, u16, u16, ValueQuery, DefaultMaxAllowedUids<T>>;
+
 	#[pallet::storage] // --- MAP ( netuid ) --> immunity_period
 	pub type ImmunityPeriod<T> =
 		StorageMap<_, Identity, u16, u16, ValueQuery, DefaultImmunityPeriod<T>>;
 	#[pallet::storage] // --- MAP ( netuid ) --> min_allowed_weights
 	pub type MinAllowedWeights<T> =
 		StorageMap<_, Identity, u16, u16, ValueQuery, DefaultMinAllowedWeights<T>>;
+	#[pallet::storage] // --- MAP ( netuid ) --> min_allowed_weights
+	pub type MinStake<T> =
+		StorageMap<_, Identity, u16, u64, ValueQuery, DefaultMinStake<T>>;
 	#[pallet::storage] // --- MAP ( netuid ) --> min_allowed_weights
 	pub type MaxAllowedWeights<T> =
 		StorageMap<_, Identity, u16, u16, ValueQuery, DefaultMaxAllowedWeights<T>>;
@@ -468,7 +474,7 @@ pub mod pallet {
 		             * that does not exist in the metagraph. */
 		NotSettingEnoughWeights, /* ---- Thrown when the dispatch attempts to set weights on
 		                          * chain with fewer elements than are allowed. */
-		TooManyRegistrationsThisBlock, /* ---- Thrown when registrations this block exceeds
+		TooManyRegistrationsPerBlock, /* ---- Thrown when registrations this block exceeds
 		                                * allowed number. */
 		AlreadyRegistered, /* ---- Thrown when the caller requests registering a module which
 		                    * already exists in the active set. */
@@ -510,6 +516,7 @@ pub mod pallet {
 		NotEnoughBalanceToRegister,
 		StakeNotAdded,
 		BalanceNotRemoved,
+		NotEnoughStakeToRegister,
 	}
 
 	// ==================

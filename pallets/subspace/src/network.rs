@@ -28,7 +28,7 @@ impl<T: Config> Pallet<T> {
 	pub fn least_staked_netuid() -> u16 {
 		let mut min_stake: u64 = u64::MAX;
 		let mut min_stake_netuid: u16 = u16::MAX;
-		for (netuid, net_stake) in <SubnetTotalStake<T> as IterableStorageMap<u16, u64>>::iter() {
+		for (netuid, net_stake) in <TotalStake<T> as IterableStorageMap<u16, u64>>::iter() {
 			if net_stake <= min_stake {
 				min_stake = net_stake;
 				min_stake_netuid = netuid;
@@ -51,13 +51,13 @@ impl<T: Config> Pallet<T> {
 		}
 		// if we have reached the max number of subnets, then we can start a new one if the stake is
 		// greater than the least staked network
-		return stake > Self::min_stake()
+		return stake > Self::min_subnet_stake()
 	}
 
 	// get the least staked network
-	pub fn min_stake() -> u64 {
+	pub fn min_subnet_stake() -> u64 {
 		let mut min_stake: u64 = u64::MAX;
-		for (netuid, net_stake) in <SubnetTotalStake<T> as IterableStorageMap<u16, u64>>::iter() {
+		for (netuid, net_stake) in <TotalStake<T> as IterableStorageMap<u16, u64>>::iter() {
 			if net_stake <= min_stake {
 				min_stake = net_stake;
 			}
@@ -66,7 +66,7 @@ impl<T: Config> Pallet<T> {
 	}
 
 	pub fn get_network_stake(netuid: u16) -> u64 {
-		return SubnetTotalStake::<T>::get(netuid)
+		return TotalStake::<T>::get(netuid)
 	}
 
 	pub fn do_add_network(origin: T::RuntimeOrigin, name: Vec<u8>, stake: u64) -> DispatchResult {
@@ -185,7 +185,7 @@ impl<T: Config> Pallet<T> {
 	}
 
 	pub fn review_proposal(netuid: u16, proposal: SubnetProposal<T>) {
-		let mut total_subnet_stake: u64 = SubnetTotalStake::<T>::get(netuid);
+		let mut total_subnet_stake: u64 = TotalStake::<T>::get(netuid);
 		let mut vote_threshold: u64 =
 			total_subnet_stake * proposal.params.vote_threshold as u64 / 100;
 		if (proposal.votes > vote_threshold) {
@@ -296,7 +296,7 @@ impl<T: Config> Pallet<T> {
 		return SubnetInfo {
 			params: subnet_params,
 			netuid,
-			stake: SubnetTotalStake::<T>::get(netuid),
+			stake: TotalStake::<T>::get(netuid),
 			emission: SubnetEmission::<T>::get(netuid),
 			n: N::<T>::get(netuid),
 		}
@@ -516,7 +516,7 @@ impl<T: Config> Pallet<T> {
 		}
 		// --- 4. Remove all stake.
 		Stake::<T>::remove_prefix(netuid, None);
-		SubnetTotalStake::<T>::remove(netuid);
+		TotalStake::<T>::remove(netuid);
 
 		SubnetNamespace::<T>::remove(name.clone());
 		Names::<T>::clear_prefix(netuid, u32::max_value(), None);
@@ -636,7 +636,7 @@ impl<T: Config> Pallet<T> {
 	}
 
 	pub fn set_registrations_this_block(registrations_this_block: u16) {
-		RegistrationsThisBlock::<T>::set(registrations_this_block);
+		RegistrationsPerBlock::<T>::set(registrations_this_block);
 	}
 
 	// ========================
@@ -733,7 +733,7 @@ impl<T: Config> Pallet<T> {
 		PendingEmission::<T>::get(netuid)
 	}
 	pub fn get_registrations_this_block() -> u16 {
-		RegistrationsThisBlock::<T>::get()
+		RegistrationsPerBlock::<T>::get()
 	}
 
 	pub fn get_module_registration_block(netuid: u16, uid: u16) -> u64 {
