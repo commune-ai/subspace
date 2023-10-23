@@ -51,10 +51,7 @@ impl<T: Config> Pallet<T> {
 		} else {
 			netuid = Self::get_netuid_for_name(network.clone());
 			ensure!(!Self::is_key_registered(netuid, &key), Error::<T>::KeyAlreadyRegistered);
-			ensure!(
-				!Self::if_module_name_exists(netuid, name.clone()),
-				Error::<T>::NameAlreadyRegistered
-			);
+			ensure!(!Self::if_module_name_exists(netuid, name.clone()),Error::<T>::NameAlreadyRegistered);
 			ensure!(Self::enough_stake_to_register(netuid, stake_amount),Error::<T>::NotEnoughStakeToRegister);
 			RegistrationsPerBlock::<T>::mutate(|val| *val += 1);
 			netuid = Self::get_netuid_for_name(network.clone());
@@ -94,12 +91,14 @@ impl<T: Config> Pallet<T> {
 		let mut factor = I32F32::from_num(registrations_per_block) / I32F32::from_num(max_registrations_per_block);
 
 		// convert factor to u8
-		let factor = factor.to_num::<u8>();
+		let mut factor = factor.to_num::<u8>();
+
+		// if factor is 0, then set it to 1
 		for i in 0..factor {
 			min_stake = min_stake * 2;
 		}
 
-		return stake_amount > min_stake
+		return stake_amount >= min_stake
 	}
 
 	pub fn vec_to_hash(vec_hash: Vec<u8>) -> H256 {
