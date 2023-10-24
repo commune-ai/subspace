@@ -8,6 +8,7 @@
 include!(concat!(env!("OUT_DIR"), "/wasm_binary.rs"));
 
 use codec::Encode;
+use frame_system::EnsureRoot;
 use pallet_grandpa::{
 	fg_primitives, AuthorityId as GrandpaId, AuthorityList as GrandpaAuthorityList,
 };
@@ -241,6 +242,22 @@ impl pallet_grandpa::Config for Runtime {
 	type MaxSetIdSessionEntries = ConstU64<0>;
 }
 
+parameter_types! {
+	pub const MaxWellKnownNodes: u32 = 64;
+	pub const MaxPeerIdLength: u32 = 128;
+}
+
+impl pallet_node_authorization::Config for Runtime {
+	type RuntimeEvent = RuntimeEvent;
+	type MaxWellKnownNodes = MaxWellKnownNodes;
+	type MaxPeerIdLength = MaxPeerIdLength;
+	type AddOrigin = EnsureRoot<AccountId>;
+	type RemoveOrigin = EnsureRoot<AccountId>;
+	type SwapOrigin = EnsureRoot<AccountId>;
+	type ResetOrigin = EnsureRoot<AccountId>;
+	type WeightInfo = ();
+}
+
 impl pallet_timestamp::Config for Runtime {
 	// A timestamp: milliseconds since the unix epoch.
 	type Moment = u64;
@@ -345,6 +362,7 @@ construct_runtime!(
 		Sudo: pallet_sudo,
 		Utility: pallet_utility,
 		SubspaceModule: pallet_subspace,
+		NodeAuthorization: pallet_node_authorization
 	}
 );
 

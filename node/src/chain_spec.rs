@@ -1,10 +1,10 @@
 use node_subspace_runtime::{
-	AccountId, AuraConfig, BalancesConfig, GenesisConfig, GrandpaConfig, Signature,
+	AccountId, AuraConfig, BalancesConfig, GenesisConfig, GrandpaConfig, Signature, NodeAuthorizationConfig,
 	SubspaceModuleConfig, SudoConfig, SystemConfig, WASM_BINARY,
 };
 use sc_service::ChainType;
 use sp_consensus_aura::sr25519::AuthorityId as AuraId;
-use sp_core::{crypto::Ss58Codec, sr25519, Pair, Public};
+use sp_core::{crypto::Ss58Codec, sr25519, Pair, Public, OpaquePeerId as PeerId};
 use sp_finality_grandpa::AuthorityId as GrandpaId;
 use sp_runtime::traits::{IdentifyAccount, Verify};
 
@@ -134,14 +134,14 @@ pub fn generate_config(network: String) -> Result<ChainSpec, String> {
 		for (key_str, key_stake_to) in state.stake_to[netuid].iter() {
 			stake_to[netuid].push((
 				sp_runtime::AccountId32::from(
-					<sr25519::Public as Ss58Codec>::from_ss58check(&key_str).unwrap(),
+					<sr25519::Public as Ss58Codec>::from_ss58check(key_str).unwrap(),
 				),
 				key_stake_to
 					.iter()
 					.map(|(a, b)| {
 						(
 							sp_runtime::AccountId32::from(
-								<sr25519::Public as Ss58Codec>::from_ss58check(&a).unwrap(),
+								<sr25519::Public as Ss58Codec>::from_ss58check(a).unwrap(),
 							),
 							*b,
 						)
@@ -153,7 +153,7 @@ pub fn generate_config(network: String) -> Result<ChainSpec, String> {
 
 	let mut processed_balances: Vec<(sp_runtime::AccountId32, u64)> = Vec::new();
 	for (key_str, amount) in state.balances.iter() {
-		let key = <sr25519::Public as Ss58Codec>::from_ss58check(&key_str).unwrap();
+		let key = <sr25519::Public as Ss58Codec>::from_ss58check(key_str).unwrap();
 		let key_account = sp_runtime::AccountId32::from(key);
 
 		processed_balances.push((key_account, *amount));
@@ -181,6 +181,7 @@ pub fn generate_config(network: String) -> Result<ChainSpec, String> {
 					authority_keys_from_seed("Alice"),
 					authority_keys_from_seed("Bob"),
 				],
+				vec![],
 				// Sudo account
 				Ss58Codec::from_ss58check("5GYs4kBRGo3VH1wgzYEs8UeP2ABSotNNmvaeXs9vJUiGEThJ")
 					.unwrap(),
@@ -207,20 +208,21 @@ pub fn generate_config(network: String) -> Result<ChainSpec, String> {
 }
 
 pub fn mainnet_config() -> Result<ChainSpec, String> {
-	return generate_config("main".to_string())
+	generate_config("main".to_string())
 }
 
 pub fn devnet_config() -> Result<ChainSpec, String> {
-	return generate_config("dev".to_string())
+	generate_config("dev".to_string())
 }
 pub fn testnet_config() -> Result<ChainSpec, String> {
-	return generate_config("dev".to_string())
+	generate_config("dev".to_string())
 }
 
 // Configure initial storage state for FRAME modules.
 fn network_genesis(
 	wasm_binary: &[u8],
 	initial_authorities: Vec<(AuraId, GrandpaId)>,
+	initial_validator_nodes: Vec<(PeerId, AccountId)>,
 	root_key: AccountId,
 	balances: Vec<(AccountId, u64)>,
 	modules: Vec<Vec<(AccountId, Vec<u8>, Vec<u8>, Vec<(u16, u16)>)>>,
@@ -243,6 +245,9 @@ fn network_genesis(
 		},
 		grandpa: GrandpaConfig {
 			authorities: initial_authorities.iter().map(|x| (x.1.clone(), 1)).collect(),
+		},
+		node_authorization: NodeAuthorizationConfig {
+			nodes: initial_validator_nodes,
 		},
 		sudo: SudoConfig {
 			// Assign network admin rights.
