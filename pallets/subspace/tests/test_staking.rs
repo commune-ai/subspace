@@ -101,6 +101,96 @@ fn test_stake() {
 }
 
 #[test]
+fn test_multiple_stake() {
+	new_test_ext().execute_with(|| {
+		let n: u16 = 10;
+		let stake_amount: u64 = 10_000_000_000;
+		let mut total_stake: u64 = 0;
+		let mut netuid: u16 = 0;
+		let mut subnet_stake: u64 = 0;
+		let mut uid: u16 = 0;
+		let num_staked_modules: u16 = 10;
+		let total_stake : u64 = stake_amount * num_staked_modules as u64;
+		
+
+
+		register_n_modules(netuid, n, 0);
+		let controler_key = U256::from(n+1);
+		let og_staker_balance : u64 = total_stake + 1;
+		add_balance(controler_key.clone(), og_staker_balance);
+
+		let keys: Vec<U256> = SubspaceModule::get_keys(netuid);
+
+		// stake to all modules
+
+		let stake_amounts :Vec<u64> = vec![stake_amount; num_staked_modules as usize];
+		
+		println!("STAKE AMOUNTS: {:?}", stake_amounts);
+		let total_actual_stake: u64 = keys.clone().into_iter().map(|k| SubspaceModule::get_stake(netuid, &k)).sum();
+		let staker_balance = SubspaceModule::get_balance(&controler_key);
+		println!("TOTAL ACTUAL STAKE: {}", total_actual_stake);
+		println!("TOTAL STAKE: {}", total_stake);
+		println!("STAKER BALANCE: {}", staker_balance);
+		SubspaceModule::add_stake_multiple(get_origin(controler_key), netuid, keys.clone(), stake_amounts.clone());
+
+		let total_actual_stake: u64 = keys.clone().into_iter().map(|k| SubspaceModule::get_stake(netuid, &k)).sum();
+		let staker_balance = SubspaceModule::get_balance(&controler_key);
+
+		assert_eq!(total_actual_stake, total_stake, "total stake should be equal to the sum of all stakes");
+		assert_eq!(staker_balance, og_staker_balance - total_stake, "staker balance should be 0");
+
+		// unstake from all modules
+		SubspaceModule::remove_stake_multiple(get_origin(controler_key), netuid, keys.clone(), stake_amounts.clone());
+
+		let total_actual_stake: u64 = keys.clone().into_iter().map(|k| SubspaceModule::get_stake(netuid, &k)).sum();
+		let staker_balance = SubspaceModule::get_balance(&controler_key);
+		assert_eq!(total_actual_stake, 0, "total stake should be equal to the sum of all stakes");
+		assert_eq!(staker_balance, og_staker_balance, "staker balance should be 0");
+
+
+
+
+		
+
+	});
+}
+
+#[test]
+fn test_transfer_stake() {
+	new_test_ext().execute_with(|| {
+		let n: u16 = 10;
+		let stake_amount: u64 = 10_000_000_000;
+		let mut total_stake: u64 = 0;
+		let mut netuid: u16 = 0;
+		let mut subnet_stake: u64 = 0;
+		let mut uid: u16 = 0;
+		let num_staked_modules: u16 = 10;
+		let total_stake : u64 = stake_amount * num_staked_modules as u64;
+		
+
+		
+		register_n_modules(netuid, n, stake_amount);
+
+		let keys: Vec<U256> = SubspaceModule::get_keys(netuid);
+
+		SubspaceModule::transfer_stake(get_origin(keys[0]),netuid,  keys[0], keys[1], stake_amount);
+
+		let key0_stake = SubspaceModule::get_stake(netuid, &keys[0]);
+		let key1_stake =  SubspaceModule::get_stake(netuid, &keys[1]);
+		assert_eq!(key0_stake, 0);
+		assert_eq!(key1_stake, stake_amount*2);
+
+		SubspaceModule::transfer_stake(get_origin(keys[0]), netuid, keys[1], keys[0], stake_amount);
+
+		let key0_stake = SubspaceModule::get_stake(netuid, &keys[0]);
+		let key1_stake =  SubspaceModule::get_stake(netuid, &keys[1]);
+		assert_eq!(key0_stake, stake_amount);
+		assert_eq!(key1_stake, stake_amount);
+
+	});
+}
+
+#[test]
 fn test_delegate_stake() {
 	new_test_ext().execute_with(|| {
 		let max_uids: u16 = 10;

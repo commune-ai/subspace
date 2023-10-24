@@ -486,6 +486,10 @@ fn simulation_final_boss() {
 					let errror_delta: u64 = (*stake_amount as f64 * 0.001) as u64;
 					let test_key_difference: u64 =
 						stake_amount - test_key_stake_from_vector_before[i].1;
+
+					println!("test_key_difference: {}", test_key_difference);
+					println!("test_key_difference: {}", expected_emission);
+
 					assert!(
 						test_key_difference < expected_emission + errror_delta ||
 							test_key_difference > expected_emission - errror_delta,
