@@ -640,19 +640,6 @@ pub mod pallet {
 			Self::do_add_stake(origin, netuid, module_key, amount)
 		}
 
-		#[pallet::weight((Weight::from_ref_time(65_000_000)
-		.saturating_add(T::DbWeight::get().reads(8))
-		.saturating_add(T::DbWeight::get().writes(6)), DispatchClass::Normal, Pays::No))]
-		pub fn transfer_stake(
-			origin: OriginFor<T>,         // --- The account that is calling this function.
-			netuid: u16,                  // --- The network id.
-			module_key: T::AccountId,     // --- The module key.
-			new_module_key: T::AccountId, // --- The new module key.
-			amount: u64,                  // --- The amount of stake to transfer.
-		) -> DispatchResult {
-			Self::do_transfer_stake(origin, netuid, module_key, new_module_key, amount)
-		}
-
 		#[pallet::weight((Weight::from_ref_time(0)
 		.saturating_add(T::DbWeight::get().reads(0))
 		.saturating_add(T::DbWeight::get().writes(0)), DispatchClass::Normal, Pays::No))]
@@ -663,6 +650,18 @@ pub mod pallet {
 			amounts: Vec<u64>,
 		) -> DispatchResult {
 			Self::do_add_stake_multiple(origin, netuid, module_keys, amounts)
+		}
+
+		#[pallet::weight((Weight::from_ref_time(66_000_000)
+		.saturating_add(T::DbWeight::get().reads(8))
+		.saturating_add(T::DbWeight::get().writes(6)), DispatchClass::Normal, Pays::No))]
+		pub fn remove_stake(
+			origin: OriginFor<T>,
+			netuid: u16,
+			module_key: T::AccountId,
+			amount: u64,
+		) -> DispatchResult {
+			Self::do_remove_stake(origin, netuid, module_key, amount)
 		}
 
 		#[pallet::weight((Weight::from_ref_time(65_000_000)
@@ -677,16 +676,29 @@ pub mod pallet {
 			Self::do_remove_stake_multiple(origin, netuid, module_keys, amounts)
 		}
 
-		#[pallet::weight((Weight::from_ref_time(66_000_000)
+
+		#[pallet::weight((Weight::from_ref_time(65_000_000)
 		.saturating_add(T::DbWeight::get().reads(8))
 		.saturating_add(T::DbWeight::get().writes(6)), DispatchClass::Normal, Pays::No))]
-		pub fn remove_stake(
-			origin: OriginFor<T>,
-			netuid: u16,
-			module_key: T::AccountId,
-			amount: u64,
+		pub fn transfer_stake(
+			origin: OriginFor<T>,         // --- The account that is calling this function.
+			netuid: u16,                  // --- The network id.
+			module_key: T::AccountId,     // --- The module key.
+			new_module_key: T::AccountId, // --- The new module key.
+			amount: u64,                  // --- The amount of stake to transfer.
 		) -> DispatchResult {
-			Self::do_remove_stake(origin, netuid, module_key, amount)
+			Self::do_transfer_stake(origin, netuid, module_key, new_module_key, amount)
+		}
+
+		#[pallet::weight((Weight::from_ref_time(65_000_000)
+		.saturating_add(T::DbWeight::get().reads(8))
+		.saturating_add(T::DbWeight::get().writes(6)), DispatchClass::Normal, Pays::No))]
+		pub fn transfer_multiple(
+			origin: OriginFor<T>,         // --- The account that is calling this function.
+			destinations: Vec<T::AccountId>,     // --- The module key.
+			amounts: Vec<u64>,                  // --- The amount of stake to transfer.
+		) -> DispatchResult {
+			Self::do_transfer_multiple(origin, destinations, amounts)
 		}
 
 		#[pallet::weight((Weight::from_ref_time(0)
@@ -780,9 +792,11 @@ pub mod pallet {
 			name: Vec<u8>,
 			address: Vec<u8>,
 			stake: u64,
+			module_key: T::AccountId
 		) -> DispatchResult {
-			Self::do_registration(origin, network, name, address, stake)
+			Self::do_registration(origin, network, name, address, stake, module_key)
 		}
+
 
 		#[pallet::weight((Weight::from_ref_time(0)
 		.saturating_add(T::DbWeight::get().reads(0))
@@ -863,6 +877,8 @@ pub mod pallet {
 pub enum CallType {
 	SetWeights,
 	AddStake,
+	TransferStakeMultiple,
+	TransferMultiple,
 	TransferStake,
 	AddStakeMultiple,
 	RemoveStakeMultiple,
@@ -1008,6 +1024,10 @@ where
 				let transaction_fee = 0;
 				Ok((CallType::TransferStake, transaction_fee, who.clone()))
 			},
+			Some(Call::transfer_multiple { .. }) => {
+				let transaction_fee = 0;
+				Ok((CallType::TransferMultiple, transaction_fee, who.clone()))
+			},
 			Some(Call::set_weights { .. }) => {
 				let transaction_fee = 0;
 				Ok((CallType::SetWeights, transaction_fee, who.clone()))
@@ -1047,13 +1067,22 @@ where
 					log::debug!("Not Implemented! Need to add potential transaction fees here.");
 				},
 
-				CallType::TransferStake => {
-					log::debug!("Not Implemented! Need to add potential transaction fees here.");
-				},
 				CallType::AddStakeMultiple => {
 					log::debug!("Not Implemented! Need to add potential transaction fees here.");
 				},
 				CallType::RemoveStake => {
+					log::debug!("Not Implemented! Need to add potential transaction fees here.");
+				},
+				CallType::RemoveStakeMultiple => {
+					log::debug!("Not Implemented! Need to add potential transaction fees here.");
+				},
+				CallType::TransferStake => {
+					log::debug!("Not Implemented! Need to add potential transaction fees here.");
+				},
+				CallType::TransferStakeMultiple => {
+					log::debug!("Not Implemented! Need to add potential transaction fees here.");
+				},
+				CallType::TransferMultiple => {
 					log::debug!("Not Implemented! Need to add potential transaction fees here.");
 				},
 				CallType::AddNetwork => {

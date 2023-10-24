@@ -17,6 +17,7 @@ impl<T: Config> Pallet<T> {
 		name: Vec<u8>,
 		address: Vec<u8>,
 		stake_amount: u64,
+		module_key: T::AccountId
 	) -> DispatchResult {
 		// --- 1. Check that the caller has signed the transaction.
 		// TODO( const ): This not be the key signature or else an exterior actor can register the
@@ -53,8 +54,8 @@ impl<T: Config> Pallet<T> {
 			ensure!(!Self::is_key_registered(netuid, &key), Error::<T>::KeyAlreadyRegistered);
 			ensure!(!Self::if_module_name_exists(netuid, name.clone()),Error::<T>::NameAlreadyRegistered);
 			ensure!(Self::enough_stake_to_register(netuid, stake_amount),Error::<T>::NotEnoughStakeToRegister);
+			
 			RegistrationsPerBlock::<T>::mutate(|val| *val += 1);
-			netuid = Self::get_netuid_for_name(network.clone());
 		}
 
 		let mut uid: u16;
@@ -62,22 +63,22 @@ impl<T: Config> Pallet<T> {
 		let n: u16 = Self::get_subnet_n(netuid);
 
 		if n < Self::get_max_allowed_uids(netuid) {
-			uid = Self::append_module(netuid, &key, name.clone(), address.clone());
+			uid = Self::append_module(netuid, &module_key, name.clone(), address.clone());
 		} else {
 			let lowest_uid: u16 = Self::get_lowest_uid(netuid);
 			Self::remove_module(netuid, lowest_uid);
-			uid = Self::append_module(netuid, &key, name.clone(), address.clone());
+			uid = Self::append_module(netuid, &module_key, name.clone(), address.clone());
 			log::info!("prune module {:?} from network {:?} ", uid, netuid);
 		}
 
 		if stake_amount > 0 {
-			Self::do_add_stake(origin.clone(), netuid, key.clone(), stake_amount);
+			Self::do_add_stake(origin.clone(), netuid, module_key.clone(), stake_amount);
 		} else {
-			Self::increase_stake(netuid, &key, &key, 0);
+			Self::increase_stake(netuid, &key, &module_key, 0);
 		}
 		// ---Deposit successful event.
-		log::info!("ModuleRegistered( netuid:{:?} uid:{:?} key:{:?}  ) ", netuid, uid, key);
-		Self::deposit_event(Event::ModuleRegistered(netuid, uid, key.clone()));
+		log::info!("ModuleRegistered( netuid:{:?} name:{:?} address:{:?}) ", netuid, uid, module_key);
+		Self::deposit_event(Event::ModuleRegistered(netuid, uid, module_key.clone()));
 
 		// --- 5. Ok and done.
 		Ok(())

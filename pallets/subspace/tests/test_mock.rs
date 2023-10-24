@@ -223,7 +223,7 @@ pub fn register_module(netuid: u16, key: U256, stake: u64) -> DispatchResult {
 	let balance = SubspaceModule::get_balance(&key);
 	println!("Registering module: network: {:?}, key: {:?} stake {:?}", network, key, balance);
 
-	let result = SubspaceModule::register(origin, network, name.clone(), address, stake);
+	let result = SubspaceModule::register(origin, network, name.clone(), address, stake, key);
 
 	log::info!("Register ok neuron: network: {:?}, key: {:?}", name.clone(), key);
 
@@ -241,7 +241,7 @@ pub fn register(netuid: u16, key: U256, stake: u64) {
 	let origin = get_origin(key);
 	let is_new_subnet: bool = !SubspaceModule::if_subnet_exist(netuid);
 
-	let result = SubspaceModule::register(origin, network, name.clone(), address, stake);
+	let result = SubspaceModule::register(origin, network, name.clone(), address, stake, key);
 	assert_ok!(result);
 }
 

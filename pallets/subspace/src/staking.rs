@@ -24,6 +24,23 @@ impl<T: Config> Pallet<T> {
 		}
 		Ok(())
 	}
+
+	pub fn do_transfer_multiple(
+		origin: T::RuntimeOrigin,
+		destinations: Vec<T::AccountId>,
+		amounts: Vec<u64>,
+	) -> dispatch::DispatchResult {
+		let key = ensure_signed(origin.clone())?;
+		let amounts_sum: u64 = amounts.iter().sum();
+		ensure!(Self::has_enough_balance(&key, amounts_sum), Error::<T>::NotEnoughStaketoWithdraw);
+		ensure!(amounts.len() == destinations.len(), Error::<T>::DifferentLengths);
+
+		for (i, m_key) in destinations.iter().enumerate() {
+
+			Self::transfer_balance_to_account(&key, &m_key.clone(), amounts[i as usize]);
+		}
+		Ok(())
+	}
 	pub fn do_remove_stake_multiple(
 		origin: T::RuntimeOrigin,
 		netuid: u16,
@@ -61,6 +78,8 @@ impl<T: Config> Pallet<T> {
 		Self::do_add_stake(origin.clone(), netuid, new_module_key.clone(), amount)?;
 		Ok(())
 	}
+
+
 
 	//
 	pub fn do_add_stake(
@@ -403,6 +422,23 @@ impl<T: Config> Pallet<T> {
 		amount: <<T as Config>::Currency as Currency<<T as system::Config>::AccountId>>::Balance,
 	) {
 		T::Currency::deposit_creating(&key, amount); // Infallibe
+	}
+
+	pub fn transfer_balance_to_account(
+		from: &T::AccountId,
+		to: &T::AccountId,
+		amount: u64,
+	) -> bool {
+
+		return match T::Currency::transfer(
+			&from,
+			&to,
+			Self::u64_to_balance(amount).unwrap(),
+			ExistenceRequirement::KeepAlive,
+		) {
+			Ok(_result) => true,
+			Err(_error) => false,
+		}
 	}
 
 	pub fn set_balance_on_account(
