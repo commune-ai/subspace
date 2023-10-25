@@ -218,7 +218,7 @@ impl pallet_insecure_randomness_collective_flip::Config for Runtime {}
 impl pallet_aura::Config for Runtime {
 	type AuthorityId = AuraId;
 	type DisabledValidators = ();
-	type MaxAuthorities = ConstU32<42>;
+	type MaxAuthorities = ConstU32<128>;
 }
 
 impl pallet_grandpa::Config for Runtime {
@@ -237,7 +237,7 @@ impl pallet_grandpa::Config for Runtime {
 	type HandleEquivocation = ();
 
 	type WeightInfo = ();
-	type MaxAuthorities = ConstU32<42>;
+	type MaxAuthorities = ConstU32<128>;
 	type MaxSetIdSessionEntries = ConstU64<0>;
 }
 
