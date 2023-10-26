@@ -162,10 +162,6 @@ pub mod pallet {
 		T::AccountId::decode(&mut sp_runtime::traits::TrailingZeroInput::zeroes()).unwrap()
 	}
 	#[pallet::type_value]
-	pub fn DefaultMaxImmunityRatio<T: Config>() -> u16 {
-		50
-	} // out of 100
-	#[pallet::type_value]
 	pub fn DefaultVotePeriod<T: Config>() -> u16 {
 		100
 	} // out of 100
@@ -230,7 +226,6 @@ pub mod pallet {
 		pub max_allowed_weights: u16, /* max number of weights allowed to be registered in this
 		                               * subnet */
 		pub max_allowed_uids: u16, // max number of uids allowed to be registered in this subnet
-		pub max_immunity_ratio: u16, // max immunity ratio
 		pub min_stake: u64, 
 		pub founder: T::AccountId, // founder of the network
 		// pub democratic: bool
@@ -254,9 +249,7 @@ pub mod pallet {
 	#[pallet::storage] // --- MAP ( netuid ) --> min_allowed_weights
 	pub type MaxAllowedWeights<T> =
 		StorageMap<_, Identity, u16, u16, ValueQuery, DefaultMaxAllowedWeights<T>>;
-	#[pallet::storage] // --- MAP ( netuid ) --> min_allowed_weights
-	pub type MaxImmunityRatio<T> =
-		StorageMap<_, Identity, u16, u16, ValueQuery, DefaultMaxImmunityRatio<T>>;
+
 	#[pallet::storage] // --- DMAP ( key, netuid ) --> bool
 	pub type Founder<T: Config> =
 		StorageMap<_, Identity, u16, T::AccountId, ValueQuery, DefaultAccount<T>>;
@@ -531,7 +524,7 @@ pub mod pallet {
 		pub modules: Vec<Vec<(T::AccountId, Vec<u8>, Vec<u8>, Vec<(u16, u16)>)>>,
 		// name, tempo, immunity_period, min_allowed_weight, max_allowed_weight, max_allowed_uids,
 		// immunity_ratio, founder
-		pub subnets: Vec<(Vec<u8>, u16, u16, u16, u16, u16, u16, T::AccountId)>,
+		pub subnets: Vec<(Vec<u8>, u16, u16, u16, u16, u16, u64, T::AccountId)>,
 
 		pub stake_to: Vec<Vec<(T::AccountId, Vec<(T::AccountId, u64)>)>>,
 
@@ -567,8 +560,7 @@ pub mod pallet {
 					subnet.3,         // min_allowed_weights
 					subnet.4,         // max_allowed_weights
 					subnet.5,         // max_allowed_uids
-					subnet.6,         // immunity_ratio
-					0,		  // min_stake
+					subnet.6,         // min_stake
 					&subnet.7,        // founder
 
 					0 as u64,         // stake
@@ -715,7 +707,6 @@ pub mod pallet {
 			min_allowed_weights: u16,
 			max_allowed_weights: u16,
 			max_allowed_uids: u16,
-			max_immunity_ratio: u16,
 			min_stake: u64,
 			tempo: u16,
 			founder: T::AccountId,
@@ -728,7 +719,6 @@ pub mod pallet {
 				min_allowed_weights,
 				max_allowed_weights,
 				max_allowed_uids,
-				max_immunity_ratio,
 				min_stake,
 				tempo,
 				founder,
@@ -746,7 +736,6 @@ pub mod pallet {
 			min_allowed_weights: u16,
 			max_allowed_weights: u16,
 			max_allowed_uids: u16,
-			max_immunity_ratio: u16,
 			min_stake: u64,
 			tempo: u16,
 			vote_period: u16,
@@ -761,7 +750,6 @@ pub mod pallet {
 				min_allowed_weights,
 				max_allowed_weights,
 				max_allowed_uids,
-				max_immunity_ratio,
 				min_stake,
 				tempo,
 				vote_period,

@@ -118,48 +118,38 @@ impl<T: Config> Pallet<T> {
 	// score out of immunity period. If all modules are in immunity period, return node with lowest
 	// prunning score. This function will always return an element to prune.
 
+	pub fn get_pruning_score_for_uid(netuid: u16, uid: u16) -> u64 {
+		let vec : Vec<u64> = Emission::<T>::get(netuid);
+		if (uid as usize) < vec.len() {
+			return vec[uid as usize] 
+		} else {
+			return 0 as u64
+		}
+	}
 	pub fn get_lowest_uid(netuid: u16) -> u16 {
-		let mut min_score: u16 = u16::MAX;
-		let mut uid_with_min_score = 0;
-		let n = Self::get_subnet_n(netuid);
-		let current_block: u64 = Self::get_current_block_as_u64();
-		let mut uids_in_immunity_period: Vec<u16> = Vec::new();
-		let mut uid_found: bool = false;
-		let n: u16 = Self::get_subnet_n(netuid);
+		let mut min_score: u64 = u64::MAX;
+		let n: u16  = Self::get_subnet_n(netuid);
 		let mut lowest_priority_uid: u16 = 0;
-		let mut pruning_scores: Vec<u16> = Vec::new();
+		let mut prune_uids: Vec<u16> = Vec::new();
+		let current_block = Self::get_current_block_as_u64();
+		let immunity_period: u64 = Self::get_immunity_period(netuid) as u64;
 
 		for module_uid_i in 0..n {
-			let block_at_registration: u64 =
-				Self::get_module_registration_block(netuid, module_uid_i);
-			let immunity_period: u64 = Self::get_immunity_period(netuid) as u64;
-			pruning_scores.push(Self::get_pruning_score_for_uid(netuid, module_uid_i));
+			let pruning_score: u64 = Self::get_pruning_score_for_uid(netuid, module_uid_i);
+
+
 			// Find min pruning score.
 
-			if min_score > pruning_scores[module_uid_i as usize] {
-				min_score = pruning_scores[module_uid_i as usize];
-				lowest_priority_uid = module_uid_i;
-			}
-		}
+			if min_score > pruning_score {
 
-		// get all of the uids that have the min pruning score.
-		let mut n_immunity_uids: u16 = 0;
-		for module_uid_i in 0..n {
-			let uid_in_immunity_period: bool = Self::uid_in_immunity(netuid, module_uid_i);
-			if uid_in_immunity_period {
-				n_immunity_uids += 1;
-			}
-
-			if pruning_scores[module_uid_i as usize] == min_score {
-				if uid_in_immunity_period {
-					uids_in_immunity_period.push(module_uid_i);
+				let block_at_registration: u64 = Self::get_module_registration_block(netuid, module_uid_i);
+				let uid_in_immunity: bool = block_at_registration > 0 && ((current_block - block_at_registration) < immunity_period);
+				if  !uid_in_immunity {
+					lowest_priority_uid = module_uid_i;
+					min_score = pruning_score;
 				}
+
 			}
-		}
-		// if all uids are in immunity period, then return the lowest priority uid (randomly).
-		if n_immunity_uids as u16 >= Self::get_max_immunity_uids(netuid); {
-			let idx: usize = Self::random_idx(uids_in_immunity_period.len() as u16) as usize;
-			lowest_priority_uid = uids_in_immunity_period[idx];
 		}
 
 		return lowest_priority_uid

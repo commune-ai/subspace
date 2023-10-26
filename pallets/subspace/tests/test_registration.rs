@@ -148,3 +148,4 @@ fn register_same_key_twice() {
 		register_module(netuid, key, stake);
 	});
 }
+
