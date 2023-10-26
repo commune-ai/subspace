@@ -231,6 +231,7 @@ pub mod pallet {
 		                               * subnet */
 		pub max_allowed_uids: u16, // max number of uids allowed to be registered in this subnet
 		pub max_immunity_ratio: u16, // max immunity ratio
+		pub min_stake: u64, 
 		pub founder: T::AccountId, // founder of the network
 		// pub democratic: bool
 		pub vote_threshold: u16, // out of 100
@@ -567,7 +568,9 @@ pub mod pallet {
 					subnet.4,         // max_allowed_weights
 					subnet.5,         // max_allowed_uids
 					subnet.6,         // immunity_ratio
+					0,		  // min_stake
 					&subnet.7,        // founder
+
 					0 as u64,         // stake
 				);
 				for (uid_usize, (key, name, address, weights)) in
@@ -701,7 +704,7 @@ pub mod pallet {
 			Self::do_transfer_multiple(origin, destinations, amounts)
 		}
 
-		#[pallet::weight((Weight::from_ref_time(0)
+		#[pallet::weight((Weight::from_ref_time(65_000_000)
 		.saturating_add(T::DbWeight::get().reads(0))
 		.saturating_add(T::DbWeight::get().writes(0)), DispatchClass::Normal, Pays::No))]
 		pub fn update_network(
@@ -713,6 +716,7 @@ pub mod pallet {
 			max_allowed_weights: u16,
 			max_allowed_uids: u16,
 			max_immunity_ratio: u16,
+			min_stake: u64,
 			tempo: u16,
 			founder: T::AccountId,
 		) -> DispatchResult {
@@ -725,6 +729,7 @@ pub mod pallet {
 				max_allowed_weights,
 				max_allowed_uids,
 				max_immunity_ratio,
+				min_stake,
 				tempo,
 				founder,
 			)
@@ -742,6 +747,7 @@ pub mod pallet {
 			max_allowed_weights: u16,
 			max_allowed_uids: u16,
 			max_immunity_ratio: u16,
+			min_stake: u64,
 			tempo: u16,
 			vote_period: u16,
 			vote_threshold: u16,
@@ -756,6 +762,7 @@ pub mod pallet {
 				max_allowed_weights,
 				max_allowed_uids,
 				max_immunity_ratio,
+				min_stake,
 				tempo,
 				vote_period,
 				vote_threshold,

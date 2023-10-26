@@ -103,7 +103,8 @@ fn test_set_single_temple(tempo: u16) {
 			params.max_allowed_weights,
 			params.max_allowed_uids,
 			params.max_immunity_ratio,
-			tempo, // change tempo
+			params.min_stake,
+			tempo,
 			params.founder,
 		);
 		let previous_total_stake: u64 = block_number() * emission_per_block;
@@ -285,6 +286,7 @@ fn test_set_max_allowed_uids_shrinking() {
 			subnet.params.max_allowed_weights,
 			max_uids,
 			subnet.params.max_immunity_ratio,
+			subnet.params.min_stake,
 			subnet.params.tempo,
 			subnet.params.founder,
 		);

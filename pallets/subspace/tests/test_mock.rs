@@ -231,6 +231,40 @@ pub fn register_module(netuid: u16, key: U256, stake: u64) -> DispatchResult {
 }
 
 #[allow(dead_code)]
+pub fn delegate_register_module(netuid: u16, key: U256, module_key: U256, stake: u64) -> DispatchResult {
+	// can i format the test in rus
+
+	let mut network: Vec<u8> = "test".as_bytes().to_vec();
+	network.extend(netuid.to_string().as_bytes().to_vec());
+
+	let mut name: Vec<u8> = "module".as_bytes().to_vec();
+	name.extend(module_key.to_string().as_bytes().to_vec());
+
+	let address: Vec<u8> = "0.0.0.0:30333".as_bytes().to_vec();
+
+	let block_number: u64 = SubspaceModule::get_current_block_as_u64();
+	let origin = get_origin(key);
+	let is_new_subnet: bool = !SubspaceModule::if_subnet_exist(netuid);
+	if is_new_subnet {
+		SubspaceModule::set_max_registrations_per_block(1000)
+	}
+
+
+	let balance = SubspaceModule::get_balance(&key);
+
+	if stake >= balance {
+		add_balance(key, stake + 1);
+	}
+	println!("Registering module: network: {:?}, key: {:?} stake {:?}", network, module_key, balance);
+
+	let result = SubspaceModule::register(origin, network, name.clone(), address, stake, module_key);
+
+	log::info!("Register ok neuron: network: {:?}, module_key: {:?} key: {:?}", name.clone(), module_key, key);
+
+	return result
+}
+
+#[allow(dead_code)]
 pub fn register(netuid: u16, key: U256, stake: u64) {
 	// can i format the test in rus
 	let mut network: Vec<u8> = "test".as_bytes().to_vec();
@@ -263,7 +297,7 @@ pub fn remove_network(netuid: u16, key: U256) {
 }
 
 #[allow(dead_code)]
-pub fn uddate_network(
+pub fn update_network(
 	netuid: u16,
 	key: U256,
 	tempo: u16,
@@ -272,6 +306,7 @@ pub fn uddate_network(
 	min_allowed_weights: u16,
 	max_allowed_weights: u16,
 	max_allowed_ratio: u16,
+	min_stake: u64,
 ) {
 	let name: Vec<u8> = netuid.to_string().as_bytes().to_vec();
 	let founder: U256 = key.clone();
@@ -280,12 +315,13 @@ pub fn uddate_network(
 		origin,
 		netuid,
 		name,
-		tempo,
 		immunity_period,
 		min_allowed_weights,
 		max_allowed_weights,
 		max_allowed_uids,
 		max_allowed_ratio,
+		min_stake,
+		tempo,
 		founder,
 	);
 	assert_ok!(result);
