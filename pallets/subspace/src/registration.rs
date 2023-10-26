@@ -140,6 +140,7 @@ impl<T: Config> Pallet<T> {
 
 			// Find min pruning score.
 
+
 			if min_score > pruning_score {
 
 				let block_at_registration: u64 = Self::get_module_registration_block(netuid, module_uid_i);
@@ -147,6 +148,9 @@ impl<T: Config> Pallet<T> {
 				if  !uid_in_immunity {
 					lowest_priority_uid = module_uid_i;
 					min_score = pruning_score;
+					if min_score == 0 {
+						break;
+					}
 				}
 
 			}
