@@ -24,6 +24,19 @@ impl<T: Config> Pallet<T> {
 		return N::<T>::contains_key(netuid)
 	}
 
+
+	pub fn get_min_stake(netuid:u16) -> u64 {
+
+		return MinStake::<T>::get(netuid)
+
+	}
+
+	pub fn set_min_stake(netuid:u16, stake:u64)   {
+
+		MinStake::<T>::insert(netuid, stake)
+
+	}
+
 	// get the least staked network
 	pub fn least_staked_netuid() -> u16 {
 		let mut min_stake: u64 = u64::MAX;
@@ -92,6 +105,7 @@ impl<T: Config> Pallet<T> {
 			subnet_params.max_allowed_weights,
 			subnet_params.max_allowed_uids,
 			subnet_params.max_immunity_ratio,
+			subnet_params.min_stake,
 			&key.clone(), // founder
 			stake,        //stake
 		);
@@ -120,6 +134,7 @@ impl<T: Config> Pallet<T> {
 		max_allowed_weights: u16,
 		max_allowed_uids: u16,
 		max_immunity_ratio: u16,
+		min_stake: u64,
 		tempo: u16,
 		founder: T::AccountId,
 	) -> DispatchResult {
@@ -136,6 +151,7 @@ impl<T: Config> Pallet<T> {
 			max_allowed_weights,
 			max_allowed_uids,
 			max_immunity_ratio,
+			min_stake,
 			tempo,
 			founder,
 		);
@@ -152,6 +168,7 @@ impl<T: Config> Pallet<T> {
 		max_allowed_weights: u16,
 		max_allowed_uids: u16,
 		max_immunity_ratio: u16,
+		min_stake: u64,
 		tempo: u16,
 		vote_period: u16,
 		vote_threshold: u16,
@@ -164,15 +181,16 @@ impl<T: Config> Pallet<T> {
 
 		let params: SubnetParams<T> = SubnetParams {
 			name: name.clone(),
-			immunity_period,
-			min_allowed_weights,
-			max_allowed_weights,
-			max_allowed_uids,
-			max_immunity_ratio,
-			tempo,
+			immunity_period: immunity_period,
+			min_allowed_weights: min_allowed_weights,
+			max_allowed_weights: max_allowed_weights,
+			max_allowed_uids: max_allowed_uids,
+			max_immunity_ratio: max_immunity_ratio,
+			min_stake: min_stake,
+			tempo: tempo,
 			founder: founder.clone(),
-			vote_period,
-			vote_threshold,
+			vote_period: vote_period,
+			vote_threshold: vote_threshold,
 		};
 		let proposal = SubnetProposal {
 			params,
@@ -202,6 +220,7 @@ impl<T: Config> Pallet<T> {
 			params.max_allowed_weights,
 			params.max_allowed_uids,
 			params.max_immunity_ratio,
+			params.min_stake,
 			params.tempo,
 			params.founder,
 		)
@@ -215,6 +234,7 @@ impl<T: Config> Pallet<T> {
 		mut max_allowed_weights: u16,
 		mut max_allowed_uids: u16,
 		mut max_immunity_ratio: u16,
+		mut min_stake: u64,
 		tempo: u16,
 		founder: T::AccountId,
 	) {
@@ -263,6 +283,8 @@ impl<T: Config> Pallet<T> {
 			SubnetNamespace::<T>::remove(old_name.clone());
 			SubnetNamespace::<T>::insert(name.clone(), netuid)
 		}
+
+		MinStake::<T>::insert(netuid, min_stake);
 	}
 
 	pub fn uid_in_immunity(netuid: u16, uid: u16) -> bool {
@@ -279,6 +301,7 @@ impl<T: Config> Pallet<T> {
 			max_allowed_weights: MaxAllowedWeights::<T>::get(netuid),
 			max_allowed_uids: MaxAllowedUids::<T>::get(netuid),
 			max_immunity_ratio: MaxImmunityRatio::<T>::get(netuid),
+			min_stake: MinStake::<T>::get(netuid),
 			tempo: Tempo::<T>::get(netuid),
 			founder: Founder::<T>::get(netuid),
 			name: <Vec<u8>>::new(),
@@ -328,6 +351,7 @@ impl<T: Config> Pallet<T> {
 			params.max_allowed_weights,
 			params.max_allowed_uids,
 			params.max_immunity_ratio,
+			params.min_stake,
 			&founder_key, // founder,
 			stake,
 		);
@@ -426,6 +450,7 @@ impl<T: Config> Pallet<T> {
 		max_allowed_weights: u16,
 		max_allowed_uids: u16,
 		max_immunity_ratio: u16,
+		min_stake: u64,
 		founder: &T::AccountId,
 		stake: u64,
 	) -> u16 {
@@ -440,9 +465,9 @@ impl<T: Config> Pallet<T> {
 		MinAllowedWeights::<T>::insert(netuid, min_allowed_weights);
 		MaxAllowedWeights::<T>::insert(netuid, max_allowed_weights);
 		MaxImmunityRatio::<T>::insert(netuid, max_immunity_ratio);
+		MinStake::<T>::insert(netuid, min_stake);
 		SubnetNamespace::<T>::insert(name.clone(), netuid);
 		Founder::<T>::insert(netuid, founder);
-
 		// set stat once network is created
 		TotalSubnets::<T>::mutate(|n| *n += 1);
 		N::<T>::insert(netuid, 0);
@@ -529,6 +554,7 @@ impl<T: Config> Pallet<T> {
 		Dividends::<T>::remove(netuid);
 		LastUpdate::<T>::remove(netuid);
 		Founder::<T>::remove(netuid);
+		MinStake::<T>::remove(netuid);
 
 		// --- 2. Erase network parameters.
 		Tempo::<T>::remove(netuid);

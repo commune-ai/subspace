@@ -24,21 +24,19 @@ impl<T: Config> Pallet<T> {
 		// key and potentially control it?
 		let key = ensure_signed(origin.clone())?;
 		// --- 2. Ensure we are not exceeding the max allowed registrations per block.
-		ensure!(
-			Self::get_registrations_this_block() <= Self::get_max_registrations_per_block(),
-			Error::<T>::TooManyRegistrationsPerBlock
-		);
+
+
 		ensure!(
 			Self::has_enough_balance(&key, stake_amount),
 			Error::<T>::NotEnoughBalanceToRegister
 		);
 
-		
-
 		let mut netuid: u16 = 0;
+		ensure!(Self::enough_stake_to_register(netuid, stake_amount),Error::<T>::NotEnoughStakeToRegister);
 		let new_network: bool = !Self::if_subnet_name_exists(network.clone());
 
 		if new_network {
+			
 			// --- 2. Ensure that the network name is not already registered.
 			ensure!(
 				!Self::if_subnet_name_exists(network.clone()),
@@ -53,10 +51,11 @@ impl<T: Config> Pallet<T> {
 			netuid = Self::get_netuid_for_name(network.clone());
 			ensure!(!Self::is_key_registered(netuid, &key), Error::<T>::KeyAlreadyRegistered);
 			ensure!(!Self::if_module_name_exists(netuid, name.clone()),Error::<T>::NameAlreadyRegistered);
-			ensure!(Self::enough_stake_to_register(netuid, stake_amount),Error::<T>::NotEnoughStakeToRegister);
 			
-			RegistrationsPerBlock::<T>::mutate(|val| *val += 1);
+			
 		}
+
+		RegistrationsPerBlock::<T>::mutate(|val| *val += 1);
 
 		let mut uid: u16;
 
@@ -70,12 +69,10 @@ impl<T: Config> Pallet<T> {
 			uid = Self::append_module(netuid, &module_key, name.clone(), address.clone());
 			log::info!("prune module {:?} from network {:?} ", uid, netuid);
 		}
-
+		Self::increase_stake(netuid, &module_key, &module_key, 0);
 		if stake_amount > 0 {
 			Self::do_add_stake(origin.clone(), netuid, module_key.clone(), stake_amount);
-		} else {
-			Self::increase_stake(netuid, &key, &module_key, 0);
-		}
+		} 
 		// ---Deposit successful event.
 		log::info!("ModuleRegistered( netuid:{:?} name:{:?} address:{:?}) ", netuid, uid, module_key);
 		Self::deposit_event(Event::ModuleRegistered(netuid, uid, module_key.clone()));
@@ -85,6 +82,12 @@ impl<T: Config> Pallet<T> {
 	}
 
 	pub fn enough_stake_to_register(netuid:u16, stake_amount: u64) -> bool {
+		let min_stake: u64 = Self::get_min_stake_to_register(netuid);
+		return stake_amount >= min_stake
+	}
+
+
+	pub fn get_min_stake_to_register(netuid:u16) -> u64 {
 		let mut min_stake: u64 = MinStake::<T>::get(netuid);
 		let registrations_per_block : u16 = RegistrationsPerBlock::<T>::get();
 		let max_registrations_per_block : u16 = MaxRegistrationsPerBlock::<T>::get();
@@ -92,14 +95,16 @@ impl<T: Config> Pallet<T> {
 		let mut factor = I32F32::from_num(registrations_per_block) / I32F32::from_num(max_registrations_per_block);
 
 		// convert factor to u8
-		let mut factor = factor.to_num::<u8>();
+		let mut factor = factor.to_num::<u64>();
+
+		
 
 		// if factor is 0, then set it to 1
 		for i in 0..factor {
 			min_stake = min_stake * 2;
 		}
 
-		return stake_amount >= min_stake
+		return min_stake
 	}
 
 	pub fn vec_to_hash(vec_hash: Vec<u8>) -> H256 {
@@ -137,6 +142,7 @@ impl<T: Config> Pallet<T> {
 			}
 		}
 
+		// get all of the uids that have the min pruning score.
 		let mut n_immunity_uids: u16 = 0;
 		for module_uid_i in 0..n {
 			let uid_in_immunity_period: bool = Self::uid_in_immunity(netuid, module_uid_i);
@@ -150,9 +156,8 @@ impl<T: Config> Pallet<T> {
 				}
 			}
 		}
-
-		let max_immunity_uids = Self::get_max_immunity_uids(netuid);
-		if n_immunity_uids as u16 >= max_immunity_uids {
+		// if all uids are in immunity period, then return the lowest priority uid (randomly).
+		if n_immunity_uids as u16 >= Self::get_max_immunity_uids(netuid); {
 			let idx: usize = Self::random_idx(uids_in_immunity_period.len() as u16) as usize;
 			lowest_priority_uid = uids_in_immunity_period[idx];
 		}
