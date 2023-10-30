@@ -531,21 +531,25 @@ impl<T: Config> Pallet<T> {
 		Address::<T>::clear_prefix(netuid, u32::max_value(), None);
 		Uids::<T>::clear_prefix(netuid, u32::max_value(), None);
 		Keys::<T>::clear_prefix(netuid, u32::max_value(), None);
+
+		// Remove consnesus vectors
 		Weights::<T>::clear_prefix(netuid, u32::max_value(), None);
 		Emission::<T>::remove(netuid);
 		Incentive::<T>::remove(netuid);
 		Dividends::<T>::remove(netuid);
+		Trust::<T>::remove(netuid);
 		LastUpdate::<T>::remove(netuid);
-		Founder::<T>::remove(netuid);
-		MinStake::<T>::remove(netuid);
 
 		// --- 2. Erase network parameters.
+		Founder::<T>::remove(netuid);
+		MinStake::<T>::remove(netuid);
 		Tempo::<T>::remove(netuid);
 		MaxAllowedUids::<T>::remove(netuid);
 		ImmunityPeriod::<T>::remove(netuid);
 		MinAllowedWeights::<T>::remove(netuid);
 		MaxAllowedWeights::<T>::remove(netuid);
 
+		// Adjust the total number of subnets. and remove the subnet from the list of subnets.
 		N::<T>::remove(netuid);
 		TotalSubnets::<T>::mutate(|val| *val -= 1);
 		// --- 4. Emit the event.
@@ -797,6 +801,20 @@ impl<T: Config> Pallet<T> {
 
 	pub fn get_max_allowed_modules() -> u16 {
 		MaxAllowedModules::<T>::get()
+	}
+
+	pub fn total_n() -> u16 {
+		let mut total_n: u16 = 0;
+		for (netuid, n) in <N<T> as IterableStorageMap<u16, u16>>::iter() {
+			total_n += n;
+		}
+		return total_n
+	}
+
+	pub fn enough_space_for_n(n: u16) -> bool {
+		let total_n: u16 = Self::total_n();
+		let max_allowed_modules: u16 = Self::get_max_allowed_modules();
+		return total_n + n <= max_allowed_modules
 	}
 
 	pub fn set_max_allowed_modules(max_allowed_modules: u16) {
