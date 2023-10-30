@@ -37,7 +37,7 @@ mod network;
 mod registration;
 mod staking;
 mod step;
-mod sudo;
+mod global;
 mod weights;
 
 #[frame_support::pallet]
@@ -119,7 +119,7 @@ pub mod pallet {
 	}
 	#[pallet::type_value]
 	pub fn DefaultMaxAllowedSubnets<T: Config>() -> u16 {
-		100
+		64
 	}
 	#[pallet::type_value]
 	pub fn DefaultMaxAllowedModules<T: Config>() -> u16 {
@@ -437,6 +437,7 @@ pub mod pallet {
 		MaxAllowedSubnetsSet(u16), // --- Event created when setting the maximum allowed subnets
 		MaxAllowedModulesSet(u16), // --- Event created when setting the maximum allowed modules
 		MaxRegistrationsPerBlockSet(u16), // --- Event created when we set max registrations per block
+		GlobalUpdate(u16, u16, u16, u16, u64, u64)
 	}
 
 	// Errors inform users that something went wrong.
@@ -511,6 +512,7 @@ pub mod pallet {
 		StakeNotAdded,
 		BalanceNotRemoved,
 		NotEnoughStakeToRegister,
+		MaxAllowedModules, // --- Thrown when the user tries to set max allowed modules to a value less than the current number of registered modules.
 	}
 
 	// ==================
@@ -725,38 +727,7 @@ pub mod pallet {
 			)
 		}
 
-		#[pallet::weight((Weight::from_ref_time(0)
-		.saturating_add(T::DbWeight::get().reads(0))
-		.saturating_add(T::DbWeight::get().writes(0)), DispatchClass::Normal, Pays::No))]
-		pub fn propose_network_update(
-			origin: OriginFor<T>,
-			netuid: u16,
-			name: Vec<u8>,
-			immunity_period: u16,
-			min_allowed_weights: u16,
-			max_allowed_weights: u16,
-			max_allowed_uids: u16,
-			min_stake: u64,
-			tempo: u16,
-			vote_period: u16,
-			vote_threshold: u16,
-			founder: T::AccountId,
-		) -> DispatchResult {
-			Self::do_propose_network_update(
-				origin,
-				netuid,
-				name.clone(),
-				immunity_period,
-				min_allowed_weights,
-				max_allowed_weights,
-				max_allowed_uids,
-				min_stake,
-				tempo,
-				vote_period,
-				vote_threshold,
-				founder,
-			)
-		}
+
 
 		#[pallet::weight((Weight::from_ref_time(65_000_000)
 		.saturating_add(T::DbWeight::get().reads(8))
@@ -796,46 +767,20 @@ pub mod pallet {
 		#[pallet::weight((Weight::from_ref_time(0)
 		.saturating_add(T::DbWeight::get().reads(0))
 		.saturating_add(T::DbWeight::get().writes(0)), DispatchClass::Normal, Pays::No))]
-		pub fn sudo_set_unit_emission(origin: OriginFor<T>, unit_emission: u64) -> DispatchResult {
-			Self::do_sudo_set_unit_emission(origin, unit_emission)
-		}
-
-		#[pallet::weight((Weight::from_ref_time(0)
-		.saturating_add(T::DbWeight::get().reads(0))
-		.saturating_add(T::DbWeight::get().writes(0)), DispatchClass::Normal, Pays::No))]
-		pub fn sudo_set_tx_rate_limit(origin: OriginFor<T>, tx_rate_limit: u64) -> DispatchResult {
-			Self::do_sudo_set_tx_rate_limit(origin, tx_rate_limit)
-		}
-
-		#[pallet::weight((Weight::from_ref_time(0)
-		.saturating_add(T::DbWeight::get().reads(0))
-		.saturating_add(T::DbWeight::get().writes(0)), DispatchClass::Normal, Pays::No))]
-		pub fn sudo_set_max_name_length(
+		pub fn update_global(
 			origin: OriginFor<T>,
 			max_name_length: u16,
-		) -> DispatchResult {
-			Self::do_sudo_set_max_name_length(origin, max_name_length)
-		}
-
-		#[pallet::weight((Weight::from_ref_time(0)
-		.saturating_add(T::DbWeight::get().reads(0))
-		.saturating_add(T::DbWeight::get().writes(0)), DispatchClass::Normal, Pays::No))]
-		pub fn sudo_set_max_allowed_subnets(
-			origin: OriginFor<T>,
 			max_allowed_subnets: u16,
+			max_allowed_modules: u16,
+			max_registrations_per_block: u16,
+			unit_emission: u64,
+			tx_rate_limit: u64,
+
 		) -> DispatchResult {
-			Self::do_sudo_set_max_allowed_subnets(origin, max_allowed_subnets)
+			Self::do_update_global(origin, max_name_length, max_allowed_subnets, max_allowed_modules, max_registrations_per_block, unit_emission,  tx_rate_limit)
 		}
 
-		#[pallet::weight((Weight::from_ref_time(0)
-		.saturating_add(T::DbWeight::get().reads(0))
-		.saturating_add(T::DbWeight::get().writes(0)), DispatchClass::Normal, Pays::No))]
-		pub fn sudo_set_max_registrations_per_block(
-			origin: OriginFor<T>,
-			max_registrations_per_block: u16,
-		) -> DispatchResult {
-			Self::do_sudo_set_max_registrations_per_block(origin, max_registrations_per_block)
-		}
+
 	}
 
 	// ---- Subspace helper functions.
@@ -974,10 +919,6 @@ where
 				..Default::default()
 			}),
 
-			Some(Call::propose_network_update { .. }) => Ok(ValidTransaction {
-				priority: Self::get_priority_vanilla(who),
-				..Default::default()
-			}),
 
 			Some(Call::register { .. }) => Ok(ValidTransaction {
 				priority: Self::get_priority_vanilla(who),
@@ -1032,10 +973,6 @@ where
 				Ok((CallType::Register, transaction_fee, who.clone()))
 			},
 			Some(Call::update_module { .. }) => {
-				let transaction_fee = 0;
-				Ok((CallType::Serve, transaction_fee, who.clone()))
-			},
-			Some(Call::propose_network_update { .. }) => {
 				let transaction_fee = 0;
 				Ok((CallType::Serve, transaction_fee, who.clone()))
 			},

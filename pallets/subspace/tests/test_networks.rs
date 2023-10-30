@@ -219,7 +219,7 @@ fn test_set_max_allowed_uids_growing() {
 			let names = SubspaceModule::get_names(netuid);
 			assert_eq!(names.len() as u16, n);
 
-			let addresses = SubspaceModule::get_names(netuid);
+			let addresses = SubspaceModule::get_addresses(netuid);
 			assert_eq!(addresses.len() as u16, n);
 		}
 	});
@@ -230,15 +230,21 @@ fn test_set_max_allowed_uids_shrinking() {
 	new_test_ext().execute_with(|| {
 		let netuid: u16 = 0;
 		let stake: u64 = 1_000_000_000;
-		let mut max_uids: u16 = 2000;
+		let max_uids: u16 = 2000;
 		let extra_uids: u16 = 20;
-		register_module(netuid, U256::from(0), stake);
-		SubspaceModule::set_max_registrations_per_block(max_uids + extra_uids);
-		for i in 1..(max_uids + extra_uids) {
-			register_module(netuid, U256::from(i), stake);
-		}
 
 		let mut n = SubspaceModule::get_subnet_n(netuid);
+		println!("registering module {}", n);
+		register_module(netuid, U256::from(0), stake);
+		SubspaceModule::set_max_registrations_per_block(max_uids + extra_uids);
+
+
+		for i in 1..(max_uids + extra_uids) {
+			let result = register_module(netuid, U256::from(i), stake);
+			result.unwrap();
+			n = SubspaceModule::get_subnet_n(netuid);
+		}
+
 		assert_eq!(n, max_uids + extra_uids);
 
 		let keys = SubspaceModule::get_keys(netuid);
