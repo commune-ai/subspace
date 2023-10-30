@@ -221,12 +221,8 @@ pub fn register_module(netuid: u16, key: U256, stake: u64) -> DispatchResult {
 
 	add_balance(key, stake + 1);
 	let balance = SubspaceModule::get_balance(&key);
-	println!("Registering module: network: {:?}, key: {:?} stake {:?}", network, key, balance);
 
 	let result = SubspaceModule::register(origin, network, name.clone(), address, stake, key);
-
-	log::info!("Register ok neuron: network: {:?}, key: {:?}", name.clone(), key);
-
 	return result
 }
 
