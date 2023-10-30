@@ -234,11 +234,15 @@ fn test_set_max_allowed_uids_shrinking() {
 		let extra_uids: u16 = 20;
 		register_module(netuid, U256::from(0), stake);
 		SubspaceModule::set_max_registrations_per_block(max_uids + extra_uids);
-		for i in 1..(max_uids + extra_uids) {
-			register_module(netuid, U256::from(i), stake);
-		}
 
 		let mut n = SubspaceModule::get_subnet_n(netuid);
+
+		for i in 1..(max_uids + extra_uids) {
+			register_module(netuid, U256::from(i), stake);
+			n = SubspaceModule::get_subnet_n(netuid);
+			println!("registering module {}", n);
+		}
+
 		assert_eq!(n, max_uids + extra_uids);
 
 		let keys = SubspaceModule::get_keys(netuid);

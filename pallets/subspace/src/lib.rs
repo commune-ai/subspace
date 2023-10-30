@@ -119,7 +119,7 @@ pub mod pallet {
 	}
 	#[pallet::type_value]
 	pub fn DefaultMaxAllowedSubnets<T: Config>() -> u16 {
-		100
+		64
 	}
 	#[pallet::type_value]
 	pub fn DefaultMaxAllowedModules<T: Config>() -> u16 {
@@ -511,6 +511,7 @@ pub mod pallet {
 		StakeNotAdded,
 		BalanceNotRemoved,
 		NotEnoughStakeToRegister,
+		MaxAllowedModules, // --- Thrown when the user tries to set max allowed modules to a value less than the current number of registered modules.
 	}
 
 	// ==================

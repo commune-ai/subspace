@@ -26,6 +26,16 @@ impl<T: Config> Pallet<T> {
 		// --- 2. Ensure we are not exceeding the max allowed registrations per block.
 
 
+		// --- 3. Ensure that the network name is not already registered.
+		ensure!(
+			!Self::if_subnet_name_exists(network.clone()),
+			Error::<T>::NetworkAlreadyRegistered
+		);
+		ensure!(
+			Self::enough_stake_to_start_network(stake_amount),
+			Error::<T>::NotEnoughStakeToStartNetwork
+		);
+
 		ensure!(
 			Self::has_enough_balance(&key, stake_amount),
 			Error::<T>::NotEnoughBalanceToRegister

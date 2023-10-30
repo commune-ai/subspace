@@ -133,7 +133,8 @@ impl<T: Config> Pallet<T> {
 		Names::<T>::insert(netuid, uid, name.clone()); // Fill module namespace.
 		Address::<T>::insert(netuid, uid, address.clone()); // Fill module info.
 													// 3. Get and increase the uid count.
-		N::<T>::insert(netuid, uid + 1);
+
+		N::<T>::insert(netuid, N::<T>::get(netuid) + 1); // Decrease the number of modules in the network.
 
 		return uid
 	}
