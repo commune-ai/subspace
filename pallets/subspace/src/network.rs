@@ -535,6 +535,7 @@ impl<T: Config> Pallet<T> {
 		Emission::<T>::remove(netuid);
 		Incentive::<T>::remove(netuid);
 		Dividends::<T>::remove(netuid);
+		Trust::<T>::remove(netuid);
 		LastUpdate::<T>::remove(netuid);
 		Founder::<T>::remove(netuid);
 		MinStake::<T>::remove(netuid);

@@ -725,38 +725,7 @@ pub mod pallet {
 			)
 		}
 
-		#[pallet::weight((Weight::from_ref_time(0)
-		.saturating_add(T::DbWeight::get().reads(0))
-		.saturating_add(T::DbWeight::get().writes(0)), DispatchClass::Normal, Pays::No))]
-		pub fn propose_network_update(
-			origin: OriginFor<T>,
-			netuid: u16,
-			name: Vec<u8>,
-			immunity_period: u16,
-			min_allowed_weights: u16,
-			max_allowed_weights: u16,
-			max_allowed_uids: u16,
-			min_stake: u64,
-			tempo: u16,
-			vote_period: u16,
-			vote_threshold: u16,
-			founder: T::AccountId,
-		) -> DispatchResult {
-			Self::do_propose_network_update(
-				origin,
-				netuid,
-				name.clone(),
-				immunity_period,
-				min_allowed_weights,
-				max_allowed_weights,
-				max_allowed_uids,
-				min_stake,
-				tempo,
-				vote_period,
-				vote_threshold,
-				founder,
-			)
-		}
+
 
 		#[pallet::weight((Weight::from_ref_time(65_000_000)
 		.saturating_add(T::DbWeight::get().reads(8))
@@ -974,10 +943,6 @@ where
 				..Default::default()
 			}),
 
-			Some(Call::propose_network_update { .. }) => Ok(ValidTransaction {
-				priority: Self::get_priority_vanilla(who),
-				..Default::default()
-			}),
 
 			Some(Call::register { .. }) => Ok(ValidTransaction {
 				priority: Self::get_priority_vanilla(who),
@@ -1032,10 +997,6 @@ where
 				Ok((CallType::Register, transaction_fee, who.clone()))
 			},
 			Some(Call::update_module { .. }) => {
-				let transaction_fee = 0;
-				Ok((CallType::Serve, transaction_fee, who.clone()))
-			},
-			Some(Call::propose_network_update { .. }) => {
 				let transaction_fee = 0;
 				Ok((CallType::Serve, transaction_fee, who.clone()))
 			},
