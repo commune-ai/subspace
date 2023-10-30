@@ -7,6 +7,8 @@ extern crate alloc;
 use alloc::vec::Vec;
 use codec::Compact;
 use frame_support::sp_std::vec;
+use sp_arithmetic::per_things::Percent;
+
 
 #[derive(Decode, Encode, PartialEq, Eq, Clone, Debug)]
 pub struct ModuleSubnetInfo<T: Config> {
@@ -56,7 +58,7 @@ impl<T: Config> Pallet<T> {
 		let mut dividends: Vec<u16> = Dividends::<T>::get(netuid);
 		let mut last_update: Vec<u64> = LastUpdate::<T>::get(netuid);
 		let mut emission: Vec<u64> = Emission::<T>::get(netuid);
-		let mut delegation_fee: Vec<Percent> = DelegationFee::<T>::get(netuid);
+		let mut delegation_fee: Percent = DelegationFee::<T>::get(netuid, uid_key.clone());
 
 		// swap consensus vectors
 
@@ -76,7 +78,7 @@ impl<T: Config> Pallet<T> {
 		Dividends::<T>::insert(netuid, dividends); // Make uid - key association.
 		Emission::<T>::insert(netuid, emission); // Make uid - key association.
 		LastUpdate::<T>::insert(netuid, last_update); // Make uid - key association.
-		DelegationFee::<T>::insert(netuid, delegation_fee); // Make uid - key association.
+		DelegationFee::<T>::insert(netuid, replace_key, delegation_fee); // Make uid - key association.
 
 		// SWAP WEIGHTS
 		Weights::<T>::insert(netuid, uid, Weights::<T>::get(netuid, replace_uid)); // Make uid - key association.
