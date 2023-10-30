@@ -28,10 +28,6 @@ impl<T: Config> Pallet<T> {
 
 		// --- 3. Ensure that the network name is not already registered.
 		ensure!(
-			!Self::if_subnet_name_exists(network.clone()),
-			Error::<T>::NetworkAlreadyRegistered
-		);
-		ensure!(
 			Self::enough_stake_to_start_network(stake_amount),
 			Error::<T>::NotEnoughStakeToStartNetwork
 		);
@@ -46,12 +42,7 @@ impl<T: Config> Pallet<T> {
 		let new_network: bool = !Self::if_subnet_name_exists(network.clone());
 
 		if new_network {
-			
-			// --- 2. Ensure that the network name is not already registered.
-			ensure!(
-				!Self::if_subnet_name_exists(network.clone()),
-				Error::<T>::NetworkAlreadyRegistered
-			);
+
 			ensure!(
 				Self::enough_stake_to_start_network(stake_amount),
 				Error::<T>::NotEnoughStakeToStartNetwork
