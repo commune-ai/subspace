@@ -37,7 +37,7 @@ mod network;
 mod registration;
 mod staking;
 mod step;
-mod sudo;
+mod global;
 mod weights;
 
 #[frame_support::pallet]
@@ -437,6 +437,7 @@ pub mod pallet {
 		MaxAllowedSubnetsSet(u16), // --- Event created when setting the maximum allowed subnets
 		MaxAllowedModulesSet(u16), // --- Event created when setting the maximum allowed modules
 		MaxRegistrationsPerBlockSet(u16), // --- Event created when we set max registrations per block
+		GlobalUpdate(u16, u16, u16, u16, u64, u64)
 	}
 
 	// Errors inform users that something went wrong.
@@ -766,46 +767,20 @@ pub mod pallet {
 		#[pallet::weight((Weight::from_ref_time(0)
 		.saturating_add(T::DbWeight::get().reads(0))
 		.saturating_add(T::DbWeight::get().writes(0)), DispatchClass::Normal, Pays::No))]
-		pub fn sudo_set_unit_emission(origin: OriginFor<T>, unit_emission: u64) -> DispatchResult {
-			Self::do_sudo_set_unit_emission(origin, unit_emission)
-		}
-
-		#[pallet::weight((Weight::from_ref_time(0)
-		.saturating_add(T::DbWeight::get().reads(0))
-		.saturating_add(T::DbWeight::get().writes(0)), DispatchClass::Normal, Pays::No))]
-		pub fn sudo_set_tx_rate_limit(origin: OriginFor<T>, tx_rate_limit: u64) -> DispatchResult {
-			Self::do_sudo_set_tx_rate_limit(origin, tx_rate_limit)
-		}
-
-		#[pallet::weight((Weight::from_ref_time(0)
-		.saturating_add(T::DbWeight::get().reads(0))
-		.saturating_add(T::DbWeight::get().writes(0)), DispatchClass::Normal, Pays::No))]
-		pub fn sudo_set_max_name_length(
+		pub fn update_global(
 			origin: OriginFor<T>,
 			max_name_length: u16,
-		) -> DispatchResult {
-			Self::do_sudo_set_max_name_length(origin, max_name_length)
-		}
-
-		#[pallet::weight((Weight::from_ref_time(0)
-		.saturating_add(T::DbWeight::get().reads(0))
-		.saturating_add(T::DbWeight::get().writes(0)), DispatchClass::Normal, Pays::No))]
-		pub fn sudo_set_max_allowed_subnets(
-			origin: OriginFor<T>,
 			max_allowed_subnets: u16,
+			max_allowed_modules: u16,
+			max_registrations_per_block: u16,
+			unit_emission: u64,
+			tx_rate_limit: u64,
+
 		) -> DispatchResult {
-			Self::do_sudo_set_max_allowed_subnets(origin, max_allowed_subnets)
+			Self::do_update_global(origin, max_name_length, max_allowed_subnets, max_allowed_modules, max_registrations_per_block, unit_emission,  tx_rate_limit)
 		}
 
-		#[pallet::weight((Weight::from_ref_time(0)
-		.saturating_add(T::DbWeight::get().reads(0))
-		.saturating_add(T::DbWeight::get().writes(0)), DispatchClass::Normal, Pays::No))]
-		pub fn sudo_set_max_registrations_per_block(
-			origin: OriginFor<T>,
-			max_registrations_per_block: u16,
-		) -> DispatchResult {
-			Self::do_sudo_set_max_registrations_per_block(origin, max_registrations_per_block)
-		}
+
 	}
 
 	// ---- Subspace helper functions.
