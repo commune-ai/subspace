@@ -78,18 +78,13 @@ impl<T: Config> Pallet<T> {
 		Dividends::<T>::insert(netuid, dividends); // Make uid - key association.
 		Emission::<T>::insert(netuid, emission); // Make uid - key association.
 		LastUpdate::<T>::insert(netuid, last_update); // Make uid - key association.
-		DelegationFee::<T>::insert(netuid, replace_key, delegation_fee); // Make uid - key association.
 
 		// SWAP WEIGHTS
 		Weights::<T>::insert(netuid, uid, Weights::<T>::get(netuid, replace_uid)); // Make uid - key association.
 		Weights::<T>::remove(netuid, replace_uid); // Make uid - key association.
 
 		// HANDLE THE REGISTRATION BLOCK
-		RegistrationBlock::<T>::insert(
-			netuid,
-			uid,
-			RegistrationBlock::<T>::get(netuid, replace_uid),
-		); // Fill block at registration.
+		RegistrationBlock::<T>::insert(netuid,uid,RegistrationBlock::<T>::get(netuid, replace_uid)); // Fill block at registration.
 		RegistrationBlock::<T>::remove(netuid, replace_uid); // Fill block at registration.
 
 		// HANDLE THE ADDRESSx
@@ -100,9 +95,15 @@ impl<T: Config> Pallet<T> {
 		Names::<T>::insert(netuid, uid, Names::<T>::get(netuid, replace_uid)); // Fill module namespace.
 		Names::<T>::remove(netuid, replace_uid); // Fill module namespace.
 
+		// HANDLE THE DELEGATION FEE
+		DelegationFee::<T>::insert(netuid, replace_key.clone(),  DelegationFee::<T>::get(netuid, uid_key.clone())); // Make uid - key association.
+		DelegationFee::<T>::remove(netuid, uid_key.clone()); // Make uid - key association.
+
 		// 3. Remove the stake from the old account and add to the new
 		// 3. Remove the network if it is empty.
 		N::<T>::mutate(netuid, |v| *v -= 1); // Decrease the number of modules in the network.
+		
+		// remove the network if it is empty
 		if N::<T>::get(netuid) == 0 {
 			Self::remove_network_for_netuid(netuid);
 		}
@@ -132,7 +133,6 @@ impl<T: Config> Pallet<T> {
 		RegistrationBlock::<T>::insert(netuid, uid, block_number); // Fill block at registration.
 		Names::<T>::insert(netuid, uid, name.clone()); // Fill module namespace.
 		Address::<T>::insert(netuid, uid, address.clone()); // Fill module info.
-													// 3. Get and increase the uid count.
 		DelegationFee::<T>::insert(netuid, key.clone(), DelegationFee::<T>::get(netuid, key.clone())); // Make uid - key association.
 
 		N::<T>::insert(netuid, N::<T>::get(netuid) + 1); // Decrease the number of modules in the network.

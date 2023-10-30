@@ -1,0 +1,229 @@
+warning: profiles for the non root package will be ignored, specify profiles at the workspace root:
+package:   /Users/salvivona/commune/subspace/runtime/Cargo.toml
+workspace: /Users/salvivona/commune/subspace/Cargo.toml
+   Compiling pallet-subspace v4.0.0-dev (/Users/salvivona/commune/subspace/pallets/subspace)
+   Compiling node-subspace-runtime v4.0.0-dev (/Users/salvivona/commune/subspace/runtime)
+error[E0425]: cannot find value `tempo` in this scope
+  --> pallets/subspace/src/global.rs:35:42
+   |
+35 |         log::info!("TempoSet( tempo: ${:?} )", tempo);
+   |                                                ^^^^^ not found in this scope
+
+error[E0308]: mismatched types
+   --> pallets/subspace/src/global.rs:18:28
+    |
+18  |             Self::set_unit_emission(unit_emission);
+    |             ----------------------- ^^^^^^^^^^^^^ expected `u64`, found `u16`
+    |             |
+    |             arguments to this function are incorrect
+    |
+note: associated function defined here
+   --> pallets/subspace/src/network.rs:367:9
+    |
+367 |     pub fn set_unit_emission(unit_emission: u64) {
+    |            ^^^^^^^^^^^^^^^^^ ------------------
+help: you can convert a `u16` to a `u64`
+    |
+18  |             Self::set_unit_emission(unit_emission.into());
+    |                                                  +++++++
+
+error[E0308]: mismatched types
+   --> pallets/subspace/src/global.rs:21:28
+    |
+21  |             Self::set_tx_rate_limit(tx_rate_limit);
+    |             ----------------------- ^^^^^^^^^^^^^ expected `u64`, found `u16`
+    |             |
+    |             arguments to this function are incorrect
+    |
+note: associated function defined here
+   --> pallets/subspace/src/network.rs:748:9
+    |
+748 |     pub fn set_tx_rate_limit(tx_rate_limit: u64) {
+    |            ^^^^^^^^^^^^^^^^^ ------------------
+help: you can convert a `u16` to a `u64`
+    |
+21  |             Self::set_tx_rate_limit(tx_rate_limit.into());
+    |                                                  +++++++
+
+error[E0599]: no function or associated item named `do_sudo_set_unit_emission` found for struct `Pallet` in the current scope
+   --> pallets/subspace/src/lib.rs:771:10
+    |
+55  |     pub struct Pallet<T>(_);
+    |     -------------------- function or associated item `do_sudo_set_unit_emission` not found for this struct
+...
+771 |             Self::do_sudo_set_unit_emission(origin, unit_emission)
+    |                   ^^^^^^^^^^^^^^^^^^^^^^^^^
+    |                   |
+    |                   function or associated item not found in `Pallet<T>`
+    |                   help: there is an associated function with a similar name: `set_unit_emission`
+
+error[E0599]: no function or associated item named `do_sudo_set_tx_rate_limit` found for struct `Pallet` in the current scope
+   --> pallets/subspace/src/lib.rs:778:10
+    |
+55  |     pub struct Pallet<T>(_);
+    |     -------------------- function or associated item `do_sudo_set_tx_rate_limit` not found for this struct
+...
+778 |             Self::do_sudo_set_tx_rate_limit(origin, tx_rate_limit)
+    |                   ^^^^^^^^^^^^^^^^^^^^^^^^^
+    |                   |
+    |                   function or associated item not found in `Pallet<T>`
+    |                   help: there is an associated function with a similar name: `set_tx_rate_limit`
+
+error[E0599]: no function or associated item named `do_sudo_set_max_name_length` found for struct `Pallet` in the current scope
+   --> pallets/subspace/src/lib.rs:788:10
+    |
+55  |     pub struct Pallet<T>(_);
+    |     -------------------- function or associated item `do_sudo_set_max_name_length` not found for this struct
+...
+788 |             Self::do_sudo_set_max_name_length(origin, max_name_length)
+    |                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |                   |
+    |                   function or associated item not found in `Pallet<T>`
+    |                   help: there is an associated function with a similar name: `set_max_name_length`
+
+error[E0599]: no function or associated item named `do_sudo_set_max_allowed_subnets` found for struct `Pallet` in the current scope
+   --> pallets/subspace/src/lib.rs:798:10
+    |
+55  |     pub struct Pallet<T>(_);
+    |     -------------------- function or associated item `do_sudo_set_max_allowed_subnets` not found for this struct
+...
+798 |             Self::do_sudo_set_max_allowed_subnets(origin, max_allowed_subnets)
+    |                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |                   |
+    |                   function or associated item not found in `Pallet<T>`
+    |                   help: there is an associated function with a similar name: `set_max_allowed_subnets`
+
+error[E0599]: no function or associated item named `do_sudo_set_max_registrations_per_block` found for struct `Pallet` in the current scope
+   --> pallets/subspace/src/lib.rs:808:10
+    |
+55  |     pub struct Pallet<T>(_);
+    |     -------------------- function or associated item `do_sudo_set_max_registrations_per_block` not found for this struct
+...
+808 |             Self::do_sudo_set_max_registrations_per_block(origin, max_registrations_per_block)
+    |                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |                   |
+    |                   function or associated item not found in `Pallet<T>`
+    |                   help: there is an associated function with a similar name: `set_max_registrations_per_block`
+
+Some errors have detailed explanations: E0308, E0425, E0599.
+For more information about an error, try `rustc --explain E0308`.
+error: could not compile `pallet-subspace` due to 8 previous errors
+warning: build failed, waiting for other jobs to finish...
+error: could not compile `pallet-subspace` due to 8 previous errors
+error: failed to run custom build command for `node-subspace-runtime v4.0.0-dev (/Users/salvivona/commune/subspace/runtime)`
+
+Caused by:
+  process didn't exit successfully: `/Users/salvivona/commune/subspace/target/debug/build/node-subspace-runtime-57a8750e67289184/build-script-build` (exit status: 1)
+  --- stdout
+  [1;33mInformation that should be included in a bug report.[0m
+  [1;33mExecuting build command:[0m RUSTFLAGS="-C link-arg=--export-table -Clink-arg=--export=__heap_base -C link-arg=--import-memory  " SKIP_WASM_BUILD="" "/Users/salvivona/.rustup/toolchains/nightly-2023-01-01-aarch64-apple-darwin/bin/cargo" "rustc" "--target=wasm32-unknown-unknown" "--manifest-path=/Users/salvivona/commune/subspace/target/debug/wbuild/node-subspace-runtime/Cargo.toml" "--color=always" "--profile" "release"
+  [1;33mUsing rustc version:[0m rustc 1.68.0-nightly (574b64a97 2022-12-31)
+
+
+  --- stderr
+  [0m[0m[1m[32m   Compiling[0m pallet-subspace v4.0.0-dev (/Users/salvivona/commune/subspace/pallets/subspace)
+  [0m[1m[38;5;9merror[E0425][0m[0m[1m: cannot find value `tempo` in this scope[0m
+  [0m  [0m[0m[1m[38;5;12m--> [0m[0m/Users/salvivona/commune/subspace/pallets/subspace/src/global.rs:35:42[0m
+  [0m   [0m[0m[1m[38;5;12m|[0m
+  [0m[1m[38;5;12m35[0m[0m [0m[0m[1m[38;5;12m|[0m[0m [0m[0m        log::info!("TempoSet( tempo: ${:?} )", tempo);[0m
+  [0m   [0m[0m[1m[38;5;12m| [0m[0m                                               [0m[0m[1m[38;5;9m^^^^^[0m[0m [0m[0m[1m[38;5;9mnot found in this scope[0m
+
+  [0m[1m[38;5;9merror[E0308][0m[0m[1m: mismatched types[0m
+  [0m   [0m[0m[1m[38;5;12m--> [0m[0m/Users/salvivona/commune/subspace/pallets/subspace/src/global.rs:18:28[0m
+  [0m    [0m[0m[1m[38;5;12m|[0m
+  [0m[1m[38;5;12m18[0m[0m  [0m[0m[1m[38;5;12m|[0m[0m [0m[0m            Self::set_unit_emission(unit_emission);[0m
+  [0m    [0m[0m[1m[38;5;12m| [0m[0m            [0m[0m[1m[38;5;12m-----------------------[0m[0m [0m[0m[1m[38;5;9m^^^^^^^^^^^^^[0m[0m [0m[0m[1m[38;5;9mexpected `u64`, found `u16`[0m
+  [0m    [0m[0m[1m[38;5;12m| [0m[0m            [0m[0m[1m[38;5;12m|[0m
+  [0m    [0m[0m[1m[38;5;12m| [0m[0m            [0m[0m[1m[38;5;12marguments to this function are incorrect[0m
+  [0m    [0m[0m[1m[38;5;12m|[0m
+  [0m[1m[38;5;10mnote[0m[0m: associated function defined here[0m
+  [0m   [0m[0m[1m[38;5;12m--> [0m[0m/Users/salvivona/commune/subspace/pallets/subspace/src/network.rs:367:9[0m
+  [0m    [0m[0m[1m[38;5;12m|[0m
+  [0m[1m[38;5;12m367[0m[0m [0m[0m[1m[38;5;12m|[0m[0m [0m[0m    pub fn set_unit_emission(unit_emission: u64) {[0m
+  [0m    [0m[0m[1m[38;5;12m| [0m[0m           [0m[0m[1m[38;5;10m^^^^^^^^^^^^^^^^^[0m[0m [0m[0m[1m[38;5;12m------------------[0m
+  [0m[1m[38;5;14mhelp[0m[0m: you can convert a `u16` to a `u64`[0m
+  [0m    [0m[0m[1m[38;5;12m|[0m
+  [0m[1m[38;5;12m18[0m[0m  [0m[0m[1m[38;5;12m| [0m[0m            Self::set_unit_emission(unit_emission[0m[0m[38;5;10m.into()[0m[0m);[0m
+  [0m    [0m[0m[1m[38;5;12m|[0m[0m                                                  [0m[0m[38;5;10m+++++++[0m
+
+  [0m[1m[38;5;9merror[E0308][0m[0m[1m: mismatched types[0m
+  [0m   [0m[0m[1m[38;5;12m--> [0m[0m/Users/salvivona/commune/subspace/pallets/subspace/src/global.rs:21:28[0m
+  [0m    [0m[0m[1m[38;5;12m|[0m
+  [0m[1m[38;5;12m21[0m[0m  [0m[0m[1m[38;5;12m|[0m[0m [0m[0m            Self::set_tx_rate_limit(tx_rate_limit);[0m
+  [0m    [0m[0m[1m[38;5;12m| [0m[0m            [0m[0m[1m[38;5;12m-----------------------[0m[0m [0m[0m[1m[38;5;9m^^^^^^^^^^^^^[0m[0m [0m[0m[1m[38;5;9mexpected `u64`, found `u16`[0m
+  [0m    [0m[0m[1m[38;5;12m| [0m[0m            [0m[0m[1m[38;5;12m|[0m
+  [0m    [0m[0m[1m[38;5;12m| [0m[0m            [0m[0m[1m[38;5;12marguments to this function are incorrect[0m
+  [0m    [0m[0m[1m[38;5;12m|[0m
+  [0m[1m[38;5;10mnote[0m[0m: associated function defined here[0m
+  [0m   [0m[0m[1m[38;5;12m--> [0m[0m/Users/salvivona/commune/subspace/pallets/subspace/src/network.rs:748:9[0m
+  [0m    [0m[0m[1m[38;5;12m|[0m
+  [0m[1m[38;5;12m748[0m[0m [0m[0m[1m[38;5;12m|[0m[0m [0m[0m    pub fn set_tx_rate_limit(tx_rate_limit: u64) {[0m
+  [0m    [0m[0m[1m[38;5;12m| [0m[0m           [0m[0m[1m[38;5;10m^^^^^^^^^^^^^^^^^[0m[0m [0m[0m[1m[38;5;12m------------------[0m
+  [0m[1m[38;5;14mhelp[0m[0m: you can convert a `u16` to a `u64`[0m
+  [0m    [0m[0m[1m[38;5;12m|[0m
+  [0m[1m[38;5;12m21[0m[0m  [0m[0m[1m[38;5;12m| [0m[0m            Self::set_tx_rate_limit(tx_rate_limit[0m[0m[38;5;10m.into()[0m[0m);[0m
+  [0m    [0m[0m[1m[38;5;12m|[0m[0m                                                  [0m[0m[38;5;10m+++++++[0m
+
+  [0m[1m[38;5;9merror[E0599][0m[0m[1m: no function or associated item named `do_sudo_set_unit_emission` found for struct `Pallet` in the current scope[0m
+  [0m   [0m[0m[1m[38;5;12m--> [0m[0m/Users/salvivona/commune/subspace/pallets/subspace/src/lib.rs:771:10[0m
+  [0m    [0m[0m[1m[38;5;12m|[0m
+  [0m[1m[38;5;12m55[0m[0m  [0m[0m[1m[38;5;12m|[0m[0m [0m[0m    pub struct Pallet<T>(_);[0m
+  [0m    [0m[0m[1m[38;5;12m| [0m[0m    [0m[0m[1m[38;5;12m--------------------[0m[0m [0m[0m[1m[38;5;12mfunction or associated item `do_sudo_set_unit_emission` not found for this struct[0m
+  [0m[1m[38;5;12m...[0m
+  [0m[1m[38;5;12m771[0m[0m [0m[0m[1m[38;5;12m|[0m[0m [0m[0m            Self::do_sudo_set_unit_emission(origin, unit_emission)[0m
+  [0m    [0m[0m[1m[38;5;12m| [0m[0m                  [0m[0m[1m[38;5;9m^^^^^^^^^^^^^^^^^^^^^^^^^[0m
+  [0m    [0m[0m[1m[38;5;12m| [0m[0m                  [0m[0m[1m[38;5;9m|[0m
+  [0m    [0m[0m[1m[38;5;12m| [0m[0m                  [0m[0m[1m[38;5;9mfunction or associated item not found in `Pallet<T>`[0m
+  [0m    [0m[0m[1m[38;5;12m| [0m[0m                  [0m[0m[1m[38;5;9mhelp: there is an associated function with a similar name: `set_unit_emission`[0m
+
+  [0m[1m[38;5;9merror[E0599][0m[0m[1m: no function or associated item named `do_sudo_set_tx_rate_limit` found for struct `Pallet` in the current scope[0m
+  [0m   [0m[0m[1m[38;5;12m--> [0m[0m/Users/salvivona/commune/subspace/pallets/subspace/src/lib.rs:778:10[0m
+  [0m    [0m[0m[1m[38;5;12m|[0m
+  [0m[1m[38;5;12m55[0m[0m  [0m[0m[1m[38;5;12m|[0m[0m [0m[0m    pub struct Pallet<T>(_);[0m
+  [0m    [0m[0m[1m[38;5;12m| [0m[0m    [0m[0m[1m[38;5;12m--------------------[0m[0m [0m[0m[1m[38;5;12mfunction or associated item `do_sudo_set_tx_rate_limit` not found for this struct[0m
+  [0m[1m[38;5;12m...[0m
+  [0m[1m[38;5;12m778[0m[0m [0m[0m[1m[38;5;12m|[0m[0m [0m[0m            Self::do_sudo_set_tx_rate_limit(origin, tx_rate_limit)[0m
+  [0m    [0m[0m[1m[38;5;12m| [0m[0m                  [0m[0m[1m[38;5;9m^^^^^^^^^^^^^^^^^^^^^^^^^[0m
+  [0m    [0m[0m[1m[38;5;12m| [0m[0m                  [0m[0m[1m[38;5;9m|[0m
+  [0m    [0m[0m[1m[38;5;12m| [0m[0m                  [0m[0m[1m[38;5;9mfunction or associated item not found in `Pallet<T>`[0m
+  [0m    [0m[0m[1m[38;5;12m| [0m[0m                  [0m[0m[1m[38;5;9mhelp: there is an associated function with a similar name: `set_tx_rate_limit`[0m
+
+  [0m[1m[38;5;9merror[E0599][0m[0m[1m: no function or associated item named `do_sudo_set_max_name_length` found for struct `Pallet` in the current scope[0m
+  [0m   [0m[0m[1m[38;5;12m--> [0m[0m/Users/salvivona/commune/subspace/pallets/subspace/src/lib.rs:788:10[0m
+  [0m    [0m[0m[1m[38;5;12m|[0m
+  [0m[1m[38;5;12m55[0m[0m  [0m[0m[1m[38;5;12m|[0m[0m [0m[0m    pub struct Pallet<T>(_);[0m
+  [0m    [0m[0m[1m[38;5;12m| [0m[0m    [0m[0m[1m[38;5;12m--------------------[0m[0m [0m[0m[1m[38;5;12mfunction or associated item `do_sudo_set_max_name_length` not found for this struct[0m
+  [0m[1m[38;5;12m...[0m
+  [0m[1m[38;5;12m788[0m[0m [0m[0m[1m[38;5;12m|[0m[0m [0m[0m            Self::do_sudo_set_max_name_length(origin, max_name_length)[0m
+  [0m    [0m[0m[1m[38;5;12m| [0m[0m                  [0m[0m[1m[38;5;9m^^^^^^^^^^^^^^^^^^^^^^^^^^^[0m
+  [0m    [0m[0m[1m[38;5;12m| [0m[0m                  [0m[0m[1m[38;5;9m|[0m
+  [0m    [0m[0m[1m[38;5;12m| [0m[0m                  [0m[0m[1m[38;5;9mfunction or associated item not found in `Pallet<T>`[0m
+  [0m    [0m[0m[1m[38;5;12m| [0m[0m                  [0m[0m[1m[38;5;9mhelp: there is an associated function with a similar name: `set_max_name_length`[0m
+
+  [0m[1m[38;5;9merror[E0599][0m[0m[1m: no function or associated item named `do_sudo_set_max_allowed_subnets` found for struct `Pallet` in the current scope[0m
+  [0m   [0m[0m[1m[38;5;12m--> [0m[0m/Users/salvivona/commune/subspace/pallets/subspace/src/lib.rs:798:10[0m
+  [0m    [0m[0m[1m[38;5;12m|[0m
+  [0m[1m[38;5;12m55[0m[0m  [0m[0m[1m[38;5;12m|[0m[0m [0m[0m    pub struct Pallet<T>(_);[0m
+  [0m    [0m[0m[1m[38;5;12m| [0m[0m    [0m[0m[1m[38;5;12m--------------------[0m[0m [0m[0m[1m[38;5;12mfunction or associated item `do_sudo_set_max_allowed_subnets` not found for this struct[0m
+  [0m[1m[38;5;12m...[0m
+  [0m[1m[38;5;12m798[0m[0m [0m[0m[1m[38;5;12m|[0m[0m [0m[0m            Self::do_sudo_set_max_allowed_subnets(origin, max_allowed_subnets)[0m
+  [0m    [0m[0m[1m[38;5;12m| [0m[0m                  [0m[0m[1m[38;5;9m^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^[0m
+  [0m    [0m[0m[1m[38;5;12m| [0m[0m                  [0m[0m[1m[38;5;9m|[0m
+  [0m    [0m[0m[1m[38;5;12m| [0m[0m                  [0m[0m[1m[38;5;9mfunction or associated item not found in `Pallet<T>`[0m
+  [0m    [0m[0m[1m[38;5;12m| [0m[0m                  [0m[0m[1m[38;5;9mhelp: there is an associated function with a similar name: `set_max_allowed_subnets`[0m
+
+  [0m[1m[38;5;9merror[E0599][0m[0m[1m: no function or associated item named `do_sudo_set_max_registrations_per_block` found for struct `Pallet` in the current scope[0m
+  [0m   [0m[0m[1m[38;5;12m--> [0m[0m/Users/salvivona/commune/subspace/pallets/subspace/src/lib.rs:808:10[0m
+  [0m    [0m[0m[1m[38;5;12m|[0m
+  [0m[1m[38;5;12m55[0m[0m  [0m[0m[1m[38;5;12m|[0m[0m [0m[0m    pub struct Pallet<T>(_);[0m
+  [0m    [0m[0m[1m[38;5;12m| [0m[0m    [0m[0m[1m[38;5;12m--------------------[0m[0m [0m[0m[1m[38;5;12mfunction or associated item `do_sudo_set_max_registrations_per_block` not found for this struct[0m
+  [0m[1m[38;5;12m...[0m
+  [0m[1m[38;5;12m808[0m[0m [0m[0m[1m[38;5;12m|[0m[0m [0m[0m            Self::do_sudo_set_max_registrations_per_block(origin, max_registrations_per_block)[0m
+  [0m    [0m[0m[1m[38;5;12m| [0m[0m                  [0m[0m[1m[38;5;9m^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^[0m
+  [0m    [0m[0m[1m[38;5;12m| [0m[0m                  [0m[0m[1m[38;5;9m|[0m
+  [0m    [0m[0m[1m[38;5;12m| [0m[0m                  [0m[0m[1m[38;5;9mfunction or associated item not found in `Pallet<T>`[0m
+  [0m    [0m[0m[1m[38;5;12m| [0m[0m                  [0m[0m[1m[38;5;9mhelp: there is an associated function with a similar name: `set_max_registrations_per_block`[0m
+
+  [0m[1mSome errors have detailed explanations: E0308, E0425, E0599.[0m
+  [0m[1mFor more information about an error, try `rustc --explain E0308`.[0m
+  [0m[0m[1m[31merror[0m[1m:[0m could not compile `pallet-subspace` due to 8 previous errors

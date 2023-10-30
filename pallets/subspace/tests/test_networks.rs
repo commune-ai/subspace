@@ -219,7 +219,7 @@ fn test_set_max_allowed_uids_growing() {
 			let names = SubspaceModule::get_names(netuid);
 			assert_eq!(names.len() as u16, n);
 
-			let addresses = SubspaceModule::get_names(netuid);
+			let addresses = SubspaceModule::get_addresses(netuid);
 			assert_eq!(addresses.len() as u16, n);
 		}
 	});
