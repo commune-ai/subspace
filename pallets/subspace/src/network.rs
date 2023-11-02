@@ -24,17 +24,12 @@ impl<T: Config> Pallet<T> {
 		return N::<T>::contains_key(netuid)
 	}
 
-
-	pub fn get_min_stake(netuid:u16) -> u64 {
-
+	pub fn get_min_stake(netuid: u16) -> u64 {
 		return MinStake::<T>::get(netuid)
-
 	}
 
-	pub fn set_min_stake(netuid:u16, stake:u64)   {
-
+	pub fn set_min_stake(netuid: u16, stake: u64) {
 		MinStake::<T>::insert(netuid, stake)
-
 	}
 
 	// get the least staked network
@@ -177,15 +172,15 @@ impl<T: Config> Pallet<T> {
 
 		let params: SubnetParams<T> = SubnetParams {
 			name: name.clone(),
-			immunity_period: immunity_period,
-			min_allowed_weights: min_allowed_weights,
-			max_allowed_weights: max_allowed_weights,
-			max_allowed_uids: max_allowed_uids,
-			min_stake: min_stake,
-			tempo: tempo,
+			immunity_period,
+			min_allowed_weights,
+			max_allowed_weights,
+			max_allowed_uids,
+			min_stake,
+			tempo,
 			founder: founder.clone(),
-			vote_period: vote_period,
-			vote_threshold: vote_threshold,
+			vote_period,
+			vote_threshold,
 		};
 		let proposal = SubnetProposal {
 			params,
@@ -265,7 +260,7 @@ impl<T: Config> Pallet<T> {
 		}
 
 		MinStake::<T>::insert(netuid, min_stake);
-		
+
 		if name.len() > 0 {
 			// update the name if it is not empty
 			let old_name: Vec<u8> = Self::get_name_for_netuid(netuid);
@@ -709,7 +704,6 @@ impl<T: Config> Pallet<T> {
 	pub fn set_max_allowed_subnets(max_allowed_subnets: u16) {
 		MaxAllowedSubnets::<T>::set(max_allowed_subnets)
 	}
-
 
 	// ============================
 	// ==== Subnetwork Getters ====

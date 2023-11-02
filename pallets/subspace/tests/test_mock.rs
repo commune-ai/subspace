@@ -227,7 +227,12 @@ pub fn register_module(netuid: u16, key: U256, stake: u64) -> DispatchResult {
 }
 
 #[allow(dead_code)]
-pub fn delegate_register_module(netuid: u16, key: U256, module_key: U256, stake: u64) -> DispatchResult {
+pub fn delegate_register_module(
+	netuid: u16,
+	key: U256,
+	module_key: U256,
+	stake: u64,
+) -> DispatchResult {
 	// can i format the test in rus
 
 	let mut network: Vec<u8> = "test".as_bytes().to_vec();
@@ -245,17 +250,25 @@ pub fn delegate_register_module(netuid: u16, key: U256, module_key: U256, stake:
 		SubspaceModule::set_max_registrations_per_block(1000)
 	}
 
-
 	let balance = SubspaceModule::get_balance(&key);
 
 	if stake >= balance {
 		add_balance(key, stake + 1);
 	}
-	println!("Registering module: network: {:?}, key: {:?} stake {:?}", network, module_key, balance);
+	println!(
+		"Registering module: network: {:?}, key: {:?} stake {:?}",
+		network, module_key, balance
+	);
 
-	let result = SubspaceModule::register(origin, network, name.clone(), address, stake, module_key);
+	let result =
+		SubspaceModule::register(origin, network, name.clone(), address, stake, module_key);
 
-	log::info!("Register ok neuron: network: {:?}, module_key: {:?} key: {:?}", name.clone(), module_key, key);
+	log::info!(
+		"Register ok neuron: network: {:?}, module_key: {:?} key: {:?}",
+		name.clone(),
+		module_key,
+		key
+	);
 
 	return result
 }
