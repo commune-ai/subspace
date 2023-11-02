@@ -8,11 +8,12 @@
 include!(concat!(env!("OUT_DIR"), "/wasm_binary.rs"));
 
 use codec::Encode;
+use frame_system::{EnsureSigned, EnsureRoot};
 use pallet_grandpa::{
 	fg_primitives, AuthorityId as GrandpaId, AuthorityList as GrandpaAuthorityList,
 };
 
-use frame_support::pallet_prelude::Get;
+use frame_support::{pallet_prelude::Get, traits::EqualPrivilegeOnly};
 
 use smallvec::smallvec;
 use sp_api::impl_runtime_apis;
@@ -136,6 +137,14 @@ pub const SLOT_DURATION: u64 = MILLISECS_PER_BLOCK;
 pub const MINUTES: BlockNumber = 60_000 / (MILLISECS_PER_BLOCK as BlockNumber);
 pub const HOURS: BlockNumber = MINUTES * 60;
 pub const DAYS: BlockNumber = HOURS * 24;
+
+pub const MILLICENTS: Balance = 10_000;
+pub const CENTS: Balance = 1_000 * MILLICENTS;
+pub const DOLLARS: Balance = 100 * CENTS;
+
+pub const fn deposit(items: u32, bytes: u32) -> Balance {
+	(items as Balance) * 15 * CENTS + (bytes as Balance) * 6 * CENTS
+}
 
 // The version information used to identify this runtime when compiled natively.
 #[cfg(feature = "std")]
@@ -322,6 +331,107 @@ impl pallet_utility::Config for Runtime {
 	type WeightInfo = pallet_utility::weights::SubstrateWeight<Runtime>;
 }
 
+type CouncilCollective = pallet_collective::Instance1;
+
+parameter_types! {
+	pub MaxCollectivesProposalWeight: Weight = Perbill::from_percent(50) * BlockWeights::get().max_block;
+	pub const CouncilMotionDuration: BlockNumber = 3 * DAYS;
+	pub const CouncilMaxProposals: u32 = 100;
+	pub const CouncilMaxMembers: u32 = 100;
+}
+
+impl pallet_collective::Config<CouncilCollective> for Runtime {
+	type RuntimeOrigin = RuntimeOrigin;
+	type RuntimeEvent = RuntimeEvent;
+	type Proposal = RuntimeCall;
+	type MotionDuration = CouncilMotionDuration;
+	type MaxProposals = CouncilMaxProposals;
+	type MaxMembers = CouncilMaxMembers;
+	type DefaultVote = pallet_collective::PrimeDefaultVote;
+	type WeightInfo = ();
+	type SetMembersOrigin = EnsureRoot<AccountId>;
+}
+
+parameter_types! {
+	pub const PreimageMaxSize: u32 = 4 * 1024 * 1024;
+	pub const PreimageBaseDeposit: Balance = deposit(2, 64);
+	pub const PreimageByteDeposit: Balance = deposit(0, 1);
+}
+
+impl pallet_preimage::Config for Runtime {
+	type RuntimeEvent = RuntimeEvent;
+	type WeightInfo = ();
+	type Currency = Balances;
+	type ManagerOrigin = EnsureRoot<AccountId>;
+	type BaseDeposit = PreimageBaseDeposit;
+	type ByteDeposit = PreimageByteDeposit;
+}
+
+parameter_types! {
+	pub MaximumSchedulerWeight: Weight = NORMAL_DISPATCH_RATIO * BlockWeights::get().max_block;
+	pub const MaxScheduledPerBlock: u32 = 50;
+	pub const NoPreimagePostponement: Option<u32> = Some(10);
+}
+
+impl pallet_scheduler::Config for Runtime {
+	type RuntimeEvent = RuntimeEvent;
+	type RuntimeOrigin = RuntimeOrigin;
+	type PalletsOrigin = OriginCaller;
+	type RuntimeCall = RuntimeCall;
+	type MaximumWeight = MaximumSchedulerWeight;
+	type ScheduleOrigin = EnsureRoot<AccountId>;
+	type MaxScheduledPerBlock = MaxScheduledPerBlock;
+	type WeightInfo = ();
+	type OriginPrivilegeCmp = EqualPrivilegeOnly;
+	type Preimages = Preimage;
+}
+
+parameter_types! {
+	pub const EnactmentPeriod: BlockNumber = 2 * DAYS;
+	pub const LaunchPeriod: BlockNumber = 7 * DAYS;
+	pub const VotingPeriod: BlockNumber = 7 * DAYS;
+	pub const DemocracyMinimumDeposit: Balance = 10 * DOLLARS;
+	pub const InstantAllowed: bool = true;
+	pub const FastTrackVotingPeriod: BlockNumber = 3 * HOURS;
+	pub const CooloffPeriod: BlockNumber = 7 * DAYS;
+	pub const MaxVotes: u32 = 100;
+	pub const MaxProposals: u32 = 100;
+	pub const MaxBlacklisted: u32 = 100;
+	pub const MaxDeposits: u32 = 100;
+}
+
+impl pallet_democracy::Config for Runtime {
+	type RuntimeEvent = RuntimeEvent;
+	type WeightInfo = ();
+	type Scheduler = Scheduler;
+	type Preimages = Preimage;
+	type Currency = Balances;
+	type EnactmentPeriod = EnactmentPeriod;
+	type LaunchPeriod = LaunchPeriod;
+	type VotingPeriod = VotingPeriod;
+	type VoteLockingPeriod = EnactmentPeriod;
+	type MinimumDeposit = DemocracyMinimumDeposit;
+	type BlacklistOrigin = EnsureRoot<AccountId>;
+	type CancelProposalOrigin = EnsureRoot<AccountId>;
+	type InstantAllowed = InstantAllowed;
+	type FastTrackVotingPeriod = FastTrackVotingPeriod;
+	type FastTrackOrigin = EnsureRoot<AccountId>;
+	type CooloffPeriod = CooloffPeriod;
+	type MaxVotes = MaxVotes;
+	type MaxProposals = MaxProposals;
+	type MaxBlacklisted = MaxBlacklisted;
+	type MaxDeposits = MaxDeposits;
+	type Slash = ();
+	type SubmitOrigin = EnsureSigned<AccountId>;
+	type InstantOrigin = EnsureRoot<AccountId>;
+	type CancellationOrigin = EnsureRoot<AccountId>;
+	type VetoOrigin = pallet_collective::EnsureMember<AccountId, CouncilCollective>;
+	type PalletsOrigin = OriginCaller;
+	type ExternalOrigin = EnsureRoot<AccountId>;
+	type ExternalDefaultOrigin = EnsureRoot<AccountId>;
+	type ExternalMajorityOrigin = EnsureRoot<AccountId>;
+}
+
 impl pallet_subspace::Config for Runtime {
 	type RuntimeEvent = RuntimeEvent;
 	type Currency = Balances;
@@ -345,6 +455,10 @@ construct_runtime!(
 		Sudo: pallet_sudo,
 		Utility: pallet_utility,
 		SubspaceModule: pallet_subspace,
+		Scheduler: pallet_scheduler,
+		Preimage: pallet_preimage,
+		Democracy: pallet_democracy,
+		Council: pallet_collective::<Instance1>::{Pallet, Call, Storage, Origin<T>, Event<T>, Config<T>},
 	}
 );
 

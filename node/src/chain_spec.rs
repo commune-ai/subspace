@@ -1,5 +1,5 @@
 use node_subspace_runtime::{
-	AccountId, AuraConfig, BalancesConfig, GenesisConfig, GrandpaConfig, Signature,
+	AccountId, AuraConfig, BalancesConfig, GenesisConfig, GrandpaConfig, Signature, CouncilConfig, DemocracyConfig,
 	SubspaceModuleConfig, SudoConfig, SystemConfig, WASM_BINARY,
 };
 use sc_service::ChainType;
@@ -256,5 +256,7 @@ fn network_genesis(
 			block,
 			stake_to,
 		},
+		democracy: Default::default(),
+		council: Default::default()
 	}
 }
