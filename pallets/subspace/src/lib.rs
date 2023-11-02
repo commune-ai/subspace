@@ -764,12 +764,12 @@ pub mod pallet {
 		.saturating_add(T::DbWeight::get().writes(0)), DispatchClass::Normal, Pays::No))]
 		pub fn update_global(
 			origin: OriginFor<T>,
-			max_name_length: u16,
-			max_allowed_subnets: u16,
-			max_allowed_modules: u16,
-			max_registrations_per_block: u16,
-			unit_emission: u64,
-			tx_rate_limit: u64,
+			max_name_length: Option<u16>,
+			max_allowed_subnets: Option<u16>,
+			max_allowed_modules: Option<u16>,
+			max_registrations_per_block: Option<u16>,
+			unit_emission: Option<u64>,
+			tx_rate_limit: Option<u64>,
 		) -> DispatchResult {
 			Self::do_update_global(
 				origin,
