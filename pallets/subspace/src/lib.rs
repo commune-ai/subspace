@@ -26,7 +26,10 @@ use sp_std::marker::PhantomData;
 //	==== Benchmark Imports =====
 // ============================
 #[cfg(feature = "runtime-benchmarks")]
-mod benchmarks;
+mod benchmarking;
+
+#[cfg(test)]
+mod mock;
 
 // =========================
 //	==== Pallet Imports =====
