@@ -106,6 +106,7 @@ impl system::Config for Test {
 impl pallet_subspace::Config for Test {
 	type RuntimeEvent = RuntimeEvent;
 	type Currency = Balances;
+    type WeightInfo = ();
 }
 
 // Build genesis storage according to the mock runtime.

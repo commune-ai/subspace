@@ -5,7 +5,7 @@
 //! DATE: 2023-11-07, STEPS: `20`, REPEAT: `10`, LOW RANGE: `[]`, HIGH RANGE: `[]`
 //! WORST CASE MAP SIZE: `1000000`
 //! HOSTNAME: `ubuntu-2204`, CPU: `Intel(R) Core(TM) i7-6700 CPU @ 3.40GHz`
-//! EXECUTION: None, WASM-EXECUTION: Compiled, CHAIN: Some("dev"), DB CACHE: 1024
+//! WASM-EXECUTION: `Compiled`, CHAIN: `Some("dev")`, DB CACHE: `1024`
 
 // Executed Command:
 // ./target/release/node-subspace
@@ -21,19 +21,39 @@
 // 20
 // --repeat
 // 10
+// --wasm-execution=compiled
+// --template
+// ./.maintain/frame-weight-template.hbs
 // --output
 // pallets/subspace/src/autogen_weights.rs
 
 #![cfg_attr(rustfmt, rustfmt_skip)]
 #![allow(unused_parens)]
 #![allow(unused_imports)]
+#![allow(missing_docs)]
 
-use frame_support::{traits::Get, weights::Weight};
-use sp_std::marker::PhantomData;
+use frame_support::{traits::Get, weights::{Weight, constants::RocksDbWeight}};
+use core::marker::PhantomData;
 
-/// Weight functions for `pallet_subspace`.
-pub struct WeightInfo<T>(PhantomData<T>);
-impl<T: frame_system::Config> pallet_subspace::WeightInfo for WeightInfo<T> {
+/// Weight functions needed for `pallet_subspace`.
+pub trait WeightInfo {
+	fn register() -> Weight;
+	fn set_weights() -> Weight;
+	fn add_stake() -> Weight;
+	fn add_stake_multiple() -> Weight;
+	fn transfer_stake() -> Weight;
+	fn transfer_multiple() -> Weight;
+	fn remove_stake() -> Weight;
+	fn remove_stake_multiple() -> Weight;
+	fn update_network() -> Weight;
+	fn remove_network() -> Weight;
+	fn update_module() -> Weight;
+	fn update_global() -> Weight;
+}
+
+/// Weights for `pallet_subspace` using the Substrate node and recommended hardware.
+pub struct SubstrateWeight<T>(PhantomData<T>);
+impl<T: frame_system::Config> WeightInfo for SubstrateWeight<T> {
 	/// Storage: SubspaceModule N (r:2 w:1)
 	/// Proof Skipped: SubspaceModule N (max_values: None, max_size: None, mode: Measured)
 	/// Storage: SubspaceModule MaxAllowedSubnets (r:1 w:0)
@@ -98,11 +118,10 @@ impl<T: frame_system::Config> pallet_subspace::WeightInfo for WeightInfo<T> {
 		// Proof Size summary in bytes:
 		//  Measured:  `5352`
 		//  Estimated: `214209`
-		// Minimum execution time: 227_882 nanoseconds.
-		Weight::from_ref_time(280_480_000)
-			.saturating_add(Weight::from_proof_size(214209))
-			.saturating_add(T::DbWeight::get().reads(27))
-			.saturating_add(T::DbWeight::get().writes(26))
+		// Minimum execution time: 225_483_000 picoseconds.
+		Weight::from_parts(295_319_000, 214209)
+			.saturating_add(T::DbWeight::get().reads(27_u64))
+			.saturating_add(T::DbWeight::get().writes(26_u64))
 	}
 	/// Storage: SubspaceModule Uids (r:1 w:0)
 	/// Proof Skipped: SubspaceModule Uids (max_values: None, max_size: None, mode: Measured)
@@ -124,11 +143,10 @@ impl<T: frame_system::Config> pallet_subspace::WeightInfo for WeightInfo<T> {
 		// Proof Size summary in bytes:
 		//  Measured:  `2500`
 		//  Estimated: `59600`
-		// Minimum execution time: 174_823 nanoseconds.
-		Weight::from_ref_time(285_014_000)
-			.saturating_add(Weight::from_proof_size(59600))
-			.saturating_add(T::DbWeight::get().reads(16))
-			.saturating_add(T::DbWeight::get().writes(2))
+		// Minimum execution time: 182_915_000 picoseconds.
+		Weight::from_parts(222_199_000, 59600)
+			.saturating_add(T::DbWeight::get().reads(16_u64))
+			.saturating_add(T::DbWeight::get().writes(2_u64))
 	}
 	/// Storage: SubspaceModule Uids (r:1 w:0)
 	/// Proof Skipped: SubspaceModule Uids (max_values: None, max_size: None, mode: Measured)
@@ -146,11 +164,10 @@ impl<T: frame_system::Config> pallet_subspace::WeightInfo for WeightInfo<T> {
 		// Proof Size summary in bytes:
 		//  Measured:  `3437`
 		//  Estimated: `32131`
-		// Minimum execution time: 129_156 nanoseconds.
-		Weight::from_ref_time(173_926_000)
-			.saturating_add(Weight::from_proof_size(32131))
-			.saturating_add(T::DbWeight::get().reads(6))
-			.saturating_add(T::DbWeight::get().writes(5))
+		// Minimum execution time: 203_267_000 picoseconds.
+		Weight::from_parts(236_121_000, 32131)
+			.saturating_add(T::DbWeight::get().reads(6_u64))
+			.saturating_add(T::DbWeight::get().writes(5_u64))
 	}
 	/// Storage: System Account (r:1 w:1)
 	/// Proof: System Account (max_values: None, max_size: Some(96), added: 2571, mode: MaxEncodedLen)
@@ -168,11 +185,10 @@ impl<T: frame_system::Config> pallet_subspace::WeightInfo for WeightInfo<T> {
 		// Proof Size summary in bytes:
 		//  Measured:  `6537`
 		//  Estimated: `114456`
-		// Minimum execution time: 625_730 nanoseconds.
-		Weight::from_ref_time(754_215_000)
-			.saturating_add(Weight::from_proof_size(114456))
-			.saturating_add(T::DbWeight::get().reads(33))
-			.saturating_add(T::DbWeight::get().writes(23))
+		// Minimum execution time: 608_522_000 picoseconds.
+		Weight::from_parts(686_874_000, 114456)
+			.saturating_add(T::DbWeight::get().reads(33_u64))
+			.saturating_add(T::DbWeight::get().writes(23_u64))
 	}
 	/// Storage: SubspaceModule Uids (r:2 w:0)
 	/// Proof Skipped: SubspaceModule Uids (max_values: None, max_size: None, mode: Measured)
@@ -190,11 +206,10 @@ impl<T: frame_system::Config> pallet_subspace::WeightInfo for WeightInfo<T> {
 		// Proof Size summary in bytes:
 		//  Measured:  `3743`
 		//  Estimated: `41086`
-		// Minimum execution time: 207_375 nanoseconds.
-		Weight::from_ref_time(260_385_000)
-			.saturating_add(Weight::from_proof_size(41086))
-			.saturating_add(T::DbWeight::get().reads(9))
-			.saturating_add(T::DbWeight::get().writes(7))
+		// Minimum execution time: 175_265_000 picoseconds.
+		Weight::from_parts(241_039_000, 41086)
+			.saturating_add(T::DbWeight::get().reads(9_u64))
+			.saturating_add(T::DbWeight::get().writes(7_u64))
 	}
 	/// Storage: System Account (r:11 w:11)
 	/// Proof: System Account (max_values: None, max_size: Some(96), added: 2571, mode: MaxEncodedLen)
@@ -202,11 +217,10 @@ impl<T: frame_system::Config> pallet_subspace::WeightInfo for WeightInfo<T> {
 		// Proof Size summary in bytes:
 		//  Measured:  `13983`
 		//  Estimated: `28281`
-		// Minimum execution time: 246_166 nanoseconds.
-		Weight::from_ref_time(334_042_000)
-			.saturating_add(Weight::from_proof_size(28281))
-			.saturating_add(T::DbWeight::get().reads(11))
-			.saturating_add(T::DbWeight::get().writes(11))
+		// Minimum execution time: 223_837_000 picoseconds.
+		Weight::from_parts(287_843_000, 28281)
+			.saturating_add(T::DbWeight::get().reads(11_u64))
+			.saturating_add(T::DbWeight::get().writes(11_u64))
 	}
 	/// Storage: SubspaceModule Uids (r:1 w:0)
 	/// Proof Skipped: SubspaceModule Uids (max_values: None, max_size: None, mode: Measured)
@@ -224,11 +238,10 @@ impl<T: frame_system::Config> pallet_subspace::WeightInfo for WeightInfo<T> {
 		// Proof Size summary in bytes:
 		//  Measured:  `3437`
 		//  Estimated: `32131`
-		// Minimum execution time: 133_859 nanoseconds.
-		Weight::from_ref_time(292_779_000)
-			.saturating_add(Weight::from_proof_size(32131))
-			.saturating_add(T::DbWeight::get().reads(6))
-			.saturating_add(T::DbWeight::get().writes(5))
+		// Minimum execution time: 121_539_000 picoseconds.
+		Weight::from_parts(125_578_000, 32131)
+			.saturating_add(T::DbWeight::get().reads(6_u64))
+			.saturating_add(T::DbWeight::get().writes(5_u64))
 	}
 	/// Storage: SubspaceModule StakeTo (r:1 w:1)
 	/// Proof Skipped: SubspaceModule StakeTo (max_values: None, max_size: None, mode: Measured)
@@ -246,11 +259,10 @@ impl<T: frame_system::Config> pallet_subspace::WeightInfo for WeightInfo<T> {
 		// Proof Size summary in bytes:
 		//  Measured:  `6521`
 		//  Estimated: `114376`
-		// Minimum execution time: 619_843 nanoseconds.
-		Weight::from_ref_time(691_353_000)
-			.saturating_add(Weight::from_proof_size(114376))
-			.saturating_add(T::DbWeight::get().reads(33))
-			.saturating_add(T::DbWeight::get().writes(23))
+		// Minimum execution time: 490_008_000 picoseconds.
+		Weight::from_parts(531_806_000, 114376)
+			.saturating_add(T::DbWeight::get().reads(33_u64))
+			.saturating_add(T::DbWeight::get().writes(23_u64))
 	}
 	/// Storage: SubspaceModule SubnetNamespace (r:3 w:0)
 	/// Proof Skipped: SubspaceModule SubnetNamespace (max_values: None, max_size: None, mode: Measured)
@@ -274,11 +286,10 @@ impl<T: frame_system::Config> pallet_subspace::WeightInfo for WeightInfo<T> {
 		// Proof Size summary in bytes:
 		//  Measured:  `1039`
 		//  Estimated: `21726`
-		// Minimum execution time: 66_825 nanoseconds.
-		Weight::from_ref_time(87_146_000)
-			.saturating_add(Weight::from_proof_size(21726))
-			.saturating_add(T::DbWeight::get().reads(5))
-			.saturating_add(T::DbWeight::get().writes(7))
+		// Minimum execution time: 63_589_000 picoseconds.
+		Weight::from_parts(64_674_000, 21726)
+			.saturating_add(T::DbWeight::get().reads(5_u64))
+			.saturating_add(T::DbWeight::get().writes(7_u64))
 	}
 	/// Storage: SubspaceModule SubnetNamespace (r:3 w:1)
 	/// Proof Skipped: SubspaceModule SubnetNamespace (max_values: None, max_size: None, mode: Measured)
@@ -332,11 +343,10 @@ impl<T: frame_system::Config> pallet_subspace::WeightInfo for WeightInfo<T> {
 		// Proof Size summary in bytes:
 		//  Measured:  `5890`
 		//  Estimated: `173186`
-		// Minimum execution time: 226_493 nanoseconds.
-		Weight::from_ref_time(281_820_000)
-			.saturating_add(Weight::from_proof_size(173186))
-			.saturating_add(T::DbWeight::get().reads(16))
-			.saturating_add(T::DbWeight::get().writes(24))
+		// Minimum execution time: 220_339_000 picoseconds.
+		Weight::from_parts(290_347_000, 173186)
+			.saturating_add(T::DbWeight::get().reads(16_u64))
+			.saturating_add(T::DbWeight::get().writes(24_u64))
 	}
 	/// Storage: SubspaceModule SubnetNamespace (r:3 w:0)
 	/// Proof Skipped: SubspaceModule SubnetNamespace (max_values: None, max_size: None, mode: Measured)
@@ -352,11 +362,10 @@ impl<T: frame_system::Config> pallet_subspace::WeightInfo for WeightInfo<T> {
 		// Proof Size summary in bytes:
 		//  Measured:  `1227`
 		//  Estimated: `21480`
-		// Minimum execution time: 78_514 nanoseconds.
-		Weight::from_ref_time(97_732_000)
-			.saturating_add(Weight::from_proof_size(21480))
-			.saturating_add(T::DbWeight::get().reads(7))
-			.saturating_add(T::DbWeight::get().writes(2))
+		// Minimum execution time: 85_543_000 picoseconds.
+		Weight::from_parts(104_062_000, 21480)
+			.saturating_add(T::DbWeight::get().reads(7_u64))
+			.saturating_add(T::DbWeight::get().writes(2_u64))
 	}
 	/// Storage: SubspaceModule MaxAllowedSubnets (r:0 w:1)
 	/// Proof Skipped: SubspaceModule MaxAllowedSubnets (max_values: Some(1), max_size: None, mode: Measured)
@@ -374,9 +383,345 @@ impl<T: frame_system::Config> pallet_subspace::WeightInfo for WeightInfo<T> {
 		// Proof Size summary in bytes:
 		//  Measured:  `543`
 		//  Estimated: `3258`
-		// Minimum execution time: 27_380 nanoseconds.
-		Weight::from_ref_time(31_034_000)
-			.saturating_add(Weight::from_proof_size(3258))
-			.saturating_add(T::DbWeight::get().writes(6))
+		// Minimum execution time: 31_261_000 picoseconds.
+		Weight::from_parts(56_067_000, 3258)
+			.saturating_add(T::DbWeight::get().writes(6_u64))
+	}
+}
+
+// For backwards compatibility and tests.
+impl WeightInfo for () {
+	/// Storage: SubspaceModule N (r:2 w:1)
+	/// Proof Skipped: SubspaceModule N (max_values: None, max_size: None, mode: Measured)
+	/// Storage: SubspaceModule MaxAllowedSubnets (r:1 w:0)
+	/// Proof Skipped: SubspaceModule MaxAllowedSubnets (max_values: Some(1), max_size: None, mode: Measured)
+	/// Storage: System Account (r:1 w:1)
+	/// Proof: System Account (max_values: None, max_size: Some(96), added: 2571, mode: MaxEncodedLen)
+	/// Storage: SubspaceModule MinStake (r:2 w:1)
+	/// Proof Skipped: SubspaceModule MinStake (max_values: None, max_size: None, mode: Measured)
+	/// Storage: SubspaceModule RegistrationsPerBlock (r:1 w:1)
+	/// Proof Skipped: SubspaceModule RegistrationsPerBlock (max_values: Some(1), max_size: None, mode: Measured)
+	/// Storage: SubspaceModule MaxRegistrationsPerBlock (r:1 w:0)
+	/// Proof Skipped: SubspaceModule MaxRegistrationsPerBlock (max_values: Some(1), max_size: None, mode: Measured)
+	/// Storage: SubspaceModule SubnetNamespace (r:1 w:1)
+	/// Proof Skipped: SubspaceModule SubnetNamespace (max_values: None, max_size: None, mode: Measured)
+	/// Storage: SubspaceModule ImmunityPeriod (r:1 w:1)
+	/// Proof Skipped: SubspaceModule ImmunityPeriod (max_values: None, max_size: None, mode: Measured)
+	/// Storage: SubspaceModule MinAllowedWeights (r:1 w:1)
+	/// Proof Skipped: SubspaceModule MinAllowedWeights (max_values: None, max_size: None, mode: Measured)
+	/// Storage: SubspaceModule MaxAllowedWeights (r:1 w:1)
+	/// Proof Skipped: SubspaceModule MaxAllowedWeights (max_values: None, max_size: None, mode: Measured)
+	/// Storage: SubspaceModule MaxAllowedUids (r:1 w:1)
+	/// Proof Skipped: SubspaceModule MaxAllowedUids (max_values: None, max_size: None, mode: Measured)
+	/// Storage: SubspaceModule Tempo (r:1 w:1)
+	/// Proof Skipped: SubspaceModule Tempo (max_values: None, max_size: None, mode: Measured)
+	/// Storage: SubspaceModule Founder (r:1 w:1)
+	/// Proof Skipped: SubspaceModule Founder (max_values: None, max_size: None, mode: Measured)
+	/// Storage: SubspaceModule VotePeriod (r:1 w:0)
+	/// Proof Skipped: SubspaceModule VotePeriod (max_values: None, max_size: None, mode: Measured)
+	/// Storage: SubspaceModule VoteThreshold (r:1 w:0)
+	/// Proof Skipped: SubspaceModule VoteThreshold (max_values: None, max_size: None, mode: Measured)
+	/// Storage: SubspaceModule TotalSubnets (r:1 w:1)
+	/// Proof Skipped: SubspaceModule TotalSubnets (max_values: Some(1), max_size: None, mode: Measured)
+	/// Storage: SubspaceModule Emission (r:1 w:1)
+	/// Proof Skipped: SubspaceModule Emission (max_values: None, max_size: None, mode: Measured)
+	/// Storage: SubspaceModule Incentive (r:1 w:1)
+	/// Proof Skipped: SubspaceModule Incentive (max_values: None, max_size: None, mode: Measured)
+	/// Storage: SubspaceModule Dividends (r:1 w:1)
+	/// Proof Skipped: SubspaceModule Dividends (max_values: None, max_size: None, mode: Measured)
+	/// Storage: SubspaceModule LastUpdate (r:1 w:1)
+	/// Proof Skipped: SubspaceModule LastUpdate (max_values: None, max_size: None, mode: Measured)
+	/// Storage: SubspaceModule DelegationFee (r:1 w:1)
+	/// Proof Skipped: SubspaceModule DelegationFee (max_values: None, max_size: None, mode: Measured)
+	/// Storage: SubspaceModule StakeFrom (r:1 w:1)
+	/// Proof Skipped: SubspaceModule StakeFrom (max_values: None, max_size: None, mode: Measured)
+	/// Storage: SubspaceModule StakeTo (r:1 w:1)
+	/// Proof Skipped: SubspaceModule StakeTo (max_values: None, max_size: None, mode: Measured)
+	/// Storage: SubspaceModule Stake (r:1 w:1)
+	/// Proof Skipped: SubspaceModule Stake (max_values: None, max_size: None, mode: Measured)
+	/// Storage: SubspaceModule TotalStake (r:1 w:1)
+	/// Proof Skipped: SubspaceModule TotalStake (max_values: None, max_size: None, mode: Measured)
+	/// Storage: SubspaceModule RegistrationBlock (r:0 w:1)
+	/// Proof Skipped: SubspaceModule RegistrationBlock (max_values: None, max_size: None, mode: Measured)
+	/// Storage: SubspaceModule Address (r:0 w:1)
+	/// Proof Skipped: SubspaceModule Address (max_values: None, max_size: None, mode: Measured)
+	/// Storage: SubspaceModule Names (r:0 w:1)
+	/// Proof Skipped: SubspaceModule Names (max_values: None, max_size: None, mode: Measured)
+	/// Storage: SubspaceModule Keys (r:0 w:1)
+	/// Proof Skipped: SubspaceModule Keys (max_values: None, max_size: None, mode: Measured)
+	/// Storage: SubspaceModule Uids (r:0 w:1)
+	/// Proof Skipped: SubspaceModule Uids (max_values: None, max_size: None, mode: Measured)
+	fn register() -> Weight {
+		// Proof Size summary in bytes:
+		//  Measured:  `5352`
+		//  Estimated: `214209`
+		// Minimum execution time: 225_483_000 picoseconds.
+		Weight::from_parts(295_319_000, 214209)
+			.saturating_add(RocksDbWeight::get().reads(27_u64))
+			.saturating_add(RocksDbWeight::get().writes(26_u64))
+	}
+	/// Storage: SubspaceModule Uids (r:1 w:0)
+	/// Proof Skipped: SubspaceModule Uids (max_values: None, max_size: None, mode: Measured)
+	/// Storage: SubspaceModule Stake (r:1 w:0)
+	/// Proof Skipped: SubspaceModule Stake (max_values: None, max_size: None, mode: Measured)
+	/// Storage: SubspaceModule N (r:1 w:0)
+	/// Proof Skipped: SubspaceModule N (max_values: None, max_size: None, mode: Measured)
+	/// Storage: SubspaceModule Keys (r:10 w:0)
+	/// Proof Skipped: SubspaceModule Keys (max_values: None, max_size: None, mode: Measured)
+	/// Storage: SubspaceModule MinAllowedWeights (r:1 w:0)
+	/// Proof Skipped: SubspaceModule MinAllowedWeights (max_values: None, max_size: None, mode: Measured)
+	/// Storage: SubspaceModule MaxAllowedWeights (r:1 w:0)
+	/// Proof Skipped: SubspaceModule MaxAllowedWeights (max_values: None, max_size: None, mode: Measured)
+	/// Storage: SubspaceModule LastUpdate (r:1 w:1)
+	/// Proof Skipped: SubspaceModule LastUpdate (max_values: None, max_size: None, mode: Measured)
+	/// Storage: SubspaceModule Weights (r:0 w:1)
+	/// Proof Skipped: SubspaceModule Weights (max_values: None, max_size: None, mode: Measured)
+	fn set_weights() -> Weight {
+		// Proof Size summary in bytes:
+		//  Measured:  `2500`
+		//  Estimated: `59600`
+		// Minimum execution time: 182_915_000 picoseconds.
+		Weight::from_parts(222_199_000, 59600)
+			.saturating_add(RocksDbWeight::get().reads(16_u64))
+			.saturating_add(RocksDbWeight::get().writes(2_u64))
+	}
+	/// Storage: SubspaceModule Uids (r:1 w:0)
+	/// Proof Skipped: SubspaceModule Uids (max_values: None, max_size: None, mode: Measured)
+	/// Storage: System Account (r:1 w:1)
+	/// Proof: System Account (max_values: None, max_size: Some(96), added: 2571, mode: MaxEncodedLen)
+	/// Storage: SubspaceModule StakeTo (r:1 w:1)
+	/// Proof Skipped: SubspaceModule StakeTo (max_values: None, max_size: None, mode: Measured)
+	/// Storage: SubspaceModule StakeFrom (r:1 w:1)
+	/// Proof Skipped: SubspaceModule StakeFrom (max_values: None, max_size: None, mode: Measured)
+	/// Storage: SubspaceModule Stake (r:1 w:1)
+	/// Proof Skipped: SubspaceModule Stake (max_values: None, max_size: None, mode: Measured)
+	/// Storage: SubspaceModule TotalStake (r:1 w:1)
+	/// Proof Skipped: SubspaceModule TotalStake (max_values: None, max_size: None, mode: Measured)
+	fn add_stake() -> Weight {
+		// Proof Size summary in bytes:
+		//  Measured:  `3437`
+		//  Estimated: `32131`
+		// Minimum execution time: 203_267_000 picoseconds.
+		Weight::from_parts(236_121_000, 32131)
+			.saturating_add(RocksDbWeight::get().reads(6_u64))
+			.saturating_add(RocksDbWeight::get().writes(5_u64))
+	}
+	/// Storage: System Account (r:1 w:1)
+	/// Proof: System Account (max_values: None, max_size: Some(96), added: 2571, mode: MaxEncodedLen)
+	/// Storage: SubspaceModule Uids (r:10 w:0)
+	/// Proof Skipped: SubspaceModule Uids (max_values: None, max_size: None, mode: Measured)
+	/// Storage: SubspaceModule StakeTo (r:1 w:1)
+	/// Proof Skipped: SubspaceModule StakeTo (max_values: None, max_size: None, mode: Measured)
+	/// Storage: SubspaceModule StakeFrom (r:10 w:10)
+	/// Proof Skipped: SubspaceModule StakeFrom (max_values: None, max_size: None, mode: Measured)
+	/// Storage: SubspaceModule Stake (r:10 w:10)
+	/// Proof Skipped: SubspaceModule Stake (max_values: None, max_size: None, mode: Measured)
+	/// Storage: SubspaceModule TotalStake (r:1 w:1)
+	/// Proof Skipped: SubspaceModule TotalStake (max_values: None, max_size: None, mode: Measured)
+	fn add_stake_multiple() -> Weight {
+		// Proof Size summary in bytes:
+		//  Measured:  `6537`
+		//  Estimated: `114456`
+		// Minimum execution time: 608_522_000 picoseconds.
+		Weight::from_parts(686_874_000, 114456)
+			.saturating_add(RocksDbWeight::get().reads(33_u64))
+			.saturating_add(RocksDbWeight::get().writes(23_u64))
+	}
+	/// Storage: SubspaceModule Uids (r:2 w:0)
+	/// Proof Skipped: SubspaceModule Uids (max_values: None, max_size: None, mode: Measured)
+	/// Storage: SubspaceModule StakeTo (r:1 w:1)
+	/// Proof Skipped: SubspaceModule StakeTo (max_values: None, max_size: None, mode: Measured)
+	/// Storage: SubspaceModule StakeFrom (r:2 w:2)
+	/// Proof Skipped: SubspaceModule StakeFrom (max_values: None, max_size: None, mode: Measured)
+	/// Storage: SubspaceModule Stake (r:2 w:2)
+	/// Proof Skipped: SubspaceModule Stake (max_values: None, max_size: None, mode: Measured)
+	/// Storage: SubspaceModule TotalStake (r:1 w:1)
+	/// Proof Skipped: SubspaceModule TotalStake (max_values: None, max_size: None, mode: Measured)
+	/// Storage: System Account (r:1 w:1)
+	/// Proof: System Account (max_values: None, max_size: Some(96), added: 2571, mode: MaxEncodedLen)
+	fn transfer_stake() -> Weight {
+		// Proof Size summary in bytes:
+		//  Measured:  `3743`
+		//  Estimated: `41086`
+		// Minimum execution time: 175_265_000 picoseconds.
+		Weight::from_parts(241_039_000, 41086)
+			.saturating_add(RocksDbWeight::get().reads(9_u64))
+			.saturating_add(RocksDbWeight::get().writes(7_u64))
+	}
+	/// Storage: System Account (r:11 w:11)
+	/// Proof: System Account (max_values: None, max_size: Some(96), added: 2571, mode: MaxEncodedLen)
+	fn transfer_multiple() -> Weight {
+		// Proof Size summary in bytes:
+		//  Measured:  `13983`
+		//  Estimated: `28281`
+		// Minimum execution time: 223_837_000 picoseconds.
+		Weight::from_parts(287_843_000, 28281)
+			.saturating_add(RocksDbWeight::get().reads(11_u64))
+			.saturating_add(RocksDbWeight::get().writes(11_u64))
+	}
+	/// Storage: SubspaceModule Uids (r:1 w:0)
+	/// Proof Skipped: SubspaceModule Uids (max_values: None, max_size: None, mode: Measured)
+	/// Storage: SubspaceModule StakeTo (r:1 w:1)
+	/// Proof Skipped: SubspaceModule StakeTo (max_values: None, max_size: None, mode: Measured)
+	/// Storage: SubspaceModule StakeFrom (r:1 w:1)
+	/// Proof Skipped: SubspaceModule StakeFrom (max_values: None, max_size: None, mode: Measured)
+	/// Storage: SubspaceModule Stake (r:1 w:1)
+	/// Proof Skipped: SubspaceModule Stake (max_values: None, max_size: None, mode: Measured)
+	/// Storage: SubspaceModule TotalStake (r:1 w:1)
+	/// Proof Skipped: SubspaceModule TotalStake (max_values: None, max_size: None, mode: Measured)
+	/// Storage: System Account (r:1 w:1)
+	/// Proof: System Account (max_values: None, max_size: Some(96), added: 2571, mode: MaxEncodedLen)
+	fn remove_stake() -> Weight {
+		// Proof Size summary in bytes:
+		//  Measured:  `3437`
+		//  Estimated: `32131`
+		// Minimum execution time: 121_539_000 picoseconds.
+		Weight::from_parts(125_578_000, 32131)
+			.saturating_add(RocksDbWeight::get().reads(6_u64))
+			.saturating_add(RocksDbWeight::get().writes(5_u64))
+	}
+	/// Storage: SubspaceModule StakeTo (r:1 w:1)
+	/// Proof Skipped: SubspaceModule StakeTo (max_values: None, max_size: None, mode: Measured)
+	/// Storage: SubspaceModule Uids (r:10 w:0)
+	/// Proof Skipped: SubspaceModule Uids (max_values: None, max_size: None, mode: Measured)
+	/// Storage: SubspaceModule StakeFrom (r:10 w:10)
+	/// Proof Skipped: SubspaceModule StakeFrom (max_values: None, max_size: None, mode: Measured)
+	/// Storage: SubspaceModule Stake (r:10 w:10)
+	/// Proof Skipped: SubspaceModule Stake (max_values: None, max_size: None, mode: Measured)
+	/// Storage: SubspaceModule TotalStake (r:1 w:1)
+	/// Proof Skipped: SubspaceModule TotalStake (max_values: None, max_size: None, mode: Measured)
+	/// Storage: System Account (r:1 w:1)
+	/// Proof: System Account (max_values: None, max_size: Some(96), added: 2571, mode: MaxEncodedLen)
+	fn remove_stake_multiple() -> Weight {
+		// Proof Size summary in bytes:
+		//  Measured:  `6521`
+		//  Estimated: `114376`
+		// Minimum execution time: 490_008_000 picoseconds.
+		Weight::from_parts(531_806_000, 114376)
+			.saturating_add(RocksDbWeight::get().reads(33_u64))
+			.saturating_add(RocksDbWeight::get().writes(23_u64))
+	}
+	/// Storage: SubspaceModule SubnetNamespace (r:3 w:0)
+	/// Proof Skipped: SubspaceModule SubnetNamespace (max_values: None, max_size: None, mode: Measured)
+	/// Storage: SubspaceModule Founder (r:1 w:1)
+	/// Proof Skipped: SubspaceModule Founder (max_values: None, max_size: None, mode: Measured)
+	/// Storage: SubspaceModule N (r:1 w:0)
+	/// Proof Skipped: SubspaceModule N (max_values: None, max_size: None, mode: Measured)
+	/// Storage: SubspaceModule MinAllowedWeights (r:0 w:1)
+	/// Proof Skipped: SubspaceModule MinAllowedWeights (max_values: None, max_size: None, mode: Measured)
+	/// Storage: SubspaceModule MaxAllowedWeights (r:0 w:1)
+	/// Proof Skipped: SubspaceModule MaxAllowedWeights (max_values: None, max_size: None, mode: Measured)
+	/// Storage: SubspaceModule Tempo (r:0 w:1)
+	/// Proof Skipped: SubspaceModule Tempo (max_values: None, max_size: None, mode: Measured)
+	/// Storage: SubspaceModule MinStake (r:0 w:1)
+	/// Proof Skipped: SubspaceModule MinStake (max_values: None, max_size: None, mode: Measured)
+	/// Storage: SubspaceModule ImmunityPeriod (r:0 w:1)
+	/// Proof Skipped: SubspaceModule ImmunityPeriod (max_values: None, max_size: None, mode: Measured)
+	/// Storage: SubspaceModule MaxAllowedUids (r:0 w:1)
+	/// Proof Skipped: SubspaceModule MaxAllowedUids (max_values: None, max_size: None, mode: Measured)
+	fn update_network() -> Weight {
+		// Proof Size summary in bytes:
+		//  Measured:  `1039`
+		//  Estimated: `21726`
+		// Minimum execution time: 63_589_000 picoseconds.
+		Weight::from_parts(64_674_000, 21726)
+			.saturating_add(RocksDbWeight::get().reads(5_u64))
+			.saturating_add(RocksDbWeight::get().writes(7_u64))
+	}
+	/// Storage: SubspaceModule SubnetNamespace (r:3 w:1)
+	/// Proof Skipped: SubspaceModule SubnetNamespace (max_values: None, max_size: None, mode: Measured)
+	/// Storage: SubspaceModule Founder (r:1 w:1)
+	/// Proof Skipped: SubspaceModule Founder (max_values: None, max_size: None, mode: Measured)
+	/// Storage: SubspaceModule N (r:1 w:1)
+	/// Proof Skipped: SubspaceModule N (max_values: None, max_size: None, mode: Measured)
+	/// Storage: SubspaceModule Stake (r:2 w:1)
+	/// Proof Skipped: SubspaceModule Stake (max_values: None, max_size: None, mode: Measured)
+	/// Storage: SubspaceModule StakeFrom (r:1 w:1)
+	/// Proof Skipped: SubspaceModule StakeFrom (max_values: None, max_size: None, mode: Measured)
+	/// Storage: SubspaceModule StakeTo (r:1 w:1)
+	/// Proof Skipped: SubspaceModule StakeTo (max_values: None, max_size: None, mode: Measured)
+	/// Storage: SubspaceModule TotalStake (r:1 w:1)
+	/// Proof Skipped: SubspaceModule TotalStake (max_values: None, max_size: None, mode: Measured)
+	/// Storage: System Account (r:1 w:1)
+	/// Proof: System Account (max_values: None, max_size: Some(96), added: 2571, mode: MaxEncodedLen)
+	/// Storage: SubspaceModule Names (r:1 w:1)
+	/// Proof Skipped: SubspaceModule Names (max_values: None, max_size: None, mode: Measured)
+	/// Storage: SubspaceModule Address (r:1 w:1)
+	/// Proof Skipped: SubspaceModule Address (max_values: None, max_size: None, mode: Measured)
+	/// Storage: SubspaceModule Uids (r:1 w:1)
+	/// Proof Skipped: SubspaceModule Uids (max_values: None, max_size: None, mode: Measured)
+	/// Storage: SubspaceModule Keys (r:1 w:1)
+	/// Proof Skipped: SubspaceModule Keys (max_values: None, max_size: None, mode: Measured)
+	/// Storage: SubspaceModule TotalSubnets (r:1 w:1)
+	/// Proof Skipped: SubspaceModule TotalSubnets (max_values: Some(1), max_size: None, mode: Measured)
+	/// Storage: SubspaceModule MinAllowedWeights (r:0 w:1)
+	/// Proof Skipped: SubspaceModule MinAllowedWeights (max_values: None, max_size: None, mode: Measured)
+	/// Storage: SubspaceModule LastUpdate (r:0 w:1)
+	/// Proof Skipped: SubspaceModule LastUpdate (max_values: None, max_size: None, mode: Measured)
+	/// Storage: SubspaceModule MaxAllowedWeights (r:0 w:1)
+	/// Proof Skipped: SubspaceModule MaxAllowedWeights (max_values: None, max_size: None, mode: Measured)
+	/// Storage: SubspaceModule Tempo (r:0 w:1)
+	/// Proof Skipped: SubspaceModule Tempo (max_values: None, max_size: None, mode: Measured)
+	/// Storage: SubspaceModule MinStake (r:0 w:1)
+	/// Proof Skipped: SubspaceModule MinStake (max_values: None, max_size: None, mode: Measured)
+	/// Storage: SubspaceModule Dividends (r:0 w:1)
+	/// Proof Skipped: SubspaceModule Dividends (max_values: None, max_size: None, mode: Measured)
+	/// Storage: SubspaceModule Incentive (r:0 w:1)
+	/// Proof Skipped: SubspaceModule Incentive (max_values: None, max_size: None, mode: Measured)
+	/// Storage: SubspaceModule Trust (r:0 w:1)
+	/// Proof Skipped: SubspaceModule Trust (max_values: None, max_size: None, mode: Measured)
+	/// Storage: SubspaceModule Emission (r:0 w:1)
+	/// Proof Skipped: SubspaceModule Emission (max_values: None, max_size: None, mode: Measured)
+	/// Storage: SubspaceModule ImmunityPeriod (r:0 w:1)
+	/// Proof Skipped: SubspaceModule ImmunityPeriod (max_values: None, max_size: None, mode: Measured)
+	/// Storage: SubspaceModule MaxAllowedUids (r:0 w:1)
+	/// Proof Skipped: SubspaceModule MaxAllowedUids (max_values: None, max_size: None, mode: Measured)
+	fn remove_network() -> Weight {
+		// Proof Size summary in bytes:
+		//  Measured:  `5890`
+		//  Estimated: `173186`
+		// Minimum execution time: 220_339_000 picoseconds.
+		Weight::from_parts(290_347_000, 173186)
+			.saturating_add(RocksDbWeight::get().reads(16_u64))
+			.saturating_add(RocksDbWeight::get().writes(24_u64))
+	}
+	/// Storage: SubspaceModule SubnetNamespace (r:3 w:0)
+	/// Proof Skipped: SubspaceModule SubnetNamespace (max_values: None, max_size: None, mode: Measured)
+	/// Storage: SubspaceModule Uids (r:1 w:0)
+	/// Proof Skipped: SubspaceModule Uids (max_values: None, max_size: None, mode: Measured)
+	/// Storage: SubspaceModule MaxNameLength (r:1 w:0)
+	/// Proof Skipped: SubspaceModule MaxNameLength (max_values: Some(1), max_size: None, mode: Measured)
+	/// Storage: SubspaceModule Names (r:2 w:1)
+	/// Proof Skipped: SubspaceModule Names (max_values: None, max_size: None, mode: Measured)
+	/// Storage: SubspaceModule Address (r:0 w:1)
+	/// Proof Skipped: SubspaceModule Address (max_values: None, max_size: None, mode: Measured)
+	fn update_module() -> Weight {
+		// Proof Size summary in bytes:
+		//  Measured:  `1227`
+		//  Estimated: `21480`
+		// Minimum execution time: 85_543_000 picoseconds.
+		Weight::from_parts(104_062_000, 21480)
+			.saturating_add(RocksDbWeight::get().reads(7_u64))
+			.saturating_add(RocksDbWeight::get().writes(2_u64))
+	}
+	/// Storage: SubspaceModule MaxAllowedSubnets (r:0 w:1)
+	/// Proof Skipped: SubspaceModule MaxAllowedSubnets (max_values: Some(1), max_size: None, mode: Measured)
+	/// Storage: SubspaceModule MaxAllowedModules (r:0 w:1)
+	/// Proof Skipped: SubspaceModule MaxAllowedModules (max_values: Some(1), max_size: None, mode: Measured)
+	/// Storage: SubspaceModule MaxRegistrationsPerBlock (r:0 w:1)
+	/// Proof Skipped: SubspaceModule MaxRegistrationsPerBlock (max_values: Some(1), max_size: None, mode: Measured)
+	/// Storage: SubspaceModule TxRateLimit (r:0 w:1)
+	/// Proof Skipped: SubspaceModule TxRateLimit (max_values: Some(1), max_size: None, mode: Measured)
+	/// Storage: SubspaceModule MaxNameLength (r:0 w:1)
+	/// Proof Skipped: SubspaceModule MaxNameLength (max_values: Some(1), max_size: None, mode: Measured)
+	/// Storage: SubspaceModule UnitEmission (r:0 w:1)
+	/// Proof Skipped: SubspaceModule UnitEmission (max_values: Some(1), max_size: None, mode: Measured)
+	fn update_global() -> Weight {
+		// Proof Size summary in bytes:
+		//  Measured:  `543`
+		//  Estimated: `3258`
+		// Minimum execution time: 31_261_000 picoseconds.
+		Weight::from_parts(56_067_000, 3258)
+			.saturating_add(RocksDbWeight::get().writes(6_u64))
 	}
 }
