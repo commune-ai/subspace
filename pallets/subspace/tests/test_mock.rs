@@ -7,6 +7,7 @@ use frame_support::{
 };
 use frame_system as system;
 use frame_system::{limits, Config, EnsureNever, EnsureRoot, RawOrigin};
+use pallet_subspace::autogen_weights::SubstrateWeight;
 use sp_core::{Get, H256, U256};
 use sp_runtime::{
 	testing::Header,
@@ -105,6 +106,7 @@ impl system::Config for Test {
 impl pallet_subspace::Config for Test {
 	type RuntimeEvent = RuntimeEvent;
 	type Currency = Balances;
+	type WeightInfo = SubstrateWeight<Test>;
 }
 
 // Build genesis storage according to the mock runtime.

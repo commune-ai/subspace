@@ -325,6 +325,7 @@ impl pallet_utility::Config for Runtime {
 impl pallet_subspace::Config for Runtime {
 	type RuntimeEvent = RuntimeEvent;
 	type Currency = Balances;
+	type WeightInfo = pallet_subspace::autogen_weights::SubstrateWeight<Runtime>;
 }
 
 // Create the runtime by composing the FRAME pallets that were previously configured.

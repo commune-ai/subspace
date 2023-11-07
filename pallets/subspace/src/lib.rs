@@ -28,6 +28,9 @@ use sp_std::marker::PhantomData;
 #[cfg(feature = "runtime-benchmarks")]
 mod benchmarking;
 
+pub mod autogen_weights;
+pub use autogen_weights::WeightInfo;
+
 #[cfg(test)]
 mod mock;
 
@@ -41,10 +44,11 @@ mod registration;
 mod staking;
 mod step;
 mod global;
-mod weights;
+pub mod weights;
 
 #[frame_support::pallet]
 pub mod pallet {
+	use super::*;
 	use frame_support::{inherent::Vec, pallet_prelude::*, sp_std::vec, traits::Currency};
 	use frame_system::pallet_prelude::*;
 	use scale_info::prelude::string::String;
@@ -65,6 +69,9 @@ pub mod pallet {
 
 		// --- Currency type that will be used to place deposits on modules
 		type Currency: Currency<Self::AccountId> + Send + Sync;
+
+		/// Type representing the weight of this pallet
+		type WeightInfo: WeightInfo;
 	}
 
 	pub type AccountIdOf<T> = <T as frame_system::Config>::AccountId;
@@ -616,9 +623,7 @@ pub mod pallet {
 	// Dispatchable functions must be annotated with a weight and must return a DispatchResult.
 	#[pallet::call]
 	impl<T: Config> Pallet<T> {
-		#[pallet::weight((Weight::from_ref_time(0)
-		.saturating_add(T::DbWeight::get().reads(0))
-		.saturating_add(T::DbWeight::get().writes(0)), DispatchClass::Normal, Pays::No))]
+		#[pallet::weight(T::WeightInfo::set_weights())]
 		pub fn set_weights(
 			origin: OriginFor<T>,
 			netuid: u16,
@@ -628,9 +633,7 @@ pub mod pallet {
 			Self::do_set_weights(origin, netuid, uids, weights)
 		}
 
-		#[pallet::weight((Weight::from_ref_time(0)
-		.saturating_add(T::DbWeight::get().reads(0))
-		.saturating_add(T::DbWeight::get().writes(0)), DispatchClass::Normal, Pays::No))]
+		#[pallet::weight(T::WeightInfo::add_stake())]
 		pub fn add_stake(
 			origin: OriginFor<T>,
 			netuid: u16,
@@ -640,9 +643,7 @@ pub mod pallet {
 			Self::do_add_stake(origin, netuid, module_key, amount)
 		}
 
-		#[pallet::weight((Weight::from_ref_time(0)
-		.saturating_add(T::DbWeight::get().reads(0))
-		.saturating_add(T::DbWeight::get().writes(0)), DispatchClass::Normal, Pays::No))]
+		#[pallet::weight(T::WeightInfo::add_stake_multiple())]
 		pub fn add_stake_multiple(
 			origin: OriginFor<T>,
 			netuid: u16,
@@ -652,9 +653,7 @@ pub mod pallet {
 			Self::do_add_stake_multiple(origin, netuid, module_keys, amounts)
 		}
 
-		#[pallet::weight((Weight::from_ref_time(66_000_000)
-		.saturating_add(T::DbWeight::get().reads(8))
-		.saturating_add(T::DbWeight::get().writes(6)), DispatchClass::Normal, Pays::No))]
+		#[pallet::weight(T::WeightInfo::remove_stake())]
 		pub fn remove_stake(
 			origin: OriginFor<T>,
 			netuid: u16,
@@ -664,9 +663,7 @@ pub mod pallet {
 			Self::do_remove_stake(origin, netuid, module_key, amount)
 		}
 
-		#[pallet::weight((Weight::from_ref_time(65_000_000)
-		.saturating_add(T::DbWeight::get().reads(8))
-		.saturating_add(T::DbWeight::get().writes(6)), DispatchClass::Normal, Pays::No))]
+		#[pallet::weight(T::WeightInfo::remove_stake_multiple())]
 		pub fn remove_stake_multiple(
 			origin: OriginFor<T>,
 			netuid: u16,
@@ -677,9 +674,7 @@ pub mod pallet {
 		}
 
 
-		#[pallet::weight((Weight::from_ref_time(65_000_000)
-		.saturating_add(T::DbWeight::get().reads(8))
-		.saturating_add(T::DbWeight::get().writes(6)), DispatchClass::Normal, Pays::No))]
+		#[pallet::weight(T::WeightInfo::transfer_stake())]
 		pub fn transfer_stake(
 			origin: OriginFor<T>,         // --- The account that is calling this function.
 			netuid: u16,                  // --- The network id.
@@ -690,9 +685,7 @@ pub mod pallet {
 			Self::do_transfer_stake(origin, netuid, module_key, new_module_key, amount)
 		}
 
-		#[pallet::weight((Weight::from_ref_time(65_000_000)
-		.saturating_add(T::DbWeight::get().reads(8))
-		.saturating_add(T::DbWeight::get().writes(6)), DispatchClass::Normal, Pays::No))]
+		#[pallet::weight(T::WeightInfo::transfer_multiple())]
 		pub fn transfer_multiple(
 			origin: OriginFor<T>,         // --- The account that is calling this function.
 			destinations: Vec<T::AccountId>,     // --- The module key.
@@ -701,9 +694,7 @@ pub mod pallet {
 			Self::do_transfer_multiple(origin, destinations, amounts)
 		}
 
-		#[pallet::weight((Weight::from_ref_time(65_000_000)
-		.saturating_add(T::DbWeight::get().reads(0))
-		.saturating_add(T::DbWeight::get().writes(0)), DispatchClass::Normal, Pays::No))]
+		#[pallet::weight(T::WeightInfo::update_network())]
 		pub fn update_network(
 			origin: OriginFor<T>,
 			netuid: u16,
@@ -732,16 +723,12 @@ pub mod pallet {
 
 
 
-		#[pallet::weight((Weight::from_ref_time(65_000_000)
-		.saturating_add(T::DbWeight::get().reads(8))
-		.saturating_add(T::DbWeight::get().writes(6)), DispatchClass::Normal, Pays::No))]
+		#[pallet::weight(T::WeightInfo::remove_network())]
 		pub fn remove_network(origin: OriginFor<T>, netuid: u16) -> DispatchResult {
 			Self::do_remove_network(origin, netuid)
 		}
 
-		#[pallet::weight((Weight::from_ref_time(19_000_000)
-		.saturating_add(T::DbWeight::get().reads(2))
-		.saturating_add(T::DbWeight::get().writes(1)), DispatchClass::Normal, Pays::No))]
+		#[pallet::weight(T::WeightInfo::update_module())]
 		pub fn update_module(
 			origin: OriginFor<T>,
 			netuid: u16,
@@ -752,9 +739,7 @@ pub mod pallet {
 			Self::do_update_module(origin, netuid, name, address, delegation_fee)
 		}
 
-		#[pallet::weight((Weight::from_ref_time(0)
-		.saturating_add(T::DbWeight::get().reads(0))
-		.saturating_add(T::DbWeight::get().writes(0)), DispatchClass::Normal, Pays::No))]
+		#[pallet::weight(T::WeightInfo::register())]
 		pub fn register(
 			origin: OriginFor<T>,
 			network: Vec<u8>,
@@ -767,9 +752,7 @@ pub mod pallet {
 		}
 
 
-		#[pallet::weight((Weight::from_ref_time(0)
-		.saturating_add(T::DbWeight::get().reads(0))
-		.saturating_add(T::DbWeight::get().writes(0)), DispatchClass::Normal, Pays::No))]
+		#[pallet::weight(T::WeightInfo::update_global())]
 		pub fn update_global(
 			origin: OriginFor<T>,
 			max_name_length: u16,
