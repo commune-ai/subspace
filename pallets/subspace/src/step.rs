@@ -1,8 +1,7 @@
 use super::*;
 use crate::math::*;
 use frame_support::{
-	inherent::Vec,
-	sp_std::vec,
+	sp_std::{vec, vec::Vec},
 	storage::{IterableStorageDoubleMap, IterableStorageMap},
 };
 use substrate_fixed::types::{I110F18, I32F32, I64F64, I96F32};
@@ -17,7 +16,7 @@ impl<T: Config> Pallet<T> {
 			PendingEmission::<T>::mutate(netuid, |queued| *queued += new_queued_emission);
 			log::debug!("netuid_i: {:?} queued_emission: +{:?} ", netuid, new_queued_emission);
 			if Self::blocks_until_next_epoch(netuid, tempo, block_number) > 0 {
-				continue
+				continue;
 			}
 			let emission_to_drain: u64 = PendingEmission::<T>::get(netuid).clone();
 			Self::epoch(netuid, emission_to_drain);
@@ -31,7 +30,7 @@ impl<T: Config> Pallet<T> {
 		log::trace!("n: {:?}", n);
 
 		if n == 0 {
-			return
+			return;
 		}
 
 		// Get current block.
@@ -209,7 +208,7 @@ impl<T: Config> Pallet<T> {
 			}
 		}
 
-		return uids
+		return uids;
 	}
 
 	pub fn get_block_at_registration(netuid: u16) -> Vec<u64> {
@@ -236,18 +235,18 @@ impl<T: Config> Pallet<T> {
 		}
 		// Remove self-weight by masking diagonal.
 		weights = mask_diag_sparse(&weights);
-		return weights
+		return weights;
 	}
 
 	pub fn blocks_until_next_epoch(netuid: u16, tempo: u16, block_number: u64) -> u64 {
 		if tempo == 0 {
-			return 0
+			return 0;
 		}
-		return (block_number + netuid as u64) % (tempo as u64)
+		return (block_number + netuid as u64) % (tempo as u64);
 	}
 
 	pub fn get_ownership_ratios_for_uid(netuid: u16, uid: u16) -> Vec<(T::AccountId, I64F64)> {
-		return Self::get_ownership_ratios(netuid, &Self::get_key_for_uid(netuid, uid))
+		return Self::get_ownership_ratios(netuid, &Self::get_key_for_uid(netuid, uid));
 	}
 
 	pub fn get_ownership_ratios(
@@ -274,7 +273,7 @@ impl<T: Config> Pallet<T> {
 				ownership_vector.into_iter().map(|(k, v)| (k, v / total_stake_from)).collect();
 		}
 
-		return ownership_vector
+		return ownership_vector;
 	}
 
 	pub fn get_ownership_ratios_emission(
@@ -291,7 +290,7 @@ impl<T: Config> Pallet<T> {
 			emission_vector.push((k, emission_for_delegate));
 		}
 
-		return emission_vector
+		return emission_vector;
 	}
 
 	pub fn calculate_trust(

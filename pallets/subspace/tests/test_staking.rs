@@ -291,11 +291,12 @@ fn test_ownership_ratio() {
 				println!("DELEGATE KEY: {}", d);
 				SubspaceModule::add_stake(get_origin(*d), netuid, *k, stake_per_module);
 				let stake_from_vector = SubspaceModule::get_stake_from_vector(netuid, k);
-				assert_eq!(stake_from_vector.len(), pre_delegate_stake_from_vector.len() + i + 1); // +1 for the
-				                                                                   // module itself,
-				                                                                   // +1 for the
-				                                                                   // delegate key
-				                                                                   // on
+				assert_eq!(stake_from_vector.len(), pre_delegate_stake_from_vector.len() + i + 1);
+				// +1 for the
+				// module itself,
+				// +1 for the
+				// delegate key
+				// on
 			}
 			let ownership_ratios: Vec<(U256, I64F64)> =
 				SubspaceModule::get_ownership_ratios(netuid, k);
