@@ -10,7 +10,7 @@ use substrate_fixed::types::{I110F18, I32F32, I64F64, I96F32};
 impl<T: Config> Pallet<T> {
 	pub fn block_step() {
 		let block_number: u64 = Self::get_current_block_as_u64();
-		RegistrationsThisBlock::<T>::mutate(|val| *val = 0);
+		RegistrationsPerBlock::<T>::mutate(|val| *val = 0);
 		log::debug!("block_step for block: {:?} ", block_number);
 		for (netuid, tempo) in <Tempo<T> as IterableStorageMap<u16, u16>>::iter() {
 			let new_queued_emission: u64 = Self::calculate_network_emission(netuid);
@@ -22,45 +22,9 @@ impl<T: Config> Pallet<T> {
 			let emission_to_drain: u64 = PendingEmission::<T>::get(netuid).clone();
 			Self::epoch(netuid, emission_to_drain);
 			PendingEmission::<T>::insert(netuid, 0);
-			// Self::deregister_zero_emission_uids( netuid );
 		}
 	}
 
-	pub fn deregister_zero_emission_uids(netuid: u16) {
-		let zero_keys: Vec<T::AccountId> = Self::get_zero_emission_keys(netuid);
-		for key in zero_keys {
-			let uid: u16 = Self::get_uid_for_key(netuid, &key);
-			Self::remove_module(netuid, uid);
-		}
-	}
-
-	pub fn get_zero_emission_keys(netuid: u16) -> Vec<T::AccountId> {
-		let mut zero_keys: Vec<T::AccountId> = Vec::new();
-		let zero_uids: Vec<u16> = Self::get_zero_emission_uids(netuid);
-		for uid in zero_uids {
-			zero_keys.push(Self::get_key_for_uid(netuid, uid));
-		}
-		return zero_keys
-	}
-
-	pub fn get_zero_emission_uids(netuid: u16) -> Vec<u16> {
-		let mut zero_uids: Vec<u16> = Vec::new();
-		let emissions: Vec<u64> = Self::get_emissions(netuid);
-		let immunity_period: u16 = Self::get_immunity_period(netuid);
-
-		for (uid, emission) in emissions.iter().enumerate() {
-			let module_age: u64 = Self::get_module_age(netuid, uid as u16);
-
-			if (module_age < immunity_period as u64) {
-				continue
-			}
-
-			if *emission == 0 {
-				zero_uids.push(uid as u16);
-			}
-		}
-		return zero_uids
-	}
 
 	pub fn epoch(netuid: u16, token_emission: u64) {
 		// Get subnetwork size.
@@ -126,14 +90,9 @@ impl<T: Config> Pallet<T> {
 		let mut incentive: Vec<I32F32> = matmul_sparse(&weights, &stake, n);
 		log::trace!("Incentive: {:?}", &incentive);
 
-		// trust (normalized)
+		// trust that acts as a multiplier for the incentive
 		let trust: Vec<I32F32> = Self::calculate_trust(&weights, &stake, n);
-		let cloned_trust: Vec<u16> =
-			trust.iter().map(|xi| fixed_proportion_to_u16(*xi)).collect::<Vec<u16>>();
-
-		Trust::<T>::insert(netuid, cloned_trust);
 		incentive = incentive.iter().zip(trust.iter()).map(|(inc, tru)| inc * tru).collect();
-
 		// If emission is zero, do an even split.
 		if is_zero(&incentive) {
 			// no weights set
@@ -143,9 +102,12 @@ impl<T: Config> Pallet<T> {
 		}
 		inplace_normalize(&mut incentive); // range: I32F32(0, 1)
 
-		let cloned_incentive: Vec<u16> =
-			incentive.iter().map(|xi| fixed_proportion_to_u16(*xi)).collect::<Vec<u16>>();
+		// store the incentive
+		let cloned_incentive: Vec<u16> = incentive.iter().map(|xi| fixed_proportion_to_u16(*xi)).collect::<Vec<u16>>();
 		Incentive::<T>::insert(netuid, cloned_incentive);
+		let cloned_trust: Vec<u16> = trust.iter().map(|xi| fixed_proportion_to_u16(*xi)).collect::<Vec<u16>>();
+		Trust::<T>::insert(netuid, cloned_trust);
+
 
 		// =================================
 		// == Bonds==
@@ -211,13 +173,18 @@ impl<T: Config> Pallet<T> {
 						uid_key,
 						dividends_emission[*uid_i as usize],
 					);
+				let delegation_fee = Self::get_delegation_fee(netuid, uid_key);
 				// add the ownership
 				for (owner_key, amount) in ownership_emission_for_key.iter() {
-					Self::increase_stake(netuid, owner_key, uid_key, *amount);
+					let to_module = delegation_fee.mul_floor(*amount);
+					let to_owner = amount.saturating_sub(to_module);
+					Self::increase_stake(netuid, owner_key, uid_key, to_owner);
+					Self::increase_stake(netuid, uid_key, uid_key, to_module);
 				}
 			}
 		}
 
+		// calculate the total emission
 		let emission: Vec<u64> = incentive_emission
 			.iter()
 			.zip(dividends_emission.iter())
