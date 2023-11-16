@@ -1,13 +1,13 @@
 [package]
 name = "node-subspace-runtime"
 version = "4.0.0-dev"
-description = "A fresh FRAME-based Substrate node, ready for hacking."
-authors = ["Substrate DevHub <https://github.com/substrate-developer-hub>"]
+description = "A Substrate node for commune-ai"
+authors = ["Sal Vivona <https://github.com/salvivona>", "Oliver <https://github.com/cuteolaf>", "Kazu <https://github.com/ndkazu>"]
 homepage = "https://substrate.io/"
 edition = "2021"
 license = "Unlicense"
 publish = false
-repository = "https://github.com/substrate-developer-hub/substrate-node-subspace/"
+repository = "https://github.com/commune-ai/subspace"
 
 [package.metadata.docs.rs]
 targets = ["x86_64-unknown-linux-gnu"]
