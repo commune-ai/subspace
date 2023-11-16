@@ -51,34 +51,7 @@ fn test_remove_subnet() {
 	});
 }
 
-fn test_min_immunity_ratio(netuid: u16) {
-	new_test_ext().execute_with(|| {
-		// creates a subnet when you register a module
-		let netuid: u16 = 0;
-		let stake_per_module: u64 = 1_000_000_000;
-		let key = U256::from(netuid);
-		let max_immunity_ratio: u16 = 50;
-		let n: u16 = 100;
-		SubspaceModule::set_max_immunity_ratio(netuid, max_immunity_ratio);
-		SubspaceModule::set_max_allowed_uids(netuid, n);
 
-		let topk: usize = ((n * max_immunity_ratio) / 100) as usize;
-
-		register_n_modules(netuid, n, stake_per_module);
-
-		let uids: Vec<u16> = SubspaceModule::get_uids(netuid)[..topk].to_vec();
-		let keys: Vec<U256> = SubspaceModule::get_keys(netuid)[..topk].to_vec();
-		let weights: Vec<u16> = uids.iter().map(|x| 1).collect();
-		SubspaceModule::set_weights(get_origin(key), netuid, uids, weights);
-
-		register_n_modules(netuid, n * 10, stake_per_module);
-
-		let new_keys: Vec<U256> = SubspaceModule::get_keys(netuid)[..topk].to_vec();
-		for i in 0..topk {
-			assert_eq!(keys[i], new_keys[i]);
-		}
-	});
-}
 
 fn test_set_single_temple(tempo: u16) {
 	new_test_ext().execute_with(|| {
@@ -94,6 +67,7 @@ fn test_set_single_temple(tempo: u16) {
 		let emission_per_block: u64 = SubspaceModule::get_subnet_emission(netuid);
 		let mut total_stake: u64 = 0;
 		let tempo = 5;
+		let min_stake = 1_000_000_000;
 		SubspaceModule::update_network(
 			get_origin(key),
 			netuid,
@@ -102,10 +76,20 @@ fn test_set_single_temple(tempo: u16) {
 			params.min_allowed_weights,
 			params.max_allowed_weights,
 			params.max_allowed_uids,
-			params.max_immunity_ratio,
-			tempo, // change tempo
+			min_stake,
+			tempo,
 			params.founder,
 		);
+
+		let subnet_params = SubspaceModule::get_subnet_params(netuid);
+		assert_eq!(subnet_params.tempo, tempo);
+		assert_eq!(subnet_params.min_stake, min_stake);
+		assert_eq!(subnet_params.max_allowed_uids, params.max_allowed_uids);
+		assert_eq!(subnet_params.min_allowed_weights, params.min_allowed_weights);
+		assert_eq!(subnet_params.max_allowed_weights, params.max_allowed_weights);
+		assert_eq!(subnet_params.immunity_period, params.immunity_period);
+		assert_eq!(subnet_params.name, params.name);
+		
 		let previous_total_stake: u64 = block_number() * emission_per_block;
 
 		let n_epochs = 3;
@@ -235,7 +219,7 @@ fn test_set_max_allowed_uids_growing() {
 			let names = SubspaceModule::get_names(netuid);
 			assert_eq!(names.len() as u16, n);
 
-			let addresses = SubspaceModule::get_names(netuid);
+			let addresses = SubspaceModule::get_addresses(netuid);
 			assert_eq!(addresses.len() as u16, n);
 		}
 	});
@@ -246,15 +230,21 @@ fn test_set_max_allowed_uids_shrinking() {
 	new_test_ext().execute_with(|| {
 		let netuid: u16 = 0;
 		let stake: u64 = 1_000_000_000;
-		let mut max_uids: u16 = 2000;
+		let max_uids: u16 = 2000;
 		let extra_uids: u16 = 20;
-		register_module(netuid, U256::from(0), stake);
-		SubspaceModule::set_max_registrations_per_block(max_uids + extra_uids);
-		for i in 1..(max_uids + extra_uids) {
-			register_module(netuid, U256::from(i), stake);
-		}
 
 		let mut n = SubspaceModule::get_subnet_n(netuid);
+		println!("registering module {}", n);
+		register_module(netuid, U256::from(0), stake);
+		SubspaceModule::set_max_registrations_per_block(max_uids + extra_uids);
+
+
+		for i in 1..(max_uids + extra_uids) {
+			let result = register_module(netuid, U256::from(i), stake);
+			result.unwrap();
+			n = SubspaceModule::get_subnet_n(netuid);
+		}
+
 		assert_eq!(n, max_uids + extra_uids);
 
 		let keys = SubspaceModule::get_keys(netuid);
@@ -284,7 +274,7 @@ fn test_set_max_allowed_uids_shrinking() {
 			subnet.params.min_allowed_weights,
 			subnet.params.max_allowed_weights,
 			max_uids,
-			subnet.params.max_immunity_ratio,
+			subnet.params.min_stake,
 			subnet.params.tempo,
 			subnet.params.founder,
 		);

@@ -1,6 +1,10 @@
 use super::*;
 use substrate_fixed::types::{I32F32, I64F64};
+
+use frame_support::storage::{IterableStorageDoubleMap};
+
 // import vec
+use sp_arithmetic::per_things::Percent;
 use sp_std::vec::Vec;
 
 impl<T: Config> Pallet<T> {
@@ -17,6 +21,23 @@ impl<T: Config> Pallet<T> {
 
 		for (i, m_key) in module_keys.iter().enumerate() {
 			Self::do_add_stake(origin.clone(), netuid, m_key.clone(), amounts[i as usize])?;
+		}
+		Ok(())
+	}
+
+	pub fn do_transfer_multiple(
+		origin: T::RuntimeOrigin,
+		destinations: Vec<T::AccountId>,
+		amounts: Vec<u64>,
+	) -> dispatch::DispatchResult {
+		let key = ensure_signed(origin.clone())?;
+		let amounts_sum: u64 = amounts.iter().sum();
+		ensure!(Self::has_enough_balance(&key, amounts_sum), Error::<T>::NotEnoughStaketoWithdraw);
+		ensure!(amounts.len() == destinations.len(), Error::<T>::DifferentLengths);
+
+		for (i, m_key) in destinations.iter().enumerate() {
+
+			Self::transfer_balance_to_account(&key, &m_key.clone(), amounts[i as usize]);
 		}
 		Ok(())
 	}
@@ -58,6 +79,8 @@ impl<T: Config> Pallet<T> {
 		Ok(())
 	}
 
+
+
 	//
 	pub fn do_add_stake(
 		origin: T::RuntimeOrigin,
@@ -82,8 +105,7 @@ impl<T: Config> Pallet<T> {
 		let balance_before_add: u64 = Self::get_balance_u64(&key);
 
 		Self::increase_stake(netuid, &key, &module_key, amount);
-		let removed_balance: bool =
-			Self::remove_balance_from_account(&key, Self::u64_to_balance(amount).unwrap());
+		let removed_balance: bool = Self::remove_balance_from_account(&key, Self::u64_to_balance(amount).unwrap());
 		ensure!(removed_balance, Error::<T>::BalanceNotRemoved);
 
 		let stake_after_add: u64 = Self::get_stake_to_module(netuid, &key, &module_key.clone());
@@ -138,12 +160,16 @@ impl<T: Config> Pallet<T> {
 	// Returns the total amount of stake in the staking table.
 	//
 	pub fn get_total_subnet_stake(netuid: u16) -> u64 {
-		return SubnetTotalStake::<T>::get(netuid)
+		return TotalStake::<T>::get(netuid)
 	}
 
 	// Returns the total amount of stake in the staking table.
 	pub fn total_stake() -> u64 {
-		return TotalStake::<T>::get()
+		let mut total_stake: u64 = 0;
+		for (netuid, subnet_total_stake) in TotalStake::<T>::iter() {
+			total_stake += subnet_total_stake;
+		}
+		return total_stake
 	}
 
 	// Returns the stake under the cold - hot pairing in the staking table.
@@ -159,6 +185,11 @@ impl<T: Config> Pallet<T> {
 	// Returns the stake under the cold - hot pairing in the staking table.
 	pub fn key_account_exists(netuid: u16, key: &T::AccountId) -> bool {
 		return Uids::<T>::contains_key(netuid, &key)
+	}
+
+	// Returns the delegation fee of a module
+	pub fn get_delegation_fee(netuid: u16, module_key: &T::AccountId) -> Percent {
+		DelegationFee::<T>::get(netuid, module_key)
 	}
 
 	// Returns true if the cold-hot staking account has enough balance to fufil the amount.
@@ -286,11 +317,10 @@ impl<T: Config> Pallet<T> {
 			module_key,
 			Stake::<T>::get(netuid, module_key).saturating_add(amount),
 		);
-		SubnetTotalStake::<T>::insert(
+		TotalStake::<T>::insert(
 			netuid,
-			SubnetTotalStake::<T>::get(netuid).saturating_add(amount),
+			TotalStake::<T>::get(netuid).saturating_add(amount),
 		);
-		TotalStake::<T>::put(TotalStake::<T>::get().saturating_add(amount));
 		return true
 	}
 
@@ -354,10 +384,9 @@ impl<T: Config> Pallet<T> {
 			module_key,
 			Stake::<T>::get(netuid, module_key).saturating_sub(amount),
 		);
-		TotalStake::<T>::put(TotalStake::<T>::get().saturating_sub(amount));
-		SubnetTotalStake::<T>::insert(
+		TotalStake::<T>::insert(
 			netuid,
-			SubnetTotalStake::<T>::get(netuid).saturating_sub(amount),
+			TotalStake::<T>::get(netuid).saturating_sub(amount),
 		);
 
 		return true
@@ -393,6 +422,23 @@ impl<T: Config> Pallet<T> {
 		amount: <<T as Config>::Currency as Currency<<T as system::Config>::AccountId>>::Balance,
 	) {
 		T::Currency::deposit_creating(&key, amount); // Infallibe
+	}
+
+	pub fn transfer_balance_to_account(
+		from: &T::AccountId,
+		to: &T::AccountId,
+		amount: u64,
+	) -> bool {
+
+		return match T::Currency::transfer(
+			&from,
+			&to,
+			Self::u64_to_balance(amount).unwrap(),
+			ExistenceRequirement::KeepAlive,
+		) {
+			Ok(_result) => true,
+			Err(_error) => false,
+		}
 	}
 
 	pub fn set_balance_on_account(
@@ -441,7 +487,14 @@ impl<T: Config> Pallet<T> {
 	}
 
 	pub fn has_enough_balance(key: &T::AccountId, amount: u64) -> bool {
-		return Self::get_balance_u64(key) > amount
+		return Self::get_balance_u64(key) > amount || amount == 0
+		
+	}
+
+
+	pub fn num_stakedto_keys(netuid: u16, key: &T::AccountId) -> u16 {
+		return Self::get_stake_to_vector(netuid, key).len() as u16
+		
 	}
 
 	pub fn remove_balance_from_account(
@@ -458,4 +511,25 @@ impl<T: Config> Pallet<T> {
 			Err(_error) => false,
 		}
 	}
+
+
+    // get the least staked network
+    pub fn least_staked_module_key(netuid:u16) -> T::AccountId {
+        let mut min_stake: u64 = u64::MAX;
+        let mut min_stake_uid: u16 = 0;
+        let mut module_key : T::AccountId = Self::get_subnet_params(netuid).founder;
+        for ( m_key , m_stake ) in <Stake<T> as IterableStorageDoubleMap<u16, T::AccountId, u64> >::iter_prefix(netuid){
+            if m_stake <= min_stake {
+                min_stake = m_stake;
+                module_key = m_key;
+            }
+        }
+
+        return module_key;
+    }
+
+    pub fn least_staked_module_uid(netuid:u16) -> u16{
+        // least_staked_module_uid
+        return Self::get_uid_for_key(netuid, &Self::least_staked_module_key(netuid));
+    }
 }

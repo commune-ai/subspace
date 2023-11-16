@@ -59,7 +59,7 @@ struct SubspaceJSONState {
 	balances: std::collections::HashMap<String, u64>,
 	// subnet -> (name, tempo, immunity_period, min_allowed_weights, max_allowed_weights,
 	// max_allowed_uids, founder)
-	subnets: Vec<(String, u16, u16, u16, u16, u16, u16, String)>,
+	subnets: Vec<(String, u16, u16, u16, u16, u16, u64, String)>,
 
 	// subnet -> module -> (key, name, address, stake, weights)
 	modules: Vec<Vec<(String, String, String, Vec<(u16, u16)>)>>,
@@ -96,7 +96,7 @@ pub fn generate_config(network: String) -> Result<ChainSpec, String> {
 	let block: u32 = state.block;
 	// (name, tempo, immunity_period, min_allowed_weights, max_allowed_weights, max_allowed_uids,
 	// founder)
-	let mut subnets: Vec<(Vec<u8>, u16, u16, u16, u16, u16, u16, sp_runtime::AccountId32)> =
+	let mut subnets: Vec<(Vec<u8>, u16, u16, u16, u16, u16, u64, sp_runtime::AccountId32)> =
 		Vec::new();
 	let mut modules: Vec<Vec<(sp_runtime::AccountId32, Vec<u8>, Vec<u8>, Vec<(u16, u16)>)>> =
 		Vec::new();
@@ -110,8 +110,8 @@ pub fn generate_config(network: String) -> Result<ChainSpec, String> {
 			subnet.2,                     // immunity_period
 			subnet.3,                     // min_allowed_weights
 			subnet.4,                     // max_allowed_weights
-			subnet.5,                     //  max_allowed_uids
-			subnet.6,                     // founder
+			subnet.5,                     // max_allowed_uids
+			subnet.6,                     // min_stake
 			sp_runtime::AccountId32::from(
 				<sr25519::Public as Ss58Codec>::from_ss58check(&subnet.7).unwrap(),
 			),
@@ -122,11 +122,12 @@ pub fn generate_config(network: String) -> Result<ChainSpec, String> {
 		for (uid, module) in state.modules[netuid].iter().enumerate() {
 			modules[netuid].push((
 				sp_runtime::AccountId32::from(
+					// module_key
 					<sr25519::Public as Ss58Codec>::from_ss58check(&module.0).unwrap(),
 				),
-				module.1.as_bytes().to_vec(),                     // key
-				module.2.as_bytes().to_vec(),                     // name
-				module.3.iter().map(|(a, b)| (*a, *b)).collect(), // Convert to tuples
+				module.1.as_bytes().to_vec(),                     // name
+				module.2.as_bytes().to_vec(),                     // address
+				module.3.iter().map(|(a, b)| (*a, *b)).collect(), // weights: Convert to tuples
 			));
 		}
 		stake_to.push(Vec::new());
@@ -181,7 +182,7 @@ pub fn generate_config(network: String) -> Result<ChainSpec, String> {
 					authority_keys_from_seed("Bob"),
 				],
 				// Sudo account
-				Ss58Codec::from_ss58check("5GYs4kBRGo3VH1wgzYEs8UeP2ABSotNNmvaeXs9vJUiGEThJ")
+				Ss58Codec::from_ss58check("5GZBhMZZRMWCiqgqdDGZCGo16Kg5aUQUcpuUGWwSgHn9HbRC")
 					.unwrap(),
 				// Pre-funded a
 				processed_balances.clone(), // balances
@@ -223,7 +224,7 @@ fn network_genesis(
 	root_key: AccountId,
 	balances: Vec<(AccountId, u64)>,
 	modules: Vec<Vec<(AccountId, Vec<u8>, Vec<u8>, Vec<(u16, u16)>)>>,
-	subnets: Vec<(Vec<u8>, u16, u16, u16, u16, u16, u16, AccountId)>,
+	subnets: Vec<(Vec<u8>, u16, u16, u16, u16, u16, u64, AccountId)>,
 	stake_to: Vec<Vec<(AccountId, Vec<(AccountId, u64)>)>>,
 	block: u32,
 ) -> GenesisConfig {
