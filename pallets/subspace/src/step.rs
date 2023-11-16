@@ -25,7 +25,6 @@ impl<T: Config> Pallet<T> {
 		}
 	}
 
-
 	pub fn epoch(netuid: u16, token_emission: u64) {
 		// Get subnetwork size.
 		let n: u16 = Self::get_subnet_n(netuid);
@@ -103,11 +102,12 @@ impl<T: Config> Pallet<T> {
 		inplace_normalize(&mut incentive); // range: I32F32(0, 1)
 
 		// store the incentive
-		let cloned_incentive: Vec<u16> = incentive.iter().map(|xi| fixed_proportion_to_u16(*xi)).collect::<Vec<u16>>();
+		let cloned_incentive: Vec<u16> =
+			incentive.iter().map(|xi| fixed_proportion_to_u16(*xi)).collect::<Vec<u16>>();
 		Incentive::<T>::insert(netuid, cloned_incentive);
-		let cloned_trust: Vec<u16> = trust.iter().map(|xi| fixed_proportion_to_u16(*xi)).collect::<Vec<u16>>();
+		let cloned_trust: Vec<u16> =
+			trust.iter().map(|xi| fixed_proportion_to_u16(*xi)).collect::<Vec<u16>>();
 		Trust::<T>::insert(netuid, cloned_trust);
-
 
 		// =================================
 		// == Bonds==

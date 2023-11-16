@@ -31,13 +31,13 @@ mod benchmarks;
 // =========================
 //	==== Pallet Imports =====
 // =========================
+mod global;
 mod math;
 pub mod module;
 mod network;
 mod registration;
 mod staking;
 mod step;
-mod global;
 mod weights;
 
 #[frame_support::pallet]
@@ -226,7 +226,7 @@ pub mod pallet {
 		pub max_allowed_weights: u16, /* max number of weights allowed to be registered in this
 		                               * subnet */
 		pub max_allowed_uids: u16, // max number of uids allowed to be registered in this subnet
-		pub min_stake: u64, 
+		pub min_stake: u64,
 		pub founder: T::AccountId, // founder of the network
 		// pub democratic: bool
 		pub vote_threshold: u16, // out of 100
@@ -244,8 +244,7 @@ pub mod pallet {
 	pub type MinAllowedWeights<T> =
 		StorageMap<_, Identity, u16, u16, ValueQuery, DefaultMinAllowedWeights<T>>;
 	#[pallet::storage] // --- MAP ( netuid ) --> min_allowed_weights
-	pub type MinStake<T> =
-		StorageMap<_, Identity, u16, u64, ValueQuery, DefaultMinStake<T>>;
+	pub type MinStake<T> = StorageMap<_, Identity, u16, u64, ValueQuery, DefaultMinStake<T>>;
 	#[pallet::storage] // --- MAP ( netuid ) --> min_allowed_weights
 	pub type MaxAllowedWeights<T> =
 		StorageMap<_, Identity, u16, u16, ValueQuery, DefaultMaxAllowedWeights<T>>;
@@ -437,7 +436,7 @@ pub mod pallet {
 		MaxAllowedSubnetsSet(u16), // --- Event created when setting the maximum allowed subnets
 		MaxAllowedModulesSet(u16), // --- Event created when setting the maximum allowed modules
 		MaxRegistrationsPerBlockSet(u16), // --- Event created when we set max registrations per block
-		GlobalUpdate(u16, u16, u16, u16, u64, u64)
+		GlobalUpdate(u16, u16, u16, u16, u64, u64),
 	}
 
 	// Errors inform users that something went wrong.
@@ -470,7 +469,7 @@ pub mod pallet {
 		NotSettingEnoughWeights, /* ---- Thrown when the dispatch attempts to set weights on
 		                          * chain with fewer elements than are allowed. */
 		TooManyRegistrationsPerBlock, /* ---- Thrown when registrations this block exceeds
-		                                * allowed number. */
+		                               * allowed number. */
 		AlreadyRegistered, /* ---- Thrown when the caller requests registering a module which
 		                    * already exists in the active set. */
 		MaxAllowedUIdsNotAllowed, // ---  Thrown if the vaule is invalid for MaxAllowedUids
@@ -512,7 +511,8 @@ pub mod pallet {
 		StakeNotAdded,
 		BalanceNotRemoved,
 		NotEnoughStakeToRegister,
-		MaxAllowedModules, // --- Thrown when the user tries to set max allowed modules to a value less than the current number of registered modules.
+		MaxAllowedModules, /* --- Thrown when the user tries to set max allowed modules to a
+		                    * value less than the current number of registered modules. */
 	}
 
 	// ==================
@@ -564,7 +564,6 @@ pub mod pallet {
 					subnet.5,         // max_allowed_uids
 					subnet.6,         // min_stake
 					&subnet.7,        // founder
-
 					0 as u64,         // stake
 				);
 				for (uid_usize, (key, name, address, weights)) in
@@ -673,7 +672,6 @@ pub mod pallet {
 			Self::do_remove_stake_multiple(origin, netuid, module_keys, amounts)
 		}
 
-
 		#[pallet::weight((Weight::from_ref_time(65_000_000)
 		.saturating_add(T::DbWeight::get().reads(8))
 		.saturating_add(T::DbWeight::get().writes(6)), DispatchClass::Normal, Pays::No))]
@@ -691,9 +689,9 @@ pub mod pallet {
 		.saturating_add(T::DbWeight::get().reads(8))
 		.saturating_add(T::DbWeight::get().writes(6)), DispatchClass::Normal, Pays::No))]
 		pub fn transfer_multiple(
-			origin: OriginFor<T>,         // --- The account that is calling this function.
-			destinations: Vec<T::AccountId>,     // --- The module key.
-			amounts: Vec<u64>,                  // --- The amount of stake to transfer.
+			origin: OriginFor<T>, // --- The account that is calling this function.
+			destinations: Vec<T::AccountId>, // --- The module key.
+			amounts: Vec<u64>,    // --- The amount of stake to transfer.
 		) -> DispatchResult {
 			Self::do_transfer_multiple(origin, destinations, amounts)
 		}
@@ -727,8 +725,6 @@ pub mod pallet {
 			)
 		}
 
-
-
 		#[pallet::weight((Weight::from_ref_time(65_000_000)
 		.saturating_add(T::DbWeight::get().reads(8))
 		.saturating_add(T::DbWeight::get().writes(6)), DispatchClass::Normal, Pays::No))]
@@ -758,11 +754,10 @@ pub mod pallet {
 			name: Vec<u8>,
 			address: Vec<u8>,
 			stake: u64,
-			module_key: T::AccountId
+			module_key: T::AccountId,
 		) -> DispatchResult {
 			Self::do_registration(origin, network, name, address, stake, module_key)
 		}
-
 
 		#[pallet::weight((Weight::from_ref_time(0)
 		.saturating_add(T::DbWeight::get().reads(0))
@@ -775,12 +770,17 @@ pub mod pallet {
 			max_registrations_per_block: u16,
 			unit_emission: u64,
 			tx_rate_limit: u64,
-
 		) -> DispatchResult {
-			Self::do_update_global(origin, max_name_length, max_allowed_subnets, max_allowed_modules, max_registrations_per_block, unit_emission,  tx_rate_limit)
+			Self::do_update_global(
+				origin,
+				max_name_length,
+				max_allowed_subnets,
+				max_allowed_modules,
+				max_registrations_per_block,
+				unit_emission,
+				tx_rate_limit,
+			)
 		}
-
-
 	}
 
 	// ---- Subspace helper functions.
@@ -797,21 +797,19 @@ pub mod pallet {
 		// --- Returns the transaction priority for setting weights.
 		pub fn get_priority_stake(key: &T::AccountId, netuid: u16) -> u64 {
 			if Uids::<T>::contains_key(netuid, &key) {
-				return Self::get_stake(netuid, key);
+				return Self::get_stake(netuid, key)
 			}
 			return 0
-			
 		}
 		pub fn get_priority_balance(key: &T::AccountId) -> u64 {
-			return Self::get_balance_u64(key);
-
-		}}
-
-
-/************************************************************
-	CallType definition
-************************************************************/
+			return Self::get_balance_u64(key)
+		}
 	}
+
+	/************************************************************
+		CallType definition
+	************************************************************/
+}
 
 #[derive(Debug, PartialEq)]
 pub enum CallType {
@@ -918,7 +916,6 @@ where
 				priority: Self::get_priority_vanilla(who),
 				..Default::default()
 			}),
-
 
 			Some(Call::register { .. }) => Ok(ValidTransaction {
 				priority: Self::get_priority_vanilla(who),
