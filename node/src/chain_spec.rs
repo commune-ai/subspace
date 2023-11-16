@@ -5,7 +5,7 @@ use node_subspace_runtime::{
 use sc_service::ChainType;
 use sp_consensus_aura::sr25519::AuthorityId as AuraId;
 use sp_core::{crypto::Ss58Codec, sr25519, Pair, Public};
-use sp_finality_grandpa::AuthorityId as GrandpaId;
+use sp_consensus_grandpa::AuthorityId as GrandpaId;
 use sp_runtime::traits::{IdentifyAccount, Verify};
 
 // The URL for the telemetry server.
@@ -207,14 +207,14 @@ pub fn generate_config(network: String) -> Result<ChainSpec, String> {
 }
 
 pub fn mainnet_config() -> Result<ChainSpec, String> {
-	return generate_config("main".to_string())
+	return generate_config("main".to_string());
 }
 
 pub fn devnet_config() -> Result<ChainSpec, String> {
-	return generate_config("dev".to_string())
+	return generate_config("dev".to_string());
 }
 pub fn testnet_config() -> Result<ChainSpec, String> {
-	return generate_config("dev".to_string())
+	return generate_config("dev".to_string());
 }
 
 // Configure initial storage state for FRAME modules.
@@ -232,6 +232,7 @@ fn network_genesis(
 		system: SystemConfig {
 			// Add Wasm runtime to storage.
 			code: wasm_binary.to_vec(),
+			..Default::default()
 		},
 		balances: BalancesConfig {
 			// Configure endowed accounts with initial balance of 1 << 60.
@@ -243,6 +244,7 @@ fn network_genesis(
 		},
 		grandpa: GrandpaConfig {
 			authorities: initial_authorities.iter().map(|x| (x.1.clone(), 1)).collect(),
+			..Default::default()
 		},
 		sudo: SudoConfig {
 			// Assign network admin rights.

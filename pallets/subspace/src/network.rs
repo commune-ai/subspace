@@ -16,16 +16,16 @@ impl<T: Config> Pallet<T> {
 	// Returns true if the subnetwork exists.
 	//
 	pub fn if_subnet_exist(netuid: u16) -> bool {
-		return N::<T>::contains_key(netuid)
+		return N::<T>::contains_key(netuid);
 	}
 
 	// Returns true if the subnetwork exists.
 	pub fn subnet_exists(netuid: u16) -> bool {
-		return N::<T>::contains_key(netuid)
+		return N::<T>::contains_key(netuid);
 	}
 
 	pub fn get_min_stake(netuid: u16) -> u64 {
-		return MinStake::<T>::get(netuid)
+		return MinStake::<T>::get(netuid);
 	}
 
 	pub fn set_min_stake(netuid: u16, stake: u64) {
@@ -42,7 +42,7 @@ impl<T: Config> Pallet<T> {
 				min_stake_netuid = netuid;
 			}
 		}
-		return min_stake_netuid
+		return min_stake_netuid;
 	}
 
 	pub fn enough_stake_to_start_network(stake: u64) -> bool {
@@ -50,16 +50,16 @@ impl<T: Config> Pallet<T> {
 		let max_subnets: u16 = MaxAllowedSubnets::<T>::get();
 		// if we have not reached the max number of subnets, then we can start a new one
 		if num_subnets < max_subnets {
-			return true
+			return true;
 		}
 		// if we have reached the max number of subnets, then we can start a new one if the stake is
 		// greater than the least staked network
 		if Self::get_number_of_subnets() == 0 {
-			return true
+			return true;
 		}
 		// if we have reached the max number of subnets, then we can start a new one if the stake is
 		// greater than the least staked network
-		return stake > Self::min_subnet_stake()
+		return stake > Self::min_subnet_stake();
 	}
 
 	// get the least staked network
@@ -70,11 +70,11 @@ impl<T: Config> Pallet<T> {
 				min_stake = net_stake;
 			}
 		}
-		return min_stake
+		return min_stake;
 	}
 
 	pub fn get_network_stake(netuid: u16) -> u64 {
-		return TotalStake::<T>::get(netuid)
+		return TotalStake::<T>::get(netuid);
 	}
 
 	pub fn do_add_network(origin: T::RuntimeOrigin, name: Vec<u8>, stake: u64) -> DispatchResult {
@@ -212,7 +212,7 @@ impl<T: Config> Pallet<T> {
 			params.min_stake,
 			params.tempo,
 			params.founder,
-		)
+		);
 	}
 
 	pub fn update_network_for_netuid(
@@ -273,7 +273,7 @@ impl<T: Config> Pallet<T> {
 		let block_at_registration: u64 = Self::get_module_registration_block(netuid, uid);
 		let immunity_period: u64 = Self::get_immunity_period(netuid) as u64;
 		let current_block: u64 = Self::get_current_block_as_u64();
-		return current_block - block_at_registration < immunity_period
+		return current_block - block_at_registration < immunity_period;
 	}
 
 	pub fn get_subnet_params(netuid: u16) -> SubnetParams<T> {
@@ -292,7 +292,7 @@ impl<T: Config> Pallet<T> {
 	}
 	pub fn default_subnet_params() -> SubnetParams<T> {
 		let default_netuid: u16 = Self::get_number_of_subnets() + 1;
-		return Self::get_subnet_params(default_netuid)
+		return Self::get_subnet_params(default_netuid);
 	}
 
 	pub fn get_subnet(netuid: u16) -> SubnetInfo<T> {
@@ -303,16 +303,16 @@ impl<T: Config> Pallet<T> {
 			stake: TotalStake::<T>::get(netuid),
 			emission: SubnetEmission::<T>::get(netuid),
 			n: N::<T>::get(netuid),
-		}
+		};
 	}
 
 	pub fn default_subnet() -> SubnetInfo<T> {
 		let netuid: u16 = Self::get_number_of_subnets() + 1;
-		return Self::get_subnet(netuid)
+		return Self::get_subnet(netuid);
 	}
 
 	pub fn is_subnet_founder(netuid: u16, key: &T::AccountId) -> bool {
-		return Founder::<T>::get(netuid) == *key
+		return Founder::<T>::get(netuid) == *key;
 	}
 
 	pub fn add_network_from_registration(
@@ -337,7 +337,7 @@ impl<T: Config> Pallet<T> {
 		);
 
 		// --- 16. Ok and done.
-		return netuid
+		return netuid;
 	}
 
 	// pub fn total_balance() -> u64 {
@@ -352,11 +352,11 @@ impl<T: Config> Pallet<T> {
 
 	pub fn market_cap() -> u64 {
 		let total_stake: u64 = Self::total_stake();
-		return total_stake
+		return total_stake;
 	}
 
 	pub fn get_unit_emission() -> u64 {
-		return UnitEmission::<T>::get()
+		return UnitEmission::<T>::get();
 	}
 
 	pub fn set_unit_emission(unit_emission: u64) {
@@ -364,7 +364,7 @@ impl<T: Config> Pallet<T> {
 	}
 
 	pub fn get_unit_emission_per_block() -> u64 {
-		return UnitEmission::<T>::get() * 4
+		return UnitEmission::<T>::get() * 4;
 	}
 
 	// Returns the total amount of stake in the staking table.
@@ -381,15 +381,15 @@ impl<T: Config> Pallet<T> {
 			let halving_factor = 2u64.pow((i) as u32);
 			if market_cap < *having_stake {
 				emission_per_block = emission_per_block / halving_factor;
-				break
+				break;
 			}
 		}
 
-		return emission_per_block
+		return emission_per_block;
 	}
 	pub fn get_total_subnet_balance(netuid: u16) -> u64 {
 		let keys = Self::get_keys(netuid);
-		return keys.iter().map(|x| Self::get_balance_u64(x)).sum()
+		return keys.iter().map(|x| Self::get_balance_u64(x)).sum();
 	}
 
 	pub fn calculate_network_emission(netuid: u16) -> u64 {
@@ -415,11 +415,11 @@ impl<T: Config> Pallet<T> {
 
 		SubnetEmission::<T>::insert(netuid, token_emission);
 
-		return token_emission
+		return token_emission;
 	}
 
 	pub fn get_subnet_emission(netuid: u16) -> u64 {
-		return Self::calculate_network_emission(netuid)
+		return Self::calculate_network_emission(netuid);
 	}
 
 	pub fn add_network(
@@ -454,35 +454,35 @@ impl<T: Config> Pallet<T> {
 		log::info!("NetworkAdded( netuid:{:?}, name:{:?} )", netuid, name.clone());
 		Self::deposit_event(Event::NetworkAdded(netuid, name.clone()));
 
-		return netuid
+		return netuid;
 	}
 
 	// Initializes a new subnetwork under netuid with parameters.
 	//
 	pub fn if_subnet_name_exists(name: Vec<u8>) -> bool {
-		return SubnetNamespace::<T>::contains_key(name.clone()).into()
+		return SubnetNamespace::<T>::contains_key(name.clone()).into();
 	}
 
 	pub fn subnet_name_exists(name: Vec<u8>) -> bool {
-		return SubnetNamespace::<T>::contains_key(name.clone()).into()
+		return SubnetNamespace::<T>::contains_key(name.clone()).into();
 	}
 
 	pub fn if_subnet_netuid_exists(netuid: u16) -> bool {
-		return SubnetNamespace::<T>::contains_key(Self::get_name_for_netuid(netuid)).into()
+		return SubnetNamespace::<T>::contains_key(Self::get_name_for_netuid(netuid)).into();
 	}
 
 	pub fn get_netuid_for_name(name: Vec<u8>) -> u16 {
 		let netuid: u16 = SubnetNamespace::<T>::get(name.clone());
-		return netuid
+		return netuid;
 	}
 
 	pub fn get_name_for_netuid(netuid: u16) -> Vec<u8> {
 		for (name, _netuid) in <SubnetNamespace<T> as IterableStorageMap<Vec<u8>, u16>>::iter() {
 			if _netuid == netuid {
-				return name
+				return name;
 			}
 		}
-		return Vec::new()
+		return Vec::new();
 	}
 
 	// Removes the network (netuid) and all of its parameters.
@@ -490,24 +490,24 @@ impl<T: Config> Pallet<T> {
 
 	pub fn remove_least_staked_netuid() -> u16 {
 		let netuid: u16 = Self::least_staked_netuid();
-		return Self::remove_network_for_netuid(netuid)
+		return Self::remove_network_for_netuid(netuid);
 	}
 
 	// Returns true if the account is the founder of the network.
 	pub fn is_network_founder(netuid: u16, key: &T::AccountId) -> bool {
 		let founder = Founder::<T>::get(netuid);
-		return founder == key.clone()
+		return founder == key.clone();
 	}
 
 	pub fn remove_network_for_name(name: Vec<u8>) -> u16 {
 		let netuid = Self::get_netuid_for_name(name.clone());
-		return Self::remove_network_for_netuid(netuid)
+		return Self::remove_network_for_netuid(netuid);
 	}
 
 	pub fn remove_network_for_netuid(netuid: u16) -> u16 {
 		// --- 2. Ensure the network to be removed exists.
 		if !Self::if_subnet_exist(netuid) {
-			return 0
+			return 0;
 		}
 		let name: Vec<u8> = Self::get_name_for_netuid(netuid);
 
@@ -551,7 +551,7 @@ impl<T: Config> Pallet<T> {
 		log::info!("NetworkRemoved( netuid:{:?} )", netuid);
 		Self::deposit_event(Event::NetworkRemoved(netuid));
 
-		return netuid
+		return netuid;
 	}
 
 	pub fn get_subnets() -> Vec<SubnetInfo<T>> {
@@ -559,29 +559,29 @@ impl<T: Config> Pallet<T> {
 		for (netuid, net_n) in <N<T> as IterableStorageMap<u16, u16>>::iter() {
 			subnets_info.push(Self::get_subnet(netuid));
 		}
-		return subnets_info
+		return subnets_info;
 	}
 
 	// Returns the number of filled slots on a network.
 	///
 	pub fn get_subnet_n(netuid: u16) -> u16 {
-		return N::<T>::get(netuid)
+		return N::<T>::get(netuid);
 	}
 
 	// Returns true if the uid is set on the network.
 	//
 	pub fn is_uid_exist_on_network(netuid: u16, uid: u16) -> bool {
-		return Keys::<T>::contains_key(netuid, uid)
+		return Keys::<T>::contains_key(netuid, uid);
 	}
 
 	// Returns true if the key holds a slot on the network.
 	//
 	pub fn is_key_registered_on_network(netuid: u16, key: &T::AccountId) -> bool {
-		return Uids::<T>::contains_key(netuid, key)
+		return Uids::<T>::contains_key(netuid, key);
 	}
 
 	pub fn is_key_registered(netuid: u16, key: &T::AccountId) -> bool {
-		return Uids::<T>::contains_key(netuid, key)
+		return Uids::<T>::contains_key(netuid, key);
 	}
 
 	// Returs the key under the network uid as a Result. Ok if the uid is taken.
@@ -593,11 +593,11 @@ impl<T: Config> Pallet<T> {
 	// Returns the uid of the key in the network as a Result. Ok if the key has a slot.
 	//
 	pub fn get_uid_for_key(netuid: u16, key: &T::AccountId) -> u16 {
-		return Uids::<T>::get(netuid, key).unwrap_or(0)
+		return Uids::<T>::get(netuid, key).unwrap_or(0);
 	}
 
 	pub fn get_name_for_uid(netuid: u16, uid: u16) -> Vec<u8> {
-		return Names::<T>::get(netuid, uid)
+		return Names::<T>::get(netuid, uid);
 	}
 
 	pub fn if_module_name_exists(netuid: u16, name: Vec<u8>) -> bool {
@@ -605,23 +605,23 @@ impl<T: Config> Pallet<T> {
 			<Names<T> as IterableStorageDoubleMap<u16, u16, Vec<u8>>>::iter_prefix(netuid)
 		{
 			if _name == name {
-				return true
+				return true;
 			}
 		}
-		return false
+		return false;
 	}
 
 	// Returns the stake of the uid on network or 0 if it doesnt exist.
 	//
 	pub fn get_stake_for_uid(netuid: u16, module_uid: u16) -> u64 {
-		return Self::get_stake_for_key(netuid, &Self::get_key_for_uid(netuid, module_uid))
+		return Self::get_stake_for_key(netuid, &Self::get_key_for_uid(netuid, module_uid));
 	}
 
 	pub fn get_stake_for_key(netuid: u16, key: &T::AccountId) -> u64 {
 		if Self::is_key_registered_on_network(netuid, &key) {
-			return Stake::<T>::get(netuid, key)
+			return Stake::<T>::get(netuid, key);
 		} else {
-			return 0
+			return 0;
 		}
 	}
 
@@ -632,7 +632,7 @@ impl<T: Config> Pallet<T> {
 		for (_, _) in <N<T> as IterableStorageMap<u16, u16>>::iter() {
 			number_of_subnets = number_of_subnets + 1;
 		}
-		return number_of_subnets
+		return number_of_subnets;
 	}
 
 	// ========================
@@ -668,33 +668,33 @@ impl<T: Config> Pallet<T> {
 	pub fn get_emission_for_uid(netuid: u16, uid: u16) -> u64 {
 		let vec = Emission::<T>::get(netuid);
 		if (uid as usize) < vec.len() {
-			return vec[uid as usize]
+			return vec[uid as usize];
 		} else {
-			return 0
+			return 0;
 		}
 	}
 	pub fn get_incentive_for_uid(netuid: u16, uid: u16) -> u16 {
 		let vec = Incentive::<T>::get(netuid);
 		if (uid as usize) < vec.len() {
-			return vec[uid as usize]
+			return vec[uid as usize];
 		} else {
-			return 0
+			return 0;
 		}
 	}
 	pub fn get_dividends_for_uid(netuid: u16, uid: u16) -> u16 {
 		let vec = Dividends::<T>::get(netuid);
 		if (uid as usize) < vec.len() {
-			return vec[uid as usize]
+			return vec[uid as usize];
 		} else {
-			return 0
+			return 0;
 		}
 	}
 	pub fn get_last_update_for_uid(netuid: u16, uid: u16) -> u64 {
 		let vec = LastUpdate::<T>::get(netuid);
 		if (uid as usize) < vec.len() {
-			return vec[uid as usize]
+			return vec[uid as usize];
 		} else {
-			return 0
+			return 0;
 		}
 	}
 
@@ -723,7 +723,7 @@ impl<T: Config> Pallet<T> {
 	}
 
 	pub fn get_module_age(netuid: u16, uid: u16) -> u64 {
-		return Self::get_current_block_as_u64() - Self::get_module_registration_block(netuid, uid)
+		return Self::get_current_block_as_u64() - Self::get_module_registration_block(netuid, uid);
 	}
 	// ========================
 	// ==== Rate Limiting =====
@@ -763,9 +763,9 @@ impl<T: Config> Pallet<T> {
 		let n = Self::get_subnet_n(netuid);
 		// if n < min_allowed_weights, then return n
 		if (n < min_allowed_weights) {
-			return n
+			return n;
 		} else {
-			return min_allowed_weights
+			return min_allowed_weights;
 		}
 	}
 	pub fn set_min_allowed_weights(netuid: u16, min_allowed_weights: u16) {
@@ -777,9 +777,9 @@ impl<T: Config> Pallet<T> {
 		let n = Self::get_subnet_n(netuid);
 		// if n < min_allowed_weights, then return n
 		if (n < max_allowed_weights) {
-			return n
+			return n;
 		} else {
-			return max_allowed_weights
+			return max_allowed_weights;
 		}
 	}
 	pub fn set_max_allowed_weights(netuid: u16, max_allowed_weights: u16) {
@@ -802,13 +802,13 @@ impl<T: Config> Pallet<T> {
 		for (netuid, n) in <N<T> as IterableStorageMap<u16, u16>>::iter() {
 			total_n += n;
 		}
-		return total_n
+		return total_n;
 	}
 
 	pub fn enough_space_for_n(n: u16) -> bool {
 		let total_n: u16 = Self::total_n();
 		let max_allowed_modules: u16 = Self::get_max_allowed_modules();
-		return total_n + n <= max_allowed_modules
+		return total_n + n <= max_allowed_modules;
 	}
 
 	pub fn set_max_allowed_modules(max_allowed_modules: u16) {
@@ -817,19 +817,19 @@ impl<T: Config> Pallet<T> {
 
 	pub fn get_uids(netuid: u16) -> Vec<u16> {
 		let n = Self::get_subnet_n(netuid);
-		return (0..n).collect()
+		return (0..n).collect();
 	}
 	pub fn get_keys(netuid: u16) -> Vec<T::AccountId> {
 		let uids: Vec<u16> = Self::get_uids(netuid);
 		let keys: Vec<T::AccountId> =
 			uids.iter().map(|uid| Self::get_key_for_uid(netuid, *uid)).collect();
-		return keys
+		return keys;
 	}
 
 	pub fn get_uid_key_tuples(netuid: u16) -> Vec<(u16, T::AccountId)> {
 		return <Keys<T> as IterableStorageDoubleMap<u16, u16, T::AccountId>>::iter_prefix(netuid)
 			.map(|(uid, key)| (uid, key))
-			.collect()
+			.collect();
 	}
 
 	pub fn get_names(netuid: u16) -> Vec<Vec<u8>> {
@@ -839,7 +839,7 @@ impl<T: Config> Pallet<T> {
 		{
 			names.push(name);
 		}
-		return names
+		return names;
 	}
 	pub fn get_addresses(netuid: u16) -> Vec<T::AccountId> {
 		let mut addresses = Vec::<T::AccountId>::new();
@@ -848,7 +848,7 @@ impl<T: Config> Pallet<T> {
 		{
 			addresses.push(key);
 		}
-		return addresses
+		return addresses;
 	}
 
 	pub fn check_subnet_storage(netuid: u16) -> bool {
@@ -863,30 +863,30 @@ impl<T: Config> Pallet<T> {
 		let mut last_update = Self::get_last_update(netuid);
 
 		if (n as usize) != uids.len() {
-			return false
+			return false;
 		}
 		if (n as usize) != keys.len() {
-			return false
+			return false;
 		}
 		if (n as usize) != names.len() {
-			return false
+			return false;
 		}
 		if (n as usize) != addresses.len() {
-			return false
+			return false;
 		}
 		if (n as usize) != emissions.len() {
-			return false
+			return false;
 		}
 		if (n as usize) != incentives.len() {
-			return false
+			return false;
 		}
 		if (n as usize) != dividends.len() {
-			return false
+			return false;
 		}
 		if (n as usize) != last_update.len() {
-			return false
+			return false;
 		}
-		return true
+		return true;
 	}
 
 	pub fn get_emissions(netuid: u16) -> Vec<u64> {
@@ -909,10 +909,10 @@ impl<T: Config> Pallet<T> {
 	}
 
 	pub fn is_registered(netuid: u16, key: &T::AccountId) -> bool {
-		return Uids::<T>::contains_key(netuid, &key)
+		return Uids::<T>::contains_key(netuid, &key);
 	}
 
 	pub fn is_uid_registered(netuid: u16, uid: u16) -> bool {
-		return Keys::<T>::contains_key(netuid, uid)
+		return Keys::<T>::contains_key(netuid, uid);
 	}
 }

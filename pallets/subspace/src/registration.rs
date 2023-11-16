@@ -1,7 +1,7 @@
 use super::*;
 use crate::system::ensure_root;
 use frame_support::{pallet_prelude::DispatchResult, sp_std::vec};
-use frame_system::ensure_signed;
+use frame_system::{ensure_signed, pallet_prelude::BlockNumberFor};
 use sp_arithmetic::per_things::Percent;
 use sp_core::{H256, U256};
 use sp_io::hashing::{keccak_256, sha2_256};
@@ -91,7 +91,7 @@ impl<T: Config> Pallet<T> {
 
 	pub fn enough_stake_to_register(netuid: u16, stake_amount: u64) -> bool {
 		let min_stake: u64 = Self::get_min_stake_to_register(netuid);
-		return stake_amount >= min_stake
+		return stake_amount >= min_stake;
 	}
 
 	pub fn get_min_stake_to_register(netuid: u16) -> u64 {
@@ -110,14 +110,14 @@ impl<T: Config> Pallet<T> {
 			min_stake = min_stake * 2;
 		}
 
-		return min_stake
+		return min_stake;
 	}
 
 	pub fn vec_to_hash(vec_hash: Vec<u8>) -> H256 {
 		let de_ref_hash = &vec_hash; // b: &Vec<u8>
 		let de_de_ref_hash: &[u8] = &de_ref_hash; // c: &[u8]
 		let real_hash: H256 = H256::from_slice(de_de_ref_hash);
-		return real_hash
+		return real_hash;
 	}
 
 	// Determine which peer to prune from the network by finding the element with the lowest pruning
@@ -127,9 +127,9 @@ impl<T: Config> Pallet<T> {
 	pub fn get_pruning_score_for_uid(netuid: u16, uid: u16) -> u64 {
 		let vec: Vec<u64> = Emission::<T>::get(netuid);
 		if (uid as usize) < vec.len() {
-			return vec[uid as usize]
+			return vec[uid as usize];
 		} else {
-			return 0 as u64
+			return 0 as u64;
 		}
 	}
 	pub fn get_lowest_uid(netuid: u16) -> u16 {
@@ -154,13 +154,13 @@ impl<T: Config> Pallet<T> {
 					lowest_priority_uid = module_uid_i;
 					min_score = pruning_score;
 					if min_score == 0 {
-						break
+						break;
 					}
 				}
 			}
 		}
 
-		return lowest_priority_uid
+		return lowest_priority_uid;
 	}
 
 	// Returns a random index in range 0..n.
@@ -168,34 +168,32 @@ impl<T: Config> Pallet<T> {
 		let block_number: u64 = Self::get_current_block_as_u64();
 		// take the modulos of the blocknumber
 		let idx: u16 = ((block_number % u16::MAX as u64) % (n as u64)) as u16;
-		return idx
+		return idx;
 	}
 
-	pub fn get_block_hash_from_u64(block_number: u64) -> H256 {
-		let block_number: T::BlockNumber = TryInto::<T::BlockNumber>::try_into(block_number)
-			.ok()
-			.expect("convert u64 to block number.");
-		let block_hash_at_number: <T as frame_system::Config>::Hash =
-			system::Pallet::<T>::block_hash(block_number);
-		let vec_hash: Vec<u8> = block_hash_at_number.as_ref().into_iter().cloned().collect();
-		let deref_vec_hash: &[u8] = &vec_hash; // c: &[u8]
-		let real_hash: H256 = H256::from_slice(deref_vec_hash);
+	// pub fn get_block_hash_from_u64(block_number: u64) -> H256 {
+	// 	let block_number: BlockNumberFor<T> = block_number.into();
+	// 	let block_hash_at_number: <T as frame_system::Config>::Hash =
+	// 		system::Pallet::<T>::block_hash(block_number);
+	// 	let vec_hash: Vec<u8> = block_hash_at_number.as_ref().into_iter().cloned().collect();
+	// 	let deref_vec_hash: &[u8] = &vec_hash; // c: &[u8]
+	// 	let real_hash: H256 = H256::from_slice(deref_vec_hash);
 
-		log::trace!(
-			target: LOG_TARGET,
-			"block_number: {:?}, vec_hash: {:?}, real_hash: {:?}",
-			block_number,
-			vec_hash,
-			real_hash
-		);
+	// 	log::trace!(
+	// 		target: LOG_TARGET,
+	// 		"block_number: {:?}, vec_hash: {:?}, real_hash: {:?}",
+	// 		block_number,
+	// 		vec_hash,
+	// 		real_hash
+	// 	);
 
-		return real_hash
-	}
+	// 	return real_hash;
+	// }
 
 	pub fn hash_to_vec(hash: H256) -> Vec<u8> {
 		let hash_as_bytes: &[u8] = hash.as_bytes();
 		let hash_as_vec: Vec<u8> = hash_as_bytes.iter().cloned().collect();
-		return hash_as_vec
+		return hash_as_vec;
 	}
 
 	pub fn do_update_module(

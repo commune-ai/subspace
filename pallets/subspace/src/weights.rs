@@ -69,15 +69,15 @@ impl<T: Config> Pallet<T> {
 	pub fn contains_invalid_uids(netuid: u16, uids: &Vec<u16>) -> bool {
 		for uid in uids {
 			if !Self::is_uid_exist_on_network(netuid, *uid) {
-				return true
+				return true;
 			}
 		}
-		return false
+		return false;
 	}
 
 	// Returns true if the passed uids have the same length of the passed values.
 	fn uids_match_values(uids: &Vec<u16>, values: &Vec<u16>) -> bool {
-		return uids.len() == values.len()
+		return uids.len() == values.len();
 	}
 
 	// Returns true if the items contain duplicates.
@@ -85,11 +85,11 @@ impl<T: Config> Pallet<T> {
 		let mut parsed: Vec<u16> = Vec::new();
 		for item in items {
 			if parsed.contains(&item) {
-				return true
+				return true;
 			}
 			parsed.push(item.clone());
 		}
-		return false
+		return false;
 	}
 
 	// Returns True if the uids and weights are have a valid length for uid on network.
@@ -98,52 +98,52 @@ impl<T: Config> Pallet<T> {
 		let n: usize = Self::get_subnet_n(netuid) as usize;
 		// Check self weight. Allowed to set single value for self weight.
 		if Self::is_self_weight(uid, uids, weights) {
-			return true
+			return true;
 		}
 		// Check if number of weights exceeds min.
 		if weights.len() >= min_allowed_length {
-			return true
+			return true;
 		}
 
 		if weights.len() > n {
-			return true
+			return true;
 		}
 		// To few weights.
-		return false
+		return false;
 	}
 
 	// Implace normalizes the passed positive integer weights so that they sum to u16 max value.
 	pub fn normalize_weights(mut weights: Vec<u16>) -> Vec<u16> {
 		let sum: u64 = weights.iter().map(|x| *x as u64).sum();
 		if sum == 0 {
-			return weights
+			return weights;
 		}
 		weights.iter_mut().for_each(|x| {
 			*x = (*x as u64 * u16::max_value() as u64 / sum) as u16;
 		});
-		return weights
+		return weights;
 	}
 
 	// Returns true if the uids and weights correspond to a self weight on the uid.
 	pub fn is_self_weight(uid: u16, uids: &Vec<u16>, weights: &Vec<u16>) -> bool {
 		if weights.len() != 1 {
-			return false
+			return false;
 		}
 		if uid != uids[0] {
-			return false
+			return false;
 		}
-		return true
+		return true;
 	}
 
 	pub fn check_len_uids_within_allowed(netuid: u16, uids: &Vec<u16>) -> bool {
 		let min_allowed_length: usize = Self::get_min_allowed_weights(netuid) as usize;
 		let max_allowed_length: usize = Self::get_max_allowed_weights(netuid) as usize;
 		if uids.len() > max_allowed_length as usize {
-			return false
+			return false;
 		}
 		if uids.len() < min_allowed_length as usize {
-			return false
+			return false;
 		}
-		return true
+		return true;
 	}
 }
