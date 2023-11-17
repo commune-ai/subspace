@@ -90,14 +90,9 @@ impl<T: Config> Pallet<T> {
 		let mut incentive: Vec<I32F32> = matmul_sparse(&weights, &stake, n);
 		log::trace!("Incentive: {:?}", &incentive);
 
-		// trust (normalized)
+		// trust that acts as a multiplier for the incentive
 		let trust: Vec<I32F32> = Self::calculate_trust(&weights, &stake, n);
-		let cloned_trust: Vec<u16> =
-			trust.iter().map(|xi| fixed_proportion_to_u16(*xi)).collect::<Vec<u16>>();
-
-		Trust::<T>::insert(netuid, cloned_trust);
 		incentive = incentive.iter().zip(trust.iter()).map(|(inc, tru)| inc * tru).collect();
-
 		// If emission is zero, do an even split.
 		if is_zero(&incentive) {
 			// no weights set
@@ -107,9 +102,12 @@ impl<T: Config> Pallet<T> {
 		}
 		inplace_normalize(&mut incentive); // range: I32F32(0, 1)
 
-		let cloned_incentive: Vec<u16> =
-			incentive.iter().map(|xi| fixed_proportion_to_u16(*xi)).collect::<Vec<u16>>();
+		// store the incentive
+		let cloned_incentive: Vec<u16> = incentive.iter().map(|xi| fixed_proportion_to_u16(*xi)).collect::<Vec<u16>>();
 		Incentive::<T>::insert(netuid, cloned_incentive);
+		let cloned_trust: Vec<u16> = trust.iter().map(|xi| fixed_proportion_to_u16(*xi)).collect::<Vec<u16>>();
+		Trust::<T>::insert(netuid, cloned_trust);
+
 
 		// =================================
 		// == Bonds==
