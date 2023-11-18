@@ -1,4 +1,4 @@
-use frame_support::sp_std::{vec, vec::Vec};
+
 use substrate_fixed::{
 	transcendental::exp,
 	types::{I32F32, I64F64},

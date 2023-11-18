@@ -6,7 +6,6 @@ use frame_support::{
 extern crate alloc;
 use alloc::vec::Vec;
 use codec::Compact;
-use frame_support::sp_std::vec;
 use sp_arithmetic::per_things::Percent;
 
 #[derive(Decode, Encode, PartialEq, Eq, Clone, Debug)]

@@ -3,7 +3,6 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 #![recursion_limit = "512"]
 pub use pallet::*;
-
 use frame_system::{self as system, ensure_signed};
 
 use frame_support::{
@@ -42,9 +41,9 @@ mod weights;
 
 #[frame_support::pallet]
 pub mod pallet {
+	use sp_std::vec::Vec;
 	use frame_support::{
 		pallet_prelude::*,
-		sp_std::{vec, vec::Vec},
 		traits::{Currency, BuildGenesisConfig},
 	};
 	use frame_system::pallet_prelude::*;

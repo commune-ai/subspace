@@ -1,10 +1,10 @@
 use super::*;
 use crate::math::*;
 use frame_support::{
-	sp_std::{vec, vec::Vec},
 	storage::{IterableStorageDoubleMap, IterableStorageMap},
 };
 use substrate_fixed::types::{I110F18, I32F32, I64F64, I96F32};
+pub use sp_std::vec::Vec;
 
 impl<T: Config> Pallet<T> {
 	pub fn block_step() {
@@ -13,7 +13,7 @@ impl<T: Config> Pallet<T> {
 		log::debug!("block_step for block: {:?} ", block_number);
 		for (netuid, tempo) in <Tempo<T> as IterableStorageMap<u16, u16>>::iter() {
 			let new_queued_emission: u64 = Self::calculate_network_emission(netuid);
-			PendingEmission::<T>::mutate(netuid, |queued| *queued += new_queued_emission);
+			PendingEmission::<T>::mutate(netuid, |mut queued| *queued += new_queued_emission);
 			log::debug!("netuid_i: {:?} queued_emission: +{:?} ", netuid, new_queued_emission);
 			if Self::blocks_until_next_epoch(netuid, tempo, block_number) > 0 {
 				continue;

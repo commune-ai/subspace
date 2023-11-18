@@ -1,7 +1,4 @@
 use super::*;
-use frame_support::sp_std::vec;
-use sp_std::vec::Vec;
-
 impl<T: Config> Pallet<T> {
 	pub fn do_set_weights(
 		origin: T::RuntimeOrigin,
