@@ -4,7 +4,6 @@ use frame_support::{
 	dispatch::{DispatchInfo, GetDispatchInfo},
 	sp_runtime::DispatchError,
 	traits::Currency,
-	weights::{DispatchClass, Pays},
 };
 use frame_system::Config;
 use ndarray::stack_new_axis;

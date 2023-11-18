@@ -2,9 +2,10 @@
 #![allow(warnings)]
 use frame_support::{
 	assert_ok, parameter_types,
-	traits::{Everything, Hash, Hooks, StorageMapShim},
+	traits::{Everything,  Hooks, StorageMapShim},
 	weights,
 };
+use sp_std::hash::Hash;
 use frame_system as system;
 use frame_system::{limits, Config, EnsureNever, EnsureRoot, RawOrigin};
 use sp_core::{Get, H256, U256};

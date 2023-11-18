@@ -1,8 +1,7 @@
 mod test_mock;
 use frame_support::{
 	assert_ok,
-	sp_std::vec,
-	weights::{DispatchClass, DispatchInfo, GetDispatchInfo, Pays},
+	pallet_prelude::{DispatchClass, Pays},
 };
 use frame_system::Config;
 use pallet_subspace::Error;

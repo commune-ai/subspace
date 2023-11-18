@@ -1,6 +1,6 @@
 use super::*;
 use crate::system::ensure_root;
-use frame_support::{pallet_prelude::DispatchResult, sp_std::vec};
+use frame_support::{pallet_prelude::DispatchResult};
 use frame_system::{ensure_signed, pallet_prelude::BlockNumberFor};
 use sp_arithmetic::per_things::Percent;
 use sp_core::{H256, U256};
