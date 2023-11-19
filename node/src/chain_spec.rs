@@ -1,8 +1,9 @@
-use node_template_runtime::{AccountId, RuntimeGenesisConfig, Signature, WASM_BINARY,genesis::*};
+use node_subspace_runtime::{SudoConfig, AuraConfig, BalancesConfig,SubspaceModuleConfig,GrandpaConfig,AccountId, RuntimeGenesisConfig, Signature, WASM_BINARY,SystemConfig};
 use sc_service::ChainType;
 use sp_consensus_aura::sr25519::AuthorityId as AuraId;
+use sp_core::{crypto::Ss58Codec, Pair, Public};
 use sp_consensus_grandpa::AuthorityId as GrandpaId;
-use sp_core::{sr25519, Pair, Public};
+use sp_core::{sr25519};
 use sp_runtime::traits::{IdentifyAccount, Verify};
 
 // The URL for the telemetry server.
@@ -200,6 +201,7 @@ pub fn generate_config(network: String) -> Result<ChainSpec, String> {
 		Some(properties),
 		// Extensions
 		None,
+		&[32],
 	))
 }
 
@@ -224,11 +226,10 @@ fn network_genesis(
 	subnets: Vec<(Vec<u8>, u16, u16, u16, u16, u16, u64, AccountId)>,
 	stake_to: Vec<Vec<(AccountId, Vec<(AccountId, u64)>)>>,
 	block: u32,
-) -> GenesisConfig {
-	GenesisConfig {
+) -> RuntimeGenesisConfig {
+	RuntimeGenesisConfig {
 		system: SystemConfig {
 			// Add Wasm runtime to storage.
-			code: wasm_binary.to_vec(),
 			..Default::default()
 		},
 		balances: BalancesConfig {
