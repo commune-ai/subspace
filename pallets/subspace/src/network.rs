@@ -8,7 +8,8 @@ use frame_support::{
 	IterableStorageDoubleMap,
 };
 use frame_system::ensure_root;
-use sp_std::vec::Vec;
+pub use sp_std::vec;
+pub use sp_std::vec::Vec;
 use substrate_fixed::types::{I32F32, I64F64};
 extern crate alloc;
 

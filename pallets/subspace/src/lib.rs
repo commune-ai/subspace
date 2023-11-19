@@ -41,7 +41,7 @@ mod weights;
 
 #[frame_support::pallet]
 pub mod pallet {
-	use sp_std::vec::Vec;
+	
 	use frame_support::{
 		pallet_prelude::*,
 		traits::{Currency, BuildGenesisConfig},
@@ -51,6 +51,8 @@ pub mod pallet {
 	use serde::{Deserialize, Serialize};
 	use serde_with::{serde_as, DisplayFromStr};
 	use sp_arithmetic::per_things::Percent;
+	pub use sp_std::vec;
+	pub use sp_std::vec::Vec;
 
 	#[pallet::pallet]
 	#[pallet::generate_store(pub(super) trait Store)]

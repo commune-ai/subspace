@@ -3,6 +3,9 @@ use substrate_fixed::{
 	transcendental::exp,
 	types::{I32F32, I64F64},
 };
+pub use sp_std::vec;
+pub use sp_std::vec::Vec;
+
 
 #[allow(dead_code)]
 pub fn bottom_k_u16(vector: &Vec<u16>, k: usize) -> Vec<u16> {
