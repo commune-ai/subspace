@@ -49,16 +49,12 @@ pub type AccountId = U256;
 // The address format for describing accounts.
 pub type Address = AccountId;
 
-parameter_types! {
-	pub const ExistentialDeposit: u64 = 5;
-}
-
 impl pallet_balances::Config for Test {
 	type RuntimeEvent = RuntimeEvent;
 	type AccountStore = System;
 	type Balance = u64;
 	type DustRemoval = ();
-	type ExistentialDeposit = ExistentialDeposit;
+	type ExistentialDeposit = ConstU64<1>;
 	type MaxLocks = ();
 	type MaxReserves = ();
 	type ReserveIdentifier = [u8; 8];
