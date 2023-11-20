@@ -250,8 +250,6 @@ fn test_set_max_allowed_uids_shrinking() {
 
 		println!("total stake {}", total_stake);
 		println!("expected stake {}", expected_stake);
-		println!("total stake {}", total_stake);
-		println!("expected stake {}", expected_stake);
 		assert_eq!(total_stake, expected_stake);
 
 		let og_keys = SubspaceModule::get_keys(netuid);
