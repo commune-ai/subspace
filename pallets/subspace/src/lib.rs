@@ -39,6 +39,7 @@ mod staking;
 mod step;
 mod global;
 mod weights;
+mod voting;
 
 #[frame_support::pallet]
 pub mod pallet {
@@ -216,6 +217,7 @@ pub mod pallet {
 	// =========================
 
 	#[derive(Decode, Encode, PartialEq, Eq, Clone, Debug, TypeInfo)]
+	#[scale_info(skip_type_params(T))]
 	pub struct SubnetParams<T: Config> {
 		// --- parameters
 		pub name: Vec<u8>,
@@ -403,6 +405,7 @@ pub mod pallet {
 		DefaultWeights<T>,
 	>;
 
+	
 	#[pallet::event]
 	#[pallet::generate_deposit(pub(super) fn deposit_event)]
 	pub enum Event<T: Config> {
@@ -494,6 +497,7 @@ pub mod pallet {
 		InvalidMaxAllowedUids, /* --- Thrown when the user tries to set max allowed uids to a
 		                        * value less than the current number of registered uids. */
 		SubnetNameAlreadyExists,
+		SubnetNameNotExists,
 		ModuleNameTooLong, /* --- Thrown when the user tries to register a module name that is
 		                    * too long. */
 		KeyAlreadyRegistered, //
@@ -512,7 +516,12 @@ pub mod pallet {
 		StakeNotAdded,
 		BalanceNotRemoved,
 		NotEnoughStakeToRegister,
-		MaxAllowedModules, // --- Thrown when the user tries to set max allowed modules to a value less than the current number of registered modules.
+		MaxAllowedModules, // --- Throw when the user tries to set max allowed modules to a value less than the current number of registered modules.
+		TooMuchUpdateProposals,
+		InvalidProposalId,
+		UpdateProposalAlreadyVoted,
+		UpdateProposalVoteNotAvailable,
+		NotEnoughVotesToAccept,
 	}
 
 	// ==================
@@ -586,6 +595,91 @@ pub mod pallet {
 			}
 		}
 	}
+
+	// ========================================================
+	// ==== Voting System to Update Global and Subnet  ====
+	// ========================================================
+	#[derive(Decode, Encode, PartialEq, Eq, Clone, Debug, TypeInfo)]
+	#[scale_info(skip_type_params(T))]
+	pub struct GlobalUpdateProposal<T: Config> {
+		// --- parameters
+		pub params: GlobalParams,
+		pub votes: u64,
+		pub participants: Vec<T::AccountId>,
+		pub accepted: bool,
+	}
+
+	#[derive(Decode, Encode, PartialEq, Eq, Clone, Debug, TypeInfo)]
+	pub struct GlobalParams {
+		pub max_name_length: u16,
+		pub max_allowed_subnets: u16,
+		pub max_allowed_modules: u16,
+		pub max_registrations_per_block: u16,
+		pub unit_emission: u64, 
+		pub tx_rate_limit: u64
+	}
+
+	#[pallet::type_value]
+	pub fn DefaultGlobalUpdateProposals<T: Config>() -> GlobalUpdateProposal<T> {
+		GlobalUpdateProposal {
+			params: GlobalParams {
+				max_name_length: 0,
+			 	max_allowed_subnets: 0,
+			 	max_allowed_modules: 0,
+				max_registrations_per_block: 0,
+				unit_emission: 0, 
+				tx_rate_limit: 0
+			},
+			votes: 0,
+			participants: vec![],
+			accepted: false
+		}
+	}
+
+	#[derive(Decode, Encode, PartialEq, Eq, Clone, Debug, TypeInfo)]
+	#[scale_info(skip_type_params(T))]
+	pub struct SubnetUpdateProposal<T: Config> {
+		// --- parameters
+		pub params: SubnetParams<T>,
+		pub votes: u64,
+		pub participants: Vec<T::AccountId>,
+		pub accepted: bool,
+	}
+
+	#[pallet::type_value]
+	pub fn DefaultSubnetUpdateProposals<T: Config>() -> SubnetUpdateProposal<T> {
+		SubnetUpdateProposal {
+			params: SubnetParams {
+				name: vec![],
+				tempo: 0,
+				immunity_period: 0,
+				min_allowed_weights: 0,
+				max_allowed_weights: 0,
+				max_allowed_uids: 0,
+				min_stake: 0, 
+				founder: T::AccountId::decode(&mut sp_runtime::traits::TrailingZeroInput::zeroes()).unwrap(),
+				vote_threshold: 0,
+				vote_period: 0,
+			},
+			votes: 0,
+			participants: vec![],
+			accepted: false
+		}
+	}
+
+	#[pallet::storage]
+	pub(super) type GlobalUpdateProposalLastId<T: Config> = StorageValue<_, u64, ValueQuery>;
+
+	#[pallet::storage] // --- MAP ( global_proposal_id ) --> global_update_proposal
+	pub(super) type GlobalUpdateProposals<T: Config> =
+		StorageMap<_, Identity, u64, GlobalUpdateProposal<T>, ValueQuery, DefaultGlobalUpdateProposals<T>>;
+
+	#[pallet::storage]
+	pub(super) type SubnetUpdateProposalLastId<T: Config> = StorageValue<_, u64, ValueQuery>;
+
+	#[pallet::storage] // --- MAP ( subnet_proposal_id ) --> subnet_update_proposal
+	pub(super) type SubnetUpdateProposals<T: Config> =
+		StorageMap<_, Identity, u64, SubnetUpdateProposal<T>, ValueQuery, DefaultSubnetUpdateProposals<T>>;
 
 	// ================
 	// ==== Hooks =====
