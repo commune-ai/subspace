@@ -395,7 +395,7 @@ fn simulation_final_boss() {
 				let stake_balance: u64 = SubspaceModule::get_balance_u64(staker_key);
 
 				if staker_stake < min_stake {
-					continue;
+					continue
 				}
 				let stake_amount: u64 = thread_rng().gen_range(1..staker_stake) as u64;
 				let origin = get_origin(*staker_key);
@@ -433,7 +433,7 @@ fn simulation_final_boss() {
 				weight_values.shuffle(&mut thread_rng());
 				let key_stake: u64 = SubspaceModule::get_stake(netuid, &keys[i as usize]);
 				if key_stake == 0 {
-					continue;
+					continue
 				}
 
 				set_weights(netuid, keys[i as usize], weight_uids.clone(), weight_values.clone());

@@ -32,7 +32,7 @@ impl<T: Config> Pallet<T> {
 		let n = Self::get_subnet_n(netuid);
 		if n == 0 {
 			/// No modules in the network.
-			return;
+			return
 		}
 		let uid_key: T::AccountId = Keys::<T>::get(netuid, uid);
 		let replace_uid = n - 1;
@@ -147,12 +147,12 @@ impl<T: Config> Pallet<T> {
 
 		N::<T>::insert(netuid, N::<T>::get(netuid) + 1); // Decrease the number of modules in the network.
 
-		return uid;
+		return uid
 	}
 
 	pub fn get_modules(netuid: u16) -> Vec<ModuleSubnetInfo<T>> {
 		if !Self::if_subnet_exist(netuid) {
-			return Vec::new();
+			return Vec::new()
 		}
 
 		let mut modules = Vec::new();
@@ -164,7 +164,7 @@ impl<T: Config> Pallet<T> {
 			let _module = Self::get_module_subnet_info(netuid, uid);
 			let module;
 			if _module.is_none() {
-				break; // No more modules
+				break // No more modules
 			} else {
 				// No error, key was registered
 				module = _module.expect("Module should exist");
@@ -172,7 +172,7 @@ impl<T: Config> Pallet<T> {
 
 			modules.push(module);
 		}
-		return modules;
+		return modules
 	}
 
 	fn get_module_subnet_info(netuid: u16, uid: u16) -> Option<ModuleSubnetInfo<T>> {
@@ -206,15 +206,15 @@ impl<T: Config> Pallet<T> {
 			name: name.clone(),
 		};
 
-		return Some(module);
+		return Some(module)
 	}
 
 	pub fn get_module(netuid: u16, uid: u16) -> Option<ModuleSubnetInfo<T>> {
 		if !Self::if_subnet_exist(netuid) {
-			return None;
+			return None
 		}
 
 		let module = Self::get_module_subnet_info(netuid, uid);
-		return module;
+		return module
 	}
 }
