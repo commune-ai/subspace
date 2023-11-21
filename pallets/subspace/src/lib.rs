@@ -2,8 +2,8 @@
 #![allow(warnings)]
 #![cfg_attr(not(feature = "std"), no_std)]
 #![recursion_limit = "512"]
-pub use pallet::*;
 use frame_system::{self as system, ensure_signed};
+pub use pallet::*;
 
 use frame_support::{
 	dispatch,
@@ -41,18 +41,17 @@ mod weights;
 
 #[frame_support::pallet]
 pub mod pallet {
-	
+
 	use frame_support::{
 		pallet_prelude::*,
-		traits::{Currency, BuildGenesisConfig},
+		traits::{BuildGenesisConfig, Currency},
 	};
 	use frame_system::pallet_prelude::*;
 	use scale_info::prelude::string::String;
 	use serde::{Deserialize, Serialize};
 	use serde_with::{serde_as, DisplayFromStr};
 	use sp_arithmetic::per_things::Percent;
-	pub use sp_std::vec;
-	pub use sp_std::vec::Vec;
+	pub use sp_std::{vec, vec::Vec};
 
 	#[pallet::pallet]
 	#[pallet::generate_store(pub(super) trait Store)]
@@ -761,19 +760,19 @@ pub mod pallet {
 			if Uids::<T>::contains_key(netuid, &key) {
 				let uid: u16 = Self::get_uid_for_key(netuid, &key.clone());
 				let current_block_number: u64 = Self::get_current_block_as_u64();
-				return current_block_number - Self::get_last_update_for_uid(netuid, uid as u16);
+				return current_block_number - Self::get_last_update_for_uid(netuid, uid as u16)
 			}
-			return 0;
+			return 0
 		}
 		// --- Returns the transaction priority for setting weights.
 		pub fn get_priority_stake(key: &T::AccountId, netuid: u16) -> u64 {
 			if Uids::<T>::contains_key(netuid, &key) {
-				return Self::get_stake(netuid, key);
+				return Self::get_stake(netuid, key)
 			}
-			return 0;
+			return 0
 		}
 		pub fn get_priority_balance(key: &T::AccountId) -> u64 {
-			return Self::get_balance_u64(key);
+			return Self::get_balance_u64(key)
 		}
 	}
 
@@ -819,13 +818,13 @@ where
 	pub fn get_priority_vanilla(who: &T::AccountId) -> u64 {
 		// Return high priority so that every extrinsic except set_weights function will
 		// have a higher priority than the set_weights call
-		return Pallet::<T>::get_priority_balance(who);
+		return Pallet::<T>::get_priority_balance(who)
 	}
 
 	pub fn get_priority_set_weights(who: &T::AccountId, netuid: u16) -> u64 {
 		// Return the non vanilla priority for a set weights call.
 
-		return Pallet::<T>::get_priority_set_weights(who, netuid);
+		return Pallet::<T>::get_priority_set_weights(who, netuid)
 	}
 
 	pub fn u64_to_balance(

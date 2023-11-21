@@ -2,19 +2,18 @@
 #![allow(warnings)]
 use frame_support::{
 	assert_ok, parameter_types,
-	traits::{ConstU32, ConstU64, Everything,  Hooks, StorageMapShim},
+	traits::{ConstU32, ConstU64, Everything, Hooks, StorageMapShim},
 	weights,
 };
-use sp_std::hash::Hash;
 use frame_system as system;
 use frame_system::{limits, Config, EnsureNever, EnsureRoot, RawOrigin};
 use sp_core::{Get, H256, U256};
 use sp_runtime::{
 	testing::Header,
 	traits::{BlakeTwo256, IdentityLookup},
-	DispatchResult,
-	BuildStorage
+	BuildStorage, DispatchResult,
 };
+use sp_std::hash::Hash;
 
 type UncheckedExtrinsic = frame_system::mocking::MockUncheckedExtrinsic<Test>;
 type Block = frame_system::mocking::MockBlock<Test>;
@@ -76,7 +75,7 @@ impl system::Config for Test {
 	type AccountId = U256;
 	type RuntimeCall = RuntimeCall;
 	type Lookup = IdentityLookup<Self::AccountId>;
-	type Nonce= u64;
+	type Nonce = u64;
 	type Hash = H256;
 	type Hashing = BlakeTwo256;
 	type RuntimeEvent = RuntimeEvent;
@@ -148,7 +147,7 @@ pub(crate) fn step_epoch(netuid: u16) {
 
 #[allow(dead_code)]
 pub(crate) fn block_number() -> u64 {
-	return System::block_number();
+	return System::block_number()
 }
 
 #[allow(dead_code)]
@@ -183,7 +182,7 @@ pub fn decrease_stake(netuid: u16, key: U256, stake: u64) {
 
 pub fn get_origin(key: U256) -> RuntimeOrigin {
 	let origin = <<Test as frame_system::Config>::RuntimeOrigin>::signed(key);
-	return origin;
+	return origin
 }
 
 pub fn register_n_modules(netuid: u16, n: u16, stake: u64) {
@@ -215,7 +214,7 @@ pub fn register_module(netuid: u16, key: U256, stake: u64) -> DispatchResult {
 	let balance = SubspaceModule::get_balance(&key);
 
 	let result = SubspaceModule::register(origin, network, name.clone(), address, stake, key);
-	return result;
+	return result
 }
 
 #[allow(dead_code)]
@@ -262,7 +261,7 @@ pub fn delegate_register_module(
 		key
 	);
 
-	return result;
+	return result
 }
 
 #[allow(dead_code)]

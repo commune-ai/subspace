@@ -1,9 +1,11 @@
-use node_subspace_runtime::{SudoConfig, AuraConfig, BalancesConfig,SubspaceModuleConfig,GrandpaConfig,AccountId, RuntimeGenesisConfig, Signature, WASM_BINARY,SystemConfig};
+use node_subspace_runtime::{
+	AccountId, AuraConfig, BalancesConfig, GrandpaConfig, RuntimeGenesisConfig, Signature,
+	SubspaceModuleConfig, SudoConfig, SystemConfig, WASM_BINARY,
+};
 use sc_service::ChainType;
 use sp_consensus_aura::sr25519::AuthorityId as AuraId;
-use sp_core::{crypto::Ss58Codec, Pair, Public};
 use sp_consensus_grandpa::AuthorityId as GrandpaId;
-use sp_core::{sr25519};
+use sp_core::{crypto::Ss58Codec, sr25519, Pair, Public};
 use sp_runtime::traits::{IdentifyAccount, Verify};
 
 // The URL for the telemetry server.
@@ -206,14 +208,14 @@ pub fn generate_config(network: String) -> Result<ChainSpec, String> {
 }
 
 pub fn mainnet_config() -> Result<ChainSpec, String> {
-	return generate_config("main".to_string());
+	return generate_config("main".to_string())
 }
 
 pub fn devnet_config() -> Result<ChainSpec, String> {
-	return generate_config("dev".to_string());
+	return generate_config("dev".to_string())
 }
 pub fn testnet_config() -> Result<ChainSpec, String> {
-	return generate_config("dev".to_string());
+	return generate_config("dev".to_string())
 }
 
 // Configure initial storage state for FRAME modules.
