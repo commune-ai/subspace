@@ -11,7 +11,7 @@ use substrate_fixed::types::I32F32;
 const LOG_TARGET: &'static str = "runtime::subspace::registration";
 
 impl<T: Config> Pallet<T> {
-	pub fn do_registration(
+	pub fn do_register(
 		origin: T::RuntimeOrigin,
 		network: Vec<u8>,
 		name: Vec<u8>,
@@ -20,8 +20,6 @@ impl<T: Config> Pallet<T> {
 		module_key: T::AccountId,
 	) -> DispatchResult {
 		// --- 1. Check that the caller has signed the transaction.
-		// TODO( const ): This not be the key signature or else an exterior actor can register the
-		// key and potentially control it?
 		let key = ensure_signed(origin.clone())?;
 
 		// --- 2. Ensure we are not exceeding the max allowed registrations per block.
@@ -80,6 +78,31 @@ impl<T: Config> Pallet<T> {
 			module_key
 		);
 		Self::deposit_event(Event::ModuleRegistered(netuid, uid, module_key.clone()));
+
+		// --- 5. Ok and done.
+		Ok(())
+	}
+
+	pub fn do_deregister(
+		origin: T::RuntimeOrigin,
+		netuid: u16,
+	) -> DispatchResult {
+		// --- 1. Check that the caller has signed the transaction.
+		let key = ensure_signed(origin.clone())?;
+
+		ensure!(
+			Self::is_key_registered(netuid, &key),
+			Error::<T>::NotRegistered
+		);
+
+		// --- 2. Ensure we are not exceeding the max allowed registrations per block.
+		let uid: u16 = Self::get_uid_for_key(netuid, &key);
+
+		Self::remove_module(netuid, uid);
+		ensure!(
+			!Self::is_key_registered(netuid, &key),
+			Error::<T>::StillRegistered
+		);
 
 		// --- 5. Ok and done.
 		Ok(())
