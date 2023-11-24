@@ -534,8 +534,11 @@ pub mod pallet {
 		StakeNotAdded,
 		BalanceNotRemoved,
 		NotEnoughStakeToRegister,
+		StillRegistered,
 		MaxAllowedModules, /* --- Thrown when the user tries to set max allowed modules to a
 		                    * value less than the current number of registered modules. */
+
+		
 	}
 
 	// ==================
@@ -750,7 +753,14 @@ pub mod pallet {
 			stake: u64,
 			module_key: T::AccountId,
 		) -> DispatchResult {
-			Self::do_registration(origin, network, name, address, stake, module_key)
+			Self::do_register(origin, network, name, address, stake, module_key)
+		}
+		#[pallet::weight((Weight::zero(), DispatchClass::Normal, Pays::No))]
+		pub fn deregister(
+			origin: OriginFor<T>,
+			netuid : u16,
+		) -> DispatchResult {
+			Self::do_deregister(origin, netuid)
 		}
 
 		#[pallet::weight((Weight::zero(), DispatchClass::Normal, Pays::No))]
