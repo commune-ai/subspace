@@ -23,13 +23,8 @@ impl<T: Config> Pallet<T> {
 		// TODO( const ): This not be the key signature or else an exterior actor can register the
 		// key and potentially control it?
 		let key = ensure_signed(origin.clone())?;
-		// --- 2. Ensure we are not exceeding the max allowed registrations per block.
 
-		// --- 3. Ensure that the network name is not already registered.
-		ensure!(
-			Self::enough_stake_to_start_network(stake_amount),
-			Error::<T>::NotEnoughStakeToStartNetwork
-		);
+		// --- 2. Ensure we are not exceeding the max allowed registrations per block.
 
 		ensure!(
 			Self::has_enough_balance(&key, stake_amount),
@@ -44,6 +39,7 @@ impl<T: Config> Pallet<T> {
 		let new_network: bool = !Self::if_subnet_name_exists(network.clone());
 
 		if new_network {
+			
 			ensure!(
 				Self::enough_stake_to_start_network(stake_amount),
 				Error::<T>::NotEnoughStakeToStartNetwork
@@ -133,6 +129,15 @@ impl<T: Config> Pallet<T> {
 		}
 	}
 	pub fn get_lowest_uid(netuid: u16) -> u16 {
+		
+		// If there are pending deregister uids, then return the first one.
+		let pending_deregister_uids: Vec<u16> = PendingDeregisterUids::<T>::get(netuid);
+		if pending_deregister_uids.len() > 0 {
+			let uid: u16 = pending_deregister_uids[0];
+			PendingDeregisterUids::<T>::mutate(netuid, |v| v.remove(0));
+			return uid
+		}
+
 		let mut min_score: u64 = u64::MAX;
 		let n: u16 = Self::get_subnet_n(netuid);
 		let mut lowest_priority_uid: u16 = 0;

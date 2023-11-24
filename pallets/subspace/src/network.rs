@@ -98,6 +98,7 @@ impl<T: Config> Pallet<T> {
 			subnet_params.min_allowed_weights,
 			subnet_params.max_allowed_weights,
 			subnet_params.max_allowed_uids,
+			subnet_params.burn_rate,
 			subnet_params.min_stake,
 			&key.clone(), // founder
 			stake,        //stake
@@ -113,7 +114,7 @@ impl<T: Config> Pallet<T> {
 		ensure!(Self::if_subnet_netuid_exists(netuid), Error::<T>::SubnetNameAlreadyExists);
 		ensure!(Self::is_subnet_founder(netuid, &key), Error::<T>::NotSubnetFounder);
 
-		Self::remove_network_for_netuid(netuid);
+		Self::remove_network_by_netuid(netuid);
 		// --- 16. Ok and done.
 		Ok(())
 	}
@@ -122,12 +123,13 @@ impl<T: Config> Pallet<T> {
 		origin: T::RuntimeOrigin,
 		netuid: u16,
 		name: Vec<u8>,
+		tempo: u16,
 		immunity_period: u16,
 		min_allowed_weights: u16,
 		max_allowed_weights: u16,
 		max_allowed_uids: u16,
 		min_stake: u64,
-		tempo: u16,
+		burn_rate: u16,
 		founder: T::AccountId,
 	) -> DispatchResult {
 		let key = ensure_signed(origin)?;
@@ -138,12 +140,13 @@ impl<T: Config> Pallet<T> {
 		Self::update_network_for_netuid(
 			netuid,
 			name.clone(),
+			tempo,
 			immunity_period,
 			min_allowed_weights,
 			max_allowed_weights,
 			max_allowed_uids,
+			burn_rate,
 			min_stake,
-			tempo,
 			founder,
 		);
 		// --- 16. Ok and done.
@@ -154,12 +157,13 @@ impl<T: Config> Pallet<T> {
 		origin: T::RuntimeOrigin,
 		netuid: u16,
 		name: Vec<u8>,
+		tempo: u16,
 		immunity_period: u16,
 		min_allowed_weights: u16,
 		max_allowed_weights: u16,
 		max_allowed_uids: u16,
 		min_stake: u64,
-		tempo: u16,
+		burn_rate: u16,
 		vote_period: u16,
 		vote_threshold: u16,
 		founder: T::AccountId,
@@ -171,15 +175,16 @@ impl<T: Config> Pallet<T> {
 
 		let params: SubnetParams<T> = SubnetParams {
 			name: name.clone(),
-			immunity_period,
-			min_allowed_weights,
-			max_allowed_weights,
-			max_allowed_uids,
-			min_stake,
-			tempo,
+			immunity_period: immunity_period,
+			min_allowed_weights: min_allowed_weights,
+			max_allowed_weights: max_allowed_weights,
+			max_allowed_uids: max_allowed_uids,
+			min_stake: min_stake,
+			tempo: tempo,
+			burn_rate: burn_rate,
 			founder: founder.clone(),
-			vote_period,
-			vote_threshold,
+			vote_period: vote_period,
+			vote_threshold: vote_threshold,
 		};
 		let proposal = SubnetProposal {
 			params,
@@ -204,12 +209,13 @@ impl<T: Config> Pallet<T> {
 		return Self::update_network_for_netuid(
 			netuid,
 			params.name,
+			params.tempo,
 			params.immunity_period,
 			params.min_allowed_weights,
 			params.max_allowed_weights,
 			params.max_allowed_uids,
+			params.burn_rate,
 			params.min_stake,
-			params.tempo,
 			params.founder,
 		)
 	}
@@ -217,12 +223,13 @@ impl<T: Config> Pallet<T> {
 	pub fn update_network_for_netuid(
 		netuid: u16,
 		name: Vec<u8>,
+		tempo: u16,
 		mut immunity_period: u16,
 		mut min_allowed_weights: u16,
 		mut max_allowed_weights: u16,
 		mut max_allowed_uids: u16,
+		burn_rate: u16,
 		mut min_stake: u64,
-		tempo: u16,
 		founder: T::AccountId,
 	) {
 		let n: u16 = Self::get_subnet_n(netuid);
@@ -254,6 +261,7 @@ impl<T: Config> Pallet<T> {
 		if max_allowed_uids < n {
 			let remainder_n: u16 = n - max_allowed_uids;
 			for i in 0..remainder_n {
+
 				Self::remove_module(netuid, Self::get_lowest_uid(netuid));
 			}
 		}
@@ -266,6 +274,8 @@ impl<T: Config> Pallet<T> {
 			SubnetNamespace::<T>::remove(old_name.clone());
 			SubnetNamespace::<T>::insert(name.clone(), netuid)
 		}
+
+		Self::set_burn_rate(netuid, burn_rate);
 	}
 
 	pub fn uid_in_immunity(netuid: u16, uid: u16) -> bool {
@@ -285,6 +295,7 @@ impl<T: Config> Pallet<T> {
 			tempo: Tempo::<T>::get(netuid),
 			founder: Founder::<T>::get(netuid),
 			name: <Vec<u8>>::new(),
+			burn_rate: BurnRate::<T>::get(netuid),
 			vote_period: VotePeriod::<T>::get(netuid),
 			vote_threshold: VoteThreshold::<T>::get(netuid),
 		}
@@ -330,6 +341,7 @@ impl<T: Config> Pallet<T> {
 			params.min_allowed_weights,
 			params.max_allowed_weights,
 			params.max_allowed_uids,
+			params.burn_rate,
 			params.min_stake,
 			&founder_key, // founder,
 			stake,
@@ -362,6 +374,7 @@ impl<T: Config> Pallet<T> {
 		UnitEmission::<T>::put(unit_emission)
 	}
 
+	
 	pub fn get_unit_emission_per_block() -> u64 {
 		return UnitEmission::<T>::get() * 4
 	}
@@ -428,6 +441,7 @@ impl<T: Config> Pallet<T> {
 		min_allowed_weights: u16,
 		max_allowed_weights: u16,
 		max_allowed_uids: u16,
+		burn_rate: u16,
 		min_stake: u64,
 		founder: &T::AccountId,
 		stake: u64,
@@ -445,6 +459,7 @@ impl<T: Config> Pallet<T> {
 		MinStake::<T>::insert(netuid, min_stake);
 		SubnetNamespace::<T>::insert(name.clone(), netuid);
 		Founder::<T>::insert(netuid, founder);
+		BurnRate::<T>::insert(netuid, burn_rate);
 		// set stat once network is created
 		TotalSubnets::<T>::mutate(|n| *n += 1);
 		N::<T>::insert(netuid, 0);
@@ -489,7 +504,7 @@ impl<T: Config> Pallet<T> {
 
 	pub fn remove_least_staked_netuid() -> u16 {
 		let netuid: u16 = Self::least_staked_netuid();
-		return Self::remove_network_for_netuid(netuid)
+		return Self::remove_network_by_netuid(netuid)
 	}
 
 	// Returns true if the account is the founder of the network.
@@ -500,10 +515,10 @@ impl<T: Config> Pallet<T> {
 
 	pub fn remove_network_for_name(name: Vec<u8>) -> u16 {
 		let netuid = Self::get_netuid_for_name(name.clone());
-		return Self::remove_network_for_netuid(netuid)
+		return Self::remove_network_by_netuid(netuid)
 	}
 
-	pub fn remove_network_for_netuid(netuid: u16) -> u16 {
+	pub fn remove_network_by_netuid(netuid: u16) -> u16 {
 		// --- 2. Ensure the network to be removed exists.
 		if !Self::if_subnet_exist(netuid) {
 			return 0
@@ -533,6 +548,7 @@ impl<T: Config> Pallet<T> {
 		Dividends::<T>::remove(netuid);
 		Trust::<T>::remove(netuid);
 		LastUpdate::<T>::remove(netuid);
+		PendingDeregisterUids::<T>::remove(netuid);
 
 		// --- 2. Erase network parameters.
 		Founder::<T>::remove(netuid);
@@ -542,6 +558,7 @@ impl<T: Config> Pallet<T> {
 		ImmunityPeriod::<T>::remove(netuid);
 		MinAllowedWeights::<T>::remove(netuid);
 		MaxAllowedWeights::<T>::remove(netuid);
+		BurnRate::<T>::remove(netuid);
 
 		// Adjust the total number of subnets. and remove the subnet from the list of subnets.
 		N::<T>::remove(netuid);
@@ -640,6 +657,35 @@ impl<T: Config> Pallet<T> {
 	pub fn set_tempo(netuid: u16, tempo: u16) {
 		Tempo::<T>::insert(netuid, tempo);
 	}
+
+	pub fn set_burn_rate(netuid: u16, burn_rate: u16) {
+		if burn_rate > 100 {
+			BurnRate::<T>::insert(netuid, 100);
+			return
+		}
+		if burn_rate < 0 {
+			BurnRate::<T>::insert(netuid, 0);
+			return
+		}
+		BurnRate::<T>::insert(netuid, burn_rate);
+	}
+
+	pub fn get_burn_emission_per_epoch(netuid: u16) -> u64 {
+		let burn_rate: u16 = BurnRate::<T>::get(netuid);
+		let epoch_emission: u64 = Self::get_subnet_emission(netuid);
+		let n: u16 = Self::get_subnet_n(netuid);
+		// get the float and convert to u64
+		if n == 0 {
+			return 0
+		}
+		let burn_emission_per_epoch: u64 = (burn_rate as u64 * epoch_emission)  / n as u64;
+		return burn_emission_per_epoch
+	}
+
+	pub fn get_burn_rate(netuid: u16) -> u16 {
+		return BurnRate::<T>::get(netuid)
+	}
+
 
 	pub fn set_registrations_this_block(registrations_this_block: u16) {
 		RegistrationsPerBlock::<T>::set(registrations_this_block);
