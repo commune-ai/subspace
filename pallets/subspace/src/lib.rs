@@ -110,6 +110,15 @@ pub mod pallet {
 		420
 	}
 	#[pallet::type_value]
+	pub fn DefaultBurnRate<T: Config>() -> u16 {
+		0
+	}
+	#[pallet::type_value]
+	pub fn DefaultPendingDeregisterUids<T: Config>() -> Vec<u16> {
+		vec![]
+		
+	}
+	#[pallet::type_value]
 	pub fn DefaultMaxNameLength<T: Config>() -> u16 {
 		32
 	}
@@ -230,6 +239,7 @@ pub mod pallet {
 		pub max_allowed_weights: u16, /* max number of weights allowed to be registered in this
 		                               * subnet */
 		pub max_allowed_uids: u16, // max number of uids allowed to be registered in this subnet
+		pub burn_rate: u16,        // out of 100
 		pub min_stake: u64,
 		pub founder: T::AccountId, // founder of the network
 		// pub democratic: bool
@@ -252,6 +262,15 @@ pub mod pallet {
 	#[pallet::storage] // --- MAP ( netuid ) --> min_allowed_weights
 	pub type MaxAllowedWeights<T> =
 		StorageMap<_, Identity, u16, u16, ValueQuery, DefaultMaxAllowedWeights<T>>;
+		
+	#[pallet::storage] // --- MAP ( netuid ) --> min_allowed_weights
+	pub type BurnRate<T> = StorageMap<_, Identity, u16, u16, ValueQuery, DefaultBurnRate<T>>;
+
+
+	
+	#[pallet::storage] // --- MAP ( netuid ) --> min_allowed_weights
+	pub type PendingDeregisterUids<T> = StorageMap<_, Identity, u16, Vec<u16>, ValueQuery, DefaultPendingDeregisterUids<T>>;
+
 
 	#[pallet::storage] // --- DMAP ( key, netuid ) --> bool
 	pub type Founder<T: Config> =
@@ -530,7 +549,7 @@ pub mod pallet {
 		pub modules: Vec<Vec<(T::AccountId, Vec<u8>, Vec<u8>, Vec<(u16, u16)>)>>,
 		// name, tempo, immunity_period, min_allowed_weight, max_allowed_weight, max_allowed_uids,
 		// immunity_ratio, founder
-		pub subnets: Vec<(Vec<u8>, u16, u16, u16, u16, u16, u64, T::AccountId)>,
+		pub subnets: Vec<(Vec<u8>, u16, u16, u16, u16, u16, u16, u64, T::AccountId)>,
 
 		pub stake_to: Vec<Vec<(T::AccountId, Vec<(T::AccountId, u64)>)>>,
 
@@ -554,8 +573,9 @@ pub mod pallet {
 					subnet.3,         // min_allowed_weights
 					subnet.4,         // max_allowed_weights
 					subnet.5,         // max_allowed_uids
-					subnet.6,         // min_stake
-					&subnet.7,        // founder
+					subnet.6,         // burn_rate
+					subnet.7,         // min_stake
+					&subnet.8,        // founder
 					0 as u64,         // stake
 				);
 				for (uid_usize, (key, name, address, weights)) in
@@ -681,24 +701,26 @@ pub mod pallet {
 			origin: OriginFor<T>,
 			netuid: u16,
 			name: Vec<u8>,
+			tempo: u16,
 			immunity_period: u16,
 			min_allowed_weights: u16,
 			max_allowed_weights: u16,
 			max_allowed_uids: u16,
+			burn_rate: u16,
 			min_stake: u64,
-			tempo: u16,
 			founder: T::AccountId,
 		) -> DispatchResult {
 			Self::do_update_network(
 				origin,
 				netuid,
 				name.clone(),
+				tempo,
 				immunity_period,
 				min_allowed_weights,
 				max_allowed_weights,
 				max_allowed_uids,
 				min_stake,
-				tempo,
+				burn_rate,
 				founder,
 			)
 		}
