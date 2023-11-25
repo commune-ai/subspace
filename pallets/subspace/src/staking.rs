@@ -185,6 +185,7 @@ impl<T: Config> Pallet<T> {
 		return Uids::<T>::contains_key(netuid, &key)
 	}
 
+
 	// Returns the delegation fee of a module
 	pub fn get_delegation_fee(netuid: u16, module_key: &T::AccountId) -> Percent {
 		DelegationFee::<T>::get(netuid, module_key)
