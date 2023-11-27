@@ -55,6 +55,24 @@ pallet-transaction-payment-rpc-runtime-api = { version = "4.0.0-dev", default-fe
 frame-benchmarking = { version = "4.0.0-dev", default-features = false, git = "https://github.com/paritytech/polkadot-sdk", optional = true , branch = "master" }
 frame-system-benchmarking = { version = "4.0.0-dev", default-features = false, git = "https://github.com/paritytech/polkadot-sdk", optional = true , branch = "master" }
 
+# EVM Support
+
+# Frontier
+fp-account = { version = "1.0.0-dev", git = "https://github.com/paritytech/frontier", default-features = false, branch = "master", features = ["serde"] }
+fp-evm = { version = "3.0.0-dev", git = "https://github.com/paritytech/frontier", default-features = false, branch = "master", features = ["serde"] }
+fp-rpc = { version = "3.0.0-dev", git = "https://github.com/paritytech/frontier", default-features = false, branch = "master" }
+fp-self-contained = { version = "1.0.0-dev", git = "https://github.com/paritytech/frontier", default-features = false, branch = "master", features = ["serde"] }
+# Frontier FRAME
+pallet-base-fee = { version = "1.0.0", git = "https://github.com/paritytech/frontier", default-features = false, branch = "master" }
+# pallet-dynamic-fee = { version = "4.0.0-dev", git = "https://github.com/paritytech/frontier", default-features = false, branch = "master" }
+pallet-ethereum = { version = "4.0.0-dev", git = "https://github.com/paritytech/frontier", default-features = false, branch = "master" }
+pallet-evm = { version = "6.0.0-dev", git = "https://github.com/paritytech/frontier", default-features = false, branch = "master" }
+pallet-evm-chain-id = { version = "1.0.0-dev", git = "https://github.com/paritytech/frontier", default-features = false, branch = "master" }
+pallet-evm-precompile-modexp = { version = "2.0.0-dev", git = "https://github.com/paritytech/frontier", default-features = false, branch = "master" }
+pallet-evm-precompile-sha3fips = { version = "2.0.0-dev", git = "https://github.com/paritytech/frontier", default-features = false, branch = "master" }
+pallet-evm-precompile-simple = {  version = "2.0.0-dev", git = "https://github.com/paritytech/frontier", default-features = false, branch = "master" }
+# pallet-hotfix-sufficients = { version = "1.0.0", git = "https://github.com/paritytech/frontier", default-features = false, branch = "master" }
+
 [build-dependencies]
 substrate-wasm-builder = { version = "5.0.0-dev", git = "https://github.com/paritytech/polkadot-sdk", optional = true , branch = "master" }
 
@@ -93,6 +111,22 @@ std = [
 	"sp-transaction-pool/std",
 	"sp-version/std",
 	"substrate-wasm-builder",
+	# EVM
+	# Frontier
+	"fp-account/std",
+	"fp-evm/std",
+	"fp-rpc/std",
+	"fp-self-contained/std",
+	# Frontier FRAME
+	"pallet-base-fee/std",
+	# "pallet-dynamic-fee/std",
+	"pallet-ethereum/std",
+	"pallet-evm/std",
+	"pallet-evm-chain-id/std",
+	"pallet-evm-precompile-modexp/std",
+	"pallet-evm-precompile-sha3fips/std",
+	"pallet-evm-precompile-simple/std",
+	# "pallet-hotfix-sufficients/std",
 ]
 runtime-benchmarks = [
 	"frame-benchmarking/runtime-benchmarks",
@@ -120,4 +154,7 @@ try-runtime = [
 	"pallet-transaction-payment/try-runtime",
 	"pallet-utility/try-runtime",
 	"pallet-subspace/try-runtime",
+	"pallet-ethereum/runtime-benchmarks",
+	"pallet-evm/runtime-benchmarks",
+	# "pallet-hotfix-sufficients/runtime-benchmarks",
 ]

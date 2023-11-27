@@ -62,6 +62,8 @@ sc-basic-authorship = { version = "0.10.0-dev", git = "https://github.com/parity
 substrate-frame-rpc-system = { version = "4.0.0-dev", git = "https://github.com/paritytech/polkadot-sdk", branch = "master" }
 pallet-transaction-payment-rpc = { version = "4.0.0-dev", git = "https://github.com/paritytech/polkadot-sdk", branch = "master" }
 
+fp-evm = { version = "3.0.0-dev", git = "https://github.com/paritytech/frontier", default-features = false, branch = "master", features = ["serde"] }
+
 # These dependencies are used for runtime benchmarking
 frame-benchmarking = { version = "4.0.0-dev", git = "https://github.com/paritytech/polkadot-sdk", branch = "master" }
 frame-benchmarking-cli = { version = "4.0.0-dev", git = "https://github.com/paritytech/polkadot-sdk", branch = "master" }
