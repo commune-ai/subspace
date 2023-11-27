@@ -2,9 +2,8 @@
 #![allow(warnings)]
 #![cfg_attr(not(feature = "std"), no_std)]
 #![recursion_limit = "512"]
-pub use pallet::*;
-
 use frame_system::{self as system, ensure_signed};
+pub use pallet::*;
 
 use frame_support::{
 	dispatch,
@@ -29,7 +28,6 @@ use sp_std::marker::PhantomData;
 mod benchmarking;
 
 pub mod autogen_weights;
-pub use autogen_weights::WeightInfo;
 
 #[cfg(test)]
 mod mock;
@@ -37,24 +35,28 @@ mod mock;
 // =========================
 //	==== Pallet Imports =====
 // =========================
+mod global;
 mod math;
 pub mod module;
 mod network;
 mod registration;
 mod staking;
 mod step;
-mod global;
-pub mod weights;
+mod weights;
 
 #[frame_support::pallet]
 pub mod pallet {
-	use super::*;
-	use frame_support::{inherent::Vec, pallet_prelude::*, sp_std::vec, traits::Currency};
+	use frame_support::{
+		pallet_prelude::*,
+		traits::{BuildGenesisConfig, Currency},
+	};
 	use frame_system::pallet_prelude::*;
 	use scale_info::prelude::string::String;
 	use serde::{Deserialize, Serialize};
 	use serde_with::{serde_as, DisplayFromStr};
 	use sp_arithmetic::per_things::Percent;
+	pub use sp_std::{vec, vec::Vec};
+	pub use crate::autogen_weights::WeightInfo;
 
 	#[pallet::pallet]
 	#[pallet::generate_store(pub(super) trait Store)]
@@ -236,7 +238,7 @@ pub mod pallet {
 		pub max_allowed_weights: u16, /* max number of weights allowed to be registered in this
 		                               * subnet */
 		pub max_allowed_uids: u16, // max number of uids allowed to be registered in this subnet
-		pub min_stake: u64, 
+		pub min_stake: u64,
 		pub founder: T::AccountId, // founder of the network
 		// pub democratic: bool
 		pub vote_threshold: u16, // out of 100
@@ -254,8 +256,7 @@ pub mod pallet {
 	pub type MinAllowedWeights<T> =
 		StorageMap<_, Identity, u16, u16, ValueQuery, DefaultMinAllowedWeights<T>>;
 	#[pallet::storage] // --- MAP ( netuid ) --> min_allowed_weights
-	pub type MinStake<T> =
-		StorageMap<_, Identity, u16, u64, ValueQuery, DefaultMinStake<T>>;
+	pub type MinStake<T> = StorageMap<_, Identity, u16, u64, ValueQuery, DefaultMinStake<T>>;
 	#[pallet::storage] // --- MAP ( netuid ) --> min_allowed_weights
 	pub type MaxAllowedWeights<T> =
 		StorageMap<_, Identity, u16, u16, ValueQuery, DefaultMaxAllowedWeights<T>>;
@@ -447,7 +448,7 @@ pub mod pallet {
 		MaxAllowedSubnetsSet(u16), // --- Event created when setting the maximum allowed subnets
 		MaxAllowedModulesSet(u16), // --- Event created when setting the maximum allowed modules
 		MaxRegistrationsPerBlockSet(u16), // --- Event created when we set max registrations per block
-		GlobalUpdate(u16, u16, u16, u16, u64, u64)
+		GlobalUpdate(u16, u16, u16, u16, u64, u64),
 	}
 
 	// Errors inform users that something went wrong.
@@ -480,7 +481,7 @@ pub mod pallet {
 		NotSettingEnoughWeights, /* ---- Thrown when the dispatch attempts to set weights on
 		                          * chain with fewer elements than are allowed. */
 		TooManyRegistrationsPerBlock, /* ---- Thrown when registrations this block exceeds
-		                                * allowed number. */
+		                               * allowed number. */
 		AlreadyRegistered, /* ---- Thrown when the caller requests registering a module which
 		                    * already exists in the active set. */
 		MaxAllowedUIdsNotAllowed, // ---  Thrown if the vaule is invalid for MaxAllowedUids
@@ -522,15 +523,16 @@ pub mod pallet {
 		StakeNotAdded,
 		BalanceNotRemoved,
 		NotEnoughStakeToRegister,
-		MaxAllowedModules, // --- Thrown when the user tries to set max allowed modules to a value less than the current number of registered modules.
+		MaxAllowedModules, /* --- Thrown when the user tries to set max allowed modules to a
+		                    * value less than the current number of registered modules. */
 	}
 
 	// ==================
 	// ==== Genesis =====
 	// ==================
 
+	#[derive(frame_support::DefaultNoBound)]
 	#[pallet::genesis_config]
-	#[cfg(feature = "std")]
 	pub struct GenesisConfig<T: Config> {
 		// key, name, address, weights
 		pub modules: Vec<Vec<(T::AccountId, Vec<u8>, Vec<u8>, Vec<(u16, u16)>)>>,
@@ -543,20 +545,8 @@ pub mod pallet {
 		pub block: u32,
 	}
 
-	#[cfg(feature = "std")]
-	impl<T: Config> Default for GenesisConfig<T> {
-		fn default() -> Self {
-			Self {
-				modules: Default::default(),
-				subnets: Default::default(),
-				stake_to: Default::default(),
-				block: Default::default(),
-			}
-		}
-	}
-
 	#[pallet::genesis_build]
-	impl<T: Config> GenesisBuild<T> for GenesisConfig<T> {
+	impl<T: Config> BuildGenesisConfig for GenesisConfig<T> {
 		fn build(&self) {
 			// Set initial total issuance from balances
 			// Subnet config values
@@ -574,7 +564,6 @@ pub mod pallet {
 					subnet.5,         // max_allowed_uids
 					subnet.6,         // min_stake
 					&subnet.7,        // founder
-
 					0 as u64,         // stake
 				);
 				for (uid_usize, (key, name, address, weights)) in
@@ -612,9 +601,8 @@ pub mod pallet {
 		fn on_initialize(_block_number: BlockNumberFor<T>) -> Weight {
 			Self::block_step();
 
-			return Weight::from_ref_time(110_634_229_000 as u64)
-				.saturating_add(T::DbWeight::get().reads(8304 as u64))
-				.saturating_add(T::DbWeight::get().writes(110 as u64))
+			// TODO:
+			Weight::zero()
 		}
 	}
 
@@ -687,9 +675,9 @@ pub mod pallet {
 
 		#[pallet::weight(T::WeightInfo::transfer_multiple())]
 		pub fn transfer_multiple(
-			origin: OriginFor<T>,         // --- The account that is calling this function.
-			destinations: Vec<T::AccountId>,     // --- The module key.
-			amounts: Vec<u64>,                  // --- The amount of stake to transfer.
+			origin: OriginFor<T>, // --- The account that is calling this function.
+			destinations: Vec<T::AccountId>, // --- The module key.
+			amounts: Vec<u64>,    // --- The amount of stake to transfer.
 		) -> DispatchResult {
 			Self::do_transfer_multiple(origin, destinations, amounts)
 		}
@@ -746,7 +734,7 @@ pub mod pallet {
 			name: Vec<u8>,
 			address: Vec<u8>,
 			stake: u64,
-			module_key: T::AccountId
+			module_key: T::AccountId,
 		) -> DispatchResult {
 			Self::do_registration(origin, network, name, address, stake, module_key)
 		}
@@ -761,12 +749,17 @@ pub mod pallet {
 			max_registrations_per_block: u16,
 			unit_emission: u64,
 			tx_rate_limit: u64,
-
 		) -> DispatchResult {
-			Self::do_update_global(origin, max_name_length, max_allowed_subnets, max_allowed_modules, max_registrations_per_block, unit_emission,  tx_rate_limit)
+			Self::do_update_global(
+				origin,
+				max_name_length,
+				max_allowed_subnets,
+				max_allowed_modules,
+				max_registrations_per_block,
+				unit_emission,
+				tx_rate_limit,
+			)
 		}
-
-
 	}
 
 	// ---- Subspace helper functions.
@@ -783,21 +776,19 @@ pub mod pallet {
 		// --- Returns the transaction priority for setting weights.
 		pub fn get_priority_stake(key: &T::AccountId, netuid: u16) -> u64 {
 			if Uids::<T>::contains_key(netuid, &key) {
-				return Self::get_stake(netuid, key);
+				return Self::get_stake(netuid, key)
 			}
 			return 0
-			
 		}
 		pub fn get_priority_balance(key: &T::AccountId) -> u64 {
-			return Self::get_balance_u64(key);
-
-		}}
-
-
-/************************************************************
-	CallType definition
-************************************************************/
+			return Self::get_balance_u64(key)
+		}
 	}
+
+	/************************************************************
+		CallType definition
+	************************************************************/
+}
 
 #[derive(Debug, PartialEq)]
 pub enum CallType {
@@ -904,7 +895,6 @@ where
 				priority: Self::get_priority_vanilla(who),
 				..Default::default()
 			}),
-
 
 			Some(Call::register { .. }) => Ok(ValidTransaction {
 				priority: Self::get_priority_vanilla(who),

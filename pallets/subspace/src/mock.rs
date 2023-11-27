@@ -3,7 +3,7 @@
 use crate as pallet_subspace;
 use frame_support::{
     assert_ok, parameter_types,
-	traits::{Everything, Hash, Hooks, StorageMapShim},
+	traits::{Everything, Hooks, StorageMapShim},
 	weights,
 };
 use frame_system as system;
@@ -113,5 +113,5 @@ impl pallet_subspace::Config for Test {
 #[allow(dead_code)]
 pub fn new_test_ext() -> sp_io::TestExternalities {
 	sp_tracing::try_init_simple();
-	frame_system::GenesisConfig::default().build_storage::<Test>().unwrap().into()
+	frame_system::GenesisConfig::<Test>::default().build_storage::<Test>().unwrap().into()
 }
