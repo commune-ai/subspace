@@ -48,59 +48,57 @@ impl<T: Config> Pallet<T> {
 		// == Stake ==
 		// ===========
 
-		let mut keys: Vec<(u16, T::AccountId)> = Self::get_uid_key_tuples(netuid);
+		let mut keys: Vec<T::AccountId> = Self::get_keys(netuid);
 		log::trace!("keys: {:?}", &keys);
 		// Access network stake as normalized vector.
-		let mut stake_64: Vec<I64F64> = vec![I64F64::from_num(0.0); n as usize];
-		let mut total_stake: I64F64 =
-			I64F64::from_num(Self::get_total_subnet_stake(netuid).clone());
-		if total_stake == I64F64::from_num(0.0) {
-			total_stake = I64F64::from_num(1.0);
-		}
-		for (uid_i, key) in keys.iter() {
-			stake_64[*uid_i as usize] =
-				I64F64::from_num(Self::get_stake_for_key(netuid, key).clone()) / total_stake;
+		let mut stake: Vec<I64F64> = vec![I64F64::from_num(0.0); n as usize];
+		let mut total_stake : I64F64 = I64F64::from_num(0.0);
+
+		for key in keys.iter() {
+			stake[*uid_i as usize] = I64F64::from_num(Self::get_stake_for_key(netuid, key).clone());
+			total_stake += stake[*uid_i as usize];
 		}
 
-		let mut stake: Vec<I32F32> = stake_64.iter().map(|x| I32F32::from_num(x.clone())).collect();
-
-		// range: I32F32(0, 1)
-		log::trace!("S: {:?}", &stake);
-
-		// Normalize active stake.
-		inplace_normalize(&mut stake);
-		log::trace!("S (mask+norm): {:?}", &stake);
-
-		// =============
-		// == Weights (N x N) Sparsified ==
-		// =============
-
-		// Access network weights row normalized.
-		let mut weights: Vec<Vec<(u16, I32F32)>> = Self::get_weights_sparse(netuid);
-		log::trace!("W (permit): {:?}", &weights);
-
-		// Normalize remaining weights.
-		inplace_row_normalize_sparse(&mut weights);
-		log::trace!("W (mask+norm): {:?}", &weights);
 
 		// =============================
 		// ==  Incentive ==
 		// =============================
 
-		// Compute incentive: r_j = SUM(i) w_ij * s_i.
-		let mut incentive: Vec<I32F32> = matmul_sparse(&weights, &stake, n);
-		log::trace!("Incentive: {:?}", &incentive);
+		// Normalize active stake.
 
-		// trust that acts as a multiplier for the incentive
-		let trust: Vec<I32F32> = Self::calculate_trust(&weights, &stake, n);
+		let incentive : Vec<I32F32> = Vec::new();
+
+		if total_stake == I64F64::from_num(0.0) {
+			// no weights set
+			for key in keys.iter() {
+				incentive[*uid_i as usize] = I64F64::from_num(1.0);
+			}
+		} else {
+			let sum_value:I64F64  = total_stake.sqrt(); // sqrt of the total stake
+			// take the square root of the stake
+			incentive: I64F64 = stake.iter().map(|x| I32F32::from_num(x.sqrt() / sum_value) ).collect();
+		}
+
+		// Normalize active stake.
+		inplace_normalize(&mut incentive);
+
+
+		// =============================
+		// ==  Trust ==
+		// =============================
+		let n = stake.len() as u16;
+		let trust: Vec<I32F32> = Vec::new()
+
+		for (uid_i, key) in keys.iter() {
+			// update the last update block
+			let stake_from_vector: Vec<(T::AccountId, u64)> = Self::get_stake_from_vector(netuid, key);
+			// count the number of delegators for this module
+			trust.push(I32F32::from_num(stake_from_vector.len() as u64));
+		}
+
+
 		incentive = incentive.iter().zip(trust.iter()).map(|(inc, tru)| inc * tru).collect();
 		// If emission is zero, do an even split.
-		if is_zero(&incentive) {
-			// no weights set
-			for (uid_i, key) in keys.iter() {
-				incentive[*uid_i as usize] = I32F32::from_num(1.0);
-			}
-		}
 		inplace_normalize(&mut incentive); // range: I32F32(0, 1)
 
 		// store the incentive
@@ -115,17 +113,37 @@ impl<T: Config> Pallet<T> {
 		// == Bonds==
 		// =================================
 
-		// Compute bonds delta column normalized.
-		let mut bonds: Vec<Vec<(u16, I32F32)>> = row_hadamard_sparse(&weights, &stake); // ΔB = W◦S (outdated W masked)
-		log::trace!("ΔB: {:?}", &bonds);
+		// divide the incentive by the stake from each of the stakers
+		
+		let emisisons: Vec<I32F32>= incentive.clone();
+		let bonds : Vec<Vec<(T::AccountId, I32F32)>> = Vec::new();
 
-		// Normalize bonds delta.
-		inplace_col_normalize_sparse(&mut bonds, n); // sum_i b_ij = 1
-		log::trace!("ΔB (norm): {:?}", &bonds);
+		let dividend_ratio: I32F32 = I32F32::from_num(0.5);
 
-		// Compute dividends: d_i = SUM(j) b_ij * inc_j.
-		// range: I32F32(0, 1)
-		let mut dividends: Vec<I32F32> = matmul_transpose_sparse(&bonds, &incentive).clone();
+		// Compute bonds: b_ij = w_ij * s_i.
+		for (uid_i,key) in keys.iter().enumerate() {
+			// update the last update block
+
+			let stake_from_vector: Vec<(T::AccountId, u64)> = Self::get_stake_from_vector(netuid, key);
+			// count the number of delegators for this module
+
+			let ratios : Vec<(T::AccountId, I32F32)> = stake_from_vector.iter().map(|(k, v)| (k.clone(), I32F32::from_num(*v))).collect();
+			let mut total_stake_from: I64F64 = ratios.iter().map(|(_, v)| v).sum();
+			if total_stake_from == I64F64::from_num(0.0) {
+				// no weights set
+				for (staker_key, staker_stake) in ratios.iter() {
+					total_stake_from += staker_stake;
+				}
+			}
+			let mut bonds_for_module: Vec<(T::AccountId, I32F32)> = Vec::new();
+			for (staker_key, staker_stake) in ratios.iter() {
+				let staker_bond: I32F32 = I32F32::from_num(staker_stake / total_stake_from) * emisisons[*uid_i as usize] * I32F32::from_num(dividend_ratio);
+				bonds_for_module.push((staker_bond, bond));
+			}
+			
+			bonds.push(bonds_for_module);
+			
+		}
 		// If emission is zero, do an even split.
 		if is_zero(&dividends) {
 			// no weights set
