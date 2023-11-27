@@ -1,6 +1,6 @@
 use node_subspace_runtime::{
 	AccountId, AuraConfig, BalancesConfig, GrandpaConfig, RuntimeGenesisConfig, Signature,
-	SubspaceModuleConfig, SudoConfig, SystemConfig, WASM_BINARY,
+	SubspaceModuleConfig, SudoConfig, SystemConfig, WASM_BINARY, Precompiles
 };
 use sc_service::ChainType;
 use sp_consensus_aura::sr25519::AuthorityId as AuraId;
@@ -229,6 +229,8 @@ fn network_genesis(
 	stake_to: Vec<Vec<(AccountId, Vec<(AccountId, u64)>)>>,
 	block: u32,
 ) -> RuntimeGenesisConfig {
+	use node_subspace_runtime::{EVMChainIdConfig, EVMConfig};
+	
 	RuntimeGenesisConfig {
 		system: SystemConfig {
 			// Add Wasm runtime to storage.
@@ -258,5 +260,25 @@ fn network_genesis(
 			block,
 			stake_to,
 		},
+		// EVM Compatibility
+		evm_chain_id: Default::default(),
+		evm: EVMConfig {
+			accounts: Precompiles::used_addresses()
+				.map(|addr| {
+					(
+						addr,
+						fp_evm::GenesisAccount {
+							balance: Default::default(),
+							code: Default::default(),
+							nonce: Default::default(),
+							storage: Default::default(),
+						},
+					)
+				})
+				.collect(),
+			_marker: Default::default(),
+		},
+		ethereum: Default::default(),
+		base_fee: Default::default(),
 	}
 }
