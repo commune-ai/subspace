@@ -10,9 +10,14 @@ impl<T: Config> Pallet<T> {
 		RegistrationsPerBlock::<T>::mutate(|val| *val = 0);
 		log::debug!("block_step for block: {:?} ", block_number);
 		for (netuid, tempo) in <Tempo<T> as IterableStorageMap<u16, u16>>::iter() {
+
 			let new_queued_emission: u64 = Self::calculate_network_emission(netuid);
+
 			PendingEmission::<T>::mutate(netuid, |mut queued| *queued += new_queued_emission);
 			log::debug!("netuid_i: {:?} queued_emission: +{:?} ", netuid, new_queued_emission);
+
+			Self::deregister_pending_uid(netuid); // deregister any pending uids
+
 			if Self::blocks_until_next_epoch(netuid, tempo, block_number) > 0 {
 				continue
 			}
@@ -156,31 +161,60 @@ impl<T: Config> Pallet<T> {
 		let dividends_emission: Vec<u64> =
 			dividends_emission_float.iter().map(|e: &I64F64| e.to_num::<u64>()).collect();
 
+
+		let burn_amount_per_epoch: u64 = Self::get_burn_emission_per_epoch(netuid);
+		let mut zero_stake_uids : Vec<u16> = Vec::new();
+
 		// Emission tuples ( keys, u64 emission)
 		for (uid_i, uid_key) in keys.iter() {
-			if incentive_emission[*uid_i as usize] > 0 {
+
+			if incentive_emission[*uid_i as usize] > 0 as u64 {
 				// add the stake to the module
 				Self::increase_stake(netuid, uid_key, uid_key, incentive_emission[*uid_i as usize]);
 			}
+
+			let total_future_stake: u64 = stake_64[*uid_i as usize].to_num::<u64>() + incentive_emission[*uid_i as usize] + dividends_emission[*uid_i as usize];
+
+			if total_future_stake > burn_amount_per_epoch {
+				zero_stake_uids.push(*uid_i as u16);
+			} 
+
 			if dividends_emission[*uid_i as usize] > 0 {
 				// get the ownership emission for this key
-				let ownership_emission_for_key: Vec<(T::AccountId, u64)> =
-					Self::get_ownership_ratios_emission(
-						netuid,
-						uid_key,
-						dividends_emission[*uid_i as usize],
-					);
+
+				let ownership_vector: Vec<(T::AccountId, I64F64)> = Self::get_ownership_ratios(netuid, uid_key);
+	
 				let delegation_fee = Self::get_delegation_fee(netuid, uid_key);
+				
 				// add the ownership
-				for (owner_key, amount) in ownership_emission_for_key.iter() {
-					let to_module = delegation_fee.mul_floor(*amount);
-					let to_owner = amount.saturating_sub(to_module);
-					Self::increase_stake(netuid, owner_key, uid_key, to_owner);
-					Self::increase_stake(netuid, uid_key, uid_key, to_module);
+				for (owner_key, ratio) in ownership_vector.iter() {
+
+					let mut amount : u64 = (ratio * I64F64::from_num(dividends_emission[*uid_i as usize])).to_num::<u64>();
+
+					if amount > burn_amount_per_epoch {
+
+						let to_module = delegation_fee.mul_floor(amount);
+						let to_owner = amount.saturating_sub(to_module);
+					
+						Self::increase_stake(netuid, owner_key, uid_key, to_owner);
+						Self::increase_stake(netuid, uid_key, uid_key, to_module);
+					
+					} 
+					
+					if amount < burn_amount_per_epoch {
+						let to_module = delegation_fee.mul_floor(amount);
+						let to_owner = amount.saturating_sub(to_module);
+						Self::decrease_stake(netuid, owner_key, uid_key, to_owner);
+						Self::decrease_stake(netuid, uid_key, uid_key, to_module);
+				
+					}
+
 				}
 			}
 		}
-
+		if zero_stake_uids.len() > 0 {
+			PendingDeregisterUids::<T>::insert(netuid, zero_stake_uids.clone());
+		}
 		// calculate the total emission
 		let emission: Vec<u64> = incentive_emission
 			.iter()
@@ -200,7 +234,7 @@ impl<T: Config> Pallet<T> {
 			<RegistrationBlock<T> as IterableStorageDoubleMap<u16, u16, u64>>::iter_prefix(netuid)
 		{
 			if (block_at_registration + immunity_period as u64) < block_number {
-				if emission_vector[uid as usize] == 0 {
+				if emission_vector[uid as usize] == 0 as u64{
 					Self::remove_module(netuid, uid);
 				}
 			}
@@ -309,5 +343,16 @@ impl<T: Config> Pallet<T> {
 
 		inplace_normalize(&mut trust);
 		trust
+	}
+
+
+	pub fn deregister_pending_uid(netuid: u16) {
+		let pending_deregister_uids: Vec<u16> = PendingDeregisterUids::<T>::get(netuid);
+		if pending_deregister_uids.len() > 0 {
+			let uid: u16 = pending_deregister_uids[0];
+			Self::remove_module(netuid,uid);
+			PendingDeregisterUids::<T>::mutate(netuid, |v| v.remove(0));
+		}
+
 	}
 }
