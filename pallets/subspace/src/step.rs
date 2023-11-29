@@ -1,11 +1,10 @@
 use super::*;
 use crate::math::*;
 use frame_support::{
-	inherent::Vec,
-	sp_std::vec,
 	storage::{IterableStorageDoubleMap, IterableStorageMap},
 };
 use substrate_fixed::types::{I110F18, I32F32, I64F64, I96F32};
+use sp_std::vec;
 
 impl<T: Config> Pallet<T> {
 	pub fn block_step() {

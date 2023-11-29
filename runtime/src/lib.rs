@@ -36,7 +36,7 @@ use sp_version::RuntimeVersion;
 pub use frame_support::{
 	construct_runtime, parameter_types,
 	traits::{
-		ConstU128, ConstU32, ConstU64, ConstU8, KeyOwnerProofSystem, Randomness, StorageInfo,
+		ConstBool, ConstU128, ConstU32, ConstU64, ConstU8, KeyOwnerProofSystem, Randomness, StorageInfo,
 	},
 	weights::{
 		constants::{
@@ -59,7 +59,7 @@ pub use sp_runtime::{Perbill, Permill};
 pub use pallet_subspace;
 
 // An index to a block.
-pub type BlockNumber = u32;
+pub type BlockNumber = u64;
 
 // Alias to 512-bit hash when used in the context of a transaction signature on the chain.
 pub type Signature = MultiSignature;
@@ -72,7 +72,7 @@ pub type AccountId = <<Signature as Verify>::Signer as IdentifyAccount>::Account
 pub type Balance = u64;
 
 // Index of a transaction in the chain.
-pub type Index = u32;
+pub type Index = u64;
 
 // A hash of some data used by the chain.
 pub type Hash = sp_core::H256;
@@ -162,6 +162,8 @@ parameter_types! {
 // Configure FRAME pallets to include in runtime.
 
 impl frame_system::Config for Runtime {
+	/// The block type.
+	type Block = Block;
 	// The basic call filter to use in dispatchable.
 	type BaseCallFilter = frame_support::traits::Everything;
 	// Block & extrinsics weights: base values and limits.
@@ -174,16 +176,10 @@ impl frame_system::Config for Runtime {
 	type RuntimeCall = RuntimeCall;
 	// The lookup mechanism to get account ID from whatever is passed in dispatchers.
 	type Lookup = AccountIdLookup<AccountId, ()>;
-	// The index type for storing how many extrinsics an account has signed.
-	type Index = Index;
-	// The index type for blocks.
-	type BlockNumber = BlockNumber;
 	// The type for hashing blocks and tries.
 	type Hash = Hash;
 	// The hashing algorithm used.
 	type Hashing = BlakeTwo256;
-	// The header type.
-	type Header = generic::Header<BlockNumber, BlakeTwo256>;
 	// The ubiquitous event type.
 	type RuntimeEvent = RuntimeEvent;
 	// The ubiquitous origin type.
@@ -211,6 +207,8 @@ impl frame_system::Config for Runtime {
 	// The set code logic, just the default since we're not a parachain.
 	type OnSetCode = ();
 	type MaxConsumers = frame_support::traits::ConstU32<16>;
+	/// The index type for storing how many extrinsics an account has signed.
+	type Nonce = u64;
 }
 
 impl pallet_insecure_randomness_collective_flip::Config for Runtime {}
@@ -219,26 +217,19 @@ impl pallet_aura::Config for Runtime {
 	type AuthorityId = AuraId;
 	type DisabledValidators = ();
 	type MaxAuthorities = ConstU32<128>;
+	type AllowMultipleBlocksPerSlot = ConstBool<false>;
 }
 
 impl pallet_grandpa::Config for Runtime {
 	type RuntimeEvent = RuntimeEvent;
 
-	type KeyOwnerProofSystem = ();
-
-	type KeyOwnerProof =
-		<Self::KeyOwnerProofSystem as KeyOwnerProofSystem<(KeyTypeId, GrandpaId)>>::Proof;
-
-	type KeyOwnerIdentification = <Self::KeyOwnerProofSystem as KeyOwnerProofSystem<(
-		KeyTypeId,
-		GrandpaId,
-	)>>::IdentificationTuple;
-
-	type HandleEquivocation = ();
+	type KeyOwnerProof = sp_core::Void;
 
 	type WeightInfo = ();
 	type MaxAuthorities = ConstU32<128>;
 	type MaxSetIdSessionEntries = ConstU64<0>;
+	type EquivocationReportSystem = ();
+	type MaxNominators = ConstU32<0>;
 }
 
 impl pallet_timestamp::Config for Runtime {
@@ -263,6 +254,11 @@ impl pallet_balances::Config for Runtime {
 	type DustRemoval = ();
 	type ExistentialDeposit = ConstU64<EXISTENTIAL_DEPOSIT>;
 	type AccountStore = System;
+	type FreezeIdentifier = ();
+	type MaxFreezes = ();
+	type RuntimeHoldReason = ();
+	type MaxHolds = ();
+
 	type WeightInfo = pallet_balances::weights::SubstrateWeight<Runtime>;
 }
 
@@ -313,6 +309,7 @@ impl pallet_transaction_payment::Config for Runtime {
 impl pallet_sudo::Config for Runtime {
 	type RuntimeEvent = RuntimeEvent;
 	type RuntimeCall = RuntimeCall;
+	type WeightInfo = pallet_sudo::weights::SubstrateWeight<Runtime>;
 }
 
 impl pallet_utility::Config for Runtime {
@@ -415,6 +412,14 @@ impl_runtime_apis! {
 	impl sp_api::Metadata<Block> for Runtime {
 		fn metadata() -> OpaqueMetadata {
 			OpaqueMetadata::new(Runtime::metadata().into())
+		}
+
+		fn metadata_at_version(version:u32) -> Option<OpaqueMetadata> {
+			Runtime::metadata_at_version(version)
+		}
+
+		fn metadata_versions() -> sp_std::vec::Vec<u32> {
+			Runtime::metadata_versions()
 		}
 	}
 
@@ -579,7 +584,8 @@ impl_runtime_apis! {
 		fn dispatch_benchmark(
 			config: frame_benchmarking::BenchmarkConfig
 		) -> Result<Vec<frame_benchmarking::BenchmarkBatch>, sp_runtime::RuntimeString> {
-			use frame_benchmarking::{baseline, Benchmarking, BenchmarkBatch, TrackedStorageKey};
+			use frame_benchmarking::{baseline, Benchmarking, BenchmarkBatch};
+			use sp_storage::TrackedStorageKey;
 
 			use frame_system_benchmarking::Pallet as SystemBench;
 			use baseline::Pallet as BaselineBench;

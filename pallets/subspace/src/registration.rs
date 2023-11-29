@@ -1,12 +1,14 @@
 use super::*;
 use crate::system::ensure_root;
-use frame_support::{pallet_prelude::DispatchResult, sp_std::vec};
+use frame_support::{pallet_prelude::DispatchResult};
 use frame_system::ensure_signed;
 use sp_arithmetic::per_things::Percent;
 use sp_core::{H256, U256};
 use sp_io::hashing::{keccak_256, sha2_256};
 use sp_std::{convert::TryInto, vec::Vec};
 use substrate_fixed::types::I32F32;
+use sp_std::vec;
+use system::pallet_prelude::BlockNumberFor;
 
 const LOG_TARGET: &'static str = "runtime::subspace::registration";
 
@@ -169,7 +171,7 @@ impl<T: Config> Pallet<T> {
 	}
 
 	pub fn get_block_hash_from_u64(block_number: u64) -> H256 {
-		let block_number: T::BlockNumber = TryInto::<T::BlockNumber>::try_into(block_number)
+		let block_number: BlockNumberFor<T> = TryInto::<BlockNumberFor<T>>::try_into(block_number)
 			.ok()
 			.expect("convert u64 to block number.");
 		let block_hash_at_number: <T as frame_system::Config>::Hash =

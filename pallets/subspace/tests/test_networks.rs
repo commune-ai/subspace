@@ -1,13 +1,13 @@
 mod test_mock;
 use frame_support::{
 	assert_ok,
-	sp_std::vec,
-	weights::{DispatchClass, DispatchInfo, GetDispatchInfo, Pays},
+	dispatch::{DispatchClass, DispatchInfo, GetDispatchInfo, Pays},
 };
 use frame_system::Config;
 use pallet_subspace::Error;
 use sp_core::U256;
 use test_mock::*;
+use sp_std::vec;
 
 /* TO DO SAM: write test for LatuUpdate after it is set */
 
