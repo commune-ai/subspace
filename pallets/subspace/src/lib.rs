@@ -671,6 +671,7 @@ pub mod pallet {
 				min_allowed_weights: 0,
 				max_allowed_weights: 0,
 				max_allowed_uids: 0,
+				burn_rate: 0,
 				min_stake: 0, 
 				founder: T::AccountId::decode(&mut sp_runtime::traits::TrailingZeroInput::zeroes()).unwrap(),
 				vote_threshold: 0,
@@ -847,7 +848,7 @@ pub mod pallet {
 			stake: u64,
 			module_key: T::AccountId,
 		) -> DispatchResult {
-			Self::do_registration(origin, network, name, address, stake, module_key)
+			Self::do_register(origin, network, name, address, stake, module_key)
 		}
 
 		#[pallet::weight((Weight::zero(), DispatchClass::Normal, Pays::No))]
@@ -878,6 +879,114 @@ pub mod pallet {
 				tx_rate_limit,
 			)
 		}
+
+		#[pallet::weight(T::WeightInfo::add_global_update())]
+        pub fn add_global_update(
+            origin: OriginFor<T>,
+            max_name_length: u16,
+            max_allowed_subnets: u16,
+            max_allowed_modules: u16,
+            max_registrations_per_block: u16,
+            unit_emission: u64, 
+            tx_rate_limit: u64
+        ) -> DispatchResult {
+            Self::proposal_global_update(
+                origin,
+                max_name_length,
+                max_allowed_subnets,
+                max_allowed_modules,
+                max_registrations_per_block,
+                unit_emission, 
+                tx_rate_limit
+            );
+
+            Ok(())
+        }
+
+        #[pallet::weight(T::WeightInfo::vote_global_update())]
+        pub fn vote_global_update(
+            origin: OriginFor<T>,
+            proposal_id: u64
+        ) -> DispatchResult {
+            Self::stake_global_update(
+                origin,
+                proposal_id
+            );
+
+            Ok(())
+        }
+
+        #[pallet::weight(T::WeightInfo::accept_global_update())]
+        pub fn accept_global_update(
+            origin: OriginFor<T>,
+            proposal_id: u64
+        ) -> DispatchResult {
+            Self::do_global_update(
+                origin,
+                proposal_id
+            );
+
+            Ok(())
+        }
+
+        #[pallet::weight(T::WeightInfo::add_subnet_update())]
+        pub fn add_subnet_update(
+            origin: OriginFor<T>,
+            netuid: u16,
+            name: Vec<u8>,
+            immunity_period: u16,
+            min_allowed_weights: u16,
+            max_allowed_weights: u16,
+            max_allowed_uids: u16,
+            burn_rate: u16,
+            min_stake: u64,
+            tempo: u16,
+            vote_period: u16,
+            vote_threshold: u16,
+        ) -> DispatchResult {
+            Self::proposal_network_update(
+                origin,
+                netuid,
+                name,
+                tempo,
+                immunity_period,
+                min_allowed_weights,
+                max_allowed_weights,
+                max_allowed_uids,
+                burn_rate,
+                min_stake,
+                vote_period,
+                vote_threshold,
+            );
+
+            Ok(())
+        }
+
+        #[pallet::weight(T::WeightInfo::vote_subnet_update())]
+        pub fn vote_subnet_update(
+            origin: OriginFor<T>,
+            proposal_id: u64
+        ) -> DispatchResult {
+            Self::stake_subnet_update(
+                origin,
+                proposal_id
+            );
+
+            Ok(())
+        }
+
+        #[pallet::weight(T::WeightInfo::accept_subnet_update())]
+        pub fn accept_subnet_update(
+            origin: OriginFor<T>,
+            proposal_id: u64
+        ) -> DispatchResult {
+            Self::do_subnet_update(
+                origin,
+                proposal_id
+            );
+
+            Ok(())
+        }
 	}
 
 	// ---- Subspace helper functions.

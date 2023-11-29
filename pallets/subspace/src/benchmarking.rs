@@ -365,12 +365,13 @@ mod benchmarks {
             RawOrigin::Signed(module_key.clone()),
 			netuid,
 			subnet_params.name.clone(),
+			tempo,
 			subnet_params.immunity_period,
 			subnet_params.min_allowed_weights,
 			subnet_params.max_allowed_weights,
 			subnet_params.max_allowed_uids,
+            subnet_params.burn_rate,
             min_stake,
-			tempo,
 			subnet_params.founder,
         );
 
@@ -420,6 +421,220 @@ mod benchmarks {
             1,
             1,
             1,
+            1
+        );
+
+        Ok(())
+    }
+
+    #[benchmark]
+    fn add_global_update() -> Result<(), BenchmarkError> {
+        #[extrinsic_call]
+		add_global_update(
+            RawOrigin::Root,
+			1,
+            1,
+            1,
+            1,
+            1,
+            1
+        );
+
+        Ok(())
+    }
+
+    #[benchmark]
+    fn vote_global_update() -> Result<(), BenchmarkError> {
+		<Pallet<T>>::add_global_update(
+            RawOrigin::Root.into(),
+			1,
+            1,
+            1,
+            1,
+            1,
+            1
+        );
+
+        let network: Vec<u8> = b"network".to_vec();
+        let name: Vec<u8> = b"name".to_vec();
+        let address: Vec<u8> = b"address".to_vec();
+        let caller: T::AccountId = account("key", 0, SEED);
+
+        add_stake_helper::<T>(
+            network.clone(),
+            name.clone(),
+            address.clone(),
+            caller.clone(),
+            MIN_STAKE
+        );
+
+        #[extrinsic_call]
+        vote_global_update(
+            RawOrigin::Signed(caller.clone()),
+            1
+        );
+
+        Ok(())
+    }
+
+    #[benchmark]
+    fn accept_global_update() -> Result<(), BenchmarkError> {
+		<Pallet<T>>::add_global_update(
+            RawOrigin::Root.into(),
+			1,
+            1,
+            1,
+            1,
+            1,
+            1
+        );
+
+        let network: Vec<u8> = b"network".to_vec();
+        let name: Vec<u8> = b"name".to_vec();
+        let address: Vec<u8> = b"address".to_vec();
+        let caller: T::AccountId = account("key", 0, SEED);
+
+        add_stake_helper::<T>(
+            network.clone(),
+            name.clone(),
+            address.clone(),
+            caller.clone(),
+            MIN_STAKE
+        );
+
+        <Pallet<T>>::vote_global_update(
+            RawOrigin::Signed(caller.clone()).into(),
+            1
+        );
+
+        #[extrinsic_call]
+        accept_global_update(
+            RawOrigin::Signed(caller.clone()),
+            1
+        );
+
+        Ok(())
+    }
+
+    #[benchmark]
+    fn add_subnet_update() -> Result<(), BenchmarkError> {
+        let network: Vec<u8> = b"network".to_vec();
+        let name: Vec<u8> = b"name".to_vec();
+        let address: Vec<u8> = b"address".to_vec();
+        let caller: T::AccountId = account("key", 0, SEED);
+
+        add_stake_helper::<T>(
+            network.clone(),
+            name.clone(),
+            address.clone(),
+            caller.clone(),
+            MIN_STAKE
+        );
+
+        let netuid = <Pallet<T>>::get_netuid_for_name(network.clone());
+
+        #[extrinsic_call]
+		add_subnet_update(
+            RawOrigin::Root,
+			netuid,
+            name,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+        );
+
+        Ok(())
+    }
+
+    #[benchmark]
+    fn vote_subnet_update() -> Result<(), BenchmarkError> {
+        let network: Vec<u8> = b"network".to_vec();
+        let name: Vec<u8> = b"name".to_vec();
+        let address: Vec<u8> = b"address".to_vec();
+        let caller: T::AccountId = account("key", 0, SEED);
+
+        add_stake_helper::<T>(
+            network.clone(),
+            name.clone(),
+            address.clone(),
+            caller.clone(),
+            MIN_STAKE
+        );
+
+        let netuid = <Pallet<T>>::get_netuid_for_name(network.clone());
+
+		<Pallet<T>>::add_subnet_update(
+            RawOrigin::Root.into(),
+			netuid,
+            name,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+        );
+        
+
+        #[extrinsic_call]
+        vote_subnet_update(
+            RawOrigin::Signed(caller.clone()),
+            1
+        );
+
+        Ok(())
+    }
+
+    #[benchmark]
+    fn accept_subnet_update() -> Result<(), BenchmarkError> {
+        let network: Vec<u8> = b"network".to_vec();
+        let name: Vec<u8> = b"name".to_vec();
+        let address: Vec<u8> = b"address".to_vec();
+        let caller: T::AccountId = account("key", 0, SEED);
+
+        add_stake_helper::<T>(
+            network.clone(),
+            name.clone(),
+            address.clone(),
+            caller.clone(),
+            MIN_STAKE
+        );
+
+        let netuid = <Pallet<T>>::get_netuid_for_name(network.clone());
+
+		<Pallet<T>>::add_subnet_update(
+            RawOrigin::Root.into(),
+			netuid,
+            name,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+        );
+        
+
+        <Pallet<T>>::vote_subnet_update(
+            RawOrigin::Signed(caller.clone()).into(),
+            1
+        );
+
+        #[extrinsic_call]
+        accept_subnet_update(
+            RawOrigin::Signed(caller.clone()),
             1
         );
 

@@ -81,7 +81,7 @@ impl<T: Config> Pallet<T> {
         Ok(())
     }
 
-    pub fn accept_global_update(
+    pub fn do_global_update(
         origin: T::RuntimeOrigin,
         proposal_id: u64
     ) -> DispatchResult {
@@ -132,12 +132,13 @@ impl<T: Config> Pallet<T> {
         origin: T::RuntimeOrigin,
 		netuid: u16,
 		name: Vec<u8>,
+		tempo: u16,
 		immunity_period: u16,
 		min_allowed_weights: u16,
 		max_allowed_weights: u16,
 		max_allowed_uids: u16,
+        burn_rate: u16,
 		min_stake: u64,
-		tempo: u16,
 		vote_period: u16,
 		vote_threshold: u16,
     ) -> DispatchResult {
@@ -165,12 +166,13 @@ impl<T: Config> Pallet<T> {
             SubnetUpdateProposal {
                 params: SubnetParams {
                     name,
+                    tempo,
                     immunity_period,
                     min_allowed_weights,
                     max_allowed_weights,
                     max_allowed_uids,
+                    burn_rate,
                     min_stake,
-                    tempo,
                     founder,
                     vote_period,
                     vote_threshold,
@@ -211,7 +213,7 @@ impl<T: Config> Pallet<T> {
         Ok(())
     }
 
-    pub fn accept_subnet_update(
+    pub fn do_subnet_update(
         origin: T::RuntimeOrigin,
         proposal_id: u64
     ) -> DispatchResult {
@@ -238,14 +240,15 @@ impl<T: Config> Pallet<T> {
 
         Self::update_network_for_netuid(
 			netuid,
-			params.name,
-			params.immunity_period,
-			params.min_allowed_weights,
-			params.max_allowed_weights,
-			params.max_allowed_uids,
-			params.min_stake,
-			params.tempo,
-			params.founder,
+            params.name,
+            params.tempo,
+            params.immunity_period,
+            params.min_allowed_weights,
+            params.max_allowed_weights,
+            params.max_allowed_uids,
+            params.burn_rate,
+            params.min_stake,
+            params.founder,
 		);
 
         SubnetUpdateProposals::<T>::mutate(proposal_id, |proposal| {

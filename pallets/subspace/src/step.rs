@@ -353,8 +353,12 @@ impl<T: Config> Pallet<T> {
 		if pending_deregister_uids.len() > 0 {
 			let uid: u16 = pending_deregister_uids[0];
 			Self::remove_module(netuid,uid);
-			PendingDeregisterUids::<T>::mutate(netuid, |v| v.remove(0));
+			PendingDeregisterUids::<T>::mutate(netuid, |v| {
+					if v.len() > 0 {
+						v.remove(0);
+					}
+				}
+			);
 		}
-
 	}
 }
