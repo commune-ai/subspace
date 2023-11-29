@@ -77,6 +77,8 @@ pub type Index = u64;
 // A hash of some data used by the chain.
 pub type Hash = sp_core::H256;
 
+pub type Nonce = u64;
+
 // Opaque types. These are used by the CLI to instantiate machinery that don't need to know
 // the specifics of the runtime. They can then be made to be agnostic over specific formats
 // of data like extrinsics, allowing for them to continue syncing the network through upgrades
@@ -166,8 +168,6 @@ impl frame_system::Config for Runtime {
 	type Block = Block;
 	// The basic call filter to use in dispatchable.
 	type BaseCallFilter = frame_support::traits::Everything;
-	/// The block type for the runtime.
-	type Block = Block;
 	/// Block & extrinsics weights: base values and limits.
 	type BlockWeights = BlockWeights;
 	/// The maximum length of a block (in bytes).
@@ -232,7 +232,6 @@ impl pallet_grandpa::Config for Runtime {
 	type MaxNominators = ConstU32<128>;
 	type MaxSetIdSessionEntries = ConstU64<0>;
 	type EquivocationReportSystem = ();
-	type MaxNominators = ConstU32<0>;
 }
 
 impl pallet_timestamp::Config for Runtime {
@@ -379,7 +378,7 @@ mod benches {
 		[frame_benchmarking, BaselineBench::<Runtime>]
 		[frame_system, SystemBench::<Runtime>]
 		[pallet_balances, Balances]
-		// [pallet_subspace, SubspaceModule]
+		[pallet_subspace, SubspaceModule]
 		[pallet_timestamp, Timestamp]
 		[pallet_utility, Utility]
 	);
