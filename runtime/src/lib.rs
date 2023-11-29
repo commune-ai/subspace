@@ -229,7 +229,6 @@ impl pallet_grandpa::Config for Runtime {
 
 	type WeightInfo = ();
 	type MaxAuthorities = ConstU32<128>;
-	type MaxNominators = ConstU32<128>;
 	type MaxSetIdSessionEntries = ConstU64<0>;
 	type EquivocationReportSystem = ();
 }
