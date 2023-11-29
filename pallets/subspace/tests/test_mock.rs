@@ -68,7 +68,6 @@ impl pallet_balances::Config for Test {
 	type Balance = u64;
 	type DustRemoval = ();
 	type ExistentialDeposit = ExistentialDeposit;
-	type AccountStore = System;
 	type MaxLocks = MaxLocks;
 	type WeightInfo = ();
 	type MaxReserves = MaxReserves;
@@ -78,8 +77,6 @@ impl pallet_balances::Config for Test {
     type MaxHolds = frame_support::traits::ConstU32<16>;
 	type MaxFreezes = frame_support::traits::ConstU32<16>;
 }
-
-type Balance = u64;
 
 impl system::Config for Test {
 	type BaseCallFilter = Everything;
@@ -91,7 +88,6 @@ impl system::Config for Test {
 	type Nonce = u64;
 	type Hash = H256;
 	type Hashing = BlakeTwo256;
-	type AccountId = U256;
 	type Lookup = IdentityLookup<Self::AccountId>;
 	type RuntimeEvent = RuntimeEvent;
 	type RuntimeOrigin = RuntimeOrigin;
