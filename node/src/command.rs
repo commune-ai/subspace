@@ -44,10 +44,6 @@ impl SubstrateCli for Cli {
 				Box::new(chain_spec::ChainSpec::from_json_file(std::path::PathBuf::from(path))?),
 		})
 	}
-
-	// fn native_runtime_version(_: &Box<dyn ChainSpec>) -> &'static RuntimeVersion {
-	// 	&node_subspace_runtime::VERSION
-	// }
 }
 
 // Parse and run command line arguments

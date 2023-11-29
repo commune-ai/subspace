@@ -4,6 +4,7 @@ use node_subspace_runtime::{
 };
 use sc_service::ChainType;
 use sp_consensus_aura::sr25519::AuthorityId as AuraId;
+use sp_consensus_grandpa::AuthorityId as GrandpaId;
 use sp_core::{crypto::Ss58Codec, sr25519, Pair, Public};
 use sp_consensus_grandpa::AuthorityId as GrandpaId;
 use sp_runtime::traits::{IdentifyAccount, Verify};
@@ -203,6 +204,7 @@ pub fn generate_config(network: String) -> Result<ChainSpec, String> {
 		Some(properties),
 		// Extensions
 		None,
+		&[32],
 	))
 }
 
