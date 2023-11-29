@@ -2,7 +2,7 @@
 #![allow(warnings)]
 use frame_support::{
 	assert_ok, parameter_types,
-	traits::{Everything, Hash, Hooks, StorageMapShim},
+	traits::{ConstU32, ConstU64, Everything, Hooks, StorageMapShim},
 	weights,
 };
 use frame_system as system;
@@ -12,8 +12,9 @@ use sp_core::{Get, H256, U256};
 use sp_runtime::{
 	testing::Header,
 	traits::{BlakeTwo256, IdentityLookup},
-	DispatchResult, BuildStorage
+	BuildStorage, DispatchResult,
 };
+use sp_std::hash::Hash;
 
 type UncheckedExtrinsic = frame_system::mocking::MockUncheckedExtrinsic<Test>;
 type Block = frame_system::mocking::MockBlock<Test>;
@@ -62,8 +63,9 @@ parameter_types! {
 }
 
 impl pallet_balances::Config for Test {
-	type Balance = Balance;
 	type RuntimeEvent = RuntimeEvent;
+	type AccountStore = System;
+	type Balance = u64;
 	type DustRemoval = ();
 	type ExistentialDeposit = ExistentialDeposit;
 	type AccountStore = System;
@@ -77,13 +79,14 @@ impl pallet_balances::Config for Test {
 	type MaxFreezes = frame_support::traits::ConstU32<16>;
 }
 
+type Balance = u64;
+
 impl system::Config for Test {
 	type BaseCallFilter = Everything;
 	type Block = Block;
 	type BlockWeights = ();
 	type BlockLength = ();
-	type DbWeight = ();
-	type RuntimeOrigin = RuntimeOrigin;
+	type AccountId = U256;
 	type RuntimeCall = RuntimeCall;
 	type Nonce = u64;
 	type Hash = H256;
@@ -91,7 +94,9 @@ impl system::Config for Test {
 	type AccountId = U256;
 	type Lookup = IdentityLookup<Self::AccountId>;
 	type RuntimeEvent = RuntimeEvent;
+	type RuntimeOrigin = RuntimeOrigin;
 	type BlockHashCount = BlockHashCount;
+	type DbWeight = ();
 	type Version = ();
 	type PalletInfo = PalletInfo;
 	type AccountData = pallet_balances::AccountData<Balance>;
@@ -111,7 +116,7 @@ impl pallet_subspace::Config for Test {
 
 // Build genesis storage according to the mock runtime.
 //pub fn new_test_ext() -> sp_io::TestExternalities {
-//	system::GenesisConfig::default().build_storage::<Test>().unwrap().into()
+//	system::GenesisConfig::default().build_storage().unwrap().into()
 //}
 
 #[allow(dead_code)]
@@ -123,13 +128,13 @@ pub fn set_weights(netuid: u16, key: U256, uids: Vec<u16>, values: Vec<u16>) {
 #[allow(dead_code)]
 pub fn new_test_ext() -> sp_io::TestExternalities {
 	sp_tracing::try_init_simple();
-	<frame_system::GenesisConfig::<Test>>::default().build_storage().unwrap().into()
+	frame_system::GenesisConfig::<Test>::default().build_storage().unwrap().into()
 }
 
 #[allow(dead_code)]
 pub fn test_ext_with_balances(balances: Vec<(U256, u128)>) -> sp_io::TestExternalities {
 	sp_tracing::try_init_simple();
-	let mut t = <frame_system::GenesisConfig::<Test>>::default().build_storage().unwrap().into();
+	let mut t = frame_system::GenesisConfig::<Test>::default().build_storage().unwrap();
 
 	pallet_balances::GenesisConfig::<Test> {
 		balances: balances.iter().map(|(a, b)| (*a, *b as u64)).collect::<Vec<(U256, u64)>>(),
@@ -229,7 +234,12 @@ pub fn register_module(netuid: u16, key: U256, stake: u64) -> DispatchResult {
 }
 
 #[allow(dead_code)]
-pub fn delegate_register_module(netuid: u16, key: U256, module_key: U256, stake: u64) -> DispatchResult {
+pub fn delegate_register_module(
+	netuid: u16,
+	key: U256,
+	module_key: U256,
+	stake: u64,
+) -> DispatchResult {
 	// can i format the test in rus
 
 	let mut network: Vec<u8> = "test".as_bytes().to_vec();
@@ -247,17 +257,25 @@ pub fn delegate_register_module(netuid: u16, key: U256, module_key: U256, stake:
 		SubspaceModule::set_max_registrations_per_block(1000)
 	}
 
-
 	let balance = SubspaceModule::get_balance(&key);
 
 	if stake >= balance {
 		add_balance(key, stake + 1);
 	}
-	println!("Registering module: network: {:?}, key: {:?} stake {:?}", network, module_key, balance);
+	println!(
+		"Registering module: network: {:?}, key: {:?} stake {:?}",
+		network, module_key, balance
+	);
 
-	let result = SubspaceModule::register(origin, network, name.clone(), address, stake, module_key);
+	let result =
+		SubspaceModule::register(origin, network, name.clone(), address, stake, module_key);
 
-	log::info!("Register ok neuron: network: {:?}, module_key: {:?} key: {:?}", name.clone(), module_key, key);
+	log::info!(
+		"Register ok neuron: network: {:?}, module_key: {:?} key: {:?}",
+		name.clone(),
+		module_key,
+		key
+	);
 
 	return result
 }

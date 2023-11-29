@@ -51,8 +51,6 @@ fn test_remove_subnet() {
 	});
 }
 
-
-
 fn test_set_single_temple(tempo: u16) {
 	new_test_ext().execute_with(|| {
 		// creates a subnet when you register a module
@@ -89,7 +87,7 @@ fn test_set_single_temple(tempo: u16) {
 		assert_eq!(subnet_params.max_allowed_weights, params.max_allowed_weights);
 		assert_eq!(subnet_params.immunity_period, params.immunity_period);
 		assert_eq!(subnet_params.name, params.name);
-		
+
 		let previous_total_stake: u64 = block_number() * emission_per_block;
 
 		let n_epochs = 3;
@@ -238,7 +236,6 @@ fn test_set_max_allowed_uids_shrinking() {
 		register_module(netuid, U256::from(0), stake);
 		SubspaceModule::set_max_registrations_per_block(max_uids + extra_uids);
 
-
 		for i in 1..(max_uids + extra_uids) {
 			let result = register_module(netuid, U256::from(i), stake);
 			result.unwrap();
@@ -252,8 +249,6 @@ fn test_set_max_allowed_uids_shrinking() {
 		let mut total_stake: u64 = SubspaceModule::get_total_subnet_stake(netuid);
 		let mut expected_stake: u64 = n as u64 * stake;
 
-		println!("total stake {}", total_stake);
-		println!("expected stake {}", expected_stake);
 		println!("total stake {}", total_stake);
 		println!("expected stake {}", expected_stake);
 		assert_eq!(total_stake, expected_stake);

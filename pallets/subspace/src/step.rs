@@ -13,7 +13,7 @@ impl<T: Config> Pallet<T> {
 		log::debug!("block_step for block: {:?} ", block_number);
 		for (netuid, tempo) in <Tempo<T> as IterableStorageMap<u16, u16>>::iter() {
 			let new_queued_emission: u64 = Self::calculate_network_emission(netuid);
-			PendingEmission::<T>::mutate(netuid, |queued| *queued += new_queued_emission);
+			PendingEmission::<T>::mutate(netuid, |mut queued| *queued += new_queued_emission);
 			log::debug!("netuid_i: {:?} queued_emission: +{:?} ", netuid, new_queued_emission);
 			if Self::blocks_until_next_epoch(netuid, tempo, block_number) > 0 {
 				continue
@@ -23,7 +23,6 @@ impl<T: Config> Pallet<T> {
 			PendingEmission::<T>::insert(netuid, 0);
 		}
 	}
-
 
 	pub fn epoch(netuid: u16, token_emission: u64) {
 		// Get subnetwork size.
@@ -102,11 +101,12 @@ impl<T: Config> Pallet<T> {
 		inplace_normalize(&mut incentive); // range: I32F32(0, 1)
 
 		// store the incentive
-		let cloned_incentive: Vec<u16> = incentive.iter().map(|xi| fixed_proportion_to_u16(*xi)).collect::<Vec<u16>>();
+		let cloned_incentive: Vec<u16> =
+			incentive.iter().map(|xi| fixed_proportion_to_u16(*xi)).collect::<Vec<u16>>();
 		Incentive::<T>::insert(netuid, cloned_incentive);
-		let cloned_trust: Vec<u16> = trust.iter().map(|xi| fixed_proportion_to_u16(*xi)).collect::<Vec<u16>>();
+		let cloned_trust: Vec<u16> =
+			trust.iter().map(|xi| fixed_proportion_to_u16(*xi)).collect::<Vec<u16>>();
 		Trust::<T>::insert(netuid, cloned_trust);
-
 
 		// =================================
 		// == Bonds==

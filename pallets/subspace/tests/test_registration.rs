@@ -17,18 +17,17 @@ mod test_mock;
 	subscribing::subscribe() tests
 *********************************************/
 
-
 #[test]
 fn test_min_stake() {
 	new_test_ext().execute_with(|| {
 		let block_number: u64 = 0;
 		let netuid: u16 = 0;
 		let tempo: u16 = 13;
-		let netuid : u16 = 0;
+		let netuid: u16 = 0;
 		let min_stake = 100_000_000;
 		let max_registrations_per_block = 10;
 		let rounds = 3;
-		let n: u16 = max_registrations_per_block*rounds;
+		let n: u16 = max_registrations_per_block * rounds;
 		let max_registrations_this_block: u16 = 10;
 
 		register_module(netuid, U256::from(0), 0);
@@ -40,8 +39,11 @@ fn test_min_stake() {
 			let key = U256::from(i);
 			let min_stake_to_register = SubspaceModule::get_min_stake_to_register(netuid);
 			let factor: u64 = min_stake_to_register / min_stake;
-			println!("min_stake_to_register: {:?} min_stake: {:?} factor {:?}", min_stake_to_register, min_stake, factor);
-			register_module(netuid, key, factor*min_stake);
+			println!(
+				"min_stake_to_register: {:?} min_stake: {:?} factor {:?}",
+				min_stake_to_register, min_stake, factor
+			);
+			register_module(netuid, key, factor * min_stake);
 			let registrations_this_block = SubspaceModule::get_registrations_this_block();
 			println!("registrations_this_block: {:?}", registrations_this_block);
 
@@ -50,7 +52,6 @@ fn test_min_stake() {
 		}
 		step_block(1);
 		assert_eq!(SubspaceModule::get_registrations_this_block(), 0);
-
 	});
 }
 
@@ -61,7 +62,7 @@ fn test_delegate_register() {
 		let netuid: u16 = 0;
 		let tempo: u16 = 13;
 		let n: u16 = 10;
-		let key: U256 = U256::from(n+1);
+		let key: U256 = U256::from(n + 1);
 		let module_keys: Vec<U256> = (0..n).map(|i| U256::from(i)).collect();
 		let stake_amount: u64 = 10_000_000_000;
 		SubspaceModule::add_balance_to_account(&key, stake_amount * n as u64);
@@ -76,7 +77,6 @@ fn test_delegate_register() {
 		}
 	});
 }
-
 
 #[test]
 fn test_registration_ok() {
@@ -148,4 +148,3 @@ fn register_same_key_twice() {
 		register_module(netuid, key, stake);
 	});
 }
-
