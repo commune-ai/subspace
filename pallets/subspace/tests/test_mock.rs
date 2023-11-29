@@ -317,6 +317,7 @@ pub fn update_network(
 	max_allowed_uids: u16,
 	min_allowed_weights: u16,
 	max_allowed_weights: u16,
+	burn_rate: u16,
 	min_stake: u64,
 ) {
 	let name: Vec<u8> = netuid.to_string().as_bytes().to_vec();
@@ -326,12 +327,13 @@ pub fn update_network(
 		origin,
 		netuid,
 		name,
+		tempo,
 		immunity_period,
 		min_allowed_weights,
 		max_allowed_weights,
 		max_allowed_uids,
+		burn_rate,
 		min_stake,
-		tempo,
 		founder,
 	);
 	assert_ok!(result);

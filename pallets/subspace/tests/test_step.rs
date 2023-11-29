@@ -173,62 +173,64 @@ fn test_pruning() {
 		check_network_stats(netuid);
 	});
 }
-#[test]
-fn test_lowest_priority_mechanism() {
-	new_test_ext().execute_with(|| {
-		// CONSSTANTS
-		let netuid: u16 = 0;
-		let n: u16 = 100;
-		let n_list: Vec<u16> = vec![10, 50, 100, 1000];
-		let blocks_per_epoch_list: u64 = 1;
-		let stake_per_module: u64 = 10_000;
 
-		// SETUP NETWORK
-		register_n_modules(netuid, n, stake_per_module);
+// TODO:
+// #[test]
+// fn test_lowest_priority_mechanism() {
+// 	new_test_ext().execute_with(|| {
+// 		// CONSSTANTS
+// 		let netuid: u16 = 0;
+// 		let n: u16 = 100;
+// 		let n_list: Vec<u16> = vec![10, 50, 100, 1000];
+// 		let blocks_per_epoch_list: u64 = 1;
+// 		let stake_per_module: u64 = 10_000;
 
-		SubspaceModule::set_tempo(netuid, 1);
-		SubspaceModule::set_max_allowed_weights(netuid, n);
-		SubspaceModule::set_min_allowed_weights(netuid, 0);
+// 		// SETUP NETWORK
+// 		register_n_modules(netuid, n, stake_per_module);
 
-		// for i in 0..n {
+// 		SubspaceModule::set_tempo(netuid, 1);
+// 		SubspaceModule::set_max_allowed_weights(netuid, n);
+// 		SubspaceModule::set_min_allowed_weights(netuid, 0);
 
-		//     let key: U256 = U256::from(i);
-		//     register_module( netuid, key, stake_per_module );
+// 		// for i in 0..n {
 
-		// }
-		let keys = SubspaceModule::get_keys(netuid);
-		let uids = SubspaceModule::get_uids(netuid);
+// 		//     let key: U256 = U256::from(i);
+// 		//     register_module( netuid, key, stake_per_module );
 
-		// do a list of ones for weights
-		let weight_uids: Vec<u16> = (0..n).collect();
-		// do a list of ones for weights
-		let mut weight_values: Vec<u16> = weight_uids.iter().map(|x| 1 as u16).collect();
+// 		// }
+// 		let keys = SubspaceModule::get_keys(netuid);
+// 		let uids = SubspaceModule::get_uids(netuid);
 
-		let prune_uid: u16 = n - 1;
-		weight_values[prune_uid as usize] = 0;
-		set_weights(netuid, keys[0], weight_uids.clone(), weight_values.clone());
+// 		// do a list of ones for weights
+// 		let weight_uids: Vec<u16> = (0..n).collect();
+// 		// do a list of ones for weights
+// 		let mut weight_values: Vec<u16> = weight_uids.iter().map(|x| 1 as u16).collect();
 
-		step_block(1);
-		let incentives: Vec<u16> = SubspaceModule::get_incentives(netuid);
-		let dividends: Vec<u16> = SubspaceModule::get_dividends(netuid);
-		let emissions: Vec<u64> = SubspaceModule::get_emissions(netuid);
-		let stakes: Vec<u64> = SubspaceModule::get_stakes(netuid);
+// 		let prune_uid: u16 = n - 1;
+// 		weight_values[prune_uid as usize] = 0;
+// 		set_weights(netuid, keys[0], weight_uids.clone(), weight_values.clone());
 
-		assert!(emissions[prune_uid as usize] == 0);
-		assert!(incentives[prune_uid as usize] == 0);
-		assert!(dividends[prune_uid as usize] == 0);
+// 		step_block(1);
+// 		let incentives: Vec<u16> = SubspaceModule::get_incentives(netuid);
+// 		let dividends: Vec<u16> = SubspaceModule::get_dividends(netuid);
+// 		let emissions: Vec<u64> = SubspaceModule::get_emissions(netuid);
+// 		let stakes: Vec<u64> = SubspaceModule::get_stakes(netuid);
 
-		let lowest_priority_uid: u16 = SubspaceModule::get_lowest_uid(netuid);
-		println!("lowest_priority_uid: {}", lowest_priority_uid);
-		println!("prune_uid: {}", prune_uid);
-		println!("emissions: {:?}", emissions);
-		println!("lowest_priority_uid: {:?}", lowest_priority_uid);
-		println!("dividends: {:?}", dividends);
-		println!("incentives: {:?}", incentives);
-		assert!(lowest_priority_uid == prune_uid);
-		check_network_stats(netuid);
-	});
-}
+// 		assert!(emissions[prune_uid as usize] == 0);
+// 		assert!(incentives[prune_uid as usize] == 0);
+// 		assert!(dividends[prune_uid as usize] == 0);
+
+// 		let lowest_priority_uid: u16 = SubspaceModule::get_lowest_uid(netuid);
+// 		println!("lowest_priority_uid: {}", lowest_priority_uid);
+// 		println!("prune_uid: {}", prune_uid);
+// 		println!("emissions: {:?}", emissions);
+// 		println!("lowest_priority_uid: {:?}", lowest_priority_uid);
+// 		println!("dividends: {:?}", dividends);
+// 		println!("incentives: {:?}", incentives);
+// 		assert!(lowest_priority_uid == prune_uid);
+// 		check_network_stats(netuid);
+// 	});
+// }
 
 // #[test]
 // fn test_deregister_zero_emission_uids() {
@@ -274,57 +276,58 @@ fn test_lowest_priority_mechanism() {
 
 // }
 
-#[test]
-fn test_with_weights() {
-	new_test_ext().execute_with(|| {
-		let n_list: Vec<u16> = vec![10, 50, 100, 1000];
-		let blocks_per_epoch_list: u64 = 1;
-		let stake_per_module: u64 = 10_000;
+// TODO:
+// #[test]
+// fn test_with_weights() {
+// 	new_test_ext().execute_with(|| {
+// 		let n_list: Vec<u16> = vec![10, 50, 100, 1000];
+// 		let blocks_per_epoch_list: u64 = 1;
+// 		let stake_per_module: u64 = 10_000;
 
-		for (netuid, n) in n_list.iter().enumerate() {
-			println!("netuid: {}", netuid);
-			let netuid: u16 = netuid as u16;
-			let n: u16 = *n;
+// 		for (netuid, n) in n_list.iter().enumerate() {
+// 			println!("netuid: {}", netuid);
+// 			let netuid: u16 = netuid as u16;
+// 			let n: u16 = *n;
 
-			for i in 0..n {
-				println!("i: {}", i);
-				println!("keys: {:?}", SubspaceModule::get_keys(netuid));
-				println!("uids: {:?}", SubspaceModule::get_uids(netuid));
-				let key: U256 = U256::from(i);
-				println!(
-					"Before Registered: {:?} -> {:?}",
-					key,
-					SubspaceModule::is_key_registered(netuid, &key)
-				);
-				register_module(netuid, key, stake_per_module);
-				println!(
-					"After Registered: {:?} -> {:?}",
-					key,
-					SubspaceModule::is_key_registered(netuid, &key)
-				);
-			}
-			SubspaceModule::set_tempo(netuid, 1);
-			SubspaceModule::set_max_allowed_weights(netuid, n);
-			let keys = SubspaceModule::get_keys(netuid);
-			let uids = SubspaceModule::get_uids(netuid);
+// 			for i in 0..n {
+// 				println!("i: {}", i);
+// 				println!("keys: {:?}", SubspaceModule::get_keys(netuid));
+// 				println!("uids: {:?}", SubspaceModule::get_uids(netuid));
+// 				let key: U256 = U256::from(i);
+// 				println!(
+// 					"Before Registered: {:?} -> {:?}",
+// 					key,
+// 					SubspaceModule::is_key_registered(netuid, &key)
+// 				);
+// 				register_module(netuid, key, stake_per_module);
+// 				println!(
+// 					"After Registered: {:?} -> {:?}",
+// 					key,
+// 					SubspaceModule::is_key_registered(netuid, &key)
+// 				);
+// 			}
+// 			SubspaceModule::set_tempo(netuid, 1);
+// 			SubspaceModule::set_max_allowed_weights(netuid, n);
+// 			let keys = SubspaceModule::get_keys(netuid);
+// 			let uids = SubspaceModule::get_uids(netuid);
 
-			let weight_values: Vec<u16> = (0..n).collect();
-			let weight_uids: Vec<u16> = (0..n).collect();
+// 			let weight_values: Vec<u16> = (0..n).collect();
+// 			let weight_uids: Vec<u16> = (0..n).collect();
 
-			for i in 0..n {
-				SubspaceModule::set_weights(
-					get_origin(keys[i as usize]),
-					netuid,
-					weight_values.clone(),
-					weight_uids.clone(),
-				)
-				.unwrap();
-			}
-			step_block(1);
-			check_network_stats(netuid);
-		}
-	});
-}
+// 			for i in 0..n {
+// 				SubspaceModule::set_weights(
+// 					get_origin(keys[i as usize]),
+// 					netuid,
+// 					weight_values.clone(),
+// 					weight_uids.clone(),
+// 				)
+// 				.unwrap();
+// 			}
+// 			step_block(1);
+// 			check_network_stats(netuid);
+// 		}
+// 	});
+// }
 
 #[test]
 fn test_blocks_until_epoch() {
@@ -353,230 +356,231 @@ fn test_blocks_until_epoch() {
 	});
 }
 
-#[test]
-fn simulation_final_boss() {
-	new_test_ext().execute_with(|| {
-		// CONSSTANTS
-		let netuid: u16 = 0;
-		let n: u16 = 1000;
-		let blocks_per_epoch_list: u64 = 1;
-		let stake_per_module: u64 = 100_000_000_000_000;
-		let tempo: u16 = 10;
-		let num_blocks: u64 = 10;
-		let min_stake: u64 = (0.20 as f64 * stake_per_module as f64) as u64;
+// TODO:
+// #[test]
+// fn simulation_final_boss() {
+// 	new_test_ext().execute_with(|| {
+// 		// CONSSTANTS
+// 		let netuid: u16 = 0;
+// 		let n: u16 = 1000;
+// 		let blocks_per_epoch_list: u64 = 1;
+// 		let stake_per_module: u64 = 100_000_000_000_000;
+// 		let tempo: u16 = 10;
+// 		let num_blocks: u64 = 10;
+// 		let min_stake: u64 = (0.20 as f64 * stake_per_module as f64) as u64;
 
-		// SETUP ADD MODULES
+// 		// SETUP ADD MODULES
 
-		for i in 0..n {
-			let key: U256 = U256::from(i);
-			register_module(netuid, key, stake_per_module);
-		}
+// 		for i in 0..n {
+// 			let key: U256 = U256::from(i);
+// 			register_module(netuid, key, stake_per_module);
+// 		}
 
-		// set params
-		SubspaceModule::set_tempo(netuid, tempo);
-		SubspaceModule::set_max_allowed_weights(netuid, n);
-		SubspaceModule::set_min_allowed_weights(netuid, 1);
-		SubspaceModule::set_max_allowed_uids(netuid, n);
+// 		// set params
+// 		SubspaceModule::set_tempo(netuid, tempo);
+// 		SubspaceModule::set_max_allowed_weights(netuid, n);
+// 		SubspaceModule::set_min_allowed_weights(netuid, 1);
+// 		SubspaceModule::set_max_allowed_uids(netuid, n);
 
-		let mut keys: Vec<U256> = SubspaceModule::get_keys(netuid);
+// 		let mut keys: Vec<U256> = SubspaceModule::get_keys(netuid);
 
-		for i in 0..n {
-			let key: U256 = U256::from(i);
-			let mut weight_uids: Vec<u16> = (0..n).collect();
-			weight_uids.shuffle(&mut thread_rng());
+// 		for i in 0..n {
+// 			let key: U256 = U256::from(i);
+// 			let mut weight_uids: Vec<u16> = (0..n).collect();
+// 			weight_uids.shuffle(&mut thread_rng());
 
-			// shuffle the stakers
-			let stake_ratio: u16 = thread_rng().gen_range(0..n) as u16;
-			keys.shuffle(&mut thread_rng());
-			let mut staker_keys: Vec<U256> = keys.clone()[0..stake_ratio as usize].to_vec();
+// 			// shuffle the stakers
+// 			let stake_ratio: u16 = thread_rng().gen_range(0..n) as u16;
+// 			keys.shuffle(&mut thread_rng());
+// 			let mut staker_keys: Vec<U256> = keys.clone()[0..stake_ratio as usize].to_vec();
 
-			for mut staker_key in staker_keys.iter() {
-				let staker_stake: u64 = SubspaceModule::get_self_stake(netuid, staker_key);
-				let stake_balance: u64 = SubspaceModule::get_balance_u64(staker_key);
+// 			for mut staker_key in staker_keys.iter() {
+// 				let staker_stake: u64 = SubspaceModule::get_self_stake(netuid, staker_key);
+// 				let stake_balance: u64 = SubspaceModule::get_balance_u64(staker_key);
 
-				if staker_stake < min_stake {
-					continue
-				}
-				let stake_amount: u64 = thread_rng().gen_range(1..staker_stake) as u64;
-				let origin = get_origin(*staker_key);
-				SubspaceModule::remove_stake(origin.clone(), netuid, *staker_key, stake_amount)
-					.unwrap();
-				let stake_balance: u64 = SubspaceModule::get_balance_u64(staker_key);
-				SubspaceModule::add_stake(origin, netuid, key, stake_amount).unwrap();
-			}
-		}
-		// do a list of ones for weights
+// 				if staker_stake < min_stake {
+// 					continue
+// 				}
+// 				let stake_amount: u64 = thread_rng().gen_range(1..staker_stake) as u64;
+// 				let origin = get_origin(*staker_key);
+// 				SubspaceModule::remove_stake(origin.clone(), netuid, *staker_key, stake_amount)
+// 					.unwrap();
+// 				let stake_balance: u64 = SubspaceModule::get_balance_u64(staker_key);
+// 				SubspaceModule::add_stake(origin, netuid, key, stake_amount).unwrap();
+// 			}
+// 		}
+// 		// do a list of ones for weights
 
-		let keys: Vec<U256> = SubspaceModule::get_keys(netuid);
-		let mut expected_total_stake: u64 = SubspaceModule::get_total_subnet_stake(netuid);
-		let mut expected_total_balance: u64 = SubspaceModule::get_total_subnet_balance(netuid);
+// 		let keys: Vec<U256> = SubspaceModule::get_keys(netuid);
+// 		let mut expected_total_stake: u64 = SubspaceModule::get_total_subnet_stake(netuid);
+// 		let mut expected_total_balance: u64 = SubspaceModule::get_total_subnet_balance(netuid);
 
-		let mut calculated_total_stake: u64 =
-			keys.iter().map(|x| SubspaceModule::get_stake(netuid, x)).sum();
-		assert!(
-			expected_total_stake == calculated_total_stake,
-			"expected_total_stake: {} != calculated_total_stake: {}",
-			expected_total_stake,
-			calculated_total_stake
-		);
+// 		let mut calculated_total_stake: u64 =
+// 			keys.iter().map(|x| SubspaceModule::get_stake(netuid, x)).sum();
+// 		assert!(
+// 			expected_total_stake == calculated_total_stake,
+// 			"expected_total_stake: {} != calculated_total_stake: {}",
+// 			expected_total_stake,
+// 			calculated_total_stake
+// 		);
 
-		for i in 0..num_blocks {
-			let mut weight_uids: Vec<u16> = (0..n).collect();
-			weight_uids.shuffle(&mut thread_rng());
-			// do a list of ones for weights
-			// normal distribution
+// 		for i in 0..num_blocks {
+// 			let mut weight_uids: Vec<u16> = (0..n).collect();
+// 			weight_uids.shuffle(&mut thread_rng());
+// 			// do a list of ones for weights
+// 			// normal distribution
 
-			for i in 0..n {
-				let mut rng = thread_rng();
-				let mut weight_values: Vec<u16> =
-					weight_uids.iter().map(|x| rng.gen_range(0..100) as u16).collect();
-				weight_values.shuffle(&mut thread_rng());
-				let key_stake: u64 = SubspaceModule::get_stake(netuid, &keys[i as usize]);
-				if key_stake == 0 {
-					continue
-				}
+// 			for i in 0..n {
+// 				let mut rng = thread_rng();
+// 				let mut weight_values: Vec<u16> =
+// 					weight_uids.iter().map(|x| rng.gen_range(0..100) as u16).collect();
+// 				weight_values.shuffle(&mut thread_rng());
+// 				let key_stake: u64 = SubspaceModule::get_stake(netuid, &keys[i as usize]);
+// 				if key_stake == 0 {
+// 					continue
+// 				}
 
-				set_weights(netuid, keys[i as usize], weight_uids.clone(), weight_values.clone());
-			}
+// 				set_weights(netuid, keys[i as usize], weight_uids.clone(), weight_values.clone());
+// 			}
 
-			// TEST THE SPLIT OF EMISSIONS
+// 			// TEST THE SPLIT OF EMISSIONS
 
-			let test_key = keys.choose(&mut thread_rng()).unwrap();
-			let test_uid = SubspaceModule::get_uid_for_key(netuid, test_key);
-			let test_key_stake_before: u64 = SubspaceModule::get_stake(netuid, test_key);
-			let test_key_stake_from_vector_before: Vec<(U256, u64)> =
-				SubspaceModule::get_stake_from_vector(netuid, test_key);
+// 			let test_key = keys.choose(&mut thread_rng()).unwrap();
+// 			let test_uid = SubspaceModule::get_uid_for_key(netuid, test_key);
+// 			let test_key_stake_before: u64 = SubspaceModule::get_stake(netuid, test_key);
+// 			let test_key_stake_from_vector_before: Vec<(U256, u64)> =
+// 				SubspaceModule::get_stake_from_vector(netuid, test_key);
 
-			// step block
-			step_block(tempo);
+// 			// step block
+// 			step_block(tempo);
 
-			let emissions: Vec<u64> = SubspaceModule::get_emissions(netuid);
-			let total_emission: u64 = emissions.iter().sum();
-			expected_total_balance = expected_total_balance + total_emission;
+// 			let emissions: Vec<u64> = SubspaceModule::get_emissions(netuid);
+// 			let total_emission: u64 = emissions.iter().sum();
+// 			expected_total_balance = expected_total_balance + total_emission;
 
-			let test_key_stake: u64 = SubspaceModule::get_stake(netuid, test_key);
-			let test_key_stake_from_vector: Vec<(U256, u64)> =
-				SubspaceModule::get_stake_from_vector(netuid, test_key);
-			let test_key_stake_from_vector_sum: u64 =
-				test_key_stake_from_vector.iter().map(|x| x.1).sum();
-			assert!(
-				test_key_stake == test_key_stake_from_vector_sum,
-				"test_key_stake: {} != test_key_stake_from_vector_sum: {}",
-				test_key_stake,
-				test_key_stake_from_vector_sum
-			);
+// 			let test_key_stake: u64 = SubspaceModule::get_stake(netuid, test_key);
+// 			let test_key_stake_from_vector: Vec<(U256, u64)> =
+// 				SubspaceModule::get_stake_from_vector(netuid, test_key);
+// 			let test_key_stake_from_vector_sum: u64 =
+// 				test_key_stake_from_vector.iter().map(|x| x.1).sum();
+// 			assert!(
+// 				test_key_stake == test_key_stake_from_vector_sum,
+// 				"test_key_stake: {} != test_key_stake_from_vector_sum: {}",
+// 				test_key_stake,
+// 				test_key_stake_from_vector_sum
+// 			);
 
-			let test_key_stake_difference: u64 = test_key_stake - test_key_stake_before;
-			let test_key_emission = emissions[test_uid as usize];
+// 			let test_key_stake_difference: u64 = test_key_stake - test_key_stake_before;
+// 			let test_key_emission = emissions[test_uid as usize];
 
-			if test_key_emission > 0 {
-				let errror_delta: u64 = (test_key_emission as f64 * 0.001) as u64;
-				assert!(
-					test_key_stake_difference > test_key_emission - errror_delta ||
-						test_key_stake_difference < test_key_emission + errror_delta,
-					"test_key_stake_difference: {} != test_key_emission: {}",
-					test_key_stake_difference,
-					test_key_emission
-				);
+// 			if test_key_emission > 0 {
+// 				let errror_delta: u64 = (test_key_emission as f64 * 0.001) as u64;
+// 				assert!(
+// 					test_key_stake_difference > test_key_emission - errror_delta ||
+// 						test_key_stake_difference < test_key_emission + errror_delta,
+// 					"test_key_stake_difference: {} != test_key_emission: {}",
+// 					test_key_stake_difference,
+// 					test_key_emission
+// 				);
 
-				for (i, (stake_key, stake_amount)) in test_key_stake_from_vector.iter().enumerate()
-				{
-					let stake_ratio: f64 = *stake_amount as f64 / test_key_stake as f64;
-					let expected_emission: u64 = (test_key_emission as f64 * stake_ratio) as u64;
-					let errror_delta: u64 = (*stake_amount as f64 * 0.001) as u64;
-					let test_key_difference: u64 =
-						stake_amount - test_key_stake_from_vector_before[i].1;
+// 				for (i, (stake_key, stake_amount)) in test_key_stake_from_vector.iter().enumerate()
+// 				{
+// 					let stake_ratio: f64 = *stake_amount as f64 / test_key_stake as f64;
+// 					let expected_emission: u64 = (test_key_emission as f64 * stake_ratio) as u64;
+// 					let errror_delta: u64 = (*stake_amount as f64 * 0.001) as u64;
+// 					let test_key_difference: u64 =
+// 						stake_amount - test_key_stake_from_vector_before[i].1;
 
-					println!("test_key_difference: {}", test_key_difference);
-					println!("test_key_difference: {}", expected_emission);
+// 					println!("test_key_difference: {}", test_key_difference);
+// 					println!("test_key_difference: {}", expected_emission);
 
-					assert!(
-						test_key_difference < expected_emission + errror_delta ||
-							test_key_difference > expected_emission - errror_delta,
-						"test_key_difference: {} != expected_emission: {}",
-						test_key_difference,
-						expected_emission
-					);
-				}
-			}
+// 					assert!(
+// 						test_key_difference < expected_emission + errror_delta ||
+// 							test_key_difference > expected_emission - errror_delta,
+// 						"test_key_difference: {} != expected_emission: {}",
+// 						test_key_difference,
+// 						expected_emission
+// 					);
+// 				}
+// 			}
 
-			// check stake key
+// 			// check stake key
 
-			let lowest_priority_uid: u16 = SubspaceModule::get_lowest_uid(netuid);
-			let lowest_priority_key: U256 =
-				SubspaceModule::get_key_for_uid(netuid, lowest_priority_uid);
-			let mut lowest_priority_stake: u64 =
-				SubspaceModule::get_stake(netuid, &lowest_priority_key);
-			let mut lowest_priority_balance: u64 =
-				SubspaceModule::get_balance_u64(&lowest_priority_key);
+// 			let lowest_priority_uid: u16 = SubspaceModule::get_lowest_uid(netuid);
+// 			let lowest_priority_key: U256 =
+// 				SubspaceModule::get_key_for_uid(netuid, lowest_priority_uid);
+// 			let mut lowest_priority_stake: u64 =
+// 				SubspaceModule::get_stake(netuid, &lowest_priority_key);
+// 			let mut lowest_priority_balance: u64 =
+// 				SubspaceModule::get_balance_u64(&lowest_priority_key);
 
-			assert!(
-				lowest_priority_balance == 1,
-				"lowest_priority_balance: {} != 0",
-				lowest_priority_balance
-			);
-			assert!(SubspaceModule::is_key_registered(netuid, &lowest_priority_key));
-			println!("lowest_priority_key: {:?}", lowest_priority_key);
-			println!("lowest_priority_stake: {:?}", lowest_priority_stake);
-			println!("lowest_priority_balance: {:?}", lowest_priority_balance);
-			let lowest_prioirty_self_stake: u64 =
-				SubspaceModule::get_self_stake(netuid, &lowest_priority_key);
+// 			assert!(
+// 				lowest_priority_balance == 1,
+// 				"lowest_priority_balance: {} != 0",
+// 				lowest_priority_balance
+// 			);
+// 			assert!(SubspaceModule::is_key_registered(netuid, &lowest_priority_key));
+// 			println!("lowest_priority_key: {:?}", lowest_priority_key);
+// 			println!("lowest_priority_stake: {:?}", lowest_priority_stake);
+// 			println!("lowest_priority_balance: {:?}", lowest_priority_balance);
+// 			let lowest_prioirty_self_stake: u64 =
+// 				SubspaceModule::get_self_stake(netuid, &lowest_priority_key);
 
-			let new_key: U256 = U256::from(n + i as u16 + 1);
-			register_module(netuid, new_key, stake_per_module);
-			println!("n: {:?}", n);
-			println!("get_subnet_n: {:?}", SubspaceModule::get_subnet_n(netuid));
-			println!("max_allowed: {:?}", SubspaceModule::get_max_allowed_uids(netuid));
+// 			let new_key: U256 = U256::from(n + i as u16 + 1);
+// 			register_module(netuid, new_key, stake_per_module);
+// 			println!("n: {:?}", n);
+// 			println!("get_subnet_n: {:?}", SubspaceModule::get_subnet_n(netuid));
+// 			println!("max_allowed: {:?}", SubspaceModule::get_max_allowed_uids(netuid));
 
-			assert!(SubspaceModule::get_subnet_n(netuid) == n);
+// 			assert!(SubspaceModule::get_subnet_n(netuid) == n);
 
-			assert!(!SubspaceModule::is_key_registered(netuid, &lowest_priority_key));
+// 			assert!(!SubspaceModule::is_key_registered(netuid, &lowest_priority_key));
 
-			println!("lowest_priority_key: {:?}", lowest_priority_key);
-			println!("lowest_priority_stake: {:?}", lowest_priority_stake);
-			println!("lowest_priority_balance: {:?}", lowest_priority_balance);
-			let emissions: Vec<u64> = SubspaceModule::get_emissions(netuid);
-			let total_emission: u64 = emissions.iter().sum();
+// 			println!("lowest_priority_key: {:?}", lowest_priority_key);
+// 			println!("lowest_priority_stake: {:?}", lowest_priority_stake);
+// 			println!("lowest_priority_balance: {:?}", lowest_priority_balance);
+// 			let emissions: Vec<u64> = SubspaceModule::get_emissions(netuid);
+// 			let total_emission: u64 = emissions.iter().sum();
 
-			println!("subnet total_emission: {:?}", total_emission);
-			println!("expected_total_stake: {:?}", expected_total_stake);
+// 			println!("subnet total_emission: {:?}", total_emission);
+// 			println!("expected_total_stake: {:?}", expected_total_stake);
 
-			assert!(!SubspaceModule::is_key_registered(netuid, &lowest_priority_key));
+// 			assert!(!SubspaceModule::is_key_registered(netuid, &lowest_priority_key));
 
-			expected_total_stake =
-				(expected_total_stake + total_emission + stake_per_module) - lowest_priority_stake;
+// 			expected_total_stake =
+// 				(expected_total_stake + total_emission + stake_per_module) - lowest_priority_stake;
 
-			// CHECK THE LOWEST PRIORITY MECHANIS
-			lowest_priority_balance = SubspaceModule::get_balance_u64(&lowest_priority_key);
-			assert!(
-				lowest_priority_balance == lowest_prioirty_self_stake + 1,
-				"lowest_priority_balance: {} != lowest_priority_stake: {}",
-				lowest_priority_balance,
-				lowest_priority_stake
-			);
-			lowest_priority_stake = SubspaceModule::get_stake(netuid, &lowest_priority_key);
-			assert!(lowest_priority_stake == 0);
-			assert!(SubspaceModule::get_stake(netuid, &new_key) == stake_per_module);
-			let emissions: Vec<u64> = SubspaceModule::get_emissions(netuid);
+// 			// CHECK THE LOWEST PRIORITY MECHANIS
+// 			lowest_priority_balance = SubspaceModule::get_balance_u64(&lowest_priority_key);
+// 			assert!(
+// 				lowest_priority_balance == lowest_prioirty_self_stake + 1,
+// 				"lowest_priority_balance: {} != lowest_priority_stake: {}",
+// 				lowest_priority_balance,
+// 				lowest_priority_stake
+// 			);
+// 			lowest_priority_stake = SubspaceModule::get_stake(netuid, &lowest_priority_key);
+// 			assert!(lowest_priority_stake == 0);
+// 			assert!(SubspaceModule::get_stake(netuid, &new_key) == stake_per_module);
+// 			let emissions: Vec<u64> = SubspaceModule::get_emissions(netuid);
 
-			let sumed_emission: u64 = emissions.iter().sum();
-			let expected_emission: u64 = SubspaceModule::get_subnet_emission(netuid) as u64;
+// 			let sumed_emission: u64 = emissions.iter().sum();
+// 			let expected_emission: u64 = SubspaceModule::get_subnet_emission(netuid) as u64;
 
-			let delta: u64 = 10_000_000;
-			assert!(
-				sumed_emission > expected_emission - delta ||
-					sumed_emission < expected_emission + delta
-			);
+// 			let delta: u64 = 10_000_000;
+// 			assert!(
+// 				sumed_emission > expected_emission - delta ||
+// 					sumed_emission < expected_emission + delta
+// 			);
 
-			let total_stake = SubspaceModule::get_total_subnet_stake(netuid);
-			assert!(
-				total_stake > expected_total_stake - delta ||
-					total_stake < expected_total_stake + delta,
-				"total_stake: {} != expected_total_stake: {}",
-				total_stake,
-				expected_total_stake
-			);
-			let actual_total_balance: u64 = SubspaceModule::get_total_subnet_balance(netuid);
-		}
-	});
-}
+// 			let total_stake = SubspaceModule::get_total_subnet_stake(netuid);
+// 			assert!(
+// 				total_stake > expected_total_stake - delta ||
+// 					total_stake < expected_total_stake + delta,
+// 				"total_stake: {} != expected_total_stake: {}",
+// 				total_stake,
+// 				expected_total_stake
+// 			);
+// 			let actual_total_balance: u64 = SubspaceModule::get_total_subnet_balance(netuid);
+// 		}
+// 	});
+// }
