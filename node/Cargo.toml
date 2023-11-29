@@ -64,6 +64,8 @@ pallet-transaction-payment-rpc = { version = "4.0.0-dev", git = "https://github.
 
 fp-evm = { version = "3.0.0-dev", git = "https://github.com/paritytech/frontier", default-features = false, branch = "polkadot-v1.0.0", features = ["serde"] }
 
+fp-evm = { version = "3.0.0-dev", git = "https://github.com/paritytech/frontier", default-features = false, branch = "master", features = ["serde"] }
+
 # These dependencies are used for runtime benchmarking
 frame-benchmarking = { version = "4.0.0-dev", git = "https://github.com/paritytech/substrate", branch = "polkadot-v1.0.0" }
 frame-benchmarking-cli = { version = "4.0.0-dev", git = "https://github.com/paritytech/substrate", branch = "polkadot-v1.0.0" }
