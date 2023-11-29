@@ -49,12 +49,13 @@ pub mod weights;
 #[frame_support::pallet]
 pub mod pallet {
 	use super::*;
-	use frame_support::{inherent::Vec, pallet_prelude::*, sp_std::vec, traits::Currency};
+	use frame_support::{pallet_prelude::*, traits::Currency};
 	use frame_system::pallet_prelude::*;
 	use scale_info::prelude::string::String;
 	use serde::{Deserialize, Serialize};
 	use serde_with::{serde_as, DisplayFromStr};
 	use sp_arithmetic::per_things::Percent;
+	pub use sp_std::{vec, vec::Vec};
 
 	#[pallet::pallet]
 	#[pallet::generate_store(pub(super) trait Store)]
@@ -529,8 +530,8 @@ pub mod pallet {
 	// ==== Genesis =====
 	// ==================
 
+	#[derive(frame_support::DefaultNoBound)]
 	#[pallet::genesis_config]
-	#[cfg(feature = "std")]
 	pub struct GenesisConfig<T: Config> {
 		// key, name, address, weights
 		pub modules: Vec<Vec<(T::AccountId, Vec<u8>, Vec<u8>, Vec<(u16, u16)>)>>,
@@ -543,20 +544,8 @@ pub mod pallet {
 		pub block: u32,
 	}
 
-	#[cfg(feature = "std")]
-	impl<T: Config> Default for GenesisConfig<T> {
-		fn default() -> Self {
-			Self {
-				modules: Default::default(),
-				subnets: Default::default(),
-				stake_to: Default::default(),
-				block: Default::default(),
-			}
-		}
-	}
-
 	#[pallet::genesis_build]
-	impl<T: Config> GenesisBuild<T> for GenesisConfig<T> {
+	impl<T: Config> BuildGenesisConfig for GenesisConfig<T> {
 		fn build(&self) {
 			// Set initial total issuance from balances
 			// Subnet config values
@@ -612,9 +601,7 @@ pub mod pallet {
 		fn on_initialize(_block_number: BlockNumberFor<T>) -> Weight {
 			Self::block_step();
 
-			return Weight::from_ref_time(110_634_229_000 as u64)
-				.saturating_add(T::DbWeight::get().reads(8304 as u64))
-				.saturating_add(T::DbWeight::get().writes(110 as u64))
+			return Weight::zero()
 		}
 	}
 

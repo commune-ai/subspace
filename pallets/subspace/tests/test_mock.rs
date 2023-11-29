@@ -12,7 +12,7 @@ use sp_core::{Get, H256, U256};
 use sp_runtime::{
 	testing::Header,
 	traits::{BlakeTwo256, IdentityLookup},
-	DispatchResult,
+	DispatchResult, BuildStorage
 };
 
 type UncheckedExtrinsic = frame_system::mocking::MockUncheckedExtrinsic<Test>;
@@ -20,14 +20,10 @@ type Block = frame_system::mocking::MockBlock<Test>;
 
 // Configure a mock runtime to test the pallet.
 frame_support::construct_runtime!(
-	pub enum Test where
-		Block = Block,
-		NodeBlock = Block,
-		UncheckedExtrinsic = UncheckedExtrinsic,
-	{
-		System: frame_system::{Pallet, Call, Config, Storage, Event<T>},
-		Balances: pallet_balances::{Pallet, Call, Config<T>, Storage, Event<T>},
-		SubspaceModule: pallet_subspace::{Pallet, Call, Storage, Event<T>},
+	pub enum Test {
+		System: frame_system,
+		Balances: pallet_balances,
+		SubspaceModule: pallet_subspace,
 	}
 );
 
@@ -59,42 +55,46 @@ pub type Balance = u64;
 #[allow(dead_code)]
 pub type BlockNumber = u64;
 
+parameter_types! {
+	pub const ExistentialDeposit: Balance = 1;
+	pub const MaxLocks: u32 = 50;
+	pub const MaxReserves: u32 = 50;
+}
+
 impl pallet_balances::Config for Test {
 	type Balance = Balance;
 	type RuntimeEvent = RuntimeEvent;
 	type DustRemoval = ();
-	type ExistentialDeposit = ();
-	type AccountStore = StorageMapShim<
-		pallet_balances::Account<Test>,
-		frame_system::Provider<Test>,
-		AccountId,
-		pallet_balances::AccountData<Balance>,
-	>;
-	type MaxLocks = ();
+	type ExistentialDeposit = ExistentialDeposit;
+	type AccountStore = System;
+	type MaxLocks = MaxLocks;
 	type WeightInfo = ();
-	type MaxReserves = ();
+	type MaxReserves = MaxReserves;
 	type ReserveIdentifier = ();
+    type RuntimeHoldReason = ();
+    type FreezeIdentifier = ();
+    type MaxHolds = frame_support::traits::ConstU32<16>;
+	type MaxFreezes = frame_support::traits::ConstU32<16>;
 }
 
 impl system::Config for Test {
 	type BaseCallFilter = Everything;
+	type Block = Block;
 	type BlockWeights = ();
 	type BlockLength = ();
 	type DbWeight = ();
 	type RuntimeOrigin = RuntimeOrigin;
 	type RuntimeCall = RuntimeCall;
-	type Index = u64;
-	type BlockNumber = u64;
+	type Nonce = u64;
 	type Hash = H256;
 	type Hashing = BlakeTwo256;
 	type AccountId = U256;
 	type Lookup = IdentityLookup<Self::AccountId>;
-	type Header = Header;
 	type RuntimeEvent = RuntimeEvent;
 	type BlockHashCount = BlockHashCount;
 	type Version = ();
 	type PalletInfo = PalletInfo;
-	type AccountData = ();
+	type AccountData = pallet_balances::AccountData<Balance>;
 	type OnNewAccount = ();
 	type OnKilledAccount = ();
 	type SystemWeightInfo = ();
@@ -106,7 +106,7 @@ impl system::Config for Test {
 impl pallet_subspace::Config for Test {
 	type RuntimeEvent = RuntimeEvent;
 	type Currency = Balances;
-	type WeightInfo = SubstrateWeight<Test>;
+	type WeightInfo = ();
 }
 
 // Build genesis storage according to the mock runtime.
@@ -123,13 +123,13 @@ pub fn set_weights(netuid: u16, key: U256, uids: Vec<u16>, values: Vec<u16>) {
 #[allow(dead_code)]
 pub fn new_test_ext() -> sp_io::TestExternalities {
 	sp_tracing::try_init_simple();
-	frame_system::GenesisConfig::default().build_storage::<Test>().unwrap().into()
+	<frame_system::GenesisConfig::<Test>>::default().build_storage().unwrap().into()
 }
 
 #[allow(dead_code)]
 pub fn test_ext_with_balances(balances: Vec<(U256, u128)>) -> sp_io::TestExternalities {
 	sp_tracing::try_init_simple();
-	let mut t = frame_system::GenesisConfig::default().build_storage::<Test>().unwrap();
+	let mut t = <frame_system::GenesisConfig::<Test>>::default().build_storage().unwrap().into();
 
 	pallet_balances::GenesisConfig::<Test> {
 		balances: balances.iter().map(|(a, b)| (*a, *b as u64)).collect::<Vec<(U256, u64)>>(),

@@ -8,11 +8,11 @@ use frame_support::{
 };
 use frame_system as system;
 use frame_system::{limits, Config, EnsureNever, EnsureRoot, RawOrigin};
-use sp_core::{Get, H256, U256};
+use sp_core::{Get, H256, U256, ConstU32};
 use sp_runtime::{
 	testing::Header,
 	traits::{BlakeTwo256, IdentityLookup},
-	DispatchResult,
+	DispatchResult, BuildStorage,
 };
 
 type UncheckedExtrinsic = frame_system::mocking::MockUncheckedExtrinsic<Test>;
@@ -20,14 +20,10 @@ type Block = frame_system::mocking::MockBlock<Test>;
 
 // Configure a mock runtime to test the pallet.
 frame_support::construct_runtime!(
-	pub enum Test where
-		Block = Block,
-		NodeBlock = Block,
-		UncheckedExtrinsic = UncheckedExtrinsic,
-	{
-		System: frame_system::{Pallet, Call, Config, Storage, Event<T>},
-		Balances: pallet_balances::{Pallet, Call, Config<T>, Storage, Event<T>},
-		SubspaceModule: pallet_subspace::{Pallet, Call, Storage, Event<T>},
+	pub enum Test {
+		System: frame_system,
+		Balances: pallet_balances,
+		SubspaceModule: pallet_subspace,
 	}
 );
 
@@ -55,46 +51,46 @@ pub type Address = AccountId;
 #[allow(dead_code)]
 pub type Balance = u64;
 
-// An index to a block.
-#[allow(dead_code)]
-pub type BlockNumber = u64;
+parameter_types! {
+	pub const ExistentialDeposit: Balance = 1;
+	pub const MaxLocks: u32 = 50;
+	pub const MaxReserves: u32 = 50;
+}
 
 impl pallet_balances::Config for Test {
 	type Balance = Balance;
 	type RuntimeEvent = RuntimeEvent;
 	type DustRemoval = ();
-	type ExistentialDeposit = ();
-	type AccountStore = StorageMapShim<
-		pallet_balances::Account<Test>,
-		frame_system::Provider<Test>,
-		AccountId,
-		pallet_balances::AccountData<Balance>,
-	>;
-	type MaxLocks = ();
+	type ExistentialDeposit = ExistentialDeposit;
+	type AccountStore = System;
+	type MaxLocks = MaxLocks;
 	type WeightInfo = ();
-	type MaxReserves = ();
+	type MaxReserves = MaxReserves;
 	type ReserveIdentifier = ();
+    type RuntimeHoldReason = ();
+    type FreezeIdentifier = ();
+    type MaxHolds = frame_support::traits::ConstU32<16>;
+	type MaxFreezes = frame_support::traits::ConstU32<16>;
 }
 
 impl system::Config for Test {
 	type BaseCallFilter = Everything;
+    type Block = Block;
 	type BlockWeights = ();
 	type BlockLength = ();
 	type DbWeight = ();
 	type RuntimeOrigin = RuntimeOrigin;
 	type RuntimeCall = RuntimeCall;
-	type Index = u64;
-	type BlockNumber = u64;
+    type Nonce = u64;
 	type Hash = H256;
 	type Hashing = BlakeTwo256;
 	type AccountId = U256;
 	type Lookup = IdentityLookup<Self::AccountId>;
-	type Header = Header;
 	type RuntimeEvent = RuntimeEvent;
 	type BlockHashCount = BlockHashCount;
 	type Version = ();
 	type PalletInfo = PalletInfo;
-	type AccountData = ();
+	type AccountData = pallet_balances::AccountData<Balance>;
 	type OnNewAccount = ();
 	type OnKilledAccount = ();
 	type SystemWeightInfo = ();
@@ -113,5 +109,5 @@ impl pallet_subspace::Config for Test {
 #[allow(dead_code)]
 pub fn new_test_ext() -> sp_io::TestExternalities {
 	sp_tracing::try_init_simple();
-	frame_system::GenesisConfig::default().build_storage::<Test>().unwrap().into()
+	<frame_system::GenesisConfig::<Test>>::default().build_storage().unwrap().into()
 }

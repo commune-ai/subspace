@@ -2,7 +2,6 @@ use super::*;
 use codec::Compact;
 use frame_support::{
 	pallet_prelude::{Decode, DispatchError, DispatchResult, Encode},
-	sp_std::vec,
 	storage::IterableStorageMap,
 	traits::Currency,
 	IterableStorageDoubleMap,
