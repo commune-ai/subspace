@@ -120,66 +120,75 @@ impl<T: Config> Pallet<T> {
 
 		let dividend_ratio: I32F32 = I32F32::from_num(0.5);
 
+		let emission_tuples : Vec<(T::AccountId, u64)> = Vec::new();
+
 		// Compute bonds: b_ij = w_ij * s_i.
 		for (uid_i,key) in keys.iter().enumerate() {
 			// update the last update block
 
+
+			let total_future_stake: u64 = stakes[*uid_i as usize].to_num::<u64>() + emissions[*uid_i as usize];
+
+			if total_future_stake > burn_amount_per_epoch {
+				zero_stake_uids.push(*uid_i as u16);
+			} 
+
+
+			if amount > burn_amount_per_epoch {
+
+				let to_module = delegation_fee.mul_floor(amount);
+				let to_owner = amount.saturating_sub(to_module);
+			
+				Self::increase_stake(netuid, owner_key, uid_key, to_owner);
+				Self::increase_stake(netuid, uid_key, uid_key, to_module);
+			
+			} 
+			
+			if amount < burn_amount_per_epoch {
+				let to_module = delegation_fee.mul_floor(amount);
+				let to_owner = amount.saturating_sub(to_module);
+				Self::decrease_stake(netuid, owner_key, uid_key, to_owner);
+				Self::decrease_stake(netuid, uid_key, uid_key, to_module);
+		
+			}
+
+
 			let stake_from_vector: Vec<(T::AccountId, u64)> = Self::get_stake_from_vector(netuid, key);
 			// count the number of delegators for this module
+			let incentive_emission: I32F32 = (I32F32::from_num(1.0) - dividend_ratio) * emisisons[*uid_i as usize];
 
-			let ratios : Vec<(T::AccountId, I32F32)> = stake_from_vector.iter().map(|(k, v)| (k.clone(), I32F32::from_num(*v))).collect();
-			let mut total_stake_from: I64F64 = ratios.iter().map(|(_, v)| v).sum();
-			if total_stake_from == I64F64::from_num(0.0) {
-				// no weights set
-				for (staker_key, staker_stake) in ratios.iter() {
-					total_stake_from += staker_stake;
+			let stake_from_vector : Vec<(T::AccountId, I32F32)> = stake_from_vector.iter().map(|(k, v)| (k.clone(), I32F32::from_num(*v))).collect();
+			let mut total_stake_from: I64F64 = stake_from_vector.iter().map(|(_, v)| v).sum() + I64F64::from_num(1.0); // avoid division by zero and this is the stake of the module itself
+			let mut emissions_for_module: Vec<(T::AccountId, I32F32)> = Vec::new();
+			for (staker_key, staker_stake) in stake_from_vector.iter() {
+				let mut staker_emission: I32F32 = I32F32::from_num(staker_stake / total_stake_from) * emisisons[*uid_i as usize] * dividend_ratio;
+			
+				if staker_key == key {
+					// add the module itself
+					staker_emission = staker_emission + incentive_emission; 
+					emissions_for_module.push((staker_key.clone(), staker_emission));
+					emission_tuples.push((staker_key.clone(), module_dividends.to_num::<u64>()));
 				}
+
+				bonds_for_module.push((staker_key.clone(), staker_bond_emission));
+				emission_tuples.push((staker_key.clone(), staker_bond_emission.to_num::<u64>()));
+
 			}
-			let mut bonds_for_module: Vec<(T::AccountId, I32F32)> = Vec::new();
-			for (staker_key, staker_stake) in ratios.iter() {
-				let staker_bond: I32F32 = I32F32::from_num(staker_stake / total_stake_from) * emisisons[*uid_i as usize] * I32F32::from_num(dividend_ratio);
-				bonds_for_module.push((staker_bond, bond));
-			}
+
+
 			
 			bonds.push(bonds_for_module);
 			
 		}
-		// If emission is zero, do an even split.
-		if is_zero(&dividends) {
-			// no weights set
-			for (uid_i, key) in keys.iter() {
-				dividends[*uid_i as usize] = I32F32::from_num(1.0);
-			}
-		}
-
-		inplace_normalize(&mut dividends);
-		log::trace!("D: {:?}", &dividends);
-
-		let cloned_dividends: Vec<u16> =
-			dividends.iter().map(|xi| fixed_proportion_to_u16(*xi)).collect::<Vec<u16>>();
-		Dividends::<T>::insert(netuid, cloned_dividends);
-
-		// =================================
-		// == Emission==
-		// =================================
-
-		let incentive_emission_float: Vec<I64F64> = incentive
-			.clone()
-			.iter()
-			.map(|x| I64F64::from_num(x.clone()) * I64F64::from_num(token_emission / 2))
-			.collect();
-		let dividends_emission_float: Vec<I64F64> = dividends
-			.clone()
-			.iter()
-			.map(|x| I64F64::from_num(x.clone()) * I64F64::from_num(token_emission / 2))
-			.collect();
-
-		let incentive_emission: Vec<u64> =
-			incentive_emission_float.iter().map(|e: &I64F64| e.to_num::<u64>()).collect();
-		let dividends_emission: Vec<u64> =
-			dividends_emission_float.iter().map(|e: &I64F64| e.to_num::<u64>()).collect();
 
 
+
+
+
+
+
+		let incentive_emission: Vec<u64> = incentive_emission_float.iter().map(|e: &I64F64| e.to_num::<u64>()).collect();
+		let dividends_emission: Vec<u64> =dividends_emission_float.iter().map(|e: &I64F64| e.to_num::<u64>()).collect();
 		let burn_amount_per_epoch: u64 = Self::get_burn_emission_per_epoch(netuid);
 		let mut zero_stake_uids : Vec<u16> = Vec::new();
 
