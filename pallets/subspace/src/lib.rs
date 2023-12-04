@@ -45,6 +45,7 @@ mod staking;
 mod step;
 mod weights;
 mod voting;
+mod profitshare;
 
 #[frame_support::pallet]
 pub mod pallet {
