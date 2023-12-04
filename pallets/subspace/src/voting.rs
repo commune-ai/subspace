@@ -21,30 +21,13 @@ impl<T: Config> Pallet<T> {
         return next_proposal_id;
     }
 
-    pub fn least_voted_proposal_id() -> u64 {
-        let mut least_voted_proposal: u64 = 0;
-        let mut least_votes: u64 = 0;
-        for (proposal_id, proposal) in Proposals::<T>::iter() {
-            if proposal.votes < least_votes {
-                least_votes = proposal.votes;
-                least_voted_proposal = proposal_id;
-            }
-        }
-
-        return least_voted_proposal;
-    }
 
 
 
-    pub fn ensure_max_proposals() -> DispatchResult {
-        let max_proposals: u64 = MaxProposals::<T>::get();
-        let num_proposals: u64 = Self::num_proposals();
-        ensure!(
-            num_proposals <  max_proposals,
-            Error::<T>::TooMuchUpdateProposals
-        );
-        Ok(())
-    }
+    
+
+
+
 
     pub fn string2vec(s: &str) -> Vec<u8> {
         let mut v: Vec<u8> = Vec::new();
@@ -69,10 +52,30 @@ impl<T: Config> Pallet<T> {
         let v2: Vec<u8> = Self::string2vec(s2);
         return v1 == v2.clone();
     }
+    pub fn has_max_proposals() -> bool {
+        return Self::num_proposals() <  MaxProposals::<T>::get()
+    }
 
     pub fn check_proposal(proposal: Proposal<T>) -> DispatchResult {
         
-        Self::ensure_max_proposals(); // check if there is space for new proposal
+
+        // remove lowest voted proposal
+        if Self::has_max_proposals() {
+            let mut least_voted_proposal_id: u64 = 0;
+            let mut least_votes: u64 = 0;
+    
+            for (proposal_id, proposal) in Proposals::<T>::iter() {
+                if proposal.votes < least_votes {
+                    least_votes = proposal.votes;
+                    least_voted_proposal_id = proposal_id;
+                }
+            }
+
+            assert!(proposal.votes > least_votes);
+            Proposals::<T>::remove(least_voted_proposal_id);
+        }
+
+        
         let mode = proposal.mode.clone();
         
         if Self::is_vec_string(mode.clone(), "global") {
@@ -82,20 +85,38 @@ impl<T: Config> Pallet<T> {
         } else {
             assert!(proposal.data.len() > 0);
         }
-        assert!(proposal.data.len() < 256); // avoid an exploit with large data
 
         assert!(proposal.data.len() < 256); // avoid an exploit with large data
         Ok(())
     }
 
 
+
+
+
+
+
+
     pub fn do_add_proposal(
         origin: T::RuntimeOrigin,
-        proposal: Proposal<T>,
+        mut proposal:Proposal<T>,
     ) -> DispatchResult {
-        ensure_signed(origin)?;
+        let key =  ensure_signed(origin)?;
+        
+        let mut total_vote_power: u64 ; 
+        if Self::is_vec_string(proposal.mode.clone(),"subnet") {
+            total_vote_power = Self::get_total_stake_to(proposal.netuid, &key);
+
+        }  else {
+            total_vote_power = Self::get_total_global_stake(&key);
+        }
+        proposal.votes = total_vote_power;
+        proposal.participants.push(key.clone());
+        
+
         Self::check_proposal(proposal.clone())?; // check if proposal is valid
         let next_proposal_id: u64 = Self::next_proposal_id(); // get next proposal id
+
         Proposals::<T>::insert(next_proposal_id, proposal);
         Ok(())
     }

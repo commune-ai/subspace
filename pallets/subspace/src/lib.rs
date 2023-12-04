@@ -281,7 +281,7 @@ pub mod pallet {
 		T::AccountId::decode(&mut sp_runtime::traits::TrailingZeroInput::zeroes()).unwrap()
 	}
 	#[pallet::storage] // --- DMAP ( key, netuid ) --> bool
-	pub type SubnetFounder<T: Config> =
+	pub type Founder<T: Config> =
 		StorageMap<_, Identity, u16, T::AccountId, ValueQuery, DefaultAccount<T>>;
 
 	#[pallet::storage] // --- MAP ( netuid ) --> epoch
@@ -301,6 +301,8 @@ pub mod pallet {
 	}
 	#[pallet::storage] // --- MAP ( netuid ) --> epoch
 	pub type QuadraticVoting<T> = StorageMap<_, Identity, u16, bool, ValueQuery, DefaultQuadraticVoting<T>>;
+
+
 
 
 	// =======================================
@@ -333,7 +335,7 @@ pub mod pallet {
 	#[pallet::storage] // --- MAP ( netuid ) --> pending_emission
 	pub type PendingEmission<T> = StorageMap<_, Identity, u16, u64, ValueQuery, DefaultPendingEmission<T>>;
 	#[pallet::storage] // --- MAP ( network_name ) --> netuid
-	pub type SubnetNamespace<T: Config> = StorageMap<_, Twox64Concat, Vec<u8>, u16, ValueQuery>;
+	pub type Name2Subnet<T: Config> = StorageMap<_, Twox64Concat, Vec<u8>, u16, ValueQuery>;
 
 	// =======================================
 	// ==== Module Variables  ====
@@ -558,7 +560,7 @@ pub mod pallet {
 		ModuleNameDoesNotExist, /* --- Thrown when the user tries to remove a module name that
 		                       * does not exist. */
 		KeyNameMismatch,
-		NotSubnetFounder,
+		NotFounder,
 		NameAlreadyRegistered,
 		NotEnoughStaketoSetWeights,
 		NotEnoughStakeToStartNetwork,
@@ -924,8 +926,9 @@ pub mod pallet {
 			subnet_params: SubnetParams,
 			netuid: u16, // FOR SUBNET PROPOSAL ONLY
 			data: Vec<u8>,
-			mode: Vec<u8>
+			mode: Vec<u8>,
         ) -> DispatchResult {
+
 
 			
 			let subnet_params = DefaultSubnetParams::<T>::get();

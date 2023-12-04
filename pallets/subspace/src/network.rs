@@ -82,7 +82,7 @@ impl<T: Config> Pallet<T> {
 		// --- 1. Ensure the network name does not already exist.
 
 		ensure!(Self::if_subnet_netuid_exists(netuid), Error::<T>::SubnetNameAlreadyExists);
-		ensure!(Self::is_subnet_founder(netuid, &key), Error::<T>::NotSubnetFounder);
+		ensure!(Self::is_subnet_founder(netuid, &key), Error::<T>::NotFounder);
 
 		Self::remove_network_by_netuid(netuid);
 		// --- 16. Ok and done.
@@ -105,7 +105,7 @@ impl<T: Config> Pallet<T> {
 		let key = ensure_signed(origin)?;
 
 		ensure!(Self::if_subnet_netuid_exists(netuid), Error::<T>::SubnetNameAlreadyExists);
-		ensure!(Self::is_subnet_founder(netuid, &key), Error::<T>::NotSubnetFounder);
+		ensure!(Self::is_subnet_founder(netuid, &key), Error::<T>::NotFounder);
 
 		Self::update_network_for_netuid(
 			netuid,
@@ -191,7 +191,6 @@ impl<T: Config> Pallet<T> {
 		if max_allowed_uids < n {
 			let remainder_n: u16 = n - max_allowed_uids;
 			for i in 0..remainder_n {
-
 				Self::remove_module(netuid, Self::get_lowest_uid(netuid));
 			}
 		}
@@ -201,8 +200,8 @@ impl<T: Config> Pallet<T> {
 		if name.len() > 0 {
 			// update the name if it is not empty
 			let old_name: Vec<u8> = Self::get_name_for_netuid(netuid);
-			SubnetNamespace::<T>::remove(old_name.clone());
-			SubnetNamespace::<T>::insert(name.clone(), netuid)
+			Name2Subnet::<T>::remove(old_name.clone());
+			Name2Subnet::<T>::insert(name.clone(), netuid)
 		}
 
 		Self::set_burn_rate(netuid, burn_rate);
@@ -229,7 +228,7 @@ impl<T: Config> Pallet<T> {
 			stake: TotalStake::<T>::get(netuid),
 			emission: SubnetEmission::<T>::get(netuid),
 			n: N::<T>::get(netuid),
-			founder: SubnetFounder::<T>::get(netuid),
+			founder: Founder::<T>::get(netuid),
 		}
 	}
 
@@ -239,15 +238,15 @@ impl<T: Config> Pallet<T> {
 	}
 
 	pub fn is_subnet_founder(netuid: u16, key: &T::AccountId) -> bool {
-		return SubnetFounder::<T>::get(netuid) == *key
+		return Founder::<T>::get(netuid) == *key
 	}
 
 	pub fn set_subnet_founder(netuid: u16, key: &T::AccountId) {
-		SubnetFounder::<T>::insert(netuid, key.clone());
+		Founder::<T>::insert(netuid, key.clone());
 	}
 
 	pub fn get_subnet_founder(netuid: u16) -> T::AccountId {
-		return SubnetFounder::<T>::get(netuid)
+		return Founder::<T>::get(netuid)
 	}
 
 	pub fn add_network_from_registration(
@@ -260,7 +259,7 @@ impl<T: Config> Pallet<T> {
 		let mut params: SubnetParams = Self::default_subnet_params();
 		params.name = name.clone();
 		let netuid = Self::add_network(params);
-		SubnetFounder::<T>::insert(netuid, founder_key.clone());
+		Founder::<T>::insert(netuid, founder_key.clone());
 		// --- 16. Ok and done.
 		return netuid
 	}
@@ -361,7 +360,7 @@ impl<T: Config> Pallet<T> {
 		MinAllowedWeights::<T>::insert(netuid, params.min_allowed_weights);
 		MaxAllowedWeights::<T>::insert(netuid, params.max_allowed_weights);
 		MinStake::<T>::insert(netuid, params.min_stake);
-		SubnetNamespace::<T>::insert(params.name.clone(), netuid);
+		Name2Subnet::<T>::insert(params.name.clone(), netuid);
 		BurnRate::<T>::insert(netuid, params.burn_rate);
 		// set stat once network is created
 		TotalSubnets::<T>::mutate(|n| *n += 1);
@@ -373,27 +372,49 @@ impl<T: Config> Pallet<T> {
 		return netuid
 	}
 
+	pub fn update_network_from_params(netuid: u16,params: SubnetParams) -> u16 {
+
+		// --- 1. Enfnsure that the network name does not already exist.
+		let total_networks: u16 = TotalSubnets::<T>::get();
+		let max_networks = MaxAllowedSubnets::<T>::get();
+		let netuid = total_networks;
+
+		Tempo::<T>::insert(netuid, params.tempo);
+		MaxAllowedUids::<T>::insert(netuid, params.max_allowed_uids);
+		ImmunityPeriod::<T>::insert(netuid, params.immunity_period);
+		MinAllowedWeights::<T>::insert(netuid, params.min_allowed_weights);
+		MaxAllowedWeights::<T>::insert(netuid, params.max_allowed_weights);
+		MinStake::<T>::insert(netuid, params.min_stake);
+		Name2Subnet::<T>::insert(params.name.clone(), netuid);
+		BurnRate::<T>::insert(netuid, params.burn_rate);
+
+		// --- 6. Emit the new network event.
+		Self::deposit_event(Event::NetworkAdded(netuid, params.name.clone()));
+
+		return netuid
+	}
+
 	// Initializes a new subnetwork under netuid with parameters.
 	//
 	pub fn if_subnet_name_exists(name: Vec<u8>) -> bool {
-		return SubnetNamespace::<T>::contains_key(name.clone()).into()
+		return Name2Subnet::<T>::contains_key(name.clone()).into()
 	}
 
 	pub fn subnet_name_exists(name: Vec<u8>) -> bool {
-		return SubnetNamespace::<T>::contains_key(name.clone()).into()
+		return Name2Subnet::<T>::contains_key(name.clone()).into()
 	}
 
 	pub fn if_subnet_netuid_exists(netuid: u16) -> bool {
-		return SubnetNamespace::<T>::contains_key(Self::get_name_for_netuid(netuid)).into()
+		return Name2Subnet::<T>::contains_key(Self::get_name_for_netuid(netuid)).into()
 	}
 
 	pub fn get_netuid_for_name(name: Vec<u8>) -> u16 {
-		let netuid: u16 = SubnetNamespace::<T>::get(name.clone());
+		let netuid: u16 = Name2Subnet::<T>::get(name.clone());
 		return netuid
 	}
 
 	pub fn get_name_for_netuid(netuid: u16) -> Vec<u8> {
-		for (name, _netuid) in <SubnetNamespace<T> as IterableStorageMap<Vec<u8>, u16>>::iter() {
+		for (name, _netuid) in <Name2Subnet<T> as IterableStorageMap<Vec<u8>, u16>>::iter() {
 			if _netuid == netuid {
 				return name
 			}
@@ -411,7 +432,7 @@ impl<T: Config> Pallet<T> {
 
 	// Returns true if the account is the founder of the network.
 	pub fn is_network_founder(netuid: u16, key: &T::AccountId) -> bool {
-		let founder = SubnetFounder::<T>::get(netuid);
+		let founder = Founder::<T>::get(netuid);
 		return founder == key.clone()
 	}
 
@@ -436,8 +457,7 @@ impl<T: Config> Pallet<T> {
 		// --- 4. Remove all stake.
 		Stake::<T>::remove_prefix(netuid, None);
 		TotalStake::<T>::remove(netuid);
-
-		SubnetNamespace::<T>::remove(name.clone());
+		Name2Subnet::<T>::remove(name.clone());
 		Names::<T>::clear_prefix(netuid, u32::max_value(), None);
 		Address::<T>::clear_prefix(netuid, u32::max_value(), None);
 		Uids::<T>::clear_prefix(netuid, u32::max_value(), None);
@@ -453,7 +473,7 @@ impl<T: Config> Pallet<T> {
 		PendingDeregisterUids::<T>::remove(netuid);
 
 		// --- 2. Erase network parameters.
-		SubnetFounder::<T>::remove(netuid);
+		Founder::<T>::remove(netuid);
 		MinStake::<T>::remove(netuid);
 		Tempo::<T>::remove(netuid);
 		MaxAllowedUids::<T>::remove(netuid);
