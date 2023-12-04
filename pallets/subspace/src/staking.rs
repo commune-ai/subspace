@@ -422,6 +422,9 @@ impl<T: Config> Pallet<T> {
 		input.try_into().ok()
 	}
 
+	pub fn add_balance_to_account_u64(key: &T::AccountId, amount: u64) {
+		T::Currency::deposit_creating(&key, Self::u64_to_balance(amount).unwrap()); // Infallibe
+	}
 	pub fn add_balance_to_account(
 		key: &T::AccountId,
 		amount: <<T as Config>::Currency as Currency<<T as system::Config>::AccountId>>::Balance,

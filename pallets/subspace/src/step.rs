@@ -170,10 +170,7 @@ impl<T: Config> Pallet<T> {
 		// Emission tuples ( keys, u64 emission)
 		for (uid_i, uid_key) in keys.iter() {
 
-			if incentive_emission[*uid_i as usize] > 0 as u64 {
-				// add the stake to the module
-				Self::increase_stake(netuid, uid_key, uid_key, incentive_emission[*uid_i as usize]);
-			}
+			let mut owner_emission: u64 = incentive_emission[*uid_i as usize];
 
 			let total_future_stake: u64 = stake_64[*uid_i as usize].to_num::<u64>() + incentive_emission[*uid_i as usize] + dividends_emission[*uid_i as usize];
 
@@ -195,23 +192,48 @@ impl<T: Config> Pallet<T> {
 
 					if amount > burn_amount_per_epoch {
 
-						let to_module = delegation_fee.mul_floor(amount);
-						let to_owner = amount.saturating_sub(to_module);
+						let to_module: u64 = delegation_fee.mul_floor(amount);
+						let to_owner: u64 = amount.saturating_sub(to_module);
 					
 						Self::increase_stake(netuid, owner_key, uid_key, to_owner);
-						Self::increase_stake(netuid, uid_key, uid_key, to_module);
-					
+						owner_emission = owner_emission + to_owner;					
 					} 
 					
 					if amount < burn_amount_per_epoch {
-						let to_module = delegation_fee.mul_floor(amount);
-						let to_owner = amount.saturating_sub(to_module);
-						Self::decrease_stake(netuid, owner_key, uid_key, to_owner);
-						Self::decrease_stake(netuid, uid_key, uid_key, to_module);
+
+						let burn_amount : u64 = burn_amount_per_epoch.saturating_sub(amount);
+						let burn_from_module: u64 = delegation_fee.mul_floor(burn_amount);
+						let burn_from_owner: u64 = amount.saturating_sub(burn_amount);
+						if burn_from_owner > owner_emission {
+							Self::decrease_stake(netuid, uid_key, uid_key, burn_from_owner);
+						} else {
+							owner_emission = owner_emission.saturating_sub(burn_from_owner);
+						}
+						Self::decrease_stake(netuid, owner_key, uid_key, burn_from_module);
+
 				
 					}
 
 				}
+
+				if owner_emission > 0 {
+					// add the stake to the module
+					let profit_share_emissions: Vec<(T::AccountId, u64)> = Self::get_profit_share_emissions(uid_key.clone(), owner_emission);
+
+					if profit_share_emissions.len() > 0 {
+						// increase the balance of the profit share key
+						for (profit_share_key, profit_share_emission) in profit_share_emissions.iter() {
+							if profit_share_key == uid_key {
+								Self::increase_stake(netuid, uid_key, uid_key, *profit_share_emission);
+							} else {
+								Self::add_balance_to_account_u64(profit_share_key, *profit_share_emission);
+							}
+						}
+					} else {
+						Self::increase_stake(netuid, uid_key, uid_key, owner_emission);
+					}
+				}
+	
 			}
 		}
 		if zero_stake_uids.len() > 0 {
