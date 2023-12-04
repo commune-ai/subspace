@@ -530,6 +530,28 @@ impl<T: Config> Pallet<T> {
 		return Names::<T>::get(netuid, uid)
 	}
 
+
+	pub fn get_trust_ratio(netuid: u16) -> u16 {
+		return TrustRatio::<T>::get(netuid)
+	}
+
+	pub fn set_trust_ratio(netuid: u16, uid: u16, trust_ratio: u16) {
+		TrustRatio::<T>::insert(netuid, trust_ratio);
+	}
+
+
+	pub fn get_quadradic_voting(netuid: u16) -> bool {
+		return QuadraticVoting::<T>::get(netuid)
+	}
+
+	pub fn set_quadradic_voting(netuid: u16, quadradic_voting: bool) {
+		QuadraticVoting::<T>::insert(netuid, quadradic_voting);
+	}
+
+
+
+
+
 	pub fn if_module_name_exists(netuid: u16, name: Vec<u8>) -> bool {
 		for (uid, _name) in
 			<Names<T> as IterableStorageDoubleMap<u16, u16, Vec<u8>>>::iter_prefix(netuid)

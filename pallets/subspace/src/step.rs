@@ -54,15 +54,28 @@ impl<T: Config> Pallet<T> {
 		log::trace!("keys: {:?}", &keys);
 		// Access network stake as normalized vector.
 		let mut stake_64: Vec<I64F64> = vec![I64F64::from_num(0.0); n as usize];
-		let mut total_stake: I64F64 =
-			I64F64::from_num(Self::get_total_subnet_stake(netuid).clone());
-		if total_stake == I64F64::from_num(0.0) {
-			total_stake = I64F64::from_num(1.0);
+		let mut total_stake_u64: u64 =Self::get_total_subnet_stake(netuid).clone();
+		if total_stake_u64 == 0 {
+			total_stake_u64 = 1;
 		}
+				// quadradic voting
+
+		let quadradic_voting: bool = Self::get_quadradic_voting(netuid);
+		if quadradic_voting {
+			// take a square root of the stake if its > 1
+
+			total_stake_u64 = total_stake_u64;
+		}
+
 		for (uid_i, key) in keys.iter() {
-			stake_64[*uid_i as usize] =
-				I64F64::from_num(Self::get_stake_for_key(netuid, key).clone()) / total_stake;
+			let mut stake_u64 = Self::get_stake_for_key(netuid, key).clone();
+			if quadradic_voting && stake_u64 > 0{
+				stake_u64 = stake_u64;
+			} 
+			
+			stake_64[*uid_i as usize] = I64F64::from_num(stake_u64)/I64F64::from_num(total_stake_u64);
 		}
+
 
 		let mut stake: Vec<I32F32> = stake_64.iter().map(|x| I32F32::from_num(x.clone())).collect();
 
@@ -93,9 +106,23 @@ impl<T: Config> Pallet<T> {
 		let mut incentive: Vec<I32F32> = matmul_sparse(&weights, &stake, n);
 		log::trace!("Incentive: {:?}", &incentive);
 
+
+		// =================================
+		// == TRUST ==
+		// =================================
+
 		// trust that acts as a multiplier for the incentive
-		let trust: Vec<I32F32> = Self::calculate_trust(&weights, &stake, n);
-		incentive = incentive.iter().zip(trust.iter()).map(|(inc, tru)| inc * tru).collect();
+		let trust_ratio: u16 = Self::get_trust_ratio(netuid);
+		if trust_ratio > 0 {
+			let  trust_share_float : I32F32 = I32F32::from_num(trust_ratio);
+			let incentive_share_float : I32F32 = I32F32::from_num(100 - trust_ratio);
+			let mut trust: Vec<I32F32> = Self::calculate_trust(&weights, &stake, n);
+			incentive = incentive.iter().zip(trust.iter()).map(|(inc, tru)| (inc * incentive_share_float) + (tru * trust_share_float)).collect();
+			let cloned_trust: Vec<u16> =
+			trust.iter().map(|xi| fixed_proportion_to_u16(*xi)).collect::<Vec<u16>>();
+			Trust::<T>::insert(netuid, cloned_trust);
+		}
+
 		// If emission is zero, do an even split.
 		if is_zero(&incentive) {
 			// no weights set
@@ -106,12 +133,9 @@ impl<T: Config> Pallet<T> {
 		inplace_normalize(&mut incentive); // range: I32F32(0, 1)
 
 		// store the incentive
-		let cloned_incentive: Vec<u16> =
-			incentive.iter().map(|xi| fixed_proportion_to_u16(*xi)).collect::<Vec<u16>>();
+		let cloned_incentive: Vec<u16> = incentive.iter().map(|xi| fixed_proportion_to_u16(*xi)).collect::<Vec<u16>>();
 		Incentive::<T>::insert(netuid, cloned_incentive);
-		let cloned_trust: Vec<u16> =
-			trust.iter().map(|xi| fixed_proportion_to_u16(*xi)).collect::<Vec<u16>>();
-		Trust::<T>::insert(netuid, cloned_trust);
+
 
 		// =================================
 		// == Bonds==
@@ -168,70 +192,72 @@ impl<T: Config> Pallet<T> {
 		let mut zero_stake_uids : Vec<u16> = Vec::new();
 
 		// Emission tuples ( keys, u64 emission)
-		for (uid_i, uid_key) in keys.iter() {
+		for (module_uid, module_key) in keys.iter() {
 
-			let mut owner_emission: u64 = incentive_emission[*uid_i as usize];
+			let mut owner_emission: u64 = incentive_emission[*module_uid as usize];
 
-			let total_future_stake: u64 = stake_64[*uid_i as usize].to_num::<u64>() + incentive_emission[*uid_i as usize] + dividends_emission[*uid_i as usize];
+			let total_future_stake: u64 = stake_64[*module_uid as usize].to_num::<u64>() + incentive_emission[*module_uid as usize] + dividends_emission[*module_uid as usize];
 
 			if total_future_stake > burn_amount_per_epoch {
-				zero_stake_uids.push(*uid_i as u16);
+				zero_stake_uids.push(*module_uid as u16);
 			} 
 
-			if dividends_emission[*uid_i as usize] > 0 {
+			if dividends_emission[*module_uid as usize] > 0 {
 				// get the ownership emission for this key
 
-				let ownership_vector: Vec<(T::AccountId, I64F64)> = Self::get_ownership_ratios(netuid, uid_key);
+				let ownership_vector: Vec<(T::AccountId, I64F64)> = Self::get_ownership_ratios(netuid, module_key);
 	
-				let delegation_fee = Self::get_delegation_fee(netuid, uid_key);
+				let delegation_fee = Self::get_delegation_fee(netuid, module_key);
 				
 				// add the ownership
-				for (owner_key, ratio) in ownership_vector.iter() {
+				for (delegate_key, delegate_ratio) in ownership_vector.iter() {
 
-					let mut amount : u64 = (ratio * I64F64::from_num(dividends_emission[*uid_i as usize])).to_num::<u64>();
+					let mut dividens_from_delegate : u64 = (delegate_ratio * I64F64::from_num(dividends_emission[*module_uid as usize])).to_num::<u64>();
 
-					if amount > burn_amount_per_epoch {
+					if dividens_from_delegate > burn_amount_per_epoch {
 
-						let to_module: u64 = delegation_fee.mul_floor(amount);
-						let to_owner: u64 = amount.saturating_sub(to_module);
+						let to_module: u64 = delegation_fee.mul_floor(dividens_from_delegate);
+						let to_delegate: u64 = dividens_from_delegate.saturating_sub(to_module);
 					
-						Self::increase_stake(netuid, owner_key, uid_key, to_owner);
-						owner_emission = owner_emission + to_owner;					
+						Self::increase_stake(netuid, delegate_key, module_key, to_delegate);
+						owner_emission = owner_emission + to_module;					
 					} 
 					
-					if amount < burn_amount_per_epoch {
+					if dividens_from_delegate < burn_amount_per_epoch {
 
-						let burn_amount : u64 = burn_amount_per_epoch.saturating_sub(amount);
-						let burn_from_module: u64 = delegation_fee.mul_floor(burn_amount);
-						let burn_from_owner: u64 = amount.saturating_sub(burn_amount);
-						if burn_from_owner > owner_emission {
-							Self::decrease_stake(netuid, uid_key, uid_key, burn_from_owner);
+						let burn_amount : u64 = burn_amount_per_epoch.saturating_sub(dividens_from_delegate);
+						let burn_for_delegate: u64 = delegation_fee.mul_floor(burn_amount);
+						let burn_for_module: u64 = dividens_from_delegate.saturating_sub(burn_amount);
+						if burn_for_module > owner_emission {
+							Self::decrease_stake(netuid, module_key, module_key, burn_for_module);
 						} else {
-							owner_emission = owner_emission.saturating_sub(burn_from_owner);
+							owner_emission = owner_emission.saturating_sub(burn_for_module);
 						}
-						Self::decrease_stake(netuid, owner_key, uid_key, burn_from_module);
+						Self::decrease_stake(netuid, delegate_key, module_key, burn_for_delegate);
 
 				
 					}
 
 				}
 
-				if owner_emission > 0 {
+				if owner_emission > burn_amount_per_epoch {
 					// add the stake to the module
-					let profit_share_emissions: Vec<(T::AccountId, u64)> = Self::get_profit_share_emissions(uid_key.clone(), owner_emission);
+					let profit_share_emissions: Vec<(T::AccountId, u64)> = Self::get_profit_share_emissions(module_key.clone(), owner_emission);
 
 					if profit_share_emissions.len() > 0 {
 						// increase the balance of the profit share key
 						for (profit_share_key, profit_share_emission) in profit_share_emissions.iter() {
-							if profit_share_key == uid_key {
-								Self::increase_stake(netuid, uid_key, uid_key, *profit_share_emission);
+							if profit_share_key == module_key {
+								Self::increase_stake(netuid, module_key, module_key, *profit_share_emission);
 							} else {
 								Self::add_balance_to_account_u64(profit_share_key, *profit_share_emission);
 							}
 						}
 					} else {
-						Self::increase_stake(netuid, uid_key, uid_key, owner_emission);
+						Self::increase_stake(netuid, module_key, module_key, owner_emission);
 					}
+				} else {
+					Self::decrease_stake(netuid, module_key, module_key, owner_emission);
 				}
 	
 			}
