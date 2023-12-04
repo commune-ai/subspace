@@ -287,6 +287,22 @@ pub mod pallet {
 	#[pallet::storage] // --- MAP ( netuid ) --> epoch
 	pub type Tempo<T> = StorageMap<_, Identity, u16, u16, ValueQuery, DefaultTempo<T>>;
 
+	#[pallet::type_value]
+	pub fn DefaultTrustRatio<T: Config>() -> u16 {
+		0
+	}
+	#[pallet::storage] // --- MAP ( netuid ) --> epoch
+	pub type TrustRatio<T> = StorageMap<_, Identity, u16, u16, ValueQuery, DefaultTrustRatio<T>>;
+
+
+	#[pallet::type_value]
+	pub fn DefaultQuadraticVoting<T: Config>() -> bool {
+		false
+	}
+	#[pallet::storage] // --- MAP ( netuid ) --> epoch
+	pub type QuadraticVoting<T> = StorageMap<_, Identity, u16, bool, ValueQuery, DefaultQuadraticVoting<T>>;
+
+
 	// =======================================
 	// ==== Voting  ====
 	// =======================================
