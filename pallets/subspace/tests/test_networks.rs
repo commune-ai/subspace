@@ -262,7 +262,7 @@ fn test_set_max_allowed_uids_shrinking() {
 				old_total_subnet_balance + SubspaceModule::get_balance_u64(&key);
 		}
 
-		let subnet = SubspaceModule::get_subnet(netuid);
+		let subnet = SubspaceModule::subnet_info(netuid);
 		SubspaceModule::update_network(
 			get_origin(U256::from(0)),
 			netuid,

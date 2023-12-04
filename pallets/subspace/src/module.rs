@@ -99,11 +99,7 @@ impl<T: Config> Pallet<T> {
 		Names::<T>::remove(netuid, replace_uid); // Fill module namespace.
 
 		// HANDLE THE DELEGATION FEE
-		DelegationFee::<T>::insert(
-			netuid,
-			replace_key.clone(),
-			DelegationFee::<T>::get(netuid, uid_key.clone()),
-		); // Make uid - key association.
+		DelegationFee::<T>::insert(netuid,replace_key.clone(),DelegationFee::<T>::get(netuid, uid_key.clone())); // Make uid - key association.
 		DelegationFee::<T>::remove(netuid, uid_key.clone()); // Make uid - key association.
 
 		// 3. Remove the stake from the old account and add to the new

@@ -132,8 +132,7 @@ impl<T: Config> Pallet<T> {
 			tempo: Tempo::<T>::get(netuid),
 			name: <Vec<u8>>::new(),
 			burn_rate: BurnRate::<T>::get(netuid),
-			vote_period: VotePeriod::<T>::get(netuid),
-			vote_threshold: VoteThreshold::<T>::get(netuid),
+			vote_threshold: SubnetVoteThreshold::<T>::get(netuid),
 		}
 	}
 
@@ -222,7 +221,7 @@ impl<T: Config> Pallet<T> {
 		return Self::subnet_params(default_netuid)
 	}
 
-	pub fn get_subnet(netuid: u16) -> SubnetInfo<T> {
+	pub fn subnet_info(netuid: u16) -> SubnetInfo<T> {
 		let subnet_params: SubnetParams = Self::subnet_params(netuid);
 		return SubnetInfo {
 			params: subnet_params,
@@ -236,7 +235,7 @@ impl<T: Config> Pallet<T> {
 
 	pub fn default_subnet() -> SubnetInfo<T> {
 		let netuid: u16 = Self::get_number_of_subnets() + 1;
-		return Self::get_subnet(netuid)
+		return Self::subnet_info(netuid)
 	}
 
 	pub fn is_subnet_founder(netuid: u16, key: &T::AccountId) -> bool {
@@ -476,7 +475,7 @@ impl<T: Config> Pallet<T> {
 	pub fn get_subnets() -> Vec<SubnetInfo<T>> {
 		let mut subnets_info = Vec::<SubnetInfo<T>>::new();
 		for (netuid, net_n) in <N<T> as IterableStorageMap<u16, u16>>::iter() {
-			subnets_info.push(Self::get_subnet(netuid));
+			subnets_info.push(Self::subnet_info(netuid));
 		}
 		return subnets_info
 	}
@@ -917,7 +916,6 @@ impl<T: Config> Pallet<T> {
         assert!(params.max_allowed_uids > 0, "Invalid max_allowed_uids");
         assert!(params.burn_rate > 0, "Invalid burn_rate");
         assert!(params.min_stake > 0, "Invalid min_stake");
-        assert!(params.vote_period > 0, "Invalid vote_period");
         assert!(params.vote_threshold > 0, "Invalid vote_threshold");
         Ok(())
     }

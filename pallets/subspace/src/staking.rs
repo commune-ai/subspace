@@ -529,7 +529,7 @@ impl<T: Config> Pallet<T> {
 	pub fn least_staked_module_key(netuid: u16) -> T::AccountId {
 		let mut min_stake: u64 = u64::MAX;
 		let mut min_stake_uid: u16 = 0;
-		let mut module_key: T::AccountId = SubnetFounder::<T>::get(netuid);
+		let mut module_key: T::AccountId = Self::get_subnet_founder(netuid);
 		for (m_key, m_stake) in
 			<Stake<T> as IterableStorageDoubleMap<u16, T::AccountId, u64>>::iter_prefix(netuid)
 		{

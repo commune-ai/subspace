@@ -231,7 +231,6 @@ pub mod pallet {
 		pub min_stake: u64,
 		// pub democratic: bool
 		pub vote_threshold: u16, // out of 100
-		pub vote_period: u16,    // out of 100
 	}
 
 	#[pallet::storage] // --- MAP ( netuid ) --> max_allowed_uids
@@ -258,6 +257,9 @@ pub mod pallet {
 
 	#[pallet::type_value]
 	pub fn DefaultBurnRate<T: Config>() -> u16 {0}
+
+
+
 	#[pallet::storage] // --- MAP ( netuid ) --> min_allowed_weights
 	pub type BurnRate<T> = StorageMap<_, Identity, u16, u16, ValueQuery, DefaultBurnRate<T>>;
 
@@ -289,9 +291,7 @@ pub mod pallet {
 	// =======================================
 
 	#[pallet::storage] // --- MAP ( netuid ) --> epoch
-	pub type VotePeriod<T> = StorageMap<_, Identity, u16, u16, ValueQuery, DefaultVotePeriod<T>>;
-	#[pallet::storage] // --- MAP ( netuid ) --> epoch
-	pub type VoteThreshold<T> =
+	pub type SubnetVoteThreshold<T> =
 		StorageMap<_, Identity, u16, u16, ValueQuery, DefaultVoteThreshold<T>>;
 
 	#[derive(Decode, Encode, PartialEq, Eq, Clone, Debug, TypeInfo)]
@@ -382,8 +382,27 @@ pub mod pallet {
 		Vec<(T::AccountId, u64)>,
 		ValueQuery,
 	>;
+
+
+	// PROFIT SHARE VARIABLES
+	
+	#[pallet::type_value]
+	pub fn DefaultProfitShares<T: Config>() -> Vec<(T::AccountId, u16)> {vec![]}
+	
 	#[pallet::storage] // --- DMAP ( netuid, account_id ) --> Vec<(module_key, stake )> | Returns the list of the
-				   // modules that an account has delegated to and the amount
+	pub type ProfitShares<T: Config> = StorageMap<_, 
+			Identity, 
+			T::AccountId, 
+			Vec<(T::AccountId, u16)>, 
+			ValueQuery, 
+			DefaultProfitShares<T>>;
+
+	#[pallet::type_value]
+	pub fn DefaultProfitShareUnit<T: Config>() -> u16 {u16::MAX}
+	#[pallet::storage] // --- DMAP ( netuid, account_id ) --> Vec<(module_key, stake )> | Returns the list of the
+	pub type ProfitShareUnit<T: Config> = StorageValue<_, u16, ValueQuery, DefaultProfitShareUnit<T>>;
+				   
+	#[pallet::storage] // --- DMAP ( netuid, account_id ) --> Vec<(module_key, stake )> | Returns the list of the
 	pub type StakeTo<T: Config> = StorageDoubleMap<
 		_,
 		Identity,
@@ -586,7 +605,6 @@ pub mod pallet {
 					burn_rate: subnet.6,
 					min_stake: subnet.7,
 					vote_threshold: default_params.vote_threshold,
-					vote_period: default_params.vote_period,
 				};
 				
 				self::Pallet::<T>::add_network(params.clone());
@@ -658,7 +676,6 @@ pub mod pallet {
 			burn_rate: DefaultBurnRate::<T>::get(),
 			min_stake: 0, 
 			vote_threshold: 50,
-			vote_period: 0,
 		}
 	}
 
