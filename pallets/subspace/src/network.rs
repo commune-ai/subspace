@@ -76,36 +76,6 @@ impl<T: Config> Pallet<T> {
 		return TotalStake::<T>::get(netuid)
 	}
 
-	pub fn do_add_network(origin: T::RuntimeOrigin, name: Vec<u8>, stake: u64) -> DispatchResult {
-		let key = ensure_signed(origin)?;
-		// --- 1. Ensure the network name does not already exist.
-		if Self::get_number_of_subnets() > 0 {
-			ensure!(
-				!Self::if_subnet_name_exists(name.clone()),
-				Error::<T>::SubnetNameAlreadyExists
-			);
-			ensure!(
-				Self::enough_stake_to_start_network(stake),
-				Error::<T>::NotEnoughStakeToStartNetwork
-			);
-		}
-
-		let subnet_params: SubnetParams<T> = Self::default_subnet_params();
-		Self::add_network(
-			name.clone(),
-			subnet_params.tempo,
-			subnet_params.immunity_period,
-			subnet_params.min_allowed_weights,
-			subnet_params.max_allowed_weights,
-			subnet_params.max_allowed_uids,
-			subnet_params.burn_rate,
-			subnet_params.min_stake,
-			&key.clone(), // founder
-			stake,        //stake
-		);
-		// --- 16. Ok and done.
-		Ok(())
-	}
 
 	pub fn do_remove_network(origin: T::RuntimeOrigin, netuid: u16) -> DispatchResult {
 		let key = ensure_signed(origin)?;
@@ -147,65 +117,29 @@ impl<T: Config> Pallet<T> {
 			max_allowed_uids,
 			burn_rate,
 			min_stake,
-			founder,
 		);
 		// --- 16. Ok and done.
 		Ok(())
 	}
 
-	pub fn do_propose_network_update(
-		origin: T::RuntimeOrigin,
-		netuid: u16,
-		name: Vec<u8>,
-		tempo: u16,
-		immunity_period: u16,
-		min_allowed_weights: u16,
-		max_allowed_weights: u16,
-		max_allowed_uids: u16,
-		min_stake: u64,
-		burn_rate: u16,
-		vote_period: u16,
-		vote_threshold: u16,
-		founder: T::AccountId,
-	) -> DispatchResult {
-		let key = ensure_signed(origin)?;
-
-		ensure!(Self::if_subnet_netuid_exists(netuid), Error::<T>::SubnetNameAlreadyExists);
-		ensure!(Self::is_subnet_founder(netuid, &key), Error::<T>::NotSubnetFounder);
-
-		let params: SubnetParams<T> = SubnetParams {
-			name: name.clone(),
-			immunity_period: immunity_period,
-			min_allowed_weights: min_allowed_weights,
-			max_allowed_weights: max_allowed_weights,
-			max_allowed_uids: max_allowed_uids,
-			min_stake: min_stake,
-			tempo: tempo,
-			burn_rate: burn_rate,
-			founder: founder.clone(),
-			vote_period: vote_period,
-			vote_threshold: vote_threshold,
-		};
-		let proposal = SubnetProposal {
-			params,
-			votes: Self::get_stake_for_key(netuid, &key),
-			proposer: key.clone(),
-		};
-
-		// --- 16. Ok and done.
-		Ok(())
-	}
-
-	pub fn review_proposal(netuid: u16, proposal: SubnetProposal<T>) {
-		let mut total_subnet_stake: u64 = TotalStake::<T>::get(netuid);
-		let mut vote_threshold: u64 =
-			total_subnet_stake * proposal.params.vote_threshold as u64 / 100;
-		if (proposal.votes > vote_threshold) {
-			Self::update_network_from_params(netuid, proposal.params);
+	pub fn subnet_params(netuid: u16) -> SubnetParams {
+		SubnetParams {
+			immunity_period: ImmunityPeriod::<T>::get(netuid),
+			min_allowed_weights: MinAllowedWeights::<T>::get(netuid),
+			max_allowed_weights: MaxAllowedWeights::<T>::get(netuid),
+			max_allowed_uids: MaxAllowedUids::<T>::get(netuid),
+			min_stake: MinStake::<T>::get(netuid),
+			tempo: Tempo::<T>::get(netuid),
+			name: <Vec<u8>>::new(),
+			burn_rate: BurnRate::<T>::get(netuid),
+			vote_period: VotePeriod::<T>::get(netuid),
+			vote_threshold: VoteThreshold::<T>::get(netuid),
 		}
 	}
 
-	pub fn update_network_from_params(netuid: u16, params: SubnetParams<T>) {
+
+
+	pub fn set_subnet_params(netuid: u16, params: SubnetParams) {
 		return Self::update_network_for_netuid(
 			netuid,
 			params.name,
@@ -216,7 +150,6 @@ impl<T: Config> Pallet<T> {
 			params.max_allowed_uids,
 			params.burn_rate,
 			params.min_stake,
-			params.founder,
 		)
 	}
 
@@ -230,7 +163,6 @@ impl<T: Config> Pallet<T> {
 		mut max_allowed_uids: u16,
 		burn_rate: u16,
 		mut min_stake: u64,
-		founder: T::AccountId,
 	) {
 		let n: u16 = Self::get_subnet_n(netuid);
 
@@ -255,7 +187,6 @@ impl<T: Config> Pallet<T> {
 			min_allowed_weights = max_allowed_weights;
 		}
 		MinAllowedWeights::<T>::insert(netuid, min_allowed_weights);
-		Founder::<T>::insert(netuid, founder);
 		// remove the modules if the max_allowed_uids is less than the current number of modules
 
 		if max_allowed_uids < n {
@@ -285,34 +216,21 @@ impl<T: Config> Pallet<T> {
 		return current_block - block_at_registration < immunity_period
 	}
 
-	pub fn get_subnet_params(netuid: u16) -> SubnetParams<T> {
-		SubnetParams {
-			immunity_period: ImmunityPeriod::<T>::get(netuid),
-			min_allowed_weights: MinAllowedWeights::<T>::get(netuid),
-			max_allowed_weights: MaxAllowedWeights::<T>::get(netuid),
-			max_allowed_uids: MaxAllowedUids::<T>::get(netuid),
-			min_stake: MinStake::<T>::get(netuid),
-			tempo: Tempo::<T>::get(netuid),
-			founder: Founder::<T>::get(netuid),
-			name: <Vec<u8>>::new(),
-			burn_rate: BurnRate::<T>::get(netuid),
-			vote_period: VotePeriod::<T>::get(netuid),
-			vote_threshold: VoteThreshold::<T>::get(netuid),
-		}
-	}
-	pub fn default_subnet_params() -> SubnetParams<T> {
+	pub fn default_subnet_params() -> SubnetParams {
+		// get an invalid 
 		let default_netuid: u16 = Self::get_number_of_subnets() + 1;
-		return Self::get_subnet_params(default_netuid)
+		return Self::subnet_params(default_netuid)
 	}
 
 	pub fn get_subnet(netuid: u16) -> SubnetInfo<T> {
-		let subnet_params: SubnetParams<T> = Self::get_subnet_params(netuid);
+		let subnet_params: SubnetParams = Self::subnet_params(netuid);
 		return SubnetInfo {
 			params: subnet_params,
 			netuid,
 			stake: TotalStake::<T>::get(netuid),
 			emission: SubnetEmission::<T>::get(netuid),
 			n: N::<T>::get(netuid),
+			founder: SubnetFounder::<T>::get(netuid),
 		}
 	}
 
@@ -322,7 +240,15 @@ impl<T: Config> Pallet<T> {
 	}
 
 	pub fn is_subnet_founder(netuid: u16, key: &T::AccountId) -> bool {
-		return Founder::<T>::get(netuid) == *key
+		return SubnetFounder::<T>::get(netuid) == *key
+	}
+
+	pub fn set_subnet_founder(netuid: u16, key: &T::AccountId) {
+		SubnetFounder::<T>::insert(netuid, key.clone());
+	}
+
+	pub fn get_subnet_founder(netuid: u16) -> T::AccountId {
+		return SubnetFounder::<T>::get(netuid)
 	}
 
 	pub fn add_network_from_registration(
@@ -332,21 +258,10 @@ impl<T: Config> Pallet<T> {
 	) -> u16 {
 		// use default parameters
 
-		let params = Self::default_subnet_params();
-
-		let netuid = Self::add_network(
-			name.clone(),
-			params.tempo,
-			params.immunity_period,
-			params.min_allowed_weights,
-			params.max_allowed_weights,
-			params.max_allowed_uids,
-			params.burn_rate,
-			params.min_stake,
-			&founder_key, // founder,
-			stake,
-		);
-
+		let mut params: SubnetParams = Self::default_subnet_params();
+		params.name = name.clone();
+		let netuid = Self::add_network(params);
+		SubnetFounder::<T>::insert(netuid, founder_key.clone());
 		// --- 16. Ok and done.
 		return netuid
 	}
@@ -434,39 +349,27 @@ impl<T: Config> Pallet<T> {
 		return Self::calculate_network_emission(netuid)
 	}
 
-	pub fn add_network(
-		name: Vec<u8>,
-		tempo: u16,
-		immunity_period: u16,
-		min_allowed_weights: u16,
-		max_allowed_weights: u16,
-		max_allowed_uids: u16,
-		burn_rate: u16,
-		min_stake: u64,
-		founder: &T::AccountId,
-		stake: u64,
-	) -> u16 {
+	pub fn add_network(params: SubnetParams) -> u16 {
+
 		// --- 1. Enfnsure that the network name does not already exist.
 		let total_networks: u16 = TotalSubnets::<T>::get();
 		let max_networks = MaxAllowedSubnets::<T>::get();
 		let netuid = total_networks;
 
-		Tempo::<T>::insert(netuid, tempo);
-		MaxAllowedUids::<T>::insert(netuid, max_allowed_uids);
-		ImmunityPeriod::<T>::insert(netuid, immunity_period);
-		MinAllowedWeights::<T>::insert(netuid, min_allowed_weights);
-		MaxAllowedWeights::<T>::insert(netuid, max_allowed_weights);
-		MinStake::<T>::insert(netuid, min_stake);
-		SubnetNamespace::<T>::insert(name.clone(), netuid);
-		Founder::<T>::insert(netuid, founder);
-		BurnRate::<T>::insert(netuid, burn_rate);
+		Tempo::<T>::insert(netuid, params.tempo);
+		MaxAllowedUids::<T>::insert(netuid, params.max_allowed_uids);
+		ImmunityPeriod::<T>::insert(netuid, params.immunity_period);
+		MinAllowedWeights::<T>::insert(netuid, params.min_allowed_weights);
+		MaxAllowedWeights::<T>::insert(netuid, params.max_allowed_weights);
+		MinStake::<T>::insert(netuid, params.min_stake);
+		SubnetNamespace::<T>::insert(params.name.clone(), netuid);
+		BurnRate::<T>::insert(netuid, params.burn_rate);
 		// set stat once network is created
 		TotalSubnets::<T>::mutate(|n| *n += 1);
 		N::<T>::insert(netuid, 0);
 
 		// --- 6. Emit the new network event.
-		log::info!("NetworkAdded( netuid:{:?}, name:{:?} )", netuid, name.clone());
-		Self::deposit_event(Event::NetworkAdded(netuid, name.clone()));
+		Self::deposit_event(Event::NetworkAdded(netuid, params.name.clone()));
 
 		return netuid
 	}
@@ -509,7 +412,7 @@ impl<T: Config> Pallet<T> {
 
 	// Returns true if the account is the founder of the network.
 	pub fn is_network_founder(netuid: u16, key: &T::AccountId) -> bool {
-		let founder = Founder::<T>::get(netuid);
+		let founder = SubnetFounder::<T>::get(netuid);
 		return founder == key.clone()
 	}
 
@@ -551,7 +454,7 @@ impl<T: Config> Pallet<T> {
 		PendingDeregisterUids::<T>::remove(netuid);
 
 		// --- 2. Erase network parameters.
-		Founder::<T>::remove(netuid);
+		SubnetFounder::<T>::remove(netuid);
 		MinStake::<T>::remove(netuid);
 		Tempo::<T>::remove(netuid);
 		MaxAllowedUids::<T>::remove(netuid);
@@ -598,6 +501,18 @@ impl<T: Config> Pallet<T> {
 
 	pub fn is_key_registered(netuid: u16, key: &T::AccountId) -> bool {
 		return Uids::<T>::contains_key(netuid, key)
+	}
+
+
+
+
+	pub fn is_key_registered_on_any_network( key: &T::AccountId) -> bool {
+		for netuid in Self::netuids() {
+			if Uids::<T>::contains_key(netuid, key) {
+				return true
+			}
+		}
+		return false
 	}
 
 	// Returs the key under the network uid as a Result. Ok if the uid is taken.
@@ -651,12 +566,36 @@ impl<T: Config> Pallet<T> {
 		return number_of_subnets
 	}
 
+	pub fn netuids() -> Vec<u16> {
+
+		let mut netuids : Vec<u16> = Vec::new();
+		for (netuid, _net_n) in <N<T> as IterableStorageMap<u16, u16>>::iter() {
+			netuids.push(netuid);
+		}
+		return netuids
+	}
+
 	// ========================
 	// ==== Global Setters ====
 	// ========================
 	pub fn set_tempo(netuid: u16, tempo: u16) {
 		Tempo::<T>::insert(netuid, tempo);
 	}
+
+
+	pub fn set_min_burn(netuid: u16, min_burn: u64) {
+		MinBurn::<T>::insert(netuid, min_burn);
+	}
+
+	pub fn get_min_burn(netuid: u16) -> u64 {
+		MinBurn::<T>::get(netuid).into()
+	}
+
+
+
+
+
+
 
 	pub fn set_burn_rate(netuid: u16, burn_rate: u16) {
 		if burn_rate > 100 {
@@ -960,4 +899,26 @@ impl<T: Config> Pallet<T> {
 	pub fn is_uid_registered(netuid: u16, uid: u16) -> bool {
 		return Keys::<T>::contains_key(netuid, uid)
 	}
+
+
+
+    pub fn check_subnet_params(params: SubnetParams) -> DispatchResult{
+        // checks if params are valid
+
+        // check if the name already exists
+        assert!(params.name.len() > 0, "Invalid name");
+        ensure!(!Self::if_subnet_name_exists(params.name.clone()),Error::<T>::SubnetNameAlreadyExists );
+
+        // check valid tempo
+        assert!(params.tempo > 0, "Invalid tempo");
+        assert!(params.immunity_period > 0, "Invalid immunity_period");
+        assert!(params.min_allowed_weights > 0, "Invalid min_allowed_weights");
+        assert!(params.max_allowed_weights > 0, "Invalid max_allowed_weights");
+        assert!(params.max_allowed_uids > 0, "Invalid max_allowed_uids");
+        assert!(params.burn_rate > 0, "Invalid burn_rate");
+        assert!(params.min_stake > 0, "Invalid min_stake");
+        assert!(params.vote_period > 0, "Invalid vote_period");
+        assert!(params.vote_threshold > 0, "Invalid vote_threshold");
+        Ok(())
+    }
 }

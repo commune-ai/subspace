@@ -59,7 +59,7 @@ fn test_set_single_temple(tempo: u16) {
 		let key = U256::from(0);
 		let tempos: Vec<u16> = vec![2, 4];
 		register_module(netuid, key, stake);
-		let mut params = SubspaceModule::get_subnet_params(netuid);
+		let mut params = SubspaceModule::subnet_params(netuid);
 
 		let total_blocks = 100;
 		let emission_per_block: u64 = SubspaceModule::get_subnet_emission(netuid);
@@ -80,7 +80,7 @@ fn test_set_single_temple(tempo: u16) {
 			params.founder,
 		);
 
-		let subnet_params = SubspaceModule::get_subnet_params(netuid);
+		let subnet_params = SubspaceModule::subnet_params(netuid);
 		assert_eq!(subnet_params.tempo, tempo);
 		assert_eq!(subnet_params.min_stake, min_stake);
 		assert_eq!(subnet_params.max_allowed_uids, params.max_allowed_uids);

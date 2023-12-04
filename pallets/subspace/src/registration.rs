@@ -24,6 +24,7 @@ impl<T: Config> Pallet<T> {
 		// --- 1. Check that the caller has signed the transaction.
 		let key = ensure_signed(origin.clone())?;
 
+
 		// --- 2. Ensure we are not exceeding the max allowed registrations per block.
 
 		ensure!(
@@ -31,15 +32,20 @@ impl<T: Config> Pallet<T> {
 			Error::<T>::NotEnoughBalanceToRegister
 		);
 
+
+
+
 		let mut netuid: u16 = 0;
 		ensure!(
 			Self::enough_stake_to_register(netuid, stake_amount),
 			Error::<T>::NotEnoughStakeToRegister
 		);
+
+
 		let new_network: bool = !Self::if_subnet_name_exists(network.clone());
 
 		if new_network {
-			
+			// check the stake amount to start a new network
 			ensure!(
 				Self::enough_stake_to_start_network(stake_amount),
 				Error::<T>::NotEnoughStakeToStartNetwork
@@ -52,6 +58,15 @@ impl<T: Config> Pallet<T> {
 				!Self::if_module_name_exists(netuid, name.clone()),
 				Error::<T>::NameAlreadyRegistered
 			);
+		}
+
+		let min_burn: u64 = Self::get_min_burn(netuid);
+		
+		// CONSTANT INITIAL BURN
+		if min_burn > 0 {
+			ensure!(Self::has_enough_balance(&key, min_burn),Error::<T>::NotEnoughBalanceToRegister);
+			let removed_balance: bool = Self::remove_balance_from_account(&key, Self::u64_to_balance(min_burn).unwrap());
+			ensure!(removed_balance, Error::<T>::BalanceNotRemoved);
 		}
 
 		RegistrationsPerBlock::<T>::mutate(|val| *val += 1);
@@ -114,6 +129,8 @@ impl<T: Config> Pallet<T> {
 		let min_stake: u64 = Self::get_min_stake_to_register(netuid);
 		return stake_amount >= min_stake
 	}
+
+
 
 	pub fn get_min_stake_to_register(netuid: u16) -> u64 {
 		let mut min_stake: u64 = MinStake::<T>::get(netuid);
