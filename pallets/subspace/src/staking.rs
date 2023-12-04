@@ -40,6 +40,9 @@ impl<T: Config> Pallet<T> {
 		}
 		Ok(())
 	}
+
+
+	
 	pub fn do_remove_stake_multiple(
 		origin: T::RuntimeOrigin,
 		netuid: u16,
@@ -102,8 +105,7 @@ impl<T: Config> Pallet<T> {
 		let balance_before_add: u64 = Self::get_balance_u64(&key);
 
 		Self::increase_stake(netuid, &key, &module_key, amount);
-		let removed_balance: bool =
-			Self::remove_balance_from_account(&key, Self::u64_to_balance(amount).unwrap());
+		let removed_balance: bool = Self::remove_balance_from_account(&key, Self::u64_to_balance(amount).unwrap());
 		ensure!(removed_balance, Error::<T>::BalanceNotRemoved);
 
 		let stake_after_add: u64 = Self::get_stake_to_module(netuid, &key, &module_key.clone());
@@ -260,6 +262,16 @@ impl<T: Config> Pallet<T> {
 		}
 		return total_stake_from
 	}
+
+	pub fn get_total_stake_to_global(key: &T::AccountId) -> u64 {
+		let mut total_stake_to: u64 = 0;
+		let total_networks: u16 = TotalSubnets::<T>::get();
+		for netuid in 0..total_networks {
+			total_stake_to += Self::get_total_stake_to(netuid, key);
+		}
+		return total_stake_to
+	}
+
 	pub fn get_total_stake_to(netuid: u16, key: &T::AccountId) -> u64 {
 		let mut stake_to_vector: Vec<(T::AccountId, u64)> = Self::get_stake_to_vector(netuid, key);
 		let mut total_stake_to: u64 = 0;
@@ -486,6 +498,18 @@ impl<T: Config> Pallet<T> {
 		return Self::get_stake_to_vector(netuid, key).len() as u16
 	}
 
+	pub fn remove_balance_from_account_u64(key: &T::AccountId, amount: u64) -> bool {
+		return match T::Currency::withdraw(
+			&key,
+			Self::u64_to_balance(amount).unwrap(),
+			WithdrawReasons::except(WithdrawReasons::TIP),
+			ExistenceRequirement::KeepAlive,
+		) {
+			Ok(_result) => true,
+			Err(_error) => false,
+		}
+	}
+
 	pub fn remove_balance_from_account(
 		key: &T::AccountId,
 		amount: <<T as Config>::Currency as Currency<<T as system::Config>::AccountId>>::Balance,
@@ -505,7 +529,7 @@ impl<T: Config> Pallet<T> {
 	pub fn least_staked_module_key(netuid: u16) -> T::AccountId {
 		let mut min_stake: u64 = u64::MAX;
 		let mut min_stake_uid: u16 = 0;
-		let mut module_key: T::AccountId = Self::get_subnet_params(netuid).founder;
+		let mut module_key: T::AccountId = SubnetFounder::<T>::get(netuid);
 		for (m_key, m_stake) in
 			<Stake<T> as IterableStorageDoubleMap<u16, T::AccountId, u64>>::iter_prefix(netuid)
 		{

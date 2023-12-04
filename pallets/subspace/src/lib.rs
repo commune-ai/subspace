@@ -112,19 +112,7 @@ pub mod pallet {
 	pub fn DefaultMinAllowedWeights<T: Config>() -> u16 {
 		1
 	}
-	#[pallet::type_value]
-	pub fn DefaultMaxAllowedWeights<T: Config>() -> u16 {
-		420
-	}
-	#[pallet::type_value]
-	pub fn DefaultBurnRate<T: Config>() -> u16 {
-		0
-	}
-	#[pallet::type_value]
-	pub fn DefaultPendingDeregisterUids<T: Config>() -> Vec<u16> {
-		vec![]
-		
-	}
+
 	#[pallet::type_value]
 	pub fn DefaultMaxNameLength<T: Config>() -> u16 {
 		32
@@ -178,10 +166,6 @@ pub mod pallet {
 		0
 	}
 	#[pallet::type_value]
-	pub fn DefaultAccount<T: Config>() -> T::AccountId {
-		T::AccountId::decode(&mut sp_runtime::traits::TrailingZeroInput::zeroes()).unwrap()
-	}
-	#[pallet::type_value]
 	pub fn DefaultVotePeriod<T: Config>() -> u16 {
 		100
 	} // out of 100
@@ -189,22 +173,19 @@ pub mod pallet {
 	pub fn DefaultVoteThreshold<T: Config>() -> u16 {
 		50
 	} // out of 100
-	#[pallet::type_value]
-	pub fn DefaultUnitEmission<T: Config>() -> u64 {
-		23809523810
-	}
+
 	#[pallet::type_value]
 	pub fn DefaultDelegationFee<T: Config>() -> Percent {
 		Percent::from_percent(20u8)
-	}
-	#[pallet::type_value]
-	pub fn DefaultMinStake<T: Config>() -> u64 {
-		0
 	}
 
 	// ============================
 	// ==== Global Variables ====
 	// ============================
+	#[pallet::type_value]
+	pub fn DefaultUnitEmission<T: Config>() -> u64 {
+		23809523810
+	}
 	#[pallet::storage] // --- ITEM ( unit_emission )
 	pub(super) type UnitEmission<T> = StorageValue<_, u64, ValueQuery, DefaultUnitEmission<T>>;
 	#[pallet::storage] // --- ITEM ( tx_rate_limit )
@@ -236,8 +217,7 @@ pub mod pallet {
 	// =========================
 
 	#[derive(Decode, Encode, PartialEq, Eq, Clone, Debug, TypeInfo)]
-	#[scale_info(skip_type_params(T))]
-	pub struct SubnetParams<T: Config> {
+	pub struct SubnetParams {
 		// --- parameters
 		pub name: Vec<u8>,
 		pub tempo: u16,           // how many blocks to wait before rewarding models
@@ -249,7 +229,6 @@ pub mod pallet {
 		pub max_allowed_uids: u16, // max number of uids allowed to be registered in this subnet
 		pub burn_rate: u16,        // out of 100
 		pub min_stake: u64,
-		pub founder: T::AccountId, // founder of the network
 		// pub democratic: bool
 		pub vote_threshold: u16, // out of 100
 		pub vote_period: u16,    // out of 100
@@ -265,22 +244,43 @@ pub mod pallet {
 	#[pallet::storage] // --- MAP ( netuid ) --> min_allowed_weights
 	pub type MinAllowedWeights<T> =
 		StorageMap<_, Identity, u16, u16, ValueQuery, DefaultMinAllowedWeights<T>>;
+
+	#[pallet::type_value]
+	pub fn DefaultMinStake<T: Config>() -> u64 {0}	
 	#[pallet::storage] // --- MAP ( netuid ) --> min_allowed_weights
 	pub type MinStake<T> = StorageMap<_, Identity, u16, u64, ValueQuery, DefaultMinStake<T>>;
+
+	#[pallet::type_value]
+	pub fn DefaultMaxAllowedWeights<T: Config>() -> u16 {420}
 	#[pallet::storage] // --- MAP ( netuid ) --> min_allowed_weights
-	pub type MaxAllowedWeights<T> =
-		StorageMap<_, Identity, u16, u16, ValueQuery, DefaultMaxAllowedWeights<T>>;
-		
+	pub type MaxAllowedWeights<T> =StorageMap<_, Identity, u16, u16, ValueQuery, DefaultMaxAllowedWeights<T>>;
+	
+
+	#[pallet::type_value]
+	pub fn DefaultBurnRate<T: Config>() -> u16 {0}
 	#[pallet::storage] // --- MAP ( netuid ) --> min_allowed_weights
 	pub type BurnRate<T> = StorageMap<_, Identity, u16, u16, ValueQuery, DefaultBurnRate<T>>;
 
+	#[pallet::type_value]
+	pub fn DefaultMinBurn<T: Config>() -> u64 {0}
+	#[pallet::storage] // --- MAP ( netuid ) --> min_allowed_weights
+	pub type MinBurn<T> = StorageMap<_, Identity, u16, u64, ValueQuery, DefaultMinBurn<T>>;
+
+	#[pallet::type_value]
+	pub fn DefaultPendingDeregisterUids<T: Config>() -> Vec<u16> {vec![]}
 	#[pallet::storage] // --- MAP ( netuid ) --> min_allowed_weights
 	pub type PendingDeregisterUids<T> = 
 		StorageMap<_, Identity, u16, Vec<u16>, ValueQuery, DefaultPendingDeregisterUids<T>>;
 
+
+	#[pallet::type_value]
+	pub fn DefaultAccount<T: Config>() -> T::AccountId {
+		T::AccountId::decode(&mut sp_runtime::traits::TrailingZeroInput::zeroes()).unwrap()
+	}
 	#[pallet::storage] // --- DMAP ( key, netuid ) --> bool
-	pub type Founder<T: Config> =
+	pub type SubnetFounder<T: Config> =
 		StorageMap<_, Identity, u16, T::AccountId, ValueQuery, DefaultAccount<T>>;
+
 	#[pallet::storage] // --- MAP ( netuid ) --> epoch
 	pub type Tempo<T> = StorageMap<_, Identity, u16, u16, ValueQuery, DefaultTempo<T>>;
 
@@ -295,23 +295,16 @@ pub mod pallet {
 		StorageMap<_, Identity, u16, u16, ValueQuery, DefaultVoteThreshold<T>>;
 
 	#[derive(Decode, Encode, PartialEq, Eq, Clone, Debug, TypeInfo)]
-	pub struct SubnetProposal<T: Config> {
-		// --- parameters
-		pub params: SubnetParams<T>,
-		pub proposer: T::AccountId,
-		pub votes: u64,
-	}
-
-	#[derive(Decode, Encode, PartialEq, Eq, Clone, Debug, TypeInfo)]
 	pub struct SubnetInfo<T: Config> {
 		// --- parameters
-		pub params: SubnetParams<T>,
+		pub params: SubnetParams ,
 		// pub mode: u8, // --- 0 for open, 1 for closed.
 		// state variables
 		pub netuid: u16, // --- unique id of the network
 		pub n: u16,
 		pub stake: u64,
 		pub emission: u64,
+		pub founder: T::AccountId,
 	}
 
 	#[pallet::storage] // --- ITEM( tota_number_of_existing_networks )
@@ -579,18 +572,28 @@ pub mod pallet {
 
 			for (subnet_idx, subnet) in self.subnets.iter().enumerate() {
 				let netuid: u16 = subnet_idx as u16;
-				self::Pallet::<T>::add_network(
-					subnet.0.clone(), // name
-					subnet.1,         // tempo
-					subnet.2,         // immunity_period
-					subnet.3,         // min_allowed_weights
-					subnet.4,         // max_allowed_weights
-					subnet.5,         // max_allowed_uids
-					subnet.6,         // burn_rate
-					subnet.7,         // min_stake
-					&subnet.8,        // founder
-					0 as u64,         // stake
-				);
+				// --- Set subnet parameters
+
+				let default_params: SubnetParams = self::Pallet::<T>::default_subnet_params();
+
+				let params = SubnetParams {
+					name: subnet.0.clone(),
+					tempo: subnet.1,
+					immunity_period: subnet.2,
+					min_allowed_weights: subnet.3,
+					max_allowed_weights: subnet.4,
+					max_allowed_uids: subnet.5,
+					burn_rate: subnet.6,
+					min_stake: subnet.7,
+					vote_threshold: default_params.vote_threshold,
+					vote_period: default_params.vote_period,
+				};
+				
+				self::Pallet::<T>::add_network(params.clone());
+				// --- Set subnet founder
+				self::Pallet::<T>::set_subnet_founder(netuid, &subnet.8.clone());
+
+				
 				for (uid_usize, (key, name, address, weights)) in
 					self.modules[subnet_idx].iter().enumerate()
 				{
@@ -611,18 +614,6 @@ pub mod pallet {
 		}
 	}
 
-	// ========================================================
-	// ==== Voting System to Update Global and Subnet  ====
-	// ========================================================
-	#[derive(Decode, Encode, PartialEq, Eq, Clone, Debug, TypeInfo)]
-	#[scale_info(skip_type_params(T))]
-	pub struct GlobalUpdateProposal<T: Config> {
-		// --- parameters
-		pub params: GlobalParams,
-		pub votes: u64,
-		pub participants: Vec<T::AccountId>,
-		pub accepted: bool,
-	}
 
 	#[derive(Decode, Encode, PartialEq, Eq, Clone, Debug, TypeInfo)]
 	pub struct GlobalParams {
@@ -631,72 +622,84 @@ pub mod pallet {
 		pub max_allowed_modules: u16,
 		pub max_registrations_per_block: u16,
 		pub unit_emission: u64, 
-		pub tx_rate_limit: u64
+		pub tx_rate_limit: u64,
+		pub vote_threshold: u16 
 	}
-
-	#[pallet::type_value]
-	pub fn DefaultGlobalUpdateProposals<T: Config>() -> GlobalUpdateProposal<T> {
-		GlobalUpdateProposal {
-			params: GlobalParams {
-				max_name_length: 0,
-			 	max_allowed_subnets: 0,
-			 	max_allowed_modules: 0,
-				max_registrations_per_block: 0,
-				unit_emission: 0, 
-				tx_rate_limit: 0
-			},
-			votes: 0,
-			participants: vec![],
-			accepted: false
-		}
-	}
-
+	// ========================================================
+	// ==== Voting System to Update Global and Subnet  ====
+	// ========================================================
 	#[derive(Decode, Encode, PartialEq, Eq, Clone, Debug, TypeInfo)]
 	#[scale_info(skip_type_params(T))]
-	pub struct SubnetUpdateProposal<T: Config> {
+	pub struct Proposal<T: Config> {
 		// --- parameters
-		pub params: SubnetParams<T>,
+		pub subnet_params: SubnetParams,
+		pub global_params: GlobalParams,
+		pub netuid: u16, // FOR SUBNET PROPOSAL ONLY
 		pub votes: u64,
 		pub participants: Vec<T::AccountId>,
 		pub accepted: bool,
+		pub data: Vec<u8>, // for custom proposal
+		pub mode: Vec<u8>, // "global", "subnet", "custom"
 	}
 
+
+	
+
+
 	#[pallet::type_value]
-	pub fn DefaultSubnetUpdateProposals<T: Config>() -> SubnetUpdateProposal<T> {
-		SubnetUpdateProposal {
-			params: SubnetParams {
-				name: vec![],
-				tempo: 0,
-				immunity_period: 0,
-				min_allowed_weights: 0,
-				max_allowed_weights: 0,
-				max_allowed_uids: 0,
-				burn_rate: 0,
-				min_stake: 0, 
-				founder: T::AccountId::decode(&mut sp_runtime::traits::TrailingZeroInput::zeroes()).unwrap(),
-				vote_threshold: 0,
-				vote_period: 0,
-			},
-			votes: 0,
-			participants: vec![],
-			accepted: false
+	pub fn DefaultSubnetParams<T: Config>() -> SubnetParams {
+		SubnetParams {
+			name: vec![],
+			tempo: DefaultTempo::<T>::get(),
+			immunity_period: DefaultImmunityPeriod::<T>::get(),
+			min_allowed_weights: DefaultMinAllowedWeights::<T>::get(),
+			max_allowed_weights: DefaultMaxAllowedWeights::<T>::get(),
+			max_allowed_uids: DefaultMaxAllowedUids::<T>::get(),
+			burn_rate: DefaultBurnRate::<T>::get(),
+			min_stake: 0, 
+			vote_threshold: 50,
+			vote_period: 0,
 		}
 	}
 
-	#[pallet::storage]
-	pub(super) type GlobalUpdateProposalLastId<T: Config> = StorageValue<_, u64, ValueQuery>;
+	#[pallet::type_value]
+	pub fn DefaultGlobalParams<T: Config>() -> GlobalParams {
+		GlobalParams {
+			max_name_length: DefaultMaxNameLength::<T>::get(),
+			max_allowed_subnets: DefaultMaxAllowedSubnets::<T>::get(),
+			max_allowed_modules: DefaultMaxAllowedModules::<T>::get(),
+			max_registrations_per_block: DefaultMaxRegistrationsPerBlock::<T>::get(),
+			unit_emission: DefaultUnitEmission::<T>::get(), 
+			tx_rate_limit: DefaultTxRateLimit::<T>::get(),
+			vote_threshold: DefaultVoteThreshold::<T>::get(),
+		}
+	}
+
+
+
+	#[pallet::type_value]
+	pub fn DefaultProposal<T: Config>() -> Proposal<T> {
+		Proposal {
+			global_params: DefaultGlobalParams::<T>::get(),
+			subnet_params: DefaultSubnetParams::<T>::get(),
+			votes: 0,
+			netuid: 0,
+			participants: vec![],
+			accepted: false,
+			mode: vec![],
+			data: vec![]
+		}
+	}
 
 	#[pallet::storage] // --- MAP ( global_proposal_id ) --> global_update_proposal
-	pub(super) type GlobalUpdateProposals<T: Config> =
-		StorageMap<_, Identity, u64, GlobalUpdateProposal<T>, ValueQuery, DefaultGlobalUpdateProposals<T>>;
+	pub(super) type Proposals<T: Config> =
+		StorageMap<_, Identity, u64, Proposal<T>, ValueQuery, DefaultProposal<T>>;
 
+	#[pallet::type_value]
+	pub fn DefaultMaxProposals<T: Config>() -> u16 {420}
 	#[pallet::storage]
-	pub(super) type SubnetUpdateProposalLastId<T: Config> = StorageValue<_, u64, ValueQuery>;
-
-	#[pallet::storage] // --- MAP ( subnet_proposal_id ) --> subnet_update_proposal
-	pub(super) type SubnetUpdateProposals<T: Config> =
-		StorageMap<_, Identity, u64, SubnetUpdateProposal<T>, ValueQuery, DefaultSubnetUpdateProposals<T>>;
-
+	pub(super) type MaxProposals<T: Config> = StorageValue<_, u64, ValueQuery>;
+	
 	// ================
 	// ==== Hooks =====
 	// ================
@@ -881,93 +884,38 @@ pub mod pallet {
 		}
 
 		#[pallet::weight(T::WeightInfo::add_global_update())]
-        pub fn add_global_update(
+        pub fn add_proposal(
             origin: OriginFor<T>,
-            max_name_length: u16,
-            max_allowed_subnets: u16,
-            max_allowed_modules: u16,
-            max_registrations_per_block: u16,
-            unit_emission: u64, 
-            tx_rate_limit: u64
+            global_params: GlobalParams,
+			subnet_params: SubnetParams,
+			netuid: u16, // FOR SUBNET PROPOSAL ONLY
+			data: Vec<u8>,
+			mode: Vec<u8>
         ) -> DispatchResult {
-            Self::proposal_global_update(
-                origin,
-                max_name_length,
-                max_allowed_subnets,
-                max_allowed_modules,
-                max_registrations_per_block,
-                unit_emission, 
-                tx_rate_limit
-            );
+
+			
+			let subnet_params = DefaultSubnetParams::<T>::get();
+			let mut proposal = DefaultProposal::<T>::get();
+			proposal.global_params = global_params;
+			proposal.subnet_params = subnet_params;
+			proposal.data = data;
+			proposal.mode = mode;
+			proposal.netuid = netuid;
+
+            Self::do_add_proposal(origin,  proposal);
+
+
 
             Ok(())
         }
 
-        #[pallet::weight(T::WeightInfo::vote_global_update())]
-        pub fn vote_global_update(
-            origin: OriginFor<T>,
-            proposal_id: u64
-        ) -> DispatchResult {
-            Self::stake_global_update(
-                origin,
-                proposal_id
-            );
-
-            Ok(())
-        }
-
-        #[pallet::weight(T::WeightInfo::accept_global_update())]
-        pub fn accept_global_update(
-            origin: OriginFor<T>,
-            proposal_id: u64
-        ) -> DispatchResult {
-            Self::do_global_update(
-                origin,
-                proposal_id
-            );
-
-            Ok(())
-        }
-
-        #[pallet::weight(T::WeightInfo::add_subnet_update())]
-        pub fn add_subnet_update(
-            origin: OriginFor<T>,
-            netuid: u16,
-            name: Vec<u8>,
-            immunity_period: u16,
-            min_allowed_weights: u16,
-            max_allowed_weights: u16,
-            max_allowed_uids: u16,
-            burn_rate: u16,
-            min_stake: u64,
-            tempo: u16,
-            vote_period: u16,
-            vote_threshold: u16,
-        ) -> DispatchResult {
-            Self::proposal_network_update(
-                origin,
-                netuid,
-                name,
-                tempo,
-                immunity_period,
-                min_allowed_weights,
-                max_allowed_weights,
-                max_allowed_uids,
-                burn_rate,
-                min_stake,
-                vote_period,
-                vote_threshold,
-            );
-
-            Ok(())
-        }
 
         #[pallet::weight(T::WeightInfo::vote_subnet_update())]
-        pub fn vote_subnet_update(
+        pub fn vote_proposal(
             origin: OriginFor<T>,
             proposal_id: u64
         ) -> DispatchResult {
-            Self::stake_subnet_update(
+            Self::do_vote_proposal(
                 origin,
                 proposal_id
             );
@@ -975,18 +923,6 @@ pub mod pallet {
             Ok(())
         }
 
-        #[pallet::weight(T::WeightInfo::accept_subnet_update())]
-        pub fn accept_subnet_update(
-            origin: OriginFor<T>,
-            proposal_id: u64
-        ) -> DispatchResult {
-            Self::do_subnet_update(
-                origin,
-                proposal_id
-            );
-
-            Ok(())
-        }
 	}
 
 	// ---- Subspace helper functions.

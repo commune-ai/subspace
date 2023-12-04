@@ -292,11 +292,10 @@ pub fn register(netuid: u16, key: U256, stake: u64) {
 }
 
 #[allow(dead_code)]
-pub fn add_network(netuid: u16, key: U256) {
+pub fn add_network(netuid: u16, founder: U256) {
 	let network: Vec<u8> = netuid.to_string().as_bytes().to_vec();
 	let stake: u64 = 1_000_000_000;
-	let origin = get_origin(key);
-	let result = SubspaceModule::do_add_network(origin, network, stake);
+	let result = SubspaceModule::add_network_from_registration(network, founder, stake);
 
 	assert_ok!(result);
 }

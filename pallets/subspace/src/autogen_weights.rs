@@ -84,8 +84,8 @@ impl<T: frame_system::Config> WeightInfo for SubstrateWeight<T> {
 	/// Proof: `SubspaceModule::MaxAllowedUids` (`max_values`: None, `max_size`: None, mode: `Measured`)
 	/// Storage: `SubspaceModule::Tempo` (r:1 w:1)
 	/// Proof: `SubspaceModule::Tempo` (`max_values`: None, `max_size`: None, mode: `Measured`)
-	/// Storage: `SubspaceModule::Founder` (r:1 w:1)
-	/// Proof: `SubspaceModule::Founder` (`max_values`: None, `max_size`: None, mode: `Measured`)
+	/// Storage: `SubspaceModule::SubnetFounder` (r:1 w:1)
+	/// Proof: `SubspaceModule::SubnetFounder` (`max_values`: None, `max_size`: None, mode: `Measured`)
 	/// Storage: `SubspaceModule::BurnRate` (r:1 w:1)
 	/// Proof: `SubspaceModule::BurnRate` (`max_values`: None, `max_size`: None, mode: `Measured`)
 	/// Storage: `SubspaceModule::VotePeriod` (r:1 w:0)
@@ -274,8 +274,8 @@ impl<T: frame_system::Config> WeightInfo for SubstrateWeight<T> {
 	}
 	/// Storage: `SubspaceModule::SubnetNamespace` (r:3 w:0)
 	/// Proof: `SubspaceModule::SubnetNamespace` (`max_values`: None, `max_size`: None, mode: `Measured`)
-	/// Storage: `SubspaceModule::Founder` (r:1 w:1)
-	/// Proof: `SubspaceModule::Founder` (`max_values`: None, `max_size`: None, mode: `Measured`)
+	/// Storage: `SubspaceModule::SubnetFounder` (r:1 w:1)
+	/// Proof: `SubspaceModule::SubnetFounder` (`max_values`: None, `max_size`: None, mode: `Measured`)
 	/// Storage: `SubspaceModule::N` (r:1 w:0)
 	/// Proof: `SubspaceModule::N` (`max_values`: None, `max_size`: None, mode: `Measured`)
 	/// Storage: `SubspaceModule::BurnRate` (r:0 w:1)
@@ -303,8 +303,8 @@ impl<T: frame_system::Config> WeightInfo for SubstrateWeight<T> {
 	}
 	/// Storage: `SubspaceModule::SubnetNamespace` (r:3 w:1)
 	/// Proof: `SubspaceModule::SubnetNamespace` (`max_values`: None, `max_size`: None, mode: `Measured`)
-	/// Storage: `SubspaceModule::Founder` (r:1 w:1)
-	/// Proof: `SubspaceModule::Founder` (`max_values`: None, `max_size`: None, mode: `Measured`)
+	/// Storage: `SubspaceModule::SubnetFounder` (r:1 w:1)
+	/// Proof: `SubspaceModule::SubnetFounder` (`max_values`: None, `max_size`: None, mode: `Measured`)
 	/// Storage: `SubspaceModule::N` (r:1 w:1)
 	/// Proof: `SubspaceModule::N` (`max_values`: None, `max_size`: None, mode: `Measured`)
 	/// Storage: `SubspaceModule::Stake` (r:2 w:1)
@@ -408,8 +408,8 @@ impl<T: frame_system::Config> WeightInfo for SubstrateWeight<T> {
 		// Minimum execution time: 3_920_000 picoseconds.
 		Weight::from_parts(4_300_000, 0)
 	}
-	/// Storage: `SubspaceModule::GlobalUpdateProposalLastId` (r:1 w:0)
-	/// Proof: `SubspaceModule::GlobalUpdateProposalLastId` (`max_values`: Some(1), `max_size`: None, mode: `Measured`)
+	/// Storage: `SubspaceModule::ProposalLastId` (r:1 w:0)
+	/// Proof: `SubspaceModule::ProposalLastId` (`max_values`: Some(1), `max_size`: None, mode: `Measured`)
 	fn vote_global_update() -> Weight {
 		// Proof Size summary in bytes:
 		//  Measured:  `519`
@@ -418,8 +418,8 @@ impl<T: frame_system::Config> WeightInfo for SubstrateWeight<T> {
 		Weight::from_parts(16_762_000, 2004)
 			.saturating_add(T::DbWeight::get().reads(1_u64))
 	}
-	/// Storage: `SubspaceModule::GlobalUpdateProposalLastId` (r:1 w:0)
-	/// Proof: `SubspaceModule::GlobalUpdateProposalLastId` (`max_values`: Some(1), `max_size`: None, mode: `Measured`)
+	/// Storage: `SubspaceModule::ProposalLastId` (r:1 w:0)
+	/// Proof: `SubspaceModule::ProposalLastId` (`max_values`: Some(1), `max_size`: None, mode: `Measured`)
 	fn accept_global_update() -> Weight {
 		// Proof Size summary in bytes:
 		//  Measured:  `519`
@@ -483,8 +483,8 @@ impl WeightInfo for () {
 	/// Proof: `SubspaceModule::MaxAllowedUids` (`max_values`: None, `max_size`: None, mode: `Measured`)
 	/// Storage: `SubspaceModule::Tempo` (r:1 w:1)
 	/// Proof: `SubspaceModule::Tempo` (`max_values`: None, `max_size`: None, mode: `Measured`)
-	/// Storage: `SubspaceModule::Founder` (r:1 w:1)
-	/// Proof: `SubspaceModule::Founder` (`max_values`: None, `max_size`: None, mode: `Measured`)
+	/// Storage: `SubspaceModule::SubnetFounder` (r:1 w:1)
+	/// Proof: `SubspaceModule::SubnetFounder` (`max_values`: None, `max_size`: None, mode: `Measured`)
 	/// Storage: `SubspaceModule::BurnRate` (r:1 w:1)
 	/// Proof: `SubspaceModule::BurnRate` (`max_values`: None, `max_size`: None, mode: `Measured`)
 	/// Storage: `SubspaceModule::VotePeriod` (r:1 w:0)
@@ -673,8 +673,8 @@ impl WeightInfo for () {
 	}
 	/// Storage: `SubspaceModule::SubnetNamespace` (r:3 w:0)
 	/// Proof: `SubspaceModule::SubnetNamespace` (`max_values`: None, `max_size`: None, mode: `Measured`)
-	/// Storage: `SubspaceModule::Founder` (r:1 w:1)
-	/// Proof: `SubspaceModule::Founder` (`max_values`: None, `max_size`: None, mode: `Measured`)
+	/// Storage: `SubspaceModule::SubnetFounder` (r:1 w:1)
+	/// Proof: `SubspaceModule::SubnetFounder` (`max_values`: None, `max_size`: None, mode: `Measured`)
 	/// Storage: `SubspaceModule::N` (r:1 w:0)
 	/// Proof: `SubspaceModule::N` (`max_values`: None, `max_size`: None, mode: `Measured`)
 	/// Storage: `SubspaceModule::BurnRate` (r:0 w:1)
@@ -702,8 +702,8 @@ impl WeightInfo for () {
 	}
 	/// Storage: `SubspaceModule::SubnetNamespace` (r:3 w:1)
 	/// Proof: `SubspaceModule::SubnetNamespace` (`max_values`: None, `max_size`: None, mode: `Measured`)
-	/// Storage: `SubspaceModule::Founder` (r:1 w:1)
-	/// Proof: `SubspaceModule::Founder` (`max_values`: None, `max_size`: None, mode: `Measured`)
+	/// Storage: `SubspaceModule::SubnetFounder` (r:1 w:1)
+	/// Proof: `SubspaceModule::SubnetFounder` (`max_values`: None, `max_size`: None, mode: `Measured`)
 	/// Storage: `SubspaceModule::N` (r:1 w:1)
 	/// Proof: `SubspaceModule::N` (`max_values`: None, `max_size`: None, mode: `Measured`)
 	/// Storage: `SubspaceModule::Stake` (r:2 w:1)
@@ -807,8 +807,8 @@ impl WeightInfo for () {
 		// Minimum execution time: 3_920_000 picoseconds.
 		Weight::from_parts(4_300_000, 0)
 	}
-	/// Storage: `SubspaceModule::GlobalUpdateProposalLastId` (r:1 w:0)
-	/// Proof: `SubspaceModule::GlobalUpdateProposalLastId` (`max_values`: Some(1), `max_size`: None, mode: `Measured`)
+	/// Storage: `SubspaceModule::ProposalLastId` (r:1 w:0)
+	/// Proof: `SubspaceModule::ProposalLastId` (`max_values`: Some(1), `max_size`: None, mode: `Measured`)
 	fn vote_global_update() -> Weight {
 		// Proof Size summary in bytes:
 		//  Measured:  `519`
@@ -817,8 +817,8 @@ impl WeightInfo for () {
 		Weight::from_parts(16_762_000, 2004)
 			.saturating_add(RocksDbWeight::get().reads(1_u64))
 	}
-	/// Storage: `SubspaceModule::GlobalUpdateProposalLastId` (r:1 w:0)
-	/// Proof: `SubspaceModule::GlobalUpdateProposalLastId` (`max_values`: Some(1), `max_size`: None, mode: `Measured`)
+	/// Storage: `SubspaceModule::ProposalLastId` (r:1 w:0)
+	/// Proof: `SubspaceModule::ProposalLastId` (`max_values`: Some(1), `max_size`: None, mode: `Measured`)
 	fn accept_global_update() -> Weight {
 		// Proof Size summary in bytes:
 		//  Measured:  `519`

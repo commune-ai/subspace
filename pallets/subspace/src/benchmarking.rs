@@ -356,7 +356,7 @@ mod benchmarks {
     fn update_network() -> Result<(), BenchmarkError> {
         let (network, name, address, module_key, netuid) = default_register_helper::<T>();
 
-        let subnet_params = <Pallet<T>>::get_subnet_params(netuid);
+        let subnet_params = <Pallet<T>>::subnet_params(netuid);
         let tempo = 5;
 		let min_stake = 0;
 
