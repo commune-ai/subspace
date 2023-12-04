@@ -15,7 +15,6 @@ impl<T: Config> Pallet<T> {
 		Self::set_tx_rate_limit(params.tx_rate_limit);
 	}
 
-
 	pub fn global_params() -> GlobalParams {
 		GlobalParams {
 			max_name_length: Self::get_max_name_length(),
@@ -31,12 +30,6 @@ impl<T: Config> Pallet<T> {
 	fn get_global_vote_threshold() -> u16 {
 		return 50;
 	}
-
-
-	
-
-
-
 
 	pub fn do_update_global(
 		origin: T::RuntimeOrigin,
@@ -82,6 +75,7 @@ impl<T: Config> Pallet<T> {
 	pub fn get_total_global_stake(
         key: &T::AccountId,
     ) -> u64 {
+		// get all of the stake to
         let total_networks: u16 = TotalSubnets::<T>::get();
         let mut total_stake_to = 0;
 

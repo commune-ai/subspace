@@ -92,11 +92,9 @@ impl<T: Config> Pallet<T> {
 
 		// Access network weights row normalized.
 		let mut weights: Vec<Vec<(u16, I32F32)>> = Self::get_weights_sparse(netuid);
-		log::trace!("W (permit): {:?}", &weights);
 
 		// Normalize remaining weights.
 		inplace_row_normalize_sparse(&mut weights);
-		log::trace!("W (mask+norm): {:?}", &weights);
 
 		// =============================
 		// ==  Incentive ==
@@ -104,25 +102,6 @@ impl<T: Config> Pallet<T> {
 
 		// Compute incentive: r_j = SUM(i) w_ij * s_i.
 		let mut incentive: Vec<I32F32> = matmul_sparse(&weights, &stake, n);
-		log::trace!("Incentive: {:?}", &incentive);
-
-
-		// =================================
-		// == TRUST ==
-		// =================================
-
-		// trust that acts as a multiplier for the incentive
-		let trust_ratio: u16 = Self::get_trust_ratio(netuid);
-		if trust_ratio > 0 {
-			let  trust_share_float : I32F32 = I32F32::from_num(trust_ratio);
-			let incentive_share_float : I32F32 = I32F32::from_num(100 - trust_ratio);
-			let mut trust: Vec<I32F32> = Self::calculate_trust(&weights, &stake, n);
-			incentive = incentive.iter().zip(trust.iter()).map(|(inc, tru)| (inc * incentive_share_float) + (tru * trust_share_float)).collect();
-			let cloned_trust: Vec<u16> =
-			trust.iter().map(|xi| fixed_proportion_to_u16(*xi)).collect::<Vec<u16>>();
-			Trust::<T>::insert(netuid, cloned_trust);
-		}
-
 		// If emission is zero, do an even split.
 		if is_zero(&incentive) {
 			// no weights set
@@ -131,6 +110,22 @@ impl<T: Config> Pallet<T> {
 			}
 		}
 		inplace_normalize(&mut incentive); // range: I32F32(0, 1)
+
+		// =================================
+		// == TRUST ==
+		// =================================
+
+		// trust that acts as a multiplier for the incentive
+		let trust_ratio: u16 = Self::get_trust_ratio(netuid);
+		if trust_ratio > 0 {
+			let  trust_share : I32F32 = I32F32::from_num(trust_ratio)/I32F32::from_num(100);
+			let incentive_share : I32F32 = I32F32::from_num(1.0) - trust_share;
+			let mut trust: Vec<I32F32> = Self::calculate_trust(&weights, &stake, n);
+			incentive = incentive.iter().zip(trust.iter()).map(|(inc, tru)| (inc * incentive_share) + (tru * trust_share)).collect();
+
+			// save the trust into the trust vector
+			Trust::<T>::insert(netuid, trust.iter().map(|xi| fixed_proportion_to_u16(*xi)).collect::<Vec<u16>>());
+		}
 
 		// store the incentive
 		let cloned_incentive: Vec<u16> = incentive.iter().map(|xi| fixed_proportion_to_u16(*xi)).collect::<Vec<u16>>();
@@ -143,11 +138,8 @@ impl<T: Config> Pallet<T> {
 
 		// Compute bonds delta column normalized.
 		let mut bonds: Vec<Vec<(u16, I32F32)>> = row_hadamard_sparse(&weights, &stake); // ΔB = W◦S (outdated W masked)
-		log::trace!("ΔB: {:?}", &bonds);
-
 		// Normalize bonds delta.
 		inplace_col_normalize_sparse(&mut bonds, n); // sum_i b_ij = 1
-		log::trace!("ΔB (norm): {:?}", &bonds);
 
 		// Compute dividends: d_i = SUM(j) b_ij * inc_j.
 		// range: I32F32(0, 1)
