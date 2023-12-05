@@ -45,7 +45,7 @@ fn test_remove_subnet() {
 		let stake_per_module: u64 = 1_000_000_000;
 		let key = U256::from(0);
 		let netuid: u16 = 0;
-		register_module(netuid, key, stake_per_module);
+		(netuid, key, stake_per_module);
 		let origin = get_origin(key);
 		SubspaceModule::remove_network(origin, netuid);
 	});

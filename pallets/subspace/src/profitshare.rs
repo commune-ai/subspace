@@ -1,11 +1,8 @@
-use core::ops::Add;
 
 use frame_support::{pallet_prelude::DispatchResult};
 use substrate_fixed::types::{I110F18, I32F32, I64F64, I96F32};
 
 use super::*;
-
-
 
 impl<T: Config> Pallet<T> {
     pub fn do_add_profit_shares(
@@ -37,11 +34,20 @@ impl<T: Config> Pallet<T> {
         }
         // make sure the normalized shares add up to the unit
         // convert the normalized shares to u16
-        let normalize_shares: Vec<u16> = normalized_shares_float.iter().map(|x| x.to_num::<u16>()).collect::<Vec<u16>>();
-
+        let mut normalize_shares: Vec<u16> = normalized_shares_float.iter().map(|x| x.to_num::<u16>()).collect::<Vec<u16>>();
 
         let mut total_normalized_shares: u16 = normalize_shares.iter().sum::<u16>();
-        assert!(total_normalized_shares == u16::MAX);
+
+        if total_normalized_shares < u16::MAX {
+            let diff = u16::MAX - total_normalized_shares;
+            for i in 0..diff {
+                let idx = (i % normalize_shares.len() as u16) as usize;
+                normalize_shares[idx] = normalize_shares[idx] + 1;
+            }
+            total_normalized_shares = normalize_shares.iter().sum::<u16>();
+        }
+
+        assert!(total_normalized_shares == u16::MAX, "normalized shares {} vs {} do not add up to the unit", total_normalized_shares, u16::MAX);
         
         // check tssat the normalized shares add up to the unit
         let total_normalized_shares: u16 = normalize_shares.iter().sum::<u16>();
