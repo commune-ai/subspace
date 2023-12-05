@@ -505,6 +505,8 @@ pub mod pallet {
 		MaxAllowedModulesSet(u16), // --- Event created when setting the maximum allowed modules
 		MaxRegistrationsPerBlockSet(u16), // --- Event created when we set max registrations per block
 		GlobalUpdate(u16, u16, u16, u16, u64, u64),
+		GlobalProposalAccepted(u64), // (id)
+		SubnetProposalAccepted(u64, u16), // (id, netuid)
 	}
 
 	// Errors inform users that something went wrong.

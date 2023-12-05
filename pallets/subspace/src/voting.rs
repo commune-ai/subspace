@@ -46,6 +46,7 @@ impl<T: Config> Pallet<T> {
 
         let mode = proposal.mode.clone();
         
+        // check if proposal is valid
         if is_vec_str(mode.clone(), "global") {
             Self::check_global_params(proposal.global_params)?;
         } else if is_vec_str(mode.clone(), "subnet") {
@@ -53,7 +54,7 @@ impl<T: Config> Pallet<T> {
         } else {
             assert!(proposal.data.len() > 0);
         }
-
+        // check if proposal is valid
         assert!(proposal.data.len() < 256); // avoid an exploit with large data
         Ok(())
     }
@@ -100,6 +101,7 @@ impl<T: Config> Pallet<T> {
             // if its a custom proposal, we need to set the mode to custom
             proposal.votes = Self::get_total_global_stake(&key);
         } 
+        // add the proposal owner to the participants
         proposal.participants.push(key.clone());
 
         Self::check_proposal(proposal.clone())?; // check if proposal is valid
@@ -126,7 +128,7 @@ impl<T: Config> Pallet<T> {
         let current_global_params: GlobalParams = Self::global_params();
         let current_subnet_params: SubnetParams = Self::subnet_params(proposal.netuid);
         
-        let mut stake_threshold: u64 = (total_stake * current_global_params.vote_threshold as u64) / 100;
+        let mut stake_threshold: u64;
 
         if is_vec_str(proposal.mode.clone(),"subnet") {
             
@@ -134,7 +136,9 @@ impl<T: Config> Pallet<T> {
             voting_power = Self::get_total_stake_to(proposal.netuid, &key);
             stake_threshold = (total_stake * current_subnet_params.vote_threshold as u64) / 100;
 
-        } 
+        } else {
+            stake_threshold = (total_stake * current_global_params.vote_threshold as u64) / 100;
+        }
 
         Proposals::<T>::mutate(proposal_id, |proposal| {
             proposal.votes += voting_power;
@@ -148,17 +152,16 @@ impl<T: Config> Pallet<T> {
 
         if proposal.votes >  stake_threshold  {
 
-            Proposals::<T>::mutate(proposal_id, |proposal| {
-                proposal.accepted = true;
-                proposal.participants = Vec::new();
-                proposal.votes = 0;
-            });
-    
+            Proposals::<T>::remove(proposal_id);
+            
             if is_vec_str(proposal.mode.clone(), "subnet") {
                 Self::set_subnet_params(proposal.netuid, proposal.subnet_params);
+                Self::deposit_event(Event::SubnetProposalAccepted(proposal_id, proposal.netuid));
     
             } else if is_vec_str(proposal.mode.clone(), "global") {
                 Self::set_global_params(proposal.global_params);
+                Self::deposit_event(Event::GlobalProposalAccepted(proposal_id));
+
             } 
         }
 
