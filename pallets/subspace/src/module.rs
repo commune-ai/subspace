@@ -6,8 +6,8 @@ use frame_support::{
 extern crate alloc;
 use alloc::vec::Vec;
 use codec::Compact;
-use sp_std::vec;
 use sp_arithmetic::per_things::Percent;
+use sp_std::vec;
 
 #[derive(Decode, Encode, PartialEq, Eq, Clone, Debug)]
 pub struct ModuleSubnetInfo<T: Config> {

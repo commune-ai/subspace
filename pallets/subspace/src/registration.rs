@@ -1,13 +1,12 @@
 use super::*;
 use crate::system::ensure_root;
-use frame_support::{pallet_prelude::DispatchResult};
+use frame_support::pallet_prelude::DispatchResult;
 use frame_system::ensure_signed;
 use sp_arithmetic::per_things::Percent;
 use sp_core::{H256, U256};
 use sp_io::hashing::{keccak_256, sha2_256};
-use sp_std::{convert::TryInto, vec::Vec};
+use sp_std::{convert::TryInto, vec, vec::Vec};
 use substrate_fixed::types::I32F32;
-use sp_std::vec;
 use system::pallet_prelude::BlockNumberFor;
 
 const LOG_TARGET: &'static str = "runtime::subspace::registration";
@@ -39,7 +38,6 @@ impl<T: Config> Pallet<T> {
 		let new_network: bool = !Self::if_subnet_name_exists(network.clone());
 
 		if new_network {
-			
 			ensure!(
 				Self::enough_stake_to_start_network(stake_amount),
 				Error::<T>::NotEnoughStakeToStartNetwork
@@ -85,26 +83,17 @@ impl<T: Config> Pallet<T> {
 		Ok(())
 	}
 
-	pub fn do_deregister(
-		origin: T::RuntimeOrigin,
-		netuid: u16,
-	) -> DispatchResult {
+	pub fn do_deregister(origin: T::RuntimeOrigin, netuid: u16) -> DispatchResult {
 		// --- 1. Check that the caller has signed the transaction.
 		let key = ensure_signed(origin.clone())?;
 
-		ensure!(
-			Self::is_key_registered(netuid, &key),
-			Error::<T>::NotRegistered
-		);
+		ensure!(Self::is_key_registered(netuid, &key), Error::<T>::NotRegistered);
 
 		// --- 2. Ensure we are not exceeding the max allowed registrations per block.
 		let uid: u16 = Self::get_uid_for_key(netuid, &key);
 
 		Self::remove_module(netuid, uid);
-		ensure!(
-			!Self::is_key_registered(netuid, &key),
-			Error::<T>::StillRegistered
-		);
+		ensure!(!Self::is_key_registered(netuid, &key), Error::<T>::StillRegistered);
 
 		// --- 5. Ok and done.
 		Ok(())
@@ -154,7 +143,6 @@ impl<T: Config> Pallet<T> {
 		}
 	}
 	pub fn get_lowest_uid(netuid: u16) -> u16 {
-		
 		// If there are pending deregister uids, then return the first one.
 		let pending_deregister_uids: Vec<u16> = PendingDeregisterUids::<T>::get(netuid);
 		if pending_deregister_uids.len() > 0 {

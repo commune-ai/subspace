@@ -285,7 +285,8 @@ fn test_delegate_stake() {
 // 			}
 
 // 			let pre_delegate_stake_from_vector = SubspaceModule::get_stake_from_vector(netuid, k);
-// 			assert_eq!(pre_delegate_stake_from_vector.len(), 1); // +1 for the module itself, +1 for the delegate key on
+// 			assert_eq!(pre_delegate_stake_from_vector.len(), 1); // +1 for the module itself, +1 for the
+// delegate key on
 
 // 			println!("KEY: {}", k);
 // 			for (i, d) in delegate_keys.iter().enumerate() {

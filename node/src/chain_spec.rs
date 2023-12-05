@@ -1,6 +1,6 @@
 use node_subspace_runtime::{
-	AccountId, AuraConfig, BalancesConfig, GrandpaConfig, Signature,
-	SubspaceModuleConfig, SudoConfig, SystemConfig, WASM_BINARY, Precompiles, RuntimeGenesisConfig
+	AccountId, AuraConfig, BalancesConfig, GrandpaConfig, Precompiles, RuntimeGenesisConfig,
+	Signature, SubspaceModuleConfig, SudoConfig, SystemConfig, WASM_BINARY,
 };
 use sc_service::ChainType;
 use sp_consensus_aura::sr25519::AuthorityId as AuraId;
@@ -230,7 +230,7 @@ fn network_genesis(
 	block: u32,
 ) -> RuntimeGenesisConfig {
 	use node_subspace_runtime::{EVMChainIdConfig, EVMConfig};
-	
+
 	RuntimeGenesisConfig {
 		system: SystemConfig {
 			// Add Wasm runtime to storage.

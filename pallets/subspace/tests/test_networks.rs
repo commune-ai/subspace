@@ -6,8 +6,8 @@ use frame_support::{
 use frame_system::Config;
 use pallet_subspace::Error;
 use sp_core::U256;
-use test_mock::*;
 use sp_std::vec;
+use test_mock::*;
 
 /* TO DO SAM: write test for LatuUpdate after it is set */
 

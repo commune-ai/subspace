@@ -175,16 +175,16 @@ impl<T: Config> Pallet<T> {
 
 		let params: SubnetParams<T> = SubnetParams {
 			name: name.clone(),
-			immunity_period: immunity_period,
-			min_allowed_weights: min_allowed_weights,
-			max_allowed_weights: max_allowed_weights,
-			max_allowed_uids: max_allowed_uids,
-			min_stake: min_stake,
-			tempo: tempo,
-			burn_rate: burn_rate,
+			immunity_period,
+			min_allowed_weights,
+			max_allowed_weights,
+			max_allowed_uids,
+			min_stake,
+			tempo,
+			burn_rate,
 			founder: founder.clone(),
-			vote_period: vote_period,
-			vote_threshold: vote_threshold,
+			vote_period,
+			vote_threshold,
 		};
 		let proposal = SubnetProposal {
 			params,
@@ -261,7 +261,6 @@ impl<T: Config> Pallet<T> {
 		if max_allowed_uids < n {
 			let remainder_n: u16 = n - max_allowed_uids;
 			for i in 0..remainder_n {
-
 				Self::remove_module(netuid, Self::get_lowest_uid(netuid));
 			}
 		}
@@ -374,7 +373,6 @@ impl<T: Config> Pallet<T> {
 		UnitEmission::<T>::put(unit_emission)
 	}
 
-	
 	pub fn get_unit_emission_per_block() -> u64 {
 		return UnitEmission::<T>::get() * 4
 	}
@@ -678,14 +676,13 @@ impl<T: Config> Pallet<T> {
 		if n == 0 {
 			return 0
 		}
-		let burn_emission_per_epoch: u64 = (burn_rate as u64 * epoch_emission)  / n as u64;
+		let burn_emission_per_epoch: u64 = (burn_rate as u64 * epoch_emission) / n as u64;
 		return burn_emission_per_epoch
 	}
 
 	pub fn get_burn_rate(netuid: u16) -> u16 {
 		return BurnRate::<T>::get(netuid)
 	}
-
 
 	pub fn set_registrations_this_block(registrations_this_block: u16) {
 		RegistrationsPerBlock::<T>::set(registrations_this_block);

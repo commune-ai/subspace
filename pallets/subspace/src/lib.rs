@@ -43,8 +43,8 @@ mod network;
 mod registration;
 mod staking;
 mod step;
-mod weights;
 mod voting;
+mod weights;
 
 #[frame_support::pallet]
 pub mod pallet {
@@ -123,7 +123,6 @@ pub mod pallet {
 	#[pallet::type_value]
 	pub fn DefaultPendingDeregisterUids<T: Config>() -> Vec<u16> {
 		vec![]
-		
 	}
 	#[pallet::type_value]
 	pub fn DefaultMaxNameLength<T: Config>() -> u16 {
@@ -270,12 +269,12 @@ pub mod pallet {
 	#[pallet::storage] // --- MAP ( netuid ) --> min_allowed_weights
 	pub type MaxAllowedWeights<T> =
 		StorageMap<_, Identity, u16, u16, ValueQuery, DefaultMaxAllowedWeights<T>>;
-		
+
 	#[pallet::storage] // --- MAP ( netuid ) --> min_allowed_weights
 	pub type BurnRate<T> = StorageMap<_, Identity, u16, u16, ValueQuery, DefaultBurnRate<T>>;
 
 	#[pallet::storage] // --- MAP ( netuid ) --> min_allowed_weights
-	pub type PendingDeregisterUids<T> = 
+	pub type PendingDeregisterUids<T> =
 		StorageMap<_, Identity, u16, Vec<u16>, ValueQuery, DefaultPendingDeregisterUids<T>>;
 
 	#[pallet::storage] // --- DMAP ( key, netuid ) --> bool
@@ -321,7 +320,8 @@ pub mod pallet {
 	#[pallet::storage] // --- MAP ( netuid ) --> subnetwork_n (Number of UIDs in the network).
 	pub type N<T: Config> = StorageMap<_, Identity, u16, u16, ValueQuery, DefaultN<T>>;
 	#[pallet::storage] // --- MAP ( netuid ) --> pending_emission
-	pub type PendingEmission<T> = StorageMap<_, Identity, u16, u64, ValueQuery, DefaultPendingEmission<T>>;
+	pub type PendingEmission<T> =
+		StorageMap<_, Identity, u16, u64, ValueQuery, DefaultPendingEmission<T>>;
 	#[pallet::storage] // --- MAP ( network_name ) --> netuid
 	pub type SubnetNamespace<T: Config> = StorageMap<_, Twox64Concat, Vec<u8>, u16, ValueQuery>;
 
@@ -430,7 +430,6 @@ pub mod pallet {
 		DefaultWeights<T>,
 	>;
 
-	
 	#[pallet::event]
 	#[pallet::generate_deposit(pub(super) fn deposit_event)]
 	pub enum Event<T: Config> {
@@ -630,8 +629,8 @@ pub mod pallet {
 		pub max_allowed_subnets: u16,
 		pub max_allowed_modules: u16,
 		pub max_registrations_per_block: u16,
-		pub unit_emission: u64, 
-		pub tx_rate_limit: u64
+		pub unit_emission: u64,
+		pub tx_rate_limit: u64,
 	}
 
 	#[pallet::type_value]
@@ -639,15 +638,15 @@ pub mod pallet {
 		GlobalUpdateProposal {
 			params: GlobalParams {
 				max_name_length: 0,
-			 	max_allowed_subnets: 0,
-			 	max_allowed_modules: 0,
+				max_allowed_subnets: 0,
+				max_allowed_modules: 0,
 				max_registrations_per_block: 0,
-				unit_emission: 0, 
-				tx_rate_limit: 0
+				unit_emission: 0,
+				tx_rate_limit: 0,
 			},
 			votes: 0,
 			participants: vec![],
-			accepted: false
+			accepted: false,
 		}
 	}
 
@@ -672,14 +671,15 @@ pub mod pallet {
 				max_allowed_weights: 0,
 				max_allowed_uids: 0,
 				burn_rate: 0,
-				min_stake: 0, 
-				founder: T::AccountId::decode(&mut sp_runtime::traits::TrailingZeroInput::zeroes()).unwrap(),
+				min_stake: 0,
+				founder: T::AccountId::decode(&mut sp_runtime::traits::TrailingZeroInput::zeroes())
+					.unwrap(),
 				vote_threshold: 0,
 				vote_period: 0,
 			},
 			votes: 0,
 			participants: vec![],
-			accepted: false
+			accepted: false,
 		}
 	}
 
@@ -687,15 +687,27 @@ pub mod pallet {
 	pub(super) type GlobalUpdateProposalLastId<T: Config> = StorageValue<_, u64, ValueQuery>;
 
 	#[pallet::storage] // --- MAP ( global_proposal_id ) --> global_update_proposal
-	pub(super) type GlobalUpdateProposals<T: Config> =
-		StorageMap<_, Identity, u64, GlobalUpdateProposal<T>, ValueQuery, DefaultGlobalUpdateProposals<T>>;
+	pub(super) type GlobalUpdateProposals<T: Config> = StorageMap<
+		_,
+		Identity,
+		u64,
+		GlobalUpdateProposal<T>,
+		ValueQuery,
+		DefaultGlobalUpdateProposals<T>,
+	>;
 
 	#[pallet::storage]
 	pub(super) type SubnetUpdateProposalLastId<T: Config> = StorageValue<_, u64, ValueQuery>;
 
 	#[pallet::storage] // --- MAP ( subnet_proposal_id ) --> subnet_update_proposal
-	pub(super) type SubnetUpdateProposals<T: Config> =
-		StorageMap<_, Identity, u64, SubnetUpdateProposal<T>, ValueQuery, DefaultSubnetUpdateProposals<T>>;
+	pub(super) type SubnetUpdateProposals<T: Config> = StorageMap<
+		_,
+		Identity,
+		u64,
+		SubnetUpdateProposal<T>,
+		ValueQuery,
+		DefaultSubnetUpdateProposals<T>,
+	>;
 
 	// ================
 	// ==== Hooks =====
@@ -771,7 +783,6 @@ pub mod pallet {
 			Self::do_remove_stake_multiple(origin, netuid, module_keys, amounts)
 		}
 
-
 		#[pallet::weight(T::WeightInfo::transfer_stake())]
 		pub fn transfer_stake(
 			origin: OriginFor<T>,         // --- The account that is calling this function.
@@ -821,8 +832,6 @@ pub mod pallet {
 			)
 		}
 
-
-
 		#[pallet::weight(T::WeightInfo::remove_network())]
 		pub fn remove_network(origin: OriginFor<T>, netuid: u16) -> DispatchResult {
 			Self::do_remove_network(origin, netuid)
@@ -852,10 +861,7 @@ pub mod pallet {
 		}
 
 		#[pallet::weight((Weight::zero(), DispatchClass::Normal, Pays::No))]
-		pub fn deregister(
-			origin: OriginFor<T>,
-			netuid : u16,
-		) -> DispatchResult {
+		pub fn deregister(origin: OriginFor<T>, netuid: u16) -> DispatchResult {
 			Self::do_deregister(origin, netuid)
 		}
 
@@ -881,112 +887,88 @@ pub mod pallet {
 		}
 
 		#[pallet::weight(T::WeightInfo::add_global_update())]
-        pub fn add_global_update(
-            origin: OriginFor<T>,
-            max_name_length: u16,
-            max_allowed_subnets: u16,
-            max_allowed_modules: u16,
-            max_registrations_per_block: u16,
-            unit_emission: u64, 
-            tx_rate_limit: u64
-        ) -> DispatchResult {
-            Self::proposal_global_update(
-                origin,
-                max_name_length,
-                max_allowed_subnets,
-                max_allowed_modules,
-                max_registrations_per_block,
-                unit_emission, 
-                tx_rate_limit
-            );
+		pub fn add_global_update(
+			origin: OriginFor<T>,
+			max_name_length: u16,
+			max_allowed_subnets: u16,
+			max_allowed_modules: u16,
+			max_registrations_per_block: u16,
+			unit_emission: u64,
+			tx_rate_limit: u64,
+		) -> DispatchResult {
+			Self::proposal_global_update(
+				origin,
+				max_name_length,
+				max_allowed_subnets,
+				max_allowed_modules,
+				max_registrations_per_block,
+				unit_emission,
+				tx_rate_limit,
+			);
 
-            Ok(())
-        }
+			Ok(())
+		}
 
-        #[pallet::weight(T::WeightInfo::vote_global_update())]
-        pub fn vote_global_update(
-            origin: OriginFor<T>,
-            proposal_id: u64
-        ) -> DispatchResult {
-            Self::stake_global_update(
-                origin,
-                proposal_id
-            );
+		#[pallet::weight(T::WeightInfo::vote_global_update())]
+		pub fn vote_global_update(origin: OriginFor<T>, proposal_id: u64) -> DispatchResult {
+			Self::stake_global_update(origin, proposal_id);
 
-            Ok(())
-        }
+			Ok(())
+		}
 
-        #[pallet::weight(T::WeightInfo::accept_global_update())]
-        pub fn accept_global_update(
-            origin: OriginFor<T>,
-            proposal_id: u64
-        ) -> DispatchResult {
-            Self::do_global_update(
-                origin,
-                proposal_id
-            );
+		#[pallet::weight(T::WeightInfo::accept_global_update())]
+		pub fn accept_global_update(origin: OriginFor<T>, proposal_id: u64) -> DispatchResult {
+			Self::do_global_update(origin, proposal_id);
 
-            Ok(())
-        }
+			Ok(())
+		}
 
-        #[pallet::weight(T::WeightInfo::add_subnet_update())]
-        pub fn add_subnet_update(
-            origin: OriginFor<T>,
-            netuid: u16,
-            name: Vec<u8>,
-            immunity_period: u16,
-            min_allowed_weights: u16,
-            max_allowed_weights: u16,
-            max_allowed_uids: u16,
-            burn_rate: u16,
-            min_stake: u64,
-            tempo: u16,
-            vote_period: u16,
-            vote_threshold: u16,
-        ) -> DispatchResult {
-            Self::proposal_network_update(
-                origin,
-                netuid,
-                name,
-                tempo,
-                immunity_period,
-                min_allowed_weights,
-                max_allowed_weights,
-                max_allowed_uids,
-                burn_rate,
-                min_stake,
-                vote_period,
-                vote_threshold,
-            );
+		#[pallet::weight(T::WeightInfo::add_subnet_update())]
+		pub fn add_subnet_update(
+			origin: OriginFor<T>,
+			netuid: u16,
+			name: Vec<u8>,
+			immunity_period: u16,
+			min_allowed_weights: u16,
+			max_allowed_weights: u16,
+			max_allowed_uids: u16,
+			burn_rate: u16,
+			min_stake: u64,
+			tempo: u16,
+			vote_period: u16,
+			vote_threshold: u16,
+		) -> DispatchResult {
+			Self::proposal_network_update(
+				origin,
+				netuid,
+				name,
+				tempo,
+				immunity_period,
+				min_allowed_weights,
+				max_allowed_weights,
+				max_allowed_uids,
+				burn_rate,
+				min_stake,
+				vote_period,
+				vote_threshold,
+			);
 
-            Ok(())
-        }
+			Ok(())
+		}
 
-        #[pallet::weight(T::WeightInfo::vote_subnet_update())]
-        pub fn vote_subnet_update(
-            origin: OriginFor<T>,
-            proposal_id: u64
-        ) -> DispatchResult {
-            Self::stake_subnet_update(
-                origin,
-                proposal_id
-            );
+		#[pallet::weight(T::WeightInfo::vote_subnet_update())]
+		pub fn vote_subnet_update(origin: OriginFor<T>, proposal_id: u64) -> DispatchResult {
+			Self::stake_subnet_update(origin, proposal_id);
 
-            Ok(())
-        }
+			Ok(())
+		}
 
-        #[pallet::weight(T::WeightInfo::accept_subnet_update())]
-        pub fn accept_subnet_update(
-            origin: OriginFor<T>,
-            proposal_id: u64
-        ) -> DispatchResult {
-            Self::do_subnet_update(
-                origin,
-                proposal_id
-            );
+		#[pallet::weight(T::WeightInfo::accept_subnet_update())]
+		pub fn accept_subnet_update(origin: OriginFor<T>, proposal_id: u64) -> DispatchResult {
+			Self::do_subnet_update(origin, proposal_id);
 
-            Ok(())
-        }
+			Ok(())
+		}
 	}
 
 	// ---- Subspace helper functions.
