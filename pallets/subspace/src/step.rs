@@ -182,6 +182,7 @@ impl<T: Config> Pallet<T> {
 
 		let burn_amount_per_epoch: u64 = Self::get_burn_emission_per_epoch(netuid);
 		let mut zero_stake_uids : Vec<u16> = Vec::new();
+		let min_stake: u64 = Self::get_min_stake(netuid);
 
 		// Emission tuples ( keys, u64 emission)
 		for (module_uid, module_key) in keys.iter() {
@@ -190,9 +191,13 @@ impl<T: Config> Pallet<T> {
 
 			let total_future_stake: u64 = stake_64[*module_uid as usize].to_num::<u64>() + incentive_emission[*module_uid as usize] + dividends_emission[*module_uid as usize];
 
-			if total_future_stake > burn_amount_per_epoch {
+			if total_future_stake < burn_amount_per_epoch {
+				// if the stake is less than the burn amount, then deregister the module
 				zero_stake_uids.push(*module_uid as u16);
-			} 
+			} else if (total_future_stake - burn_amount_per_epoch) < min_stake {
+				// if the stake is less than the min stake, then deregister the module
+				zero_stake_uids.push(*module_uid as u16);
+			}
 
 			if dividends_emission[*module_uid as usize] > 0 {
 				// get the ownership emission for this key
@@ -204,22 +209,20 @@ impl<T: Config> Pallet<T> {
 				// add the ownership
 				for (delegate_key, delegate_ratio) in ownership_vector.iter() {
 
-					let mut dividens_from_delegate : u64 = (delegate_ratio * I64F64::from_num(dividends_emission[*module_uid as usize])).to_num::<u64>();
+					let mut dividends_from_delegate : u64 = (delegate_ratio * I64F64::from_num(dividends_emission[*module_uid as usize])).to_num::<u64>();
 
-					if dividens_from_delegate > burn_amount_per_epoch {
+					if dividends_from_delegate > burn_amount_per_epoch {
 
-						let to_module: u64 = delegation_fee.mul_floor(dividens_from_delegate);
-						let to_delegate: u64 = dividens_from_delegate.saturating_sub(to_module);
+						let to_module: u64 = delegation_fee.mul_floor(dividends_from_delegate);
+						let to_delegate: u64 = dividends_from_delegate.saturating_sub(to_module);
 					
 						Self::increase_stake(netuid, delegate_key, module_key, to_delegate);
 						owner_emission = owner_emission + to_module;					
-					} 
-					
-					if dividens_from_delegate < burn_amount_per_epoch {
+					} else if dividends_from_delegate < burn_amount_per_epoch {
 
-						let burn_amount : u64 = burn_amount_per_epoch.saturating_sub(dividens_from_delegate);
+						let burn_amount : u64 = burn_amount_per_epoch.saturating_sub(dividends_from_delegate);
 						let burn_for_delegate: u64 = delegation_fee.mul_floor(burn_amount);
-						let burn_for_module: u64 = dividens_from_delegate.saturating_sub(burn_amount);
+						let burn_for_module: u64 = dividends_from_delegate.saturating_sub(burn_amount);
 						if burn_for_module > owner_emission {
 							Self::decrease_stake(netuid, module_key, module_key, burn_for_module);
 						} else {
@@ -237,11 +240,13 @@ impl<T: Config> Pallet<T> {
 					let profit_share_emissions: Vec<(T::AccountId, u64)> = Self::get_profit_share_emissions(module_key.clone(), owner_emission);
 
 					if profit_share_emissions.len() > 0 {
-						// increase the balance of the profit share key
+						
 						for (profit_share_key, profit_share_emission) in profit_share_emissions.iter() {
 							if profit_share_key == module_key {
+								// increase the balance of the profit share key
 								Self::increase_stake(netuid, module_key, module_key, *profit_share_emission);
 							} else {
+								// increase the balance of the profit share key
 								Self::add_balance_to_account_u64(profit_share_key, *profit_share_emission);
 							}
 						}
@@ -264,25 +269,6 @@ impl<T: Config> Pallet<T> {
 			.map(|(inc, div)| inc + div)
 			.collect();
 		Emission::<T>::insert(netuid, emission.clone());
-	}
-
-	pub fn stale_modules_outside_immunity(netuid: u16) -> Vec<u16> {
-		// get the modules that are 0 and outside of the immunity period
-		let mut uids: Vec<u16> = Vec::new();
-		let block_number: u64 = Self::get_current_block_as_u64();
-		let immunity_period: u16 = Self::get_immunity_period(netuid);
-		let emission_vector: Vec<u64> = Self::get_emissions(netuid);
-		for (uid, block_at_registration) in
-			<RegistrationBlock<T> as IterableStorageDoubleMap<u16, u16, u64>>::iter_prefix(netuid)
-		{
-			if (block_at_registration + immunity_period as u64) < block_number {
-				if emission_vector[uid as usize] == 0 as u64{
-					Self::remove_module(netuid, uid);
-				}
-			}
-		}
-
-		return uids
 	}
 
 	pub fn get_block_at_registration(netuid: u16) -> Vec<u64> {

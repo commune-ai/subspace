@@ -232,6 +232,7 @@ pub mod pallet {
 		pub min_stake: u64,
 		// pub democratic: bool
 		pub vote_threshold: u16, // out of 100
+		pub vote_mode: Vec<u8>,
 	}
 
 	#[pallet::storage] // --- MAP ( netuid ) --> max_allowed_uids
@@ -312,7 +313,13 @@ pub mod pallet {
 	#[pallet::storage] // --- MAP ( netuid ) --> epoch
 	pub type SubnetVoteThreshold<T> =
 		StorageMap<_, Identity, u16, u16, ValueQuery, DefaultVoteThreshold<T>>;
+	#[pallet::type_value]
+	pub fn DefaultSubnetVoteMode<T: Config>() -> Vec<u8> {
+		"authority".as_bytes().to_vec()
+	}
 
+	#[pallet::storage] // --- MAP ( netuid ) --> epoch
+	pub type SubnetVoteMode<T> =StorageMap<_, Identity, u16, Vec<u8>, ValueQuery, DefaultSubnetVoteMode<T>>;
 	#[derive(Decode, Encode, PartialEq, Eq, Clone, Debug, TypeInfo)]
 	pub struct SubnetInfo<T: Config> {
 		// --- parameters
@@ -624,6 +631,7 @@ pub mod pallet {
 					burn_rate: subnet.6,
 					min_stake: subnet.7,
 					vote_threshold: default_params.vote_threshold,
+					vote_mode: default_params.vote_mode.clone(),
 				};
 				
 				self::Pallet::<T>::add_network(params.clone());
@@ -695,6 +703,7 @@ pub mod pallet {
 			burn_rate: DefaultBurnRate::<T>::get(),
 			min_stake: 0, 
 			vote_threshold: 50,
+			vote_mode: DefaultSubnetVoteMode::<T>::get(),
 		}
 	}
 
@@ -843,21 +852,24 @@ pub mod pallet {
 			max_allowed_uids: u16,
 			burn_rate: u16,
 			min_stake: u64,
+			vote_threshold: u16,
+			vote_mode: Vec<u8>,
 			founder: T::AccountId,
 		) -> DispatchResult {
-			Self::do_update_network(
-				origin,
-				netuid,
-				name.clone(),
-				tempo,
-				immunity_period,
-				min_allowed_weights,
-				max_allowed_weights,
-				max_allowed_uids,
-				min_stake,
-				burn_rate,
-				founder,
-			)
+
+			let params = SubnetParams {
+				name: name.clone(),
+				tempo: tempo,
+				immunity_period: immunity_period,
+				min_allowed_weights: min_allowed_weights,
+				max_allowed_weights: max_allowed_weights,
+				max_allowed_uids: max_allowed_uids,
+				burn_rate: burn_rate,
+				min_stake: min_stake,
+				vote_threshold: vote_threshold,
+				vote_mode: vote_mode.clone(),
+			};
+			Self::do_update_network(origin,netuid,params)
 		}
 
 

@@ -5,8 +5,6 @@ use scale_info::prelude::string::String;
 
 use super::*;
 
-
-
 impl<T: Config> Pallet<T> {
 
     pub fn num_proposals() -> u64 {
@@ -20,14 +18,6 @@ impl<T: Config> Pallet<T> {
         }
         return next_proposal_id;
     }
-
-
-
-
-    
-
-
-
 
     pub fn string2vec(s: &str) -> Vec<u8> {
         let mut v: Vec<u8> = Vec::new();
@@ -48,7 +38,7 @@ impl<T: Config> Pallet<T> {
         return v1 == v2.clone();
     }
 
-    pub fn is_vec_string(v1: Vec<u8>, s2: &str) -> bool {
+    pub fn is_vec_str(v1: Vec<u8>, s2: &str) -> bool {
         let v2: Vec<u8> = Self::string2vec(s2);
         return v1 == v2.clone();
     }
@@ -73,14 +63,14 @@ impl<T: Config> Pallet<T> {
 
             assert!(proposal.votes > least_votes);
             Proposals::<T>::remove(least_voted_proposal_id);
+
         }
 
-        
         let mode = proposal.mode.clone();
         
-        if Self::is_vec_string(mode.clone(), "global") {
+        if Self::is_vec_str(mode.clone(), "global") {
             Self::check_global_params(proposal.global_params)?;
-        } else if Self::is_vec_string(mode.clone(), "subnet") {
+        } else if Self::is_vec_str(mode.clone(), "subnet") {
             Self::check_subnet_params(proposal.subnet_params)?;
         } else {
             assert!(proposal.data.len() > 0);
@@ -90,13 +80,6 @@ impl<T: Config> Pallet<T> {
         Ok(())
     }
 
-
-
-
-
-
-
-
     pub fn do_add_proposal(
         origin: T::RuntimeOrigin,
         mut proposal:Proposal<T>,
@@ -104,12 +87,26 @@ impl<T: Config> Pallet<T> {
         let key =  ensure_signed(origin)?;
         
         let mut total_vote_power: u64 ; 
-        if Self::is_vec_string(proposal.mode.clone(),"subnet") {
-            total_vote_power = Self::get_total_stake_to(proposal.netuid, &key);
 
-        }  else {
-            total_vote_power = Self::get_total_global_stake(&key);
+        if Self::is_vec_str(proposal.mode.clone(),"subnet") {
+            assert!(
+                    Self::is_vec_str(proposal.subnet_params.vote_mode.clone(),"stake") ||
+                    Self::is_vec_str(proposal.subnet_params.vote_mode.clone(),"quadratic")
+                );
+            proposal.mode = "subnet".as_bytes().to_vec();
+            total_vote_power = Self::get_total_stake_to(proposal.netuid, &key);
         }
+        else if Self::is_vec_str(proposal.mode.clone(),"global") {
+            // assert!(
+            //         Self::is_vec_str(proposal.global_params.vote_mode.clone(),"stake") ||
+            //         Self::is_vec_str(proposal.global_params.vote_mode.clone(),"quadratic")
+            //     );
+            // if its a global proposal, we need to set the mode to global
+            total_vote_power = Self::get_total_global_stake(&key);
+        } else {
+            // if its a custom proposal, we need to set the mode to custom
+            total_vote_power = Self::get_total_global_stake(&key);
+        } 
         proposal.votes = total_vote_power;
         proposal.participants.push(key.clone());
         
@@ -142,7 +139,7 @@ impl<T: Config> Pallet<T> {
         
         let mut stake_threshold: u64 = (total_stake * current_global_params.vote_threshold as u64) / 100;
 
-        if Self::is_vec_string(proposal.mode.clone(),"subnet") {
+        if Self::is_vec_str(proposal.mode.clone(),"subnet") {
             
             total_stake = Self::get_total_subnet_stake(proposal.netuid);
             voting_power = Self::get_total_stake_to(proposal.netuid, &key);
@@ -168,10 +165,10 @@ impl<T: Config> Pallet<T> {
                 proposal.votes = 0;
             });
     
-            if Self::is_vec_string(proposal.mode.clone(), "subnet") {
+            if Self::is_vec_str(proposal.mode.clone(), "subnet") {
                 Self::set_subnet_params(proposal.netuid, proposal.subnet_params);
     
-            } else if Self::is_vec_string(proposal.mode.clone(), "global") {
+            } else if Self::is_vec_str(proposal.mode.clone(), "global") {
                 Self::set_global_params(proposal.global_params);
             } 
         }
@@ -194,7 +191,6 @@ impl<T: Config> Pallet<T> {
         let is_vote_available: bool = !proposal.participants.contains(key) && !proposal.accepted; 
         return is_vote_available;
 
-
-
 }
 }
+

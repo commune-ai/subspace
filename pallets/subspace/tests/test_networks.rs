@@ -77,7 +77,9 @@ fn test_set_single_temple(tempo: u16) {
 			params.max_allowed_uids,
 			params.burn_rate,
 			min_stake,
+			params.vote_threshold,
 			params.founder,
+
 		);
 
 		let subnet_params = SubspaceModule::subnet_params(netuid);
