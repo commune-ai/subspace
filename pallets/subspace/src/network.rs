@@ -96,7 +96,7 @@ impl<T: Config> Pallet<T> {
 		params: SubnetParams,
 	) -> DispatchResult {
 		let key = ensure_signed(origin)?;
-		assert!(is_vec_str(params.name.clone(), "authority"));
+		assert!(is_vec_str(params.vote_mode.clone(), "authority"));
 		ensure!(Self::if_subnet_netuid_exists(netuid), Error::<T>::SubnetNameAlreadyExists);
 		ensure!(Self::is_subnet_founder(netuid, &key), Error::<T>::NotFounder);
 		Self::check_subnet_params(params.clone());
@@ -141,6 +141,8 @@ impl<T: Config> Pallet<T> {
 				Self::remove_module(netuid, Self::get_lowest_uid(netuid));
 			}
 		}
+
+		
 
 		MinStake::<T>::insert(netuid, params.min_stake);
 
@@ -318,29 +320,7 @@ impl<T: Config> Pallet<T> {
 
 		return netuid
 	}
-
-	pub fn update_subnet_params(netuid: u16,params: SubnetParams) -> u16 {
-
-		// --- 1. Enfnsure that the network name does not already exist.
-		let total_networks: u16 = TotalSubnets::<T>::get();
-		let max_networks = MaxAllowedSubnets::<T>::get();
-		let netuid = total_networks;
-
-		Tempo::<T>::insert(netuid, params.tempo);
-		MaxAllowedUids::<T>::insert(netuid, params.max_allowed_uids);
-		ImmunityPeriod::<T>::insert(netuid, params.immunity_period);
-		MinAllowedWeights::<T>::insert(netuid, params.min_allowed_weights);
-		MaxAllowedWeights::<T>::insert(netuid, params.max_allowed_weights);
-		MinStake::<T>::insert(netuid, params.min_stake);
-		Name2Subnet::<T>::insert(params.name.clone(), netuid);
-		BurnRate::<T>::insert(netuid, params.burn_rate);
-
-		// --- 6. Emit the new network event.
-		Self::deposit_event(Event::NetworkAdded(netuid, params.name.clone()));
-
-		return netuid
-	}
-
+	
 	// Initializes a new subnetwork under netuid with parameters.
 	//
 	pub fn if_subnet_name_exists(name: Vec<u8>) -> bool {
@@ -894,7 +874,6 @@ impl<T: Config> Pallet<T> {
         // checks if params are valid
 
         // check if the name already exists
-        assert!(params.name.len() > 0, "Invalid name");
         ensure!(!Self::if_subnet_name_exists(params.name.clone()),Error::<T>::SubnetNameAlreadyExists );
 
         // check valid tempo

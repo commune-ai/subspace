@@ -50,7 +50,13 @@ impl<T: Config> Pallet<T> {
         if is_vec_str(mode.clone(), "global") {
             Self::check_global_params(proposal.global_params)?;
         } else if is_vec_str(mode.clone(), "subnet") {
-            Self::check_subnet_params(proposal.subnet_params)?;
+
+            Self::check_subnet_params(proposal.subnet_params.clone())?;
+            //  check if vote mode is valid
+            assert!(
+                is_vec_str(proposal.subnet_params.vote_mode.clone(),"stake") ||
+                is_vec_str(proposal.subnet_params.vote_mode.clone(),"quadratic")
+            );
         } else {
             assert!(proposal.data.len() > 0);
         }
@@ -88,17 +94,9 @@ impl<T: Config> Pallet<T> {
         let key =  ensure_signed(origin)?;
 
         if is_vec_str(proposal.mode.clone(),"subnet") {
-            assert!(
-                    is_vec_str(proposal.subnet_params.vote_mode.clone(),"stake") ||
-                    is_vec_str(proposal.subnet_params.vote_mode.clone(),"quadratic")
-                );
-            proposal.mode = "subnet".as_bytes().to_vec();
             proposal.votes = Self::get_total_stake_to(proposal.netuid, &key);
         }
-        else if is_vec_str(proposal.mode.clone(),"global") {
-            proposal.votes = Self::get_total_global_stake(&key);
-        } else {
-            // if its a custom proposal, we need to set the mode to custom
+        else {
             proposal.votes = Self::get_total_global_stake(&key);
         } 
         // add the proposal owner to the participants
