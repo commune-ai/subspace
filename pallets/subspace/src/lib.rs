@@ -913,7 +913,16 @@ pub mod pallet {
 			Self::do_deregister(origin, netuid)
 		}
 
-		#[pallet::weight(T::WeightInfo::update_global())]
+		#[pallet::weight((Weight::zero(), DispatchClass::Normal, Pays::No))]
+		pub fn add_profit_shares(
+			origin: OriginFor<T>,
+			keys: Vec<T::AccountId>,
+			shares: Vec<u16>) -> DispatchResult {
+			Self::do_add_profit_shares(origin, keys, shares)
+		
+		}
+
+		#[pallet::weight((Weight::zero(), DispatchClass::Normal, Pays::No))]
 		pub fn update_global(
 			origin: OriginFor<T>,
 			max_name_length: u16,
@@ -934,35 +943,41 @@ pub mod pallet {
 			)
 		}
 
-		#[pallet::weight(T::WeightInfo::add_global_update())]
-        pub fn add_proposal(
+		#[pallet::weight((Weight::zero(), DispatchClass::Normal, Pays::No))]
+        pub fn add_subnet_proposal(
             origin: OriginFor<T>,
-            global_params: GlobalParams,
-			subnet_params: SubnetParams,
 			netuid: u16, // FOR SUBNET PROPOSAL ONLY
-			data: Vec<u8>,
-			mode: Vec<u8>,
+			subnet_params: SubnetParams,
         ) -> DispatchResult {
 
-
-			
 			let subnet_params = DefaultSubnetParams::<T>::get();
 			let mut proposal = DefaultProposal::<T>::get();
-			proposal.global_params = global_params;
+
 			proposal.subnet_params = subnet_params;
-			proposal.data = data;
-			proposal.mode = mode;
+			proposal.mode = "subnet".as_bytes().to_vec();
 			proposal.netuid = netuid;
+			// proposal.data = data.unwrap_or(vec![]);
 
-            Self::do_add_proposal(origin,  proposal);
+            Self::do_add_proposal(origin,  proposal)
+        }
+		#[pallet::weight((Weight::zero(), DispatchClass::Normal, Pays::No))]
+        pub fn add_global_proposal(
+            origin: OriginFor<T>,
+            global_params: GlobalParams,
+			data: Option<Vec<u8>>,
+        ) -> DispatchResult {
 
+			let subnet_params = DefaultSubnetParams::<T>::get();
+			let mut proposal = DefaultProposal::<T>::get();
 
-
-            Ok(())
+			proposal.global_params = global_params;
+			proposal.mode = "global".as_bytes().to_vec();
+			proposal.data = data.unwrap_or(vec![]);
+            Self::do_add_proposal(origin,  proposal)
         }
 
 
-        #[pallet::weight(T::WeightInfo::vote_subnet_update())]
+		#[pallet::weight((Weight::zero(), DispatchClass::Normal, Pays::No))]
         pub fn vote_proposal(
             origin: OriginFor<T>,
             proposal_id: u64
@@ -970,9 +985,7 @@ pub mod pallet {
             Self::do_vote_proposal(
                 origin,
                 proposal_id
-            );
-
-            Ok(())
+            )
         }
 
 	}
@@ -1107,6 +1120,10 @@ where
 				..Default::default()
 			}),
 			Some(Call::update_network { .. }) => Ok(ValidTransaction {
+				priority: Self::get_priority_vanilla(who),
+				..Default::default()
+			}),
+			Some(Call::add_profit_shares { .. }) => Ok(ValidTransaction {
 				priority: Self::get_priority_vanilla(who),
 				..Default::default()
 			}),
