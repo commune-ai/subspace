@@ -92,32 +92,14 @@ impl<T: Config> Pallet<T> {
 	pub fn do_update_network(
 		origin: T::RuntimeOrigin,
 		netuid: u16,
-		name: Vec<u8>,
-		tempo: u16,
-		immunity_period: u16,
-		min_allowed_weights: u16,
-		max_allowed_weights: u16,
-		max_allowed_uids: u16,
-		min_stake: u64,
-		burn_rate: u16,
-		founder: T::AccountId,
+		params: SubnetParams,
 	) -> DispatchResult {
 		let key = ensure_signed(origin)?;
-
+		assert!(Self::is_vec_str(params.name.clone(), "authority"));
 		ensure!(Self::if_subnet_netuid_exists(netuid), Error::<T>::SubnetNameAlreadyExists);
 		ensure!(Self::is_subnet_founder(netuid, &key), Error::<T>::NotFounder);
-
-		Self::update_network_for_netuid(
-			netuid,
-			name.clone(),
-			tempo,
-			immunity_period,
-			min_allowed_weights,
-			max_allowed_weights,
-			max_allowed_uids,
-			burn_rate,
-			min_stake,
-		);
+		Self::check_subnet_params(params.clone());
+		Self::set_subnet_params(netuid, params);
 		// --- 16. Ok and done.
 		Ok(())
 	}
@@ -133,78 +115,42 @@ impl<T: Config> Pallet<T> {
 			name: <Vec<u8>>::new(),
 			burn_rate: BurnRate::<T>::get(netuid),
 			vote_threshold: SubnetVoteThreshold::<T>::get(netuid),
+			vote_mode:SubnetVoteMode::<T>::get(netuid),
 		}
 	}
 
 
 
-	pub fn set_subnet_params(netuid: u16, params: SubnetParams) {
-		return Self::update_network_for_netuid(
-			netuid,
-			params.name,
-			params.tempo,
-			params.immunity_period,
-			params.min_allowed_weights,
-			params.max_allowed_weights,
-			params.max_allowed_uids,
-			params.burn_rate,
-			params.min_stake,
-		)
-	}
+	pub fn set_subnet_params(netuid: u16, mut params: SubnetParams) {
 
-	pub fn update_network_for_netuid(
-		netuid: u16,
-		name: Vec<u8>,
-		tempo: u16,
-		mut immunity_period: u16,
-		mut min_allowed_weights: u16,
-		mut max_allowed_weights: u16,
-		mut max_allowed_uids: u16,
-		burn_rate: u16,
-		mut min_stake: u64,
-	) {
 		let n: u16 = Self::get_subnet_n(netuid);
-
 		// TEMPO, IMMUNITY_PERIOD, MIN_ALLOWED_WEIGHTS, MAX_ALLOWED_WEIGHTS, MAX_ALLOWED_UIDS,
 		// MAX_IMMUNITY_RATIO
-		Tempo::<T>::insert(netuid, tempo);
-		MaxAllowedUids::<T>::insert(netuid, max_allowed_uids);
-
+		Tempo::<T>::insert(netuid, params.tempo);
+		MaxAllowedUids::<T>::insert(netuid, params.max_allowed_uids);
 		// IMMUNITY PERIOD AND MAX IMMUNITY RATIO
-
-		ImmunityPeriod::<T>::insert(netuid, immunity_period);
-
-		// MAX_ALLOWED_WEIGHTS
-		if max_allowed_weights > max_allowed_uids {
-			max_allowed_weights = max_allowed_uids;
-		}
-		MaxAllowedWeights::<T>::insert(netuid, max_allowed_weights);
-
-		// MIN_ALLOWED_WEIGHTS
-		// make sure the min_allowed_weights is less than the max_allowed_weights
-		if min_allowed_weights > max_allowed_weights {
-			min_allowed_weights = max_allowed_weights;
-		}
-		MinAllowedWeights::<T>::insert(netuid, min_allowed_weights);
+		ImmunityPeriod::<T>::insert(netuid, params.immunity_period);
+		MaxAllowedWeights::<T>::insert(netuid, params.max_allowed_weights);
+		MinAllowedWeights::<T>::insert(netuid, params.min_allowed_weights);
 		// remove the modules if the max_allowed_uids is less than the current number of modules
 
-		if max_allowed_uids < n {
-			let remainder_n: u16 = n - max_allowed_uids;
+		if params.max_allowed_uids < n {
+			let remainder_n: u16 = n - params.max_allowed_uids;
 			for i in 0..remainder_n {
 				Self::remove_module(netuid, Self::get_lowest_uid(netuid));
 			}
 		}
 
-		MinStake::<T>::insert(netuid, min_stake);
+		MinStake::<T>::insert(netuid, params.min_stake);
 
-		if name.len() > 0 {
+		if params.name.len() > 0 {
 			// update the name if it is not empty
 			let old_name: Vec<u8> = Self::get_name_for_netuid(netuid);
 			Name2Subnet::<T>::remove(old_name.clone());
-			Name2Subnet::<T>::insert(name.clone(), netuid)
+			Name2Subnet::<T>::insert(params.name.clone(), netuid)
 		}
 
-		Self::set_burn_rate(netuid, burn_rate);
+		Self::set_burn_rate(netuid, params.burn_rate);
 	}
 
 	pub fn uid_in_immunity(netuid: u16, uid: u16) -> bool {
@@ -372,7 +318,7 @@ impl<T: Config> Pallet<T> {
 		return netuid
 	}
 
-	pub fn update_network_from_params(netuid: u16,params: SubnetParams) -> u16 {
+	pub fn update_subnet_params(netuid: u16,params: SubnetParams) -> u16 {
 
 		// --- 1. Enfnsure that the network name does not already exist.
 		let total_networks: u16 = TotalSubnets::<T>::get();
@@ -954,11 +900,21 @@ impl<T: Config> Pallet<T> {
         assert!(params.tempo > 0, "Invalid tempo");
         assert!(params.immunity_period > 0, "Invalid immunity_period");
         assert!(params.min_allowed_weights > 0, "Invalid min_allowed_weights");
-        assert!(params.max_allowed_weights > 0, "Invalid max_allowed_weights");
+		assert!(params.max_allowed_weights >= params.min_allowed_weights, "Invalid max_allowed_weights");
+		assert!(params.max_allowed_weights <= params.max_allowed_uids, "Invalid max_allowed_weights");
         assert!(params.max_allowed_uids > 0, "Invalid max_allowed_uids");
-        assert!(params.burn_rate > 0, "Invalid burn_rate");
-        assert!(params.min_stake > 0, "Invalid min_stake");
-        assert!(params.vote_threshold > 0, "Invalid vote_threshold");
+        assert!(params.burn_rate >= 0 && params.burn_rate <= 100, "Invalid burn_rate");
+        assert!(params.min_stake >= 0, "Invalid min_stake");
+        assert!(params.vote_threshold >= 0 && params.burn_rate <= 100, "Invalid vote_threshold");
+
+		// ensure the vode_mode is in "authority", "stake", "quadratic"
+		assert!(
+			Self::is_vec_str(params.vote_mode.clone(),"authority") ||
+			Self::is_vec_str(params.vote_mode.clone(),"stake") ||
+			Self::is_vec_str(params.vote_mode.clone(),"quadratic"),
+		);
         Ok(())
+
+
     }
 }
