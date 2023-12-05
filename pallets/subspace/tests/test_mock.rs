@@ -295,46 +295,13 @@ pub fn register(netuid: u16, key: U256, stake: u64) {
 pub fn add_network(netuid: u16, founder: U256) {
 	let network: Vec<u8> = netuid.to_string().as_bytes().to_vec();
 	let stake: u64 = 1_000_000_000;
-	let result = SubspaceModule::add_network_from_registration(network, founder, stake);
-
-	assert_ok!(result);
+	let result = SubspaceModule::add_network_from_registration(network, stake, &founder);
 }
 
 #[allow(dead_code)]
 pub fn remove_network(netuid: u16, key: U256) {
 	let origin = get_origin(key);
 	let result = SubspaceModule::do_remove_network(origin, netuid);
-	assert_ok!(result);
-}
-
-#[allow(dead_code)]
-pub fn update_network(
-	netuid: u16,
-	key: U256,
-	tempo: u16,
-	immunity_period: u16,
-	max_allowed_uids: u16,
-	min_allowed_weights: u16,
-	max_allowed_weights: u16,
-	burn_rate: u16,
-	min_stake: u64,
-) {
-	let name: Vec<u8> = netuid.to_string().as_bytes().to_vec();
-	let founder: U256 = key.clone();
-	let origin = get_origin(key);
-	let result = SubspaceModule::update_network(
-		origin,
-		netuid,
-		name,
-		tempo,
-		immunity_period,
-		min_allowed_weights,
-		max_allowed_weights,
-		max_allowed_uids,
-		burn_rate,
-		min_stake,
-		founder,
-	);
 	assert_ok!(result);
 }
 
