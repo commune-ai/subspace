@@ -918,7 +918,8 @@ pub mod pallet {
 			origin: OriginFor<T>,
 			keys: Vec<T::AccountId>,
 			shares: Vec<u16>) -> DispatchResult {
-			Self::do_add_profit_shares(origin, keys, shares)
+			Self::do_add_profit_shares(origin, keys, shares);
+			Ok(())
 		
 		}
 
