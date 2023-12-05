@@ -166,6 +166,42 @@ impl<T: Config> Pallet<T> {
         Ok(())
     }
 
+    pub fn get_subnet_proposals(
+        netuid: u16
+    ) -> Vec<Proposal<T>> {
+        let mut proposals: Vec<Proposal<T>> = Vec::new();
+        for (proposal_id, proposal) in Proposals::<T>::iter() {
+            if is_vec_str(proposal.mode.clone(), "subnet") && proposal.netuid == netuid {
+                proposals.push(proposal);
+            }
+        }
+        return proposals;
+    }
+
+    pub fn get_global_proposals() -> Vec<Proposal<T>> {
+        let mut proposals: Vec<Proposal<T>> = Vec::new();
+        for (proposal_id, proposal) in Proposals::<T>::iter() {
+            if is_vec_str(proposal.mode.clone(), "global") {
+                proposals.push(proposal);
+            }
+        }
+        return proposals;
+    }
+
+    
+
+    pub fn num_subnet_proposals(
+        netuid: u16
+    ) -> u64 {
+        let subnet_proposals = Self::get_subnet_proposals(netuid);
+        return subnet_proposals.len() as u64;
+    }
+
+    pub fn num_global_proposals() -> u64 {
+        let global_proposals = Self::get_global_proposals();
+        return global_proposals.len() as u64;
+    }
+
 
     pub fn proposal_exists(
         proposal_id: u64
