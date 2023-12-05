@@ -6,6 +6,7 @@ use frame_support::{
 	traits::Currency,
 	IterableStorageDoubleMap,
 };
+use crate::utils::is_vec_str;
 use frame_system::ensure_root;
 pub use sp_std::{vec, vec::Vec};
 use substrate_fixed::types::{I32F32, I64F64};
@@ -95,7 +96,7 @@ impl<T: Config> Pallet<T> {
 		params: SubnetParams,
 	) -> DispatchResult {
 		let key = ensure_signed(origin)?;
-		assert!(Self::is_vec_str(params.name.clone(), "authority"));
+		assert!(is_vec_str(params.name.clone(), "authority"));
 		ensure!(Self::if_subnet_netuid_exists(netuid), Error::<T>::SubnetNameAlreadyExists);
 		ensure!(Self::is_subnet_founder(netuid, &key), Error::<T>::NotFounder);
 		Self::check_subnet_params(params.clone());
@@ -909,9 +910,9 @@ impl<T: Config> Pallet<T> {
 
 		// ensure the vode_mode is in "authority", "stake", "quadratic"
 		assert!(
-			Self::is_vec_str(params.vote_mode.clone(),"authority") ||
-			Self::is_vec_str(params.vote_mode.clone(),"stake") ||
-			Self::is_vec_str(params.vote_mode.clone(),"quadratic"),
+			is_vec_str(params.vote_mode.clone(),"authority") ||
+			is_vec_str(params.vote_mode.clone(),"stake") ||
+			is_vec_str(params.vote_mode.clone(),"quadratic"),
 		);
         Ok(())
 

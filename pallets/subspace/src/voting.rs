@@ -4,6 +4,7 @@ use frame_support::{pallet_prelude::DispatchResult};
 use scale_info::prelude::string::String;
 
 use super::*;
+use crate::utils::{is_vec_str};
 
 impl<T: Config> Pallet<T> {
 
@@ -19,29 +20,6 @@ impl<T: Config> Pallet<T> {
         return next_proposal_id;
     }
 
-    pub fn string2vec(s: &str) -> Vec<u8> {
-        let mut v: Vec<u8> = Vec::new();
-        for c in s.chars() {
-            v.push(c as u8);
-        }
-        return v;
-    }
-
-    pub fn is_string_equal(s1: &str, s2: &str) -> bool {
-        let v1: Vec<u8> = Self::string2vec(s1);
-        let v2: Vec<u8> = Self::string2vec(s2);
-        return v1 == v2;
-    }
-
-    pub fn is_string_vec(s1: &str, v2: Vec<u8>) -> bool {
-        let v1: Vec<u8> = Self::string2vec(s1);
-        return v1 == v2.clone();
-    }
-
-    pub fn is_vec_str(v1: Vec<u8>, s2: &str) -> bool {
-        let v2: Vec<u8> = Self::string2vec(s2);
-        return v1 == v2.clone();
-    }
     pub fn has_max_proposals() -> bool {
         return Self::num_proposals() <  MaxProposals::<T>::get()
     }
@@ -68,9 +46,9 @@ impl<T: Config> Pallet<T> {
 
         let mode = proposal.mode.clone();
         
-        if Self::is_vec_str(mode.clone(), "global") {
+        if is_vec_str(mode.clone(), "global") {
             Self::check_global_params(proposal.global_params)?;
-        } else if Self::is_vec_str(mode.clone(), "subnet") {
+        } else if is_vec_str(mode.clone(), "subnet") {
             Self::check_subnet_params(proposal.subnet_params)?;
         } else {
             assert!(proposal.data.len() > 0);
@@ -79,42 +57,53 @@ impl<T: Config> Pallet<T> {
         assert!(proposal.data.len() < 256); // avoid an exploit with large data
         Ok(())
     }
+    pub fn is_proposal_owner(
+        key: &T::AccountId,
+        proposal_id: u64,
+    ) -> bool {
+        let proposal: Proposal<T> = Proposals::<T>::get(proposal_id);
+        return proposal.participants.contains(key);
+    }
+
+    pub fn do_update_proposal(
+        origin: T::RuntimeOrigin,
+        proposal_id: u64,
+        proposal: Proposal<T>,
+    ) -> DispatchResult {
+        let key = ensure_signed(origin)?;
+        let mut proposal = proposal;
+
+        assert!( Self::is_proposal_owner(&key, proposal_id), "not proposal owner");
+
+        Self::check_proposal(proposal.clone())?; // check if proposal is valid
+        Proposals::<T>::insert(proposal_id, proposal);
+        Ok(())
+    }
 
     pub fn do_add_proposal(
         origin: T::RuntimeOrigin,
         mut proposal:Proposal<T>,
     ) -> DispatchResult {
         let key =  ensure_signed(origin)?;
-        
-        let mut total_vote_power: u64 ; 
 
-        if Self::is_vec_str(proposal.mode.clone(),"subnet") {
+        if is_vec_str(proposal.mode.clone(),"subnet") {
             assert!(
-                    Self::is_vec_str(proposal.subnet_params.vote_mode.clone(),"stake") ||
-                    Self::is_vec_str(proposal.subnet_params.vote_mode.clone(),"quadratic")
+                    is_vec_str(proposal.subnet_params.vote_mode.clone(),"stake") ||
+                    is_vec_str(proposal.subnet_params.vote_mode.clone(),"quadratic")
                 );
             proposal.mode = "subnet".as_bytes().to_vec();
-            total_vote_power = Self::get_total_stake_to(proposal.netuid, &key);
+            proposal.votes = Self::get_total_stake_to(proposal.netuid, &key);
         }
-        else if Self::is_vec_str(proposal.mode.clone(),"global") {
-            // assert!(
-            //         Self::is_vec_str(proposal.global_params.vote_mode.clone(),"stake") ||
-            //         Self::is_vec_str(proposal.global_params.vote_mode.clone(),"quadratic")
-            //     );
-            // if its a global proposal, we need to set the mode to global
-            total_vote_power = Self::get_total_global_stake(&key);
+        else if is_vec_str(proposal.mode.clone(),"global") {
+            proposal.votes = Self::get_total_global_stake(&key);
         } else {
             // if its a custom proposal, we need to set the mode to custom
-            total_vote_power = Self::get_total_global_stake(&key);
+            proposal.votes = Self::get_total_global_stake(&key);
         } 
-        proposal.votes = total_vote_power;
         proposal.participants.push(key.clone());
-        
 
         Self::check_proposal(proposal.clone())?; // check if proposal is valid
-        let next_proposal_id: u64 = Self::next_proposal_id(); // get next proposal id
-
-        Proposals::<T>::insert(next_proposal_id, proposal);
+        Proposals::<T>::insert(Self::next_proposal_id(), proposal);
         Ok(())
     }
 
@@ -139,7 +128,7 @@ impl<T: Config> Pallet<T> {
         
         let mut stake_threshold: u64 = (total_stake * current_global_params.vote_threshold as u64) / 100;
 
-        if Self::is_vec_str(proposal.mode.clone(),"subnet") {
+        if is_vec_str(proposal.mode.clone(),"subnet") {
             
             total_stake = Self::get_total_subnet_stake(proposal.netuid);
             voting_power = Self::get_total_stake_to(proposal.netuid, &key);
@@ -165,10 +154,10 @@ impl<T: Config> Pallet<T> {
                 proposal.votes = 0;
             });
     
-            if Self::is_vec_str(proposal.mode.clone(), "subnet") {
+            if is_vec_str(proposal.mode.clone(), "subnet") {
                 Self::set_subnet_params(proposal.netuid, proposal.subnet_params);
     
-            } else if Self::is_vec_str(proposal.mode.clone(), "global") {
+            } else if is_vec_str(proposal.mode.clone(), "global") {
                 Self::set_global_params(proposal.global_params);
             } 
         }
