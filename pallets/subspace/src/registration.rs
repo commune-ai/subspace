@@ -1,17 +1,18 @@
 use super::*;
 use crate::system::ensure_root;
 use frame_support::pallet_prelude::DispatchResult;
-use frame_system::{ensure_signed, pallet_prelude::BlockNumberFor};
+use frame_system::ensure_signed;
 use sp_arithmetic::per_things::Percent;
 use sp_core::{H256, U256};
 use sp_io::hashing::{keccak_256, sha2_256};
-use sp_std::{convert::TryInto, vec::Vec};
+use sp_std::{convert::TryInto, vec, vec::Vec};
 use substrate_fixed::types::I32F32;
+use system::pallet_prelude::BlockNumberFor;
 
 const LOG_TARGET: &'static str = "runtime::subspace::registration";
 
 impl<T: Config> Pallet<T> {
-	pub fn do_registration(
+	pub fn do_register(
 		origin: T::RuntimeOrigin,
 		network: Vec<u8>,
 		name: Vec<u8>,
@@ -20,16 +21,9 @@ impl<T: Config> Pallet<T> {
 		module_key: T::AccountId,
 	) -> DispatchResult {
 		// --- 1. Check that the caller has signed the transaction.
-		// TODO( const ): This not be the key signature or else an exterior actor can register the
-		// key and potentially control it?
 		let key = ensure_signed(origin.clone())?;
-		// --- 2. Ensure we are not exceeding the max allowed registrations per block.
 
-		// --- 3. Ensure that the network name is not already registered.
-		ensure!(
-			Self::enough_stake_to_start_network(stake_amount),
-			Error::<T>::NotEnoughStakeToStartNetwork
-		);
+		// --- 2. Ensure we are not exceeding the max allowed registrations per block.
 
 		ensure!(
 			Self::has_enough_balance(&key, stake_amount),
@@ -89,6 +83,22 @@ impl<T: Config> Pallet<T> {
 		Ok(())
 	}
 
+	pub fn do_deregister(origin: T::RuntimeOrigin, netuid: u16) -> DispatchResult {
+		// --- 1. Check that the caller has signed the transaction.
+		let key = ensure_signed(origin.clone())?;
+
+		ensure!(Self::is_key_registered(netuid, &key), Error::<T>::NotRegistered);
+
+		// --- 2. Ensure we are not exceeding the max allowed registrations per block.
+		let uid: u16 = Self::get_uid_for_key(netuid, &key);
+
+		Self::remove_module(netuid, uid);
+		ensure!(!Self::is_key_registered(netuid, &key), Error::<T>::StillRegistered);
+
+		// --- 5. Ok and done.
+		Ok(())
+	}
+
 	pub fn enough_stake_to_register(netuid: u16, stake_amount: u64) -> bool {
 		let min_stake: u64 = Self::get_min_stake_to_register(netuid);
 		return stake_amount >= min_stake
@@ -133,6 +143,14 @@ impl<T: Config> Pallet<T> {
 		}
 	}
 	pub fn get_lowest_uid(netuid: u16) -> u16 {
+		// If there are pending deregister uids, then return the first one.
+		let pending_deregister_uids: Vec<u16> = PendingDeregisterUids::<T>::get(netuid);
+		if pending_deregister_uids.len() > 0 {
+			let uid: u16 = pending_deregister_uids[0];
+			PendingDeregisterUids::<T>::mutate(netuid, |v| v.remove(0));
+			return uid
+		}
+
 		let mut min_score: u64 = u64::MAX;
 		let n: u16 = Self::get_subnet_n(netuid);
 		let mut lowest_priority_uid: u16 = 0;
@@ -171,24 +189,26 @@ impl<T: Config> Pallet<T> {
 		return idx
 	}
 
-	// pub fn get_block_hash_from_u64(block_number: u64) -> H256 {
-	// 	let block_number: BlockNumberFor<T> = block_number.into();
-	// 	let block_hash_at_number: <T as frame_system::Config>::Hash =
-	// 		system::Pallet::<T>::block_hash(block_number);
-	// 	let vec_hash: Vec<u8> = block_hash_at_number.as_ref().into_iter().cloned().collect();
-	// 	let deref_vec_hash: &[u8] = &vec_hash; // c: &[u8]
-	// 	let real_hash: H256 = H256::from_slice(deref_vec_hash);
+	pub fn get_block_hash_from_u64(block_number: u64) -> H256 {
+		let block_number: BlockNumberFor<T> = TryInto::<BlockNumberFor<T>>::try_into(block_number)
+			.ok()
+			.expect("convert u64 to block number.");
+		let block_hash_at_number: <T as frame_system::Config>::Hash =
+			system::Pallet::<T>::block_hash(block_number);
+		let vec_hash: Vec<u8> = block_hash_at_number.as_ref().into_iter().cloned().collect();
+		let deref_vec_hash: &[u8] = &vec_hash; // c: &[u8]
+		let real_hash: H256 = H256::from_slice(deref_vec_hash);
 
-	// 	log::trace!(
-	// 		target: LOG_TARGET,
-	// 		"block_number: {:?}, vec_hash: {:?}, real_hash: {:?}",
-	// 		block_number,
-	// 		vec_hash,
-	// 		real_hash
-	// 	);
+		log::trace!(
+			target: LOG_TARGET,
+			"block_number: {:?}, vec_hash: {:?}, real_hash: {:?}",
+			block_number,
+			vec_hash,
+			real_hash
+		);
 
-	// 	return real_hash;
-	// }
+		return real_hash;
+	}
 
 	pub fn hash_to_vec(hash: H256) -> Vec<u8> {
 		let hash_as_bytes: &[u8] = hash.as_bytes();

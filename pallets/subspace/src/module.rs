@@ -7,6 +7,7 @@ extern crate alloc;
 use alloc::vec::Vec;
 use codec::Compact;
 use sp_arithmetic::per_things::Percent;
+use sp_std::vec;
 
 #[derive(Decode, Encode, PartialEq, Eq, Clone, Debug)]
 pub struct ModuleSubnetInfo<T: Config> {
@@ -39,7 +40,7 @@ impl<T: Config> Pallet<T> {
 		let replace_key: T::AccountId = Keys::<T>::get(netuid, replace_uid);
 
 		log::debug!(
-			"remove_network_for_netuid( netuid: {:?} | uid : {:?} | new_key: {:?} ) ",
+			"remove_network( netuid: {:?} | uid : {:?} | new_key: {:?} ) ",
 			netuid,
 			uid,
 			uid_key
@@ -111,7 +112,7 @@ impl<T: Config> Pallet<T> {
 
 		// remove the network if it is empty
 		if N::<T>::get(netuid) == 0 {
-			Self::remove_network_for_netuid(netuid);
+			Self::remove_network_by_netuid(netuid);
 		}
 
 		// remove stake from old key and add to new key

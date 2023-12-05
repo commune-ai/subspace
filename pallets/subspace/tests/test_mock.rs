@@ -7,6 +7,7 @@ use frame_support::{
 };
 use frame_system as system;
 use frame_system::{limits, Config, EnsureNever, EnsureRoot, RawOrigin};
+use pallet_subspace::autogen_weights::SubstrateWeight;
 use sp_core::{Get, H256, U256};
 use sp_runtime::{
 	testing::Header,
@@ -20,11 +21,10 @@ type Block = frame_system::mocking::MockBlock<Test>;
 
 // Configure a mock runtime to test the pallet.
 frame_support::construct_runtime!(
-	pub enum Test
-	{
-		System: frame_system::{Pallet, Call, Config<T>, Storage, Event<T>},
-		Balances: pallet_balances::{Pallet, Call, Config<T>, Storage, Event<T>},
-		SubspaceModule: pallet_subspace::{Pallet, Call, Config<T>, Storage, Event<T>},
+	pub enum Test {
+		System: frame_system,
+		Balances: pallet_balances,
+		SubspaceModule: pallet_subspace,
 	}
 );
 
@@ -48,24 +48,35 @@ pub type AccountId = U256;
 // The address format for describing accounts.
 pub type Address = AccountId;
 
+// Balance of an account.
+#[allow(dead_code)]
+pub type Balance = u64;
+
+// An index to a block.
+#[allow(dead_code)]
+pub type BlockNumber = u64;
+
+parameter_types! {
+	pub const ExistentialDeposit: Balance = 1;
+	pub const MaxLocks: u32 = 50;
+	pub const MaxReserves: u32 = 50;
+}
+
 impl pallet_balances::Config for Test {
 	type RuntimeEvent = RuntimeEvent;
 	type AccountStore = System;
 	type Balance = u64;
 	type DustRemoval = ();
-	type ExistentialDeposit = ConstU64<1>;
-	type MaxLocks = ();
-	type MaxReserves = ();
-	type ReserveIdentifier = [u8; 8];
-	type FreezeIdentifier = ();
-	type MaxHolds = ConstU32<0>;
-	type MaxFreezes = ConstU32<0>;
-	type RuntimeHoldReason = ();
-	type RuntimeFreezeReason = ();
+	type ExistentialDeposit = ExistentialDeposit;
+	type MaxLocks = MaxLocks;
 	type WeightInfo = ();
+	type MaxReserves = MaxReserves;
+	type ReserveIdentifier = ();
+	type RuntimeHoldReason = ();
+	type FreezeIdentifier = ();
+	type MaxHolds = frame_support::traits::ConstU32<16>;
+	type MaxFreezes = frame_support::traits::ConstU32<16>;
 }
-
-type Balance = u64;
 
 impl system::Config for Test {
 	type BaseCallFilter = Everything;
@@ -74,10 +85,10 @@ impl system::Config for Test {
 	type BlockLength = ();
 	type AccountId = U256;
 	type RuntimeCall = RuntimeCall;
-	type Lookup = IdentityLookup<Self::AccountId>;
 	type Nonce = u64;
 	type Hash = H256;
 	type Hashing = BlakeTwo256;
+	type Lookup = IdentityLookup<Self::AccountId>;
 	type RuntimeEvent = RuntimeEvent;
 	type RuntimeOrigin = RuntimeOrigin;
 	type BlockHashCount = BlockHashCount;
@@ -96,6 +107,7 @@ impl system::Config for Test {
 impl pallet_subspace::Config for Test {
 	type RuntimeEvent = RuntimeEvent;
 	type Currency = Balances;
+	type WeightInfo = ();
 }
 
 // Build genesis storage according to the mock runtime.
@@ -305,6 +317,7 @@ pub fn update_network(
 	max_allowed_uids: u16,
 	min_allowed_weights: u16,
 	max_allowed_weights: u16,
+	burn_rate: u16,
 	min_stake: u64,
 ) {
 	let name: Vec<u8> = netuid.to_string().as_bytes().to_vec();
@@ -314,12 +327,13 @@ pub fn update_network(
 		origin,
 		netuid,
 		name,
+		tempo,
 		immunity_period,
 		min_allowed_weights,
 		max_allowed_weights,
 		max_allowed_uids,
+		burn_rate,
 		min_stake,
-		tempo,
 		founder,
 	);
 	assert_ok!(result);

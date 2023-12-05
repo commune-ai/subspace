@@ -11,8 +11,7 @@ echo "*** Initialized WASM build environment with Rust 1.68.1"
 
 # Install cargo and Rust nightly
 
-rustup install nightly-2023-01-01
-rustup override set nightly-2023-01-01
+rustup install nightly
 rustup target add wasm32-unknown-unknown
 
 # Install dependencies

@@ -106,6 +106,8 @@ pub fn run() -> sc_cli::Result<()> {
 			let runner = cli.create_runner(cmd)?;
 
 			runner.sync_run(|config| {
+				use sp_io::SubstrateHostFunctions;
+
 				// This switch needs to be in the client, since the client decides
 				// which sub-commands it wants to support.
 				match cmd {
@@ -118,7 +120,7 @@ pub fn run() -> sc_cli::Result<()> {
 							)
 						}
 
-						cmd.run::<Block, ()>(config)
+						cmd.run::<Block, SubstrateHostFunctions>(config)
 					},
 					BenchmarkCmd::Block(cmd) => {
 						let PartialComponents { client, .. } = service::new_partial(&config)?;

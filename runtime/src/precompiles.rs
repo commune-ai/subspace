@@ -18,17 +18,7 @@ where
 		Self(Default::default())
 	}
 	pub fn used_addresses() -> impl Iterator<Item = H160> {
-		sp_std::vec![
-			1,
-			2,
-			3,
-			4,
-			5,
-			1024,
-			1025,
-		]
-		.into_iter()
-		.map(hash)
+		sp_std::vec![1, 2, 3, 4, 5, 1024, 1025,].into_iter().map(hash)
 	}
 }
 impl<R> PrecompileSet for FrontierPrecompiles<R>
