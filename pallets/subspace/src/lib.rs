@@ -38,6 +38,7 @@ mod mock;
 // =========================
 mod global;
 mod math;
+mod utils;
 pub mod module;
 mod network;
 mod registration;

@@ -14,12 +14,9 @@ impl<T: Config> Pallet<T> {
 		for (netuid, tempo) in <Tempo<T> as IterableStorageMap<u16, u16>>::iter() {
 
 			let new_queued_emission: u64 = Self::calculate_network_emission(netuid);
-
 			PendingEmission::<T>::mutate(netuid, |mut queued| *queued += new_queued_emission);
 			log::debug!("netuid_i: {:?} queued_emission: +{:?} ", netuid, new_queued_emission);
-
 			Self::deregister_pending_uid(netuid); // deregister any pending uids
-
 			if Self::blocks_until_next_epoch(netuid, tempo, block_number) > 0 {
 				continue
 			}
@@ -60,21 +57,22 @@ impl<T: Config> Pallet<T> {
 		}
 				// quadradic voting
 
-		let quadradic_voting: bool = Self::get_quadradic_voting(netuid);
-		if quadradic_voting {
-			// take a square root of the stake if its > 1
+		// let quadradic_voting: bool = Self::get_quadradic_voting(netuid);
+		// if quadradic_voting {
+		// 	// take a square root of the stake if its > 1
 
-			total_stake_u64 = total_stake_u64;
-		}
+		// 	total_stake_u64 = total_stake_u64;
+		// }
 
 		for (uid_i, key) in keys.iter() {
 			let mut stake_u64 = Self::get_stake_for_key(netuid, key).clone();
-			if quadradic_voting && stake_u64 > 0{
-				stake_u64 = stake_u64;
-			} 
-			
 			stake_64[*uid_i as usize] = I64F64::from_num(stake_u64)/I64F64::from_num(total_stake_u64);
 		}
+
+		// if quadradic_voting && stake_u64 > 0{
+		// 	stake_64 = stake_64.iter().map(|x| x.sqrt()).collect();
+		// } 
+		
 
 
 		let mut stake: Vec<I32F32> = stake_64.iter().map(|x| I32F32::from_num(x.clone())).collect();
@@ -155,13 +153,13 @@ impl<T: Config> Pallet<T> {
 		inplace_normalize(&mut dividends);
 		log::trace!("D: {:?}", &dividends);
 
-		let cloned_dividends: Vec<u16> =
-			dividends.iter().map(|xi| fixed_proportion_to_u16(*xi)).collect::<Vec<u16>>();
+		let cloned_dividends: Vec<u16> = dividends.iter().map(|xi| fixed_proportion_to_u16(*xi)).collect::<Vec<u16>>();
 		Dividends::<T>::insert(netuid, cloned_dividends);
 
 		// =================================
 		// == Emission==
 		// =================================
+
 
 		let incentive_emission_float: Vec<I64F64> = incentive
 			.clone()
@@ -180,26 +178,48 @@ impl<T: Config> Pallet<T> {
 			dividends_emission_float.iter().map(|e: &I64F64| e.to_num::<u64>()).collect();
 
 
-		let burn_amount_per_epoch: u64 = Self::get_burn_emission_per_epoch(netuid);
+		let mut burn_amount_per_epoch: u64 = Self::get_burn_emission_per_epoch(netuid);
 		let mut zero_stake_uids : Vec<u16> = Vec::new();
 		let min_stake: u64 = Self::get_min_stake(netuid);
 
 		// Emission tuples ( keys, u64 emission)
 		for (module_uid, module_key) in keys.iter() {
 
-			let mut owner_emission: u64 = incentive_emission[*module_uid as usize];
-
-			let total_future_stake: u64 = stake_64[*module_uid as usize].to_num::<u64>() + incentive_emission[*module_uid as usize] + dividends_emission[*module_uid as usize];
-
-			if total_future_stake < burn_amount_per_epoch {
+			let mut owner_emission_incentive: u64 = incentive_emission[*module_uid as usize] + dividends_emission[*module_uid as usize];
+			let mut owner_dividends_emission: u64 = dividends_emission[*module_uid as usize];
+			
+			// calculate the future stake and see if its less than the min stake
+			let mut total_future_stake: u64 = stake_64[*module_uid as usize].to_num::<u64>();
+			total_future_stake = total_future_stake.saturating_add(owner_emission_incentive);
+			total_future_stake = total_future_stake.saturating_add(owner_dividends_emission);
+			total_future_stake = total_future_stake.saturating_sub(burn_amount_per_epoch);
+			if total_future_stake < min_stake {
 				// if the stake is less than the burn amount, then deregister the module
 				zero_stake_uids.push(*module_uid as u16);
-			} else if (total_future_stake - burn_amount_per_epoch) < min_stake {
-				// if the stake is less than the min stake, then deregister the module
-				zero_stake_uids.push(*module_uid as u16);
 			}
+			// eat into dividends first and then into the incentive
+			owner_dividends_emission = owner_dividends_emission.saturating_sub(burn_amount_per_epoch);
+			burn_amount_per_epoch = burn_amount_per_epoch.saturating_sub(owner_dividends_emission);
 
-			if dividends_emission[*module_uid as usize] > 0 {
+			// if the owner emission is less than the burn amount
+			if burn_amount_per_epoch > 0{
+				// eat into the emissions
+				// get the amount to burn
+				if burn_amount_per_epoch > owner_emission_incentive  {
+
+					let amount_to_burn: u64 = owner_emission_incentive - burn_amount_per_epoch;
+					Self::decrease_stake(netuid, module_key, module_key, amount_to_burn);
+
+				} 
+				// burn the rest
+				owner_emission_incentive = owner_emission_incentive.saturating_sub(owner_dividends_emission); 
+
+			}
+			
+			// if the owner emission is less than the burn amount
+			let mut owner_emission: u64 = owner_emission_incentive + owner_dividends_emission;
+
+			if owner_dividends_emission > 0 {
 				// get the ownership emission for this key
 
 				let ownership_vector: Vec<(T::AccountId, I64F64)> = Self::get_ownership_ratios(netuid, module_key);
@@ -210,51 +230,27 @@ impl<T: Config> Pallet<T> {
 				for (delegate_key, delegate_ratio) in ownership_vector.iter() {
 
 					let mut dividends_from_delegate : u64 = (delegate_ratio * I64F64::from_num(dividends_emission[*module_uid as usize])).to_num::<u64>();
-
-					if dividends_from_delegate > burn_amount_per_epoch {
-
-						let to_module: u64 = delegation_fee.mul_floor(dividends_from_delegate);
-						let to_delegate: u64 = dividends_from_delegate.saturating_sub(to_module);
-					
-						Self::increase_stake(netuid, delegate_key, module_key, to_delegate);
-						owner_emission = owner_emission + to_module;					
-					} else if dividends_from_delegate < burn_amount_per_epoch {
-
-						let burn_amount : u64 = burn_amount_per_epoch.saturating_sub(dividends_from_delegate);
-						let burn_for_delegate: u64 = delegation_fee.mul_floor(burn_amount);
-						let burn_for_module: u64 = dividends_from_delegate.saturating_sub(burn_amount);
-						if burn_for_module > owner_emission {
-							Self::decrease_stake(netuid, module_key, module_key, burn_for_module);
-						} else {
-							owner_emission = owner_emission.saturating_sub(burn_for_module);
-						}
-						Self::decrease_stake(netuid, delegate_key, module_key, burn_for_delegate);
-
-				
-					}
+					let to_module: u64 = delegation_fee.mul_floor(dividends_from_delegate);
+					let to_delegate: u64 = dividends_from_delegate.saturating_sub(to_module);
+					Self::increase_stake(netuid, delegate_key, module_key, to_delegate);
+					owner_emission = owner_emission.saturating_sub(to_module);
 
 				}
 
-				if owner_emission > burn_amount_per_epoch {
-					// add the stake to the module
+				if owner_emission > 0 {
+					// generate the profit shares
 					let profit_share_emissions: Vec<(T::AccountId, u64)> = Self::get_profit_share_emissions(module_key.clone(), owner_emission);
 
+					// if there are profit shares, then increase the balance of the profit share key
 					if profit_share_emissions.len() > 0 {
-						
+						// if there are profit shares, then increase the balance of the profit share key
 						for (profit_share_key, profit_share_emission) in profit_share_emissions.iter() {
-							if profit_share_key == module_key {
-								// increase the balance of the profit share key
-								Self::increase_stake(netuid, module_key, module_key, *profit_share_emission);
-							} else {
-								// increase the balance of the profit share key
-								Self::add_balance_to_account_u64(profit_share_key, *profit_share_emission);
-							}
+							// increase the balance of the profit share key
+							Self::add_balance_to_account_u64(profit_share_key, *profit_share_emission);
 						}
 					} else {
 						Self::increase_stake(netuid, module_key, module_key, owner_emission);
 					}
-				} else {
-					Self::decrease_stake(netuid, module_key, module_key, owner_emission);
 				}
 	
 			}
@@ -268,6 +264,7 @@ impl<T: Config> Pallet<T> {
 			.zip(dividends_emission.iter())
 			.map(|(inc, div)| inc + div)
 			.collect();
+			
 		Emission::<T>::insert(netuid, emission.clone());
 	}
 
@@ -372,19 +369,13 @@ impl<T: Config> Pallet<T> {
 		inplace_normalize(&mut trust);
 		trust
 	}
-
-
+	
 	pub fn deregister_pending_uid(netuid: u16) {
-		let pending_deregister_uids: Vec<u16> = PendingDeregisterUids::<T>::get(netuid);
+		let mut pending_deregister_uids:  Vec<u16> = PendingDeregisterUids::<T>::get(netuid);
 		if pending_deregister_uids.len() > 0 {
-			let uid: u16 = pending_deregister_uids[0];
+			let uid: u16 = pending_deregister_uids.remove(0);
 			Self::remove_module(netuid,uid);
-			PendingDeregisterUids::<T>::mutate(netuid, |v| {
-					if v.len() > 0 {
-						v.remove(0);
-					}
-				}
-			);
+			PendingDeregisterUids::<T>::insert(netuid, pending_deregister_uids);
 		}
 	}
 }
