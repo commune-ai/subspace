@@ -286,7 +286,6 @@ impl<T: Config> Pallet<T> {
 		for (k, v) in stake_to_vector {
 			total_stake_to += v;
 		}
-		let module_stake: u64 = Self::get_stake(netuid, key);
 		return total_stake_to
 	}
 
