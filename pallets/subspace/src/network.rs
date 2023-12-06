@@ -617,6 +617,10 @@ impl<T: Config> Pallet<T> {
 		}
 	}
 
+	pub fn get_emission_for_key(netuid: u16, key: &T::AccountId) -> u64 {
+		let uid = Self::get_uid_for_key(netuid, key);
+		return Self::get_emission_for_uid(netuid, uid)
+	}
 	pub fn get_emission_for_uid(netuid: u16, uid: u16) -> u64 {
 		let vec = Emission::<T>::get(netuid);
 		if (uid as usize) < vec.len() {

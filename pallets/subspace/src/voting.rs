@@ -26,7 +26,6 @@ impl<T: Config> Pallet<T> {
 
     pub fn check_proposal(proposal: Proposal<T>) -> DispatchResult {
         
-
         // remove lowest voted proposal
         if Self::has_max_proposals() {
             let mut least_voted_proposal_id: u64 = 0;
@@ -61,10 +60,13 @@ impl<T: Config> Pallet<T> {
             assert!(proposal.data.len() > 0);
         }
         // check if proposal is valid
-        assert!(proposal.data.len() < 256); // avoid an exploit with large data
+        assert!(proposal.data.len() < 256); 
+        // avoid an exploit with large data, cap it at 256 bytes
         Ok(())
     }
+
     pub fn is_proposal_owner(
+        // check if the key is the owner of the proposal
         key: &T::AccountId,
         proposal_id: u64,
     ) -> bool {
@@ -77,11 +79,10 @@ impl<T: Config> Pallet<T> {
         proposal_id: u64,
         proposal: Proposal<T>,
     ) -> DispatchResult {
+        // update proposal
         let key = ensure_signed(origin)?;
         let mut proposal = proposal;
-
         assert!( Self::is_proposal_owner(&key, proposal_id), "not proposal owner");
-
         Self::check_proposal(proposal.clone())?; // check if proposal is valid
         Proposals::<T>::insert(proposal_id, proposal);
         Ok(())
