@@ -142,8 +142,6 @@ impl<T: Config> Pallet<T> {
 			}
 		}
 
-		
-
 		MinStake::<T>::insert(netuid, params.min_stake);
 
 		if params.name.len() > 0 {
@@ -152,7 +150,8 @@ impl<T: Config> Pallet<T> {
 			Name2Subnet::<T>::remove(old_name.clone());
 			Name2Subnet::<T>::insert(params.name.clone(), netuid)
 		}
-
+		SubnetVoteThreshold::<T>::insert(netuid, params.vote_threshold);
+		SubnetVoteMode::<T>::insert(netuid, params.vote_mode);
 		Self::set_burn_rate(netuid, params.burn_rate);
 	}
 
@@ -516,6 +515,14 @@ impl<T: Config> Pallet<T> {
 		return Self::get_stake_for_key(netuid, &Self::get_key_for_uid(netuid, module_uid))
 	}
 
+	pub fn get_subnet_vote_mode(netuid: u16) -> Vec<u8> {
+		return SubnetVoteMode::<T>::get(netuid)
+	}
+	
+	pub fn get_subnet_vote_threshold(netuid: u16) -> u16 {
+		return SubnetVoteThreshold::<T>::get(netuid)
+	}
+
 	pub fn get_stake_for_key(netuid: u16, key: &T::AccountId) -> u64 {
 		if Self::is_key_registered_on_network(netuid, &key) {
 			return Stake::<T>::get(netuid, key)
@@ -617,6 +624,10 @@ impl<T: Config> Pallet<T> {
 		}
 	}
 
+	pub fn get_emission_for_key(netuid: u16, key: &T::AccountId) -> u64 {
+		let uid = Self::get_uid_for_key(netuid, key);
+		return Self::get_emission_for_uid(netuid, uid)
+	}
 	pub fn get_emission_for_uid(netuid: u16, uid: u16) -> u64 {
 		let vec = Emission::<T>::get(netuid);
 		if (uid as usize) < vec.len() {
@@ -695,13 +706,6 @@ impl<T: Config> Pallet<T> {
 		TxRateLimit::<T>::put(tx_rate_limit)
 	}
 
-	pub fn get_max_name_length() -> u16 {
-		MaxNameLength::<T>::get()
-	}
-
-	pub fn set_max_name_length(max_name_length: u16) {
-		MaxNameLength::<T>::put(max_name_length)
-	}
 
 	pub fn get_immunity_period(netuid: u16) -> u16 {
 		ImmunityPeriod::<T>::get(netuid)
@@ -852,9 +856,6 @@ impl<T: Config> Pallet<T> {
 	}
 	pub fn get_last_update(netuid: u16) -> Vec<u64> {
 		LastUpdate::<T>::get(netuid)
-	}
-	pub fn get_max_registrations_per_block() -> u16 {
-		MaxRegistrationsPerBlock::<T>::get()
 	}
 	pub fn set_max_registrations_per_block(max_registrations_per_block: u16) {
 		MaxRegistrationsPerBlock::<T>::set(max_registrations_per_block);

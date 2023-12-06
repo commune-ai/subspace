@@ -57,7 +57,9 @@ impl<T: Config> Pallet<T> {
         
         
         
-        ProfitShares::<T>::insert(&key, profit_share_tuples);
+        ProfitShares::<T>::insert(&key, profit_share_tuples.clone());
+
+        assert!(ProfitShares::<T>::get(&key).len() == profit_share_tuples.len(), "profit shares not added");
 
         Ok(())
 
