@@ -63,6 +63,8 @@ fn test_subnet_porposal() {
 
 
 
+
+
 #[test]
 fn test_global_porposal() {
     new_test_ext().execute_with(|| {
@@ -107,3 +109,6 @@ fn test_global_porposal() {
 	});
 
 }
+
+
+

@@ -515,11 +515,11 @@ impl<T: Config> Pallet<T> {
 		return Self::get_stake_for_key(netuid, &Self::get_key_for_uid(netuid, module_uid))
 	}
 
-	pub fn get_vote_mode(netuid: u16) -> Vec<u8> {
+	pub fn get_subnet_vote_mode(netuid: u16) -> Vec<u8> {
 		return SubnetVoteMode::<T>::get(netuid)
 	}
 	
-	pub fn get_vote_threshold(netuid: u16) -> u16 {
+	pub fn get_subnet_vote_threshold(netuid: u16) -> u16 {
 		return SubnetVoteThreshold::<T>::get(netuid)
 	}
 
@@ -706,13 +706,6 @@ impl<T: Config> Pallet<T> {
 		TxRateLimit::<T>::put(tx_rate_limit)
 	}
 
-	pub fn get_max_name_length() -> u16 {
-		MaxNameLength::<T>::get()
-	}
-
-	pub fn set_max_name_length(max_name_length: u16) {
-		MaxNameLength::<T>::put(max_name_length)
-	}
 
 	pub fn get_immunity_period(netuid: u16) -> u16 {
 		ImmunityPeriod::<T>::get(netuid)
@@ -863,9 +856,6 @@ impl<T: Config> Pallet<T> {
 	}
 	pub fn get_last_update(netuid: u16) -> Vec<u64> {
 		LastUpdate::<T>::get(netuid)
-	}
-	pub fn get_max_registrations_per_block() -> u16 {
-		MaxRegistrationsPerBlock::<T>::get()
 	}
 	pub fn set_max_registrations_per_block(max_registrations_per_block: u16) {
 		MaxRegistrationsPerBlock::<T>::set(max_registrations_per_block);
