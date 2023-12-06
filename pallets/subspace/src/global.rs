@@ -2,6 +2,7 @@ use super::*;
 use frame_support::pallet_prelude::DispatchResult;
 use sp_runtime::DispatchError;
 use system::ensure_root;
+use crate::utils::is_vec_str;
 
 impl<T: Config> Pallet<T> {
 
@@ -106,6 +107,7 @@ impl<T: Config> Pallet<T> {
 		params: GlobalParams,
 	) -> DispatchResult {
 		ensure_root(origin)?;
+		assert!(is_vec_str(params.vote_mode.clone(), "authority"));
 		Self::check_global_params(params.clone())?;
 		Self::set_global_params(params.clone());
 		Ok(())
