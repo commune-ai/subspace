@@ -548,6 +548,7 @@ pub mod pallet {
 		MaxRegistrationsPerBlockSet(u16), // --- Event created when we set max registrations per block
 		GlobalUpdate(u16, u16, u16, u16, u64, u64),
 		GlobalProposalAccepted(u64), // (id)
+		CustomProposalAccepted(u64), // (id)
 		SubnetProposalAccepted(u64, u16), // (id, netuid)
 	}
 
@@ -992,7 +993,6 @@ pub mod pallet {
 			subnet_params: SubnetParams,
         ) -> DispatchResult {
 
-			let subnet_params = DefaultSubnetParams::<T>::get();
 			let mut proposal = DefaultProposal::<T>::get();
 
 			proposal.subnet_params = subnet_params;

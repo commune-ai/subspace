@@ -14,6 +14,7 @@ impl<T: Config> Pallet<T> {
 
     pub fn next_proposal_id() -> u64 {
         let mut next_proposal_id: u64 = 0;
+        // add proposal id until it is not in the map
         while Self::proposal_exists(next_proposal_id) {
             next_proposal_id = next_proposal_id + 1;
         }
@@ -100,19 +101,45 @@ impl<T: Config> Pallet<T> {
         mut proposal:Proposal<T>,
     ) -> DispatchResult {
         let key =  ensure_signed(origin)?;
-
-        if is_vec_str(proposal.mode.clone(),"subnet") {
-            proposal.votes = Self::get_total_stake_to(proposal.netuid, &key);
-        }
-        else {
-            proposal.votes = Self::get_total_global_stake(&key);
-        } 
+        // add proposal
+        proposal.votes = Self::get_voting_power(&key, proposal.clone() );
         // add the proposal owner to the participants
         proposal.participants.push(key.clone());
 
         Self::check_proposal(proposal.clone())?; // check if proposal is valid
-        Proposals::<T>::insert(Self::next_proposal_id(), proposal);
+        let proposal_id = Self::next_proposal_id();
+        Proposals::<T>::insert(proposal_id, proposal);
+        // check if proposal is approved already
+        Self::check_proposal_approval(proposal_id);
         Ok(())
+    }
+
+    pub fn get_voting_power(
+        key: &T::AccountId,
+        proposal: Proposal<T>,
+    ) -> u64 {
+        let mut voting_power: u64 = 0;
+        if is_vec_str(proposal.mode.clone(),"subnet") {
+            voting_power = Self::get_total_stake_to(proposal.netuid, key);
+        } else {
+            voting_power = Self::get_total_global_stake(key);
+        }
+        return voting_power;
+    }
+
+    pub fn get_proposal_vote_threshold(
+        proposal_id: u64,
+    ) -> u64 {
+        let proposal: Proposal<T> = Proposals::<T>::get(proposal_id);
+        let mut vote_threshold: u64 = 0;
+        if is_vec_str(proposal.mode.clone(),"subnet") {
+            let total_stake = Self::get_total_subnet_stake(proposal.netuid);
+            vote_threshold = (total_stake * proposal.subnet_params.vote_threshold as u64) / 100;
+        } else {
+            let total_stake = Self::total_stake();
+            vote_threshold = (total_stake * proposal.global_params.vote_threshold as u64) / 100;
+        }
+        return vote_threshold;
     }
 
     pub fn do_vote_proposal(
@@ -126,40 +153,26 @@ impl<T: Config> Pallet<T> {
             Error::<T>::UpdateProposalVoteNotAvailable
         );
 
-        let mut voting_power : u64;
-        let mut stake_threshold: u64; 
-        let mut total_stake : u64 = Self::total_stake();
-        let mut voting_power = Self::get_total_global_stake(&key);
-
-        let current_global_params: GlobalParams = Self::global_params();
-        let current_subnet_params: SubnetParams = Self::subnet_params(proposal.netuid);
-        
-        let mut stake_threshold: u64;
-
-        if is_vec_str(proposal.mode.clone(),"subnet") {
-            
-            total_stake = Self::get_total_subnet_stake(proposal.netuid);
-            voting_power = Self::get_total_stake_to(proposal.netuid, &key);
-            stake_threshold = (total_stake * current_subnet_params.vote_threshold as u64) / 100;
-
-        } else {
-            stake_threshold = (total_stake * current_global_params.vote_threshold as u64) / 100;
-        }
+        let mut voting_power : u64 = Self::get_voting_power(&key, proposal.clone());
 
         Proposals::<T>::mutate(proposal_id, |proposal| {
             proposal.votes += voting_power;
             proposal.participants.push(key.clone());
         });
 
-        
+        Self::check_proposal_approval(proposal_id);
 
-        let total_stake = Self::total_stake();
+        Ok(())
+    }
+
+    pub fn check_proposal_approval(proposal_id: u64) {
+
         let proposal = Proposals::<T>::get(proposal_id);
-
+        let mut stake_threshold: u64 = Self::get_proposal_vote_threshold(proposal_id); 
         if proposal.votes >  stake_threshold  {
-
-            Proposals::<T>::remove(proposal_id);
-            
+            Proposals::<T>::mutate(proposal_id, |proposal| {
+                proposal.accepted = true;
+            });
             if is_vec_str(proposal.mode.clone(), "subnet") {
                 Self::set_subnet_params(proposal.netuid, proposal.subnet_params);
                 Self::deposit_event(Event::SubnetProposalAccepted(proposal_id, proposal.netuid));
@@ -167,12 +180,12 @@ impl<T: Config> Pallet<T> {
             } else if is_vec_str(proposal.mode.clone(), "global") {
                 Self::set_global_params(proposal.global_params);
                 Self::deposit_event(Event::GlobalProposalAccepted(proposal_id));
-
-            } 
+            } else {
+                Self::deposit_event(Event::CustomProposalAccepted(proposal_id));
+            }
         }
-
-        Ok(())
     }
+
 
     pub fn get_subnet_proposals(
         netuid: u16
@@ -224,7 +237,6 @@ impl<T: Config> Pallet<T> {
         let proposal: Proposal<T> = Proposals::<T>::get(proposal_id);
         let is_vote_available: bool = !proposal.participants.contains(key) && !proposal.accepted; 
         return is_vote_available;
-
-}
+    }
 }
 
