@@ -252,6 +252,7 @@ pub mod pallet {
 		pub max_allowed_uids: u16, // max number of uids allowed to be registered in this subnet
 		pub burn_rate: u16,        // out of 100
 		pub min_stake: u64,
+		pub min_burn: u64,
 		// pub democratic: bool
 		pub vote_threshold: u16, // out of 100
 		pub vote_mode: Vec<u8>,
@@ -270,6 +271,7 @@ pub mod pallet {
 			min_stake: 0, 
 			vote_threshold: 50,
 			vote_mode: DefaultVoteMode::<T>::get(),
+			min_burn: DefaultMinBurn::<T>::get(),
 		}
 	}
 
@@ -691,6 +693,7 @@ pub mod pallet {
 					burn_rate: subnet.6,
 					min_stake: subnet.7,
 					vote_threshold: default_params.vote_threshold,
+					min_burn: default_params.min_burn,
 					vote_mode: default_params.vote_mode.clone(),
 				};
 				
@@ -858,8 +861,8 @@ pub mod pallet {
 			Self::do_transfer_multiple(origin, destinations, amounts)
 		}
 
-		#[pallet::weight(T::WeightInfo::update_network())]
-		pub fn update_network(
+		#[pallet::weight(T::WeightInfo::update_subnet())]
+		pub fn update_subnet(
 			origin: OriginFor<T>,
 			netuid: u16,
 			name: Vec<u8>,
@@ -868,6 +871,7 @@ pub mod pallet {
 			min_allowed_weights: u16,
 			max_allowed_weights: u16,
 			max_allowed_uids: u16,
+			min_burn: u64,
 			burn_rate: u16,
 			min_stake: u64,
 			vote_threshold: u16,
@@ -886,16 +890,11 @@ pub mod pallet {
 				min_stake: min_stake,
 				vote_threshold: vote_threshold,
 				vote_mode: vote_mode.clone(),
+				min_burn: DefaultMinBurn::<T>::get(),
 			};
-			Self::do_update_network(origin,netuid,params)
+			Self::do_update_subnet(origin,netuid,params)
 		}
 
-
-
-		#[pallet::weight(T::WeightInfo::remove_network())]
-		pub fn remove_network(origin: OriginFor<T>, netuid: u16) -> DispatchResult {
-			Self::do_remove_network(origin, netuid)
-		}
 
 		#[pallet::weight(T::WeightInfo::update_module())]
 		pub fn update_module(
@@ -1134,11 +1133,7 @@ where
 				priority: Self::get_priority_vanilla(who),
 				..Default::default()
 			}),
-			Some(Call::remove_network { .. }) => Ok(ValidTransaction {
-				priority: Self::get_priority_vanilla(who),
-				..Default::default()
-			}),
-			Some(Call::update_network { .. }) => Ok(ValidTransaction {
+			Some(Call::update_subnet { .. }) => Ok(ValidTransaction {
 				priority: Self::get_priority_vanilla(who),
 				..Default::default()
 			}),

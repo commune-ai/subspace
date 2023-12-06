@@ -353,7 +353,7 @@ mod benchmarks {
     }
 
     #[benchmark]
-    fn update_network() -> Result<(), BenchmarkError> {
+    fn update_subnet() -> Result<(), BenchmarkError> {
         let (network, name, address, module_key, netuid) = default_register_helper::<T>();
 
         let subnet_params = <Pallet<T>>::subnet_params(netuid);
@@ -361,7 +361,7 @@ mod benchmarks {
 		let min_stake = 0;
 
         #[extrinsic_call]
-		update_network(
+		update_subnet(
             RawOrigin::Signed(module_key.clone()),
 			netuid,
 			subnet_params.name.clone(),

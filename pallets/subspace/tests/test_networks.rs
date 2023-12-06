@@ -260,7 +260,7 @@ fn test_set_max_allowed_uids_shrinking() {
 
 		let mut params = SubspaceModule::subnet_params(netuid).clone();
 		params.max_allowed_uids = max_uids;
-		let result = SubspaceModule::do_update_network(get_origin(keys[0]), netuid, params);
+		let result = SubspaceModule::do_update_subnet(get_origin(keys[0]), netuid, params);
 		assert_ok!(result);
 		let params = SubspaceModule::subnet_params(netuid);
 		let mut n = SubspaceModule::get_subnet_n(netuid);
