@@ -32,9 +32,6 @@ impl<T: Config> Pallet<T> {
 			Error::<T>::NotEnoughBalanceToRegister
 		);
 
-
-
-
 		let mut netuid: u16 = 0;
 		ensure!(
 			Self::enough_stake_to_register(netuid, stake_amount),
@@ -62,12 +59,6 @@ impl<T: Config> Pallet<T> {
 
 		let min_burn: u64 = Self::get_min_burn(netuid);
 		
-		// CONSTANT INITIAL BURN
-		if min_burn > 0 {
-			ensure!(Self::has_enough_balance(&key, min_burn),Error::<T>::NotEnoughBalanceToRegister);
-			let removed_balance: bool = Self::remove_balance_from_account(&key, Self::u64_to_balance(min_burn).unwrap());
-			ensure!(removed_balance, Error::<T>::BalanceNotRemoved);
-		}
 
 		RegistrationsPerBlock::<T>::mutate(|val| *val += 1);
 
@@ -78,22 +69,24 @@ impl<T: Config> Pallet<T> {
 		if n < Self::get_max_allowed_uids(netuid) {
 			uid = Self::append_module(netuid, &module_key, name.clone(), address.clone());
 		} else {
+			// get the loest
 			let lowest_uid: u16 = Self::get_lowest_uid(netuid);
 			Self::remove_module(netuid, lowest_uid);
 			uid = Self::append_module(netuid, &module_key, name.clone(), address.clone());
-			log::info!("prune module {:?} from network {:?} ", uid, netuid);
 		}
 		Self::increase_stake(netuid, &module_key, &module_key, 0);
 		if stake_amount > 0 {
 			Self::do_add_stake(origin.clone(), netuid, module_key.clone(), stake_amount);
 		}
+		// CONSTANT INITIAL BURN
+		if min_burn > 0 {
+			Self::decrease_stake(netuid, &key, &module_key, min_burn);
+			let min_stake = Self::get_min_stake(netuid);
+			let current_stake = Self::get_total_stake_to(netuid, &key);
+			assert!(current_stake == stake_amount - min_burn);
+		}
 		// ---Deposit successful event.
-		log::info!(
-			"ModuleRegistered( netuid:{:?} name:{:?} address:{:?}) ",
-			netuid,
-			uid,
-			module_key
-		);
+
 		Self::deposit_event(Event::ModuleRegistered(netuid, uid, module_key.clone()));
 
 		// --- 5. Ok and done.
@@ -127,7 +120,8 @@ impl<T: Config> Pallet<T> {
 
 	pub fn enough_stake_to_register(netuid: u16, stake_amount: u64) -> bool {
 		let min_stake: u64 = Self::get_min_stake_to_register(netuid);
-		return stake_amount >= min_stake
+		let min_burn = Self::get_min_burn(netuid);
+		return stake_amount >= (min_stake + min_burn)
 	}
 
 

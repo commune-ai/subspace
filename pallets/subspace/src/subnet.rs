@@ -90,7 +90,7 @@ impl<T: Config> Pallet<T> {
 		Ok(())
 	}
 
-	pub fn do_update_network(
+	pub fn do_update_subnet(
 		origin: T::RuntimeOrigin,
 		netuid: u16,
 		params: SubnetParams,
@@ -117,6 +117,7 @@ impl<T: Config> Pallet<T> {
 			burn_rate: BurnRate::<T>::get(netuid),
 			vote_threshold: SubnetVoteThreshold::<T>::get(netuid),
 			vote_mode:SubnetVoteMode::<T>::get(netuid),
+			min_burn: MinBurn::<T>::get(netuid),
 		}
 	}
 
@@ -159,6 +160,8 @@ impl<T: Config> Pallet<T> {
 		Self::set_burn_rate(netuid, params.burn_rate);
 
 		Self::set_subnet_name(netuid, params.name);
+
+		Self::set_min_burn(netuid, params.min_burn);
 
 	}
 
@@ -911,6 +914,8 @@ impl<T: Config> Pallet<T> {
         assert!(params.burn_rate >= 0 && params.burn_rate <= 100, "Invalid burn_rate");
         assert!(params.min_stake >= 0, "Invalid min_stake");
         assert!(params.vote_threshold >= 0 && params.burn_rate <= 100, "Invalid vote_threshold");
+		assert!(params.min_burn >= 0, "Invalid min_burn");
+		assert!(params.min_burn <= params.min_stake, "Invalid min_burn");
 
 		// ensure the vode_mode is in "authority", "stake", "quadratic"
 		assert!(

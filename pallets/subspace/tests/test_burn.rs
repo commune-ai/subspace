@@ -76,3 +76,46 @@ fn test_burn() {
 
 	});
 }
+
+
+#[test]
+fn test_min_burn() {
+    new_test_ext().execute_with(|| {
+        
+	let netuid = 0;
+	let n = 10;
+
+	let initial_stake: u64 = 1000;
+
+	let keys : Vec<U256> = (0..n).into_iter().map(|x| U256::from(x)).collect();
+	let stakes : Vec<u64> = (0..n).into_iter().map(|x| initial_stake * 1_000_000_000).collect();
+
+	// founder register_module(netuid, keys[i]);
+	let founder_initial_stake = stakes[0];
+	assert_ok!(register_module(netuid, keys[0], stakes[0]));
+	let founder_current_stake = SubspaceModule::get_total_stake_to(netuid,&keys[0]);
+	assert_eq!(founder_initial_stake, founder_current_stake, 
+				"founder_initial_stake: {:?} founder_current_stake: {:?}", 
+					founder_initial_stake, founder_current_stake);
+
+	// set the burn min to 1000000000
+	// register_module(netuid, keys[i]);
+	let mut params = SubspaceModule::subnet_params(netuid);
+	params.min_burn = 100;
+	SubspaceModule::set_subnet_params(netuid, params.clone());
+	params = SubspaceModule::subnet_params(netuid);
+	println!("params: {:?}", params);
+	for i in 1..n {
+		assert_ok!(register_module(netuid, keys[i], stakes[i]));
+		let key_stake_after = SubspaceModule::get_total_stake_to(netuid,&keys[i]);
+		assert_eq!(key_stake_after, stakes[i] - params.min_burn, 
+					"key_stake_after: {:?} stakes[i]: {:?}", 
+						key_stake_after, stakes[i]);
+	}
+
+
+	let voter_key = keys[1];
+
+
+	});
+}

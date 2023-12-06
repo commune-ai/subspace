@@ -45,7 +45,7 @@ pub trait WeightInfo {
 	fn transfer_multiple() -> Weight;
 	fn remove_stake() -> Weight;
 	fn remove_stake_multiple() -> Weight;
-	fn update_network() -> Weight;
+	fn update_subnet() -> Weight;
 	fn remove_network() -> Weight;
 	fn update_module() -> Weight;
 	fn update_global() -> Weight;
@@ -292,7 +292,7 @@ impl<T: frame_system::Config> WeightInfo for SubstrateWeight<T> {
 	/// Proof: `SubspaceModule::ImmunityPeriod` (`max_values`: None, `max_size`: None, mode: `Measured`)
 	/// Storage: `SubspaceModule::MaxAllowedUids` (r:0 w:1)
 	/// Proof: `SubspaceModule::MaxAllowedUids` (`max_values`: None, `max_size`: None, mode: `Measured`)
-	fn update_network() -> Weight {
+	fn update_subnet() -> Weight {
 		// Proof Size summary in bytes:
 		//  Measured:  `703`
 		//  Estimated: `9118`
@@ -691,7 +691,7 @@ impl WeightInfo for () {
 	/// Proof: `SubspaceModule::ImmunityPeriod` (`max_values`: None, `max_size`: None, mode: `Measured`)
 	/// Storage: `SubspaceModule::MaxAllowedUids` (r:0 w:1)
 	/// Proof: `SubspaceModule::MaxAllowedUids` (`max_values`: None, `max_size`: None, mode: `Measured`)
-	fn update_network() -> Weight {
+	fn update_subnet() -> Weight {
 		// Proof Size summary in bytes:
 		//  Measured:  `703`
 		//  Estimated: `9118`
