@@ -208,6 +208,14 @@ impl<T: Config> Pallet<T> {
 		return Self::get_stake_to_module(netuid, key, key)
 	}
 
+	pub fn get_stake_to_total(netuid: u16, key: &T::AccountId) -> u64 {
+		let mut total_stake_to: u64 = 0;
+		for (k, v) in Self::get_stake_to_vector(netuid, key) {
+			total_stake_to += v;
+			}
+		return total_stake_to
+	}
+
 	pub fn get_stake_to_module(netuid: u16, key: &T::AccountId, module_key: &T::AccountId) -> u64 {
 		let mut state_to: u64 = 0;
 		for (k, v) in Self::get_stake_to_vector(netuid, key) {

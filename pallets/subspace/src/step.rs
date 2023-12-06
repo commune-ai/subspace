@@ -188,7 +188,7 @@ impl<T: Config> Pallet<T> {
 			let mut owner_emission_incentive: u64 = incentive_emission[*module_uid as usize] + dividends_emission[*module_uid as usize];
 			let mut owner_dividends_emission: u64 = dividends_emission[*module_uid as usize];
 			
-			// calculate the future stake and see if its less than the min stake
+			// calculate the future
 			let mut total_future_stake: u64 = stake_64[*module_uid as usize].to_num::<u64>();
 			total_future_stake = total_future_stake.saturating_add(owner_emission_incentive);
 			total_future_stake = total_future_stake.saturating_add(owner_dividends_emission);
@@ -236,24 +236,24 @@ impl<T: Config> Pallet<T> {
 					owner_emission = owner_emission.saturating_sub(to_module);
 
 				}
-
-				if owner_emission > 0 {
-					// generate the profit shares
-					let profit_share_emissions: Vec<(T::AccountId, u64)> = Self::get_profit_share_emissions(module_key.clone(), owner_emission);
-
-					// if there are profit shares, then increase the balance of the profit share key
-					if profit_share_emissions.len() > 0 {
-						// if there are profit shares, then increase the balance of the profit share key
-						for (profit_share_key, profit_share_emission) in profit_share_emissions.iter() {
-							// increase the balance of the profit share key
-							Self::add_balance_to_account_u64(profit_share_key, *profit_share_emission);
-						}
-					} else {
-						Self::increase_stake(netuid, module_key, module_key, owner_emission);
-					}
-				}
-	
 			}
+
+			if owner_emission > 0 {
+				// generate the profit shares
+				let profit_share_emissions: Vec<(T::AccountId, u64)> = Self::get_profit_share_emissions(module_key.clone(), owner_emission);
+
+				// if there are profit shares, then increase the balance of the profit share key
+				if profit_share_emissions.len() > 0 {
+					// if there are profit shares, then increase the balance of the profit share key
+					for (profit_share_key, profit_share_emission) in profit_share_emissions.iter() {
+						// increase the balance of the profit share key
+						Self::increase_stake(netuid, profit_share_key, module_key, *profit_share_emission);
+					}
+				} else {
+					Self::increase_stake(netuid, module_key, module_key, owner_emission);
+				}
+			}
+
 		}
 		if zero_stake_uids.len() > 0 {
 			PendingDeregisterUids::<T>::insert(netuid, zero_stake_uids.clone());

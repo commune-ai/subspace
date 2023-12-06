@@ -46,7 +46,7 @@ mod staking;
 mod step;
 mod weights;
 mod voting;
-mod profitshare;
+mod profit_share;
 
 #[frame_support::pallet]
 pub mod pallet {
@@ -170,10 +170,6 @@ pub mod pallet {
 	#[pallet::type_value]
 	pub fn DefaultVotePeriod<T: Config>() -> u16 {
 		100
-	} // out of 100
-	#[pallet::type_value]
-	pub fn DefaultVoteThreshold<T: Config>() -> u16 {
-		50
 	} // out of 100
 
 	#[pallet::type_value]
@@ -310,10 +306,27 @@ pub mod pallet {
 	// =======================================
 	// ==== Voting  ====
 	// =======================================
+	#[pallet::type_value]
+	pub fn DefaultVoteThreshold<T: Config>() -> u16 {
+		50
+	} // out of 100
+	#[pallet::storage] // --- MAP ( netuid ) --> epoch
+	pub type SubnetVoteThreshold<T> = StorageMap<_, Identity, u16, u16, ValueQuery, DefaultVoteThreshold<T>>;
+	#[pallet::storage] // --- MAP ( netuid ) --> epoch
+	pub type GlobalVoteThreshold<T> = StorageMap<_, Identity, u16, u16, ValueQuery, DefaultVoteThreshold<T>>;
+
+	#[pallet::type_value]
+	pub fn DefaultProposalId<T: Config>() -> u16 {
+		return u16::MAX
+	} // out of 100
+
+
+
 
 	#[pallet::storage] // --- MAP ( netuid ) --> epoch
-	pub type SubnetVoteThreshold<T> =
-		StorageMap<_, Identity, u16, u16, ValueQuery, DefaultVoteThreshold<T>>;
+	pub type Vote2ProposalId<T: Config> =StorageMap<_, Identity, T::AccountId, Vec<u8>, ValueQuery, DefaultSubnetVoteMode<T>>;
+
+
 	#[pallet::type_value]
 	pub fn DefaultSubnetVoteMode<T: Config>() -> Vec<u8> {
 		"authority".as_bytes().to_vec()
@@ -321,6 +334,16 @@ pub mod pallet {
 
 	#[pallet::storage] // --- MAP ( netuid ) --> epoch
 	pub type SubnetVoteMode<T> =StorageMap<_, Identity, u16, Vec<u8>, ValueQuery, DefaultSubnetVoteMode<T>>;
+
+	#[pallet::type_value]
+	pub fn DefaultGlobalVoteMode<T: Config>() -> Vec<u8> {
+		"authority".as_bytes().to_vec()
+	}
+
+	#[pallet::storage] // --- MAP ( netuid ) --> epoch
+	pub type GlobalVoteMode<T> =StorageValue<_, Vec<u8>, ValueQuery, DefaultGlobalVoteMode<T>>;
+
+
 	#[derive(Decode, Encode, PartialEq, Eq, Clone, Debug, TypeInfo)]
 	pub struct SubnetInfo<T: Config> {
 		// --- parameters
@@ -410,6 +433,25 @@ pub mod pallet {
 		ValueQuery,
 	>;
 
+	// LOAN VARIABLES
+
+	#[pallet::storage] // --- DMAP ( netuid, module_key ) --> Vec<(delegater, stake )> | Returns the list of delegates
+	pub type LoanTo<T: Config> = StorageMap<
+		_,
+		Identity,
+		T::AccountId,
+		Vec<(T::AccountId, u64)>,
+		ValueQuery,
+	>;
+
+	#[pallet::storage] // --- DMAP ( netuid, module_key ) --> Vec<(delegater, stake )> | Returns the list of delegates
+	pub type LoanFrom<T: Config> = StorageMap<
+		_,
+		Identity,
+		T::AccountId,
+		Vec<(T::AccountId, u64)>,
+		ValueQuery,
+	>;
 
 	// PROFIT SHARE VARIABLES
 	
@@ -918,8 +960,7 @@ pub mod pallet {
 			origin: OriginFor<T>,
 			keys: Vec<T::AccountId>,
 			shares: Vec<u16>) -> DispatchResult {
-			Self::do_add_profit_shares(origin, keys, shares);
-			Ok(())
+			Self::do_add_profit_shares(origin, keys, shares)
 		
 		}
 
