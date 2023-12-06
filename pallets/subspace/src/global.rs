@@ -13,6 +13,17 @@ impl<T: Config> Pallet<T> {
 		Self::set_max_registrations_per_block(params.max_registrations_per_block);
 		Self::set_unit_emission(params.unit_emission);
 		Self::set_tx_rate_limit(params.tx_rate_limit);
+		Self::set_global_vote_threshold(params.vote_threshold);
+		Self::set_max_proposals(params.max_proposals);
+
+	}
+
+	pub fn set_max_proposals(max_proposals: u64) {
+		MaxProposals::<T>::put(max_proposals);
+	}
+
+	pub fn get_max_proposals() -> u64 {
+		MaxProposals::<T>::get()
 	}
 
 	pub fn global_params() -> GlobalParams {
@@ -24,50 +35,39 @@ impl<T: Config> Pallet<T> {
 			unit_emission: Self::get_unit_emission(),
 			tx_rate_limit: Self::get_tx_rate_limit(),
 			vote_threshold: Self::get_global_vote_threshold(),
+			max_proposals: Self::get_max_proposals(),
+			vote_mode: Self::get_global_vote_mode(),
 		}
 	}
 
-	fn get_global_vote_threshold() -> u16 {
-		return 50;
+	pub fn get_global_vote_mode() -> Vec<u8> {
+		return GlobalVoteMode::<T>::get();
+	}
+
+	pub fn get_global_vote_threshold() -> u16 {
+		return GlobalVoteThreshold::<T>::get();
+	}
+	pub fn set_global_vote_threshold(vote_threshold: u16) {
+		GlobalVoteThreshold::<T>::put(vote_threshold);
+	}
+	pub fn get_max_registrations_per_block() -> u16 {
+		MaxRegistrationsPerBlock::<T>::get()
+	}
+	pub fn get_max_name_length() -> u16 {
+		return MaxNameLength::<T>::get();
+	}
+
+	pub fn set_max_name_length(max_name_length: u16) {
+		MaxNameLength::<T>::put(max_name_length)
 	}
 
 	pub fn do_update_global(
 		origin: T::RuntimeOrigin,
-		max_name_length: u16,
-		max_allowed_subnets: u16,
-		max_allowed_modules: u16,
-		max_registrations_per_block: u16,
-		unit_emission: u64,
-		tx_rate_limit: u64
+		params: GlobalParams,
 	) -> DispatchResult {
 		ensure_root(origin)?;
-
-		if max_name_length > 0 {
-			Self::set_max_name_length(max_name_length);
-		}
-		if max_allowed_subnets > 0 {
-			Self::set_max_allowed_subnets(max_allowed_subnets);
-		}
-		if max_allowed_modules > 0 {
-			Self::set_max_allowed_modules(max_allowed_modules);
-		}
-		if max_registrations_per_block > 0 {
-			Self::set_max_registrations_per_block(max_registrations_per_block);
-		}
-		if unit_emission > 0 {
-			Self::set_unit_emission(unit_emission);
-		}
-		if tx_rate_limit > 0 {
-			Self::set_tx_rate_limit(tx_rate_limit);
-		}
-		Self::deposit_event(Event::GlobalUpdate(
-			max_name_length,
-			max_allowed_subnets,
-			max_allowed_modules,
-			max_registrations_per_block,
-			unit_emission,
-			tx_rate_limit,
-		));
+		Self::check_global_params(params.clone())?;
+		Self::set_global_params(params.clone());
 		Ok(())
 	}
 
