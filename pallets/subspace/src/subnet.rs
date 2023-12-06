@@ -96,6 +96,7 @@ impl<T: Config> Pallet<T> {
 		params: SubnetParams,
 	) -> DispatchResult {
 		let key = ensure_signed(origin)?;
+		// only the founder can update the network on authority mode
 		assert!(is_vec_str(params.vote_mode.clone(), "authority"));
 		ensure!(Self::if_subnet_netuid_exists(netuid), Error::<T>::SubnetNameAlreadyExists);
 		ensure!(Self::is_subnet_founder(netuid, &key), Error::<T>::NotFounder);
@@ -118,6 +119,7 @@ impl<T: Config> Pallet<T> {
 			vote_threshold: SubnetVoteThreshold::<T>::get(netuid),
 			vote_mode:SubnetVoteMode::<T>::get(netuid),
 			min_burn: MinBurn::<T>::get(netuid),
+			trust_ratio: TrustRatio::<T>::get(netuid),
 		}
 	}
 
@@ -162,6 +164,8 @@ impl<T: Config> Pallet<T> {
 		Self::set_subnet_name(netuid, params.name);
 
 		Self::set_min_burn(netuid, params.min_burn);
+
+		Self::set_trust_ratio(netuid, params.trust_ratio);
 
 	}
 
@@ -502,7 +506,7 @@ impl<T: Config> Pallet<T> {
 		return TrustRatio::<T>::get(netuid)
 	}
 
-	pub fn set_trust_ratio(netuid: u16, uid: u16, trust_ratio: u16) {
+	pub fn set_trust_ratio(netuid: u16, trust_ratio: u16) {
 		TrustRatio::<T>::insert(netuid, trust_ratio);
 	}
 
@@ -916,6 +920,8 @@ impl<T: Config> Pallet<T> {
         assert!(params.vote_threshold >= 0 && params.burn_rate <= 100, "Invalid vote_threshold");
 		assert!(params.min_burn >= 0, "Invalid min_burn");
 		assert!(params.min_burn <= params.min_stake, "Invalid min_burn");
+
+		assert!(params.trust_ratio >= 0 && params.trust_ratio <= 100, "Invalid trust_ratio");
 
 		// ensure the vode_mode is in "authority", "stake", "quadratic"
 		assert!(

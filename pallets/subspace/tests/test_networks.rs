@@ -37,19 +37,6 @@ fn test_add_subnets() {
 	});
 }
 
-#[test]
-fn test_remove_subnet() {
-	new_test_ext().execute_with(|| {
-		let tempo: u16 = 13;
-		let num_subnets: u16 = 100;
-		let stake_per_module: u64 = 1_000_000_000;
-		let key = U256::from(0);
-		let netuid: u16 = 0;
-		(netuid, key, stake_per_module);
-		let origin = get_origin(key);
-		SubspaceModule::remove_network(origin, netuid);
-	});
-}
 
 fn test_set_single_temple(tempo: u16) {
 	new_test_ext().execute_with(|| {

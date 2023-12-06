@@ -256,6 +256,7 @@ pub mod pallet {
 		// pub democratic: bool
 		pub vote_threshold: u16, // out of 100
 		pub vote_mode: Vec<u8>,
+		pub trust_ratio: u16,
 	}
 
 	#[pallet::type_value]
@@ -272,6 +273,7 @@ pub mod pallet {
 			vote_threshold: 50,
 			vote_mode: DefaultVoteMode::<T>::get(),
 			min_burn: DefaultMinBurn::<T>::get(),
+			trust_ratio: DefaultTrustRatio::<T>::get(),
 		}
 	}
 
@@ -695,6 +697,7 @@ pub mod pallet {
 					vote_threshold: default_params.vote_threshold,
 					min_burn: default_params.min_burn,
 					vote_mode: default_params.vote_mode.clone(),
+					trust_ratio: default_params.trust_ratio,
 				};
 				
 				self::Pallet::<T>::add_network(params.clone());
@@ -865,33 +868,8 @@ pub mod pallet {
 		pub fn update_subnet(
 			origin: OriginFor<T>,
 			netuid: u16,
-			name: Vec<u8>,
-			tempo: u16,
-			immunity_period: u16,
-			min_allowed_weights: u16,
-			max_allowed_weights: u16,
-			max_allowed_uids: u16,
-			min_burn: u64,
-			burn_rate: u16,
-			min_stake: u64,
-			vote_threshold: u16,
-			vote_mode: Vec<u8>,
-			founder: T::AccountId,
+			params: SubnetParams,
 		) -> DispatchResult {
-
-			let params = SubnetParams {
-				name: name.clone(),
-				tempo: tempo,
-				immunity_period: immunity_period,
-				min_allowed_weights: min_allowed_weights,
-				max_allowed_weights: max_allowed_weights,
-				max_allowed_uids: max_allowed_uids,
-				burn_rate: burn_rate,
-				min_stake: min_stake,
-				vote_threshold: vote_threshold,
-				vote_mode: vote_mode.clone(),
-				min_burn: DefaultMinBurn::<T>::get(),
-			};
 			Self::do_update_subnet(origin,netuid,params)
 		}
 
