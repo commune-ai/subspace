@@ -436,7 +436,10 @@ mod benchmarks {
             1,
             1,
             1,
-            1
+            1,
+            1,
+            b"global".to_vec(),
+            1,
         );
 
         Ok(())
@@ -466,7 +469,6 @@ mod benchmarks {
 		add_global_proposal(
             RawOrigin::Signed(caller.clone()),
 			params,
-            Some(vec![])
         );
 
         Ok(())
@@ -480,7 +482,6 @@ mod benchmarks {
         <Pallet<T>>::add_global_proposal(
             RawOrigin::Signed(caller.clone()).into(),
             params,
-            Some(vec![])
         );
 
         #[extrinsic_call]
@@ -506,7 +507,7 @@ mod benchmarks {
 
         let mut params: SubnetParams = <Pallet::<T>>::subnet_params(netuid);
         params.vote_mode   = b"stake".to_vec();
-
+        
         #[extrinsic_call]
 		add_subnet_proposal(
             RawOrigin::Signed(caller.clone()),

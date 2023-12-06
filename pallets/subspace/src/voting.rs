@@ -53,10 +53,11 @@ impl<T: Config> Pallet<T> {
 
             Self::check_subnet_params(proposal.subnet_params.clone())?;
             //  check if vote mode is valid
-            let subnet_params: SubnetParams = Self::subnet_params(proposal.netuid);
+            // let subnet_params: SubnetParams = Self::subnet_params(proposal.netuid);
+
             assert!(
-                is_vec_str(subnet_params.vote_mode.clone(),"stake") ||
-                is_vec_str(subnet_params.vote_mode.clone(),"quadratic")
+                is_vec_str(proposal.subnet_params.vote_mode.clone(),"stake") ||
+                is_vec_str(proposal.subnet_params.vote_mode.clone(),"quadratic")
             );
         } else {
             assert!(proposal.data.len() > 0);

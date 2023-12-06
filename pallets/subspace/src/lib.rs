@@ -995,7 +995,7 @@ pub mod pallet {
 			let mut proposal = DefaultProposal::<T>::get();
 			proposal.global_params = global_params;
 			proposal.mode = "global".as_bytes().to_vec();
-			proposal.data = data.unwrap_or(vec![]);
+			// proposal.data = data.unwrap_or(vec![]);
 			
             Self::do_add_proposal(origin,  proposal)
         }
