@@ -101,7 +101,7 @@ impl<T: Config> Pallet<T> {
         mut proposal:Proposal<T>,
     ) -> DispatchResult {
         let key =  ensure_signed(origin)?;
-        // add proposal
+        // get the voting power of the proposal owner
         proposal.votes = Self::get_voting_power(&key, proposal.clone() );
         // add the proposal owner to the participants
         proposal.participants.push(key.clone());
@@ -122,7 +122,8 @@ impl<T: Config> Pallet<T> {
         if is_vec_str(proposal.mode.clone(),"subnet") {
             voting_power = Self::get_total_stake_to(proposal.netuid, key);
         } else {
-            voting_power = Self::get_total_global_stake(key);
+            // get all of the stake for the key
+            voting_power = Self::get_global_stake_to(key);
         }
         return voting_power;
     }

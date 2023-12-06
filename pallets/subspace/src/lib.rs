@@ -917,31 +917,10 @@ pub mod pallet {
 		#[pallet::weight((Weight::zero(), DispatchClass::Normal, Pays::No))]
 		pub fn update_global(
 			origin: OriginFor<T>,
-			max_name_length: u16,
-			max_allowed_subnets: u16,
-			max_allowed_modules: u16,
-			max_registrations_per_block: u16,
-			unit_emission: u64,
-			tx_rate_limit: u64,
-			vote_threshold: u16,
-			vote_mode: Vec<u8>,
-			max_proposals: u64,
+			params: GlobalParams,
 
 		) -> DispatchResult {
 
-
-			let params = GlobalParams {
-				max_name_length: max_name_length,
-				max_allowed_subnets: max_allowed_subnets,
-				max_allowed_modules: max_allowed_modules,
-				max_registrations_per_block: max_registrations_per_block,
-				unit_emission: unit_emission,
-				tx_rate_limit: tx_rate_limit,
-				vote_threshold: vote_threshold,
-				vote_mode: vote_mode,
-				max_proposals: max_proposals,
-
-			};
 			Self::do_update_global(origin, params)
 		}
 

@@ -114,7 +114,7 @@ impl<T: Config> Pallet<T> {
 	}
 
 
-	pub fn get_total_global_stake(
+	pub fn get_global_stake_to(
         key: &T::AccountId,
     ) -> u64 {
 		// get all of the stake to
