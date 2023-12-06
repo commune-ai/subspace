@@ -142,8 +142,6 @@ impl<T: Config> Pallet<T> {
 			}
 		}
 
-		
-
 		MinStake::<T>::insert(netuid, params.min_stake);
 
 		if params.name.len() > 0 {
@@ -152,7 +150,8 @@ impl<T: Config> Pallet<T> {
 			Name2Subnet::<T>::remove(old_name.clone());
 			Name2Subnet::<T>::insert(params.name.clone(), netuid)
 		}
-
+		SubnetVoteThreshold::<T>::insert(netuid, params.vote_threshold);
+		SubnetVoteMode::<T>::insert(netuid, params.vote_mode);
 		Self::set_burn_rate(netuid, params.burn_rate);
 	}
 
@@ -514,6 +513,14 @@ impl<T: Config> Pallet<T> {
 	//
 	pub fn get_stake_for_uid(netuid: u16, module_uid: u16) -> u64 {
 		return Self::get_stake_for_key(netuid, &Self::get_key_for_uid(netuid, module_uid))
+	}
+
+	pub fn get_vote_mode(netuid: u16) -> Vec<u8> {
+		return SubnetVoteMode::<T>::get(netuid)
+	}
+	
+	pub fn get_vote_threshold(netuid: u16) -> u16 {
+		return SubnetVoteThreshold::<T>::get(netuid)
 	}
 
 	pub fn get_stake_for_key(netuid: u16, key: &T::AccountId) -> u64 {
