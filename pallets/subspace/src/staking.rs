@@ -76,6 +76,7 @@ impl<T: Config> Pallet<T> {
 			Self::has_enough_stake(netuid, &key, &module_key, amount),
 			Error::<T>::NotEnoughStaketoWithdraw
 		);
+
 		Self::do_remove_stake(origin.clone(), netuid, module_key.clone(), amount)?;
 		Self::do_add_stake(origin.clone(), netuid, new_module_key.clone(), amount)?;
 		Ok(())

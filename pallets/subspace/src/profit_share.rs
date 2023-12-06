@@ -21,6 +21,9 @@ impl<T: Config> Pallet<T> {
         assert!(keys.len() > 0);
         assert!(keys.len() == shares.len()); // make sure the keys and shares are the same length
 
+        // make sure the keys are unique and the shares are unique
+
+
         let mut total_shares: u32 = shares.iter().map(|x| *x as u32).sum();
         assert!(total_shares > 0);
         let mut normalized_shares_float: Vec<I64F64> = Vec::new();
@@ -38,6 +41,7 @@ impl<T: Config> Pallet<T> {
 
         let mut total_normalized_shares: u16 = normalize_shares.iter().sum::<u16>();
 
+        // ensure the profit shares add up to the unit
         if total_normalized_shares < u16::MAX {
             let diff = u16::MAX - total_normalized_shares;
             for i in 0..diff {

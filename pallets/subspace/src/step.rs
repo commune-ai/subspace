@@ -55,7 +55,8 @@ impl<T: Config> Pallet<T> {
 		if total_stake_u64 == 0 {
 			total_stake_u64 = 1;
 		}
-				// quadradic voting
+		
+		// quadradic voting
 
 		// let quadradic_voting: bool = Self::get_quadradic_voting(netuid);
 		// if quadradic_voting {
@@ -69,25 +70,13 @@ impl<T: Config> Pallet<T> {
 			stake_64[*uid_i as usize] = I64F64::from_num(stake_u64)/I64F64::from_num(total_stake_u64);
 		}
 
-		// if quadradic_voting && stake_u64 > 0{
-		// 	stake_64 = stake_64.iter().map(|x| x.sqrt()).collect();
-		// } 
-		
-
-
 		let mut stake: Vec<I32F32> = stake_64.iter().map(|x| I32F32::from_num(x.clone())).collect();
-
-		// range: I32F32(0, 1)
-		log::trace!("S: {:?}", &stake);
-
 		// Normalize active stake.
 		inplace_normalize(&mut stake);
-		log::trace!("S (mask+norm): {:?}", &stake);
 
 		// =============
 		// == Weights (N x N) Sparsified ==
 		// =============
-
 		// Access network weights row normalized.
 		let mut weights: Vec<Vec<(u16, I32F32)>> = Self::get_weights_sparse(netuid);
 
@@ -118,7 +107,7 @@ impl<T: Config> Pallet<T> {
 		let trust_ratio: u16 = Self::get_trust_ratio(netuid);
 		if trust_ratio > 0 {
 			let  trust_share : I32F32 = I32F32::from_num(trust_ratio)/I32F32::from_num(100);
-			let incentive_share : I32F32 = I32F32::from_num(1.0) - trust_share;
+			let incentive_share : I32F32 = I32F32::from_num(1.0).saturating_sub(trust_share);
 			let mut trust: Vec<I32F32> = vec![I32F32::from_num(0.0); n as usize];
 			for (i, w_row) in weights.iter().enumerate() {
 				for (j, w_row_value) in w_row.iter() {

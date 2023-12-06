@@ -14,6 +14,10 @@ impl<T: Config> Pallet<T> {
 		let stake: u64 = Self::get_stake_for_key(netuid, &key);
 
 		ensure!(stake > 0, Error::<T>::NotEnoughStaketoSetWeights);
+
+		let stake: u64 = Self::get_stake_for_key(netuid, &key);
+
+		ensure!(stake > 0, Error::<T>::NotEnoughStaketoSetWeights);
 		// --- 2. Check to see if this is a valid network.
 		ensure!(Self::if_subnet_exist(netuid), Error::<T>::NetworkDoesNotExist);
 		// --- 5. Check to see if the key is registered to the passed network.

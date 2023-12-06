@@ -908,20 +908,19 @@ impl<T: Config> Pallet<T> {
         // check if the name already exists
         ensure!(!Self::if_subnet_name_exists(params.name.clone()),Error::<T>::SubnetNameAlreadyExists );
 
-        // check valid tempo
-        assert!(params.tempo > 0, "Invalid tempo");
-        assert!(params.immunity_period > 0, "Invalid immunity_period");
-        assert!(params.min_allowed_weights > 0, "Invalid min_allowed_weights");
+        // check valid tempo		
 		assert!(params.max_allowed_weights >= params.min_allowed_weights, "Invalid max_allowed_weights");
+		
 		assert!(params.max_allowed_weights <= params.max_allowed_uids, "Invalid max_allowed_weights");
-        assert!(params.max_allowed_uids > 0, "Invalid max_allowed_uids");
-        assert!(params.burn_rate >= 0 && params.burn_rate <= 100, "Invalid burn_rate");
-        assert!(params.min_stake >= 0, "Invalid min_stake");
-        assert!(params.vote_threshold >= 0 && params.burn_rate <= 100, "Invalid vote_threshold");
-		assert!(params.min_burn >= 0, "Invalid min_burn");
+                
+		assert!(params.burn_rate <= 100, "Invalid burn_rate");
+                
+		assert!(params.burn_rate <= 100, "Invalid vote_threshold");
+		
 		assert!(params.min_burn <= params.min_stake, "Invalid min_burn");
-
-		assert!(params.trust_ratio >= 0 && params.trust_ratio <= 100, "Invalid trust_ratio");
+		
+		// ensure the trust_ratio is between 0 and 100
+		assert!(params.trust_ratio <= 100, "Invalid trust_ratio");
 
 		// ensure the vode_mode is in "authority", "stake", "quadratic"
 		assert!(
