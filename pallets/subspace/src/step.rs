@@ -212,7 +212,7 @@ impl<T: Config> Pallet<T> {
 
 			// if the owner emission is less than the burn amount
 			if burn_amount_per_epoch > owner_emission {
-				let amount_to_burn: u64 = owner_emission.saturating_sub(burn_amount_per_epoch);
+				let amount_to_burn: u64 = burn_amount_per_epoch.saturating_sub(owner_emission);
 				if amount_to_burn > 0 {
 					Self::decrease_stake(netuid, module_key, module_key, amount_to_burn);
 				}
@@ -233,21 +233,7 @@ impl<T: Config> Pallet<T> {
 				burn_amount_per_epoch = 0;
 
 			}
-			if burn_amount_per_epoch > 0{
-				// eat into the emissions
-				// get the amount to burn
-				if burn_amount_per_epoch > owner_emission_incentive  {
-					burn_amount_per_epoch = burn_amount_per_epoch.saturating_sub(owner_emission_incentive);
-					owner_emission_incentive = 0;
-					let amount_to_burn: u64 = owner_emission_incentive - burn_amount_per_epoch;
-					Self::decrease_stake(netuid, module_key, module_key, amount_to_burn);
 
-				} 
-				// burn the rest
-				owner_emission_incentive = owner_emission_incentive.saturating_sub(owner_dividends_emission); 
-
-			}
-			
 			// if the owner emission is less than the burn amount
 			let mut owner_emission: u64 = owner_emission_incentive + owner_dividends_emission;
 

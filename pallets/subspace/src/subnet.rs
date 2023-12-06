@@ -620,7 +620,7 @@ impl<T: Config> Pallet<T> {
 		if n == 0 {
 			return 0
 		}
-		let burn_emission_per_epoch: u64 = (burn_rate as u64 * epoch_emission)  / n as u64;
+		let burn_emission_per_epoch: u64 = (burn_rate as u64 * epoch_emission)  / (n * 100) as u64;
 		return burn_emission_per_epoch
 	}
 
