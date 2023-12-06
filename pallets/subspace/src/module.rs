@@ -16,7 +16,6 @@ pub struct ModuleSubnetInfo<T: Config> {
 	netuid: Compact<u16>,
 	name: Vec<u8>,
 	last_update: Compact<u64>,
-
 	// Subnet Info
 	stake: Vec<(T::AccountId, Compact<u64>)>, /* map of key to stake on this module/key
 	                                           * (includes delegations) */
@@ -90,7 +89,7 @@ impl<T: Config> Pallet<T> {
 		); // Fill block at registration.
 		RegistrationBlock::<T>::remove(netuid, replace_uid); // Fill block at registration.
 
-		// HANDLE THE ADDRESSx
+		// HANDLE THE ADDRESS
 		Address::<T>::insert(netuid, uid, Address::<T>::get(netuid, replace_uid)); // Fill module info.
 		Address::<T>::remove(netuid, replace_uid); // Fill module info.
 
@@ -102,7 +101,6 @@ impl<T: Config> Pallet<T> {
 		DelegationFee::<T>::insert(netuid,replace_key.clone(),DelegationFee::<T>::get(netuid, uid_key.clone())); // Make uid - key association.
 		DelegationFee::<T>::remove(netuid, uid_key.clone()); // Make uid - key association.
 
-		// 3. Remove the stake from the old account and add to the new
 		// 3. Remove the network if it is empty.
 		N::<T>::mutate(netuid, |v| *v -= 1); // Decrease the number of modules in the network.
 

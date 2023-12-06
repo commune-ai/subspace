@@ -113,14 +113,24 @@ impl<T: Config> Pallet<T> {
 		// == TRUST ==
 		// =================================
 
+		let min_stake: u64 = Self::get_min_stake(netuid);
 		// trust that acts as a multiplier for the incentive
 		let trust_ratio: u16 = Self::get_trust_ratio(netuid);
 		if trust_ratio > 0 {
 			let  trust_share : I32F32 = I32F32::from_num(trust_ratio)/I32F32::from_num(100);
 			let incentive_share : I32F32 = I32F32::from_num(1.0) - trust_share;
-			let mut trust: Vec<I32F32> = Self::calculate_trust(&weights, &stake, n);
+			let mut trust: Vec<I32F32> = vec![I32F32::from_num(0.0); n as usize];
+			for (i, w_row) in weights.iter().enumerate() {
+				for (j, w_row_value) in w_row.iter() {
+					// Compute trust scores: t_j = SUM(i) w_ij * s_i
+					// result_j = SUM(i) vector_i * matrix_ij
+					if *w_row_value > I32F32::from_num(min_stake) && stake[i] > I32F32::from_num(0.0) {
+						trust[*j as usize] += I32F32::from_num(1.0);
+					}
+				}
+			}
+			inplace_normalize(&mut trust);
 			incentive = incentive.iter().zip(trust.iter()).map(|(inc, tru)| (inc * incentive_share) + (tru * trust_share)).collect();
-
 			// save the trust into the trust vector
 			Trust::<T>::insert(netuid, trust.iter().map(|xi| fixed_proportion_to_u16(*xi)).collect::<Vec<u16>>());
 		}
@@ -187,26 +197,48 @@ impl<T: Config> Pallet<T> {
 
 			let mut owner_emission_incentive: u64 = incentive_emission[*module_uid as usize] + dividends_emission[*module_uid as usize];
 			let mut owner_dividends_emission: u64 = dividends_emission[*module_uid as usize];
-			
+			let mut owner_emission: u64 = owner_emission_incentive + owner_dividends_emission;
 			// calculate the future
 			let mut total_future_stake: u64 = stake_64[*module_uid as usize].to_num::<u64>();
 			total_future_stake = total_future_stake.saturating_add(owner_emission_incentive);
 			total_future_stake = total_future_stake.saturating_add(owner_dividends_emission);
 			total_future_stake = total_future_stake.saturating_sub(burn_amount_per_epoch);
-			if total_future_stake < min_stake {
+
+			if total_future_stake < min_stake && total_future_stake == 0 {
 				// if the stake is less than the burn amount, then deregister the module
 				zero_stake_uids.push(*module_uid as u16);
 			}
-			// eat into dividends first and then into the incentive
-			owner_dividends_emission = owner_dividends_emission.saturating_sub(burn_amount_per_epoch);
-			burn_amount_per_epoch = burn_amount_per_epoch.saturating_sub(owner_dividends_emission);
+
 
 			// if the owner emission is less than the burn amount
+			if burn_amount_per_epoch > owner_emission {
+				let amount_to_burn: u64 = owner_emission.saturating_sub(burn_amount_per_epoch);
+				if amount_to_burn > 0 {
+					Self::decrease_stake(netuid, module_key, module_key, amount_to_burn);
+				}
+				// skip the rest of the loop
+				continue;
+			} 
+			// eat into incentive first and then into the incentive
+			if burn_amount_per_epoch > owner_emission_incentive {
+				owner_emission_incentive = owner_emission_incentive.saturating_sub(burn_amount_per_epoch);
+				// correct the burn amount
+				burn_amount_per_epoch = burn_amount_per_epoch.saturating_sub(owner_emission_incentive);
+				// apply the burn to the incentive
+				owner_dividends_emission = owner_dividends_emission.saturating_sub(burn_amount_per_epoch);
+
+			} else {
+				// apply the burn to the emission only
+				owner_emission_incentive = owner_emission_incentive.saturating_sub(burn_amount_per_epoch);
+				burn_amount_per_epoch = 0;
+
+			}
 			if burn_amount_per_epoch > 0{
 				// eat into the emissions
 				// get the amount to burn
 				if burn_amount_per_epoch > owner_emission_incentive  {
-
+					burn_amount_per_epoch = burn_amount_per_epoch.saturating_sub(owner_emission_incentive);
+					owner_emission_incentive = 0;
 					let amount_to_burn: u64 = owner_emission_incentive - burn_amount_per_epoch;
 					Self::decrease_stake(netuid, module_key, module_key, amount_to_burn);
 
@@ -351,25 +383,6 @@ impl<T: Config> Pallet<T> {
 		return emission_vector
 	}
 
-	pub fn calculate_trust(
-		weights: &Vec<Vec<(u16, I32F32)>>,
-		stake_vector: &Vec<I32F32>,
-		n: u16,
-	) -> Vec<I32F32> {
-		let mut trust: Vec<I32F32> = vec![I32F32::from_num(0.0); n as usize];
-		for (i, w_row) in weights.iter().enumerate() {
-			for (j, w_row_value) in w_row.iter() {
-				// Compute trust scores: t_j = SUM(i) w_ij * s_i
-				// result_j = SUM(i) vector_i * matrix_ij
-				if *w_row_value > I32F32::from_num(0.0) && stake_vector[i] > I32F32::from_num(0.0) {
-					trust[*j as usize] += I32F32::from_num(1.0);
-				}
-			}
-		}
-
-		inplace_normalize(&mut trust);
-		trust
-	}
 	
 	pub fn deregister_pending_uid(netuid: u16) {
 		let mut pending_deregister_uids:  Vec<u16> = PendingDeregisterUids::<T>::get(netuid);

@@ -297,9 +297,6 @@ pub mod pallet {
 
 	#[pallet::type_value]
 	pub fn DefaultBurnRate<T: Config>() -> u16 {0}
-
-
-
 	#[pallet::storage] // --- MAP ( netuid ) --> min_allowed_weights
 	pub type BurnRate<T> = StorageMap<_, Identity, u16, u16, ValueQuery, DefaultBurnRate<T>>;
 
