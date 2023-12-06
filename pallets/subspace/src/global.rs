@@ -5,27 +5,6 @@ use system::ensure_root;
 
 impl<T: Config> Pallet<T> {
 
-
-	pub fn set_global_params(params: GlobalParams) {
-		Self::set_max_name_length(params.max_name_length);
-		Self::set_max_allowed_subnets(params.max_allowed_subnets);
-		Self::set_max_allowed_modules(params.max_allowed_modules);
-		Self::set_max_registrations_per_block(params.max_registrations_per_block);
-		Self::set_unit_emission(params.unit_emission);
-		Self::set_tx_rate_limit(params.tx_rate_limit);
-		Self::set_global_vote_threshold(params.vote_threshold);
-		Self::set_max_proposals(params.max_proposals);
-
-	}
-
-	pub fn set_max_proposals(max_proposals: u64) {
-		MaxProposals::<T>::put(max_proposals);
-	}
-
-	pub fn get_max_proposals() -> u64 {
-		MaxProposals::<T>::get()
-	}
-
 	pub fn global_params() -> GlobalParams {
 		GlobalParams {
 			max_name_length: Self::get_max_name_length(),
@@ -36,12 +15,74 @@ impl<T: Config> Pallet<T> {
 			tx_rate_limit: Self::get_tx_rate_limit(),
 			vote_threshold: Self::get_global_vote_threshold(),
 			max_proposals: Self::get_max_proposals(),
-			vote_mode: Self::get_global_vote_mode(),
+			vote_mode: Self::get_vote_mode_global(),
 		}
 	}
 
-	pub fn get_global_vote_mode() -> Vec<u8> {
+    pub fn check_global_params(params: GlobalParams) -> DispatchResult{
+        // checks if params are valid
+		let og_params = Self::global_params();
+		ensure!(params != og_params, "Params are the same as before");
+
+        // check if the name already exists
+        ensure!(params.max_name_length > 0, "Invalid max_name_length");
+
+        ensure!(params.max_allowed_subnets > 0, "Invalid max_allowed_subnets");
+
+        ensure!(params.max_allowed_modules > 0, "Invalid max_allowed_modules");
+
+        ensure!(params.max_registrations_per_block > 0, "Invalid max_registrations_per_block");
+
+        ensure!(params.unit_emission > 0, "Invalid unit_emission");
+
+		ensure!(params.vote_threshold > 0, "Invalid vote_threshold");
+		ensure!(params.vote_threshold < 100, "Invalid vote_threshold");
+
+        ensure!(params.tx_rate_limit > 0, "Invalid tx_rate_limit");
+		ensure!(params.tx_rate_limit < 100, "Invalid tx_rate_limit");
+		
+        Ok(())
+    }
+
+
+	pub fn set_global_params(params: GlobalParams) {
+
+		Self::set_max_name_length(params.max_name_length);
+
+		Self::set_max_allowed_subnets(params.max_allowed_subnets);
+		
+		Self::set_max_allowed_modules(params.max_allowed_modules);
+
+		Self::set_max_registrations_per_block(params.max_registrations_per_block);
+
+		Self::set_unit_emission(params.unit_emission);
+
+		Self::set_tx_rate_limit(params.tx_rate_limit);
+
+		Self::set_global_vote_threshold(params.vote_threshold);
+
+		Self::set_max_proposals(params.max_proposals);
+
+		Self::set_vote_mode_global(params.vote_mode);
+
+
+	}
+
+	pub fn set_vote_mode_global(vote_mode: Vec<u8>) {
+		GlobalVoteMode::<T>::put(vote_mode);
+	}
+
+	pub fn get_vote_mode_global() -> Vec<u8> {
 		return GlobalVoteMode::<T>::get();
+	}
+
+	
+	pub fn set_max_proposals(max_proposals: u64) {
+		MaxProposals::<T>::put(max_proposals);
+	}
+
+	pub fn get_max_proposals() -> u64 {
+		MaxProposals::<T>::get()
 	}
 
 	pub fn get_global_vote_threshold() -> u16 {
@@ -86,19 +127,6 @@ impl<T: Config> Pallet<T> {
         total_stake_to
     }
 
-
-    pub fn check_global_params(params: GlobalParams) -> DispatchResult{
-        // checks if params are valid
-
-        // check if the name already exists
-        ensure!(params.max_name_length > 0, "Invalid max_name_length");
-        ensure!(params.max_allowed_subnets > 0, "Invalid max_allowed_subnets");
-        ensure!(params.max_allowed_modules > 0, "Invalid max_allowed_modules");
-        ensure!(params.max_registrations_per_block > 0, "Invalid max_registrations_per_block");
-        ensure!(params.unit_emission > 0, "Invalid unit_emission");
-        ensure!(params.tx_rate_limit > 0, "Invalid tx_rate_limit");
-        Ok(())
-    }
 
 
 

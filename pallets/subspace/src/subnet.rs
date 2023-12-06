@@ -120,40 +120,58 @@ impl<T: Config> Pallet<T> {
 		}
 	}
 
-
-
-	pub fn set_subnet_params(netuid: u16, mut params: SubnetParams) {
-
+	pub fn set_max_allowed_uids(netuid: u16, max_allowed_uids: u16) {
 		let n: u16 = Self::get_subnet_n(netuid);
-		// TEMPO, IMMUNITY_PERIOD, MIN_ALLOWED_WEIGHTS, MAX_ALLOWED_WEIGHTS, MAX_ALLOWED_UIDS,
-		// MAX_IMMUNITY_RATIO
-		Tempo::<T>::insert(netuid, params.tempo);
-		MaxAllowedUids::<T>::insert(netuid, params.max_allowed_uids);
-		// IMMUNITY PERIOD AND MAX IMMUNITY RATIO
-		ImmunityPeriod::<T>::insert(netuid, params.immunity_period);
-		MaxAllowedWeights::<T>::insert(netuid, params.max_allowed_weights);
-		MinAllowedWeights::<T>::insert(netuid, params.min_allowed_weights);
-		// remove the modules if the max_allowed_uids is less than the current number of modules
-
-		if params.max_allowed_uids < n {
-			let remainder_n: u16 = n - params.max_allowed_uids;
+		if max_allowed_uids < n {
+			let remainder_n: u16 = n - max_allowed_uids;
 			for i in 0..remainder_n {
 				Self::remove_module(netuid, Self::get_lowest_uid(netuid));
 			}
 		}
 
-		MinStake::<T>::insert(netuid, params.min_stake);
+		MaxAllowedUids::<T>::insert(netuid, max_allowed_uids);
 
-		if params.name.len() > 0 {
-			// update the name if it is not empty
+
+	}
+
+
+
+	pub fn set_subnet_params(netuid: u16, mut params: SubnetParams) {
+
+		// TEMPO, IMMUNITY_PERIOD, MIN_ALLOWED_WEIGHTS, MAX_ALLOWED_WEIGHTS, MAX_ALLOWED_UIDS,
+		// MAX_IMMUNITY_RATIO
+		Self::set_tempo(netuid, params.tempo);
+
+		Self::set_immunity_period(netuid, params.immunity_period);
+
+		Self::set_max_allowed_weights(netuid, params.max_allowed_weights);
+
+		Self::set_min_allowed_weights(netuid, params.min_allowed_weights);
+
+		Self::set_min_stake(netuid, params.min_stake);
+
+		Self::set_max_allowed_uids(netuid, params.max_allowed_uids);
+
+		Self::set_subnet_vote_threshold(netuid, params.vote_threshold);
+
+		Self::set_vote_mode_subnet(netuid, params.vote_mode);
+
+		Self::set_burn_rate(netuid, params.burn_rate);
+
+		Self::set_subnet_name(netuid, params.name);
+
+	}
+
+
+	pub fn set_subnet_name(netuid: u16, name: Vec<u8>) {
+		if name.len() > 0 {
 			let old_name: Vec<u8> = Self::get_name_for_netuid(netuid);
 			Name2Subnet::<T>::remove(old_name.clone());
-			Name2Subnet::<T>::insert(params.name.clone(), netuid)
+			Name2Subnet::<T>::insert(name.clone(), netuid)
 		}
-		SubnetVoteThreshold::<T>::insert(netuid, params.vote_threshold);
-		SubnetVoteMode::<T>::insert(netuid, params.vote_mode);
-		Self::set_burn_rate(netuid, params.burn_rate);
 	}
+
+
 
 	pub fn uid_in_immunity(netuid: u16, uid: u16) -> bool {
 		let block_at_registration: u64 = Self::get_module_registration_block(netuid, uid);
@@ -515,8 +533,18 @@ impl<T: Config> Pallet<T> {
 		return Self::get_stake_for_key(netuid, &Self::get_key_for_uid(netuid, module_uid))
 	}
 
-	pub fn get_subnet_vote_mode(netuid: u16) -> Vec<u8> {
+	// we need to prefix the voting power by the network uid
+
+	pub fn set_subnet_vote_threshold(netuid: u16, vote_threshold: u16) {
+		SubnetVoteThreshold::<T>::insert(netuid, vote_threshold);
+	}
+
+	pub fn get_vote_mode_subnet(netuid: u16) -> Vec<u8> {
 		return SubnetVoteMode::<T>::get(netuid)
+	}
+
+	pub fn set_vote_mode_subnet(netuid: u16, vote_mode: Vec<u8>) {
+		SubnetVoteMode::<T>::insert(netuid, vote_mode);
 	}
 	
 	pub fn get_subnet_vote_threshold(netuid: u16) -> u16 {
@@ -706,7 +734,6 @@ impl<T: Config> Pallet<T> {
 		TxRateLimit::<T>::put(tx_rate_limit)
 	}
 
-
 	pub fn get_immunity_period(netuid: u16) -> u16 {
 		ImmunityPeriod::<T>::get(netuid)
 	}
@@ -744,9 +771,6 @@ impl<T: Config> Pallet<T> {
 
 	pub fn get_max_allowed_uids(netuid: u16) -> u16 {
 		MaxAllowedUids::<T>::get(netuid)
-	}
-	pub fn set_max_allowed_uids(netuid: u16, max_allowed: u16) {
-		MaxAllowedUids::<T>::insert(netuid, max_allowed);
 	}
 
 	pub fn get_max_allowed_modules() -> u16 {

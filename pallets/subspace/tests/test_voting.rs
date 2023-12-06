@@ -16,26 +16,30 @@ fn test_subnet_porposal() {
     new_test_ext().execute_with(|| {
         
 	let netuid = 0;
-	let keys = vec![U256::from(1), U256::from(2), U256::from(3)];
+	let keys = vec![U256::from(0), U256::from(1), U256::from(2)];
 	let stakes= vec![1_000_000_000, 1_000_000_000, 1_000_000_000];
 	
 	for (i, key) in keys.iter().enumerate() {
-		register_module(netuid, *key, stakes[i]);
+		assert_ok!(register_module(netuid, *key, stakes[i]));
 	}
-
 	let mut params = SubspaceModule::subnet_params(netuid);
 	assert_eq!(params.vote_mode, "authority".as_bytes().to_vec(), "vote mode not set");
 	params.vote_mode = "stake".as_bytes().to_vec();
+	println!("params: {:?}", params);
 	SubspaceModule::set_subnet_params(netuid, params.clone());
-
 	let mut params = SubspaceModule::subnet_params(netuid);
 	let initial_tempo = params.tempo;
 	let final_tempo = 1000;
 	params.tempo = final_tempo;
+
+
+
 	assert_eq!(params.vote_mode, "stake".as_bytes().to_vec(), "vote mode not set");
 	assert_ok!(SubspaceModule::add_subnet_proposal(get_origin(keys[0]), netuid, params.clone()));
 	// we have not passed the threshold yet
 	let proposals = SubspaceModule::get_subnet_proposals(netuid);
+
+	println!("proposals: {:?}", proposals);
 	
 	assert_eq!(proposals.len(), 1, "proposal not added");
 	assert_eq!(proposals[0].votes, stakes[0], "proposal not added");
