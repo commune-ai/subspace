@@ -250,6 +250,7 @@ impl<T: Config> Pallet<T> {
 						Self::increase_stake(netuid, profit_share_key, module_key, *profit_share_emission);
 					}
 				} else {
+					// increase it to the module key
 					Self::increase_stake(netuid, module_key, module_key, owner_emission);
 				}
 			}
