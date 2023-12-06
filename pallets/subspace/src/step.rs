@@ -189,11 +189,11 @@ impl<T: Config> Pallet<T> {
 			let mut owner_emission: u64 = owner_emission_incentive + owner_dividends_emission;
 			// calculate the future
 			let mut total_future_stake: u64 = stake_64[*module_uid as usize].to_num::<u64>();
-			total_future_stake = total_future_stake.saturating_add(owner_emission_incentive);
-			total_future_stake = total_future_stake.saturating_add(owner_dividends_emission);
+			// add the emisssion and rm the burn amount
+			total_future_stake = total_future_stake.saturating_add(owner_emission);
 			total_future_stake = total_future_stake.saturating_sub(burn_amount_per_epoch);
 
-			if total_future_stake < min_stake && total_future_stake == 0 {
+			if total_future_stake < min_stake {
 				// if the stake is less than the burn amount, then deregister the module
 				zero_stake_uids.push(*module_uid as u16);
 			}
