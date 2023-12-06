@@ -82,10 +82,7 @@ pub mod pallet {
 	// =======================================
 	// ==== Defaults ====
 	// =======================================
-	#[pallet::type_value]
-	pub fn DefaultTxRateLimit<T: Config>() -> u64 {
-		1
-	}
+
 	#[pallet::type_value]
 	pub fn DefaultLastTxBlock<T: Config>() -> u64 {
 		0
@@ -135,10 +132,7 @@ pub mod pallet {
 	pub fn DefaultMaxAllowedModules<T: Config>() -> u16 {
 		10_000
 	}
-	#[pallet::type_value]
-	pub fn DefaultPendingEmission<T: Config>() -> u64 {
-		0
-	}
+
 	#[pallet::type_value]
 	pub fn DefaultTempo<T: Config>() -> u16 {
 		1
@@ -181,13 +175,15 @@ pub mod pallet {
 	// ==== Global Variables ====
 	// ============================
 	#[pallet::type_value]
-	pub fn DefaultUnitEmission<T: Config>() -> u64 {
-		23809523810
-	}
+	pub fn DefaultUnitEmission<T: Config>() -> u64 {23809523810}
 	#[pallet::storage] // --- ITEM ( unit_emission )
 	pub(super) type UnitEmission<T> = StorageValue<_, u64, ValueQuery, DefaultUnitEmission<T>>;
+
+	#[pallet::type_value]
+	pub fn DefaultTxRateLimit<T: Config>() -> u64 {1}
 	#[pallet::storage] // --- ITEM ( tx_rate_limit )
-	pub(super) type TxRateLimit<T> = StorageValue<_, u64, ValueQuery, DefaultTxRateLimit<T>>;
+	pub(super) type TxRateLimit<T> = 
+		StorageValue<_, u64, ValueQuery, DefaultTxRateLimit<T>>;
 	// FIXME: NOT IN USE
 	#[pallet::storage] // --- MAP ( key ) --> last_block
 	pub(super) type LastTxBlock<T: Config> =
@@ -210,6 +206,35 @@ pub mod pallet {
 	#[pallet::storage] // --- MAP ( netuid ) --> subnet_total_stake
 	pub type TotalStake<T> = StorageMap<_, Identity, u16, u64, ValueQuery>;
 
+
+	#[derive(Decode, Encode, PartialEq, Eq, Clone, Debug, TypeInfo)]
+	pub struct GlobalParams {
+		pub max_name_length: u16,
+		pub max_allowed_subnets: u16,
+		pub max_allowed_modules: u16,
+		pub max_registrations_per_block: u16,
+		pub unit_emission: u64, 
+		pub tx_rate_limit: u64,
+		pub vote_threshold: u16,
+		pub vote_mode: Vec<u8>,
+		pub max_proposals: u64,
+	}
+
+	#[pallet::type_value]
+	pub fn DefaultGlobalParams<T: Config>() -> GlobalParams {
+		GlobalParams {
+			max_name_length: DefaultMaxNameLength::<T>::get(),
+			max_allowed_subnets: DefaultMaxAllowedSubnets::<T>::get(),
+			max_allowed_modules: DefaultMaxAllowedModules::<T>::get(),
+			max_registrations_per_block: DefaultMaxRegistrationsPerBlock::<T>::get(),
+			unit_emission: DefaultUnitEmission::<T>::get(), 
+			tx_rate_limit: DefaultTxRateLimit::<T>::get(),
+			vote_threshold: DefaultVoteThreshold::<T>::get(),
+			vote_mode: DefaultVoteMode::<T>::get(),
+			max_proposals: DefaultMaxProposals::<T>::get(),
+		}
+	}
+
 	// =========================
 	// ==== Subnet PARAMS ====
 	// =========================
@@ -230,6 +255,22 @@ pub mod pallet {
 		// pub democratic: bool
 		pub vote_threshold: u16, // out of 100
 		pub vote_mode: Vec<u8>,
+	}
+
+	#[pallet::type_value]
+	pub fn DefaultSubnetParams<T: Config>() -> SubnetParams {
+		SubnetParams {
+			name: vec![],
+			tempo: DefaultTempo::<T>::get(),
+			immunity_period: DefaultImmunityPeriod::<T>::get(),
+			min_allowed_weights: DefaultMinAllowedWeights::<T>::get(),
+			max_allowed_weights: DefaultMaxAllowedWeights::<T>::get(),
+			max_allowed_uids: DefaultMaxAllowedUids::<T>::get(),
+			burn_rate: DefaultBurnRate::<T>::get(),
+			min_stake: 0, 
+			vote_threshold: 50,
+			vote_mode: DefaultVoteMode::<T>::get(),
+		}
 	}
 
 	#[pallet::storage] // --- MAP ( netuid ) --> max_allowed_uids
@@ -300,7 +341,7 @@ pub mod pallet {
 	#[pallet::storage] // --- MAP ( netuid ) --> epoch
 	pub type Vote2ProposalId<T: Config> =StorageMap<_, Identity, T::AccountId, Vec<u8>, ValueQuery, DefaultVoteMode<T>>;
 	
-	// threshold
+	// VOTING THRESHOOLD
 	#[pallet::type_value]
 	pub fn DefaultVoteThreshold<T: Config>() -> u16 {50} // out of 100
 	#[pallet::storage] // --- MAP ( netuid ) --> epoch
@@ -308,7 +349,8 @@ pub mod pallet {
 	#[pallet::storage] // --- MAP ( netuid ) --> epoch
 	pub type GlobalVoteThreshold<T> = StorageValue<_, u16, ValueQuery, DefaultVoteThreshold<T>>;
 	
-	// mode [stake, authority, quadratic]
+	// VOTING MODE 
+	// OPTIONS -> [stake, authority, quadratic]
 	#[pallet::type_value]
 	pub fn DefaultVoteMode<T: Config>() -> Vec<u8> {"authority".as_bytes().to_vec()}
 	#[pallet::storage] // --- MAP ( netuid ) --> epoch
@@ -335,6 +377,9 @@ pub mod pallet {
 	pub type SubnetEmission<T> = StorageMap<_, Identity, u16, u64, ValueQuery, DefaultEmission<T>>;
 	#[pallet::storage] // --- MAP ( netuid ) --> subnetwork_n (Number of UIDs in the network).
 	pub type N<T: Config> = StorageMap<_, Identity, u16, u16, ValueQuery, DefaultN<T>>;
+	
+	#[pallet::type_value]
+	pub fn DefaultPendingEmission<T: Config>() -> u64 {0}
 	#[pallet::storage] // --- MAP ( netuid ) --> pending_emission
 	pub type PendingEmission<T> = StorageMap<_, Identity, u16, u64, ValueQuery, DefaultPendingEmission<T>>;
 	#[pallet::storage] // --- MAP ( network_name ) --> netuid
@@ -677,33 +722,6 @@ pub mod pallet {
 		}
 	}
 
-	#[derive(Decode, Encode, PartialEq, Eq, Clone, Debug, TypeInfo)]
-	pub struct GlobalParams {
-		pub max_name_length: u16,
-		pub max_allowed_subnets: u16,
-		pub max_allowed_modules: u16,
-		pub max_registrations_per_block: u16,
-		pub unit_emission: u64, 
-		pub tx_rate_limit: u64,
-		pub vote_threshold: u16,
-		pub vote_mode: Vec<u8>,
-		pub max_proposals: u64,
-	}
-
-	#[pallet::type_value]
-	pub fn DefaultGlobalParams<T: Config>() -> GlobalParams {
-		GlobalParams {
-			max_name_length: DefaultMaxNameLength::<T>::get(),
-			max_allowed_subnets: DefaultMaxAllowedSubnets::<T>::get(),
-			max_allowed_modules: DefaultMaxAllowedModules::<T>::get(),
-			max_registrations_per_block: DefaultMaxRegistrationsPerBlock::<T>::get(),
-			unit_emission: DefaultUnitEmission::<T>::get(), 
-			tx_rate_limit: DefaultTxRateLimit::<T>::get(),
-			vote_threshold: DefaultVoteThreshold::<T>::get(),
-			vote_mode: DefaultVoteMode::<T>::get(),
-			max_proposals: DefaultMaxProposals::<T>::get(),
-		}
-	}
 
 	// ========================================================
 	// ==== Voting System to Update Global and Subnet  ====
@@ -720,23 +738,6 @@ pub mod pallet {
 		pub accepted: bool,
 		pub data: Vec<u8>, // for custom proposal
 		pub mode: Vec<u8>, // "global", "subnet", "custom"
-	}
-
-
-	#[pallet::type_value]
-	pub fn DefaultSubnetParams<T: Config>() -> SubnetParams {
-		SubnetParams {
-			name: vec![],
-			tempo: DefaultTempo::<T>::get(),
-			immunity_period: DefaultImmunityPeriod::<T>::get(),
-			min_allowed_weights: DefaultMinAllowedWeights::<T>::get(),
-			max_allowed_weights: DefaultMaxAllowedWeights::<T>::get(),
-			max_allowed_uids: DefaultMaxAllowedUids::<T>::get(),
-			burn_rate: DefaultBurnRate::<T>::get(),
-			min_stake: 0, 
-			vote_threshold: 50,
-			vote_mode: DefaultVoteMode::<T>::get(),
-		}
 	}
 
 
@@ -761,7 +762,7 @@ pub mod pallet {
 		StorageMap<_, Identity, u64, Proposal<T>, ValueQuery, DefaultProposal<T>>;
 
 	#[pallet::type_value]
-	pub fn DefaultMaxProposals<T: Config>() -> u64 {420}
+	pub fn DefaultMaxProposals<T: Config>() -> u64 {128}
 	#[pallet::storage]
 	pub(super) type MaxProposals<T: Config> = StorageValue<_, u64, ValueQuery>;
 	

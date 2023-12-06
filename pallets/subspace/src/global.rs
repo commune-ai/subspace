@@ -22,7 +22,6 @@ impl<T: Config> Pallet<T> {
     pub fn check_global_params(params: GlobalParams) -> DispatchResult{
         // checks if params are valid
 		let og_params = Self::global_params();
-		ensure!(params != og_params, "Params are the same as before");
 
         // check if the name already exists
         ensure!(params.max_name_length > 0, "Invalid max_name_length");
