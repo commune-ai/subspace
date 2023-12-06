@@ -37,6 +37,12 @@ impl<T: Config> Pallet<T> {
                     least_votes = proposal.votes;
                     least_voted_proposal_id = proposal_id;
                 }
+                // if proposal is accepted, remove it
+                if proposal.accepted {
+                    least_votes = 0;
+                    least_voted_proposal_id = proposal_id;
+                    break
+                }
             }
 
             assert!(proposal.votes > least_votes);
@@ -173,6 +179,8 @@ impl<T: Config> Pallet<T> {
         if proposal.votes >  stake_threshold  {
             Proposals::<T>::mutate(proposal_id, |proposal| {
                 proposal.accepted = true;
+                proposal.participants = Vec::new();
+                
             });
             if is_vec_str(proposal.mode.clone(), "subnet") {
                 Self::set_subnet_params(proposal.netuid, proposal.subnet_params);
