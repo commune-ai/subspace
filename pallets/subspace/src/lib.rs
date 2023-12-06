@@ -1006,15 +1006,10 @@ pub mod pallet {
         pub fn add_global_proposal(
             origin: OriginFor<T>,
             global_params: GlobalParams,
-			data: Option<Vec<u8>>,
         ) -> DispatchResult {
-
-			let subnet_params = DefaultSubnetParams::<T>::get();
 			let mut proposal = DefaultProposal::<T>::get();
-
 			proposal.global_params = global_params;
 			proposal.mode = "global".as_bytes().to_vec();
-			proposal.data = data.unwrap_or(vec![]);
             Self::do_add_proposal(origin,  proposal)
         }
 
