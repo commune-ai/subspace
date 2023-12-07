@@ -8,6 +8,88 @@ use crate::utils::{is_vec_str};
 
 impl<T: Config> Pallet<T> {
 
+    pub fn do_unregister_voter(
+        origin: T::RuntimeOrigin,
+    ) -> DispatchResult {
+        let key = ensure_signed(origin)?;
+        assert!(Self::is_voter_registered(&key), "voter is not registered");
+        Self::unregister_voter(&key);
+        assert!(!Self::is_voter_registered(&key), "voter is still registered");
+        Ok(())
+    }
+
+    pub fn do_update_proposal(
+        origin: T::RuntimeOrigin,
+        proposal_id: u64,
+        mut proposal : Proposal<T>,
+    ) -> DispatchResult {
+        // update proposal only from the owner participants[0]
+        let key = ensure_signed(origin)?;
+
+        assert!( Self::is_proposal_owner(&key, proposal_id), "not proposal owner");
+        // if you update the proposal, you are no longer a participant
+        Self::check_proposal(proposal.clone())?; // check if proposal is valid
+
+        // refresh the voting power
+        proposal.votes = Self::get_voting_power(&key, proposal.clone() );
+        // remove the proposal owner from the participants  
+        proposal.participants = Vec::new();
+        proposal.participants.push(key.clone());
+
+        Proposals::<T>::insert(proposal_id, proposal);
+        Ok(())
+    }
+
+
+    pub fn do_add_proposal(
+        origin: T::RuntimeOrigin,
+        mut proposal:Proposal<T>,
+    ) -> DispatchResult {
+        let key =  ensure_signed(origin)?;
+        // get the voting power of the proposal owner
+        if Self::is_voter_registered(&key.clone()) {
+            // unregister voter if they are already registered
+            Self::unregister_voter(&key.clone());
+        }
+
+        Self::check_proposal(proposal.clone())?; // check if proposal is valid
+        let proposal_id = Self::next_proposal_id();
+        //
+        Proposals::<T>::insert(proposal_id, proposal);
+        Self::register_voter(&key, proposal_id);
+        Self::check_proposal_approval(proposal_id);
+        Ok(())
+    }
+
+
+
+    pub fn do_vote_proposal(
+        origin: T::RuntimeOrigin,
+        proposal_id: u64
+    ) -> DispatchResult {
+        let key = ensure_signed(origin)?;
+
+        assert!(Self::proposal_exists(proposal_id), "proposal does not exist");
+
+        // if you vote the proposal on a subnet, you are no longer a participant
+
+        if Self::is_voter_registered(&key.clone()) {
+            // unregister voter
+            Self::unregister_voter(&key.clone());
+        }
+
+        let proposal = Proposals::<T>::get(proposal_id);
+        
+
+        let mut voting_power : u64 = Self::get_voting_power(&key, proposal.clone());
+        assert!(voting_power > 0, "voting power is zero");
+
+        // register the voter to avoid double voting
+        Self::register_voter(&key, proposal_id);
+        Self::check_proposal_approval(proposal_id);
+
+        Ok(())
+    }
     pub fn num_proposals() -> u64 {
         return Proposals::<T>::iter().count() as u64;
     }
@@ -25,6 +107,7 @@ impl<T: Config> Pallet<T> {
         return Self::num_proposals() <  MaxProposals::<T>::get()
     }
 
+
     pub fn check_proposal(proposal: Proposal<T>) -> DispatchResult {
         
         // remove lowest voted proposal
@@ -33,21 +116,27 @@ impl<T: Config> Pallet<T> {
             let mut least_votes: u64 = 0;
     
             for (proposal_id, proposal) in Proposals::<T>::iter() {
-                if proposal.votes < least_votes {
-                    least_votes = proposal.votes;
-                    least_voted_proposal_id = proposal_id;
-                }
+
                 // if proposal is accepted, remove it
-                if proposal.accepted {
+                if proposal.accepted || proposal.votes == 0{
                     least_votes = 0;
                     least_voted_proposal_id = proposal_id;
                     break
                 }
+
+                if proposal.votes < least_votes {
+                    least_votes = proposal.votes;
+                    least_voted_proposal_id = proposal_id;
+                }
             }
 
             assert!(proposal.votes > least_votes);
+            // remove proposal participants
+            let proposal = Proposals::<T>::get(least_voted_proposal_id);
+            for participant in proposal.participants {
+                Voter2Info::<T>::remove(participant);
+            }
             Proposals::<T>::remove(least_voted_proposal_id);
-
         }
 
         let mode = proposal.mode.clone();
@@ -79,7 +168,7 @@ impl<T: Config> Pallet<T> {
         proposal_id: u64,
     ) -> bool {
         let proposal: Proposal<T> = Proposals::<T>::get(proposal_id);
-        return proposal.participants.contains(key);
+        return proposal.participants[0] == *key;
     }
 
     pub fn get_proposal(
@@ -87,38 +176,64 @@ impl<T: Config> Pallet<T> {
     ) -> Proposal<T> {
         return Proposals::<T>::get(proposal_id);
     }
+    pub fn register_voter(key: &T::AccountId, proposal_id: u64) {
+        // register voter
 
-    pub fn do_update_proposal(
-        origin: T::RuntimeOrigin,
-        proposal_id: u64,
-        proposal: Proposal<T>,
-    ) -> DispatchResult {
-        // update proposal
-        let key = ensure_signed(origin)?;
-        let mut proposal = proposal;
-        assert!( Self::is_proposal_owner(&key, proposal_id), "not proposal owner");
-        Self::check_proposal(proposal.clone())?; // check if proposal is valid
-        Proposals::<T>::insert(proposal_id, proposal);
-        Ok(())
-    }
-
-    pub fn do_add_proposal(
-        origin: T::RuntimeOrigin,
-        mut proposal:Proposal<T>,
-    ) -> DispatchResult {
-        let key =  ensure_signed(origin)?;
         // get the voting power of the proposal owner
-        proposal.votes = Self::get_voting_power(&key, proposal.clone() );
-        // add the proposal owner to the participants
+        let mut  proposal = Self::get_proposal(proposal_id);
+        let voting_power = Self::get_voting_power(key, proposal.clone());
+        let mut voter_info = Voter2Info::<T>::get(key);
+        voter_info.proposal_id = proposal_id;
+        // push the voters to the proposal
+        voter_info.participant_index = proposal.participants.len() as u16;
         proposal.participants.push(key.clone());
+        proposal.votes = proposal.votes.saturating_add(voting_power);
 
-        Self::check_proposal(proposal.clone())?; // check if proposal is valid
-        let proposal_id = Self::next_proposal_id();
+        // update the proposal
+        Voter2Info::<T>::insert(key, voter_info);
         Proposals::<T>::insert(proposal_id, proposal);
-        // check if proposal is approved already
-        Self::check_proposal_approval(proposal_id);
-        Ok(())
     }
+
+    pub fn unregister_voter(key: &T::AccountId) {
+        // unregister voter
+
+        // get the proposal id for the voter
+        let voter_info = Self::get_voter_info(key);
+        // update the proposal votes
+        let mut proposal = Self::get_proposal(voter_info.proposal_id);
+        
+        // remove the voter from the participants
+        let index = voter_info.participant_index as usize;
+        proposal.participants.remove(index);
+
+        // update the votes
+        proposal.votes = proposal.votes.saturating_sub(voter_info.votes);
+
+        // remove proposal if there are no participants
+        if proposal.participants.len() == 0 || proposal.votes == 0 {
+            // remove proposal if there are no participants
+            Proposals::<T>::remove(voter_info.proposal_id);
+        } else {
+            // update proposal
+            Proposals::<T>::insert(voter_info.proposal_id, proposal);
+        }
+
+        Voter2Info::<T>::remove(key);
+    }
+
+
+
+    pub fn is_voter_registered(key: &T::AccountId) -> bool {
+        // check if voter is registered
+        return Voter2Info::<T>::contains_key(key);
+    }
+
+    pub fn get_voter_info(key: &T::AccountId) -> VoterInfo{
+        // get the proposal id for the voter
+        return Voter2Info::<T>::get(key);
+    }
+
+
 
     pub fn get_voting_power(
         key: &T::AccountId,
@@ -149,39 +264,23 @@ impl<T: Config> Pallet<T> {
         return vote_threshold;
     }
 
-    pub fn do_vote_proposal(
-        origin: T::RuntimeOrigin,
-        proposal_id: u64
-    ) -> DispatchResult {
-        let key = ensure_signed(origin)?;
-        let proposal = Proposals::<T>::get(proposal_id);
-        ensure!(
-            Self::is_vote_available(&key, proposal_id),
-            Error::<T>::UpdateProposalVoteNotAvailable
-        );
 
-        let mut voting_power : u64 = Self::get_voting_power(&key, proposal.clone());
-
-        Proposals::<T>::mutate(proposal_id, |proposal| {
-            proposal.votes += voting_power;
-            proposal.participants.push(key.clone());
-        });
-
-        Self::check_proposal_approval(proposal_id);
-
-        Ok(())
-    }
 
     pub fn check_proposal_approval(proposal_id: u64) {
 
         let proposal = Proposals::<T>::get(proposal_id);
         let mut stake_threshold: u64 = Self::get_proposal_vote_threshold(proposal_id); 
         if proposal.votes >  stake_threshold  {
+            //  unregister all voters
+
+            for participant in proposal.participants {
+                Voter2Info::<T>::remove(participant);
+            }
             Proposals::<T>::mutate(proposal_id, |proposal| {
                 proposal.accepted = true;
                 proposal.participants = Vec::new();
-                
             });
+
             if is_vec_str(proposal.mode.clone(), "subnet") {
                 Self::set_subnet_params(proposal.netuid, proposal.subnet_params);
                 Self::deposit_event(Event::SubnetProposalAccepted(proposal_id, proposal.netuid));

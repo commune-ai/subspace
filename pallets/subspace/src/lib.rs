@@ -277,6 +277,8 @@ pub mod pallet {
 		}
 	}
 
+
+	
 	#[pallet::storage] // --- MAP ( netuid ) --> max_allowed_uids
 	pub type MaxAllowedUids<T> =
 		StorageMap<_, Identity, u16, u16, ValueQuery, DefaultMaxAllowedUids<T>>;
@@ -338,10 +340,28 @@ pub mod pallet {
 	// =======================================
 	// ==== Voting  ====
 	// =======================================
-	pub fn DefaultProposalId<T: Config>() -> u16 {u16::MAX} // out of 100
+
+	#[derive(Decode, Encode, PartialEq, Eq, Clone, Debug, TypeInfo)]
+	pub struct VoterInfo {
+		// --- parameters
+		pub proposal_id: u64,
+		pub votes: u64,
+		pub participant_index: u16,
+	}
+
+	#[pallet::type_value]
+	pub fn DefaultVoterInfo<T:Config>() -> VoterInfo {
+		VoterInfo {
+			proposal_id: u64::MAX,
+			votes: 0,
+			participant_index: u16::MAX,
+		}
+	}
 	#[pallet::storage] // --- MAP ( netuid ) --> epoch
-	pub type Vote2ProposalId<T: Config> =StorageMap<_, Identity, T::AccountId, Vec<u8>, ValueQuery, DefaultVoteMode<T>>;
-	
+	pub type Voter2Info<T: Config> =StorageMap<_, Identity, T::AccountId, VoterInfo, ValueQuery, DefaultVoterInfo<T>>;
+
+	pub fn DefaultVoteStake<T: Config>() -> u64 {0} // out of 100
+
 	// VOTING THRESHOOLD
 	#[pallet::type_value]
 	pub fn DefaultVoteThreshold<T: Config>() -> u16 {50} // out of 100
@@ -960,6 +980,15 @@ pub mod pallet {
             Self::do_vote_proposal(
                 origin,
                 proposal_id
+            )
+        }
+
+		#[pallet::weight((Weight::zero(), DispatchClass::Normal, Pays::No))]
+        pub fn unvote_proposal(
+            origin: OriginFor<T>,
+        ) -> DispatchResult {
+            Self::do_unregister_voter(
+                origin
             )
         }
 
