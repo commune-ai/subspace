@@ -113,7 +113,7 @@ impl<T: Config> Pallet<T> {
 				for (j, w_row_value) in w_row.iter() {
 					// Compute trust scores: t_j = SUM(i) w_ij * s_i
 					// result_j = SUM(i) vector_i * matrix_ij
-					if *w_row_value > I32F32::from_num(min_stake) && stake[i] > I32F32::from_num(0.0) {
+					if *w_row_value > 0 && stake[i] > I32F32::from_num(min_stake) {
 						trust[*j as usize] += I32F32::from_num(1.0);
 					}
 				}
@@ -240,7 +240,7 @@ impl<T: Config> Pallet<T> {
 					let to_module: u64 = delegation_fee.mul_floor(dividends_from_delegate);
 					let to_delegate: u64 = dividends_from_delegate.saturating_sub(to_module);
 					Self::increase_stake(netuid, delegate_key, module_key, to_delegate);
-					owner_emission = owner_emission.saturating_sub(to_module);
+					owner_emission = owner_emission.saturating_sub(to_delegate);
 
 				}
 			}
