@@ -106,7 +106,7 @@ impl<T: Config> Pallet<T> {
 
 		// remove the network if it is empty
 		if N::<T>::get(netuid) == 0 {
-			Self::remove_network_by_netuid(netuid);
+			Self::remove_network_for_netuid(netuid);
 		}
 
 		// remove stake from old key and add to new key

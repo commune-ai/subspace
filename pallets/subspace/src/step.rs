@@ -28,34 +28,27 @@ impl<T: Config> Pallet<T> {
 
 	pub fn epoch(netuid: u16, token_emission: u64) {
 		// Get subnetwork size.
+		let params : SubnetParams  = Self::subnet_params(netuid);
 		let n: u16 = Self::get_subnet_n(netuid);
-		log::trace!("n: {:?}", n);
+		let current_block: u64 = Self::get_current_block_as_u64();
+		let block_at_registration: Vec<u64> = Self::get_block_at_registration(netuid);
 
 		if n == 0 {
+			// 
 			return
 		}
-
-		// Get current block.
-		let current_block: u64 = Self::get_current_block_as_u64();
-		log::trace!("current_block: {:?}", current_block);
-
-		// Block at registration vector (block when each module was most recently registered).
-		let block_at_registration: Vec<u64> = Self::get_block_at_registration(netuid);
-		log::trace!("Block at registration: {:?}", &block_at_registration);
 
 		// ===========
 		// == Stake ==
 		// ===========
 
 		let mut keys: Vec<(u16, T::AccountId)> = Self::get_uid_key_tuples(netuid);
-		log::trace!("keys: {:?}", &keys);
-		// Access network stake as normalized vector.
 		let mut stake_64: Vec<I64F64> = vec![I64F64::from_num(0.0); n as usize];
 		let mut total_stake_u64: u64 =Self::get_total_subnet_stake(netuid).clone();
 		if total_stake_u64 == 0 {
 			total_stake_u64 = 1;
 		}
-		
+	
 		// quadradic voting
 
 		// let quadradic_voting: bool = Self::get_quadradic_voting(netuid);
@@ -79,6 +72,11 @@ impl<T: Config> Pallet<T> {
 		// =============
 		// Access network weights row normalized.
 		let mut weights: Vec<Vec<(u16, I32F32)>> = Self::get_weights_sparse(netuid);
+
+		// 
+		if (!params.self_vote) {
+			weights = mask_diag_sparse(&weights);
+		}
 
 		// Normalize remaining weights.
 		inplace_row_normalize_sparse(&mut weights);
@@ -298,8 +296,7 @@ impl<T: Config> Pallet<T> {
 				weights[uid_i as usize].push((*uid_j, u16_proportion_to_fixed(*weight_ij)));
 			}
 		}
-		// Remove self-weight by masking diagonal.
-		weights = mask_diag_sparse(&weights);
+		
 		return weights
 	}
 

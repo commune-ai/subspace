@@ -9,6 +9,11 @@ use sp_std::{convert::TryInto, vec::Vec};
 use substrate_fixed::types::I32F32;
 use sp_std::vec;
 use system::pallet_prelude::BlockNumberFor;
+// IterableStorageMap
+use frame_support::{
+	storage::IterableStorageMap,
+};
+
 
 const LOG_TARGET: &'static str = "runtime::subspace::registration";
 
@@ -32,33 +37,22 @@ impl<T: Config> Pallet<T> {
 			Error::<T>::NotEnoughBalanceToRegister
 		);
 
-		let mut netuid: u16 = 0;
+
+		// -- 3. resolve the network in case it doesnt exisst
+		if !Self::if_subnet_name_exists(network.clone()) {
+			Self::add_subnet_from_registration(network.clone(), stake_amount, &key)?;
+		}
+		// get the netuid
+		let netuid = Self::get_netuid_for_name(network.clone());
+
 		ensure!(
 			Self::enough_stake_to_register(netuid, stake_amount),
 			Error::<T>::NotEnoughStakeToRegister
 		);
-
-
-		let new_network: bool = !Self::if_subnet_name_exists(network.clone());
-
-		if new_network {
-			// check the stake amount to start a new network
-			ensure!(
-				Self::enough_stake_to_start_network(stake_amount),
-				Error::<T>::NotEnoughStakeToStartNetwork
-			);
-			netuid = Self::add_network_from_registration(network.clone(), stake_amount, &key);
-		} else {
-			netuid = Self::get_netuid_for_name(network.clone());
-			ensure!(!Self::is_key_registered(netuid, &key), Error::<T>::KeyAlreadyRegistered);
-			ensure!(
-				!Self::if_module_name_exists(netuid, name.clone()),
-				Error::<T>::NameAlreadyRegistered
-			);
-		}
+		ensure!(!Self::is_key_registered(netuid, &key), Error::<T>::KeyAlreadyRegistered);
+		ensure!(!Self::if_module_name_exists(netuid, name.clone()),Error::<T>::NameAlreadyRegistered);
 
 		let min_burn: u64 = Self::get_min_burn(netuid);
-		
 
 		RegistrationsPerBlock::<T>::mutate(|val| *val += 1);
 
@@ -69,9 +63,7 @@ impl<T: Config> Pallet<T> {
 		if n < Self::get_max_allowed_uids(netuid) {
 			uid = Self::append_module(netuid, &module_key, name.clone(), address.clone());
 		} else {
-			// get the loest
-			let lowest_uid: u16 = Self::get_lowest_uid(netuid);
-			Self::remove_module(netuid, lowest_uid);
+			Self::remove_module(netuid, Self::get_lowest_uid(netuid));
 			uid = Self::append_module(netuid, &module_key, name.clone(), address.clone());
 		}
 		Self::increase_stake(netuid, &module_key, &module_key, 0);
@@ -92,6 +84,7 @@ impl<T: Config> Pallet<T> {
 		// --- 5. Ok and done.
 		Ok(())
 	}
+
 
 	pub fn do_deregister(
 		origin: T::RuntimeOrigin,
@@ -283,4 +276,46 @@ impl<T: Config> Pallet<T> {
 		// --- 8. Return is successful dispatch.
 		Ok(())
 	}
+
+	pub fn add_subnet_from_registration(
+		name: Vec<u8>,
+		stake: u64,
+		founder_key: &T::AccountId,
+	) ->  DispatchResult{
+		// use default parameters
+		//
+
+
+
+		let num_subnets: u16 = Self::get_number_of_subnets();
+		let max_subnets: u16 = Self::get_max_allowed_subnets();
+		// if we have not reached the max number of subnets, then we can start a new one
+		if num_subnets >= max_subnets {
+			let mut min_stake: u64 = u64::MAX;
+			let mut min_stake_netuid : u16 = 0;
+			for (netuid, net_stake) in <TotalStake<T> as IterableStorageMap<u16, u64>>::iter() {
+				if net_stake <= min_stake {
+					min_stake = net_stake;
+					min_stake_netuid = netuid;
+				}
+			}
+			ensure!(stake > min_stake , Error::<T>::NotEnoughStakeToStartNetwork);
+			Self::remove_network_for_netuid(min_stake_netuid);
+		}
+		// if we have reached the max number of subnets, then we can start a new one if the stake is
+		// greater than the least staked network
+
+		let mut params: SubnetParams = Self::default_subnet_params();
+		params.name = name.clone();
+		let netuid = Self::add_network(params);
+		Founder::<T>::insert(netuid, founder_key.clone());
+		
+
+		
+
+		Ok(())
+	}
+
 }
+
+

@@ -45,22 +45,6 @@ impl<T: Config> Pallet<T> {
 		return min_stake_netuid
 	}
 
-	pub fn enough_stake_to_start_network(stake: u64) -> bool {
-		let num_subnets: u16 = Self::get_number_of_subnets();
-		let max_subnets: u16 = MaxAllowedSubnets::<T>::get();
-		// if we have not reached the max number of subnets, then we can start a new one
-		if num_subnets < max_subnets {
-			return true
-		}
-		// if we have reached the max number of subnets, then we can start a new one if the stake is
-		// greater than the least staked network
-		if Self::get_number_of_subnets() == 0 {
-			return true
-		}
-		// if we have reached the max number of subnets, then we can start a new one if the stake is
-		// greater than the least staked network
-		return stake > Self::min_subnet_stake()
-	}
 
 	// get the least staked network
 	pub fn min_subnet_stake() -> u64 {
@@ -85,7 +69,7 @@ impl<T: Config> Pallet<T> {
 		ensure!(Self::if_subnet_netuid_exists(netuid), Error::<T>::SubnetNameAlreadyExists);
 		ensure!(Self::is_subnet_founder(netuid, &key), Error::<T>::NotFounder);
 
-		Self::remove_network_by_netuid(netuid);
+		Self::remove_network_for_netuid(netuid);
 		// --- 16. Ok and done.
 		Ok(())
 	}
@@ -120,6 +104,7 @@ impl<T: Config> Pallet<T> {
 			vote_mode:SubnetVoteMode::<T>::get(netuid),
 			min_burn: MinBurn::<T>::get(netuid),
 			trust_ratio: TrustRatio::<T>::get(netuid),
+			self_vote: SelfVote::<T>::get(netuid)
 		}
 	}
 
@@ -167,7 +152,11 @@ impl<T: Config> Pallet<T> {
 
 		Self::set_trust_ratio(netuid, params.trust_ratio);
 
+		Self::set_self_vote(netuid, params.self_vote)
+
+
 	}
+
 
 
 	pub fn set_subnet_name(netuid: u16, name: Vec<u8>) {
@@ -222,20 +211,14 @@ impl<T: Config> Pallet<T> {
 		return Founder::<T>::get(netuid)
 	}
 
-	pub fn add_network_from_registration(
-		name: Vec<u8>,
-		stake: u64,
-		founder_key: &T::AccountId,
-	) -> u16 {
-		// use default parameters
-
-		let mut params: SubnetParams = Self::default_subnet_params();
-		params.name = name.clone();
-		let netuid = Self::add_network(params);
-		Founder::<T>::insert(netuid, founder_key.clone());
-		// --- 16. Ok and done.
-		return netuid
+	pub fn set_self_vote(netuid: u16, self_vote: bool) {
+		SelfVote::<T>::insert(netuid, self_vote);
 	}
+
+	pub fn get_self_vote(netuid: u16) -> bool {
+		return SelfVote::<T>::get(netuid)
+	}
+
 
 	// pub fn total_balance() -> u64 {
 	//     let mut total_balance: u64 = 0;
@@ -373,26 +356,18 @@ impl<T: Config> Pallet<T> {
 		return Vec::new()
 	}
 
-	// Removes the network (netuid) and all of its parameters.
-	//
-
-	pub fn remove_least_staked_netuid() -> u16 {
-		let netuid: u16 = Self::least_staked_netuid();
-		return Self::remove_network_by_netuid(netuid)
-	}
-
-	// Returns true if the account is the founder of the network.
 	pub fn is_network_founder(netuid: u16, key: &T::AccountId) -> bool {
+		// Returns true if the account is the founder of the network.
 		let founder = Founder::<T>::get(netuid);
 		return founder == key.clone()
 	}
 
 	pub fn remove_network_for_name(name: Vec<u8>) -> u16 {
 		let netuid = Self::get_netuid_for_name(name.clone());
-		return Self::remove_network_by_netuid(netuid)
+		return Self::remove_network_for_netuid(netuid)
 	}
 
-	pub fn remove_network_by_netuid(netuid: u16) -> u16 {
+	pub fn remove_network_for_netuid(netuid: u16) -> u16 {
 		// --- 2. Ensure the network to be removed exists.
 		if !Self::if_subnet_exist(netuid) {
 			return 0
@@ -432,6 +407,7 @@ impl<T: Config> Pallet<T> {
 		MinAllowedWeights::<T>::remove(netuid);
 		MaxAllowedWeights::<T>::remove(netuid);
 		BurnRate::<T>::remove(netuid);
+		SelfVote::<T>::remove(netuid);
 
 		// Adjust the total number of subnets. and remove the subnet from the list of subnets.
 		N::<T>::remove(netuid);

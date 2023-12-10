@@ -295,7 +295,7 @@ pub fn register(netuid: u16, key: U256, stake: u64) {
 pub fn add_network(netuid: u16, founder: U256) {
 	let network: Vec<u8> = netuid.to_string().as_bytes().to_vec();
 	let stake: u64 = 1_000_000_000;
-	let result = SubspaceModule::add_network_from_registration(network, stake, &founder);
+	let result = SubspaceModule::add_subnet_from_registration(network, stake, &founder);
 }
 
 #[allow(dead_code)]

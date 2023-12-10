@@ -23,6 +23,8 @@ fn test_burn() {
 
 	for i in 0..n {
 		assert_ok!(register_module(netuid, keys[i], stakes[i]));
+		let stake_from_vector = SubspaceModule::get_stake_to_vector(netuid, &keys[i]);
+		println!("{:?}", stake_from_vector);
 	}
 
 	let voter_key = keys[1];
@@ -37,17 +39,16 @@ fn test_burn() {
 			uids.push(i as u16);
 		}
 	}
+	println!("{:?}", SubspaceModule::get_stake_for_key(netuid, &voter_key));
 	assert_ok!(SubspaceModule::set_weights(get_origin(voter_key),netuid, uids, votes));
 	let mut params = SubspaceModule::subnet_params(netuid);
 	params.burn_rate = 100;
 	SubspaceModule::set_subnet_params(netuid, params);
 	params = SubspaceModule::subnet_params(netuid);
 	println!("params: {:?}", params);
-
 	println!("burn : {:?}", SubspaceModule::get_burn_emission_per_epoch(netuid));
 	let epochs = 10;
 	let mut previous_key_stake = SubspaceModule::get_total_stake_to(netuid,&keys[0]);
-
 	let dividends = SubspaceModule::get_dividends(netuid);
 	let incentives = SubspaceModule::get_incentives(netuid);
 	let emissions = SubspaceModule::get_emissions(netuid);
@@ -104,9 +105,10 @@ fn test_min_burn() {
 	params.min_burn = 100;
 	SubspaceModule::set_subnet_params(netuid, params.clone());
 	params = SubspaceModule::subnet_params(netuid);
-	println!("params: {:?}", params);
 	for i in 1..n {
 		assert_ok!(register_module(netuid, keys[i], stakes[i]));
+		println!("params: {:?}", params);
+
 		let key_stake_after = SubspaceModule::get_total_stake_to(netuid,&keys[i]);
 		assert_eq!(key_stake_after, stakes[i] - params.min_burn, 
 					"key_stake_after: {:?} stakes[i]: {:?}", 
