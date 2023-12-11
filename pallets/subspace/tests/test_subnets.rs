@@ -18,11 +18,11 @@ fn test_add_subnets() {
 		let num_subnets: u16 = 1000;
 		let mut stake_per_module: u64 = 1_000_000_000;
 		let mut max_allowed_subnets: u16 = SubspaceModule::get_max_allowed_subnets();
+		let mut expected_subnets = 0;
 
 		for i in 0..num_subnets {
 			register_module(i, U256::from(0), stake_per_module);
-
-			let mut expected_subnets = i + 1;
+			expected_subnets += 1;
 			if expected_subnets > max_allowed_subnets {
 				expected_subnets = max_allowed_subnets;
 			} else {
@@ -33,7 +33,19 @@ fn test_add_subnets() {
 				expected_subnets,
 				"number of subnets is not equal to expected subnets"
 			);
+
 		}
+
+		for netuid in 0..num_subnets {
+			SubspaceModule::remove_network_for_netuid(netuid);
+			expected_subnets = expected_subnets.saturating_sub(1);
+			assert_eq!(
+				SubspaceModule::get_number_of_subnets(),
+				expected_subnets,
+				"number of subnets is not equal to expected subnets"
+			);
+		}
+
 	});
 }
 

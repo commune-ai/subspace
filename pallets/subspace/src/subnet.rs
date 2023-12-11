@@ -578,10 +578,7 @@ impl<T: Config> Pallet<T> {
 		// get a random number between 0 and number_of_subnets
 		let random_netuid_idx: usize = Self::random_idx(netuids.len() as u16) as usize;
 		return netuids[random_netuid_idx]
-
 	}
-
-
 
 	// ========================
 	// ==== Global Setters ====
@@ -589,7 +586,6 @@ impl<T: Config> Pallet<T> {
 	pub fn set_tempo(netuid: u16, tempo: u16) {
 		Tempo::<T>::insert(netuid, tempo);
 	}
-
 
 	pub fn set_min_burn(netuid: u16, min_burn: u64) {
 		MinBurn::<T>::insert(netuid, min_burn);
@@ -619,8 +615,6 @@ impl<T: Config> Pallet<T> {
 		}
 		IncentiveRatio::<T>::insert(netuid, incentive_ratio);
 	}
-
-
 
 	pub fn get_founder(netuid: u16) -> T::AccountId {
 		return Founder::<T>::get(netuid)
@@ -657,7 +651,6 @@ impl<T: Config> Pallet<T> {
 		let burn_emission_per_epoch: u64 = (burn_rate as u64 * epoch_emission)  / (n * 100) as u64;
 		return burn_emission_per_epoch
 	}
-
 
 	pub fn set_registrations_this_block(registrations_this_block: u16) {
 		RegistrationsPerBlock::<T>::set(registrations_this_block);
