@@ -66,14 +66,17 @@ impl<T: Config> Pallet<T> {
 		let global_n =  Self::global_n();
 		// replace a node if we reach the max allowed modules
 		if global_n >= Self::get_max_allowed_modules() {
-			
-		}
-		if n >= Self::get_max_allowed_uids(netuid){
+			// get random netuid
+			let random_netuid = Self::random_netuid();
+			Self::remove_module(netuid, Self::get_lowest_uid(random_netuid));
+
+		} else if n >= Self::get_max_allowed_uids(netuid){
+			// if we reach the max allowed modules for this network, then we replace the lowest priority node
 			Self::remove_module(netuid, Self::get_lowest_uid(netuid));
-			uid = Self::append_module(netuid, &module_key, name.clone(), address.clone());
-		} else {
-			uid = Self::append_module(netuid, &module_key, name.clone(), address.clone());
 		}
+
+		uid = Self::append_module(netuid, &module_key, name.clone(), address.clone());
+
 		Self::increase_stake(netuid, &module_key, &module_key, 0);
 		if stake_amount > 0 {
 			Self::do_add_stake(origin.clone(), netuid, module_key.clone(), stake_amount);

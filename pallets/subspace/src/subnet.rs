@@ -101,11 +101,12 @@ impl<T: Config> Pallet<T> {
 			name: <Vec<u8>>::new(),
 			burn_rate: BurnRate::<T>::get(netuid),
 			vote_threshold: SubnetVoteThreshold::<T>::get(netuid),
-			vote_mode:SubnetVoteMode::<T>::get(netuid),
+			vote_mode:VoteModeSubnet::<T>::get(netuid),
 			min_burn: MinBurn::<T>::get(netuid),
 			trust_ratio: TrustRatio::<T>::get(netuid),
 			self_vote: SelfVote::<T>::get(netuid),
 			founder_share: FounderShare::<T>::get(netuid),
+			incentive_ratio: IncentiveRatio::<T>::get(netuid)
 		}
 	}
 
@@ -156,6 +157,8 @@ impl<T: Config> Pallet<T> {
 		Self::set_self_vote(netuid, params.self_vote);
 
 		Self::set_founder_share(netuid, params.founder_share);
+
+		Self::set_incentive_ratio(netuid,  params.incentive_ratio);
 
 
 	}
@@ -321,6 +324,8 @@ impl<T: Config> Pallet<T> {
 		MinStake::<T>::insert(netuid, params.min_stake);
 		Name2Subnet::<T>::insert(params.name.clone(), netuid);
 		BurnRate::<T>::insert(netuid, params.burn_rate);
+		FounderShare::<T>::insert(netuid, params.founder_share);
+		IncentiveRatio::<T>::insert(netuid, params.incentive_ratio);
 		// set stat once network is created
 		TotalSubnets::<T>::mutate(|n| *n += 1);
 		N::<T>::insert(netuid, 0);
@@ -403,6 +408,7 @@ impl<T: Config> Pallet<T> {
 
 		// --- 2. Erase network parameters.
 		Founder::<T>::remove(netuid);
+		FounderShare::<T>::remove(netuid);
 		MinStake::<T>::remove(netuid);
 		Tempo::<T>::remove(netuid);
 		MaxAllowedUids::<T>::remove(netuid);
@@ -412,7 +418,7 @@ impl<T: Config> Pallet<T> {
 		BurnRate::<T>::remove(netuid);
 		SelfVote::<T>::remove(netuid);
 		SubnetEmission::<T>::remove(netuid);
-		FounderShare::<T>::remove(netuid);
+		IncentiveRatio::<T>::remove(netuid);
 		Founder::<T>::remove(netuid);
 		// Adjust the total number of subnets. and remove the subnet from the list of subnets.
 		N::<T>::remove(netuid);
@@ -528,11 +534,11 @@ impl<T: Config> Pallet<T> {
 	}
 
 	pub fn get_vote_mode_subnet(netuid: u16) -> Vec<u8> {
-		return SubnetVoteMode::<T>::get(netuid)
+		return VoteModeSubnet::<T>::get(netuid)
 	}
 
 	pub fn set_vote_mode_subnet(netuid: u16, vote_mode: Vec<u8>) {
-		SubnetVoteMode::<T>::insert(netuid, vote_mode);
+		VoteModeSubnet::<T>::insert(netuid, vote_mode);
 	}
 	
 	pub fn get_subnet_vote_threshold(netuid: u16) -> u16 {
@@ -566,6 +572,17 @@ impl<T: Config> Pallet<T> {
 		return netuids
 	}
 
+	pub fn random_netuid() -> u16{
+		// get the number of subnets
+		let netuids = Self::netuids();
+		// get a random number between 0 and number_of_subnets
+		let random_netuid_idx: usize = Self::random_idx(netuids.len() as u16) as usize;
+		return netuids[random_netuid_idx]
+
+	}
+
+
+
 	// ========================
 	// ==== Global Setters ====
 	// ========================
@@ -588,10 +605,21 @@ impl<T: Config> Pallet<T> {
 		}
 		FounderShare::<T>::insert(netuid, founder_share);
 	}
-
 	pub fn get_founder_share(netuid: u16) -> u16 {
 		return FounderShare::<T>::get(netuid)
 	}
+	
+	pub fn get_incentive_ratio(netuid: u16) -> u16 {
+		return IncentiveRatio::<T>::get(netuid)
+	}
+
+	pub fn set_incentive_ratio(netuid: u16, mut incentive_ratio: u16) {
+		if incentive_ratio > 100 {
+			incentive_ratio = 100;
+		}
+		IncentiveRatio::<T>::insert(netuid, incentive_ratio);
+	}
+
 
 
 	pub fn get_founder(netuid: u16) -> T::AccountId {
