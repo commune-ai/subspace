@@ -303,7 +303,7 @@ impl<T: Config> Pallet<T> {
 		let mut found_key_in_vector: bool = false;
 		for (i, (k, v)) in stake_from_vector.clone().iter().enumerate() {
 			if *k == *key {
-				stake_from_vector[i] = (k.clone(), *v + amount);
+				stake_from_vector[i] = (k.clone(), (*v).saturating_add(amount));
 				found_key_in_vector = true;
 			}
 		}
@@ -319,7 +319,7 @@ impl<T: Config> Pallet<T> {
 
 		for (i, (k, v)) in stake_to_vector.clone().iter().enumerate() {
 			if *k == *module_key {
-				stake_to_vector[i] = (k.clone(), *v + amount);
+				stake_to_vector[i] = (k.clone(), (*v).saturating_add(amount));
 				found_key_in_vector = true;
 			}
 		}
@@ -355,7 +355,7 @@ impl<T: Config> Pallet<T> {
 		let mut end_idx: usize = stake_from_vector.len() - 1;
 		for (i, (k, stake_amount)) in stake_from_vector.clone().iter().enumerate() {
 			if *k == *key {
-				let remaining_stake: u64 = *stake_amount - amount;
+				let remaining_stake: u64 = (*stake_amount).saturating_sub(amount);
 				stake_from_vector[i] = (k.clone(), remaining_stake);
 				if remaining_stake == 0 {
 					// we need to remove this entry if its zero

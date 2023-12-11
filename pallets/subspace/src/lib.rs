@@ -206,11 +206,11 @@ pub mod pallet {
 		pub burn_rate: u16,        // out of 100
 		pub min_stake: u64,
 		pub min_burn: u64,
-		// pub democratic: bool
 		pub vote_threshold: u16, // out of 100
 		pub vote_mode: Vec<u8>,
 		pub trust_ratio: u16,
-		pub self_vote: bool
+		pub self_vote: bool,
+		pub founder_share: u16 // out of 100
 	}
 
 	#[pallet::type_value]
@@ -228,7 +228,8 @@ pub mod pallet {
 			vote_mode: DefaultVoteMode::<T>::get(),
 			min_burn: DefaultMinBurn::<T>::get(),
 			trust_ratio: DefaultTrustRatio::<T>::get(),
-			self_vote: DefaultSelfVote::<T>::get()
+			self_vote: DefaultSelfVote::<T>::get(),
+			founder_share: DefaultFounderShare::<T>::get(),
 		}
 	}
 
@@ -288,6 +289,12 @@ pub mod pallet {
 	#[pallet::storage] // --- DMAP ( key, netuid ) --> bool
 	pub type Founder<T: Config> = StorageMap<_, Identity, u16, T::AccountId, ValueQuery, DefaultAccount<T>>;
 
+
+	#[pallet::type_value]
+	pub fn DefaultFounderShare<T: Config>() -> u16 {0}
+	#[pallet::storage] // --- DMAP ( key, netuid ) --> bool
+	pub type FounderShare<T: Config> = StorageMap<_, Identity, u16, u16, ValueQuery, DefaultFounderShare<T>>;
+	
 
 	#[pallet::type_value]
 	pub fn DefaultTempo<T: Config>() -> u16 {1}
@@ -710,7 +717,8 @@ pub mod pallet {
 					min_burn: default_params.min_burn,
 					vote_mode: default_params.vote_mode.clone(),
 					trust_ratio: default_params.trust_ratio,
-					self_vote: default_params.self_vote
+					self_vote: default_params.self_vote,
+					founder_share: default_params.founder_share
 				};
 				
 				self::Pallet::<T>::add_network(params.clone());

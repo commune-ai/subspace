@@ -104,7 +104,8 @@ impl<T: Config> Pallet<T> {
 			vote_mode:SubnetVoteMode::<T>::get(netuid),
 			min_burn: MinBurn::<T>::get(netuid),
 			trust_ratio: TrustRatio::<T>::get(netuid),
-			self_vote: SelfVote::<T>::get(netuid)
+			self_vote: SelfVote::<T>::get(netuid),
+			founder_share: FounderShare::<T>::get(netuid),
 		}
 	}
 
@@ -152,7 +153,9 @@ impl<T: Config> Pallet<T> {
 
 		Self::set_trust_ratio(netuid, params.trust_ratio);
 
-		Self::set_self_vote(netuid, params.self_vote)
+		Self::set_self_vote(netuid, params.self_vote);
+
+		Self::set_founder_share(netuid, params.founder_share);
 
 
 	}
@@ -408,7 +411,9 @@ impl<T: Config> Pallet<T> {
 		MaxAllowedWeights::<T>::remove(netuid);
 		BurnRate::<T>::remove(netuid);
 		SelfVote::<T>::remove(netuid);
-
+		SubnetEmission::<T>::remove(netuid);
+		FounderShare::<T>::remove(netuid);
+		Founder::<T>::remove(netuid);
 		// Adjust the total number of subnets. and remove the subnet from the list of subnets.
 		N::<T>::remove(netuid);
 		TotalSubnets::<T>::mutate(|val| *val -= 1);
@@ -577,11 +582,29 @@ impl<T: Config> Pallet<T> {
 		MinBurn::<T>::get(netuid).into()
 	}
 
+	pub fn set_founder_share(netuid: u16, mut founder_share: u16) {
+		if founder_share > 100 {
+			founder_share = 100;
+		}
+		FounderShare::<T>::insert(netuid, founder_share);
+	}
+
+	pub fn get_founder_share(netuid: u16) -> u16 {
+		return FounderShare::<T>::get(netuid)
+	}
 
 
+	pub fn get_founder(netuid: u16) -> T::AccountId {
+		return Founder::<T>::get(netuid)
+	}
 
+	pub fn set_founder(netuid: u16, founder: T::AccountId) {
+		Founder::<T>::insert(netuid, founder);
+	}
 
-
+	pub fn get_burn_rate(netuid: u16) -> u16 {
+		return BurnRate::<T>::get(netuid)
+	}
 
 	pub fn set_burn_rate(netuid: u16, burn_rate: u16) {
 		if burn_rate > 100 {
@@ -605,10 +628,6 @@ impl<T: Config> Pallet<T> {
 		}
 		let burn_emission_per_epoch: u64 = (burn_rate as u64 * epoch_emission)  / (n * 100) as u64;
 		return burn_emission_per_epoch
-	}
-
-	pub fn get_burn_rate(netuid: u16) -> u16 {
-		return BurnRate::<T>::get(netuid)
 	}
 
 
