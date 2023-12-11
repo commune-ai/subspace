@@ -643,8 +643,9 @@ impl<T: Config> Pallet<T> {
 		if n == 0 {
 			return 0
 		}
-		let burn_rate_float : I64F64 = I64F64:from_num(burn_rate) / I64F64:from_num(n * 100)
-		let burn_emission_per_epoch: u64 = (I64F64:from_num(epoch_emission) * burn_rate_float);
+		let burn_rate_float : I64F64 = I64F64::from_num(burn_rate) / I64F64::from_num(n * 100);
+		let burn_emission_per_epoch: u64 = (I64F64::from_num(epoch_emission) * burn_rate_float).to_num::<u64>();
+
 		return burn_emission_per_epoch
 	}
 

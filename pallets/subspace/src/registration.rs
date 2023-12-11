@@ -83,7 +83,7 @@ impl<T: Config> Pallet<T> {
 		}
 		// CONSTANT INITIAL BURN
 		if min_burn > 0 {
-			assert!(stake_amount >= min_burn)
+			assert!(stake_amount >= min_burn);
 			Self::decrease_stake(netuid, &key, &module_key, min_burn);
 			let min_stake = Self::get_min_stake(netuid);
 			let current_stake = Self::get_total_stake_to(netuid, &key);
