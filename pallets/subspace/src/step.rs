@@ -26,7 +26,7 @@ impl<T: Config> Pallet<T> {
 		}
 	}
 
-	pub fn epoch(netuid: u16, token_emission: u64) {
+	pub fn epoch(netuid: u16, mut token_emission: u64) {
 		// Get subnetwork size.
 		let params : SubnetParams  = Self::subnet_params(netuid);
 		let n: u16 = Self::get_subnet_n(netuid);
@@ -57,6 +57,20 @@ impl<T: Config> Pallet<T> {
 
 		// 	total_stake_u64 = total_stake_u64;
 		// }
+
+		// FOUNDER DIVIDENDS 
+		let founder_key = Self::get_founder(netuid);
+		let is_founder_registered = Self::is_key_registered(netuid, &founder_key);
+		if is_founder_registered {
+			let founder_share = Self::get_founder_share(netuid);
+			if founder_share > 0 {
+				let founder_emission_ratio: I64F64  = I64F64::from_num(founder_share)/I64F64::from_num(100);
+				let founder_emission = (founder_emission_ratio * I64F64::from_num(token_emission)).to_num::<u64>();
+				token_emission = token_emission.saturating_sub(founder_emission);
+				Self::increase_stake(netuid, &founder_key, &founder_key, founder_emission);
+			}
+		}
+
 
 		for (uid_i, key) in keys.iter() {
 			let mut stake_u64 = Self::get_stake_for_key(netuid, key).clone();
