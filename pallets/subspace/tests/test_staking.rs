@@ -266,63 +266,62 @@ fn test_delegate_stake() {
 	});
 }
 
-// TODO:
-// #[test]
-// fn test_ownership_ratio() {
-// 	new_test_ext().execute_with(|| {
-// 		let netuid: u16 = 0;
-// 		let num_modules: u16 = 10;
-// 		let stake_per_module: u64 = 1_000_000_000;
-// 		register_n_modules(netuid, num_modules, 0);
+#[test]
+fn test_ownership_ratio() {
+	new_test_ext().execute_with(|| {
+		let netuid: u16 = 0;
+		let num_modules: u16 = 10;
+		let stake_per_module: u64 = 1_000_000_000;
+		register_n_modules(netuid, num_modules, 0);
 
-// 		let keys = SubspaceModule::get_keys(netuid);
+		let keys = SubspaceModule::get_keys(netuid);
 
-// 		for (k_i, k) in keys.iter().enumerate() {
-// 			let delegate_keys: Vec<U256> =
-// 				(0..num_modules).map(|i| U256::from(i + num_modules + 1)).collect();
-// 			for d in delegate_keys.iter() {
-// 				add_balance(*d, stake_per_module + 1);
-// 			}
+		for (k_i, k) in keys.iter().enumerate() {
+			let delegate_keys: Vec<U256> =
+				(0..num_modules).map(|i| U256::from(i + num_modules + 1)).collect();
+			for d in delegate_keys.iter() {
+				add_balance(*d, stake_per_module + 1);
+			}
 
-// 			let pre_delegate_stake_from_vector = SubspaceModule::get_stake_from_vector(netuid, k);
-// 			assert_eq!(pre_delegate_stake_from_vector.len(), 1); // +1 for the module itself, +1 for the delegate key on
+			let pre_delegate_stake_from_vector = SubspaceModule::get_stake_from_vector(netuid, k);
+			assert_eq!(pre_delegate_stake_from_vector.len(), 1); // +1 for the module itself, +1 for the delegate key on
 
-// 			println!("KEY: {}", k);
-// 			for (i, d) in delegate_keys.iter().enumerate() {
-// 				println!("DELEGATE KEY: {}", d);
-// 				SubspaceModule::add_stake(get_origin(*d), netuid, *k, stake_per_module);
-// 				let stake_from_vector = SubspaceModule::get_stake_from_vector(netuid, k);
-// 				assert_eq!(stake_from_vector.len(), pre_delegate_stake_from_vector.len() + i + 1);
-// 				// +1 for the
-// 				// module itself,
-// 				// +1 for the
-// 				// delegate key
-// 				// on
-// 			}
-// 			let ownership_ratios: Vec<(U256, I64F64)> =
-// 				SubspaceModule::get_ownership_ratios(netuid, k);
+			println!("KEY: {}", k);
+			for (i, d) in delegate_keys.iter().enumerate() {
+				println!("DELEGATE KEY: {}", d);
+				SubspaceModule::add_stake(get_origin(*d), netuid, *k, stake_per_module);
+				let stake_from_vector = SubspaceModule::get_stake_from_vector(netuid, k);
+				assert_eq!(stake_from_vector.len(), pre_delegate_stake_from_vector.len() + i + 1);
+				// +1 for the
+				// module itself,
+				// +1 for the
+				// delegate key
+				// on
+			}
+			let ownership_ratios: Vec<(U256, I64F64)> =
+				SubspaceModule::get_ownership_ratios(netuid, k);
 
-// 			assert_eq!(ownership_ratios.len(), delegate_keys.len() + 1);
-// 			println!("OWNERSHIP RATIOS: {:?}", ownership_ratios);
-// 			// step_block();
+			assert_eq!(ownership_ratios.len(), delegate_keys.len() + 1);
+			println!("OWNERSHIP RATIOS: {:?}", ownership_ratios);
+			// step_block();
 
-// 			step_epoch(netuid);
+			step_epoch(netuid);
 
-// 			let stake_from_vector = SubspaceModule::get_stake_from_vector(netuid, k);
-// 			let stake: u64 = SubspaceModule::get_stake(netuid, k);
-// 			let sumed_stake: u64 = stake_from_vector.iter().fold(0, |acc, (a, x)| acc + x);
-// 			let total_stake: u64 = SubspaceModule::get_total_subnet_stake(netuid);
+			let stake_from_vector = SubspaceModule::get_stake_from_vector(netuid, k);
+			let stake: u64 = SubspaceModule::get_stake(netuid, k);
+			let sumed_stake: u64 = stake_from_vector.iter().fold(0, |acc, (a, x)| acc + x);
+			let total_stake: u64 = SubspaceModule::get_total_subnet_stake(netuid);
 
-// 			println!("STAKE: {}", stake);
-// 			println!("SUMED STAKE: {}", sumed_stake);
-// 			println!("TOTAL STAKE: {}", total_stake);
+			println!("STAKE: {}", stake);
+			println!("SUMED STAKE: {}", sumed_stake);
+			println!("TOTAL STAKE: {}", total_stake);
 
-// 			assert_eq!(stake, sumed_stake);
+			assert_eq!(stake, sumed_stake);
 
-// 			// for (d_a, o) in ownership_ratios.iter() {
-// 			//     println!("OWNERSHIP RATIO: {}", o);
+			// for (d_a, o) in ownership_ratios.iter() {
+			//     println!("OWNERSHIP RATIO: {}", o);
 
-// 			// }
-// 		}
-// 	});
-// }
+			// }
+		}
+	});
+}

@@ -38,12 +38,16 @@ impl<T: Config> Pallet<T> {
 		);
 
 
+
+		
 		// -- 3. resolve the network in case it doesnt exisst
 		if !Self::if_subnet_name_exists(network.clone()) {
 			Self::add_subnet_from_registration(network.clone(), stake_amount, &key)?;
 		}
 		// get the netuid
 		let netuid = Self::get_netuid_for_name(network.clone());
+
+
 
 		ensure!(
 			Self::enough_stake_to_register(netuid, stake_amount),
@@ -59,11 +63,15 @@ impl<T: Config> Pallet<T> {
 		let mut uid: u16;
 
 		let n: u16 = Self::get_subnet_n(netuid);
-
-		if n < Self::get_max_allowed_uids(netuid) {
+		let global_n =  Self::global_n();
+		// replace a node if we reach the max allowed modules
+		if global_n >= Self::get_max_allowed_modules() {
+			
+		}
+		if n >= Self::get_max_allowed_uids(netuid){
+			Self::remove_module(netuid, Self::get_lowest_uid(netuid));
 			uid = Self::append_module(netuid, &module_key, name.clone(), address.clone());
 		} else {
-			Self::remove_module(netuid, Self::get_lowest_uid(netuid));
 			uid = Self::append_module(netuid, &module_key, name.clone(), address.clone());
 		}
 		Self::increase_stake(netuid, &module_key, &module_key, 0);

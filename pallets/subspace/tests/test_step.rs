@@ -358,6 +358,129 @@ fn test_blocks_until_epoch() {
 	});
 }
 
+
+
+#[test]
+fn test_incentives() {
+	new_test_ext().execute_with(|| {
+		// CONSSTANTS
+		let netuid: u16 = 0;
+		let n: u16 = 10;
+		let n_list: Vec<u16> = vec![10, 50, 100, 1000];
+		let blocks_per_epoch_list: u64 = 1;
+		let stake_per_module: u64 = 10_000;
+
+		// SETUP NETWORK
+		register_n_modules(netuid, n, stake_per_module);
+		let mut params = SubspaceModule::subnet_params(netuid);
+		params.min_allowed_weights = 0;
+		params.max_allowed_weights = n;
+		params.tempo = 1;
+
+		
+		let keys = SubspaceModule::get_keys(netuid);
+		let uids = SubspaceModule::get_uids(netuid);
+
+		// do a list of ones for weights
+		let weight_uids: Vec<u16> = [1, 2].to_vec();
+		// do a list of ones for weights
+		let weight_values: Vec<u16> = [1, 1].to_vec();
+
+		set_weights(netuid, keys[0], weight_uids.clone(), weight_values.clone());
+		step_block(1);
+
+		let incentives: Vec<u16> = SubspaceModule::get_incentives(netuid);
+		let emissions: Vec<u64> = SubspaceModule::get_emissions(netuid);
+
+		// evaluate votees
+		assert!(incentives[1] > 0);
+		assert!(incentives[1] == incentives[2]);
+		assert!(emissions[1] == emissions[2]);
+
+
+		// do a list of ones for weights
+		let weight_values: Vec<u16> = [1, 2].to_vec();
+
+		set_weights(netuid, keys[0], weight_uids.clone(), weight_values.clone());
+		set_weights(netuid, keys[9], weight_uids.clone(), weight_values.clone());
+
+		step_block(1);
+
+		let incentives: Vec<u16> = SubspaceModule::get_incentives(netuid);
+		let emissions: Vec<u64> = SubspaceModule::get_emissions(netuid);
+
+		// evaluate votees
+		let delta : u64 = 100;
+		assert!(incentives[1] > 0);
+
+		assert!(emissions[2] > 2 * emissions[1] - delta && 
+				emissions[2] < 2 * emissions[1] + delta , 
+				"emissions[1]: {} != emissions[2]: {}", emissions[1], emissions[2]);
+
+
+
+	});
+}
+
+
+#[test]
+fn test_trust() {
+	new_test_ext().execute_with(|| {
+		// CONSSTANTS
+		let netuid: u16 = 0;
+		let n: u16 = 10;
+		let n_list: Vec<u16> = vec![10, 50, 100, 1000];
+		let blocks_per_epoch_list: u64 = 1;
+		let stake_per_module: u64 = 10_000;
+
+		// SETUP NETWORK
+
+		register_n_modules(netuid, n, stake_per_module);
+		let mut params = SubspaceModule::subnet_params(netuid);
+		params.min_allowed_weights = 0;
+		params.max_allowed_weights = n;
+		params.tempo = 1;
+		params.trust_ratio = 100;
+
+		SubspaceModule::set_subnet_params(netuid, params);
+
+
+		let keys = SubspaceModule::get_keys(netuid);
+		let uids = SubspaceModule::get_uids(netuid);
+
+		// do a list of ones for weights
+		let weight_uids: Vec<u16> = [2].to_vec();
+		let weight_values: Vec<u16> = [1].to_vec();
+
+		set_weights(netuid, keys[8], weight_uids.clone(), weight_values.clone());
+		// do a list of ones for weights
+		let weight_uids: Vec<u16> = [1, 2].to_vec();
+		let weight_values: Vec<u16> = [1, 1].to_vec();
+		set_weights(netuid, keys[9], weight_uids.clone(), weight_values.clone());
+		step_block(1);
+
+		let trust: Vec<u16> = SubspaceModule::get_trust(netuid);
+		let emission : Vec<u64> = SubspaceModule::get_emissions(netuid);
+
+
+		// evaluate votees
+		println!("trust: {:?}", trust);
+		assert!(trust[1] as u32 > 0);
+		assert!(trust[2] as u32 > 2*(trust[1] as u32) - 10  );
+		// evaluate votees
+		println!("trust: {:?}", emission);
+		assert!(emission[1]  > 0);
+		assert!(emission[2]  > 2*(emission[1] ) - 1000  );
+
+		// assert!(trust[2] as u32 < 2*(trust[1] as u32)   );
+
+
+	});
+}
+
+
+
+
 // TODO:
 // #[test]
 // fn simulation_final_boss() {
