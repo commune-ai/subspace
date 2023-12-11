@@ -628,14 +628,9 @@ impl<T: Config> Pallet<T> {
 		return BurnRate::<T>::get(netuid)
 	}
 
-	pub fn set_burn_rate(netuid: u16, burn_rate: u16) {
+	pub fn set_burn_rate(netuid: u16, mut burn_rate: u16) {
 		if burn_rate > 100 {
-			BurnRate::<T>::insert(netuid, 100);
-			return
-		}
-		if burn_rate < 0 {
-			BurnRate::<T>::insert(netuid, 0);
-			return
+			burn_rate = 100;
 		}
 		BurnRate::<T>::insert(netuid, burn_rate);
 	}
