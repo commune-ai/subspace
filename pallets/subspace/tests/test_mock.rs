@@ -85,7 +85,7 @@ impl system::Config for Test {
 	type BlockLength = ();
 	type AccountId = U256;
 	type RuntimeCall = RuntimeCall;
-	type Nonce = u64;
+	type Nonce = u32;
 	type Hash = H256;
 	type Hashing = BlakeTwo256;
 	type Lookup = IdentityLookup<Self::AccountId>;
