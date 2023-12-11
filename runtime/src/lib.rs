@@ -99,7 +99,7 @@ pub type Index = u64;
 // A hash of some data used by the chain.
 pub type Hash = sp_core::H256;
 
-pub type Nonce = u64;
+pub type Nonce = u32;
 
 // Opaque types. These are used by the CLI to instantiate machinery that don't need to know
 // the specifics of the runtime. They can then be made to be agnostic over specific formats
@@ -232,7 +232,7 @@ impl frame_system::Config for Runtime {
 	type OnSetCode = ();
 	type MaxConsumers = frame_support::traits::ConstU32<16>;
 	/// The index type for storing how many extrinsics an account has signed.
-	type Nonce = u64;
+	type Nonce = u32;
 }
 
 impl pallet_insecure_randomness_collective_flip::Config for Runtime {}
