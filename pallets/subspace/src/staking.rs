@@ -25,6 +25,8 @@ impl<T: Config> Pallet<T> {
 		Ok(())
 	}
 
+
+
 	pub fn do_transfer_multiple(
 		origin: T::RuntimeOrigin,
 		destinations: Vec<T::AccountId>,
