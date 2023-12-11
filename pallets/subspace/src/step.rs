@@ -170,17 +170,20 @@ impl<T: Config> Pallet<T> {
 		// =================================
 		// == Emission==
 		// =================================
+		let mut incentive_ratio: u16 = Self::get_incentive_ratio(netuid);
+		let mut incentive_ratio: I64F64 =  I64F64::from_num(50) / I64F64::from_num(100);
+		let dividend_ratio: I64F64 = I64F64::from_num(1.0) - incentive_ratio;
 
 
 		let incentive_emission_float: Vec<I64F64> = incentive
 			.clone()
 			.iter()
-			.map(|x| I64F64::from_num(x.clone()) * I64F64::from_num(token_emission / 2))
+			.map(|x| I64F64::from_num(x.clone()) * I64F64::from_num(token_emission) * incentive_ratio)
 			.collect();
 		let dividends_emission_float: Vec<I64F64> = dividends
 			.clone()
 			.iter()
-			.map(|x| I64F64::from_num(x.clone()) * I64F64::from_num(token_emission / 2))
+			.map(|x| I64F64::from_num(x.clone()) * I64F64::from_num(token_emission) * dividend_ratio)
 			.collect();
 
 		let incentive_emission: Vec<u64> =

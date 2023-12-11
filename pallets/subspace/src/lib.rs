@@ -196,21 +196,20 @@ pub mod pallet {
 	pub struct SubnetParams {
 		// --- parameters
 		pub name: Vec<u8>,
-		pub tempo: u16,           // how many blocks to wait before rewarding models
+		pub tempo: u16, // how many blocks to wait before rewarding models
 		pub immunity_period: u16, // immunity period
-		pub min_allowed_weights: u16, /* min number of weights allowed to be registered in this
-		                           * subnet */
-		pub max_allowed_weights: u16, /* max number of weights allowed to be registered in this
-		                               * subnet */
-		pub max_allowed_uids: u16, // max number of uids allowed to be registered in this subnet
+		pub max_allowed_uids: u16, // max number of weights allowed to be registered in this		pub max_allowed_uids: u16, // max number of uids allowed to be registered in this subne
+		pub min_allowed_weights: u16, // min number of weights allowed to be registered in this
+		pub max_allowed_weights: u16, // max number of weights allowed to be registered in this		pub max_allowed_uids: u16, // max number of uids allowed to be registered in this subnet
 		pub burn_rate: u16,        // out of 100
-		pub min_stake: u64,
-		pub min_burn: u64,
+		pub min_stake: u64,	// min stake required
+		pub min_burn: u64, 
 		pub vote_threshold: u16, // out of 100
 		pub vote_mode: Vec<u8>,
 		pub trust_ratio: u16,
-		pub self_vote: bool,
-		pub founder_share: u16 // out of 100
+		pub self_vote: bool, // 
+		pub founder_share: u16, // out of 100
+		pub incentive_ratio : u16 // out of 100
 	}
 
 	#[pallet::type_value]
@@ -223,13 +222,15 @@ pub mod pallet {
 			max_allowed_weights: DefaultMaxAllowedWeights::<T>::get(),
 			max_allowed_uids: DefaultMaxAllowedUids::<T>::get(),
 			burn_rate: DefaultBurnRate::<T>::get(),
-			min_stake: 0, 
-			vote_threshold: 50,
+			min_stake: DefaultMinStake::<T>::get(), 
+			vote_threshold: DefaultVoteThreshold::<T>::get(),
 			vote_mode: DefaultVoteMode::<T>::get(),
 			min_burn: DefaultMinBurn::<T>::get(),
 			trust_ratio: DefaultTrustRatio::<T>::get(),
 			self_vote: DefaultSelfVote::<T>::get(),
 			founder_share: DefaultFounderShare::<T>::get(),
+			incentive_ratio : DefaultIncentiveRatio::<T>::get()
+
 		}
 	}
 
@@ -297,6 +298,12 @@ pub mod pallet {
 	
 
 	#[pallet::type_value]
+	pub fn DefaultIncentiveRatio<T: Config>() -> u16 {50}
+	#[pallet::storage] // --- DMAP ( key, netuid ) --> bool
+	pub type IncentiveRatio<T: Config> = StorageMap<_, Identity, u16, u16, ValueQuery, DefaultIncentiveRatio<T>>;
+	
+	
+	#[pallet::type_value]
 	pub fn DefaultTempo<T: Config>() -> u16 {1}
 	#[pallet::storage] // --- MAP ( netuid ) --> epoch
 	pub type Tempo<T> = StorageMap<_, Identity, u16, u16, ValueQuery, DefaultTempo<T>>;
@@ -306,9 +313,9 @@ pub mod pallet {
 	#[pallet::storage] // --- MAP ( netuid ) --> epoch
 	pub type TrustRatio<T> = StorageMap<_, Identity, u16, u16, ValueQuery, DefaultTrustRatio<T>>;
 
-
 	#[pallet::type_value]
 	pub fn DefaultQuadraticVoting<T: Config>() -> bool {false}
+	
 	#[pallet::storage] // --- MAP ( netuid ) --> epoch
 	pub type QuadraticVoting<T> = StorageMap<_, Identity, u16, bool, ValueQuery, DefaultQuadraticVoting<T>>;
 
@@ -350,9 +357,9 @@ pub mod pallet {
 	#[pallet::type_value]
 	pub fn DefaultVoteMode<T: Config>() -> Vec<u8> {"authority".as_bytes().to_vec()}
 	#[pallet::storage] // --- MAP ( netuid ) --> epoch
-	pub type SubnetVoteMode<T> =StorageMap<_, Identity, u16, Vec<u8>, ValueQuery, DefaultVoteMode<T>>;
+	pub type VoteModeSubnet<T> =StorageMap<_, Identity, u16, Vec<u8>, ValueQuery, DefaultVoteMode<T>>;
 	#[pallet::storage] // --- MAP ( netuid ) --> epoch
-	pub type GlobalVoteMode<T> =StorageValue<_, Vec<u8>, ValueQuery, DefaultVoteMode<T>>;
+	pub type VoteModeGlobal<T> =StorageValue<_, Vec<u8>, ValueQuery, DefaultVoteMode<T>>;
 
 	#[derive(Decode, Encode, PartialEq, Eq, Clone, Debug, TypeInfo)]
 	pub struct SubnetInfo<T: Config> {
@@ -385,6 +392,7 @@ pub mod pallet {
 	pub fn DefaultPendingEmission<T: Config>() -> u64 {0}
 	#[pallet::storage] // --- MAP ( netuid ) --> pending_emission
 	pub type PendingEmission<T> = StorageMap<_, Identity, u16, u64, ValueQuery, DefaultPendingEmission<T>>;
+	
 	#[pallet::storage] // --- MAP ( network_name ) --> netuid
 	pub type Name2Subnet<T: Config> = StorageMap<_, Twox64Concat, Vec<u8>, u16, ValueQuery>;
 
@@ -718,7 +726,8 @@ pub mod pallet {
 					vote_mode: default_params.vote_mode.clone(),
 					trust_ratio: default_params.trust_ratio,
 					self_vote: default_params.self_vote,
-					founder_share: default_params.founder_share
+					founder_share: default_params.founder_share, 
+					incentive_ratio: default_params.incentive_ratio
 				};
 				
 				self::Pallet::<T>::add_network(params.clone());

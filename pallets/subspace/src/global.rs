@@ -69,11 +69,11 @@ impl<T: Config> Pallet<T> {
 	}
 
 	pub fn set_vote_mode_global(vote_mode: Vec<u8>) {
-		GlobalVoteMode::<T>::put(vote_mode);
+		VoteModeGlobal::<T>::put(vote_mode);
 	}
 
 	pub fn get_vote_mode_global() -> Vec<u8> {
-		return GlobalVoteMode::<T>::get();
+		return VoteModeGlobal::<T>::get();
 	}
 
 	
