@@ -858,6 +858,9 @@ impl<T: Config> Pallet<T> {
 	pub fn get_incentives(netuid: u16) -> Vec<u16> {
 		Incentive::<T>::get(netuid)
 	}
+	pub fn get_trust(netuid: u16) -> Vec<u16> {
+		Trust::<T>::get(netuid)
+	}
 	pub fn get_dividends(netuid: u16) -> Vec<u16> {
 		Dividends::<T>::get(netuid)
 	}

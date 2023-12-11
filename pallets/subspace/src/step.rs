@@ -73,7 +73,7 @@ impl<T: Config> Pallet<T> {
 		// Access network weights row normalized.
 		let mut weights: Vec<Vec<(u16, I32F32)>> = Self::get_weights_sparse(netuid);
 
-		// 
+		// enabling self voting
 		if (!params.self_vote) {
 			weights = mask_diag_sparse(&weights);
 		}

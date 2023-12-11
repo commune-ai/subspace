@@ -113,6 +113,14 @@ impl<T: Config> Pallet<T> {
 		Ok(())
 	}
 
+	pub fn global_n() -> u16 {
+		let mut global_n : u16 = 0;
+		for netuid in Self::netuids() {
+			global_n += N::<T>::get(netuid);
+		}
+		return global_n
+	}
+
 
 	pub fn get_global_stake_to(
         key: &T::AccountId,
