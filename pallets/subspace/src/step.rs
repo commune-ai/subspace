@@ -171,7 +171,7 @@ impl<T: Config> Pallet<T> {
 		// == Emission==
 		// =================================
 		let mut incentive_ratio: u16 = Self::get_incentive_ratio(netuid);
-		let mut incentive_ratio: I64F64 =  I64F64::from_num(50) / I64F64::from_num(100);
+		let mut incentive_ratio: I64F64 =  I64F64::from_num(Self::get_incentive_ratio(netuid)) / I64F64::from_num(100);
 		let dividend_ratio: I64F64 = I64F64::from_num(1.0) - incentive_ratio;
 
 
