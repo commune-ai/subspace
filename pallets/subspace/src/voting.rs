@@ -28,15 +28,28 @@ impl<T: Config> Pallet<T> {
 
         assert!( Self::is_proposal_owner(&key, proposal_id), "not proposal owner");
         // if you update the proposal, you are no longer a participant
-        Self::check_proposal(proposal.clone())?; // check if proposal is valid
 
         // refresh the voting power
-        proposal.votes = Self::get_voting_power(&key, proposal.clone() );
         // remove the proposal owner from the participants  
         proposal.participants = Vec::new();
-        proposal.participants.push(key.clone());
 
+        let voting_power = Self::get_voting_power(&key, proposal.clone());
+        let mut voter_info = Voter2Info::<T>::get(key.clone());
+        voter_info.proposal_id = proposal_id;
+        voter_info.participant_index = proposal.participants.len() as u16;
+        voter_info.votes = voting_power;
+
+        // register the voter to avoid double voting
+        proposal.participants.push(key.clone());
+        proposal.votes = proposal.votes.saturating_add(voting_power);
+
+        Self::check_proposal(proposal.clone())?; // check if proposal is valid
+
+        // update the proposal
+        Voter2Info::<T>::insert(key, voter_info);
         Proposals::<T>::insert(proposal_id, proposal);
+
+
         Ok(())
     }
 
@@ -52,11 +65,23 @@ impl<T: Config> Pallet<T> {
             Self::unregister_voter(&key.clone());
         }
 
-        Self::check_proposal(proposal.clone())?; // check if proposal is valid
         let proposal_id = Self::next_proposal_id();
-        //
+        let voting_power = Self::get_voting_power(&key, proposal.clone());
+        let mut voter_info = Voter2Info::<T>::get(key.clone());
+        voter_info.proposal_id = proposal_id;
+        voter_info.participant_index = proposal.participants.len() as u16;
+        voter_info.votes = voting_power;
+
+        // register the voter to avoid double voting
+        proposal.participants.push(key.clone());
+        proposal.votes = proposal.votes.saturating_add(voting_power);
+
+        Self::check_proposal(proposal.clone())?; // check if proposal is valid
+
+        // update the proposal
+        Voter2Info::<T>::insert(key, voter_info);
         Proposals::<T>::insert(proposal_id, proposal);
-        Self::register_voter(&key, proposal_id);
+
         Self::check_proposal_approval(proposal_id);
         Ok(())
     }
@@ -78,14 +103,29 @@ impl<T: Config> Pallet<T> {
             Self::unregister_voter(&key.clone());
         }
 
-        let proposal = Proposals::<T>::get(proposal_id);
+        let mut proposal = Proposals::<T>::get(proposal_id);
         
 
         let mut voting_power : u64 = Self::get_voting_power(&key, proposal.clone());
         assert!(voting_power > 0, "voting power is zero");
 
         // register the voter to avoid double voting
-        Self::register_voter(&key, proposal_id);
+
+
+        let mut voter_info = Voter2Info::<T>::get(key.clone());
+        voter_info.proposal_id = proposal_id;
+        voter_info.participant_index = proposal.participants.len() as u16;
+        voter_info.votes = voting_power;
+        
+        // register the voter to avoid double voting
+        proposal.participants.push(key.clone());
+        proposal.votes = proposal.votes.saturating_add(voting_power);
+
+        // update the proposal
+        Voter2Info::<T>::insert(key, voter_info);
+        Proposals::<T>::insert(proposal_id, proposal);
+
+
         Self::check_proposal_approval(proposal_id);
 
         Ok(())
@@ -104,7 +144,7 @@ impl<T: Config> Pallet<T> {
     }
 
     pub fn has_max_proposals() -> bool {
-        return Self::num_proposals() <  MaxProposals::<T>::get()
+        return Self::num_proposals() >=  MaxProposals::<T>::get()
     }
 
 
@@ -176,23 +216,7 @@ impl<T: Config> Pallet<T> {
     ) -> Proposal<T> {
         return Proposals::<T>::get(proposal_id);
     }
-    pub fn register_voter(key: &T::AccountId, proposal_id: u64) {
-        // register voter
 
-        // get the voting power of the proposal owner
-        let mut  proposal = Self::get_proposal(proposal_id);
-        let voting_power = Self::get_voting_power(key, proposal.clone());
-        let mut voter_info = Voter2Info::<T>::get(key);
-        voter_info.proposal_id = proposal_id;
-        // push the voters to the proposal
-        voter_info.participant_index = proposal.participants.len() as u16;
-        proposal.participants.push(key.clone());
-        proposal.votes = proposal.votes.saturating_add(voting_power);
-
-        // update the proposal
-        Voter2Info::<T>::insert(key, voter_info);
-        Proposals::<T>::insert(proposal_id, proposal);
-    }
 
     pub fn unregister_voter(key: &T::AccountId) {
         // unregister voter

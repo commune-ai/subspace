@@ -798,7 +798,7 @@ pub mod pallet {
 	#[pallet::type_value]
 	pub fn DefaultMaxProposals<T: Config>() -> u64 {128}
 	#[pallet::storage]
-	pub(super) type MaxProposals<T: Config> = StorageValue<_, u64, ValueQuery>;
+	pub(super) type MaxProposals<T: Config> = StorageValue<_, u64, ValueQuery, DefaultMaxProposals<T>>;
 	
 	// ================
 	// ==== Hooks =====
