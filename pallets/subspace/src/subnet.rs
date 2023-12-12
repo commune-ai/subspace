@@ -258,7 +258,7 @@ impl<T: Config> Pallet<T> {
 	pub fn get_total_emission_per_block() -> u64 {
 		let market_cap: u64 = Self::market_cap();
 		let mut unit_emission: u64 = Self::get_unit_emission();
-		let mut emission_per_block: u64 = 4 * unit_emission; // assuming 8 second block times
+		let mut emission_per_block: u64 = unit_emission; // assuming 8 second block times
 		let halving_total_stake_checkpoints: Vec<u64> =
 			vec![10_000_000, 20_000_000, 30_000_000, 40_000_000]
 				.iter()
@@ -948,4 +948,8 @@ impl<T: Config> Pallet<T> {
 
 
     }
+
+	pub fn get_pending_deregister_uids(netuid: u16) -> Vec<u16> {
+		return PendingDeregisterUids::<T>::get(netuid)
+	}
 }

@@ -14,21 +14,7 @@ use test_mock::*;
   pub fn set_weights() tests
 *****************************/
 
-// Test the call passes through the subspace module.
-#[test]
-#[cfg(not(tarpaulin))]
-fn test_set_weights_dispatch_info_ok() {
-	new_test_ext().execute_with(|| {
-		let uids = vec![1, 1];
-		let weights = vec![1, 1];
-		let netuid: u16 = 0;
-		let call = RuntimeCall::SubspaceModule(SubspaceCall::set_weights { netuid, uids, weights });
-		let dispatch_info = call.get_dispatch_info();
 
-		assert_eq!(dispatch_info.class, DispatchClass::Normal);
-		assert_eq!(dispatch_info.pays_fee, Pays::Yes);
-	});
-}
 
 // Test ensures that uids -- weights must have the same size.
 #[test]

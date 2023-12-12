@@ -72,11 +72,12 @@ impl<T: Config> Pallet<T> {
 		}
 
 
-		for (uid_i, key) in keys.iter() {
-			let mut stake_u64 = Self::get_stake_for_key(netuid, key).clone();
-			stake_64[*uid_i as usize] = I64F64::from_num(stake_u64)/I64F64::from_num(total_stake_u64);
-		}
+		let stake_u64: Vec<u64> = keys
+			.iter()
+			.map(|(_, key)| Self::get_stake_for_key(netuid, key))
+			.collect();
 
+		let mut stake_64: Vec<I64F64> = stake_u64.iter().map(|x| I64F64::from_num(x.clone()) /I64F64::from_num(total_stake_u64)).collect();
 		let mut stake: Vec<I32F32> = stake_64.iter().map(|x| I32F32::from_num(x.clone())).collect();
 		// Normalize active stake.
 		inplace_normalize(&mut stake);
@@ -169,8 +170,7 @@ impl<T: Config> Pallet<T> {
 		// =================================
 		// == Emission==
 		// =================================
-		let mut incentive_ratio: u16 = Self::get_incentive_ratio(netuid);
-		let mut incentive_ratio: I64F64 =  I64F64::from_num(Self::get_incentive_ratio(netuid)) / I64F64::from_num(100);
+		let mut incentive_ratio: I64F64 =  I64F64::from_num(Self::get_incentive_ratio(netuid) as u64) / I64F64::from_num(100);
 		let dividend_ratio: I64F64 = I64F64::from_num(1.0) - incentive_ratio;
 
 
@@ -190,19 +190,28 @@ impl<T: Config> Pallet<T> {
 		let dividends_emission: Vec<u64> =
 			dividends_emission_float.iter().map(|e: &I64F64| e.to_num::<u64>()).collect();
 
-		// get the burn emission per epoch
-		let mut burn_amount_per_epoch: u64 = Self::get_burn_emission_per_epoch(netuid);
+		let burn_rate: u16 = BurnRate::<T>::get(netuid);
+		let mut burn_amount_per_epoch : u64 = 0;
+		// get the float and convert to u64
+
+		if burn_rate > 0 {
+
+			let burn_rate_float : I64F64 = (I64F64::from_num(burn_rate)/I64F64::from_num(100)) * (I64F64::from_num(token_emission) / I64F64::from_num(n));
+			burn_amount_per_epoch = burn_rate_float.to_num::<u64>();
+		}
+			// burn the amount
+
 		let mut zero_stake_uids : Vec<u16> = Vec::new();
 		let min_stake: u64 = Self::get_min_stake(netuid);
 
 		// Emission tuples ( keys, u64 emission)
 		for (module_uid, module_key) in keys.iter() {
 
-			let mut owner_emission_incentive: u64 = incentive_emission[*module_uid as usize] + dividends_emission[*module_uid as usize];
+			let mut owner_emission_incentive: u64 = incentive_emission[*module_uid as usize];
 			let mut owner_dividends_emission: u64 = dividends_emission[*module_uid as usize];
 			let mut owner_emission: u64 = owner_emission_incentive + owner_dividends_emission;
 			// calculate the future
-			let mut total_future_stake: u64 = stake_64[*module_uid as usize].to_num::<u64>();
+			let mut total_future_stake: u64 = stake_u64[*module_uid as usize];
 			// add the emisssion and rm the burn amount
 			total_future_stake = total_future_stake.saturating_add(owner_emission);
 			total_future_stake = total_future_stake.saturating_sub(burn_amount_per_epoch);
@@ -249,7 +258,7 @@ impl<T: Config> Pallet<T> {
 				// add the ownership
 				for (delegate_key, delegate_ratio) in ownership_vector.iter() {
 
-					let mut dividends_from_delegate : u64 = (delegate_ratio * I64F64::from_num(dividends_emission[*module_uid as usize])).to_num::<u64>();
+					let mut dividends_from_delegate : u64 = I64F64::from_num(dividends_emission[*module_uid as usize]).to_num::<u64>();
 					let to_module: u64 = delegation_fee.mul_floor(dividends_from_delegate);
 					let to_delegate: u64 = dividends_from_delegate.saturating_sub(to_module);
 					Self::increase_stake(netuid, delegate_key, module_key, to_delegate);
