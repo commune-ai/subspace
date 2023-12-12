@@ -212,7 +212,6 @@ impl<T: Config> Pallet<T> {
 				zero_stake_uids.push(*module_uid as u16);
 			}
 
-
 			// if the owner emission is less than the burn amount
 			if burn_amount_per_epoch > owner_emission {
 				let amount_to_burn: u64 = burn_amount_per_epoch.saturating_sub(owner_emission);
