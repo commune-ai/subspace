@@ -82,12 +82,12 @@ fn test_max_proposals() {
 	let mut global_params = SubspaceModule::global_params();
 	assert_eq!(global_params.vote_mode, "authority".as_bytes().to_vec(), "vote mode not set");
 	global_params.vote_mode = "stake".as_bytes().to_vec();
-	global_params.max_proposals = (n - 1) as u64;
+	global_params.max_proposals = (n / 2) as u64;
 	println!("params: {:?}", global_params);
 	SubspaceModule::set_global_params(global_params.clone());
 
 	assert_eq!(global_params.vote_mode, "stake".as_bytes().to_vec(), "vote mode not set");
-	for i in 0..n-1 {
+	for i in 0..n {
 		let proposals = SubspaceModule::get_subnet_proposals(netuid);
 		let has_max_proposals = SubspaceModule::has_max_proposals();
 		let max_proposals = SubspaceModule::get_max_proposals();

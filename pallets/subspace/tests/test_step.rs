@@ -709,3 +709,71 @@ fn test_trust() {
 // 		}
 // 	});
 // }
+
+
+fn test_pruning() {
+	new_test_ext().execute_with(|| {
+		// CONSSTANTS
+		let netuid: u16 = 0;
+		let n: u16 = 100;
+		let blocks_per_epoch_list: u64 = 1;
+		let stake_per_module: u64 = 10_000;
+		let tempo: u16 = 1;
+
+		// SETUP NETWORK
+		register_n_modules(netuid, n, stake_per_module);
+
+		SubspaceModule::set_tempo(netuid, 1);
+		SubspaceModule::set_max_allowed_weights(netuid, n);
+		SubspaceModule::set_min_allowed_weights(netuid, 0);
+
+		// for i in 0..n {
+
+		//     let key: U256 = U256::from(i);
+		//     register_module( netuid, key, stake_per_module );
+
+		// }
+		let keys = SubspaceModule::get_keys(netuid);
+		let uids = SubspaceModule::get_uids(netuid);
+
+		// do a list of ones for weights
+		let weight_uids: Vec<u16> = (0..n).collect();
+		// do a list of ones for weights
+		let mut weight_values: Vec<u16> = weight_uids.iter().map(|x| 1 as u16).collect();
+
+		let prune_uid: u16 = n - 1;
+		weight_values[prune_uid as usize] = 0;
+		set_weights(netuid, keys[0], weight_uids.clone(), weight_values.clone());
+		step_block(tempo);
+		let lowest_priority_uid: u16 = SubspaceModule::get_lowest_uid(netuid);
+		assert!(lowest_priority_uid == prune_uid);
+
+		let new_key: U256 = U256::from(n + 1);
+		let lowest_priority_staker_vector: Vec<(U256, u64)> =
+			SubspaceModule::get_stake_from_vector(netuid, &keys[lowest_priority_uid as usize]);
+		let lowest_priority_stakers_balance_before: Vec<u64> = lowest_priority_staker_vector
+			.iter()
+			.map(|x| SubspaceModule::get_balance_u64(&x.0))
+			.collect();
+		register_module(netuid, new_key, stake_per_module);
+
+		for (i, (staker_key, staker_stake)) in lowest_priority_staker_vector.iter().enumerate() {
+			let expected_balance: u64 = lowest_priority_stakers_balance_before[i] - staker_stake;
+			let actual_balance: u64 = SubspaceModule::get_balance_u64(staker_key);
+			assert!(
+				expected_balance == actual_balance,
+				"expected_balance: {} != actual_balance: {}",
+				expected_balance,
+				actual_balance
+			);
+		}
+
+		let is_registered: bool = SubspaceModule::is_key_registered(netuid, &new_key);
+		assert!(is_registered);
+		assert!(SubspaceModule::get_subnet_n(netuid) == n);
+		let is_prune_registered: bool =
+			SubspaceModule::is_key_registered(netuid, &keys[prune_uid as usize]);
+		assert!(!is_prune_registered);
+		check_network_stats(netuid);
+	});
+}

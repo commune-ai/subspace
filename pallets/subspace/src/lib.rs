@@ -824,7 +824,7 @@ pub mod pallet {
 	// Dispatchable functions must be annotated with a weight and must return a DispatchResult.
 	#[pallet::call]
 	impl<T: Config> Pallet<T> {
-		#[pallet::weight(T::WeightInfo::set_weights())]
+		#[pallet::weight((Weight::zero(), DispatchClass::Normal, Pays::No))]
 		pub fn set_weights(
 			origin: OriginFor<T>,
 			netuid: u16,
@@ -834,7 +834,7 @@ pub mod pallet {
 			Self::do_set_weights(origin, netuid, uids, weights)
 		}
 
-		#[pallet::weight(T::WeightInfo::add_stake())]
+		#[pallet::weight((Weight::zero(), DispatchClass::Normal, Pays::No))]
 		pub fn add_stake(
 			origin: OriginFor<T>,
 			netuid: u16,
@@ -844,7 +844,7 @@ pub mod pallet {
 			Self::do_add_stake(origin, netuid, module_key, amount)
 		}
 
-		#[pallet::weight(T::WeightInfo::add_stake_multiple())]
+		#[pallet::weight((Weight::zero(), DispatchClass::Normal, Pays::No))]
 		pub fn add_stake_multiple(
 			origin: OriginFor<T>,
 			netuid: u16,
@@ -854,7 +854,7 @@ pub mod pallet {
 			Self::do_add_stake_multiple(origin, netuid, module_keys, amounts)
 		}
 
-		#[pallet::weight(T::WeightInfo::remove_stake())]
+		#[pallet::weight((Weight::zero(), DispatchClass::Normal, Pays::No))]
 		pub fn remove_stake(
 			origin: OriginFor<T>,
 			netuid: u16,
@@ -864,7 +864,7 @@ pub mod pallet {
 			Self::do_remove_stake(origin, netuid, module_key, amount)
 		}
 
-		#[pallet::weight(T::WeightInfo::remove_stake_multiple())]
+		#[pallet::weight((Weight::zero(), DispatchClass::Normal, Pays::No))]
 		pub fn remove_stake_multiple(
 			origin: OriginFor<T>,
 			netuid: u16,
@@ -875,7 +875,7 @@ pub mod pallet {
 		}
 
 
-		#[pallet::weight(T::WeightInfo::transfer_stake())]
+		#[pallet::weight((Weight::zero(), DispatchClass::Normal, Pays::No))]
 		pub fn transfer_stake(
 			origin: OriginFor<T>,         // --- The account that is calling this function.
 			netuid: u16,                  // --- The network id.
@@ -886,7 +886,7 @@ pub mod pallet {
 			Self::do_transfer_stake(origin, netuid, module_key, new_module_key, amount)
 		}
 
-		#[pallet::weight(T::WeightInfo::transfer_multiple())]
+		#[pallet::weight((Weight::zero(), DispatchClass::Normal, Pays::No))]
 		pub fn transfer_multiple(
 			origin: OriginFor<T>, // --- The account that is calling this function.
 			destinations: Vec<T::AccountId>, // --- The module key.
@@ -895,7 +895,7 @@ pub mod pallet {
 			Self::do_transfer_multiple(origin, destinations, amounts)
 		}
 
-		#[pallet::weight(T::WeightInfo::update_subnet())]
+		#[pallet::weight((Weight::zero(), DispatchClass::Normal, Pays::No))]
 		pub fn update_subnet(
 			origin: OriginFor<T>,
 			netuid: u16,
@@ -905,7 +905,7 @@ pub mod pallet {
 		}
 
 
-		#[pallet::weight(T::WeightInfo::update_module())]
+		#[pallet::weight((Weight::zero(), DispatchClass::Normal, Pays::No))]
 		pub fn update_module(
 			origin: OriginFor<T>,
 			netuid: u16,
@@ -916,7 +916,7 @@ pub mod pallet {
 			Self::do_update_module(origin, netuid, name, address, delegation_fee)
 		}
 
-		#[pallet::weight(T::WeightInfo::register())]
+		#[pallet::weight((Weight::zero(), DispatchClass::Normal, Pays::No))]
 		pub fn register(
 			origin: OriginFor<T>,
 			network: Vec<u8>,

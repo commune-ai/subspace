@@ -32,6 +32,7 @@ impl<T: Config> Pallet<T> {
         // refresh the voting power
         // remove the proposal owner from the participants  
         proposal.participants = Vec::new();
+        proposal.votes = 0;
 
         let voting_power = Self::get_voting_power(&key, proposal.clone());
         let mut voter_info = Voter2Info::<T>::get(key.clone());
