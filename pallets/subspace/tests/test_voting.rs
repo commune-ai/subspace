@@ -65,6 +65,54 @@ fn test_subnet_porposal() {
 
 }
 
+#[test]
+fn test_max_proposals() {
+    new_test_ext().execute_with(|| {
+        
+	let netuid = 0;
+	let n = 100;
+	let keys: Vec<U256> = (0..n).into_iter().map(|x| U256::from(x)).collect();
+	let mut stakes= vec![1_000_000_000; n];
+	stakes[n-1] = 1_000_000_1000;
+	
+	for (i, key) in keys.iter().enumerate() {
+		assert_ok!(register_module(netuid, *key, stakes[i]));
+	}
+
+	let mut global_params = SubspaceModule::global_params();
+	assert_eq!(global_params.vote_mode, "authority".as_bytes().to_vec(), "vote mode not set");
+	global_params.vote_mode = "stake".as_bytes().to_vec();
+	global_params.max_proposals = (n - 1) as u64;
+	println!("params: {:?}", global_params);
+	SubspaceModule::set_global_params(global_params.clone());
+
+	assert_eq!(global_params.vote_mode, "stake".as_bytes().to_vec(), "vote mode not set");
+	for i in 0..n-1 {
+		let proposals = SubspaceModule::get_subnet_proposals(netuid);
+		let has_max_proposals = SubspaceModule::has_max_proposals();
+		let max_proposals = SubspaceModule::get_max_proposals();
+		let num_proposals = SubspaceModule::num_proposals();
+		// assert_eq!(max_proposals, (n - 1) as u64, "proposal not added");
+		println!("max_proposals: {:?}", max_proposals);
+		println!("has_max_proposals: {:?}", has_max_proposals);
+		println!("num_proposals: {:?}", num_proposals);
+
+		println!("proposals: {:?}", proposals.len());
+		assert_ok!(SubspaceModule::add_global_proposal(get_origin(keys[i as usize]), global_params.clone()));
+	}
+
+	assert_ok!(SubspaceModule::add_global_proposal(get_origin(keys[n-1 as usize]), global_params.clone()));
+	
+	// we have not passed the threshold yet
+	let proposals = SubspaceModule::get_subnet_proposals(netuid);
+
+	println!("proposals: {:?}", proposals);
+	
+
+
+	});
+
+}
 
 
 

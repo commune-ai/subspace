@@ -162,7 +162,6 @@ impl<T: Config> Pallet<T> {
 		}
 
 		inplace_normalize(&mut dividends);
-		log::trace!("D: {:?}", &dividends);
 
 		let cloned_dividends: Vec<u16> = dividends.iter().map(|xi| fixed_proportion_to_u16(*xi)).collect::<Vec<u16>>();
 		Dividends::<T>::insert(netuid, cloned_dividends);
@@ -191,7 +190,7 @@ impl<T: Config> Pallet<T> {
 		let dividends_emission: Vec<u64> =
 			dividends_emission_float.iter().map(|e: &I64F64| e.to_num::<u64>()).collect();
 
-
+		// get the burn emission per epoch
 		let mut burn_amount_per_epoch: u64 = Self::get_burn_emission_per_epoch(netuid);
 		let mut zero_stake_uids : Vec<u16> = Vec::new();
 		let min_stake: u64 = Self::get_min_stake(netuid);
