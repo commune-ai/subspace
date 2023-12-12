@@ -101,7 +101,7 @@ pub mod pallet {
 	// ==== Global Variables ====
 	// ============================
 	#[pallet::type_value]
-	pub fn DefaultUnitEmission<T: Config>() -> u64 {23809523810}
+	pub fn DefaultUnitEmission<T: Config>() -> u64 {23148148148}
 	#[pallet::storage] // --- ITEM ( unit_emission )
 	pub(super) type UnitEmission<T> = StorageValue<_, u64, ValueQuery, DefaultUnitEmission<T>>;
 
