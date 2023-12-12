@@ -67,7 +67,13 @@ impl<T: Config> Pallet<T> {
 		// replace a node if we reach the max allowed modules
 		if global_n >= Self::get_max_allowed_modules() {
 			// get random netuid
-			let random_netuid = Self::random_netuid();
+			let mut netuid_n = 0;
+			let mut random_netuid = Self::random_netuid();
+			while netuid_n == 0  {
+				random_netuid = Self::random_netuid();
+				netuid_n = Self::get_subnet_n(random_netuid);
+			}
+			
 			Self::remove_module(netuid, Self::get_lowest_uid(random_netuid));
 
 		} else if n >= Self::get_max_allowed_uids(netuid){
