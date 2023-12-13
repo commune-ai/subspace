@@ -17,6 +17,8 @@ impl<T: Config> Pallet<T> {
 			vote_threshold: Self::get_global_vote_threshold(),
 			max_proposals: Self::get_max_proposals(),
 			vote_mode: Self::get_vote_mode_global(),
+			burn_rate: Self::get_burn_rate(),
+			min_burn: Self::get_min_burn()
 		}
 	}
 
@@ -33,13 +35,13 @@ impl<T: Config> Pallet<T> {
 
         ensure!(params.max_registrations_per_block > 0, "Invalid max_registrations_per_block");
 
-        ensure!(params.unit_emission > 0, "Invalid unit_emission");
-
-		ensure!(params.vote_threshold > 0, "Invalid vote_threshold");
 		ensure!(params.vote_threshold < 100, "Invalid vote_threshold");
 
-        ensure!(params.tx_rate_limit > 0, "Invalid tx_rate_limit");
 		ensure!(params.tx_rate_limit < 100, "Invalid tx_rate_limit");
+		
+		assert!(params.burn_rate <= 100, "Invalid burn_rate");
+                
+		assert!(params.min_burn <= 100, "Invalid vote_threshold");
 		
         Ok(())
     }
@@ -65,6 +67,10 @@ impl<T: Config> Pallet<T> {
 
 		Self::set_vote_mode_global(params.vote_mode);
 
+		Self::set_burn_rate(params.burn_rate);
+
+		Self::set_min_burn( params.min_burn);
+
 
 	}
 
@@ -75,7 +81,16 @@ impl<T: Config> Pallet<T> {
 	pub fn get_vote_mode_global() -> Vec<u8> {
 		return VoteModeGlobal::<T>::get();
 	}
+	pub fn get_burn_rate() -> u16 {
+		return BurnRate::<T>::get()
+	}
 
+	pub fn set_burn_rate(mut burn_rate: u16) {
+		if burn_rate > 100 {
+			burn_rate = 100;
+		}
+		BurnRate::<T>::put(burn_rate);
+	}
 	
 	pub fn set_max_proposals(max_proposals: u64) {
 		MaxProposals::<T>::put(max_proposals);
@@ -137,7 +152,29 @@ impl<T: Config> Pallet<T> {
     }
 
 
+	// Configure tx rate limiting
+	pub fn get_tx_rate_limit() -> u64 {
+		TxRateLimit::<T>::get()
+	}
+	pub fn set_tx_rate_limit(tx_rate_limit: u64) {
+		TxRateLimit::<T>::put(tx_rate_limit)
+	}
 
+	pub fn set_min_burn( min_burn: u64) {
+		MinBurn::<T>::put(min_burn);
+	}
 
+	pub fn get_min_burn() -> u64 {
+		MinBurn::<T>::get().into()
+	}
 
+	// ========================
+	// ==== Rate Limiting =====
+	// ========================
+	pub fn get_last_tx_block(key: &T::AccountId) -> u64 {
+		LastTxBlock::<T>::get(key)
+	}
+	pub fn set_last_tx_block(key: &T::AccountId, last_tx_block: u64) {
+		LastTxBlock::<T>::insert(key, last_tx_block)
+	}
 }

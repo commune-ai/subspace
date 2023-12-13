@@ -15,6 +15,36 @@ extern crate alloc;
 impl<T: Config> Pallet<T> {
 	// Returns true if the subnetwork exists.
 	//
+
+
+	pub fn do_remove_network(origin: T::RuntimeOrigin, netuid: u16) -> DispatchResult {
+		let key = ensure_signed(origin)?;
+		// --- 1. Ensure the network name does not already exist.
+
+		ensure!(Self::if_subnet_netuid_exists(netuid), Error::<T>::SubnetNameAlreadyExists);
+		ensure!(Self::is_subnet_founder(netuid, &key), Error::<T>::NotFounder);
+
+		Self::remove_network_for_netuid(netuid);
+		// --- 16. Ok and done.
+		Ok(())
+	}
+
+	pub fn do_update_subnet(
+		origin: T::RuntimeOrigin,
+		netuid: u16,
+		params: SubnetParams,
+	) -> DispatchResult {
+		let key = ensure_signed(origin)?;
+		// only the founder can update the network on authority mode
+		assert!(is_vec_str(params.vote_mode.clone(), "authority"));
+		ensure!(Self::if_subnet_netuid_exists(netuid), Error::<T>::SubnetNameAlreadyExists);
+		ensure!(Self::is_subnet_founder(netuid, &key), Error::<T>::NotFounder);
+		Self::check_subnet_params(params.clone());
+		Self::set_subnet_params(netuid, params);
+		// --- 16. Ok and done.
+		Ok(())
+	}
+
 	pub fn if_subnet_exist(netuid: u16) -> bool {
 		return N::<T>::contains_key(netuid)
 	}
@@ -62,34 +92,6 @@ impl<T: Config> Pallet<T> {
 	}
 
 
-	pub fn do_remove_network(origin: T::RuntimeOrigin, netuid: u16) -> DispatchResult {
-		let key = ensure_signed(origin)?;
-		// --- 1. Ensure the network name does not already exist.
-
-		ensure!(Self::if_subnet_netuid_exists(netuid), Error::<T>::SubnetNameAlreadyExists);
-		ensure!(Self::is_subnet_founder(netuid, &key), Error::<T>::NotFounder);
-
-		Self::remove_network_for_netuid(netuid);
-		// --- 16. Ok and done.
-		Ok(())
-	}
-
-	pub fn do_update_subnet(
-		origin: T::RuntimeOrigin,
-		netuid: u16,
-		params: SubnetParams,
-	) -> DispatchResult {
-		let key = ensure_signed(origin)?;
-		// only the founder can update the network on authority mode
-		assert!(is_vec_str(params.vote_mode.clone(), "authority"));
-		ensure!(Self::if_subnet_netuid_exists(netuid), Error::<T>::SubnetNameAlreadyExists);
-		ensure!(Self::is_subnet_founder(netuid, &key), Error::<T>::NotFounder);
-		Self::check_subnet_params(params.clone());
-		Self::set_subnet_params(netuid, params);
-		// --- 16. Ok and done.
-		Ok(())
-	}
-
 	pub fn subnet_params(netuid: u16) -> SubnetParams {
 		SubnetParams {
 			immunity_period: ImmunityPeriod::<T>::get(netuid),
@@ -99,10 +101,8 @@ impl<T: Config> Pallet<T> {
 			min_stake: MinStake::<T>::get(netuid),
 			tempo: Tempo::<T>::get(netuid),
 			name: <Vec<u8>>::new(),
-			burn_rate: BurnRate::<T>::get(netuid),
 			vote_threshold: SubnetVoteThreshold::<T>::get(netuid),
 			vote_mode:VoteModeSubnet::<T>::get(netuid),
-			min_burn: MinBurn::<T>::get(netuid),
 			trust_ratio: TrustRatio::<T>::get(netuid),
 			self_vote: SelfVote::<T>::get(netuid),
 			founder_share: FounderShare::<T>::get(netuid),
@@ -146,11 +146,7 @@ impl<T: Config> Pallet<T> {
 
 		Self::set_vote_mode_subnet(netuid, params.vote_mode);
 
-		Self::set_burn_rate(netuid, params.burn_rate);
-
 		Self::set_subnet_name(netuid, params.name);
-
-		Self::set_min_burn(netuid, params.min_burn);
 
 		Self::set_trust_ratio(netuid, params.trust_ratio);
 
@@ -323,7 +319,6 @@ impl<T: Config> Pallet<T> {
 		MaxAllowedWeights::<T>::insert(netuid, params.max_allowed_weights);
 		MinStake::<T>::insert(netuid, params.min_stake);
 		Name2Subnet::<T>::insert(params.name.clone(), netuid);
-		BurnRate::<T>::insert(netuid, params.burn_rate);
 		FounderShare::<T>::insert(netuid, params.founder_share);
 		IncentiveRatio::<T>::insert(netuid, params.incentive_ratio);
 		// set stat once network is created
@@ -415,7 +410,6 @@ impl<T: Config> Pallet<T> {
 		ImmunityPeriod::<T>::remove(netuid);
 		MinAllowedWeights::<T>::remove(netuid);
 		MaxAllowedWeights::<T>::remove(netuid);
-		BurnRate::<T>::remove(netuid);
 		SelfVote::<T>::remove(netuid);
 		SubnetEmission::<T>::remove(netuid);
 		IncentiveRatio::<T>::remove(netuid);
@@ -587,14 +581,6 @@ impl<T: Config> Pallet<T> {
 		Tempo::<T>::insert(netuid, tempo);
 	}
 
-	pub fn set_min_burn(netuid: u16, min_burn: u64) {
-		MinBurn::<T>::insert(netuid, min_burn);
-	}
-
-	pub fn get_min_burn(netuid: u16) -> u64 {
-		MinBurn::<T>::get(netuid).into()
-	}
-
 	pub fn set_founder_share(netuid: u16, mut founder_share: u16) {
 		if founder_share > 100 {
 			founder_share = 100;
@@ -624,19 +610,10 @@ impl<T: Config> Pallet<T> {
 		Founder::<T>::insert(netuid, founder);
 	}
 
-	pub fn get_burn_rate(netuid: u16) -> u16 {
-		return BurnRate::<T>::get(netuid)
-	}
 
-	pub fn set_burn_rate(netuid: u16, mut burn_rate: u16) {
-		if burn_rate > 100 {
-			burn_rate = 100;
-		}
-		BurnRate::<T>::insert(netuid, burn_rate);
-	}
 
 	pub fn get_burn_emission_per_epoch(netuid: u16) -> u64 {
-		let burn_rate: u16 = BurnRate::<T>::get(netuid);
+		let burn_rate: u16 = BurnRate::<T>::get();
 		let epoch_emission: u64 = Self::get_subnet_emission(netuid);
 		let n: u16 = Self::get_subnet_n(netuid);
 		// get the float and convert to u64
@@ -736,23 +713,8 @@ impl<T: Config> Pallet<T> {
 	pub fn get_module_age(netuid: u16, uid: u16) -> u64 {
 		return Self::get_current_block_as_u64() - Self::get_module_registration_block(netuid, uid)
 	}
-	// ========================
-	// ==== Rate Limiting =====
-	// ========================
-	pub fn get_last_tx_block(key: &T::AccountId) -> u64 {
-		LastTxBlock::<T>::get(key)
-	}
-	pub fn set_last_tx_block(key: &T::AccountId, last_tx_block: u64) {
-		LastTxBlock::<T>::insert(key, last_tx_block)
-	}
 
-	// Configure tx rate limiting
-	pub fn get_tx_rate_limit() -> u64 {
-		TxRateLimit::<T>::get()
-	}
-	pub fn set_tx_rate_limit(tx_rate_limit: u64) {
-		TxRateLimit::<T>::put(tx_rate_limit)
-	}
+
 
 	pub fn get_immunity_period(netuid: u16) -> u16 {
 		ImmunityPeriod::<T>::get(netuid)
@@ -928,13 +890,7 @@ impl<T: Config> Pallet<T> {
 		assert!(params.max_allowed_weights >= params.min_allowed_weights, "Invalid max_allowed_weights");
 		
 		assert!(params.max_allowed_weights <= params.max_allowed_uids, "Invalid max_allowed_weights");
-                
-		assert!(params.burn_rate <= 100, "Invalid burn_rate");
-                
-		assert!(params.burn_rate <= 100, "Invalid vote_threshold");
-		
-		assert!(params.min_burn <= params.min_stake, "Invalid min_burn");
-		
+                		
 		// ensure the trust_ratio is between 0 and 100
 		assert!(params.trust_ratio <= 100, "Invalid trust_ratio");
 
