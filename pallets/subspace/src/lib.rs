@@ -316,7 +316,6 @@ pub mod pallet {
 
 	#[pallet::type_value]
 	pub fn DefaultQuadraticVoting<T: Config>() -> bool {false}
-	
 	#[pallet::storage] // --- MAP ( netuid ) --> epoch
 	pub type QuadraticVoting<T> = StorageMap<_, Identity, u16, bool, ValueQuery, DefaultQuadraticVoting<T>>;
 
@@ -366,8 +365,6 @@ pub mod pallet {
 	pub struct SubnetInfo<T: Config> {
 		// --- parameters
 		pub params: SubnetParams ,
-		// pub mode: u8, // --- 0 for open, 1 for closed.
-		// state variables
 		pub netuid: u16, // --- unique id of the network
 		pub n: u16,
 		pub stake: u64,
