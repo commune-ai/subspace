@@ -727,8 +727,10 @@ fn test_pending_deregistration() {
 		println!("{:?}", stake_from_vector);
 	}
 	// now we set the p. rams
-	let mut params = SubspaceModule::subnet_params(netuid);
+	let mut params = SubspaceModule::global_params();
 	params.burn_rate = 100;
+	SubspaceModule::set_global_params(params.clone());
+	let mut params = SubspaceModule::subnet_params(netuid);
 	params.min_stake = stakes[0];
 	params.tempo = 10;
 	SubspaceModule::set_subnet_params(netuid, params.clone());

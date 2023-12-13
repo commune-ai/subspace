@@ -56,7 +56,7 @@ impl<T: Config> Pallet<T> {
 		ensure!(!Self::is_key_registered(netuid, &key), Error::<T>::KeyAlreadyRegistered);
 		ensure!(!Self::if_module_name_exists(netuid, name.clone()),Error::<T>::NameAlreadyRegistered);
 
-		let min_burn: u64 = Self::get_min_burn(netuid);
+		let min_burn: u64 = Self::get_min_burn();
 
 		RegistrationsPerBlock::<T>::mutate(|val| *val += 1);
 
@@ -131,7 +131,7 @@ impl<T: Config> Pallet<T> {
 
 	pub fn enough_stake_to_register(netuid: u16, stake_amount: u64) -> bool {
 		let min_stake: u64 = Self::get_min_stake_to_register(netuid);
-		let min_burn = Self::get_min_burn(netuid);
+		let min_burn = Self::get_min_burn();
 		return stake_amount >= (min_stake + min_burn)
 	}
 

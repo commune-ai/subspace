@@ -41,10 +41,10 @@ fn test_burn() {
 	}
 	println!("{:?}", SubspaceModule::get_stake_for_key(netuid, &voter_key));
 	assert_ok!(SubspaceModule::set_weights(get_origin(voter_key),netuid, uids, votes));
-	let mut params = SubspaceModule::subnet_params(netuid);
+	let mut params = SubspaceModule::global_params();
 	params.burn_rate = 100;
-	SubspaceModule::set_subnet_params(netuid, params);
-	params = SubspaceModule::subnet_params(netuid);
+	SubspaceModule::set_global_params(params);
+	params = SubspaceModule::global_params();
 	println!("params: {:?}", params);
 	println!("burn : {:?}", SubspaceModule::get_burn_emission_per_epoch(netuid));
 	let epochs = 10;
@@ -101,10 +101,10 @@ fn test_min_burn() {
 
 	// set the burn min to 1000000000
 	// register_module(netuid, keys[i]);
-	let mut params = SubspaceModule::subnet_params(netuid);
+	let mut params = SubspaceModule::global_params();
 	params.min_burn = 100;
-	SubspaceModule::set_subnet_params(netuid, params.clone());
-	params = SubspaceModule::subnet_params(netuid);
+	SubspaceModule::set_global_params(params.clone());
+	params = SubspaceModule::global_params();
 	for i in 1..n {
 		assert_ok!(register_module(netuid, keys[i], stakes[i]));
 		println!("params: {:?}", params);

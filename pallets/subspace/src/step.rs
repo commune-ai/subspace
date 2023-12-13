@@ -190,7 +190,7 @@ impl<T: Config> Pallet<T> {
 		let dividends_emission: Vec<u64> =
 			dividends_emission_float.iter().map(|e: &I64F64| e.to_num::<u64>()).collect();
 
-		let burn_rate: u16 = BurnRate::<T>::get(netuid);
+		let burn_rate: u16 = Self::get_burn_rate();
 		let mut burn_amount_per_epoch : u64 = 0;
 		// get the float and convert to u64
 

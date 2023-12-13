@@ -111,6 +111,17 @@ pub mod pallet {
 	pub(super) type TxRateLimit<T> = StorageValue<_, u64, ValueQuery, DefaultTxRateLimit<T>>;
 	// FIXME: NOT IN USE
 	
+
+	#[pallet::type_value]
+	pub fn DefaultBurnRate<T: Config>() -> u16 {0}
+	#[pallet::storage] // --- MAP ( netuid ) --> min_allowed_weights
+	pub type BurnRate<T> = StorageValue<_ , u16, ValueQuery, DefaultBurnRate<T>>;
+
+	#[pallet::type_value]
+	pub fn DefaultMinBurn<T: Config>() -> u64 {0}
+	#[pallet::storage] // --- MAP ( netuid ) --> min_allowed_weights
+	pub type MinBurn<T> = StorageValue<_, u64, ValueQuery, DefaultMinBurn<T>>;
+
 	
 	#[pallet::type_value]
 	pub fn DefaultLastTxBlock<T: Config>() -> u64 { 0 }
@@ -171,6 +182,9 @@ pub mod pallet {
 		pub vote_threshold: u16,
 		pub vote_mode: Vec<u8>,
 		pub max_proposals: u64,
+		pub burn_rate: u16,
+		pub min_burn: u64
+
 	}
 
 	#[pallet::type_value]
@@ -185,6 +199,8 @@ pub mod pallet {
 			vote_threshold: DefaultVoteThreshold::<T>::get(),
 			vote_mode: DefaultVoteMode::<T>::get(),
 			max_proposals: DefaultMaxProposals::<T>::get(),
+			min_burn: DefaultMinBurn::<T>::get(),
+			burn_rate: DefaultBurnRate::<T>::get()
 		}
 	}
 
@@ -201,9 +217,7 @@ pub mod pallet {
 		pub max_allowed_uids: u16, // max number of weights allowed to be registered in this		pub max_allowed_uids: u16, // max number of uids allowed to be registered in this subne
 		pub min_allowed_weights: u16, // min number of weights allowed to be registered in this
 		pub max_allowed_weights: u16, // max number of weights allowed to be registered in this		pub max_allowed_uids: u16, // max number of uids allowed to be registered in this subnet
-		pub burn_rate: u16,        // out of 100
 		pub min_stake: u64,	// min stake required
-		pub min_burn: u64, 
 		pub vote_threshold: u16, // out of 100
 		pub vote_mode: Vec<u8>,
 		pub trust_ratio: u16,
@@ -221,15 +235,13 @@ pub mod pallet {
 			min_allowed_weights: DefaultMinAllowedWeights::<T>::get(),
 			max_allowed_weights: DefaultMaxAllowedWeights::<T>::get(),
 			max_allowed_uids: DefaultMaxAllowedUids::<T>::get(),
-			burn_rate: DefaultBurnRate::<T>::get(),
-			min_stake: DefaultMinStake::<T>::get(), 
 			vote_threshold: DefaultVoteThreshold::<T>::get(),
 			vote_mode: DefaultVoteMode::<T>::get(),
-			min_burn: DefaultMinBurn::<T>::get(),
 			trust_ratio: DefaultTrustRatio::<T>::get(),
 			self_vote: DefaultSelfVote::<T>::get(),
 			founder_share: DefaultFounderShare::<T>::get(),
-			incentive_ratio : DefaultIncentiveRatio::<T>::get()
+			incentive_ratio : DefaultIncentiveRatio::<T>::get(), 
+			min_stake :  DefaultMinStake::<T>::get()
 
 		}
 	}
@@ -267,17 +279,6 @@ pub mod pallet {
 	#[pallet::storage] // --- MAP ( netuid ) --> min_allowed_weights
 	pub type MaxAllowedWeights<T> =StorageMap<_, Identity, u16, u16, ValueQuery, DefaultMaxAllowedWeights<T>>;
 	
-
-	#[pallet::type_value]
-	pub fn DefaultBurnRate<T: Config>() -> u16 {0}
-	#[pallet::storage] // --- MAP ( netuid ) --> min_allowed_weights
-	pub type BurnRate<T> = StorageMap<_, Identity, u16, u16, ValueQuery, DefaultBurnRate<T>>;
-
-	#[pallet::type_value]
-	pub fn DefaultMinBurn<T: Config>() -> u64 {0}
-	#[pallet::storage] // --- MAP ( netuid ) --> min_allowed_weights
-	pub type MinBurn<T> = StorageMap<_, Identity, u16, u64, ValueQuery, DefaultMinBurn<T>>;
-
 
 	#[pallet::type_value]
 	pub fn DefaultPendingDeregisterUids<T: Config>() -> Vec<u16> {vec![]}
@@ -719,10 +720,8 @@ pub mod pallet {
 					min_allowed_weights: subnet.3,
 					max_allowed_weights: subnet.4,
 					max_allowed_uids: subnet.5,
-					burn_rate: subnet.6,
 					min_stake: subnet.7,
 					vote_threshold: default_params.vote_threshold,
-					min_burn: default_params.min_burn,
 					vote_mode: default_params.vote_mode.clone(),
 					trust_ratio: default_params.trust_ratio,
 					self_vote: default_params.self_vote,

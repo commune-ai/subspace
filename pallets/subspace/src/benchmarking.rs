@@ -370,7 +370,6 @@ mod benchmarks {
 			subnet_params.min_allowed_weights,
 			subnet_params.max_allowed_weights,
 			subnet_params.max_allowed_uids,
-            subnet_params.burn_rate,
             min_stake,
 			subnet_params.founder,
         );
