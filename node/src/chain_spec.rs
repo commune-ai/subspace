@@ -120,7 +120,7 @@ pub fn generate_config(network: String) -> Result<ChainSpec, String> {
 
 		// Add  modules
 		modules.push(Vec::new());
-		for (uid, module) in state.modules[netuid].iter().enumerate() {
+		for module in state.modules[netuid].iter() {
 			modules[netuid].push((
 				sp_runtime::AccountId32::from(
 					// module_key
@@ -135,14 +135,14 @@ pub fn generate_config(network: String) -> Result<ChainSpec, String> {
 		for (key_str, key_stake_to) in state.stake_to[netuid].iter() {
 			stake_to[netuid].push((
 				sp_runtime::AccountId32::from(
-					<sr25519::Public as Ss58Codec>::from_ss58check(&key_str).unwrap(),
+					<sr25519::Public as Ss58Codec>::from_ss58check(key_str).unwrap(),
 				),
 				key_stake_to
 					.iter()
 					.map(|(a, b)| {
 						(
 							sp_runtime::AccountId32::from(
-								<sr25519::Public as Ss58Codec>::from_ss58check(&a).unwrap(),
+								<sr25519::Public as Ss58Codec>::from_ss58check(a).unwrap(),
 							),
 							*b,
 						)
@@ -154,7 +154,7 @@ pub fn generate_config(network: String) -> Result<ChainSpec, String> {
 
 	let mut processed_balances: Vec<(sp_runtime::AccountId32, u64)> = Vec::new();
 	for (key_str, amount) in state.balances.iter() {
-		let key = <sr25519::Public as Ss58Codec>::from_ss58check(&key_str).unwrap();
+		let key = <sr25519::Public as Ss58Codec>::from_ss58check(key_str).unwrap();
 		let key_account = sp_runtime::AccountId32::from(key);
 
 		processed_balances.push((key_account, *amount));
@@ -208,14 +208,14 @@ pub fn generate_config(network: String) -> Result<ChainSpec, String> {
 }
 
 pub fn mainnet_config() -> Result<ChainSpec, String> {
-	return generate_config("main".to_string())
+	generate_config("main".to_string())
 }
 
 pub fn devnet_config() -> Result<ChainSpec, String> {
-	return generate_config("dev".to_string())
+	generate_config("dev".to_string())
 }
 pub fn testnet_config() -> Result<ChainSpec, String> {
-	return generate_config("dev".to_string())
+	generate_config("dev".to_string())
 }
 
 // Configure initial storage state for FRAME modules.
@@ -229,7 +229,7 @@ fn network_genesis(
 	stake_to: Vec<Vec<(AccountId, Vec<(AccountId, u64)>)>>,
 	block: u32,
 ) -> RuntimeGenesisConfig {
-	use node_subspace_runtime::{EVMChainIdConfig, EVMConfig};
+	use node_subspace_runtime::EVMConfig;
 
 	RuntimeGenesisConfig {
 		system: SystemConfig {
@@ -240,7 +240,7 @@ fn network_genesis(
 		balances: BalancesConfig {
 			// Configure endowed accounts with initial balance of 1 << 60.
 			//balances: balances.iter().cloned().map(|k| k).collect(),
-			balances: balances.iter().cloned().map(|(k, balance)| (k, balance)).collect(),
+			balances: balances.to_vec(),
 		},
 		aura: AuraConfig {
 			authorities: initial_authorities.iter().map(|x| (x.0.clone())).collect(),

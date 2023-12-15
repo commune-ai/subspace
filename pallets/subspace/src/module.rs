@@ -157,9 +157,6 @@ impl<T: Config> Pallet<T> {
 		let mut modules = Vec::new();
 		let n = Self::get_subnet_n(netuid);
 		for uid in 0..n {
-			let uid = uid;
-			let netuid = netuid;
-
 			let _module = Self::get_module_subnet_info(netuid, uid);
 			let module;
 			if _module.is_none() {
