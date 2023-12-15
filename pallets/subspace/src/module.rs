@@ -6,8 +6,8 @@ use frame_support::{
 extern crate alloc;
 use alloc::vec::Vec;
 use codec::Compact;
-use sp_std::vec;
 use sp_arithmetic::per_things::Percent;
+use sp_std::vec;
 
 #[derive(Decode, Encode, PartialEq, Eq, Clone, Debug)]
 pub struct ModuleSubnetInfo<T: Config> {
@@ -98,7 +98,11 @@ impl<T: Config> Pallet<T> {
 		Names::<T>::remove(netuid, replace_uid); // Fill module namespace.
 
 		// HANDLE THE DELEGATION FEE
-		DelegationFee::<T>::insert(netuid,replace_key.clone(),DelegationFee::<T>::get(netuid, uid_key.clone())); // Make uid - key association.
+		DelegationFee::<T>::insert(
+			netuid,
+			replace_key.clone(),
+			DelegationFee::<T>::get(netuid, uid_key.clone()),
+		); // Make uid - key association.
 		DelegationFee::<T>::remove(netuid, uid_key.clone()); // Make uid - key association.
 
 		// 3. Remove the network if it is empty.

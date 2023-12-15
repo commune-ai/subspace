@@ -10,8 +10,6 @@ use substrate_fixed::{
 };
 mod test_mock;
 
-
-
 fn check_network_stats(netuid: u16) {
 	let emission_buffer: u64 = 1_000; // the numbers arent perfect but we want to make sure they fall within a range (10_000 / 2**64)
 
@@ -358,8 +356,6 @@ fn test_blocks_until_epoch() {
 	});
 }
 
-
-
 #[test]
 fn test_incentives() {
 	new_test_ext().execute_with(|| {
@@ -377,7 +373,6 @@ fn test_incentives() {
 		params.max_allowed_weights = n;
 		params.tempo = 1;
 
-		
 		let keys = SubspaceModule::get_keys(netuid);
 		let uids = SubspaceModule::get_uids(netuid);
 
@@ -397,7 +392,6 @@ fn test_incentives() {
 		assert!(incentives[1] == incentives[2]);
 		assert!(emissions[1] == emissions[2]);
 
-
 		// do a list of ones for weights
 		let weight_values: Vec<u16> = [1, 2].to_vec();
 
@@ -410,18 +404,17 @@ fn test_incentives() {
 		let emissions: Vec<u64> = SubspaceModule::get_emissions(netuid);
 
 		// evaluate votees
-		let delta : u64 = 100;
+		let delta: u64 = 100;
 		assert!(incentives[1] > 0);
 
-		assert!(emissions[2] > 2 * emissions[1] - delta && 
-				emissions[2] < 2 * emissions[1] + delta , 
-				"emissions[1]: {} != emissions[2]: {}", emissions[1], emissions[2]);
-
-
-
+		assert!(
+			emissions[2] > 2 * emissions[1] - delta && emissions[2] < 2 * emissions[1] + delta,
+			"emissions[1]: {} != emissions[2]: {}",
+			emissions[1],
+			emissions[2]
+		);
 	});
 }
-
 
 #[test]
 fn test_trust() {
@@ -444,7 +437,6 @@ fn test_trust() {
 
 		SubspaceModule::set_subnet_params(netuid, params.clone());
 
-
 		let keys = SubspaceModule::get_keys(netuid);
 		let uids = SubspaceModule::get_uids(netuid);
 
@@ -460,26 +452,20 @@ fn test_trust() {
 		step_block(1);
 
 		let trust: Vec<u16> = SubspaceModule::get_trust(netuid);
-		let emission : Vec<u64> = SubspaceModule::get_emissions(netuid);
-
+		let emission: Vec<u64> = SubspaceModule::get_emissions(netuid);
 
 		// evaluate votees
 		println!("trust: {:?}", trust);
 		assert!(trust[1] as u32 > 0);
-		assert!(trust[2] as u32 > 2*(trust[1] as u32) - 10  );
+		assert!(trust[2] as u32 > 2 * (trust[1] as u32) - 10);
 		// evaluate votees
 		println!("trust: {:?}", emission);
-		assert!(emission[1]  > 0);
-		assert!(emission[2]  > 2*(emission[1] ) - 1000  );
+		assert!(emission[1] > 0);
+		assert!(emission[2] > 2 * (emission[1]) - 1000);
 
 		// assert!(trust[2] as u32 < 2*(trust[1] as u32)   );
-
-
 	});
 }
-
-
-
 
 // TODO:
 // #[test]
@@ -712,79 +698,73 @@ fn test_trust() {
 
 #[test]
 fn test_pending_deregistration() {
-    new_test_ext().execute_with(|| {
-        
-	let netuid = 0;
-	let n = 20;
-	let initial_stake: u64 = 1000;
-	let keys : Vec<U256> = (0..n).into_iter().map(|x| U256::from(x)).collect();
-	let stakes : Vec<u64> = (0..n).into_iter().map(|x| initial_stake * 1_000_000_000).collect();
+	new_test_ext().execute_with(|| {
+		let netuid = 0;
+		let n = 20;
+		let initial_stake: u64 = 1000;
+		let keys: Vec<U256> = (0..n).into_iter().map(|x| U256::from(x)).collect();
+		let stakes: Vec<u64> = (0..n).into_iter().map(|x| initial_stake * 1_000_000_000).collect();
 
-	
-	for i in 0..n {
-		assert_ok!(register_module(netuid, keys[i], stakes[i]));
-		let stake_from_vector = SubspaceModule::get_stake_to_vector(netuid, &keys[i]);
-		println!("{:?}", stake_from_vector);
-	}
-	// now we set the p. rams
-	let mut params = SubspaceModule::global_params();
-	params.burn_rate = 100;
-	SubspaceModule::set_global_params(params.clone());
-	let mut params = SubspaceModule::subnet_params(netuid);
-	params.min_stake = stakes[0];
-	params.tempo = 10;
-	SubspaceModule::set_subnet_params(netuid, params.clone());
-
-	let subnet_emission = SubspaceModule::get_subnet_emission(netuid);
-	println!("subnet_emission: {:?}", subnet_emission);
-
-
-	let voter_key = keys[1];
-
-
-	// vote to avoid key[0] as we want to see the key[0] burn
-	let mut votes : Vec<u16> = vec![];
-	let mut uids : Vec<u16> = vec![];
-	for i in 0..n {
-		if i != 0 {
-			votes.push(1);
-			uids.push(i as u16);
+		for i in 0..n {
+			assert_ok!(register_module(netuid, keys[i], stakes[i]));
+			let stake_from_vector = SubspaceModule::get_stake_to_vector(netuid, &keys[i]);
+			println!("{:?}", stake_from_vector);
 		}
-	}
-	println!("{:?}", SubspaceModule::get_stake_for_key(netuid, &voter_key));
-	assert_ok!(SubspaceModule::set_weights(get_origin(voter_key),netuid, uids, votes));
+		// now we set the p. rams
+		let mut params = SubspaceModule::global_params();
+		params.burn_rate = 100;
+		SubspaceModule::set_global_params(params.clone());
+		let mut params = SubspaceModule::subnet_params(netuid);
+		params.min_stake = stakes[0];
+		params.tempo = 10;
+		SubspaceModule::set_subnet_params(netuid, params.clone());
 
-	let stakes = SubspaceModule::get_stakes(netuid);
-	let total_stake_before = stakes.iter().sum::<u64>();
-	println!("total_stake_before: {:?}", total_stake_before);
-	step_block(params.tempo);
+		let subnet_emission = SubspaceModule::get_subnet_emission(netuid);
+		println!("subnet_emission: {:?}", subnet_emission);
 
-	let params = SubspaceModule::subnet_params(netuid);
-	println!("params: {:?}", params);
+		let voter_key = keys[1];
 
-	let emissions = SubspaceModule::get_emissions(netuid);
-	let total_emissions = emissions.iter().sum::<u64>();
-	println!("total_emissions: {:?}", total_emissions);
-	println!("emissions: {:?}", emissions);
-	let stakes = SubspaceModule::get_stakes(netuid);
-	let total_stake_after = stakes.iter().sum::<u64>();
-	println!("total_stake_after: {:?}", total_stake_after);
-	println!("staking: {:?}", stakes);
-	let key_stake = SubspaceModule::get_total_stake_to(netuid,&keys[1]);
-	let params = SubspaceModule::subnet_params(netuid);
-	let pending_deregister_uids  = SubspaceModule::get_pending_deregister_uids(netuid);
-	let staking = SubspaceModule::get_stakes(netuid);
+		// vote to avoid key[0] as we want to see the key[0] burn
+		let mut votes: Vec<u16> = vec![];
+		let mut uids: Vec<u16> = vec![];
+		for i in 0..n {
+			if i != 0 {
+				votes.push(1);
+				uids.push(i as u16);
+			}
+		}
+		println!("{:?}", SubspaceModule::get_stake_for_key(netuid, &voter_key));
+		assert_ok!(SubspaceModule::set_weights(get_origin(voter_key), netuid, uids, votes));
 
-	println!("key_stake: {:?}", SubspaceModule::get_min_stake(netuid));
-	println!("pending_deregister_uids: {:?}", pending_deregister_uids);
-	assert!(!pending_deregister_uids.contains(&1));
-	assert!( key_stake > params.min_stake , "key_stake: {:?} params.min_stake {:?}", key_stake, params.min_stake);
+		let stakes = SubspaceModule::get_stakes(netuid);
+		let total_stake_before = stakes.iter().sum::<u64>();
+		println!("total_stake_before: {:?}", total_stake_before);
+		step_block(params.tempo);
 
+		let params = SubspaceModule::subnet_params(netuid);
+		println!("params: {:?}", params);
 
+		let emissions = SubspaceModule::get_emissions(netuid);
+		let total_emissions = emissions.iter().sum::<u64>();
+		println!("total_emissions: {:?}", total_emissions);
+		println!("emissions: {:?}", emissions);
+		let stakes = SubspaceModule::get_stakes(netuid);
+		let total_stake_after = stakes.iter().sum::<u64>();
+		println!("total_stake_after: {:?}", total_stake_after);
+		println!("staking: {:?}", stakes);
+		let key_stake = SubspaceModule::get_total_stake_to(netuid, &keys[1]);
+		let params = SubspaceModule::subnet_params(netuid);
+		let pending_deregister_uids = SubspaceModule::get_pending_deregister_uids(netuid);
+		let staking = SubspaceModule::get_stakes(netuid);
+
+		println!("key_stake: {:?}", SubspaceModule::get_min_stake(netuid));
+		println!("pending_deregister_uids: {:?}", pending_deregister_uids);
+		assert!(!pending_deregister_uids.contains(&1));
+		assert!(
+			key_stake > params.min_stake,
+			"key_stake: {:?} params.min_stake {:?}",
+			key_stake,
+			params.min_stake
+		);
 	});
 }
-
-
-
-
-

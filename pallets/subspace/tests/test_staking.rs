@@ -266,8 +266,6 @@ fn test_delegate_stake() {
 	});
 }
 
-
-
 #[test]
 fn test_ownership_ratio() {
 	new_test_ext().execute_with(|| {

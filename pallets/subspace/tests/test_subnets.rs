@@ -6,8 +6,8 @@ use frame_support::{
 use frame_system::Config;
 use pallet_subspace::Error;
 use sp_core::U256;
-use test_mock::*;
 use sp_std::vec;
+use test_mock::*;
 
 /* TO DO SAM: write test for LatuUpdate after it is set */
 
@@ -33,7 +33,6 @@ fn test_add_subnets() {
 				expected_subnets,
 				"number of subnets is not equal to expected subnets"
 			);
-
 		}
 
 		for netuid in 0..num_subnets {
@@ -44,13 +43,9 @@ fn test_add_subnets() {
 				expected_subnets,
 				"number of subnets is not equal to expected subnets"
 			);
-
-			
 		}
-
 	});
 }
-
 
 fn test_set_single_temple(tempo: u16) {
 	new_test_ext().execute_with(|| {
@@ -69,10 +64,7 @@ fn test_set_single_temple(tempo: u16) {
 		let tempo = 5;
 		let min_stake = 1_000_000_000;
 
-		let result = SubspaceModule::set_subnet_params(
-			netuid,
-			params.clone()
-		);
+		let result = SubspaceModule::set_subnet_params(netuid, params.clone());
 
 		let subnet_params = SubspaceModule::subnet_params(netuid);
 		assert_eq!(subnet_params.tempo, tempo);
@@ -263,8 +255,14 @@ fn test_set_max_allowed_uids_shrinking() {
 		assert_ok!(result);
 		let params = SubspaceModule::subnet_params(netuid);
 		let mut n = SubspaceModule::get_subnet_n(netuid);
-		assert_eq!(params.max_allowed_uids, max_uids, "max allowed uids is not equal to expected max allowed uids");
-		assert_eq!(params.max_allowed_uids, n, "min allowed weights is not equal to expected min allowed weights");
+		assert_eq!(
+			params.max_allowed_uids, max_uids,
+			"max allowed uids is not equal to expected max allowed uids"
+		);
+		assert_eq!(
+			params.max_allowed_uids, n,
+			"min allowed weights is not equal to expected min allowed weights"
+		);
 
 		let mut new_total_subnet_balance: u64 = 0;
 		for key in og_keys.clone() {
@@ -272,14 +270,13 @@ fn test_set_max_allowed_uids_shrinking() {
 				new_total_subnet_balance + SubspaceModule::get_balance_u64(&key);
 		}
 		// let expected_total_subnet_balance: u64 =
-		// 	(extra_uids as u64) * (stake + 1) + max_uids as u64; // this is weitd, but we needed to add 1 to make sure that the stake is not 0
-		// assert!(
+		// 	(extra_uids as u64) * (stake + 1) + max_uids as u64; // this is weitd, but we needed to
+		// add 1 to make sure that the stake is not 0 assert!(
 		// 	new_total_subnet_balance == expected_total_subnet_balance,
 		// 	"new total subnet balance {} is not equal to expected total subnet balance {}",
 		// 	new_total_subnet_balance,
 		// 	expected_total_subnet_balance
 		// );
-
 
 		n = SubspaceModule::get_subnet_n(netuid);
 		let stake_vector: Vec<u64> = SubspaceModule::get_stakes(netuid);
@@ -313,4 +310,4 @@ fn test_set_max_allowed_modules() {
 			n = SubspaceModule::get_subnet_n(netuid);
 		}
 	})
-	}
+}

@@ -25,8 +25,6 @@ impl<T: Config> Pallet<T> {
 		Ok(())
 	}
 
-
-
 	pub fn do_transfer_multiple(
 		origin: T::RuntimeOrigin,
 		destinations: Vec<T::AccountId>,
@@ -43,8 +41,6 @@ impl<T: Config> Pallet<T> {
 		Ok(())
 	}
 
-
-	
 	pub fn do_remove_stake_multiple(
 		origin: T::RuntimeOrigin,
 		netuid: u16,
@@ -108,7 +104,8 @@ impl<T: Config> Pallet<T> {
 		let balance_before_add: u64 = Self::get_balance_u64(&key);
 
 		Self::increase_stake(netuid, &key, &module_key, amount);
-		let removed_balance: bool = Self::remove_balance_from_account(&key, Self::u64_to_balance(amount).unwrap());
+		let removed_balance: bool =
+			Self::remove_balance_from_account(&key, Self::u64_to_balance(amount).unwrap());
 		ensure!(removed_balance, Error::<T>::BalanceNotRemoved);
 
 		let stake_after_add: u64 = Self::get_stake_to_module(netuid, &key, &module_key.clone());
@@ -190,7 +187,6 @@ impl<T: Config> Pallet<T> {
 		return Uids::<T>::contains_key(netuid, &key)
 	}
 
-
 	// Returns the delegation fee of a module
 	pub fn get_delegation_fee(netuid: u16, module_key: &T::AccountId) -> Percent {
 		DelegationFee::<T>::get(netuid, module_key)
@@ -215,7 +211,7 @@ impl<T: Config> Pallet<T> {
 		let mut total_stake_to: u64 = 0;
 		for (k, v) in Self::get_stake_to_vector(netuid, key) {
 			total_stake_to += v;
-			}
+		}
 		return total_stake_to
 	}
 

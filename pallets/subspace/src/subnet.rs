@@ -1,4 +1,5 @@
 use super::*;
+use crate::utils::is_vec_str;
 use codec::Compact;
 use frame_support::{
 	pallet_prelude::{Decode, DispatchError, DispatchResult, Encode},
@@ -6,7 +7,6 @@ use frame_support::{
 	traits::Currency,
 	IterableStorageDoubleMap,
 };
-use crate::utils::is_vec_str;
 use frame_system::ensure_root;
 pub use sp_std::{vec, vec::Vec};
 use substrate_fixed::types::{I32F32, I64F64};
@@ -15,7 +15,6 @@ extern crate alloc;
 impl<T: Config> Pallet<T> {
 	// Returns true if the subnetwork exists.
 	//
-
 
 	pub fn do_remove_network(origin: T::RuntimeOrigin, netuid: u16) -> DispatchResult {
 		let key = ensure_signed(origin)?;
@@ -75,7 +74,6 @@ impl<T: Config> Pallet<T> {
 		return min_stake_netuid
 	}
 
-
 	// get the least staked network
 	pub fn min_subnet_stake() -> u64 {
 		let mut min_stake: u64 = u64::MAX;
@@ -91,7 +89,6 @@ impl<T: Config> Pallet<T> {
 		return TotalStake::<T>::get(netuid)
 	}
 
-
 	pub fn subnet_params(netuid: u16) -> SubnetParams {
 		SubnetParams {
 			immunity_period: ImmunityPeriod::<T>::get(netuid),
@@ -102,11 +99,11 @@ impl<T: Config> Pallet<T> {
 			tempo: Tempo::<T>::get(netuid),
 			name: <Vec<u8>>::new(),
 			vote_threshold: SubnetVoteThreshold::<T>::get(netuid),
-			vote_mode:VoteModeSubnet::<T>::get(netuid),
+			vote_mode: VoteModeSubnet::<T>::get(netuid),
 			trust_ratio: TrustRatio::<T>::get(netuid),
 			self_vote: SelfVote::<T>::get(netuid),
 			founder_share: FounderShare::<T>::get(netuid),
-			incentive_ratio: IncentiveRatio::<T>::get(netuid)
+			incentive_ratio: IncentiveRatio::<T>::get(netuid),
 		}
 	}
 
@@ -120,14 +117,9 @@ impl<T: Config> Pallet<T> {
 		}
 
 		MaxAllowedUids::<T>::insert(netuid, max_allowed_uids);
-
-
 	}
 
-
-
 	pub fn set_subnet_params(netuid: u16, mut params: SubnetParams) {
-
 		// TEMPO, IMMUNITY_PERIOD, MIN_ALLOWED_WEIGHTS, MAX_ALLOWED_WEIGHTS, MAX_ALLOWED_UIDS,
 		// MAX_IMMUNITY_RATIO
 		Self::set_tempo(netuid, params.tempo);
@@ -154,12 +146,8 @@ impl<T: Config> Pallet<T> {
 
 		Self::set_founder_share(netuid, params.founder_share);
 
-		Self::set_incentive_ratio(netuid,  params.incentive_ratio);
-
-
+		Self::set_incentive_ratio(netuid, params.incentive_ratio);
 	}
-
-
 
 	pub fn set_subnet_name(netuid: u16, name: Vec<u8>) {
 		if name.len() > 0 {
@@ -169,8 +157,6 @@ impl<T: Config> Pallet<T> {
 		}
 	}
 
-
-
 	pub fn uid_in_immunity(netuid: u16, uid: u16) -> bool {
 		let block_at_registration: u64 = Self::get_module_registration_block(netuid, uid);
 		let immunity_period: u64 = Self::get_immunity_period(netuid) as u64;
@@ -179,7 +165,7 @@ impl<T: Config> Pallet<T> {
 	}
 
 	pub fn default_subnet_params() -> SubnetParams {
-		// get an invalid 
+		// get an invalid
 		let default_netuid: u16 = Self::get_number_of_subnets() + 1;
 		return Self::subnet_params(default_netuid)
 	}
@@ -221,7 +207,6 @@ impl<T: Config> Pallet<T> {
 		return SelfVote::<T>::get(netuid)
 	}
 
-
 	// pub fn total_balance() -> u64 {
 	//     let mut total_balance: u64 = 0;
 	//     // iterate through all of the accounts with balance (noo stake)
@@ -245,7 +230,6 @@ impl<T: Config> Pallet<T> {
 		UnitEmission::<T>::put(unit_emission)
 	}
 
-	
 	pub fn get_unit_emission_per_block() -> u64 {
 		return UnitEmission::<T>::get() * 4
 	}
@@ -306,7 +290,6 @@ impl<T: Config> Pallet<T> {
 	}
 
 	pub fn add_network(params: SubnetParams) -> u16 {
-
 		// --- 1. Enfnsure that the network name does not already exist.
 		let total_networks: u16 = TotalSubnets::<T>::get();
 		let max_networks = MaxAllowedSubnets::<T>::get();
@@ -330,7 +313,7 @@ impl<T: Config> Pallet<T> {
 
 		return netuid
 	}
-	
+
 	// Initializes a new subnetwork under netuid with parameters.
 	//
 	pub fn if_subnet_name_exists(name: Vec<u8>) -> bool {
@@ -454,10 +437,7 @@ impl<T: Config> Pallet<T> {
 		return Uids::<T>::contains_key(netuid, key)
 	}
 
-
-
-
-	pub fn is_key_registered_on_any_network( key: &T::AccountId) -> bool {
+	pub fn is_key_registered_on_any_network(key: &T::AccountId) -> bool {
 		for netuid in Self::netuids() {
 			if Uids::<T>::contains_key(netuid, key) {
 				return true
@@ -482,7 +462,6 @@ impl<T: Config> Pallet<T> {
 		return Names::<T>::get(netuid, uid)
 	}
 
-
 	pub fn get_trust_ratio(netuid: u16) -> u16 {
 		return TrustRatio::<T>::get(netuid)
 	}
@@ -491,7 +470,6 @@ impl<T: Config> Pallet<T> {
 		TrustRatio::<T>::insert(netuid, trust_ratio);
 	}
 
-
 	pub fn get_quadradic_voting(netuid: u16) -> bool {
 		return QuadraticVoting::<T>::get(netuid)
 	}
@@ -499,10 +477,6 @@ impl<T: Config> Pallet<T> {
 	pub fn set_quadradic_voting(netuid: u16, quadradic_voting: bool) {
 		QuadraticVoting::<T>::insert(netuid, quadradic_voting);
 	}
-
-
-
-
 
 	pub fn if_module_name_exists(netuid: u16, name: Vec<u8>) -> bool {
 		for (uid, _name) in
@@ -534,7 +508,7 @@ impl<T: Config> Pallet<T> {
 	pub fn set_vote_mode_subnet(netuid: u16, vote_mode: Vec<u8>) {
 		VoteModeSubnet::<T>::insert(netuid, vote_mode);
 	}
-	
+
 	pub fn get_subnet_vote_threshold(netuid: u16) -> u16 {
 		return SubnetVoteThreshold::<T>::get(netuid)
 	}
@@ -558,15 +532,14 @@ impl<T: Config> Pallet<T> {
 	}
 
 	pub fn netuids() -> Vec<u16> {
-
-		let mut netuids : Vec<u16> = Vec::new();
+		let mut netuids: Vec<u16> = Vec::new();
 		for (netuid, _net_n) in <N<T> as IterableStorageMap<u16, u16>>::iter() {
 			netuids.push(netuid);
 		}
 		return netuids
 	}
 
-	pub fn random_netuid() -> u16{
+	pub fn random_netuid() -> u16 {
 		// get the number of subnets
 		let netuids = Self::netuids();
 		// get a random number between 0 and number_of_subnets
@@ -590,7 +563,7 @@ impl<T: Config> Pallet<T> {
 	pub fn get_founder_share(netuid: u16) -> u16 {
 		return FounderShare::<T>::get(netuid)
 	}
-	
+
 	pub fn get_incentive_ratio(netuid: u16) -> u16 {
 		return IncentiveRatio::<T>::get(netuid)
 	}
@@ -610,8 +583,6 @@ impl<T: Config> Pallet<T> {
 		Founder::<T>::insert(netuid, founder);
 	}
 
-
-
 	pub fn get_burn_emission_per_epoch(netuid: u16) -> u64 {
 		let burn_rate: u16 = BurnRate::<T>::get();
 		let epoch_emission: u64 = Self::get_subnet_emission(netuid);
@@ -620,8 +591,9 @@ impl<T: Config> Pallet<T> {
 		if n == 0 {
 			return 0
 		}
-		let burn_rate_float : I64F64 = I64F64::from_num(burn_rate) / I64F64::from_num(n * 100);
-		let burn_emission_per_epoch: u64 = (I64F64::from_num(epoch_emission) * burn_rate_float).to_num::<u64>();
+		let burn_rate_float: I64F64 = I64F64::from_num(burn_rate) / I64F64::from_num(n * 100);
+		let burn_emission_per_epoch: u64 =
+			(I64F64::from_num(epoch_emission) * burn_rate_float).to_num::<u64>();
 
 		return burn_emission_per_epoch
 	}
@@ -713,8 +685,6 @@ impl<T: Config> Pallet<T> {
 	pub fn get_module_age(netuid: u16, uid: u16) -> u64 {
 		return Self::get_current_block_as_u64() - Self::get_module_registration_block(netuid, uid)
 	}
-
-
 
 	pub fn get_immunity_period(netuid: u16) -> u16 {
 		ImmunityPeriod::<T>::get(netuid)
@@ -878,32 +848,37 @@ impl<T: Config> Pallet<T> {
 		return Keys::<T>::contains_key(netuid, uid)
 	}
 
+	pub fn check_subnet_params(params: SubnetParams) -> DispatchResult {
+		// checks if params are valid
 
+		// check if the name already exists
+		ensure!(
+			!Self::if_subnet_name_exists(params.name.clone()),
+			Error::<T>::SubnetNameAlreadyExists
+		);
 
-    pub fn check_subnet_params(params: SubnetParams) -> DispatchResult{
-        // checks if params are valid
+		// check valid tempo
+		assert!(
+			params.max_allowed_weights >= params.min_allowed_weights,
+			"Invalid max_allowed_weights"
+		);
 
-        // check if the name already exists
-        ensure!(!Self::if_subnet_name_exists(params.name.clone()),Error::<T>::SubnetNameAlreadyExists );
+		assert!(
+			params.max_allowed_weights <= params.max_allowed_uids,
+			"Invalid max_allowed_weights"
+		);
 
-        // check valid tempo		
-		assert!(params.max_allowed_weights >= params.min_allowed_weights, "Invalid max_allowed_weights");
-		
-		assert!(params.max_allowed_weights <= params.max_allowed_uids, "Invalid max_allowed_weights");
-                		
 		// ensure the trust_ratio is between 0 and 100
 		assert!(params.trust_ratio <= 100, "Invalid trust_ratio");
 
 		// ensure the vode_mode is in "authority", "stake", "quadratic"
 		assert!(
-			is_vec_str(params.vote_mode.clone(),"authority") ||
-			is_vec_str(params.vote_mode.clone(),"stake") ||
-			is_vec_str(params.vote_mode.clone(),"quadratic"),
+			is_vec_str(params.vote_mode.clone(), "authority") ||
+				is_vec_str(params.vote_mode.clone(), "stake") ||
+				is_vec_str(params.vote_mode.clone(), "quadratic"),
 		);
-        Ok(())
-
-
-    }
+		Ok(())
+	}
 
 	pub fn get_pending_deregister_uids(netuid: u16) -> Vec<u16> {
 		return PendingDeregisterUids::<T>::get(netuid)
