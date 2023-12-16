@@ -392,7 +392,7 @@ pub mod pallet {
 	pub type PendingEmission<T> = StorageMap<_, Identity, u16, u64, ValueQuery, DefaultPendingEmission<T>>;
 	
 	#[pallet::storage] // --- MAP ( network_name ) --> netuid
-	pub type Name2Subnet<T: Config> = StorageMap<_, Twox64Concat, Vec<u8>, u16, ValueQuery>;
+	pub type SubnetNames<T: Config> = StorageMap<_, Identity, u16, Vec<u8>, ValueQuery>;
 
 	// =======================================
 	// ==== Module Variables  ====
@@ -1066,7 +1066,13 @@ where
 	pub fn get_priority_vanilla(who: &T::AccountId) -> u64 {
 		// Return high priority so that every extrinsic except set_weights function will
 		// have a higher priority than the set_weights call
-		return Pallet::<T>::get_priority_balance(who)
+		// get the current block number
+		let current_block_number: u64 = Pallet::<T>::get_current_block_as_u64();
+		let balance = Pallet::<T>::get_balance_u64(who);
+		let priority = current_block_number + balance;
+		// proriorty is the current block number minus the last update block number
+
+		return priority
 	}
 
 	pub fn get_priority_set_weights(who: &T::AccountId, netuid: u16) -> u64 {

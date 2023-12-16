@@ -162,11 +162,8 @@ impl<T: Config> Pallet<T> {
 
 
 	pub fn set_subnet_name(netuid: u16, name: Vec<u8>) {
-		if name.len() > 0 {
-			let old_name: Vec<u8> = Self::get_name_for_netuid(netuid);
-			Name2Subnet::<T>::remove(old_name.clone());
-			Name2Subnet::<T>::insert(name.clone(), netuid)
-		}
+		// set the name if it doesnt exist
+		SubnetNames::<T>::insert(netuid, name.clone());
 	}
 
 
@@ -318,7 +315,7 @@ impl<T: Config> Pallet<T> {
 		MinAllowedWeights::<T>::insert(netuid, params.min_allowed_weights);
 		MaxAllowedWeights::<T>::insert(netuid, params.max_allowed_weights);
 		MinStake::<T>::insert(netuid, params.min_stake);
-		Name2Subnet::<T>::insert(params.name.clone(), netuid);
+		SubnetNames::<T>::insert( netuid, params.name.clone(),);
 		FounderShare::<T>::insert(netuid, params.founder_share);
 		IncentiveRatio::<T>::insert(netuid, params.incentive_ratio);
 		// set stat once network is created
@@ -334,29 +331,33 @@ impl<T: Config> Pallet<T> {
 	// Initializes a new subnetwork under netuid with parameters.
 	//
 	pub fn if_subnet_name_exists(name: Vec<u8>) -> bool {
-		return Name2Subnet::<T>::contains_key(name.clone()).into()
+		for (netuid, _name) in <SubnetNames<T> as IterableStorageMap<u16, Vec<u8>>>::iter() {
+			if _name == name {
+				return true
+			}
+		}
+		return false
 	}
 
 	pub fn subnet_name_exists(name: Vec<u8>) -> bool {
-		return Name2Subnet::<T>::contains_key(name.clone()).into()
+		return Self::if_subnet_name_exists(name.clone()).into()
 	}
 
 	pub fn if_subnet_netuid_exists(netuid: u16) -> bool {
-		return Name2Subnet::<T>::contains_key(Self::get_name_for_netuid(netuid)).into()
+		return SubnetNames::<T>::contains_key(netuid).into()
 	}
 
 	pub fn get_netuid_for_name(name: Vec<u8>) -> u16 {
-		let netuid: u16 = Name2Subnet::<T>::get(name.clone());
-		return netuid
-	}
-
-	pub fn get_name_for_netuid(netuid: u16) -> Vec<u8> {
-		for (name, _netuid) in <Name2Subnet<T> as IterableStorageMap<Vec<u8>, u16>>::iter() {
-			if _netuid == netuid {
-				return name
+		for (netuid, netname) in <SubnetNames<T> as IterableStorageMap<u16, Vec<u8>>>::iter() {
+			if name == netname {
+				return netuid
 			}
 		}
-		return Vec::new()
+		return u16::MAX
+	}
+
+	pub fn get_subnet_name(netuid: u16) -> Vec<u8> {
+		return SubnetNames::<T>::get(netuid)
 	}
 
 	pub fn is_network_founder(netuid: u16, key: &T::AccountId) -> bool {
@@ -375,7 +376,7 @@ impl<T: Config> Pallet<T> {
 		if !Self::if_subnet_exist(netuid) {
 			return 0
 		}
-		let name: Vec<u8> = Self::get_name_for_netuid(netuid);
+		let name: Vec<u8> = Self::get_subnet_name(netuid);
 
 		// --- 1. Erase network stake, and remove network from list of networks.
 		for (key, stated_amount) in
@@ -386,7 +387,7 @@ impl<T: Config> Pallet<T> {
 		// --- 4. Remove all stake.
 		Stake::<T>::remove_prefix(netuid, None);
 		TotalStake::<T>::remove(netuid);
-		Name2Subnet::<T>::remove(name.clone());
+		SubnetNames::<T>::remove(netuid);
 		Names::<T>::clear_prefix(netuid, u32::max_value(), None);
 		Address::<T>::clear_prefix(netuid, u32::max_value(), None);
 		Uids::<T>::clear_prefix(netuid, u32::max_value(), None);
@@ -589,6 +590,10 @@ impl<T: Config> Pallet<T> {
 	}
 	pub fn get_founder_share(netuid: u16) -> u16 {
 		return FounderShare::<T>::get(netuid)
+	}
+
+	pub fn get_registration_block_for_uid(netuid: u16, uid: u16) -> u64 {
+		return RegistrationBlock::<T>::get(netuid, uid)
 	}
 	
 	pub fn get_incentive_ratio(netuid: u16) -> u16 {
@@ -803,6 +808,9 @@ impl<T: Config> Pallet<T> {
 		}
 		return names
 	}
+	pub fn get_address_for_uid(netuid: u16, uid: u16) -> Vec<u8> {
+		return Address::<T>::get(netuid, uid)
+	}
 	pub fn get_addresses(netuid: u16) -> Vec<T::AccountId> {
 		let mut addresses = Vec::<T::AccountId>::new();
 		for (key, uid) in
@@ -882,9 +890,6 @@ impl<T: Config> Pallet<T> {
 
     pub fn check_subnet_params(params: SubnetParams) -> DispatchResult{
         // checks if params are valid
-
-        // check if the name already exists
-        ensure!(!Self::if_subnet_name_exists(params.name.clone()),Error::<T>::SubnetNameAlreadyExists );
 
         // check valid tempo		
 		assert!(params.max_allowed_weights >= params.min_allowed_weights, "Invalid max_allowed_weights");
