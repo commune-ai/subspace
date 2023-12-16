@@ -15,10 +15,26 @@ pub struct ModuleSubnetInfo<T: Config> {
 	uid: Compact<u16>,
 	netuid: Compact<u16>,
 	name: Vec<u8>,
+	address: Vec<u8>,
+	last_update: Compact<u64>,
+	registration_block: Compact<u64>,
+	stake: Vec<(T::AccountId, Compact<u64>)>, /* map of key to stake on this module/key
+	                                           * (includes delegations) */
+	emission: Compact<u64>,
+	incentive: Compact<u16>,
+	dividends: Compact<u16>,
+	weights: Vec<(Compact<u16>, Compact<u16>)>, // Vec of (uid, weight)
+}
+
+#[derive(Decode, Encode, PartialEq, Eq, Clone, Debug)]
+pub struct ModuleParams<T: Config> {
+	name: Vec<u8>,
+	address: Vec<u8>,
 	last_update: Compact<u64>,
 	// Subnet Info
 	stake: Vec<(T::AccountId, Compact<u64>)>, /* map of key to stake on this module/key
 	                                           * (includes delegations) */
+	delegation_fee: Percent,
 	emission: Compact<u64>,
 	incentive: Compact<u16>,
 	dividends: Compact<u16>,
@@ -112,7 +128,6 @@ impl<T: Config> Pallet<T> {
 		// remove stake from old key and add to new key
 		Self::remove_stake_from_storage(netuid, &uid_key);
 
-		// 4. Emit the event.
 	}
 
 	// Appends the uid to the network.
@@ -177,6 +192,7 @@ impl<T: Config> Pallet<T> {
 		let incentive = Self::get_incentive_for_uid(netuid, uid as u16);
 		let dividends = Self::get_dividends_for_uid(netuid, uid as u16);
 		let last_update = Self::get_last_update_for_uid(netuid, uid as u16);
+		let registration_block = Self::get_registration_block_for_uid(netuid, uid as u16);
 		let name = Self::get_name_for_uid(netuid, uid as u16);
 
 		let weights = <Weights<T>>::get(netuid, uid)
@@ -188,15 +204,19 @@ impl<T: Config> Pallet<T> {
 			.map(|(key, stake)| (key, stake.into()))
 			.collect();
 
+		let registration_block = Self::get_registration_block_for_uid(netuid, uid as u16);
+		let address = Self::get_address_for_uid(netuid, uid as u16);
 		let module = ModuleSubnetInfo {
 			key: key.clone(),
 			uid: uid.into(),
 			netuid: netuid.into(),
-			stake,
+			stake: stake,
+			address: address.clone(),
 			emission: emission.into(),
 			incentive: incentive.into(),
 			dividends: dividends.into(),
 			last_update: last_update.into(),
+			registration_block: registration_block.into(),
 			weights,
 			name: name.clone(),
 		};
