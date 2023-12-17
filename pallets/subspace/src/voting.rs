@@ -189,7 +189,7 @@ impl<T: Config> Pallet<T> {
 
             Self::check_subnet_params(proposal.subnet_params.clone())?;
             //  check if vote mode is valid
-            let subnet_params: SubnetParams = Self::subnet_params(proposal.netuid);
+            let subnet_params: SubnetParams<T> = Self::subnet_params(proposal.netuid);
             assert!(
                 is_vec_str(subnet_params.vote_mode.clone(),"stake") ||
                 is_vec_str(subnet_params.vote_mode.clone(),"quadratic")
@@ -210,6 +210,10 @@ impl<T: Config> Pallet<T> {
     ) -> bool {
         let proposal: Proposal<T> = Proposals::<T>::get(proposal_id);
         return proposal.participants[0] == *key;
+    }
+    pub fn default_proposal() -> Proposal<T> {
+        let mut proposal = Proposals::<T>::get(u64::MAX);
+        return proposal;
     }
 
     pub fn get_proposal(
