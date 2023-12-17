@@ -39,7 +39,7 @@ impl<T: Config> Pallet<T> {
 		assert!(is_vec_str(params.vote_mode.clone(), "authority"));
 		ensure!(Self::if_subnet_netuid_exists(netuid), Error::<T>::SubnetNameAlreadyExists);
 		ensure!(Self::is_subnet_founder(netuid, &key), Error::<T>::NotFounder);
-		Self::check_subnet_params(params.clone());
+		Self::check_subnet_params(params.clone())?;
 		Self::set_subnet_params(netuid, params);
 		// --- 16. Ok and done.
 		Ok(())
