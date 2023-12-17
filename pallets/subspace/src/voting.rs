@@ -18,6 +18,35 @@ impl<T: Config> Pallet<T> {
         Ok(())
     }
 
+    pub fn do_add_global_proposal(
+        origin: T::RuntimeOrigin,
+        // params
+        params: GlobalParams,
+    ) -> DispatchResult {        
+        let mut proposal = Self::default_proposal();
+        proposal.global_params = params;
+        proposal.mode = "global".as_bytes().to_vec();
+        Self::do_add_proposal(origin,  proposal)?;
+        Ok(())
+    }
+
+
+    pub fn do_add_subnet_proposal(
+        origin: T::RuntimeOrigin,
+        // params
+        netuid: u16,
+        params: SubnetParams<T>,
+    ) -> DispatchResult {        
+        let mut proposal = Self::default_proposal();
+        proposal.subnet_params = params;
+        proposal.netuid = netuid;
+        proposal.mode = "subnet".as_bytes().to_vec();
+        Self::do_add_proposal(origin,  proposal)?;
+        Ok(())
+    }
+
+
+
     pub fn do_update_proposal(
         origin: T::RuntimeOrigin,
         proposal_id: u64,
