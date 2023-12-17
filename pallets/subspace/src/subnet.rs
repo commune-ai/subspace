@@ -154,6 +154,7 @@ impl<T: Config> Pallet<T> {
 		Self::set_self_vote(netuid, params.self_vote);
 
 		Self::set_founder(netuid, params.founder);
+		
 		Self::set_founder_share(netuid, params.founder_share);
 
 		Self::set_incentive_ratio(netuid,  params.incentive_ratio);
