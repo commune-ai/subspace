@@ -916,6 +916,7 @@ pub mod pallet {
 		) -> DispatchResult {
 			let mut params = Self::subnet_params(netuid);
 
+			params.founder = founder;
 			params.founder_share = founder_share;
 			params.name = name;
 			params.immunity_period = immunity_period;
@@ -924,6 +925,7 @@ pub mod pallet {
 			params.max_allowed_uids = max_allowed_uids;
 			params.min_allowed_weights = min_allowed_weights;
 			params.self_vote = self_vote;
+			params.tempo = tempo;
 			params.trust_ratio = trust_ratio;
 			params.vote_threshold = vote_threshold;
 			params.vote_mode = vote_mode;
@@ -975,31 +977,31 @@ pub mod pallet {
 		#[pallet::weight((Weight::zero(), DispatchClass::Normal, Pays::No))]
 		pub fn update_global(
 			origin: OriginFor<T>,
-			max_name_length: u16,
+			burn_rate: u16,
+			min_burn: u64,
 			max_allowed_subnets: u16,
 			max_allowed_modules: u16,
-			max_registrations_per_block: u16,
-			unit_emission: u64, 
-			tx_rate_limit: u64,
-			vote_threshold: u16,
-			vote_mode: Vec<u8>,
+			max_name_length: u16,
 			max_proposals: u64,
-			burn_rate: u16,
-			
-			min_burn: u64
+			max_registrations_per_block: u16,
+			tx_rate_limit: u64,
+			unit_emission: u64, 
+			vote_threshold: u16,
+			vote_mode: Vec<u8>,			
 		) -> DispatchResult {
 			let mut params = Self::global_params();
+
+			params.burn_rate = burn_rate;
+			params.min_burn = min_burn;
 			params.max_name_length = max_name_length;
 			params.max_allowed_subnets = max_allowed_subnets;
 			params.max_allowed_modules = max_allowed_modules;
+			params.max_proposals = max_proposals;
 			params.max_registrations_per_block = max_registrations_per_block;
-			params.unit_emission = unit_emission;
 			params.tx_rate_limit = tx_rate_limit;
+			params.unit_emission = unit_emission;
 			params.vote_threshold = vote_threshold;
 			params.vote_mode = vote_mode;
-			params.max_proposals = max_proposals;
-			params.burn_rate = burn_rate;
-			params.min_burn = min_burn;
 
 			Self::do_update_global(origin, params)
 		}
@@ -1024,6 +1026,8 @@ pub mod pallet {
 		) -> DispatchResult {
 			let mut params = Self::subnet_params(netuid);
 
+
+			params.founder = founder;
 			params.founder_share = founder_share;
 			params.name = name;
 			params.immunity_period = immunity_period;
@@ -1032,11 +1036,10 @@ pub mod pallet {
 			params.max_allowed_uids = max_allowed_uids;
 			params.min_allowed_weights = min_allowed_weights;
 			params.self_vote = self_vote;
-			params.trust_ratio = trust_ratio;
 			params.tempo = tempo;
+			params.trust_ratio = trust_ratio;
 			params.vote_threshold = vote_threshold;
 			params.vote_mode = vote_mode;
-
 
 			let mut proposal = DefaultProposal::<T>::get();
 
@@ -1064,17 +1067,19 @@ pub mod pallet {
 			vote_mode: Vec<u8>,
 		) -> DispatchResult {
 			let mut params = Self::global_params();
+			
+			params.burn_rate = burn_rate;
+			params.min_burn = min_burn;
 			params.max_name_length = max_name_length;
 			params.max_allowed_subnets = max_allowed_subnets;
 			params.max_allowed_modules = max_allowed_modules;
+			params.max_proposals = max_proposals;
 			params.max_registrations_per_block = max_registrations_per_block;
-			params.unit_emission = unit_emission;
 			params.tx_rate_limit = tx_rate_limit;
+			params.unit_emission = unit_emission;
 			params.vote_threshold = vote_threshold;
 			params.vote_mode = vote_mode;
-			params.max_proposals = max_proposals;
-			params.burn_rate = burn_rate;
-			params.min_burn = min_burn;
+			
 			let mut proposal = Self::default_proposal();
 
 			proposal.global_params = params;
