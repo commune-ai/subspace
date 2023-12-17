@@ -172,6 +172,7 @@ pub mod pallet {
 	}
 
 	#[derive(Decode, Encode, PartialEq, Eq, Clone, Debug, TypeInfo)]
+	// skip
 	pub struct GlobalParams {
 		pub max_name_length: u16,
 		pub max_allowed_subnets: u16,
@@ -209,7 +210,8 @@ pub mod pallet {
 	// =========================
 
 	#[derive(Decode, Encode, PartialEq, Eq, Clone, Debug, TypeInfo)]
-	pub struct SubnetParams {
+	#[scale_info(skip_type_params(T))]
+	pub struct SubnetParams<T: Config> {
 		// --- parameters
 		pub name: Vec<u8>,
 		pub tempo: u16, // how many blocks to wait before rewarding models
@@ -222,12 +224,13 @@ pub mod pallet {
 		pub vote_mode: Vec<u8>,
 		pub trust_ratio: u16,
 		pub self_vote: bool, // 
+		pub founder: T::AccountId,
 		pub founder_share: u16, // out of 100
 		pub incentive_ratio : u16 // out of 100
 	}
 
 	#[pallet::type_value]
-	pub fn DefaultSubnetParams<T: Config>() -> SubnetParams {
+	pub fn DefaultSubnetParams<T: Config>() -> SubnetParams<T> {
 		SubnetParams {
 			name: vec![],
 			tempo: DefaultTempo::<T>::get(),
@@ -241,7 +244,8 @@ pub mod pallet {
 			self_vote: DefaultSelfVote::<T>::get(),
 			founder_share: DefaultFounderShare::<T>::get(),
 			incentive_ratio : DefaultIncentiveRatio::<T>::get(), 
-			min_stake :  DefaultMinStake::<T>::get()
+			min_stake :  DefaultMinStake::<T>::get(),
+			founder: DefaultFounder::<T>::get(),
 
 		}
 	}
@@ -287,9 +291,9 @@ pub mod pallet {
 
 
 	#[pallet::type_value]
-	pub fn DefaultAccount<T: Config>() -> T::AccountId {T::AccountId::decode(&mut sp_runtime::traits::TrailingZeroInput::zeroes()).unwrap()}
+	pub fn DefaultFounder<T: Config>() -> T::AccountId {T::AccountId::decode(&mut sp_runtime::traits::TrailingZeroInput::zeroes()).unwrap()}
 	#[pallet::storage] // --- DMAP ( key, netuid ) --> bool
-	pub type Founder<T: Config> = StorageMap<_, Identity, u16, T::AccountId, ValueQuery, DefaultAccount<T>>;
+	pub type Founder<T: Config> = StorageMap<_, Identity, u16, T::AccountId, ValueQuery, DefaultFounder<T>>;
 
 
 	#[pallet::type_value]
@@ -364,7 +368,7 @@ pub mod pallet {
 	#[derive(Decode, Encode, PartialEq, Eq, Clone, Debug, TypeInfo)]
 	pub struct SubnetInfo<T: Config> {
 		// --- parameters
-		pub params: SubnetParams ,
+		pub params: SubnetParams<T> ,
 		pub netuid: u16, // --- unique id of the network
 		pub n: u16,
 		pub stake: u64,
@@ -708,7 +712,7 @@ pub mod pallet {
 				let netuid: u16 = subnet_idx as u16;
 				// --- Set subnet parameters
 
-				let default_params: SubnetParams = self::Pallet::<T>::default_subnet_params();
+				let default_params = self::Pallet::<T>::default_subnet_params();
 
 				let params = SubnetParams {
 					name: subnet.0.clone(),
@@ -723,7 +727,8 @@ pub mod pallet {
 					trust_ratio: default_params.trust_ratio,
 					self_vote: default_params.self_vote,
 					founder_share: default_params.founder_share, 
-					incentive_ratio: default_params.incentive_ratio
+					incentive_ratio: default_params.incentive_ratio,
+					founder: subnet.8.clone(),
 				};
 				
 				self::Pallet::<T>::add_network(params.clone());
@@ -759,7 +764,7 @@ pub mod pallet {
 	#[scale_info(skip_type_params(T))]
 	pub struct Proposal<T: Config> {
 		// --- parameters
-		pub subnet_params: SubnetParams,
+		pub subnet_params: SubnetParams<T>,
 		pub global_params: GlobalParams,
 		pub netuid: u16, // FOR SUBNET PROPOSAL ONLY
 		pub votes: u64,
@@ -895,8 +900,35 @@ pub mod pallet {
 		pub fn update_subnet(
 			origin: OriginFor<T>,
 			netuid: u16,
-			params: SubnetParams,
+			// params
+			founder: T::AccountId,
+			founder_share: u16,
+			name: Vec<u8>,
+			immunity_period: u16,
+			incentive_ratio: u16,
+			max_allowed_weights: u16,
+			max_allowed_uids: u16,
+			min_allowed_weights: u16,
+			self_vote: bool,
+			tempo: u16,
+			trust_ratio: u16,
+			vote_threshold: u16,
+			vote_mode: Vec<u8>,			
 		) -> DispatchResult {
+			let mut params = Self::subnet_params(netuid);
+
+			params.founder_share = founder_share;
+			params.name = name;
+			params.immunity_period = immunity_period;
+			params.incentive_ratio = incentive_ratio;
+			params.max_allowed_weights = max_allowed_weights;
+			params.max_allowed_uids = max_allowed_uids;
+			params.min_allowed_weights = min_allowed_weights;
+			params.self_vote = self_vote;
+			params.trust_ratio = trust_ratio;
+			params.vote_threshold = vote_threshold;
+			params.vote_mode = vote_mode;
+
 			Self::do_update_subnet(origin,netuid,params)
 		}
 
@@ -944,9 +976,31 @@ pub mod pallet {
 		#[pallet::weight((Weight::zero(), DispatchClass::Normal, Pays::No))]
 		pub fn update_global(
 			origin: OriginFor<T>,
-			params: GlobalParams,
-
+			max_name_length: u16,
+			max_allowed_subnets: u16,
+			max_allowed_modules: u16,
+			max_registrations_per_block: u16,
+			unit_emission: u64, 
+			tx_rate_limit: u64,
+			vote_threshold: u16,
+			vote_mode: Vec<u8>,
+			max_proposals: u64,
+			burn_rate: u16,
+			
+			min_burn: u64
 		) -> DispatchResult {
+			let mut params = Self::global_params();
+			params.max_name_length = max_name_length;
+			params.max_allowed_subnets = max_allowed_subnets;
+			params.max_allowed_modules = max_allowed_modules;
+			params.max_registrations_per_block = max_registrations_per_block;
+			params.unit_emission = unit_emission;
+			params.tx_rate_limit = tx_rate_limit;
+			params.vote_threshold = vote_threshold;
+			params.vote_mode = vote_mode;
+			params.max_proposals = max_proposals;
+			params.burn_rate = burn_rate;
+			params.min_burn = min_burn;
 
 			Self::do_update_global(origin, params)
 		}
@@ -955,12 +1009,39 @@ pub mod pallet {
         pub fn add_subnet_proposal(
             origin: OriginFor<T>,
 			netuid: u16, // FOR SUBNET PROPOSAL ONLY
-			subnet_params: SubnetParams,
-        ) -> DispatchResult {
+			founder: T::AccountId,
+			founder_share: u16,
+			name: Vec<u8>,
+			immunity_period: u16,
+			incentive_ratio: u16,
+			max_allowed_uids: u16,
+			max_allowed_weights: u16,
+			min_allowed_weights: u16,
+			self_vote: bool,
+			tempo: u16,
+			trust_ratio: u16,
+			vote_threshold: u16,
+			vote_mode: Vec<u8>,			
+		) -> DispatchResult {
+			let mut params = Self::subnet_params(netuid);
+
+			params.founder_share = founder_share;
+			params.name = name;
+			params.immunity_period = immunity_period;
+			params.incentive_ratio = incentive_ratio;
+			params.max_allowed_weights = max_allowed_weights;
+			params.max_allowed_uids = max_allowed_uids;
+			params.min_allowed_weights = min_allowed_weights;
+			params.self_vote = self_vote;
+			params.trust_ratio = trust_ratio;
+			params.tempo = tempo;
+			params.vote_threshold = vote_threshold;
+			params.vote_mode = vote_mode;
+
 
 			let mut proposal = DefaultProposal::<T>::get();
 
-			proposal.subnet_params = subnet_params;
+			proposal.subnet_params = params;
 			proposal.mode = "subnet".as_bytes().to_vec();
 			proposal.netuid = netuid;
 			// proposal.data = data.unwrap_or(vec![]);
@@ -970,10 +1051,34 @@ pub mod pallet {
 		#[pallet::weight((Weight::zero(), DispatchClass::Normal, Pays::No))]
         pub fn add_global_proposal(
             origin: OriginFor<T>,
-            global_params: GlobalParams,
-        ) -> DispatchResult {
-			let mut proposal = DefaultProposal::<T>::get();
-			proposal.global_params = global_params;
+			// params
+			burn_rate: u16,
+			max_name_length: u16,
+			max_allowed_subnets: u16,
+			max_allowed_modules: u16,
+			max_proposals: u64,
+			max_registrations_per_block: u16,
+			min_burn: u64,
+			unit_emission: u64, 
+			tx_rate_limit: u64,
+			vote_threshold: u16,
+			vote_mode: Vec<u8>,
+		) -> DispatchResult {
+			let mut params = Self::global_params();
+			params.max_name_length = max_name_length;
+			params.max_allowed_subnets = max_allowed_subnets;
+			params.max_allowed_modules = max_allowed_modules;
+			params.max_registrations_per_block = max_registrations_per_block;
+			params.unit_emission = unit_emission;
+			params.tx_rate_limit = tx_rate_limit;
+			params.vote_threshold = vote_threshold;
+			params.vote_mode = vote_mode;
+			params.max_proposals = max_proposals;
+			params.burn_rate = burn_rate;
+			params.min_burn = min_burn;
+			let mut proposal = Self::default_proposal();
+
+			proposal.global_params = params;
 			proposal.mode = "global".as_bytes().to_vec();
             Self::do_add_proposal(origin,  proposal)
         }

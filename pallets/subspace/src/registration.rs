@@ -323,7 +323,7 @@ impl<T: Config> Pallet<T> {
 		// if we have reached the max number of subnets, then we can start a new one if the stake is
 		// greater than the least staked network
 
-		let mut params: SubnetParams = Self::default_subnet_params();
+		let mut params: SubnetParams<T> = Self::default_subnet_params();
 		params.name = name.clone();
 		let netuid = Self::add_network(params);
 		Founder::<T>::insert(netuid, founder_key.clone());

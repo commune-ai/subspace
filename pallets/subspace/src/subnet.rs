@@ -32,7 +32,7 @@ impl<T: Config> Pallet<T> {
 	pub fn do_update_subnet(
 		origin: T::RuntimeOrigin,
 		netuid: u16,
-		params: SubnetParams,
+		params: SubnetParams<T>,
 	) -> DispatchResult {
 		let key = ensure_signed(origin)?;
 		// only the founder can update the network on authority mode
@@ -92,7 +92,7 @@ impl<T: Config> Pallet<T> {
 	}
 
 
-	pub fn subnet_params(netuid: u16) -> SubnetParams {
+	pub fn subnet_params(netuid: u16) -> SubnetParams<T> {
 		SubnetParams {
 			immunity_period: ImmunityPeriod::<T>::get(netuid),
 			min_allowed_weights: MinAllowedWeights::<T>::get(netuid),
@@ -106,7 +106,8 @@ impl<T: Config> Pallet<T> {
 			trust_ratio: TrustRatio::<T>::get(netuid),
 			self_vote: SelfVote::<T>::get(netuid),
 			founder_share: FounderShare::<T>::get(netuid),
-			incentive_ratio: IncentiveRatio::<T>::get(netuid)
+			incentive_ratio: IncentiveRatio::<T>::get(netuid),
+			founder: Founder::<T>::get(netuid),
 		}
 	}
 
@@ -126,7 +127,7 @@ impl<T: Config> Pallet<T> {
 
 
 
-	pub fn set_subnet_params(netuid: u16, mut params: SubnetParams) {
+	pub fn set_subnet_params(netuid: u16, mut params: SubnetParams<T>) {
 
 		// TEMPO, IMMUNITY_PERIOD, MIN_ALLOWED_WEIGHTS, MAX_ALLOWED_WEIGHTS, MAX_ALLOWED_UIDS,
 		// MAX_IMMUNITY_RATIO
@@ -152,6 +153,7 @@ impl<T: Config> Pallet<T> {
 
 		Self::set_self_vote(netuid, params.self_vote);
 
+		Self::set_founder(netuid, params.founder);
 		Self::set_founder_share(netuid, params.founder_share);
 
 		Self::set_incentive_ratio(netuid,  params.incentive_ratio);
@@ -175,14 +177,14 @@ impl<T: Config> Pallet<T> {
 		return current_block - block_at_registration < immunity_period
 	}
 
-	pub fn default_subnet_params() -> SubnetParams {
+	pub fn default_subnet_params() -> SubnetParams<T> {
 		// get an invalid 
 		let default_netuid: u16 = Self::get_number_of_subnets() + 1;
 		return Self::subnet_params(default_netuid)
 	}
 
 	pub fn subnet_info(netuid: u16) -> SubnetInfo<T> {
-		let subnet_params: SubnetParams = Self::subnet_params(netuid);
+		let subnet_params: SubnetParams<T> = Self::subnet_params(netuid);
 		return SubnetInfo {
 			params: subnet_params,
 			netuid,
@@ -302,7 +304,7 @@ impl<T: Config> Pallet<T> {
 		return Self::calculate_network_emission(netuid)
 	}
 
-	pub fn add_network(params: SubnetParams) -> u16 {
+	pub fn add_network(params: SubnetParams<T>) -> u16 {
 
 		// --- 1. Enfnsure that the network name does not already exist.
 		let total_networks: u16 = TotalSubnets::<T>::get();
@@ -888,7 +890,7 @@ impl<T: Config> Pallet<T> {
 
 
 
-    pub fn check_subnet_params(params: SubnetParams) -> DispatchResult{
+    pub fn check_subnet_params(params: SubnetParams<T>) -> DispatchResult{
         // checks if params are valid
 
         // check valid tempo		

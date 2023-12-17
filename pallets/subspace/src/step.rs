@@ -28,7 +28,7 @@ impl<T: Config> Pallet<T> {
 
 	pub fn epoch(netuid: u16, mut token_emission: u64) {
 		// Get subnetwork size.
-		let params : SubnetParams  = Self::subnet_params(netuid);
+		let params : SubnetParams<T>  = Self::subnet_params(netuid);
 		let n: u16 = Self::get_subnet_n(netuid);
 		let current_block: u64 = Self::get_current_block_as_u64();
 		let block_at_registration: Vec<u64> = Self::get_block_at_registration(netuid);
