@@ -309,9 +309,10 @@ fn test_set_max_allowed_modules() {
 		SubspaceModule::set_max_allowed_modules(max_allowed_modules);
 		// set max_total modules
 
-		for i in 1..(max_allowed_modules + 1) {
+		for i in 1..(2*max_allowed_modules ) {
 			assert_ok!(register_module(netuid, U256::from(i), stake));
 			n = SubspaceModule::get_subnet_n(netuid);
+			assert!(n <= max_allowed_modules,"subnet_n {:?} is not less than max_allowed_modules {:?}", n, max_allowed_modules);
 		}
 	})
 	}
