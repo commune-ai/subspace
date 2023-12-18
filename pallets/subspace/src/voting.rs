@@ -2,7 +2,7 @@ use core::ops::Add;
 
 use frame_support::{pallet_prelude::DispatchResult};
 use scale_info::prelude::string::String;
-
+use frame_support::assert_ok;
 use super::*;
 use crate::utils::{is_vec_str};
 
@@ -31,6 +31,7 @@ impl<T: Config> Pallet<T> {
     }
 
 
+
     pub fn do_add_subnet_proposal(
         origin: T::RuntimeOrigin,
         // params
@@ -43,6 +44,16 @@ impl<T: Config> Pallet<T> {
         proposal.mode = "subnet".as_bytes().to_vec();
         Self::do_add_proposal(origin,  proposal)?;
         Ok(())
+    }
+
+
+
+    pub fn is_proposal_participant(
+        key: &T::AccountId,
+        proposal_id: u64,
+    ) -> bool {
+        let proposal: Proposal<T> = Proposals::<T>::get(proposal_id);
+        return proposal.participants.contains(key);
     }
 
 
@@ -106,7 +117,8 @@ impl<T: Config> Pallet<T> {
         proposal.participants.push(key.clone());
         proposal.votes = proposal.votes.saturating_add(voting_power);
 
-        Self::check_proposal(proposal.clone())?; // check if proposal is valid
+        let result = Self::check_proposal(proposal.clone()); // check if proposal is valid
+        assert_ok!(result);
 
         // update the proposal
         Voter2Info::<T>::insert(key, voter_info);
@@ -151,6 +163,7 @@ impl<T: Config> Pallet<T> {
         proposal.participants.push(key.clone());
         proposal.votes = proposal.votes.saturating_add(voting_power);
 
+
         // update the proposal
         Voter2Info::<T>::insert(key, voter_info);
         Proposals::<T>::insert(proposal_id, proposal);
@@ -174,7 +187,7 @@ impl<T: Config> Pallet<T> {
     }
 
     pub fn has_max_proposals() -> bool {
-        return Self::num_proposals() >=  MaxProposals::<T>::get()
+        return Self::num_proposals() >=  Self::get_max_proposals();
     }
 
 
@@ -182,8 +195,8 @@ impl<T: Config> Pallet<T> {
         
         // remove lowest voted proposal
         if Self::has_max_proposals() {
-            let mut least_voted_proposal_id: u64 = 0;
-            let mut least_votes: u64 = 0;
+            let mut least_voted_proposal_id: u64 = u64::MAX;
+            let mut least_votes: u64 = u64::MAX;
     
             for (proposal_id, proposal) in Proposals::<T>::iter() {
 
@@ -200,7 +213,8 @@ impl<T: Config> Pallet<T> {
                 }
             }
 
-            assert!(proposal.votes > least_votes);
+            ensure!(proposal.votes > least_votes, Error::<T>::TooFewVotesForNewProposal);
+
             // remove proposal participants
             let proposal = Proposals::<T>::get(least_voted_proposal_id);
             for participant in proposal.participants {
@@ -238,6 +252,9 @@ impl<T: Config> Pallet<T> {
         proposal_id: u64,
     ) -> bool {
         let proposal: Proposal<T> = Proposals::<T>::get(proposal_id);
+        if proposal.participants.len() == 0 {
+            return false;
+        }
         return proposal.participants[0] == *key;
     }
     pub fn default_proposal() -> Proposal<T> {

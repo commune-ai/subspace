@@ -286,3 +286,8 @@ Fuck shit up, dont blame me if things go south, use code as is, peace.
 
 ## 7. Acknowledgments
 **parralax**
+
+
+TEST FNS
+
+cargo test -p pallet-subspace --test test_voting
