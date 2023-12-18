@@ -604,6 +604,7 @@ pub mod pallet {
 	pub enum Error<T> {
 		ModuleNameAlreadyExists, // --- Thrown when a module name already exists.
 		NetworkDoesNotExist,     // --- Thrown when the network does not exist.
+		TooFewVotesForNewProposal,
 		NetworkExist,            // --- Thrown when the network already exist.
 		InvalidIpType,           /* ---- Thrown when the user tries to serve an module which
 		                          * is not of type	4 (IPv4) or 6 (IPv6). */
@@ -1069,7 +1070,6 @@ pub mod pallet {
 			params.unit_emission = unit_emission;
 			params.vote_mode = vote_mode;
 			params.vote_threshold = vote_threshold;	
-			
 			
             Self::do_add_global_proposal(origin,  params)
         }

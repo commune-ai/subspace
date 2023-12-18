@@ -20,7 +20,7 @@ fn test_add_subnets() {
 		let mut max_allowed_subnets: u16 = SubspaceModule::get_max_allowed_subnets();
 		let mut expected_subnets = 0;
 
-		for i in 0..num_subnets {
+		for i in 0..num_subnets{
 			register_module(i, U256::from(0), stake_per_module);
 			expected_subnets += 1;
 			if expected_subnets > max_allowed_subnets {
@@ -75,6 +75,7 @@ fn test_set_single_temple(tempo: u16) {
 		);
 
 		let subnet_params = SubspaceModule::subnet_params(netuid);
+		
 		assert_eq!(subnet_params.tempo, tempo);
 		assert_eq!(subnet_params.min_stake, min_stake);
 		assert_eq!(subnet_params.max_allowed_uids, params.max_allowed_uids);
