@@ -680,6 +680,7 @@ pub mod pallet {
 		UpdateProposalAlreadyVoted,
 		UpdateProposalVoteNotAvailable,
 		NotEnoughVotesToAccept,
+		NotEnoughBalanceToTransfer
 	}
 
 	// ==================
