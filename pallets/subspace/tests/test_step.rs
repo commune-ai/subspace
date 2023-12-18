@@ -786,5 +786,60 @@ fn test_pending_deregistration() {
 
 
 
+#[test]
+fn test_founder_share() {
+    new_test_ext().execute_with(|| {
+        
+	let netuid = 0;
+	let n = 20;
+	let initial_stake: u64 = 1000;
+	let keys : Vec<U256> = (0..n).into_iter().map(|x| U256::from(x)).collect();
+	let stakes : Vec<u64> = (0..n).into_iter().map(|x| initial_stake * 1_000_000_000).collect();
+
+	
+	let founder_key = keys[0];
+	for i in 0..n {
+		assert_ok!(register_module(netuid, keys[i], stakes[i]));
+		let stake_from_vector = SubspaceModule::get_stake_to_vector(netuid, &keys[i]);
+		println!("{:?}", stake_from_vector);
+	}
+	SubspaceModule::set_founder_share(netuid, 50);
+	let founder_share = SubspaceModule::get_founder_share(netuid);
+	let founder_ratio: f64 = founder_share as f64 / 100.0;
+
+
+	let founder_stake_before = SubspaceModule::get_stake_for_key(netuid, &founder_key);
+	println!("founder_stake_before: {:?}", founder_stake_before);
+	// vote to avoid key[0] as we want to see the key[0] burn
+	step_epoch(netuid);
+	let total_emission = SubspaceModule::get_subnet_emission(netuid);
+	let expected_founder_share = (total_emission as f64 * founder_ratio) as u64;
+	let expected_emission = total_emission - expected_founder_share;
+	let emissions = SubspaceModule::get_emissions(netuid);
+	let calcualted_total_emission = emissions.iter().sum::<u64>();
+	let calculated_founder_share = SubspaceModule::get_stake_for_key(netuid, &founder_key) - founder_stake_before - emissions[0];
+	let delta: u64 = 1000;
+
+	
+	println!("expected_emission: {:?}", expected_emission);
+	println!("total_emission: {:?}", total_emission);
+	assert!(expected_emission > calcualted_total_emission - delta );
+	assert!(expected_emission < calcualted_total_emission + delta );
+
+	println!("calculated_founder_share: {:?}", calculated_founder_share);
+	println!("expected_founder_share: {:?}", expected_founder_share);
+	assert!(expected_founder_share > calculated_founder_share - delta );
+	assert!(expected_founder_share < calculated_founder_share + delta );
+
+
+	});
+
+
+}
+
+
+
+
+
 
 
