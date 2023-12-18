@@ -273,7 +273,7 @@ impl<T: Config> Pallet<T> {
 				}
 			}
 			ensure!(stake > min_stake , Error::<T>::NotEnoughStakeToStartNetwork);
-			Self::remove_network_for_netuid(min_stake_netuid);
+			Self::remove_subnet(min_stake_netuid);
 		}
 		// if we have reached the max number of subnets, then we can start a new one if the stake is
 		// greater than the least staked network

@@ -350,7 +350,7 @@ pub mod pallet {
 	#[pallet::type_value]
 	pub fn DefaultVoteThreshold<T: Config>() -> u16 {50} // out of 100
 	#[pallet::storage] // --- MAP ( netuid ) --> epoch
-	pub type SubnetVoteThreshold<T> = StorageMap<_, Identity, u16, u16, ValueQuery, DefaultVoteThreshold<T>>;
+	pub type VoteThresholdSubnet<T> = StorageMap<_, Identity, u16, u16, ValueQuery, DefaultVoteThreshold<T>>;
 	#[pallet::storage] // --- MAP ( netuid ) --> epoch
 	pub type GlobalVoteThreshold<T> = StorageValue<_, u16, ValueQuery, DefaultVoteThreshold<T>>;
 	
