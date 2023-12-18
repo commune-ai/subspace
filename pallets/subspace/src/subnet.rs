@@ -115,8 +115,11 @@ impl<T: Config> Pallet<T> {
 		let n: u16 = Self::get_subnet_n(netuid);
 		if max_allowed_uids < n {
 			let remainder_n: u16 = n - max_allowed_uids;
+			// remove the modules
+
 			for i in 0..remainder_n {
-				Self::remove_module(netuid, Self::get_lowest_uid(netuid));
+				let next_uid: u16= n - 1 - i;
+				Self::remove_module(netuid, next_uid);
 			}
 		}
 
@@ -482,10 +485,6 @@ impl<T: Config> Pallet<T> {
 		return Uids::<T>::get(netuid, key).unwrap_or(0)
 	}
 
-	pub fn get_name_for_uid(netuid: u16, uid: u16) -> Vec<u8> {
-		return Names::<T>::get(netuid, uid)
-	}
-
 
 	pub fn get_trust_ratio(netuid: u16) -> u16 {
 		return TrustRatio::<T>::get(netuid)
@@ -811,9 +810,7 @@ impl<T: Config> Pallet<T> {
 		}
 		return names
 	}
-	pub fn get_address_for_uid(netuid: u16, uid: u16) -> Vec<u8> {
-		return Address::<T>::get(netuid, uid)
-	}
+
 	pub fn get_addresses(netuid: u16) -> Vec<T::AccountId> {
 		let mut addresses = Vec::<T::AccountId>::new();
 		for (key, uid) in
@@ -823,6 +820,7 @@ impl<T: Config> Pallet<T> {
 		}
 		return addresses
 	}
+
 
 	pub fn check_subnet_storage(netuid: u16) -> bool {
 		let n = Self::get_subnet_n(netuid);

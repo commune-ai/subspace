@@ -250,51 +250,6 @@ impl<T: Config> Pallet<T> {
 		return hash_as_vec
 	}
 
-	pub fn do_update_module(
-		origin: T::RuntimeOrigin,
-		netuid: u16,
-		name: Vec<u8>,
-		address: Vec<u8>,
-		delegation_fee: Option<Percent>,
-	) -> dispatch::DispatchResult {
-		// --- 1. We check the callers (key) signature.
-		let key = ensure_signed(origin)?;
-		ensure!(Self::if_subnet_netuid_exists(netuid), Error::<T>::NetworkDoesNotExist);
-
-		// --- 2. Ensure the key is registered somewhere.
-		ensure!(Self::is_registered(netuid, &key.clone()), Error::<T>::NotRegistered);
-		let uid: u16 = Self::get_uid_for_key(netuid, &key);
-
-		// --- 4. Get the previous module information.
-		let current_block: u64 = Self::get_current_block_as_u64();
-
-		// if len(name) > 0, then we update the name.
-		if name.len() > 0 {
-			ensure!(
-				name.len() <= MaxNameLength::<T>::get() as usize,
-				Error::<T>::ModuleNameTooLong
-			);
-			let old_name = Names::<T>::get(netuid, uid); // Get the old name.
-			ensure!(
-				!Self::if_module_name_exists(netuid, name.clone()),
-				Error::<T>::ModuleNameAlreadyExists
-			);
-			Names::<T>::insert(netuid, uid, name.clone());
-		}
-		// if len(address) > 0, then we update the address.
-		if address.len() > 0 {
-			Address::<T>::insert(netuid, uid, address.clone());
-		}
-
-		if (delegation_fee.is_some()) {
-			let fee = delegation_fee.unwrap();
-			DelegationFee::<T>::insert(netuid, key, fee);
-		}
-
-		// --- 8. Return is successful dispatch.
-		Ok(())
-	}
-
 	pub fn add_subnet_from_registration(
 		name: Vec<u8>,
 		stake: u64,

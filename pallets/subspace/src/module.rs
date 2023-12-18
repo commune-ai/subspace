@@ -1,8 +1,9 @@
 use super::*;
 use frame_support::{
-	pallet_prelude::{Decode, Encode},
+	pallet_prelude::{Decode, Encode, DispatchResult},
 	storage::IterableStorageMap,
 };
+
 extern crate alloc;
 use alloc::vec::Vec;
 use codec::Compact;
@@ -26,22 +27,84 @@ pub struct ModuleSubnetInfo<T: Config> {
 	weights: Vec<(Compact<u16>, Compact<u16>)>, // Vec of (uid, weight)
 }
 
-#[derive(Decode, Encode, PartialEq, Eq, Clone, Debug)]
-pub struct ModuleParams<T: Config> {
-	name: Vec<u8>,
-	address: Vec<u8>,
-	last_update: Compact<u64>,
-	// Subnet Info
-	stake: Vec<(T::AccountId, Compact<u64>)>, /* map of key to stake on this module/key
-	                                           * (includes delegations) */
-	delegation_fee: Percent,
-	emission: Compact<u64>,
-	incentive: Compact<u16>,
-	dividends: Compact<u16>,
-	weights: Vec<(Compact<u16>, Compact<u16>)>, // Vec of (uid, weight)
-}
+
+
 
 impl<T: Config> Pallet<T> {
+
+
+	pub fn do_update_module(
+		origin: T::RuntimeOrigin,
+		netuid: u16,
+		params: ModuleParams<T>,
+	) -> DispatchResult {
+		// --- 1. We check the callers (key) signature.
+		let key = ensure_signed(origin)?;
+		let uid: u16 = Self::get_uid_for_key(netuid, &key);
+		Self::check_module_params(netuid, params.clone())?;
+		Self::set_module_params(netuid, uid, params);
+		// --- 8. Return is successful dispatch.
+		Ok(())
+	}
+
+
+
+	pub fn check_module_params(netuid: u16, params: ModuleParams<T>) -> DispatchResult {
+		
+		// if len(name) > 0, then we update the name.
+		assert!(params.name.len() > 0);
+		ensure!(params.name.len() <= MaxNameLength::<T>::get() as usize, Error::<T>::ModuleNameTooLong);
+		assert!(params.address.len() > 0);
+		ensure!(params.address.len() <= MaxNameLength::<T>::get() as usize, Error::<T>::ModuleAddressTooLong);
+		// delegation fee is a percent
+		Ok(())
+	}
+
+	pub fn module_params(netuid: u16, uid:u16) -> ModuleParams<T> {
+		let module_params : ModuleParams<T> = ModuleParams {
+			name: Self::get_module_name(netuid, uid),
+			address: Self::get_module_address(netuid, uid),
+			delegation_fee: Self::get_module_delegation_fee(netuid, uid),
+			controller: Self::get_key_for_uid(netuid, uid),
+		};
+		return module_params
+	}
+
+	pub fn set_module_params(netuid: u16, uid: u16, module_params: ModuleParams<T>) {
+		Self::set_module_name(netuid, uid, module_params.name);
+		Self::set_module_address(netuid, uid, module_params.address);
+		Self::set_module_delegation_fee( netuid, uid, module_params.delegation_fee);
+	}
+
+
+	pub fn get_module_address(netuid: u16, uid: u16) -> Vec<u8> {
+		return Address::<T>::get(netuid, uid)
+	}
+
+
+	pub fn set_module_address( netuid: u16, uid: u16, address: Vec<u8>) {
+		Address::<T>::insert(netuid, uid, address);
+	}
+	
+	pub fn get_module_delegation_fee(netuid: u16, uid: u16) -> Percent {
+		let key = Self::get_key_for_uid(netuid, uid);
+		let mut delegation_fee: Percent = DelegationFee::<T>::get(netuid, key);
+		return delegation_fee
+	}
+
+	pub fn set_module_delegation_fee( netuid: u16, uid: u16, delegation_fee: Percent) {
+		let key = Self::get_key_for_uid(netuid, uid);
+		DelegationFee::<T>::insert(netuid, key, delegation_fee);
+	}
+
+	pub fn get_module_name(netuid: u16, uid: u16) -> Vec<u8> {
+		return Names::<T>::get(netuid, uid)
+	}
+
+	pub fn set_module_name( netuid: u16, uid: u16, name: Vec<u8>) {
+		Names::<T>::insert(netuid, uid, name.clone());
+	}
+
 	// Replace the module under this uid.
 	pub fn remove_module(netuid: u16, uid: u16) {
 		// 1. Get the old key under this position.
@@ -193,7 +256,7 @@ impl<T: Config> Pallet<T> {
 		let dividends = Self::get_dividends_for_uid(netuid, uid as u16);
 		let last_update = Self::get_last_update_for_uid(netuid, uid as u16);
 		let registration_block = Self::get_registration_block_for_uid(netuid, uid as u16);
-		let name = Self::get_name_for_uid(netuid, uid as u16);
+		let name = Self::get_module_name(netuid, uid as u16);
 
 		let weights = <Weights<T>>::get(netuid, uid)
 			.iter()
@@ -205,7 +268,7 @@ impl<T: Config> Pallet<T> {
 			.collect();
 
 		let registration_block = Self::get_registration_block_for_uid(netuid, uid as u16);
-		let address = Self::get_address_for_uid(netuid, uid as u16);
+		let address = Self::get_module_address(netuid, uid as u16);
 		let module = ModuleSubnetInfo {
 			key: key.clone(),
 			uid: uid.into(),

@@ -57,44 +57,6 @@ impl<T: Config> Pallet<T> {
     }
 
 
-
-    pub fn do_update_proposal(
-        origin: T::RuntimeOrigin,
-        proposal_id: u64,
-        mut proposal : Proposal<T>,
-    ) -> DispatchResult {
-        // update proposal only from the owner participants[0]
-        let key = ensure_signed(origin)?;
-
-        assert!( Self::is_proposal_owner(&key, proposal_id), "not proposal owner");
-        // if you update the proposal, you are no longer a participant
-
-        // refresh the voting power
-        // remove the proposal owner from the participants  
-        proposal.participants = Vec::new();
-        proposal.votes = 0;
-
-        let voting_power = Self::get_voting_power(&key, proposal.clone());
-        let mut voter_info = Voter2Info::<T>::get(key.clone());
-        voter_info.proposal_id = proposal_id;
-        voter_info.participant_index = proposal.participants.len() as u16;
-        voter_info.votes = voting_power;
-
-        // register the voter to avoid double voting
-        proposal.participants.push(key.clone());
-        proposal.votes = proposal.votes.saturating_add(voting_power);
-
-        Self::check_proposal(proposal.clone())?; // check if proposal is valid
-
-        // update the proposal
-        Voter2Info::<T>::insert(key, voter_info);
-        Proposals::<T>::insert(proposal_id, proposal);
-
-
-        Ok(())
-    }
-
-
     pub fn do_add_proposal(
         origin: T::RuntimeOrigin,
         mut proposal:Proposal<T>,
