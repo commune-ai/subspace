@@ -63,6 +63,7 @@ impl<T: Config> Pallet<T> {
 		let is_founder_registered = Self::is_key_registered(netuid, &founder_key);
 		if is_founder_registered {
 			let founder_share = Self::get_founder_share(netuid);
+
 			if founder_share > 0 {
 				let founder_emission_ratio: I64F64  = I64F64::from_num(founder_share)/I64F64::from_num(100);
 				let founder_emission = (founder_emission_ratio * I64F64::from_num(token_emission)).to_num::<u64>();
@@ -88,11 +89,21 @@ impl<T: Config> Pallet<T> {
 		// Access network weights row normalized.
 		let mut weights: Vec<Vec<(u16, I32F32)>> = Self::get_weights_sparse(netuid);
 
+		// filter weights that are over n 
+		for (i, weights_i) in weights.iter_mut().enumerate() {
+			let mut weight_changed: bool = false;
+			for (j, weight_ij) in weights_i.clone().iter() {
+				if *j > n {
+					weights_i.remove(*j as usize);
+				}
+			}
+		}
+
 		// enabling self voting
 		if (!params.self_vote) {
 			weights = mask_diag_sparse(&weights);
 		}
-
+		
 		// Normalize remaining weights.
 		inplace_row_normalize_sparse(&mut weights);
 
@@ -100,8 +111,15 @@ impl<T: Config> Pallet<T> {
 		// ==  Incentive ==
 		// =============================
 
-		// Compute incentive: r_j = SUM(i) w_ij * s_i.
-		let mut incentive: Vec<I32F32> = matmul_sparse(&weights, &stake, n);
+		let mut incentive: Vec<I32F32> = vec![I32F32::from_num(0.0); n as usize];
+		for (i, sparse_row) in weights.iter().enumerate() {
+			for (j, value) in sparse_row.iter() {
+				// Compute trust scores: t_j = SUM(i) w_ij * s_i
+				// result_j = SUM(i) vector_i * matrix_ij
+				incentive[*j as usize] += stake[i] * value;
+			}
+		}
+
 		// If emission is zero, do an even split.
 		if is_zero(&incentive) {
 			// no weights set
@@ -147,13 +165,50 @@ impl<T: Config> Pallet<T> {
 		// =================================
 
 		// Compute bonds delta column normalized.
-		let mut bonds: Vec<Vec<(u16, I32F32)>> = row_hadamard_sparse(&weights, &stake); // ΔB = W◦S (outdated W masked)
+
+		let mut bonds: Vec<Vec<(u16, I32F32)>> = weights.clone();
+		for (i, sparse_row) in bonds.iter_mut().enumerate() {
+			for (_j, value) in sparse_row.iter_mut() {
+
+				*value *= stake[i];
+			}
+		}
+
 		// Normalize bonds delta.
-		inplace_col_normalize_sparse(&mut bonds, n); // sum_i b_ij = 1
+		let mut col_sum: Vec<I32F32> = vec![I32F32::from_num(0.0); n as usize]; // assume square matrix, rows=cols
+		for sparse_row in bonds.iter() {
+			for (j, value) in sparse_row.iter() {
+				col_sum[*j as usize] += value;
+			}
+		}
+		for sparse_row in bonds.iter_mut() {
+			for (j, value) in sparse_row.iter_mut() {
+				if col_sum[*j as usize] == I32F32::from_num(0.0 as f32) {
+					continue
+				}
+				*value /= col_sum[*j as usize];
+			}
+		}
+		
+
 
 		// Compute dividends: d_i = SUM(j) b_ij * inc_j.
 		// range: I32F32(0, 1)
-		let mut dividends: Vec<I32F32> = matmul_transpose_sparse(&bonds, &incentive).clone();
+		// =================================
+		// == Dividends==
+		// =================================
+
+
+		let mut dividends: Vec<I32F32> = vec![I32F32::from_num(0.0); incentive.len()];
+		for (i, sparse_row) in bonds.iter().enumerate() {
+			for (j, value) in sparse_row.iter() {
+				// Compute dividends: d_j = SUM(i) b_ji * inc_i
+				// result_j = SUM(i) vector_i * matrix_ji
+				// result_i = SUM(j) vector_j * matrix_ij
+				dividends[i] += incentive[*j as usize] * value;
+			}
+		}
+
 		// If emission is zero, do an even split.
 		if is_zero(&dividends) {
 			// no weights set
@@ -161,7 +216,6 @@ impl<T: Config> Pallet<T> {
 				dividends[*uid_i as usize] = I32F32::from_num(1.0);
 			}
 		}
-
 		inplace_normalize(&mut dividends);
 
 		let cloned_dividends: Vec<u16> = dividends.iter().map(|xi| fixed_proportion_to_u16(*xi)).collect::<Vec<u16>>();
@@ -172,7 +226,6 @@ impl<T: Config> Pallet<T> {
 		// =================================
 		let mut incentive_ratio: I64F64 =  I64F64::from_num(Self::get_incentive_ratio(netuid) as u64) / I64F64::from_num(100);
 		let dividend_ratio: I64F64 = I64F64::from_num(1.0) - incentive_ratio;
-
 
 		let incentive_emission_float: Vec<I64F64> = incentive
 			.clone()

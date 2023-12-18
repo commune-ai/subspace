@@ -260,12 +260,12 @@ impl<T: Config> Pallet<T> {
 
 
 
-		let num_subnets: u16 = Self::get_number_of_subnets();
+		let num_subnets: u16 = Self::num_subnets();
 		let max_subnets: u16 = Self::get_max_allowed_subnets();
 		// if we have not reached the max number of subnets, then we can start a new one
 		if num_subnets >= max_subnets {
 			let mut min_stake: u64 = u64::MAX;
-			let mut min_stake_netuid : u16 = 0;
+			let mut min_stake_netuid : u16 = max_subnets.saturating_sub(1);
 			for (netuid, net_stake) in <TotalStake<T> as IterableStorageMap<u16, u64>>::iter() {
 				if net_stake <= min_stake {
 					min_stake = net_stake;

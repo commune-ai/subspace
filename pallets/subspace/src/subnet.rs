@@ -183,7 +183,7 @@ impl<T: Config> Pallet<T> {
 
 	pub fn default_subnet_params() -> SubnetParams<T> {
 		// get an invalid 
-		let default_netuid: u16 = Self::get_number_of_subnets() + 1;
+		let default_netuid: u16 = Self::num_subnets() + 1;
 		return Self::subnet_params(default_netuid)
 	}
 
@@ -200,7 +200,7 @@ impl<T: Config> Pallet<T> {
 	}
 
 	pub fn default_subnet() -> SubnetInfo<T> {
-		let netuid: u16 = Self::get_number_of_subnets() + 1;
+		let netuid: u16 = Self::num_subnets() + 1;
 		return Self::subnet_info(netuid)
 	}
 
@@ -315,15 +315,7 @@ impl<T: Config> Pallet<T> {
 		let max_networks = MaxAllowedSubnets::<T>::get();
 		let netuid = total_networks;
 
-		Tempo::<T>::insert(netuid, params.tempo);
-		MaxAllowedUids::<T>::insert(netuid, params.max_allowed_uids);
-		ImmunityPeriod::<T>::insert(netuid, params.immunity_period);
-		MinAllowedWeights::<T>::insert(netuid, params.min_allowed_weights);
-		MaxAllowedWeights::<T>::insert(netuid, params.max_allowed_weights);
-		MinStake::<T>::insert(netuid, params.min_stake);
-		SubnetNames::<T>::insert( netuid, params.name.clone(),);
-		FounderShare::<T>::insert(netuid, params.founder_share);
-		IncentiveRatio::<T>::insert(netuid, params.incentive_ratio);
+		Self::set_subnet_params(netuid, params.clone());
 		// set stat once network is created
 		TotalSubnets::<T>::mutate(|n| *n += 1);
 		N::<T>::insert(netuid, 0);
@@ -377,13 +369,7 @@ impl<T: Config> Pallet<T> {
 		return Self::remove_network_for_netuid(netuid)
 	}
 
-	pub fn remove_network_for_netuid(netuid: u16) -> u16 {
-		// --- 2. Ensure the network to be removed exists.
-		if !Self::if_subnet_exist(netuid) {
-			return 0
-		}
-		let name: Vec<u8> = Self::get_subnet_name(netuid);
-
+	pub fn remove_netuid_stake_strorage(netuid: u16) {
 		// --- 1. Erase network stake, and remove network from list of networks.
 		for (key, stated_amount) in
 			<Stake<T> as IterableStorageDoubleMap<u16, T::AccountId, u64>>::iter_prefix(netuid)
@@ -393,8 +379,19 @@ impl<T: Config> Pallet<T> {
 		// --- 4. Remove all stake.
 		Stake::<T>::remove_prefix(netuid, None);
 		TotalStake::<T>::remove(netuid);
+	}
+
+	pub fn remove_network_for_netuid(netuid: u16) -> u16 {
+		// --- 2. Ensure the network to be removed exists.
+		if !Self::if_subnet_exist(netuid) {
+			return 0
+		}
+		let name: Vec<u8> = Self::get_subnet_name(netuid);
+
+		Self::remove_netuid_stake_strorage(netuid);
+
 		SubnetNames::<T>::remove(netuid);
-		Names::<T>::clear_prefix(netuid, u32::max_value(), None);
+		Name::<T>::clear_prefix(netuid, u32::max_value(), None);
 		Address::<T>::clear_prefix(netuid, u32::max_value(), None);
 		Uids::<T>::clear_prefix(netuid, u32::max_value(), None);
 		Keys::<T>::clear_prefix(netuid, u32::max_value(), None);
@@ -407,20 +404,27 @@ impl<T: Config> Pallet<T> {
 		Trust::<T>::remove(netuid);
 		LastUpdate::<T>::remove(netuid);
 		PendingDeregisterUids::<T>::remove(netuid);
+		DelegationFee::<T>::clear_prefix(netuid, u32::max_value(), None);
+		RegistrationBlock::<T>::clear_prefix(netuid, u32::max_value(), None);
+		
 
 		// --- 2. Erase network parameters.
 		Founder::<T>::remove(netuid);
 		FounderShare::<T>::remove(netuid);
-		MinStake::<T>::remove(netuid);
-		Tempo::<T>::remove(netuid);
-		MaxAllowedUids::<T>::remove(netuid);
 		ImmunityPeriod::<T>::remove(netuid);
-		MinAllowedWeights::<T>::remove(netuid);
+		IncentiveRatio::<T>::remove(netuid);
+		MaxAllowedUids::<T>::remove(netuid);
 		MaxAllowedWeights::<T>::remove(netuid);
+		MinAllowedWeights::<T>::remove(netuid);
+		MinStake::<T>::remove(netuid);
 		SelfVote::<T>::remove(netuid);
 		SubnetEmission::<T>::remove(netuid);
-		IncentiveRatio::<T>::remove(netuid);
-		Founder::<T>::remove(netuid);
+		SubnetVoteThreshold::<T>::remove(netuid);
+		VoteModeSubnet::<T>::remove(netuid);
+		Tempo::<T>::remove(netuid);
+		TrustRatio::<T>::remove(netuid);
+		
+
 		// Adjust the total number of subnets. and remove the subnet from the list of subnets.
 		N::<T>::remove(netuid);
 		TotalSubnets::<T>::mutate(|val| *val -= 1);
@@ -509,7 +513,7 @@ impl<T: Config> Pallet<T> {
 
 	pub fn if_module_name_exists(netuid: u16, name: Vec<u8>) -> bool {
 		for (uid, _name) in
-			<Names<T> as IterableStorageDoubleMap<u16, u16, Vec<u8>>>::iter_prefix(netuid)
+			<Name<T> as IterableStorageDoubleMap<u16, u16, Vec<u8>>>::iter_prefix(netuid)
 		{
 			if _name == name {
 				return true
@@ -552,7 +556,7 @@ impl<T: Config> Pallet<T> {
 
 	// Return the total number of subnetworks available on the chain.
 	//
-	pub fn get_number_of_subnets() -> u16 {
+	pub fn num_subnets() -> u16 {
 		let mut number_of_subnets: u16 = 0;
 		for (_, _) in <N<T> as IterableStorageMap<u16, u16>>::iter() {
 			number_of_subnets = number_of_subnets + 1;
@@ -804,7 +808,7 @@ impl<T: Config> Pallet<T> {
 	pub fn get_names(netuid: u16) -> Vec<Vec<u8>> {
 		let mut names = Vec::<Vec<u8>>::new();
 		for (uid, name) in
-			<Names<T> as IterableStorageDoubleMap<u16, u16, Vec<u8>>>::iter_prefix(netuid)
+			<Name<T> as IterableStorageDoubleMap<u16, u16, Vec<u8>>>::iter_prefix(netuid)
 		{
 			names.push(name);
 		}

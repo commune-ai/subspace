@@ -29,7 +29,7 @@ fn test_add_subnets() {
 				assert_eq!(SubspaceModule::get_subnet_n(i), 1);
 			}
 			assert_eq!(
-				SubspaceModule::get_number_of_subnets(),
+				SubspaceModule::num_subnets(),
 				expected_subnets,
 				"number of subnets is not equal to expected subnets"
 			);
@@ -40,7 +40,7 @@ fn test_add_subnets() {
 			SubspaceModule::remove_network_for_netuid(netuid);
 			expected_subnets = expected_subnets.saturating_sub(1);
 			assert_eq!(
-				SubspaceModule::get_number_of_subnets(),
+				SubspaceModule::num_subnets(),
 				expected_subnets,
 				"number of subnets is not equal to expected subnets"
 			);
@@ -316,3 +316,31 @@ fn test_set_max_allowed_modules() {
 		}
 	})
 	}
+
+	#[test]
+	fn test_max_allowed_subnets() {
+		new_test_ext().execute_with(|| {
+			let max_allowed_subnets: u16 = 100;
+	
+			let mut params = SubspaceModule::global_params().clone();
+			params.max_allowed_subnets = max_allowed_subnets;
+			SubspaceModule::set_global_params(params);
+			let params = SubspaceModule::global_params();
+			assert_eq!(params.max_allowed_subnets, max_allowed_subnets);
+			let mut stake: u64 = 1_000_000_000;
+
+			// set max_total modules
+	
+			for i in 1..(2*max_allowed_subnets ) {
+				let netuid = i as u16;
+				stake = stake + i as u64;
+				
+				assert_ok!(register_module(netuid, U256::from(i), stake));
+				
+				let n_subnets = SubspaceModule::num_subnets();
+				println!("n_subnets {}", n_subnets);
+				println!("max_allowed_subnets {}", max_allowed_subnets);
+				assert!(n_subnets <= max_allowed_subnets);
+			}
+		})
+		}

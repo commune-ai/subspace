@@ -547,6 +547,7 @@ pub fn matmul_sparse(
 			// Compute trust scores: t_j = SUM(i) w_ij * s_i
 			// result_j = SUM(i) vector_i * matrix_ij
 			result[*j as usize] += vector[i] * value;
+			
 		}
 	}
 	result

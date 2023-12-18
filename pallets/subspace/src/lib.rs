@@ -150,7 +150,7 @@ pub mod pallet {
 		StorageValue<_, u16, ValueQuery, DefaultRegistrationsPerBlock<T>>;
 	
 	#[pallet::type_value]
-	pub fn DefaultMaxRegistrationsPerBlock<T: Config>() -> u16 { 100 }
+	pub fn DefaultMaxRegistrationsPerBlock<T: Config>() -> u16 { 10 }
 	#[pallet::storage] // --- ITEM( global_max_registrations_per_block )
 	pub type MaxRegistrationsPerBlock<T> =
 		StorageValue<_, u16, ValueQuery, DefaultMaxRegistrationsPerBlock<T>>;
@@ -412,7 +412,7 @@ pub mod pallet {
 	pub(super) type Keys<T: Config> =
 		StorageDoubleMap<_, Identity, u16, Identity, u16, T::AccountId, ValueQuery, DefaultKey<T>>;
 	#[pallet::storage] // --- DMAP ( netuid, uid ) --> module_name
-	pub type Names<T: Config> =StorageDoubleMap<_, Twox64Concat, u16, Twox64Concat, u16, Vec<u8>, ValueQuery>;
+	pub type Name<T: Config> =StorageDoubleMap<_, Twox64Concat, u16, Twox64Concat, u16, Vec<u8>, ValueQuery>;
 	
 	#[pallet::storage] // --- DMAP ( netuid, uid ) --> module_address
 	pub type Address<T: Config> = StorageDoubleMap<_, Twox64Concat, u16, Twox64Concat, u16, Vec<u8>, ValueQuery>;
