@@ -161,14 +161,12 @@ pub mod pallet {
 
 
 	#[derive(Decode, Encode, PartialEq, Eq, Clone, Debug, TypeInfo)]
-	pub struct ModuleInfo {
-		pub emission: u64,
-		pub incentive: u16,
-		pub dividends: u16,
+	#[scale_info(skip_type_params(T))]
+	pub struct ModuleParams<T: Config> {
 		pub name: Vec<u8>,
 		pub address: Vec<u8>,
-		pub delegate_fee: u16, // delegate_fee
-		pub stake: u64 // total stake
+		pub delegation_fee: Percent, // delegate_fee
+		pub controller: T::AccountId,
 	}
 
 	#[derive(Decode, Encode, PartialEq, Eq, Clone, Debug, TypeInfo)]
@@ -605,6 +603,7 @@ pub mod pallet {
 		ModuleNameAlreadyExists, // --- Thrown when a module name already exists.
 		NetworkDoesNotExist,     // --- Thrown when the network does not exist.
 		TooFewVotesForNewProposal,
+		ModuleAddressTooLong, 
 		NetworkExist,            // --- Thrown when the network already exist.
 		InvalidIpType,           /* ---- Thrown when the user tries to serve an module which
 		                          * is not of type	4 (IPv4) or 6 (IPv6). */
@@ -942,7 +941,16 @@ pub mod pallet {
 			address: Vec<u8>,
 			delegation_fee: Option<Percent>,
 		) -> DispatchResult {
-			Self::do_update_module(origin, netuid, name, address, delegation_fee)
+			let key = ensure_signed(origin.clone())?;
+			ensure!(Self::is_registered(netuid, &key), Error::<T>::NotRegistered);
+			let uid : u16 = Self::get_uid_for_key(netuid, &key);
+			let mut params = Self::module_params(netuid, uid);
+			params.name = name;
+			params.address = address;
+			if let Some(delegation_fee) = delegation_fee {
+				params.delegation_fee = delegation_fee;
+			}
+			Self::do_update_module(origin, netuid, params)
 		}
 
 		#[pallet::weight((Weight::zero(), DispatchClass::Normal, Pays::No))]
