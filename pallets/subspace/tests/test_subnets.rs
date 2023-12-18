@@ -37,7 +37,7 @@ fn test_add_subnets() {
 		}
 
 		for netuid in 0..num_subnets {
-			SubspaceModule::remove_network_for_netuid(netuid);
+			SubspaceModule::remove_subnet(netuid);
 			expected_subnets = expected_subnets.saturating_sub(1);
 			assert_eq!(
 				SubspaceModule::num_subnets(),

@@ -24,7 +24,7 @@ impl<T: Config> Pallet<T> {
 		ensure!(Self::if_subnet_netuid_exists(netuid), Error::<T>::SubnetNameAlreadyExists);
 		ensure!(Self::is_subnet_founder(netuid, &key), Error::<T>::NotFounder);
 
-		Self::remove_network_for_netuid(netuid);
+		Self::remove_subnet(netuid);
 		// --- 16. Ok and done.
 		Ok(())
 	}
@@ -101,7 +101,7 @@ impl<T: Config> Pallet<T> {
 			min_stake: MinStake::<T>::get(netuid),
 			tempo: Tempo::<T>::get(netuid),
 			name: <Vec<u8>>::new(),
-			vote_threshold: SubnetVoteThreshold::<T>::get(netuid),
+			vote_threshold: VoteThresholdSubnet::<T>::get(netuid),
 			vote_mode:VoteModeSubnet::<T>::get(netuid),
 			trust_ratio: TrustRatio::<T>::get(netuid),
 			self_vote: SelfVote::<T>::get(netuid),
@@ -366,7 +366,7 @@ impl<T: Config> Pallet<T> {
 
 	pub fn remove_network_for_name(name: Vec<u8>) -> u16 {
 		let netuid = Self::get_netuid_for_name(name.clone());
-		return Self::remove_network_for_netuid(netuid)
+		return Self::remove_subnet(netuid)
 	}
 
 	pub fn remove_netuid_stake_strorage(netuid: u16) {
@@ -381,7 +381,7 @@ impl<T: Config> Pallet<T> {
 		TotalStake::<T>::remove(netuid);
 	}
 
-	pub fn remove_network_for_netuid(netuid: u16) -> u16 {
+	pub fn remove_subnet(netuid: u16) -> u16 {
 		// --- 2. Ensure the network to be removed exists.
 		if !Self::if_subnet_exist(netuid) {
 			return 0
@@ -408,7 +408,7 @@ impl<T: Config> Pallet<T> {
 		RegistrationBlock::<T>::clear_prefix(netuid, u32::max_value(), None);
 		
 
-		// --- 2. Erase network parameters.
+		// --- 2. Erase subnet parameters.
 		Founder::<T>::remove(netuid);
 		FounderShare::<T>::remove(netuid);
 		ImmunityPeriod::<T>::remove(netuid);
@@ -419,11 +419,10 @@ impl<T: Config> Pallet<T> {
 		MinStake::<T>::remove(netuid);
 		SelfVote::<T>::remove(netuid);
 		SubnetEmission::<T>::remove(netuid);
-		SubnetVoteThreshold::<T>::remove(netuid);
-		VoteModeSubnet::<T>::remove(netuid);
 		Tempo::<T>::remove(netuid);
 		TrustRatio::<T>::remove(netuid);
-		
+		VoteThresholdSubnet::<T>::remove(netuid);
+		VoteModeSubnet::<T>::remove(netuid);
 
 		// Adjust the total number of subnets. and remove the subnet from the list of subnets.
 		N::<T>::remove(netuid);
@@ -531,7 +530,7 @@ impl<T: Config> Pallet<T> {
 	// we need to prefix the voting power by the network uid
 
 	pub fn set_subnet_vote_threshold(netuid: u16, vote_threshold: u16) {
-		SubnetVoteThreshold::<T>::insert(netuid, vote_threshold);
+		VoteThresholdSubnet::<T>::insert(netuid, vote_threshold);
 	}
 
 	pub fn get_vote_mode_subnet(netuid: u16) -> Vec<u8> {
@@ -543,7 +542,7 @@ impl<T: Config> Pallet<T> {
 	}
 	
 	pub fn get_subnet_vote_threshold(netuid: u16) -> u16 {
-		return SubnetVoteThreshold::<T>::get(netuid)
+		return VoteThresholdSubnet::<T>::get(netuid)
 	}
 
 	pub fn get_stake_for_key(netuid: u16, key: &T::AccountId) -> u64 {
