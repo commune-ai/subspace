@@ -96,11 +96,11 @@ impl<T: Config> Pallet<T> {
 	}
 
 	pub fn get_module_name(netuid: u16, uid: u16) -> Vec<u8> {
-		return Names::<T>::get(netuid, uid)
+		return Name::<T>::get(netuid, uid)
 	}
 
 	pub fn set_module_name( netuid: u16, uid: u16, name: Vec<u8>) {
-		Names::<T>::insert(netuid, uid, name.clone());
+		Name::<T>::insert(netuid, uid, name.clone());
 	}
 
 	// Replace the module under this uid.
@@ -171,8 +171,8 @@ impl<T: Config> Pallet<T> {
 		Address::<T>::remove(netuid, replace_uid); // Fill module info.
 
 		// HANDLE THE NAMES
-		Names::<T>::insert(netuid, uid, Names::<T>::get(netuid, replace_uid)); // Fill module namespace.
-		Names::<T>::remove(netuid, replace_uid); // Fill module namespace.
+		Name::<T>::insert(netuid, uid, Name::<T>::get(netuid, replace_uid)); // Fill module namespace.
+		Name::<T>::remove(netuid, replace_uid); // Fill module namespace.
 
 		// HANDLE THE DELEGATION FEE
 		DelegationFee::<T>::insert(netuid,replace_key.clone(),DelegationFee::<T>::get(netuid, uid_key.clone())); // Make uid - key association.
@@ -208,7 +208,7 @@ impl<T: Config> Pallet<T> {
 		Keys::<T>::insert(netuid, uid, key.clone()); // Make key - uid association.
 		Uids::<T>::insert(netuid, key.clone(), uid); // Make uid - key association.
 		RegistrationBlock::<T>::insert(netuid, uid, block_number); // Fill block at registration.
-		Names::<T>::insert(netuid, uid, name.clone()); // Fill module namespace.
+		Name::<T>::insert(netuid, uid, name.clone()); // Fill module namespace.
 		Address::<T>::insert(netuid, uid, address.clone()); // Fill module info.
 		DelegationFee::<T>::insert(
 			netuid,
