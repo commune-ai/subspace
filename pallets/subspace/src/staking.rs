@@ -34,10 +34,11 @@ impl<T: Config> Pallet<T> {
 	) -> dispatch::DispatchResult {
 		let key = ensure_signed(origin.clone())?;
 		let amounts_sum: u64 = amounts.iter().sum();
-		ensure!(Self::has_enough_balance(&key, amounts_sum), Error::<T>::NotEnoughStaketoWithdraw);
+		ensure!(Self::has_enough_balance(&key, amounts_sum), Error::<T>::NotEnoughBalanceToTransfer);
 		ensure!(amounts.len() == destinations.len(), Error::<T>::DifferentLengths);
 
 		for (i, m_key) in destinations.iter().enumerate() {
+			ensure!(Self::has_enough_balance(&key, amounts[i as usize]), Error::<T>::NotEnoughBalanceToTransfer);
 			Self::transfer_balance_to_account(&key, &m_key.clone(), amounts[i as usize]);
 		}
 		Ok(())
