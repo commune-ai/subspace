@@ -101,6 +101,8 @@ impl<T: Config> Pallet<T> {
 			min_allowed_weights: MinAllowedWeights::<T>::get(netuid),
 			max_allowed_weights: MaxAllowedWeights::<T>::get(netuid),
 			max_allowed_uids: MaxAllowedUids::<T>::get(netuid),
+			max_stake: MaxStake::<T>::get(netuid),
+			max_weight_age: MaxWeightAge::<T>::get(netuid),
 			min_stake: MinStake::<T>::get(netuid),
 			tempo: Tempo::<T>::get(netuid),
 			name: <Vec<u8>>::new(),
@@ -111,6 +113,8 @@ impl<T: Config> Pallet<T> {
 			founder_share: FounderShare::<T>::get(netuid),
 			incentive_ratio: IncentiveRatio::<T>::get(netuid),
 			founder: Founder::<T>::get(netuid),
+			
+			
 		}
 	}
 
@@ -180,6 +184,10 @@ impl<T: Config> Pallet<T> {
 		Self::set_vote_mode_subnet(netuid, params.vote_mode);
 
 		Self::set_subnet_name(netuid, params.name);
+
+		Self::set_max_weight_age(netuid, params.max_weight_age);
+
+		Self::set_max_stake(netuid, params.max_stake);
 
 		Self::set_trust_ratio(netuid, params.trust_ratio);
 
@@ -929,10 +937,16 @@ impl<T: Config> Pallet<T> {
 		ensure!(params.min_allowed_weights <= params.max_allowed_weights, Error::<T>::InvalidMinAllowedWeights);
 		ensure!(params.min_allowed_weights >= 1, Error::<T>::InvalidMinAllowedWeights);
 
-		ensure!(params.max_allowed_weights >= global_params.max_allowed_weights, Error::<T>::InvalidMaxAllowedWeights);
+		ensure!(params.max_allowed_weights <= global_params.max_allowed_weights, Error::<T>::InvalidMaxAllowedWeights);
 
 		// the  global params must be larger than the min_stake
 		ensure!(params.min_stake >= global_params.min_stake, Error::<T>::InvalidMinStake);
+
+		ensure!(params.max_stake > params.min_stake, Error::<T>::InvalidMaxStake)
+
+		ensure!(params.tempo > 0, Error::<T>::InvalidTempo)
+
+		ensure!(params.max_weight_age > params.tempo,  Error::<T>::InvalidMaxWeightAge)
                 		
 		// ensure the trust_ratio is between 0 and 100
 		ensure!(params.trust_ratio <= 100, Error::<T>::InvalidTrustRatio);
