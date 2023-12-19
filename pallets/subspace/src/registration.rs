@@ -89,11 +89,12 @@ impl<T: Config> Pallet<T> {
 		}
 		// CONSTANT INITIAL BURN
 		if min_burn > 0 {
-			assert!(stake_amount >= min_burn);
+			ensure!(stake_amount >= min_burn, Error::<T>::NotEnoughStakeToRegister);
 			Self::decrease_stake(netuid, &key, &module_key, min_burn);
 			let min_stake = Self::get_min_stake(netuid);
 			let current_stake = Self::get_total_stake_to(netuid, &key);
-			assert!(current_stake == stake_amount - min_burn);
+			ensure!(current_stake == stake_amount.saturating_sub(min_burn), Error::<T>::NotEnoughStakeToRegister);
+			ensure!(current_stake >= min_stake, Error::<T>::NotEnoughStakeToRegister);
 		}
 		// ---Deposit successful event.
 

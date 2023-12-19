@@ -36,7 +36,10 @@ impl<T: Config> Pallet<T> {
 	) -> DispatchResult {
 		let key = ensure_signed(origin)?;
 		// only the founder can update the network on authority mode
-		assert!(is_vec_str(params.vote_mode.clone(), "authority"));
+		
+		ensure!(is_vec_str(Self::get_vote_mode_subnet(netuid), "authority"), Error::<T>::NotAuthorityMode);
+		ensure!(Self::if_subnet_netuid_exists(netuid), Error::<T>::SubnetNameAlreadyExists);
+		ensure!(Self::is_subnet_founder(netuid, &key), Error::<T>::NotFounder);
 		ensure!(Self::if_subnet_netuid_exists(netuid), Error::<T>::SubnetNameAlreadyExists);
 		ensure!(Self::is_subnet_founder(netuid, &key), Error::<T>::NotFounder);
 		Self::check_subnet_params(params.clone())?;
@@ -421,8 +424,8 @@ impl<T: Config> Pallet<T> {
 		SubnetEmission::<T>::remove(netuid);
 		Tempo::<T>::remove(netuid);
 		TrustRatio::<T>::remove(netuid);
-		VoteThresholdSubnet::<T>::remove(netuid);
 		VoteModeSubnet::<T>::remove(netuid);
+		VoteThresholdSubnet::<T>::remove(netuid);
 
 		// Adjust the total number of subnets. and remove the subnet from the list of subnets.
 		N::<T>::remove(netuid);
@@ -896,19 +899,20 @@ impl<T: Config> Pallet<T> {
         // checks if params are valid
 
         // check valid tempo		
-		assert!(params.max_allowed_weights >= params.min_allowed_weights, "Invalid max_allowed_weights");
-		
-		assert!(params.max_allowed_weights <= params.max_allowed_uids, "Invalid max_allowed_weights");
+		ensure!(params.max_allowed_weights >= params.min_allowed_weights, Error::<T>::InvalidMaxAllowedWeights);
+		ensure!(params.max_allowed_weights <= params.max_allowed_uids, Error::<T>::InvalidMaxAllowedWeights);
+		ensure!(params.min_allowed_weights <= params.max_allowed_weights, Error::<T>::InvalidMinAllowedWeights);
+		ensure!(params.min_allowed_weights >= 1, Error::<T>::InvalidMinAllowedWeights);
                 		
 		// ensure the trust_ratio is between 0 and 100
-		assert!(params.trust_ratio <= 100, "Invalid trust_ratio");
+		ensure!(params.trust_ratio <= 100, Error::<T>::InvalidTrustRatio);
 
 		// ensure the vode_mode is in "authority", "stake", "quadratic"
-		assert!(
+		ensure!(
 			is_vec_str(params.vote_mode.clone(),"authority") ||
 			is_vec_str(params.vote_mode.clone(),"stake") ||
 			is_vec_str(params.vote_mode.clone(),"quadratic"),
-		);
+		 Error::<T>::InvalidVoteMode);
         Ok(())
 
 

@@ -27,21 +27,25 @@ impl<T: Config> Pallet<T> {
 		let og_params = Self::global_params();
 
         // check if the name already exists
-        ensure!(params.max_name_length > 0, "Invalid max_name_length");
-
-        ensure!(params.max_allowed_subnets > 0, "Invalid max_allowed_subnets");
-
-        ensure!(params.max_allowed_modules > 0, "Invalid max_allowed_modules");
-
-        ensure!(params.max_registrations_per_block > 0, "Invalid max_registrations_per_block");
-
-		ensure!(params.vote_threshold < 100, "Invalid vote_threshold");
-
-		ensure!(params.tx_rate_limit < 100, "Invalid tx_rate_limit");
+        ensure!(params.max_name_length > 0, Error::<T>::InvalidMaxNameLength);
 		
-		assert!(params.burn_rate <= 100, "Invalid burn_rate");
-                
-		assert!(params.min_burn <= 100, "Invalid vote_threshold");
+        ensure!(params.max_allowed_subnets > 0, Error::<T>::InvalidMaxAllowedSubnets);
+
+		ensure!(params.max_allowed_modules > 0, Error::<T>::InvalidMaxAllowedModules);
+
+		ensure!(params.max_registrations_per_block > 0, Error::<T>::InvalidMaxRegistrationsPerBlock);
+
+		ensure!(params.vote_threshold < 100, Error::<T>::InvalidVoteThreshold);
+
+		ensure!(params.max_proposals > 0, Error::<T>::InvalidMaxProposals);
+
+		ensure!(params.unit_emission > 0, Error::<T>::InvalidUnitEmission);
+
+		ensure!(params.tx_rate_limit > 0, Error::<T>::InvalidTxRateLimit);
+
+		ensure!(params.burn_rate <= 100, Error::<T>::InvalidBurnRate);
+				
+		ensure!(params.min_burn <= 100, Error::<T>::InvalidMinBurn);
 		
         Ok(())
     }
@@ -122,8 +126,7 @@ impl<T: Config> Pallet<T> {
 		params: GlobalParams,
 	) -> DispatchResult {
 		ensure_root(origin)?;
-		assert!(is_vec_str(params.vote_mode.clone(), "authority"));
-		Self::check_global_params(params.clone())?;
+		ensure!(is_vec_str(Self::get_vote_mode_global(),"authority"), Error::<T>::InvalidVoteMode);
 		Self::set_global_params(params.clone());
 		Ok(())
 	}
