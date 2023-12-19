@@ -114,12 +114,38 @@ impl<T: Config> Pallet<T> {
 		}
 	}
 
-	pub fn set_max_allowed_uids(netuid: u16, max_allowed_uids: u16) {
+	pub fn add_pending_deregistration_uid(netuid: u16, uid: u16) {
+		PendingDeregisterUids::<T>::mutate(netuid, |val| val.push(uid));
+	}
+
+	pub fn add_pending_deregistration_uids(netuid: u16, uids: Vec<u16>) {
+		for uid in uids {
+			PendingDeregisterUids::<T>::mutate(netuid, |val| val.push(uid));
+		}
+	}
+	
+	pub fn deregister_pending_uid(netuid: u16) {
+		let mut pending_deregister_uids:  Vec<u16> = PendingDeregisterUids::<T>::get(netuid);
+		if pending_deregister_uids.len() > 0 {
+			let uid: u16 = pending_deregister_uids.remove(0);
+			Self::remove_module(netuid,uid);
+			PendingDeregisterUids::<T>::insert(netuid, pending_deregister_uids);
+		}
+	}
+
+	pub fn set_max_allowed_uids(netuid: u16, mut max_allowed_uids: u16) {
 		let n: u16 = Self::get_subnet_n(netuid);
 		if max_allowed_uids < n {
-			let remainder_n: u16 = n - max_allowed_uids;
-			// remove the modules
+			// limit it at 256 at a time
 
+			let mut remainder_n: u16 = (n - max_allowed_uids);
+			let max_remainder = 256;
+			if  remainder_n > max_remainder {
+				// remove the modules in small amounts, as this can be a heavy load on the chain
+				remainder_n = max_remainder;
+				max_allowed_uids = n - remainder_n;
+			}
+			// remove the modules by adding the to the deregister queue
 			for i in 0..remainder_n {
 				let next_uid: u16= n - 1 - i;
 				Self::remove_module(netuid, next_uid);
@@ -760,8 +786,8 @@ impl<T: Config> Pallet<T> {
 			return max_allowed_weights
 		}
 	}
-	pub fn set_max_allowed_weights(netuid: u16, max_allowed_weights: u16) {
-		MaxAllowedWeights::<T>::insert(netuid, max_allowed_weights);
+	pub fn set_max_allowed_weights(netuid: u16, mut max_allowed_weights: u16) {
+		MaxAllowedWeights::<T>::insert(netuid, max_allowed_weights.min(840));
 	}
 
 	pub fn get_max_allowed_uids(netuid: u16) -> u16 {
