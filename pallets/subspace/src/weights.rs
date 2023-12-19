@@ -15,7 +15,7 @@ impl<T: Config> Pallet<T> {
 
 		// check if the stake per weight is greater than the stake
 		let min_stake_per_weight: u64 = Self::get_min_weight_stake();
-		let min_stake_for_weights = min_stake_per_weight * uids.len() as u64;
+		let min_stake_for_weights: u64 = min_stake_per_weight * uids.len() as u64;
 		ensure!(stake >= min_stake_for_weights, Error::<T>::NotEnoughtStakePerWeight);
 
 		ensure!(stake > 0, Error::<T>::NotEnoughStaketoSetWeights);

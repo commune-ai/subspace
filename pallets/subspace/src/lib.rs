@@ -981,42 +981,6 @@ pub mod pallet {
 			Self::do_transfer_multiple(origin, destinations, amounts)
 		}
 
-		#[pallet::weight((Weight::zero(), DispatchClass::Normal, Pays::No))]
-		pub fn update_subnet(
-			origin: OriginFor<T>,
-			netuid: u16,
-			// params
-			founder: T::AccountId,
-			founder_share: u16,
-			immunity_period: u16,
-			incentive_ratio: u16,
-			max_allowed_uids: u16,
-			max_allowed_weights: u16,
-			min_allowed_weights: u16,
-			name: Vec<u8>,
-			self_vote: bool,
-			tempo: u16,
-			trust_ratio: u16,
-			vote_threshold: u16,
-			vote_mode: Vec<u8>,			
-		) -> DispatchResult {
-			let mut params = Self::subnet_params(netuid);
-			params.founder = founder;
-			params.founder_share = founder_share;
-			params.immunity_period = immunity_period;
-			params.incentive_ratio = incentive_ratio;
-			params.max_allowed_weights = max_allowed_weights;
-			params.max_allowed_uids = max_allowed_uids;
-			params.min_allowed_weights = min_allowed_weights;
-			params.name = name;
-			params.self_vote = self_vote;
-			params.tempo = tempo;
-			params.trust_ratio = trust_ratio;
-			params.vote_threshold = vote_threshold;
-			params.vote_mode = vote_mode;
-
-			Self::do_update_subnet(origin,netuid,params)
-		}
 
 
 		#[pallet::weight((Weight::zero(), DispatchClass::Normal, Pays::No))]
@@ -1078,6 +1042,8 @@ pub mod pallet {
 			max_proposals: u64,
 			max_registrations_per_block: u16,
 			min_burn: u64,
+			min_stake: u64,
+			min_weight_stake: u64,
 			tx_rate_limit: u64,
 			unit_emission: u64, 
 			vote_mode: Vec<u8>,			
@@ -1092,49 +1058,17 @@ pub mod pallet {
 			params.max_proposals = max_proposals;
 			params.max_registrations_per_block = max_registrations_per_block;
 			params.min_burn = min_burn;
+			params.min_stake = min_stake;
+			params.min_weight_stake = min_weight_stake;
 			params.tx_rate_limit = tx_rate_limit;
 			params.unit_emission = unit_emission;
 			params.vote_mode = vote_mode;
 			params.vote_threshold = vote_threshold;
+			
 
 			Self::do_update_global(origin, params)
 		}
 
-		#[pallet::weight((Weight::zero(), DispatchClass::Normal, Pays::No))]
-        pub fn add_subnet_proposal(
-            origin: OriginFor<T>,
-			netuid: u16, // FOR SUBNET PROPOSAL ONLY
-			founder: T::AccountId,
-			founder_share: u16,
-			immunity_period: u16,
-			incentive_ratio: u16,
-			max_allowed_uids: u16,
-			max_allowed_weights: u16,
-			min_allowed_weights: u16,
-			name: Vec<u8>,
-			self_vote: bool,
-			tempo: u16,
-			trust_ratio: u16,
-			vote_mode: Vec<u8>,			
-			vote_threshold: u16,
-		) -> DispatchResult {
-			let mut params = Self::subnet_params(netuid);
-			params.founder = founder;
-			params.founder_share = founder_share;
-			params.immunity_period = immunity_period;
-			params.incentive_ratio = incentive_ratio;
-			params.max_allowed_uids = max_allowed_uids;
-			params.max_allowed_weights = max_allowed_weights;
-			params.min_allowed_weights = min_allowed_weights;
-			params.name = name;
-			params.self_vote = self_vote;
-			params.tempo = tempo;
-			params.trust_ratio = trust_ratio;
-			params.vote_mode = vote_mode;
-			params.vote_threshold = vote_threshold;
-
-            Self::do_add_subnet_proposal(origin, netuid, params)
-        }
 		#[pallet::weight((Weight::zero(), DispatchClass::Normal, Pays::No))]
         pub fn add_global_proposal(
             origin: OriginFor<T>,
@@ -1146,6 +1080,8 @@ pub mod pallet {
 			max_proposals: u64,
 			max_registrations_per_block: u16,
 			min_burn: u64,
+			min_stake: u64,
+			min_weight_stake: u64,
 			unit_emission: u64, 
 			tx_rate_limit: u64,
 			vote_threshold: u16,
@@ -1160,12 +1096,97 @@ pub mod pallet {
 			params.max_proposals = max_proposals;
 			params.max_registrations_per_block = max_registrations_per_block;
 			params.min_burn = min_burn;
+			params.min_stake = min_stake;
+			params.min_weight_stake = min_weight_stake;
 			params.tx_rate_limit = tx_rate_limit;
 			params.unit_emission = unit_emission;
 			params.vote_mode = vote_mode;
 			params.vote_threshold = vote_threshold;	
 			
             Self::do_add_global_proposal(origin,  params)
+        }
+
+
+		#[pallet::weight((Weight::zero(), DispatchClass::Normal, Pays::No))]
+		pub fn update_subnet(
+			origin: OriginFor<T>,
+			netuid: u16,
+			// params
+			founder: T::AccountId,
+			founder_share: u16,
+			immunity_period: u16,
+			incentive_ratio: u16,
+			max_allowed_uids: u16,
+			max_allowed_weights: u16,
+			max_stake: u64,
+			min_allowed_weights: u16,
+			min_stake : u64,
+			name: Vec<u8>,
+			self_vote: bool,
+			tempo: u16,
+			trust_ratio: u16,
+			vote_mode: Vec<u8>,			
+			vote_threshold: u16,
+		) -> DispatchResult {
+			let mut params = Self::subnet_params(netuid);
+			params.founder = founder;
+			params.founder_share = founder_share;
+			params.immunity_period = immunity_period;
+			params.incentive_ratio = incentive_ratio;
+			params.max_allowed_uids = max_allowed_uids;
+			params.max_allowed_weights = max_allowed_weights;
+			params.max_stake = max_stake;
+			params.min_allowed_weights = min_allowed_weights;
+			params.min_stake = min_stake;
+			params.name = name;
+			params.self_vote = self_vote;
+			params.tempo = tempo;
+			params.trust_ratio = trust_ratio;
+			params.vote_mode = vote_mode;
+			params.vote_threshold = vote_threshold;
+
+			Self::do_update_subnet(origin,netuid,params)
+		}
+
+
+		#[pallet::weight((Weight::zero(), DispatchClass::Normal, Pays::No))]
+        pub fn add_subnet_proposal(
+            origin: OriginFor<T>,
+			netuid: u16, // FOR SUBNET PROPOSAL ONLY
+			founder: T::AccountId,
+			founder_share: Option<u16>,
+			immunity_period: u16,
+			incentive_ratio: u16,
+			max_allowed_uids: u16,
+			max_allowed_weights: u16,
+			max_stake: u64,
+			min_allowed_weights: u16,
+			min_stake : u64,
+			name: Vec<u8>,
+			self_vote: bool,
+			tempo: u16,
+			trust_ratio: u16,
+			vote_mode: Vec<u8>,			
+			vote_threshold: u16,
+		) -> DispatchResult {
+			let mut params = Self::subnet_params(netuid);
+			params.founder = founder;
+			params.founder_share = founder_share;
+			params.immunity_period = immunity_period;
+			params.incentive_ratio = incentive_ratio;
+			params.max_allowed_uids = max_allowed_uids;
+			params.max_allowed_weights = max_allowed_weights;
+			params.max_stake = max_stake;
+			params.min_allowed_weights = min_allowed_weights;
+			params.min_stake = min_stake;
+			params.name = name;
+			params.self_vote = self_vote;
+			params.tempo = tempo;
+			params.trust_ratio = trust_ratio;
+			params.vote_mode = vote_mode;
+			params.vote_threshold = vote_threshold;
+
+            Self::do_add_subnet_proposal(origin, netuid, params)
         }
 
 

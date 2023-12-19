@@ -1,0 +1,4155 @@
+nohup: ignoring input
+DEPRECATED: The legacy builder is deprecated and will be removed in a future 
+release.
+            Install the buildx component to build images with BuildKit:
+            https://docs.docker.com/go/buildx/
+
+Sending build context to Docker daemon  11.04MB
+Step 1/11 : FROM ubuntu:22.04
+ ---> e4c58958181a
+Step 2/11 : ARG DEBIAN_FRONTEND=noninteractive
+ ---> Using cache
+ ---> 61e4106f7450
+Step 3/11 : ENV RUST_BACKTRACE 1
+ ---> Using cache
+ ---> 790f8ff71ea6
+Step 4/11 : RUN apt-get update && apt-get install -y curl build-essential 
+protobuf-compiler clang git
+ ---> Using cache
+ ---> b4af6a50804b
+Step 5/11 : WORKDIR /subspace
+ ---> Using cache
+ ---> 424adce251e6
+Step 6/11 : COPY ./scripts ./scripts
+ ---> Using cache
+ ---> 362263e3d5ba
+Step 7/11 : RUN apt-get update && apt-get install -y clang
+ ---> Using cache
+ ---> c042ea287e24
+Step 8/11 : ENV PATH="/root/.cargo/bin:${PATH}"
+ ---> Using cache
+ ---> 6fedaee8f5cb
+Step 9/11 : RUN ./scripts/install_rust_env.sh
+ ---> Using cache
+ ---> ac4bc9236907
+Step 10/11 : COPY . .
+ ---> afd597487163
+Step 11/11 : RUN cargo build --release --locked
+ ---> Running in 91480ef61b0d
+[91minfo: syncing channel updates for 'nightly-x86_64-unknown-linux-gnu'
+[0m[91minfo: latest update on 2023-12-19, rust version 1.76.0-nightly (3f28fe133
+2023-12-18)
+[0m[91minfo: component 'cargo' for target 'x86_64-unknown-linux-gnu' is up to 
+date
+info: component 'clippy' for target 'x86_64-unknown-linux-gnu' is up to date
+info: component 'rust-std' for target 'x86_64-unknown-linux-gnu' is up to date
+info: component 'rustc' for target 'x86_64-unknown-linux-gnu' is up to date
+info: component 'rustfmt' for target 'x86_64-unknown-linux-gnu' is up to date
+[0m[91minfo: downloading component 'rust-analyzer'
+[0m[91minfo: downloading component 'rust-src'
+[0m[91minfo: downloading component 'rust-std' for 'wasm32-unknown-unknown'
+[0m[91minfo: downloading component 'rustc-dev'
+[0m[91minfo: installing component 'rust-analyzer'
+[0m[91minfo: installing component 'rust-src'
+[0m[91minfo: installing component 'rust-std' for 'wasm32-unknown-unknown'
+[0m[91minfo: installing component 'rustc-dev'
+[0m[91mwarning: profiles for the non root package will be ignored, specify 
+profiles at the workspace root:
+package:   /subspace/runtime/Cargo.toml
+workspace: /subspace/Cargo.toml
+warning: virtual workspace defaulting to `resolver = "1"` despite one or more 
+workspace members being on edition 2021 which implies `resolver = "2"`
+note: to keep the current resolver, specify `workspace.resolver = "1"` in the 
+workspace root's manifest
+note: to use the edition 2021 resolver, specify `workspace.resolver = "2"` in 
+the workspace root's manifest
+note: for more details see 
+https://doc.rust-lang.org/cargo/reference/resolver.html#resolver-versions
+[0m[91m    Updating crates.io index
+[0m[91m    Updating git repository `https://github.com/paritytech/frontier`
+[0m[91m    Updating git repository `https://github.com/paritytech/substrate`
+[0m[91m    Updating git repository 
+`https://github.com/encointer/substrate-fixed.git`
+[0m[91m    Updating git repository `https://github.com/rust-blockchain/evm`
+[0m[91m    Updating git repository `https://github.com/encointer/typenum`
+[0m[91m Downloading crates ...
+[0m[91m  Downloaded futures-channel v0.3.29
+[0m[91m  Downloaded resolv-conf v0.7.0
+[0m[91m  Downloaded frame-metadata v16.0.0
+[0m[91m  Downloaded array-bytes v6.2.0
+[0m[91m  Downloaded arrayref v0.3.7
+[0m[91m  Downloaded serde_spanned v0.6.4
+[0m[91m  Downloaded asn1-rs-impl v0.1.0
+[0m[91m  Downloaded sct v0.6.1
+[0m[91m  Downloaded pest v2.7.5
+[0m[91m  Downloaded hash-db v0.16.0
+[0m[91m  Downloaded libp2p-allow-block-list v0.1.1
+[0m[91m  Downloaded fnv v1.0.7
+[0m[91m  Downloaded zstd-safe v5.0.2+zstd.1.5.2
+[0m[91m  Downloaded merlin v2.0.1
+[0m[91m  Downloaded minimal-lexical v0.2.1
+[0m[91m  Downloaded schnorrkel v0.9.1
+[0m[91m  Downloaded pest_meta v2.7.5
+[0m[91m  Downloaded pin-project-lite v0.1.12
+[0m[91m  Downloaded p384 v0.11.2
+[0m[91m  Downloaded nalgebra v0.32.3
+[0m[91m  Downloaded linux-raw-sys v0.4.11
+[0m[91m  Downloaded libz-sys v1.1.12
+[0m[91m  Downloaded wasm-opt-sys v0.112.0
+[0m[91m  Downloaded librocksdb-sys v0.11.0+8.1.1
+[0m[91m  Downloaded ring v0.17.6
+[0m[91m  Downloaded ring v0.16.20
+[0m[91m  Downloaded linux-raw-sys v0.1.4
+[0m[91m  Downloaded wasm-opt v0.112.0
+[0m[91m  Downloaded nix v0.24.3
+[0m[91m  Downloaded ndarray v0.15.6
+[0m[91m  Downloaded object v0.30.4
+[0m[91m  Downloaded zstd-sys v2.0.9+zstd.1.5.5
+[0m[91m  Downloaded parity-db v0.4.12
+[0m[91m  Downloaded num-integer v0.1.45
+[0m[91m  Downloaded netlink-proto v0.10.0
+[0m[91m  Downloaded netlink-packet-route v0.12.0
+[0m[91m  Downloaded parity-scale-codec v3.6.9
+[0m[91m  Downloaded prettyplease v0.2.15
+[0m[91m  Downloaded prettyplease v0.1.25
+[0m[91m  Downloaded object v0.32.1
+[0m[91m  Downloaded libp2p-webrtc v0.4.0-alpha.4
+[0m[91m  Downloaded pest_generator v2.7.5
+[0m[91m  Downloaded parking_lot_core v0.8.6
+[0m[91m  Downloaded parking_lot v0.12.1
+[0m[91m  Downloaded parity-wasm v0.45.0
+[0m[91m  Downloaded nohash-hasher v0.2.0
+[0m[91m  Downloaded netlink-sys v0.8.5
+[0m[91m  Downloaded netlink-packet-utils v0.5.2
+[0m[91m  Downloaded netlink-packet-core v0.4.2
+[0m[91m  Downloaded names v0.13.0
+[0m[91m  Downloaded nalgebra-macros v0.2.1
+[0m[91m  Downloaded multistream-select v0.12.1
+[0m[91m  Downloaded multihash v0.17.0
+[0m[91m  Downloaded multibase v0.9.1
+[0m[91m  Downloaded miniz_oxide v0.7.1
+[0m[91m  Downloaded pkg-config v0.3.27
+[0m[91m  Downloaded pest_derive v2.7.5
+[0m[91m  Downloaded parity-scale-codec-derive v3.6.9
+[0m[91m  Downloaded opaque-debug v0.3.0
+[0m[91m  Downloaded predicates-tree v1.0.9
+[0m[91m  Downloaded ppv-lite86 v0.2.17
+[0m[91m  Downloaded powerfmt v0.2.0
+[0m[91m  Downloaded polyval v0.6.1
+[0m[91m  Downloaded polyval v0.5.3
+[0m[91m  Downloaded pkcs8 v0.10.2
+[0m[91m  Downloaded parity-send-wrapper v0.1.0
+[0m[91m  Downloaded p256 v0.11.1
+[0m[91m  Downloaded num_cpus v1.16.0
+[0m[91m  Downloaded multihash-derive v0.8.1
+[0m[91m  Downloaded libsecp256k1-gen-genmult v0.3.0
+[0m[91m  Downloaded elliptic-curve v0.12.3
+[0m[91m  Downloaded dtoa v1.0.9
+[0m[91m  Downloaded openssl-probe v0.1.5
+[0m[91m  Downloaded oid-registry v0.6.1
+[0m[91m  Downloaded num-traits v0.2.17
+[0m[91m  Downloaded num-rational v0.4.1
+[0m[91m  Downloaded matrixmultiply v0.3.8
+[0m[91m  Downloaded lz4-sys v1.9.4
+[0m[91m  Downloaded lock_api v0.4.11
+[0m[91m  Downloaded link-cplusplus v1.0.9
+[0m[91m  Downloaded libp2p-tls v0.1.0
+[0m[91m  Downloaded ed25519-dalek v2.1.0
+[0m[91m  Downloaded derive_builder_core v0.11.2
+[0m[91m  Downloaded der-parser v7.0.0
+[0m[91m  Downloaded wasmtime-cranelift v8.0.1
+[0m[91m  Downloaded zerocopy v0.7.26
+[0m[91m  Downloaded interceptor v0.8.2
+[0m[91m  Downloaded idna v0.2.3
+[0m[91m  Downloaded chacha20poly1305 v0.10.1
+[0m[91m  Downloaded bindgen v0.65.1
+[0m[91m  Downloaded idna v0.5.0
+[0m[91m  Downloaded opaque-debug v0.2.3
+[0m[91m  Downloaded once_cell v1.18.0
+[0m[91m  Downloaded oid-registry v0.4.0
+[0m[91m  Downloaded num_enum_derive v0.6.1
+[0m[91m  Downloaded num_enum v0.6.1
+[0m[91m  Downloaded num-iter v0.1.43
+[0m[91m  Downloaded multimap v0.8.3
+[0m[91m  Downloaded memmap2 v0.5.10
+[0m[91m  Downloaded memchr v2.6.4
+[0m[91m  Downloaded md-5 v0.10.6
+[0m[91m  Downloaded macro_magic v0.4.2
+[0m[91m  Downloaded lru-cache v0.1.2
+[0m[91m  Downloaded libsecp256k1 v0.7.1
+[0m[91m  Downloaded libp2p-websocket v0.41.0
+[0m[91m  Downloaded libp2p-tcp v0.39.0
+[0m[91m  Downloaded either v1.9.0
+[0m[91m  Downloaded ed25519-zebra v3.1.0
+[0m[91m  Downloaded ed25519-dalek v1.0.1
+[0m[91m  Downloaded displaydoc v0.2.4
+[0m[91m  Downloaded dirs-sys v0.3.7
+[0m[91m  Downloaded directories-next v2.0.0
+[0m[91m  Downloaded directories v4.0.1
+[0m[91m  Downloaded digest v0.10.7
+[0m[91m  Downloaded derive_builder v0.11.2
+[0m[91m  Downloaded deranged v0.3.9
+[0m[91m  Downloaded der-parser v8.2.0
+[0m[91m  Downloaded webrtc-util v0.7.0
+[0m[91m  Downloaded wasm-bindgen-shared v0.2.89
+[0m[91m  Downloaded wasm-bindgen-macro-support v0.2.89
+[0m[91m  Downloaded tokio-rustls v0.24.1
+[0m[91m  Downloaded crossbeam-deque v0.8.3
+[0m[91m  Downloaded memory-db v0.32.0
+[0m[91m  Downloaded predicates v2.1.5
+[0m[91m  Downloaded libp2p-core v0.39.2
+[0m[91m  Downloaded kvdb-memorydb v0.13.0
+[0m[91m  Downloaded ip_network v0.4.1
+[0m[91m  Downloaded indexmap v1.9.3
+[0m[91m  Downloaded const-oid v0.9.5
+[0m[91m  Downloaded bytemuck v1.14.0
+[0m[91m  Downloaded auto_impl v1.1.0
+[0m[91m  Downloaded pkcs8 v0.9.0
+[0m[91m  Downloaded pin-project-lite v0.2.13
+[0m[91m  Downloaded memoffset v0.9.0
+[0m[91m  Downloaded memoffset v0.8.0
+[0m[91m  Downloaded memfd v0.6.4
+[0m[91m  Downloaded macro_magic_macros v0.4.2
+[0m[91m  Downloaded macro_magic_core_macros v0.4.3
+[0m[91m  Downloaded macro_magic_core v0.4.2
+[0m[91m  Downloaded lz4 v1.24.0
+[0m[91m  Downloaded lru v0.10.1
+[0m[91m  Downloaded log v0.4.20
+[0m[91m  Downloaded libsecp256k1-gen-ecmult v0.3.0
+[0m[91m  Downloaded libp2p-yamux v0.43.1
+[0m[91m  Downloaded libp2p-wasm-ext v0.39.0
+[0m[91m  Downloaded ed25519 v2.2.3
+[0m[91m  Downloaded dyn-clonable v0.9.0
+[0m[91m  Downloaded downcast v0.11.0
+[0m[91m  Downloaded dirs-sys-next v0.1.2
+[0m[91m  Downloaded derive-syn-parse v0.1.5
+[0m[91m  Downloaded wasm-opt-cxx-sys v0.112.0
+[0m[91m  Downloaded walkdir v2.4.0
+[0m[91m  Downloaded waitgroup v0.1.2
+[0m[91m  Downloaded ref-cast-impl v1.0.20
+[0m[91m  Downloaded proc-macro-crate v2.0.0
+[0m[91m  Downloaded keccak v0.1.4
+[0m[91m  Downloaded inout v0.1.3
+[0m[91m  Downloaded if-watch v3.2.0
+[0m[91m  Downloaded httpdate v1.0.3
+[0m[91m  Downloaded httparse v1.8.0
+[0m[91m  Downloaded cid v0.9.0
+[0m[91m  Downloaded autocfg v1.1.0
+[0m[91m  Downloaded pbkdf2 v0.8.0
+[0m[91m  Downloaded parking_lot v0.11.2
+[0m[91m  Downloaded pin-utils v0.1.0
+[0m[91m  Downloaded memoffset v0.6.5
+[0m[91m  Downloaded fs2 v0.4.3
+[0m[91m  Downloaded async-channel v1.9.0
+[0m[91m  Downloaded hex v0.4.3
+[0m[91m  Downloaded cfg_aliases v0.1.1
+[0m[91m  Downloaded fxhash v0.2.1
+[0m[91m  Downloaded block-padding v0.1.5
+[0m[91m  Downloaded regex-automata v0.4.3
+[0m[91m  Downloaded cxxbridge-macro v1.0.110
+[0m[91m  Downloaded cxx-build v1.0.110
+[0m[91m  Downloaded x25519-dalek v2.0.0
+[0m[91m  Downloaded x25519-dalek v1.1.1
+[0m[91m  Downloaded winnow v0.5.19
+[0m[91m  Downloaded wasm-bindgen v0.2.89
+[0m[91m  Downloaded want v0.3.1
+[0m[91m  Downloaded vcpkg v0.2.15
+[0m[91m  Downloaded uuid v1.6.1
+[0m[91m  Downloaded tracing-subscriber v0.2.25
+[0m[91m  Downloaded tower-http v0.4.4
+[0m[91m  Downloaded toml_edit v0.19.15
+[0m[91m  Downloaded tokio v1.34.0
+[0m[91m  Downloaded tikv-jemalloc-sys v0.5.4+5.3.0-patched
+[0m[91m  Downloaded crc32fast v1.3.2
+[0m[91m  Downloaded byteorder v1.5.0
+[0m[91m  Downloaded partial_sort v0.2.0
+[0m[91m  Downloaded impl-codec v0.6.0
+[0m[91m  Downloaded ghash v0.4.4
+[0m[91m  Downloaded ed25519 v1.5.3
+[0m[91m  Downloaded ecdsa v0.16.9
+[0m[91m  Downloaded ecdsa v0.14.8
+[0m[91m  Downloaded dyn-clone v1.0.16
+[0m[91m  Downloaded dyn-clonable-impl v0.9.0
+[0m[91m  Downloaded der v0.7.8
+[0m[91m  Downloaded der v0.6.1
+[0m[91m  Downloaded data-encoding-macro-internal v0.1.12
+[0m[91m  Downloaded data-encoding-macro v0.1.14
+[0m[91m  Downloaded data-encoding v2.5.0
+[0m[91m  Downloaded darling_macro v0.20.3
+[0m[91m  Downloaded darling_macro v0.14.4
+[0m[91m  Downloaded darling_core v0.20.3
+[0m[91m  Downloaded darling_core v0.14.4
+[0m[91m  Downloaded darling v0.20.3
+[0m[91m  Downloaded darling v0.14.4
+[0m[91m  Downloaded cxxbridge-flags v1.0.110
+[0m[91m  Downloaded ctr v0.9.2
+[0m[91m  Downloaded wyz v0.5.1
+[0m[91m  Downloaded wide v0.7.13
+[0m[91m  Downloaded which v4.4.2
+[0m[91m  Downloaded webrtc-ice v0.9.1
+[0m[91m  Downloaded webrtc-dtls v0.7.2
+[0m[91m  Downloaded webrtc-data v0.6.0
+[0m[91m  Downloaded webrtc v0.6.0
+[0m[91m  Downloaded webpki-roots v0.22.6
+[0m[91m  Downloaded webpki v0.22.4
+[0m[91m  Downloaded webpki v0.21.4
+[0m[91m  Downloaded wasmtime-types v8.0.1
+[0m[91m  Downloaded wasmtime-runtime v8.0.1
+[0m[91m  Downloaded wasmtime-jit-icache-coherence v8.0.1
+[0m[91m  Downloaded wasmtime-jit-debug v8.0.1
+[0m[91m  Downloaded wasmtime-jit v8.0.1
+[0m[91m  Downloaded wasmtime-environ v8.0.1
+[0m[91m  Downloaded wasmtime-cranelift-shared v8.0.1
+[0m[91m  Downloaded wasm-timer v0.2.5
+[0m[91m  Downloaded wasm-instrument v0.3.0
+[0m[91m  Downloaded wasm-bindgen-macro v0.2.89
+[0m[91m  Downloaded void v1.0.2
+[0m[91m  Downloaded version_check v0.9.4
+[0m[91m  Downloaded untrusted v0.9.0
+[0m[91m  Downloaded tt-call v1.0.9
+[0m[91m  Downloaded try-lock v0.2.4
+[0m[91m  Downloaded trust-dns-resolver v0.22.0
+[0m[91m  Downloaded trie-db v0.27.1
+[0m[91m  Downloaded tracing-serde v0.1.3
+[0m[91m  Downloaded tracing-futures v0.2.5
+[0m[91m  Downloaded tracing-core v0.1.32
+[0m[91m  Downloaded tracing-attributes v0.1.27
+[0m[91m  Downloaded tracing v0.1.40
+[0m[91m  Downloaded tower v0.4.13
+[0m[91m  Downloaded toml_edit v0.20.7
+[0m[91m  Downloaded toml_datetime v0.6.5
+[0m[91m  Downloaded toml v0.7.8
+[0m[91m  Downloaded tokio-macros v2.2.0
+[0m[91m  Downloaded quick-protobuf-codec v0.1.0
+[0m[91m  Downloaded trie-root v0.18.0
+[0m[91m  Downloaded tower-service v0.3.2
+[0m[91m  Downloaded tower-layer v0.3.2
+[0m[91m  Downloaded pem-rfc7468 v0.6.0
+[0m[91m  Downloaded webrtc-mdns v0.5.2
+[0m[91m  Downloaded asn1-rs-derive v0.4.0
+[0m[91m  Downloaded fs-err v2.11.0
+[0m[91m  Downloaded atty v0.2.14
+[0m[91m  Downloaded sha-1 v0.9.8
+[0m[91m  Downloaded scratch v1.0.7
+[0m[91m  Downloaded parking_lot_core v0.9.9
+[0m[91m  Downloaded num-format v0.4.4
+[0m[91m  Downloaded tinyvec v1.6.0
+[0m[91m  Downloaded tinytemplate v1.2.1
+[0m[91m  Downloaded tiny-bip39 v1.0.0
+[0m[91m  Downloaded threadpool v1.8.1
+[0m[91m  Downloaded thousands v0.2.0
+[0m[91m  Downloaded thiserror v1.0.50
+[0m[91m  Downloaded termcolor v1.4.0
+[0m[91m  Downloaded tempfile v3.8.1
+[0m[91m  Downloaded target-lexicon v0.12.12
+[0m[91m  Downloaded stun v0.4.4
+[0m[91m  Downloaded strum v0.24.1
+  Downloaded static_init v1.0.3
+[0m[91m  Downloaded static_assertions v1.1.0
+[0m[91m  Downloaded stable_deref_trait v1.2.0
+[0m[91m  Downloaded serde_json v1.0.108
+[0m[91m  Downloaded serde_derive v1.0.193
+[0m[91m  Downloaded serde_bytes v0.11.12
+[0m[91m  Downloaded rand_core v0.6.4
+[0m[91m  Downloaded rand_core v0.5.1
+[0m[91m  Downloaded rand_chacha v0.3.1
+[0m[91m  Downloaded rand_chacha v0.2.2
+[0m[91m  Downloaded radium v0.7.0
+[0m[91m  Downloaded quote v1.0.33
+[0m[91m  Downloaded quinn-proto v0.9.6
+[0m[91m  Downloaded quicksink v0.1.2
+[0m[91m  Downloaded quick-protobuf v0.8.1
+[0m[91m  Downloaded prost-derive v0.11.9
+[0m[91m  Downloaded prost-build v0.11.9
+[0m[91m  Downloaded prost v0.11.9
+[0m[91m  Downloaded prometheus-client-derive-encode v0.4.2
+[0m[91m  Downloaded proc-macro2 v1.0.70
+[0m[91m  Downloaded proc-macro-warning v0.4.2
+[0m[91m  Downloaded proc-macro-error-attr v1.0.4
+[0m[91m  Downloaded proc-macro-error v1.0.4
+[0m[91m  Downloaded primitive-types v0.12.2
+[0m[91m  Downloaded ctr v0.8.0
+[0m[91m  Downloaded crypto-mac v0.11.1
+[0m[91m  Downloaded crypto-common v0.1.6
+[0m[91m  Downloaded crypto-bigint v0.5.5
+[0m[91m  Downloaded crypto-bigint v0.4.9
+[0m[91m  Downloaded crunchy v0.2.2
+[0m[91m  Downloaded crossbeam-utils v0.8.16
+[0m[91m  Downloaded crossbeam-epoch v0.9.15
+[0m[91m  Downloaded zstd-safe v6.0.6
+[0m[91m  Downloaded semver-parser v0.7.0
+[0m[91m  Downloaded semver v1.0.20
+[0m[91m  Downloaded semver v0.9.0
+[0m[91m  Downloaded semver v0.6.0
+[0m[91m  Downloaded secrecy v0.8.0
+[0m[91m  Downloaded same-file v1.0.6
+[0m[91m  Downloaded safe_arch v0.7.1
+[0m[91m  Downloaded safe-mix v1.0.1
+[0m[91m  Downloaded ryu v1.0.15
+[0m[91m  Downloaded libp2p-swarm-derive v0.32.0
+[0m[91m  Downloaded libp2p-request-response v0.24.1
+[0m[91m  Downloaded libp2p-quic v0.7.0-alpha.3
+[0m[91m  Downloaded libp2p-ping v0.42.0
+[0m[91m  Downloaded libp2p-noise v0.42.2
+[0m[91m  Downloaded libp2p-metrics v0.12.0
+[0m[91m  Downloaded float-cmp v0.9.0
+[0m[91m  Downloaded flate2 v1.0.28
+[0m[91m  Downloaded expander v2.0.0
+[0m[91m  Downloaded cranelift-native v0.95.1
+[0m[91m  Downloaded cranelift-isle v0.95.1
+[0m[91m  Downloaded cranelift-frontend v0.95.1
+[0m[91m  Downloaded cranelift-codegen v0.95.1
+[0m[91m  Downloaded cpufeatures v0.2.11
+[0m[91m  Downloaded secp256k1-sys v0.6.1
+[0m[91m  Downloaded curve25519-dalek v3.2.0
+[0m[91m  Downloaded scopeguard v1.2.0
+[0m[91m  Downloaded percent-encoding v2.3.1
+[0m[91m  Downloaded pem v1.1.1
+[0m[91m  Downloaded peeking_take_while v0.1.2
+[0m[91m  Downloaded num v0.4.1
+[0m[91m  Downloaded mockall_derive v0.11.4
+[0m[91m  Downloaded tinyvec_macros v0.1.1
+[0m[91m  Downloaded tiny-keccak v2.0.2
+[0m[91m  Downloaded time v0.3.30
+[0m[91m  Downloaded thread_local v1.1.7
+[0m[91m  Downloaded thiserror-impl v1.0.50
+[0m[91m  Downloaded termtree v0.4.1
+[0m[91m  Downloaded tap v1.0.1
+[0m[91m  Downloaded subtle v2.4.1
+[0m[91m  Downloaded substring v1.4.5
+[0m[91m  Downloaded substrate-bip39 v0.4.5
+[0m[91m  Downloaded strum_macros v0.25.3
+[0m[91m  Downloaded strum_macros v0.24.3
+[0m[91m  Downloaded strum v0.25.0
+[0m[91m  Downloaded crypto-mac v0.8.0
+[0m[91m  Downloaded yasna v0.5.2
+[0m[91m  Downloaded yamux v0.10.2
+[0m[91m  Downloaded x509-parser v0.14.0
+[0m[91m  Downloaded x509-parser v0.13.2
+[0m[91m  Downloaded rw-stream-sink v0.3.0
+[0m[91m  Downloaded rustversion v1.0.14
+[0m[91m  Downloaded rustls-webpki v0.101.7
+[0m[91m  Downloaded rustls-pemfile v1.0.4
+[0m[91m  Downloaded rtnetlink v0.10.1
+[0m[91m  Downloaded rtcp v0.7.2
+[0m[91m  Downloaded rcgen v0.10.0
+[0m[91m  Downloaded libp2p-swarm v0.42.2
+[0m[91m  Downloaded libp2p-mdns v0.43.1
+[0m[91m  Downloaded fixedbitset v0.4.2
+[0m[91m  Downloaded fixed-hash v0.8.0
+[0m[91m  Downloaded finality-grandpa v0.16.2
+[0m[91m  Downloaded filetime v0.2.22
+[0m[91m  Downloaded ff v0.13.0
+[0m[91m  Downloaded ff v0.12.1
+[0m[91m  Downloaded fallible-iterator v0.2.0
+[0m[91m  Downloaded fake-simd v0.1.2
+[0m[91m  Downloaded exit-future v0.2.0
+[0m[91m  Downloaded event-listener v2.5.3
+[0m[91m  Downloaded ethereum-types v0.14.1
+[0m[91m  Downloaded ethbloom v0.13.0
+[0m[91m  Downloaded cranelift-entity v0.95.1
+[0m[91m  Downloaded cranelift-codegen-shared v0.95.1
+[0m[91m  Downloaded cranelift-codegen-meta v0.95.1
+[0m[91m  Downloaded cranelift-bforest v0.95.1
+[0m[91m  Downloaded cpp_demangle v0.3.5
+[0m[91m  Downloaded unicode-width v0.1.11
+[0m[91m  Downloaded unicode-normalization v0.1.22
+[0m[91m  Downloaded turn v0.6.1
+[0m[91m  Downloaded snow v0.9.4
+[0m[91m  Downloaded slice-group-by v0.3.1
+[0m[91m  Downloaded serde_with_macros v2.3.3
+[0m[91m  Downloaded sdp v0.5.3
+[0m[91m  Downloaded sct v0.7.1
+[0m[91m  Downloaded rustls-native-certs v0.6.3
+[0m[91m  Downloaded rustls v0.21.9
+[0m[91m  Downloaded rustls v0.20.9
+[0m[91m  Downloaded rustls v0.19.1
+[0m[91m  Downloaded rustc-hash v1.1.0
+[0m[91m  Downloaded rustc-demangle v0.1.23
+[0m[91m  Downloaded rtp v0.6.8
+[0m[91m  Downloaded rtoolbox v0.0.2
+[0m[91m  Downloaded regex-automata v0.1.10
+[0m[91m  Downloaded regex v1.10.2
+[0m[91m  Downloaded regalloc2 v0.6.1
+[0m[91m  Downloaded num-bigint v0.4.4
+[0m[91m  Downloaded nom v7.1.3
+[0m[91m  Downloaded mockall v0.11.4
+[0m[91m  Downloaded mio v0.8.9
+[0m[91m  Downloaded matches v0.1.10
+[0m[91m  Downloaded matchers v0.0.1
+[0m[91m  Downloaded match_cfg v0.1.0
+  Downloaded linked-hash-map v0.5.6
+[0m[91m  Downloaded libsecp256k1-core v0.3.0
+[0m[91m  Downloaded libp2p-kad v0.43.3
+[0m[91m  Downloaded libp2p-identity v0.1.3
+[0m[91m  Downloaded libp2p-identify v0.42.2
+[0m[91m  Downloaded libp2p-dns v0.39.0
+[0m[91m  Downloaded environmental v1.1.4
+[0m[91m  Downloaded env_logger v0.10.1
+[0m[91m  Downloaded enum-as-inner v0.5.1
+[0m[91m  Downloaded elliptic-curve v0.13.8
+[0m[91m  Downloaded digest v0.9.0
+[0m[91m  Downloaded difflib v0.4.0
+[0m[91m  Downloaded derive_more v0.99.17
+[0m[91m  Downloaded derive_builder_macro v0.11.2
+[0m[91m  Downloaded cxx v1.0.110
+[0m[91m  Downloaded curve25519-dalek-derive v0.1.1
+[0m[91m  Downloaded curve25519-dalek v4.1.1
+[0m[91m  Downloaded curve25519-dalek v2.1.3
+[0m[91m  Downloaded crc-catalog v2.4.0
+[0m[91m  Downloaded crc v3.0.1
+[0m[91m  Downloaded cranelift-wasm v0.95.1
+[0m[91m  Downloaded webrtc-srtp v0.9.1
+[0m[91m  Downloaded webrtc-sctp v0.7.0
+[0m[91m  Downloaded wasmtime v8.0.1
+[0m[91m  Downloaded wasmparser v0.102.0
+[0m[91m  Downloaded trust-dns-proto v0.22.0
+[0m[91m  Downloaded tokio-util v0.7.10
+[0m[91m  Downloaded syn v2.0.39
+[0m[91m  Downloaded sha3 v0.10.8
+[0m[91m  Downloaded rustix v0.38.25
+[0m[91m  Downloaded rocksdb v0.21.0
+[0m[91m  Downloaded rayon v1.8.0
+[0m[91m  Downloaded pin-project v1.1.3
+[0m[91m  Downloaded petgraph v0.6.4
+[0m[91m  Downloaded libc v0.2.150
+[0m[91m  Downloaded itertools v0.10.5
+[0m[91m  Downloaded hyper v0.14.27
+[0m[91m  Downloaded hmac v0.12.1
+[0m[91m  Downloaded hkdf v0.12.3
+[0m[91m  Downloaded hashbrown v0.12.3
+[0m[91m  Downloaded gimli v0.28.1
+[0m[91m  Downloaded generic-array v0.12.4
+[0m[91m  Downloaded futures-util v0.3.29
+[0m[91m  Downloaded clap_builder v4.4.9
+[0m[91m  Downloaded chrono v0.4.31
+[0m[91m  Downloaded asn1-rs v0.5.2
+[0m[91m  Downloaded libloading v0.7.4
+[0m[91m  Downloaded jsonrpsee-core v0.16.3
+[0m[91m  Downloaded ipnet v2.9.0
+[0m[91m  Downloaded hmac v0.11.0
+[0m[91m  Downloaded rlp v0.5.2
+[0m[91m  Downloaded ripemd v0.1.3
+[0m[91m  Downloaded atomic-waker v1.1.2
+[0m[91m  Downloaded aes v0.6.0
+[0m[91m  Downloaded prometheus-client v0.19.0
+[0m[91m  Downloaded handlebars v4.5.0
+[0m[91m  Downloaded base64 v0.21.5
+[0m[91m  Downloaded ref-cast v1.0.20
+[0m[91m  Downloaded rcgen v0.9.3
+[0m[91m  Downloaded aes-soft v0.6.4
+[0m[91m  Downloaded file-per-thread-logger v0.1.6
+[0m[91m  Downloaded fdlimit v0.2.1
+[0m[91m  Downloaded fastrand v2.0.1
+[0m[91m  Downloaded ethereum v0.14.0
+[0m[91m  Downloaded errno v0.3.8
+[0m[91m  Downloaded core2 v0.4.0
+[0m[91m  Downloaded constant_time_eq v0.3.0
+[0m[91m  Downloaded const-random-macro v0.1.16
+[0m[91m  Downloaded untrusted v0.7.1
+[0m[91m  Downloaded unsigned-varint v0.7.2
+[0m[91m  Downloaded universal-hash v0.5.1
+[0m[91m  Downloaded universal-hash v0.4.1
+[0m[91m  Downloaded unicode-xid v0.2.4
+[0m[91m  Downloaded uint v0.9.5
+[0m[91m  Downloaded ucd-trie v0.1.6
+[0m[91m  Downloaded typenum v1.17.0
+[0m[91m  Downloaded twox-hash v1.6.3
+[0m[91m  Downloaded ss58-registry v1.44.0
+[0m[91m  Downloaded spki v0.7.3
+[0m[91m  Downloaded spki v0.6.0
+[0m[91m  Downloaded spin v0.9.8
+[0m[91m  Downloaded spin v0.5.2
+[0m[91m  Downloaded socket2 v0.4.10
+[0m[91m  Downloaded snap v1.1.0
+[0m[91m  Downloaded smallvec v1.11.2
+[0m[91m  Downloaded slab v0.4.9
+[0m[91m  Downloaded siphasher v0.3.11
+[0m[91m  Downloaded simba v0.8.1
+[0m[91m  Downloaded signature v2.2.0
+[0m[91m  Downloaded signature v1.6.4
+[0m[91m  Downloaded signal-hook-registry v1.4.1
+[0m[91m  Downloaded shlex v1.2.0
+[0m[91m  Downloaded sha2 v0.9.9
+[0m[91m  Downloaded sha2 v0.8.2
+[0m[91m  Downloaded sha1 v0.10.6
+[0m[91m  Downloaded rfc6979 v0.4.0
+[0m[91m  Downloaded rfc6979 v0.3.1
+[0m[91m  Downloaded base64 v0.13.1
+[0m[91m  Downloaded asn1-rs v0.3.1
+[0m[91m  Downloaded aes-gcm v0.10.3
+[0m[91m  Downloaded aes v0.7.5
+[0m[91m  Downloaded addr2line v0.21.0
+[0m[91m  Downloaded num-complex v0.4.4
+[0m[91m  Downloaded normalize-line-endings v0.3.0
+[0m[91m  Downloaded multiaddr v0.17.1
+[0m[91m  Downloaded linregress v0.5.3
+[0m[91m  Downloaded linked_hash_set v0.1.4
+[0m[91m  Downloaded equivalent v1.0.1
+[0m[91m  Downloaded digest v0.8.1
+[0m[91m  Downloaded zstd v0.12.4
+[0m[91m  Downloaded zstd v0.11.2+zstd.1.5.2
+[0m[91m  Downloaded zeroize_derive v1.4.2
+[0m[91m  Downloaded zeroize v1.7.0
+[0m[91m  Downloaded webrtc-media v0.5.1
+[0m[91m  Downloaded wasmtime-cache v8.0.1
+[0m[91m  Downloaded wasmtime-asm-macros v8.0.1
+[0m[91m  Downloaded wasm-bindgen-futures v0.4.39
+[0m[91m  Downloaded wasm-bindgen-backend v0.2.89
+[0m[91m  Downloaded utf8parse v0.2.1
+[0m[91m  Downloaded url v2.5.0
+[0m[91m  Downloaded unicode-bidi v0.3.13
+[0m[91m  Downloaded triehash v0.8.4
+[0m[91m  Downloaded tracing-log v0.1.4
+[0m[91m  Downloaded toml v0.5.11
+[0m[91m  Downloaded tokio-stream v0.1.14
+[0m[91m  Downloaded time-macros v0.2.15
+[0m[91m  Downloaded time-core v0.1.2
+[0m[91m  Downloaded synstructure v0.12.6
+[0m[91m  Downloaded syn v1.0.109
+[0m[91m  Downloaded strsim v0.10.0
+[0m[91m  Downloaded static_init_macro v1.0.2
+[0m[91m  Downloaded soketto v0.7.1
+[0m[91m  Downloaded socket2 v0.5.5
+[0m[91m  Downloaded sharded-slab v0.1.7
+[0m[91m  Downloaded sha2 v0.10.8
+[0m[91m  Downloaded serde-tuple-vec-map v1.0.1
+[0m[91m  Downloaded serde v1.0.193
+[0m[91m  Downloaded secp256k1 v0.24.3
+[0m[91m  Downloaded schnellru v0.2.1
+[0m[91m  Downloaded scale-info-derive v2.10.0
+[0m[91m  Downloaded scale-info v2.10.0
+[0m[91m  Downloaded rustix v0.36.17
+[0m[91m  Downloaded rustc_version v0.4.0
+[0m[91m  Downloaded rustc_version v0.2.3
+[0m[91m  Downloaded rustc-hex v2.1.0
+[0m[91m  Downloaded regex-syntax v0.8.2
+[0m[91m  Downloaded regex-syntax v0.6.29
+[0m[91m  Downloaded rand v0.8.5
+[0m[91m  Downloaded prost-types v0.11.9
+[0m[91m  Downloaded prometheus v0.13.3
+[0m[91m  Downloaded proc-macro-crate v1.1.3
+[0m[91m  Downloaded jsonrpsee-server v0.16.3
+[0m[91m  Downloaded jobserver v0.1.27
+[0m[91m  Downloaded io-lifetimes v1.0.11
+[0m[91m  Downloaded hyper-rustls v0.24.2
+[0m[91m  Downloaded group v0.12.1
+[0m[91m  Downloaded glob v0.3.1
+[0m[91m  Downloaded gimli v0.27.3
+[0m[91m  Downloaded comfy-table v7.1.0
+[0m[91m  Downloaded camino v1.1.6
+[0m[91m  Downloaded base64ct v1.6.0
+[0m[91m  Downloaded anstyle-query v1.0.0
+[0m[91m  Downloaded aes-gcm v0.9.4
+[0m[91m  Downloaded kvdb v0.13.0
+[0m[91m  Downloaded instant v0.1.12
+[0m[91m  Downloaded hex-literal v0.4.1
+[0m[91m  Downloaded ghash v0.5.0
+[0m[91m  Downloaded backtrace v0.3.69
+[0m[91m  Downloaded aho-corasick v1.1.2
+[0m[91m  Downloaded arc-swap v1.6.0
+[0m[91m  Downloaded base-x v0.2.11
+[0m[91m  Downloaded generic-array v0.14.7
+[0m[91m  Downloaded block-buffer v0.7.3
+[0m[91m  Downloaded beef v0.5.2
+[0m[91m  Downloaded async-trait v0.1.74
+[0m[91m  Downloaded arrayvec v0.5.2
+[0m[91m  Downloaded anyhow v1.0.75
+[0m[91m  Downloaded approx v0.5.1
+[0m[91m  Downloaded ahash v0.8.6
+[0m[91m  Downloaded ahash v0.7.7
+[0m[91m  Downloaded addr2line v0.19.0
+[0m[91m  Downloaded anstyle v1.0.4
+[0m[91m  Downloaded anstream v0.6.4
+[0m[91m  Downloaded adler v1.0.2
+[0m[91m  Downloaded anstyle-parse v0.2.2
+[0m[91m  Downloaded aes v0.8.3
+[0m[91m  Downloaded Inflector v0.11.4
+[0m[91m  Downloaded ansi_term v0.12.1
+[0m[91m  Downloaded aead v0.5.2
+[0m[91m  Downloaded unicode-ident v1.0.12
+[0m[91m  Downloaded serde_with v2.0.0
+[0m[91m  Downloaded sec1 v0.7.3
+[0m[91m  Downloaded sec1 v0.3.0
+[0m[91m  Downloaded rusticata-macros v4.1.0
+[0m[91m  Downloaded rpassword v7.3.1
+[0m[91m  Downloaded rlp-derive v0.1.0
+[0m[91m  Downloaded rayon-core v1.12.0
+[0m[91m  Downloaded rawpointer v0.2.1
+[0m[91m  Downloaded rand_pcg v0.3.1
+[0m[91m  Downloaded rand v0.7.3
+[0m[91m  Downloaded quick-error v1.2.3
+[0m[91m  Downloaded predicates-core v1.0.6
+[0m[91m  Downloaded poly1305 v0.8.0
+[0m[91m  Downloaded platforms v3.2.0
+[0m[91m  Downloaded pin-project-internal v1.1.3
+[0m[91m  Downloaded pbkdf2 v0.11.0
+[0m[91m  Downloaded paste v1.0.14
+[0m[91m  Downloaded libp2p-connection-limits v0.1.0
+[0m[91m  Downloaded libp2p v0.51.3
+[0m[91m  Downloaded lazycell v1.3.0
+[0m[91m  Downloaded kvdb-rocksdb v0.19.0
+[0m[91m  Downloaded k256 v0.13.2
+[0m[91m  Downloaded js-sys v0.3.66
+[0m[91m  Downloaded itoa v1.0.9
+[0m[91m  Downloaded impl-serde v0.4.0
+[0m[91m  Downloaded impl-rlp v0.3.0
+[0m[91m  Downloaded ident_case v1.0.1
+[0m[91m  Downloaded iana-time-zone v0.1.58
+[0m[91m  Downloaded humantime v2.1.0
+[0m[91m  Downloaded http-body v0.4.5
+[0m[91m  Downloaded hashbrown v0.14.3
+[0m[91m  Downloaded hash256-std-hasher v0.15.2
+[0m[91m  Downloaded h2 v0.3.22
+[0m[91m  Downloaded getrandom v0.1.16
+[0m[91m  Downloaded gethostname v0.2.3
+[0m[91m  Downloaded funty v2.0.0
+[0m[91m  Downloaded concurrent-queue v2.3.0
+[0m[91m  Downloaded codespan-reporting v0.11.1
+[0m[91m  Downloaded clap_derive v4.4.7
+[0m[91m  Downloaded cexpr v0.6.0
+[0m[91m  Downloaded bzip2-sys v0.1.11+1.0.8
+[0m[91m  Downloaded bs58 v0.4.0
+[0m[91m  Downloaded bounded-collections v0.1.9
+[0m[91m  Downloaded blake2b_simd v1.0.2
+[0m[91m  Downloaded bincode v1.3.3
+[0m[91m  Downloaded asynchronous-codec v0.6.2
+[0m[91m  Downloaded asn1-rs-derive v0.1.0
+[0m[91m  Downloaded arrayvec v0.7.4
+[0m[91m  Downloaded aead v0.4.3
+[0m[91m  Downloaded psm v0.1.21
+[0m[91m  Downloaded lazy_static v1.4.0
+[0m[91m  Downloaded jsonrpsee-types v0.16.3
+[0m[91m  Downloaded jsonrpsee-proc-macros v0.16.3
+[0m[91m  Downloaded jsonrpsee v0.16.3
+[0m[91m  Downloaded is-terminal v0.4.9
+[0m[91m  Downloaded integer-sqrt v0.1.5
+[0m[91m  Downloaded indexmap v2.1.0
+[0m[91m  Downloaded impl-trait-for-tuples v0.2.2
+[0m[91m  Downloaded http-range-header v0.3.1
+[0m[91m  Downloaded http v0.2.11
+[0m[91m  Downloaded hostname v0.3.1
+[0m[91m  Downloaded home v0.5.5
+[0m[91m  Downloaded hmac-drbg v0.3.0
+[0m[91m  Downloaded hmac v0.8.1
+[0m[91m  Downloaded heck v0.4.1
+[0m[91m  Downloaded hashbrown v0.13.2
+[0m[91m  Downloaded group v0.13.0
+[0m[91m  Downloaded getrandom v0.2.11
+[0m[91m  Downloaded futures-core v0.3.29
+[0m[91m  Downloaded clap_lex v0.6.0
+[0m[91m  Downloaded clap v4.4.10
+[0m[91m  Downloaded cipher v0.4.4
+[0m[91m  Downloaded cipher v0.3.0
+[0m[91m  Downloaded cipher v0.2.5
+[0m[91m  Downloaded chacha20 v0.9.1
+[0m[91m  Downloaded cfg-if v1.0.0
+[0m[91m  Downloaded cfg-expr v0.15.5
+[0m[91m  Downloaded ccm v0.3.0
+[0m[91m  Downloaded bytes v1.5.0
+[0m[91m  Downloaded byte-slice-cast v1.2.2
+[0m[91m  Downloaded bumpalo v3.14.0
+[0m[91m  Downloaded bitflags v1.3.2
+[0m[91m  Downloaded base16ct v0.1.1
+[0m[91m  Downloaded hash-db v0.15.2
+[0m[91m  Downloaded globset v0.4.14
+[0m[91m  Downloaded futures-timer v3.0.2
+[0m[91m  Downloaded futures-task v0.3.29
+[0m[91m  Downloaded futures-sink v0.3.29
+[0m[91m  Downloaded futures-rustls v0.22.2
+[0m[91m  Downloaded futures-macro v0.3.29
+[0m[91m  Downloaded futures-io v0.3.29
+[0m[91m  Downloaded futures-executor v0.3.29
+[0m[91m  Downloaded fragile v2.0.0
+[0m[91m  Downloaded form_urlencoded v1.2.1
+[0m[91m  Downloaded const-random v0.1.17
+[0m[91m  Downloaded colorchoice v1.0.0
+[0m[91m  Downloaded cc v1.0.83
+[0m[91m  Downloaded cargo_metadata v0.15.4
+[0m[91m  Downloaded cargo-platform v0.1.5
+[0m[91m  Downloaded byte-tools v0.3.1
+[0m[91m  Downloaded build-helper v0.1.1
+[0m[91m  Downloaded bstr v1.8.0
+[0m[91m  Downloaded block-buffer v0.9.0
+[0m[91m  Downloaded blake3 v1.5.0
+[0m[91m  Downloaded blake2s_simd v1.0.2
+[0m[91m  Downloaded blake2 v0.10.6
+[0m[91m  Downloaded bitvec v1.0.1
+[0m[91m  Downloaded bitflags v2.4.1
+[0m[91m  Downloaded base16ct v0.2.0
+[0m[91m  Downloaded aead v0.3.2
+[0m[91m  Downloaded futures v0.3.29
+[0m[91m  Downloaded clang-sys v1.6.1
+[0m[91m  Downloaded block-padding v0.2.1
+[0m[91m  Downloaded block-modes v0.7.0
+[0m[91m  Downloaded block-buffer v0.10.4
+[0m[91m   Compiling proc-macro2 v1.0.70
+   Compiling unicode-ident v1.0.12
+[0m[91m   Compiling libc v0.2.150
+[0m[91m   Compiling cfg-if v1.0.0
+[0m[91m   Compiling version_check v0.9.4
+[0m[91m   Compiling autocfg v1.1.0
+[0m[91m   Compiling serde v1.0.193
+[0m[91m   Compiling typenum v1.17.0
+[0m[91m   Compiling syn v1.0.109
+[0m[91m   Compiling thiserror v1.0.50
+[0m[91m   Compiling memchr v2.6.4
+[0m[91m   Compiling bytes v1.5.0
+[0m[91m   Compiling log v0.4.20
+[0m[91m   Compiling subtle v2.4.1
+[0m[91m   Compiling once_cell v1.18.0
+[0m[91m   Compiling smallvec v1.11.2
+[0m[91m   Compiling pin-project-lite v0.2.13
+[0m[91m   Compiling byteorder v1.5.0
+[0m[91m   Compiling futures-core v0.3.29
+[0m[91m   Compiling arrayvec v0.7.4
+   Compiling scopeguard v1.2.0
+[0m[91m   Compiling futures-sink v0.3.29
+[0m[91m   Compiling futures-io v0.3.29
+[0m[91m   Compiling futures-task v0.3.29
+[0m[91m   Compiling futures-channel v0.3.29
+[0m[91m   Compiling futures-util v0.3.29
+[0m[91m   Compiling ppv-lite86 v0.2.17
+[0m[91m   Compiling const-oid v0.9.5
+[0m[91m   Compiling pin-utils v0.1.0
+[0m[91m   Compiling cpufeatures v0.2.11
+   Compiling anyhow v1.0.75
+[0m[91m   Compiling parking_lot_core v0.9.9
+[0m[91m   Compiling hashbrown v0.14.3
+[0m[91m   Compiling equivalent v1.0.1
+[0m[91m   Compiling tinyvec_macros v0.1.1
+[0m[91m   Compiling winnow v0.5.19
+[0m[91m   Compiling crunchy v0.2.2
+[0m[91m   Compiling static_assertions v1.1.0
+[0m[91m   Compiling unicode-bidi v0.3.13
+[0m[91m   Compiling pkg-config v0.3.27
+[0m[91m   Compiling percent-encoding v2.3.1
+[0m[91m   Compiling keccak v0.1.4
+[0m[91m   Compiling rustix v0.38.25
+[0m[91m   Compiling arrayref v0.3.7
+[0m[91m   Compiling either v1.9.0
+[0m[91m   Compiling byte-slice-cast v1.2.2
+[0m[91m   Compiling unicode-xid v0.2.4
+[0m[91m   Compiling tinyvec v1.6.0
+   Compiling tracing-core v0.1.32
+[0m[91m   Compiling constant_time_eq v0.3.0
+[0m[91m   Compiling itoa v1.0.9
+[0m[91m   Compiling instant v0.1.12
+[0m[91m   Compiling regex-syntax v0.8.2
+[0m[91m   Compiling crc32fast v1.3.2
+[0m[91m   Compiling zerocopy v0.7.26
+[0m[91m   Compiling serde_json v1.0.108
+[0m[91m   Compiling lazy_static v1.4.0
+[0m[91m   Compiling opaque-debug v0.3.0
+[0m[91m   Compiling paste v1.0.14
+[0m[91m   Compiling generic-array v0.14.7
+[0m[91m   Compiling form_urlencoded v1.2.1
+[0m[91m   Compiling ahash v0.7.7
+[0m[91m   Compiling ahash v0.8.6
+[0m[91m   Compiling slab v0.4.9
+[0m[91m   Compiling lock_api v0.4.11
+   Compiling num-traits v0.2.17
+[0m[91m   Compiling blake2b_simd v1.0.2
+[0m[91m   Compiling indexmap v1.9.3
+[0m[91m   Compiling bs58 v0.4.0
+[0m[91m   Compiling bitflags v1.3.2
+[0m[91m   Compiling getrandom v0.1.16
+[0m[91m   Compiling stable_deref_trait v1.2.0
+   Compiling rustc-hex v2.1.0
+[0m[91m   Compiling hex v0.4.3
+[0m[91m   Compiling target-lexicon v0.12.12
+[0m[91m   Compiling fallible-iterator v0.2.0
+[0m[91m   Compiling bitflags v2.4.1
+[0m[91m   Compiling aho-corasick v1.1.2
+[0m[91m   Compiling cranelift-isle v0.95.1
+[0m[91m   Compiling crossbeam-utils v0.8.16
+[0m[91m   Compiling cranelift-codegen-shared v0.95.1
+[0m[91m   Compiling linux-raw-sys v0.4.11
+[0m[91m   Compiling ryu v1.0.15
+[0m[91m   Compiling fxhash v0.2.1
+[0m[91m   Compiling slice-group-by v0.3.1
+[0m[91m   Compiling io-lifetimes v1.0.11
+[0m[91m   Compiling memoffset v0.9.0
+[0m[91m   Compiling indexmap v2.1.0
+[0m[91m   Compiling uint v0.9.5
+[0m[91m   Compiling cranelift-codegen-meta v0.95.1
+[0m[91m   Compiling sp-std v8.0.0 
+(https://github.com/paritytech/substrate?branch=polkadot-v1.0.0#948fbd2f)
+[0m[91m   Compiling rustix v0.36.17
+[0m[91m   Compiling base64 v0.13.1
+[0m[91m   Compiling bumpalo v3.14.0
+[0m[91m   Compiling crossbeam-epoch v0.9.15
+[0m[91m   Compiling quote v1.0.33
+[0m[91m   Compiling linux-raw-sys v0.1.4
+[0m[91m   Compiling parking_lot_core v0.8.6
+[0m[91m   Compiling itertools v0.10.5
+[0m[91m   Compiling memoffset v0.8.0
+[0m[91m   Compiling base64 v0.21.5
+[0m[91m   Compiling zstd-safe v5.0.2+zstd.1.5.2
+[0m[91m   Compiling humantime v2.1.0
+[0m[91m   Compiling cpp_demangle v0.3.5
+[0m[91m   Compiling rustc-demangle v0.1.23
+[0m[91m   Compiling termcolor v1.4.0
+[0m[91m   Compiling rayon-core v1.12.0
+[0m[91m   Compiling wasmtime-asm-macros v8.0.1
+[0m[91m   Compiling rustc-hash v1.1.0
+[0m[91m   Compiling regalloc2 v0.6.1
+[0m[91m   Compiling syn v2.0.39
+[0m[91m   Compiling regex-syntax v0.6.29
+[0m[91m   Compiling unicode-normalization v0.1.22
+[0m[91m   Compiling iana-time-zone v0.1.58
+[0m[91m   Compiling wasmtime-cache v8.0.1
+[0m[91m   Compiling byte-tools v0.3.1
+[0m[91m   Compiling environmental v1.1.4
+[0m[91m   Compiling ref-cast v1.0.20
+[0m[91m   Compiling block-padding v0.1.5
+[0m[91m   Compiling wasmtime v8.0.1
+[0m[91m   Compiling tracing-log v0.1.4
+[0m[91m   Compiling sharded-slab v0.1.7
+[0m[91m   Compiling thread_local v1.1.7
+[0m[91m   Compiling hash-db v0.16.0
+[0m[91m   Compiling rustversion v1.0.14
+[0m[91m   Compiling ansi_term v0.12.1
+[0m[91m   Compiling opaque-debug v0.2.3
+[0m[91m   Compiling fake-simd v0.1.2
+[0m[91m   Compiling hash256-std-hasher v0.15.2
+[0m[91m   Compiling arrayvec v0.5.2
+[0m[91m   Compiling generic-array v0.12.4
+[0m[91m   Compiling num-format v0.4.4
+[0m[91m   Compiling dyn-clone v1.0.16
+[0m[91m   Compiling array-bytes v6.2.0
+[0m[91m   Compiling nohash-hasher v0.2.0
+[0m[91m   Compiling adler v1.0.2
+[0m[91m   Compiling gimli v0.28.1
+[0m[91m   Compiling object v0.32.1
+[0m[91m   Compiling trie-root v0.18.0
+[0m[91m   Compiling memory-db v0.32.0
+[0m[91m   Compiling signature v1.6.4
+[0m[91m   Compiling miniz_oxide v0.7.1
+[0m[91m   Compiling async-trait v0.1.74
+[0m[91m   Compiling ed25519 v1.5.3
+[0m[91m   Compiling digest v0.8.1
+[0m[91m   Compiling idna v0.5.0
+[0m[91m   Compiling crossbeam-deque v0.8.3
+[0m[91m   Compiling block-buffer v0.7.3
+[0m[91m   Compiling fs-err v2.11.0
+[0m[91m   Compiling parity-wasm v0.45.0
+[0m[91m   Compiling sha2 v0.8.2
+[0m[91m   Compiling getrandom v0.2.11
+[0m[91m   Compiling jobserver v0.1.27
+[0m[91m   Compiling num_cpus v1.16.0
+[0m[91m   Compiling errno v0.3.8
+[0m[91m   Compiling dirs-sys-next v0.1.2
+[0m[91m   Compiling wasmtime-jit-icache-coherence v8.0.1
+[0m[91m   Compiling rand_core v0.6.4
+[0m[91m   Compiling parking_lot v0.12.1
+[0m[91m   Compiling rand_core v0.5.1
+[0m[91m   Compiling directories-next v2.0.0
+[0m[91m   Compiling chrono v0.4.31
+[0m[91m   Compiling url v2.5.0
+[0m[91m   Compiling cc v1.0.83
+[0m[91m   Compiling parking_lot v0.11.2
+[0m[91m   Compiling rand_chacha v0.3.1
+[0m[91m   Compiling integer-sqrt v0.1.5
+[0m[91m   Compiling regex-automata v0.4.3
+[0m[91m   Compiling hashbrown v0.12.3
+[0m[91m   Compiling rand_chacha v0.2.2
+[0m[91m   Compiling expander v2.0.0
+[0m[91m   Compiling hashbrown v0.13.2
+[0m[91m   Compiling proc-macro-error-attr v1.0.4
+[0m[91m   Compiling rand v0.8.5
+[0m[91m   Compiling rand v0.7.3
+[0m[91m   Compiling fnv v1.0.7
+[0m[91m   Compiling sp-io v23.0.0 
+(https://github.com/paritytech/substrate?branch=polkadot-v1.0.0#948fbd2f)
+[0m[91m   Compiling rayon v1.8.0
+[0m[91m   Compiling proc-macro-error v1.0.4
+[0m[91m   Compiling mio v0.8.9
+[0m[91m   Compiling socket2 v0.5.5
+[0m[91m   Compiling signal-hook-registry v1.4.1
+[0m[91m   Compiling heck v0.4.1
+[0m[91m   Compiling semver v1.0.20
+[0m[91m   Compiling futures-timer v3.0.2
+[0m[91m   Compiling tiny-keccak v2.0.2
+[0m[91m   Compiling data-encoding v2.5.0
+[0m[91m   Compiling trie-db v0.27.1
+[0m[91m   Compiling schnellru v0.2.1
+[0m[91m   Compiling platforms v3.2.0
+[0m[91m   Compiling regex-automata v0.1.10
+[0m[91m   Compiling http v0.2.11
+[0m[91m   Compiling socket2 v0.4.10
+[0m[91m   Compiling fixed-hash v0.8.0
+[0m[91m   Compiling core2 v0.4.0
+[0m[91m   Compiling blake2s_simd v1.0.2
+[0m[91m   Compiling base-x v0.2.11
+[0m[91m   Compiling httparse v1.8.0
+[0m[91m   Compiling quick-protobuf v0.8.1
+[0m[91m   Compiling zstd-safe v6.0.6
+[0m[91m   Compiling void v1.0.2
+[0m[91m   Compiling tower-service v0.3.2
+[0m[91m   Compiling try-lock v0.2.4
+[0m[91m   Compiling httpdate v1.0.3
+[0m[91m   Compiling untrusted v0.9.0
+[0m[91m   Compiling spin v0.9.8
+[0m[91m   Compiling want v0.3.1
+[0m[91m   Compiling ff v0.13.0
+[0m[91m   Compiling prometheus v0.13.3
+   Compiling base16ct v0.2.0
+[0m[91m   Compiling vcpkg v0.2.15
+[0m[91m   Compiling zstd-sys v2.0.9+zstd.1.5.5
+[0m[91m   Compiling wasmtime-runtime v8.0.1
+[0m[91m   Compiling psm v0.1.21
+[0m[91m   Compiling secp256k1-sys v0.6.1
+[0m[91m   Compiling backtrace v0.3.69
+[0m[91m   Compiling addr2line v0.21.0
+[0m[91m   Compiling blake3 v1.5.0
+[0m[91m   Compiling const-random-macro v0.1.16
+[0m[91m   Compiling ring v0.17.6
+[0m[91m   Compiling matchers v0.0.1
+[0m[91m   Compiling group v0.13.0
+[0m[91m   Compiling proc-macro-warning v0.4.2
+[0m[91m   Compiling kvdb v0.13.0
+[0m[91m   Compiling wasm-bindgen-shared v0.2.89
+[0m[91m   Compiling http-body v0.4.5
+[0m[91m   Compiling concurrent-queue v2.3.0
+[0m[91m   Compiling event-listener v2.5.3
+[0m[91m   Compiling cfg-expr v0.15.5
+[0m[91m   Compiling tt-call v1.0.9
+[0m[91m   Compiling sp-database v4.0.0-dev 
+(https://github.com/paritytech/substrate?branch=polkadot-v1.0.0#948fbd2f)
+[0m[91m   Compiling wasm-instrument v0.3.0
+[0m[91m   Compiling sc-executor-wasmtime v0.10.0-dev 
+(https://github.com/paritytech/substrate?branch=polkadot-v1.0.0#948fbd2f)
+[0m[91m   Compiling ring v0.16.20
+[0m[91m   Compiling async-channel v1.9.0
+[0m[91m   Compiling linked-hash-map v0.5.6
+[0m[91m   Compiling ipnet v2.9.0
+[0m[91m   Compiling const-random v0.1.17
+[0m[91m   Compiling wasm-bindgen v0.2.89
+[0m[91m   Compiling cranelift-codegen v0.95.1
+[0m[91m   Compiling matches v0.1.10
+[0m[91m   Compiling regex v1.10.2
+[0m[91m   Compiling nix v0.24.3
+[0m[91m   Compiling rustls v0.20.9
+[0m[91m   Compiling idna v0.2.3
+[0m[91m   Compiling match_cfg v0.1.0
+[0m[91m   Compiling untrusted v0.7.1
+[0m[91m   Compiling spin v0.5.2
+[0m[91m   Compiling quick-error v1.2.3
+[0m[91m   Compiling lru-cache v0.1.2
+[0m[91m   Compiling pin-project-lite v0.1.12
+   Compiling lru v0.10.1
+[0m[91m   Compiling hostname v0.3.1
+[0m[91m   Compiling quicksink v0.1.2
+[0m[91m   Compiling predicates-core v1.0.6
+[0m[91m   Compiling parity-send-wrapper v0.1.0
+[0m[91m   Compiling float-cmp v0.9.0
+[0m[91m   Compiling difflib v0.4.0
+[0m[91m   Compiling termtree v0.4.1
+[0m[91m   Compiling resolv-conf v0.7.0
+[0m[91m   Compiling normalize-line-endings v0.3.0
+[0m[91m   Compiling downcast v0.11.0
+[0m[91m   Compiling libz-sys v1.1.12
+[0m[91m   Compiling fragile v2.0.0
+[0m[91m   Compiling Inflector v0.11.4
+[0m[91m   Compiling wasm-bindgen-backend v0.2.89
+[0m[91m   Compiling predicates-tree v1.0.9
+[0m[91m   Compiling fastrand v2.0.1
+[0m[91m   Compiling linked_hash_set v0.1.4
+[0m[91m   Compiling partial_sort v0.2.0
+[0m[91m   Compiling ip_network v0.4.1
+[0m[91m   Compiling prettyplease v0.1.25
+[0m[91m   Compiling num-integer v0.1.45
+[0m[91m   Compiling home v0.5.5
+[0m[91m   Compiling scratch v1.0.7
+[0m[91m   Compiling fixedbitset v0.4.2
+[0m[91m   Compiling hash-db v0.15.2
+[0m[91m   Compiling glob v0.3.1
+[0m[91m   Compiling link-cplusplus v1.0.9
+[0m[91m   Compiling synstructure v0.12.6
+[0m[91m   Compiling petgraph v0.6.4
+[0m[91m   Compiling bstr v1.8.0
+[0m[91m   Compiling multimap v0.8.3
+[0m[91m   Compiling prettyplease v0.2.15
+[0m[91m   Compiling sp-panic-handler v8.0.0 
+(https://github.com/paritytech/substrate?branch=polkadot-v1.0.0#948fbd2f)
+[0m[91m   Compiling predicates v2.1.5
+[0m[91m   Compiling flate2 v1.0.28
+[0m[91m   Compiling tower-layer v0.3.2
+[0m[91m   Compiling unicode-width v0.1.11
+[0m[91m   Compiling clang-sys v1.6.1
+[0m[91m   Compiling minimal-lexical v0.2.1
+[0m[91m   Compiling cxxbridge-flags v1.0.110
+   Compiling memmap2 v0.5.10
+[0m[91m   Compiling is-terminal v0.4.9
+[0m[91m   Compiling env_logger v0.10.1
+[0m[91m   Compiling memfd v0.6.4
+[0m[91m   Compiling codespan-reporting v0.11.1
+[0m[91m   Compiling wasm-bindgen-macro-support v0.2.89
+[0m[91m   Compiling nom v7.1.3
+[0m[91m   Compiling globset v0.4.14
+   Compiling cxx v1.0.110
+[0m[91m   Compiling num-bigint v0.4.4
+[0m[91m   Compiling libloading v0.7.4
+[0m[91m   Compiling bindgen v0.65.1
+[0m[91m   Compiling tikv-jemalloc-sys v0.5.4+5.3.0-patched
+[0m[91m   Compiling num-complex v0.4.4
+[0m[91m   Compiling file-per-thread-logger v0.1.6
+[0m[91m   Compiling num-rational v0.4.1
+[0m[91m   Compiling cxx-build v1.0.110
+[0m[91m   Compiling shlex v1.2.0
+[0m[91m   Compiling lazycell v1.3.0
+[0m[91m   Compiling peeking_take_while v0.1.2
+[0m[91m   Compiling matrixmultiply v0.3.8
+[0m[91m   Compiling cfg_aliases v0.1.1
+[0m[91m   Compiling bytemuck v1.14.0
+[0m[91m   Compiling lz4-sys v1.9.4
+[0m[91m   Compiling rawpointer v0.2.1
+[0m[91m   Compiling approx v0.5.1
+[0m[91m   Compiling camino v1.1.6
+[0m[91m   Compiling snap v1.1.0
+[0m[91m   Compiling safe_arch v0.7.1
+[0m[91m   Compiling strsim v0.10.0
+[0m[91m   Compiling ident_case v1.0.1
+[0m[91m   Compiling static_init_macro v1.0.2
+[0m[91m   Compiling utf8parse v0.2.1
+[0m[91m   Compiling ucd-trie v0.1.6
+[0m[91m   Compiling semver-parser v0.7.0
+[0m[91m   Compiling static_init v1.0.3
+[0m[91m   Compiling fs2 v0.4.3
+[0m[91m   Compiling darling_core v0.20.3
+[0m[91m   Compiling anstyle-parse v0.2.2
+[0m[91m   Compiling atty v0.2.14
+[0m[91m   Compiling num-iter v0.1.43
+[0m[91m   Compiling http-range-header v0.3.1
+[0m[91m   Compiling semver v0.6.0
+[0m[91m   Compiling rustls v0.21.9
+[0m[91m   Compiling anstyle-query v1.0.0
+[0m[91m   Compiling wide v0.7.13
+[0m[91m   Compiling sc-sysinfo v6.0.0-dev 
+(https://github.com/paritytech/substrate?branch=polkadot-v1.0.0#948fbd2f)
+[0m[91m   Compiling colorchoice v1.0.0
+[0m[91m   Compiling anstyle v1.0.4
+[0m[91m   Compiling same-file v1.0.6
+[0m[91m   Compiling typenum v1.16.0 
+(https://github.com/encointer/typenum?tag=v1.16.0#4c8dddaa)
+[0m[91m   Compiling siphasher v0.3.11
+[0m[91m   Compiling kvdb-memorydb v0.13.0
+[0m[91m   Compiling rand_pcg v0.3.1
+[0m[91m   Compiling filetime v0.2.22
+[0m[91m   Compiling dirs-sys v0.3.7
+[0m[91m   Compiling walkdir v2.4.0
+[0m[91m   Compiling build-helper v0.1.1
+[0m[91m   Compiling anstream v0.6.4
+[0m[91m   Compiling substrate-fixed v0.5.9 
+(https://github.com/encointer/substrate-fixed.git?tag=v0.5.9#a4fb461a)
+[0m[91m   Compiling clap_lex v0.6.0
+[0m[91m   Compiling names v0.13.0
+[0m[91m   Compiling directories v4.0.1
+[0m[91m   Compiling rtoolbox v0.0.2
+[0m[91m   Compiling rustls-pemfile v1.0.4
+[0m[91m   Compiling openssl-probe v0.1.5
+[0m[91m   Compiling hex-literal v0.4.1
+[0m[91m   Compiling tempfile v3.8.1
+[0m[91m   Compiling sc-consensus-slots v0.10.0-dev 
+(https://github.com/paritytech/substrate?branch=polkadot-v1.0.0#948fbd2f)
+[0m[91m   Compiling clap_builder v4.4.9
+[0m[91m   Compiling rustls-native-certs v0.6.3
+[0m[91m   Compiling rpassword v7.3.1
+[0m[91m   Compiling fdlimit v0.2.1
+[0m[91m   Compiling cexpr v0.6.0
+[0m[91m   Compiling frame-benchmarking-cli v4.0.0-dev 
+(https://github.com/paritytech/substrate?branch=polkadot-v1.0.0#948fbd2f)
+[0m[91m   Compiling substrate-build-script-utils v3.0.0 
+(https://github.com/paritytech/substrate?branch=polkadot-v1.0.0#948fbd2f)
+[0m[91m   Compiling safe-mix v1.0.1
+[0m[91m   Compiling strum v0.25.0
+[0m[91m   Compiling serde_derive v1.0.193
+[0m[91m   Compiling zeroize_derive v1.4.2
+[0m[91m   Compiling thiserror-impl v1.0.50
+[0m[91m   Compiling futures-macro v0.3.29
+[0m[91m   Compiling tracing-attributes v0.1.27
+[0m[91m   Compiling ref-cast-impl v1.0.20
+[0m[91m   Compiling sp-debug-derive v8.0.0 
+(https://github.com/paritytech/substrate?branch=polkadot-v1.0.0#948fbd2f)
+[0m[91m   Compiling tokio-macros v2.2.0
+[0m[91m   Compiling curve25519-dalek-derive v0.1.1
+[0m[91m   Compiling pin-project-internal v1.1.3
+[0m[91m   Compiling macro_magic_core_macros v0.4.3
+[0m[91m   Compiling frame-support-procedural-tools-derive v3.0.0 
+(https://github.com/paritytech/substrate?branch=polkadot-v1.0.0#948fbd2f)
+[0m[91m   Compiling wasm-bindgen-macro v0.2.89
+[0m[91m   Compiling cxxbridge-macro v1.0.110
+[0m[91m   Compiling clap_derive v4.4.7
+[0m[91m   Compiling ndarray v0.15.6
+[0m[91m   Compiling simba v0.8.1
+[0m[91m   Compiling impl-trait-for-tuples v0.2.2
+[0m[91m   Compiling derive_more v0.99.17
+[0m[91m   Compiling rlp-derive v0.1.0
+[0m[91m   Compiling dyn-clonable-impl v0.9.0
+[0m[91m   Compiling data-encoding-macro-internal v0.1.12
+[0m[91m   Compiling derive-syn-parse v0.1.5
+[0m[91m   Compiling libp2p-swarm-derive v0.32.0
+[0m[91m   Compiling enum-as-inner v0.5.1
+[0m[91m   Compiling mockall_derive v0.11.4
+[0m[91m   Compiling zeroize v1.7.0
+[0m[91m   Compiling merlin v2.0.1
+[0m[91m   Compiling curve25519-dalek v2.1.3
+[0m[91m   Compiling secrecy v0.8.0
+[0m[91m   Compiling tokio v1.34.0
+[0m[91m   Compiling der v0.7.8
+[0m[91m   Compiling prost-derive v0.11.9
+   Compiling which v4.4.2
+[0m[91m   Compiling dyn-clonable v0.9.0
+[0m[91m   Compiling auto_impl v1.1.0
+[0m[91m   Compiling strum_macros v0.24.3
+[0m[91m   Compiling data-encoding-macro v0.1.14
+[0m[91m   Compiling crypto-common v0.1.6
+[0m[91m   Compiling block-buffer v0.10.4
+[0m[91m   Compiling digest v0.9.0
+[0m[91m   Compiling block-buffer v0.9.0
+[0m[91m   Compiling rlp v0.5.2
+[0m[91m   Compiling crypto-mac v0.8.0
+[0m[91m   Compiling crypto-mac v0.11.1
+[0m[91m   Compiling digest v0.10.7
+[0m[91m   Compiling curve25519-dalek v3.2.0
+[0m[91m   Compiling libsecp256k1-core v0.3.0
+[0m[91m   Compiling sha2 v0.9.9
+[0m[91m   Compiling hmac v0.8.1
+[0m[91m   Compiling hmac v0.11.0
+[0m[91m   Compiling pbkdf2 v0.8.0
+[0m[91m   Compiling schnorrkel v0.9.1
+[0m[91m   Compiling impl-rlp v0.3.0
+[0m[91m   Compiling hmac-drbg v0.3.0
+[0m[91m   Compiling sha2 v0.10.8
+[0m[91m   Compiling sha3 v0.10.8
+[0m[91m   Compiling blake2 v0.10.6
+[0m[91m   Compiling hmac v0.12.1
+[0m[91m   Compiling pbkdf2 v0.11.0
+[0m[91m   Compiling twox-hash v1.6.3
+[0m[91m   Compiling signature v2.2.0
+[0m[91m   Compiling multibase v0.9.1
+[0m[91m   Compiling ed25519 v2.2.3
+[0m[91m   Compiling pin-project v1.1.3
+[0m[91m   Compiling tracing v0.1.40
+[0m[91m   Compiling macro_magic_core v0.4.2
+[0m[91m   Compiling crypto-bigint v0.5.5
+[0m[91m   Compiling rfc6979 v0.4.0
+[0m[91m   Compiling tiny-bip39 v1.0.0
+[0m[91m   Compiling ed25519-zebra v3.1.0
+[0m[91m   Compiling sp-core-hashing v9.0.0 
+(https://github.com/paritytech/substrate?branch=polkadot-v1.0.0#948fbd2f)
+[0m[91m   Compiling substrate-bip39 v0.4.5
+[0m[91m   Compiling ed25519-dalek v1.0.1
+[0m[91m   Compiling libsecp256k1-gen-genmult v0.3.0
+[0m[91m   Compiling libsecp256k1-gen-ecmult v0.3.0
+[0m[91m   Compiling macro_magic_macros v0.4.2
+[0m[91m   Compiling sec1 v0.7.3
+[0m[91m   Compiling spki v0.7.3
+[0m[91m   Compiling inout v0.1.3
+[0m[91m   Compiling netlink-packet-utils v0.5.2
+[0m[91m   Compiling sha-1 v0.9.8
+[0m[91m   Compiling libsecp256k1 v0.7.1
+[0m[91m   Compiling universal-hash v0.5.1
+[0m[91m   Compiling cipher v0.4.4
+[0m[91m   Compiling netlink-packet-core v0.4.2
+[0m[91m   Compiling polyval v0.6.1
+[0m[91m   Compiling aead v0.5.2
+[0m[91m   Compiling poly1305 v0.8.0
+[0m[91m   Compiling js-sys v0.3.66
+[0m[91m   Compiling netlink-packet-route v0.12.0
+[0m[91m   Compiling ghash v0.5.0
+[0m[91m   Compiling chacha20 v0.9.1
+[0m[91m   Compiling ctr v0.9.2
+[0m[91m   Compiling aes v0.8.3
+[0m[91m   Compiling x25519-dalek v1.1.1
+[0m[91m   Compiling triehash v0.8.4
+[0m[91m   Compiling tower v0.4.13
+[0m[91m   Compiling sp-core-hashing-proc-macro v9.0.0 
+(https://github.com/paritytech/substrate?branch=polkadot-v1.0.0#948fbd2f)
+[0m[91m   Compiling wasm-opt-sys v0.112.0
+[0m[91m   Compiling wasm-opt-cxx-sys v0.112.0
+[0m[91m   Compiling nalgebra-macros v0.2.1
+[0m[91m   Compiling pest v2.7.5
+[0m[91m   Compiling darling_macro v0.20.3
+[0m[91m   Compiling chacha20poly1305 v0.10.1
+[0m[91m   Compiling tracing-futures v0.2.5
+[0m[91m   Compiling clap v4.4.10
+[0m[91m   Compiling ripemd v0.1.3
+[0m[91m   Compiling[0m[91m num v0.4.1
+[0m[91m   Compiling aes-gcm v0.10.3
+[0m[91m   Compiling strum_macros v0.25.3
+[0m[91m   Compiling elliptic-curve v0.13.8
+[0m[91m   Compiling macro_magic v0.4.2
+[0m[91m   Compiling prost v0.11.9
+[0m[91m   Compiling strum v0.24.1
+[0m[91m   Compiling node-subspace v4.0.0-dev (/subspace/node)
+[0m[91m   Compiling[0m[91m threadpool v1.8.1
+[0m[91m   Compiling gethostname v0.2.3
+[0m[91m   Compiling futures-executor v0.3.29
+[0m[91m   Compiling asynchronous-codec v0.6.2
+[0m[91m   Compiling ecdsa v0.16.9
+[0m[91m   Compiling tower-http v0.4.4
+[0m[91m   Compiling prost-types v0.11.9
+[0m[91m   Compiling thousands v0.2.0
+[0m[91mwarning: node-subspace@4.0.0-dev: Git command failed with status: exit 
+status: 128
+   Compiling futures v0.3.29
+[0m[91m   Compiling unsigned-varint v0.7.2
+[0m[91m   Compiling rw-stream-sink v0.3.0
+[0m[91m   Compiling soketto v0.7.1
+[0m[91m   Compiling yamux v0.10.2
+[0m[91m   Compiling wasm-timer v0.2.5
+[0m[91m   Compiling darling v0.20.3
+[0m[91m   Compiling exit-future v0.2.0
+[0m[91m   Compiling multistream-select v0.12.1
+[0m[91m   Compiling quick-protobuf-codec v0.1.0
+[0m[91m   Compiling serde_with_macros v2.3.3
+[0m[91m   Compiling k256 v0.13.2
+[0m[91m   Compiling pest_meta v2.7.5
+[0m[91m   Compiling mockall v0.11.4
+[0m[91m   Compiling tokio-util v0.7.10
+[0m[91m   Compiling netlink-sys v0.8.5
+[0m[91m   Compiling trust-dns-proto v0.22.0
+[0m[91m   Compiling prost-build v0.11.9
+[0m[91m   Compiling netlink-proto v0.10.0
+[0m[91m   Compiling pest_generator v2.7.5
+[0m[91m   Compiling rtnetlink v0.10.1
+[0m[91m   Compiling h2 v0.3.22
+[0m[91m   Compiling tokio-stream v0.1.14
+[0m[91m   Compiling nalgebra v0.32.3
+[0m[91m   Compiling wasm-bindgen-futures v0.4.39
+[0m[91m   Compiling comfy-table v7.1.0
+[0m[91m   Compiling pest_derive v2.7.5
+[0m[91m   Compiling sc-network-light v0.10.0-dev 
+(https://github.com/paritytech/substrate?branch=polkadot-v1.0.0#948fbd2f)
+[0m[91m   Compiling sc-network-bitswap v0.10.0-dev 
+(https://github.com/paritytech/substrate?branch=polkadot-v1.0.0#948fbd2f)
+[0m[91m   Compiling librocksdb-sys v0.11.0+8.1.1
+[0m[91m   Compiling sc-network-sync v0.10.0-dev 
+(https://github.com/paritytech/substrate?branch=polkadot-v1.0.0#948fbd2f)
+[0m[91m   Compiling toml v0.5.11
+[0m[91m   Compiling toml_datetime v0.6.5
+[0m[91m   Compiling cranelift-entity v0.95.1
+[0m[91m   Compiling toml_edit v0.20.7
+[0m[91m   Compiling impl-serde v0.4.0
+[0m[91m   Compiling gimli v0.27.3
+[0m[91m   Compiling wasmparser v0.102.0
+[0m[91m   Compiling object v0.30.4
+[0m[91m   Compiling cranelift-bforest v0.95.1
+[0m[91m   Compiling bincode v1.3.3
+[0m[91m   Compiling tracing-serde v0.1.3
+[0m[91m   Compiling proc-macro-crate v1.1.3
+[0m[91m   Compiling trust-dns-resolver v0.22.0
+[0m[91m   Compiling frame-support-procedural-tools v4.0.0-dev 
+(https://github.com/paritytech/substrate?branch=polkadot-v1.0.0#948fbd2f)
+[0m[91m   Compiling[0m[91m rustc_version v0.4.0
+[0m[91m   Compiling beef v0.5.2
+[0m[91m   Compiling serde_spanned v0.6.4
+[0m[91m   Compiling toml_edit v0.19.15
+[0m[91m   Compiling cargo-platform v0.1.5
+[0m[91m   Compiling tracing-subscriber v0.2.25
+[0m[91m   Compiling curve25519-dalek v4.1.1
+[0m[91m   Compiling scale-info-derive v2.10.0
+[0m[91m   Compiling proc-macro-crate v2.0.0
+[0m[91m   Compiling sp-runtime-interface-proc-macro v11.0.0 
+(https://github.com/paritytech/substrate?branch=polkadot-v1.0.0#948fbd2f)
+[0m[91m   Compiling ss58-registry v1.44.0
+[0m[91m   Compiling sp-api-proc-macro v4.0.0-dev 
+(https://github.com/paritytech/substrate?branch=polkadot-v1.0.0#948fbd2f)
+[0m[91m   Compiling multihash-derive v0.8.1
+[0m[91m   Compiling frame-support-procedural v4.0.0-dev 
+(https://github.com/paritytech/substrate?branch=polkadot-v1.0.0#948fbd2f)
+[0m[91m   Compiling secp256k1 v0.24.3
+[0m[91m   Compiling snow v0.9.4
+[0m[91m   Compiling hyper v0.14.27
+[0m[91m   Compiling if-watch v3.2.0
+[0m[91m   Compiling jsonrpsee-types v0.16.3
+[0m[91m   Compiling jsonrpsee-proc-macros v0.16.3
+[0m[91m   Compiling sc-chain-spec-derive v4.0.0-dev 
+(https://github.com/paritytech/substrate?branch=polkadot-v1.0.0#948fbd2f)
+[0m[91m   Compiling sc-tracing-proc-macro v4.0.0-dev 
+(https://github.com/paritytech/substrate?branch=polkadot-v1.0.0#948fbd2f)
+[0m[91m   Compiling cargo_metadata v0.15.4
+[0m[91m   Compiling num_enum_derive v0.6.1
+[0m[91m   Compiling parity-scale-codec-derive v3.6.9
+[0m[91m   Compiling multihash v0.17.0
+[0m[91m   Compiling ed25519-dalek v2.1.0
+[0m[91m   Compiling serde_with v2.0.0
+[0m[91m   Compiling multiaddr v0.17.1
+[0m[91m   Compiling lz4 v1.24.0
+[0m[91m   Compiling wasmtime-types v8.0.1
+[0m[91m   Compiling addr2line v0.19.0
+[0m[91m   Compiling parity-db v0.4.12
+[0m[91m   Compiling toml v0.7.8
+[0m[91m   Compiling cid v0.9.0
+[0m[91m   Compiling serde_bytes v0.11.12
+[0m[91m   Compiling wasmtime-jit-debug v8.0.1
+[0m[91m   Compiling libp2p-identity v0.1.3
+[0m[91m   Compiling serde-tuple-vec-map v1.0.1
+[0m[91m   Compiling wasmtime-environ v8.0.1
+[0m[91m   Compiling handlebars v4.5.0
+[0m[91m   Compiling libp2p-core v0.39.2
+[0m[91m   Compiling num_enum v0.6.1
+[0m[91m   Compiling libp2p-swarm v0.42.2
+[0m[91m   Compiling parity-scale-codec v3.6.9
+[0m[91m   Compiling libp2p-dns v0.39.0
+[0m[91m   Compiling libp2p-yamux v0.43.1
+[0m[91m   Compiling libp2p-wasm-ext v0.39.0
+[0m[91m   Compiling libp2p-tcp v0.39.0
+[0m[91m   Compiling scale-info v2.10.0
+[0m[91m   Compiling impl-codec v0.6.0
+[0m[91m   Compiling wasmtime-jit v8.0.1
+[0m[91m   Compiling sp-storage v13.0.0 
+(https://github.com/paritytech/substrate?branch=polkadot-v1.0.0#948fbd2f)
+[0m[91m   Compiling sp-tracing v10.0.0 
+(https://github.com/paritytech/substrate?branch=polkadot-v1.0.0#948fbd2f)
+[0m[91m   Compiling sp-version-proc-macro v8.0.0 
+(https://github.com/paritytech/substrate?branch=polkadot-v1.0.0#948fbd2f)
+[0m[91m   Compiling libp2p-identify v0.42.2
+[0m[91m   Compiling libp2p-connection-limits v0.1.0
+[0m[91m   Compiling substrate-prometheus-endpoint v0.10.0-dev 
+(https://github.com/paritytech/substrate?branch=polkadot-v1.0.0#948fbd2f)
+[0m[91m   Compiling libp2p-mdns v0.43.1
+[0m[91m   Compiling libp2p-ping v0.42.0
+[0m[91m   Compiling libp2p-request-response v0.24.1
+[0m[91m   Compiling libp2p-allow-block-list v0.1.1
+[0m[91m   Compiling libp2p-kad v0.43.3
+[0m[91m   Compiling jsonrpsee-core v0.16.3
+[0m[91m   Compiling fork-tree v3.0.0 
+(https://github.com/paritytech/substrate?branch=polkadot-v1.0.0#948fbd2f)
+[0m[91m   Compiling fp-storage v2.0.0 
+(https://github.com/paritytech/frontier?branch=polkadot-v1.0.0#301d7c0f)
+[0m[91m   Compiling sc-proposer-metrics v0.10.0-dev 
+(https://github.com/paritytech/substrate?branch=polkadot-v1.0.0#948fbd2f)
+[0m[91m   Compiling zstd v0.12.4
+[0m[91m   Compiling primitive-types v0.12.2
+[0m[91m   Compiling bounded-collections v0.1.9
+[0m[91m   Compiling sp-arithmetic v16.0.0 
+(https://github.com/paritytech/substrate?branch=polkadot-v1.0.0#948fbd2f)
+[0m[91m   Compiling frame-metadata v16.0.0
+[0m[91m   Compiling sct v0.7.1
+[0m[91m   Compiling[0m[91m webpki v0.22.4
+[0m[91m   Compiling[0m[91m finality-grandpa v0.16.2
+[0m[91m   Compiling[0m[91m ethbloom v0.13.0
+[0m[91m   Compiling[0m[91m jsonrpsee-server v0.16.3
+[0m[91m   Compiling[0m[91m rustls-webpki v0.101.7
+[0m[91m   Compiling sp-maybe-compressed-blob v4.1.0-dev 
+(https://github.com/paritytech/substrate?branch=polkadot-v1.0.0#948fbd2f)
+[0m[91m   Compiling linregress v0.5.3
+[0m[91m   Compiling sp-externalities v0.19.0 
+(https://github.com/paritytech/substrate?branch=polkadot-v1.0.0#948fbd2f)
+[0m[91m   Compiling webpki-roots v0.22.6
+[0m[91m   Compiling libp2p-noise v0.42.2
+[0m[91m   Compiling[0m[91m evm-core v0.39.0 
+(https://github.com/rust-blockchain/evm?rev=b7b82c7e1fc57b7449d6dfa6826600de37cc
+1e65#b7b82c7e)
+[0m[91m   Compiling ethereum-types v0.14.1
+[0m[91m   Compiling[0m[91m jsonrpsee v0.16.3
+[0m[91m   Compiling sc-rpc-server v4.0.0-dev 
+(https://github.com/paritytech/substrate?branch=polkadot-v1.0.0#948fbd2f)
+[0m[91m   Compiling evm-runtime v0.39.0 
+(https://github.com/rust-blockchain/evm?rev=b7b82c7e1fc57b7449d6dfa6826600de37cc
+1e65#b7b82c7e)
+[0m[91m   Compiling ethereum v0.14.0
+[0m[91m   Compiling sp-metadata-ir v0.1.0 
+(https://github.com/paritytech/substrate?branch=polkadot-v1.0.0#948fbd2f)
+[0m[91m   Compiling evm-gasometer v0.39.0 
+(https://github.com/rust-blockchain/evm?rev=b7b82c7e1fc57b7449d6dfa6826600de37cc
+1e65#b7b82c7e)
+[0m[91m   Compiling futures-rustls v0.22.2
+[0m[91m   Compiling cranelift-native v0.95.1
+[0m[91m   Compiling cranelift-frontend v0.95.1
+[0m[91m   Compiling wasmtime-cranelift-shared v8.0.1
+[0m[91m   Compiling libp2p-websocket v0.41.0
+[0m[91m   Compiling zstd v0.11.2+zstd.1.5.2
+[0m[91m   Compiling cranelift-wasm v0.95.1
+[0m[91m   Compiling libp2p v0.51.3
+[0m[91m   Compiling evm v0.39.1 
+(https://github.com/rust-blockchain/evm?rev=b7b82c7e1fc57b7449d6dfa6826600de37cc
+1e65#b7b82c7e)
+[0m[91m   Compiling tokio-rustls v0.24.1
+[0m[91m   Compiling wasmtime-cranelift v8.0.1
+[0m[91m   Compiling hyper-rustls v0.24.2
+[0m[91m   Compiling sc-utils v4.0.0-dev 
+(https://github.com/paritytech/substrate?branch=polkadot-v1.0.0#948fbd2f)
+[0m[91m   Compiling sc-telemetry v4.0.0-dev 
+(https://github.com/paritytech/substrate?branch=polkadot-v1.0.0#948fbd2f)
+[0m[91m   Compiling sp-wasm-interface v14.0.0 
+(https://github.com/paritytech/substrate?branch=polkadot-v1.0.0#948fbd2f)
+[0m[91m   Compiling sp-runtime-interface v17.0.0 
+(https://github.com/paritytech/substrate?branch=polkadot-v1.0.0#948fbd2f)
+[0m[91m   Compiling sp-core v21.0.0 
+(https://github.com/paritytech/substrate?branch=polkadot-v1.0.0#948fbd2f)
+[0m[91m   Compiling sp-trie v22.0.0 
+(https://github.com/paritytech/substrate?branch=polkadot-v1.0.0#948fbd2f)
+[0m[91m   Compiling sp-keystore v0.27.0 
+(https://github.com/paritytech/substrate?branch=polkadot-v1.0.0#948fbd2f)
+[0m[91m   Compiling sp-weights v20.0.0 
+(https://github.com/paritytech/substrate?branch=polkadot-v1.0.0#948fbd2f)
+[0m[91m   Compiling sc-allocator v4.1.0-dev 
+(https://github.com/paritytech/substrate?branch=polkadot-v1.0.0#948fbd2f)
+[0m[91m   Compiling sp-rpc v6.0.0 
+(https://github.com/paritytech/substrate?branch=polkadot-v1.0.0#948fbd2f)
+   Compiling sc-state-db v0.10.0-dev 
+(https://github.com/paritytech/substrate?branch=polkadot-v1.0.0#948fbd2f)
+[0m[91m   Compiling sc-executor-common v0.10.0-dev 
+(https://github.com/paritytech/substrate?branch=polkadot-v1.0.0#948fbd2f)
+[0m[91m   Compiling sp-state-machine v0.28.0 
+(https://github.com/paritytech/substrate?branch=polkadot-v1.0.0#948fbd2f)
+[0m[91m   Compiling sp-application-crypto v23.0.0 
+(https://github.com/paritytech/substrate?branch=polkadot-v1.0.0#948fbd2f)
+[0m[91m   Compiling wasm-opt v0.112.0
+[0m[91m   Compiling substrate-wasm-builder v5.0.0-dev 
+(https://github.com/paritytech/substrate?branch=polkadot-v1.0.0#948fbd2f)
+[0m[91m   Compiling sp-runtime v24.0.0 
+(https://github.com/paritytech/substrate?branch=polkadot-v1.0.0#948fbd2f)
+[0m[91m   Compiling sc-keystore v4.0.0-dev 
+(https://github.com/paritytech/substrate?branch=polkadot-v1.0.0#948fbd2f)
+[0m[91m   Compiling node-subspace-runtime v4.0.0-dev (/subspace/runtime)
+[0m[91m   Compiling sp-version v22.0.0 
+(https://github.com/paritytech/substrate?branch=polkadot-v1.0.0#948fbd2f)
+   Compiling sp-inherents v4.0.0-dev 
+(https://github.com/paritytech/substrate?branch=polkadot-v1.0.0#948fbd2f)
+[0m[91m   Compiling sp-staking v4.0.0-dev 
+(https://github.com/paritytech/substrate?branch=polkadot-v1.0.0#948fbd2f)
+   Compiling fp-account v1.0.0-dev 
+(https://github.com/paritytech/frontier?branch=polkadot-v1.0.0#301d7c0f)
+[0m[91m   Compiling fp-consensus v2.0.0-dev 
+(https://github.com/paritytech/frontier?branch=polkadot-v1.0.0#301d7c0f)
+[0m[91m   Compiling sp-keyring v24.0.0 
+(https://github.com/paritytech/substrate?branch=polkadot-v1.0.0#948fbd2f)
+[0m[91m   Compiling sp-api v4.0.0-dev 
+(https://github.com/paritytech/substrate?branch=polkadot-v1.0.0#948fbd2f)
+[0m[91m   Compiling sc-executor v0.10.0-dev 
+(https://github.com/paritytech/substrate?branch=polkadot-v1.0.0#948fbd2f)
+[0m[91m   Compiling sp-statement-store v4.0.0-dev 
+(https://github.com/paritytech/substrate?branch=polkadot-v1.0.0#948fbd2f)
+[0m[91m   Compiling sp-consensus-grandpa v4.0.0-dev 
+(https://github.com/paritytech/substrate?branch=polkadot-v1.0.0#948fbd2f)
+[0m[91m   Compiling sp-session v4.0.0-dev 
+(https://github.com/paritytech/substrate?branch=polkadot-v1.0.0#948fbd2f)
+[0m[91m   Compiling sp-offchain v4.0.0-dev 
+(https://github.com/paritytech/substrate?branch=polkadot-v1.0.0#948fbd2f)
+[0m[91m   Compiling sp-transaction-pool v4.0.0-dev 
+(https://github.com/paritytech/substrate?branch=polkadot-v1.0.0#948fbd2f)
+[0m[91m   Compiling frame-system-rpc-runtime-api v4.0.0-dev 
+(https://github.com/paritytech/substrate?branch=polkadot-v1.0.0#948fbd2f)
+[0m[91m   Compiling rocksdb v0.21.0
+[0m[91m   Compiling kvdb-rocksdb v0.19.0
+[0m[91m   Compiling frame-support v4.0.0-dev 
+(https://github.com/paritytech/substrate?branch=polkadot-v1.0.0#948fbd2f)
+[0m[91m   Compiling sp-consensus v0.10.0-dev 
+(https://github.com/paritytech/substrate?branch=polkadot-v1.0.0#948fbd2f)
+[0m[91m   Compiling sp-block-builder v4.0.0-dev 
+(https://github.com/paritytech/substrate?branch=polkadot-v1.0.0#948fbd2f)
+[0m[91m   Compiling sp-timestamp v4.0.0-dev 
+(https://github.com/paritytech/substrate?branch=polkadot-v1.0.0#948fbd2f)
+[0m[91m   Compiling sp-transaction-storage-proof v4.0.0-dev 
+(https://github.com/paritytech/substrate?branch=polkadot-v1.0.0#948fbd2f)
+[0m[91m   Compiling sp-blockchain v4.0.0-dev 
+(https://github.com/paritytech/substrate?branch=polkadot-v1.0.0#948fbd2f)
+[0m[91m   Compiling sc-transaction-pool-api v4.0.0-dev 
+(https://github.com/paritytech/substrate?branch=polkadot-v1.0.0#948fbd2f)
+[0m[91m   Compiling sp-consensus-slots v0.10.0-dev 
+(https://github.com/paritytech/substrate?branch=polkadot-v1.0.0#948fbd2f)
+[0m[91m   Compiling sc-client-api v4.0.0-dev 
+(https://github.com/paritytech/substrate?branch=polkadot-v1.0.0#948fbd2f)
+[0m[91m   Compiling sp-consensus-aura v0.10.0-dev 
+(https://github.com/paritytech/substrate?branch=polkadot-v1.0.0#948fbd2f)
+[0m[91m   Compiling sc-consensus v0.10.0-dev 
+(https://github.com/paritytech/substrate?branch=polkadot-v1.0.0#948fbd2f)
+   Compiling sc-block-builder v0.10.0-dev 
+(https://github.com/paritytech/substrate?branch=polkadot-v1.0.0#948fbd2f)
+[0m[91m   Compiling sc-tracing v4.0.0-dev 
+(https://github.com/paritytech/substrate?branch=polkadot-v1.0.0#948fbd2f)
+[0m[91m   Compiling sc-client-db v0.10.0-dev 
+(https://github.com/paritytech/substrate?branch=polkadot-v1.0.0#948fbd2f)
+   Compiling sc-transaction-pool v4.0.0-dev 
+(https://github.com/paritytech/substrate?branch=polkadot-v1.0.0#948fbd2f)
+[0m[91m   Compiling sc-basic-authorship v0.10.0-dev 
+(https://github.com/paritytech/substrate?branch=polkadot-v1.0.0#948fbd2f)
+[0m[91m   Compiling sc-network-common v0.10.0-dev 
+(https://github.com/paritytech/substrate?branch=polkadot-v1.0.0#948fbd2f)
+[0m[91m   Compiling sc-consensus-aura v0.10.0-dev 
+(https://github.com/paritytech/substrate?branch=polkadot-v1.0.0#948fbd2f)
+[0m[91m   Compiling sc-network v0.10.0-dev 
+(https://github.com/paritytech/substrate?branch=polkadot-v1.0.0#948fbd2f)
+[0m[91m   Compiling sc-chain-spec v4.0.0-dev 
+(https://github.com/paritytech/substrate?branch=polkadot-v1.0.0#948fbd2f)
+[0m[91m   Compiling sc-informant v0.10.0-dev 
+(https://github.com/paritytech/substrate?branch=polkadot-v1.0.0#948fbd2f)
+[0m[91m   Compiling sc-network-transactions v0.10.0-dev 
+(https://github.com/paritytech/substrate?branch=polkadot-v1.0.0#948fbd2f)
+[0m[91m   Compiling sc-network-gossip v0.10.0-dev 
+(https://github.com/paritytech/substrate?branch=polkadot-v1.0.0#948fbd2f)
+[0m[91m   Compiling sc-offchain v4.0.0-dev 
+(https://github.com/paritytech/substrate?branch=polkadot-v1.0.0#948fbd2f)
+[0m[91m   Compiling sc-rpc-api v0.10.0-dev 
+(https://github.com/paritytech/substrate?branch=polkadot-v1.0.0#948fbd2f)
+[0m[91m   Compiling sc-rpc-spec-v2 v0.10.0-dev 
+(https://github.com/paritytech/substrate?branch=polkadot-v1.0.0#948fbd2f)
+[0m[91m   Compiling sc-consensus-grandpa v0.10.0-dev 
+(https://github.com/paritytech/substrate?branch=polkadot-v1.0.0#948fbd2f)
+[0m[91m   Compiling sc-rpc v4.0.0-dev 
+(https://github.com/paritytech/substrate?branch=polkadot-v1.0.0#948fbd2f)
+[0m[91m   Compiling substrate-frame-rpc-system v4.0.0-dev 
+(https://github.com/paritytech/substrate?branch=polkadot-v1.0.0#948fbd2f)
+[0m[91m   Compiling sc-service v0.10.0-dev 
+(https://github.com/paritytech/substrate?branch=polkadot-v1.0.0#948fbd2f)
+[0m[91m   Compiling frame-system v4.0.0-dev 
+(https://github.com/paritytech/substrate?branch=polkadot-v1.0.0#948fbd2f)
+   Compiling fp-evm v3.0.0-dev 
+(https://github.com/paritytech/frontier?branch=polkadot-v1.0.0#301d7c0f)
+[0m[91m   Compiling frame-try-runtime v0.10.0-dev 
+(https://github.com/paritytech/substrate?branch=polkadot-v1.0.0#948fbd2f)
+[0m[91m   Compiling fp-self-contained v1.0.0-dev 
+(https://github.com/paritytech/frontier?branch=polkadot-v1.0.0#301d7c0f)
+[0m[91m   Compiling sc-cli v0.10.0-dev 
+(https://github.com/paritytech/substrate?branch=polkadot-v1.0.0#948fbd2f)
+[0m[91m   Compiling fp-ethereum v1.0.0-dev 
+(https://github.com/paritytech/frontier?branch=polkadot-v1.0.0#301d7c0f)
+   Compiling fp-rpc v3.0.0-dev 
+(https://github.com/paritytech/frontier?branch=polkadot-v1.0.0#301d7c0f)
+[0m[91m   Compiling pallet-evm-precompile-sha3fips v2.0.0-dev 
+(https://github.com/paritytech/frontier?branch=polkadot-v1.0.0#301d7c0f)
+[0m[91m   Compiling pallet-evm-precompile-modexp v2.0.0-dev 
+(https://github.com/paritytech/frontier?branch=polkadot-v1.0.0#301d7c0f)
+[0m[91m   Compiling pallet-evm-precompile-simple v2.0.0-dev 
+(https://github.com/paritytech/frontier?branch=polkadot-v1.0.0#301d7c0f)
+[0m[91m   Compiling pallet-transaction-payment v4.0.0-dev 
+(https://github.com/paritytech/substrate?branch=polkadot-v1.0.0#948fbd2f)
+   Compiling pallet-timestamp v4.0.0-dev 
+(https://github.com/paritytech/substrate?branch=polkadot-v1.0.0#948fbd2f)
+   Compiling frame-benchmarking v4.0.0-dev 
+(https://github.com/paritytech/substrate?branch=polkadot-v1.0.0#948fbd2f)
+   Compiling pallet-balances v4.0.0-dev 
+(https://github.com/paritytech/substrate?branch=polkadot-v1.0.0#948fbd2f)
+[0m[91m   Compiling pallet-authorship v4.0.0-dev 
+(https://github.com/paritytech/substrate?branch=polkadot-v1.0.0#948fbd2f)
+   Compiling pallet-evm v6.0.0-dev 
+(https://github.com/paritytech/frontier?branch=polkadot-v1.0.0#301d7c0f)
+[0m[91m   Compiling pallet-insecure-randomness-collective-flip v4.0.0-dev 
+(https://github.com/paritytech/substrate?branch=polkadot-v1.0.0#948fbd2f)
+[0m[91m   Compiling pallet-sudo v4.0.0-dev 
+(https://github.com/paritytech/substrate?branch=polkadot-v1.0.0#948fbd2f)
+[0m[91m   Compiling pallet-evm-chain-id v1.0.0-dev 
+(https://github.com/paritytech/frontier?branch=polkadot-v1.0.0#301d7c0f)
+[0m[91m   Compiling pallet-base-fee v1.0.0 
+(https://github.com/paritytech/frontier?branch=polkadot-v1.0.0#301d7c0f)
+[0m[91m   Compiling pallet-utility v4.0.0-dev 
+(https://github.com/paritytech/substrate?branch=polkadot-v1.0.0#948fbd2f)
+[0m[91m   Compiling frame-executive v4.0.0-dev 
+(https://github.com/paritytech/substrate?branch=polkadot-v1.0.0#948fbd2f)
+[0m[91m   Compiling pallet-session v4.0.0-dev 
+(https://github.com/paritytech/substrate?branch=polkadot-v1.0.0#948fbd2f)
+[0m[91m   Compiling pallet-aura v4.0.0-dev 
+(https://github.com/paritytech/substrate?branch=polkadot-v1.0.0#948fbd2f)
+[0m[91m   Compiling pallet-ethereum v4.0.0-dev 
+(https://github.com/paritytech/frontier?branch=polkadot-v1.0.0#301d7c0f)
+[0m[91m   Compiling pallet-transaction-payment-rpc-runtime-api v4.0.0-dev 
+(https://github.com/paritytech/substrate?branch=polkadot-v1.0.0#948fbd2f)
+[0m[91m   Compiling pallet-transaction-payment-rpc v4.0.0-dev 
+(https://github.com/paritytech/substrate?branch=polkadot-v1.0.0#948fbd2f)
+[0m[91m   Compiling pallet-subspace v4.0.0-dev (/subspace/pallets/subspace)
+[0m[91merror[E0308]: mismatched types
+    --> pallets/subspace/src/lib.rs:1174:27
+     |
+1174 |             params.founder_share = founder_share;
+     |             --------------------   ^^^^^^^^^^^^^ expected `u16`, found 
+`Option<u16>`
+     |             |
+     |             expected due to the type of this binding
+     |
+     = note: expected type `u16`
+                found enum `std::option::Option<u16>`
+help: consider using `Option::expect` to unwrap the `std::option::Option<u16>` 
+value, panicking if the value is an `Option::None`
+     |
+1174 |             params.founder_share = founder_share.expect("REASON");
+[0m[91m     |                                                 +++++++++++++++++
+
+[0m[91mFor more information about this error, try `rustc --explain E0308`.
+[0m[91merror: could not compile `pallet-subspace` (lib) due to 1 previous error
+warning: build failed, waiting for other jobs to finish...
+[0m[91merror: failed to run custom build command for `node-subspace-runtime 
+v4.0.0-dev (/subspace/runtime)`
+note: To improve backtraces for build dependencies, set the 
+CARGO_PROFILE_RELEASE_BUILD_OVERRIDE_DEBUG=true environment variable to enable 
+debug information generation.
+
+Caused by:
+[0m[91m  process didn't exit successfully: 
+`/subspace/target/release/build/node-subspace-runtime-d5c393ad5fa52621/build-scr
+ipt-build` (exit status: 1)
+  --- stdout
+  Information that should be included in a bug report.
+  Executing build command: env -u CARGO_ENCODED_RUSTFLAGS -u CARGO_TARGET_DIR 
+RUSTFLAGS="-C target-cpu=mvp -C target-feature=-sign-ext -C 
+link-arg=--export-table -Clink-arg=--export=__heap_base -C 
+link-arg=--import-memory  " SKIP_WASM_BUILD="" 
+"/root/.rustup/toolchains/nightly-x86_64-unknown-linux-gnu/bin/cargo" "rustc" 
+"--target=wasm32-unknown-unknown" 
+"--manifest-path=/subspace/target/release/wbuild/node-subspace-runtime/Cargo.tom
+l" "--color=always" "--profile" "release"
+  Using rustc version: rustc 1.76.0-nightly (3f28fe133 2023-12-18)
+
+
+  --- stderr
+     Compiling proc-macro2 v1.0.70
+     Compiling unicode-ident v1.0.12
+     Compiling version_check v0.9.4
+     Compiling typenum v1.17.0
+     Compiling syn v1.0.109
+     Compiling serde v1.0.193
+     Compiling equivalent v1.0.1
+     Compiling hashbrown v0.14.3
+     Compiling toml_datetime v0.6.5
+     Compiling winnow v0.5.19
+     Compiling bytes v1.5.0
+     Compiling arrayvec v0.7.4
+     Compiling thiserror v1.0.50
+     Compiling autocfg v1.1.0
+     Compiling byte-slice-cast v1.2.2
+     Compiling subtle v2.4.1
+     Compiling cfg-if v1.0.0
+     Compiling const-oid v0.9.5
+     Compiling byteorder v1.5.0
+     Compiling crunchy v0.2.2
+     Compiling static_assertions v1.1.0
+     Compiling rustc-hex v2.1.0
+     Compiling memchr v2.6.4
+     Compiling regex-syntax v0.8.2
+     Compiling hex v0.4.3
+     Compiling lazy_static v1.4.0
+     Compiling sp-std v8.0.0 
+(https://github.com/paritytech/substrate?branch=polkadot-v1.0.0#948fbd2f)
+     Compiling keccak v0.1.4
+     Compiling pin-project-lite v0.2.13
+     Compiling ref-cast v1.0.20
+     Compiling serde_json v1.0.108
+     Compiling itoa v1.0.9
+     Compiling ryu v1.0.15
+     Compiling arrayref v0.3.7
+     Compiling byte-tools v0.3.1
+     Compiling rand_core v0.5.1
+  [0m[91m   Compiling tracing-core v0.1.32
+     Compiling log v0.4.20
+     Compiling hash-db v0.16.0
+     Compiling unicode-xid v0.2.4
+     Compiling fake-simd v0.1.2
+     Compiling num-traits v0.2.17
+     Compiling generic-array v0.14.7
+     Compiling constant_time_eq v0.3.0
+     Compiling environmental v1.1.4
+     Compiling opaque-debug v0.2.3
+     Compiling paste v1.0.14
+     Compiling arrayvec v0.5.2
+     Compiling array-bytes v6.2.0
+     Compiling bs58 v0.4.0
+     Compiling bitflags v1.3.2
+     Compiling rustversion v1.0.14
+     Compiling block-padding v0.1.5
+     Compiling smallvec v1.11.2
+     Compiling blake2b_simd v1.0.2
+     Compiling either v1.9.0
+  [0m[91m   Compiling fs-err v2.11.0
+     Compiling expander v2.0.0
+     Compiling cpufeatures v0.2.11
+     Compiling indexmap v2.1.0
+     Compiling fixed-hash v0.8.0
+     Compiling libc v0.2.150
+     Compiling rand_core v0.6.4
+     Compiling tiny-keccak v2.0.2
+     Compiling once_cell v1.18.0
+     Compiling[0m[91m base16ct v0.2.0
+     Compiling proc-macro-warning v0.4.2
+     Compiling tt-call v1.0.9
+     Compiling quote v1.0.33
+     Compiling tracing v0.1.40
+     Compiling proc-macro-error-attr v1.0.4
+     Compiling proc-macro-error v1.0.4
+     Compiling hash-db v0.15.2
+     Compiling num-integer v0.1.45
+  [0m[91m   Compiling ahash v0.8.6
+     Compiling futures-core v0.3.29
+     Compiling futures-task v0.3.29
+     Compiling zerocopy v0.7.26
+     Compiling futures-sink v0.3.29
+     Compiling strsim v0.10.0
+     Compiling itertools v0.10.5
+     Compiling ident_case v1.0.1
+  [0m[91m   Compiling ff v0.13.0
+     Compiling futures-util v0.3.29
+     Compiling futures-channel v0.3.29
+     Compiling fnv v1.0.7
+     Compiling cfg-expr v0.15.5
+     Compiling[0m[91m syn v2.0.39
+     Compiling uint v0.9.5
+     Compiling hash256-std-hasher v0.15.2
+     Compiling num-bigint v0.4.4
+     Compiling group v0.13.0
+     Compiling aho-corasick v1.1.2
+  [0m[91m   Compiling pin-utils v0.1.0
+     Compiling rand v0.8.5
+     Compiling trie-root v0.18.0
+     Compiling memory-db v0.32.0
+     Compiling matrixmultiply v0.3.8
+     Compiling num-iter v0.1.43
+     Compiling[0m[91m num-rational v0.4.1
+     Compiling typenum v1.16.0 
+(https://github.com/encointer/typenum?tag=v1.16.0#4c8dddaa)
+     Compiling futures-io v0.3.29
+     Compiling base64 v0.13.1
+     Compiling rawpointer v0.2.1
+     Compiling[0m[91m substrate-fixed v0.5.9 
+(https://github.com/encointer/substrate-fixed.git?tag=v0.5.9#a4fb461a)
+     Compiling hex-literal v0.4.1
+     Compiling node-subspace-runtime v4.0.0-dev (/subspace/runtime)
+     Compiling safe-mix v1.0.1
+     Compiling generic-array v0.12.4
+     Compiling hashbrown v0.13.2
+     Compiling digest v0.8.1
+     Compiling block-buffer v0.7.3
+     Compiling sp-io v23.0.0 
+(https://github.com/paritytech/substrate?branch=polkadot-v1.0.0#948fbd2f)
+     Compiling[0m[91m sha2 v0.8.2
+     Compiling toml_edit v0.20.7
+     Compiling getrandom v0.2.11
+     Compiling integer-sqrt v0.1.5
+     Compiling num-complex v0.4.4
+     Compiling trie-db v0.27.1
+     Compiling[0m[91m crypto-common v0.1.6
+     Compiling block-buffer v0.10.4
+     Compiling digest v0.9.0
+     Compiling const-random-macro v0.1.16
+     Compiling libsecp256k1-core v0.3.0
+  [0m[91m   Compiling digest v0.10.7
+     Compiling sha3 v0.10.8
+     Compiling twox-hash v1.6.3
+     Compiling sha2 v0.10.8
+  [0m[91m   Compiling blake2 v0.10.6
+     Compiling ndarray v0.15.6
+     Compiling const-random v0.1.17
+     Compiling sp-core-hashing v9.0.0 
+(https://github.com/paritytech/substrate?branch=polkadot-v1.0.0#948fbd2f)
+  [0m[91m   Compiling libsecp256k1-gen-genmult v0.3.0
+     Compiling libsecp256k1-gen-ecmult v0.3.0
+     Compiling regex-automata v0.4.3
+     Compiling libsecp256k1 v0.7.1
+     Compiling proc-macro-crate v2.0.0
+     Compiling futures v0.3.29
+     Compiling num v0.4.1
+     Compiling darling_core v0.20.3
+     Compiling regex v1.10.2
+     Compiling serde_derive v1.0.193
+     Compiling[0m[91m zeroize_derive v1.4.2
+     Compiling thiserror-impl v1.0.50
+     Compiling ref-cast-impl v1.0.20
+     Compiling sp-debug-derive v8.0.0 
+(https://github.com/paritytech/substrate?branch=polkadot-v1.0.0#948fbd2f)
+     Compiling sp-core-hashing-proc-macro v9.0.0 
+(https://github.com/paritytech/substrate?branch=polkadot-v1.0.0#948fbd2f)
+     Compiling macro_magic_core_macros v0.4.3
+     Compiling frame-support-procedural-tools-derive v3.0.0 
+(https://github.com/paritytech/substrate?branch=polkadot-v1.0.0#948fbd2f)
+     Compiling num_enum_derive v0.6.1
+     Compiling Inflector v0.11.4
+     Compiling parity-scale-codec-derive v3.6.9
+     Compiling impl-trait-for-tuples v0.2.2
+     Compiling derive_more v0.99.17
+     Compiling rlp-derive v0.1.0
+     Compiling derive-syn-parse v0.1.5
+  [0m[91m   Compiling auto_impl v1.1.0
+     Compiling zeroize v1.7.0
+     Compiling merlin v2.0.1
+     Compiling curve25519-dalek v2.1.3
+     Compiling secrecy v0.8.0
+     Compiling der v0.7.8
+     Compiling rlp v0.5.2
+     Compiling[0m[91m num_enum v0.6.1
+     Compiling macro_magic_core v0.4.2
+     Compiling darling_macro v0.20.3
+     Compiling impl-rlp v0.3.0
+     Compiling[0m[91m triehash v0.8.4
+     Compiling schnorrkel v0.9.1
+     Compiling crypto-bigint v0.5.5
+     Compiling macro_magic_macros v0.4.2
+     Compiling hmac v0.12.1
+     Compiling signature v2.2.0
+     Compiling ripemd v0.1.3
+     Compiling rfc6979 v0.4.0
+     Compiling sec1 v0.7.3
+     Compiling[0m[91m darling v0.20.3
+     Compiling serde_with_macros v2.3.3
+     Compiling macro_magic v0.4.2
+     Compiling parity-scale-codec v3.6.9
+     Compiling[0m[91m elliptic-curve v0.13.8
+     Compiling ecdsa v0.16.9
+     Compiling impl-codec v0.6.0
+     Compiling sp-wasm-interface v14.0.0 
+(https://github.com/paritytech/substrate?branch=polkadot-v1.0.0#948fbd2f)
+     Compiling sp-tracing v10.0.0 
+(https://github.com/paritytech/substrate?branch=polkadot-v1.0.0#948fbd2f)
+  [0m[91m   Compiling fp-storage v2.0.0 
+(https://github.com/paritytech/frontier?branch=polkadot-v1.0.0#301d7c0f)
+     Compiling k256 v0.13.2
+     Compiling impl-serde v0.4.0
+     Compiling serde_with v2.0.0
+  [0m[91m   Compiling serde_bytes v0.11.12
+     Compiling serde-tuple-vec-map v1.0.1
+     Compiling sp-storage v13.0.0 
+(https://github.com/paritytech/substrate?branch=polkadot-v1.0.0#948fbd2f)
+     Compiling toml v0.5.11
+     Compiling sp-version-proc-macro v8.0.0 
+(https://github.com/paritytech/substrate?branch=polkadot-v1.0.0#948fbd2f)
+     Compiling ss58-registry v1.44.0
+     Compiling proc-macro-crate v1.1.3
+     Compiling frame-support-procedural-tools v4.0.0-dev 
+(https://github.com/paritytech/substrate?branch=polkadot-v1.0.0#948fbd2f)
+  [0m[91m   Compiling scale-info-derive v2.10.0
+     Compiling sp-runtime-interface-proc-macro v11.0.0 
+(https://github.com/paritytech/substrate?branch=polkadot-v1.0.0#948fbd2f)
+     Compiling sp-api-proc-macro v4.0.0-dev 
+(https://github.com/paritytech/substrate?branch=polkadot-v1.0.0#948fbd2f)
+     Compiling frame-support-procedural v4.0.0-dev 
+(https://github.com/paritytech/substrate?branch=polkadot-v1.0.0#948fbd2f)
+     Compiling sp-externalities v0.19.0 
+(https://github.com/paritytech/substrate?branch=polkadot-v1.0.0#948fbd2f)
+     Compiling scale-info v2.10.0
+     Compiling primitive-types v0.12.2
+     Compiling[0m[91m bounded-collections v0.1.9
+     Compiling sp-arithmetic v16.0.0 
+(https://github.com/paritytech/substrate?branch=polkadot-v1.0.0#948fbd2f)
+     Compiling frame-metadata v16.0.0
+     Compiling sp-inherents v4.0.0-dev 
+(https://github.com/paritytech/substrate?branch=polkadot-v1.0.0#948fbd2f)
+     Compiling ethbloom v0.13.0
+     Compiling finality-grandpa v0.16.2
+  [0m[91m   Compiling sp-metadata-ir v0.1.0 
+(https://github.com/paritytech/substrate?branch=polkadot-v1.0.0#948fbd2f)
+     Compiling sp-runtime-interface v17.0.0 
+(https://github.com/paritytech/substrate?branch=polkadot-v1.0.0#948fbd2f)
+     Compiling ethereum-types v0.14.1
+     Compiling evm-core v0.39.0 
+(https://github.com/rust-blockchain/evm?rev=b7b82c7e1fc57b7449d6dfa6826600de37cc
+1e65#b7b82c7e)
+  [0m[91m   Compiling sp-core v21.0.0 
+(https://github.com/paritytech/substrate?branch=polkadot-v1.0.0#948fbd2f)
+     Compiling ethereum v0.14.0
+     Compiling evm-runtime v0.39.0 
+(https://github.com/rust-blockchain/evm?rev=b7b82c7e1fc57b7449d6dfa6826600de37cc
+1e65#b7b82c7e)
+     Compiling evm-gasometer v0.39.0 
+(https://github.com/rust-blockchain/evm?rev=b7b82c7e1fc57b7449d6dfa6826600de37cc
+1e65#b7b82c7e)
+     Compiling evm v0.39.1 
+(https://github.com/rust-blockchain/evm?rev=b7b82c7e1fc57b7449d6dfa6826600de37cc
+1e65#b7b82c7e)
+  [0m[91m   Compiling sp-weights v20.0.0 
+(https://github.com/paritytech/substrate?branch=polkadot-v1.0.0#948fbd2f)
+     Compiling sp-trie v22.0.0 
+(https://github.com/paritytech/substrate?branch=polkadot-v1.0.0#948fbd2f)
+     Compiling sp-state-machine v0.28.0 
+(https://github.com/paritytech/substrate?branch=polkadot-v1.0.0#948fbd2f)
+  [0m[91m   Compiling sp-application-crypto v23.0.0 
+(https://github.com/paritytech/substrate?branch=polkadot-v1.0.0#948fbd2f)
+     Compiling sp-runtime v24.0.0 
+(https://github.com/paritytech/substrate?branch=polkadot-v1.0.0#948fbd2f)
+     Compiling sp-version v22.0.0 
+(https://github.com/paritytech/substrate?branch=polkadot-v1.0.0#948fbd2f)
+     Compiling sp-staking v4.0.0-dev 
+(https://github.com/paritytech/substrate?branch=polkadot-v1.0.0#948fbd2f)
+     Compiling sp-timestamp v4.0.0-dev 
+(https://github.com/paritytech/substrate?branch=polkadot-v1.0.0#948fbd2f)
+     Compiling fp-account v1.0.0-dev 
+(https://github.com/paritytech/frontier?branch=polkadot-v1.0.0#301d7c0f)
+     Compiling fp-consensus v2.0.0-dev 
+(https://github.com/paritytech/frontier?branch=polkadot-v1.0.0#301d7c0f)
+     Compiling sp-api v4.0.0-dev 
+(https://github.com/paritytech/substrate?branch=polkadot-v1.0.0#948fbd2f)
+     Compiling sp-consensus-grandpa v4.0.0-dev 
+(https://github.com/paritytech/substrate?branch=polkadot-v1.0.0#948fbd2f)
+     Compiling frame-system-rpc-runtime-api v4.0.0-dev 
+(https://github.com/paritytech/substrate?branch=polkadot-v1.0.0#948fbd2f)
+     Compiling sp-offchain v4.0.0-dev 
+(https://github.com/paritytech/substrate?branch=polkadot-v1.0.0#948fbd2f)
+     Compiling sp-block-builder v4.0.0-dev 
+(https://github.com/paritytech/substrate?branch=polkadot-v1.0.0#948fbd2f)
+     Compiling sp-transaction-pool v4.0.0-dev 
+(https://github.com/paritytech/substrate?branch=polkadot-v1.0.0#948fbd2f)
+     Compiling[0m[91m sp-consensus-slots v0.10.0-dev 
+(https://github.com/paritytech/substrate?branch=polkadot-v1.0.0#948fbd2f)
+     Compiling frame-support v4.0.0-dev 
+(https://github.com/paritytech/substrate?branch=polkadot-v1.0.0#948fbd2f)
+     Compiling sp-session v4.0.0-dev 
+(https://github.com/paritytech/substrate?branch=polkadot-v1.0.0#948fbd2f)
+     Compiling sp-consensus-aura v0.10.0-dev 
+(https://github.com/paritytech/substrate?branch=polkadot-v1.0.0#948fbd2f)
+     Compiling frame-system v4.0.0-dev 
+(https://github.com/paritytech/substrate?branch=polkadot-v1.0.0#948fbd2f)
+     Compiling fp-evm v3.0.0-dev 
+(https://github.com/paritytech/frontier?branch=polkadot-v1.0.0#301d7c0f)
+     Compiling frame-try-runtime v0.10.0-dev 
+(https://github.com/paritytech/substrate?branch=polkadot-v1.0.0#948fbd2f)
+     Compiling fp-self-contained v1.0.0-dev 
+(https://github.com/paritytech/frontier?branch=polkadot-v1.0.0#301d7c0f)
+     Compiling fp-ethereum v1.0.0-dev 
+(https://github.com/paritytech/frontier?branch=polkadot-v1.0.0#301d7c0f)
+     Compiling fp-rpc v3.0.0-dev 
+(https://github.com/paritytech/frontier?branch=polkadot-v1.0.0#301d7c0f)
+     Compiling pallet-evm-precompile-sha3fips v2.0.0-dev 
+(https://github.com/paritytech/frontier?branch=polkadot-v1.0.0#301d7c0f)
+     Compiling pallet-evm-precompile-simple v2.0.0-dev 
+(https://github.com/paritytech/frontier?branch=polkadot-v1.0.0#301d7c0f)
+     Compiling[0m[91m pallet-evm-precompile-modexp v2.0.0-dev 
+(https://github.com/paritytech/frontier?branch=polkadot-v1.0.0#301d7c0f)
+     Compiling pallet-timestamp v4.0.0-dev 
+(https://github.com/paritytech/substrate?branch=polkadot-v1.0.0#948fbd2f)
+     Compiling pallet-transaction-payment v4.0.0-dev 
+(https://github.com/paritytech/substrate?branch=polkadot-v1.0.0#948fbd2f)
+     Compiling pallet-evm v6.0.0-dev 
+(https://github.com/paritytech/frontier?branch=polkadot-v1.0.0#301d7c0f)
+     Compiling pallet-authorship v4.0.0-dev 
+(https://github.com/paritytech/substrate?branch=polkadot-v1.0.0#948fbd2f)
+     Compiling pallet-balances v4.0.0-dev 
+(https://github.com/paritytech/substrate?branch=polkadot-v1.0.0#948fbd2f)
+     Compiling frame-benchmarking v4.0.0-dev 
+(https://github.com/paritytech/substrate?branch=polkadot-v1.0.0#948fbd2f)
+     Compiling[0m[91m pallet-evm-chain-id v1.0.0-dev 
+(https://github.com/paritytech/frontier?branch=polkadot-v1.0.0#301d7c0f)
+     Compiling pallet-insecure-randomness-collective-flip v4.0.0-dev 
+(https://github.com/paritytech/substrate?branch=polkadot-v1.0.0#948fbd2f)
+     Compiling frame-executive v4.0.0-dev 
+(https://github.com/paritytech/substrate?branch=polkadot-v1.0.0#948fbd2f)
+     Compiling pallet-sudo v4.0.0-dev 
+(https://github.com/paritytech/substrate?branch=polkadot-v1.0.0#948fbd2f)
+     Compiling pallet-base-fee v1.0.0 
+(https://github.com/paritytech/frontier?branch=polkadot-v1.0.0#301d7c0f)
+     Compiling pallet-utility v4.0.0-dev 
+(https://github.com/paritytech/substrate?branch=polkadot-v1.0.0#948fbd2f)
+     Compiling pallet-session v4.0.0-dev 
+(https://github.com/paritytech/substrate?branch=polkadot-v1.0.0#948fbd2f)
+  [0m[91m   Compiling pallet-aura v4.0.0-dev 
+(https://github.com/paritytech/substrate?branch=polkadot-v1.0.0#948fbd2f)
+     Compiling pallet-ethereum v4.0.0-dev 
+(https://github.com/paritytech/frontier?branch=polkadot-v1.0.0#301d7c0f)
+     Compiling pallet-transaction-payment-rpc-runtime-api v4.0.0-dev 
+(https://github.com/paritytech/substrate?branch=polkadot-v1.0.0#948fbd2f)
+     Compiling pallet-subspace v4.0.0-dev (/subspace/pallets/subspace)
+  error[E0308]: mismatched types[0m[91m
+      --> /subspace/pallets/subspace/src/lib.rs:1174:27
+       |
+  1174 | [0m[91m            params.founder_share = founder_share;
+       |             --------------------   ^^^^^^^^^^^^^ expected `u16`, found 
+`Option<u16>`
+  [0m[91m     |             |
+       |             expected due to the type of this binding
+       [0m[91m|
+       = note: expected type `u16`
+                  found enum `core::option::Option<u16>[0m[91m`
+  help: consider using `Option::expect` to unwrap the 
+`core::option::Option<u16>` value, panicking if the value is an `Option::None`
+       |
+  [0m[91m1174 |             params.founder_share = 
+founder_share.expect("REASON");
+       |[0m[91m                                                 
++++++++++++++++++[0m[91m
+
+  For more information about this error, try `rustc --explain E0308`.
+  error: could not compile `pallet-subspace` (lib) due to 1 previous error
+  warning: build failed, waiting for other jobs to finish...
+[0mThe command '/bin/sh -c cargo build --release --locked' returned a non-zero 
+code: 101
+DEPRECATED: The legacy builder is deprecated and will be removed in a future 
+release.
+            Install the buildx component to build images with BuildKit:
+            https://docs.docker.com/go/buildx/
+
+Sending build context to Docker daemon  11.04MB
+Step 1/11 : FROM ubuntu:22.04
+ ---> e4c58958181a
+Step 2/11 : ARG DEBIAN_FRONTEND=noninteractive
+ ---> Using cache
+ ---> 61e4106f7450
+Step 3/11 : ENV RUST_BACKTRACE 1
+ ---> Using cache
+ ---> 790f8ff71ea6
+Step 4/11 : RUN apt-get update && apt-get install -y curl build-essential 
+protobuf-compiler clang git
+ ---> Using cache
+ ---> b4af6a50804b
+Step 5/11 : WORKDIR /subspace
+ ---> Using cache
+ ---> 424adce251e6
+Step 6/11 : COPY ./scripts ./scripts
+ ---> Using cache
+ ---> 362263e3d5ba
+Step 7/11 : RUN apt-get update && apt-get install -y clang
+ ---> Using cache
+ ---> c042ea287e24
+Step 8/11 : ENV PATH="/root/.cargo/bin:${PATH}"
+ ---> Using cache
+ ---> 6fedaee8f5cb
+Step 9/11 : RUN ./scripts/install_rust_env.sh
+ ---> Using cache
+ ---> ac4bc9236907
+Step 10/11 : COPY . .
+ ---> afd597487163
+Step 11/11 : RUN cargo build --release --locked
+ ---> Running in 91480ef61b0d
+[91minfo: syncing channel updates for 'nightly-x86_64-unknown-linux-gnu'
+[0m[91minfo: latest update on 2023-12-19, rust version 1.76.0-nightly (3f28fe133
+2023-12-18)
+[0m[91minfo: component 'cargo' for target 'x86_64-unknown-linux-gnu' is up to 
+date
+info: component 'clippy' for target 'x86_64-unknown-linux-gnu' is up to date
+info: component 'rust-std' for target 'x86_64-unknown-linux-gnu' is up to date
+info: component 'rustc' for target 'x86_64-unknown-linux-gnu' is up to date
+info: component 'rustfmt' for target 'x86_64-unknown-linux-gnu' is up to date
+[0m[91minfo: downloading component 'rust-analyzer'
+[0m[91minfo: downloading component 'rust-src'
+[0m[91minfo: downloading component 'rust-std' for 'wasm32-unknown-unknown'
+[0m[91minfo: downloading component 'rustc-dev'
+[0m[91minfo: installing component 'rust-analyzer'
+[0m[91minfo: installing component 'rust-src'
+[0m[91minfo: installing component 'rust-std' for 'wasm32-unknown-unknown'
+[0m[91minfo: installing component 'rustc-dev'
+[0m[91mwarning: profiles for the non root package will be ignored, specify 
+profiles at the workspace root:
+package:   /subspace/runtime/Cargo.toml
+workspace: /subspace/Cargo.toml
+warning: virtual workspace defaulting to `resolver = "1"` despite one or more 
+workspace members being on edition 2021 which implies `resolver = "2"`
+note: to keep the current resolver, specify `workspace.resolver = "1"` in the 
+workspace root's manifest
+note: to use the edition 2021 resolver, specify `workspace.resolver = "2"` in 
+the workspace root's manifest
+note: for more details see 
+https://doc.rust-lang.org/cargo/reference/resolver.html#resolver-versions
+[0m[91m    Updating crates.io index
+[0m[91m    Updating git repository `https://github.com/paritytech/frontier`
+[0m[91m    Updating git repository `https://github.com/paritytech/substrate`
+[0m[91m    Updating git repository 
+`https://github.com/encointer/substrate-fixed.git`
+[0m[91m    Updating git repository `https://github.com/rust-blockchain/evm`
+[0m[91m    Updating git repository `https://github.com/encointer/typenum`
+[0m[91m Downloading crates ...
+[0m[91m  Downloaded futures-channel v0.3.29
+[0m[91m  Downloaded resolv-conf v0.7.0
+[0m[91m  Downloaded frame-metadata v16.0.0
+[0m[91m  Downloaded array-bytes v6.2.0
+[0m[91m  Downloaded arrayref v0.3.7
+[0m[91m  Downloaded serde_spanned v0.6.4
+[0m[91m  Downloaded asn1-rs-impl v0.1.0
+[0m[91m  Downloaded sct v0.6.1
+[0m[91m  Downloaded pest v2.7.5
+[0m[91m  Downloaded hash-db v0.16.0
+[0m[91m  Downloaded libp2p-allow-block-list v0.1.1
+[0m[91m  Downloaded fnv v1.0.7
+[0m[91m  Downloaded zstd-safe v5.0.2+zstd.1.5.2
+[0m[91m  Downloaded merlin v2.0.1
+[0m[91m  Downloaded minimal-lexical v0.2.1
+[0m[91m  Downloaded schnorrkel v0.9.1
+[0m[91m  Downloaded pest_meta v2.7.5
+[0m[91m  Downloaded pin-project-lite v0.1.12
+[0m[91m  Downloaded p384 v0.11.2
+[0m[91m  Downloaded nalgebra v0.32.3
+[0m[91m  Downloaded linux-raw-sys v0.4.11
+[0m[91m  Downloaded libz-sys v1.1.12
+[0m[91m  Downloaded wasm-opt-sys v0.112.0
+[0m[91m  Downloaded librocksdb-sys v0.11.0+8.1.1
+[0m[91m  Downloaded ring v0.17.6
+[0m[91m  Downloaded ring v0.16.20
+[0m[91m  Downloaded linux-raw-sys v0.1.4
+[0m[91m  Downloaded wasm-opt v0.112.0
+[0m[91m  Downloaded nix v0.24.3
+[0m[91m  Downloaded ndarray v0.15.6
+[0m[91m  Downloaded object v0.30.4
+[0m[91m  Downloaded zstd-sys v2.0.9+zstd.1.5.5
+[0m[91m  Downloaded parity-db v0.4.12
+[0m[91m  Downloaded num-integer v0.1.45
+[0m[91m  Downloaded netlink-proto v0.10.0
+[0m[91m  Downloaded netlink-packet-route v0.12.0
+[0m[91m  Downloaded parity-scale-codec v3.6.9
+[0m[91m  Downloaded prettyplease v0.2.15
+[0m[91m  Downloaded prettyplease v0.1.25
+[0m[91m  Downloaded object v0.32.1
+[0m[91m  Downloaded libp2p-webrtc v0.4.0-alpha.4
+[0m[91m  Downloaded pest_generator v2.7.5
+[0m[91m  Downloaded parking_lot_core v0.8.6
+[0m[91m  Downloaded parking_lot v0.12.1
+[0m[91m  Downloaded parity-wasm v0.45.0
+[0m[91m  Downloaded nohash-hasher v0.2.0
+[0m[91m  Downloaded netlink-sys v0.8.5
+[0m[91m  Downloaded netlink-packet-utils v0.5.2
+[0m[91m  Downloaded netlink-packet-core v0.4.2
+[0m[91m  Downloaded names v0.13.0
+[0m[91m  Downloaded nalgebra-macros v0.2.1
+[0m[91m  Downloaded multistream-select v0.12.1
+[0m[91m  Downloaded multihash v0.17.0
+[0m[91m  Downloaded multibase v0.9.1
+[0m[91m  Downloaded miniz_oxide v0.7.1
+[0m[91m  Downloaded pkg-config v0.3.27
+[0m[91m  Downloaded pest_derive v2.7.5
+[0m[91m  Downloaded parity-scale-codec-derive v3.6.9
+[0m[91m  Downloaded opaque-debug v0.3.0
+[0m[91m  Downloaded predicates-tree v1.0.9
+[0m[91m  Downloaded ppv-lite86 v0.2.17
+[0m[91m  Downloaded powerfmt v0.2.0
+[0m[91m  Downloaded polyval v0.6.1
+[0m[91m  Downloaded polyval v0.5.3
+[0m[91m  Downloaded pkcs8 v0.10.2
+[0m[91m  Downloaded parity-send-wrapper v0.1.0
+[0m[91m  Downloaded p256 v0.11.1
+[0m[91m  Downloaded num_cpus v1.16.0
+[0m[91m  Downloaded multihash-derive v0.8.1
+[0m[91m  Downloaded libsecp256k1-gen-genmult v0.3.0
+[0m[91m  Downloaded elliptic-curve v0.12.3
+[0m[91m  Downloaded dtoa v1.0.9
+[0m[91m  Downloaded openssl-probe v0.1.5
+[0m[91m  Downloaded oid-registry v0.6.1
+[0m[91m  Downloaded num-traits v0.2.17
+[0m[91m  Downloaded num-rational v0.4.1
+[0m[91m  Downloaded matrixmultiply v0.3.8
+[0m[91m  Downloaded lz4-sys v1.9.4
+[0m[91m  Downloaded lock_api v0.4.11
+[0m[91m  Downloaded link-cplusplus v1.0.9
+[0m[91m  Downloaded libp2p-tls v0.1.0
+[0m[91m  Downloaded ed25519-dalek v2.1.0
+[0m[91m  Downloaded derive_builder_core v0.11.2
+[0m[91m  Downloaded der-parser v7.0.0
+[0m[91m  Downloaded wasmtime-cranelift v8.0.1
+[0m[91m  Downloaded zerocopy v0.7.26
+[0m[91m  Downloaded interceptor v0.8.2
+[0m[91m  Downloaded idna v0.2.3
+[0m[91m  Downloaded chacha20poly1305 v0.10.1
+[0m[91m  Downloaded bindgen v0.65.1
+[0m[91m  Downloaded idna v0.5.0
+[0m[91m  Downloaded opaque-debug v0.2.3
+[0m[91m  Downloaded once_cell v1.18.0
+[0m[91m  Downloaded oid-registry v0.4.0
+[0m[91m  Downloaded num_enum_derive v0.6.1
+[0m[91m  Downloaded num_enum v0.6.1
+[0m[91m  Downloaded num-iter v0.1.43
+[0m[91m  Downloaded multimap v0.8.3
+[0m[91m  Downloaded memmap2 v0.5.10
+[0m[91m  Downloaded memchr v2.6.4
+[0m[91m  Downloaded md-5 v0.10.6
+[0m[91m  Downloaded macro_magic v0.4.2
+[0m[91m  Downloaded lru-cache v0.1.2
+[0m[91m  Downloaded libsecp256k1 v0.7.1
+[0m[91m  Downloaded libp2p-websocket v0.41.0
+[0m[91m  Downloaded libp2p-tcp v0.39.0
+[0m[91m  Downloaded either v1.9.0
+[0m[91m  Downloaded ed25519-zebra v3.1.0
+[0m[91m  Downloaded ed25519-dalek v1.0.1
+[0m[91m  Downloaded displaydoc v0.2.4
+[0m[91m  Downloaded dirs-sys v0.3.7
+[0m[91m  Downloaded directories-next v2.0.0
+[0m[91m  Downloaded directories v4.0.1
+[0m[91m  Downloaded digest v0.10.7
+[0m[91m  Downloaded derive_builder v0.11.2
+[0m[91m  Downloaded deranged v0.3.9
+[0m[91m  Downloaded der-parser v8.2.0
+[0m[91m  Downloaded webrtc-util v0.7.0
+[0m[91m  Downloaded wasm-bindgen-shared v0.2.89
+[0m[91m  Downloaded wasm-bindgen-macro-support v0.2.89
+[0m[91m  Downloaded tokio-rustls v0.24.1
+[0m[91m  Downloaded crossbeam-deque v0.8.3
+[0m[91m  Downloaded memory-db v0.32.0
+[0m[91m  Downloaded predicates v2.1.5
+[0m[91m  Downloaded libp2p-core v0.39.2
+[0m[91m  Downloaded kvdb-memorydb v0.13.0
+[0m[91m  Downloaded ip_network v0.4.1
+[0m[91m  Downloaded indexmap v1.9.3
+[0m[91m  Downloaded const-oid v0.9.5
+[0m[91m  Downloaded bytemuck v1.14.0
+[0m[91m  Downloaded auto_impl v1.1.0
+[0m[91m  Downloaded pkcs8 v0.9.0
+[0m[91m  Downloaded pin-project-lite v0.2.13
+[0m[91m  Downloaded memoffset v0.9.0
+[0m[91m  Downloaded memoffset v0.8.0
+[0m[91m  Downloaded memfd v0.6.4
+[0m[91m  Downloaded macro_magic_macros v0.4.2
+[0m[91m  Downloaded macro_magic_core_macros v0.4.3
+[0m[91m  Downloaded macro_magic_core v0.4.2
+[0m[91m  Downloaded lz4 v1.24.0
+[0m[91m  Downloaded lru v0.10.1
+[0m[91m  Downloaded log v0.4.20
+[0m[91m  Downloaded libsecp256k1-gen-ecmult v0.3.0
+[0m[91m  Downloaded libp2p-yamux v0.43.1
+[0m[91m  Downloaded libp2p-wasm-ext v0.39.0
+[0m[91m  Downloaded ed25519 v2.2.3
+[0m[91m  Downloaded dyn-clonable v0.9.0
+[0m[91m  Downloaded downcast v0.11.0
+[0m[91m  Downloaded dirs-sys-next v0.1.2
+[0m[91m  Downloaded derive-syn-parse v0.1.5
+[0m[91m  Downloaded wasm-opt-cxx-sys v0.112.0
+[0m[91m  Downloaded walkdir v2.4.0
+[0m[91m  Downloaded waitgroup v0.1.2
+[0m[91m  Downloaded ref-cast-impl v1.0.20
+[0m[91m  Downloaded proc-macro-crate v2.0.0
+[0m[91m  Downloaded keccak v0.1.4
+[0m[91m  Downloaded inout v0.1.3
+[0m[91m  Downloaded if-watch v3.2.0
+[0m[91m  Downloaded httpdate v1.0.3
+[0m[91m  Downloaded httparse v1.8.0
+[0m[91m  Downloaded cid v0.9.0
+[0m[91m  Downloaded autocfg v1.1.0
+[0m[91m  Downloaded pbkdf2 v0.8.0
+[0m[91m  Downloaded parking_lot v0.11.2
+[0m[91m  Downloaded pin-utils v0.1.0
+[0m[91m  Downloaded memoffset v0.6.5
+[0m[91m  Downloaded fs2 v0.4.3
+[0m[91m  Downloaded async-channel v1.9.0
+[0m[91m  Downloaded hex v0.4.3
+[0m[91m  Downloaded cfg_aliases v0.1.1
+[0m[91m  Downloaded fxhash v0.2.1
+[0m[91m  Downloaded block-padding v0.1.5
+[0m[91m  Downloaded regex-automata v0.4.3
+[0m[91m  Downloaded cxxbridge-macro v1.0.110
+[0m[91m  Downloaded cxx-build v1.0.110
+[0m[91m  Downloaded x25519-dalek v2.0.0
+[0m[91m  Downloaded x25519-dalek v1.1.1
+[0m[91m  Downloaded winnow v0.5.19
+[0m[91m  Downloaded wasm-bindgen v0.2.89
+[0m[91m  Downloaded want v0.3.1
+[0m[91m  Downloaded vcpkg v0.2.15
+[0m[91m  Downloaded uuid v1.6.1
+[0m[91m  Downloaded tracing-subscriber v0.2.25
+[0m[91m  Downloaded tower-http v0.4.4
+[0m[91m  Downloaded toml_edit v0.19.15
+[0m[91m  Downloaded tokio v1.34.0
+[0m[91m  Downloaded tikv-jemalloc-sys v0.5.4+5.3.0-patched
+[0m[91m  Downloaded crc32fast v1.3.2
+[0m[91m  Downloaded byteorder v1.5.0
+[0m[91m  Downloaded partial_sort v0.2.0
+[0m[91m  Downloaded impl-codec v0.6.0
+[0m[91m  Downloaded ghash v0.4.4
+[0m[91m  Downloaded ed25519 v1.5.3
+[0m[91m  Downloaded ecdsa v0.16.9
+[0m[91m  Downloaded ecdsa v0.14.8
+[0m[91m  Downloaded dyn-clone v1.0.16
+[0m[91m  Downloaded dyn-clonable-impl v0.9.0
+[0m[91m  Downloaded der v0.7.8
+[0m[91m  Downloaded der v0.6.1
+[0m[91m  Downloaded data-encoding-macro-internal v0.1.12
+[0m[91m  Downloaded data-encoding-macro v0.1.14
+[0m[91m  Downloaded data-encoding v2.5.0
+[0m[91m  Downloaded darling_macro v0.20.3
+[0m[91m  Downloaded darling_macro v0.14.4
+[0m[91m  Downloaded darling_core v0.20.3
+[0m[91m  Downloaded darling_core v0.14.4
+[0m[91m  Downloaded darling v0.20.3
+[0m[91m  Downloaded darling v0.14.4
+[0m[91m  Downloaded cxxbridge-flags v1.0.110
+[0m[91m  Downloaded ctr v0.9.2
+[0m[91m  Downloaded wyz v0.5.1
+[0m[91m  Downloaded wide v0.7.13
+[0m[91m  Downloaded which v4.4.2
+[0m[91m  Downloaded webrtc-ice v0.9.1
+[0m[91m  Downloaded webrtc-dtls v0.7.2
+[0m[91m  Downloaded webrtc-data v0.6.0
+[0m[91m  Downloaded webrtc v0.6.0
+[0m[91m  Downloaded webpki-roots v0.22.6
+[0m[91m  Downloaded webpki v0.22.4
+[0m[91m  Downloaded webpki v0.21.4
+[0m[91m  Downloaded wasmtime-types v8.0.1
+[0m[91m  Downloaded wasmtime-runtime v8.0.1
+[0m[91m  Downloaded wasmtime-jit-icache-coherence v8.0.1
+[0m[91m  Downloaded wasmtime-jit-debug v8.0.1
+[0m[91m  Downloaded wasmtime-jit v8.0.1
+[0m[91m  Downloaded wasmtime-environ v8.0.1
+[0m[91m  Downloaded wasmtime-cranelift-shared v8.0.1
+[0m[91m  Downloaded wasm-timer v0.2.5
+[0m[91m  Downloaded wasm-instrument v0.3.0
+[0m[91m  Downloaded wasm-bindgen-macro v0.2.89
+[0m[91m  Downloaded void v1.0.2
+[0m[91m  Downloaded version_check v0.9.4
+[0m[91m  Downloaded untrusted v0.9.0
+[0m[91m  Downloaded tt-call v1.0.9
+[0m[91m  Downloaded try-lock v0.2.4
+[0m[91m  Downloaded trust-dns-resolver v0.22.0
+[0m[91m  Downloaded trie-db v0.27.1
+[0m[91m  Downloaded tracing-serde v0.1.3
+[0m[91m  Downloaded tracing-futures v0.2.5
+[0m[91m  Downloaded tracing-core v0.1.32
+[0m[91m  Downloaded tracing-attributes v0.1.27
+[0m[91m  Downloaded tracing v0.1.40
+[0m[91m  Downloaded tower v0.4.13
+[0m[91m  Downloaded toml_edit v0.20.7
+[0m[91m  Downloaded toml_datetime v0.6.5
+[0m[91m  Downloaded toml v0.7.8
+[0m[91m  Downloaded tokio-macros v2.2.0
+[0m[91m  Downloaded quick-protobuf-codec v0.1.0
+[0m[91m  Downloaded trie-root v0.18.0
+[0m[91m  Downloaded tower-service v0.3.2
+[0m[91m  Downloaded tower-layer v0.3.2
+[0m[91m  Downloaded pem-rfc7468 v0.6.0
+[0m[91m  Downloaded webrtc-mdns v0.5.2
+[0m[91m  Downloaded asn1-rs-derive v0.4.0
+[0m[91m  Downloaded fs-err v2.11.0
+[0m[91m  Downloaded atty v0.2.14
+[0m[91m  Downloaded sha-1 v0.9.8
+[0m[91m  Downloaded scratch v1.0.7
+[0m[91m  Downloaded parking_lot_core v0.9.9
+[0m[91m  Downloaded num-format v0.4.4
+[0m[91m  Downloaded tinyvec v1.6.0
+[0m[91m  Downloaded tinytemplate v1.2.1
+[0m[91m  Downloaded tiny-bip39 v1.0.0
+[0m[91m  Downloaded threadpool v1.8.1
+[0m[91m  Downloaded thousands v0.2.0
+[0m[91m  Downloaded thiserror v1.0.50
+[0m[91m  Downloaded termcolor v1.4.0
+[0m[91m  Downloaded tempfile v3.8.1
+[0m[91m  Downloaded target-lexicon v0.12.12
+[0m[91m  Downloaded stun v0.4.4
+[0m[91m  Downloaded strum v0.24.1
+  Downloaded static_init v1.0.3
+[0m[91m  Downloaded static_assertions v1.1.0
+[0m[91m  Downloaded stable_deref_trait v1.2.0
+[0m[91m  Downloaded serde_json v1.0.108
+[0m[91m  Downloaded serde_derive v1.0.193
+[0m[91m  Downloaded serde_bytes v0.11.12
+[0m[91m  Downloaded rand_core v0.6.4
+[0m[91m  Downloaded rand_core v0.5.1
+[0m[91m  Downloaded rand_chacha v0.3.1
+[0m[91m  Downloaded rand_chacha v0.2.2
+[0m[91m  Downloaded radium v0.7.0
+[0m[91m  Downloaded quote v1.0.33
+[0m[91m  Downloaded quinn-proto v0.9.6
+[0m[91m  Downloaded quicksink v0.1.2
+[0m[91m  Downloaded quick-protobuf v0.8.1
+[0m[91m  Downloaded prost-derive v0.11.9
+[0m[91m  Downloaded prost-build v0.11.9
+[0m[91m  Downloaded prost v0.11.9
+[0m[91m  Downloaded prometheus-client-derive-encode v0.4.2
+[0m[91m  Downloaded proc-macro2 v1.0.70
+[0m[91m  Downloaded proc-macro-warning v0.4.2
+[0m[91m  Downloaded proc-macro-error-attr v1.0.4
+[0m[91m  Downloaded proc-macro-error v1.0.4
+[0m[91m  Downloaded primitive-types v0.12.2
+[0m[91m  Downloaded ctr v0.8.0
+[0m[91m  Downloaded crypto-mac v0.11.1
+[0m[91m  Downloaded crypto-common v0.1.6
+[0m[91m  Downloaded crypto-bigint v0.5.5
+[0m[91m  Downloaded crypto-bigint v0.4.9
+[0m[91m  Downloaded crunchy v0.2.2
+[0m[91m  Downloaded crossbeam-utils v0.8.16
+[0m[91m  Downloaded crossbeam-epoch v0.9.15
+[0m[91m  Downloaded zstd-safe v6.0.6
+[0m[91m  Downloaded semver-parser v0.7.0
+[0m[91m  Downloaded semver v1.0.20
+[0m[91m  Downloaded semver v0.9.0
+[0m[91m  Downloaded semver v0.6.0
+[0m[91m  Downloaded secrecy v0.8.0
+[0m[91m  Downloaded same-file v1.0.6
+[0m[91m  Downloaded safe_arch v0.7.1
+[0m[91m  Downloaded safe-mix v1.0.1
+[0m[91m  Downloaded ryu v1.0.15
+[0m[91m  Downloaded libp2p-swarm-derive v0.32.0
+[0m[91m  Downloaded libp2p-request-response v0.24.1
+[0m[91m  Downloaded libp2p-quic v0.7.0-alpha.3
+[0m[91m  Downloaded libp2p-ping v0.42.0
+[0m[91m  Downloaded libp2p-noise v0.42.2
+[0m[91m  Downloaded libp2p-metrics v0.12.0
+[0m[91m  Downloaded float-cmp v0.9.0
+[0m[91m  Downloaded flate2 v1.0.28
+[0m[91m  Downloaded expander v2.0.0
+[0m[91m  Downloaded cranelift-native v0.95.1
+[0m[91m  Downloaded cranelift-isle v0.95.1
+[0m[91m  Downloaded cranelift-frontend v0.95.1
+[0m[91m  Downloaded cranelift-codegen v0.95.1
+[0m[91m  Downloaded cpufeatures v0.2.11
+[0m[91m  Downloaded secp256k1-sys v0.6.1
+[0m[91m  Downloaded curve25519-dalek v3.2.0
+[0m[91m  Downloaded scopeguard v1.2.0
+[0m[91m  Downloaded percent-encoding v2.3.1
+[0m[91m  Downloaded pem v1.1.1
+[0m[91m  Downloaded peeking_take_while v0.1.2
+[0m[91m  Downloaded num v0.4.1
+[0m[91m  Downloaded mockall_derive v0.11.4
+[0m[91m  Downloaded tinyvec_macros v0.1.1
+[0m[91m  Downloaded tiny-keccak v2.0.2
+[0m[91m  Downloaded time v0.3.30
+[0m[91m  Downloaded thread_local v1.1.7
+[0m[91m  Downloaded thiserror-impl v1.0.50
+[0m[91m  Downloaded termtree v0.4.1
+[0m[91m  Downloaded tap v1.0.1
+[0m[91m  Downloaded subtle v2.4.1
+[0m[91m  Downloaded substring v1.4.5
+[0m[91m  Downloaded substrate-bip39 v0.4.5
+[0m[91m  Downloaded strum_macros v0.25.3
+[0m[91m  Downloaded strum_macros v0.24.3
+[0m[91m  Downloaded strum v0.25.0
+[0m[91m  Downloaded crypto-mac v0.8.0
+[0m[91m  Downloaded yasna v0.5.2
+[0m[91m  Downloaded yamux v0.10.2
+[0m[91m  Downloaded x509-parser v0.14.0
+[0m[91m  Downloaded x509-parser v0.13.2
+[0m[91m  Downloaded rw-stream-sink v0.3.0
+[0m[91m  Downloaded rustversion v1.0.14
+[0m[91m  Downloaded rustls-webpki v0.101.7
+[0m[91m  Downloaded rustls-pemfile v1.0.4
+[0m[91m  Downloaded rtnetlink v0.10.1
+[0m[91m  Downloaded rtcp v0.7.2
+[0m[91m  Downloaded rcgen v0.10.0
+[0m[91m  Downloaded libp2p-swarm v0.42.2
+[0m[91m  Downloaded libp2p-mdns v0.43.1
+[0m[91m  Downloaded fixedbitset v0.4.2
+[0m[91m  Downloaded fixed-hash v0.8.0
+[0m[91m  Downloaded finality-grandpa v0.16.2
+[0m[91m  Downloaded filetime v0.2.22
+[0m[91m  Downloaded ff v0.13.0
+[0m[91m  Downloaded ff v0.12.1
+[0m[91m  Downloaded fallible-iterator v0.2.0
+[0m[91m  Downloaded fake-simd v0.1.2
+[0m[91m  Downloaded exit-future v0.2.0
+[0m[91m  Downloaded event-listener v2.5.3
+[0m[91m  Downloaded ethereum-types v0.14.1
+[0m[91m  Downloaded ethbloom v0.13.0
+[0m[91m  Downloaded cranelift-entity v0.95.1
+[0m[91m  Downloaded cranelift-codegen-shared v0.95.1
+[0m[91m  Downloaded cranelift-codegen-meta v0.95.1
+[0m[91m  Downloaded cranelift-bforest v0.95.1
+[0m[91m  Downloaded cpp_demangle v0.3.5
+[0m[91m  Downloaded unicode-width v0.1.11
+[0m[91m  Downloaded unicode-normalization v0.1.22
+[0m[91m  Downloaded turn v0.6.1
+[0m[91m  Downloaded snow v0.9.4
+[0m[91m  Downloaded slice-group-by v0.3.1
+[0m[91m  Downloaded serde_with_macros v2.3.3
+[0m[91m  Downloaded sdp v0.5.3
+[0m[91m  Downloaded sct v0.7.1
+[0m[91m  Downloaded rustls-native-certs v0.6.3
+[0m[91m  Downloaded rustls v0.21.9
+[0m[91m  Downloaded rustls v0.20.9
+[0m[91m  Downloaded rustls v0.19.1
+[0m[91m  Downloaded rustc-hash v1.1.0
+[0m[91m  Downloaded rustc-demangle v0.1.23
+[0m[91m  Downloaded rtp v0.6.8
+[0m[91m  Downloaded rtoolbox v0.0.2
+[0m[91m  Downloaded regex-automata v0.1.10
+[0m[91m  Downloaded regex v1.10.2
+[0m[91m  Downloaded regalloc2 v0.6.1
+[0m[91m  Downloaded num-bigint v0.4.4
+[0m[91m  Downloaded nom v7.1.3
+[0m[91m  Downloaded mockall v0.11.4
+[0m[91m  Downloaded mio v0.8.9
+[0m[91m  Downloaded matches v0.1.10
+[0m[91m  Downloaded matchers v0.0.1
+[0m[91m  Downloaded match_cfg v0.1.0
+  Downloaded linked-hash-map v0.5.6
+[0m[91m  Downloaded libsecp256k1-core v0.3.0
+[0m[91m  Downloaded libp2p-kad v0.43.3
+[0m[91m  Downloaded libp2p-identity v0.1.3
+[0m[91m  Downloaded libp2p-identify v0.42.2
+[0m[91m  Downloaded libp2p-dns v0.39.0
+[0m[91m  Downloaded environmental v1.1.4
+[0m[91m  Downloaded env_logger v0.10.1
+[0m[91m  Downloaded enum-as-inner v0.5.1
+[0m[91m  Downloaded elliptic-curve v0.13.8
+[0m[91m  Downloaded digest v0.9.0
+[0m[91m  Downloaded difflib v0.4.0
+[0m[91m  Downloaded derive_more v0.99.17
+[0m[91m  Downloaded derive_builder_macro v0.11.2
+[0m[91m  Downloaded cxx v1.0.110
+[0m[91m  Downloaded curve25519-dalek-derive v0.1.1
+[0m[91m  Downloaded curve25519-dalek v4.1.1
+[0m[91m  Downloaded curve25519-dalek v2.1.3
+[0m[91m  Downloaded crc-catalog v2.4.0
+[0m[91m  Downloaded crc v3.0.1
+[0m[91m  Downloaded cranelift-wasm v0.95.1
+[0m[91m  Downloaded webrtc-srtp v0.9.1
+[0m[91m  Downloaded webrtc-sctp v0.7.0
+[0m[91m  Downloaded wasmtime v8.0.1
+[0m[91m  Downloaded wasmparser v0.102.0
+[0m[91m  Downloaded trust-dns-proto v0.22.0
+[0m[91m  Downloaded tokio-util v0.7.10
+[0m[91m  Downloaded syn v2.0.39
+[0m[91m  Downloaded sha3 v0.10.8
+[0m[91m  Downloaded rustix v0.38.25
+[0m[91m  Downloaded rocksdb v0.21.0
+[0m[91m  Downloaded rayon v1.8.0
+[0m[91m  Downloaded pin-project v1.1.3
+[0m[91m  Downloaded petgraph v0.6.4
+[0m[91m  Downloaded libc v0.2.150
+[0m[91m  Downloaded itertools v0.10.5
+[0m[91m  Downloaded hyper v0.14.27
+[0m[91m  Downloaded hmac v0.12.1
+[0m[91m  Downloaded hkdf v0.12.3
+[0m[91m  Downloaded hashbrown v0.12.3
+[0m[91m  Downloaded gimli v0.28.1
+[0m[91m  Downloaded generic-array v0.12.4
+[0m[91m  Downloaded futures-util v0.3.29
+[0m[91m  Downloaded clap_builder v4.4.9
+[0m[91m  Downloaded chrono v0.4.31
+[0m[91m  Downloaded asn1-rs v0.5.2
+[0m[91m  Downloaded libloading v0.7.4
+[0m[91m  Downloaded jsonrpsee-core v0.16.3
+[0m[91m  Downloaded ipnet v2.9.0
+[0m[91m  Downloaded hmac v0.11.0
+[0m[91m  Downloaded rlp v0.5.2
+[0m[91m  Downloaded ripemd v0.1.3
+[0m[91m  Downloaded atomic-waker v1.1.2
+[0m[91m  Downloaded aes v0.6.0
+[0m[91m  Downloaded prometheus-client v0.19.0
+[0m[91m  Downloaded handlebars v4.5.0
+[0m[91m  Downloaded base64 v0.21.5
+[0m[91m  Downloaded ref-cast v1.0.20
+[0m[91m  Downloaded rcgen v0.9.3
+[0m[91m  Downloaded aes-soft v0.6.4
+[0m[91m  Downloaded file-per-thread-logger v0.1.6
+[0m[91m  Downloaded fdlimit v0.2.1
+[0m[91m  Downloaded fastrand v2.0.1
+[0m[91m  Downloaded ethereum v0.14.0
+[0m[91m  Downloaded errno v0.3.8
+[0m[91m  Downloaded core2 v0.4.0
+[0m[91m  Downloaded constant_time_eq v0.3.0
+[0m[91m  Downloaded const-random-macro v0.1.16
+[0m[91m  Downloaded untrusted v0.7.1
+[0m[91m  Downloaded unsigned-varint v0.7.2
+[0m[91m  Downloaded universal-hash v0.5.1
+[0m[91m  Downloaded universal-hash v0.4.1
+[0m[91m  Downloaded unicode-xid v0.2.4
+[0m[91m  Downloaded uint v0.9.5
+[0m[91m  Downloaded ucd-trie v0.1.6
+[0m[91m  Downloaded typenum v1.17.0
+[0m[91m  Downloaded twox-hash v1.6.3
+[0m[91m  Downloaded ss58-registry v1.44.0
+[0m[91m  Downloaded spki v0.7.3
+[0m[91m  Downloaded spki v0.6.0
+[0m[91m  Downloaded spin v0.9.8
+[0m[91m  Downloaded spin v0.5.2
+[0m[91m  Downloaded socket2 v0.4.10
+[0m[91m  Downloaded snap v1.1.0
+[0m[91m  Downloaded smallvec v1.11.2
+[0m[91m  Downloaded slab v0.4.9
+[0m[91m  Downloaded siphasher v0.3.11
+[0m[91m  Downloaded simba v0.8.1
+[0m[91m  Downloaded signature v2.2.0
+[0m[91m  Downloaded signature v1.6.4
+[0m[91m  Downloaded signal-hook-registry v1.4.1
+[0m[91m  Downloaded shlex v1.2.0
+[0m[91m  Downloaded sha2 v0.9.9
+[0m[91m  Downloaded sha2 v0.8.2
+[0m[91m  Downloaded sha1 v0.10.6
+[0m[91m  Downloaded rfc6979 v0.4.0
+[0m[91m  Downloaded rfc6979 v0.3.1
+[0m[91m  Downloaded base64 v0.13.1
+[0m[91m  Downloaded asn1-rs v0.3.1
+[0m[91m  Downloaded aes-gcm v0.10.3
+[0m[91m  Downloaded aes v0.7.5
+[0m[91m  Downloaded addr2line v0.21.0
+[0m[91m  Downloaded num-complex v0.4.4
+[0m[91m  Downloaded normalize-line-endings v0.3.0
+[0m[91m  Downloaded multiaddr v0.17.1
+[0m[91m  Downloaded linregress v0.5.3
+[0m[91m  Downloaded linked_hash_set v0.1.4
+[0m[91m  Downloaded equivalent v1.0.1
+[0m[91m  Downloaded digest v0.8.1
+[0m[91m  Downloaded zstd v0.12.4
+[0m[91m  Downloaded zstd v0.11.2+zstd.1.5.2
+[0m[91m  Downloaded zeroize_derive v1.4.2
+[0m[91m  Downloaded zeroize v1.7.0
+[0m[91m  Downloaded webrtc-media v0.5.1
+[0m[91m  Downloaded wasmtime-cache v8.0.1
+[0m[91m  Downloaded wasmtime-asm-macros v8.0.1
+[0m[91m  Downloaded wasm-bindgen-futures v0.4.39
+[0m[91m  Downloaded wasm-bindgen-backend v0.2.89
+[0m[91m  Downloaded utf8parse v0.2.1
+[0m[91m  Downloaded url v2.5.0
+[0m[91m  Downloaded unicode-bidi v0.3.13
+[0m[91m  Downloaded triehash v0.8.4
+[0m[91m  Downloaded tracing-log v0.1.4
+[0m[91m  Downloaded toml v0.5.11
+[0m[91m  Downloaded tokio-stream v0.1.14
+[0m[91m  Downloaded time-macros v0.2.15
+[0m[91m  Downloaded time-core v0.1.2
+[0m[91m  Downloaded synstructure v0.12.6
+[0m[91m  Downloaded syn v1.0.109
+[0m[91m  Downloaded strsim v0.10.0
+[0m[91m  Downloaded static_init_macro v1.0.2
+[0m[91m  Downloaded soketto v0.7.1
+[0m[91m  Downloaded socket2 v0.5.5
+[0m[91m  Downloaded sharded-slab v0.1.7
+[0m[91m  Downloaded sha2 v0.10.8
+[0m[91m  Downloaded serde-tuple-vec-map v1.0.1
+[0m[91m  Downloaded serde v1.0.193
+[0m[91m  Downloaded secp256k1 v0.24.3
+[0m[91m  Downloaded schnellru v0.2.1
+[0m[91m  Downloaded scale-info-derive v2.10.0
+[0m[91m  Downloaded scale-info v2.10.0
+[0m[91m  Downloaded rustix v0.36.17
+[0m[91m  Downloaded rustc_version v0.4.0
+[0m[91m  Downloaded rustc_version v0.2.3
+[0m[91m  Downloaded rustc-hex v2.1.0
+[0m[91m  Downloaded regex-syntax v0.8.2
+[0m[91m  Downloaded regex-syntax v0.6.29
+[0m[91m  Downloaded rand v0.8.5
+[0m[91m  Downloaded prost-types v0.11.9
+[0m[91m  Downloaded prometheus v0.13.3
+[0m[91m  Downloaded proc-macro-crate v1.1.3
+[0m[91m  Downloaded jsonrpsee-server v0.16.3
+[0m[91m  Downloaded jobserver v0.1.27
+[0m[91m  Downloaded io-lifetimes v1.0.11
+[0m[91m  Downloaded hyper-rustls v0.24.2
+[0m[91m  Downloaded group v0.12.1
+[0m[91m  Downloaded glob v0.3.1
+[0m[91m  Downloaded gimli v0.27.3
+[0m[91m  Downloaded comfy-table v7.1.0
+[0m[91m  Downloaded camino v1.1.6
+[0m[91m  Downloaded base64ct v1.6.0
+[0m[91m  Downloaded anstyle-query v1.0.0
+[0m[91m  Downloaded aes-gcm v0.9.4
+[0m[91m  Downloaded kvdb v0.13.0
+[0m[91m  Downloaded instant v0.1.12
+[0m[91m  Downloaded hex-literal v0.4.1
+[0m[91m  Downloaded ghash v0.5.0
+[0m[91m  Downloaded backtrace v0.3.69
+[0m[91m  Downloaded aho-corasick v1.1.2
+[0m[91m  Downloaded arc-swap v1.6.0
+[0m[91m  Downloaded base-x v0.2.11
+[0m[91m  Downloaded generic-array v0.14.7
+[0m[91m  Downloaded block-buffer v0.7.3
+[0m[91m  Downloaded beef v0.5.2
+[0m[91m  Downloaded async-trait v0.1.74
+[0m[91m  Downloaded arrayvec v0.5.2
+[0m[91m  Downloaded anyhow v1.0.75
+[0m[91m  Downloaded approx v0.5.1
+[0m[91m  Downloaded ahash v0.8.6
+[0m[91m  Downloaded ahash v0.7.7
+[0m[91m  Downloaded addr2line v0.19.0
+[0m[91m  Downloaded anstyle v1.0.4
+[0m[91m  Downloaded anstream v0.6.4
+[0m[91m  Downloaded adler v1.0.2
+[0m[91m  Downloaded anstyle-parse v0.2.2
+[0m[91m  Downloaded aes v0.8.3
+[0m[91m  Downloaded Inflector v0.11.4
+[0m[91m  Downloaded ansi_term v0.12.1
+[0m[91m  Downloaded aead v0.5.2
+[0m[91m  Downloaded unicode-ident v1.0.12
+[0m[91m  Downloaded serde_with v2.0.0
+[0m[91m  Downloaded sec1 v0.7.3
+[0m[91m  Downloaded sec1 v0.3.0
+[0m[91m  Downloaded rusticata-macros v4.1.0
+[0m[91m  Downloaded rpassword v7.3.1
+[0m[91m  Downloaded rlp-derive v0.1.0
+[0m[91m  Downloaded rayon-core v1.12.0
+[0m[91m  Downloaded rawpointer v0.2.1
+[0m[91m  Downloaded rand_pcg v0.3.1
+[0m[91m  Downloaded rand v0.7.3
+[0m[91m  Downloaded quick-error v1.2.3
+[0m[91m  Downloaded predicates-core v1.0.6
+[0m[91m  Downloaded poly1305 v0.8.0
+[0m[91m  Downloaded platforms v3.2.0
+[0m[91m  Downloaded pin-project-internal v1.1.3
+[0m[91m  Downloaded pbkdf2 v0.11.0
+[0m[91m  Downloaded paste v1.0.14
+[0m[91m  Downloaded libp2p-connection-limits v0.1.0
+[0m[91m  Downloaded libp2p v0.51.3
+[0m[91m  Downloaded lazycell v1.3.0
+[0m[91m  Downloaded kvdb-rocksdb v0.19.0
+[0m[91m  Downloaded k256 v0.13.2
+[0m[91m  Downloaded js-sys v0.3.66
+[0m[91m  Downloaded itoa v1.0.9
+[0m[91m  Downloaded impl-serde v0.4.0
+[0m[91m  Downloaded impl-rlp v0.3.0
+[0m[91m  Downloaded ident_case v1.0.1
+[0m[91m  Downloaded iana-time-zone v0.1.58
+[0m[91m  Downloaded humantime v2.1.0
+[0m[91m  Downloaded http-body v0.4.5
+[0m[91m  Downloaded hashbrown v0.14.3
+[0m[91m  Downloaded hash256-std-hasher v0.15.2
+[0m[91m  Downloaded h2 v0.3.22
+[0m[91m  Downloaded getrandom v0.1.16
+[0m[91m  Downloaded gethostname v0.2.3
+[0m[91m  Downloaded funty v2.0.0
+[0m[91m  Downloaded concurrent-queue v2.3.0
+[0m[91m  Downloaded codespan-reporting v0.11.1
+[0m[91m  Downloaded clap_derive v4.4.7
+[0m[91m  Downloaded cexpr v0.6.0
+[0m[91m  Downloaded bzip2-sys v0.1.11+1.0.8
+[0m[91m  Downloaded bs58 v0.4.0
+[0m[91m  Downloaded bounded-collections v0.1.9
+[0m[91m  Downloaded blake2b_simd v1.0.2
+[0m[91m  Downloaded bincode v1.3.3
+[0m[91m  Downloaded asynchronous-codec v0.6.2
+[0m[91m  Downloaded asn1-rs-derive v0.1.0
+[0m[91m  Downloaded arrayvec v0.7.4
+[0m[91m  Downloaded aead v0.4.3
+[0m[91m  Downloaded psm v0.1.21
+[0m[91m  Downloaded lazy_static v1.4.0
+[0m[91m  Downloaded jsonrpsee-types v0.16.3
+[0m[91m  Downloaded jsonrpsee-proc-macros v0.16.3
+[0m[91m  Downloaded jsonrpsee v0.16.3
+[0m[91m  Downloaded is-terminal v0.4.9
+[0m[91m  Downloaded integer-sqrt v0.1.5
+[0m[91m  Downloaded indexmap v2.1.0
+[0m[91m  Downloaded impl-trait-for-tuples v0.2.2
+[0m[91m  Downloaded http-range-header v0.3.1
+[0m[91m  Downloaded http v0.2.11
+[0m[91m  Downloaded hostname v0.3.1
+[0m[91m  Downloaded home v0.5.5
+[0m[91m  Downloaded hmac-drbg v0.3.0
+[0m[91m  Downloaded hmac v0.8.1
+[0m[91m  Downloaded heck v0.4.1
+[0m[91m  Downloaded hashbrown v0.13.2
+[0m[91m  Downloaded group v0.13.0
+[0m[91m  Downloaded getrandom v0.2.11
+[0m[91m  Downloaded futures-core v0.3.29
+[0m[91m  Downloaded clap_lex v0.6.0
+[0m[91m  Downloaded clap v4.4.10
+[0m[91m  Downloaded cipher v0.4.4
+[0m[91m  Downloaded cipher v0.3.0
+[0m[91m  Downloaded cipher v0.2.5
+[0m[91m  Downloaded chacha20 v0.9.1
+[0m[91m  Downloaded cfg-if v1.0.0
+[0m[91m  Downloaded cfg-expr v0.15.5
+[0m[91m  Downloaded ccm v0.3.0
+[0m[91m  Downloaded bytes v1.5.0
+[0m[91m  Downloaded byte-slice-cast v1.2.2
+[0m[91m  Downloaded bumpalo v3.14.0
+[0m[91m  Downloaded bitflags v1.3.2
+[0m[91m  Downloaded base16ct v0.1.1
+[0m[91m  Downloaded hash-db v0.15.2
+[0m[91m  Downloaded globset v0.4.14
+[0m[91m  Downloaded futures-timer v3.0.2
+[0m[91m  Downloaded futures-task v0.3.29
+[0m[91m  Downloaded futures-sink v0.3.29
+[0m[91m  Downloaded futures-rustls v0.22.2
+[0m[91m  Downloaded futures-macro v0.3.29
+[0m[91m  Downloaded futures-io v0.3.29
+[0m[91m  Downloaded futures-executor v0.3.29
+[0m[91m  Downloaded fragile v2.0.0
+[0m[91m  Downloaded form_urlencoded v1.2.1
+[0m[91m  Downloaded const-random v0.1.17
+[0m[91m  Downloaded colorchoice v1.0.0
+[0m[91m  Downloaded cc v1.0.83
+[0m[91m  Downloaded cargo_metadata v0.15.4
+[0m[91m  Downloaded cargo-platform v0.1.5
+[0m[91m  Downloaded byte-tools v0.3.1
+[0m[91m  Downloaded build-helper v0.1.1
+[0m[91m  Downloaded bstr v1.8.0
+[0m[91m  Downloaded block-buffer v0.9.0
+[0m[91m  Downloaded blake3 v1.5.0
+[0m[91m  Downloaded blake2s_simd v1.0.2
+[0m[91m  Downloaded blake2 v0.10.6
+[0m[91m  Downloaded bitvec v1.0.1
+[0m[91m  Downloaded bitflags v2.4.1
+[0m[91m  Downloaded base16ct v0.2.0
+[0m[91m  Downloaded aead v0.3.2
+[0m[91m  Downloaded futures v0.3.29
+[0m[91m  Downloaded clang-sys v1.6.1
+[0m[91m  Downloaded block-padding v0.2.1
+[0m[91m  Downloaded block-modes v0.7.0
+[0m[91m  Downloaded block-buffer v0.10.4
+[0m[91m   Compiling proc-macro2 v1.0.70
+   Compiling unicode-ident v1.0.12
+[0m[91m   Compiling libc v0.2.150
+[0m[91m   Compiling cfg-if v1.0.0
+[0m[91m   Compiling version_check v0.9.4
+[0m[91m   Compiling autocfg v1.1.0
+[0m[91m   Compiling serde v1.0.193
+[0m[91m   Compiling typenum v1.17.0
+[0m[91m   Compiling syn v1.0.109
+[0m[91m   Compiling thiserror v1.0.50
+[0m[91m   Compiling memchr v2.6.4
+[0m[91m   Compiling bytes v1.5.0
+[0m[91m   Compiling log v0.4.20
+[0m[91m   Compiling subtle v2.4.1
+[0m[91m   Compiling once_cell v1.18.0
+[0m[91m   Compiling smallvec v1.11.2
+[0m[91m   Compiling pin-project-lite v0.2.13
+[0m[91m   Compiling byteorder v1.5.0
+[0m[91m   Compiling futures-core v0.3.29
+[0m[91m   Compiling arrayvec v0.7.4
+   Compiling scopeguard v1.2.0
+[0m[91m   Compiling futures-sink v0.3.29
+[0m[91m   Compiling futures-io v0.3.29
+[0m[91m   Compiling futures-task v0.3.29
+[0m[91m   Compiling futures-channel v0.3.29
+[0m[91m   Compiling futures-util v0.3.29
+[0m[91m   Compiling ppv-lite86 v0.2.17
+[0m[91m   Compiling const-oid v0.9.5
+[0m[91m   Compiling pin-utils v0.1.0
+[0m[91m   Compiling cpufeatures v0.2.11
+   Compiling anyhow v1.0.75
+[0m[91m   Compiling parking_lot_core v0.9.9
+[0m[91m   Compiling hashbrown v0.14.3
+[0m[91m   Compiling equivalent v1.0.1
+[0m[91m   Compiling tinyvec_macros v0.1.1
+[0m[91m   Compiling winnow v0.5.19
+[0m[91m   Compiling crunchy v0.2.2
+[0m[91m   Compiling static_assertions v1.1.0
+[0m[91m   Compiling unicode-bidi v0.3.13
+[0m[91m   Compiling pkg-config v0.3.27
+[0m[91m   Compiling percent-encoding v2.3.1
+[0m[91m   Compiling keccak v0.1.4
+[0m[91m   Compiling rustix v0.38.25
+[0m[91m   Compiling arrayref v0.3.7
+[0m[91m   Compiling either v1.9.0
+[0m[91m   Compiling byte-slice-cast v1.2.2
+[0m[91m   Compiling unicode-xid v0.2.4
+[0m[91m   Compiling tinyvec v1.6.0
+   Compiling tracing-core v0.1.32
+[0m[91m   Compiling constant_time_eq v0.3.0
+[0m[91m   Compiling itoa v1.0.9
+[0m[91m   Compiling instant v0.1.12
+[0m[91m   Compiling regex-syntax v0.8.2
+[0m[91m   Compiling crc32fast v1.3.2
+[0m[91m   Compiling zerocopy v0.7.26
+[0m[91m   Compiling serde_json v1.0.108
+[0m[91m   Compiling lazy_static v1.4.0
+[0m[91m   Compiling opaque-debug v0.3.0
+[0m[91m   Compiling paste v1.0.14
+[0m[91m   Compiling generic-array v0.14.7
+[0m[91m   Compiling form_urlencoded v1.2.1
+[0m[91m   Compiling ahash v0.7.7
+[0m[91m   Compiling ahash v0.8.6
+[0m[91m   Compiling slab v0.4.9
+[0m[91m   Compiling lock_api v0.4.11
+   Compiling num-traits v0.2.17
+[0m[91m   Compiling blake2b_simd v1.0.2
+[0m[91m   Compiling indexmap v1.9.3
+[0m[91m   Compiling bs58 v0.4.0
+[0m[91m   Compiling bitflags v1.3.2
+[0m[91m   Compiling getrandom v0.1.16
+[0m[91m   Compiling stable_deref_trait v1.2.0
+   Compiling rustc-hex v2.1.0
+[0m[91m   Compiling hex v0.4.3
+[0m[91m   Compiling target-lexicon v0.12.12
+[0m[91m   Compiling fallible-iterator v0.2.0
+[0m[91m   Compiling bitflags v2.4.1
+[0m[91m   Compiling aho-corasick v1.1.2
+[0m[91m   Compiling cranelift-isle v0.95.1
+[0m[91m   Compiling crossbeam-utils v0.8.16
+[0m[91m   Compiling cranelift-codegen-shared v0.95.1
+[0m[91m   Compiling linux-raw-sys v0.4.11
+[0m[91m   Compiling ryu v1.0.15
+[0m[91m   Compiling fxhash v0.2.1
+[0m[91m   Compiling slice-group-by v0.3.1
+[0m[91m   Compiling io-lifetimes v1.0.11
+[0m[91m   Compiling memoffset v0.9.0
+[0m[91m   Compiling indexmap v2.1.0
+[0m[91m   Compiling uint v0.9.5
+[0m[91m   Compiling cranelift-codegen-meta v0.95.1
+[0m[91m   Compiling sp-std v8.0.0 
+(https://github.com/paritytech/substrate?branch=polkadot-v1.0.0#948fbd2f)
+[0m[91m   Compiling rustix v0.36.17
+[0m[91m   Compiling base64 v0.13.1
+[0m[91m   Compiling bumpalo v3.14.0
+[0m[91m   Compiling crossbeam-epoch v0.9.15
+[0m[91m   Compiling quote v1.0.33
+[0m[91m   Compiling linux-raw-sys v0.1.4
+[0m[91m   Compiling parking_lot_core v0.8.6
+[0m[91m   Compiling itertools v0.10.5
+[0m[91m   Compiling memoffset v0.8.0
+[0m[91m   Compiling base64 v0.21.5
+[0m[91m   Compiling zstd-safe v5.0.2+zstd.1.5.2
+[0m[91m   Compiling humantime v2.1.0
+[0m[91m   Compiling cpp_demangle v0.3.5
+[0m[91m   Compiling rustc-demangle v0.1.23
+[0m[91m   Compiling termcolor v1.4.0
+[0m[91m   Compiling rayon-core v1.12.0
+[0m[91m   Compiling wasmtime-asm-macros v8.0.1
+[0m[91m   Compiling rustc-hash v1.1.0
+[0m[91m   Compiling regalloc2 v0.6.1
+[0m[91m   Compiling syn v2.0.39
+[0m[91m   Compiling regex-syntax v0.6.29
+[0m[91m   Compiling unicode-normalization v0.1.22
+[0m[91m   Compiling iana-time-zone v0.1.58
+[0m[91m   Compiling wasmtime-cache v8.0.1
+[0m[91m   Compiling byte-tools v0.3.1
+[0m[91m   Compiling environmental v1.1.4
+[0m[91m   Compiling ref-cast v1.0.20
+[0m[91m   Compiling block-padding v0.1.5
+[0m[91m   Compiling wasmtime v8.0.1
+[0m[91m   Compiling tracing-log v0.1.4
+[0m[91m   Compiling sharded-slab v0.1.7
+[0m[91m   Compiling thread_local v1.1.7
+[0m[91m   Compiling hash-db v0.16.0
+[0m[91m   Compiling rustversion v1.0.14
+[0m[91m   Compiling ansi_term v0.12.1
+[0m[91m   Compiling opaque-debug v0.2.3
+[0m[91m   Compiling fake-simd v0.1.2
+[0m[91m   Compiling hash256-std-hasher v0.15.2
+[0m[91m   Compiling arrayvec v0.5.2
+[0m[91m   Compiling generic-array v0.12.4
+[0m[91m   Compiling num-format v0.4.4
+[0m[91m   Compiling dyn-clone v1.0.16
+[0m[91m   Compiling array-bytes v6.2.0
+[0m[91m   Compiling nohash-hasher v0.2.0
+[0m[91m   Compiling adler v1.0.2
+[0m[91m   Compiling gimli v0.28.1
+[0m[91m   Compiling object v0.32.1
+[0m[91m   Compiling trie-root v0.18.0
+[0m[91m   Compiling memory-db v0.32.0
+[0m[91m   Compiling signature v1.6.4
+[0m[91m   Compiling miniz_oxide v0.7.1
+[0m[91m   Compiling async-trait v0.1.74
+[0m[91m   Compiling ed25519 v1.5.3
+[0m[91m   Compiling digest v0.8.1
+[0m[91m   Compiling idna v0.5.0
+[0m[91m   Compiling crossbeam-deque v0.8.3
+[0m[91m   Compiling block-buffer v0.7.3
+[0m[91m   Compiling fs-err v2.11.0
+[0m[91m   Compiling parity-wasm v0.45.0
+[0m[91m   Compiling sha2 v0.8.2
+[0m[91m   Compiling getrandom v0.2.11
+[0m[91m   Compiling jobserver v0.1.27
+[0m[91m   Compiling num_cpus v1.16.0
+[0m[91m   Compiling errno v0.3.8
+[0m[91m   Compiling dirs-sys-next v0.1.2
+[0m[91m   Compiling wasmtime-jit-icache-coherence v8.0.1
+[0m[91m   Compiling rand_core v0.6.4
+[0m[91m   Compiling parking_lot v0.12.1
+[0m[91m   Compiling rand_core v0.5.1
+[0m[91m   Compiling directories-next v2.0.0
+[0m[91m   Compiling chrono v0.4.31
+[0m[91m   Compiling url v2.5.0
+[0m[91m   Compiling cc v1.0.83
+[0m[91m   Compiling parking_lot v0.11.2
+[0m[91m   Compiling rand_chacha v0.3.1
+[0m[91m   Compiling integer-sqrt v0.1.5
+[0m[91m   Compiling regex-automata v0.4.3
+[0m[91m   Compiling hashbrown v0.12.3
+[0m[91m   Compiling rand_chacha v0.2.2
+[0m[91m   Compiling expander v2.0.0
+[0m[91m   Compiling hashbrown v0.13.2
+[0m[91m   Compiling proc-macro-error-attr v1.0.4
+[0m[91m   Compiling rand v0.8.5
+[0m[91m   Compiling rand v0.7.3
+[0m[91m   Compiling fnv v1.0.7
+[0m[91m   Compiling sp-io v23.0.0 
+(https://github.com/paritytech/substrate?branch=polkadot-v1.0.0#948fbd2f)
+[0m[91m   Compiling rayon v1.8.0
+[0m[91m   Compiling proc-macro-error v1.0.4
+[0m[91m   Compiling mio v0.8.9
+[0m[91m   Compiling socket2 v0.5.5
+[0m[91m   Compiling signal-hook-registry v1.4.1
+[0m[91m   Compiling heck v0.4.1
+[0m[91m   Compiling semver v1.0.20
+[0m[91m   Compiling futures-timer v3.0.2
+[0m[91m   Compiling tiny-keccak v2.0.2
+[0m[91m   Compiling data-encoding v2.5.0
+[0m[91m   Compiling trie-db v0.27.1
+[0m[91m   Compiling schnellru v0.2.1
+[0m[91m   Compiling platforms v3.2.0
+[0m[91m   Compiling regex-automata v0.1.10
+[0m[91m   Compiling http v0.2.11
+[0m[91m   Compiling socket2 v0.4.10
+[0m[91m   Compiling fixed-hash v0.8.0
+[0m[91m   Compiling core2 v0.4.0
+[0m[91m   Compiling blake2s_simd v1.0.2
+[0m[91m   Compiling base-x v0.2.11
+[0m[91m   Compiling httparse v1.8.0
+[0m[91m   Compiling quick-protobuf v0.8.1
+[0m[91m   Compiling zstd-safe v6.0.6
+[0m[91m   Compiling void v1.0.2
+[0m[91m   Compiling tower-service v0.3.2
+[0m[91m   Compiling try-lock v0.2.4
+[0m[91m   Compiling httpdate v1.0.3
+[0m[91m   Compiling untrusted v0.9.0
+[0m[91m   Compiling spin v0.9.8
+[0m[91m   Compiling want v0.3.1
+[0m[91m   Compiling ff v0.13.0
+[0m[91m   Compiling prometheus v0.13.3
+   Compiling base16ct v0.2.0
+[0m[91m   Compiling vcpkg v0.2.15
+[0m[91m   Compiling zstd-sys v2.0.9+zstd.1.5.5
+[0m[91m   Compiling wasmtime-runtime v8.0.1
+[0m[91m   Compiling psm v0.1.21
+[0m[91m   Compiling secp256k1-sys v0.6.1
+[0m[91m   Compiling backtrace v0.3.69
+[0m[91m   Compiling addr2line v0.21.0
+[0m[91m   Compiling blake3 v1.5.0
+[0m[91m   Compiling const-random-macro v0.1.16
+[0m[91m   Compiling ring v0.17.6
+[0m[91m   Compiling matchers v0.0.1
+[0m[91m   Compiling group v0.13.0
+[0m[91m   Compiling proc-macro-warning v0.4.2
+[0m[91m   Compiling kvdb v0.13.0
+[0m[91m   Compiling wasm-bindgen-shared v0.2.89
+[0m[91m   Compiling http-body v0.4.5
+[0m[91m   Compiling concurrent-queue v2.3.0
+[0m[91m   Compiling event-listener v2.5.3
+[0m[91m   Compiling cfg-expr v0.15.5
+[0m[91m   Compiling tt-call v1.0.9
+[0m[91m   Compiling sp-database v4.0.0-dev 
+(https://github.com/paritytech/substrate?branch=polkadot-v1.0.0#948fbd2f)
+[0m[91m   Compiling wasm-instrument v0.3.0
+[0m[91m   Compiling sc-executor-wasmtime v0.10.0-dev 
+(https://github.com/paritytech/substrate?branch=polkadot-v1.0.0#948fbd2f)
+[0m[91m   Compiling ring v0.16.20
+[0m[91m   Compiling async-channel v1.9.0
+[0m[91m   Compiling linked-hash-map v0.5.6
+[0m[91m   Compiling ipnet v2.9.0
+[0m[91m   Compiling const-random v0.1.17
+[0m[91m   Compiling wasm-bindgen v0.2.89
+[0m[91m   Compiling cranelift-codegen v0.95.1
+[0m[91m   Compiling matches v0.1.10
+[0m[91m   Compiling regex v1.10.2
+[0m[91m   Compiling nix v0.24.3
+[0m[91m   Compiling rustls v0.20.9
+[0m[91m   Compiling idna v0.2.3
+[0m[91m   Compiling match_cfg v0.1.0
+[0m[91m   Compiling untrusted v0.7.1
+[0m[91m   Compiling spin v0.5.2
+[0m[91m   Compiling quick-error v1.2.3
+[0m[91m   Compiling lru-cache v0.1.2
+[0m[91m   Compiling pin-project-lite v0.1.12
+   Compiling lru v0.10.1
+[0m[91m   Compiling hostname v0.3.1
+[0m[91m   Compiling quicksink v0.1.2
+[0m[91m   Compiling predicates-core v1.0.6
+[0m[91m   Compiling parity-send-wrapper v0.1.0
+[0m[91m   Compiling float-cmp v0.9.0
+[0m[91m   Compiling difflib v0.4.0
+[0m[91m   Compiling termtree v0.4.1
+[0m[91m   Compiling resolv-conf v0.7.0
+[0m[91m   Compiling normalize-line-endings v0.3.0
+[0m[91m   Compiling downcast v0.11.0
+[0m[91m   Compiling libz-sys v1.1.12
+[0m[91m   Compiling fragile v2.0.0
+[0m[91m   Compiling Inflector v0.11.4
+[0m[91m   Compiling wasm-bindgen-backend v0.2.89
+[0m[91m   Compiling predicates-tree v1.0.9
+[0m[91m   Compiling fastrand v2.0.1
+[0m[91m   Compiling linked_hash_set v0.1.4
+[0m[91m   Compiling partial_sort v0.2.0
+[0m[91m   Compiling ip_network v0.4.1
+[0m[91m   Compiling prettyplease v0.1.25
+[0m[91m   Compiling num-integer v0.1.45
+[0m[91m   Compiling home v0.5.5
+[0m[91m   Compiling scratch v1.0.7
+[0m[91m   Compiling fixedbitset v0.4.2
+[0m[91m   Compiling hash-db v0.15.2
+[0m[91m   Compiling glob v0.3.1
+[0m[91m   Compiling link-cplusplus v1.0.9
+[0m[91m   Compiling synstructure v0.12.6
+[0m[91m   Compiling petgraph v0.6.4
+[0m[91m   Compiling bstr v1.8.0
+[0m[91m   Compiling multimap v0.8.3
+[0m[91m   Compiling prettyplease v0.2.15
+[0m[91m   Compiling sp-panic-handler v8.0.0 
+(https://github.com/paritytech/substrate?branch=polkadot-v1.0.0#948fbd2f)
+[0m[91m   Compiling predicates v2.1.5
+[0m[91m   Compiling flate2 v1.0.28
+[0m[91m   Compiling tower-layer v0.3.2
+[0m[91m   Compiling unicode-width v0.1.11
+[0m[91m   Compiling clang-sys v1.6.1
+[0m[91m   Compiling minimal-lexical v0.2.1
+[0m[91m   Compiling cxxbridge-flags v1.0.110
+   Compiling memmap2 v0.5.10
+[0m[91m   Compiling is-terminal v0.4.9
+[0m[91m   Compiling env_logger v0.10.1
+[0m[91m   Compiling memfd v0.6.4
+[0m[91m   Compiling codespan-reporting v0.11.1
+[0m[91m   Compiling wasm-bindgen-macro-support v0.2.89
+[0m[91m   Compiling nom v7.1.3
+[0m[91m   Compiling globset v0.4.14
+   Compiling cxx v1.0.110
+[0m[91m   Compiling num-bigint v0.4.4
+[0m[91m   Compiling libloading v0.7.4
+[0m[91m   Compiling bindgen v0.65.1
+[0m[91m   Compiling tikv-jemalloc-sys v0.5.4+5.3.0-patched
+[0m[91m   Compiling num-complex v0.4.4
+[0m[91m   Compiling file-per-thread-logger v0.1.6
+[0m[91m   Compiling num-rational v0.4.1
+[0m[91m   Compiling cxx-build v1.0.110
+[0m[91m   Compiling shlex v1.2.0
+[0m[91m   Compiling lazycell v1.3.0
+[0m[91m   Compiling peeking_take_while v0.1.2
+[0m[91m   Compiling matrixmultiply v0.3.8
+[0m[91m   Compiling cfg_aliases v0.1.1
+[0m[91m   Compiling bytemuck v1.14.0
+[0m[91m   Compiling lz4-sys v1.9.4
+[0m[91m   Compiling rawpointer v0.2.1
+[0m[91m   Compiling approx v0.5.1
+[0m[91m   Compiling camino v1.1.6
+[0m[91m   Compiling snap v1.1.0
+[0m[91m   Compiling safe_arch v0.7.1
+[0m[91m   Compiling strsim v0.10.0
+[0m[91m   Compiling ident_case v1.0.1
+[0m[91m   Compiling static_init_macro v1.0.2
+[0m[91m   Compiling utf8parse v0.2.1
+[0m[91m   Compiling ucd-trie v0.1.6
+[0m[91m   Compiling semver-parser v0.7.0
+[0m[91m   Compiling static_init v1.0.3
+[0m[91m   Compiling fs2 v0.4.3
+[0m[91m   Compiling darling_core v0.20.3
+[0m[91m   Compiling anstyle-parse v0.2.2
+[0m[91m   Compiling atty v0.2.14
+[0m[91m   Compiling num-iter v0.1.43
+[0m[91m   Compiling http-range-header v0.3.1
+[0m[91m   Compiling semver v0.6.0
+[0m[91m   Compiling rustls v0.21.9
+[0m[91m   Compiling anstyle-query v1.0.0
+[0m[91m   Compiling wide v0.7.13
+[0m[91m   Compiling sc-sysinfo v6.0.0-dev 
+(https://github.com/paritytech/substrate?branch=polkadot-v1.0.0#948fbd2f)
+[0m[91m   Compiling colorchoice v1.0.0
+[0m[91m   Compiling anstyle v1.0.4
+[0m[91m   Compiling same-file v1.0.6
+[0m[91m   Compiling typenum v1.16.0 
+(https://github.com/encointer/typenum?tag=v1.16.0#4c8dddaa)
+[0m[91m   Compiling siphasher v0.3.11
+[0m[91m   Compiling kvdb-memorydb v0.13.0
+[0m[91m   Compiling rand_pcg v0.3.1
+[0m[91m   Compiling filetime v0.2.22
+[0m[91m   Compiling dirs-sys v0.3.7
+[0m[91m   Compiling walkdir v2.4.0
+[0m[91m   Compiling build-helper v0.1.1
+[0m[91m   Compiling anstream v0.6.4
+[0m[91m   Compiling substrate-fixed v0.5.9 
+(https://github.com/encointer/substrate-fixed.git?tag=v0.5.9#a4fb461a)
+[0m[91m   Compiling clap_lex v0.6.0
+[0m[91m   Compiling names v0.13.0
+[0m[91m   Compiling directories v4.0.1
+[0m[91m   Compiling rtoolbox v0.0.2
+[0m[91m   Compiling rustls-pemfile v1.0.4
+[0m[91m   Compiling openssl-probe v0.1.5
+[0m[91m   Compiling hex-literal v0.4.1
+[0m[91m   Compiling tempfile v3.8.1
+[0m[91m   Compiling sc-consensus-slots v0.10.0-dev 
+(https://github.com/paritytech/substrate?branch=polkadot-v1.0.0#948fbd2f)
+[0m[91m   Compiling clap_builder v4.4.9
+[0m[91m   Compiling rustls-native-certs v0.6.3
+[0m[91m   Compiling rpassword v7.3.1
+[0m[91m   Compiling fdlimit v0.2.1
+[0m[91m   Compiling cexpr v0.6.0
+[0m[91m   Compiling frame-benchmarking-cli v4.0.0-dev 
+(https://github.com/paritytech/substrate?branch=polkadot-v1.0.0#948fbd2f)
+[0m[91m   Compiling substrate-build-script-utils v3.0.0 
+(https://github.com/paritytech/substrate?branch=polkadot-v1.0.0#948fbd2f)
+[0m[91m   Compiling safe-mix v1.0.1
+[0m[91m   Compiling strum v0.25.0
+[0m[91m   Compiling serde_derive v1.0.193
+[0m[91m   Compiling zeroize_derive v1.4.2
+[0m[91m   Compiling thiserror-impl v1.0.50
+[0m[91m   Compiling futures-macro v0.3.29
+[0m[91m   Compiling tracing-attributes v0.1.27
+[0m[91m   Compiling ref-cast-impl v1.0.20
+[0m[91m   Compiling sp-debug-derive v8.0.0 
+(https://github.com/paritytech/substrate?branch=polkadot-v1.0.0#948fbd2f)
+[0m[91m   Compiling tokio-macros v2.2.0
+[0m[91m   Compiling curve25519-dalek-derive v0.1.1
+[0m[91m   Compiling pin-project-internal v1.1.3
+[0m[91m   Compiling macro_magic_core_macros v0.4.3
+[0m[91m   Compiling frame-support-procedural-tools-derive v3.0.0 
+(https://github.com/paritytech/substrate?branch=polkadot-v1.0.0#948fbd2f)
+[0m[91m   Compiling wasm-bindgen-macro v0.2.89
+[0m[91m   Compiling cxxbridge-macro v1.0.110
+[0m[91m   Compiling clap_derive v4.4.7
+[0m[91m   Compiling ndarray v0.15.6
+[0m[91m   Compiling simba v0.8.1
+[0m[91m   Compiling impl-trait-for-tuples v0.2.2
+[0m[91m   Compiling derive_more v0.99.17
+[0m[91m   Compiling rlp-derive v0.1.0
+[0m[91m   Compiling dyn-clonable-impl v0.9.0
+[0m[91m   Compiling data-encoding-macro-internal v0.1.12
+[0m[91m   Compiling derive-syn-parse v0.1.5
+[0m[91m   Compiling libp2p-swarm-derive v0.32.0
+[0m[91m   Compiling enum-as-inner v0.5.1
+[0m[91m   Compiling mockall_derive v0.11.4
+[0m[91m   Compiling zeroize v1.7.0
+[0m[91m   Compiling merlin v2.0.1
+[0m[91m   Compiling curve25519-dalek v2.1.3
+[0m[91m   Compiling secrecy v0.8.0
+[0m[91m   Compiling tokio v1.34.0
+[0m[91m   Compiling der v0.7.8
+[0m[91m   Compiling prost-derive v0.11.9
+   Compiling which v4.4.2
+[0m[91m   Compiling dyn-clonable v0.9.0
+[0m[91m   Compiling auto_impl v1.1.0
+[0m[91m   Compiling strum_macros v0.24.3
+[0m[91m   Compiling data-encoding-macro v0.1.14
+[0m[91m   Compiling crypto-common v0.1.6
+[0m[91m   Compiling block-buffer v0.10.4
+[0m[91m   Compiling digest v0.9.0
+[0m[91m   Compiling block-buffer v0.9.0
+[0m[91m   Compiling rlp v0.5.2
+[0m[91m   Compiling crypto-mac v0.8.0
+[0m[91m   Compiling crypto-mac v0.11.1
+[0m[91m   Compiling digest v0.10.7
+[0m[91m   Compiling curve25519-dalek v3.2.0
+[0m[91m   Compiling libsecp256k1-core v0.3.0
+[0m[91m   Compiling sha2 v0.9.9
+[0m[91m   Compiling hmac v0.8.1
+[0m[91m   Compiling hmac v0.11.0
+[0m[91m   Compiling pbkdf2 v0.8.0
+[0m[91m   Compiling schnorrkel v0.9.1
+[0m[91m   Compiling impl-rlp v0.3.0
+[0m[91m   Compiling hmac-drbg v0.3.0
+[0m[91m   Compiling sha2 v0.10.8
+[0m[91m   Compiling sha3 v0.10.8
+[0m[91m   Compiling blake2 v0.10.6
+[0m[91m   Compiling hmac v0.12.1
+[0m[91m   Compiling pbkdf2 v0.11.0
+[0m[91m   Compiling twox-hash v1.6.3
+[0m[91m   Compiling signature v2.2.0
+[0m[91m   Compiling multibase v0.9.1
+[0m[91m   Compiling ed25519 v2.2.3
+[0m[91m   Compiling pin-project v1.1.3
+[0m[91m   Compiling tracing v0.1.40
+[0m[91m   Compiling macro_magic_core v0.4.2
+[0m[91m   Compiling crypto-bigint v0.5.5
+[0m[91m   Compiling rfc6979 v0.4.0
+[0m[91m   Compiling tiny-bip39 v1.0.0
+[0m[91m   Compiling ed25519-zebra v3.1.0
+[0m[91m   Compiling sp-core-hashing v9.0.0 
+(https://github.com/paritytech/substrate?branch=polkadot-v1.0.0#948fbd2f)
+[0m[91m   Compiling substrate-bip39 v0.4.5
+[0m[91m   Compiling ed25519-dalek v1.0.1
+[0m[91m   Compiling libsecp256k1-gen-genmult v0.3.0
+[0m[91m   Compiling libsecp256k1-gen-ecmult v0.3.0
+[0m[91m   Compiling macro_magic_macros v0.4.2
+[0m[91m   Compiling sec1 v0.7.3
+[0m[91m   Compiling spki v0.7.3
+[0m[91m   Compiling inout v0.1.3
+[0m[91m   Compiling netlink-packet-utils v0.5.2
+[0m[91m   Compiling sha-1 v0.9.8
+[0m[91m   Compiling libsecp256k1 v0.7.1
+[0m[91m   Compiling universal-hash v0.5.1
+[0m[91m   Compiling cipher v0.4.4
+[0m[91m   Compiling netlink-packet-core v0.4.2
+[0m[91m   Compiling polyval v0.6.1
+[0m[91m   Compiling aead v0.5.2
+[0m[91m   Compiling poly1305 v0.8.0
+[0m[91m   Compiling js-sys v0.3.66
+[0m[91m   Compiling netlink-packet-route v0.12.0
+[0m[91m   Compiling ghash v0.5.0
+[0m[91m   Compiling chacha20 v0.9.1
+[0m[91m   Compiling ctr v0.9.2
+[0m[91m   Compiling aes v0.8.3
+[0m[91m   Compiling x25519-dalek v1.1.1
+[0m[91m   Compiling triehash v0.8.4
+[0m[91m   Compiling tower v0.4.13
+[0m[91m   Compiling sp-core-hashing-proc-macro v9.0.0 
+(https://github.com/paritytech/substrate?branch=polkadot-v1.0.0#948fbd2f)
+[0m[91m   Compiling wasm-opt-sys v0.112.0
+[0m[91m   Compiling wasm-opt-cxx-sys v0.112.0
+[0m[91m   Compiling nalgebra-macros v0.2.1
+[0m[91m   Compiling pest v2.7.5
+[0m[91m   Compiling darling_macro v0.20.3
+[0m[91m   Compiling chacha20poly1305 v0.10.1
+[0m[91m   Compiling tracing-futures v0.2.5
+[0m[91m   Compiling clap v4.4.10
+[0m[91m   Compiling ripemd v0.1.3
+[0m[91m   Compiling[0m[91m num v0.4.1
+[0m[91m   Compiling aes-gcm v0.10.3
+[0m[91m   Compiling strum_macros v0.25.3
+[0m[91m   Compiling elliptic-curve v0.13.8
+[0m[91m   Compiling macro_magic v0.4.2
+[0m[91m   Compiling prost v0.11.9
+[0m[91m   Compiling strum v0.24.1
+[0m[91m   Compiling node-subspace v4.0.0-dev (/subspace/node)
+[0m[91m   Compiling[0m[91m threadpool v1.8.1
+[0m[91m   Compiling gethostname v0.2.3
+[0m[91m   Compiling futures-executor v0.3.29
+[0m[91m   Compiling asynchronous-codec v0.6.2
+[0m[91m   Compiling ecdsa v0.16.9
+[0m[91m   Compiling tower-http v0.4.4
+[0m[91m   Compiling prost-types v0.11.9
+[0m[91m   Compiling thousands v0.2.0
+[0m[91mwarning: node-subspace@4.0.0-dev: Git command failed with status: exit 
+status: 128
+   Compiling futures v0.3.29
+[0m[91m   Compiling unsigned-varint v0.7.2
+[0m[91m   Compiling rw-stream-sink v0.3.0
+[0m[91m   Compiling soketto v0.7.1
+[0m[91m   Compiling yamux v0.10.2
+[0m[91m   Compiling wasm-timer v0.2.5
+[0m[91m   Compiling darling v0.20.3
+[0m[91m   Compiling exit-future v0.2.0
+[0m[91m   Compiling multistream-select v0.12.1
+[0m[91m   Compiling quick-protobuf-codec v0.1.0
+[0m[91m   Compiling serde_with_macros v2.3.3
+[0m[91m   Compiling k256 v0.13.2
+[0m[91m   Compiling pest_meta v2.7.5
+[0m[91m   Compiling mockall v0.11.4
+[0m[91m   Compiling tokio-util v0.7.10
+[0m[91m   Compiling netlink-sys v0.8.5
+[0m[91m   Compiling trust-dns-proto v0.22.0
+[0m[91m   Compiling prost-build v0.11.9
+[0m[91m   Compiling netlink-proto v0.10.0
+[0m[91m   Compiling pest_generator v2.7.5
+[0m[91m   Compiling rtnetlink v0.10.1
+[0m[91m   Compiling h2 v0.3.22
+[0m[91m   Compiling tokio-stream v0.1.14
+[0m[91m   Compiling nalgebra v0.32.3
+[0m[91m   Compiling wasm-bindgen-futures v0.4.39
+[0m[91m   Compiling comfy-table v7.1.0
+[0m[91m   Compiling pest_derive v2.7.5
+[0m[91m   Compiling sc-network-light v0.10.0-dev 
+(https://github.com/paritytech/substrate?branch=polkadot-v1.0.0#948fbd2f)
+[0m[91m   Compiling sc-network-bitswap v0.10.0-dev 
+(https://github.com/paritytech/substrate?branch=polkadot-v1.0.0#948fbd2f)
+[0m[91m   Compiling librocksdb-sys v0.11.0+8.1.1
+[0m[91m   Compiling sc-network-sync v0.10.0-dev 
+(https://github.com/paritytech/substrate?branch=polkadot-v1.0.0#948fbd2f)
+[0m[91m   Compiling toml v0.5.11
+[0m[91m   Compiling toml_datetime v0.6.5
+[0m[91m   Compiling cranelift-entity v0.95.1
+[0m[91m   Compiling toml_edit v0.20.7
+[0m[91m   Compiling impl-serde v0.4.0
+[0m[91m   Compiling gimli v0.27.3
+[0m[91m   Compiling wasmparser v0.102.0
+[0m[91m   Compiling object v0.30.4
+[0m[91m   Compiling cranelift-bforest v0.95.1
+[0m[91m   Compiling bincode v1.3.3
+[0m[91m   Compiling tracing-serde v0.1.3
+[0m[91m   Compiling proc-macro-crate v1.1.3
+[0m[91m   Compiling trust-dns-resolver v0.22.0
+[0m[91m   Compiling frame-support-procedural-tools v4.0.0-dev 
+(https://github.com/paritytech/substrate?branch=polkadot-v1.0.0#948fbd2f)
+[0m[91m   Compiling[0m[91m rustc_version v0.4.0
+[0m[91m   Compiling beef v0.5.2
+[0m[91m   Compiling serde_spanned v0.6.4
+[0m[91m   Compiling toml_edit v0.19.15
+[0m[91m   Compiling cargo-platform v0.1.5
+[0m[91m   Compiling tracing-subscriber v0.2.25
+[0m[91m   Compiling curve25519-dalek v4.1.1
+[0m[91m   Compiling scale-info-derive v2.10.0
+[0m[91m   Compiling proc-macro-crate v2.0.0
+[0m[91m   Compiling sp-runtime-interface-proc-macro v11.0.0 
+(https://github.com/paritytech/substrate?branch=polkadot-v1.0.0#948fbd2f)
+[0m[91m   Compiling ss58-registry v1.44.0
+[0m[91m   Compiling sp-api-proc-macro v4.0.0-dev 
+(https://github.com/paritytech/substrate?branch=polkadot-v1.0.0#948fbd2f)
+[0m[91m   Compiling multihash-derive v0.8.1
+[0m[91m   Compiling frame-support-procedural v4.0.0-dev 
+(https://github.com/paritytech/substrate?branch=polkadot-v1.0.0#948fbd2f)
+[0m[91m   Compiling secp256k1 v0.24.3
+[0m[91m   Compiling snow v0.9.4
+[0m[91m   Compiling hyper v0.14.27
+[0m[91m   Compiling if-watch v3.2.0
+[0m[91m   Compiling jsonrpsee-types v0.16.3
+[0m[91m   Compiling jsonrpsee-proc-macros v0.16.3
+[0m[91m   Compiling sc-chain-spec-derive v4.0.0-dev 
+(https://github.com/paritytech/substrate?branch=polkadot-v1.0.0#948fbd2f)
+[0m[91m   Compiling sc-tracing-proc-macro v4.0.0-dev 
+(https://github.com/paritytech/substrate?branch=polkadot-v1.0.0#948fbd2f)
+[0m[91m   Compiling cargo_metadata v0.15.4
+[0m[91m   Compiling num_enum_derive v0.6.1
+[0m[91m   Compiling parity-scale-codec-derive v3.6.9
+[0m[91m   Compiling multihash v0.17.0
+[0m[91m   Compiling ed25519-dalek v2.1.0
+[0m[91m   Compiling serde_with v2.0.0
+[0m[91m   Compiling multiaddr v0.17.1
+[0m[91m   Compiling lz4 v1.24.0
+[0m[91m   Compiling wasmtime-types v8.0.1
+[0m[91m   Compiling addr2line v0.19.0
+[0m[91m   Compiling parity-db v0.4.12
+[0m[91m   Compiling toml v0.7.8
+[0m[91m   Compiling cid v0.9.0
+[0m[91m   Compiling serde_bytes v0.11.12
+[0m[91m   Compiling wasmtime-jit-debug v8.0.1
+[0m[91m   Compiling libp2p-identity v0.1.3
+[0m[91m   Compiling serde-tuple-vec-map v1.0.1
+[0m[91m   Compiling wasmtime-environ v8.0.1
+[0m[91m   Compiling handlebars v4.5.0
+[0m[91m   Compiling libp2p-core v0.39.2
+[0m[91m   Compiling num_enum v0.6.1
+[0m[91m   Compiling libp2p-swarm v0.42.2
+[0m[91m   Compiling parity-scale-codec v3.6.9
+[0m[91m   Compiling libp2p-dns v0.39.0
+[0m[91m   Compiling libp2p-yamux v0.43.1
+[0m[91m   Compiling libp2p-wasm-ext v0.39.0
+[0m[91m   Compiling libp2p-tcp v0.39.0
+[0m[91m   Compiling scale-info v2.10.0
+[0m[91m   Compiling impl-codec v0.6.0
+[0m[91m   Compiling wasmtime-jit v8.0.1
+[0m[91m   Compiling sp-storage v13.0.0 
+(https://github.com/paritytech/substrate?branch=polkadot-v1.0.0#948fbd2f)
+[0m[91m   Compiling sp-tracing v10.0.0 
+(https://github.com/paritytech/substrate?branch=polkadot-v1.0.0#948fbd2f)
+[0m[91m   Compiling sp-version-proc-macro v8.0.0 
+(https://github.com/paritytech/substrate?branch=polkadot-v1.0.0#948fbd2f)
+[0m[91m   Compiling libp2p-identify v0.42.2
+[0m[91m   Compiling libp2p-connection-limits v0.1.0
+[0m[91m   Compiling substrate-prometheus-endpoint v0.10.0-dev 
+(https://github.com/paritytech/substrate?branch=polkadot-v1.0.0#948fbd2f)
+[0m[91m   Compiling libp2p-mdns v0.43.1
+[0m[91m   Compiling libp2p-ping v0.42.0
+[0m[91m   Compiling libp2p-request-response v0.24.1
+[0m[91m   Compiling libp2p-allow-block-list v0.1.1
+[0m[91m   Compiling libp2p-kad v0.43.3
+[0m[91m   Compiling jsonrpsee-core v0.16.3
+[0m[91m   Compiling fork-tree v3.0.0 
+(https://github.com/paritytech/substrate?branch=polkadot-v1.0.0#948fbd2f)
+[0m[91m   Compiling fp-storage v2.0.0 
+(https://github.com/paritytech/frontier?branch=polkadot-v1.0.0#301d7c0f)
+[0m[91m   Compiling sc-proposer-metrics v0.10.0-dev 
+(https://github.com/paritytech/substrate?branch=polkadot-v1.0.0#948fbd2f)
+[0m[91m   Compiling zstd v0.12.4
+[0m[91m   Compiling primitive-types v0.12.2
+[0m[91m   Compiling bounded-collections v0.1.9
+[0m[91m   Compiling sp-arithmetic v16.0.0 
+(https://github.com/paritytech/substrate?branch=polkadot-v1.0.0#948fbd2f)
+[0m[91m   Compiling frame-metadata v16.0.0
+[0m[91m   Compiling sct v0.7.1
+[0m[91m   Compiling[0m[91m webpki v0.22.4
+[0m[91m   Compiling[0m[91m finality-grandpa v0.16.2
+[0m[91m   Compiling[0m[91m ethbloom v0.13.0
+[0m[91m   Compiling[0m[91m jsonrpsee-server v0.16.3
+[0m[91m   Compiling[0m[91m rustls-webpki v0.101.7
+[0m[91m   Compiling sp-maybe-compressed-blob v4.1.0-dev 
+(https://github.com/paritytech/substrate?branch=polkadot-v1.0.0#948fbd2f)
+[0m[91m   Compiling linregress v0.5.3
+[0m[91m   Compiling sp-externalities v0.19.0 
+(https://github.com/paritytech/substrate?branch=polkadot-v1.0.0#948fbd2f)
+[0m[91m   Compiling webpki-roots v0.22.6
+[0m[91m   Compiling libp2p-noise v0.42.2
+[0m[91m   Compiling[0m[91m evm-core v0.39.0 
+(https://github.com/rust-blockchain/evm?rev=b7b82c7e1fc57b7449d6dfa6826600de37cc
+1e65#b7b82c7e)
+[0m[91m   Compiling ethereum-types v0.14.1
+[0m[91m   Compiling[0m[91m jsonrpsee v0.16.3
+[0m[91m   Compiling sc-rpc-server v4.0.0-dev 
+(https://github.com/paritytech/substrate?branch=polkadot-v1.0.0#948fbd2f)
+[0m[91m   Compiling evm-runtime v0.39.0 
+(https://github.com/rust-blockchain/evm?rev=b7b82c7e1fc57b7449d6dfa6826600de37cc
+1e65#b7b82c7e)
+[0m[91m   Compiling ethereum v0.14.0
+[0m[91m   Compiling sp-metadata-ir v0.1.0 
+(https://github.com/paritytech/substrate?branch=polkadot-v1.0.0#948fbd2f)
+[0m[91m   Compiling evm-gasometer v0.39.0 
+(https://github.com/rust-blockchain/evm?rev=b7b82c7e1fc57b7449d6dfa6826600de37cc
+1e65#b7b82c7e)
+[0m[91m   Compiling futures-rustls v0.22.2
+[0m[91m   Compiling cranelift-native v0.95.1
+[0m[91m   Compiling cranelift-frontend v0.95.1
+[0m[91m   Compiling wasmtime-cranelift-shared v8.0.1
+[0m[91m   Compiling libp2p-websocket v0.41.0
+[0m[91m   Compiling zstd v0.11.2+zstd.1.5.2
+[0m[91m   Compiling cranelift-wasm v0.95.1
+[0m[91m   Compiling libp2p v0.51.3
+[0m[91m   Compiling evm v0.39.1 
+(https://github.com/rust-blockchain/evm?rev=b7b82c7e1fc57b7449d6dfa6826600de37cc
+1e65#b7b82c7e)
+[0m[91m   Compiling tokio-rustls v0.24.1
+[0m[91m   Compiling wasmtime-cranelift v8.0.1
+[0m[91m   Compiling hyper-rustls v0.24.2
+[0m[91m   Compiling sc-utils v4.0.0-dev 
+(https://github.com/paritytech/substrate?branch=polkadot-v1.0.0#948fbd2f)
+[0m[91m   Compiling sc-telemetry v4.0.0-dev 
+(https://github.com/paritytech/substrate?branch=polkadot-v1.0.0#948fbd2f)
+[0m[91m   Compiling sp-wasm-interface v14.0.0 
+(https://github.com/paritytech/substrate?branch=polkadot-v1.0.0#948fbd2f)
+[0m[91m   Compiling sp-runtime-interface v17.0.0 
+(https://github.com/paritytech/substrate?branch=polkadot-v1.0.0#948fbd2f)
+[0m[91m   Compiling sp-core v21.0.0 
+(https://github.com/paritytech/substrate?branch=polkadot-v1.0.0#948fbd2f)
+[0m[91m   Compiling sp-trie v22.0.0 
+(https://github.com/paritytech/substrate?branch=polkadot-v1.0.0#948fbd2f)
+[0m[91m   Compiling sp-keystore v0.27.0 
+(https://github.com/paritytech/substrate?branch=polkadot-v1.0.0#948fbd2f)
+[0m[91m   Compiling sp-weights v20.0.0 
+(https://github.com/paritytech/substrate?branch=polkadot-v1.0.0#948fbd2f)
+[0m[91m   Compiling sc-allocator v4.1.0-dev 
+(https://github.com/paritytech/substrate?branch=polkadot-v1.0.0#948fbd2f)
+[0m[91m   Compiling sp-rpc v6.0.0 
+(https://github.com/paritytech/substrate?branch=polkadot-v1.0.0#948fbd2f)
+   Compiling sc-state-db v0.10.0-dev 
+(https://github.com/paritytech/substrate?branch=polkadot-v1.0.0#948fbd2f)
+[0m[91m   Compiling sc-executor-common v0.10.0-dev 
+(https://github.com/paritytech/substrate?branch=polkadot-v1.0.0#948fbd2f)
+[0m[91m   Compiling sp-state-machine v0.28.0 
+(https://github.com/paritytech/substrate?branch=polkadot-v1.0.0#948fbd2f)
+[0m[91m   Compiling sp-application-crypto v23.0.0 
+(https://github.com/paritytech/substrate?branch=polkadot-v1.0.0#948fbd2f)
+[0m[91m   Compiling wasm-opt v0.112.0
+[0m[91m   Compiling substrate-wasm-builder v5.0.0-dev 
+(https://github.com/paritytech/substrate?branch=polkadot-v1.0.0#948fbd2f)
+[0m[91m   Compiling sp-runtime v24.0.0 
+(https://github.com/paritytech/substrate?branch=polkadot-v1.0.0#948fbd2f)
+[0m[91m   Compiling sc-keystore v4.0.0-dev 
+(https://github.com/paritytech/substrate?branch=polkadot-v1.0.0#948fbd2f)
+[0m[91m   Compiling node-subspace-runtime v4.0.0-dev (/subspace/runtime)
+[0m[91m   Compiling sp-version v22.0.0 
+(https://github.com/paritytech/substrate?branch=polkadot-v1.0.0#948fbd2f)
+   Compiling sp-inherents v4.0.0-dev 
+(https://github.com/paritytech/substrate?branch=polkadot-v1.0.0#948fbd2f)
+[0m[91m   Compiling sp-staking v4.0.0-dev 
+(https://github.com/paritytech/substrate?branch=polkadot-v1.0.0#948fbd2f)
+   Compiling fp-account v1.0.0-dev 
+(https://github.com/paritytech/frontier?branch=polkadot-v1.0.0#301d7c0f)
+[0m[91m   Compiling fp-consensus v2.0.0-dev 
+(https://github.com/paritytech/frontier?branch=polkadot-v1.0.0#301d7c0f)
+[0m[91m   Compiling sp-keyring v24.0.0 
+(https://github.com/paritytech/substrate?branch=polkadot-v1.0.0#948fbd2f)
+[0m[91m   Compiling sp-api v4.0.0-dev 
+(https://github.com/paritytech/substrate?branch=polkadot-v1.0.0#948fbd2f)
+[0m[91m   Compiling sc-executor v0.10.0-dev 
+(https://github.com/paritytech/substrate?branch=polkadot-v1.0.0#948fbd2f)
+[0m[91m   Compiling sp-statement-store v4.0.0-dev 
+(https://github.com/paritytech/substrate?branch=polkadot-v1.0.0#948fbd2f)
+[0m[91m   Compiling sp-consensus-grandpa v4.0.0-dev 
+(https://github.com/paritytech/substrate?branch=polkadot-v1.0.0#948fbd2f)
+[0m[91m   Compiling sp-session v4.0.0-dev 
+(https://github.com/paritytech/substrate?branch=polkadot-v1.0.0#948fbd2f)
+[0m[91m   Compiling sp-offchain v4.0.0-dev 
+(https://github.com/paritytech/substrate?branch=polkadot-v1.0.0#948fbd2f)
+[0m[91m   Compiling sp-transaction-pool v4.0.0-dev 
+(https://github.com/paritytech/substrate?branch=polkadot-v1.0.0#948fbd2f)
+[0m[91m   Compiling frame-system-rpc-runtime-api v4.0.0-dev 
+(https://github.com/paritytech/substrate?branch=polkadot-v1.0.0#948fbd2f)
+[0m[91m   Compiling rocksdb v0.21.0
+[0m[91m   Compiling kvdb-rocksdb v0.19.0
+[0m[91m   Compiling frame-support v4.0.0-dev 
+(https://github.com/paritytech/substrate?branch=polkadot-v1.0.0#948fbd2f)
+[0m[91m   Compiling sp-consensus v0.10.0-dev 
+(https://github.com/paritytech/substrate?branch=polkadot-v1.0.0#948fbd2f)
+[0m[91m   Compiling sp-block-builder v4.0.0-dev 
+(https://github.com/paritytech/substrate?branch=polkadot-v1.0.0#948fbd2f)
+[0m[91m   Compiling sp-timestamp v4.0.0-dev 
+(https://github.com/paritytech/substrate?branch=polkadot-v1.0.0#948fbd2f)
+[0m[91m   Compiling sp-transaction-storage-proof v4.0.0-dev 
+(https://github.com/paritytech/substrate?branch=polkadot-v1.0.0#948fbd2f)
+[0m[91m   Compiling sp-blockchain v4.0.0-dev 
+(https://github.com/paritytech/substrate?branch=polkadot-v1.0.0#948fbd2f)
+[0m[91m   Compiling sc-transaction-pool-api v4.0.0-dev 
+(https://github.com/paritytech/substrate?branch=polkadot-v1.0.0#948fbd2f)
+[0m[91m   Compiling sp-consensus-slots v0.10.0-dev 
+(https://github.com/paritytech/substrate?branch=polkadot-v1.0.0#948fbd2f)
+[0m[91m   Compiling sc-client-api v4.0.0-dev 
+(https://github.com/paritytech/substrate?branch=polkadot-v1.0.0#948fbd2f)
+[0m[91m   Compiling sp-consensus-aura v0.10.0-dev 
+(https://github.com/paritytech/substrate?branch=polkadot-v1.0.0#948fbd2f)
+[0m[91m   Compiling sc-consensus v0.10.0-dev 
+(https://github.com/paritytech/substrate?branch=polkadot-v1.0.0#948fbd2f)
+   Compiling sc-block-builder v0.10.0-dev 
+(https://github.com/paritytech/substrate?branch=polkadot-v1.0.0#948fbd2f)
+[0m[91m   Compiling sc-tracing v4.0.0-dev 
+(https://github.com/paritytech/substrate?branch=polkadot-v1.0.0#948fbd2f)
+[0m[91m   Compiling sc-client-db v0.10.0-dev 
+(https://github.com/paritytech/substrate?branch=polkadot-v1.0.0#948fbd2f)
+   Compiling sc-transaction-pool v4.0.0-dev 
+(https://github.com/paritytech/substrate?branch=polkadot-v1.0.0#948fbd2f)
+[0m[91m   Compiling sc-basic-authorship v0.10.0-dev 
+(https://github.com/paritytech/substrate?branch=polkadot-v1.0.0#948fbd2f)
+[0m[91m   Compiling sc-network-common v0.10.0-dev 
+(https://github.com/paritytech/substrate?branch=polkadot-v1.0.0#948fbd2f)
+[0m[91m   Compiling sc-consensus-aura v0.10.0-dev 
+(https://github.com/paritytech/substrate?branch=polkadot-v1.0.0#948fbd2f)
+[0m[91m   Compiling sc-network v0.10.0-dev 
+(https://github.com/paritytech/substrate?branch=polkadot-v1.0.0#948fbd2f)
+[0m[91m   Compiling sc-chain-spec v4.0.0-dev 
+(https://github.com/paritytech/substrate?branch=polkadot-v1.0.0#948fbd2f)
+[0m[91m   Compiling sc-informant v0.10.0-dev 
+(https://github.com/paritytech/substrate?branch=polkadot-v1.0.0#948fbd2f)
+[0m[91m   Compiling sc-network-transactions v0.10.0-dev 
+(https://github.com/paritytech/substrate?branch=polkadot-v1.0.0#948fbd2f)
+[0m[91m   Compiling sc-network-gossip v0.10.0-dev 
+(https://github.com/paritytech/substrate?branch=polkadot-v1.0.0#948fbd2f)
+[0m[91m   Compiling sc-offchain v4.0.0-dev 
+(https://github.com/paritytech/substrate?branch=polkadot-v1.0.0#948fbd2f)
+[0m[91m   Compiling sc-rpc-api v0.10.0-dev 
+(https://github.com/paritytech/substrate?branch=polkadot-v1.0.0#948fbd2f)
+[0m[91m   Compiling sc-rpc-spec-v2 v0.10.0-dev 
+(https://github.com/paritytech/substrate?branch=polkadot-v1.0.0#948fbd2f)
+[0m[91m   Compiling sc-consensus-grandpa v0.10.0-dev 
+(https://github.com/paritytech/substrate?branch=polkadot-v1.0.0#948fbd2f)
+[0m[91m   Compiling sc-rpc v4.0.0-dev 
+(https://github.com/paritytech/substrate?branch=polkadot-v1.0.0#948fbd2f)
+[0m[91m   Compiling substrate-frame-rpc-system v4.0.0-dev 
+(https://github.com/paritytech/substrate?branch=polkadot-v1.0.0#948fbd2f)
+[0m[91m   Compiling sc-service v0.10.0-dev 
+(https://github.com/paritytech/substrate?branch=polkadot-v1.0.0#948fbd2f)
+[0m[91m   Compiling frame-system v4.0.0-dev 
+(https://github.com/paritytech/substrate?branch=polkadot-v1.0.0#948fbd2f)
+   Compiling fp-evm v3.0.0-dev 
+(https://github.com/paritytech/frontier?branch=polkadot-v1.0.0#301d7c0f)
+[0m[91m   Compiling frame-try-runtime v0.10.0-dev 
+(https://github.com/paritytech/substrate?branch=polkadot-v1.0.0#948fbd2f)
+[0m[91m   Compiling fp-self-contained v1.0.0-dev 
+(https://github.com/paritytech/frontier?branch=polkadot-v1.0.0#301d7c0f)
+[0m[91m   Compiling sc-cli v0.10.0-dev 
+(https://github.com/paritytech/substrate?branch=polkadot-v1.0.0#948fbd2f)
+[0m[91m   Compiling fp-ethereum v1.0.0-dev 
+(https://github.com/paritytech/frontier?branch=polkadot-v1.0.0#301d7c0f)
+   Compiling fp-rpc v3.0.0-dev 
+(https://github.com/paritytech/frontier?branch=polkadot-v1.0.0#301d7c0f)
+[0m[91m   Compiling pallet-evm-precompile-sha3fips v2.0.0-dev 
+(https://github.com/paritytech/frontier?branch=polkadot-v1.0.0#301d7c0f)
+[0m[91m   Compiling pallet-evm-precompile-modexp v2.0.0-dev 
+(https://github.com/paritytech/frontier?branch=polkadot-v1.0.0#301d7c0f)
+[0m[91m   Compiling pallet-evm-precompile-simple v2.0.0-dev 
+(https://github.com/paritytech/frontier?branch=polkadot-v1.0.0#301d7c0f)
+[0m[91m   Compiling pallet-transaction-payment v4.0.0-dev 
+(https://github.com/paritytech/substrate?branch=polkadot-v1.0.0#948fbd2f)
+   Compiling pallet-timestamp v4.0.0-dev 
+(https://github.com/paritytech/substrate?branch=polkadot-v1.0.0#948fbd2f)
+   Compiling frame-benchmarking v4.0.0-dev 
+(https://github.com/paritytech/substrate?branch=polkadot-v1.0.0#948fbd2f)
+   Compiling pallet-balances v4.0.0-dev 
+(https://github.com/paritytech/substrate?branch=polkadot-v1.0.0#948fbd2f)
+[0m[91m   Compiling pallet-authorship v4.0.0-dev 
+(https://github.com/paritytech/substrate?branch=polkadot-v1.0.0#948fbd2f)
+   Compiling pallet-evm v6.0.0-dev 
+(https://github.com/paritytech/frontier?branch=polkadot-v1.0.0#301d7c0f)
+[0m[91m   Compiling pallet-insecure-randomness-collective-flip v4.0.0-dev 
+(https://github.com/paritytech/substrate?branch=polkadot-v1.0.0#948fbd2f)
+[0m[91m   Compiling pallet-sudo v4.0.0-dev 
+(https://github.com/paritytech/substrate?branch=polkadot-v1.0.0#948fbd2f)
+[0m[91m   Compiling pallet-evm-chain-id v1.0.0-dev 
+(https://github.com/paritytech/frontier?branch=polkadot-v1.0.0#301d7c0f)
+[0m[91m   Compiling pallet-base-fee v1.0.0 
+(https://github.com/paritytech/frontier?branch=polkadot-v1.0.0#301d7c0f)
+[0m[91m   Compiling pallet-utility v4.0.0-dev 
+(https://github.com/paritytech/substrate?branch=polkadot-v1.0.0#948fbd2f)
+[0m[91m   Compiling frame-executive v4.0.0-dev 
+(https://github.com/paritytech/substrate?branch=polkadot-v1.0.0#948fbd2f)
+[0m[91m   Compiling pallet-session v4.0.0-dev 
+(https://github.com/paritytech/substrate?branch=polkadot-v1.0.0#948fbd2f)
+[0m[91m   Compiling pallet-aura v4.0.0-dev 
+(https://github.com/paritytech/substrate?branch=polkadot-v1.0.0#948fbd2f)
+[0m[91m   Compiling pallet-ethereum v4.0.0-dev 
+(https://github.com/paritytech/frontier?branch=polkadot-v1.0.0#301d7c0f)
+[0m[91m   Compiling pallet-transaction-payment-rpc-runtime-api v4.0.0-dev 
+(https://github.com/paritytech/substrate?branch=polkadot-v1.0.0#948fbd2f)
+[0m[91m   Compiling pallet-transaction-payment-rpc v4.0.0-dev 
+(https://github.com/paritytech/substrate?branch=polkadot-v1.0.0#948fbd2f)
+[0m[91m   Compiling pallet-subspace v4.0.0-dev (/subspace/pallets/subspace)
+[0m[91merror[E0308]: mismatched types
+    --> pallets/subspace/src/lib.rs:1174:27
+     |
+1174 |             params.founder_share = founder_share;
+     |             --------------------   ^^^^^^^^^^^^^ expected `u16`, found 
+`Option<u16>`
+     |             |
+     |             expected due to the type of this binding
+     |
+     = note: expected type `u16`
+                found enum `std::option::Option<u16>`
+help: consider using `Option::expect` to unwrap the `std::option::Option<u16>` 
+value, panicking if the value is an `Option::None`
+     |
+1174 |             params.founder_share = founder_share.expect("REASON");
+[0m[91m     |                                                 +++++++++++++++++
+
+[0m[91mFor more information about this error, try `rustc --explain E0308`.
+[0m[91merror: could not compile `pallet-subspace` (lib) due to 1 previous error
+warning: build failed, waiting for other jobs to finish...
+[0m[91merror: failed to run custom build command for `node-subspace-runtime 
+v4.0.0-dev (/subspace/runtime)`
+note: To improve backtraces for build dependencies, set the 
+CARGO_PROFILE_RELEASE_BUILD_OVERRIDE_DEBUG=true environment variable to enable 
+debug information generation.
+
+Caused by:
+[0m[91m  process didn't exit successfully: 
+`/subspace/target/release/build/node-subspace-runtime-d5c393ad5fa52621/build-scr
+ipt-build` (exit status: 1)
+  --- stdout
+  Information that should be included in a bug report.
+  Executing build command: env -u CARGO_ENCODED_RUSTFLAGS -u CARGO_TARGET_DIR 
+RUSTFLAGS="-C target-cpu=mvp -C target-feature=-sign-ext -C 
+link-arg=--export-table -Clink-arg=--export=__heap_base -C 
+link-arg=--import-memory  " SKIP_WASM_BUILD="" 
+"/root/.rustup/toolchains/nightly-x86_64-unknown-linux-gnu/bin/cargo" "rustc" 
+"--target=wasm32-unknown-unknown" 
+"--manifest-path=/subspace/target/release/wbuild/node-subspace-runtime/Cargo.tom
+l" "--color=always" "--profile" "release"
+  Using rustc version: rustc 1.76.0-nightly (3f28fe133 2023-12-18)
+
+
+  --- stderr
+     Compiling proc-macro2 v1.0.70
+     Compiling unicode-ident v1.0.12
+     Compiling version_check v0.9.4
+     Compiling typenum v1.17.0
+     Compiling syn v1.0.109
+     Compiling serde v1.0.193
+     Compiling equivalent v1.0.1
+     Compiling hashbrown v0.14.3
+     Compiling toml_datetime v0.6.5
+     Compiling winnow v0.5.19
+     Compiling bytes v1.5.0
+     Compiling arrayvec v0.7.4
+     Compiling thiserror v1.0.50
+     Compiling autocfg v1.1.0
+     Compiling byte-slice-cast v1.2.2
+     Compiling subtle v2.4.1
+     Compiling cfg-if v1.0.0
+     Compiling const-oid v0.9.5
+     Compiling byteorder v1.5.0
+     Compiling crunchy v0.2.2
+     Compiling static_assertions v1.1.0
+     Compiling rustc-hex v2.1.0
+     Compiling memchr v2.6.4
+     Compiling regex-syntax v0.8.2
+     Compiling hex v0.4.3
+     Compiling lazy_static v1.4.0
+     Compiling sp-std v8.0.0 
+(https://github.com/paritytech/substrate?branch=polkadot-v1.0.0#948fbd2f)
+     Compiling keccak v0.1.4
+     Compiling pin-project-lite v0.2.13
+     Compiling ref-cast v1.0.20
+     Compiling serde_json v1.0.108
+     Compiling itoa v1.0.9
+     Compiling ryu v1.0.15
+     Compiling arrayref v0.3.7
+     Compiling byte-tools v0.3.1
+     Compiling rand_core v0.5.1
+  [0m[91m   Compiling tracing-core v0.1.32
+     Compiling log v0.4.20
+     Compiling hash-db v0.16.0
+     Compiling unicode-xid v0.2.4
+     Compiling fake-simd v0.1.2
+     Compiling num-traits v0.2.17
+     Compiling generic-array v0.14.7
+     Compiling constant_time_eq v0.3.0
+     Compiling environmental v1.1.4
+     Compiling opaque-debug v0.2.3
+     Compiling paste v1.0.14
+     Compiling arrayvec v0.5.2
+     Compiling array-bytes v6.2.0
+     Compiling bs58 v0.4.0
+     Compiling bitflags v1.3.2
+     Compiling rustversion v1.0.14
+     Compiling block-padding v0.1.5
+     Compiling smallvec v1.11.2
+     Compiling blake2b_simd v1.0.2
+     Compiling either v1.9.0
+  [0m[91m   Compiling fs-err v2.11.0
+     Compiling expander v2.0.0
+     Compiling cpufeatures v0.2.11
+     Compiling indexmap v2.1.0
+     Compiling fixed-hash v0.8.0
+     Compiling libc v0.2.150
+     Compiling rand_core v0.6.4
+     Compiling tiny-keccak v2.0.2
+     Compiling once_cell v1.18.0
+     Compiling[0m[91m base16ct v0.2.0
+     Compiling proc-macro-warning v0.4.2
+     Compiling tt-call v1.0.9
+     Compiling quote v1.0.33
+     Compiling tracing v0.1.40
+     Compiling proc-macro-error-attr v1.0.4
+     Compiling proc-macro-error v1.0.4
+     Compiling hash-db v0.15.2
+     Compiling num-integer v0.1.45
+  [0m[91m   Compiling ahash v0.8.6
+     Compiling futures-core v0.3.29
+     Compiling futures-task v0.3.29
+     Compiling zerocopy v0.7.26
+     Compiling futures-sink v0.3.29
+     Compiling strsim v0.10.0
+     Compiling itertools v0.10.5
+     Compiling ident_case v1.0.1
+  [0m[91m   Compiling ff v0.13.0
+     Compiling futures-util v0.3.29
+     Compiling futures-channel v0.3.29
+     Compiling fnv v1.0.7
+     Compiling cfg-expr v0.15.5
+     Compiling[0m[91m syn v2.0.39
+     Compiling uint v0.9.5
+     Compiling hash256-std-hasher v0.15.2
+     Compiling num-bigint v0.4.4
+     Compiling group v0.13.0
+     Compiling aho-corasick v1.1.2
+  [0m[91m   Compiling pin-utils v0.1.0
+     Compiling rand v0.8.5
+     Compiling trie-root v0.18.0
+     Compiling memory-db v0.32.0
+     Compiling matrixmultiply v0.3.8
+     Compiling num-iter v0.1.43
+     Compiling[0m[91m num-rational v0.4.1
+     Compiling typenum v1.16.0 
+(https://github.com/encointer/typenum?tag=v1.16.0#4c8dddaa)
+     Compiling futures-io v0.3.29
+     Compiling base64 v0.13.1
+     Compiling rawpointer v0.2.1
+     Compiling[0m[91m substrate-fixed v0.5.9 
+(https://github.com/encointer/substrate-fixed.git?tag=v0.5.9#a4fb461a)
+     Compiling hex-literal v0.4.1
+     Compiling node-subspace-runtime v4.0.0-dev (/subspace/runtime)
+     Compiling safe-mix v1.0.1
+     Compiling generic-array v0.12.4
+     Compiling hashbrown v0.13.2
+     Compiling digest v0.8.1
+     Compiling block-buffer v0.7.3
+     Compiling sp-io v23.0.0 
+(https://github.com/paritytech/substrate?branch=polkadot-v1.0.0#948fbd2f)
+     Compiling[0m[91m sha2 v0.8.2
+     Compiling toml_edit v0.20.7
+     Compiling getrandom v0.2.11
+     Compiling integer-sqrt v0.1.5
+     Compiling num-complex v0.4.4
+     Compiling trie-db v0.27.1
+     Compiling[0m[91m crypto-common v0.1.6
+     Compiling block-buffer v0.10.4
+     Compiling digest v0.9.0
+     Compiling const-random-macro v0.1.16
+     Compiling libsecp256k1-core v0.3.0
+  [0m[91m   Compiling digest v0.10.7
+     Compiling sha3 v0.10.8
+     Compiling twox-hash v1.6.3
+     Compiling sha2 v0.10.8
+  [0m[91m   Compiling blake2 v0.10.6
+     Compiling ndarray v0.15.6
+     Compiling const-random v0.1.17
+     Compiling sp-core-hashing v9.0.0 
+(https://github.com/paritytech/substrate?branch=polkadot-v1.0.0#948fbd2f)
+  [0m[91m   Compiling libsecp256k1-gen-genmult v0.3.0
+     Compiling libsecp256k1-gen-ecmult v0.3.0
+     Compiling regex-automata v0.4.3
+     Compiling libsecp256k1 v0.7.1
+     Compiling proc-macro-crate v2.0.0
+     Compiling futures v0.3.29
+     Compiling num v0.4.1
+     Compiling darling_core v0.20.3
+     Compiling regex v1.10.2
+     Compiling serde_derive v1.0.193
+     Compiling[0m[91m zeroize_derive v1.4.2
+     Compiling thiserror-impl v1.0.50
+     Compiling ref-cast-impl v1.0.20
+     Compiling sp-debug-derive v8.0.0 
+(https://github.com/paritytech/substrate?branch=polkadot-v1.0.0#948fbd2f)
+     Compiling sp-core-hashing-proc-macro v9.0.0 
+(https://github.com/paritytech/substrate?branch=polkadot-v1.0.0#948fbd2f)
+     Compiling macro_magic_core_macros v0.4.3
+     Compiling frame-support-procedural-tools-derive v3.0.0 
+(https://github.com/paritytech/substrate?branch=polkadot-v1.0.0#948fbd2f)
+     Compiling num_enum_derive v0.6.1
+     Compiling Inflector v0.11.4
+     Compiling parity-scale-codec-derive v3.6.9
+     Compiling impl-trait-for-tuples v0.2.2
+     Compiling derive_more v0.99.17
+     Compiling rlp-derive v0.1.0
+     Compiling derive-syn-parse v0.1.5
+  [0m[91m   Compiling auto_impl v1.1.0
+     Compiling zeroize v1.7.0
+     Compiling merlin v2.0.1
+     Compiling curve25519-dalek v2.1.3
+     Compiling secrecy v0.8.0
+     Compiling der v0.7.8
+     Compiling rlp v0.5.2
+     Compiling[0m[91m num_enum v0.6.1
+     Compiling macro_magic_core v0.4.2
+     Compiling darling_macro v0.20.3
+     Compiling impl-rlp v0.3.0
+     Compiling[0m[91m triehash v0.8.4
+     Compiling schnorrkel v0.9.1
+     Compiling crypto-bigint v0.5.5
+     Compiling macro_magic_macros v0.4.2
+     Compiling hmac v0.12.1
+     Compiling signature v2.2.0
+     Compiling ripemd v0.1.3
+     Compiling rfc6979 v0.4.0
+     Compiling sec1 v0.7.3
+     Compiling[0m[91m darling v0.20.3
+     Compiling serde_with_macros v2.3.3
+     Compiling macro_magic v0.4.2
+     Compiling parity-scale-codec v3.6.9
+     Compiling[0m[91m elliptic-curve v0.13.8
+     Compiling ecdsa v0.16.9
+     Compiling impl-codec v0.6.0
+     Compiling sp-wasm-interface v14.0.0 
+(https://github.com/paritytech/substrate?branch=polkadot-v1.0.0#948fbd2f)
+     Compiling sp-tracing v10.0.0 
+(https://github.com/paritytech/substrate?branch=polkadot-v1.0.0#948fbd2f)
+  [0m[91m   Compiling fp-storage v2.0.0 
+(https://github.com/paritytech/frontier?branch=polkadot-v1.0.0#301d7c0f)
+     Compiling k256 v0.13.2
+     Compiling impl-serde v0.4.0
+     Compiling serde_with v2.0.0
+  [0m[91m   Compiling serde_bytes v0.11.12
+     Compiling serde-tuple-vec-map v1.0.1
+     Compiling sp-storage v13.0.0 
+(https://github.com/paritytech/substrate?branch=polkadot-v1.0.0#948fbd2f)
+     Compiling toml v0.5.11
+     Compiling sp-version-proc-macro v8.0.0 
+(https://github.com/paritytech/substrate?branch=polkadot-v1.0.0#948fbd2f)
+     Compiling ss58-registry v1.44.0
+     Compiling proc-macro-crate v1.1.3
+     Compiling frame-support-procedural-tools v4.0.0-dev 
+(https://github.com/paritytech/substrate?branch=polkadot-v1.0.0#948fbd2f)
+  [0m[91m   Compiling scale-info-derive v2.10.0
+     Compiling sp-runtime-interface-proc-macro v11.0.0 
+(https://github.com/paritytech/substrate?branch=polkadot-v1.0.0#948fbd2f)
+     Compiling sp-api-proc-macro v4.0.0-dev 
+(https://github.com/paritytech/substrate?branch=polkadot-v1.0.0#948fbd2f)
+     Compiling frame-support-procedural v4.0.0-dev 
+(https://github.com/paritytech/substrate?branch=polkadot-v1.0.0#948fbd2f)
+     Compiling sp-externalities v0.19.0 
+(https://github.com/paritytech/substrate?branch=polkadot-v1.0.0#948fbd2f)
+     Compiling scale-info v2.10.0
+     Compiling primitive-types v0.12.2
+     Compiling[0m[91m bounded-collections v0.1.9
+     Compiling sp-arithmetic v16.0.0 
+(https://github.com/paritytech/substrate?branch=polkadot-v1.0.0#948fbd2f)
+     Compiling frame-metadata v16.0.0
+     Compiling sp-inherents v4.0.0-dev 
+(https://github.com/paritytech/substrate?branch=polkadot-v1.0.0#948fbd2f)
+     Compiling ethbloom v0.13.0
+     Compiling finality-grandpa v0.16.2
+  [0m[91m   Compiling sp-metadata-ir v0.1.0 
+(https://github.com/paritytech/substrate?branch=polkadot-v1.0.0#948fbd2f)
+     Compiling sp-runtime-interface v17.0.0 
+(https://github.com/paritytech/substrate?branch=polkadot-v1.0.0#948fbd2f)
+     Compiling ethereum-types v0.14.1
+     Compiling evm-core v0.39.0 
+(https://github.com/rust-blockchain/evm?rev=b7b82c7e1fc57b7449d6dfa6826600de37cc
+1e65#b7b82c7e)
+  [0m[91m   Compiling sp-core v21.0.0 
+(https://github.com/paritytech/substrate?branch=polkadot-v1.0.0#948fbd2f)
+     Compiling ethereum v0.14.0
+     Compiling evm-runtime v0.39.0 
+(https://github.com/rust-blockchain/evm?rev=b7b82c7e1fc57b7449d6dfa6826600de37cc
+1e65#b7b82c7e)
+     Compiling evm-gasometer v0.39.0 
+(https://github.com/rust-blockchain/evm?rev=b7b82c7e1fc57b7449d6dfa6826600de37cc
+1e65#b7b82c7e)
+     Compiling evm v0.39.1 
+(https://github.com/rust-blockchain/evm?rev=b7b82c7e1fc57b7449d6dfa6826600de37cc
+1e65#b7b82c7e)
+  [0m[91m   Compiling sp-weights v20.0.0 
+(https://github.com/paritytech/substrate?branch=polkadot-v1.0.0#948fbd2f)
+     Compiling sp-trie v22.0.0 
+(https://github.com/paritytech/substrate?branch=polkadot-v1.0.0#948fbd2f)
+     Compiling sp-state-machine v0.28.0 
+(https://github.com/paritytech/substrate?branch=polkadot-v1.0.0#948fbd2f)
+  [0m[91m   Compiling sp-application-crypto v23.0.0 
+(https://github.com/paritytech/substrate?branch=polkadot-v1.0.0#948fbd2f)
+     Compiling sp-runtime v24.0.0 
+(https://github.com/paritytech/substrate?branch=polkadot-v1.0.0#948fbd2f)
+     Compiling sp-version v22.0.0 
+(https://github.com/paritytech/substrate?branch=polkadot-v1.0.0#948fbd2f)
+     Compiling sp-staking v4.0.0-dev 
+(https://github.com/paritytech/substrate?branch=polkadot-v1.0.0#948fbd2f)
+     Compiling sp-timestamp v4.0.0-dev 
+(https://github.com/paritytech/substrate?branch=polkadot-v1.0.0#948fbd2f)
+     Compiling fp-account v1.0.0-dev 
+(https://github.com/paritytech/frontier?branch=polkadot-v1.0.0#301d7c0f)
+     Compiling fp-consensus v2.0.0-dev 
+(https://github.com/paritytech/frontier?branch=polkadot-v1.0.0#301d7c0f)
+     Compiling sp-api v4.0.0-dev 
+(https://github.com/paritytech/substrate?branch=polkadot-v1.0.0#948fbd2f)
+     Compiling sp-consensus-grandpa v4.0.0-dev 
+(https://github.com/paritytech/substrate?branch=polkadot-v1.0.0#948fbd2f)
+     Compiling frame-system-rpc-runtime-api v4.0.0-dev 
+(https://github.com/paritytech/substrate?branch=polkadot-v1.0.0#948fbd2f)
+     Compiling sp-offchain v4.0.0-dev 
+(https://github.com/paritytech/substrate?branch=polkadot-v1.0.0#948fbd2f)
+     Compiling sp-block-builder v4.0.0-dev 
+(https://github.com/paritytech/substrate?branch=polkadot-v1.0.0#948fbd2f)
+     Compiling sp-transaction-pool v4.0.0-dev 
+(https://github.com/paritytech/substrate?branch=polkadot-v1.0.0#948fbd2f)
+     Compiling[0m[91m sp-consensus-slots v0.10.0-dev 
+(https://github.com/paritytech/substrate?branch=polkadot-v1.0.0#948fbd2f)
+     Compiling frame-support v4.0.0-dev 
+(https://github.com/paritytech/substrate?branch=polkadot-v1.0.0#948fbd2f)
+     Compiling sp-session v4.0.0-dev 
+(https://github.com/paritytech/substrate?branch=polkadot-v1.0.0#948fbd2f)
+     Compiling sp-consensus-aura v0.10.0-dev 
+(https://github.com/paritytech/substrate?branch=polkadot-v1.0.0#948fbd2f)
+     Compiling frame-system v4.0.0-dev 
+(https://github.com/paritytech/substrate?branch=polkadot-v1.0.0#948fbd2f)
+     Compiling fp-evm v3.0.0-dev 
+(https://github.com/paritytech/frontier?branch=polkadot-v1.0.0#301d7c0f)
+     Compiling frame-try-runtime v0.10.0-dev 
+(https://github.com/paritytech/substrate?branch=polkadot-v1.0.0#948fbd2f)
+     Compiling fp-self-contained v1.0.0-dev 
+(https://github.com/paritytech/frontier?branch=polkadot-v1.0.0#301d7c0f)
+     Compiling fp-ethereum v1.0.0-dev 
+(https://github.com/paritytech/frontier?branch=polkadot-v1.0.0#301d7c0f)
+     Compiling fp-rpc v3.0.0-dev 
+(https://github.com/paritytech/frontier?branch=polkadot-v1.0.0#301d7c0f)
+     Compiling pallet-evm-precompile-sha3fips v2.0.0-dev 
+(https://github.com/paritytech/frontier?branch=polkadot-v1.0.0#301d7c0f)
+     Compiling pallet-evm-precompile-simple v2.0.0-dev 
+(https://github.com/paritytech/frontier?branch=polkadot-v1.0.0#301d7c0f)
+     Compiling[0m[91m pallet-evm-precompile-modexp v2.0.0-dev 
+(https://github.com/paritytech/frontier?branch=polkadot-v1.0.0#301d7c0f)
+     Compiling pallet-timestamp v4.0.0-dev 
+(https://github.com/paritytech/substrate?branch=polkadot-v1.0.0#948fbd2f)
+     Compiling pallet-transaction-payment v4.0.0-dev 
+(https://github.com/paritytech/substrate?branch=polkadot-v1.0.0#948fbd2f)
+     Compiling pallet-evm v6.0.0-dev 
+(https://github.com/paritytech/frontier?branch=polkadot-v1.0.0#301d7c0f)
+     Compiling pallet-authorship v4.0.0-dev 
+(https://github.com/paritytech/substrate?branch=polkadot-v1.0.0#948fbd2f)
+     Compiling pallet-balances v4.0.0-dev 
+(https://github.com/paritytech/substrate?branch=polkadot-v1.0.0#948fbd2f)
+     Compiling frame-benchmarking v4.0.0-dev 
+(https://github.com/paritytech/substrate?branch=polkadot-v1.0.0#948fbd2f)
+     Compiling[0m[91m pallet-evm-chain-id v1.0.0-dev 
+(https://github.com/paritytech/frontier?branch=polkadot-v1.0.0#301d7c0f)
+     Compiling pallet-insecure-randomness-collective-flip v4.0.0-dev 
+(https://github.com/paritytech/substrate?branch=polkadot-v1.0.0#948fbd2f)
+     Compiling frame-executive v4.0.0-dev 
+(https://github.com/paritytech/substrate?branch=polkadot-v1.0.0#948fbd2f)
+     Compiling pallet-sudo v4.0.0-dev 
+(https://github.com/paritytech/substrate?branch=polkadot-v1.0.0#948fbd2f)
+     Compiling pallet-base-fee v1.0.0 
+(https://github.com/paritytech/frontier?branch=polkadot-v1.0.0#301d7c0f)
+     Compiling pallet-utility v4.0.0-dev 
+(https://github.com/paritytech/substrate?branch=polkadot-v1.0.0#948fbd2f)
+     Compiling pallet-session v4.0.0-dev 
+(https://github.com/paritytech/substrate?branch=polkadot-v1.0.0#948fbd2f)
+  [0m[91m   Compiling pallet-aura v4.0.0-dev 
+(https://github.com/paritytech/substrate?branch=polkadot-v1.0.0#948fbd2f)
+     Compiling pallet-ethereum v4.0.0-dev 
+(https://github.com/paritytech/frontier?branch=polkadot-v1.0.0#301d7c0f)
+     Compiling pallet-transaction-payment-rpc-runtime-api v4.0.0-dev 
+(https://github.com/paritytech/substrate?branch=polkadot-v1.0.0#948fbd2f)
+     Compiling pallet-subspace v4.0.0-dev (/subspace/pallets/subspace)
+  error[E0308]: mismatched types[0m[91m
+      --> /subspace/pallets/subspace/src/lib.rs:1174:27
+       |
+  1174 | [0m[91m            params.founder_share = founder_share;
+       |             --------------------   ^^^^^^^^^^^^^ expected `u16`, found 
+`Option<u16>`
+  [0m[91m     |             |
+       |             expected due to the type of this binding
+       [0m[91m|
+       = note: expected type `u16`
+                  found enum `core::option::Option<u16>[0m[91m`
+  help: consider using `Option::expect` to unwrap the 
+`core::option::Option<u16>` value, panicking if the value is an `Option::None`
+       |
+  [0m[91m1174 |             params.founder_share = 
+founder_share.expect("REASON");
+       |[0m[91m                                                 
++++++++++++++++++[0m[91m
+
+  For more information about this error, try `rustc --explain E0308`.
+  error: could not compile `pallet-subspace` (lib) due to 1 previous error
+  warning: build failed, waiting for other jobs to finish...
+[0mThe command '/bin/sh -c cargo build --release --locked' returned a non-zero 
+code: 101
+
+Using default tag: latest
+The push refers to repository 
+68e2a82c64d6: Preparing
+26c64aba71a8: Preparing
+90259da91052: Preparing
+c7cb3e3740d7: Preparing
+bb3ab9b524d1: Preparing
+1094da28d6db: Preparing
+4843538f1e6a: Preparing
+256d88da4185: Preparing
+4843538f1e6a: Waiting
+256d88da4185: Waiting
+1094da28d6db: Waiting
+68e2a82c64d6: Mounted from vivonasg/subspace.libra-2023-12-19_19-49-18
+c7cb3e3740d7: Mounted from vivonasg/subspace.libra-2023-12-19_19-49-18
+26c64aba71a8: Mounted from vivonasg/subspace.libra-2023-12-19_19-49-18
+bb3ab9b524d1: Mounted from vivonasg/subspace.libra-2023-12-19_19-49-18
+90259da91052: Mounted from vivonasg/subspace.libra-2023-12-19_19-49-18
+1094da28d6db: Mounted from vivonasg/subspace.libra-2023-12-19_19-49-18
+4843538f1e6a: Mounted from vivonasg/subspace.libra-2023-12-19_19-49-18
+256d88da4185: Mounted from vivonasg/subspace.libra-2023-12-19_19-49-18
+latest: digest: 
+sha256:c0f26201fb9bcc75de9ce68304825fc027bc580249dc6ffbc6875e816842d58b size: 
+2004
+{
+    'success': True,
+    'msg': 'pushed subspace.libra to 
+vivonasg/subspace.libra-2023-12-19_20-09-47'
+}
