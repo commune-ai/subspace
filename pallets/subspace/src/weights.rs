@@ -39,7 +39,10 @@ impl<T: Config> Pallet<T> {
 
 		let min_allowed_length: usize = Self::get_min_allowed_weights(netuid) as usize;
 		let max_allowed_length: usize = Self::get_max_allowed_weights(netuid) as usize;
-		ensure!(!Self::is_self_weight(uid, &uids, &values), Error::<T>::NoSelfWeight);
+		let self_vote = Self::get_self_vote(netuid);
+		if self_vote {
+			ensure!(!Self::is_self_weight(uid, &uids, &values), Error::<T>::NoSelfWeight);
+		}
 		ensure!(uids.len() >= min_allowed_length as usize, Error::<T>::NotSettingEnoughWeights);
 		ensure!(uids.len() <= max_allowed_length as usize, Error::<T>::TooManyUids);
 
