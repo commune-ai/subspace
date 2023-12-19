@@ -65,6 +65,15 @@ impl<T: Config> Pallet<T> {
 		MinStake::<T>::insert(netuid, stake)
 	}
 
+
+	pub fn get_max_stake(netuid: u16) -> u64 {
+		return MaxStake::<T>::get(netuid)
+	}
+
+	pub fn set_max_stake(netuid: u16, stake: u64) {
+		MaxStake::<T>::insert(netuid, stake)
+	}
+
 	// get the least staked network
 	pub fn least_staked_netuid() -> u16 {
 		let mut min_stake: u64 = u64::MAX;
@@ -932,8 +941,6 @@ impl<T: Config> Pallet<T> {
 		let global_params = Self::global_params();
 
         // check valid tempo		
-		ensure!(params.max_allowed_weights >= params.min_allowed_weights, Error::<T>::InvalidMaxAllowedWeights);
-		ensure!(params.max_allowed_weights <= params.max_allowed_uids, Error::<T>::InvalidMaxAllowedWeights);
 		ensure!(params.min_allowed_weights <= params.max_allowed_weights, Error::<T>::InvalidMinAllowedWeights);
 		ensure!(params.min_allowed_weights >= 1, Error::<T>::InvalidMinAllowedWeights);
 
@@ -942,11 +949,11 @@ impl<T: Config> Pallet<T> {
 		// the  global params must be larger than the min_stake
 		ensure!(params.min_stake >= global_params.min_stake, Error::<T>::InvalidMinStake);
 
-		ensure!(params.max_stake > params.min_stake, Error::<T>::InvalidMaxStake)
+		ensure!(params.max_stake > params.min_stake, Error::<T>::InvalidMaxStake);
 
-		ensure!(params.tempo > 0, Error::<T>::InvalidTempo)
+		ensure!(params.tempo > 0, Error::<T>::InvalidTempo);
 
-		ensure!(params.max_weight_age > params.tempo,  Error::<T>::InvalidMaxWeightAge)
+		ensure!(params.max_weight_age > params.tempo as u64,  Error::<T>::InvalidMaxWeightAge);
                 		
 		// ensure the trust_ratio is between 0 and 100
 		ensure!(params.trust_ratio <= 100, Error::<T>::InvalidTrustRatio);
