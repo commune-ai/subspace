@@ -127,21 +127,32 @@ impl<T: Config> Pallet<T> {
 		// =============================
 
 		let global_params = Self::global_params();
-		let min_weight_stake = I32F32::from_num(global_params.min_weight_stake);
-		let max_weight_age = Self::get_max_weight_age(netuid);
+
+		let min_weight_stake =  I32F32::from_num(global_params.min_weight_stake);
+
+		let mut params = Self::subnet_params(netuid);
+		// convert max u64 to I32F32
+		
+
+		let max_stake = I32F32::from_num(params.max_stake.min((u32::MAX / 2) as u64));
+		let max_weight_age: u64 = params.max_weight_age;
 
 		let mut incentive: Vec<I32F32> = vec![I32F32::from_num(0.0); n as usize];
 		for (i, sparse_row) in weights.iter().enumerate() {
+		
+			// clip based on the max stake
+			let stake_value = stake[i].min(max_stake);
+
 			for (j, value) in sparse_row.iter() {
 				// Compute trust scores: t_j = SUM(i) w_ij * s_i
 				// result_j = SUM(i) vector_i * matrix_ij
-				let mut weight_stake: I32F32 = stake[i] * value;
+
+				let mut weight_stake: I32F32 = stake_value * value;
 
 				// If weight is less than min, set to zero.
 				if weight_stake < min_weight_stake {
 					weight_stake =  I32F32::from_num(0.0);
 				}
-
 				incentive[*j as usize] += weight_stake;
 			}
 		}
