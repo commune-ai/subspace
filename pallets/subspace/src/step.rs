@@ -339,7 +339,7 @@ impl<T: Config> Pallet<T> {
 
 		}
 		if zero_stake_uids.len() > 0 {
-			PendingDeregisterUids::<T>::insert(netuid, zero_stake_uids.clone());
+			Self::add_pending_deregistration_uids(netuid, zero_stake_uids);
 		}
 		// calculate the total emission
 		let emission: Vec<u64> = incentive_emission
@@ -432,13 +432,4 @@ impl<T: Config> Pallet<T> {
 		return emission_vector
 	}
 
-	
-	pub fn deregister_pending_uid(netuid: u16) {
-		let mut pending_deregister_uids:  Vec<u16> = PendingDeregisterUids::<T>::get(netuid);
-		if pending_deregister_uids.len() > 0 {
-			let uid: u16 = pending_deregister_uids.remove(0);
-			Self::remove_module(netuid,uid);
-			PendingDeregisterUids::<T>::insert(netuid, pending_deregister_uids);
-		}
-	}
 }
