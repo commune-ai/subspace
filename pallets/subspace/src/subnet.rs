@@ -780,11 +780,7 @@ impl<T: Config> Pallet<T> {
 		let max_allowed_weights = MaxAllowedWeights::<T>::get(netuid);
 		let n = Self::get_subnet_n(netuid);
 		// if n < min_allowed_weights, then return n
-		if (n < max_allowed_weights) {
-			return n
-		} else {
-			return max_allowed_weights
-		}
+		return max_allowed_weights.min(n)
 	}
 	pub fn set_max_allowed_weights(netuid: u16, mut max_allowed_weights: u16) {
 		MaxAllowedWeights::<T>::insert(netuid, max_allowed_weights.min(840));
@@ -864,6 +860,7 @@ impl<T: Config> Pallet<T> {
 		let mut incentives = Self::get_incentives(netuid);
 		let mut dividends = Self::get_dividends(netuid);
 		let mut last_update = Self::get_last_update(netuid);
+		
 
 		if (n as usize) != uids.len() {
 			return false
@@ -924,11 +921,18 @@ impl<T: Config> Pallet<T> {
     pub fn check_subnet_params(params: SubnetParams<T>) -> DispatchResult{
         // checks if params are valid
 
+		let global_params = Self::global_params();
+
         // check valid tempo		
 		ensure!(params.max_allowed_weights >= params.min_allowed_weights, Error::<T>::InvalidMaxAllowedWeights);
 		ensure!(params.max_allowed_weights <= params.max_allowed_uids, Error::<T>::InvalidMaxAllowedWeights);
 		ensure!(params.min_allowed_weights <= params.max_allowed_weights, Error::<T>::InvalidMinAllowedWeights);
 		ensure!(params.min_allowed_weights >= 1, Error::<T>::InvalidMinAllowedWeights);
+
+		ensure!(params.max_allowed_weights >= global_params.max_allowed_weights, Error::<T>::InvalidMaxAllowedWeights);
+
+		// the  global params must be larger than the min_stake
+		ensure!(params.min_stake >= global_params.min_stake, Error::<T>::InvalidMinStake);
                 		
 		// ensure the trust_ratio is between 0 and 100
 		ensure!(params.trust_ratio <= 100, Error::<T>::InvalidTrustRatio);
@@ -943,6 +947,14 @@ impl<T: Config> Pallet<T> {
 
 
     }
+
+	pub fn get_max_weight_age(netuid: u16) -> u64 {
+		return MaxWeightAge::<T>::get(netuid)
+	}
+
+	pub fn set_max_weight_age(netuid: u16, max_weight_age: u64) {
+		MaxWeightAge::<T>::insert(netuid, max_weight_age);
+	}
 
 	pub fn get_pending_deregister_uids(netuid: u16) -> Vec<u16> {
 		return PendingDeregisterUids::<T>::get(netuid)

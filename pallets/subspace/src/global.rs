@@ -18,7 +18,10 @@ impl<T: Config> Pallet<T> {
 			max_proposals: Self::get_max_proposals(),
 			vote_mode: Self::get_vote_mode_global(),
 			burn_rate: Self::get_burn_rate(),
-			min_burn: Self::get_min_burn()
+			min_burn: Self::get_min_burn(),
+			min_stake: Self::get_min_stake_global(),
+			min_weight_stake: Self::get_min_weight_stake(),
+			max_allowed_weights: Self::get_max_allowed_weights_global(),
 		}
 	}
 
@@ -39,13 +42,15 @@ impl<T: Config> Pallet<T> {
 
 		ensure!(params.max_proposals > 0, Error::<T>::InvalidMaxProposals);
 
-		ensure!(params.unit_emission > 0, Error::<T>::InvalidUnitEmission);
+		ensure!(params.unit_emission >= og_params.unit_emission, Error::<T>::InvalidUnitEmission);
 
 		ensure!(params.tx_rate_limit > 0, Error::<T>::InvalidTxRateLimit);
 
 		ensure!(params.burn_rate <= 100, Error::<T>::InvalidBurnRate);
 				
 		ensure!(params.min_burn <= 100, Error::<T>::InvalidMinBurn);
+
+
 		
         Ok(())
     }
@@ -77,6 +82,30 @@ impl<T: Config> Pallet<T> {
 
 
 	}
+
+
+	pub fn get_min_weight_stake() -> u64 {
+		return MinWeightStake::<T>::get()
+	}
+	pub fn set_min_weight_stake(min_weight_stake: u64)  {
+		MinWeightStake::<T>::put(min_weight_stake)
+	}
+
+	pub fn get_max_allowed_weights_global() -> u16 {
+		return MaxAllowedWeightsGlobal::<T>::get()
+	}
+
+	pub fn set_max_allowed_weights_global() -> u16 {
+		return MaxAllowedWeightsGlobal::<T>::get()
+	}
+
+	pub fn get_min_stake_global() -> u64 {
+		return MinStakeGlobal::<T>::get()
+	}
+	pub fn set_min_stake_global(min_stake: u64) {
+		MinStakeGlobal::<T>::put(min_stake)
+	}
+
 
 	pub fn set_vote_mode_global(vote_mode: Vec<u8>) {
 		VoteModeGlobal::<T>::put(vote_mode);
