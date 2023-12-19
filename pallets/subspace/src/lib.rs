@@ -155,6 +155,24 @@ pub mod pallet {
 	pub type MaxRegistrationsPerBlock<T> =
 		StorageValue<_, u16, ValueQuery, DefaultMaxRegistrationsPerBlock<T>>;
 
+	#[pallet::type_value]
+	pub fn DefaultMinStakeGlobal<T: Config>() -> u64 { 100 }
+	#[pallet::storage] // --- MAP ( netuid ) --> min_allowed_weights
+	pub type MinStakeGlobal<T> = StorageValue<_, u64, ValueQuery, DefaultMinStake<T>>;
+	
+
+
+	#[pallet::type_value]
+	pub fn DefaultMinWeightStake<T: Config>() -> u64 { 10 }
+	#[pallet::storage] // --- MAP ( netuid ) --> min_allowed_weights
+	pub type MinWeightStake<T> = StorageValue<_, u64, ValueQuery, DefaultMinStake<T>>;
+	
+
+	#[pallet::type_value]
+	pub fn DefaultMaxAllowedWeightsGlobal<T: Config>() -> u16 { 512 }
+	#[pallet::storage] // --- MAP ( netuid ) --> min_allowed_weights
+	pub type MaxAllowedWeightsGlobal<T> = StorageValue<_, u16, ValueQuery, DefaultMinAllowedWeights<T>>;
+
 
 	#[pallet::storage] // --- MAP ( netuid ) --> subnet_total_stake
 	pub type TotalStake<T> = StorageMap<_, Identity, u16, u64, ValueQuery>;
@@ -172,34 +190,47 @@ pub mod pallet {
 	#[derive(Decode, Encode, PartialEq, Eq, Clone, Debug, TypeInfo)]
 	// skip
 	pub struct GlobalParams {
-		pub max_name_length: u16,
-		pub max_allowed_subnets: u16,
-		pub max_allowed_modules: u16,
-		pub max_registrations_per_block: u16,
-		pub unit_emission: u64, 
-		pub tx_rate_limit: u64,
-		pub vote_threshold: u16,
-		pub vote_mode: Vec<u8>,
-		pub max_proposals: u64,
 		pub burn_rate: u16,
-		pub min_burn: u64
+		// max
+		pub max_name_length: u16, // max length of a network name
+		pub max_allowed_subnets: u16, // max number of subnets allowed
+		pub max_allowed_modules: u16, // max number of modules allowed per subnet
+		pub max_registrations_per_block: u16, // max number of registrations per block
+		pub max_allowed_weights: u16, // max number of weights per module
+		pub max_proposals: u64, // max number of proposals per block
+
+		// mins
+		pub min_burn: u64, // min burn required
+		pub min_stake: u64, // min stake required
+		pub min_weight_stake: u64, // min weight stake required
+
+		// other
+		pub unit_emission: u64, // emission per block
+		pub tx_rate_limit: u64, // tx rate limit
+		pub vote_threshold: u16, // out of 100
+		pub vote_mode: Vec<u8>, // out of 100
 
 	}
 
 	#[pallet::type_value]
 	pub fn DefaultGlobalParams<T: Config>() -> GlobalParams {
 		GlobalParams {
-			max_name_length: DefaultMaxNameLength::<T>::get(),
+			burn_rate: DefaultBurnRate::<T>::get(),
+
 			max_allowed_subnets: DefaultMaxAllowedSubnets::<T>::get(),
 			max_allowed_modules: DefaultMaxAllowedModules::<T>::get(),
+			max_allowed_weights: DefaultMaxAllowedWeightsGlobal::<T>::get(),
 			max_registrations_per_block: DefaultMaxRegistrationsPerBlock::<T>::get(),
+			max_name_length: DefaultMaxNameLength::<T>::get(),
+			max_proposals: DefaultMaxProposals::<T>::get(),
+			min_burn: DefaultMinBurn::<T>::get(),
+			min_stake: DefaultMinStakeGlobal::<T>::get(),
+			min_weight_stake: DefaultMinWeightStake::<T>::get(),
 			unit_emission: DefaultUnitEmission::<T>::get(), 
 			tx_rate_limit: DefaultTxRateLimit::<T>::get(),
 			vote_threshold: DefaultVoteThreshold::<T>::get(),
 			vote_mode: DefaultVoteMode::<T>::get(),
-			max_proposals: DefaultMaxProposals::<T>::get(),
-			min_burn: DefaultMinBurn::<T>::get(),
-			burn_rate: DefaultBurnRate::<T>::get()
+
 		}
 	}
 
@@ -275,6 +306,14 @@ pub mod pallet {
 	pub fn DefaultMinStake<T: Config>() -> u64 {0}	
 	#[pallet::storage] // --- MAP ( netuid ) --> min_allowed_weights
 	pub type MinStake<T> = StorageMap<_, Identity, u16, u64, ValueQuery, DefaultMinStake<T>>;
+
+
+	#[pallet::type_value]
+	pub fn DefaultMaxWeightAge<T: Config>() -> u64 {u64::MAX}
+	#[pallet::storage] // --- MAP ( netuid ) --> min_allowed_weights
+	pub type MaxWeightAge<T> = StorageMap<_, Identity, u16, u64, ValueQuery, DefaultMinStake<T>>;
+
+
 
 	#[pallet::type_value]
 	pub fn DefaultMaxAllowedWeights<T: Config>() -> u16 {420}
@@ -666,6 +705,7 @@ pub mod pallet {
 		NotEnoughStakeToStartNetwork,
 		NetworkRegistrationFailed,
 		NetworkAlreadyRegistered,
+		NotEnoughtStakePerWeight,
 		NoSelfWeight,
 		DifferentLengths,
 		NotEnoughBalanceToRegister,
@@ -685,6 +725,7 @@ pub mod pallet {
 		InvalidTrustRatio, 
 		InvalidMinAllowedWeights, 
 		InvalidMaxAllowedWeights,
+		InvalidMinStake,
 
 		InvalidGlobalParams,
 		InvalidMaxNameLength,

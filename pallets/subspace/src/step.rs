@@ -87,17 +87,32 @@ impl<T: Config> Pallet<T> {
 		// == Weights (N x N) Sparsified ==
 		// =============
 		// Access network weights row normalized.
-		let mut weights: Vec<Vec<(u16, I32F32)>> = Self::get_weights_sparse(netuid);
+		let last_update_vector: Vec<u64> = Self::get_last_update(netuid);
+		let max_allowed_weights: u16 = Self::get_max_allowed_weights(netuid);
 
-		// filter weights that are over n 
-		for (i, weights_i) in weights.iter_mut().enumerate() {
-			let mut weight_changed: bool = false;
-			for (j, weight_ij) in weights_i.clone().iter() {
-				if *j > n {
-					weights_i.remove(*j as usize);
+
+		let max_weight_age = Self::get_max_weight_age(netuid);
+
+	
+		let mut weights: Vec<Vec<(u16, I32F32)>> = vec![vec![]; n as usize];
+		for (uid_i, mut weights_i) in
+			<Weights<T> as IterableStorageDoubleMap<u16, u16, Vec<(u16, u16)>>>::iter_prefix(netuid)
+		{
+			// watchout for the overflow
+			let weight_age: u64 = last_update_vector[uid_i as usize].saturating_sub(current_block);
+			if weight_age > max_weight_age {
+				// if the last update is older than the max weight age, then remove the weights
+				weights_i.clear();
+				continue
+			}
+
+			for (pos, (uid_j, weight_ij)) in weights_i.iter().enumerate() {
+				if *uid_j > n || (pos as u16) < max_allowed_weights {
+					weights[uid_i as usize].push((*uid_j, u16_proportion_to_fixed(*weight_ij)));
 				}
 			}
 		}
+		
 
 		// enabling self voting
 		if (!params.self_vote) {
@@ -111,12 +126,23 @@ impl<T: Config> Pallet<T> {
 		// ==  Incentive ==
 		// =============================
 
+		let global_params = Self::global_params();
+		let min_weight_stake = I32F32::from_num(global_params.min_weight_stake);
+		let max_weight_age = Self::get_max_weight_age(netuid);
+
 		let mut incentive: Vec<I32F32> = vec![I32F32::from_num(0.0); n as usize];
 		for (i, sparse_row) in weights.iter().enumerate() {
 			for (j, value) in sparse_row.iter() {
 				// Compute trust scores: t_j = SUM(i) w_ij * s_i
 				// result_j = SUM(i) vector_i * matrix_ij
-				incentive[*j as usize] += stake[i] * value;
+				let mut weight_stake: I32F32 = stake[i] * value;
+
+				// If weight is less than min, set to zero.
+				if weight_stake < min_weight_stake {
+					weight_stake =  I32F32::from_num(0.0);
+				}
+
+				incentive[*j as usize] += weight_stake;
 			}
 		}
 
@@ -363,19 +389,6 @@ impl<T: Config> Pallet<T> {
 		block_at_registration
 	}
 
-	pub fn get_weights_sparse(netuid: u16) -> Vec<Vec<(u16, I32F32)>> {
-		let n: usize = Self::get_subnet_n(netuid) as usize;
-		let mut weights: Vec<Vec<(u16, I32F32)>> = vec![vec![]; n];
-		for (uid_i, weights_i) in
-			<Weights<T> as IterableStorageDoubleMap<u16, u16, Vec<(u16, u16)>>>::iter_prefix(netuid)
-		{
-			for (uid_j, weight_ij) in weights_i.iter() {
-				weights[uid_i as usize].push((*uid_j, u16_proportion_to_fixed(*weight_ij)));
-			}
-		}
-		
-		return weights
-	}
 
 	pub fn blocks_until_next_epoch(netuid: u16, tempo: u16, block_number: u64) -> u64 {
 		if tempo == 0 {
