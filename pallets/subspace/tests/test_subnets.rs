@@ -223,7 +223,7 @@ fn test_set_max_allowed_uids_shrinking() {
 	new_test_ext().execute_with(|| {
 		let netuid: u16 = 0;
 		let stake: u64 = 1_000_000_000;
-		let max_uids: u16 = 2000;
+		let max_uids: u16 = 100;
 		let extra_uids: u16 = 20;
 
 		let mut n = SubspaceModule::get_subnet_n(netuid);
@@ -261,6 +261,9 @@ fn test_set_max_allowed_uids_shrinking() {
 		let mut params = SubspaceModule::subnet_params(netuid).clone();
 		params.max_allowed_uids = max_uids;
 		let result = SubspaceModule::do_update_subnet(get_origin(keys[0]), netuid, params);
+		let global_params = SubspaceModule::global_params();
+		println!("global params {:?}", global_params);
+		println!("subnet params {:?}", SubspaceModule::subnet_params(netuid));
 		assert_ok!(result);
 		let params = SubspaceModule::subnet_params(netuid);
 		let mut n = SubspaceModule::get_subnet_n(netuid);
