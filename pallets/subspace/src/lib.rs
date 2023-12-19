@@ -314,7 +314,7 @@ pub mod pallet {
 
 
 	#[pallet::type_value]
-	pub fn DefaultMaxStake<T: Config>() -> u64 {u64::MAX}	
+	pub fn DefaultMaxStake<T: Config>() -> u64 {(u32::MAX / 2) as u64}	
 	#[pallet::storage] // --- MAP ( netuid ) --> min_allowed_weights
 	pub type MaxStake<T> = StorageMap<_, Identity, u16, u64, ValueQuery, DefaultMaxStake<T>>;
 

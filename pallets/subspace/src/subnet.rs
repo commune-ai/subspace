@@ -946,7 +946,7 @@ impl<T: Config> Pallet<T> {
 
 		ensure!(params.max_allowed_weights <= global_params.max_allowed_weights, Error::<T>::InvalidMaxAllowedWeights);
 
-		// the  global params must be larger than the min_stake
+		// the  global params must be larger than the global min_stake
 		ensure!(params.min_stake >= global_params.min_stake, Error::<T>::InvalidMinStake);
 
 		ensure!(params.max_stake > params.min_stake, Error::<T>::InvalidMaxStake);
