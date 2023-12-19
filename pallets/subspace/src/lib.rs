@@ -171,7 +171,7 @@ pub mod pallet {
 	#[pallet::type_value]
 	pub fn DefaultMaxAllowedWeightsGlobal<T: Config>() -> u16 { 512 }
 	#[pallet::storage] // --- MAP ( netuid ) --> min_allowed_weights
-	pub type MaxAllowedWeightsGlobal<T> = StorageValue<_, u16, ValueQuery, DefaultMinAllowedWeights<T>>;
+	pub type MaxAllowedWeightsGlobal<T> = StorageValue<_, u16, ValueQuery, DefaultMaxAllowedWeightsGlobal<T>>;
 
 
 	#[pallet::storage] // --- MAP ( netuid ) --> subnet_total_stake
@@ -314,9 +314,15 @@ pub mod pallet {
 
 
 	#[pallet::type_value]
+	pub fn DefaultMaxStake<T: Config>() -> u64 {u64::MAX}	
+	#[pallet::storage] // --- MAP ( netuid ) --> min_allowed_weights
+	pub type MaxStake<T> = StorageMap<_, Identity, u16, u64, ValueQuery, DefaultMaxStake<T>>;
+
+
+	#[pallet::type_value]
 	pub fn DefaultMaxWeightAge<T: Config>() -> u64 {u64::MAX}
 	#[pallet::storage] // --- MAP ( netuid ) --> min_allowed_weights
-	pub type MaxWeightAge<T> = StorageMap<_, Identity, u16, u64, ValueQuery, DefaultMinStake<T>>;
+	pub type MaxWeightAge<T> = StorageMap<_, Identity, u16, u64, ValueQuery, DefaultMaxWeightAge<T>>;
 
 
 
