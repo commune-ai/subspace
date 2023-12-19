@@ -35,9 +35,6 @@ fn test_add_profit_share() {
 		println!("founder profit shares: {:?}", profit_shares);
 		let result = SubspaceModule::set_weights(get_origin(voter_key), netuid, vec![miner_uid], vec![1]);
 
-		let voter_weights = SubspaceModule::get_weights_sparse(netuid);
-		println!("voter weights: {:?}", voter_weights);
-
 		assert_ok!(result);
 		let params = SubspaceModule::subnet_params(netuid);
 		println!("params: {:?}", params);
