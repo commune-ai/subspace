@@ -171,7 +171,7 @@ pub mod pallet {
 	#[pallet::type_value]
 	pub fn DefaultMaxAllowedWeightsGlobal<T: Config>() -> u16 { 512 }
 	#[pallet::storage] // --- MAP ( netuid ) --> min_allowed_weights
-	pub type MaxAllowedWeightsGlobal<T> = StorageValue<_, u16, ValueQuery, DefaultMinAllowedWeights<T>>;
+	pub type MaxAllowedWeightsGlobal<T> = StorageValue<_, u16, ValueQuery, DefaultMaxAllowedWeightsGlobal<T>>;
 
 
 	#[pallet::storage] // --- MAP ( netuid ) --> subnet_total_stake
@@ -248,6 +248,8 @@ pub mod pallet {
 		pub max_allowed_uids: u16, // max number of weights allowed to be registered in this		pub max_allowed_uids: u16, // max number of uids allowed to be registered in this subne
 		pub min_allowed_weights: u16, // min number of weights allowed to be registered in this
 		pub max_allowed_weights: u16, // max number of weights allowed to be registered in this		pub max_allowed_uids: u16, // max number of uids allowed to be registered in this subnet
+		pub max_weight_age: u64, // max age of a weight
+		pub max_stake: u64, // max stake allowed
 		pub min_stake: u64,	// min stake required
 		pub vote_threshold: u16, // out of 100
 		pub vote_mode: Vec<u8>,
@@ -267,6 +269,8 @@ pub mod pallet {
 			min_allowed_weights: DefaultMinAllowedWeights::<T>::get(),
 			max_allowed_weights: DefaultMaxAllowedWeights::<T>::get(),
 			max_allowed_uids: DefaultMaxAllowedUids::<T>::get(),
+			max_weight_age: DefaultMaxWeightAge::<T>::get(),
+			max_stake: DefaultMaxStake::<T>::get(),
 			vote_threshold: DefaultVoteThreshold::<T>::get(),
 			vote_mode: DefaultVoteMode::<T>::get(),
 			trust_ratio: DefaultTrustRatio::<T>::get(),
@@ -275,6 +279,7 @@ pub mod pallet {
 			incentive_ratio : DefaultIncentiveRatio::<T>::get(), 
 			min_stake :  DefaultMinStake::<T>::get(),
 			founder: DefaultFounder::<T>::get(),
+			
 
 		}
 	}
@@ -309,9 +314,15 @@ pub mod pallet {
 
 
 	#[pallet::type_value]
+	pub fn DefaultMaxStake<T: Config>() -> u64 {(u32::MAX / 2) as u64}	
+	#[pallet::storage] // --- MAP ( netuid ) --> min_allowed_weights
+	pub type MaxStake<T> = StorageMap<_, Identity, u16, u64, ValueQuery, DefaultMaxStake<T>>;
+
+
+	#[pallet::type_value]
 	pub fn DefaultMaxWeightAge<T: Config>() -> u64 {u64::MAX}
 	#[pallet::storage] // --- MAP ( netuid ) --> min_allowed_weights
-	pub type MaxWeightAge<T> = StorageMap<_, Identity, u16, u64, ValueQuery, DefaultMinStake<T>>;
+	pub type MaxWeightAge<T> = StorageMap<_, Identity, u16, u64, ValueQuery, DefaultMaxWeightAge<T>>;
 
 
 
@@ -746,7 +757,9 @@ pub mod pallet {
 		ProposalDataTooLarge,
 		VoterIsNotRegistered,
 		VoterIsRegistered,
-		InvalidVoteMode
+		InvalidVoteMode,
+		InvalidMaxWeightAge,
+		InvalidMaxStake		
 
 
 
@@ -793,13 +806,15 @@ pub mod pallet {
 					max_allowed_weights: subnet.4,
 					max_allowed_uids: subnet.5,
 					min_stake: subnet.7,
+					founder: subnet.8.clone(),
+					max_stake: default_params.max_stake,
 					vote_threshold: default_params.vote_threshold,
 					vote_mode: default_params.vote_mode.clone(),
 					trust_ratio: default_params.trust_ratio,
 					self_vote: default_params.self_vote,
 					founder_share: default_params.founder_share, 
 					incentive_ratio: default_params.incentive_ratio,
-					founder: subnet.8.clone(),
+					max_weight_age: default_params.max_weight_age,
 				};
 				
 				self::Pallet::<T>::add_network(params.clone());
