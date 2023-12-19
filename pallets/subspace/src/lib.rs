@@ -680,7 +680,36 @@ pub mod pallet {
 		UpdateProposalAlreadyVoted,
 		UpdateProposalVoteNotAvailable,
 		NotEnoughVotesToAccept,
-		NotEnoughBalanceToTransfer
+		NotEnoughBalanceToTransfer,
+		NotAuthorityMode,
+		InvalidTrustRatio, 
+		InvalidMinAllowedWeights, 
+		InvalidMaxAllowedWeights,
+
+		InvalidGlobalParams,
+		InvalidMaxNameLength,
+		InvalidMaxAllowedSubnets,
+		InvalidMaxAllowedModules,
+		InvalidMaxRegistrationsPerBlock,
+		InvalidVoteThreshold,
+		InvalidMaxProposals,
+		InvalidUnitEmission,
+		InvalidTxRateLimit,
+		InvalidBurnRate,
+		InvalidMinBurn,
+
+		// VOTING
+		ProposalDoesNotExist,
+		VotingPowerIsZero,
+		InvalidProposalData,
+		ProposalDataTooLarge,
+		VoterIsNotRegistered,
+		VoterIsRegistered,
+		InvalidVoteMode
+
+
+
+
 	}
 
 	// ==================
