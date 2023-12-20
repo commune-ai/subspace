@@ -8,8 +8,8 @@ impl<T: Config> Pallet<T> {
 
 	pub fn global_params() -> GlobalParams {
 		GlobalParams {
-			max_name_length: Self::get_max_name_length(),
-			max_allowed_subnets: Self::get_max_allowed_subnets(),
+			max_name_length: Self::get_global_max_name_length(),
+			max_allowed_subnets: Self::getglobal_max_allowed_subnets(),
 			max_allowed_modules: Self::get_max_allowed_modules(),
 			max_registrations_per_block: Self::get_max_registrations_per_block(),
 			unit_emission: Self::get_unit_emission(),
@@ -58,9 +58,9 @@ impl<T: Config> Pallet<T> {
 
 	pub fn set_global_params(params: GlobalParams) {
 
-		Self::set_max_name_length(params.max_name_length);
+		Self::set_global_max_name_length(params.max_name_length);
 
-		Self::set_max_allowed_subnets(params.max_allowed_subnets);
+		Self::set_global_max_allowed_subnets(params.max_allowed_subnets);
 		
 		Self::set_max_allowed_modules(params.max_allowed_modules);
 
@@ -79,6 +79,8 @@ impl<T: Config> Pallet<T> {
 		Self::set_burn_rate(params.burn_rate);
 
 		Self::set_min_burn( params.min_burn);
+
+		Self::set_min_weight_stake(params.min_weight_stake);
 
 
 	}
@@ -142,11 +144,11 @@ impl<T: Config> Pallet<T> {
 	pub fn get_max_registrations_per_block() -> u16 {
 		MaxRegistrationsPerBlock::<T>::get()
 	}
-	pub fn get_max_name_length() -> u16 {
+	pub fn get_global_max_name_length() -> u16 {
 		return MaxNameLength::<T>::get();
 	}
 
-	pub fn set_max_name_length(max_name_length: u16) {
+	pub fn set_global_max_name_length(max_name_length: u16) {
 		MaxNameLength::<T>::put(max_name_length)
 	}
 

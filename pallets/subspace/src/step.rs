@@ -28,7 +28,10 @@ impl<T: Config> Pallet<T> {
 
 	pub fn epoch(netuid: u16, mut token_emission: u64) {
 		// Get subnetwork size.
-		let params : SubnetParams<T>  = Self::subnet_params(netuid);
+
+		let global_params = Self::global_params();
+		let subnet_params = Self::subnet_params(netuid);
+
 		let n: u16 = Self::get_subnet_n(netuid);
 		let current_block: u64 = Self::get_current_block_as_u64();
 		let block_at_registration: Vec<u64> = Self::get_block_at_registration(netuid);
@@ -38,17 +41,7 @@ impl<T: Config> Pallet<T> {
 			return
 		}
 
-		// ===========
-		// == Stake ==
-		// ===========
 
-		let mut keys: Vec<(u16, T::AccountId)> = Self::get_uid_key_tuples(netuid);
-		let mut stake_64: Vec<I64F64> = vec![I64F64::from_num(0.0); n as usize];
-		let mut total_stake_u64: u64 =Self::get_total_subnet_stake(netuid).clone();
-		if total_stake_u64 == 0 {
-			total_stake_u64 = 1;
-		}
-	
 		// quadradic voting
 
 		// let quadradic_voting: bool = Self::get_quadradic_voting(netuid);
@@ -57,6 +50,9 @@ impl<T: Config> Pallet<T> {
 
 		// 	total_stake_u64 = total_stake_u64;
 		// }
+
+
+		
 
 		// FOUNDER DIVIDENDS 
 		let founder_key = Self::get_founder(netuid);
@@ -73,13 +69,31 @@ impl<T: Config> Pallet<T> {
 		}
 
 
+
+		// ===========
+		// == Stake ==
+		// ===========
+
+		let mut keys: Vec<(u16, T::AccountId)> = Self::get_uid_key_tuples(netuid);
+		let mut stake_64: Vec<I64F64> = vec![I64F64::from_num(0.0); n as usize];
+		let mut total_stake_u64: u64 =Self::get_total_subnet_stake(netuid).clone();
+		if total_stake_u64 == 0 {
+			total_stake_u64 = 1;
+		}
+	
+
+
 		let stake_u64: Vec<u64> = keys
 			.iter()
 			.map(|(_, key)| Self::get_stake_for_key(netuid, key))
 			.collect();
 
-		let mut stake_64: Vec<I64F64> = stake_u64.iter().map(|x| I64F64::from_num(x.clone()) /I64F64::from_num(total_stake_u64)).collect();
-		let mut stake: Vec<I32F32> = stake_64.iter().map(|x| I32F32::from_num(x.clone())).collect();
+		
+		let max_stake = subnet_params.max_stake;
+
+		// clip it to the max stake
+		let mut stake_64: Vec<I64F64> = stake_u64.iter().map(|x| I64F64::from_num(x.clone().min(max_stake)) /I64F64::from_num(total_stake_u64)).collect();
+		let mut stake : Vec<I32F32> = stake_64.iter().map(|x| I32F32::from_num(x.clone())).collect();
 		// Normalize active stake.
 		inplace_normalize(&mut stake);
 
@@ -89,25 +103,25 @@ impl<T: Config> Pallet<T> {
 		// Access network weights row normalized.
 		let last_update_vector: Vec<u64> = Self::get_last_update(netuid);
 		let max_allowed_weights: u16 = Self::get_max_allowed_weights(netuid);
-
-
-		let max_weight_age = Self::get_max_weight_age(netuid);
-
-	
+		let max_weight_age = subnet_params.max_weight_age;
 		let mut weights: Vec<Vec<(u16, I32F32)>> = vec![vec![]; n as usize];
 		for (uid_i, mut weights_i) in
 			<Weights<T> as IterableStorageDoubleMap<u16, u16, Vec<(u16, u16)>>>::iter_prefix(netuid)
 		{
 			// watchout for the overflow
-			let weight_age: u64 = last_update_vector[uid_i as usize].saturating_sub(current_block);
-			if weight_age > max_weight_age {
+			if max_weight_age <  u64::MAX {
 				// if the last update is older than the max weight age, then remove the weights
-				weights_i.clear();
-				continue
+				let weight_age: u64 = current_block.saturating_sub(last_update_vector[uid_i as usize]);
+				if weight_age > max_weight_age {
+					// if the last update is older than the max weight age, then remove the weights
+					weights_i.clear();
+					continue
+				}
 			}
 
 			for (pos, (uid_j, weight_ij)) in weights_i.iter().enumerate() {
-				if *uid_j > n || (pos as u16) < max_allowed_weights {
+				// ignore the weights that are not in the top max allowed weights
+				if (pos as u16) < max_allowed_weights || *uid_j < n{
 					weights[uid_i as usize].push((*uid_j, u16_proportion_to_fixed(*weight_ij)));
 				}
 			}
@@ -115,7 +129,7 @@ impl<T: Config> Pallet<T> {
 		
 
 		// enabling self voting
-		if (!params.self_vote) {
+		if (!subnet_params.self_vote) {
 			weights = mask_diag_sparse(&weights);
 		}
 		
@@ -126,33 +140,24 @@ impl<T: Config> Pallet<T> {
 		// ==  Incentive ==
 		// =============================
 
-		let global_params = Self::global_params();
-
 		let min_weight_stake =  I32F32::from_num(global_params.min_weight_stake);
 
-		let mut params = Self::subnet_params(netuid);
 		// convert max u64 to I32F32
-		
-
-		let max_stake = I32F32::from_num(params.max_stake.min((u32::MAX / 2) as u64));
-		let max_weight_age: u64 = params.max_weight_age;
-
+	
 		let mut incentive: Vec<I32F32> = vec![I32F32::from_num(0.0); n as usize];
 		for (i, sparse_row) in weights.iter().enumerate() {
-		
 			// clip based on the max stake
-			let stake_value = stake[i].min(max_stake);
-
 			for (j, value) in sparse_row.iter() {
 				// Compute trust scores: t_j = SUM(i) w_ij * s_i
 				// result_j = SUM(i) vector_i * matrix_ij
 
-				let mut weight_stake: I32F32 = stake_value * value;
+				let mut weight_stake: I32F32 = stake[i] * value;
 
 				// If weight is less than min, set to zero.
 				if weight_stake < min_weight_stake {
 					weight_stake =  I32F32::from_num(0.0);
 				}
+
 				incentive[*j as usize] += weight_stake;
 			}
 		}
@@ -164,6 +169,8 @@ impl<T: Config> Pallet<T> {
 				incentive[*uid_i as usize] = I32F32::from_num(1.0);
 			}
 		}
+
+		
 		inplace_normalize(&mut incentive); // range: I32F32(0, 1)
 
 		// =================================
@@ -226,8 +233,6 @@ impl<T: Config> Pallet<T> {
 				*value /= col_sum[*j as usize];
 			}
 		}
-		
-
 
 		// Compute dividends: d_i = SUM(j) b_ij * inc_j.
 		// range: I32F32(0, 1)
