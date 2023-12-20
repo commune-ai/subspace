@@ -15,18 +15,27 @@ use sp_std::vec;
 fn test_add_subnets() {
 	new_test_ext().execute_with(|| {
 		let tempo: u16 = 13;
-		let num_subnets: u16 = 1000;
 		let mut stake_per_module: u64 = 1_000_000_000;
 		let mut max_allowed_subnets: u16 = SubspaceModule::getglobal_max_allowed_subnets();
 		let mut expected_subnets = 0;
+		let mut n = 20;
+		let num_subnets: u16 = n;
+
 
 		for i in 0..num_subnets{
-			register_module(i, U256::from(0), stake_per_module);
+			register_module(i, U256::from(i), stake_per_module);
+			for j in 0..n {
+				if j != i {
+					let n = SubspaceModule::get_subnet_n(i);
+					println!("registering module i:{} j:{} n:{}", i,j,n);
+					register_module(i, U256::from(j), stake_per_module);
+				}
+			}
 			expected_subnets += 1;
 			if expected_subnets > max_allowed_subnets {
 				expected_subnets = max_allowed_subnets;
 			} else {
-				assert_eq!(SubspaceModule::get_subnet_n(i), 1);
+				assert_eq!(SubspaceModule::get_subnet_n(i), n);
 			}
 			assert_eq!(
 				SubspaceModule::num_subnets(),
@@ -36,8 +45,30 @@ fn test_add_subnets() {
 
 		}
 
+
+
 		for netuid in 0..num_subnets {
+			let total_stake = SubspaceModule::get_total_subnet_stake(netuid);
+			let total_balance = SubspaceModule::get_total_subnet_balance(netuid);
+			let total_tokens_before = total_stake + total_balance;
+	
+			let keys = SubspaceModule::get_keys(netuid);
+
+			println!("total stake {}", total_stake);
+			println!("total balance {}", total_balance);
+			println!("total tokens before {}", total_tokens_before);
+
+
+			assert_eq!(keys.len() as u16, n);
+
 			SubspaceModule::remove_subnet(netuid);
+
+			assert_eq!(SubspaceModule::get_subnet_n(netuid), 0);
+
+			let total_tokens_after: u64 = keys.iter().map(|key| SubspaceModule::get_balance_u64(key)).sum();
+			println!("total tokens after {}", total_tokens_after);
+
+			assert_eq!(total_tokens_after, total_tokens_before);
 			expected_subnets = expected_subnets.saturating_sub(1);
 			assert_eq!(
 				SubspaceModule::num_subnets(),
