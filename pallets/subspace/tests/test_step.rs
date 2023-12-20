@@ -84,10 +84,12 @@ fn test_dividends() {
 		// do a list of ones for weights
 		let weight_uids: Vec<u16> = [2, 3].to_vec();
 		// do a list of ones for weights
-		let weight_values: Vec<u16> = [1, 1].to_vec();
+		let weight_values: Vec<u16> = [2,1].to_vec();
 		set_weights(netuid, keys[0], weight_uids.clone(), weight_values.clone());
 		set_weights(netuid, keys[1], weight_uids.clone(), weight_values.clone());
 
+
+		let stakes_before : Vec<u64> = SubspaceModule::get_stakes(netuid);
 		step_block(1);
 		let incentives: Vec<u16> = SubspaceModule::get_incentives(netuid);
 		let dividends: Vec<u16> = SubspaceModule::get_dividends(netuid);
@@ -96,15 +98,42 @@ fn test_dividends() {
 
 		// evaluate votees
 		assert!(incentives[2] > 0);
-		assert!(dividends[2] == dividends[3]);
-		assert!(incentives[2] == incentives[3]);
-		assert!(stakes[2] == stakes[3]);
-		assert!(emissions[2] == emissions[3]);
+		assert_eq!(dividends[2] ,  dividends[3]);
+		let delta : u64 = 100;
+		assert!((incentives[2] as u64) > (weight_values[0] as u64  * incentives[3] as u64) - delta);
+		assert!((incentives[2] as u64) < (weight_values[0] as u64  * incentives[3] as u64) + delta);
+
+		assert!((emissions[2] as u64)  > (weight_values[0] as u64  * emissions[3] as u64) - delta);
+		assert!((emissions[2] as u64)  < (weight_values[0] as u64  * emissions[3] as u64) + delta);
 
 		// evaluate voters
-		assert!(dividends[0] == dividends[1]);
-		assert!(incentives[0] == incentives[1]);
-		assert!(stakes[0] == stakes[1]);
+		assert!(dividends[0] == dividends[1] , "dividends[0]: {} != dividends[1]: {}", dividends[0], dividends[1]);
+		assert!(dividends[0] == dividends[1] , "dividends[0]: {} != dividends[1]: {}", dividends[0], dividends[1]);
+
+		assert_eq!(incentives[0],incentives[1]);
+		assert_eq!(dividends[2],dividends[3]);
+
+		println!("emissions: {:?}", emissions);
+
+		for (uid, emission) in emissions.iter().enumerate() {
+			if emission == &0 {
+				continue;
+			}
+			let stake: u64 = stakes[uid as usize];
+			let stake_before: u64 = stakes_before[uid as usize];
+			let stake_difference: u64 = stake - stake_before;
+			let expected_stake_difference: u64 = emissions[uid as usize];
+			let error_delta: u64 = (emissions[uid as usize] as f64 * 0.001) as u64;
+
+			assert!(
+				stake_difference < expected_stake_difference + error_delta &&
+					stake_difference > expected_stake_difference - error_delta,
+				"stake_difference: {} != expected_stake_difference: {}",
+				stake_difference,
+				expected_stake_difference
+			);
+		}
+
 		check_network_stats(netuid);
 	});
 }

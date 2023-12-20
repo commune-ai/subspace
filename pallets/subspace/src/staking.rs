@@ -504,6 +504,15 @@ impl<T: Config> Pallet<T> {
 		return Self::balance_to_u64(Self::get_balance(key))
 	}
 
+	pub fn total_balance_for_keys(keys: Vec<T::AccountId>) -> u64 {
+		let mut total_balance: u64 = 0;
+		for key in keys {
+			total_balance += Self::get_balance_u64(&key);
+		}
+		return total_balance;
+	}
+
+
 	pub fn has_enough_balance(key: &T::AccountId, amount: u64) -> bool {
 		return Self::get_balance_u64(key) > amount || amount == 0
 	}
