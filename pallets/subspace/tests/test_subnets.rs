@@ -17,7 +17,7 @@ fn test_add_subnets() {
 		let tempo: u16 = 13;
 		let num_subnets: u16 = 1000;
 		let mut stake_per_module: u64 = 1_000_000_000;
-		let mut max_allowed_subnets: u16 = SubspaceModule::get_max_allowed_subnets();
+		let mut max_allowed_subnets: u16 = SubspaceModule::getglobal_max_allowed_subnets();
 		let mut expected_subnets = 0;
 
 		for i in 0..num_subnets{
@@ -321,7 +321,7 @@ fn test_set_max_allowed_modules() {
 	}
 
 	#[test]
-	fn test_max_allowed_subnets() {
+	fn testglobal_max_allowed_subnets() {
 		new_test_ext().execute_with(|| {
 			let max_allowed_subnets: u16 = 100;
 	

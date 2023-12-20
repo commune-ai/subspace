@@ -163,9 +163,9 @@ pub mod pallet {
 
 
 	#[pallet::type_value]
-	pub fn DefaultMinWeightStake<T: Config>() -> u64 { 10 }
+	pub fn DefaultMinWeightStake<T: Config>() -> u64 { 0 }
 	#[pallet::storage] // --- MAP ( netuid ) --> min_allowed_weights
-	pub type MinWeightStake<T> = StorageValue<_, u64, ValueQuery, DefaultMinStake<T>>;
+	pub type MinWeightStake<T> = StorageValue<_, u64, ValueQuery, DefaultMinWeightStake<T>>;
 	
 
 	#[pallet::type_value]
@@ -242,22 +242,22 @@ pub mod pallet {
 	#[scale_info(skip_type_params(T))]
 	pub struct SubnetParams<T: Config> {
 		// --- parameters
-		pub name: Vec<u8>,
-		pub tempo: u16, // how many blocks to wait before rewarding models
-		pub immunity_period: u16, // immunity period
-		pub max_allowed_uids: u16, // max number of weights allowed to be registered in this		pub max_allowed_uids: u16, // max number of uids allowed to be registered in this subne
-		pub min_allowed_weights: u16, // min number of weights allowed to be registered in this
-		pub max_allowed_weights: u16, // max number of weights allowed to be registered in this		pub max_allowed_uids: u16, // max number of uids allowed to be registered in this subnet
-		pub max_weight_age: u64, // max age of a weight
-		pub max_stake: u64, // max stake allowed
-		pub min_stake: u64,	// min stake required
-		pub vote_threshold: u16, // out of 100
-		pub vote_mode: Vec<u8>,
-		pub trust_ratio: u16,
-		pub self_vote: bool, // 
 		pub founder: T::AccountId,
 		pub founder_share: u16, // out of 100
-		pub incentive_ratio : u16 // out of 100
+		pub immunity_period: u16, // immunity period
+		pub incentive_ratio : u16, // out of 100
+		pub max_allowed_uids: u16, // max number of weights allowed to be registered in this		pub max_allowed_uids: u16, // max number of uids allowed to be registered in this subne
+		pub max_allowed_weights: u16, // max number of weights allowed to be registered in this		pub max_allowed_uids: u16, // max number of uids allowed to be registered in this subnet
+		pub min_allowed_weights: u16, // min number of weights allowed to be registered in this
+		pub max_stake: u64, // max stake allowed
+		pub max_weight_age: u64, // max age of a weight
+		pub min_stake: u64,	// min stake required
+		pub name: Vec<u8>,
+		pub self_vote: bool, // 
+		pub tempo: u16, // how many blocks to wait before rewarding models
+		pub trust_ratio: u16,
+		pub vote_threshold: u16, // out of 100
+		pub vote_mode: Vec<u8>,
 	}
 
 	#[pallet::type_value]
@@ -279,8 +279,6 @@ pub mod pallet {
 			incentive_ratio : DefaultIncentiveRatio::<T>::get(), 
 			min_stake :  DefaultMinStake::<T>::get(),
 			founder: DefaultFounder::<T>::get(),
-			
-
 		}
 	}
 
@@ -449,6 +447,8 @@ pub mod pallet {
 	// =======================================
 	// ==== Module Variables  ====
 	// =======================================
+
+
 	#[pallet::storage] // --- DMAP ( netuid, module_key ) --> uid
 	pub(super) type Uids<T: Config> =
 		StorageDoubleMap<_, Identity, u16, Blake2_128Concat, T::AccountId, u16, OptionQuery>;
@@ -459,27 +459,18 @@ pub mod pallet {
 		T::AccountId::decode(&mut sp_runtime::traits::TrailingZeroInput::zeroes()).unwrap()
 	}
 	#[pallet::storage] // --- DMAP ( netuid, uid ) --> module_key
-	pub(super) type Keys<T: Config> =
-		StorageDoubleMap<_, Identity, u16, Identity, u16, T::AccountId, ValueQuery, DefaultKey<T>>;
+	pub(super) type Keys<T: Config> = StorageDoubleMap<_, Identity, u16, Identity, u16, T::AccountId, ValueQuery, DefaultKey<T>>;
+
+	#[pallet::type_value]
+	pub fn DefaultName<T: Config>() -> Vec<u8> {vec![]}
 	#[pallet::storage] // --- DMAP ( netuid, uid ) --> module_name
 	pub type Name<T: Config> =StorageDoubleMap<_, Twox64Concat, u16, Twox64Concat, u16, Vec<u8>, ValueQuery>;
-	
+
+	#[pallet::type_value]
+	pub fn DefaultAddress<T: Config>() -> Vec<u8> {vec![]}
 	#[pallet::storage] // --- DMAP ( netuid, uid ) --> module_address
 	pub type Address<T: Config> = StorageDoubleMap<_, Twox64Concat, u16, Twox64Concat, u16, Vec<u8>, ValueQuery>;
-	
-	#[pallet::type_value]
-	pub fn DefaultBlockAtRegistration<T: Config>() -> u64 { 0 }
-	#[pallet::storage] // --- DMAP ( netuid, uid ) --> block number that the module is registered
-	pub type RegistrationBlock<T: Config> = StorageDoubleMap<
-		_,
-		Identity,
-		u16,
-		Identity,
-		u16,
-		u64,
-		ValueQuery,
-		DefaultBlockAtRegistration<T>,
-	>;
+
 
 	#[pallet::type_value]
 	pub fn DefaultDelegationFee<T: Config>() -> Percent { Percent::from_percent(20u8)}
@@ -493,6 +484,22 @@ pub mod pallet {
 		Percent,
 		ValueQuery,
 		DefaultDelegationFee<T>,
+	>;
+
+	// STATE OF THE MODULE
+
+	#[pallet::type_value]
+	pub fn DefaultBlockAtRegistration<T: Config>() -> u64 { 0 }
+	#[pallet::storage] // --- DMAP ( netuid, uid ) --> block number that the module is registered
+	pub type RegistrationBlock<T: Config> = StorageDoubleMap<
+		_,
+		Identity,
+		u16,
+		Identity,
+		u16,
+		u64,
+		ValueQuery,
+		DefaultBlockAtRegistration<T>,
 	>;
 
 	// =======================================
@@ -817,10 +824,7 @@ pub mod pallet {
 					max_weight_age: default_params.max_weight_age,
 				};
 				
-				self::Pallet::<T>::add_network(params.clone());
-				// --- Set subnet founder
-				self::Pallet::<T>::set_subnet_founder(netuid, &subnet.8.clone());
-
+				self::Pallet::<T>::add_subnet(params.clone());
 				
 				for (uid_usize, (key, name, address, weights)) in
 					self.modules[subnet_idx].iter().enumerate()
@@ -1154,7 +1158,7 @@ pub mod pallet {
             origin: OriginFor<T>,
 			netuid: u16, // FOR SUBNET PROPOSAL ONLY
 			founder: T::AccountId,
-			founder_share: Option<u16>,
+			founder_share: u16,
 			immunity_period: u16,
 			incentive_ratio: u16,
 			max_allowed_uids: u16,

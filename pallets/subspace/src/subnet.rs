@@ -17,7 +17,7 @@ impl<T: Config> Pallet<T> {
 	//
 
 
-	pub fn do_remove_network(origin: T::RuntimeOrigin, netuid: u16) -> DispatchResult {
+	pub fn do_remote_subnet(origin: T::RuntimeOrigin, netuid: u16) -> DispatchResult {
 		let key = ensure_signed(origin)?;
 		// --- 1. Ensure the network name does not already exist.
 
@@ -47,6 +47,93 @@ impl<T: Config> Pallet<T> {
 		// --- 16. Ok and done.
 		Ok(())
 	}
+
+
+
+    pub fn check_subnet_params(params: SubnetParams<T>) -> DispatchResult{
+        // checks if params are valid
+
+		let global_params = Self::global_params();
+
+        // check valid tempo		
+		ensure!(params.min_allowed_weights <= params.max_allowed_weights, Error::<T>::InvalidMinAllowedWeights);
+		ensure!(params.min_allowed_weights >= 1, Error::<T>::InvalidMinAllowedWeights);
+
+		ensure!(params.max_allowed_weights <= global_params.max_allowed_weights, Error::<T>::InvalidMaxAllowedWeights);
+
+		// the  global params must be larger than the global min_stake
+		ensure!(params.min_stake >= global_params.min_stake, Error::<T>::InvalidMinStake);
+
+		ensure!(params.max_stake > params.min_stake, Error::<T>::InvalidMaxStake);
+
+		ensure!(params.tempo > 0, Error::<T>::InvalidTempo);
+
+		ensure!(params.max_weight_age > params.tempo as u64,  Error::<T>::InvalidMaxWeightAge);
+                		
+		// ensure the trust_ratio is between 0 and 100
+		ensure!(params.trust_ratio <= 100, Error::<T>::InvalidTrustRatio);
+
+		// ensure the vode_mode is in "authority", "stake", "quadratic"
+		ensure!(
+			is_vec_str(params.vote_mode.clone(),"authority") ||
+			is_vec_str(params.vote_mode.clone(),"stake") ||
+			is_vec_str(params.vote_mode.clone(),"quadratic"),
+		 Error::<T>::InvalidVoteMode);
+        Ok(())
+
+
+    }
+
+
+	pub fn subnet_params(netuid: u16) -> SubnetParams<T> {
+		SubnetParams {
+			immunity_period: ImmunityPeriod::<T>::get(netuid),
+			min_allowed_weights: MinAllowedWeights::<T>::get(netuid),
+			max_allowed_weights: MaxAllowedWeights::<T>::get(netuid),
+			max_allowed_uids: MaxAllowedUids::<T>::get(netuid),
+			max_stake: MaxStake::<T>::get(netuid),
+			max_weight_age: MaxWeightAge::<T>::get(netuid),
+			min_stake: MinStake::<T>::get(netuid),
+			tempo: Tempo::<T>::get(netuid),
+			name: <Vec<u8>>::new(),
+			vote_threshold: VoteThresholdSubnet::<T>::get(netuid),
+			vote_mode:VoteModeSubnet::<T>::get(netuid),
+			trust_ratio: TrustRatio::<T>::get(netuid),
+			self_vote: SelfVote::<T>::get(netuid),
+			founder_share: FounderShare::<T>::get(netuid),
+			incentive_ratio: IncentiveRatio::<T>::get(netuid),
+			founder: Founder::<T>::get(netuid),
+		
+		}
+	}
+
+
+
+
+	pub fn set_subnet_params(netuid: u16, mut params: SubnetParams<T>) {
+
+		// TEMPO, IMMUNITY_PERIOD, MIN_ALLOWED_WEIGHTS, MAX_ALLOWED_WEIGHTS, MAX_ALLOWED_UIDS,
+		// MAX_IMMUNITY_RATIO
+		Self::set_founder(netuid, params.founder);
+		Self::set_founder_share(netuid, params.founder_share);
+		Self::set_tempo(netuid, params.tempo);
+		Self::set_immunity_period(netuid, params.immunity_period);
+		Self::set_max_allowed_weights(netuid, params.max_allowed_weights);
+		Self::set_max_allowed_uids(netuid, params.max_allowed_uids);
+		Self::set_max_weight_age(netuid, params.max_weight_age);
+		Self::set_max_stake(netuid, params.max_stake);
+		Self::set_min_allowed_weights(netuid, params.min_allowed_weights);
+		Self::set_min_stake(netuid, params.min_stake);
+		Self::set_name_subnet(netuid, params.name);
+		Self::set_trust_ratio(netuid, params.trust_ratio);
+		Self::set_vote_threshold_subnet(netuid, params.vote_threshold);
+		Self::set_vote_mode_subnet(netuid, params.vote_mode);
+		Self::set_self_vote(netuid, params.self_vote);
+		Self::set_incentive_ratio(netuid,  params.incentive_ratio);
+
+
+	}
+
 
 	pub fn if_subnet_exist(netuid: u16) -> bool {
 		return N::<T>::contains_key(netuid)
@@ -104,28 +191,6 @@ impl<T: Config> Pallet<T> {
 	}
 
 
-	pub fn subnet_params(netuid: u16) -> SubnetParams<T> {
-		SubnetParams {
-			immunity_period: ImmunityPeriod::<T>::get(netuid),
-			min_allowed_weights: MinAllowedWeights::<T>::get(netuid),
-			max_allowed_weights: MaxAllowedWeights::<T>::get(netuid),
-			max_allowed_uids: MaxAllowedUids::<T>::get(netuid),
-			max_stake: MaxStake::<T>::get(netuid),
-			max_weight_age: MaxWeightAge::<T>::get(netuid),
-			min_stake: MinStake::<T>::get(netuid),
-			tempo: Tempo::<T>::get(netuid),
-			name: <Vec<u8>>::new(),
-			vote_threshold: VoteThresholdSubnet::<T>::get(netuid),
-			vote_mode:VoteModeSubnet::<T>::get(netuid),
-			trust_ratio: TrustRatio::<T>::get(netuid),
-			self_vote: SelfVote::<T>::get(netuid),
-			founder_share: FounderShare::<T>::get(netuid),
-			incentive_ratio: IncentiveRatio::<T>::get(netuid),
-			founder: Founder::<T>::get(netuid),
-			
-			
-		}
-	}
 
 	pub fn add_pending_deregistration_uid(netuid: u16, uid: u16) {
 		PendingDeregisterUids::<T>::mutate(netuid, |val| val.push(uid));
@@ -172,48 +237,7 @@ impl<T: Config> Pallet<T> {
 
 
 
-	pub fn set_subnet_params(netuid: u16, mut params: SubnetParams<T>) {
-
-		// TEMPO, IMMUNITY_PERIOD, MIN_ALLOWED_WEIGHTS, MAX_ALLOWED_WEIGHTS, MAX_ALLOWED_UIDS,
-		// MAX_IMMUNITY_RATIO
-		Self::set_tempo(netuid, params.tempo);
-
-		Self::set_immunity_period(netuid, params.immunity_period);
-
-		Self::set_max_allowed_weights(netuid, params.max_allowed_weights);
-
-		Self::set_min_allowed_weights(netuid, params.min_allowed_weights);
-
-		Self::set_min_stake(netuid, params.min_stake);
-
-		Self::set_max_allowed_uids(netuid, params.max_allowed_uids);
-
-		Self::set_subnet_vote_threshold(netuid, params.vote_threshold);
-
-		Self::set_vote_mode_subnet(netuid, params.vote_mode);
-
-		Self::set_subnet_name(netuid, params.name);
-
-		Self::set_max_weight_age(netuid, params.max_weight_age);
-
-		Self::set_max_stake(netuid, params.max_stake);
-
-		Self::set_trust_ratio(netuid, params.trust_ratio);
-
-		Self::set_self_vote(netuid, params.self_vote);
-
-		Self::set_founder(netuid, params.founder);
-		
-		Self::set_founder_share(netuid, params.founder_share);
-
-		Self::set_incentive_ratio(netuid,  params.incentive_ratio);
-
-
-	}
-
-
-
-	pub fn set_subnet_name(netuid: u16, name: Vec<u8>) {
+	pub fn set_name_subnet(netuid: u16, name: Vec<u8>) {
 		// set the name if it doesnt exist
 		SubnetNames::<T>::insert(netuid, name.clone());
 	}
@@ -254,9 +278,6 @@ impl<T: Config> Pallet<T> {
 		return Founder::<T>::get(netuid) == *key
 	}
 
-	pub fn set_subnet_founder(netuid: u16, key: &T::AccountId) {
-		Founder::<T>::insert(netuid, key.clone());
-	}
 
 	pub fn get_subnet_founder(netuid: u16) -> T::AccountId {
 		return Founder::<T>::get(netuid)
@@ -354,7 +375,7 @@ impl<T: Config> Pallet<T> {
 		return Self::calculate_network_emission(netuid)
 	}
 
-	pub fn add_network(params: SubnetParams<T>) -> u16 {
+	pub fn add_subnet(params: SubnetParams<T>) -> u16 {
 
 		// --- 1. Enfnsure that the network name does not already exist.
 		let total_networks: u16 = TotalSubnets::<T>::get();
@@ -410,7 +431,7 @@ impl<T: Config> Pallet<T> {
 		return founder == key.clone()
 	}
 
-	pub fn remove_network_for_name(name: Vec<u8>) -> u16 {
+	pub fn remote_subnet_for_name(name: Vec<u8>) -> u16 {
 		let netuid = Self::get_netuid_for_name(name.clone());
 		return Self::remove_subnet(netuid)
 	}
@@ -461,6 +482,7 @@ impl<T: Config> Pallet<T> {
 		IncentiveRatio::<T>::remove(netuid);
 		MaxAllowedUids::<T>::remove(netuid);
 		MaxAllowedWeights::<T>::remove(netuid);
+		MaxStake::<T>::remove(netuid);
 		MinAllowedWeights::<T>::remove(netuid);
 		MinStake::<T>::remove(netuid);
 		SelfVote::<T>::remove(netuid);
@@ -472,7 +494,7 @@ impl<T: Config> Pallet<T> {
 
 		// Adjust the total number of subnets. and remove the subnet from the list of subnets.
 		N::<T>::remove(netuid);
-		TotalSubnets::<T>::mutate(|val| *val -= 1);
+		TotalSubnets::<T>::mutate(|val| (*val).saturating_sub(1));
 		// --- 4. Emit the event.
 		log::info!("NetworkRemoved( netuid:{:?} )", netuid);
 		Self::deposit_event(Event::NetworkRemoved(netuid));
@@ -575,7 +597,7 @@ impl<T: Config> Pallet<T> {
 
 	// we need to prefix the voting power by the network uid
 
-	pub fn set_subnet_vote_threshold(netuid: u16, vote_threshold: u16) {
+	pub fn set_vote_threshold_subnet(netuid: u16, vote_threshold: u16) {
 		VoteThresholdSubnet::<T>::insert(netuid, vote_threshold);
 	}
 
@@ -742,10 +764,10 @@ impl<T: Config> Pallet<T> {
 		}
 	}
 
-	pub fn get_max_allowed_subnets() -> u16 {
+	pub fn getglobal_max_allowed_subnets() -> u16 {
 		MaxAllowedSubnets::<T>::get()
 	}
-	pub fn set_max_allowed_subnets(max_allowed_subnets: u16) {
+	pub fn set_global_max_allowed_subnets(max_allowed_subnets: u16) {
 		MaxAllowedSubnets::<T>::set(max_allowed_subnets)
 	}
 
@@ -800,7 +822,8 @@ impl<T: Config> Pallet<T> {
 		return max_allowed_weights.min(n)
 	}
 	pub fn set_max_allowed_weights(netuid: u16, mut max_allowed_weights: u16) {
-		MaxAllowedWeights::<T>::insert(netuid, max_allowed_weights.min(840));
+		let global_params = Self::global_params();
+		MaxAllowedWeights::<T>::insert(netuid, max_allowed_weights.min(global_params.max_allowed_weights));
 	}
 
 	pub fn get_max_allowed_uids(netuid: u16) -> u16 {
@@ -933,41 +956,6 @@ impl<T: Config> Pallet<T> {
 		return Keys::<T>::contains_key(netuid, uid)
 	}
 
-
-
-    pub fn check_subnet_params(params: SubnetParams<T>) -> DispatchResult{
-        // checks if params are valid
-
-		let global_params = Self::global_params();
-
-        // check valid tempo		
-		ensure!(params.min_allowed_weights <= params.max_allowed_weights, Error::<T>::InvalidMinAllowedWeights);
-		ensure!(params.min_allowed_weights >= 1, Error::<T>::InvalidMinAllowedWeights);
-
-		ensure!(params.max_allowed_weights <= global_params.max_allowed_weights, Error::<T>::InvalidMaxAllowedWeights);
-
-		// the  global params must be larger than the global min_stake
-		ensure!(params.min_stake >= global_params.min_stake, Error::<T>::InvalidMinStake);
-
-		ensure!(params.max_stake > params.min_stake, Error::<T>::InvalidMaxStake);
-
-		ensure!(params.tempo > 0, Error::<T>::InvalidTempo);
-
-		ensure!(params.max_weight_age > params.tempo as u64,  Error::<T>::InvalidMaxWeightAge);
-                		
-		// ensure the trust_ratio is between 0 and 100
-		ensure!(params.trust_ratio <= 100, Error::<T>::InvalidTrustRatio);
-
-		// ensure the vode_mode is in "authority", "stake", "quadratic"
-		ensure!(
-			is_vec_str(params.vote_mode.clone(),"authority") ||
-			is_vec_str(params.vote_mode.clone(),"stake") ||
-			is_vec_str(params.vote_mode.clone(),"quadratic"),
-		 Error::<T>::InvalidVoteMode);
-        Ok(())
-
-
-    }
 
 	pub fn get_max_weight_age(netuid: u16) -> u64 {
 		return MaxWeightAge::<T>::get(netuid)

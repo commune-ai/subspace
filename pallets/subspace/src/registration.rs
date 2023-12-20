@@ -262,7 +262,7 @@ impl<T: Config> Pallet<T> {
 
 
 		let num_subnets: u16 = Self::num_subnets();
-		let max_subnets: u16 = Self::get_max_allowed_subnets();
+		let max_subnets: u16 = Self::getglobal_max_allowed_subnets();
 		// if we have not reached the max number of subnets, then we can start a new one
 		if num_subnets >= max_subnets {
 			let mut min_stake: u64 = u64::MAX;
@@ -281,7 +281,7 @@ impl<T: Config> Pallet<T> {
 
 		let mut params: SubnetParams<T> = Self::default_subnet_params();
 		params.name = name.clone();
-		let netuid = Self::add_network(params);
+		let netuid = Self::add_subnet(params);
 		Founder::<T>::insert(netuid, founder_key.clone());
 		
 
