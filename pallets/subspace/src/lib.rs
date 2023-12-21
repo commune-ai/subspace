@@ -174,10 +174,6 @@ pub mod pallet {
 	pub type MaxAllowedWeightsGlobal<T> = StorageValue<_, u16, ValueQuery, DefaultMaxAllowedWeightsGlobal<T>>;
 
 
-	#[pallet::storage] // --- MAP ( netuid ) --> subnet_total_stake
-	pub type TotalStake<T> = StorageMap<_, Identity, u16, u64, ValueQuery>;
-
-
 	#[derive(Decode, Encode, PartialEq, Eq, Clone, Debug, TypeInfo)]
 	#[scale_info(skip_type_params(T))]
 	pub struct ModuleParams<T: Config> {
@@ -532,6 +528,22 @@ pub mod pallet {
 		ValueQuery,
 	>;
 
+	#[pallet::storage] // --- DMAP ( netuid, account_id ) --> Vec<(module_key, stake )> | Returns the list of the
+	pub type StakeTo<T: Config> = StorageDoubleMap<
+		_,
+		Identity,
+		u16,
+		Identity,
+		T::AccountId,
+		Vec<(T::AccountId, u64)>,
+		ValueQuery,
+	>;
+
+	// TOTAL STAKE PER SUBNET
+	#[pallet::storage] // --- MAP ( netuid ) --> subnet_total_stake
+	pub type TotalStake<T> = StorageMap<_, Identity, u16, u64, ValueQuery>;
+
+
 	// LOAN VARIABLES
 
 	#[pallet::storage] // --- DMAP ( netuid, module_key ) --> Vec<(delegater, stake )> | Returns the list of delegates
@@ -569,17 +581,7 @@ pub mod pallet {
 	pub fn DefaultProfitShareUnit<T: Config>() -> u16 {u16::MAX}
 	#[pallet::storage] // --- DMAP ( netuid, account_id ) --> Vec<(module_key, stake )> | Returns the list of the
 	pub type ProfitShareUnit<T: Config> = StorageValue<_, u16, ValueQuery, DefaultProfitShareUnit<T>>;
-				   
-	#[pallet::storage] // --- DMAP ( netuid, account_id ) --> Vec<(module_key, stake )> | Returns the list of the
-	pub type StakeTo<T: Config> = StorageDoubleMap<
-		_,
-		Identity,
-		u16,
-		Identity,
-		T::AccountId,
-		Vec<(T::AccountId, u64)>,
-		ValueQuery,
-	>;
+
 	// =======================================
 	// ==== Module Consensus Variables  ====
 	// =======================================
