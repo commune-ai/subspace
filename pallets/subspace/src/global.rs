@@ -59,28 +59,18 @@ impl<T: Config> Pallet<T> {
 	pub fn set_global_params(params: GlobalParams) {
 
 		Self::set_global_max_name_length(params.max_name_length);
-
 		Self::set_global_max_allowed_subnets(params.max_allowed_subnets);
-		
 		Self::set_max_allowed_modules(params.max_allowed_modules);
-
 		Self::set_max_registrations_per_block(params.max_registrations_per_block);
-
 		Self::set_unit_emission(params.unit_emission);
-
 		Self::set_tx_rate_limit(params.tx_rate_limit);
-
 		Self::set_global_vote_threshold(params.vote_threshold);
-
 		Self::set_max_proposals(params.max_proposals);
-
 		Self::set_vote_mode_global(params.vote_mode);
-
 		Self::set_burn_rate(params.burn_rate);
-
 		Self::set_min_burn( params.min_burn);
-
 		Self::set_min_weight_stake(params.min_weight_stake);
+		Self::set_min_stake_global(params.min_stake);
 
 
 	}
