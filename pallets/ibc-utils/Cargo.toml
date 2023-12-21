@@ -1,0 +1,36 @@
+[package]
+name = "pallet-ibc-utils"
+version = "4.0.0-dev"
+description = "IBC Utils"
+authors = ["David Tanaka <realhardworkingdeveloper@gmail.com>"]
+homepage = "https://substrate.io"
+edition = "2021"
+license = "MIT-0"
+publish = false
+repository = "https://github.com/commune-ai/subspace"
+
+[package.metadata.docs.rs]
+targets = ["x86_64-unknown-linux-gnu"]
+
+[dependencies]
+ibc = { version = "0.28.0", default-features = false, features = ["parity-scale-codec"], git = "https://github.com/octopus-network/ibc-rs.git", branch = "v0.28.0-codec-borsh-serde"}
+ibc-proto = { version = "0.25.0", default-features = false, git = "https://github.com/octopus-network/ibc-proto-rs", branch = "ibc" }
+codec = { package = "parity-scale-codec", version = "3.6.1", default-features = false, features = [
+	"derive",
+] }
+scale-info = { version = "2.5.0", default-features = false, features = ["derive"] }
+sp-std = { version = "8.0.0", default-features = false, git = "https://github.com/paritytech/substrate", branch = "polkadot-v1.0.0" }
+frame-support = { version = "4.0.0-dev", default-features = false, git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v1.0.0" }
+
+[features]
+default = ["std"]
+std = [
+	"ibc/std",
+	"ibc-proto/std",
+	"codec/std",
+	"scale-info/std",
+	"sp-std/std",
+  	"frame-support/std",
+]
+
+try-runtime = ["frame-support/try-runtime"]

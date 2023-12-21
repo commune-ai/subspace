@@ -63,6 +63,9 @@ pub use sp_runtime::{Perbill, Permill};
 
 // Subspace module
 pub use pallet_subspace;
+pub use pallet_ics20_transfer;
+pub use pallet_ibc;
+pub use pallet_ibc_utils;
 
 // EVM
 use fp_account::EthereumSignature;
@@ -340,6 +343,16 @@ impl pallet_subspace::Config for Runtime {
 	type WeightInfo = pallet_subspace::autogen_weights::SubstrateWeight<Runtime>;
 }
 
+impl pallet_ics20_transfer::Config for Runtime {
+	type RuntimeEvent = RuntimeEvent;
+	type WeightInfo = pallet_ics20_transfer::weights::SubstrateWeight<Runtime>;
+}
+
+impl pallet_ibc::Config for Runtime {
+	type RuntimeEvent = RuntimeEvent;
+	type WeightInfo = pallet_ibc::weights::SubstrateWeight<Runtime>;
+}
+
 // EVM Support
 
 pub const WEIGHT_MILLISECS_PER_BLOCK: u64 = 2000;
@@ -448,6 +461,9 @@ construct_runtime!(
 		Sudo: pallet_sudo,
 		Utility: pallet_utility,
 		SubspaceModule: pallet_subspace,
+		Ics20TransferModule: pallet_ics20_transfer,
+		IbcModule: pallet_ibc,
+		// IbcUtilsModule: pallet_ibc_utils,
 
 		// EVM Support
 		Ethereum: pallet_ethereum,
@@ -587,6 +603,8 @@ mod benches {
 		[frame_system, SystemBench::<Runtime>]
 		[pallet_balances, Balances]
 		[pallet_subspace, SubspaceModule]
+		// [pallet_ics20_transfer, Ics20TransferModule]
+		// [pallet_ibc, IbcModule]
 		[pallet_timestamp, Timestamp]
 		[pallet_utility, Utility]
 	);

@@ -17,6 +17,9 @@ opt-level = 3
 
 [dependencies]
 pallet-subspace = { version = "4.0.0-dev", default-features = false, path = "../pallets/subspace" }
+pallet-ics20-transfer = { version = "4.0.0-dev", default-features = false, path = "../pallets/ics20-transfer" }
+pallet-ibc = { version = "4.0.0-dev", default-features = false, path = "../pallets/ibc" }
+pallet-ibc-utils = { version = "4.0.0-dev", default-features = false, path = "../pallets/ibc-utils" }
 smallvec = "1.6.1"
 codec = { package = "parity-scale-codec", version = "3.6.1", default-features = false, features = ["derive"] }
 scale-info = { version = "2.10.0", default-features = false, features = ["derive"] }
@@ -90,6 +93,9 @@ std = [
 	"frame-system/std",
 	"frame-try-runtime/std",
 	"pallet-subspace/std",
+	"pallet-ics20-transfer/std",
+	"pallet-ibc/std",
+	"pallet-ibc-utils/std",
 	"pallet-aura/std",
 	"pallet-balances/std",
 	"pallet-grandpa/std",
@@ -139,6 +145,8 @@ runtime-benchmarks = [
 	"pallet-utility/runtime-benchmarks",
 	"sp-runtime/runtime-benchmarks",
 	"pallet-subspace/runtime-benchmarks",
+	"pallet-ics20-transfer/runtime-benchmarks",
+	"pallet-ibc/runtime-benchmarks",
 	"pallet-ethereum/runtime-benchmarks",
   	"pallet-evm/runtime-benchmarks",
 ]
@@ -156,6 +164,9 @@ try-runtime = [
 	"pallet-transaction-payment/try-runtime",
 	"pallet-utility/try-runtime",
 	"pallet-subspace/try-runtime",
+	"pallet-ics20-transfer/try-runtime",
+	"pallet-ibc/try-runtime",
+	"pallet-ibc-utils/try-runtime",
 	"pallet-ethereum/try-runtime",
 	"pallet-evm/try-runtime",
 	# "pallet-hotfix-sufficients/runtime-benchmarks",
