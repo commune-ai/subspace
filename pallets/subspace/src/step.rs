@@ -80,20 +80,16 @@ impl<T: Config> Pallet<T> {
 		if total_stake_u64 == 0 {
 			total_stake_u64 = 1;
 		}
-	
 
+		let max_stake = subnet_params.max_stake;
 
 		let stake_u64: Vec<u64> = keys
 			.iter()
-			.map(|(_, key)| Self::get_stake_for_key(netuid, key))
+			.map(|(_, key)| Self::get_stake_for_key(netuid, key).min(max_stake))
 			.collect();
-
-		
-		let max_stake = subnet_params.max_stake;
-
 		// clip it to the max stake
-		let mut stake_64: Vec<I64F64> = stake_u64.iter().map(|x| I64F64::from_num(x.clone().min(max_stake)) /I64F64::from_num(total_stake_u64)).collect();
-		let mut stake : Vec<I32F32> = stake_64.iter().map(|x| I32F32::from_num(x.clone())).collect();
+		let mut stake_f64: Vec<I64F64> = stake_u64.iter().map(|x| I64F64::from_num(x.clone()) /I64F64::from_num(total_stake_u64)).collect();
+		let mut stake : Vec<I32F32> = stake_f64.iter().map(|x| I32F32::from_num(x.clone())).collect();
 		// Normalize active stake.
 		inplace_normalize(&mut stake);
 
@@ -108,11 +104,13 @@ impl<T: Config> Pallet<T> {
 		for (uid_i, mut weights_i) in
 			<Weights<T> as IterableStorageDoubleMap<u16, u16, Vec<(u16, u16)>>>::iter_prefix(netuid)
 		{
+			let mut weight_changed : bool = false;
 			// watchout for the overflow
 			if max_weight_age <  u64::MAX {
 				// if the last update is older than the max weight age, then remove the weights
 				let weight_age: u64 = current_block.saturating_sub(last_update_vector[uid_i as usize]);
 				if weight_age > max_weight_age {
+					weight_changed = true;
 					// if the last update is older than the max weight age, then remove the weights
 					weights_i.clear();
 					continue
@@ -121,9 +119,16 @@ impl<T: Config> Pallet<T> {
 
 			for (pos, (uid_j, weight_ij)) in weights_i.iter().enumerate() {
 				// ignore the weights that are not in the top max allowed weights
-				if (pos as u16) < max_allowed_weights || *uid_j < n{
+				if (pos as u16) <= max_allowed_weights || *uid_j < n{
 					weights[uid_i as usize].push((*uid_j, u16_proportion_to_fixed(*weight_ij)));
+				} else {
+					weight_changed = true;
 				}
+			}
+
+			if weight_changed {
+				// update the weights
+				<Weights<T>>::insert(netuid, uid_i, weights_i);
 			}
 		}
 		
@@ -461,4 +466,5 @@ impl<T: Config> Pallet<T> {
 		return emission_vector
 	}
 
+	
 }
