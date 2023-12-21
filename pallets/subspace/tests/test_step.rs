@@ -84,10 +84,12 @@ fn test_dividends() {
 		// do a list of ones for weights
 		let weight_uids: Vec<u16> = [2, 3].to_vec();
 		// do a list of ones for weights
-		let weight_values: Vec<u16> = [1, 1].to_vec();
+		let weight_values: Vec<u16> = [2,1].to_vec();
 		set_weights(netuid, keys[0], weight_uids.clone(), weight_values.clone());
 		set_weights(netuid, keys[1], weight_uids.clone(), weight_values.clone());
 
+
+		let stakes_before : Vec<u64> = SubspaceModule::get_stakes(netuid);
 		step_block(1);
 		let incentives: Vec<u16> = SubspaceModule::get_incentives(netuid);
 		let dividends: Vec<u16> = SubspaceModule::get_dividends(netuid);
@@ -96,15 +98,42 @@ fn test_dividends() {
 
 		// evaluate votees
 		assert!(incentives[2] > 0);
-		assert!(dividends[2] == dividends[3]);
-		assert!(incentives[2] == incentives[3]);
-		assert!(stakes[2] == stakes[3]);
-		assert!(emissions[2] == emissions[3]);
+		assert_eq!(dividends[2] ,  dividends[3]);
+		let delta : u64 = 100;
+		assert!((incentives[2] as u64) > (weight_values[0] as u64  * incentives[3] as u64) - delta);
+		assert!((incentives[2] as u64) < (weight_values[0] as u64  * incentives[3] as u64) + delta);
+
+		assert!((emissions[2] as u64)  > (weight_values[0] as u64  * emissions[3] as u64) - delta);
+		assert!((emissions[2] as u64)  < (weight_values[0] as u64  * emissions[3] as u64) + delta);
 
 		// evaluate voters
-		assert!(dividends[0] == dividends[1]);
-		assert!(incentives[0] == incentives[1]);
-		assert!(stakes[0] == stakes[1]);
+		assert!(dividends[0] == dividends[1] , "dividends[0]: {} != dividends[1]: {}", dividends[0], dividends[1]);
+		assert!(dividends[0] == dividends[1] , "dividends[0]: {} != dividends[1]: {}", dividends[0], dividends[1]);
+
+		assert_eq!(incentives[0],incentives[1]);
+		assert_eq!(dividends[2],dividends[3]);
+
+		println!("emissions: {:?}", emissions);
+
+		for (uid, emission) in emissions.iter().enumerate() {
+			if emission == &0 {
+				continue;
+			}
+			let stake: u64 = stakes[uid as usize];
+			let stake_before: u64 = stakes_before[uid as usize];
+			let stake_difference: u64 = stake - stake_before;
+			let expected_stake_difference: u64 = emissions[uid as usize];
+			let error_delta: u64 = (emissions[uid as usize] as f64 * 0.001) as u64;
+
+			assert!(
+				stake_difference < expected_stake_difference + error_delta &&
+					stake_difference > expected_stake_difference - error_delta,
+				"stake_difference: {} != expected_stake_difference: {}",
+				stake_difference,
+				expected_stake_difference
+			);
+		}
+
 		check_network_stats(netuid);
 	});
 }
@@ -177,62 +206,62 @@ fn test_pruning() {
 }
 
 // TODO:
-// #[test]
-// fn test_lowest_priority_mechanism() {
-// 	new_test_ext().execute_with(|| {
-// 		// CONSSTANTS
-// 		let netuid: u16 = 0;
-// 		let n: u16 = 100;
-// 		let n_list: Vec<u16> = vec![10, 50, 100, 1000];
-// 		let blocks_per_epoch_list: u64 = 1;
-// 		let stake_per_module: u64 = 10_000;
+#[test]
+fn test_lowest_priority_mechanism() {
+	new_test_ext().execute_with(|| {
+		// CONSSTANTS
+		let netuid: u16 = 0;
+		let n: u16 = 100;
+		let n_list: Vec<u16> = vec![10, 50, 100, 1000];
+		let blocks_per_epoch_list: u64 = 1;
+		let stake_per_module: u64 = 10_000;
 
-// 		// SETUP NETWORK
-// 		register_n_modules(netuid, n, stake_per_module);
+		// SETUP NETWORK
+		register_n_modules(netuid, n, stake_per_module);
 
-// 		SubspaceModule::set_tempo(netuid, 1);
-// 		SubspaceModule::set_max_allowed_weights(netuid, n);
-// 		SubspaceModule::set_min_allowed_weights(netuid, 0);
+		SubspaceModule::set_tempo(netuid, 1);
+		SubspaceModule::set_max_allowed_weights(netuid, n);
+		SubspaceModule::set_min_allowed_weights(netuid, 0);
 
-// 		// for i in 0..n {
+		// for i in 0..n {
 
-// 		//     let key: U256 = U256::from(i);
-// 		//     register_module( netuid, key, stake_per_module );
+		//     let key: U256 = U256::from(i);
+		//     register_module( netuid, key, stake_per_module );
 
-// 		// }
-// 		let keys = SubspaceModule::get_keys(netuid);
-// 		let uids = SubspaceModule::get_uids(netuid);
+		// }
+		let keys = SubspaceModule::get_keys(netuid);
+		let uids = SubspaceModule::get_uids(netuid);
 
-// 		// do a list of ones for weights
-// 		let weight_uids: Vec<u16> = (0..n).collect();
-// 		// do a list of ones for weights
-// 		let mut weight_values: Vec<u16> = weight_uids.iter().map(|x| 1 as u16).collect();
+		// do a list of ones for weights
+		let weight_uids: Vec<u16> = (0..n).collect();
+		// do a list of ones for weights
+		let mut weight_values: Vec<u16> = weight_uids.iter().map(|x| 1 as u16).collect();
 
-// 		let prune_uid: u16 = n - 1;
-// 		weight_values[prune_uid as usize] = 0;
-// 		set_weights(netuid, keys[0], weight_uids.clone(), weight_values.clone());
+		let prune_uid: u16 = n - 1;
+		weight_values[prune_uid as usize] = 0;
+		set_weights(netuid, keys[0], weight_uids.clone(), weight_values.clone());
 
-// 		step_block(1);
-// 		let incentives: Vec<u16> = SubspaceModule::get_incentives(netuid);
-// 		let dividends: Vec<u16> = SubspaceModule::get_dividends(netuid);
-// 		let emissions: Vec<u64> = SubspaceModule::get_emissions(netuid);
-// 		let stakes: Vec<u64> = SubspaceModule::get_stakes(netuid);
+		step_block(1);
+		let incentives: Vec<u16> = SubspaceModule::get_incentives(netuid);
+		let dividends: Vec<u16> = SubspaceModule::get_dividends(netuid);
+		let emissions: Vec<u64> = SubspaceModule::get_emissions(netuid);
+		let stakes: Vec<u64> = SubspaceModule::get_stakes(netuid);
 
-// 		assert!(emissions[prune_uid as usize] == 0);
-// 		assert!(incentives[prune_uid as usize] == 0);
-// 		assert!(dividends[prune_uid as usize] == 0);
+		assert!(emissions[prune_uid as usize] == 0);
+		assert!(incentives[prune_uid as usize] == 0);
+		assert!(dividends[prune_uid as usize] == 0);
 
-// 		let lowest_priority_uid: u16 = SubspaceModule::get_lowest_uid(netuid);
-// 		println!("lowest_priority_uid: {}", lowest_priority_uid);
-// 		println!("prune_uid: {}", prune_uid);
-// 		println!("emissions: {:?}", emissions);
-// 		println!("lowest_priority_uid: {:?}", lowest_priority_uid);
-// 		println!("dividends: {:?}", dividends);
-// 		println!("incentives: {:?}", incentives);
-// 		assert!(lowest_priority_uid == prune_uid);
-// 		check_network_stats(netuid);
-// 	});
-// }
+		let lowest_priority_uid: u16 = SubspaceModule::get_lowest_uid(netuid);
+		println!("lowest_priority_uid: {}", lowest_priority_uid);
+		println!("prune_uid: {}", prune_uid);
+		println!("emissions: {:?}", emissions);
+		println!("lowest_priority_uid: {:?}", lowest_priority_uid);
+		println!("dividends: {:?}", dividends);
+		println!("incentives: {:?}", incentives);
+		assert!(lowest_priority_uid == prune_uid);
+		check_network_stats(netuid);
+	});
+}
 
 // #[test]
 // fn test_deregister_zero_emission_uids() {

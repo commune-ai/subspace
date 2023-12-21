@@ -69,29 +69,29 @@ error[E0599]: no function or associated item named `do_sudo_set_tx_rate_limit` f
     |                   function or associated item not found in `Pallet<T>`
     |                   help: there is an associated function with a similar name: `set_tx_rate_limit`
 
-error[E0599]: no function or associated item named `do_sudo_set_max_name_length` found for struct `Pallet` in the current scope
+error[E0599]: no function or associated item named `do_sudo_set_global_max_name_length` found for struct `Pallet` in the current scope
    --> pallets/subspace/src/lib.rs:788:10
     |
 55  |     pub struct Pallet<T>(_);
-    |     -------------------- function or associated item `do_sudo_set_max_name_length` not found for this struct
+    |     -------------------- function or associated item `do_sudo_set_global_max_name_length` not found for this struct
 ...
-788 |             Self::do_sudo_set_max_name_length(origin, max_name_length)
+788 |             Self::do_sudo_set_global_max_name_length(origin, max_name_length)
     |                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^
     |                   |
     |                   function or associated item not found in `Pallet<T>`
-    |                   help: there is an associated function with a similar name: `set_max_name_length`
+    |                   help: there is an associated function with a similar name: `set_global_max_name_length`
 
-error[E0599]: no function or associated item named `do_sudo_set_max_allowed_subnets` found for struct `Pallet` in the current scope
+error[E0599]: no function or associated item named `do_sudo_set_global_max_allowed_subnets` found for struct `Pallet` in the current scope
    --> pallets/subspace/src/lib.rs:798:10
     |
 55  |     pub struct Pallet<T>(_);
-    |     -------------------- function or associated item `do_sudo_set_max_allowed_subnets` not found for this struct
+    |     -------------------- function or associated item `do_sudo_set_global_max_allowed_subnets` not found for this struct
 ...
-798 |             Self::do_sudo_set_max_allowed_subnets(origin, max_allowed_subnets)
+798 |             Self::do_sudo_set_global_max_allowed_subnets(origin, max_allowed_subnets)
     |                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
     |                   |
     |                   function or associated item not found in `Pallet<T>`
-    |                   help: there is an associated function with a similar name: `set_max_allowed_subnets`
+    |                   help: there is an associated function with a similar name: `set_global_max_allowed_subnets`
 
 error[E0599]: no function or associated item named `do_sudo_set_max_registrations_per_block` found for struct `Pallet` in the current scope
    --> pallets/subspace/src/lib.rs:808:10
@@ -188,29 +188,29 @@ Caused by:
   [0m    [0m[0m[1m[38;5;12m| [0m[0m                  [0m[0m[1m[38;5;9mfunction or associated item not found in `Pallet<T>`[0m
   [0m    [0m[0m[1m[38;5;12m| [0m[0m                  [0m[0m[1m[38;5;9mhelp: there is an associated function with a similar name: `set_tx_rate_limit`[0m
 
-  [0m[1m[38;5;9merror[E0599][0m[0m[1m: no function or associated item named `do_sudo_set_max_name_length` found for struct `Pallet` in the current scope[0m
+  [0m[1m[38;5;9merror[E0599][0m[0m[1m: no function or associated item named `do_sudo_set_global_max_name_length` found for struct `Pallet` in the current scope[0m
   [0m   [0m[0m[1m[38;5;12m--> [0m[0m/Users/salvivona/commune/subspace/pallets/subspace/src/lib.rs:788:10[0m
   [0m    [0m[0m[1m[38;5;12m|[0m
   [0m[1m[38;5;12m55[0m[0m  [0m[0m[1m[38;5;12m|[0m[0m [0m[0m    pub struct Pallet<T>(_);[0m
-  [0m    [0m[0m[1m[38;5;12m| [0m[0m    [0m[0m[1m[38;5;12m--------------------[0m[0m [0m[0m[1m[38;5;12mfunction or associated item `do_sudo_set_max_name_length` not found for this struct[0m
+  [0m    [0m[0m[1m[38;5;12m| [0m[0m    [0m[0m[1m[38;5;12m--------------------[0m[0m [0m[0m[1m[38;5;12mfunction or associated item `do_sudo_set_global_max_name_length` not found for this struct[0m
   [0m[1m[38;5;12m...[0m
-  [0m[1m[38;5;12m788[0m[0m [0m[0m[1m[38;5;12m|[0m[0m [0m[0m            Self::do_sudo_set_max_name_length(origin, max_name_length)[0m
+  [0m[1m[38;5;12m788[0m[0m [0m[0m[1m[38;5;12m|[0m[0m [0m[0m            Self::do_sudo_set_global_max_name_length(origin, max_name_length)[0m
   [0m    [0m[0m[1m[38;5;12m| [0m[0m                  [0m[0m[1m[38;5;9m^^^^^^^^^^^^^^^^^^^^^^^^^^^[0m
   [0m    [0m[0m[1m[38;5;12m| [0m[0m                  [0m[0m[1m[38;5;9m|[0m
   [0m    [0m[0m[1m[38;5;12m| [0m[0m                  [0m[0m[1m[38;5;9mfunction or associated item not found in `Pallet<T>`[0m
-  [0m    [0m[0m[1m[38;5;12m| [0m[0m                  [0m[0m[1m[38;5;9mhelp: there is an associated function with a similar name: `set_max_name_length`[0m
+  [0m    [0m[0m[1m[38;5;12m| [0m[0m                  [0m[0m[1m[38;5;9mhelp: there is an associated function with a similar name: `set_global_max_name_length`[0m
 
-  [0m[1m[38;5;9merror[E0599][0m[0m[1m: no function or associated item named `do_sudo_set_max_allowed_subnets` found for struct `Pallet` in the current scope[0m
+  [0m[1m[38;5;9merror[E0599][0m[0m[1m: no function or associated item named `do_sudo_set_global_max_allowed_subnets` found for struct `Pallet` in the current scope[0m
   [0m   [0m[0m[1m[38;5;12m--> [0m[0m/Users/salvivona/commune/subspace/pallets/subspace/src/lib.rs:798:10[0m
   [0m    [0m[0m[1m[38;5;12m|[0m
   [0m[1m[38;5;12m55[0m[0m  [0m[0m[1m[38;5;12m|[0m[0m [0m[0m    pub struct Pallet<T>(_);[0m
-  [0m    [0m[0m[1m[38;5;12m| [0m[0m    [0m[0m[1m[38;5;12m--------------------[0m[0m [0m[0m[1m[38;5;12mfunction or associated item `do_sudo_set_max_allowed_subnets` not found for this struct[0m
+  [0m    [0m[0m[1m[38;5;12m| [0m[0m    [0m[0m[1m[38;5;12m--------------------[0m[0m [0m[0m[1m[38;5;12mfunction or associated item `do_sudo_set_global_max_allowed_subnets` not found for this struct[0m
   [0m[1m[38;5;12m...[0m
-  [0m[1m[38;5;12m798[0m[0m [0m[0m[1m[38;5;12m|[0m[0m [0m[0m            Self::do_sudo_set_max_allowed_subnets(origin, max_allowed_subnets)[0m
+  [0m[1m[38;5;12m798[0m[0m [0m[0m[1m[38;5;12m|[0m[0m [0m[0m            Self::do_sudo_set_global_max_allowed_subnets(origin, max_allowed_subnets)[0m
   [0m    [0m[0m[1m[38;5;12m| [0m[0m                  [0m[0m[1m[38;5;9m^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^[0m
   [0m    [0m[0m[1m[38;5;12m| [0m[0m                  [0m[0m[1m[38;5;9m|[0m
   [0m    [0m[0m[1m[38;5;12m| [0m[0m                  [0m[0m[1m[38;5;9mfunction or associated item not found in `Pallet<T>`[0m
-  [0m    [0m[0m[1m[38;5;12m| [0m[0m                  [0m[0m[1m[38;5;9mhelp: there is an associated function with a similar name: `set_max_allowed_subnets`[0m
+  [0m    [0m[0m[1m[38;5;12m| [0m[0m                  [0m[0m[1m[38;5;9mhelp: there is an associated function with a similar name: `set_global_max_allowed_subnets`[0m
 
   [0m[1m[38;5;9merror[E0599][0m[0m[1m: no function or associated item named `do_sudo_set_max_registrations_per_block` found for struct `Pallet` in the current scope[0m
   [0m   [0m[0m[1m[38;5;12m--> [0m[0m/Users/salvivona/commune/subspace/pallets/subspace/src/lib.rs:808:10[0m

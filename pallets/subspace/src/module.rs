@@ -116,7 +116,7 @@ impl<T: Config> Pallet<T> {
 		let replace_key: T::AccountId = Keys::<T>::get(netuid, replace_uid);
 
 		log::debug!(
-			"remove_network( netuid: {:?} | uid : {:?} | new_key: {:?} ) ",
+			"remote_subnet( netuid: {:?} | uid : {:?} | new_key: {:?} ) ",
 			netuid,
 			uid,
 			uid_key
@@ -159,11 +159,7 @@ impl<T: Config> Pallet<T> {
 		Weights::<T>::remove(netuid, replace_uid); // Make uid - key association.
 
 		// HANDLE THE REGISTRATION BLOCK
-		RegistrationBlock::<T>::insert(
-			netuid,
-			uid,
-			RegistrationBlock::<T>::get(netuid, replace_uid),
-		); // Fill block at registration.
+		RegistrationBlock::<T>::insert(netuid,uid,RegistrationBlock::<T>::get(netuid, replace_uid),); // Fill block at registration.
 		RegistrationBlock::<T>::remove(netuid, replace_uid); // Fill block at registration.
 
 		// HANDLE THE ADDRESS

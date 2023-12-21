@@ -2,7 +2,6 @@ use core::ops::Add;
 
 use frame_support::{pallet_prelude::DispatchResult};
 use scale_info::prelude::string::String;
-use frame_support::assert_ok;
 use super::*;
 use crate::utils::{is_vec_str};
 
@@ -12,9 +11,9 @@ impl<T: Config> Pallet<T> {
         origin: T::RuntimeOrigin,
     ) -> DispatchResult {
         let key = ensure_signed(origin)?;
-        assert!(Self::is_voter_registered(&key), "voter is not registered");
+        ensure!(Self::is_voter_registered(&key), Error::<T>::VoterIsNotRegistered);
         Self::unregister_voter(&key);
-        assert!(!Self::is_voter_registered(&key), "voter is still registered");
+        ensure!(!Self::is_voter_registered(&key), Error::<T>::VoterIsRegistered);
         Ok(())
     }
 
@@ -79,8 +78,7 @@ impl<T: Config> Pallet<T> {
         proposal.participants.push(key.clone());
         proposal.votes = proposal.votes.saturating_add(voting_power);
 
-        let result = Self::check_proposal(proposal.clone()); // check if proposal is valid
-        assert_ok!(result);
+        Self::check_proposal(proposal.clone())?; // check if proposal is valid
 
         // update the proposal
         Voter2Info::<T>::insert(key, voter_info);
@@ -98,7 +96,7 @@ impl<T: Config> Pallet<T> {
     ) -> DispatchResult {
         let key = ensure_signed(origin)?;
 
-        assert!(Self::proposal_exists(proposal_id), "proposal does not exist");
+        ensure!(Self::proposal_exists(proposal_id), Error::<T>::ProposalDoesNotExist);
 
         // if you vote the proposal on a subnet, you are no longer a participant
 
@@ -111,7 +109,7 @@ impl<T: Config> Pallet<T> {
         
 
         let mut voting_power : u64 = Self::get_voting_power(&key, proposal.clone());
-        assert!(voting_power > 0, "voting power is zero");
+        ensure!(voting_power > 0, Error::<T>::VotingPowerIsZero);
 
         // register the voter to avoid double voting
 
@@ -195,15 +193,15 @@ impl<T: Config> Pallet<T> {
             Self::check_subnet_params(proposal.subnet_params.clone())?;
             //  check if vote mode is valid
             let subnet_params: SubnetParams<T> = Self::subnet_params(proposal.netuid);
-            assert!(
+            ensure!(
                 is_vec_str(subnet_params.vote_mode.clone(),"stake") ||
                 is_vec_str(subnet_params.vote_mode.clone(),"quadratic")
-            );
+            , Error::<T>::InvalidVoteMode);
         } else {
-            assert!(proposal.data.len() > 0);
+            ensure!(proposal.data.len() > 0, Error::<T>::InvalidProposalData);
         }
         // check if proposal is valid
-        assert!(proposal.data.len() < 256); 
+        ensure!(proposal.data.len() < 256, Error::<T>::ProposalDataTooLarge); 
         // avoid an exploit with large data, cap it at 256 bytes
         Ok(())
     }

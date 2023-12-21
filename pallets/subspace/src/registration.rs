@@ -89,11 +89,12 @@ impl<T: Config> Pallet<T> {
 		}
 		// CONSTANT INITIAL BURN
 		if min_burn > 0 {
-			assert!(stake_amount >= min_burn);
+			ensure!(stake_amount >= min_burn, Error::<T>::NotEnoughStakeToRegister);
 			Self::decrease_stake(netuid, &key, &module_key, min_burn);
 			let min_stake = Self::get_min_stake(netuid);
 			let current_stake = Self::get_total_stake_to(netuid, &key);
-			assert!(current_stake == stake_amount - min_burn);
+			ensure!(current_stake == stake_amount.saturating_sub(min_burn), Error::<T>::NotEnoughStakeToRegister);
+			ensure!(current_stake >= min_stake, Error::<T>::NotEnoughStakeToRegister);
 		}
 		// ---Deposit successful event.
 
@@ -261,7 +262,7 @@ impl<T: Config> Pallet<T> {
 
 
 		let num_subnets: u16 = Self::num_subnets();
-		let max_subnets: u16 = Self::get_max_allowed_subnets();
+		let max_subnets: u16 = Self::getglobal_max_allowed_subnets();
 		// if we have not reached the max number of subnets, then we can start a new one
 		if num_subnets >= max_subnets {
 			let mut min_stake: u64 = u64::MAX;
@@ -280,7 +281,7 @@ impl<T: Config> Pallet<T> {
 
 		let mut params: SubnetParams<T> = Self::default_subnet_params();
 		params.name = name.clone();
-		let netuid = Self::add_network(params);
+		let netuid = Self::add_subnet(params);
 		Founder::<T>::insert(netuid, founder_key.clone());
 		
 

@@ -378,11 +378,11 @@ mod benchmarks {
     }
 
     #[benchmark]
-    fn remove_network() -> Result<(), BenchmarkError> {
+    fn remote_subnet() -> Result<(), BenchmarkError> {
         let (network, name, address, module_key, netuid) = default_register_helper::<T>();
 
         #[extrinsic_call]
-		remove_network(
+		remote_subnet(
             RawOrigin::Signed(module_key.clone()),
 			netuid
         );

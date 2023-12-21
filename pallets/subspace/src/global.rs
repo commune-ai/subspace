@@ -8,8 +8,8 @@ impl<T: Config> Pallet<T> {
 
 	pub fn global_params() -> GlobalParams {
 		GlobalParams {
-			max_name_length: Self::get_max_name_length(),
-			max_allowed_subnets: Self::get_max_allowed_subnets(),
+			max_name_length: Self::get_global_max_name_length(),
+			max_allowed_subnets: Self::getglobal_max_allowed_subnets(),
 			max_allowed_modules: Self::get_max_allowed_modules(),
 			max_registrations_per_block: Self::get_max_registrations_per_block(),
 			unit_emission: Self::get_unit_emission(),
@@ -18,7 +18,10 @@ impl<T: Config> Pallet<T> {
 			max_proposals: Self::get_max_proposals(),
 			vote_mode: Self::get_vote_mode_global(),
 			burn_rate: Self::get_burn_rate(),
-			min_burn: Self::get_min_burn()
+			min_burn: Self::get_min_burn(),
+			min_stake: Self::get_min_stake_global(),
+			min_weight_stake: Self::get_min_weight_stake(),
+			max_allowed_weights: Self::get_max_allowed_weights_global(),
 		}
 	}
 
@@ -27,21 +30,27 @@ impl<T: Config> Pallet<T> {
 		let og_params = Self::global_params();
 
         // check if the name already exists
-        ensure!(params.max_name_length > 0, "Invalid max_name_length");
-
-        ensure!(params.max_allowed_subnets > 0, "Invalid max_allowed_subnets");
-
-        ensure!(params.max_allowed_modules > 0, "Invalid max_allowed_modules");
-
-        ensure!(params.max_registrations_per_block > 0, "Invalid max_registrations_per_block");
-
-		ensure!(params.vote_threshold < 100, "Invalid vote_threshold");
-
-		ensure!(params.tx_rate_limit < 100, "Invalid tx_rate_limit");
+        ensure!(params.max_name_length > 0, Error::<T>::InvalidMaxNameLength);
 		
-		assert!(params.burn_rate <= 100, "Invalid burn_rate");
-                
-		assert!(params.min_burn <= 100, "Invalid vote_threshold");
+        ensure!(params.max_allowed_subnets > 0, Error::<T>::InvalidMaxAllowedSubnets);
+
+		ensure!(params.max_allowed_modules > 0, Error::<T>::InvalidMaxAllowedModules);
+
+		ensure!(params.max_registrations_per_block > 0, Error::<T>::InvalidMaxRegistrationsPerBlock);
+
+		ensure!(params.vote_threshold < 100, Error::<T>::InvalidVoteThreshold);
+
+		ensure!(params.max_proposals > 0, Error::<T>::InvalidMaxProposals);
+
+		ensure!(params.unit_emission >= og_params.unit_emission, Error::<T>::InvalidUnitEmission);
+
+		ensure!(params.tx_rate_limit > 0, Error::<T>::InvalidTxRateLimit);
+
+		ensure!(params.burn_rate <= 100, Error::<T>::InvalidBurnRate);
+				
+		ensure!(params.min_burn <= 100, Error::<T>::InvalidMinBurn);
+
+
 		
         Ok(())
     }
@@ -49,9 +58,9 @@ impl<T: Config> Pallet<T> {
 
 	pub fn set_global_params(params: GlobalParams) {
 
-		Self::set_max_name_length(params.max_name_length);
+		Self::set_global_max_name_length(params.max_name_length);
 
-		Self::set_max_allowed_subnets(params.max_allowed_subnets);
+		Self::set_global_max_allowed_subnets(params.max_allowed_subnets);
 		
 		Self::set_max_allowed_modules(params.max_allowed_modules);
 
@@ -71,8 +80,34 @@ impl<T: Config> Pallet<T> {
 
 		Self::set_min_burn( params.min_burn);
 
+		Self::set_min_weight_stake(params.min_weight_stake);
+
 
 	}
+
+
+	pub fn get_min_weight_stake() -> u64 {
+		return MinWeightStake::<T>::get()
+	}
+	pub fn set_min_weight_stake(min_weight_stake: u64)  {
+		MinWeightStake::<T>::put(min_weight_stake)
+	}
+
+	pub fn get_max_allowed_weights_global() -> u16 {
+		return MaxAllowedWeightsGlobal::<T>::get()
+	}
+
+	pub fn set_max_allowed_weights_global() -> u16 {
+		return MaxAllowedWeightsGlobal::<T>::get()
+	}
+
+	pub fn get_min_stake_global() -> u64 {
+		return MinStakeGlobal::<T>::get()
+	}
+	pub fn set_min_stake_global(min_stake: u64) {
+		MinStakeGlobal::<T>::put(min_stake)
+	}
+
 
 	pub fn set_vote_mode_global(vote_mode: Vec<u8>) {
 		VoteModeGlobal::<T>::put(vote_mode);
@@ -109,11 +144,11 @@ impl<T: Config> Pallet<T> {
 	pub fn get_max_registrations_per_block() -> u16 {
 		MaxRegistrationsPerBlock::<T>::get()
 	}
-	pub fn get_max_name_length() -> u16 {
+	pub fn get_global_max_name_length() -> u16 {
 		return MaxNameLength::<T>::get();
 	}
 
-	pub fn set_max_name_length(max_name_length: u16) {
+	pub fn set_global_max_name_length(max_name_length: u16) {
 		MaxNameLength::<T>::put(max_name_length)
 	}
 
@@ -122,8 +157,7 @@ impl<T: Config> Pallet<T> {
 		params: GlobalParams,
 	) -> DispatchResult {
 		ensure_root(origin)?;
-		assert!(is_vec_str(params.vote_mode.clone(), "authority"));
-		Self::check_global_params(params.clone())?;
+		ensure!(is_vec_str(Self::get_vote_mode_global(),"authority"), Error::<T>::InvalidVoteMode);
 		Self::set_global_params(params.clone());
 		Ok(())
 	}
