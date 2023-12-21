@@ -57,6 +57,7 @@ impl<T: Config> Pallet<T> {
 
         // check valid tempo		
 		ensure!(params.min_allowed_weights <= params.max_allowed_weights, Error::<T>::InvalidMinAllowedWeights);
+		
 		ensure!(params.min_allowed_weights >= 1, Error::<T>::InvalidMinAllowedWeights);
 
 		ensure!(params.max_allowed_weights <= global_params.max_allowed_weights, Error::<T>::InvalidMaxAllowedWeights);
