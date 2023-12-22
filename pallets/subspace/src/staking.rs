@@ -107,6 +107,7 @@ impl<T: Config> Pallet<T> {
 
 		let stake_before_add: u64 = Self::get_stake_to_module(netuid, &key, &module_key.clone());
 		let balance_before_add: u64 = Self::get_balance_u64(&key);
+		let module_stake_before_add: u64 = Self::get_stake_for_key(netuid, &module_key);
 
 		Self::increase_stake(netuid, &key, &module_key, amount);
 		let removed_balance: bool = Self::remove_balance_from_account(&key, Self::u64_to_balance(amount).unwrap());
@@ -114,13 +115,17 @@ impl<T: Config> Pallet<T> {
 
 		let stake_after_add: u64 = Self::get_stake_to_module(netuid, &key, &module_key.clone());
 		let balance_after_add: u64 = Self::get_balance_u64(&key);
+		let module_stake_after_add = Self::get_stake_for_key(netuid, &module_key);
 
-		ensure!(stake_after_add == stake_before_add + amount, Error::<T>::StakeNotAdded);
-		ensure!(balance_after_add == balance_before_add - amount, Error::<T>::BalanceNotRemoved);
+		ensure!(stake_after_add == stake_before_add.saturating_add(amount), Error::<T>::StakeNotAdded);
+		ensure!(balance_after_add == balance_before_add.saturating_sub(amount), Error::<T>::BalanceNotRemoved);
+		ensure!(module_stake_after_add == module_stake_before_add.saturating_add(amount), Error::<T>::StakeNotAdded);
 
 		// --- 5. Emit the staking event.
 		log::info!("StakeAdded( key:{:?}, stake_to_be_added:{:?} )", key, amount);
 		Self::deposit_event(Event::StakeAdded(key, module_key, amount));
+
+		
 
 		// --- 6. Ok and return.
 		Ok(())
@@ -381,7 +386,7 @@ impl<T: Config> Pallet<T> {
 
 		for (i, (k, v)) in stake_to_vector.clone().iter().enumerate() {
 			if *k == *module_key {
-				let remaining_stake: u64 = *v - amount;
+				let remaining_stake: u64 = (*v).saturating_sub(amount);
 				stake_to_vector[i] = (k.clone(), remaining_stake);
 				if remaining_stake == 0 {
 					idx_to_replace = i;
