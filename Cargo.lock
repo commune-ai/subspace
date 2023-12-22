@@ -8308,6 +8308,7 @@ version = "1.0.0"
 dependencies = [
  "jsonrpsee",
  "lazy_static",
+ "pallet-subspace",
  "parity-scale-codec",
  "serde",
  "serde_json",
@@ -8322,7 +8323,11 @@ dependencies = [
 name = "subspace-runtime-api"
 version = "1.0.0"
 dependencies = [
+ "parity-scale-codec",
+ "scale-info",
+ "serde",
  "sp-api",
+ "sp-arithmetic",
  "sp-runtime",
 ]
 

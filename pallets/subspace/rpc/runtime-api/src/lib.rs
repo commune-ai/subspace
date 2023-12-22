@@ -1,25 +1,55 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 
-// pub type AccountId = <<Signature as Verify>::Signer as IdentifyAccount>::AccountId;
-
-// #[struct_versioning::versioned(version = 2, upper)]
-// #[derive(Encode, Decode, Clone, PartialEq, TypeInfo, Serialize, Deserialize)]
-// pub struct ModuleStats<AccountId> {
-// 	last_update: u64,
-// 	registration_block: u64,
-// 	stake_from: Vec<(AccountId, u64)>, /* map of key to stake on this module/key * (includes delegations) */
-// 	emission: u64,
-// 	incentive: u16,
-// 	dividends: u16,
-// 	weights: Vec<(u16, u16)>, // Vec of (uid, weight)
-// }
-
-use sp_runtime::DispatchError;
+use sp_runtime::{DispatchError, MultiSignature, traits::{Verify, IdentifyAccount}};
+use sp_runtime::{sp_std::prelude::Vec, ArithmeticError};
+use parity_scale_codec::{Decode, Encode, EncodeLike, MaxEncodedLen};
+use scale_info::TypeInfo;
+use serde::{Deserialize, Serialize};
+use sp_arithmetic::per_things::Percent;
 
 type Result<T> = core::result::Result<T, DispatchError>;
+type Signature = MultiSignature;
+pub type AccountId = <<Signature as Verify>::Signer as IdentifyAccount>::AccountId;
+
+#[derive(Decode, Encode, PartialEq, Eq, Clone, Debug, TypeInfo, Serialize, Deserialize)]
+pub struct ModuleStats{
+	pub last_update: u64,
+	pub registration_block: u64,
+	pub stake_from: Vec<(AccountId, u64)>, /* map of key to stake on this module/key * (includes delegations) */
+	pub emission: u64,
+	pub incentive: u16,
+	pub dividends: u16,
+	pub weights: Vec<(u16, u16)>, // Vec of (uid, weight)
+}
+
+#[derive(Decode, Encode, PartialEq, Eq, Clone, Debug, TypeInfo, Serialize, Deserialize)]
+pub struct ModuleParams {
+	pub name: Vec<u8>,
+	pub address: Vec<u8>,
+	pub delegation_fee: Percent, // delegate_fee
+	pub controller: AccountId,
+}
+
+#[derive(Decode, Encode, PartialEq, Eq, Clone, Debug, TypeInfo, Serialize, Deserialize)]
+pub struct ModuleInfo {
+	pub params: ModuleParams,
+	pub stats: ModuleStats,
+}
+
+
+// sp_api::decl_runtime_apis! {
+// 	pub trait SubspaceRuntimeApi where
+// 	AccountId: <<Signature as Verify>::Signer as IdentifyAccount>::AccountId
+// 	{
+// 		fn get_module_info() -> Result<ModuleInfo>;
+// 	}
+// }
 
 sp_api::decl_runtime_apis! {
-	pub trait SubspaceRuntimeApi {
+	pub trait SubspaceRuntimeApi
+	{
 		fn get_burn_rate() -> u16;
+
+		fn get_module_info(key: AccountId, netuid: u16) -> ModuleInfo;
 	}
 }
