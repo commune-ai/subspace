@@ -1000,6 +1000,12 @@ impl_runtime_apis! {
 		}
 	}
 
+	impl subspace_runtime_api::SubspaceRuntimeApi<Block> for Runtime {
+		fn get_burn_rate() -> u16 {
+			SubspaceModule::get_burn_rate()
+		}
+	}
+
 
 	#[cfg(feature = "runtime-benchmarks")]
 	impl frame_benchmarking::Benchmark<Block> for Runtime {

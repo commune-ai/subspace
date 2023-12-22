@@ -1,0 +1,19 @@
+[package]
+name = "subspace-runtime-api"
+authors = ["David Tanaka <https://github.com/realhardworkingdeveloper>"]
+version = "1.0.0"
+edition = "2021"
+
+[package.metadata.docs.rs]
+targets = ["x86_64-unknown-linux-gnu"]
+
+[dependencies]
+sp-api = { git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v1.0.0", default-features = false }
+sp-runtime = { default-features = false, version = "24.0.0", git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v1.0.0" }
+
+[features]
+default = ["std"]
+std = [
+    "sp-api/std",
+    "sp-runtime/std"
+]

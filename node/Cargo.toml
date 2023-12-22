@@ -74,6 +74,8 @@ node-subspace-runtime = { version = "4.0.0-dev", path = "../runtime" }
 # CLI-specific dependencies
 try-runtime-cli = { version = "0.10.0-dev", optional = true, git = "https://github.com/paritytech/substrate", branch = "polkadot-v1.0.0" }
 
+subspace-rpc = { path = "../pallets/subspace/rpc" }
+
 [build-dependencies]
 substrate-build-script-utils = { version = "3.0.0", git = "https://github.com/paritytech/substrate", branch = "polkadot-v1.0.0" }
 

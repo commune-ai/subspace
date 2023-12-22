@@ -4390,6 +4390,7 @@ dependencies = [
  "sp-keyring",
  "sp-runtime",
  "sp-timestamp",
+ "subspace-rpc",
  "substrate-build-script-utils",
  "substrate-frame-rpc-system",
  "try-runtime-cli",
@@ -4443,6 +4444,7 @@ dependencies = [
  "sp-storage",
  "sp-transaction-pool",
  "sp-version",
+ "subspace-runtime-api",
  "substrate-wasm-builder",
 ]
 
@@ -8298,6 +8300,30 @@ dependencies = [
  "quote",
  "rustversion",
  "syn 2.0.41",
+]
+
+[[package]]
+name = "subspace-rpc"
+version = "1.0.0"
+dependencies = [
+ "jsonrpsee",
+ "lazy_static",
+ "parity-scale-codec",
+ "serde",
+ "serde_json",
+ "sp-api",
+ "sp-blockchain",
+ "sp-runtime",
+ "subspace-runtime-api",
+ "tokio",
+]
+
+[[package]]
+name = "subspace-runtime-api"
+version = "1.0.0"
+dependencies = [
+ "sp-api",
+ "sp-runtime",
 ]
 
 [[package]]
