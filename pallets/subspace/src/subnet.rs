@@ -615,11 +615,7 @@ impl<T: Config> Pallet<T> {
 	}
 
 	pub fn get_stake_for_key(netuid: u16, key: &T::AccountId) -> u64 {
-		if Self::is_key_registered_on_network(netuid, &key) {
-			return Stake::<T>::get(netuid, key)
-		} else {
-			return 0
-		}
+		return Stake::<T>::get(netuid, key)
 	}
 
 	// Return the total number of subnetworks available on the chain.
