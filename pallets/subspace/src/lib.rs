@@ -230,6 +230,7 @@ pub mod pallet {
 		}
 	}
 
+	
 	// =========================
 	// ==== Subnet PARAMS ====
 	// =========================
@@ -712,6 +713,8 @@ pub mod pallet {
 		InvalidMaxAllowedUids, /* --- Thrown when the user tries to set max allowed uids to a
 		                        * value less than the current number of registered uids. */
 		SubnetNameAlreadyExists,
+		BalanceNotAdded,
+		StakeNotRemoved,
 		SubnetNameNotExists,
 		ModuleNameTooLong, /* --- Thrown when the user tries to register a module name that is
 		                    * too long. */

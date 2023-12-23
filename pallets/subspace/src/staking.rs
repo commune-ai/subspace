@@ -155,10 +155,23 @@ impl<T: Config> Pallet<T> {
 		let stake_to_be_added_as_currency = Self::u64_to_balance(amount);
 		ensure!(stake_to_be_added_as_currency.is_some(), Error::<T>::CouldNotConvertToBalance);
 
+		let stake_before_add: u64 = Self::get_stake_to_module(netuid, &key, &module_key.clone());
+		let balance_before_add: u64 = Self::get_balance_u64(&key);
+		let module_stake_before_add: u64 = Self::get_stake_for_key(netuid, &module_key);
+
 		// --- 7. We remove the balance from the key.
 		Self::decrease_stake(netuid, &key, &module_key, amount);
 		Self::add_balance_to_account(&key, Self::u64_to_balance(amount).unwrap());
 		// --- 9. Emit the unstaking event.
+
+		let stake_after_add: u64 = Self::get_stake_to_module(netuid, &key, &module_key.clone());
+		let balance_after_add: u64 = Self::get_balance_u64(&key);
+		let module_stake_after_add = Self::get_stake_for_key(netuid, &module_key);
+
+		ensure!(stake_after_add == stake_before_add.saturating_sub(amount), Error::<T>::StakeNotRemoved);
+		ensure!(balance_after_add == balance_before_add.saturating_add(amount), Error::<T>::BalanceNotAdded);
+		ensure!(module_stake_after_add == module_stake_before_add.saturating_sub(amount), Error::<T>::StakeNotRemoved);
+
 		log::info!("StakeRemoved( key:{:?}, stake_to_be_removed:{:?} )", key, amount);
 		Self::deposit_event(Event::StakeRemoved(key, module_key, amount));
 
@@ -574,4 +587,5 @@ impl<T: Config> Pallet<T> {
 		// least_staked_module_uid
 		return Self::get_uid_for_key(netuid, &Self::least_staked_module_key(netuid))
 	}
+
 }
