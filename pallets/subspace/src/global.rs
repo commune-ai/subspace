@@ -42,7 +42,7 @@ impl<T: Config> Pallet<T> {
 
 		ensure!(params.max_proposals > 0, Error::<T>::InvalidMaxProposals);
 
-		ensure!(params.unit_emission >= og_params.unit_emission, Error::<T>::InvalidUnitEmission);
+		ensure!(params.unit_emission <= og_params.unit_emission, Error::<T>::InvalidUnitEmission);
 
 		ensure!(params.tx_rate_limit > 0, Error::<T>::InvalidTxRateLimit);
 
@@ -74,7 +74,6 @@ impl<T: Config> Pallet<T> {
 
 
 	}
-
 
 	pub fn get_min_weight_stake() -> u64 {
 		return MinWeightStake::<T>::get()
@@ -111,10 +110,7 @@ impl<T: Config> Pallet<T> {
 	}
 
 	pub fn set_burn_rate(mut burn_rate: u16) {
-		if burn_rate > 100 {
-			burn_rate = 100;
-		}
-		BurnRate::<T>::put(burn_rate);
+		BurnRate::<T>::put(burn_rate.min(100));
 	}
 	
 	pub fn set_max_proposals(max_proposals: u64) {
