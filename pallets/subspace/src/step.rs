@@ -97,7 +97,7 @@ impl<T: Config> Pallet<T> {
 		// =============
 		// Access network weights row normalized.
 		let last_update_vector: Vec<u64> = Self::get_last_update(netuid);
-		let mut weights: Vec<Vec<(u16, I32F32)>> = vec![vec![]; n as usize];
+		let mut weights: Vec<Vec<(u16, u16)>> = vec![vec![]; n as usize];
 		for (uid_i, mut weights_i) in
 			<Weights<T> as IterableStorageDoubleMap<u16, u16, Vec<(u16, u16)>>>::iter_prefix(netuid)
 		{
@@ -109,25 +109,32 @@ impl<T: Config> Pallet<T> {
 				if weight_age > subnet_params.max_weight_age {
 					weight_changed = true;
 					// if the last update is older than the max weight age, then remove the weights
-					weights_i.clear();
+					weights[uid_i as usize] = vec![];
 					continue
 				}
 			}
 
 			for (pos, (uid_j, weight_ij)) in weights_i.iter().enumerate() {
 				// ignore the weights that are not in the top max allowed weights
-				if (pos as u16) <= subnet_params.max_allowed_weights || *uid_j < n{
-					weights[uid_i as usize].push((*uid_j, u16_proportion_to_fixed(*weight_ij)));
+				if (pos as u16) <= subnet_params.max_allowed_weights &&
+					*uid_j < n &&
+					stake_64[*uid_j as usize] >= global_params.min_weight_stake
+					{
+					weights[uid_i as usize].push((*uid_j, *weight_ij));
 				} else {
 					weight_changed = true;
 				}
 			}
 
+
 			if weight_changed {
 				// update the weights
-				<Weights<T>>::insert(netuid, uid_i, weights_i);
+				<Weights<T>>::insert(netuid, uid_i, weights[uid_i as usize].clone());
 			}
 		}
+
+
+		let mut weights : Vec<Vec<(u16, I32F32)>> = weights.iter().map(|x| x.iter().map(|(uid, weight)| (*uid, u16_proportion_to_fixed(*weight))).collect()).collect();
 		
 
 		// enabling self voting (if enabled)
@@ -143,6 +150,8 @@ impl<T: Config> Pallet<T> {
 		// =============================
 
 		// convert max u64 to I32F32
+
+		let min_weight_stake  = I32F32::from_num(global_params.min_weight_stake) / I32F32::from_num(total_stake_u64.min(1));
 	
 		let mut incentive: Vec<I32F32> = vec![I32F32::from_num(0.0); n as usize];
 		for (i, sparse_row) in weights.iter().enumerate() {
@@ -154,7 +163,7 @@ impl<T: Config> Pallet<T> {
 				let mut weight_stake: I32F32 = stake[i] * value;
 
 				// If weight is less than min, set to zero.
-				if weight_stake < global_params.min_weight_stake {
+				if weight_stake < min_weight_stake {
 					weight_stake =  I32F32::from_num(0.0);
 				}
 
@@ -368,10 +377,6 @@ impl<T: Config> Pallet<T> {
 					// if the module is not the founder, then increase the stake
 					owner_emission = owner_emission.saturating_add(founder_emission);
 				}
-			}
-
-			if founder_uid == *module_uid {
-				// if the module is not the founder, then increase the stake
 			}
 
 			if owner_emission > 0 {
