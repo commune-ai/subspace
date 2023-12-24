@@ -362,7 +362,7 @@ impl<T: Config> Pallet<T> {
 				// add the ownership
 				for (delegate_key, delegate_ratio) in ownership_vector.iter() {
 
-					let mut dividends_from_delegate : u64 = I64F64::from_num(dividends_emission[*module_uid as usize]).to_num::<u64>();
+					let mut dividends_from_delegate : u64 = (I64F64::from_num(dividends_emission[*module_uid as usize]) * delegate_ratio).to_num::<u64>();
 					let to_module: u64 = delegation_fee.mul_floor(dividends_from_delegate);
 					let to_delegate: u64 = dividends_from_delegate.saturating_sub(to_module);
 					Self::increase_stake(netuid, delegate_key, module_key, to_delegate);
