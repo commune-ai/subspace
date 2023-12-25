@@ -1198,6 +1198,13 @@ pub mod pallet {
             Self::do_add_subnet_proposal(origin, netuid, params)
         }
 
+		#[pallet::weight((Weight::zero(), DispatchClass::Normal, Pays::No))]
+        pub fn add_custom_proposal(
+            origin: OriginFor<T>,
+			data: Vec<u8>,
+		) -> DispatchResult {
+            Self::do_add_custom_proposal(origin, data)
+        }
 
 		#[pallet::weight((Weight::zero(), DispatchClass::Normal, Pays::No))]
         pub fn vote_proposal(
