@@ -17,43 +17,6 @@ impl<T: Config> Pallet<T> {
         Ok(())
     }
 
-    pub fn do_add_global_proposal(
-        origin: T::RuntimeOrigin,
-        // params
-        params: GlobalParams,
-    ) -> DispatchResult {        
-        let mut proposal = Self::default_proposal();
-        proposal.global_params = params;
-        proposal.mode = "global".as_bytes().to_vec();
-        Self::do_add_proposal(origin,  proposal)?;
-        Ok(())
-    }
-
-
-
-    pub fn do_add_subnet_proposal(
-        origin: T::RuntimeOrigin,
-        // params
-        netuid: u16,
-        params: SubnetParams<T>,
-    ) -> DispatchResult {        
-        let mut proposal = Self::default_proposal();
-        proposal.subnet_params = params;
-        proposal.netuid = netuid;
-        proposal.mode = "subnet".as_bytes().to_vec();
-        Self::do_add_proposal(origin,  proposal)?;
-        Ok(())
-    }
-
-
-
-    pub fn is_proposal_participant(
-        key: &T::AccountId,
-        proposal_id: u64,
-    ) -> bool {
-        let proposal: Proposal<T> = Proposals::<T>::get(proposal_id);
-        return proposal.participants.contains(key);
-    }
 
 
     pub fn do_add_proposal(
@@ -70,10 +33,10 @@ impl<T: Config> Pallet<T> {
         let proposal_id = Self::next_proposal_id();
         let voting_power = Self::get_voting_power(&key, proposal.clone());
         let mut voter_info = Voter2Info::<T>::get(key.clone());
+        
         voter_info.proposal_id = proposal_id;
         voter_info.participant_index = proposal.participants.len() as u16;
         voter_info.votes = voting_power;
-
         // register the voter to avoid double voting
         proposal.participants.push(key.clone());
         proposal.votes = proposal.votes.saturating_add(voting_power);
@@ -88,6 +51,68 @@ impl<T: Config> Pallet<T> {
         Ok(())
     }
 
+
+    // GLOBAL LAND
+
+    pub fn do_add_global_proposal(
+        origin: T::RuntimeOrigin,
+        // params
+        params: GlobalParams,
+    ) -> DispatchResult {        
+        let mut proposal = Self::default_proposal();
+        proposal.global_params = params;
+        proposal.mode = "global".as_bytes().to_vec();
+        Self::do_add_proposal(origin,  proposal)?;
+        Ok(())
+    }
+
+    // CUSTOM LAND
+
+    pub fn do_add_custom_proposal(
+        origin: T::RuntimeOrigin,
+        // params
+        data: Vec<u8>,
+    ) -> DispatchResult {        
+        let mut proposal = Self::default_proposal();
+        proposal.data = data;
+        proposal.mode = "custom".as_bytes().to_vec();
+
+        Self::do_add_proposal(origin,  proposal)?;
+        Ok(())
+    }
+
+    // SUBNET LAND
+
+    pub fn do_add_subnet_proposal(
+        origin: T::RuntimeOrigin,
+        // params
+        netuid: u16,
+        params: SubnetParams<T>,
+    ) -> DispatchResult {        
+        let mut proposal = Self::default_proposal();
+        proposal.subnet_params = params;
+        proposal.netuid = netuid;
+        proposal.mode = "subnet".as_bytes().to_vec();
+        Self::do_add_proposal(origin,  proposal)?;
+        Ok(())
+    }
+
+
+    pub fn num_subnet_proposals(
+        netuid: u16
+    ) -> u64 {
+        let subnet_proposals = Self::get_subnet_proposals(netuid);
+        return subnet_proposals.len() as u64;
+    }
+
+
+    pub fn is_proposal_participant(
+        key: &T::AccountId,
+        proposal_id: u64,
+    ) -> bool {
+        let proposal: Proposal<T> = Proposals::<T>::get(proposal_id);
+        return proposal.participants.contains(key);
+    }
 
 
     pub fn do_vote_proposal(
@@ -123,11 +148,9 @@ impl<T: Config> Pallet<T> {
         proposal.participants.push(key.clone());
         proposal.votes = proposal.votes.saturating_add(voting_power);
 
-
         // update the proposal
         Voter2Info::<T>::insert(key, voter_info);
         Proposals::<T>::insert(proposal_id, proposal);
-
 
         Self::check_proposal_approval(proposal_id);
 
@@ -177,6 +200,7 @@ impl<T: Config> Pallet<T> {
 
             // remove proposal participants
             let proposal = Proposals::<T>::get(least_voted_proposal_id);
+            // pop the participants
             for participant in proposal.participants {
                 Voter2Info::<T>::remove(participant);
             }
@@ -189,7 +213,6 @@ impl<T: Config> Pallet<T> {
         if is_vec_str(mode.clone(), "global") {
             Self::check_global_params(proposal.global_params)?;
         } else if is_vec_str(mode.clone(), "subnet") {
-
             Self::check_subnet_params(proposal.subnet_params.clone())?;
             //  check if vote mode is valid
             let subnet_params: SubnetParams<T> = Self::subnet_params(proposal.netuid);
@@ -353,13 +376,6 @@ impl<T: Config> Pallet<T> {
     }
 
     
-
-    pub fn num_subnet_proposals(
-        netuid: u16
-    ) -> u64 {
-        let subnet_proposals = Self::get_subnet_proposals(netuid);
-        return subnet_proposals.len() as u64;
-    }
 
     pub fn num_global_proposals() -> u64 {
         let global_proposals = Self::get_global_proposals();
