@@ -289,7 +289,7 @@ impl<T: Config> Pallet<T> {
 			.map(|x| I64F64::from_num(x.clone()) * I64F64::from_num(token_emission) * dividend_ratio)
 			.collect();
 
-		let incentive_emission: Vec<u64> =
+		let mut incentive_emission: Vec<u64> =
 			incentive_emission_float.iter().map(|e: &I64F64| e.to_num::<u64>()).collect();
 		let dividends_emission: Vec<u64> =
 			dividends_emission_float.iter().map(|e: &I64F64| e.to_num::<u64>()).collect();
@@ -303,15 +303,27 @@ impl<T: Config> Pallet<T> {
 			let burn_rate_float : I64F64 = (I64F64::from_num(burn_rate)/I64F64::from_num(100)) * (I64F64::from_num(token_emission) / I64F64::from_num(n));
 			burn_amount_per_epoch = burn_rate_float.to_num::<u64>();
 		}
+
+
+		if is_founder_registered {
+			let founder_uid = Self::get_uid_for_key(netuid, &founder_key);
+			incentive_emission[founder_uid as usize] = incentive_emission[founder_uid as usize].saturating_add(founder_emission);
+		}
 			// burn the amount
 
 		let mut zero_stake_uids : Vec<u16> = Vec::new();
 		let min_stake: u64 = Self::get_min_stake(netuid);
 
 		// Emission tuples ( uid_key_tuples, u64 emission)
+		let mut founder_share_added: bool = false; // avoid double counting the founder share
 		for (module_uid, module_key) in uid_key_tuples.iter() {
 
+			// get the incentive emission for this key
 			let mut owner_emission_incentive: u64 = incentive_emission[*module_uid as usize];
+			// if the owner is the founder, then increase the stake
+
+
+			// get the dividends emission for this key
 			let mut owner_dividends_emission: u64 = dividends_emission[*module_uid as usize];
 			let mut owner_emission: u64 = owner_emission_incentive + owner_dividends_emission;
 			// calculate the future
@@ -319,6 +331,8 @@ impl<T: Config> Pallet<T> {
 			// add the emisssion and rm the burn amount
 			total_future_stake = total_future_stake.saturating_add(owner_emission);
 			total_future_stake = total_future_stake.saturating_sub(burn_amount_per_epoch);
+
+
 
 			if total_future_stake < min_stake {
 				// if the stake is less than the burn amount, then deregister the module
@@ -350,7 +364,6 @@ impl<T: Config> Pallet<T> {
 			}
 
 			// if the owner emission is less than the burn amount
-			let mut owner_emission: u64 = owner_emission_incentive + owner_dividends_emission;
 
 			if owner_dividends_emission > 0 {
 				// get the ownership emission for this key
@@ -366,18 +379,12 @@ impl<T: Config> Pallet<T> {
 					let to_module: u64 = delegation_fee.mul_floor(dividends_from_delegate);
 					let to_delegate: u64 = dividends_from_delegate.saturating_sub(to_module);
 					Self::increase_stake(netuid, delegate_key, module_key, to_delegate);
-					owner_emission = owner_emission.saturating_sub(to_delegate);
+					owner_dividends_emission = owner_dividends_emission.saturating_sub(to_delegate);
 
 				}
 			}
 
-			if is_founder_registered {
-				let founder_uid = Self::get_uid_for_key(netuid, &founder_key);
-				if *module_uid == founder_uid {
-					// if the module is not the founder, then increase the stake
-					owner_emission = owner_emission.saturating_add(founder_emission);
-				}
-			}
+			let mut owner_emission: u64 = owner_emission_incentive + owner_dividends_emission;
 
 			if owner_emission > 0 {
 				// generate the profit shares

@@ -936,10 +936,28 @@ fn test_founder_share() {
 	step_epoch(netuid);
 	let total_emission = SubspaceModule::get_subnet_emission(netuid);
 	let expected_founder_share = (total_emission as f64 * founder_ratio) as u64;
-	let expected_emission = total_emission - expected_founder_share;
+	let expected_emission = total_emission;
 	let emissions = SubspaceModule::get_emissions(netuid);
+	let dividends = SubspaceModule::get_dividends(netuid);
+	let incentives = SubspaceModule::get_incentives(netuid);
+	let total_dividends: u64 = dividends.iter().sum::<u16>() as u64;
+	let total_incentives : u64 = incentives.iter().sum::<u16>() as u64;
+
+	println!("total_dividends: {:?}", total_dividends);
+	println!("total_incentives: {:?}", total_incentives);
+	let expected_emission_after_founder_share = expected_emission - expected_founder_share;
+	let founder_dividend_emission = ((dividends[0] as f64 / total_dividends as f64) * (expected_emission_after_founder_share/2) as f64) as u64;
+	let founder_incentive_emission = ((incentives[0] as f64 / total_incentives as f64) * (expected_emission_after_founder_share/2) as f64) as u64;
+	let founder_emission =  founder_incentive_emission + founder_dividend_emission;
+
+	println!("emissions: {:?}", emissions);
+	println!("dividends: {:?}", dividends);
+	println!("incentives: {:?}", incentives);
+	println!("founder_emission FAM: {:?}", founder_emission);
 	let calcualted_total_emission = emissions.iter().sum::<u64>();
-	let calculated_founder_share = SubspaceModule::get_stake_for_key(netuid, &founder_key) - founder_stake_before - emissions[0];
+
+
+	let calculated_founder_share = SubspaceModule::get_stake_for_key(netuid, &founder_key) - founder_stake_before - founder_emission;
 	let delta: u64 = 1000;
 
 	

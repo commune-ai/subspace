@@ -151,8 +151,6 @@ fn test_ownership_ratio() {
 		let stake: u64 = SubspaceModule::get_stake(netuid, &voter_key);
 		let sumed_stake: u64 = stake_from_vector.iter().fold(0, |acc, (a, x)| acc + x);
 		let total_stake: u64 = SubspaceModule::get_total_subnet_stake(netuid);
-
-		
-
+		println!("stake_from_vector: {:?}", stake_from_vector);
 	});
 }
