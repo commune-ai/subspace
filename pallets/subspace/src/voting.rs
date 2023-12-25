@@ -29,6 +29,17 @@ impl<T: Config> Pallet<T> {
         Ok(())
     }
 
+    pub fn do_add_custom_proposal(
+        origin: T::RuntimeOrigin,
+        // params
+        data: Vec<u8>,
+    ) -> DispatchResult {        
+        let mut proposal = Self::default_proposal();
+        proposal.data = data.clone();
+        proposal.mode = "custom".as_bytes().to_vec();
+        Self::do_add_proposal(origin,  proposal)?;
+        Ok(())
+    }
 
 
     pub fn do_add_subnet_proposal(
