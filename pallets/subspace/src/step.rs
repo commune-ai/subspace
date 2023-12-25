@@ -60,7 +60,7 @@ impl<T: Config> Pallet<T> {
 		let founder_uid = u16::MAX;
 		let mut founder_emission: u64 = 0;
 		if is_founder_registered {
-			let founder_share = Self::get_founder_share(netuid);
+			let founder_share : u16 = Self::get_founder_share(netuid);
 			if founder_share > 0 {
 				let founder_emission_ratio: I64F64  = I64F64::from_num(founder_share.min(100))/I64F64::from_num(100);
 				founder_emission = (founder_emission_ratio * I64F64::from_num(token_emission)).to_num::<u64>();
@@ -97,38 +97,41 @@ impl<T: Config> Pallet<T> {
 		// =============
 		// Access network weights row normalized.
 		let last_update_vector: Vec<u64> = Self::get_last_update(netuid);
+
 		let mut weights: Vec<Vec<(u16, u16)>> = vec![vec![]; n as usize];
+
+		let min_weight_stake_f64: I64F64 = I64F64::from_num(global_params.min_weight_stake);
+
+
 		for (uid_i, mut weights_i) in
 			<Weights<T> as IterableStorageDoubleMap<u16, u16, Vec<(u16, u16)>>>::iter_prefix(netuid)
 		{
 			let mut weight_changed : bool = false;
 			// watchout for the overflow
-			if subnet_params.max_weight_age <  u64::MAX {
-				// if the last update is older than the max weight age, then remove the weights
-				let weight_age: u64 = current_block.saturating_sub(last_update_vector[uid_i as usize]);
-				if weight_age > subnet_params.max_weight_age {
-					weight_changed = true;
-					// if the last update is older than the max weight age, then remove the weights
-					weights[uid_i as usize] = vec![];
-					continue
-				}
+
+			let weight_age: u64 = current_block.saturating_sub(last_update_vector[uid_i as usize]);
+			if weight_age > subnet_params.max_weight_age {
+				weight_changed = true;
+				weights[uid_i as usize] = vec![];
+			} else {
+				for (pos, (uid_j, weight_ij)) in weights_i.iter().enumerate() {
+					// ignore the weights that are not in the top max allowed weights
+					if (pos as u16) <= subnet_params.max_allowed_weights && *uid_j < n {
+						let weight_f64 = I64F64::from_num(*weight_ij) / I64F64::from_num(u16::MAX);
+						let weight_stake = stake_f64[uid_i as usize] * weight_f64;
+						if weight_stake > min_weight_stake_f64 {
+							weights[uid_i as usize].push((*uid_j, *weight_ij));
+						}
+					} else {
+						weight_changed = true;
+					}
 			}
 
-			for (pos, (uid_j, weight_ij)) in weights_i.iter().enumerate() {
-				// ignore the weights that are not in the top max allowed weights
-				if (pos as u16) <= subnet_params.max_allowed_weights &&
-					*uid_j < n &&
-					stake_64[*uid_j as usize] >= global_params.min_weight_stake
-					{
-					weights[uid_i as usize].push((*uid_j, *weight_ij));
-				} else {
-					weight_changed = true;
-				}
 			}
 
 
 			if weight_changed {
-				// update the weights
+				// update the weights if it was changed
 				<Weights<T>>::insert(netuid, uid_i, weights[uid_i as usize].clone());
 			}
 		}
@@ -167,7 +170,7 @@ impl<T: Config> Pallet<T> {
 					weight_stake =  I32F32::from_num(0.0);
 				}
 
-				incentive[*j as usize] += weight_stake;
+				incentive[*j as usize] += stake[i] * value;
 			}
 		}
 
@@ -186,35 +189,39 @@ impl<T: Config> Pallet<T> {
 		// == TRUST ==
 		// =================================
 
-		let min_stake: u64 = Self::get_min_stake(netuid);
 		// trust that acts as a multiplier for the incentive
 		let trust_ratio: u16 = Self::get_trust_ratio(netuid);
 		if trust_ratio > 0 {
+
 			let  trust_share : I32F32 = I32F32::from_num(trust_ratio)/I32F32::from_num(100);
 			let incentive_share : I32F32 = I32F32::from_num(1.0).saturating_sub(trust_share);
 			let mut trust: Vec<I32F32> = vec![I32F32::from_num(0.0); n as usize];
-			for (i, w_row) in weights.iter().enumerate() {
-				for (j, w_row_value) in w_row.iter() {
+
+
+			for (i, weights_i) in weights.iter().enumerate() {
+				for (j, weight_ij) in weights_i.iter() {
 					// Compute trust scores: t_j = SUM(i) w_ij * s_i
 					// result_j = SUM(i) vector_i * matrix_ij
-					if *w_row_value > 0 && stake[i] > I32F32::from_num(min_stake) {
+					if *weight_ij > 0 && 
+						stake[i] > I32F32::from_num(subnet_params.min_stake) {
 						trust[*j as usize] += I32F32::from_num(1.0);
 					}
 				}
 			}
+
 			inplace_normalize(&mut trust);
 			incentive = incentive.iter().zip(trust.iter()).map(|(inc, tru)| (inc * incentive_share) + (tru * trust_share)).collect();
 			// save the trust into the trust vector
 			Trust::<T>::insert(netuid, trust.iter().map(|xi| fixed_proportion_to_u16(*xi)).collect::<Vec<u16>>());
 		}
 
+
 		// store the incentive
 		let cloned_incentive: Vec<u16> = incentive.iter().map(|xi| fixed_proportion_to_u16(*xi)).collect::<Vec<u16>>();
 		Incentive::<T>::insert(netuid, cloned_incentive);
 
-
 		// =================================
-		// == Bonds==
+		// == Calculate Bonds==
 		// =================================
 
 		// Compute bonds delta column normalized.
@@ -222,11 +229,9 @@ impl<T: Config> Pallet<T> {
 		let mut bonds: Vec<Vec<(u16, I32F32)>> = weights.clone();
 		for (i, sparse_row) in bonds.iter_mut().enumerate() {
 			for (_j, value) in sparse_row.iter_mut() {
-
 				*value *= stake[i];
 			}
 		}
-
 		// Normalize bonds delta.
 		let mut col_sum: Vec<I32F32> = vec![I32F32::from_num(0.0); n as usize]; // assume square matrix, rows=cols
 		for sparse_row in bonds.iter() {
@@ -242,6 +247,7 @@ impl<T: Config> Pallet<T> {
 				*value /= col_sum[*j as usize];
 			}
 		}
+
 
 		// Compute dividends: d_i = SUM(j) b_ij * inc_j.
 		// range: I32F32(0, 1)
@@ -312,7 +318,6 @@ impl<T: Config> Pallet<T> {
 			// burn the amount
 
 		let mut zero_stake_uids : Vec<u16> = Vec::new();
-		let min_stake: u64 = Self::get_min_stake(netuid);
 
 		// Emission tuples ( uid_key_tuples, u64 emission)
 		let mut founder_share_added: bool = false; // avoid double counting the founder share
@@ -332,9 +337,7 @@ impl<T: Config> Pallet<T> {
 			total_future_stake = total_future_stake.saturating_add(owner_emission);
 			total_future_stake = total_future_stake.saturating_sub(burn_amount_per_epoch);
 
-
-
-			if total_future_stake < min_stake {
+			if total_future_stake < subnet_params.min_stake {
 				// if the stake is less than the burn amount, then deregister the module
 				zero_stake_uids.push(*module_uid as u16);
 			}
@@ -457,9 +460,10 @@ impl<T: Config> Pallet<T> {
 			ownership_vector.push((k.clone(), ownership));
 			total_stake_from += ownership;
 		}
+
 		// add the module itself, if it has stake of its own
 		if total_stake_from == I64F64::from_num(0) {
-			ownership_vector[0].1 = I64F64::from_num(1.0);
+			ownership_vector.push((module_key.clone(), I64F64::from_num(0)));
 		} else {
 			ownership_vector =
 				ownership_vector.into_iter().map(|(k, v)| (k, v / total_stake_from)).collect();
