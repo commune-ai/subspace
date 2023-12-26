@@ -206,9 +206,14 @@ impl<T: Config> Pallet<T> {
 	pub fn deregister_pending_uid(netuid: u16) {
 		let mut pending_deregister_uids:  Vec<u16> = PendingDeregisterUids::<T>::get(netuid);
 		if pending_deregister_uids.len() > 0 {
+			let n = Self::get_subnet_n(netuid);
 			let uid: u16 = pending_deregister_uids.remove(0);
-			Self::remove_module(netuid,uid);
-			PendingDeregisterUids::<T>::insert(netuid, pending_deregister_uids);
+
+			if uid < n {
+				Self::remove_module(netuid, uid);
+				PendingDeregisterUids::<T>::insert(netuid, pending_deregister_uids);
+
+			}
 		}
 	}
 
@@ -861,9 +866,13 @@ impl<T: Config> Pallet<T> {
 	}
 
 	pub fn get_uid_key_tuples(netuid: u16) -> Vec<(u16, T::AccountId)> {
-		return <Keys<T> as IterableStorageDoubleMap<u16, u16, T::AccountId>>::iter_prefix(netuid)
-			.map(|(uid, key)| (uid, key))
-			.collect()
+		let n = Self::get_subnet_n(netuid);
+		let mut uid_key_tuples = Vec::<(u16, T::AccountId)>::new();
+		for uid in 0..n{
+			let key = Self::get_key_for_uid(netuid, uid);
+			uid_key_tuples.push((uid, key));
+		}
+		return uid_key_tuples
 	}
 
 	pub fn get_names(netuid: u16) -> Vec<Vec<u8>> {
