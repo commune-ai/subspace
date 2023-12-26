@@ -117,10 +117,13 @@ impl<T: Config> Pallet<T> {
 				for (pos, (uid_j, weight_ij)) in weights_i.iter().enumerate() {
 					// ignore the weights that are not in the top max allowed weights
 					if (pos as u16) <= subnet_params.max_allowed_weights && *uid_j < n {
+						// okay , we passed the positioonal check, now check the weight
 						let weight_f64 = I64F64::from_num(*weight_ij) / I64F64::from_num(u16::MAX);
-						let weight_stake = stake_f64[uid_i as usize] * weight_f64;
+						let weight_stake = (stake_f64[uid_i as usize] * weight_f64) * I64F64::from_num(total_stake_u64);
 						if weight_stake > min_weight_stake_f64 {
 							weights[uid_i as usize].push((*uid_j, *weight_ij));
+						} else {
+							weight_changed = true;
 						}
 					} else {
 						weight_changed = true;
@@ -154,22 +157,10 @@ impl<T: Config> Pallet<T> {
 
 		// convert max u64 to I32F32
 
-		let min_weight_stake  = I32F32::from_num(global_params.min_weight_stake) / I32F32::from_num(total_stake_u64.min(1));
-	
 		let mut incentive: Vec<I32F32> = vec![I32F32::from_num(0.0); n as usize];
 		for (i, sparse_row) in weights.iter().enumerate() {
 			// clip based on the max stake
 			for (j, value) in sparse_row.iter() {
-				// Compute trust scores: t_j = SUM(i) w_ij * s_i
-				// result_j = SUM(i) vector_i * matrix_ij
-
-				let mut weight_stake: I32F32 = stake[i] * value;
-
-				// If weight is less than min, set to zero.
-				if weight_stake < min_weight_stake {
-					weight_stake =  I32F32::from_num(0.0);
-				}
-
 				incentive[*j as usize] += stake[i] * value;
 			}
 		}

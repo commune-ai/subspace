@@ -215,7 +215,7 @@ pub fn devnet_config() -> Result<ChainSpec, String> {
 	return generate_config("dev".to_string())
 }
 pub fn testnet_config() -> Result<ChainSpec, String> {
-	return generate_config("dev".to_string())
+	return generate_config("test".to_string())
 }
 
 // Configure initial storage state for FRAME modules.
