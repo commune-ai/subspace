@@ -1220,10 +1220,6 @@ pub mod pallet {
 		) -> DispatchResult {
             Self::do_add_custom_proposal(origin, data)
         }
-<<<<<<< HEAD
-=======
-
->>>>>>> 0c7abe5037e266c1395b42780c95cfb38b9e9db0
 
 		#[pallet::weight((Weight::zero(), DispatchClass::Normal, Pays::No))]
         pub fn vote_proposal(
