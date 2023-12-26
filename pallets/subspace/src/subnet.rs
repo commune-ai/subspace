@@ -74,11 +74,10 @@ impl<T: Config> Pallet<T> {
 		// ensure the trust_ratio is between 0 and 100
 		ensure!(params.trust_ratio <= 100, Error::<T>::InvalidTrustRatio);
 
-		// ensure the vode_mode is in "authority", "stake", "quadratic"
+		// ensure the vode_mode is in "authority", "stake"
 		ensure!(
 			is_vec_str(params.vote_mode.clone(),"authority") ||
-			is_vec_str(params.vote_mode.clone(),"stake") ||
-			is_vec_str(params.vote_mode.clone(),"quadratic"),
+			is_vec_str(params.vote_mode.clone(),"stake"),
 		 Error::<T>::InvalidVoteMode);
         Ok(())
 
