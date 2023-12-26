@@ -76,7 +76,7 @@ impl<T: Config> Pallet<T> {
         let mut proposal = Self::default_proposal();
         proposal.data = data;
         proposal.mode = "custom".as_bytes().to_vec();
-
+        
         Self::do_add_proposal(origin,  proposal)?;
         Ok(())
     }
