@@ -73,6 +73,7 @@ pallet-evm-precompile-sha3fips = { version = "2.0.0-dev", git = "https://github.
 pallet-evm-precompile-simple = {  version = "2.0.0-dev", git = "https://github.com/paritytech/frontier", default-features = false, branch = "polkadot-v1.0.0" }
 # pallet-hotfix-sufficients = { version = "1.0.0", git = "https://github.com/paritytech/frontier", default-features = false, branch = "master" }
 
+subspace-runtime-api = { path = "../pallets/subspace/rpc/runtime-api", default-features = false }
 [build-dependencies]
 substrate-wasm-builder = { version = "5.0.0-dev", optional = true , git = "https://github.com/paritytech/substrate", branch = "polkadot-v1.0.0" }
 
@@ -126,6 +127,7 @@ std = [
 	"pallet-evm-precompile-modexp/std",
 	"pallet-evm-precompile-sha3fips/std",
 	"pallet-evm-precompile-simple/std",
+	"subspace-runtime-api/std",
 	# "pallet-hotfix-sufficients/std",
 ]
 runtime-benchmarks = [

@@ -177,17 +177,21 @@ impl<T: Config> Pallet<T> {
 		}
 	}
 	pub fn get_lowest_uid(netuid: u16) -> u16 {
-		
+		let n: u16 = Self::get_subnet_n(netuid);
+
 		// If there are pending deregister uids, then return the first one.
 		let pending_deregister_uids: Vec<u16> = PendingDeregisterUids::<T>::get(netuid);
 		if pending_deregister_uids.len() > 0 {
 			let uid: u16 = pending_deregister_uids[0];
-			PendingDeregisterUids::<T>::mutate(netuid, |v| v.remove(0));
-			return uid
+			if uid < n {
+				PendingDeregisterUids::<T>::mutate(netuid, |v| v.remove(0));
+				return uid
+
+			}
+			
 		}
 
 		let mut min_score: u64 = u64::MAX;
-		let n: u16 = Self::get_subnet_n(netuid);
 		let mut lowest_priority_uid: u16 = 0;
 		let mut prune_uids: Vec<u16> = Vec::new();
 		let current_block = Self::get_current_block_as_u64();

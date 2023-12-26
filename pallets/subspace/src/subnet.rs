@@ -175,6 +175,22 @@ impl<T: Config> Pallet<T> {
 		return min_stake_netuid
 	}
 
+	pub fn address_vector(netuid: u16) -> Vec<Vec<u8>>{
+		let mut addresses: Vec<Vec<u8>> = Vec::new();
+		for (uid, address) in <Address<T> as IterableStorageDoubleMap<u16, u16, Vec<u8>>>::iter_prefix(netuid) {
+			addresses.push(address);
+		}
+		return addresses
+	}
+
+	pub fn name_vector(netuid: u16) -> Vec<Vec<u8>>{
+		let mut names: Vec<Vec<u8>> = Vec::new();
+		for (uid, name) in <Name<T> as IterableStorageDoubleMap<u16, u16, Vec<u8>>>::iter_prefix(netuid) {
+			names.push(name);
+		}
+		return names
+	}
+
 
 	// get the least staked network
 	pub fn min_subnet_stake() -> u64 {
@@ -895,6 +911,10 @@ impl<T: Config> Pallet<T> {
 		return addresses
 	}
 
+	pub fn is_subnet_removed(netuid: u16) -> bool {
+		return Self::check_subnet_storage(netuid)
+	}
+
 
 	pub fn check_subnet_storage(netuid: u16) -> bool {
 		let n = Self::get_subnet_n(netuid);
@@ -932,6 +952,19 @@ impl<T: Config> Pallet<T> {
 		if (n as usize) != last_update.len() {
 			return false
 		}
+
+		// length of addresss
+		let name_vector = Self::name_vector(netuid);
+		if (n as usize) != name_vector.len() {
+			return false
+		}
+
+		// length of addresss
+		let address_vector = Self::address_vector(netuid);
+		if (n as usize) != address_vector.len() {
+			return false
+		}
+	
 		return true
 	}
 

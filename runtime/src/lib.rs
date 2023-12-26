@@ -32,6 +32,7 @@ use sp_runtime::{
 };
 
 use sp_std::{marker::PhantomData, prelude::*};
+use subspace_runtime_api::{ ModuleInfo, ModuleStats, ModuleParams };
 
 #[cfg(feature = "std")]
 use sp_version::NativeVersion;
@@ -997,6 +998,35 @@ impl_runtime_apis! {
 			UncheckedExtrinsic::new_unsigned(
 				pallet_ethereum::Call::<Runtime>::transact { transaction }.into(),
 			)
+		}
+	}
+	impl subspace_runtime_api::SubspaceRuntimeApi<Block> for Runtime {
+		fn get_burn_rate() -> u16 {
+			SubspaceModule::get_burn_rate()
+		}
+
+		fn get_module_info(key: AccountId, netuid: u16) -> ModuleInfo {
+			let uid = SubspaceModule::get_uid_for_key(netuid, &key);
+			let stats = SubspaceModule::get_module_stats(netuid, uid);
+			let params = SubspaceModule::module_params(netuid, uid);
+
+			ModuleInfo {
+				stats: ModuleStats {
+					stake_from: stats.stake_from,
+					emission: stats.emission,
+					incentive: stats.incentive,
+					dividends: stats.dividends,
+					last_update: stats.last_update,
+					registration_block: stats.registration_block,
+					weights: stats.weights,
+				},
+				params: ModuleParams {
+					name: params.name,
+					address: params.address,
+					delegation_fee: params.delegation_fee,
+					controller: params.controller,
+				}
+			}
 		}
 	}
 
