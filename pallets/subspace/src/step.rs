@@ -68,7 +68,6 @@ impl<T: Config> Pallet<T> {
 			}
 		}
 
-
 		// ===========
 		// == Stake ==
 		// ===========
@@ -291,12 +290,10 @@ impl<T: Config> Pallet<T> {
 		let dividends_emission: Vec<u64> =
 			dividends_emission_float.iter().map(|e: &I64F64| e.to_num::<u64>()).collect();
 
-		let burn_rate: u16 = Self::get_burn_rate();
+		let burn_rate: u16 = global_params.burn_rate;
 		let mut burn_amount_per_epoch : u64 = 0;
 		// get the float and convert to u64
-
 		if burn_rate > 0 {
-
 			let burn_rate_float : I64F64 = (I64F64::from_num(burn_rate)/I64F64::from_num(100)) * (I64F64::from_num(token_emission) / I64F64::from_num(n));
 			burn_amount_per_epoch = burn_rate_float.to_num::<u64>();
 		}
@@ -308,7 +305,6 @@ impl<T: Config> Pallet<T> {
 		}
 			// burn the amount
 
-		let mut zero_stake_uids : Vec<u16> = Vec::new();
 
 		// Emission tuples ( uid_key_tuples, u64 emission)
 		let mut founder_share_added: bool = false; // avoid double counting the founder share
@@ -317,90 +313,100 @@ impl<T: Config> Pallet<T> {
 			// get the incentive emission for this key
 			let mut owner_emission_incentive: u64 = incentive_emission[*module_uid as usize];
 			// if the owner is the founder, then increase the stake
-
-
 			// get the dividends emission for this key
 			let mut owner_dividends_emission: u64 = dividends_emission[*module_uid as usize];
 			let mut owner_emission: u64 = owner_emission_incentive + owner_dividends_emission;
 			// calculate the future
-			let mut total_future_stake: u64 = stake_u64[*module_uid as usize];
-			// add the emisssion and rm the burn amount
-			total_future_stake = total_future_stake.saturating_add(owner_emission);
-			total_future_stake = total_future_stake.saturating_sub(burn_amount_per_epoch);
-
-			if total_future_stake < subnet_params.min_stake {
-				// if the stake is less than the burn amount, then deregister the module
-				zero_stake_uids.push(*module_uid as u16);
-			}
 
 			// if the owner emission is less than the burn amount
 			if burn_amount_per_epoch > owner_emission {
-				let amount_to_burn: u64 = burn_amount_per_epoch.saturating_sub(owner_emission);
-				if amount_to_burn > 0 {
-					Self::decrease_stake(netuid, module_key, module_key, amount_to_burn);
-				}
+				let burn_into_stake: u64 = burn_amount_per_epoch.saturating_sub(owner_emission);
+
+				// decrease the stake if there is remainder
+				if burn_into_stake > 0 {
+					Self::decrease_stake(netuid, module_key, module_key, burn_into_stake);
+				}	
+				owner_emission_incentive = 0;
+				owner_dividends_emission = 0;			
 				// skip the rest of the loop
-				continue;
-			} 
-			// eat into incentive first and then into the incentive
-			if burn_amount_per_epoch > owner_emission_incentive {
-				owner_emission_incentive = owner_emission_incentive.saturating_sub(burn_amount_per_epoch);
-				// correct the burn amount
-				burn_amount_per_epoch = burn_amount_per_epoch.saturating_sub(owner_emission_incentive);
-				// apply the burn to the incentive
-				owner_dividends_emission = owner_dividends_emission.saturating_sub(burn_amount_per_epoch);
-
 			} else {
-				// apply the burn to the emission only
-				owner_emission_incentive = owner_emission_incentive.saturating_sub(burn_amount_per_epoch);
-				burn_amount_per_epoch = 0;
+				// eat into incentive first and then into the incentive
+				if burn_amount_per_epoch > owner_emission_incentive {
+					owner_emission_incentive = owner_emission_incentive.saturating_sub(burn_amount_per_epoch);
+					// correct the burn amount
+					burn_amount_per_epoch = burn_amount_per_epoch.saturating_sub(owner_emission_incentive);
+					// apply the burn to the incentive
+					owner_dividends_emission = owner_dividends_emission.saturating_sub(burn_amount_per_epoch);
 
-			}
-
-			// if the owner emission is less than the burn amount
-
-			if owner_dividends_emission > 0 {
-				// get the ownership emission for this key
-
-				let ownership_vector: Vec<(T::AccountId, I64F64)> = Self::get_ownership_ratios(netuid, module_key);
-	
-				let delegation_fee = Self::get_delegation_fee(netuid, module_key);
-				
-				// add the ownership
-				for (delegate_key, delegate_ratio) in ownership_vector.iter() {
-
-					let mut dividends_from_delegate : u64 = (I64F64::from_num(dividends_emission[*module_uid as usize]) * delegate_ratio).to_num::<u64>();
-					let to_module: u64 = delegation_fee.mul_floor(dividends_from_delegate);
-					let to_delegate: u64 = dividends_from_delegate.saturating_sub(to_module);
-					Self::increase_stake(netuid, delegate_key, module_key, to_delegate);
-					owner_dividends_emission = owner_dividends_emission.saturating_sub(to_delegate);
-
-				}
-			}
-
-			let mut owner_emission: u64 = owner_emission_incentive + owner_dividends_emission;
-
-			if owner_emission > 0 {
-				// generate the profit shares
-				let profit_share_emissions: Vec<(T::AccountId, u64)> = Self::get_profit_share_emissions(module_key.clone(), owner_emission);
-
-				// if there are profit shares, then increase the balance of the profit share key
-				if profit_share_emissions.len() > 0 {
-					// if there are profit shares, then increase the balance of the profit share key
-					for (profit_share_key, profit_share_emission) in profit_share_emissions.iter() {
-						// increase the balance of the profit share key
-						Self::increase_stake(netuid, profit_share_key, module_key, *profit_share_emission);
-					}
 				} else {
-					// increase it to the module key
-					Self::increase_stake(netuid, module_key, module_key, owner_emission);
+					// apply the burn to the emission only
+					owner_emission_incentive = owner_emission_incentive.saturating_sub(burn_amount_per_epoch);
+					burn_amount_per_epoch = 0;
+
+				}
+
+				// if the owner emission is less than the burn amount
+
+				if owner_dividends_emission > 0 {
+					// get the ownership emission for this key
+
+					let ownership_vector: Vec<(T::AccountId, I64F64)> = Self::get_ownership_ratios(netuid, module_key);
+		
+					let delegation_fee = Self::get_delegation_fee(netuid, module_key);
+					
+					// add the ownership
+					for (delegate_key, delegate_ratio) in ownership_vector.iter() {
+
+						if delegate_key == module_key {
+							continue
+						}
+
+						let mut dividends_from_delegate : u64 = (I64F64::from_num(owner_dividends_emission) * delegate_ratio).to_num::<u64>();
+						let to_module: u64 = delegation_fee.mul_floor(dividends_from_delegate);
+						let to_delegate: u64 = dividends_from_delegate.saturating_sub(to_module);
+						Self::increase_stake(netuid, delegate_key, module_key, to_delegate);
+						owner_dividends_emission = owner_dividends_emission.saturating_sub(to_delegate);
+
+					}
+				}
+
+			
+
+				let mut owner_emission: u64 = owner_emission_incentive + owner_dividends_emission;
+				
+				// add the emisssion and rm the burn amount
+
+				if owner_emission > 0 {
+					// generate the profit shares
+					let profit_share_emissions: Vec<(T::AccountId, u64)> = Self::get_profit_share_emissions(module_key.clone(), owner_emission);
+
+					// if there are profit shares, then increase the balance of the profit share key
+					if profit_share_emissions.len() > 0 {
+						// if there are profit shares, then increase the balance of the profit share key
+						for (profit_share_key, profit_share_emission) in profit_share_emissions.iter() {
+							// increase the balance of the profit share key
+							Self::increase_stake(netuid, profit_share_key, module_key, *profit_share_emission);
+						}
+					} else {
+						// increase it to the module key
+						Self::increase_stake(netuid, module_key, module_key, owner_emission);
+					}
 				}
 			}
 
 		}
-		if zero_stake_uids.len() > 0 {
-			Self::add_pending_deregistration_uids(netuid, zero_stake_uids);
+
+		let mut zero_stake_uids : Vec<u16> = Vec::new();
+
+		for (module_uid, module_key) in uid_key_tuples.iter() {
+			let new_stake = Self::get_stake_for_key(netuid, module_key);
+			if new_stake < subnet_params.min_stake {
+				// if the stake is more than the max stake, then deregister the module
+				Self::add_pending_deregistration_uid(netuid, *module_uid);
+			}
 		}
+
+
 		// calculate the total emission
 		let emission: Vec<u64> = incentive_emission
 			.iter()

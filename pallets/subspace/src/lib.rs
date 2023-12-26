@@ -449,7 +449,18 @@ pub mod pallet {
 	#[pallet::storage] // --- DMAP ( netuid, module_key ) --> uid
 	pub(super) type Uids<T: Config> =
 		StorageDoubleMap<_, Identity, u16, Blake2_128Concat, T::AccountId, u16, OptionQuery>;
-	
+
+
+
+	#[pallet::storage] // --- DMAP ( netuid, module_key ) --> uid
+	pub(super) type Key2Controller<T: Config> =
+		StorageDoubleMap<_, Identity, T::AccountId, Blake2_128Concat, T::AccountId, u16, OptionQuery>;
+
+	#[pallet::storage] // --- DMAP ( netuid, module_key ) --> uid
+	pub(super) type Controller2Keys<T: Config> =
+		StorageDoubleMap<_, Identity, T::AccountId, Blake2_128Concat, Vec<T::AccountId>, u16, OptionQuery>;
+
+			
 	
 	#[pallet::type_value]
 	pub fn DefaultKey<T: Config>() -> T::AccountId {
@@ -771,7 +782,11 @@ pub mod pallet {
 		VoterIsRegistered,
 		InvalidVoteMode,
 		InvalidMaxWeightAge,
-		InvalidMaxStake		
+		InvalidMaxStake,
+		
+		AlreadyControlled, 
+		AlreadyController
+
 
 
 

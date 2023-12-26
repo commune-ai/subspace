@@ -29,6 +29,8 @@ pub trait SubspaceApi<BlockHash, AccountId>
 
 	#[method(name = "subspace_getModuleInfo")]
 	fn get_module_info(&self, key: AccountId, netuid: u16, at: Option<BlockHash>) -> RpcResult<ModuleInfo>;
+
+
 }
 
 pub struct SubspacePallet<C, Block> {
