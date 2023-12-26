@@ -12,13 +12,13 @@ use sp_arithmetic::per_things::Percent;
 
 #[derive(Decode, Encode, PartialEq, Eq, Clone, Debug)]
 pub struct ModuleStats<T: Config> {
-	last_update: u64,
-	registration_block: u64,
-	stake_from: Vec<(T::AccountId, u64)>, /* map of key to stake on this module/key * (includes delegations) */
-	emission: u64,
-	incentive: u16,
-	dividends: u16,
-	weights: Vec<(u16, u16)>, // Vec of (uid, weight)
+	pub last_update: u64,
+	pub registration_block: u64,
+	pub stake_from: Vec<(T::AccountId, u64)>, /* map of key to stake on this module/key * (includes delegations) */
+	pub emission: u64,
+	pub incentive: u16,
+	pub dividends: u16,
+	pub weights: Vec<(u16, u16)>, // Vec of (uid, weight)
 }
 
 #[derive(Decode, Encode, PartialEq, Eq, Clone, Debug)]
@@ -235,7 +235,7 @@ impl<T: Config> Pallet<T> {
 		return modules
 	}
 
-	fn get_module_stats(netuid: u16, uid: u16) -> ModuleStats<T> {
+	pub fn get_module_stats(netuid: u16, uid: u16) -> ModuleStats<T> {
 		let emission = Self::get_emission_for_uid(netuid, uid as u16);
 		let incentive = Self::get_incentive_for_uid(netuid, uid as u16);
 		let dividends = Self::get_dividends_for_uid(netuid, uid as u16);

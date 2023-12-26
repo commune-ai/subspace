@@ -74,11 +74,10 @@ impl<T: Config> Pallet<T> {
 		// ensure the trust_ratio is between 0 and 100
 		ensure!(params.trust_ratio <= 100, Error::<T>::InvalidTrustRatio);
 
-		// ensure the vode_mode is in "authority", "stake", "quadratic"
+		// ensure the vode_mode is in "authority", "stake"
 		ensure!(
 			is_vec_str(params.vote_mode.clone(),"authority") ||
-			is_vec_str(params.vote_mode.clone(),"stake") ||
-			is_vec_str(params.vote_mode.clone(),"quadratic"),
+			is_vec_str(params.vote_mode.clone(),"stake"),
 		 Error::<T>::InvalidVoteMode);
         Ok(())
 
@@ -175,6 +174,22 @@ impl<T: Config> Pallet<T> {
 		return min_stake_netuid
 	}
 
+	pub fn address_vector(netuid: u16) -> Vec<Vec<u8>>{
+		let mut addresses: Vec<Vec<u8>> = Vec::new();
+		for (uid, address) in <Address<T> as IterableStorageDoubleMap<u16, u16, Vec<u8>>>::iter_prefix(netuid) {
+			addresses.push(address);
+		}
+		return addresses
+	}
+
+	pub fn name_vector(netuid: u16) -> Vec<Vec<u8>>{
+		let mut names: Vec<Vec<u8>> = Vec::new();
+		for (uid, name) in <Name<T> as IterableStorageDoubleMap<u16, u16, Vec<u8>>>::iter_prefix(netuid) {
+			names.push(name);
+		}
+		return names
+	}
+
 
 	// get the least staked network
 	pub fn min_subnet_stake() -> u64 {
@@ -206,9 +221,14 @@ impl<T: Config> Pallet<T> {
 	pub fn deregister_pending_uid(netuid: u16) {
 		let mut pending_deregister_uids:  Vec<u16> = PendingDeregisterUids::<T>::get(netuid);
 		if pending_deregister_uids.len() > 0 {
+			let n = Self::get_subnet_n(netuid);
 			let uid: u16 = pending_deregister_uids.remove(0);
-			Self::remove_module(netuid,uid);
-			PendingDeregisterUids::<T>::insert(netuid, pending_deregister_uids);
+
+			if uid < n {
+				Self::remove_module(netuid, uid);
+				PendingDeregisterUids::<T>::insert(netuid, pending_deregister_uids);
+
+			}
 		}
 	}
 
@@ -861,9 +881,13 @@ impl<T: Config> Pallet<T> {
 	}
 
 	pub fn get_uid_key_tuples(netuid: u16) -> Vec<(u16, T::AccountId)> {
-		return <Keys<T> as IterableStorageDoubleMap<u16, u16, T::AccountId>>::iter_prefix(netuid)
-			.map(|(uid, key)| (uid, key))
-			.collect()
+		let n = Self::get_subnet_n(netuid);
+		let mut uid_key_tuples = Vec::<(u16, T::AccountId)>::new();
+		for uid in 0..n{
+			let key = Self::get_key_for_uid(netuid, uid);
+			uid_key_tuples.push((uid, key));
+		}
+		return uid_key_tuples
 	}
 
 	pub fn get_names(netuid: u16) -> Vec<Vec<u8>> {
@@ -884,6 +908,10 @@ impl<T: Config> Pallet<T> {
 			addresses.push(key);
 		}
 		return addresses
+	}
+
+	pub fn is_subnet_removed(netuid: u16) -> bool {
+		return Self::check_subnet_storage(netuid)
 	}
 
 
@@ -923,6 +951,19 @@ impl<T: Config> Pallet<T> {
 		if (n as usize) != last_update.len() {
 			return false
 		}
+
+		// length of addresss
+		let name_vector = Self::name_vector(netuid);
+		if (n as usize) != name_vector.len() {
+			return false
+		}
+
+		// length of addresss
+		let address_vector = Self::address_vector(netuid);
+		if (n as usize) != address_vector.len() {
+			return false
+		}
+	
 		return true
 	}
 
