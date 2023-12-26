@@ -217,8 +217,7 @@ impl<T: Config> Pallet<T> {
             //  check if vote mode is valid
             let subnet_params: SubnetParams<T> = Self::subnet_params(proposal.netuid);
             ensure!(
-                is_vec_str(subnet_params.vote_mode.clone(),"stake") ||
-                is_vec_str(subnet_params.vote_mode.clone(),"quadratic")
+                is_vec_str(subnet_params.vote_mode.clone(),"stake")
             , Error::<T>::InvalidVoteMode);
         } else {
             ensure!(proposal.data.len() > 0, Error::<T>::InvalidProposalData);
