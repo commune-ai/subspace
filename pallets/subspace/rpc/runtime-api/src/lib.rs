@@ -36,20 +36,42 @@ pub struct ModuleInfo {
 	pub stats: ModuleStats,
 }
 
+#[derive(Decode, Encode, PartialEq, Eq, Clone, Debug, TypeInfo, Serialize, Deserialize)]
+#[scale_info(skip_type_params(T))]
+pub struct SubnetParams {
+	pub founder: AccountId,
+	pub founder_share: u16,
+	pub immunity_period: u16,
+	pub incentive_ratio : u16,
+	pub max_allowed_uids: u16,
+	pub max_allowed_weights: u16,
+	pub min_allowed_weights: u16,
+	pub max_stake: u64,
+	pub max_weight_age: u64,
+	pub min_stake: u64,
+	pub name: Vec<u8>,
+	pub self_vote: bool,
+	pub tempo: u16,
+	pub trust_ratio: u16,
+	pub vote_threshold: u16,
+	pub vote_mode: Vec<u8>,
+}
 
-// sp_api::decl_runtime_apis! {
-// 	pub trait SubspaceRuntimeApi where
-// 	AccountId: <<Signature as Verify>::Signer as IdentifyAccount>::AccountId
-// 	{
-// 		fn get_module_info() -> Result<ModuleInfo>;
-// 	}
-// }
+#[derive(Decode, Encode, PartialEq, Eq, Clone, Debug, TypeInfo, Serialize, Deserialize)]
+pub struct SubnetInfo {
+	pub params: SubnetParams,
+	pub netuid: u16,
+	pub n: u16,
+	pub stake: u64,
+	pub emission: u64,
+	pub founder: AccountId,
+}
 
 sp_api::decl_runtime_apis! {
 	pub trait SubspaceRuntimeApi
 	{
-		fn get_burn_rate() -> u16;
-
 		fn get_module_info(key: AccountId, netuid: u16) -> ModuleInfo;
+
+		fn get_subnet_info(netuid: u16) -> SubnetInfo;
 	}
 }
