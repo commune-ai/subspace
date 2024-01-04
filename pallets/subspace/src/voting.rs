@@ -17,58 +17,6 @@ impl<T: Config> Pallet<T> {
         Ok(())
     }
 
-<<<<<<< HEAD
-    pub fn do_add_global_proposal(
-        origin: T::RuntimeOrigin,
-        // params
-        params: GlobalParams,
-    ) -> DispatchResult {        
-        let mut proposal = Self::default_proposal();
-        proposal.global_params = params;
-        proposal.mode = "global".as_bytes().to_vec();
-        Self::do_add_proposal(origin,  proposal)?;
-        Ok(())
-    }
-
-    pub fn do_add_custom_proposal(
-        origin: T::RuntimeOrigin,
-        // params
-        data: Vec<u8>,
-    ) -> DispatchResult {        
-        let mut proposal = Self::default_proposal();
-        proposal.data = data.clone();
-        proposal.mode = "custom".as_bytes().to_vec();
-        Self::do_add_proposal(origin,  proposal)?;
-        Ok(())
-    }
-
-
-    pub fn do_add_subnet_proposal(
-        origin: T::RuntimeOrigin,
-        // params
-        netuid: u16,
-        params: SubnetParams<T>,
-    ) -> DispatchResult {        
-        let mut proposal = Self::default_proposal();
-        proposal.subnet_params = params;
-        proposal.netuid = netuid;
-        proposal.mode = "subnet".as_bytes().to_vec();
-        Self::do_add_proposal(origin,  proposal)?;
-        Ok(())
-    }
-
-
-
-    pub fn is_proposal_participant(
-        key: &T::AccountId,
-        proposal_id: u64,
-    ) -> bool {
-        let proposal: Proposal<T> = Proposals::<T>::get(proposal_id);
-        return proposal.participants.contains(key);
-    }
-=======
->>>>>>> 0c7abe5037e266c1395b42780c95cfb38b9e9db0
-
 
     pub fn do_add_proposal(
         origin: T::RuntimeOrigin,
