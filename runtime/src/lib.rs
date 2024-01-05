@@ -32,7 +32,7 @@ use sp_runtime::{
 };
 
 use sp_std::{marker::PhantomData, prelude::*};
-use subspace_runtime_api::{ ModuleInfo, ModuleStats, ModuleParams };
+use subspace_runtime_api::{ ModuleInfo, ModuleStats, ModuleParams, SubnetInfo, SubnetParams };
 
 #[cfg(feature = "std")]
 use sp_version::NativeVersion;
@@ -1001,10 +1001,6 @@ impl_runtime_apis! {
 		}
 	}
 	impl subspace_runtime_api::SubspaceRuntimeApi<Block> for Runtime {
-		fn get_burn_rate() -> u16 {
-			SubspaceModule::get_burn_rate()
-		}
-
 		fn get_module_info(key: AccountId, netuid: u16) -> ModuleInfo {
 			let uid = SubspaceModule::get_uid_for_key(netuid, &key);
 			let stats = SubspaceModule::get_module_stats(netuid, uid);
@@ -1026,6 +1022,36 @@ impl_runtime_apis! {
 					delegation_fee: params.delegation_fee,
 					controller: params.controller,
 				}
+			}
+		}
+
+		fn get_subnet_info(netuid: u16) -> SubnetInfo {
+			let subnet_info = SubspaceModule::subnet_info(netuid);
+
+			SubnetInfo {
+				params: SubnetParams {
+					founder: subnet_info.params.founder,
+					founder_share: subnet_info.params.founder_share,
+					immunity_period: subnet_info.params.immunity_period,
+					incentive_ratio: subnet_info.params.incentive_ratio,
+					max_allowed_uids: subnet_info.params.max_allowed_uids,
+					max_allowed_weights: subnet_info.params.max_allowed_weights,
+					min_allowed_weights: subnet_info.params.min_allowed_weights,
+					max_stake: subnet_info.params.max_stake,
+					max_weight_age: subnet_info.params.max_weight_age,
+					min_stake: subnet_info.params.min_stake,
+					name: subnet_info.params.name,
+					self_vote: subnet_info.params.self_vote,
+					tempo: subnet_info.params.tempo,
+					trust_ratio: subnet_info.params.trust_ratio,
+					vote_threshold: subnet_info.params.vote_threshold,
+					vote_mode: subnet_info.params.vote_mode,
+				},
+				netuid: subnet_info.netuid,
+				n: subnet_info.n,
+				stake: subnet_info.stake,
+				emission: subnet_info.emission,
+				founder: subnet_info.founder,
 			}
 		}
 	}
