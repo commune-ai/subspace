@@ -1,13 +1,12 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 
-use sp_runtime::{DispatchError, MultiSignature, traits::{Verify, IdentifyAccount}};
-use sp_runtime::{sp_std::prelude::Vec, ArithmeticError};
-use parity_scale_codec::{Decode, Encode, EncodeLike, MaxEncodedLen};
+use sp_runtime::{MultiSignature, traits::{Verify, IdentifyAccount}};
+use sp_runtime::sp_std::prelude::Vec;
+use parity_scale_codec::{Decode, Encode};
 use scale_info::TypeInfo;
 use serde::{Deserialize, Serialize};
 use sp_arithmetic::per_things::Percent;
 
-type Result<T> = core::result::Result<T, DispatchError>;
 type Signature = MultiSignature;
 pub type AccountId = <<Signature as Verify>::Signer as IdentifyAccount>::AccountId;
 

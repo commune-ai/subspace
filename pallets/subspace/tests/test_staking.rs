@@ -1,15 +1,8 @@
-use frame_support::{assert_ok, traits::Currency};
-use frame_system::Config;
 mod test_mock;
-use frame_support::{
-	dispatch::{DispatchClass, DispatchInfo, GetDispatchInfo, Pays},
-	sp_runtime::DispatchError,
-};
-use pallet_subspace::Error;
 use sp_core::U256;
 use test_mock::*;
 
-use substrate_fixed::types::{I32F32, I64F64};
+use substrate_fixed::types::I64F64;
 // /***********************************************************
 // 	staking::add_stake() tests
 // ************************************************************/
@@ -43,11 +36,14 @@ fn test_stake() {
 		let max_uids: u16 = 10;
 		let token_amount: u64 = 1_000_000_000;
 		let netuids: Vec<u16> = [0, 1, 2, 3].to_vec();
-		let amount_staked_vector: Vec<u64> = netuids.iter().map(|i| 10 * token_amount).collect();
+		let amount_staked_vector: Vec<u64> = netuids.iter().map(|_i| 10 * token_amount).collect();
 		let mut total_stake: u64 = 0;
 		let mut netuid: u16 = 0;
 		let mut subnet_stake: u64 = 0;
 		let mut uid: u16 = 0;
+
+		_ = netuid;
+		_ = uid;
 
 		for i in netuids.iter() {
 			netuid = *i;
@@ -64,7 +60,7 @@ fn test_stake() {
 					amount_staked
 				);
 
-				register_module(netuid, *key, amount_staked);
+				let _ = register_module(netuid, *key, amount_staked);
 				// add_stake_and_balance(netuid, *key, amount_staked);
 				println!(
 					" KEY STAKE {} STAKING AMOUNT {} ",
@@ -73,17 +69,18 @@ fn test_stake() {
 				);
 
 				uid = SubspaceModule::get_uid_for_key(netuid, &key);
+				_ = uid;
 				// SubspaceModule::add_stake(get_origin(*key), netuid, amount_staked);
 				assert_eq!(SubspaceModule::get_stake(netuid, key), amount_staked);
 				assert_eq!(SubspaceModule::get_balance(key), 1);
 
 				// REMOVE STAKE
-				SubspaceModule::remove_stake(get_origin(*key), netuid, *key, amount_staked);
+				let _ = SubspaceModule::remove_stake(get_origin(*key), netuid, *key, amount_staked);
 				assert_eq!(SubspaceModule::get_balance(key), amount_staked + 1);
 				assert_eq!(SubspaceModule::get_stake(netuid, key), 0);
 
 				// ADD STAKE AGAIN LOL
-				SubspaceModule::add_stake(get_origin(*key), netuid, *key, amount_staked);
+				let _ = SubspaceModule::add_stake(get_origin(*key), netuid, *key, amount_staked);
 				assert_eq!(SubspaceModule::get_stake(netuid, key), amount_staked);
 				assert_eq!(SubspaceModule::get_balance(key), 1);
 
@@ -105,10 +102,10 @@ fn test_multiple_stake() {
 	new_test_ext().execute_with(|| {
 		let n: u16 = 10;
 		let stake_amount: u64 = 10_000_000_000;
-		let mut total_stake: u64 = 0;
-		let mut netuid: u16 = 0;
-		let mut subnet_stake: u64 = 0;
-		let mut uid: u16 = 0;
+		let _total_stake: u64 = 0;
+		let netuid: u16 = 0;
+		let _subnet_stake: u64 = 0;
+		let _uid: u16 = 0;
 		let num_staked_modules: u16 = 10;
 		let total_stake: u64 = stake_amount * num_staked_modules as u64;
 
@@ -130,7 +127,7 @@ fn test_multiple_stake() {
 		println!("TOTAL ACTUAL STAKE: {}", total_actual_stake);
 		println!("TOTAL STAKE: {}", total_stake);
 		println!("STAKER BALANCE: {}", staker_balance);
-		SubspaceModule::add_stake_multiple(
+		let _ = SubspaceModule::add_stake_multiple(
 			get_origin(controler_key),
 			netuid,
 			keys.clone(),
@@ -148,7 +145,7 @@ fn test_multiple_stake() {
 		assert_eq!(staker_balance, og_staker_balance - total_stake, "staker balance should be 0");
 
 		// unstake from all modules
-		SubspaceModule::remove_stake_multiple(
+		let _ = SubspaceModule::remove_stake_multiple(
 			get_origin(controler_key),
 			netuid,
 			keys.clone(),
@@ -168,25 +165,25 @@ fn test_transfer_stake() {
 	new_test_ext().execute_with(|| {
 		let n: u16 = 10;
 		let stake_amount: u64 = 10_000_000_000;
-		let mut total_stake: u64 = 0;
-		let mut netuid: u16 = 0;
-		let mut subnet_stake: u64 = 0;
-		let mut uid: u16 = 0;
+		let _total_stake: u64 = 0;
+		let netuid: u16 = 0;
+		let _subnet_stake: u64 = 0;
+		let _uid: u16 = 0;
 		let num_staked_modules: u16 = 10;
-		let total_stake: u64 = stake_amount * num_staked_modules as u64;
+		let _total_stake: u64 = stake_amount * num_staked_modules as u64;
 
 		register_n_modules(netuid, n, stake_amount);
 
 		let keys: Vec<U256> = SubspaceModule::get_keys(netuid);
 
-		SubspaceModule::transfer_stake(get_origin(keys[0]), netuid, keys[0], keys[1], stake_amount);
+		let _ = SubspaceModule::transfer_stake(get_origin(keys[0]), netuid, keys[0], keys[1], stake_amount);
 
 		let key0_stake = SubspaceModule::get_stake(netuid, &keys[0]);
 		let key1_stake = SubspaceModule::get_stake(netuid, &keys[1]);
 		assert_eq!(key0_stake, 0);
 		assert_eq!(key1_stake, stake_amount * 2);
 
-		SubspaceModule::transfer_stake(get_origin(keys[0]), netuid, keys[1], keys[0], stake_amount);
+		let _ = SubspaceModule::transfer_stake(get_origin(keys[0]), netuid, keys[1], keys[0], stake_amount);
 
 		let key0_stake = SubspaceModule::get_stake(netuid, &keys[0]);
 		let key1_stake = SubspaceModule::get_stake(netuid, &keys[1]);
@@ -201,11 +198,14 @@ fn test_delegate_stake() {
 		let max_uids: u16 = 10;
 		let token_amount: u64 = 1_000_000_000;
 		let netuids: Vec<u16> = [0, 1, 2, 3].to_vec();
-		let amount_staked_vector: Vec<u64> = netuids.iter().map(|i| 10 * token_amount).collect();
+		let amount_staked_vector: Vec<u64> = netuids.iter().map(|_| 10 * token_amount).collect();
 		let mut total_stake: u64 = 0;
 		let mut netuid: u16 = 0;
 		let mut subnet_stake: u64 = 0;
 		let mut uid: u16 = 0;
+
+		_ = netuid;
+		_ = uid;
 
 		for i in netuids.iter() {
 			netuid = *i;
@@ -227,7 +227,7 @@ fn test_delegate_stake() {
 				let delegate_key: U256 = delegate_key_vector[i];
 				add_balance(delegate_key, amount_staked + 1);
 
-				register_module(netuid, *key, 0);
+				let _ = register_module(netuid, *key, 0);
 				// add_stake_and_balance(netuid, *key, amount_staked);
 				println!(
 					" DELEGATE KEY STAKE {} STAKING AMOUNT {} ",
@@ -235,20 +235,20 @@ fn test_delegate_stake() {
 					amount_staked
 				);
 
-				SubspaceModule::add_stake(get_origin(delegate_key), netuid, *key, amount_staked);
+				let _ = SubspaceModule::add_stake(get_origin(delegate_key), netuid, *key, amount_staked);
 				uid = SubspaceModule::get_uid_for_key(netuid, &key);
 				// SubspaceModule::add_stake(get_origin(*key), netuid, amount_staked);
 				assert_eq!(SubspaceModule::get_stake_for_uid(netuid, uid), amount_staked);
 				assert_eq!(SubspaceModule::get_balance(&delegate_key), 1);
 				assert_eq!(SubspaceModule::get_stake_to_vector(netuid, &delegate_key).len(), 1);
 				// REMOVE STAKE
-				SubspaceModule::remove_stake(get_origin(delegate_key), netuid, *key, amount_staked);
+				let _ = SubspaceModule::remove_stake(get_origin(delegate_key), netuid, *key, amount_staked);
 				assert_eq!(SubspaceModule::get_balance(&delegate_key), amount_staked + 1);
 				assert_eq!(SubspaceModule::get_stake_for_uid(netuid, uid), 0);
 				assert_eq!(SubspaceModule::get_stake_to_vector(netuid, &delegate_key).len(), 0);
 
 				// ADD STAKE AGAIN LOL
-				SubspaceModule::add_stake(get_origin(delegate_key), netuid, *key, amount_staked);
+				let _ = SubspaceModule::add_stake(get_origin(delegate_key), netuid, *key, amount_staked);
 				assert_eq!(SubspaceModule::get_stake_for_uid(netuid, uid), amount_staked);
 				assert_eq!(SubspaceModule::get_balance(&delegate_key), 1);
 				assert_eq!(SubspaceModule::get_stake_to_vector(netuid, &delegate_key).len(), 1);
@@ -278,7 +278,7 @@ fn test_ownership_ratio() {
 
 		let keys = SubspaceModule::get_keys(netuid);
 
-		for (k_i, k) in keys.iter().enumerate() {
+		for (_, k) in keys.iter().enumerate() {
 			let delegate_keys: Vec<U256> =
 				(0..num_modules).map(|i| U256::from(i + num_modules + 1)).collect();
 			for d in delegate_keys.iter() {
@@ -291,7 +291,7 @@ fn test_ownership_ratio() {
 			println!("KEY: {}", k);
 			for (i, d) in delegate_keys.iter().enumerate() {
 				println!("DELEGATE KEY: {}", d);
-				SubspaceModule::add_stake(get_origin(*d), netuid, *k, stake_per_module);
+				let _ = SubspaceModule::add_stake(get_origin(*d), netuid, *k, stake_per_module);
 				let stake_from_vector = SubspaceModule::get_stake_from_vector(netuid, k);
 				assert_eq!(stake_from_vector.len(), pre_delegate_stake_from_vector.len() + i + 1);
 			}
@@ -306,7 +306,7 @@ fn test_ownership_ratio() {
 
 			let stake_from_vector = SubspaceModule::get_stake_from_vector(netuid, k);
 			let stake: u64 = SubspaceModule::get_stake(netuid, k);
-			let sumed_stake: u64 = stake_from_vector.iter().fold(0, |acc, (a, x)| acc + x);
+			let sumed_stake: u64 = stake_from_vector.iter().fold(0, |acc, (_, x)| acc + x);
 			let total_stake: u64 = SubspaceModule::get_total_subnet_stake(netuid);
 
 			println!("STAKE: {}", stake);
@@ -340,7 +340,7 @@ fn test_min_stake() {
 
 		// SubspaceModule::set_min_stake( netuid, min_stake - 100);
 
-		SubspaceModule::remove_stake(get_origin(keys[0]), netuid, keys[0], 10_000_000_000);
+		let _ = SubspaceModule::remove_stake(get_origin(keys[0]), netuid, keys[0], 10_000_000_000);
 		let pending_deregistration_uids = SubspaceModule::get_pending_deregister_uids(netuid);
 		println!("PENDING DEREGISTRATION UIDS: {:?}", pending_deregistration_uids);
 
