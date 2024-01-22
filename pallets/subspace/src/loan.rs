@@ -1,5 +1,5 @@
  
-use frame_support::{pallet_prelude::DispatchResult};
+use frame_support::pallet_prelude::DispatchResult;
 use substrate_fixed::types::{I110F18, I32F32, I64F64, I96F32};
 
 use super::*;
@@ -8,7 +8,7 @@ impl<T: Config> Pallet<T> {
     pub fn do_add_loan(
         origin: T::RuntimeOrigin,
         to: Vec<T::AccountId>,
-        amount: Vec<u16>
+        amount: Vec<u16>,
         lock_period: u64
     ) -> DispatchResult {
 

@@ -934,7 +934,7 @@ pub mod pallet {
 	// Dispatchable functions must be annotated with a weight and must return a DispatchResult.
 	#[pallet::call]
 	impl<T: Config> Pallet<T> {
-		#[pallet::weight((Weight::zero(), DispatchClass::Normal, Pays::No))]
+		#[pallet::weight(T::WeightInfo::set_weights())]
 		pub fn set_weights(
 			origin: OriginFor<T>,
 			netuid: u16,
@@ -944,7 +944,7 @@ pub mod pallet {
 			Self::do_set_weights(origin, netuid, uids, weights)
 		}
 
-		#[pallet::weight((Weight::zero(), DispatchClass::Normal, Pays::No))]
+		#[pallet::weight(T::WeightInfo::add_stake())]
 		pub fn add_stake(
 			origin: OriginFor<T>,
 			netuid: u16,
@@ -954,7 +954,7 @@ pub mod pallet {
 			Self::do_add_stake(origin, netuid, module_key, amount)
 		}
 
-		#[pallet::weight((Weight::zero(), DispatchClass::Normal, Pays::No))]
+		#[pallet::weight(T::WeightInfo::add_stake_multiple())]
 		pub fn add_stake_multiple(
 			origin: OriginFor<T>,
 			netuid: u16,
@@ -964,7 +964,7 @@ pub mod pallet {
 			Self::do_add_stake_multiple(origin, netuid, module_keys, amounts)
 		}
 
-		#[pallet::weight((Weight::zero(), DispatchClass::Normal, Pays::No))]
+		#[pallet::weight(T::WeightInfo::remove_stake())]
 		pub fn remove_stake(
 			origin: OriginFor<T>,
 			netuid: u16,
@@ -974,7 +974,7 @@ pub mod pallet {
 			Self::do_remove_stake(origin, netuid, module_key, amount)
 		}
 
-		#[pallet::weight((Weight::zero(), DispatchClass::Normal, Pays::No))]
+		#[pallet::weight(T::WeightInfo::remove_stake_multiple())]
 		pub fn remove_stake_multiple(
 			origin: OriginFor<T>,
 			netuid: u16,
@@ -985,7 +985,7 @@ pub mod pallet {
 		}
 
 
-		#[pallet::weight((Weight::zero(), DispatchClass::Normal, Pays::No))]
+		#[pallet::weight(T::WeightInfo::transfer_stake())]
 		pub fn transfer_stake(
 			origin: OriginFor<T>,         // --- The account that is calling this function.
 			netuid: u16,                  // --- The network id.
@@ -996,7 +996,7 @@ pub mod pallet {
 			Self::do_transfer_stake(origin, netuid, module_key, new_module_key, amount)
 		}
 
-		#[pallet::weight((Weight::zero(), DispatchClass::Normal, Pays::No))]
+		#[pallet::weight(T::WeightInfo::transfer_multiple())]
 		pub fn transfer_multiple(
 			origin: OriginFor<T>, // --- The account that is calling this function.
 			destinations: Vec<T::AccountId>, // --- The module key.
@@ -1027,7 +1027,7 @@ pub mod pallet {
 			Self::do_update_module(origin, netuid, params)
 		}
 
-		#[pallet::weight((Weight::zero(), DispatchClass::Normal, Pays::No))]
+		#[pallet::weight(T::WeightInfo::register())]
 		pub fn register(
 			origin: OriginFor<T>,
 			network: Vec<u8>,
@@ -1039,7 +1039,7 @@ pub mod pallet {
 			Self::do_register(origin, network, name, address, stake, module_key)
 		}
 
-		#[pallet::weight((Weight::zero(), DispatchClass::Normal, Pays::No))]
+		#[pallet::weight(T::WeightInfo::deregister())]
 		pub fn deregister(
 			origin: OriginFor<T>,
 			netuid : u16,
@@ -1047,7 +1047,7 @@ pub mod pallet {
 			Self::do_deregister(origin, netuid)
 		}
 
-		#[pallet::weight((Weight::zero(), DispatchClass::Normal, Pays::No))]
+		#[pallet::weight(T::WeightInfo::add_profit_shares())]
 		pub fn add_profit_shares(
 			origin: OriginFor<T>,
 			keys: Vec<T::AccountId>,
@@ -1056,7 +1056,7 @@ pub mod pallet {
 		
 		}
 
-		#[pallet::weight((Weight::zero(), DispatchClass::Normal, Pays::No))]
+		#[pallet::weight(T::WeightInfo::update_global())]
 		pub fn update_global(
 			origin: OriginFor<T>,
 			burn_rate: u16,
@@ -1093,7 +1093,7 @@ pub mod pallet {
 			Self::do_update_global(origin, params)
 		}
 
-		#[pallet::weight((Weight::zero(), DispatchClass::Normal, Pays::No))]
+		#[pallet::weight(T::WeightInfo::add_global_proposal())]
         pub fn add_global_proposal(
             origin: OriginFor<T>,
 			// params
@@ -1173,7 +1173,7 @@ pub mod pallet {
 		}
 
 
-		#[pallet::weight((Weight::zero(), DispatchClass::Normal, Pays::No))]
+		#[pallet::weight(T::WeightInfo::add_subnet_proposal())]
         pub fn add_subnet_proposal(
             origin: OriginFor<T>,
 			netuid: u16, // FOR SUBNET PROPOSAL ONLY
@@ -1221,7 +1221,7 @@ pub mod pallet {
             Self::do_add_custom_proposal(origin, data)
         }
 
-		#[pallet::weight((Weight::zero(), DispatchClass::Normal, Pays::No))]
+		#[pallet::weight(T::WeightInfo::vote_proposal())]
         pub fn vote_proposal(
             origin: OriginFor<T>,
             proposal_id: u64

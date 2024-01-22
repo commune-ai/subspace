@@ -1,10 +1,5 @@
 mod test_mock;
-use frame_support::{
-	assert_ok,
-	dispatch::{DispatchClass, DispatchInfo, GetDispatchInfo, Pays},
-};
-use frame_system::Config;
-use pallet_subspace::Error;
+use frame_support::assert_ok;
 use sp_core::U256;
 use test_mock::*;
 use sp_std::vec;
@@ -28,7 +23,7 @@ fn test_subnet_porposal() {
 	println!("params: {:?}", params);
 	SubspaceModule::set_subnet_params(netuid, params.clone());
 	let mut params = SubspaceModule::subnet_params(netuid);
-	let initial_tempo = params.tempo;
+	let _initial_tempo = params.tempo;
 	let final_tempo = 1000;
 	params.tempo = final_tempo;
 
@@ -76,7 +71,7 @@ fn test_max_proposals() {
 	let keys: Vec<U256> = (0..n).into_iter().map(|x| U256::from(x)).collect();
 	let mut stakes= vec![1_000_000_000; n];
 	// increase incrementally to avoid overflow
-	let mut stakes = stakes.iter_mut().enumerate().map(|(i, x)| *x + i as u64).collect::<Vec<u64>>();
+	let stakes = stakes.iter_mut().enumerate().map(|(i, x)| *x + i as u64).collect::<Vec<u64>>();
 	
 	for (i, key) in keys.iter().enumerate() {
 		assert_ok!(register_module(netuid, *key, stakes[i]));
@@ -91,7 +86,7 @@ fn test_max_proposals() {
 
 	assert_eq!(params.vote_mode, "stake".as_bytes().to_vec(), "vote mode not set");
 	let max_proposals = SubspaceModule::get_max_proposals();
-	let modes = ["authority".as_bytes().to_vec(), "stake".as_bytes().to_vec()];
+	let _modes = ["authority".as_bytes().to_vec(), "stake".as_bytes().to_vec()];
 
 	let mut subnet_params = SubspaceModule::subnet_params(netuid);
 	subnet_params.vote_mode = "stake".as_bytes().to_vec();
@@ -149,11 +144,11 @@ fn test_global_porposal() {
 	
 	// register on seperate subnets 
 	for (i, key) in keys.iter().enumerate() {
-		register_module(netuid + i as u16 , *key, stakes[i]);
+		let _ = register_module(netuid + i as u16 , *key, stakes[i]);
 	}
 
 	let mut params = SubspaceModule::global_params();
-	let initial_max_registrations_per_block = params.max_registrations_per_block;
+	let _initial_max_registrations_per_block = params.max_registrations_per_block;
 	let max_registrations_per_block = 1000;
 
 	params.max_registrations_per_block = max_registrations_per_block;
@@ -208,7 +203,7 @@ fn test_unvote() {
 	println!("params: {:?}", params);
 	SubspaceModule::set_subnet_params(netuid, params.clone());
 	let mut params = SubspaceModule::subnet_params(netuid);
-	let initial_tempo = params.tempo;
+	let _initial_tempo = params.tempo;
 	let final_tempo = 1000;
 	params.tempo = final_tempo;
 
