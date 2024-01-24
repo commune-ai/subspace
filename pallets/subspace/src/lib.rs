@@ -114,12 +114,12 @@ pub mod pallet {
 
 	#[pallet::type_value]
 	pub fn DefaultBurnRate<T: Config>() -> u16 {0}
-	#[pallet::storage] // --- MAP ( netuid ) --> min_allowed_weights
+	#[pallet::storage] //
 	pub type BurnRate<T> = StorageValue<_ , u16, ValueQuery, DefaultBurnRate<T>>;
 
 	#[pallet::type_value]
 	pub fn DefaultMinBurn<T: Config>() -> u64 {0}
-	#[pallet::storage] // --- MAP ( netuid ) --> min_allowed_weights
+	#[pallet::storage] //
 	pub type MinBurn<T> = StorageValue<_, u64, ValueQuery, DefaultMinBurn<T>>;
 
 	
@@ -157,20 +157,20 @@ pub mod pallet {
 
 	#[pallet::type_value]
 	pub fn DefaultMinStakeGlobal<T: Config>() -> u64 { 100 }
-	#[pallet::storage] // --- MAP ( netuid ) --> min_allowed_weights
+	#[pallet::storage] //
 	pub type MinStakeGlobal<T> = StorageValue<_, u64, ValueQuery, DefaultMinStake<T>>;
 	
 
 
 	#[pallet::type_value]
 	pub fn DefaultMinWeightStake<T: Config>() -> u64 { 0 }
-	#[pallet::storage] // --- MAP ( netuid ) --> min_allowed_weights
+	#[pallet::storage] //
 	pub type MinWeightStake<T> = StorageValue<_, u64, ValueQuery, DefaultMinWeightStake<T>>;
 	
 
 	#[pallet::type_value]
 	pub fn DefaultMaxAllowedWeightsGlobal<T: Config>() -> u16 { 512 }
-	#[pallet::storage] // --- MAP ( netuid ) --> min_allowed_weights
+	#[pallet::storage] //
 	pub type MaxAllowedWeightsGlobal<T> = StorageValue<_, u16, ValueQuery, DefaultMaxAllowedWeightsGlobal<T>>;
 
 
@@ -293,77 +293,77 @@ pub mod pallet {
 
 	#[pallet::type_value]
 	pub fn DefaultMinAllowedWeights<T: Config>() -> u16 {1}
-	#[pallet::storage] // --- MAP ( netuid ) --> min_allowed_weights
+	#[pallet::storage] //
 	pub type MinAllowedWeights<T> = StorageMap<_, Identity, u16, u16, ValueQuery, DefaultMinAllowedWeights<T>>;
 
 	#[pallet::type_value]
 	pub fn DefaultSelfVote<T: Config>() -> bool {true}
-	#[pallet::storage] // --- MAP ( netuid ) --> min_allowed_weights
+	#[pallet::storage] //
 	pub type SelfVote<T> = StorageMap<_, Identity, u16, bool, ValueQuery, DefaultSelfVote<T>>;
 
 
 	#[pallet::type_value]
 	pub fn DefaultMinStake<T: Config>() -> u64 {0}	
-	#[pallet::storage] // --- MAP ( netuid ) --> min_allowed_weights
+	#[pallet::storage] //
 	pub type MinStake<T> = StorageMap<_, Identity, u16, u64, ValueQuery, DefaultMinStake<T>>;
 
 
 	#[pallet::type_value]
 	pub fn DefaultMaxStake<T: Config>() -> u64 {u64::MAX}	
-	#[pallet::storage] // --- MAP ( netuid ) --> min_allowed_weights
+	#[pallet::storage] //eights
 	pub type MaxStake<T> = StorageMap<_, Identity, u16, u64, ValueQuery, DefaultMaxStake<T>>;
 
 
 	#[pallet::type_value]
 	pub fn DefaultMaxWeightAge<T: Config>() -> u64 {u64::MAX}
-	#[pallet::storage] // --- MAP ( netuid ) --> min_allowed_weights
+	#[pallet::storage] //
 	pub type MaxWeightAge<T> = StorageMap<_, Identity, u16, u64, ValueQuery, DefaultMaxWeightAge<T>>;
 
 
 
 	#[pallet::type_value]
 	pub fn DefaultMaxAllowedWeights<T: Config>() -> u16 {420}
-	#[pallet::storage] // --- MAP ( netuid ) --> min_allowed_weights
+	#[pallet::storage] //
 	pub type MaxAllowedWeights<T> =StorageMap<_, Identity, u16, u16, ValueQuery, DefaultMaxAllowedWeights<T>>;
 	
 
 	#[pallet::type_value]
 	pub fn DefaultPendingDeregisterUids<T: Config>() -> Vec<u16> {vec![]}
-	#[pallet::storage] // --- MAP ( netuid ) --> min_allowed_weights
+	#[pallet::storage] //
 	pub type PendingDeregisterUids<T> = StorageMap<_, Identity, u16, Vec<u16>, ValueQuery, DefaultPendingDeregisterUids<T>>;
 
 
 	#[pallet::type_value]
 	pub fn DefaultFounder<T: Config>() -> T::AccountId {T::AccountId::decode(&mut sp_runtime::traits::TrailingZeroInput::zeroes()).unwrap()}
-	#[pallet::storage] // --- DMAP ( key, netuid ) --> bool
+	#[pallet::storage] //
 	pub type Founder<T: Config> = StorageMap<_, Identity, u16, T::AccountId, ValueQuery, DefaultFounder<T>>;
 
 
 	#[pallet::type_value]
 	pub fn DefaultFounderShare<T: Config>() -> u16 {0}
-	#[pallet::storage] // --- DMAP ( key, netuid ) --> bool
+	#[pallet::storage] //
 	pub type FounderShare<T: Config> = StorageMap<_, Identity, u16, u16, ValueQuery, DefaultFounderShare<T>>;
 	
 
 	#[pallet::type_value]
 	pub fn DefaultIncentiveRatio<T: Config>() -> u16 {50}
-	#[pallet::storage] // --- DMAP ( key, netuid ) --> bool
+	#[pallet::storage] //
 	pub type IncentiveRatio<T: Config> = StorageMap<_, Identity, u16, u16, ValueQuery, DefaultIncentiveRatio<T>>;
 	
 	
 	#[pallet::type_value]
 	pub fn DefaultTempo<T: Config>() -> u16 {1}
-	#[pallet::storage] // --- MAP ( netuid ) --> epoch
+	#[pallet::storage] //
 	pub type Tempo<T> = StorageMap<_, Identity, u16, u16, ValueQuery, DefaultTempo<T>>;
 
 	#[pallet::type_value]
 	pub fn DefaultTrustRatio<T: Config>() -> u16 {0}
-	#[pallet::storage] // --- MAP ( netuid ) --> epoch
+	#[pallet::storage] //
 	pub type TrustRatio<T> = StorageMap<_, Identity, u16, u16, ValueQuery, DefaultTrustRatio<T>>;
 
 	#[pallet::type_value]
 	pub fn DefaultQuadraticVoting<T: Config>() -> bool {false}
-	#[pallet::storage] // --- MAP ( netuid ) --> epoch
+	#[pallet::storage] //
 	pub type QuadraticVoting<T> = StorageMap<_, Identity, u16, bool, ValueQuery, DefaultQuadraticVoting<T>>;
 
 	// =======================================
@@ -739,7 +739,7 @@ pub mod pallet {
 		NotEnoughStakeToStartNetwork,
 		NetworkRegistrationFailed,
 		NetworkAlreadyRegistered,
-		NotEnoughtStakePerWeight,
+		NotEnoughStakePerWeight,
 		NoSelfWeight,
 		DifferentLengths,
 		NotEnoughBalanceToRegister,
@@ -934,7 +934,7 @@ pub mod pallet {
 	// Dispatchable functions must be annotated with a weight and must return a DispatchResult.
 	#[pallet::call]
 	impl<T: Config> Pallet<T> {
-		#[pallet::weight((Weight::zero(), DispatchClass::Normal, Pays::No))]
+		#[pallet::weight(T::WeightInfo::set_weights())]
 		pub fn set_weights(
 			origin: OriginFor<T>,
 			netuid: u16,
@@ -944,7 +944,7 @@ pub mod pallet {
 			Self::do_set_weights(origin, netuid, uids, weights)
 		}
 
-		#[pallet::weight((Weight::zero(), DispatchClass::Normal, Pays::No))]
+		#[pallet::weight(T::WeightInfo::add_stake())]
 		pub fn add_stake(
 			origin: OriginFor<T>,
 			netuid: u16,
@@ -954,7 +954,7 @@ pub mod pallet {
 			Self::do_add_stake(origin, netuid, module_key, amount)
 		}
 
-		#[pallet::weight((Weight::zero(), DispatchClass::Normal, Pays::No))]
+		#[pallet::weight(T::WeightInfo::add_stake_multiple())]
 		pub fn add_stake_multiple(
 			origin: OriginFor<T>,
 			netuid: u16,
@@ -964,7 +964,7 @@ pub mod pallet {
 			Self::do_add_stake_multiple(origin, netuid, module_keys, amounts)
 		}
 
-		#[pallet::weight((Weight::zero(), DispatchClass::Normal, Pays::No))]
+		#[pallet::weight(T::WeightInfo::remove_stake())]
 		pub fn remove_stake(
 			origin: OriginFor<T>,
 			netuid: u16,
@@ -974,7 +974,7 @@ pub mod pallet {
 			Self::do_remove_stake(origin, netuid, module_key, amount)
 		}
 
-		#[pallet::weight((Weight::zero(), DispatchClass::Normal, Pays::No))]
+		#[pallet::weight(T::WeightInfo::remove_stake_multiple())]
 		pub fn remove_stake_multiple(
 			origin: OriginFor<T>,
 			netuid: u16,
@@ -985,7 +985,7 @@ pub mod pallet {
 		}
 
 
-		#[pallet::weight((Weight::zero(), DispatchClass::Normal, Pays::No))]
+		#[pallet::weight(T::WeightInfo::transfer_stake())]
 		pub fn transfer_stake(
 			origin: OriginFor<T>,         // --- The account that is calling this function.
 			netuid: u16,                  // --- The network id.
@@ -996,7 +996,7 @@ pub mod pallet {
 			Self::do_transfer_stake(origin, netuid, module_key, new_module_key, amount)
 		}
 
-		#[pallet::weight((Weight::zero(), DispatchClass::Normal, Pays::No))]
+		#[pallet::weight(T::WeightInfo::transfer_multiple())]
 		pub fn transfer_multiple(
 			origin: OriginFor<T>, // --- The account that is calling this function.
 			destinations: Vec<T::AccountId>, // --- The module key.
@@ -1006,8 +1006,7 @@ pub mod pallet {
 		}
 
 
-
-		#[pallet::weight((Weight::zero(), DispatchClass::Normal, Pays::No))]
+		#[pallet::weight(T::WeightInfo::update_module())]
 		pub fn update_module(
 			origin: OriginFor<T>,
 			netuid: u16,
@@ -1027,7 +1026,7 @@ pub mod pallet {
 			Self::do_update_module(origin, netuid, params)
 		}
 
-		#[pallet::weight((Weight::zero(), DispatchClass::Normal, Pays::No))]
+		#[pallet::weight(T::WeightInfo::register())]
 		pub fn register(
 			origin: OriginFor<T>,
 			network: Vec<u8>,
@@ -1039,7 +1038,7 @@ pub mod pallet {
 			Self::do_register(origin, network, name, address, stake, module_key)
 		}
 
-		#[pallet::weight((Weight::zero(), DispatchClass::Normal, Pays::No))]
+		#[pallet::weight(T::WeightInfo::deregister())]
 		pub fn deregister(
 			origin: OriginFor<T>,
 			netuid : u16,
@@ -1047,16 +1046,16 @@ pub mod pallet {
 			Self::do_deregister(origin, netuid)
 		}
 
-		#[pallet::weight((Weight::zero(), DispatchClass::Normal, Pays::No))]
+		#[pallet::weight(T::WeightInfo::add_profit_shares())]
 		pub fn add_profit_shares(
 			origin: OriginFor<T>,
 			keys: Vec<T::AccountId>,
-			shares: Vec<u16>) -> DispatchResult {
+			shares: Vec<u16>
+		) -> DispatchResult {
 			Self::do_add_profit_shares(origin, keys, shares)
-		
 		}
 
-		#[pallet::weight((Weight::zero(), DispatchClass::Normal, Pays::No))]
+		#[pallet::weight(T::WeightInfo::update_global())]
 		pub fn update_global(
 			origin: OriginFor<T>,
 			burn_rate: u16,
@@ -1093,7 +1092,7 @@ pub mod pallet {
 			Self::do_update_global(origin, params)
 		}
 
-		#[pallet::weight((Weight::zero(), DispatchClass::Normal, Pays::No))]
+		#[pallet::weight(T::WeightInfo::add_global_proposal())]
         pub fn add_global_proposal(
             origin: OriginFor<T>,
 			// params
@@ -1131,7 +1130,7 @@ pub mod pallet {
         }
 
 
-		#[pallet::weight((Weight::zero(), DispatchClass::Normal, Pays::No))]
+		#[pallet::weight(T::WeightInfo::update_subnet())]
 		pub fn update_subnet(
 			origin: OriginFor<T>,
 			netuid: u16,
@@ -1173,7 +1172,7 @@ pub mod pallet {
 		}
 
 
-		#[pallet::weight((Weight::zero(), DispatchClass::Normal, Pays::No))]
+		#[pallet::weight(T::WeightInfo::add_subnet_proposal())]
         pub fn add_subnet_proposal(
             origin: OriginFor<T>,
 			netuid: u16, // FOR SUBNET PROPOSAL ONLY
@@ -1213,7 +1212,7 @@ pub mod pallet {
             Self::do_add_subnet_proposal(origin, netuid, params)
         }
 
-		#[pallet::weight((Weight::zero(), DispatchClass::Normal, Pays::No))]
+		#[pallet::weight(T::WeightInfo::add_custom_proposal())]
         pub fn add_custom_proposal(
             origin: OriginFor<T>,
 			data: Vec<u8>,
@@ -1221,7 +1220,7 @@ pub mod pallet {
             Self::do_add_custom_proposal(origin, data)
         }
 
-		#[pallet::weight((Weight::zero(), DispatchClass::Normal, Pays::No))]
+		#[pallet::weight(T::WeightInfo::vote_proposal())]
         pub fn vote_proposal(
             origin: OriginFor<T>,
             proposal_id: u64
@@ -1232,7 +1231,7 @@ pub mod pallet {
             )
         }
 
-		#[pallet::weight((Weight::zero(), DispatchClass::Normal, Pays::No))]
+		#[pallet::weight(T::WeightInfo::unvote_proposal())]
         pub fn unvote_proposal(
             origin: OriginFor<T>,
         ) -> DispatchResult {

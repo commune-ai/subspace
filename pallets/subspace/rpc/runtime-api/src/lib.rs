@@ -1,13 +1,25 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 
-use sp_runtime::{DispatchError, MultiSignature, traits::{Verify, IdentifyAccount}};
-use sp_runtime::{sp_std::prelude::Vec, ArithmeticError};
-use parity_scale_codec::{Decode, Encode, EncodeLike, MaxEncodedLen};
-use scale_info::TypeInfo;
-use serde::{Deserialize, Serialize};
+use sp_runtime::{
+	MultiSignature,
+	sp_std::prelude::Vec,
+	traits::{
+		Verify,
+		IdentifyAccount
+	},
+};
 use sp_arithmetic::per_things::Percent;
 
-type Result<T> = core::result::Result<T, DispatchError>;
+use parity_scale_codec::{
+	Decode,
+	Encode,
+};
+use scale_info::TypeInfo;
+use serde::{
+	Deserialize,
+	Serialize
+};
+
 type Signature = MultiSignature;
 pub type AccountId = <<Signature as Verify>::Signer as IdentifyAccount>::AccountId;
 
@@ -35,15 +47,6 @@ pub struct ModuleInfo {
 	pub params: ModuleParams,
 	pub stats: ModuleStats,
 }
-
-
-// sp_api::decl_runtime_apis! {
-// 	pub trait SubspaceRuntimeApi where
-// 	AccountId: <<Signature as Verify>::Signer as IdentifyAccount>::AccountId
-// 	{
-// 		fn get_module_info() -> Result<ModuleInfo>;
-// 	}
-// }
 
 sp_api::decl_runtime_apis! {
 	pub trait SubspaceRuntimeApi

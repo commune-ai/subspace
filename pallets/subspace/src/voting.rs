@@ -11,12 +11,15 @@ impl<T: Config> Pallet<T> {
         origin: T::RuntimeOrigin,
     ) -> DispatchResult {
         let key = ensure_signed(origin)?;
+
         ensure!(Self::is_voter_registered(&key), Error::<T>::VoterIsNotRegistered);
+
         Self::unregister_voter(&key);
+
         ensure!(!Self::is_voter_registered(&key), Error::<T>::VoterIsRegistered);
+        
         Ok(())
     }
-
 
     pub fn do_add_proposal(
         origin: T::RuntimeOrigin,
@@ -89,10 +92,13 @@ impl<T: Config> Pallet<T> {
         params: SubnetParams<T>,
     ) -> DispatchResult {        
         let mut proposal = Self::default_proposal();
+
         proposal.subnet_params = params;
         proposal.netuid = netuid;
         proposal.mode = "subnet".as_bytes().to_vec();
+
         Self::do_add_proposal(origin,  proposal)?;
+
         Ok(())
     }
 
@@ -148,9 +154,9 @@ impl<T: Config> Pallet<T> {
         proposal.votes = proposal.votes.saturating_add(voting_power);
 
         // update the proposal
-        Voter2Info::<T>::insert(key, voter_info);
+        Voter2Info::<T>::insert(key.clone(), voter_info);
         Proposals::<T>::insert(proposal_id, proposal);
-
+        
         Self::check_proposal_approval(proposal_id);
 
         Ok(())
@@ -215,9 +221,12 @@ impl<T: Config> Pallet<T> {
             Self::check_subnet_params(proposal.subnet_params.clone())?;
             //  check if vote mode is valid
             let subnet_params: SubnetParams<T> = Self::subnet_params(proposal.netuid);
+
             ensure!(
-                is_vec_str(subnet_params.vote_mode.clone(),"stake")
-            , Error::<T>::InvalidVoteMode);
+                is_vec_str(subnet_params.vote_mode.clone(),"stake") ||
+                is_vec_str(subnet_params.vote_mode.clone(),"authority"),
+                Error::<T>::InvalidVoteMode
+            );
         } else {
             ensure!(proposal.data.len() > 0, Error::<T>::InvalidProposalData);
         }

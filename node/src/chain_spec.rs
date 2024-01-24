@@ -94,6 +94,7 @@ pub fn generate_config(network: String) -> Result<ChainSpec, String> {
 		json::from_slice(&bytes).map_err(|e| format!("Error parsing genesis file: {}", e))?;
 
 	let block: u32 = state.block;
+	let _version = state.version;
 	// (name, tempo, immunity_period, min_allowed_weights, max_allowed_weights, max_allowed_uids,
 	// founder)
 	let mut subnets: Vec<(Vec<u8>, u16, u16, u16, u16, u16, u16, u64, sp_runtime::AccountId32)> =
@@ -120,7 +121,7 @@ pub fn generate_config(network: String) -> Result<ChainSpec, String> {
 
 		// Add  modules
 		modules.push(Vec::new());
-		for (uid, module) in state.modules[netuid].iter().enumerate() {
+		for (_uid, module) in state.modules[netuid].iter().enumerate() {
 			modules[netuid].push((
 				sp_runtime::AccountId32::from(
 					// module_key
@@ -229,7 +230,7 @@ fn network_genesis(
 	stake_to: Vec<Vec<(AccountId, Vec<(AccountId, u64)>)>>,
 	block: u32,
 ) -> RuntimeGenesisConfig {
-	use node_subspace_runtime::{EVMChainIdConfig, EVMConfig};
+	use node_subspace_runtime::EVMConfig;
 	
 	RuntimeGenesisConfig {
 		system: SystemConfig {

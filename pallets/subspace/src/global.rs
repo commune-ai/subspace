@@ -143,8 +143,11 @@ impl<T: Config> Pallet<T> {
 		params: GlobalParams,
 	) -> DispatchResult {
 		ensure_root(origin)?;
+
 		ensure!(is_vec_str(Self::get_vote_mode_global(),"authority"), Error::<T>::InvalidVoteMode);
+		
 		Self::set_global_params(params.clone());
+		
 		Ok(())
 	}
 

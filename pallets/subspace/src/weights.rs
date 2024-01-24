@@ -16,13 +16,11 @@ impl<T: Config> Pallet<T> {
 		// check if the stake per weight is greater than the stake
 		let min_stake_per_weight: u64 = Self::get_min_weight_stake();
 		let min_stake_for_weights: u64 = min_stake_per_weight * uids.len() as u64;
-		ensure!(stake >= min_stake_for_weights, Error::<T>::NotEnoughtStakePerWeight);
-
+		
+		ensure!(stake >= min_stake_for_weights, Error::<T>::NotEnoughStakePerWeight);
+		
 		ensure!(stake > 0, Error::<T>::NotEnoughStaketoSetWeights);
 
-		let stake: u64 = Self::get_stake_for_key(netuid, &key);
-
-		ensure!(stake > 0, Error::<T>::NotEnoughStaketoSetWeights);
 		// --- 2. Check to see if this is a valid network.
 		ensure!(Self::if_subnet_exist(netuid), Error::<T>::NetworkDoesNotExist);
 		// --- 5. Check to see if the key is registered to the passed network.
@@ -44,10 +42,13 @@ impl<T: Config> Pallet<T> {
 
 		let min_allowed_length: usize = Self::get_min_allowed_weights(netuid) as usize;
 		let max_allowed_length: usize = Self::get_max_allowed_weights(netuid) as usize;
+		
 		let self_vote = Self::get_self_vote(netuid);
+		
 		if self_vote {
 			ensure!(!Self::is_self_weight(uid, &uids, &values), Error::<T>::NoSelfWeight);
 		}
+
 		ensure!(uids.len() >= min_allowed_length as usize, Error::<T>::NotSettingEnoughWeights);
 		ensure!(uids.len() <= max_allowed_length as usize, Error::<T>::TooManyUids);
 
@@ -56,6 +57,7 @@ impl<T: Config> Pallet<T> {
 
 		// --- 15. Zip weights for sinking to storage map.
 		let mut zipped_weights: Vec<(u16, u16)> = vec![];
+
 		for (uid, val) in uids.iter().zip(normalized_values.iter()) {
 			zipped_weights.push((*uid, *val))
 		}
@@ -126,12 +128,15 @@ impl<T: Config> Pallet<T> {
 	// Implace normalizes the passed positive integer weights so that they sum to u16 max value.
 	pub fn normalize_weights(mut weights: Vec<u16>) -> Vec<u16> {
 		let sum: u64 = weights.iter().map(|x| *x as u64).sum();
+		
 		if sum == 0 {
 			return weights
 		}
+
 		weights.iter_mut().for_each(|x| {
 			*x = (*x as u64 * u16::max_value() as u64 / sum) as u16;
 		});
+
 		return weights
 	}
 

@@ -321,31 +321,33 @@ impl<T: Config> Pallet<T> {
 	) -> bool {
 		let mut stake_from_vector: Vec<(T::AccountId, u64)> =
 			Self::get_stake_from_vector(netuid, module_key);
-		let mut found_key_in_vector: bool = false;
+		
+		let mut found_key_in_from_vector: bool = false;
+		
 		for (i, (k, v)) in stake_from_vector.clone().iter().enumerate() {
 			if *k == *key {
 				stake_from_vector[i] = (k.clone(), (*v).saturating_add(amount));
-				found_key_in_vector = true;
+				found_key_in_from_vector = true;
 			}
 		}
 
 		// if we didnt find the key in the vector, we need to add it
-		if !found_key_in_vector {
+		if !found_key_in_from_vector {
 			stake_from_vector.push((key.clone(), amount));
 		}
 
 		// reset the stake to vector, as we have updated the stake_to_vector
-		let mut found_key_in_vector: bool = false;
+		let mut found_key_in_to_vector: bool = false;
 		let mut stake_to_vector: Vec<(T::AccountId, u64)> = Self::get_stake_to_vector(netuid, key);
 
 		for (i, (k, v)) in stake_to_vector.clone().iter().enumerate() {
 			if *k == *module_key {
 				stake_to_vector[i] = (k.clone(), (*v).saturating_add(amount));
-				found_key_in_vector = true;
+				found_key_in_to_vector = true;
 			}
 		}
 
-		if !found_key_in_vector {
+		if !found_key_in_to_vector {
 			stake_to_vector.push((module_key.clone(), amount));
 		}
 
