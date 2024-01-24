@@ -295,7 +295,7 @@ impl<T: Config> Pallet<T> {
 
 	pub fn get_total_stake_to_global(key: &T::AccountId) -> u64 {
 		let mut total_stake_to: u64 = 0;
-		let total_networks: u16 = TotalSubnets::<T>::get();
+		let total_networks: u16 = GlobalStateStorage::<T>::get().total_subnets;
 		for netuid in 0..total_networks {
 			total_stake_to += Self::get_total_stake_to(netuid, key);
 		}

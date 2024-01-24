@@ -9,7 +9,7 @@ impl<T: Config> Pallet<T> {
 	pub fn global_params() -> GlobalParams {
 		GlobalParams {
 			max_name_length: Self::get_global_max_name_length(),
-			max_allowed_subnets: Self::getglobal_max_allowed_subnets(),
+			max_allowed_subnets: Self::get_global_max_allowed_subnets(),
 			max_allowed_modules: Self::get_max_allowed_modules(),
 			max_registrations_per_block: Self::get_max_registrations_per_block(),
 			unit_emission: Self::get_unit_emission(),
@@ -71,32 +71,41 @@ impl<T: Config> Pallet<T> {
 		Self::set_min_burn( params.min_burn);
 		Self::set_min_weight_stake(params.min_weight_stake);
 		Self::set_min_stake_global(params.min_stake);
-
-
 	}
 
 	pub fn get_min_weight_stake() -> u64 {
-		return MinWeightStake::<T>::get()
+		GlobalStateStorage::<T>::get().min_weight_stake
 	}
 	pub fn set_min_weight_stake(min_weight_stake: u64)  {
-		MinWeightStake::<T>::put(min_weight_stake)
+		let mut global_state = GlobalStateStorage::<T>::get();
+
+		global_state.min_weight_stake = min_weight_stake;
+
+		GlobalStateStorage::<T>::put(global_state)
 	}
 
 	pub fn get_max_allowed_weights_global() -> u16 {
-		return MaxAllowedWeightsGlobal::<T>::get()
+		GlobalStateStorage::<T>::get().max_allowed_weights
 	}
 
-	pub fn set_max_allowed_weights_global() -> u16 {
-		return MaxAllowedWeightsGlobal::<T>::get()
+	pub fn set_max_allowed_weights_global(max_allowed_weights: u16) {
+		let mut global_state = GlobalStateStorage::<T>::get();
+
+		global_state.max_allowed_weights = max_allowed_weights;
+
+		GlobalStateStorage::<T>::put(global_state)
 	}
 
 	pub fn get_min_stake_global() -> u64 {
-		return MinStakeGlobal::<T>::get()
+		GlobalStateStorage::<T>::get().min_stake
 	}
 	pub fn set_min_stake_global(min_stake: u64) {
-		MinStakeGlobal::<T>::put(min_stake)
-	}
+		let mut global_state = GlobalStateStorage::<T>::get();
 
+		global_state.min_stake = min_stake;
+
+		GlobalStateStorage::<T>::put(global_state)
+	}
 
 	pub fn set_vote_mode_global(vote_mode: Vec<u8>) {
 		VoteModeGlobal::<T>::put(vote_mode);
@@ -106,11 +115,15 @@ impl<T: Config> Pallet<T> {
 		return VoteModeGlobal::<T>::get();
 	}
 	pub fn get_burn_rate() -> u16 {
-		return BurnRate::<T>::get()
+		GlobalStateStorage::<T>::get().burn_rate
 	}
 
 	pub fn set_burn_rate(mut burn_rate: u16) {
-		BurnRate::<T>::put(burn_rate.min(100));
+		let mut global_state = GlobalStateStorage::<T>::get();
+
+		global_state.burn_rate = burn_rate.min(100);
+
+		GlobalStateStorage::<T>::put(global_state)
 	}
 	
 	pub fn set_max_proposals(max_proposals: u64) {
@@ -128,14 +141,18 @@ impl<T: Config> Pallet<T> {
 		GlobalVoteThreshold::<T>::put(vote_threshold);
 	}
 	pub fn get_max_registrations_per_block() -> u16 {
-		MaxRegistrationsPerBlock::<T>::get()
+		GlobalStateStorage::<T>::get().max_registrations_per_block
 	}
 	pub fn get_global_max_name_length() -> u16 {
-		return MaxNameLength::<T>::get();
+		GlobalStateStorage::<T>::get().max_name_length
 	}
 
 	pub fn set_global_max_name_length(max_name_length: u16) {
-		MaxNameLength::<T>::put(max_name_length)
+		let mut global_state = GlobalStateStorage::<T>::get();
+
+		global_state.max_name_length = max_name_length;
+
+		GlobalStateStorage::<T>::put(global_state)
 	}
 
 	pub fn do_update_global(
@@ -153,9 +170,11 @@ impl<T: Config> Pallet<T> {
 
 	pub fn global_n() -> u16 {
 		let mut global_n : u16 = 0;
+
 		for netuid in Self::netuids() {
-			global_n += N::<T>::get(netuid);
+			global_n += SubnetStateStorage::<T>::get(netuid).unwrap().n;
 		}
+
 		return global_n
 	}
 
@@ -164,7 +183,7 @@ impl<T: Config> Pallet<T> {
         key: &T::AccountId,
     ) -> u64 {
 		// get all of the stake to
-        let total_networks: u16 = TotalSubnets::<T>::get();
+        let total_networks: u16 = GlobalStateStorage::<T>::get().total_subnets;
         let mut total_stake_to = 0;
 
         for netuid in 0..total_networks {
@@ -177,18 +196,26 @@ impl<T: Config> Pallet<T> {
 
 	// Configure tx rate limiting
 	pub fn get_tx_rate_limit() -> u64 {
-		TxRateLimit::<T>::get()
+		GlobalStateStorage::<T>::get().tx_rate_limit
 	}
 	pub fn set_tx_rate_limit(tx_rate_limit: u64) {
-		TxRateLimit::<T>::put(tx_rate_limit)
+		let mut global_state = GlobalStateStorage::<T>::get();
+
+		global_state.tx_rate_limit = tx_rate_limit;
+
+		GlobalStateStorage::<T>::put(global_state)
 	}
 
 	pub fn set_min_burn( min_burn: u64) {
-		MinBurn::<T>::put(min_burn);
+		let mut global_state = GlobalStateStorage::<T>::get();
+
+		global_state.min_burn = min_burn;
+
+		GlobalStateStorage::<T>::put(global_state)
 	}
 
 	pub fn get_min_burn() -> u64 {
-		MinBurn::<T>::get().into()
+		GlobalStateStorage::<T>::get().min_burn
 	}
 
 	// ========================

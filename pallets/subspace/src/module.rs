@@ -51,9 +51,9 @@ impl<T: Config> Pallet<T> {
 		
 		// if len(name) > 0, then we update the name.
 		assert!(params.name.len() > 0);
-		ensure!(params.name.len() <= MaxNameLength::<T>::get() as usize, Error::<T>::ModuleNameTooLong);
+		ensure!(params.name.len() <= Self::get_global_max_name_length() as usize, Error::<T>::ModuleNameTooLong);
 		assert!(params.address.len() > 0);
-		ensure!(params.address.len() <= MaxNameLength::<T>::get() as usize, Error::<T>::ModuleAddressTooLong);
+		ensure!(params.address.len() <= Self::get_global_max_name_length() as usize, Error::<T>::ModuleAddressTooLong);
 		// delegation fee is a percent
 		Ok(())
 	}
@@ -175,10 +175,14 @@ impl<T: Config> Pallet<T> {
 		DelegationFee::<T>::remove(netuid, uid_key.clone()); // Make uid - key association.
 
 		// 3. Remove the network if it is empty.
-		N::<T>::mutate(netuid, |v| *v -= 1); // Decrease the number of modules in the network.
+		let mut subnet_state = SubnetStateStorage::<T>::get(netuid).unwrap();
+
+		subnet_state.n.saturating_sub(1);
+
+		SubnetStateStorage::<T>::insert(netuid, subnet_state);
 
 		// remove the network if it is empty
-		if N::<T>::get(netuid) == 0 {
+		if Self::get_subnet_n(netuid) == 0 {
 			Self::remove_subnet(netuid);
 		}
 
@@ -212,7 +216,11 @@ impl<T: Config> Pallet<T> {
 			DelegationFee::<T>::get(netuid, key.clone()),
 		); // Make uid - key association.
 
-		N::<T>::insert(netuid, N::<T>::get(netuid) + 1); // Decrease the number of modules in the network.
+		let mut subnet_state = SubnetStateStorage::<T>::get(netuid).unwrap();
+
+		subnet_state.n += 1;
+
+		SubnetStateStorage::<T>::insert(netuid, subnet_state);
 
 		return uid
 	}

@@ -58,7 +58,11 @@ impl<T: Config> Pallet<T> {
 
 		let min_burn: u64 = Self::get_min_burn();
 
-		RegistrationsPerBlock::<T>::mutate(|val| *val += 1);
+		let mut global_state = GlobalStateStorage::<T>::get();
+
+		global_state.registrations_per_block += 1;
+
+		GlobalStateStorage::<T>::put(global_state);
 
 		let mut uid: u16;
 
@@ -139,9 +143,12 @@ impl<T: Config> Pallet<T> {
 
 
 	pub fn get_min_stake_to_register(netuid: u16) -> u64 {
-		let mut min_stake: u64 = MinStake::<T>::get(netuid);
-		let registrations_per_block: u16 = RegistrationsPerBlock::<T>::get();
-		let max_registrations_per_block: u16 = MaxRegistrationsPerBlock::<T>::get();
+		let mut min_stake: u64 = Self::get_min_stake(netuid);
+
+		let global_state = GlobalStateStorage::<T>::get();
+
+		let registrations_per_block: u16 = global_state.registrations_per_block;
+		let max_registrations_per_block: u16 = global_state.max_registrations_per_block;
 
 		let mut factor = I32F32::from_num(registrations_per_block) /
 			I32F32::from_num(max_registrations_per_block);
@@ -180,11 +187,18 @@ impl<T: Config> Pallet<T> {
 		let n: u16 = Self::get_subnet_n(netuid);
 
 		// If there are pending deregister uids, then return the first one.
-		let pending_deregister_uids: Vec<u16> = PendingDeregisterUids::<T>::get(netuid);
+		let pending_deregister_uids: Vec<u16> = Self::get_pending_deregister_uids(netuid);
+		
 		if pending_deregister_uids.len() > 0 {
 			let uid: u16 = pending_deregister_uids[0];
+
 			if uid < n {
-				PendingDeregisterUids::<T>::mutate(netuid, |v| v.remove(0));
+				let mut subnet_state = SubnetStateStorage::<T>::get(netuid).unwrap();
+
+				subnet_state.pending_deregister_uids.remove(0);
+
+				SubnetStateStorage::<T>::insert(netuid, subnet_state);
+				
 				return uid
 
 			}
@@ -262,11 +276,8 @@ impl<T: Config> Pallet<T> {
 	) ->  DispatchResult{
 		// use default parameters
 		//
-
-
-
 		let num_subnets: u16 = Self::num_subnets();
-		let max_subnets: u16 = Self::getglobal_max_allowed_subnets();
+		let max_subnets: u16 = Self::get_global_max_allowed_subnets();
 		// if we have not reached the max number of subnets, then we can start a new one
 		if num_subnets >= max_subnets {
 			let mut min_stake: u64 = u64::MAX;
@@ -286,10 +297,8 @@ impl<T: Config> Pallet<T> {
 		let mut params: SubnetParams<T> = Self::default_subnet_params();
 		params.name = name.clone();
 		let netuid = Self::add_subnet(params);
-		Founder::<T>::insert(netuid, founder_key.clone());
-		
 
-		
+		Self::set_founder(netuid, founder_key.clone());		
 
 		Ok(())
 	}

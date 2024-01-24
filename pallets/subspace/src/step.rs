@@ -9,20 +9,42 @@ use sp_std::vec;
 impl<T: Config> Pallet<T> {
 	pub fn block_step() {
 		let block_number: u64 = Self::get_current_block_as_u64();
-		RegistrationsPerBlock::<T>::mutate(|val| *val = 0);
+
+		let mut global_state = GlobalStateStorage::<T>::get();
+
+		global_state.registrations_per_block = 0;
+
+		GlobalStateStorage::<T>::put(global_state);
+
 		log::debug!("block_step for block: {:?} ", block_number);
-		for (netuid, tempo) in <Tempo<T> as IterableStorageMap<u16, u16>>::iter() {
+
+		for (netuid, subnet_state) in SubnetStateStorage::<T>::iter() {
+			let tempo = subnet_state.tempo;
 
 			let new_queued_emission: u64 = Self::calculate_network_emission(netuid);
-			PendingEmission::<T>::mutate(netuid, |mut queued| *queued += new_queued_emission);
+
+			let mut subnet_state = SubnetStateStorage::<T>::get(netuid).unwrap();
+
+			subnet_state.pending_emission += new_queued_emission;
+
+			SubnetStateStorage::<T>::insert(netuid, subnet_state);
+			
 			log::debug!("netuid_i: {:?} queued_emission: +{:?} ", netuid, new_queued_emission);
+
 			Self::deregister_pending_uid(netuid); // deregister any pending uids
 			if Self::blocks_until_next_epoch(netuid, tempo, block_number) > 0 {
 				continue
 			}
-			let emission_to_drain: u64 = PendingEmission::<T>::get(netuid).clone();
+
+			let emission_to_drain: u64 = Self::get_pending_emission(netuid);
+
 			Self::epoch(netuid, emission_to_drain);
-			PendingEmission::<T>::insert(netuid, 0);
+
+			let mut subnet_state = SubnetStateStorage::<T>::get(netuid).unwrap();
+
+			subnet_state.pending_emission = 0;
+
+			SubnetStateStorage::<T>::insert(netuid, subnet_state)
 		}
 	}
 
@@ -42,10 +64,10 @@ impl<T: Config> Pallet<T> {
 		}
 
 
-		// quadradic voting
+		// quadratic voting
 
-		// let quadradic_voting: bool = Self::get_quadradic_voting(netuid);
-		// if quadradic_voting {
+		// let quadratic_voting: bool = Self::get_quadratic_voting(netuid);
+		// if quadratic_voting {
 		// 	// take a square root of the stake if its > 1
 
 		// 	total_stake_u64 = total_stake_u64;

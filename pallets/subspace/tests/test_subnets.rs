@@ -16,7 +16,7 @@ fn test_add_subnets() {
 	new_test_ext().execute_with(|| {
 		let tempo: u16 = 13;
 		let mut stake_per_module: u64 = 1_000_000_000;
-		let mut max_allowed_subnets: u16 = SubspaceModule::getglobal_max_allowed_subnets();
+		let mut max_allowed_subnets: u16 = SubspaceModule::get_global_max_allowed_subnets();
 		let mut expected_subnets = 0;
 		let mut n = 20;
 		let num_subnets: u16 = n;
