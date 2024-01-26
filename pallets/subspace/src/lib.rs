@@ -137,9 +137,31 @@ pub mod pallet {
 	#[pallet::storage] // --- MAP ( key ) --> last_block
 	pub(super) type LastTxBlock<T: Config> = StorageMap<_, Identity, T::AccountId, u64, ValueQuery, DefaultLastTxBlock<T>>;
 
+	#[pallet::type_value]
+	pub fn DefaultGlobalState<T: Config>() -> GlobalState {
+		GlobalState {
+			registrations_per_block: 0,
+			total_subnets: 0,
+			max_name_length: 32, // max length of a network name
+			max_allowed_subnets: 256, // max number of subnets allowed
+			max_allowed_modules: 10_000, // max number of modules allowed per subnet
+			max_registrations_per_block: 10, // max number of registrations per block
+			max_allowed_weights: 512, // max number of weights per module
+			
+			// min
+			min_burn: 0, // min burn required
+			min_stake: 0, // min stake required
+			min_weight_stake: 0,// min weight stake required
+			
+			// other
+			unit_emission: 23148148148, // emission per block
+			tx_rate_limit: 1, // tx rate limit
+			burn_rate: 0,
+		}
+	}
 	#[pallet::storage]
 	#[pallet::getter(fn global_state)]
-	pub(super) type GlobalStateStorage<T: Config> = StorageValue<_, GlobalState, ValueQuery>;
+	pub(super) type GlobalStateStorage<T: Config> = StorageValue<_, GlobalState, ValueQuery, DefaultGlobalState<T>>;
 
 	#[derive(Decode, Encode, PartialEq, Eq, Clone, Debug, TypeInfo)]
 	#[scale_info(skip_type_params(T))]
@@ -227,9 +249,36 @@ pub mod pallet {
 		pub name: BoundedVec<u8, ConstU32<32>>,
 	}
 
+	#[pallet::type_value]
+	pub fn DefaultSubnetState<T: Config>() -> SubnetState<T> {
+		SubnetState {
+			founder: T::AccountId::decode(&mut sp_runtime::traits::TrailingZeroInput::zeroes()).unwrap(),
+			founder_share: 0, // out of 100
+			incentive_ratio : 50, // out of 100
+			immunity_period: 40, // immunity period
+			max_allowed_uids: 4096, // max number of weights allowed to be registered in this
+			max_allowed_weights: 420, // max number of weights allowed to be registered in this
+			min_allowed_weights: 1, // min number of weights allowed to be registered in this
+			max_stake: u64::MAX, // max stake allowed
+			max_weight_age: u64::MAX, // max age of a weightmax_weight_age: u64, // max age of a weight
+			min_stake: 0,	// min stake required
+			self_vote: true, // 
+			tempo: 1, // how many blocks to wait before rewarding models
+			trust_ratio: 0,
+			quadratic_voting: false,
+			pending_deregister_uids: BoundedVec::<u16, ConstU32<10_000>>::default(),
+			vote_threshold: 50,
+			vote_mode: BoundedVec::<u8, ConstU32<32>>::truncate_from(b"authority".to_vec()),
+
+			emission: 0,
+			n: 0, //number of uids
+			pending_emission: 0,
+			name: BoundedVec::<u8, ConstU32<32>>::default(),
+		}
+	}
 	#[pallet::storage]
 	#[pallet::getter(fn subnet_state)]
-	pub(super) type SubnetStateStorage<T: Config> = StorageMap<_, Identity, u16, SubnetState<T>>;
+	pub(super) type SubnetStateStorage<T: Config> = StorageMap<_, Identity, u16, SubnetState<T>, ValueQuery, DefaultSubnetState<T>>;
 
 	#[derive(Decode, Encode, PartialEq, Eq, Clone, Debug, TypeInfo)]
 	#[scale_info(skip_type_params(T))]

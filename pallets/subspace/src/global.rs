@@ -172,7 +172,7 @@ impl<T: Config> Pallet<T> {
 		let mut global_n : u16 = 0;
 
 		for netuid in Self::netuids() {
-			global_n += SubnetStateStorage::<T>::get(netuid).unwrap().n;
+			global_n += SubnetStateStorage::<T>::get(netuid).n;
 		}
 
 		return global_n

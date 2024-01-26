@@ -291,6 +291,7 @@ fn test_set_max_allowed_uids_shrinking() {
 
 		let mut params = SubspaceModule::subnet_params(netuid).clone();
 		params.max_allowed_uids = max_uids;
+		println!("params {:?}", params);
 		let result = SubspaceModule::do_update_subnet(get_origin(keys[0]), netuid, params);
 		let global_params = SubspaceModule::global_params();
 		println!("global params {:?}", global_params);
@@ -342,10 +343,11 @@ fn test_set_max_allowed_modules() {
 
 		SubspaceModule::set_max_allowed_modules(max_allowed_modules);
 		// set max_total modules
-
+		
 		for i in 1..(2*max_allowed_modules ) {
 			assert_ok!(register_module(netuid, U256::from(i), stake));
 			n = SubspaceModule::get_subnet_n(netuid);
+			println!("{} {} {:?}", n, SubspaceModule::global_n(), SubspaceModule::netuids());
 			assert!(n <= max_allowed_modules,"subnet_n {:?} is not less than max_allowed_modules {:?}", n, max_allowed_modules);
 		}
 	})

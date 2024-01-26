@@ -175,9 +175,12 @@ impl<T: Config> Pallet<T> {
 		DelegationFee::<T>::remove(netuid, uid_key.clone()); // Make uid - key association.
 
 		// 3. Remove the network if it is empty.
-		let mut subnet_state = SubnetStateStorage::<T>::get(netuid).unwrap();
+		let mut subnet_state = SubnetStateStorage::<T>::get(netuid);
 
-		subnet_state.n.saturating_sub(1);
+		if(subnet_state.n > 0) {
+			subnet_state.n -= 1;
+		}
+
 
 		SubnetStateStorage::<T>::insert(netuid, subnet_state);
 
@@ -216,7 +219,7 @@ impl<T: Config> Pallet<T> {
 			DelegationFee::<T>::get(netuid, key.clone()),
 		); // Make uid - key association.
 
-		let mut subnet_state = SubnetStateStorage::<T>::get(netuid).unwrap();
+		let mut subnet_state = SubnetStateStorage::<T>::get(netuid);
 
 		subnet_state.n += 1;
 

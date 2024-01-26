@@ -193,7 +193,7 @@ impl<T: Config> Pallet<T> {
 			let uid: u16 = pending_deregister_uids[0];
 
 			if uid < n {
-				let mut subnet_state = SubnetStateStorage::<T>::get(netuid).unwrap();
+				let mut subnet_state = SubnetStateStorage::<T>::get(netuid);
 
 				subnet_state.pending_deregister_uids.remove(0);
 
