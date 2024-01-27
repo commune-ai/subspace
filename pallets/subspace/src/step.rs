@@ -23,7 +23,7 @@ impl<T: Config> Pallet<T> {
 
 			let new_queued_emission: u64 = Self::calculate_network_emission(netuid);
 
-			let mut subnet_state = SubnetStateStorage::<T>::get(netuid).unwrap();
+			let mut subnet_state = SubnetStateStorage::<T>::get(netuid);
 
 			subnet_state.pending_emission += new_queued_emission;
 
@@ -40,7 +40,7 @@ impl<T: Config> Pallet<T> {
 
 			Self::epoch(netuid, emission_to_drain);
 
-			let mut subnet_state = SubnetStateStorage::<T>::get(netuid).unwrap();
+			let mut subnet_state = SubnetStateStorage::<T>::get(netuid);
 
 			subnet_state.pending_emission = 0;
 
