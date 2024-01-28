@@ -357,7 +357,7 @@ impl<T: Config> Pallet<T> {
 					owner_emission_incentive = owner_emission_incentive.saturating_sub(burn_amount_per_epoch);
 					// correct the burn amount
 					burn_amount_per_epoch = burn_amount_per_epoch.saturating_sub(owner_emission_incentive);
-					// apply the burn to the incentive
+					// apply the burn to the dividends from the owner
 					owner_dividends_emission = owner_dividends_emission.saturating_sub(burn_amount_per_epoch);
 
 				} else {
@@ -379,13 +379,21 @@ impl<T: Config> Pallet<T> {
 					// add the ownership
 					for (delegate_key, delegate_ratio) in ownership_vector.iter() {
 
+						// skip the owner as it is already added at the end 
 						if delegate_key == module_key {
 							continue
 						}
 
+						// calculate the dividends from the owner
 						let mut dividends_from_delegate : u64 = (I64F64::from_num(owner_dividends_emission) * delegate_ratio).to_num::<u64>();
+						
+						// calculate the delegation fee
 						let to_module: u64 = delegation_fee.mul_floor(dividends_from_delegate);
+						
+						// calculate the dividends from the owner
 						let to_delegate: u64 = dividends_from_delegate.saturating_sub(to_module);
+						
+						
 						Self::increase_stake(netuid, delegate_key, module_key, to_delegate);
 						owner_dividends_emission = owner_dividends_emission.saturating_sub(to_delegate);
 
@@ -394,12 +402,12 @@ impl<T: Config> Pallet<T> {
 
 			
 
-				let mut owner_emission: u64 = owner_emission_incentive + owner_dividends_emission;
+				owner_emission = owner_emission_incentive + owner_dividends_emission;
 				
 				// add the emisssion and rm the burn amount
 
 				if owner_emission > 0 {
-					// generate the profit shares
+					// get the profit shares
 					let profit_share_emissions: Vec<(T::AccountId, u64)> = Self::get_profit_share_emissions(module_key.clone(), owner_emission);
 
 					// if there are profit shares, then increase the balance of the profit share key
