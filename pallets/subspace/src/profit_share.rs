@@ -39,10 +39,8 @@ impl<T: Config> Pallet<T> {
         let mut total_normalized_shares: u16 = normalize_shares.iter().sum::<u16>();
         // ensure the profit shares add up to the unit
         if total_normalized_shares < u16::MAX {
-            let diff = u16::MAX - total_normalized_shares;
-            for i in 0..diff {
-                let idx = (i % normalize_shares.len() as u16) as usize;
-                normalize_shares[idx] = normalize_shares[idx] + 1;
+            if normalize_shares.len() > 0 {
+                normalize_shares[0] = normalize_shares[0].saturating_add(u16::MAX.saturating_sub(total_normalized_shares));
             }
             total_normalized_shares = normalize_shares.iter().sum::<u16>();
         }

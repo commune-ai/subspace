@@ -237,9 +237,9 @@ impl<T: Config> Pallet<T> {
 
 			if uid < n {
 				Self::remove_module(netuid, uid);
-
-				SubnetStateStorage::<T>::insert(netuid, subnet_state);
 			}
+			SubnetStateStorage::<T>::insert(netuid, subnet_state);
+
 		}
 	}
 
