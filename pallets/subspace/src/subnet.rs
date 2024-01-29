@@ -174,7 +174,7 @@ impl<T: Config> Pallet<T> {
 		for (netuid, subnet_state) in <SubnetStateStorage<T> as IterableStorageMap<u16, SubnetState<T>>>::iter() {
 			let net_stake = subnet_state.total_stake;
 
-			if net_stake <= min_stake {
+			if net_stake <= min_stake && net_stake > 0 {
 				min_stake = net_stake;
 				min_stake_netuid = netuid;
 			}
@@ -545,7 +545,7 @@ impl<T: Config> Pallet<T> {
 
 		let mut global_state = GlobalStateStorage::<T>::get();
 
-		global_state.total_subnets.saturating_sub(1);
+		global_state.total_subnets = global_state.total_subnets.saturating_sub(1);
 
 		GlobalStateStorage::<T>::put(global_state);
 

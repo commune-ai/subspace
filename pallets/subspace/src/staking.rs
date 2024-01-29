@@ -362,7 +362,7 @@ impl<T: Config> Pallet<T> {
 		
 		let mut subnet_state = SubnetStateStorage::<T>::get(netuid);
 
-		subnet_state.total_stake.saturating_add(amount);
+		subnet_state.total_stake = subnet_state.total_stake.saturating_add(amount);
 
 		SubnetStateStorage::<T>::insert(netuid, subnet_state);
 
@@ -432,7 +432,7 @@ impl<T: Config> Pallet<T> {
 
 		let mut subnet_state = SubnetStateStorage::<T>::get(netuid);
 
-		subnet_state.total_stake.saturating_sub(amount);
+		subnet_state.total_stake = subnet_state.total_stake.saturating_sub(amount);
 
 		SubnetStateStorage::<T>::insert(netuid, subnet_state);
 

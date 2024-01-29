@@ -1,6 +1,6 @@
 use super::*;
 use crate::system::ensure_root;
-use frame_support::{pallet_prelude::DispatchResult};
+use frame_support::pallet_prelude::DispatchResult;
 use frame_system::ensure_signed;
 use sp_arithmetic::per_things::Percent;
 use sp_core::{H256, U256};
@@ -10,9 +10,7 @@ use substrate_fixed::types::I32F32;
 use sp_std::vec;
 use system::pallet_prelude::BlockNumberFor;
 // IterableStorageMap
-use frame_support::{
-	storage::IterableStorageMap,
-};
+use frame_support::storage::IterableStorageMap;
 
 
 const LOG_TARGET: &'static str = "runtime::subspace::registration";
