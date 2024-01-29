@@ -293,14 +293,6 @@ impl<T: Config> Pallet<T> {
 		return total_stake_from
 	}
 
-	pub fn get_total_stake_to_global(key: &T::AccountId) -> u64 {
-		let mut total_stake_to: u64 = 0;
-		let total_networks: u16 = GlobalStateStorage::<T>::get().total_subnets;
-		for netuid in 0..total_networks {
-			total_stake_to += Self::get_total_stake_to(netuid, key);
-		}
-		return total_stake_to
-	}
 
 	pub fn get_total_stake_to(netuid: u16, key: &T::AccountId) -> u64 {
 		let mut stake_to_vector: Vec<(T::AccountId, u64)> = Self::get_stake_to_vector(netuid, key);
@@ -354,12 +346,11 @@ impl<T: Config> Pallet<T> {
 		Self::set_stake_to_vector(netuid, key, stake_to_vector);
 		Self::set_stake_from_vector(netuid, module_key, stake_from_vector);
 
-		Stake::<T>::insert(
-			netuid,
-			module_key,
+		Stake::<T>::insert(netuid,module_key,
 			Stake::<T>::get(netuid, module_key).saturating_add(amount),
 		);
-		TotalStake::<T>::insert(netuid, TotalStake::<T>::get(netuid).saturating_add(amount));
+		TotalStake::<T>::insert(netuid,
+			TotalStake::<T>::get(netuid).saturating_add(amount));
 		return true
 	}
 
@@ -373,8 +364,9 @@ impl<T: Config> Pallet<T> {
 		let mut stake_from_vector: Vec<(T::AccountId, u64)> =
 			Self::get_stake_from_vector(netuid, module_key).clone();
 
-		let mut idx_to_replace: usize = usize::MAX;
 
+		// TO STAKE
+		let mut idx_to_replace: usize = usize::MAX;
 		let mut end_idx: usize = stake_from_vector.len() - 1;
 		for (i, (k, stake_amount)) in stake_from_vector.clone().iter().enumerate() {
 			if *k == *key {
@@ -387,15 +379,14 @@ impl<T: Config> Pallet<T> {
 				break
 			}
 		}
+
 		if idx_to_replace != usize::MAX {
 			stake_from_vector.swap(idx_to_replace, end_idx);
 			stake_from_vector.remove(end_idx);
 		}
 
-		Self::set_stake_from_vector(netuid, module_key, stake_from_vector);
-
-		let mut stake_to_vector: Vec<(T::AccountId, u64)> = Self::get_stake_to_vector(netuid, key);
 		// TO STAKE
+		let mut stake_to_vector: Vec<(T::AccountId, u64)> = Self::get_stake_to_vector(netuid, key);
 		idx_to_replace = usize::MAX;
 		end_idx = stake_to_vector.len() - 1;
 
@@ -415,15 +406,17 @@ impl<T: Config> Pallet<T> {
 			stake_to_vector.remove(end_idx);
 		}
 
+
+		// save the stake to vector
+		Self::set_stake_from_vector(netuid, module_key, stake_from_vector);
 		Self::set_stake_to_vector(netuid, key, stake_to_vector);
 
 		// --- 8. We add the balancer to the key.  If the above fails we will not credit this key.
-		Stake::<T>::insert(
-			netuid,
-			module_key,
+		Stake::<T>::insert(netuid,module_key,
 			Stake::<T>::get(netuid, module_key).saturating_sub(amount),
 		);
-		TotalStake::<T>::insert(netuid, TotalStake::<T>::get(netuid).saturating_sub(amount));
+		TotalStake::<T>::insert(netuid, 
+			TotalStake::<T>::get(netuid).saturating_sub(amount));
 
 		return true
 	}

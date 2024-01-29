@@ -306,6 +306,7 @@ impl<T: Config> Pallet<T> {
     ) -> u64 {
         let mut voting_power: u64 = 0;
         if is_vec_str(proposal.mode.clone(),"subnet") {
+            //
             voting_power = Self::get_total_stake_to(proposal.netuid, key);
         } else {
             // get all of the stake for the key

@@ -520,11 +520,6 @@ pub mod pallet {
 			ValueQuery, 
 			DefaultProfitShares<T>>;
 
-	#[pallet::type_value]
-	pub fn DefaultProfitShareUnit<T: Config>() -> u16 {u16::MAX}
-	#[pallet::storage] // --- DMAP ( netuid, account_id ) --> Vec<(module_key, stake )> | Returns the list of the
-	pub type ProfitShareUnit<T: Config> = StorageValue<_, u16, ValueQuery, DefaultProfitShareUnit<T>>;
-
 	// =======================================
 	// ==== Module Consensus Variables  ====
 	// =======================================
@@ -1075,6 +1070,7 @@ pub mod pallet {
 			max_allowed_uids: u16,
 			max_allowed_weights: u16,
 			max_stake: u64,
+			max_weight_age: u64,
 			min_allowed_weights: u16,
 			min_stake : u64,
 			name: Vec<u8>,
@@ -1092,6 +1088,7 @@ pub mod pallet {
 			params.max_allowed_uids = max_allowed_uids;
 			params.max_allowed_weights = max_allowed_weights;
 			params.max_stake = max_stake;
+			params.max_weight_age = max_weight_age;
 			params.min_allowed_weights = min_allowed_weights;
 			params.min_stake = min_stake;
 			params.name = name;
@@ -1100,7 +1097,7 @@ pub mod pallet {
 			params.trust_ratio = trust_ratio;
 			params.vote_mode = vote_mode;
 			params.vote_threshold = vote_threshold;
-
+			
 			Self::do_update_subnet(origin,netuid,params)
 		}
 
@@ -1116,6 +1113,7 @@ pub mod pallet {
 			max_allowed_uids: u16,
 			max_allowed_weights: u16,
 			max_stake: u64,
+			max_weight_age: u64,
 			min_allowed_weights: u16,
 			min_stake : u64,
 			name: Vec<u8>,
@@ -1133,6 +1131,7 @@ pub mod pallet {
 			params.max_allowed_uids = max_allowed_uids;
 			params.max_allowed_weights = max_allowed_weights;
 			params.max_stake = max_stake;
+			params.max_weight_age = max_weight_age;
 			params.min_allowed_weights = min_allowed_weights;
 			params.min_stake = min_stake;
 			params.name = name;
