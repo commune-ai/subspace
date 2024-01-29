@@ -106,6 +106,11 @@ pub mod pallet {
 	// ============================
 	// ==== Global Variables ====
 	// ============================
+	#[pallet::type_value]
+	pub fn DefaultLastTxBlock<T: Config>() -> u64 { 0 }
+	#[pallet::storage] // --- MAP ( key ) --> last_block
+	pub(super) type LastTxBlock<T: Config> = StorageMap<_, Identity, T::AccountId, u64, ValueQuery, DefaultLastTxBlock<T>>;
+
 	#[derive(Encode, Decode, Default, TypeInfo, MaxEncodedLen, PartialEqNoBound, RuntimeDebug)]
 	#[scale_info(skip_type_params(T))]
 	#[codec(mel_bound())]
@@ -120,6 +125,7 @@ pub mod pallet {
 		pub max_allowed_modules: u16, // max number of modules allowed per subnet
 		pub max_registrations_per_block: u16, // max number of registrations per block
 		pub max_allowed_weights: u16, // max number of weights per module
+		pub max_proposals: u64,
 		
 		// min
 		pub min_burn: u64, // min burn required
@@ -130,12 +136,11 @@ pub mod pallet {
 		pub unit_emission: u64, // emission per block
 		pub tx_rate_limit: u64, // tx rate limit
 		pub burn_rate: u16,
-	}
 
-	#[pallet::type_value]
-	pub fn DefaultLastTxBlock<T: Config>() -> u64 { 0 }
-	#[pallet::storage] // --- MAP ( key ) --> last_block
-	pub(super) type LastTxBlock<T: Config> = StorageMap<_, Identity, T::AccountId, u64, ValueQuery, DefaultLastTxBlock<T>>;
+		// vote
+		pub vote_threshold: u16,
+		pub vote_mode: BoundedVec<u8, ConstU32<32>>,
+	}
 
 	#[pallet::type_value]
 	pub fn DefaultGlobalState<T: Config>() -> GlobalState {
@@ -147,6 +152,7 @@ pub mod pallet {
 			max_allowed_modules: 10_000, // max number of modules allowed per subnet
 			max_registrations_per_block: 10, // max number of registrations per block
 			max_allowed_weights: 512, // max number of weights per module
+			max_proposals: 128,
 			
 			// min
 			min_burn: 0, // min burn required
@@ -157,6 +163,10 @@ pub mod pallet {
 			unit_emission: 23148148148, // emission per block
 			tx_rate_limit: 1, // tx rate limit
 			burn_rate: 0,
+
+			// vote
+			vote_threshold: 50,
+			vote_mode: BoundedVec::<u8, ConstU32<32>>::truncate_from(b"authority".to_vec()),
 		}
 	}
 	#[pallet::storage]
@@ -206,14 +216,14 @@ pub mod pallet {
 			max_allowed_weights: 512,
 			max_registrations_per_block: 10,
 			max_name_length: 32,
-			max_proposals: DefaultMaxProposals::<T>::get(),
+			max_proposals: 128,
 			min_burn: 0,
 			min_stake: 100,
 			min_weight_stake: 0,
 			unit_emission: 23148148148, 
 			tx_rate_limit: 1,
-			vote_threshold: DefaultVoteThreshold::<T>::get(),
-			vote_mode: DefaultVoteMode::<T>::get(),
+			vote_threshold: 50,
+			vote_mode: b"authority".to_vec(),
 		}
 	}
 
@@ -247,6 +257,15 @@ pub mod pallet {
 		pub n: u16, //number of uids
 		pub pending_emission: u64,
 		pub name: BoundedVec<u8, ConstU32<32>>,
+
+		pub total_stake: u64,
+
+		// module
+		pub incentives: BoundedVec<u16, ConstU32<10_000>>,
+		pub trusts: BoundedVec<u16, ConstU32<10_000>>,
+		pub dividends: BoundedVec<u16, ConstU32<10_000>>,
+		pub emissions: BoundedVec<u64, ConstU32<10_000>>,
+		pub last_updates: BoundedVec<u64, ConstU32<10_000>>,
 	}
 
 	#[pallet::type_value]
@@ -274,6 +293,14 @@ pub mod pallet {
 			n: 0, //number of uids
 			pending_emission: 0,
 			name: BoundedVec::<u8, ConstU32<32>>::default(),
+			total_stake: 0,
+
+			// module
+			incentives: BoundedVec::<u16, ConstU32<10_000>>::default(),
+			trusts: BoundedVec::<u16, ConstU32<10_000>>::default(),
+			dividends: BoundedVec::<u16, ConstU32<10_000>>::default(),
+			emissions: BoundedVec::<u64, ConstU32<10_000>>::default(),
+			last_updates: BoundedVec::<u64, ConstU32<10_000>>::default()
 		}
 	}
 	#[pallet::storage]
@@ -346,21 +373,6 @@ pub mod pallet {
 	}
 	#[pallet::storage] // --- MAP ( netuid ) --> epoch
 	pub type Voter2Info<T: Config> =StorageMap<_, Identity, T::AccountId, VoterInfo, ValueQuery, DefaultVoterInfo<T>>;
-
-	pub fn DefaultVoteStake<T: Config>() -> u64 {0} // out of 100
-
-	// VOTING THRESHOOLD
-	#[pallet::type_value]
-	pub fn DefaultVoteThreshold<T: Config>() -> u16 {50} // out of 100
-	#[pallet::storage] // --- MAP ( netuid ) --> epoch
-	pub type GlobalVoteThreshold<T> = StorageValue<_, u16, ValueQuery, DefaultVoteThreshold<T>>;
-	
-	// VOTING MODE 
-	// OPTIONS -> [stake, authority, quadratic]
-	#[pallet::type_value]
-	pub fn DefaultVoteMode<T: Config>() -> Vec<u8> {"authority".as_bytes().to_vec()}
-	#[pallet::storage] // --- MAP ( netuid ) --> epoch
-	pub type VoteModeGlobal<T> =StorageValue<_, Vec<u8>, ValueQuery, DefaultVoteMode<T>>;
 
 	#[derive(Decode, Encode, PartialEq, Eq, Clone, Debug, TypeInfo)]
 	pub struct SubnetInfo<T: Config> {
@@ -482,11 +494,6 @@ pub mod pallet {
 		ValueQuery,
 	>;
 
-	// TOTAL STAKE PER SUBNET
-	#[pallet::storage] // --- MAP ( netuid ) --> subnet_total_stake
-	pub type TotalStake<T> = StorageMap<_, Identity, u16, u64, ValueQuery>;
-
-
 	// LOAN VARIABLES
 
 	#[pallet::storage] // --- DMAP ( netuid, module_key ) --> Vec<(delegater, stake )> | Returns the list of delegates
@@ -520,29 +527,9 @@ pub mod pallet {
 			ValueQuery, 
 			DefaultProfitShares<T>>;
 
-	#[pallet::type_value]
-	pub fn DefaultProfitShareUnit<T: Config>() -> u16 {u16::MAX}
-	#[pallet::storage] // --- DMAP ( netuid, account_id ) --> Vec<(module_key, stake )> | Returns the list of the
-	pub type ProfitShareUnit<T: Config> = StorageValue<_, u16, ValueQuery, DefaultProfitShareUnit<T>>;
-
 	// =======================================
 	// ==== Module Consensus Variables  ====
 	// =======================================
-	#[pallet::storage] // --- MAP ( netuid ) --> incentive
-	pub(super) type Incentive<T: Config> =
-		StorageMap<_, Identity, u16, Vec<u16>, ValueQuery, EmptyU16Vec<T>>;
-	#[pallet::storage] // --- MAP ( netuid ) --> trust
-	pub(super) type Trust<T: Config> =
-		StorageMap<_, Identity, u16, Vec<u16>, ValueQuery, EmptyU16Vec<T>>;
-	#[pallet::storage] // --- MAP ( netuid ) --> dividends
-	pub(super) type Dividends<T: Config> =
-		StorageMap<_, Identity, u16, Vec<u16>, ValueQuery, EmptyU16Vec<T>>;
-	#[pallet::storage] // --- MAP ( netuid ) --> emission
-	pub(super) type Emission<T: Config> =
-		StorageMap<_, Identity, u16, Vec<u64>, ValueQuery, EmptyU64Vec<T>>;
-	#[pallet::storage] // --- MAP ( netuid ) --> last_update
-	pub(super) type LastUpdate<T: Config> =
-		StorageMap<_, Identity, u16, Vec<u64>, ValueQuery, EmptyU64Vec<T>>;
 
 	#[pallet::type_value]
 	pub fn DefaultWeights<T: Config>() -> Vec<(u16, u16)> {vec![]}
@@ -834,11 +821,6 @@ pub mod pallet {
 	pub(super) type Proposals<T: Config> =
 		StorageMap<_, Identity, u64, Proposal<T>, ValueQuery, DefaultProposal<T>>;
 
-	#[pallet::type_value]
-	pub fn DefaultMaxProposals<T: Config>() -> u64 {128}
-	#[pallet::storage]
-	pub(super) type MaxProposals<T: Config> = StorageValue<_, u64, ValueQuery, DefaultMaxProposals<T>>;
-	
 	// ================
 	// ==== Hooks =====
 	// ================

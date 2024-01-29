@@ -54,6 +54,15 @@ pub mod v1 {
     #[storage_alias]
 	pub(super) type TotalSubnets<T: Config> = StorageValue<Pallet<T>, u16>;
 
+    #[storage_alias]
+	pub(super) type GlobalVoteThreshold<T: Config> = StorageValue<Pallet<T>, u16>;
+
+    #[storage_alias]
+	pub(super) type VoteModeGlobal<T: Config> = StorageValue<Pallet<T>, Vec<u8>>;
+
+    #[storage_alias]
+	pub(super) type MaxProposals<T: Config> = StorageValue<Pallet<T>, u64>;
+
     ///////////////////////////////
     /// SUBNET STORAGE
     ///////////////////////////////
@@ -120,6 +129,24 @@ pub mod v1 {
 
     #[storage_alias]
 	pub(super) type SubnetNames<T: Config> = StorageMap<Pallet<T>, Identity, u16, Vec<u8>>;
+
+    #[storage_alias]
+	pub(super) type TotalStake<T: Config> = StorageMap<Pallet<T>, Identity, u16, u64>;
+
+    #[storage_alias]
+	pub(super) type Incentive<T: Config> = StorageMap<Pallet<T>, Identity, u16, Vec<u16>>;
+
+    #[storage_alias]
+	pub(super) type Trust<T: Config> = StorageMap<Pallet<T>, Identity, u16, Vec<u16>>;
+
+    #[storage_alias]
+	pub(super) type Dividends<T: Config> = StorageMap<Pallet<T>, Identity, u16, Vec<u16>>;
+
+    #[storage_alias]
+	pub(super) type Emission<T: Config> = StorageMap<Pallet<T>, Identity, u16, Vec<u64>>;
+
+    #[storage_alias]
+	pub(super) type LastUpdate<T: Config> = StorageMap<Pallet<T>, Identity, u16, Vec<u64>>;
 } 
 
 
@@ -143,6 +170,9 @@ pub fn migrate_to_v2<T: Config>() -> Weight {
         let min_weight_stake = v1::MinWeightStake::<T>::get().unwrap();
         let max_allowed_weights = v1::MaxAllowedWeightsGlobal::<T>::get().unwrap();
         let total_subnets = v1::TotalSubnets::<T>::get().unwrap();
+        let vote_threshold = v1::GlobalVoteThreshold::<T>::get().unwrap();
+        let vote_mode = BoundedVec::<u8, ConstU32<32>>::try_from(v1::VoteModeGlobal::<T>::get().unwrap()).expect("too long vote mode");
+        let max_proposals = v1::MaxProposals::<T>::get().unwrap();
 
         let global_state = GlobalState {
             registrations_per_block,
@@ -157,7 +187,10 @@ pub fn migrate_to_v2<T: Config>() -> Weight {
             unit_emission,
             tx_rate_limit,
             burn_rate,
-            total_subnets
+            total_subnets,
+            vote_threshold,
+            vote_mode,
+            max_proposals
         };
         
         GlobalStateStorage::<T>::put(global_state);
@@ -190,6 +223,12 @@ pub fn migrate_to_v2<T: Config>() -> Weight {
             let n = v1::N::<T>::get(netuid).unwrap();
             let pending_emission = v1::PendingEmission::<T>::get(netuid).unwrap();
             let name = BoundedVec::<u8, ConstU32<32>>::try_from(v1::SubnetNames::<T>::get(netuid).unwrap()).expect("too long vote mode");
+            let total_stake = v1::TotalStake::<T>::get(netuid).unwrap();
+            let incentives = BoundedVec::<u16, ConstU32<10_000>>::try_from(v1::Incentive::<T>::get(netuid).unwrap()).expect("module count exceed 10000");
+            let trusts = BoundedVec::<u16, ConstU32<10_000>>::try_from(v1::Trust::<T>::get(netuid).unwrap()).expect("module count exceed 10000");
+            let dividends = BoundedVec::<u16, ConstU32<10_000>>::try_from(v1::Dividends::<T>::get(netuid).unwrap()).expect("module count exceed 10000");
+            let emissions = BoundedVec::<u64, ConstU32<10_000>>::try_from(v1::Emission::<T>::get(netuid).unwrap()).expect("module count exceed 10000");
+            let last_updates = BoundedVec::<u64, ConstU32<10_000>>::try_from(v1::LastUpdate::<T>::get(netuid).unwrap()).expect("module count exceed 10000");
 
             let subnet_state = SubnetState {
                 founder,
@@ -212,7 +251,13 @@ pub fn migrate_to_v2<T: Config>() -> Weight {
                 emission,
                 n,
                 pending_emission,
-                name
+                name,
+                total_stake,
+                incentives,
+                trusts,
+                dividends,
+                emissions,
+                last_updates
             };
 
             SubnetStateStorage::<T>::insert(netuid, subnet_state);

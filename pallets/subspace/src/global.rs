@@ -3,6 +3,7 @@ use frame_support::pallet_prelude::DispatchResult;
 use sp_runtime::DispatchError;
 use system::ensure_root;
 use crate::utils::is_vec_str;
+use sp_runtime::BoundedVec;
 
 impl<T: Config> Pallet<T> {
 
@@ -108,11 +109,15 @@ impl<T: Config> Pallet<T> {
 	}
 
 	pub fn set_vote_mode_global(vote_mode: Vec<u8>) {
-		VoteModeGlobal::<T>::put(vote_mode);
-	}
+		let mut global_state = GlobalStateStorage::<T>::get();
 
+		global_state.vote_mode = BoundedVec::<u8, ConstU32<32>>::try_from(vote_mode).expect("too long vote mode");
+
+		GlobalStateStorage::<T>::put(global_state)
+	}
+	
 	pub fn get_vote_mode_global() -> Vec<u8> {
-		return VoteModeGlobal::<T>::get();
+		GlobalStateStorage::<T>::get().vote_mode.into_inner()
 	}
 	pub fn get_burn_rate() -> u16 {
 		GlobalStateStorage::<T>::get().burn_rate
@@ -127,18 +132,26 @@ impl<T: Config> Pallet<T> {
 	}
 	
 	pub fn set_max_proposals(max_proposals: u64) {
-		MaxProposals::<T>::put(max_proposals);
+		let mut global_state = GlobalStateStorage::<T>::get();
+
+		global_state.max_proposals = max_proposals;
+
+		GlobalStateStorage::<T>::put(global_state)
 	}
 
 	pub fn get_max_proposals() -> u64 {
-		MaxProposals::<T>::get()
+		GlobalStateStorage::<T>::get().max_proposals
 	}
 
 	pub fn get_global_vote_threshold() -> u16 {
-		return GlobalVoteThreshold::<T>::get();
+		GlobalStateStorage::<T>::get().vote_threshold
 	}
 	pub fn set_global_vote_threshold(vote_threshold: u16) {
-		GlobalVoteThreshold::<T>::put(vote_threshold);
+		let mut global_state = GlobalStateStorage::<T>::get();
+
+		global_state.vote_threshold = vote_threshold;
+
+		GlobalStateStorage::<T>::put(global_state)
 	}
 	pub fn get_max_registrations_per_block() -> u16 {
 		GlobalStateStorage::<T>::get().max_registrations_per_block

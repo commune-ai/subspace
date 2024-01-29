@@ -176,7 +176,8 @@ impl<T: Config> Pallet<T> {
 	// prunning score. This function will always return an element to prune.
 
 	pub fn get_pruning_score_for_uid(netuid: u16, uid: u16) -> u64 {
-		let vec: Vec<u64> = Emission::<T>::get(netuid);
+		let vec: Vec<u64> = Self::get_emissions(netuid);
+		
 		if (uid as usize) < vec.len() {
 			return vec[uid as usize]
 		} else {
@@ -282,7 +283,9 @@ impl<T: Config> Pallet<T> {
 		if num_subnets >= max_subnets {
 			let mut min_stake: u64 = u64::MAX;
 			let mut min_stake_netuid : u16 = max_subnets.saturating_sub(1);
-			for (netuid, net_stake) in <TotalStake<T> as IterableStorageMap<u16, u64>>::iter() {
+			for (netuid, subnet_state) in <SubnetStateStorage<T> as IterableStorageMap<u16, SubnetState<T>>>::iter() {
+				let net_stake = subnet_state.total_stake;
+				
 				if net_stake <= min_stake {
 					min_stake = net_stake;
 					min_stake_netuid = netuid;

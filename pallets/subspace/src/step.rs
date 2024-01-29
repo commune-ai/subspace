@@ -3,6 +3,7 @@ use crate::math::*;
 use frame_support::{
 	storage::{IterableStorageDoubleMap, IterableStorageMap},
 };
+use sp_runtime::BoundedVec;
 use substrate_fixed::types::{I110F18, I32F32, I64F64, I96F32};
 use sp_std::vec;
 
@@ -223,14 +224,27 @@ impl<T: Config> Pallet<T> {
 
 			inplace_normalize(&mut trust);
 			incentive = incentive.iter().zip(trust.iter()).map(|(inc, tru)| (inc * incentive_share) + (tru * trust_share)).collect();
+			
 			// save the trust into the trust vector
-			Trust::<T>::insert(netuid, trust.iter().map(|xi| fixed_proportion_to_u16(*xi)).collect::<Vec<u16>>());
+			let mut subnet_state = SubnetStateStorage::<T>::get(netuid);
+
+			subnet_state.trusts = BoundedVec::<u16, ConstU32<10_000>>::try_from(
+				trust.iter().map(|xi| fixed_proportion_to_u16(*xi)).collect::<Vec<u16>>()
+			).expect("too long vec");
+			
+			SubnetStateStorage::<T>::insert(netuid, subnet_state);
 		}
 
 
 		// store the incentive
-		let cloned_incentive: Vec<u16> = incentive.iter().map(|xi| fixed_proportion_to_u16(*xi)).collect::<Vec<u16>>();
-		Incentive::<T>::insert(netuid, cloned_incentive);
+		let mut subnet_state = SubnetStateStorage::<T>::get(netuid);
+
+		subnet_state.incentives = BoundedVec::<u16, ConstU32<10_000>>::try_from(
+			incentive.iter().map(|xi| fixed_proportion_to_u16(*xi)).collect::<Vec<u16>>()
+		).expect("too long vec");
+		
+		SubnetStateStorage::<T>::insert(netuid, subnet_state);
+
 
 		// =================================
 		// == Calculate Bonds==
@@ -287,8 +301,14 @@ impl<T: Config> Pallet<T> {
 		}
 		inplace_normalize(&mut dividends);
 
-		let cloned_dividends: Vec<u16> = dividends.iter().map(|xi| fixed_proportion_to_u16(*xi)).collect::<Vec<u16>>();
-		Dividends::<T>::insert(netuid, cloned_dividends);
+		// store dividends
+		let mut subnet_state = SubnetStateStorage::<T>::get(netuid);
+
+		subnet_state.dividends = BoundedVec::<u16, ConstU32<10_000>>::try_from(
+			dividends.iter().map(|xi| fixed_proportion_to_u16(*xi)).collect::<Vec<u16>>()
+		).expect("too long vec");
+		
+		SubnetStateStorage::<T>::insert(netuid, subnet_state);
 
 		// =================================
 		// == Emission==
@@ -443,8 +463,14 @@ impl<T: Config> Pallet<T> {
 			.zip(dividends_emission.iter())
 			.map(|(inc, div)| inc + div)
 			.collect();
-			
-		Emission::<T>::insert(netuid, emission.clone());
+
+		let mut subnet_state = SubnetStateStorage::<T>::get(netuid);
+
+		subnet_state.emissions = BoundedVec::<u64, ConstU32<10_000>>::try_from(
+			emission
+		).expect("too long vec");
+		
+		SubnetStateStorage::<T>::insert(netuid, subnet_state);
 	}
 
 	pub fn get_block_at_registration(netuid: u16) -> Vec<u64> {

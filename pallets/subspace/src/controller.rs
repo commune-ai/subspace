@@ -1,5 +1,5 @@
  
-use frame_support::{pallet_prelude::DispatchResult};
+use frame_support::pallet_prelude::DispatchResult;
 use substrate_fixed::types::{I110F18, I32F32, I64F64, I96F32};
 
 use super::*;
@@ -80,18 +80,4 @@ impl<T: Config> Pallet<T> {
 
         Ok(())
     }
-
-    pub fn get_controlled_keys(
-        controller: T::AccountId,
-    ) -> Vec<T::AccountId> {
-
-        let mut controlled_keys = Vec::new();
-        for (key, _) in 
-            if controller == key {
-                controlled_keys.push(key);
-            }
-        }
-        controlled_keys
-    }
-
-
+}

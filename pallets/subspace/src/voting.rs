@@ -1,6 +1,6 @@
 use core::ops::Add;
 
-use frame_support::{pallet_prelude::DispatchResult};
+use frame_support::pallet_prelude::DispatchResult;
 use scale_info::prelude::string::String;
 use super::*;
 use crate::utils::{is_vec_str};

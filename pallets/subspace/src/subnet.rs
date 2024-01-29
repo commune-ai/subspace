@@ -171,7 +171,9 @@ impl<T: Config> Pallet<T> {
 	pub fn least_staked_netuid() -> u16 {
 		let mut min_stake: u64 = u64::MAX;
 		let mut min_stake_netuid: u16 = u16::MAX;
-		for (netuid, net_stake) in <TotalStake<T> as IterableStorageMap<u16, u64>>::iter() {
+		for (netuid, subnet_state) in <SubnetStateStorage<T> as IterableStorageMap<u16, SubnetState<T>>>::iter() {
+			let net_stake = subnet_state.total_stake;
+
 			if net_stake <= min_stake {
 				min_stake = net_stake;
 				min_stake_netuid = netuid;
@@ -200,7 +202,9 @@ impl<T: Config> Pallet<T> {
 	// get the least staked network
 	pub fn min_subnet_stake() -> u64 {
 		let mut min_stake: u64 = u64::MAX;
-		for (netuid, net_stake) in <TotalStake<T> as IterableStorageMap<u16, u64>>::iter() {
+		for (netuid, subnet_state) in <SubnetStateStorage<T> as IterableStorageMap<u16, SubnetState<T>>>::iter() {
+			let net_stake = subnet_state.total_stake;
+			
 			if net_stake <= min_stake {
 				min_stake = net_stake;
 			}
@@ -209,7 +213,7 @@ impl<T: Config> Pallet<T> {
 	}
 
 	pub fn get_network_stake(netuid: u16) -> u64 {
-		return TotalStake::<T>::get(netuid)
+		SubnetStateStorage::<T>::get(netuid).total_stake
 	}
 
 
@@ -300,7 +304,7 @@ impl<T: Config> Pallet<T> {
 		return SubnetInfo {
 			params: subnet_params,
 			netuid,
-			stake: TotalStake::<T>::get(netuid),
+			stake: Self::get_total_subnet_stake(netuid),
 			emission: Self::get_subnet_emission(netuid),
 			n: Self::get_subnet_n(netuid),
 			founder: Self::get_subnet_founder(netuid),
@@ -507,7 +511,12 @@ impl<T: Config> Pallet<T> {
 		}
 		// --- 4. Remove all stake.
 		Stake::<T>::remove_prefix(netuid, None);
-		TotalStake::<T>::remove(netuid);
+
+		let mut subnet_state = SubnetStateStorage::<T>::get(netuid);
+
+		subnet_state.total_stake = 0;
+
+		SubnetStateStorage::<T>::insert(netuid, subnet_state);
 	}
 
 	pub fn remove_subnet(netuid: u16) -> u16 {
@@ -526,11 +535,7 @@ impl<T: Config> Pallet<T> {
 
 		// Remove consnesus vectors
 		Weights::<T>::clear_prefix(netuid, u32::max_value(), None);
-		Emission::<T>::remove(netuid);
-		Incentive::<T>::remove(netuid);
-		Dividends::<T>::remove(netuid);
-		Trust::<T>::remove(netuid);
-		LastUpdate::<T>::remove(netuid);
+
 		DelegationFee::<T>::clear_prefix(netuid, u32::max_value(), None);
 		RegistrationBlock::<T>::clear_prefix(netuid, u32::max_value(), None);
 		
@@ -810,7 +815,12 @@ impl<T: Config> Pallet<T> {
 		let mut updated_last_update_vec = Self::get_last_update(netuid);
 		if (uid as usize) < updated_last_update_vec.len() {
 			updated_last_update_vec[uid as usize] = last_update;
-			LastUpdate::<T>::insert(netuid, updated_last_update_vec);
+			
+			let mut subnet_state = SubnetStateStorage::<T>::get(netuid);
+
+			subnet_state.last_updates = BoundedVec::<u64, ConstU32<10_000>>::try_from(updated_last_update_vec).expect("too long vec");
+
+			SubnetStateStorage::<T>::insert(netuid, subnet_state);
 		}
 	}
 
@@ -819,33 +829,39 @@ impl<T: Config> Pallet<T> {
 		return Self::get_emission_for_uid(netuid, uid)
 	}
 	pub fn get_emission_for_uid(netuid: u16, uid: u16) -> u64 {
-		let vec = Emission::<T>::get(netuid);
-		if (uid as usize) < vec.len() {
-			return vec[uid as usize]
+		let emissions = Self::get_emissions(netuid);
+
+		if (uid as usize) < emissions.len() {
+			return emissions[uid as usize]
 		} else {
 			return 0
 		}
 	}
 	pub fn get_incentive_for_uid(netuid: u16, uid: u16) -> u16 {
-		let vec = Incentive::<T>::get(netuid);
-		if (uid as usize) < vec.len() {
-			return vec[uid as usize]
+		let incentives = Self::get_incentives(netuid);
+
+		if (uid as usize) < incentives.len() {
+			return incentives[uid as usize]
 		} else {
 			return 0
 		}
 	}
+	
 	pub fn get_dividends_for_uid(netuid: u16, uid: u16) -> u16 {
-		let vec = Dividends::<T>::get(netuid);
-		if (uid as usize) < vec.len() {
-			return vec[uid as usize]
+		let dividends = Self::get_dividends(netuid);
+
+		if (uid as usize) < dividends.len() {
+			return dividends[uid as usize]
 		} else {
 			return 0
 		}
 	}
+
 	pub fn get_last_update_for_uid(netuid: u16, uid: u16) -> u64 {
-		let vec = LastUpdate::<T>::get(netuid);
-		if (uid as usize) < vec.len() {
-			return vec[uid as usize]
+		let last_updates = Self::get_last_update(netuid);
+
+		if (uid as usize) < last_updates.len() {
+			return last_updates[uid as usize]
 		} else {
 			return 0
 		}
@@ -854,6 +870,7 @@ impl<T: Config> Pallet<T> {
 	pub fn get_global_max_allowed_subnets() -> u16 {
 		GlobalStateStorage::<T>::get().max_allowed_subnets
 	}
+
 	pub fn set_global_max_allowed_subnets(max_allowed_subnets: u16) {
 		let mut global_state = GlobalStateStorage::<T>::get();
 
@@ -1059,19 +1076,19 @@ impl<T: Config> Pallet<T> {
 	}
 
 	pub fn get_emissions(netuid: u16) -> Vec<u64> {
-		Emission::<T>::get(netuid)
+		SubnetStateStorage::<T>::get(netuid).emissions.into_inner()
 	}
 	pub fn get_incentives(netuid: u16) -> Vec<u16> {
-		Incentive::<T>::get(netuid)
+		SubnetStateStorage::<T>::get(netuid).incentives.into_inner()
 	}
 	pub fn get_trust(netuid: u16) -> Vec<u16> {
-		Trust::<T>::get(netuid)
+		SubnetStateStorage::<T>::get(netuid).trusts.into_inner()
 	}
 	pub fn get_dividends(netuid: u16) -> Vec<u16> {
-		Dividends::<T>::get(netuid)
+		SubnetStateStorage::<T>::get(netuid).dividends.into_inner()
 	}
 	pub fn get_last_update(netuid: u16) -> Vec<u64> {
-		LastUpdate::<T>::get(netuid)
+		SubnetStateStorage::<T>::get(netuid).last_updates.into_inner()
 	}
 	pub fn set_max_registrations_per_block(max_registrations_per_block: u16) {
 		let mut global_state = GlobalStateStorage::<T>::get();

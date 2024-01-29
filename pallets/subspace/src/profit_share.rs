@@ -1,5 +1,5 @@
 
-use frame_support::{pallet_prelude::DispatchResult};
+use frame_support::pallet_prelude::DispatchResult;
 use substrate_fixed::types::{I110F18, I32F32, I64F64, I96F32};
 
 use super::*;

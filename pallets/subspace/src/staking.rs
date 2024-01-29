@@ -1,7 +1,7 @@
 use super::*;
 use substrate_fixed::types::{I32F32, I64F64};
 
-use frame_support::storage::IterableStorageDoubleMap;
+use frame_support::{storage::IterableStorageDoubleMap, IterableStorageMap};
 
 // import vec
 use sp_arithmetic::per_things::Percent;
@@ -182,14 +182,14 @@ impl<T: Config> Pallet<T> {
 	// Returns the total amount of stake in the staking table.
 	//
 	pub fn get_total_subnet_stake(netuid: u16) -> u64 {
-		return TotalStake::<T>::get(netuid)
+		SubnetStateStorage::<T>::get(netuid).total_stake
 	}
 
 	// Returns the total amount of stake in the staking table.
 	pub fn total_stake() -> u64 {
 		let mut total_stake: u64 = 0;
-		for (netuid, subnet_total_stake) in TotalStake::<T>::iter() {
-			total_stake += subnet_total_stake;
+		for (netuid, subnet_state) in <SubnetStateStorage<T> as IterableStorageMap<u16, SubnetState<T>>>::iter() {
+			total_stake += subnet_state.total_stake;
 		}
 		return total_stake
 	}
@@ -359,7 +359,13 @@ impl<T: Config> Pallet<T> {
 			module_key,
 			Stake::<T>::get(netuid, module_key).saturating_add(amount),
 		);
-		TotalStake::<T>::insert(netuid, TotalStake::<T>::get(netuid).saturating_add(amount));
+		
+		let mut subnet_state = SubnetStateStorage::<T>::get(netuid);
+
+		subnet_state.total_stake.saturating_add(amount);
+
+		SubnetStateStorage::<T>::insert(netuid, subnet_state);
+
 		return true
 	}
 
@@ -423,7 +429,12 @@ impl<T: Config> Pallet<T> {
 			module_key,
 			Stake::<T>::get(netuid, module_key).saturating_sub(amount),
 		);
-		TotalStake::<T>::insert(netuid, TotalStake::<T>::get(netuid).saturating_sub(amount));
+
+		let mut subnet_state = SubnetStateStorage::<T>::get(netuid);
+
+		subnet_state.total_stake.saturating_sub(amount);
+
+		SubnetStateStorage::<T>::insert(netuid, subnet_state);
 
 		return true
 	}
