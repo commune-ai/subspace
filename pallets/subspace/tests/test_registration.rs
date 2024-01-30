@@ -88,7 +88,7 @@ fn test_registration_ok() {
 
 		register_module(netuid, key, 0);
 		// Check if neuron has added to the specified network(netuid)
-		assert_eq!(SubspaceModule::get_subnet_n(netuid), 1);
+		assert_eq!(SubspaceModule::subnet_n(netuid), 1);
 
 		// Check if the neuron has added to the Keys
 		let neuron_uid = SubspaceModule::get_uid_for_key(netuid, &key);
@@ -111,7 +111,7 @@ fn test_many_registrations() {
 		SubspaceModule::set_max_registrations_per_block(n);
 		for i in 0..n {
 			register_module(netuid, U256::from(i), stake);
-			assert_eq!(SubspaceModule::get_subnet_n(netuid), i + 1, "Failed at i={}", i);
+			assert_eq!(SubspaceModule::subnet_n(netuid), i + 1, "Failed at i={}", i);
 		}
 	});
 }

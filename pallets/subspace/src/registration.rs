@@ -54,7 +54,7 @@ impl<T: Config> Pallet<T> {
 		ensure!(!Self::is_key_registered(netuid, &key), Error::<T>::KeyAlreadyRegistered);
 		ensure!(!Self::if_module_name_exists(netuid, name.clone()),Error::<T>::NameAlreadyRegistered);
 
-		let min_burn: u64 = Self::get_min_burn();
+		let min_burn: u64 = Self::global_params().min_burn;
 
 		let mut global_state = GlobalStateStorage::<T>::get();
 
@@ -64,7 +64,7 @@ impl<T: Config> Pallet<T> {
 
 		let mut uid: u16;
 
-		let n: u16 = Self::get_subnet_n(netuid);
+		let n: u16 = Self::subnet_n(netuid);
 		let global_n =  Self::global_n();
 		// replace a node if we reach the max allowed modules
 		if global_n >= Self::get_max_allowed_modules() {
@@ -73,7 +73,7 @@ impl<T: Config> Pallet<T> {
 			let mut random_netuid = Self::random_netuid();
 			while netuid_n == 0  {
 				random_netuid = Self::random_netuid();
-				netuid_n = Self::get_subnet_n(random_netuid);
+				netuid_n = Self::subnet_n(random_netuid);
 			}
 			
 			Self::remove_module(netuid, Self::get_lowest_uid(random_netuid));
@@ -133,8 +133,8 @@ impl<T: Config> Pallet<T> {
 	}
 
 	pub fn enough_stake_to_register(netuid: u16, stake_amount: u64) -> bool {
-		let min_stake: u64 = Self::get_min_stake_to_register(netuid);
-		let min_burn = Self::get_min_burn();
+		let min_stake: u64 = Self::subnet_params(netuid).min_stake;
+		let min_burn = Self::global_params().min_burn;
 		return stake_amount >= (min_stake + min_burn)
 	}
 
@@ -183,7 +183,7 @@ impl<T: Config> Pallet<T> {
 		}
 	}
 	pub fn get_lowest_uid(netuid: u16) -> u16 {
-		let n: u16 = Self::get_subnet_n(netuid);
+		let n: u16 = Self::subnet_n(netuid);
 
 		// If there are pending deregister uids, then return the first one.
 		let pending_deregister_uids: Vec<u16> = Self::get_pending_deregister_uids(netuid);
@@ -297,9 +297,8 @@ impl<T: Config> Pallet<T> {
 
 		let mut params: SubnetParams<T> = Self::default_subnet_params();
 		params.name = name.clone();
+		params.founder = founder_key.clone();
 		let netuid = Self::add_subnet(params);
-
-		Self::set_founder(netuid, founder_key.clone());		
 
 		Ok(())
 	}

@@ -68,9 +68,12 @@ fn test_dividends_same_stake() {
 
 		// SETUP NETWORK
 		register_n_modules(netuid, n, stake_per_module);
-		SubspaceModule::set_tempo(netuid, 1);
-		SubspaceModule::set_max_allowed_weights(netuid, n);
-		SubspaceModule::set_min_allowed_weights(netuid, 0);
+
+		let mut params = SubspaceModule::subnet_params(netuid);
+		params.min_allowed_weights = 0;
+		params.max_allowed_weights = n;
+		params.tempo = 1;
+		SubspaceModule::set_subnet_params(netuid, params.clone());
 
 		// for i in 0..n {
 
@@ -159,9 +162,11 @@ fn test_dividends_diff_stake() {
 			register_module(netuid, key, stake);
 		}
 		register_n_modules(netuid, n, stake_per_module);
-		SubspaceModule::set_tempo(netuid, tempo);
-		SubspaceModule::set_max_allowed_weights(netuid, n);
-		SubspaceModule::set_min_allowed_weights(netuid, 0);
+		let mut params = SubspaceModule::subnet_params(netuid);
+		params.min_allowed_weights = 0;
+		params.max_allowed_weights = n;
+		params.tempo = tempo;
+		SubspaceModule::set_subnet_params(netuid, params.clone());
 
 		// for i in 0..n {
 
@@ -243,9 +248,11 @@ fn test_pruning() {
 		// SETUP NETWORK
 		register_n_modules(netuid, n, stake_per_module);
 
-		SubspaceModule::set_tempo(netuid, 1);
-		SubspaceModule::set_max_allowed_weights(netuid, n);
-		SubspaceModule::set_min_allowed_weights(netuid, 0);
+		let mut params = SubspaceModule::subnet_params(netuid);
+		params.min_allowed_weights = 0;
+		params.max_allowed_weights = n;
+		params.tempo = tempo;
+		SubspaceModule::set_subnet_params(netuid, params.clone());
 
 		// for i in 0..n {
 
@@ -290,7 +297,7 @@ fn test_pruning() {
 
 		let is_registered: bool = SubspaceModule::is_key_registered(netuid, &new_key);
 		assert!(is_registered);
-		assert!(SubspaceModule::get_subnet_n(netuid) == n);
+		assert!(SubspaceModule::subnet_n(netuid) == n);
 		let is_prune_registered: bool =
 			SubspaceModule::is_key_registered(netuid, &keys[prune_uid as usize]);
 		assert!(!is_prune_registered);
@@ -390,10 +397,10 @@ fn test_lowest_priority_mechanism() {
 //         weight_values[*uid as usize] = 0;
 
 //     }
-//     let old_n  : u16 = SubspaceModule::get_subnet_n( netuid );
+//     let old_n  : u16 = SubspaceModule::subnet_n( netuid );
 //     set_weights(netuid, keys[0], weight_uids.clone() , weight_values.clone() );
 //     step_block( tempo );
-//     let n: u16 = SubspaceModule::get_subnet_n( netuid );
+//     let n: u16 = SubspaceModule::subnet_n( netuid );
 //     assert !( old_n - num_zero_uids == n );
 
 //     });
@@ -776,10 +783,10 @@ fn test_trust() {
 // 			let new_key: U256 = U256::from(n + i as u16 + 1);
 // 			register_module(netuid, new_key, stake_per_module);
 // 			println!("n: {:?}", n);
-// 			println!("get_subnet_n: {:?}", SubspaceModule::get_subnet_n(netuid));
+// 			println!("subnet_n: {:?}", SubspaceModule::subnet_n(netuid));
 // 			println!("max_allowed: {:?}", SubspaceModule::get_max_allowed_uids(netuid));
 
-// 			assert!(SubspaceModule::get_subnet_n(netuid) == n);
+// 			assert!(SubspaceModule::subnet_n(netuid) == n);
 
 // 			assert!(!SubspaceModule::is_key_registered(netuid, &lowest_priority_key));
 
@@ -925,7 +932,10 @@ fn test_founder_share() {
 		let stake_from_vector = SubspaceModule::get_stake_to_vector(netuid, &keys[i]);
 		println!("{:?}", stake_from_vector);
 	}
-	SubspaceModule::set_founder_share(netuid, 50);
+	let mut subnet_params = SubspaceModule::subnet_params(netuid);
+	subnet_params.founder_share = 50;
+	SubspaceModule::set_subnet_params(netuid, subnet_params.clone());
+
 	let founder_share = SubspaceModule::get_founder_share(netuid);
 	let founder_ratio: f64 = founder_share as f64 / 100.0;
 

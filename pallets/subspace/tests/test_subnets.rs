@@ -26,7 +26,7 @@ fn test_add_subnets() {
 			register_module(i, U256::from(i), stake_per_module);
 			for j in 0..n {
 				if j != i {
-					let n = SubspaceModule::get_subnet_n(i);
+					let n = SubspaceModule::subnet_n(i);
 					println!("registering module i:{} j:{} n:{}", i,j,n);
 					register_module(i, U256::from(j), stake_per_module);
 				}
@@ -35,7 +35,7 @@ fn test_add_subnets() {
 			if expected_subnets > max_allowed_subnets {
 				expected_subnets = max_allowed_subnets;
 			} else {
-				assert_eq!(SubspaceModule::get_subnet_n(i), n);
+				assert_eq!(SubspaceModule::subnet_n(i), n);
 			}
 			assert_eq!(
 				SubspaceModule::num_subnets(),
@@ -62,7 +62,7 @@ fn test_add_subnets() {
 			assert_eq!(keys.len() as u16, n);
 			assert!(SubspaceModule::check_subnet_storage(netuid));
 			SubspaceModule::remove_subnet(netuid);
-			assert_eq!(SubspaceModule::get_subnet_n(netuid), 0);
+			assert_eq!(SubspaceModule::subnet_n(netuid), 0);
 			println!("{}", SubspaceModule::check_subnet_storage(netuid));
 			assert!(SubspaceModule::check_subnet_storage(netuid));
 
@@ -213,13 +213,13 @@ fn test_set_max_allowed_uids_growing() {
 		SubspaceModule::set_max_registrations_per_block(max_uids + extra_uids * rounds);
 		for i in 1..max_uids {
 			assert_ok!(register_module(netuid, U256::from(i), stake));
-			assert_eq!(SubspaceModule::get_subnet_n(netuid), i + 1);
+			assert_eq!(SubspaceModule::subnet_n(netuid), i + 1);
 		}
-		let mut n: u16 = SubspaceModule::get_subnet_n(netuid);
+		let mut n: u16 = SubspaceModule::subnet_n(netuid);
 		let mut old_n: u16 = n.clone();
 		let mut uids: Vec<u16>;
-		assert_eq!(SubspaceModule::get_subnet_n(netuid), max_uids);
-		let mut new_n: u16 = SubspaceModule::get_subnet_n(netuid);
+		assert_eq!(SubspaceModule::subnet_n(netuid), max_uids);
+		let mut new_n: u16 = SubspaceModule::subnet_n(netuid);
 		for r in 1..rounds {
 			// set max allowed uids to max_uids + extra_uids
 			SubspaceModule::set_max_allowed_uids(netuid, max_uids + extra_uids * (r - 1));
@@ -232,7 +232,7 @@ fn test_set_max_allowed_uids_growing() {
 
 			// set max allowed uids to max_uids
 
-			n = SubspaceModule::get_subnet_n(netuid);
+			n = SubspaceModule::subnet_n(netuid);
 			assert_eq!(n, new_n);
 
 			let uids = SubspaceModule::get_uids(netuid);
@@ -258,7 +258,7 @@ fn test_set_max_allowed_uids_shrinking() {
 		let max_uids: u16 = 100;
 		let extra_uids: u16 = 20;
 
-		let mut n = SubspaceModule::get_subnet_n(netuid);
+		let mut n = SubspaceModule::subnet_n(netuid);
 		println!("registering module {}", n);
 		register_module(netuid, U256::from(0), stake);
 		SubspaceModule::set_max_allowed_uids(netuid, max_uids + extra_uids);
@@ -267,7 +267,7 @@ fn test_set_max_allowed_uids_shrinking() {
 		for i in 1..(max_uids + extra_uids) {
 			let result = register_module(netuid, U256::from(i), stake);
 			result.unwrap();
-			n = SubspaceModule::get_subnet_n(netuid);
+			n = SubspaceModule::subnet_n(netuid);
 		}
 
 		assert_eq!(n, max_uids + extra_uids);
@@ -288,8 +288,6 @@ fn test_set_max_allowed_uids_shrinking() {
 				old_total_subnet_balance + SubspaceModule::get_balance_u64(&key);
 		}
 
-		let subnet = SubspaceModule::subnet_info(netuid);
-
 		let mut params = SubspaceModule::subnet_params(netuid).clone();
 		params.max_allowed_uids = max_uids;
 		println!("params {:?}", params);
@@ -299,7 +297,7 @@ fn test_set_max_allowed_uids_shrinking() {
 		println!("subnet params {:?}", SubspaceModule::subnet_params(netuid));
 		assert_ok!(result);
 		let params = SubspaceModule::subnet_params(netuid);
-		let mut n = SubspaceModule::get_subnet_n(netuid);
+		let mut n = SubspaceModule::subnet_n(netuid);
 		assert_eq!(params.max_allowed_uids, max_uids, "max allowed uids is not equal to expected max allowed uids");
 		assert_eq!(params.max_allowed_uids, n, "min allowed weights is not equal to expected min allowed weights");
 
@@ -318,7 +316,7 @@ fn test_set_max_allowed_uids_shrinking() {
 		// );
 
 
-		n = SubspaceModule::get_subnet_n(netuid);
+		n = SubspaceModule::subnet_n(netuid);
 		let stake_vector: Vec<u64> = SubspaceModule::get_stakes(netuid);
 		let calc_stake: u64 = stake_vector.iter().sum();
 
@@ -340,14 +338,14 @@ fn test_set_max_allowed_modules() {
 		let max_uids: u16 = 2000;
 		let extra_uids: u16 = 20;
 		let max_allowed_modules: u16 = 100;
-		let mut n = SubspaceModule::get_subnet_n(netuid);
+		let mut n = SubspaceModule::subnet_n(netuid);
 
 		SubspaceModule::set_max_allowed_modules(max_allowed_modules);
 		// set max_total modules
 		
 		for i in 1..(2*max_allowed_modules ) {
 			assert_ok!(register_module(netuid, U256::from(i), stake));
-			n = SubspaceModule::get_subnet_n(netuid);
+			n = SubspaceModule::subnet_n(netuid);
 			println!("{} {} {:?}", n, SubspaceModule::global_n(), SubspaceModule::netuids());
 			assert!(n <= max_allowed_modules,"subnet_n {:?} is not less than max_allowed_modules {:?}", n, max_allowed_modules);
 		}

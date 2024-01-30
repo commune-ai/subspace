@@ -106,7 +106,7 @@ impl<T: Config> Pallet<T> {
 	// Replace the module under this uid.
 	pub fn remove_module(netuid: u16, uid: u16) {
 		// 1. Get the old key under this position.
-		let n = Self::get_subnet_n(netuid);
+		let n = Self::subnet_n(netuid);
 		if n == 0 {
 			/// No modules in the network.
 			return
@@ -185,7 +185,7 @@ impl<T: Config> Pallet<T> {
 		SubnetStateStorage::<T>::insert(netuid, subnet_state);
 
 		// remove the network if it is empty
-		if Self::get_subnet_n(netuid) == 0 {
+		if Self::subnet_n(netuid) == 0 {
 			Self::remove_subnet(netuid);
 		}
 
@@ -197,7 +197,7 @@ impl<T: Config> Pallet<T> {
 	// Appends the uid to the network.
 	pub fn append_module(netuid: u16, key: &T::AccountId, name: Vec<u8>, address: Vec<u8>) -> u16 {
 		// 1. Get the next uid. This is always equal to subnetwork_n.
-		let uid: u16 = Self::get_subnet_n(netuid);
+		let uid: u16 = Self::subnet_n(netuid);
 		let block_number = Self::get_current_block_as_u64();
 		log::debug!("append_module( netuid: {:?} | uid: {:?} | new_key: {:?} ) ", netuid, key, uid);
 
@@ -234,7 +234,7 @@ Incentive::<T>::mutate(netuid, |v| v.push(0));
 		}
 
 		let mut modules = Vec::new();
-		let n = Self::get_subnet_n(netuid);
+		let n = Self::subnet_n(netuid);
 		for uid in 0..n {
 			let uid = uid;
 			let netuid = netuid;

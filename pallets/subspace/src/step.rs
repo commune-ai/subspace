@@ -55,7 +55,7 @@ impl<T: Config> Pallet<T> {
 		let global_params = Self::global_params();
 		let subnet_params = Self::subnet_params(netuid);
 
-		let n: u16 = Self::get_subnet_n(netuid);
+		let n: u16 = Self::subnet_n(netuid);
 		let current_block: u64 = Self::get_current_block_as_u64();
 		let block_at_registration: Vec<u64> = Self::get_block_at_registration(netuid);
 
@@ -450,7 +450,7 @@ impl<T: Config> Pallet<T> {
 	}
 
 	pub fn get_block_at_registration(netuid: u16) -> Vec<u64> {
-		let n: usize = Self::get_subnet_n(netuid) as usize;
+		let n: usize = Self::subnet_n(netuid) as usize;
 		let mut block_at_registration: Vec<u64> = vec![0; n];
 		for module_uid in 0..n {
 			if Keys::<T>::contains_key(netuid, module_uid as u16) {
