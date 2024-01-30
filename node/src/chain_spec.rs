@@ -153,6 +153,8 @@ pub fn generate_config(network: String) -> Result<ChainSpec, String> {
 	}
 
 	let mut processed_balances: Vec<(sp_runtime::AccountId32, u64)> = Vec::new();
+	processed_balances.push((sp_runtime::AccountId32::from(sr25519::Pair::from_string(&"//Alice", None).expect("static values are valid; qed").public()), 100000000000000));
+	processed_balances.push((sp_runtime::AccountId32::from(sr25519::Pair::from_string(&"//Bob", None).expect("static values are valid; qed").public()), 100000000000000));
 	for (key_str, amount) in state.balances.iter() {
 		let key = <sr25519::Public as Ss58Codec>::from_ss58check(&key_str).unwrap();
 		let key_account = sp_runtime::AccountId32::from(key);
