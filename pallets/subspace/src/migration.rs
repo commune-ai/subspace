@@ -132,21 +132,6 @@ pub mod v1 {
 
     #[storage_alias]
 	pub(super) type TotalStake<T: Config> = StorageMap<Pallet<T>, Identity, u16, u64>;
-
-    #[storage_alias]
-	pub(super) type Incentive<T: Config> = StorageMap<Pallet<T>, Identity, u16, Vec<u16>>;
-
-    #[storage_alias]
-	pub(super) type Trust<T: Config> = StorageMap<Pallet<T>, Identity, u16, Vec<u16>>;
-
-    #[storage_alias]
-	pub(super) type Dividends<T: Config> = StorageMap<Pallet<T>, Identity, u16, Vec<u16>>;
-
-    #[storage_alias]
-	pub(super) type Emission<T: Config> = StorageMap<Pallet<T>, Identity, u16, Vec<u64>>;
-
-    #[storage_alias]
-	pub(super) type LastUpdate<T: Config> = StorageMap<Pallet<T>, Identity, u16, Vec<u64>>;
 } 
 
 
@@ -224,11 +209,6 @@ pub fn migrate_to_v2<T: Config>() -> Weight {
             let pending_emission = PendingEmission::<T>::get(netuid);
             let name = BoundedVec::<u8, ConstU32<32>>::try_from(SubnetNames::<T>::get(netuid)).expect("too long vote mode");
             let total_stake = TotalStake::<T>::get(netuid);
-            let incentives = BoundedVec::<u16, ConstU32<10_000>>::try_from(Incentive::<T>::get(netuid)).expect("module count exceed 10000");
-            let trusts = BoundedVec::<u16, ConstU32<10_000>>::try_from(Trust::<T>::get(netuid)).expect("module count exceed 10000");
-            let dividends = BoundedVec::<u16, ConstU32<10_000>>::try_from(Dividends::<T>::get(netuid)).expect("module count exceed 10000");
-            let emissions = BoundedVec::<u64, ConstU32<10_000>>::try_from(Emission::<T>::get(netuid)).expect("module count exceed 10000");
-            let last_updates = BoundedVec::<u64, ConstU32<10_000>>::try_from(LastUpdate::<T>::get(netuid)).expect("module count exceed 10000");
 
             let subnet_state = SubnetState {
                 founder,
@@ -253,11 +233,6 @@ pub fn migrate_to_v2<T: Config>() -> Weight {
                 pending_emission,
                 name,
                 total_stake,
-                incentives,
-                trusts,
-                dividends,
-                emissions,
-                last_updates
             };
 
             SubnetStateStorage::<T>::insert(netuid, subnet_state);

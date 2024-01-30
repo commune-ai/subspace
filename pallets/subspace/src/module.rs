@@ -128,23 +128,31 @@ impl<T: Config> Pallet<T> {
 		Uids::<T>::remove(netuid, uid_key.clone()); // Remove old key - uid association.
 		Keys::<T>::remove(netuid, replace_uid); // Remove key - uid association.
 
-		// let mut delegation_fee: Percent = DelegationFee::<T>::get(netuid, uid_key.clone());
+		// pop frm incentive vector and push to new key
+		let mut incentive: Vec<u16> = Incentive::<T>::get(netuid);
+		let mut dividends: Vec<u16> = Dividends::<T>::get(netuid);
+		let mut last_update: Vec<u64> = LastUpdate::<T>::get(netuid);
+		let mut emission: Vec<u64> = Emission::<T>::get(netuid);
+		let mut delegation_fee: Percent = DelegationFee::<T>::get(netuid, uid_key.clone());
 		
 		// swap consensus vectors
-		let mut subnet_state = SubnetStateStorage::<T>::get(netuid);
 		
-		subnet_state.incentives[uid as usize] = subnet_state.incentives[replace_uid as usize];
-		subnet_state.dividends[uid as usize] = subnet_state.dividends[replace_uid as usize];
-		subnet_state.emissions[uid as usize] = subnet_state.emissions[replace_uid as usize];
-		subnet_state.last_updates[uid as usize] = subnet_state.last_updates[replace_uid as usize];
+		incentive[uid as usize] = incentive[replace_uid as usize];
+		dividends[uid as usize] = dividends[replace_uid as usize];
+		emission[uid as usize] = emission[replace_uid as usize];
+		last_update[uid as usize] = emission[replace_uid as usize];
 
 		// pop the last element (which is now a duplicate)
-		subnet_state.incentives.pop();
-		subnet_state.dividends.pop();
-		subnet_state.emissions.pop();
-		subnet_state.last_updates.pop();
+		incentive.pop();
+		dividends.pop();
+		emission.pop();
+		last_update.pop();
 
-		SubnetStateStorage::<T>::insert(netuid, subnet_state);
+		// update the vectors
+		Incentive::<T>::insert(netuid, incentive); // Make uid - key association.
+		Dividends::<T>::insert(netuid, dividends); // Make uid - key association.
+		Emission::<T>::insert(netuid, emission); // Make uid - key association.
+		LastUpdate::<T>::insert(netuid, last_update); // Make uid - key association.
 
 		// SWAP WEIGHTS
 		Weights::<T>::insert(netuid, uid, Weights::<T>::get(netuid, replace_uid)); // Make uid - key association.
@@ -193,14 +201,11 @@ impl<T: Config> Pallet<T> {
 		let block_number = Self::get_current_block_as_u64();
 		log::debug!("append_module( netuid: {:?} | uid: {:?} | new_key: {:?} ) ", netuid, key, uid);
 
-		let mut subnet_state = SubnetStateStorage::<T>::get(netuid);
-
-		subnet_state.incentives.try_push(0);
-		subnet_state.dividends.try_push(0);
-		subnet_state.emissions.try_push(0);
-		subnet_state.last_updates.try_push(block_number);
-
-		SubnetStateStorage::<T>::insert(netuid, subnet_state);
+		// 3. Expand Yuma with new position.
+		Emission::<T>::mutate(netuid, |v| v.push(0));
+Incentive::<T>::mutate(netuid, |v| v.push(0));
+		Dividends::<T>::mutate(netuid, |v| v.push(0));
+		LastUpdate::<T>::mutate(netuid, |v| v.push(block_number));
 
 		// 4. Insert new account information.
 		Keys::<T>::insert(netuid, uid, key.clone()); // Make key - uid association.

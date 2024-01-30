@@ -288,21 +288,6 @@ pub mod pallet {
 
 	#[pallet::storage] // --- MAP ( netuid ) --> subnet_total_stake
 	pub type TotalStake<T> = StorageMap<_, Identity, u16, u64, ValueQuery>;
-
-	#[pallet::storage] // --- MAP ( netuid ) --> incentive
-	pub(super) type Incentive<T: Config> = StorageMap<_, Identity, u16, Vec<u16>, ValueQuery, EmptyU16Vec<T>>;
-
-	#[pallet::storage] // --- MAP ( netuid ) --> trust
-	pub(super) type Trust<T: Config> = StorageMap<_, Identity, u16, Vec<u16>, ValueQuery, EmptyU16Vec<T>>;
-	
-	#[pallet::storage] // --- MAP ( netuid ) --> dividends
-	pub(super) type Dividends<T: Config> = StorageMap<_, Identity, u16, Vec<u16>, ValueQuery, EmptyU16Vec<T>>;
-	
-	#[pallet::storage] // --- MAP ( netuid ) --> emission
-	pub(super) type Emission<T: Config> = StorageMap<_, Identity, u16, Vec<u64>, ValueQuery, EmptyU64Vec<T>>;
-	
-	#[pallet::storage] // --- MAP ( netuid ) --> last_update
-	pub(super) type LastUpdate<T: Config> = StorageMap<_, Identity, u16, Vec<u64>, ValueQuery, EmptyU64Vec<T>>;
 	// ============================
 	// ==== V1 storage lookup end ====
 	// ============================
@@ -463,13 +448,6 @@ pub mod pallet {
 		pub name: BoundedVec<u8, ConstU32<32>>,
 
 		pub total_stake: u64,
-
-		// module
-		pub incentives: BoundedVec<u16, ConstU32<10_000>>,
-		pub trusts: BoundedVec<u16, ConstU32<10_000>>,
-		pub dividends: BoundedVec<u16, ConstU32<10_000>>,
-		pub emissions: BoundedVec<u64, ConstU32<10_000>>,
-		pub last_updates: BoundedVec<u64, ConstU32<10_000>>,
 	}
 
 	#[pallet::type_value]
@@ -498,13 +476,6 @@ pub mod pallet {
 			pending_emission: 0,
 			name: BoundedVec::<u8, ConstU32<32>>::default(),
 			total_stake: 0,
-
-			// module
-			incentives: BoundedVec::<u16, ConstU32<10_000>>::default(),
-			trusts: BoundedVec::<u16, ConstU32<10_000>>::default(),
-			dividends: BoundedVec::<u16, ConstU32<10_000>>::default(),
-			emissions: BoundedVec::<u64, ConstU32<10_000>>::default(),
-			last_updates: BoundedVec::<u64, ConstU32<10_000>>::default()
 		}
 	}
 	#[pallet::storage]
@@ -592,7 +563,20 @@ pub mod pallet {
 	// =======================================
 	// ==== Module Variables  ====
 	// =======================================
+	#[pallet::storage] // --- MAP ( netuid ) --> incentive
+	pub(super) type Incentive<T: Config> = StorageMap<_, Identity, u16, Vec<u16>, ValueQuery, EmptyU16Vec<T>>;
 
+	#[pallet::storage] // --- MAP ( netuid ) --> trust
+	pub(super) type Trust<T: Config> = StorageMap<_, Identity, u16, Vec<u16>, ValueQuery, EmptyU16Vec<T>>;
+	
+	#[pallet::storage] // --- MAP ( netuid ) --> dividends
+	pub(super) type Dividends<T: Config> = StorageMap<_, Identity, u16, Vec<u16>, ValueQuery, EmptyU16Vec<T>>;
+	
+	#[pallet::storage] // --- MAP ( netuid ) --> emission
+	pub(super) type Emission<T: Config> = StorageMap<_, Identity, u16, Vec<u64>, ValueQuery, EmptyU64Vec<T>>;
+	
+	#[pallet::storage] // --- MAP ( netuid ) --> last_update
+	pub(super) type LastUpdate<T: Config> = StorageMap<_, Identity, u16, Vec<u64>, ValueQuery, EmptyU64Vec<T>>;
 
 	#[pallet::storage] // --- DMAP ( netuid, module_key ) --> uid
 	pub(super) type Uids<T: Config> =

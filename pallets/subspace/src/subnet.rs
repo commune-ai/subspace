@@ -815,12 +815,7 @@ impl<T: Config> Pallet<T> {
 		let mut updated_last_update_vec = Self::get_last_update(netuid);
 		if (uid as usize) < updated_last_update_vec.len() {
 			updated_last_update_vec[uid as usize] = last_update;
-			
-			let mut subnet_state = SubnetStateStorage::<T>::get(netuid);
-
-			subnet_state.last_updates = BoundedVec::<u64, ConstU32<10_000>>::try_from(updated_last_update_vec).expect("too long vec");
-
-			SubnetStateStorage::<T>::insert(netuid, subnet_state);
+			LastUpdate::<T>::insert(netuid, updated_last_update_vec);
 		}
 	}
 
@@ -1076,19 +1071,19 @@ impl<T: Config> Pallet<T> {
 	}
 
 	pub fn get_emissions(netuid: u16) -> Vec<u64> {
-		SubnetStateStorage::<T>::get(netuid).emissions.into_inner()
+		Emission::<T>::get(netuid)
 	}
 	pub fn get_incentives(netuid: u16) -> Vec<u16> {
-		SubnetStateStorage::<T>::get(netuid).incentives.into_inner()
+		Incentive::<T>::get(netuid)
 	}
 	pub fn get_trust(netuid: u16) -> Vec<u16> {
-		SubnetStateStorage::<T>::get(netuid).trusts.into_inner()
+		Trust::<T>::get(netuid)
 	}
 	pub fn get_dividends(netuid: u16) -> Vec<u16> {
-		SubnetStateStorage::<T>::get(netuid).dividends.into_inner()
+		Dividends::<T>::get(netuid)
 	}
 	pub fn get_last_update(netuid: u16) -> Vec<u64> {
-		SubnetStateStorage::<T>::get(netuid).last_updates.into_inner()
+		LastUpdate::<T>::get(netuid)
 	}
 	pub fn set_max_registrations_per_block(max_registrations_per_block: u16) {
 		let mut global_state = GlobalStateStorage::<T>::get();
