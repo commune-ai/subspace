@@ -118,7 +118,9 @@ fn test_set_weight_not_enough_values() {
 			register_module(netuid, U256::from(i), 1_000_000_000);
 		}
 
-		SubspaceModule::set_min_allowed_weights(netuid, 2);
+		let mut params = SubspaceModule::subnet_params(netuid);
+		params.min_allowed_weights = 10;
+		SubspaceModule::set_subnet_params(netuid, params);
 
 		// Should fail because we are only setting a single value and its not the self weight.
 		let weight_keys: Vec<u16> = vec![1]; // not weight.
@@ -146,7 +148,12 @@ fn test_set_weight_not_enough_values() {
 		// Should pass because we are setting enough values.
 		let weight_keys: Vec<u16> = vec![1, 2]; // self weight.
 		let weight_values: Vec<u16> = vec![10, 10]; // random value.
-		SubspaceModule::set_min_allowed_weights(netuid, 1);
+		
+		let mut params = SubspaceModule::subnet_params(netuid);
+		params.min_allowed_weights = 1;
+		SubspaceModule::set_subnet_params(netuid, params);
+
+		
 		assert_ok!(SubspaceModule::set_weights(
 			RuntimeOrigin::signed(account_id),
 			netuid,
@@ -171,9 +178,10 @@ fn test_set_max_allowed_uids() {
 		}
 
 		let max_allowed_uids: u16 = 10;
-
-		SubspaceModule::set_max_allowed_weights(netuid, max_allowed_uids);
-
+		let params = SubspaceModule::subnet_params(netuid);
+		params.max_allowed_weights = max_allowed_uids;
+		SubspaceModule::set_subnet_params(netuid, params);
+		
 		// Should fail because we are only setting a single value and its not the self weight.
 		let weight_keys: Vec<u16> = (0..max_allowed_uids).collect(); // not weight.
 		let weight_values: Vec<u16> = vec![1; max_allowed_uids as usize]; // random value.

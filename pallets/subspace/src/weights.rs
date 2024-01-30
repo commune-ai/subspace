@@ -24,7 +24,7 @@ impl<T: Config> Pallet<T> {
 		// --- 2. Check to see if this is a valid network.
 		ensure!(Self::if_subnet_exist(netuid), Error::<T>::NetworkDoesNotExist);
 		// --- 5. Check to see if the key is registered to the passed network.
-		ensure!(Self::is_key_registered_on_network(netuid, &key), Error::<T>::NotRegistered);
+		ensure!(Self::is_key_registered(netuid, &key), Error::<T>::NotRegistered);
 
 		// --- 3. Check that the length of uid list and value list are equal for this network.
 		ensure!(Self::uids_match_values(&uids, &values), Error::<T>::WeightVecNotEqualSize);
@@ -39,11 +39,10 @@ impl<T: Config> Pallet<T> {
 
 		// --- 11. Ensure that the passed uids are valid for the network.
 		ensure!(!Self::contains_invalid_uids(netuid, &uids), Error::<T>::InvalidUid);
-
-		let min_allowed_length: usize = Self::get_min_allowed_weights(netuid) as usize;
-		let max_allowed_length: usize = Self::get_max_allowed_weights(netuid) as usize;
-		
-		let self_vote = Self::get_self_vote(netuid);
+		let params = Self::subnet_params(netuid);
+		let min_allowed_length: usize = params.min_allowed_weights as usize;
+		let max_allowed_length: usize = params.max_allowed_weights as usize;
+		let self_vote = params.self_vote;
 		
 		if self_vote {
 			ensure!(!Self::is_self_weight(uid, &uids, &values), Error::<T>::NoSelfWeight);
@@ -107,7 +106,7 @@ impl<T: Config> Pallet<T> {
 
 	// Returns True if the uids and weights are have a valid length for uid on network.
 	pub fn check_length(netuid: u16, uid: u16, uids: &Vec<u16>, weights: &Vec<u16>) -> bool {
-		let min_allowed_length: usize = Self::get_min_allowed_weights(netuid) as usize;
+		let min_allowed_length: usize = Self::subnet_params(netuid).min_allowed_weights(netuid) as usize;
 		let n: usize = Self::get_subnet_n(netuid) as usize;
 		// Check self weight. Allowed to set single value for self weight.
 		if Self::is_self_weight(uid, uids, weights) {
@@ -152,8 +151,9 @@ impl<T: Config> Pallet<T> {
 	}
 
 	pub fn check_len_uids_within_allowed(netuid: u16, uids: &Vec<u16>) -> bool {
-		let min_allowed_length: usize = Self::get_min_allowed_weights(netuid) as usize;
-		let max_allowed_length: usize = Self::get_max_allowed_weights(netuid) as usize;
+		let params = Self::subnet_params(netuid);
+		let min_allowed_length: usize = params.min_allowed_weights as usize;
+		let max_allowed_length: usize = params.max_allowed_weights as usize;
 		if uids.len() > max_allowed_length as usize {
 			return false
 		}

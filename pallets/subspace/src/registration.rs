@@ -208,7 +208,7 @@ impl<T: Config> Pallet<T> {
 		let mut lowest_priority_uid: u16 = 0;
 		let mut prune_uids: Vec<u16> = Vec::new();
 		let current_block = Self::get_current_block_as_u64();
-		let immunity_period: u64 = Self::get_immunity_period(netuid) as u64;
+		let immunity_period: u64 = Self::subnet_params(netuid).immunity_period;
 
 		for module_uid_i in 0..n {
 			let pruning_score: u64 = Self::get_pruning_score_for_uid(netuid, module_uid_i);
@@ -266,42 +266,6 @@ impl<T: Config> Pallet<T> {
 		let hash_as_bytes: &[u8] = hash.as_bytes();
 		let hash_as_vec: Vec<u8> = hash_as_bytes.iter().cloned().collect();
 		return hash_as_vec
-	}
-
-	pub fn add_subnet_from_registration(
-		name: Vec<u8>,
-		stake: u64,
-		founder_key: &T::AccountId,
-	) ->  DispatchResult{
-		// use default parameters
-		//
-		let num_subnets: u16 = Self::num_subnets();
-		let max_subnets: u16 = Self::get_global_max_allowed_subnets();
-		// if we have not reached the max number of subnets, then we can start a new one
-		if num_subnets >= max_subnets {
-			let mut min_stake: u64 = u64::MAX;
-			let mut min_stake_netuid : u16 = max_subnets.saturating_sub(1);
-			for (netuid, subnet_state) in <SubnetStateStorage<T> as IterableStorageMap<u16, SubnetState<T>>>::iter() {
-				let net_stake = subnet_state.total_stake;
-				
-				if net_stake <= min_stake {
-					min_stake = net_stake;
-					min_stake_netuid = netuid;
-				}
-			}
-			ensure!(stake > min_stake , Error::<T>::NotEnoughStakeToStartNetwork);
-			Self::remove_subnet(min_stake_netuid);
-		}
-		// if we have reached the max number of subnets, then we can start a new one if the stake is
-		// greater than the least staked network
-
-		let mut params: SubnetParams<T> = Self::default_subnet_params();
-		params.name = name.clone();
-		let netuid = Self::add_subnet(params);
-
-		Self::set_founder(netuid, founder_key.clone());		
-
-		Ok(())
 	}
 
 }

@@ -136,7 +136,6 @@ fn test_set_single_temple(tempo: u16) {
 			println!("emission {:?}", emissions);
 			println!("incentives {:?}", incentives);
 			println!("dividends {:?}", dividends);
-			// println!("EMMISSIONS {:?}", SubspaceModule::get_ownership_ratios_emission(netuid,
 			// &U256::from(0),emissions[0] ));
 
 			let stake: u64 = SubspaceModule::get_stake_for_uid(netuid, 0);
@@ -286,8 +285,6 @@ fn test_set_max_allowed_uids_shrinking() {
 			old_total_subnet_balance =
 				old_total_subnet_balance + SubspaceModule::get_balance_u64(&key);
 		}
-
-		let subnet = SubspaceModule::subnet_info(netuid);
 
 		let mut params = SubspaceModule::subnet_params(netuid).clone();
 		params.max_allowed_uids = max_uids;

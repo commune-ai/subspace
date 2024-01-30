@@ -85,14 +85,12 @@ impl<T: Config> Pallet<T> {
 	}
 	
 	pub fn get_module_delegation_fee(netuid: u16, uid: u16) -> Percent {
-		let key = Self::get_key_for_uid(netuid, uid);
-		let mut delegation_fee: Percent = DelegationFee::<T>::get(netuid, key);
+		let mut delegation_fee: Percent = DelegationFee::<T>::get(netuid, uid);
 		return delegation_fee
 	}
 
 	pub fn set_module_delegation_fee( netuid: u16, uid: u16, delegation_fee: Percent) {
-		let key = Self::get_key_for_uid(netuid, uid);
-		DelegationFee::<T>::insert(netuid, key, delegation_fee);
+		DelegationFee::<T>::insert(netuid, uid, delegation_fee);
 	}
 
 	pub fn get_module_name(netuid: u16, uid: u16) -> Vec<u8> {
@@ -163,8 +161,8 @@ impl<T: Config> Pallet<T> {
 		Name::<T>::remove(netuid, replace_uid); // Fill module namespace.
 
 		// HANDLE THE DELEGATION FEE
-		DelegationFee::<T>::insert(netuid,replace_key.clone(),DelegationFee::<T>::get(netuid, uid_key.clone())); // Make uid - key association.
-		DelegationFee::<T>::remove(netuid, uid_key.clone()); // Make uid - key association.
+		DelegationFee::<T>::insert(netuid,uid,DelegationFee::<T>::get(netuid, uid.clone())); // Make uid - key association.
+		DelegationFee::<T>::remove(netuid, replace_uid.clone()); // Make uid - key association.
 
 		// 3. Remove the network if it is empty.
 		let mut subnet_state = SubnetStateStorage::<T>::get(netuid);
@@ -172,7 +170,6 @@ impl<T: Config> Pallet<T> {
 		if(subnet_state.n > 0) {
 			subnet_state.n -= 1;
 		}
-
 
 		SubnetStateStorage::<T>::insert(netuid, subnet_state);
 
@@ -195,29 +192,26 @@ impl<T: Config> Pallet<T> {
 
 		let mut subnet_state = SubnetStateStorage::<T>::get(netuid);
 
-		subnet_state.incentives.try_push(0);
-		subnet_state.dividends.try_push(0);
-		subnet_state.emissions.try_push(0);
-		subnet_state.last_updates.try_push(block_number);
-
-		SubnetStateStorage::<T>::insert(netuid, subnet_state);
 
 		// 4. Insert new account information.
 		Keys::<T>::insert(netuid, uid, key.clone()); // Make key - uid association.
 		Uids::<T>::insert(netuid, key.clone(), uid); // Make uid - key association.
-		RegistrationBlock::<T>::insert(netuid, uid, block_number); // Fill block at registration.
 		Name::<T>::insert(netuid, uid, name.clone()); // Fill module namespace.
 		Address::<T>::insert(netuid, uid, address.clone()); // Fill module info.
-		DelegationFee::<T>::insert(
-			netuid,
-			key.clone(),
-			DelegationFee::<T>::get(netuid, key.clone()),
-		); // Make uid - key association.
+		DelegationFee::<T>::insert(netuid,uid,DelegationFee::<T>::get(netuid, uid)); // Make uid - key association.
+		RegistrationBlock::<T>::insert(netuid, uid, block_number); // Fill block at registration.
+		// consensus vectors
+		Incentives::<T>::mutate(netuid, |x| x.push(0));
+		Dividends::<T>::mutate(netuid, |x| x.push(0));
+		Emissions::<T>::mutate(netuid, |x| x.push(0));
+		LastUpdates::<T>::mutate(netuid, |x| x.push(0));
+
+
+		// 5. Increase the stake of the new key.
+		Self::increase_stake(netuid, &module_key, &module_key, 0);
 
 		let mut subnet_state = SubnetStateStorage::<T>::get(netuid);
-
 		subnet_state.n += 1;
-
 		SubnetStateStorage::<T>::insert(netuid, subnet_state);
 
 		return uid

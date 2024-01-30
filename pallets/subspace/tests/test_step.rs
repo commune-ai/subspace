@@ -68,9 +68,12 @@ fn test_dividends_same_stake() {
 
 		// SETUP NETWORK
 		register_n_modules(netuid, n, stake_per_module);
-		SubspaceModule::set_tempo(netuid, 1);
-		SubspaceModule::set_max_allowed_weights(netuid, n);
-		SubspaceModule::set_min_allowed_weights(netuid, 0);
+
+		let mut params = SubspaceModule::subnet_params(netuid);
+		params.tempo = 1;
+		params.min_allowed_weights = 0;
+		params.max_allowed_weights = n;
+		SubspaceModule::set_subnet_params(netuid, params.clone());
 
 		// for i in 0..n {
 
@@ -159,10 +162,12 @@ fn test_dividends_diff_stake() {
 			register_module(netuid, key, stake);
 		}
 		register_n_modules(netuid, n, stake_per_module);
-		SubspaceModule::set_tempo(netuid, tempo);
-		SubspaceModule::set_max_allowed_weights(netuid, n);
-		SubspaceModule::set_min_allowed_weights(netuid, 0);
 
+		let mut params = SubspaceModule::subnet_params(netuid);
+		params.tempo = tempo;
+		params.min_allowed_weights = 0;
+		params.max_allowed_weights = n;
+		SubspaceModule::set_subnet_params(netuid, params.clone());
 		// for i in 0..n {
 
 		//     let key: U256 = U256::from(i);
@@ -243,9 +248,11 @@ fn test_pruning() {
 		// SETUP NETWORK
 		register_n_modules(netuid, n, stake_per_module);
 
-		SubspaceModule::set_tempo(netuid, 1);
-		SubspaceModule::set_max_allowed_weights(netuid, n);
-		SubspaceModule::set_min_allowed_weights(netuid, 0);
+		let mut params = SubspaceModule::subnet_params(netuid);
+		params.tempo = tempo;
+		params.min_allowed_weights = 0;
+		params.max_allowed_weights = n;
+		SubspaceModule::set_subnet_params(netuid, params.clone());
 
 		// for i in 0..n {
 
@@ -312,9 +319,11 @@ fn test_lowest_priority_mechanism() {
 		// SETUP NETWORK
 		register_n_modules(netuid, n, stake_per_module);
 
-		SubspaceModule::set_tempo(netuid, 1);
-		SubspaceModule::set_max_allowed_weights(netuid, n);
-		SubspaceModule::set_min_allowed_weights(netuid, 0);
+		let mut params = SubspaceModule::subnet_params(netuid);
+		params.tempo = 1;
+		params.min_allowed_weights = 0;
+		params.max_allowed_weights = n;
+		SubspaceModule::set_subnet_params(netuid, params.clone());
 
 		// for i in 0..n {
 

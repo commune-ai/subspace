@@ -106,84 +106,11 @@ pub mod pallet {
 	// ============================
 	// ==== Global Variables ====
 	// ============================
-	#[pallet::type_value]
-	pub fn DefaultLastTxBlock<T: Config>() -> u64 { 0 }
-	#[pallet::storage] // --- MAP ( key ) --> last_block
-	pub(super) type LastTxBlock<T: Config> = StorageMap<_, Identity, T::AccountId, u64, ValueQuery, DefaultLastTxBlock<T>>;
-
-	#[derive(Encode, Decode, Default, TypeInfo, MaxEncodedLen, PartialEqNoBound, RuntimeDebug)]
-	#[scale_info(skip_type_params(T))]
-	#[codec(mel_bound())]
-	pub struct GlobalState {
-		// status
-		pub registrations_per_block: u16,
-		pub total_subnets: u16,
-
-		// max
-		pub max_name_length: u16, // max length of a network name
-		pub max_allowed_subnets: u16, // max number of subnets allowed
-		pub max_allowed_modules: u16, // max number of modules allowed per subnet
-		pub max_registrations_per_block: u16, // max number of registrations per block
-		pub max_allowed_weights: u16, // max number of weights per module
-		pub max_proposals: u64,
-		
-		// min
-		pub min_burn: u64, // min burn required
-		pub min_stake: u64, // min stake required
-		pub min_weight_stake: u64, // min weight stake required
-		
-		// other
-		pub unit_emission: u64, // emission per block
-		pub tx_rate_limit: u64, // tx rate limit
-		pub burn_rate: u16,
-
-		// vote
-		pub vote_threshold: u16,
-		pub vote_mode: BoundedVec<u8, ConstU32<32>>,
-	}
-
-	#[pallet::type_value]
-	pub fn DefaultGlobalState<T: Config>() -> GlobalState {
-		GlobalState {
-			registrations_per_block: 0,
-			total_subnets: 0,
-			max_name_length: 32, // max length of a network name
-			max_allowed_subnets: 256, // max number of subnets allowed
-			max_allowed_modules: 10_000, // max number of modules allowed per subnet
-			max_registrations_per_block: 10, // max number of registrations per block
-			max_allowed_weights: 512, // max number of weights per module
-			max_proposals: 128,
-			
-			// min
-			min_burn: 0, // min burn required
-			min_stake: 0, // min stake required
-			min_weight_stake: 0,// min weight stake required
-			
-			// other
-			unit_emission: 23148148148, // emission per block
-			tx_rate_limit: 1, // tx rate limit
-			burn_rate: 0,
-
-			// vote
-			vote_threshold: 50,
-			vote_mode: BoundedVec::<u8, ConstU32<32>>::truncate_from(b"authority".to_vec()),
-		}
-	}
-	#[pallet::storage]
-	#[pallet::getter(fn global_state)]
-	pub(super) type GlobalStateStorage<T: Config> = StorageValue<_, GlobalState, ValueQuery, DefaultGlobalState<T>>;
+	
+	
+	
 
 	#[derive(Decode, Encode, PartialEq, Eq, Clone, Debug, TypeInfo)]
-	#[scale_info(skip_type_params(T))]
-	pub struct ModuleParams<T: Config> {
-		pub name: Vec<u8>,
-		pub address: Vec<u8>,
-		pub delegation_fee: Percent, // delegate_fee
-		pub controller: T::AccountId,
-	}
-
-	#[derive(Decode, Encode, PartialEq, Eq, Clone, Debug, TypeInfo)]
-	// skip
 	pub struct GlobalParams {
 		pub burn_rate: u16,
 		// max
@@ -206,6 +133,7 @@ pub mod pallet {
 		pub vote_mode: Vec<u8>, // out of 100
 	}
 
+
 	#[pallet::type_value]
 	pub fn DefaultGlobalParams<T: Config>() -> GlobalParams {
 		GlobalParams {
@@ -227,7 +155,33 @@ pub mod pallet {
 		}
 	}
 
+	#[pallet::storage]
+	#[pallet::getter(fn global_params)]
+	pub(super) type GlobalParamsStorage<T: Config> = StorageValue<_, GlobalState, ValueQuery, DefaultGlobalState<T>>;
+
 	
+	
+	#[derive(Encode, Decode, Default, TypeInfo, MaxEncodedLen, PartialEqNoBound, RuntimeDebug)]
+	#[scale_info(skip_type_params(T))]
+	#[codec(mel_bound())]
+	pub struct GlobalState {
+		// status
+		pub registrations_per_block: u16,
+		pub total_subnets: u16,
+	}
+
+	#[pallet::type_value]
+	pub fn DefaultGlobalState<T: Config>() -> GlobalState {
+		GlobalState {
+			registrations_per_block: 0,
+			total_subnets: 0,
+		}
+	}
+
+	#[pallet::storage]
+	#[pallet::getter(fn global_state)]
+	pub(super) type GlobalStateStorage<T: Config> = StorageValue<_, GlobalState, ValueQuery, DefaultGlobalState<T>>;
+
 	// =========================
 	// ==== Subnet PARAMS ====
 	// =========================
@@ -235,77 +189,24 @@ pub mod pallet {
 	#[scale_info(skip_type_params(T))]
 	#[codec(mel_bound())]
 	pub struct SubnetState<T: Config> {
-		pub founder: T::AccountId,
-		pub founder_share: u16, // out of 100
-		pub incentive_ratio : u16, // out of 100
-		pub immunity_period: u16, // immunity period
-		pub max_allowed_uids: u16, // max number of weights allowed to be registered in this
-		pub max_allowed_weights: u16, // max number of weights allowed to be registered in this
-		pub min_allowed_weights: u16, // min number of weights allowed to be registered in this
-		pub max_stake: u64, // max stake allowed
-		pub max_weight_age: u64, // max age of a weightpub max_weight_age: u64, // max age of a weight
-		pub min_stake: u64,	// min stake required
-		pub self_vote: bool, // 
-		pub tempo: u16, // how many blocks to wait before rewarding models
-		pub trust_ratio: u16,
-		pub quadratic_voting: bool,
-		pub pending_deregister_uids: BoundedVec<u16, ConstU32<10_000>>,
-		pub vote_threshold: u16,
-		pub vote_mode: BoundedVec<u8, ConstU32<32>>,
-
 		pub emission: u64,
 		pub n: u16, //number of uids
 		pub pending_emission: u64,
-		pub name: BoundedVec<u8, ConstU32<32>>,
-
 		pub total_stake: u64,
-
-		// module
-		pub incentives: BoundedVec<u16, ConstU32<10_000>>,
-		pub trusts: BoundedVec<u16, ConstU32<10_000>>,
-		pub dividends: BoundedVec<u16, ConstU32<10_000>>,
-		pub emissions: BoundedVec<u64, ConstU32<10_000>>,
-		pub last_updates: BoundedVec<u64, ConstU32<10_000>>,
 	}
 
 	#[pallet::type_value]
 	pub fn DefaultSubnetState<T: Config>() -> SubnetState<T> {
 		SubnetState {
-			founder: T::AccountId::decode(&mut sp_runtime::traits::TrailingZeroInput::zeroes()).unwrap(),
-			founder_share: 0, // out of 100
-			incentive_ratio : 50, // out of 100
-			immunity_period: 40, // immunity period
-			max_allowed_uids: 4096, // max number of weights allowed to be registered in this
-			max_allowed_weights: 420, // max number of weights allowed to be registered in this
-			min_allowed_weights: 1, // min number of weights allowed to be registered in this
-			max_stake: u64::MAX, // max stake allowed
-			max_weight_age: u64::MAX, // max age of a weightmax_weight_age: u64, // max age of a weight
-			min_stake: 0,	// min stake required
-			self_vote: true, // 
-			tempo: 1, // how many blocks to wait before rewarding models
-			trust_ratio: 0,
-			quadratic_voting: false,
-			pending_deregister_uids: BoundedVec::<u16, ConstU32<10_000>>::default(),
-			vote_threshold: 50,
-			vote_mode: BoundedVec::<u8, ConstU32<32>>::truncate_from(b"authority".to_vec()),
-
-			emission: 0,
 			n: 0, //number of uids
 			pending_emission: 0,
-			name: BoundedVec::<u8, ConstU32<32>>::default(),
 			total_stake: 0,
-
-			// module
-			incentives: BoundedVec::<u16, ConstU32<10_000>>::default(),
-			trusts: BoundedVec::<u16, ConstU32<10_000>>::default(),
-			dividends: BoundedVec::<u16, ConstU32<10_000>>::default(),
-			emissions: BoundedVec::<u64, ConstU32<10_000>>::default(),
-			last_updates: BoundedVec::<u64, ConstU32<10_000>>::default()
+			pending_deregister_uids: vec![],
 		}
 	}
 	#[pallet::storage]
-	#[pallet::getter(fn subnet_state)]
 	pub(super) type SubnetStateStorage<T: Config> = StorageMap<_, Identity, u16, SubnetState<T>, ValueQuery, DefaultSubnetState<T>>;
+	
 
 	#[derive(Decode, Encode, PartialEq, Eq, Clone, Debug, TypeInfo)]
 	#[scale_info(skip_type_params(T))]
@@ -351,6 +252,31 @@ pub mod pallet {
 		}
 	}
 
+	#[pallet::storage]
+	pub(super) type SubnetParamsStorage<T: Config> = StorageMap<_, Identity, u16, SubnetParams<T>, ValueQuery, DefaultSubnetParams<T>>;
+
+
+	#[derive(Decode, Encode, PartialEq, Eq, Clone, Debug, TypeInfo)]
+	#[scale_info(skip_type_params(T))]
+	pub struct ModuleParams<T: Config> {
+		pub name: Vec<u8>,
+		pub address: Vec<u8>,
+		pub delegation_fee: Percent, // delegate_fee
+		pub profit_shares : Vec<(T::AccountId, u16)>,
+	}
+
+	#[derive(Decode, Encode, PartialEq, Eq, Clone, Debug, TypeInfo)]
+	#[scale_info(skip_type_params(T))]
+	pub struct ModuleState<T: Config> {
+		pub incentive: u16,
+		pub dividend: u16,
+		pub trust: u16, // delegate_fee
+		pub emission: u64,
+		pub last_update : u64,
+		pub registration_block: u64,
+	}
+
+
 	// =======================================
 	// ==== Voting  ====
 	// =======================================
@@ -374,26 +300,9 @@ pub mod pallet {
 	#[pallet::storage] // --- MAP ( netuid ) --> epoch
 	pub type Voter2Info<T: Config> =StorageMap<_, Identity, T::AccountId, VoterInfo, ValueQuery, DefaultVoterInfo<T>>;
 
-	#[derive(Decode, Encode, PartialEq, Eq, Clone, Debug, TypeInfo)]
-	pub struct SubnetInfo<T: Config> {
-		// --- parameters
-		pub params: SubnetParams<T> ,
-		pub netuid: u16, // --- unique id of the network
-		pub n: u16,
-		pub stake: u64,
-		pub emission: u64,
-		pub founder: T::AccountId,
-	}
-
 	// =======================================
 	// ==== Module Variables  ====
 	// =======================================
-
-
-	#[pallet::storage] // --- DMAP ( netuid, module_key ) --> uid
-	pub(super) type Uids<T: Config> =
-		StorageDoubleMap<_, Identity, u16, Blake2_128Concat, T::AccountId, u16, OptionQuery>;
-
 
 	#[pallet::storage] // --- DMAP ( netuid, module_key ) --> uid
 	pub(super) type Key2Controller<T: Config> =
@@ -403,14 +312,16 @@ pub mod pallet {
 	pub(super) type Controller2Keys<T: Config> =
 		StorageDoubleMap<_, Identity, T::AccountId, Blake2_128Concat, Vec<T::AccountId>, u16, OptionQuery>;
 
-			
-	
 	#[pallet::type_value]
 	pub fn DefaultKey<T: Config>() -> T::AccountId {
 		T::AccountId::decode(&mut sp_runtime::traits::TrailingZeroInput::zeroes()).unwrap()
 	}
 	#[pallet::storage] // --- DMAP ( netuid, uid ) --> module_key
 	pub(super) type Keys<T: Config> = StorageDoubleMap<_, Identity, u16, Identity, u16, T::AccountId, ValueQuery, DefaultKey<T>>;
+
+	#[pallet::storage] // --- DMAP ( netuid, module_key ) --> uid
+	pub(super) type Uids<T: Config> =
+		StorageDoubleMap<_, Identity, u16, Blake2_128Concat, T::AccountId, u16, OptionQuery>;
 
 	#[pallet::type_value]
 	pub fn DefaultName<T: Config>() -> Vec<u8> {vec![]}
@@ -430,8 +341,8 @@ pub mod pallet {
 		_,
 		Identity,
 		u16,
-		Blake2_128Concat,
-		T::AccountId,
+		Identity,
+		u16,
 		Percent,
 		ValueQuery,
 		DefaultDelegationFee<T>,
@@ -452,6 +363,50 @@ pub mod pallet {
 		ValueQuery,
 		DefaultBlockAtRegistration<T>,
 	>;
+
+
+	// Incentive
+
+	
+	#[pallet::type_value]
+	pub fn DefaultIncentive<T: Config>() -> u16 { 0 }
+	#[pallet::storage] // --- DMAP ( netuid, uid ) --> incentive
+<
+		_,
+		Identity,
+		u16,
+		Vec<u16>, 
+	// PROFIT SHARE VARIABLES
+	
+	#[pallet::type_value]
+	pub fn DefaultProfitShares<T: Config>() -> Vec<(T::AccountId, u16)> {vec![]}
+	
+	#[pallet::storage] // --- DMAP ( netuid, account_id ) --> Vec<(module_key, stake )> | Returns the list of the
+	pub type ProfitShares<T: Config> = StorageMap<_, 
+			Identity, 
+			T::AccountId, 
+			Vec<(T::AccountId, u16)>, 
+			ValueQuery, 
+			DefaultProfitShares<T>>;
+
+	// =======================================
+	// ==== Module Consensus Variables  ====
+	// =======================================
+
+	#[pallet::type_value]
+	pub fn DefaultWeights<T: Config>() -> Vec<(u16, u16)> {vec![]}
+	#[pallet::storage] // --- DMAP ( netuid, uid ) --> weights
+	pub(super) type Weights<T: Config> = StorageDoubleMap<
+		_,
+		Identity,
+		u16,
+		Identity,
+		u16,
+		Vec<(u16, u16)>,
+		ValueQuery,
+		DefaultWeights<T>,
+	>;
+
 
 	// =======================================
 	// ==== Module Staking Variables  ====
@@ -514,36 +469,6 @@ pub mod pallet {
 		ValueQuery,
 	>;
 
-	// PROFIT SHARE VARIABLES
-	
-	#[pallet::type_value]
-	pub fn DefaultProfitShares<T: Config>() -> Vec<(T::AccountId, u16)> {vec![]}
-	
-	#[pallet::storage] // --- DMAP ( netuid, account_id ) --> Vec<(module_key, stake )> | Returns the list of the
-	pub type ProfitShares<T: Config> = StorageMap<_, 
-			Identity, 
-			T::AccountId, 
-			Vec<(T::AccountId, u16)>, 
-			ValueQuery, 
-			DefaultProfitShares<T>>;
-
-	// =======================================
-	// ==== Module Consensus Variables  ====
-	// =======================================
-
-	#[pallet::type_value]
-	pub fn DefaultWeights<T: Config>() -> Vec<(u16, u16)> {vec![]}
-	#[pallet::storage] // --- DMAP ( netuid, uid ) --> weights
-	pub(super) type Weights<T: Config> = StorageDoubleMap<
-		_,
-		Identity,
-		u16,
-		Identity,
-		u16,
-		Vec<(u16, u16)>,
-		ValueQuery,
-		DefaultWeights<T>,
-	>;
 
 	
 	#[pallet::event]

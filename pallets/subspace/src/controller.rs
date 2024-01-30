@@ -7,7 +7,7 @@ use super::*;
 
 impl<T: Config> Pallet<T> {
 
-    pub fn get_controlled_keys(
+    pub fn controller_keys(
         controller: T::AccountId,
     ) -> Vec<T::AccountId> {
         return Controller2Keys::<T>::iter_prefix_values(controller)
@@ -20,7 +20,7 @@ impl<T: Config> Pallet<T> {
         return Key2Controller::<T>::get(key)
     }
 
-    pub fn do_add_controller_to_key(
+    pub fn do_add_controller_key(
         origin: T::Origin,
         key: T::AccountId,
         controller: T::AccountId,
@@ -32,9 +32,10 @@ impl<T: Config> Pallet<T> {
         Key2Controller::<T>::insert(&key, controller);
         // insert it into the key vector Vec<T::AccountId>
         // Key2Controller::<T>::insert(&key, controller);
-        let controller_keys = Self::get_controlled_keys(controller);
+        let controller_keys = Self::controller_keys(controller);
+        // assert 
         controler_keys.push(key);
-        Controller2Keys::<T>::insert(&controller, key);
+        Controller2Keys::<T>::insert(&controller, controler_keys);
         Ok(())
 
         
@@ -59,7 +60,7 @@ impl<T: Config> Pallet<T> {
         controller: T::AccountId,
     ) -> bool {
         let mut changeed = false;
-        let controller_keys = Self::get_controlled_keys(controller);
+        let controller_keys = Self::controller_keys(controller);
         for (i, k) in controller_keys.iter().enumerate() {
             if *k == key {
                 controller_keys.remove(i);
@@ -72,12 +73,4 @@ impl<T: Config> Pallet<T> {
 
     }
 
-    pub fn remove_controller_from_key(
-        key: T::AccountId,
-        controller: T::AccountId,
-    ) -> DispatchResult {
-        Key2Controller::<T>::remove(key);
-
-        Ok(())
-    }
 }

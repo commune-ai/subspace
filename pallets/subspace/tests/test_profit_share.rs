@@ -23,8 +23,9 @@ fn test_add_profit_share() {
 		let voter_uid = SubspaceModule::get_uid_for_key(netuid,&voter_key);
 
 	
-		SubspaceModule::set_min_allowed_weights(netuid, 1);
-
+		let mut params = SubspaceModule::subnet_params(netuid);
+		params.min_allowed_weights = 1;
+		SubspaceModule::set_subnet_params(netuid, params);
         
 		let profit_sharer_keys = vec![U256::from(2), U256::from(3)];
         let shares = vec![2,2];

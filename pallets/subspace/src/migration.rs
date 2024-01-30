@@ -230,34 +230,35 @@ pub fn migrate_to_v2<T: Config>() -> Weight {
             let emissions = BoundedVec::<u64, ConstU32<10_000>>::try_from(v1::Emission::<T>::get(netuid).unwrap()).expect("module count exceed 10000");
             let last_updates = BoundedVec::<u64, ConstU32<10_000>>::try_from(v1::LastUpdate::<T>::get(netuid).unwrap()).expect("module count exceed 10000");
 
+            let params = SubnetParams {
+                max_allowed_uids: max_allowed_uids,
+                immunity_period: immunity_period,
+                min_allowed_weights : min_allowed_weights,
+                self_vote: self_vote,
+                min_stake: min_stake,
+                max_stake: max_stake,
+                max_weight_age: max_weight_age,
+                max_allowed_weights: max_allowed_weights,
+                founder: founder,
+                founder_share: founder_share,
+                incentive_ratio: incentive_ratio,
+                tempo: tempo,
+                trust_ratio: trust_ratio,
+                quadratic_voting: quadratic_voting,
+                vote_threshold: vote_threshold,
+                vote_mode: vote_mode.clone().into_vec(),
+            };
             let subnet_state = SubnetState {
-                founder,
-                founder_share,
-                incentive_ratio,
-                immunity_period,
-                max_allowed_uids,
-                max_allowed_weights,
-                min_allowed_weights,
-                max_stake,
-                max_weight_age,
-                min_stake,
-                self_vote,
-                tempo,
-                trust_ratio,
-                quadratic_voting,
-                pending_deregister_uids,
-                vote_threshold,
-                vote_mode,
-                emission,
-                n,
-                pending_emission,
-                name,
-                total_stake,
-                incentives,
-                trusts,
-                dividends,
-                emissions,
-                last_updates
+                params: params,
+                emission:emission,
+                n:n,
+                pending_emission:pending_emission,
+                total_stake: total_stake,
+                incentives: incentives,
+                trusts:trusts,
+                dividends: dividends,
+                emissions: emissions,
+                last_updates: last_updates
             };
 
             SubnetStateStorage::<T>::insert(netuid, subnet_state);

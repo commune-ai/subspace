@@ -209,7 +209,6 @@ impl<T: Config> Pallet<T> {
 		return Uids::<T>::contains_key(netuid, &key)
 	}
 
-
 	// Returns the delegation fee of a module
 	pub fn get_delegation_fee(netuid: u16, module_key: &T::AccountId) -> Percent {
 		DelegationFee::<T>::get(netuid, module_key)
@@ -258,12 +257,6 @@ impl<T: Config> Pallet<T> {
 		key: &T::AccountId,
 		stake_to_vector: Vec<(T::AccountId, u64)>,
 	) {
-		// we want to remove any keys that have a stake of 0, as these are from outside the subnet
-		// and can bloat the chain
-		if stake_to_vector.len() == 0 {
-			StakeTo::<T>::remove(netuid, key);
-			return
-		}
 		StakeTo::<T>::insert(netuid, key, stake_to_vector);
 	}
 
@@ -351,11 +344,8 @@ impl<T: Config> Pallet<T> {
 		);
 		
 		let mut subnet_state = SubnetStateStorage::<T>::get(netuid);
-
 		subnet_state.total_stake = subnet_state.total_stake.saturating_add(amount);
-
 		SubnetStateStorage::<T>::insert(netuid, subnet_state);
-
 		return true
 	}
 
