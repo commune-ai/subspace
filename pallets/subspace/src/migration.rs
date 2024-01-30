@@ -16,7 +16,7 @@ pub mod v1 {
     ///////////////////////////////
     
     #[storage_alias]
-	pub(super) type UnitEmissionPallet<T: Config> = StorageValue<Pallet<T>, u64>;
+	pub(super) type UnitEmission<T: Config> = StorageValue<Pallet<T>, u64>;
 
 	#[storage_alias]
 	pub(super) type TxRateLimit<T: Config> = StorageValue<Pallet<T>, u64>;
@@ -157,22 +157,22 @@ pub fn migrate_to_v2<T: Config>() -> Weight {
     if onchain_version < 2 {
         info!(target: LOG_TARGET, " >>> Updating Global storage...");
 
-        let unit_emission = v1::UnitEmissionPallet::<T>::get().unwrap();
-        let tx_rate_limit = v1::TxRateLimit::<T>::get().unwrap();
-        let burn_rate = v1::BurnRate::<T>::get().unwrap();
-        let min_burn = v1::MinBurn::<T>::get().unwrap();
-        let max_name_length = v1::MaxNameLength::<T>::get().unwrap();
-        let max_allowed_subnets = v1::MaxAllowedSubnets::<T>::get().unwrap();
-        let max_allowed_modules = v1::MaxAllowedModules::<T>::get().unwrap();
-        let registrations_per_block = v1::RegistrationsPerBlock::<T>::get().unwrap();
-        let max_registrations_per_block = v1::MaxRegistrationsPerBlock::<T>::get().unwrap();
-        let min_stake = v1::MinStakeGlobal::<T>::get().unwrap();
-        let min_weight_stake = v1::MinWeightStake::<T>::get().unwrap();
-        let max_allowed_weights = v1::MaxAllowedWeightsGlobal::<T>::get().unwrap();
-        let total_subnets = v1::TotalSubnets::<T>::get().unwrap();
-        let vote_threshold = v1::GlobalVoteThreshold::<T>::get().unwrap();
-        let vote_mode = BoundedVec::<u8, ConstU32<32>>::try_from(v1::VoteModeGlobal::<T>::get().unwrap()).expect("too long vote mode");
-        let max_proposals = v1::MaxProposals::<T>::get().unwrap();
+        let unit_emission = UnitEmission::<T>::get();
+        let tx_rate_limit = TxRateLimit::<T>::get();
+        let burn_rate = BurnRate::<T>::get();
+        let min_burn = MinBurn::<T>::get();
+        let max_name_length = MaxNameLength::<T>::get();
+        let max_allowed_subnets = MaxAllowedSubnets::<T>::get();
+        let max_allowed_modules = MaxAllowedModules::<T>::get();
+        let registrations_per_block = RegistrationsPerBlock::<T>::get();
+        let max_registrations_per_block = MaxRegistrationsPerBlock::<T>::get();
+        let min_stake = MinStakeGlobal::<T>::get();
+        let min_weight_stake = MinWeightStake::<T>::get();
+        let max_allowed_weights = MaxAllowedWeightsGlobal::<T>::get();
+        let total_subnets = TotalSubnets::<T>::get();
+        let vote_threshold = GlobalVoteThreshold::<T>::get();
+        let vote_mode = BoundedVec::<u8, ConstU32<32>>::try_from(VoteModeGlobal::<T>::get()).expect("too long vote mode");
+        let max_proposals =MaxProposals::<T>::get();
 
         let global_state = GlobalState {
             registrations_per_block,
@@ -201,34 +201,34 @@ pub fn migrate_to_v2<T: Config>() -> Weight {
 
         let mut count = 0;
 
-        for netuid in v1::MaxAllowedUids::<T>::iter_keys() {
-            let max_allowed_uids = v1::MaxAllowedUids::<T>::get(netuid).unwrap();
-            let immunity_period = v1::ImmunityPeriod::<T>::get(netuid).unwrap();
-            let min_allowed_weights = v1::MinAllowedWeights::<T>::get(netuid).unwrap();
-            let self_vote = v1::SelfVote::<T>::get(netuid).unwrap();
-            let min_stake = v1::MinStake::<T>::get(netuid).unwrap();
-            let max_stake = v1::MaxStake::<T>::get(netuid).unwrap();
-            let max_weight_age = v1::MaxWeightAge::<T>::get(netuid).unwrap();
-            let max_allowed_weights = v1::MaxAllowedWeights::<T>::get(netuid).unwrap();
-            let pending_deregister_uids = BoundedVec::<u16, ConstU32<10_000>>::try_from(v1::PendingDeregisterUids::<T>::get(netuid).unwrap()).expect("subnets exceed 10000");
-            let founder = v1::Founder::<T>::get(netuid).unwrap();
-            let founder_share = v1::FounderShare::<T>::get(netuid).unwrap();
-            let incentive_ratio = v1::IncentiveRatio::<T>::get(netuid).unwrap();
-            let tempo = v1::Tempo::<T>::get(netuid).unwrap();
-            let trust_ratio = v1::TrustRatio::<T>::get(netuid).unwrap();
-            let quadratic_voting = v1::QuadraticVoting::<T>::get(netuid).unwrap();
-            let vote_threshold = v1::VoteThresholdSubnet::<T>::get(netuid).unwrap();
-            let vote_mode = BoundedVec::<u8, ConstU32<32>>::try_from(v1::VoteModeSubnet::<T>::get(netuid).unwrap()).expect("too long vote mode");
-            let emission = v1::SubnetEmission::<T>::get(netuid).unwrap();
-            let n = v1::N::<T>::get(netuid).unwrap();
-            let pending_emission = v1::PendingEmission::<T>::get(netuid).unwrap();
-            let name = BoundedVec::<u8, ConstU32<32>>::try_from(v1::SubnetNames::<T>::get(netuid).unwrap()).expect("too long vote mode");
-            let total_stake = v1::TotalStake::<T>::get(netuid).unwrap();
-            let incentives = BoundedVec::<u16, ConstU32<10_000>>::try_from(v1::Incentive::<T>::get(netuid).unwrap()).expect("module count exceed 10000");
-            let trusts = BoundedVec::<u16, ConstU32<10_000>>::try_from(v1::Trust::<T>::get(netuid).unwrap()).expect("module count exceed 10000");
-            let dividends = BoundedVec::<u16, ConstU32<10_000>>::try_from(v1::Dividends::<T>::get(netuid).unwrap()).expect("module count exceed 10000");
-            let emissions = BoundedVec::<u64, ConstU32<10_000>>::try_from(v1::Emission::<T>::get(netuid).unwrap()).expect("module count exceed 10000");
-            let last_updates = BoundedVec::<u64, ConstU32<10_000>>::try_from(v1::LastUpdate::<T>::get(netuid).unwrap()).expect("module count exceed 10000");
+        for netuid in MaxAllowedUids::<T>::iter_keys() {
+            let max_allowed_uids = MaxAllowedUids::<T>::get(netuid);
+            let immunity_period = ImmunityPeriod::<T>::get(netuid);
+            let min_allowed_weights = MinAllowedWeights::<T>::get(netuid);
+            let self_vote = SelfVote::<T>::get(netuid);
+            let min_stake = MinStake::<T>::get(netuid);
+            let max_stake = MaxStake::<T>::get(netuid);
+            let max_weight_age = MaxWeightAge::<T>::get(netuid);
+            let max_allowed_weights = MaxAllowedWeights::<T>::get(netuid);
+            let pending_deregister_uids = BoundedVec::<u16, ConstU32<10_000>>::try_from(PendingDeregisterUids::<T>::get(netuid)).expect("subnets exceed 10000");
+            let founder = Founder::<T>::get(netuid);
+            let founder_share = FounderShare::<T>::get(netuid);
+            let incentive_ratio = IncentiveRatio::<T>::get(netuid);
+            let tempo = Tempo::<T>::get(netuid);
+            let trust_ratio = TrustRatio::<T>::get(netuid);
+            let quadratic_voting = QuadraticVoting::<T>::get(netuid);
+            let vote_threshold = VoteThresholdSubnet::<T>::get(netuid);
+            let vote_mode = BoundedVec::<u8, ConstU32<32>>::try_from(VoteModeSubnet::<T>::get(netuid)).expect("too long vote mode");
+            let emission = SubnetEmission::<T>::get(netuid);
+            let n = N::<T>::get(netuid);
+            let pending_emission = PendingEmission::<T>::get(netuid);
+            let name = BoundedVec::<u8, ConstU32<32>>::try_from(SubnetNames::<T>::get(netuid)).expect("too long vote mode");
+            let total_stake = TotalStake::<T>::get(netuid);
+            let incentives = BoundedVec::<u16, ConstU32<10_000>>::try_from(Incentive::<T>::get(netuid)).expect("module count exceed 10000");
+            let trusts = BoundedVec::<u16, ConstU32<10_000>>::try_from(Trust::<T>::get(netuid)).expect("module count exceed 10000");
+            let dividends = BoundedVec::<u16, ConstU32<10_000>>::try_from(Dividends::<T>::get(netuid)).expect("module count exceed 10000");
+            let emissions = BoundedVec::<u64, ConstU32<10_000>>::try_from(Emission::<T>::get(netuid)).expect("module count exceed 10000");
+            let last_updates = BoundedVec::<u64, ConstU32<10_000>>::try_from(LastUpdate::<T>::get(netuid)).expect("module count exceed 10000");
 
             let subnet_state = SubnetState {
                 founder,
