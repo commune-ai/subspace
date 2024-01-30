@@ -63,6 +63,7 @@ fn test_add_subnets() {
 			assert!(SubspaceModule::check_subnet_storage(netuid));
 			SubspaceModule::remove_subnet(netuid);
 			assert_eq!(SubspaceModule::get_subnet_n(netuid), 0);
+			println!("{}", SubspaceModule::check_subnet_storage(netuid));
 			assert!(SubspaceModule::check_subnet_storage(netuid));
 
 			let total_tokens_after: u64 = keys.iter().map(|key| SubspaceModule::get_balance_u64(key)).sum();

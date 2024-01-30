@@ -535,7 +535,11 @@ impl<T: Config> Pallet<T> {
 
 		// Remove consnesus vectors
 		Weights::<T>::clear_prefix(netuid, u32::max_value(), None);
-
+		Emission::<T>::remove(netuid);
+		Incentive::<T>::remove(netuid);
+		Dividends::<T>::remove(netuid);
+		Trust::<T>::remove(netuid);
+		LastUpdate::<T>::remove(netuid);
 		DelegationFee::<T>::clear_prefix(netuid, u32::max_value(), None);
 		RegistrationBlock::<T>::clear_prefix(netuid, u32::max_value(), None);
 		
@@ -1054,19 +1058,19 @@ impl<T: Config> Pallet<T> {
 		if (n as usize) != last_update.len() {
 			return false
 		}
-
+		
 		// length of addresss
 		let name_vector = Self::name_vector(netuid);
 		if (n as usize) != name_vector.len() {
 			return false
 		}
-
+		
 		// length of addresss
 		let address_vector = Self::address_vector(netuid);
 		if (n as usize) != address_vector.len() {
 			return false
 		}
-	
+			
 		return true
 	}
 
