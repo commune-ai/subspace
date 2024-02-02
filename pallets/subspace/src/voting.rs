@@ -6,7 +6,6 @@ use super::*;
 use crate::utils::is_vec_str;
 
 impl<T: Config> Pallet<T> {
-
     pub fn do_unregister_voter(
         origin: T::RuntimeOrigin,
     ) -> DispatchResult {
@@ -26,6 +25,7 @@ impl<T: Config> Pallet<T> {
         mut proposal:Proposal<T>,
     ) -> DispatchResult {
         let key =  ensure_signed(origin)?;
+
         // get the voting power of the proposal owner
         if Self::is_voter_registered(&key.clone()) {
             // unregister voter if they are already registered
@@ -50,36 +50,39 @@ impl<T: Config> Pallet<T> {
         Proposals::<T>::insert(proposal_id, proposal);
 
         Self::check_proposal_approval(proposal_id);
+
         Ok(())
     }
 
-
     // GLOBAL LAND
-
     pub fn do_add_global_proposal(
         origin: T::RuntimeOrigin,
         // params
         params: GlobalParams,
     ) -> DispatchResult {        
         let mut proposal = Self::default_proposal();
+
         proposal.global_params = params;
         proposal.mode = "global".as_bytes().to_vec();
+
         Self::do_add_proposal(origin,  proposal)?;
+
         Ok(())
     }
 
     // CUSTOM LAND
-
     pub fn do_add_custom_proposal(
         origin: T::RuntimeOrigin,
         // params
         data: Vec<u8>,
     ) -> DispatchResult {        
         let mut proposal = Self::default_proposal();
+
         proposal.data = data;
         proposal.mode = "custom".as_bytes().to_vec();
         
         Self::do_add_proposal(origin,  proposal)?;
+
         Ok(())
     }
 
@@ -102,23 +105,22 @@ impl<T: Config> Pallet<T> {
         Ok(())
     }
 
-
     pub fn num_subnet_proposals(
         netuid: u16
     ) -> u64 {
         let subnet_proposals = Self::get_subnet_proposals(netuid);
+
         return subnet_proposals.len() as u64;
     }
-
 
     pub fn is_proposal_participant(
         key: &T::AccountId,
         proposal_id: u64,
     ) -> bool {
         let proposal: Proposal<T> = Proposals::<T>::get(proposal_id);
+
         return proposal.participants.contains(key);
     }
-
 
     pub fn do_vote_proposal(
         origin: T::RuntimeOrigin,
@@ -129,20 +131,16 @@ impl<T: Config> Pallet<T> {
         ensure!(Self::proposal_exists(proposal_id), Error::<T>::ProposalDoesNotExist);
 
         // if you vote the proposal on a subnet, you are no longer a participant
-
         if Self::is_voter_registered(&key.clone()) {
             // unregister voter
             Self::unregister_voter(&key.clone());
         }
 
         let mut proposal = Proposals::<T>::get(proposal_id);
-        
 
         let mut voting_power : u64 = Self::get_voting_power(&key, proposal.clone());
         ensure!(voting_power > 0, Error::<T>::VotingPowerIsZero);
-
         // register the voter to avoid double voting
-
 
         let mut voter_info = Voter2Info::<T>::get(key.clone());
         voter_info.proposal_id = proposal_id;
@@ -161,16 +159,19 @@ impl<T: Config> Pallet<T> {
 
         Ok(())
     }
+
     pub fn num_proposals() -> u64 {
         return Proposals::<T>::iter().count() as u64;
     }
 
     pub fn next_proposal_id() -> u64 {
         let mut next_proposal_id: u64 = 0;
+
         // add proposal id until it is not in the map
         while Self::proposal_exists(next_proposal_id) {
             next_proposal_id = next_proposal_id + 1;
         }
+
         return next_proposal_id;
     }
 
@@ -178,9 +179,7 @@ impl<T: Config> Pallet<T> {
         return Self::num_proposals() >=  Self::get_max_proposals();
     }
 
-
     pub fn check_proposal(proposal: Proposal<T>) -> DispatchResult {
-        
         // remove lowest voted proposal
         if Self::has_max_proposals() {
             let mut least_voted_proposal_id: u64 = u64::MAX;
@@ -205,10 +204,12 @@ impl<T: Config> Pallet<T> {
 
             // remove proposal participants
             let proposal = Proposals::<T>::get(least_voted_proposal_id);
+
             // pop the participants
             for participant in proposal.participants {
                 Voter2Info::<T>::remove(participant);
             }
+
             Proposals::<T>::remove(least_voted_proposal_id);
         }
 
@@ -230,8 +231,10 @@ impl<T: Config> Pallet<T> {
         } else {
             ensure!(proposal.data.len() > 0, Error::<T>::InvalidProposalData);
         }
+
         // check if proposal is valid
-        ensure!(proposal.data.len() < 256, Error::<T>::ProposalDataTooLarge); 
+        ensure!(proposal.data.len() < 256, Error::<T>::ProposalDataTooLarge);
+
         // avoid an exploit with large data, cap it at 256 bytes
         Ok(())
     }
@@ -242,13 +245,16 @@ impl<T: Config> Pallet<T> {
         proposal_id: u64,
     ) -> bool {
         let proposal: Proposal<T> = Proposals::<T>::get(proposal_id);
+
         if proposal.participants.len() == 0 {
             return false;
         }
+        
         return proposal.participants[0] == *key;
     }
     pub fn default_proposal() -> Proposal<T> {
         let mut proposal = Proposals::<T>::get(u64::MAX);
+
         return proposal;
     }
 
@@ -257,7 +263,6 @@ impl<T: Config> Pallet<T> {
     ) -> Proposal<T> {
         return Proposals::<T>::get(proposal_id);
     }
-
 
     pub fn unregister_voter(key: &T::AccountId) {
         // unregister voter
@@ -269,6 +274,7 @@ impl<T: Config> Pallet<T> {
         
         // remove the voter from the participants
         let index = voter_info.participant_index as usize;
+
         proposal.participants.remove(index);
 
         // update the votes
@@ -286,8 +292,6 @@ impl<T: Config> Pallet<T> {
         Voter2Info::<T>::remove(key);
     }
 
-
-
     pub fn is_voter_registered(key: &T::AccountId) -> bool {
         // check if voter is registered
         return Voter2Info::<T>::contains_key(key);
@@ -298,13 +302,12 @@ impl<T: Config> Pallet<T> {
         return Voter2Info::<T>::get(key);
     }
 
-
-
     pub fn get_voting_power(
         key: &T::AccountId,
         proposal: Proposal<T>,
     ) -> u64 {
         let mut voting_power: u64 = 0;
+
         if is_vec_str(proposal.mode.clone(),"subnet") {
             //
             voting_power = Self::get_total_stake_to(proposal.netuid, key);
@@ -312,6 +315,7 @@ impl<T: Config> Pallet<T> {
             // get all of the stake for the key
             voting_power = Self::get_global_stake_to(key);
         }
+
         return voting_power;
     }
 
@@ -320,6 +324,7 @@ impl<T: Config> Pallet<T> {
     ) -> u64 {
         let proposal: Proposal<T> = Proposals::<T>::get(proposal_id);
         let mut vote_threshold: u64 = 0;
+
         if is_vec_str(proposal.mode.clone(),"subnet") {
             let total_stake = Self::get_total_subnet_stake(proposal.netuid);
             vote_threshold = (total_stake * proposal.subnet_params.vote_threshold as u64) / 100;
@@ -327,21 +332,20 @@ impl<T: Config> Pallet<T> {
             let total_stake = Self::total_stake();
             vote_threshold = (total_stake * proposal.global_params.vote_threshold as u64) / 100;
         }
+
         return vote_threshold;
     }
 
-
-
     pub fn check_proposal_approval(proposal_id: u64) {
-
         let proposal = Proposals::<T>::get(proposal_id);
         let mut stake_threshold: u64 = Self::get_proposal_vote_threshold(proposal_id); 
+        
         if proposal.votes >  stake_threshold  {
             //  unregister all voters
-
             for participant in proposal.participants {
                 Voter2Info::<T>::remove(participant);
             }
+            
             Proposals::<T>::mutate(proposal_id, |proposal| {
                 proposal.accepted = true;
                 proposal.participants = Vec::new();
@@ -360,36 +364,37 @@ impl<T: Config> Pallet<T> {
         }
     }
 
-
     pub fn get_subnet_proposals(
         netuid: u16
     ) -> Vec<Proposal<T>> {
         let mut proposals: Vec<Proposal<T>> = Vec::new();
+
         for (proposal_id, proposal) in Proposals::<T>::iter() {
             if is_vec_str(proposal.mode.clone(), "subnet") && proposal.netuid == netuid {
                 proposals.push(proposal);
             }
         }
+
         return proposals;
     }
 
     pub fn get_global_proposals() -> Vec<Proposal<T>> {
         let mut proposals: Vec<Proposal<T>> = Vec::new();
+
         for (proposal_id, proposal) in Proposals::<T>::iter() {
             if is_vec_str(proposal.mode.clone(), "global") {
                 proposals.push(proposal);
             }
         }
+
         return proposals;
     }
 
-    
-
     pub fn num_global_proposals() -> u64 {
         let global_proposals = Self::get_global_proposals();
+
         return global_proposals.len() as u64;
     }
-
 
     pub fn proposal_exists(
         proposal_id: u64
@@ -403,7 +408,7 @@ impl<T: Config> Pallet<T> {
     ) -> bool {
         let proposal: Proposal<T> = Proposals::<T>::get(proposal_id);
         let is_vote_available: bool = !proposal.participants.contains(key) && !proposal.accepted; 
+        
         return is_vote_available;
     }
 }
-

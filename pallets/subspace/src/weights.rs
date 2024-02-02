@@ -72,6 +72,7 @@ impl<T: Config> Pallet<T> {
 
 		// --- 18. Emit the tracking event.
 		log::info!("WeightsSet( netuid:{:?}, uid:{:?} )", netuid, uid);
+
 		Self::deposit_event(Event::WeightsSet(netuid, uid));
 
 		// --- 19. Return ok.
@@ -85,6 +86,7 @@ impl<T: Config> Pallet<T> {
 				return true
 			}
 		}
+
 		return false
 	}
 
@@ -109,18 +111,12 @@ impl<T: Config> Pallet<T> {
 	pub fn check_length(netuid: u16, uid: u16, uids: &Vec<u16>, weights: &Vec<u16>) -> bool {
 		let min_allowed_length: usize = Self::get_min_allowed_weights(netuid) as usize;
 		let n: usize = Self::get_subnet_n(netuid) as usize;
+
 		// Check self weight. Allowed to set single value for self weight.
-		if Self::is_self_weight(uid, uids, weights) {
-			return true
-		}
-		// Check if number of weights exceeds min.
-		if weights.len() >= min_allowed_length {
+		if Self::is_self_weight(uid, uids, weights) || weights.len() >= min_allowed_length || weights.len() > n {
 			return true
 		}
 
-		if weights.len() > n {
-			return true
-		}
 		// To few weights.
 		return false
 	}
@@ -142,24 +138,21 @@ impl<T: Config> Pallet<T> {
 
 	// Returns true if the uids and weights correspond to a self weight on the uid.
 	pub fn is_self_weight(uid: u16, uids: &Vec<u16>, weights: &Vec<u16>) -> bool {
-		if weights.len() != 1 {
+		if weights.len() != 1 || uid != uids[0]{
 			return false
 		}
-		if uid != uids[0] {
-			return false
-		}
+		
 		return true
 	}
 
 	pub fn check_len_uids_within_allowed(netuid: u16, uids: &Vec<u16>) -> bool {
 		let min_allowed_length: usize = Self::get_min_allowed_weights(netuid) as usize;
 		let max_allowed_length: usize = Self::get_max_allowed_weights(netuid) as usize;
-		if uids.len() > max_allowed_length as usize {
+
+		if uids.len() > max_allowed_length as usize || uids.len() < min_allowed_length as usize {
 			return false
 		}
-		if uids.len() < min_allowed_length as usize {
-			return false
-		}
+		
 		return true
 	}
 }

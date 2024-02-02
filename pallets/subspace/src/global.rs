@@ -1,4 +1,5 @@
 use super::*;
+
 use frame_support::pallet_prelude::DispatchResult;
 use sp_runtime::DispatchError;
 use system::ensure_root;
@@ -32,33 +33,20 @@ impl<T: Config> Pallet<T> {
 
         // check if the name already exists
         ensure!(params.max_name_length > 0, Error::<T>::InvalidMaxNameLength);
-		
         ensure!(params.max_allowed_subnets > 0, Error::<T>::InvalidMaxAllowedSubnets);
-
 		ensure!(params.max_allowed_modules > 0, Error::<T>::InvalidMaxAllowedModules);
-
 		ensure!(params.max_registrations_per_block > 0, Error::<T>::InvalidMaxRegistrationsPerBlock);
-
 		ensure!(params.vote_threshold < 100, Error::<T>::InvalidVoteThreshold);
-
 		ensure!(params.max_proposals > 0, Error::<T>::InvalidMaxProposals);
-
 		ensure!(params.unit_emission <= og_params.unit_emission, Error::<T>::InvalidUnitEmission);
-
 		ensure!(params.tx_rate_limit > 0, Error::<T>::InvalidTxRateLimit);
-
 		ensure!(params.burn_rate <= 100, Error::<T>::InvalidBurnRate);
-				
 		ensure!(params.min_burn <= 100, Error::<T>::InvalidMinBurn);
 
-
-		
         Ok(())
     }
 
-
 	pub fn set_global_params(params: GlobalParams) {
-
 		Self::set_global_max_name_length(params.max_name_length);
 		Self::set_global_max_allowed_subnets(params.max_allowed_subnets);
 		Self::set_max_allowed_modules(params.max_allowed_modules);
@@ -108,6 +96,10 @@ impl<T: Config> Pallet<T> {
 		GlobalStateStorage::<T>::put(global_state)
 	}
 
+	pub fn get_vote_mode_global() -> Vec<u8> {
+		GlobalStateStorage::<T>::get().vote_mode.into_inner()
+	}
+
 	pub fn set_vote_mode_global(vote_mode: Vec<u8>) {
 		let mut global_state = GlobalStateStorage::<T>::get();
 
@@ -115,10 +107,7 @@ impl<T: Config> Pallet<T> {
 
 		GlobalStateStorage::<T>::put(global_state)
 	}
-	
-	pub fn get_vote_mode_global() -> Vec<u8> {
-		GlobalStateStorage::<T>::get().vote_mode.into_inner()
-	}
+
 	pub fn get_burn_rate() -> u16 {
 		GlobalStateStorage::<T>::get().burn_rate
 	}
@@ -130,6 +119,10 @@ impl<T: Config> Pallet<T> {
 
 		GlobalStateStorage::<T>::put(global_state)
 	}
+
+	pub fn get_max_proposals() -> u64 {
+		GlobalStateStorage::<T>::get().max_proposals
+	}
 	
 	pub fn set_max_proposals(max_proposals: u64) {
 		let mut global_state = GlobalStateStorage::<T>::get();
@@ -139,13 +132,10 @@ impl<T: Config> Pallet<T> {
 		GlobalStateStorage::<T>::put(global_state)
 	}
 
-	pub fn get_max_proposals() -> u64 {
-		GlobalStateStorage::<T>::get().max_proposals
-	}
-
 	pub fn get_global_vote_threshold() -> u16 {
 		GlobalStateStorage::<T>::get().vote_threshold
 	}
+
 	pub fn set_global_vote_threshold(vote_threshold: u16) {
 		let mut global_state = GlobalStateStorage::<T>::get();
 
@@ -153,9 +143,11 @@ impl<T: Config> Pallet<T> {
 
 		GlobalStateStorage::<T>::put(global_state)
 	}
+
 	pub fn get_max_registrations_per_block() -> u16 {
 		GlobalStateStorage::<T>::get().max_registrations_per_block
 	}
+
 	pub fn get_global_max_name_length() -> u16 {
 		GlobalStateStorage::<T>::get().max_name_length
 	}
@@ -191,11 +183,9 @@ impl<T: Config> Pallet<T> {
 		return global_n
 	}
 
-
 	pub fn get_global_stake_to(
         key: &T::AccountId,
     ) -> u64 {
-		// get all of the stake to
         let total_networks: u16 = GlobalStateStorage::<T>::get().total_subnets;
         let mut total_stake_to = 0;
 
@@ -206,17 +196,20 @@ impl<T: Config> Pallet<T> {
         total_stake_to
     }
 
-
-	// Configure tx rate limiting
 	pub fn get_tx_rate_limit() -> u64 {
 		GlobalStateStorage::<T>::get().tx_rate_limit
 	}
+
 	pub fn set_tx_rate_limit(tx_rate_limit: u64) {
 		let mut global_state = GlobalStateStorage::<T>::get();
 
 		global_state.tx_rate_limit = tx_rate_limit;
 
 		GlobalStateStorage::<T>::put(global_state)
+	}
+
+	pub fn get_min_burn() -> u64 {
+		GlobalStateStorage::<T>::get().min_burn
 	}
 
 	pub fn set_min_burn( min_burn: u64) {
@@ -227,16 +220,13 @@ impl<T: Config> Pallet<T> {
 		GlobalStateStorage::<T>::put(global_state)
 	}
 
-	pub fn get_min_burn() -> u64 {
-		GlobalStateStorage::<T>::get().min_burn
-	}
-
 	// ========================
 	// ==== Rate Limiting =====
 	// ========================
 	pub fn get_last_tx_block(key: &T::AccountId) -> u64 {
 		LastTxBlock::<T>::get(key)
 	}
+
 	pub fn set_last_tx_block(key: &T::AccountId, last_tx_block: u64) {
 		LastTxBlock::<T>::insert(key, last_tx_block)
 	}

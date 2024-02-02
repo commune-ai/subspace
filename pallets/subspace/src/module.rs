@@ -27,34 +27,27 @@ pub struct ModuleInfo<T: Config> {
 	stats: ModuleStats<T>,
 }
 
-
 impl<T: Config> Pallet<T> {
-
-
 	pub fn do_update_module(
 		origin: T::RuntimeOrigin,
 		netuid: u16,
 		params: ModuleParams<T>,
 	) -> DispatchResult {
-		// --- 1. We check the callers (key) signature.
 		let key = ensure_signed(origin)?;
 		let uid: u16 = Self::get_uid_for_key(netuid, &key);
+
 		Self::check_module_params(netuid, params.clone())?;
 		Self::set_module_params(netuid, uid, params);
-		// --- 8. Return is successful dispatch.
+		
 		Ok(())
 	}
 
-
-
 	pub fn check_module_params(netuid: u16, params: ModuleParams<T>) -> DispatchResult {
-		
-		// if len(name) > 0, then we update the name.
 		assert!(params.name.len() > 0);
 		ensure!(params.name.len() <= Self::get_global_max_name_length() as usize, Error::<T>::ModuleNameTooLong);
 		assert!(params.address.len() > 0);
 		ensure!(params.address.len() <= Self::get_global_max_name_length() as usize, Error::<T>::ModuleAddressTooLong);
-		// delegation fee is a percent
+		
 		Ok(())
 	}
 
@@ -65,6 +58,7 @@ impl<T: Config> Pallet<T> {
 			delegation_fee: Self::get_module_delegation_fee(netuid, uid),
 			controller: Self::get_key_for_uid(netuid, uid),
 		};
+
 		return module_params
 	}
 
@@ -74,11 +68,9 @@ impl<T: Config> Pallet<T> {
 		Self::set_module_delegation_fee( netuid, uid, module_params.delegation_fee);
 	}
 
-
 	pub fn get_module_address(netuid: u16, uid: u16) -> Vec<u8> {
 		return Address::<T>::get(netuid, uid)
 	}
-
 
 	pub fn set_module_address( netuid: u16, uid: u16, address: Vec<u8>) {
 		Address::<T>::insert(netuid, uid, address);
@@ -87,11 +79,13 @@ impl<T: Config> Pallet<T> {
 	pub fn get_module_delegation_fee(netuid: u16, uid: u16) -> Percent {
 		let key = Self::get_key_for_uid(netuid, uid);
 		let mut delegation_fee: Percent = DelegationFee::<T>::get(netuid, key);
+
 		return delegation_fee
 	}
 
 	pub fn set_module_delegation_fee( netuid: u16, uid: u16, delegation_fee: Percent) {
 		let key = Self::get_key_for_uid(netuid, uid);
+
 		DelegationFee::<T>::insert(netuid, key, delegation_fee);
 	}
 
@@ -107,10 +101,12 @@ impl<T: Config> Pallet<T> {
 	pub fn remove_module(netuid: u16, uid: u16) {
 		// 1. Get the old key under this position.
 		let n = Self::get_subnet_n(netuid);
+
 		if n == 0 {
 			/// No modules in the network.
 			return
 		}
+
 		let uid_key: T::AccountId = Keys::<T>::get(netuid, uid);
 		let replace_uid = n - 1;
 		let replace_key: T::AccountId = Keys::<T>::get(netuid, replace_uid);
@@ -136,7 +132,6 @@ impl<T: Config> Pallet<T> {
 		let mut delegation_fee: Percent = DelegationFee::<T>::get(netuid, uid_key.clone());
 		
 		// swap consensus vectors
-		
 		incentive[uid as usize] = incentive[replace_uid as usize];
 		dividends[uid as usize] = dividends[replace_uid as usize];
 		emission[uid as usize] = emission[replace_uid as usize];
@@ -181,7 +176,6 @@ impl<T: Config> Pallet<T> {
 			subnet_state.n -= 1;
 		}
 
-
 		SubnetStateStorage::<T>::insert(netuid, subnet_state);
 
 		// remove the network if it is empty
@@ -191,7 +185,6 @@ impl<T: Config> Pallet<T> {
 
 		// remove stake from old key and add to new key
 		Self::remove_stake_from_storage(netuid, &uid_key);
-
 	}
 
 	// Appends the uid to the network.
@@ -199,11 +192,12 @@ impl<T: Config> Pallet<T> {
 		// 1. Get the next uid. This is always equal to subnetwork_n.
 		let uid: u16 = Self::get_subnet_n(netuid);
 		let block_number = Self::get_current_block_as_u64();
+
 		log::debug!("append_module( netuid: {:?} | uid: {:?} | new_key: {:?} ) ", netuid, key, uid);
 
 		// 3. Expand Yuma with new position.
 		Emission::<T>::mutate(netuid, |v| v.push(0));
-Incentive::<T>::mutate(netuid, |v| v.push(0));
+		Incentive::<T>::mutate(netuid, |v| v.push(0));
 		Dividends::<T>::mutate(netuid, |v| v.push(0));
 		LastUpdate::<T>::mutate(netuid, |v| v.push(block_number));
 
@@ -243,6 +237,7 @@ Incentive::<T>::mutate(netuid, |v| v.push(0));
 
 			modules.push(module);
 		}
+		
 		return modules
 	}
 

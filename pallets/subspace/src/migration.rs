@@ -14,7 +14,6 @@ pub mod v1 {
     ///////////////////////////////
     /// GLOBAL STORAGE
     ///////////////////////////////
-    
     #[storage_alias]
 	pub(super) type UnitEmission<T: Config> = StorageValue<Pallet<T>, u64>;
 
@@ -65,8 +64,7 @@ pub mod v1 {
 
     ///////////////////////////////
     /// SUBNET STORAGE
-    ///////////////////////////////
-    
+    ///////////////////////////////    
     #[storage_alias]
 	pub(super) type MaxAllowedUids<T: Config> = StorageMap<Pallet<T>, Identity, u16, u16>;
 
@@ -133,7 +131,6 @@ pub mod v1 {
     #[storage_alias]
 	pub(super) type TotalStake<T: Config> = StorageMap<Pallet<T>, Identity, u16, u64>;
 } 
-
 
 // contains checks and transforms storage to V2 format
 pub fn migrate_to_v2<T: Config>() -> Weight {
