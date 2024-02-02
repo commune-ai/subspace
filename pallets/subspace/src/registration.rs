@@ -12,7 +12,6 @@ use system::pallet_prelude::BlockNumberFor;
 // IterableStorageMap
 use frame_support::storage::IterableStorageMap;
 
-
 const LOG_TARGET: &'static str = "runtime::subspace::registration";
 
 impl<T: Config> Pallet<T> {
@@ -27,25 +26,19 @@ impl<T: Config> Pallet<T> {
 		// --- 1. Check that the caller has signed the transaction.
 		let key = ensure_signed(origin.clone())?;
 
-
 		// --- 2. Ensure we are not exceeding the max allowed registrations per block.
-
 		ensure!(
 			Self::has_enough_balance(&key, stake_amount),
 			Error::<T>::NotEnoughBalanceToRegister
 		);
-
-
-
 		
 		// -- 3. resolve the network in case it doesnt exisst
 		if !Self::if_subnet_name_exists(network.clone()) {
 			Self::add_subnet_from_registration(network.clone(), stake_amount, &key)?;
 		}
+
 		// get the netuid
 		let netuid = Self::get_netuid_for_name(network.clone());
-
-
 
 		ensure!(
 			Self::enough_stake_to_register(netuid, stake_amount),
@@ -71,13 +64,13 @@ impl<T: Config> Pallet<T> {
 			// get random netuid
 			let mut netuid_n = 0;
 			let mut random_netuid = Self::random_netuid();
+
 			while netuid_n == 0  {
 				random_netuid = Self::random_netuid();
 				netuid_n = Self::get_subnet_n(random_netuid);
 			}
 			
 			Self::remove_module(netuid, Self::get_lowest_uid(random_netuid));
-
 		} else if n >= Self::get_max_allowed_uids(netuid){
 			// if we reach the max allowed modules for this network, then we replace the lowest priority node
 			Self::remove_module(netuid, Self::get_lowest_uid(netuid));
@@ -86,26 +79,30 @@ impl<T: Config> Pallet<T> {
 		uid = Self::append_module(netuid, &module_key, name.clone(), address.clone());
 
 		Self::increase_stake(netuid, &module_key, &module_key, 0);
+
 		if stake_amount > 0 {
 			Self::do_add_stake(origin.clone(), netuid, module_key.clone(), stake_amount)?;
 		}
+
 		// CONSTANT INITIAL BURN
 		if min_burn > 0 {
 			ensure!(stake_amount >= min_burn, Error::<T>::NotEnoughStakeToRegister);
+
 			Self::decrease_stake(netuid, &key, &module_key, min_burn);
+
 			let min_stake = Self::get_min_stake(netuid);
 			let current_stake = Self::get_total_stake_to(netuid, &key);
+
 			ensure!(current_stake == stake_amount.saturating_sub(min_burn), Error::<T>::NotEnoughStakeToRegister);
 			ensure!(current_stake >= min_stake, Error::<T>::NotEnoughStakeToRegister);
 		}
-		// ---Deposit successful event.
 
+		// ---Deposit successful event.
 		Self::deposit_event(Event::ModuleRegistered(netuid, uid, module_key.clone()));
 
 		// --- 5. Ok and done.
 		Ok(())
 	}
-
 
 	pub fn do_deregister(
 		origin: T::RuntimeOrigin,
@@ -123,6 +120,7 @@ impl<T: Config> Pallet<T> {
 		let uid: u16 = Self::get_uid_for_key(netuid, &key);
 
 		Self::remove_module(netuid, uid);
+
 		ensure!(
 			!Self::is_key_registered(netuid, &key),
 			Error::<T>::StillRegistered
@@ -135,10 +133,9 @@ impl<T: Config> Pallet<T> {
 	pub fn enough_stake_to_register(netuid: u16, stake_amount: u64) -> bool {
 		let min_stake: u64 = Self::get_min_stake_to_register(netuid);
 		let min_burn = Self::get_min_burn();
+
 		return stake_amount >= (min_stake + min_burn)
 	}
-
-
 
 	pub fn get_min_stake_to_register(netuid: u16) -> u64 {
 		let mut min_stake: u64 = Self::get_min_stake(netuid);
@@ -166,12 +163,9 @@ impl<T: Config> Pallet<T> {
 		let de_ref_hash = &vec_hash; // b: &Vec<u8>
 		let de_de_ref_hash: &[u8] = &de_ref_hash; // c: &[u8]
 		let real_hash: H256 = H256::from_slice(de_de_ref_hash);
+
 		return real_hash
 	}
-
-	// Determine which peer to prune from the network by finding the element with the lowest pruning
-	// score out of immunity period. If all modules are in immunity period, return node with lowest
-	// prunning score. This function will always return an element to prune.
 
 	pub fn get_pruning_score_for_uid(netuid: u16, uid: u16) -> u64 {
 		let vec: Vec<u64> = Self::get_emissions(netuid);
@@ -182,6 +176,7 @@ impl<T: Config> Pallet<T> {
 			return 0 as u64
 		}
 	}
+
 	pub fn get_lowest_uid(netuid: u16) -> u16 {
 		let n: u16 = Self::get_subnet_n(netuid);
 
@@ -199,9 +194,7 @@ impl<T: Config> Pallet<T> {
 				SubnetStateStorage::<T>::insert(netuid, subnet_state);
 				
 				return uid
-
 			}
-			
 		}
 
 		let mut min_score: u64 = u64::MAX;
@@ -216,10 +209,9 @@ impl<T: Config> Pallet<T> {
 			// Find min pruning score.
 
 			if min_score > pruning_score {
-				let block_at_registration: u64 =
-					Self::get_module_registration_block(netuid, module_uid_i);
-				let uid_in_immunity: bool = block_at_registration > 0 &&
-					((current_block - block_at_registration) < immunity_period);
+				let block_at_registration: u64 = Self::get_module_registration_block(netuid, module_uid_i);
+				let uid_in_immunity: bool = block_at_registration > 0 && ((current_block - block_at_registration) < immunity_period);
+
 				if !uid_in_immunity {
 					lowest_priority_uid = module_uid_i;
 					min_score = pruning_score;
@@ -238,6 +230,7 @@ impl<T: Config> Pallet<T> {
 		let block_number: u64 = Self::get_current_block_as_u64();
 		// take the modulos of the blocknumber
 		let idx: u16 = ((block_number % u16::MAX as u64) % (n as u64)) as u16;
+
 		return idx
 	}
 
@@ -281,6 +274,7 @@ impl<T: Config> Pallet<T> {
 		if num_subnets >= max_subnets {
 			let mut min_stake: u64 = u64::MAX;
 			let mut min_stake_netuid : u16 = max_subnets.saturating_sub(1);
+
 			for (netuid, subnet_state) in <SubnetStateStorage<T> as IterableStorageMap<u16, SubnetState<T>>>::iter() {
 				let net_stake = subnet_state.total_stake;
 				
@@ -289,7 +283,9 @@ impl<T: Config> Pallet<T> {
 					min_stake_netuid = netuid;
 				}
 			}
+
 			ensure!(stake > min_stake , Error::<T>::NotEnoughStakeToStartNetwork);
+
 			Self::remove_subnet(min_stake_netuid);
 		}
 		// if we have reached the max number of subnets, then we can start a new one if the stake is
@@ -305,5 +301,3 @@ impl<T: Config> Pallet<T> {
 	}
 
 }
-
-

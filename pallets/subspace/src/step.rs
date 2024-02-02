@@ -1,8 +1,6 @@
 use super::*;
 use crate::math::*;
-use frame_support::{
-	storage::{IterableStorageDoubleMap, IterableStorageMap},
-};
+use frame_support::storage::{IterableStorageDoubleMap, IterableStorageMap};
 use sp_runtime::BoundedVec;
 use substrate_fixed::types::{I110F18, I32F32, I64F64, I96F32};
 use sp_std::vec;
@@ -51,7 +49,6 @@ impl<T: Config> Pallet<T> {
 
 	pub fn epoch(netuid: u16, mut token_emission: u64) {
 		// Get subnetwork size.
-
 		let global_params = Self::global_params();
 		let subnet_params = Self::subnet_params(netuid);
 
@@ -60,10 +57,8 @@ impl<T: Config> Pallet<T> {
 		let block_at_registration: Vec<u64> = Self::get_block_at_registration(netuid);
 
 		if n == 0 {
-			// 
 			return
 		}
-
 
 		// quadratic voting
 
@@ -74,16 +69,15 @@ impl<T: Config> Pallet<T> {
 		// 	total_stake_u64 = total_stake_u64;
 		// }
 
-
-		
-
 		// FOUNDER DIVIDENDS 
 		let founder_key = Self::get_founder(netuid);
 		let is_founder_registered = Self::is_key_registered(netuid, &founder_key);
 		let founder_uid = u16::MAX;
 		let mut founder_emission: u64 = 0;
+
 		if is_founder_registered {
 			let founder_share : u16 = Self::get_founder_share(netuid);
+
 			if founder_share > 0 {
 				let founder_emission_ratio: I64F64  = I64F64::from_num(founder_share.min(100))/I64F64::from_num(100);
 				founder_emission = (founder_emission_ratio * I64F64::from_num(token_emission)).to_num::<u64>();
@@ -93,11 +87,11 @@ impl<T: Config> Pallet<T> {
 
 		// ===========
 		// == Stake ==
-		// ===========
-
+		// ======
 		let mut uid_key_tuples: Vec<(u16, T::AccountId)> = Self::get_uid_key_tuples(netuid);
 		let mut stake_64: Vec<I64F64> = vec![I64F64::from_num(0.0); n as usize];
 		let mut total_stake_u64: u64 =Self::get_total_subnet_stake(netuid).clone();
+
 		if total_stake_u64 == 0 {
 			total_stake_u64 = 1;
 		}
@@ -108,9 +102,11 @@ impl<T: Config> Pallet<T> {
 			.iter()
 			.map(|(_, key)| Self::get_stake_for_key(netuid, key).min(max_stake))
 			.collect();
+
 		// clip it to the max stake
 		let mut stake_f64: Vec<I64F64> = stake_u64.iter().map(|x| I64F64::from_num(x.clone()) /I64F64::from_num(total_stake_u64)).collect();
 		let mut stake : Vec<I32F32> = stake_f64.iter().map(|x| I32F32::from_num(x.clone())).collect();
+
 		// Normalize active stake.
 		inplace_normalize(&mut stake);
 
@@ -124,24 +120,25 @@ impl<T: Config> Pallet<T> {
 
 		let min_weight_stake_f64: I64F64 = I64F64::from_num(global_params.min_weight_stake);
 
-
-		for (uid_i, mut weights_i) in
-			<Weights<T> as IterableStorageDoubleMap<u16, u16, Vec<(u16, u16)>>>::iter_prefix(netuid)
+		for (uid_i, mut weights_i) in <Weights<T> as IterableStorageDoubleMap<u16, u16, Vec<(u16, u16)>>>::iter_prefix(netuid)
 		{
 			let mut weight_changed : bool = false;
 			// watchout for the overflow
 
 			let weight_age: u64 = current_block.saturating_sub(last_update_vector[uid_i as usize]);
+
 			if weight_age > subnet_params.max_weight_age {
 				weight_changed = true;
 				weights[uid_i as usize] = vec![];
 			} else {
 				for (pos, (uid_j, weight_ij)) in weights_i.iter().enumerate() {
+
 					// ignore the weights that are not in the top max allowed weights
 					if (pos as u16) <= subnet_params.max_allowed_weights && *uid_j < n {
 						// okay , we passed the positioonal check, now check the weight
 						let weight_f64 = I64F64::from_num(*weight_ij) / I64F64::from_num(u16::MAX);
 						let weight_stake = (stake_f64[uid_i as usize] * weight_f64) * I64F64::from_num(total_stake_u64);
+
 						if weight_stake > min_weight_stake_f64 {
 							weights[uid_i as usize].push((*uid_j, *weight_ij));
 						} else {
@@ -150,10 +147,8 @@ impl<T: Config> Pallet<T> {
 					} else {
 						weight_changed = true;
 					}
+				}
 			}
-
-			}
-
 
 			if weight_changed {
 				// update the weights if it was changed
@@ -161,9 +156,7 @@ impl<T: Config> Pallet<T> {
 			}
 		}
 
-
 		let mut weights : Vec<Vec<(u16, I32F32)>> = weights.iter().map(|x| x.iter().map(|(uid, weight)| (*uid, u16_proportion_to_fixed(*weight))).collect()).collect();
-		
 
 		// enabling self voting (if enabled)
 		if (!subnet_params.self_vote) {
@@ -178,7 +171,6 @@ impl<T: Config> Pallet<T> {
 		// =============================
 
 		// convert max u64 to I32F32
-
 		let mut incentive: Vec<I32F32> = vec![I32F32::from_num(0.0); n as usize];
 		for (i, sparse_row) in weights.iter().enumerate() {
 			// clip based on the max stake
@@ -194,7 +186,6 @@ impl<T: Config> Pallet<T> {
 				incentive[*uid_i as usize] = I32F32::from_num(1.0);
 			}
 		}
-
 		
 		inplace_normalize(&mut incentive); // range: I32F32(0, 1)
 
@@ -210,11 +201,8 @@ impl<T: Config> Pallet<T> {
 			let incentive_share : I32F32 = I32F32::from_num(1.0).saturating_sub(trust_share);
 			let mut trust: Vec<I32F32> = vec![I32F32::from_num(0.0); n as usize];
 
-
 			for (i, weights_i) in weights.iter().enumerate() {
 				for (j, weight_ij) in weights_i.iter() {
-					// Compute trust scores: t_j = SUM(i) w_ij * s_i
-					// result_j = SUM(i) vector_i * matrix_ij
 					if *weight_ij > 0 && 
 						stake[i] > I32F32::from_num(subnet_params.min_stake) {
 						trust[*j as usize] += I32F32::from_num(1.0);
@@ -223,12 +211,12 @@ impl<T: Config> Pallet<T> {
 			}
 
 			inplace_normalize(&mut trust);
+
 			incentive = incentive.iter().zip(trust.iter()).map(|(inc, tru)| (inc * incentive_share) + (tru * trust_share)).collect();
 			
 			// save the trust into the trust vector
 			Trust::<T>::insert(netuid, trust.iter().map(|xi| fixed_proportion_to_u16(*xi)).collect::<Vec<u16>>());
 		}
-
 
 		// store the incentive
 		let cloned_incentive: Vec<u16> = incentive.iter().map(|xi| fixed_proportion_to_u16(*xi)).collect::<Vec<u16>>();
@@ -246,6 +234,7 @@ impl<T: Config> Pallet<T> {
 				*value *= stake[i];
 			}
 		}
+
 		// Normalize bonds delta.
 		let mut col_sum: Vec<I32F32> = vec![I32F32::from_num(0.0); n as usize]; // assume square matrix, rows=cols
 		for sparse_row in bonds.iter() {
@@ -253,6 +242,7 @@ impl<T: Config> Pallet<T> {
 				col_sum[*j as usize] += value;
 			}
 		}
+
 		for sparse_row in bonds.iter_mut() {
 			for (j, value) in sparse_row.iter_mut() {
 				if col_sum[*j as usize] == I32F32::from_num(0.0 as f32) {
@@ -262,13 +252,11 @@ impl<T: Config> Pallet<T> {
 			}
 		}
 
-
 		// Compute dividends: d_i = SUM(j) b_ij * inc_j.
 		// range: I32F32(0, 1)
 		// =================================
 		// == Dividends==
 		// =================================
-
 
 		let mut dividends: Vec<I32F32> = vec![I32F32::from_num(0.0); incentive.len()];
 		for (i, sparse_row) in bonds.iter().enumerate() {
@@ -287,6 +275,7 @@ impl<T: Config> Pallet<T> {
 				dividends[*uid_i as usize] = I32F32::from_num(1.0);
 			}
 		}
+
 		inplace_normalize(&mut dividends);
 
 		let cloned_dividends: Vec<u16> = dividends.iter().map(|xi| fixed_proportion_to_u16(*xi)).collect::<Vec<u16>>();
@@ -316,24 +305,21 @@ impl<T: Config> Pallet<T> {
 
 		let burn_rate: u16 = global_params.burn_rate;
 		let mut burn_amount_per_epoch : u64 = 0;
+
 		// get the float and convert to u64
 		if burn_rate > 0 {
 			let burn_rate_float : I64F64 = (I64F64::from_num(burn_rate)/I64F64::from_num(100)) * (I64F64::from_num(token_emission) / I64F64::from_num(n));
 			burn_amount_per_epoch = burn_rate_float.to_num::<u64>();
 		}
 
-
 		if is_founder_registered {
 			let founder_uid = Self::get_uid_for_key(netuid, &founder_key);
 			incentive_emission[founder_uid as usize] = incentive_emission[founder_uid as usize].saturating_add(founder_emission);
 		}
-			// burn the amount
-
 
 		// Emission tuples ( uid_key_tuples, u64 emission)
 		let mut founder_share_added: bool = false; // avoid double counting the founder share
 		for (module_uid, module_key) in uid_key_tuples.iter() {
-
 			// get the incentive emission for this key
 			let mut owner_emission_incentive: u64 = incentive_emission[*module_uid as usize];
 			// if the owner is the founder, then increase the stake
@@ -349,7 +335,8 @@ impl<T: Config> Pallet<T> {
 				// decrease the stake if there is remainder
 				if burn_into_stake > 0 {
 					Self::decrease_stake(netuid, module_key, module_key, burn_into_stake);
-				}	
+				}
+
 				owner_emission_incentive = 0;
 				owner_dividends_emission = 0;			
 				// skip the rest of the loop
@@ -366,21 +353,17 @@ impl<T: Config> Pallet<T> {
 					// apply the burn to the emission only
 					owner_emission_incentive = owner_emission_incentive.saturating_sub(burn_amount_per_epoch);
 					burn_amount_per_epoch = 0;
-
 				}
 
 				// if the owner emission is less than the burn amount
-
 				if owner_dividends_emission > 0 {
 					// get the ownership emission for this key
-
 					let ownership_vector: Vec<(T::AccountId, I64F64)> = Self::get_ownership_ratios(netuid, module_key);
 		
 					let delegation_fee = Self::get_delegation_fee(netuid, module_key);
 					
 					// add the ownership
 					for (delegate_key, delegate_ratio) in ownership_vector.iter() {
-
 						// skip the owner as it is already added at the end 
 						if delegate_key == module_key {
 							continue
@@ -398,11 +381,8 @@ impl<T: Config> Pallet<T> {
 						
 						Self::increase_stake(netuid, delegate_key, module_key, to_delegate);
 						owner_dividends_emission = owner_dividends_emission.saturating_sub(to_delegate);
-
 					}
 				}
-
-			
 
 				owner_emission = owner_emission_incentive + owner_dividends_emission;
 				
@@ -432,12 +412,12 @@ impl<T: Config> Pallet<T> {
 
 		for (module_uid, module_key) in uid_key_tuples.iter() {
 			let new_stake = Self::get_stake_for_key(netuid, module_key);
+
 			if new_stake < subnet_params.min_stake {
 				// if the stake is more than the max stake, then deregister the module
 				Self::add_pending_deregistration_uid(netuid, *module_uid);
 			}
 		}
-
 
 		// calculate the total emission
 		let emission: Vec<u64> = incentive_emission
@@ -452,12 +432,14 @@ impl<T: Config> Pallet<T> {
 	pub fn get_block_at_registration(netuid: u16) -> Vec<u64> {
 		let n: usize = Self::get_subnet_n(netuid) as usize;
 		let mut block_at_registration: Vec<u64> = vec![0; n];
+
 		for module_uid in 0..n {
 			if Keys::<T>::contains_key(netuid, module_uid as u16) {
 				block_at_registration[module_uid] =
 					Self::get_module_registration_block(netuid, module_uid as u16);
 			}
 		}
+
 		block_at_registration
 	}
 
@@ -466,6 +448,7 @@ impl<T: Config> Pallet<T> {
 		if tempo == 0 {
 			return 0
 		}
+
 		return (block_number + netuid as u64) % (tempo as u64)
 	}
 
@@ -494,8 +477,7 @@ impl<T: Config> Pallet<T> {
 		if total_stake_from == I64F64::from_num(0) {
 			ownership_vector.push((module_key.clone(), I64F64::from_num(0)));
 		} else {
-			ownership_vector =
-				ownership_vector.into_iter().map(|(k, v)| (k, v / total_stake_from)).collect();
+			ownership_vector = ownership_vector.into_iter().map(|(k, v)| (k, v / total_stake_from)).collect();
 		}
 
 		return ownership_vector
@@ -506,8 +488,7 @@ impl<T: Config> Pallet<T> {
 		module_key: &T::AccountId,
 		emission: u64,
 	) -> Vec<(T::AccountId, u64)> {
-		let ownership_vector: Vec<(T::AccountId, I64F64)> =
-			Self::get_ownership_ratios(netuid, module_key);
+		let ownership_vector: Vec<(T::AccountId, I64F64)> = Self::get_ownership_ratios(netuid, module_key);
 		let mut emission_vector: Vec<(T::AccountId, u64)> = Vec::new();
 
 		for (k, v) in ownership_vector {
@@ -517,6 +498,4 @@ impl<T: Config> Pallet<T> {
 
 		return emission_vector
 	}
-
-	
 }
