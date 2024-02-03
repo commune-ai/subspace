@@ -210,6 +210,18 @@ pub fn migrate_to_v2<T: Config>() -> Weight {
             let name = BoundedVec::<u8, ConstU32<32>>::try_from(SubnetNames::<T>::get(netuid)).expect("too long vote mode");
             let total_stake = TotalStake::<T>::get(netuid);
 
+            let subnet_params = SubnetParams {
+                max_allowed_uids,
+                immunity_period,
+                min_allowed_weights,
+                self_vote,
+                min_stake,
+                max_stake,
+                max_weight_age,
+                max_allowed_weights,
+                pending_deregister_uids,
+            };
+
             let subnet_state = SubnetState {
                 founder,
                 founder_share,
@@ -229,9 +241,9 @@ pub fn migrate_to_v2<T: Config>() -> Weight {
                 vote_threshold,
                 vote_mode,
                 emission,
+                name,
                 n,
                 pending_emission,
-                name,
                 total_stake,
             };
 

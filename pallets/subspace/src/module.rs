@@ -1,7 +1,7 @@
 use super::*;
 use frame_support::{
 	pallet_prelude::{Decode, Encode, DispatchResult},
-	storage::IterableStorageMap,
+	storage::{IterableStorageMap, },
 };
 
 extern crate alloc;
@@ -226,6 +226,17 @@ Incentive::<T>::mutate(netuid, |v| v.push(0));
 		SubnetStateStorage::<T>::insert(netuid, subnet_state);
 
 		return uid
+	}
+
+	pub fn if_module_name_exists(netuid: u16, name: Vec<u8>) -> bool {
+		for (uid, _name) in
+			<Name<T> as IterableStorageDoubleMap<u16, u16, Vec<u8>>>::iter_prefix(netuid)
+		{
+			if _name == name {
+				return true
+			}
+		}
+		return false
 	}
 
 	pub fn get_modules_stats(netuid: u16) -> Vec<ModuleStats<T>> {

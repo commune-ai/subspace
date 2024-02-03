@@ -175,7 +175,7 @@ impl<T: Config> Pallet<T> {
     }
 
     pub fn has_max_proposals() -> bool {
-        return Self::num_proposals() >=  Self::get_max_proposals();
+        return Self::num_proposals() >=  Self::global_params().max_proposals;
     }
 
 

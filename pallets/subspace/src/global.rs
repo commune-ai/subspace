@@ -7,11 +7,8 @@ use sp_runtime::BoundedVec;
 
 impl<T: Config> Pallet<T> {
 
-	pub fn global_params() -> GlobalParams {
-		GlobalParamsStorage::<T>::get()
-	}
-	pub fn global_state() -> GlobalState<T> {
-		GlobalStateStorage::<T>::get()
+	pub fn set_global_state(global_state: GlobalState) {
+		GlobalStateStorage::<T>::put(global_state.clone());
 	}
 
     pub fn check_global_params(params: GlobalParams) -> DispatchResult{
@@ -43,39 +40,25 @@ impl<T: Config> Pallet<T> {
 		
         Ok(())
     }
-
-
 	pub fn set_global_params(params: GlobalParams) {
 		GlobalParamsStorage::<T>::put(params.clone());
-	}
-
-	pub fn set_global_state(global_state: GlobalState<T>) {
-		GlobalStateStorage::<T>::put(global_state.clone());
 	}
 
 	pub fn get_min_weight_stake() -> u64 {
 		Self::global_params().min_weight_stake
 	}
 
-	
-
-
 	pub fn get_max_allowed_weights_global() -> u16 {
 		Self::global_params().max_allowed_weights
 	}
 
-	pub fn get_min_stake_global() -> u64 {
-		Self::global_params().min_stake
-	}
 
-	
 	pub fn get_vote_mode_global() -> Vec<u8> {
 		Self::global_params().vote_mode.into_inner()
 	}
 	pub fn get_burn_rate() -> u16 {
 		Self::global_params().burn_rate
 	}
-
 
 	pub fn get_max_proposals() -> u64 {
 		Self::global_params().max_proposals
@@ -114,10 +97,6 @@ impl<T: Config> Pallet<T> {
 		return global_n
 	}
 
-	pub set_global_state(global_state:GlobalState<T>) {
-		return GlobalStateStorage::<T>::put(global_state)
-	}
-
 	pub fn get_global_stake_to(
         key: &T::AccountId,
     ) -> u64 {
@@ -132,18 +111,4 @@ impl<T: Config> Pallet<T> {
         total_stake_to
     }
 
-
-	// Configure tx rate limiting
-	pub fn get_tx_rate_limit() -> u64 {
-		Self::global_params().tx_rate_limit
-	}
-
-
-	pub fn get_min_burn() -> u64 {
-		Self::global_params().min_burn
-	}
-
-	// ========================
-	// ==== Rate Limiting =====
-	// ========================
 }

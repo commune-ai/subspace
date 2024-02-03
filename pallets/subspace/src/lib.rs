@@ -421,7 +421,7 @@ pub mod pallet {
 		}
 	}
 	#[pallet::storage]
-	#[pallet::getter(fn subnet_state)]
+	#[pallet::getter(fn subnet_params)]
 	pub(super) type SubnetParamsStorage<T: Config> = StorageMap<_, Identity, u16, SubnetState<T>, ValueQuery, DefaultSubnetState<T>>;
 
 

@@ -335,10 +335,11 @@ fn test_min_stake() {
 
 		let keys = SubspaceModule::get_keys(netuid);
 		// register_n_modules(netuid, num_modules, min_stake);
+		// 
+		let mut params = SubspaceModule::get_subnet_params(netuid);
+		params.min_stake = min_stake - 100;
+		SubspaceModule::set_subnet_params(netuid, params);
 
-		SubspaceModule::set_min_stake( netuid, min_stake - 100);
-
-		// SubspaceModule::set_min_stake( netuid, min_stake - 100);
 
 		SubspaceModule::remove_stake(get_origin(keys[0]), netuid, keys[0], 10_000_000_000);
 		let pending_deregistration_uids = SubspaceModule::get_pending_deregister_uids(netuid);

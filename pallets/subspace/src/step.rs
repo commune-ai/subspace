@@ -104,6 +104,7 @@ impl<T: Config> Pallet<T> {
 
 		let max_stake = subnet_params.max_stake;
 
+		// cliping the stake to the max stake
 		let stake_u64: Vec<u64> = uid_key_tuples
 			.iter()
 			.map(|(_, key)| Self::get_stake_for_key(netuid, key).min(max_stake))
@@ -203,7 +204,7 @@ impl<T: Config> Pallet<T> {
 		// =================================
 
 		// trust that acts as a multiplier for the incentive
-		let trust_ratio: u16 = Self::get_trust_ratio(netuid);
+		let trust_ratio: u16 = subnet_params.trust_ratio;
 		if trust_ratio > 0 {
 
 			let  trust_share : I32F32 = I32F32::from_num(trust_ratio)/I32F32::from_num(100);
