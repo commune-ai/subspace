@@ -10,7 +10,7 @@ use sp_runtime::{
 };
 use sp_arithmetic::per_things::Percent;
 
-use parity_scale_codec::{
+use codec::{
 	Decode,
 	Encode,
 };

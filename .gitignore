@@ -16,3 +16,6 @@
 
 # direnv cache
 .direnv
+
+# VSCode settings
+.vscode
