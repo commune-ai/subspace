@@ -16,9 +16,9 @@ impl<T: Config> Pallet<T> {
 		// check if the stake per weight is greater than the stake
 		let min_stake_per_weight: u64 = Self::get_min_weight_stake();
 		let min_stake_for_weights: u64 = min_stake_per_weight * uids.len() as u64;
-		
+
 		ensure!(stake >= min_stake_for_weights, Error::<T>::NotEnoughStakePerWeight);
-		
+
 		ensure!(stake > 0, Error::<T>::NotEnoughStaketoSetWeights);
 
 		// --- 2. Check to see if this is a valid network.
@@ -42,9 +42,9 @@ impl<T: Config> Pallet<T> {
 
 		let min_allowed_length: usize = Self::get_min_allowed_weights(netuid) as usize;
 		let max_allowed_length: usize = Self::get_max_allowed_weights(netuid) as usize;
-		
+
 		let self_vote = Self::get_self_vote(netuid);
-		
+
 		if self_vote {
 			ensure!(!Self::is_self_weight(uid, &uids, &values), Error::<T>::NoSelfWeight);
 		}
@@ -82,10 +82,10 @@ impl<T: Config> Pallet<T> {
 	pub fn contains_invalid_uids(netuid: u16, uids: &Vec<u16>) -> bool {
 		for uid in uids {
 			if !Self::is_uid_exist_on_network(netuid, *uid) {
-				return true
+				return true;
 			}
 		}
-		return false
+		false
 	}
 
 	// Returns true if the passed uids have the same length of the passed values.
@@ -96,13 +96,13 @@ impl<T: Config> Pallet<T> {
 	// Returns true if the items contain duplicates.
 	fn has_duplicate_uids(items: &Vec<u16>) -> bool {
 		let mut parsed: Vec<u16> = Vec::new();
-		for item in items {
+		for &item in items {
 			if parsed.contains(&item) {
-				return true
+				return true;
 			}
-			parsed.push(item.clone());
+			parsed.push(item);
 		}
-		return false
+		false
 	}
 
 	// Returns True if the uids and weights are have a valid length for uid on network.
@@ -111,55 +111,43 @@ impl<T: Config> Pallet<T> {
 		let n: usize = Self::get_subnet_n(netuid) as usize;
 		// Check self weight. Allowed to set single value for self weight.
 		if Self::is_self_weight(uid, uids, weights) {
-			return true
+			return true;
 		}
 		// Check if number of weights exceeds min.
 		if weights.len() >= min_allowed_length {
-			return true
+			return true;
 		}
 
 		if weights.len() > n {
-			return true
+			return true;
 		}
-		// To few weights.
-		return false
+
+		// Too few weights.
+		false
 	}
 
 	// Implace normalizes the passed positive integer weights so that they sum to u16 max value.
 	pub fn normalize_weights(mut weights: Vec<u16>) -> Vec<u16> {
 		let sum: u64 = weights.iter().map(|x| *x as u64).sum();
-		
+
 		if sum == 0 {
-			return weights
+			return weights;
 		}
 
 		weights.iter_mut().for_each(|x| {
 			*x = (*x as u64 * u16::max_value() as u64 / sum) as u16;
 		});
 
-		return weights
+		weights
 	}
 
 	// Returns true if the uids and weights correspond to a self weight on the uid.
-	pub fn is_self_weight(uid: u16, uids: &Vec<u16>, weights: &Vec<u16>) -> bool {
-		if weights.len() != 1 {
-			return false
-		}
-		if uid != uids[0] {
-			return false
-		}
-		return true
+	pub fn is_self_weight(uid: u16, uids: &[u16], weights: &[u16]) -> bool {
+		weights.len() == 1 && uid == uids[0]
 	}
 
 	pub fn check_len_uids_within_allowed(netuid: u16, uids: &Vec<u16>) -> bool {
-		let min_allowed_length: usize = Self::get_min_allowed_weights(netuid) as usize;
-		let max_allowed_length: usize = Self::get_max_allowed_weights(netuid) as usize;
-		if uids.len() > max_allowed_length as usize {
-			return false
-		}
-		if uids.len() < min_allowed_length as usize {
-			return false
-		}
-		return true
+		uids.len() <= Self::get_max_allowed_weights(netuid) as usize &&
+			uids.len() >= Self::get_min_allowed_weights(netuid) as usize
 	}
 }

@@ -15,34 +15,57 @@ on:
 jobs:
   check:
     # The type of runner that the job will run on
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
 
     # Steps represent a sequence of tasks that will be executed as part of the job
     steps:
       # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
       - uses: actions/checkout@v4
 
-      - name: Set-Up
-        run: sudo apt install -y git clang curl libssl-dev llvm libudev-dev protobuf-compiler
+      - name: Install Protoc
+        uses: arduino/setup-protoc@v1
+        with:
+          version: 3.20.1
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Install Rustup
-        run: |
-          curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
-          source ~/.cargo/env
-          rustup default stable
-          rustup update nightly
-          rustup update stable
-          rustup target add wasm32-unknown-unknown --toolchain nightly
+      - name: Set-up Rust cache
+        uses: Swatinem/rust-cache@v2
+        with:
+          prefix-key: registry-main-cache
+          cache-targets: false
+          cache-all-crates: false
+          cache-on-failure: true
+          save-if: ${{ github.ref_name == 'main' }}
 
-      - name: Check Build
+      - name: Install Rust toolchain
         run: |
-          SKIP_WASM_BUILD=1 cargo check --release
+          rustup set profile minimal
+          rustup show
+
+      - name: Ensure Rust formatting
+        id: rust-formatter
+        uses: actions-rs/cargo@v1
+        with:
+          command: fmt
+          args: -- --check
+
+      - name: Check code errors
+        id: rust-clippy
+        uses: actions-rs/clippy-check@v1
+        env:
+          SKIP_WASM_BUILD: 1
+        with:
+          args: >-
+            --color=always --timings -- -D warnings
+          token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Run tests
-        run: |
-          cargo test
+        id: rust-test
+        env:
+          SKIP_WASM_BUILD: 1
+        run: cargo test
 
       - name: Check Build for Benchmarking
-        run: >
-          pushd node &&
+        run: |
+          pushd node
           cargo check --features=runtime-benchmarks --release

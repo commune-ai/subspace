@@ -266,8 +266,6 @@ fn test_delegate_stake() {
 	});
 }
 
-
-
 #[test]
 fn test_ownership_ratio() {
 	new_test_ext().execute_with(|| {
@@ -323,8 +321,6 @@ fn test_ownership_ratio() {
 	});
 }
 
-
-
 // #[test]
 fn test_min_stake() {
 	new_test_ext().execute_with(|| {
@@ -336,7 +332,7 @@ fn test_min_stake() {
 		let keys = SubspaceModule::get_keys(netuid);
 		// register_n_modules(netuid, num_modules, min_stake);
 
-		SubspaceModule::set_min_stake( netuid, min_stake - 100);
+		SubspaceModule::set_min_stake(netuid, min_stake - 100);
 
 		// SubspaceModule::set_min_stake( netuid, min_stake - 100);
 
@@ -358,10 +354,5 @@ fn test_min_stake() {
 		step_block(1);
 		let is_registered = SubspaceModule::is_registered(netuid, &keys[0]);
 		assert_eq!(is_registered, false);
-
 	});
 }
-
-
-
-

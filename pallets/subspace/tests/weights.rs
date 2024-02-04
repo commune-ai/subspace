@@ -14,8 +14,6 @@ use test_mock::*;
   pub fn set_weights() tests
 *****************************/
 
-
-
 // Test ensures that uids -- weights must have the same size.
 #[test]
 fn test_weights_err_weights_vec_not_equal_size() {

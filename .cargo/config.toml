@@ -1,0 +1,13 @@
+[target.'cfg(all())']
+# Enable global lints
+rustflags = [
+    # TODO: remove once we refactor the code
+    "-Aclippy::too_many_arguments",
+    "-Aclippy::type_complexity",
+]
+
+[registries.crates-io]
+protocol = "sparse"
+
+[build]
+rustflags = ["-Z", "threads=8"]

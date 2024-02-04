@@ -24,7 +24,7 @@ sp-blockchain.workspace = true
 sp-runtime.workspace = true
 
 # local packages
-subspace-runtime-api = { path = "./runtime-api", default-features = false }
+subspace-runtime-api = { path = "../runtime-api", default-features = false }
 
 [features]
 default = ["std"]

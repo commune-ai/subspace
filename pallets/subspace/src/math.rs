@@ -1,8 +1,8 @@
+use sp_std::{vec, vec::Vec};
 use substrate_fixed::{
 	transcendental::exp,
 	types::{I32F32, I64F64},
 };
-use sp_std::{vec, vec::Vec};
 
 #[allow(dead_code)]
 pub fn bottom_k_u16(vector: &Vec<u16>, k: usize) -> Vec<u16> {
@@ -146,7 +146,7 @@ pub fn is_topk(vector: &Vec<I32F32>, k: usize) -> Vec<bool> {
 	let n: usize = vector.len();
 	let mut result: Vec<bool> = vec![true; n];
 	if n < k {
-		return result
+		return result;
 	}
 	let mut idxs: Vec<usize> = (0..n).collect();
 	idxs.sort_by_key(|&idx| &vector[idx]); // ascending stable sort
@@ -547,7 +547,6 @@ pub fn matmul_sparse(
 			// Compute trust scores: t_j = SUM(i) w_ij * s_i
 			// result_j = SUM(i) vector_i * matrix_ij
 			result[*j as usize] += vector[i] * value;
-			
 		}
 	}
 	result
@@ -728,27 +727,14 @@ pub fn weighted_median(
 		}
 	}
 	if (partition_lo + lo_stake <= minority) && (minority < partition_hi - hi_stake) {
-		return pivot
+		pivot
 	} else if (minority < partition_lo + lo_stake) && (lower.len() > 0) {
-		return weighted_median(
-			stake,
-			score,
-			&lower,
-			minority,
-			partition_lo,
-			partition_lo + lo_stake,
-		)
+		weighted_median(stake, score, &lower, minority, partition_lo, partition_lo + lo_stake)
 	} else if (partition_hi - hi_stake <= minority) && (upper.len() > 0) {
-		return weighted_median(
-			stake,
-			score,
-			&upper,
-			minority,
-			partition_hi - hi_stake,
-			partition_hi,
-		)
+		weighted_median(stake, score, &upper, minority, partition_hi - hi_stake, partition_hi)
+	} else {
+		pivot
 	}
-	pivot
 }
 
 /// Column-wise weighted median, e.g. stake-weighted median scores per server (column) over all
@@ -949,7 +935,7 @@ mod tests {
 	use rand::{seq::SliceRandom, thread_rng, Rng};
 	use substrate_fixed::{
 		transcendental::exp,
-		types::{I110F18, I32F32, I64F64, I96F32},
+		types::{I32F32, I64F64, I96F32},
 	};
 
 	fn assert_float_compare(a: I32F32, b: I32F32, epsilon: I32F32) {
@@ -2501,6 +2487,4 @@ mod tests {
 			epsilon,
 		);
 	}
-
-
 }

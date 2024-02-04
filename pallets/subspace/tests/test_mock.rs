@@ -72,9 +72,9 @@ impl pallet_balances::Config for Test {
 	type WeightInfo = ();
 	type MaxReserves = MaxReserves;
 	type ReserveIdentifier = ();
-    type RuntimeHoldReason = ();
-    type FreezeIdentifier = ();
-    type MaxHolds = frame_support::traits::ConstU32<16>;
+	type RuntimeHoldReason = ();
+	type FreezeIdentifier = ();
+	type MaxHolds = frame_support::traits::ConstU32<16>;
 	type MaxFreezes = frame_support::traits::ConstU32<16>;
 }
 
@@ -193,8 +193,7 @@ pub fn decrease_stake(netuid: u16, key: U256, stake: u64) {
 }
 
 pub fn get_origin(key: U256) -> RuntimeOrigin {
-	let origin = <<Test as frame_system::Config>::RuntimeOrigin>::signed(key);
-	return origin
+	<<Test as frame_system::Config>::RuntimeOrigin>::signed(key)
 }
 
 pub fn register_n_modules(netuid: u16, n: u16, stake: u64) {
@@ -225,8 +224,7 @@ pub fn register_module(netuid: u16, key: U256, stake: u64) -> DispatchResult {
 	add_balance(key, stake + 1);
 	let balance = SubspaceModule::get_balance(&key);
 
-	let result = SubspaceModule::register(origin, network, name.clone(), address, stake, key);
-	return result
+	SubspaceModule::register(origin, network, name.clone(), address, stake, key)
 }
 
 #[allow(dead_code)]
@@ -263,9 +261,6 @@ pub fn delegate_register_module(
 		network, module_key, balance
 	);
 
-	let result =
-		SubspaceModule::register(origin, network, name.clone(), address, stake, module_key);
-
 	log::info!(
 		"Register ok neuron: network: {:?}, module_key: {:?} key: {:?}",
 		name.clone(),
@@ -273,7 +268,7 @@ pub fn delegate_register_module(
 		key
 	);
 
-	return result
+	SubspaceModule::register(origin, network, name.clone(), address, stake, module_key)
 }
 
 #[allow(dead_code)]

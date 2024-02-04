@@ -18,7 +18,7 @@ targets = ["x86_64-unknown-linux-gnu"]
 
 [dependencies]
 pallet-subspace = { version = "4.0.0-dev", default-features = false, path = "../pallets/subspace" }
-subspace-runtime-api = { path = "../pallets/subspace/rpc/runtime-api", default-features = false }
+subspace-runtime-api = { path = "../pallets/subspace/runtime-api", default-features = false }
 
 codec.workspace = true
 scale-info.workspace = true

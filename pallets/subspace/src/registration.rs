@@ -1,19 +1,14 @@
 use super::*;
-use crate::system::ensure_root;
 use frame_support::pallet_prelude::DispatchResult;
 use frame_system::ensure_signed;
-use sp_arithmetic::per_things::Percent;
-use sp_core::{H256, U256};
-use sp_io::hashing::{keccak_256, sha2_256};
+use sp_core::H256;
 use sp_std::{convert::TryInto, vec::Vec};
 use substrate_fixed::types::I32F32;
-use sp_std::vec;
 use system::pallet_prelude::BlockNumberFor;
 // IterableStorageMap
 use frame_support::storage::IterableStorageMap;
 
-
-const LOG_TARGET: &'static str = "runtime::subspace::registration";
+const LOG_TARGET: &str = "runtime::subspace::registration";
 
 impl<T: Config> Pallet<T> {
 	pub fn do_register(
@@ -27,7 +22,6 @@ impl<T: Config> Pallet<T> {
 		// --- 1. Check that the caller has signed the transaction.
 		let key = ensure_signed(origin.clone())?;
 
-
 		// --- 2. Ensure we are not exceeding the max allowed registrations per block.
 
 		ensure!(
@@ -35,9 +29,6 @@ impl<T: Config> Pallet<T> {
 			Error::<T>::NotEnoughBalanceToRegister
 		);
 
-
-
-		
 		// -- 3. resolve the network in case it doesnt exisst
 		if !Self::if_subnet_name_exists(network.clone()) {
 			Self::add_subnet_from_registration(network.clone(), stake_amount, &key)?;
@@ -45,14 +36,15 @@ impl<T: Config> Pallet<T> {
 		// get the netuid
 		let netuid = Self::get_netuid_for_name(network.clone());
 
-
-
 		ensure!(
 			Self::enough_stake_to_register(netuid, stake_amount),
 			Error::<T>::NotEnoughStakeToRegister
 		);
 		ensure!(!Self::is_key_registered(netuid, &key), Error::<T>::KeyAlreadyRegistered);
-		ensure!(!Self::if_module_name_exists(netuid, name.clone()),Error::<T>::NameAlreadyRegistered);
+		ensure!(
+			!Self::if_module_name_exists(netuid, name.clone()),
+			Error::<T>::NameAlreadyRegistered
+		);
 
 		let min_burn: u64 = Self::get_min_burn();
 
@@ -62,28 +54,26 @@ impl<T: Config> Pallet<T> {
 
 		GlobalStateStorage::<T>::put(global_state);
 
-		let mut uid: u16;
-
 		let n: u16 = Self::get_subnet_n(netuid);
-		let global_n =  Self::global_n();
+		let global_n = Self::global_n();
 		// replace a node if we reach the max allowed modules
 		if global_n >= Self::get_max_allowed_modules() {
 			// get random netuid
 			let mut netuid_n = 0;
 			let mut random_netuid = Self::random_netuid();
-			while netuid_n == 0  {
+			while netuid_n == 0 {
 				random_netuid = Self::random_netuid();
 				netuid_n = Self::get_subnet_n(random_netuid);
 			}
-			
-			Self::remove_module(netuid, Self::get_lowest_uid(random_netuid));
 
-		} else if n >= Self::get_max_allowed_uids(netuid){
-			// if we reach the max allowed modules for this network, then we replace the lowest priority node
+			Self::remove_module(netuid, Self::get_lowest_uid(random_netuid));
+		} else if n >= Self::get_max_allowed_uids(netuid) {
+			// if we reach the max allowed modules for this network, then we replace the lowest
+			// priority node
 			Self::remove_module(netuid, Self::get_lowest_uid(netuid));
 		}
 
-		uid = Self::append_module(netuid, &module_key, name.clone(), address.clone());
+		let uid = Self::append_module(netuid, &module_key, name.clone(), address.clone());
 
 		Self::increase_stake(netuid, &module_key, &module_key, 0);
 		if stake_amount > 0 {
@@ -95,7 +85,10 @@ impl<T: Config> Pallet<T> {
 			Self::decrease_stake(netuid, &key, &module_key, min_burn);
 			let min_stake = Self::get_min_stake(netuid);
 			let current_stake = Self::get_total_stake_to(netuid, &key);
-			ensure!(current_stake == stake_amount.saturating_sub(min_burn), Error::<T>::NotEnoughStakeToRegister);
+			ensure!(
+				current_stake == stake_amount.saturating_sub(min_burn),
+				Error::<T>::NotEnoughStakeToRegister
+			);
 			ensure!(current_stake >= min_stake, Error::<T>::NotEnoughStakeToRegister);
 		}
 		// ---Deposit successful event.
@@ -106,27 +99,17 @@ impl<T: Config> Pallet<T> {
 		Ok(())
 	}
 
-
-	pub fn do_deregister(
-		origin: T::RuntimeOrigin,
-		netuid: u16,
-	) -> DispatchResult {
+	pub fn do_deregister(origin: T::RuntimeOrigin, netuid: u16) -> DispatchResult {
 		// --- 1. Check that the caller has signed the transaction.
 		let key = ensure_signed(origin.clone())?;
 
-		ensure!(
-			Self::is_key_registered(netuid, &key),
-			Error::<T>::NotRegistered
-		);
+		ensure!(Self::is_key_registered(netuid, &key), Error::<T>::NotRegistered);
 
 		// --- 2. Ensure we are not exceeding the max allowed registrations per block.
 		let uid: u16 = Self::get_uid_for_key(netuid, &key);
 
 		Self::remove_module(netuid, uid);
-		ensure!(
-			!Self::is_key_registered(netuid, &key),
-			Error::<T>::StillRegistered
-		);
+		ensure!(!Self::is_key_registered(netuid, &key), Error::<T>::StillRegistered);
 
 		// --- 5. Ok and done.
 		Ok(())
@@ -138,8 +121,6 @@ impl<T: Config> Pallet<T> {
 		return stake_amount >= (min_stake + min_burn)
 	}
 
-
-
 	pub fn get_min_stake_to_register(netuid: u16) -> u64 {
 		let mut min_stake: u64 = Self::get_min_stake(netuid);
 
@@ -148,25 +129,18 @@ impl<T: Config> Pallet<T> {
 		let registrations_per_block: u16 = global_state.registrations_per_block;
 		let max_registrations_per_block: u16 = global_state.max_registrations_per_block;
 
-		let mut factor = I32F32::from_num(registrations_per_block) /
+		let factor = I32F32::from_num(registrations_per_block) /
 			I32F32::from_num(max_registrations_per_block);
 
 		// convert factor to u8
-		let mut factor = factor.to_num::<u64>();
+		let factor = factor.to_num::<u64>();
 
 		// if factor is 0, then set it to 1
-		for i in 0..factor {
+		for _ in 0..factor {
 			min_stake = min_stake * 2;
 		}
 
-		return min_stake
-	}
-
-	pub fn vec_to_hash(vec_hash: Vec<u8>) -> H256 {
-		let de_ref_hash = &vec_hash; // b: &Vec<u8>
-		let de_de_ref_hash: &[u8] = &de_ref_hash; // c: &[u8]
-		let real_hash: H256 = H256::from_slice(de_de_ref_hash);
-		return real_hash
+		return min_stake;
 	}
 
 	// Determine which peer to prune from the network by finding the element with the lowest pruning
@@ -175,7 +149,7 @@ impl<T: Config> Pallet<T> {
 
 	pub fn get_pruning_score_for_uid(netuid: u16, uid: u16) -> u64 {
 		let vec: Vec<u64> = Self::get_emissions(netuid);
-		
+
 		if (uid as usize) < vec.len() {
 			return vec[uid as usize]
 		} else {
@@ -187,26 +161,22 @@ impl<T: Config> Pallet<T> {
 
 		// If there are pending deregister uids, then return the first one.
 		let pending_deregister_uids: Vec<u16> = Self::get_pending_deregister_uids(netuid);
-		
+
 		if pending_deregister_uids.len() > 0 {
 			let uid: u16 = pending_deregister_uids[0];
 
 			if uid < n {
 				let mut subnet_state = SubnetStateStorage::<T>::get(netuid);
-
 				subnet_state.pending_deregister_uids.remove(0);
 
 				SubnetStateStorage::<T>::insert(netuid, subnet_state);
-				
-				return uid
 
+				return uid;
 			}
-			
 		}
 
 		let mut min_score: u64 = u64::MAX;
 		let mut lowest_priority_uid: u16 = 0;
-		let mut prune_uids: Vec<u16> = Vec::new();
 		let current_block = Self::get_current_block_as_u64();
 		let immunity_period: u64 = Self::get_immunity_period(netuid) as u64;
 
@@ -224,21 +194,20 @@ impl<T: Config> Pallet<T> {
 					lowest_priority_uid = module_uid_i;
 					min_score = pruning_score;
 					if min_score == 0 {
-						break
+						break;
 					}
 				}
 			}
 		}
 
-		return lowest_priority_uid
+		lowest_priority_uid
 	}
 
 	// Returns a random index in range 0..n.
 	pub fn random_idx(n: u16) -> u16 {
 		let block_number: u64 = Self::get_current_block_as_u64();
 		// take the modulos of the blocknumber
-		let idx: u16 = ((block_number % u16::MAX as u64) % (n as u64)) as u16;
-		return idx
+		((block_number % u16::MAX as u64) % (n as u64)) as u16
 	}
 
 	pub fn get_block_hash_from_u64(block_number: u64) -> H256 {
@@ -262,17 +231,11 @@ impl<T: Config> Pallet<T> {
 		return real_hash;
 	}
 
-	pub fn hash_to_vec(hash: H256) -> Vec<u8> {
-		let hash_as_bytes: &[u8] = hash.as_bytes();
-		let hash_as_vec: Vec<u8> = hash_as_bytes.iter().cloned().collect();
-		return hash_as_vec
-	}
-
 	pub fn add_subnet_from_registration(
 		name: Vec<u8>,
 		stake: u64,
 		founder_key: &T::AccountId,
-	) ->  DispatchResult{
+	) -> DispatchResult {
 		// use default parameters
 		//
 		let num_subnets: u16 = Self::num_subnets();
@@ -280,16 +243,18 @@ impl<T: Config> Pallet<T> {
 		// if we have not reached the max number of subnets, then we can start a new one
 		if num_subnets >= max_subnets {
 			let mut min_stake: u64 = u64::MAX;
-			let mut min_stake_netuid : u16 = max_subnets.saturating_sub(1);
-			for (netuid, subnet_state) in <SubnetStateStorage<T> as IterableStorageMap<u16, SubnetState<T>>>::iter() {
+			let mut min_stake_netuid: u16 = max_subnets.saturating_sub(1);
+			for (netuid, subnet_state) in
+				<SubnetStateStorage<T> as IterableStorageMap<u16, SubnetState<T>>>::iter()
+			{
 				let net_stake = subnet_state.total_stake;
-				
+
 				if net_stake <= min_stake {
 					min_stake = net_stake;
 					min_stake_netuid = netuid;
 				}
 			}
-			ensure!(stake > min_stake , Error::<T>::NotEnoughStakeToStartNetwork);
+			ensure!(stake > min_stake, Error::<T>::NotEnoughStakeToStartNetwork);
 			Self::remove_subnet(min_stake_netuid);
 		}
 		// if we have reached the max number of subnets, then we can start a new one if the stake is
@@ -299,11 +264,8 @@ impl<T: Config> Pallet<T> {
 		params.name = name.clone();
 		let netuid = Self::add_subnet(params);
 
-		Self::set_founder(netuid, founder_key.clone());		
+		Self::set_founder(netuid, founder_key.clone());
 
 		Ok(())
 	}
-
 }
-
-
