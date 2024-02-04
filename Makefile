@@ -14,6 +14,9 @@ enter:
 	docker exec -it subspace bash
 chmod_scripts:
 	chmod +x ./scripts/*.sh
-
+format_check:
+	cargo fmt --all && cargo clippy --timings -- -Dclippy::all
+check:
+	cargo clippy --timings -- -Dclippy::all
 compose:
 	docker-compose up -d ${service}

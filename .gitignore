@@ -13,3 +13,6 @@
 
 # VSCode settings
 .vscode
+
+# IntelliJ IDEA settings
+.idea
