@@ -182,13 +182,13 @@ impl<T: Config> Pallet<T> {
 	// Returns the total amount of stake in the staking table.
 	//
 	pub fn get_total_subnet_stake(netuid: u16) -> u64 {
-		SubnetStateStorage::<T>::get(netuid).total_stake
+		Self::subnet_state(netuid).total_stake
 	}
 
 	// Returns the total amount of stake in the staking table.
 	pub fn total_stake() -> u64 {
 		let mut total_stake: u64 = 0;
-		for (netuid, subnet_state) in <SubnetStateStorage<T> as IterableStorageMap<u16, SubnetState<T>>>::iter() {
+		for (netuid, subnet_state) in <SubnetStateStorage<T> as IterableStorageMap<u16, SubnetState>>::iter() {
 			total_stake += subnet_state.total_stake;
 		}
 		return total_stake
@@ -350,7 +350,7 @@ impl<T: Config> Pallet<T> {
 			Stake::<T>::get(netuid, module_key).saturating_add(amount),
 		);
 		
-		let mut subnet_state = SubnetStateStorage::<T>::get(netuid);
+		let mut subnet_state = Self::subnet_state(netuid);
 
 		subnet_state.total_stake = subnet_state.total_stake.saturating_add(amount);
 
@@ -421,7 +421,7 @@ impl<T: Config> Pallet<T> {
 			Stake::<T>::get(netuid, module_key).saturating_sub(amount),
 		);
     
-		let mut subnet_state = SubnetStateStorage::<T>::get(netuid);
+		let mut subnet_state = Self::subnet_state(netuid);
 
 		subnet_state.total_stake = subnet_state.total_stake.saturating_sub(amount);
 

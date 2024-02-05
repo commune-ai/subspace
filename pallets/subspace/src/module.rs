@@ -1,7 +1,6 @@
 use super::*;
 use frame_support::{
-	pallet_prelude::{Decode, Encode, DispatchResult},
-	storage::IterableStorageMap,
+	pallet_prelude::{Decode, Encode, DispatchResult}, storage::{IterableStorageMap, }, IterableStorageDoubleMap
 };
 
 extern crate alloc;
@@ -106,7 +105,7 @@ impl<T: Config> Pallet<T> {
 	// Replace the module under this uid.
 	pub fn remove_module(netuid: u16, uid: u16) {
 		// 1. Get the old key under this position.
-		let n = Self::get_subnet_n(netuid);
+		let n = Self::subnet_n(netuid);
 		if n == 0 {
 			/// No modules in the network.
 			return
@@ -175,17 +174,17 @@ impl<T: Config> Pallet<T> {
 		DelegationFee::<T>::remove(netuid, uid_key.clone()); // Make uid - key association.
 
 		// 3. Remove the network if it is empty.
-		let mut subnet_state = SubnetStateStorage::<T>::get(netuid);
+		let mut subnet_state = Self::subnet_state(netuid);
 
-		if(subnet_state.n > 0) {
-			subnet_state.n -= 1;
+		if(subnet_state.n_uids > 0) {
+			subnet_state.n_uids -= 1;
 		}
 
 
 		SubnetStateStorage::<T>::insert(netuid, subnet_state);
 
 		// remove the network if it is empty
-		if Self::get_subnet_n(netuid) == 0 {
+		if Self::subnet_n(netuid) == 0 {
 			Self::remove_subnet(netuid);
 		}
 
@@ -197,7 +196,7 @@ impl<T: Config> Pallet<T> {
 	// Appends the uid to the network.
 	pub fn append_module(netuid: u16, key: &T::AccountId, name: Vec<u8>, address: Vec<u8>) -> u16 {
 		// 1. Get the next uid. This is always equal to subnetwork_n.
-		let uid: u16 = Self::get_subnet_n(netuid);
+		let uid: u16 = Self::subnet_n(netuid);
 		let block_number = Self::get_current_block_as_u64();
 		log::debug!("append_module( netuid: {:?} | uid: {:?} | new_key: {:?} ) ", netuid, key, uid);
 
@@ -219,13 +218,24 @@ Incentive::<T>::mutate(netuid, |v| v.push(0));
 			DelegationFee::<T>::get(netuid, key.clone()),
 		); // Make uid - key association.
 
-		let mut subnet_state = SubnetStateStorage::<T>::get(netuid);
+		let mut subnet_state = Self::subnet_state(netuid);
 
-		subnet_state.n += 1;
+		subnet_state.n_uids += 1;
 
 		SubnetStateStorage::<T>::insert(netuid, subnet_state);
 
 		return uid
+	}
+
+	pub fn if_module_name_exists(netuid: u16, name: Vec<u8>) -> bool {
+		for (uid, _name) in
+			<Name<T> as IterableStorageDoubleMap<u16, u16, Vec<u8>>>::iter_prefix(netuid)
+		{
+			if _name == name {
+				return true
+			}
+		}
+		return false
 	}
 
 	pub fn get_modules_stats(netuid: u16) -> Vec<ModuleStats<T>> {
@@ -234,7 +244,7 @@ Incentive::<T>::mutate(netuid, |v| v.push(0));
 		}
 
 		let mut modules = Vec::new();
-		let n = Self::get_subnet_n(netuid);
+		let n = Self::subnet_n(netuid);
 		for uid in 0..n {
 			let uid = uid;
 			let netuid = netuid;

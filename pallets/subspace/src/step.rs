@@ -11,7 +11,7 @@ impl<T: Config> Pallet<T> {
 	pub fn block_step() {
 		let block_number: u64 = Self::get_current_block_as_u64();
 
-		let mut global_state = GlobalStateStorage::<T>::get();
+		let mut global_state = Self::global_state();
 
 		global_state.registrations_per_block = 0;
 
@@ -19,16 +19,16 @@ impl<T: Config> Pallet<T> {
 
 		log::debug!("block_step for block: {:?} ", block_number);
 
-		for (netuid, subnet_state) in SubnetStateStorage::<T>::iter() {
-			let tempo = subnet_state.tempo;
+		for (netuid, subnet_params) in SubnetParamsStorage::<T>::iter() {
+			let tempo = subnet_params.tempo;
 
 			let new_queued_emission: u64 = Self::calculate_network_emission(netuid);
 
-			let mut subnet_state = SubnetStateStorage::<T>::get(netuid);
+			let mut subnet_state = Self::subnet_state(netuid);
 
 			subnet_state.pending_emission += new_queued_emission;
 
-			SubnetStateStorage::<T>::insert(netuid, subnet_state);
+			Self::set_subnet_state(netuid, subnet_state);
 			
 			log::debug!("netuid_i: {:?} queued_emission: +{:?} ", netuid, new_queued_emission);
 
@@ -41,11 +41,11 @@ impl<T: Config> Pallet<T> {
 
 			Self::epoch(netuid, emission_to_drain);
 
-			let mut subnet_state = SubnetStateStorage::<T>::get(netuid);
+			let mut subnet_state = Self::subnet_state(netuid);
 
 			subnet_state.pending_emission = 0;
 
-			SubnetStateStorage::<T>::insert(netuid, subnet_state)
+			Self::set_subnet_state(netuid, subnet_state);
 		}
 	}
 
@@ -55,7 +55,7 @@ impl<T: Config> Pallet<T> {
 		let global_params = Self::global_params();
 		let subnet_params = Self::subnet_params(netuid);
 
-		let n: u16 = Self::get_subnet_n(netuid);
+		let n: u16 = Self::subnet_n(netuid);
 		let current_block: u64 = Self::get_current_block_as_u64();
 		let block_at_registration: Vec<u64> = Self::get_block_at_registration(netuid);
 
@@ -104,6 +104,7 @@ impl<T: Config> Pallet<T> {
 
 		let max_stake = subnet_params.max_stake;
 
+		// cliping the stake to the max stake
 		let stake_u64: Vec<u64> = uid_key_tuples
 			.iter()
 			.map(|(_, key)| Self::get_stake_for_key(netuid, key).min(max_stake))
@@ -203,7 +204,7 @@ impl<T: Config> Pallet<T> {
 		// =================================
 
 		// trust that acts as a multiplier for the incentive
-		let trust_ratio: u16 = Self::get_trust_ratio(netuid);
+		let trust_ratio: u16 = subnet_params.trust_ratio;
 		if trust_ratio > 0 {
 
 			let  trust_share : I32F32 = I32F32::from_num(trust_ratio)/I32F32::from_num(100);
@@ -450,7 +451,7 @@ impl<T: Config> Pallet<T> {
 	}
 
 	pub fn get_block_at_registration(netuid: u16) -> Vec<u64> {
-		let n: usize = Self::get_subnet_n(netuid) as usize;
+		let n: usize = Self::subnet_n(netuid) as usize;
 		let mut block_at_registration: Vec<u64> = vec![0; n];
 		for module_uid in 0..n {
 			if Keys::<T>::contains_key(netuid, module_uid as u16) {
