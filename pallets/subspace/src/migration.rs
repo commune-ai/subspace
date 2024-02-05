@@ -156,11 +156,15 @@ pub fn migrate_to_v2<T: Config>() -> Weight {
         let max_allowed_weights = MaxAllowedWeightsGlobal::<T>::get();
         let total_subnets = TotalSubnets::<T>::get();
         let vote_threshold = GlobalVoteThreshold::<T>::get();
-        let vote_mode = BoundedVec::<u8, ConstU32<32>>::try_from(VoteModeGlobal::<T>::get()).expect("too long vote mode");
+        let vote_mode = VoteModeGlobal::<T>::get();
         let max_proposals =MaxProposals::<T>::get();
 
         let global_state = GlobalState {
             registrations_per_block,
+            total_subnets,
+        };
+
+        let global_params = GlobalParams {
             max_name_length,
             max_allowed_subnets,
             max_allowed_modules,
@@ -172,13 +176,13 @@ pub fn migrate_to_v2<T: Config>() -> Weight {
             unit_emission,
             tx_rate_limit,
             burn_rate,
-            total_subnets,
             vote_threshold,
             vote_mode,
             max_proposals
         };
-        
-        GlobalStateStorage::<T>::put(global_state);
+
+        Pallet::<T>::set_global_state(global_state);
+        Pallet::<T>::set_global_params(global_params);
         
         info!(target: LOG_TARGET, " >>> Updated Global storage...");
 
@@ -195,7 +199,7 @@ pub fn migrate_to_v2<T: Config>() -> Weight {
             let max_stake = MaxStake::<T>::get(netuid);
             let max_weight_age = MaxWeightAge::<T>::get(netuid);
             let max_allowed_weights = MaxAllowedWeights::<T>::get(netuid);
-            let pending_deregister_uids = BoundedVec::<u16, ConstU32<10_000>>::try_from(PendingDeregisterUids::<T>::get(netuid)).expect("subnets exceed 10000");
+            let pending_deregister_uids = PendingDeregisterUids::<T>::get(netuid);
             let founder = Founder::<T>::get(netuid);
             let founder_share = FounderShare::<T>::get(netuid);
             let incentive_ratio = IncentiveRatio::<T>::get(netuid);
@@ -203,51 +207,44 @@ pub fn migrate_to_v2<T: Config>() -> Weight {
             let trust_ratio = TrustRatio::<T>::get(netuid);
             let quadratic_voting = QuadraticVoting::<T>::get(netuid);
             let vote_threshold = VoteThresholdSubnet::<T>::get(netuid);
-            let vote_mode = BoundedVec::<u8, ConstU32<32>>::try_from(VoteModeSubnet::<T>::get(netuid)).expect("too long vote mode");
+            let vote_mode = VoteModeSubnet::<T>::get(netuid);
             let emission = SubnetEmission::<T>::get(netuid);
             let n = N::<T>::get(netuid);
             let pending_emission = PendingEmission::<T>::get(netuid);
-            let name = BoundedVec::<u8, ConstU32<32>>::try_from(SubnetNames::<T>::get(netuid)).expect("too long vote mode");
+            let name = SubnetNames::<T>::get(netuid);
             let total_stake = TotalStake::<T>::get(netuid);
 
             let subnet_params = SubnetParams {
-                max_allowed_uids,
-                immunity_period,
-                min_allowed_weights,
-                self_vote,
-                min_stake,
-                max_stake,
-                max_weight_age,
-                max_allowed_weights,
-                pending_deregister_uids,
-            };
-
-            let subnet_state = SubnetState {
                 founder,
                 founder_share,
-                incentive_ratio,
                 immunity_period,
+                incentive_ratio,
                 max_allowed_uids,
                 max_allowed_weights,
                 min_allowed_weights,
                 max_stake,
                 max_weight_age,
                 min_stake,
+                name: name.clone(),
                 self_vote,
                 tempo,
                 trust_ratio,
                 quadratic_voting,
-                pending_deregister_uids,
                 vote_threshold,
                 vote_mode,
+            };
+
+            let subnet_state = SubnetState {
                 emission,
                 name,
                 n,
                 pending_emission,
+                pending_deregister_uids,
                 total_stake,
             };
 
-            SubnetStateStorage::<T>::insert(netuid, subnet_state);
+            Pallet::<T>::set_subnet_params(netuid, subnet_params);
+            Pallet::<T>::set_subnet_state(netuid, subnet_state);
 
             count += 1;
         }

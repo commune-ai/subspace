@@ -8,7 +8,7 @@ use sp_runtime::BoundedVec;
 impl<T: Config> Pallet<T> {
 
 	pub fn set_global_state(global_state: GlobalState) {
-		GlobalStateStorage::<T>::put(global_state.clone());
+		GlobalStateStorage::<T>::put(global_state);
 	}
 
     pub fn check_global_params(params: GlobalParams) -> DispatchResult{
@@ -41,7 +41,7 @@ impl<T: Config> Pallet<T> {
         Ok(())
     }
 	pub fn set_global_params(params: GlobalParams) {
-		GlobalParamsStorage::<T>::put(params.clone());
+		GlobalParamsStorage::<T>::put(params);
 	}
 
 	pub fn get_min_weight_stake() -> u64 {
@@ -54,7 +54,7 @@ impl<T: Config> Pallet<T> {
 
 
 	pub fn get_vote_mode_global() -> Vec<u8> {
-		Self::global_params().vote_mode.into_inner()
+		Self::global_params().vote_mode
 	}
 	pub fn get_burn_rate() -> u16 {
 		Self::global_params().burn_rate
@@ -91,7 +91,7 @@ impl<T: Config> Pallet<T> {
 		let mut global_n : u16 = 0;
 
 		for netuid in Self::netuids() {
-			global_n += SubnetStateStorage::<T>::get(netuid).n;
+			global_n += Self::subnet_state(netuid).n;
 		}
 
 		return global_n

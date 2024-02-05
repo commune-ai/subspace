@@ -56,7 +56,7 @@ impl<T: Config> Pallet<T> {
 
 		let min_burn: u64 = Self::global_params().min_burn;
 
-		let mut global_state = GlobalStateStorage::<T>::get();
+		let mut global_state = Self::global_state();
 
 		global_state.registrations_per_block += 1;
 
@@ -143,10 +143,11 @@ impl<T: Config> Pallet<T> {
 	pub fn get_min_stake_to_register(netuid: u16) -> u64 {
 		let mut min_stake: u64 = Self::get_min_stake(netuid);
 
-		let global_state = GlobalStateStorage::<T>::get();
+		let global_state = Self::global_state();
+		let global_params = Self::global_params();
 
 		let registrations_per_block: u16 = global_state.registrations_per_block;
-		let max_registrations_per_block: u16 = global_state.max_registrations_per_block;
+		let max_registrations_per_block: u16 = global_params.max_registrations_per_block;
 
 		let mut factor = I32F32::from_num(registrations_per_block) /
 			I32F32::from_num(max_registrations_per_block);
@@ -192,7 +193,7 @@ impl<T: Config> Pallet<T> {
 			let uid: u16 = pending_deregister_uids[0];
 
 			if uid < n {
-				let mut subnet_state = SubnetStateStorage::<T>::get(netuid);
+				let mut subnet_state = Self::subnet_state(netuid);
 
 				subnet_state.pending_deregister_uids.remove(0);
 
@@ -281,7 +282,7 @@ impl<T: Config> Pallet<T> {
 		if num_subnets >= max_subnets {
 			let mut min_stake: u64 = u64::MAX;
 			let mut min_stake_netuid : u16 = max_subnets.saturating_sub(1);
-			for (netuid, subnet_state) in <SubnetStateStorage<T> as IterableStorageMap<u16, SubnetState<T>>>::iter() {
+			for (netuid, subnet_state) in <SubnetStateStorage<T> as IterableStorageMap<u16, SubnetState>>::iter() {
 				let net_stake = subnet_state.total_stake;
 				
 				if net_stake <= min_stake {

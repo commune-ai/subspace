@@ -14,10 +14,6 @@ use substrate_fixed::types::{I32F32, I64F64};
 extern crate alloc;
 
 impl<T: Config> Pallet<T> {
-	// Returns true if the subnetwork exists.
-	//
-
-
 	pub fn do_remote_subnet(origin: T::RuntimeOrigin, netuid: u16) -> DispatchResult {
 		let key = ensure_signed(origin)?;
 		// --- 1. Ensure the network name does not already exist.
@@ -36,15 +32,24 @@ impl<T: Config> Pallet<T> {
 		params: SubnetParams<T>,
 	) -> DispatchResult {
 		let key = ensure_signed(origin)?;
-		// only the founder can update the network on authority mode
 		
 		ensure!(is_vec_str(Self::get_vote_mode_subnet(netuid), "authority"), Error::<T>::NotAuthorityMode);
 		ensure!(Self::if_subnet_netuid_exists(netuid), Error::<T>::SubnetNameAlreadyExists);
 		ensure!(Self::is_subnet_founder(netuid, &key), Error::<T>::NotFounder);
 		ensure!(Self::if_subnet_netuid_exists(netuid), Error::<T>::SubnetNameAlreadyExists);
 		ensure!(Self::is_subnet_founder(netuid, &key), Error::<T>::NotFounder);
+
+		let mut n = Self::subnet_n(netuid);
+
+		while n > params.max_allowed_uids {
+			Self::remove_module(netuid, Self::get_lowest_uid(netuid));
+
+			n = Self::subnet_n(netuid);
+		}
+		
 		Self::check_subnet_params(params.clone())?;
 		Self::set_subnet_params(netuid, params);
+
 		// --- 16. Ok and done.
 		Ok(())
 	}
@@ -56,7 +61,7 @@ impl<T: Config> Pallet<T> {
 
 		let global_params = Self::global_params();
 
-        // check valid tempo		
+        // check valid tempo
 		ensure!(params.min_allowed_weights <= params.max_allowed_weights, Error::<T>::InvalidMinAllowedWeights);
 		
 		ensure!(params.min_allowed_weights >= 1, Error::<T>::InvalidMinAllowedWeights);
@@ -123,7 +128,7 @@ impl<T: Config> Pallet<T> {
 	pub fn least_staked_netuid() -> u16 {
 		let mut min_stake: u64 = u64::MAX;
 		let mut min_stake_netuid: u16 = u16::MAX;
-		for (netuid, subnet_state) in <SubnetStateStorage<T> as IterableStorageMap<u16, SubnetState<T>>>::iter() {
+		for (netuid, subnet_state) in <SubnetStateStorage<T> as IterableStorageMap<u16, SubnetState>>::iter() {
 			let net_stake = subnet_state.total_stake;
 
 			if net_stake <= min_stake && net_stake > 0 {
@@ -154,7 +159,7 @@ impl<T: Config> Pallet<T> {
 	// get the least staked network
 	pub fn min_subnet_stake() -> u64 {
 		let mut min_stake: u64 = u64::MAX;
-		for (netuid, subnet_state) in <SubnetStateStorage<T> as IterableStorageMap<u16, SubnetState<T>>>::iter() {
+		for (netuid, subnet_state) in <SubnetStateStorage<T> as IterableStorageMap<u16, SubnetState>>::iter() {
 			let net_stake = subnet_state.total_stake;
 			
 			if net_stake <= min_stake {
@@ -170,8 +175,10 @@ impl<T: Config> Pallet<T> {
 
 	pub fn add_pending_deregistration_uid(netuid: u16, uid: u16) {
 		let mut subnet_state = Self::subnet_state(netuid);;
-		subnet_state.pending_deregister_uids.try_push(uid);
-		Self::set_subnet_params(netuid, subnet_state)
+
+		subnet_state.pending_deregister_uids.push(uid);
+
+		Self::set_subnet_state(netuid, subnet_state)
 	}
 
 	pub fn add_pending_deregistration_uids(netuid: u16, uids: Vec<u16>) {
@@ -190,8 +197,8 @@ impl<T: Config> Pallet<T> {
 			if uid < n {
 				Self::remove_module(netuid, uid);
 			}
-			Self::set_subnet_params(netuid, subnet_params);
 
+			Self::set_subnet_state(netuid, subnet_state);
 		}
 	}
 
@@ -226,7 +233,7 @@ impl<T: Config> Pallet<T> {
 	pub fn set_name_subnet(netuid: u16, name: Vec<u8>) {
 		// set the name if it doesnt exist
 		let mut subnet_params = Self::subnet_params(netuid);;
-		subnet_params.name = BoundedVec::<u8, ConstU32<32>>::try_from(name).expect("too long name");
+		subnet_params.name = name;
 		Self::set_subnet_params(netuid, subnet_params)
 	}
 
@@ -314,7 +321,7 @@ impl<T: Config> Pallet<T> {
 		if total_stake > I64F64::from_num(0) {
 			subnet_ratio = subnet_stake / total_stake;
 		} else {
-			let n = GlobalStateStorage::<T>::get().total_subnets;
+			let n = Self::global_state().total_subnets;
 			if n > 1 {
 				subnet_ratio = I64F64::from_num(1) / I64F64::from_num(n);
 			} else {
@@ -334,7 +341,7 @@ impl<T: Config> Pallet<T> {
 		return token_emission
 	}
 
-	pub fn set_subnet_state(netuid: u16, mut subnet_state: SubnetState<T>) {
+	pub fn set_subnet_state(netuid: u16, mut subnet_state: SubnetState) {
 		SubnetStateStorage::<T>::insert(netuid, subnet_state)
 	}
 	pub fn get_subnet_emission(netuid: u16) -> u64 {
@@ -365,7 +372,7 @@ impl<T: Config> Pallet<T> {
 	// Initializes a new subnetwork under netuid with parameters.
 	//
 	pub fn if_subnet_name_exists(name: Vec<u8>) -> bool {
-		for (netuid, subnet_state) in SubnetParamsStorage::<T>::iter() {
+		for (netuid, subnet_params) in SubnetParamsStorage::<T>::iter() {
 			if subnet_params.name == name {
 				return true
 			}
@@ -384,7 +391,7 @@ impl<T: Config> Pallet<T> {
 
 	pub fn get_netuid_for_name(name: Vec<u8>) -> u16 {
 		for (netuid, subnet_params) in SubnetParamsStorage::<T>::iter() {
-			if name == subnet_params.name.into_inner() {
+			if name == subnet_params.name {
 				return netuid
 			}
 		}
@@ -393,7 +400,7 @@ impl<T: Config> Pallet<T> {
 	}
 
 	pub fn subnet_name(netuid: u16) -> Vec<u8> {
-		Self::subnet_params(netuid).name.into_inner()
+		Self::subnet_params(netuid).name
 	}
 
 	pub fn is_network_founder(netuid: u16, key: &T::AccountId) -> bool {
@@ -555,7 +562,7 @@ impl<T: Config> Pallet<T> {
 	pub fn set_vote_mode_subnet(netuid: u16, vote_mode: Vec<u8>) {
 		let mut subnet_params = Self::subnet_params(netuid);;
 
-		subnet_params.vote_mode = BoundedVec::<u8, ConstU32<32>>::try_from(vote_mode).expect("too long vote mode");
+		subnet_params.vote_mode = vote_mode;
 
 		Self::set_subnet_params(netuid, subnet_params)
 	}
@@ -601,7 +608,7 @@ impl<T: Config> Pallet<T> {
 
 		subnet_params.tempo = tempo;
 
-		Self::set_subnet_params(netuid, subnet_state)
+		Self::set_subnet_params(netuid, subnet_params)
 	}
 	pub fn get_founder_share(netuid: u16) -> u16 {
 		Self::subnet_params(netuid).founder_share
@@ -697,7 +704,7 @@ impl<T: Config> Pallet<T> {
 	}
 
 	pub fn get_global_max_allowed_subnets() -> u16 {
-		GlobalStateStorage::<T>::get().max_allowed_subnets
+		Self::global_params().max_allowed_subnets
 	}
 
 	// ============================
@@ -707,10 +714,10 @@ impl<T: Config> Pallet<T> {
 		Self::subnet_params(netuid).tempo
 	}
 	pub fn get_pending_emission(netuid: u16) -> u64 {
-		Self::subnet_params(netuid).pending_emission
+		Self::subnet_state(netuid).pending_emission
 	}
 	pub fn get_registrations_this_block() -> u16 {
-		GlobalStateStorage::<T>::get().registrations_per_block
+		Self::global_state().registrations_per_block
 	}
 
 	pub fn get_module_registration_block(netuid: u16, uid: u16) -> u64 {
@@ -742,7 +749,7 @@ impl<T: Config> Pallet<T> {
 
 		subnet_params.min_allowed_weights = min_allowed_weights;
 
-		Self::set_subnet_params(netuid, subnet_state)
+		Self::set_subnet_params(netuid, subnet_params)
 	}
 
 	pub fn get_max_allowed_weights(netuid: u16) -> u16 {
@@ -758,7 +765,7 @@ impl<T: Config> Pallet<T> {
 
 		subnet_params.max_allowed_weights = max_allowed_weights.min(global_params.max_allowed_weights);
 
-		Self::set_subnet_params(netuid, subnet_state)
+		Self::set_subnet_params(netuid, subnet_params)
 	}
 
 	pub fn get_max_allowed_uids(netuid: u16) -> u16 {
@@ -766,7 +773,7 @@ impl<T: Config> Pallet<T> {
 	}
 
 	pub fn get_max_allowed_modules() -> u16 {
-		GlobalStateStorage::<T>::get().max_allowed_modules
+		Self::global_params().max_allowed_modules
 	}
 
 	pub fn total_n() -> u16 {
@@ -784,11 +791,11 @@ impl<T: Config> Pallet<T> {
 	}
 
 	pub fn set_max_allowed_modules(max_allowed_modules: u16) {
-		let mut global_state = GlobalStateStorage::<T>::get();
+		let mut global_params = Self::global_params();
 
-		global_state.max_allowed_modules = max_allowed_modules;
+		global_params.max_allowed_modules = max_allowed_modules;
 
-		GlobalStateStorage::<T>::put(global_state)
+		GlobalParamsStorage::<T>::put(global_params)
 	}
 
 	pub fn get_uids(netuid: u16) -> Vec<u16> {
@@ -920,7 +927,6 @@ impl<T: Config> Pallet<T> {
 		return Keys::<T>::contains_key(netuid, uid)
 	}
 
-
 	pub fn get_max_weight_age(netuid: u16) -> u64 {
 		Self::subnet_params(netuid).max_weight_age
 	}
@@ -930,10 +936,10 @@ impl<T: Config> Pallet<T> {
 
 		subnet_params.max_weight_age = max_weight_age;
 
-		Self::set_subnet_params(netuid, subnet_state)
+		Self::set_subnet_params(netuid, subnet_params)
 	}
 
 	pub fn get_pending_deregister_uids(netuid: u16) -> Vec<u16> {
-		Self::subnet_state(netuid).pending_deregister_uids.into_inner()
+		Self::subnet_state(netuid).pending_deregister_uids
 	}
 }

@@ -11,7 +11,7 @@ impl<T: Config> Pallet<T> {
 	pub fn block_step() {
 		let block_number: u64 = Self::get_current_block_as_u64();
 
-		let mut global_state = GlobalStateStorage::<T>::get();
+		let mut global_state = Self::global_state();
 
 		global_state.registrations_per_block = 0;
 
@@ -19,16 +19,16 @@ impl<T: Config> Pallet<T> {
 
 		log::debug!("block_step for block: {:?} ", block_number);
 
-		for (netuid, subnet_state) in SubnetStateStorage::<T>::iter() {
-			let tempo = subnet_state.tempo;
+		for (netuid, subnet_params) in SubnetParamsStorage::<T>::iter() {
+			let tempo = subnet_params.tempo;
 
 			let new_queued_emission: u64 = Self::calculate_network_emission(netuid);
 
-			let mut subnet_state = SubnetStateStorage::<T>::get(netuid);
+			let mut subnet_state = Self::subnet_state(netuid);
 
 			subnet_state.pending_emission += new_queued_emission;
 
-			SubnetStateStorage::<T>::insert(netuid, subnet_state);
+			Self::set_subnet_state(netuid, subnet_state);
 			
 			log::debug!("netuid_i: {:?} queued_emission: +{:?} ", netuid, new_queued_emission);
 
@@ -41,11 +41,11 @@ impl<T: Config> Pallet<T> {
 
 			Self::epoch(netuid, emission_to_drain);
 
-			let mut subnet_state = SubnetStateStorage::<T>::get(netuid);
+			let mut subnet_state = Self::subnet_state(netuid);
 
 			subnet_state.pending_emission = 0;
 
-			SubnetStateStorage::<T>::insert(netuid, subnet_state)
+			Self::set_subnet_state(netuid, subnet_state);
 		}
 	}
 

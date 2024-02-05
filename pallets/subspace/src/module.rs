@@ -1,7 +1,6 @@
 use super::*;
 use frame_support::{
-	pallet_prelude::{Decode, Encode, DispatchResult},
-	storage::{IterableStorageMap, },
+	pallet_prelude::{Decode, Encode, DispatchResult}, storage::{IterableStorageMap, }, IterableStorageDoubleMap
 };
 
 extern crate alloc;
@@ -175,7 +174,7 @@ impl<T: Config> Pallet<T> {
 		DelegationFee::<T>::remove(netuid, uid_key.clone()); // Make uid - key association.
 
 		// 3. Remove the network if it is empty.
-		let mut subnet_state = SubnetStateStorage::<T>::get(netuid);
+		let mut subnet_state = Self::subnet_state(netuid);
 
 		if(subnet_state.n > 0) {
 			subnet_state.n -= 1;
@@ -219,7 +218,7 @@ Incentive::<T>::mutate(netuid, |v| v.push(0));
 			DelegationFee::<T>::get(netuid, key.clone()),
 		); // Make uid - key association.
 
-		let mut subnet_state = SubnetStateStorage::<T>::get(netuid);
+		let mut subnet_state = Self::subnet_state(netuid);
 
 		subnet_state.n += 1;
 

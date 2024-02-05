@@ -336,7 +336,7 @@ fn test_min_stake() {
 		let keys = SubspaceModule::get_keys(netuid);
 		// register_n_modules(netuid, num_modules, min_stake);
 		// 
-		let mut params = SubspaceModule::get_subnet_params(netuid);
+		let mut params = SubspaceModule::subnet_params(netuid);
 		params.min_stake = min_stake - 100;
 		SubspaceModule::set_subnet_params(netuid, params);
 

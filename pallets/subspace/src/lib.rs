@@ -88,20 +88,14 @@ pub mod pallet {
 	// =======================================
 	// ==== Defaults ====
 	// =======================================
-
-
 	#[pallet::type_value]
-	pub fn EmptyU16Vec<T: Config>() -> Vec<u16> {
-		vec![]
-	}
+	pub fn EmptyU16Vec<T: Config>() -> Vec<u16> {vec![]}
+	
 	#[pallet::type_value]
-	pub fn EmptyU64Vec<T: Config>() -> Vec<u64> {
-		vec![]
-	}
+	pub fn EmptyU64Vec<T: Config>() -> Vec<u64> {vec![]}
+	
 	#[pallet::type_value]
-	pub fn EmptyBoolVec<T: Config>() -> Vec<bool> {
-		vec![]
-	}
+	pub fn EmptyBoolVec<T: Config>() -> Vec<bool> {vec![]}
 
 	// ============================
 	// ==== V1 storage lookup ====
@@ -335,9 +329,11 @@ pub mod pallet {
 			max_registrations_per_block: 10,
 			max_name_length: 32,
 			max_proposals: 128,
+
 			min_burn: 0,
-			min_stake: 100,
+			min_stake: 0,
 			min_weight_stake: 0,
+			
 			unit_emission: 23148148148, 
 			tx_rate_limit: 1,
 			vote_threshold: 50,
@@ -346,7 +342,7 @@ pub mod pallet {
 	}
 	#[pallet::storage]
 	#[pallet::getter(fn global_params)]
-	pub(super) type GlobalParamsStorage<T: Config> = StorageValue<_, GlobalState, ValueQuery, DefaultGlobalParams<T>>;
+	pub(super) type GlobalParamsStorage<T: Config> = StorageValue<_, GlobalParams, ValueQuery, DefaultGlobalParams<T>>;
 
 
 	#[derive(Encode, Decode, Default, TypeInfo, MaxEncodedLen, PartialEqNoBound, RuntimeDebug)]
@@ -356,7 +352,6 @@ pub mod pallet {
 		// status
 		pub registrations_per_block: u16,
 		pub total_subnets: u16,
-		pub n : u16,
 	}
 
 	#[pallet::type_value]
@@ -364,7 +359,6 @@ pub mod pallet {
 		GlobalState {
 			registrations_per_block: 0,
 			total_subnets: 0,
-			n : 0,
 		}
 	}
 	#[pallet::storage]
@@ -395,6 +389,7 @@ pub mod pallet {
 		pub self_vote: bool, // 
 		pub tempo: u16, // how many blocks to wait before rewarding models
 		pub trust_ratio: u16,
+		pub quadratic_voting: bool,
 		pub vote_threshold: u16, // out of 100
 		pub vote_mode: Vec<u8>,
 	}
@@ -402,55 +397,58 @@ pub mod pallet {
 	#[pallet::type_value]
 	pub fn DefaultSubnetParams<T: Config>() -> SubnetParams<T> {
 		SubnetParams {
-			name: vec![],
-			tempo: 1,
+			founder: T::AccountId::decode(&mut sp_runtime::traits::TrailingZeroInput::zeroes()).unwrap(),
+			founder_share: 0,
 			immunity_period: 40,
-			min_allowed_weights: 1,
-			max_allowed_weights: 420,
+			incentive_ratio : 50,
 			max_allowed_uids: 4096,
-			max_weight_age: u64::MAX,
+			max_allowed_weights: 420,
+			min_allowed_weights: 1,
 			max_stake: u64::MAX,
+			max_weight_age: u64::MAX,
+			min_stake : 0,
+			name: vec![],
+			self_vote: true,
+			tempo: 1,
+			trust_ratio: 0,
+			quadratic_voting: false,
 			vote_threshold: 50,
 			vote_mode: b"authority".to_vec(),
-			trust_ratio: 0,
-			self_vote: true,
-			founder_share: 0,
-			incentive_ratio : 50,
-			min_stake : 0,
-			founder: T::AccountId::decode(&mut sp_runtime::traits::TrailingZeroInput::zeroes()).unwrap(),
 		}
 	}
 	#[pallet::storage]
 	#[pallet::getter(fn subnet_params)]
-	pub(super) type SubnetParamsStorage<T: Config> = StorageMap<_, Identity, u16, SubnetState<T>, ValueQuery, DefaultSubnetState<T>>;
+	pub(super) type SubnetParamsStorage<T: Config> = StorageMap<_, Identity, u16, SubnetParams<T>, ValueQuery, DefaultSubnetParams<T>>;
 
 
 
-	#[derive(Encode, Decode, Default, TypeInfo, MaxEncodedLen, PartialEqNoBound, RuntimeDebug)]
+	#[derive(Encode, Decode, Default, TypeInfo, PartialEqNoBound, RuntimeDebug)]
 	#[scale_info(skip_type_params(T))]
 	#[codec(mel_bound())]
-	pub struct SubnetState<T: Config> {
+	pub struct SubnetState {
 		pub emission: u64,
 		pub n: u16, //number of uids
 		pub pending_emission: u64,
-		pub name: BoundedVec<u8, ConstU32<32>>,
+		pub pending_deregister_uids: Vec<u16>,
+		pub name: Vec<u8>,
 
 		pub total_stake: u64,
 	}
 
 	#[pallet::type_value]
-	pub fn DefaultSubnetState<T: Config>() -> SubnetState<T> {
+	pub fn DefaultSubnetState<T: Config>() -> SubnetState{
 		SubnetState {
 			emission: 0,
 			n: 0, //number of uids
 			pending_emission: 0,
-			name: BoundedVec::<u8, ConstU32<32>>::default(),
+			pending_deregister_uids: vec![],
+			name: vec![],
 			total_stake: 0,
 		}
 	}
 	#[pallet::storage]
 	#[pallet::getter(fn subnet_state)]
-	pub(super) type SubnetStateStorage<T: Config> = StorageMap<_, Identity, u16, SubnetState<T>, ValueQuery, DefaultSubnetState<T>>;
+	pub(super) type SubnetStateStorage<T: Config> = StorageMap<_, Identity, u16, SubnetState, ValueQuery, DefaultSubnetState<T>>;
 
 
 	// =======================================
@@ -923,6 +921,7 @@ pub mod pallet {
 					founder_share: default_params.founder_share, 
 					incentive_ratio: default_params.incentive_ratio,
 					max_weight_age: default_params.max_weight_age,
+					quadratic_voting: default_params.quadratic_voting
 				};
 				
 				self::Pallet::<T>::add_subnet(params.clone());
