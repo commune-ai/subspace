@@ -91,7 +91,7 @@ impl<T: Config> Pallet<T> {
 		let mut global_n : u16 = 0;
 
 		for netuid in Self::netuids() {
-			global_n += Self::subnet_state(netuid).n;
+			global_n += Self::subnet_state(netuid).n_uids;
 		}
 
 		return global_n

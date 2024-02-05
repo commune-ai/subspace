@@ -427,7 +427,7 @@ pub mod pallet {
 	#[codec(mel_bound())]
 	pub struct SubnetState {
 		pub emission: u64,
-		pub n: u16, //number of uids
+		pub n_uids: u16, //number of uids
 		pub pending_emission: u64,
 		pub pending_deregister_uids: Vec<u16>,
 		pub name: Vec<u8>,
@@ -439,7 +439,7 @@ pub mod pallet {
 	pub fn DefaultSubnetState<T: Config>() -> SubnetState{
 		SubnetState {
 			emission: 0,
-			n: 0, //number of uids
+			n_uids: 0, //number of uids
 			pending_emission: 0,
 			pending_deregister_uids: vec![],
 			name: vec![],

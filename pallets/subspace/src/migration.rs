@@ -209,7 +209,7 @@ pub fn migrate_to_v2<T: Config>() -> Weight {
             let vote_threshold = VoteThresholdSubnet::<T>::get(netuid);
             let vote_mode = VoteModeSubnet::<T>::get(netuid);
             let emission = SubnetEmission::<T>::get(netuid);
-            let n = N::<T>::get(netuid);
+            let n_uids = N::<T>::get(netuid);
             let pending_emission = PendingEmission::<T>::get(netuid);
             let name = SubnetNames::<T>::get(netuid);
             let total_stake = TotalStake::<T>::get(netuid);
@@ -237,7 +237,7 @@ pub fn migrate_to_v2<T: Config>() -> Weight {
             let subnet_state = SubnetState {
                 emission,
                 name,
-                n,
+                n_uids,
                 pending_emission,
                 pending_deregister_uids,
                 total_stake,

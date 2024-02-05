@@ -176,8 +176,8 @@ impl<T: Config> Pallet<T> {
 		// 3. Remove the network if it is empty.
 		let mut subnet_state = Self::subnet_state(netuid);
 
-		if(subnet_state.n > 0) {
-			subnet_state.n -= 1;
+		if(subnet_state.n_uids > 0) {
+			subnet_state.n_uids -= 1;
 		}
 
 
@@ -220,7 +220,7 @@ Incentive::<T>::mutate(netuid, |v| v.push(0));
 
 		let mut subnet_state = Self::subnet_state(netuid);
 
-		subnet_state.n += 1;
+		subnet_state.n_uids += 1;
 
 		SubnetStateStorage::<T>::insert(netuid, subnet_state);
 

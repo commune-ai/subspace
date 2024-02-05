@@ -473,7 +473,7 @@ impl<T: Config> Pallet<T> {
 	// Returns the number of filled slots on a network.
 	///
 	pub fn subnet_n(netuid: u16) -> u16 {
-		Self::subnet_state(netuid).n
+		Self::subnet_state(netuid).n_uids
 	}
 
 	// Returns true if the uid is set on the network.
@@ -779,7 +779,7 @@ impl<T: Config> Pallet<T> {
 	pub fn total_n() -> u16 {
 		let mut total_n: u16 = 0;
 		for subnet_state in SubnetStateStorage::<T>::iter_values() {
-			total_n += subnet_state.n;
+			total_n += subnet_state.n_uids;
 		}
 		return total_n
 	}
