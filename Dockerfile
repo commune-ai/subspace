@@ -15,4 +15,5 @@ RUN apt-get update && \
     rm -rf /var/cache/apt/archives /var/lib/apt/lists/*
 
 COPY --from=build-env /app/target/release/node-subspace /usr/local/bin
-CMD ["node-subspace"]
+
+ENTRYPOINT ["node-subspace"]
