@@ -15,13 +15,7 @@
         pkgs = import nixpkgs {
           inherit system overlays;
         };
-        rust = pkgs.rust-bin.fromRustupToolchain (
-          let
-            inherit (content) toolchain;
-            content = builtins.fromTOML (builtins.readFile ./rust-toolchain.toml);
-          in
-            toolchain // {components = ["rust-src"] ++ toolchain.components;}
-        );
+        rust = pkgs.rust-bin.fromRustupToolchainFile ./rust-toolchain.toml;
         buildInputs = with pkgs; [pkg-config jemalloc rocksdb zstd.dev bashInteractive];
         nativeBuildInputs = with pkgs; [git rust clang protobuf];
 
