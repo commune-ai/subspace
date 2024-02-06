@@ -22,7 +22,7 @@
           in
             toolchain // {components = ["rust-src"] ++ toolchain.components;}
         );
-        buildInputs = with pkgs; [pkg-config jemalloc rocksdb zstd.dev];
+        buildInputs = with pkgs; [pkg-config jemalloc rocksdb zstd.dev bashInteractive];
         nativeBuildInputs = with pkgs; [git rust clang protobuf];
 
         naersk' = pkgs.callPackage naersk {
