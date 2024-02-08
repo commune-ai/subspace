@@ -37,7 +37,7 @@ fn test_min_stake() {
 		assert_eq!(SubspaceModule::get_registrations_this_block(), 0);
 		for i in 1..n {
 			let key = U256::from(i);
-			let min_stake_to_register = SubspaceModule::get_min_stake_to_register(netuid);
+			let min_stake_to_register = SubspaceModule::get_min_stake(netuid);
 			let factor: u64 = min_stake_to_register / min_stake;
 			println!(
 				"min_stake_to_register: {:?} min_stake: {:?} factor {:?}",
