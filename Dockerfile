@@ -18,7 +18,4 @@ COPY --from=build-env /app/target/release/node-subspace /usr/local/bin
 
 WORKDIR /subspace
 
-RUN mkdir -p ./snapshots
-RUN ln -s -T /node-data/snapshots/main.json ./snapshots/main.json 
-
-ENTRYPOINT ["node-subspace"]
+CMD ["node-subspace"]
