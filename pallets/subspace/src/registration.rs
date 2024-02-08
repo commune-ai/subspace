@@ -133,34 +133,11 @@ impl<T: Config> Pallet<T> {
 	}
 
 	pub fn enough_stake_to_register(netuid: u16, stake_amount: u64) -> bool {
-		let min_stake: u64 = Self::get_min_stake_to_register(netuid);
+		let min_stake: u64 = Self::get_min_stake(netuid);
 		let min_burn = Self::get_min_burn();
 		return stake_amount >= (min_stake + min_burn)
 	}
 
-
-
-	pub fn get_min_stake_to_register(netuid: u16) -> u64 {
-		let mut min_stake: u64 = Self::get_min_stake(netuid);
-
-		let global_state = GlobalStateStorage::<T>::get();
-
-		let registrations_per_block: u16 = global_state.registrations_per_block;
-		let max_registrations_per_block: u16 = global_state.max_registrations_per_block;
-
-		let mut factor = I32F32::from_num(registrations_per_block) /
-			I32F32::from_num(max_registrations_per_block);
-
-		// convert factor to u8
-		let mut factor = factor.to_num::<u64>();
-
-		// if factor is 0, then set it to 1
-		for i in 0..factor {
-			min_stake = min_stake * 2;
-		}
-
-		return min_stake
-	}
 
 	pub fn vec_to_hash(vec_hash: Vec<u8>) -> H256 {
 		let de_ref_hash = &vec_hash; // b: &Vec<u8>
