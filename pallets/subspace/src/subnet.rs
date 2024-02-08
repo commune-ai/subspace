@@ -871,7 +871,7 @@ impl<T: Config> Pallet<T> {
 
 	pub fn get_uids(netuid: u16) -> Vec<u16> {
 		let n = Self::get_subnet_n(netuid);
-		return (0..n).collect()
+		(0..n).collect()
 	}
 	pub fn get_keys(netuid: u16) -> Vec<T::AccountId> {
 		let uids: Vec<u16> = Self::get_uids(netuid);
