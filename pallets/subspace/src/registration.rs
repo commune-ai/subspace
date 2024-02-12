@@ -85,7 +85,7 @@ impl<T: Config> Pallet<T> {
 
 		Self::increase_stake(netuid, &module_key, &module_key, 0);
 		if stake_amount > 0 {
-			Self::do_add_stake(origin.clone(), netuid, module_key.clone(), stake_amount);
+			Self::do_add_stake(origin.clone(), netuid, module_key.clone(), stake_amount)?;
 		}
 		// CONSTANT INITIAL BURN
 		if min_burn > 0 {
