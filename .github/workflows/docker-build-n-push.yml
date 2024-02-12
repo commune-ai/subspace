@@ -2,13 +2,13 @@ name: Build and push Docker image
 
 on:
   push:
-    branches: [current]
+    branches: [current, feb12]
 
 
 jobs:
   build-n-push:
     permissions: write-all
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04-32core-karl
     steps:
     - uses: actions/checkout@v3
 
