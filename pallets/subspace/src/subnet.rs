@@ -120,8 +120,8 @@ impl<T: Config> Pallet<T> {
 		Self::set_immunity_period(netuid, params.immunity_period);
 		Self::set_max_allowed_weights(netuid, params.max_allowed_weights);
 		Self::set_max_allowed_uids(netuid, params.max_allowed_uids);
-		Self::set_max_weight_age(netuid, params.max_weight_age);
 		Self::set_max_stake(netuid, params.max_stake);
+		Self::set_max_weight_age(netuid, params.max_weight_age);
 		Self::set_min_allowed_weights(netuid, params.min_allowed_weights);
 		Self::set_min_stake(netuid, params.min_stake);
 		Self::set_name_subnet(netuid, params.name);
