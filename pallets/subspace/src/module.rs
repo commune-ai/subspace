@@ -187,7 +187,7 @@ impl<T: Config> Pallet<T> {
 
 	}
 
-	// Appends the uid to the network.
+	// Appends the uid to the network (without increasing stake).
 	pub fn append_module(netuid: u16, key: &T::AccountId, name: Vec<u8>, address: Vec<u8>) -> u16 {
 		// 1. Get the next uid. This is always equal to subnetwork_n.
 		let uid: u16 = Self::get_subnet_n(netuid);
@@ -213,6 +213,9 @@ impl<T: Config> Pallet<T> {
 		); // Make uid - key association.
 
 		N::<T>::insert(netuid, N::<T>::get(netuid) + 1); // Decrease the number of modules in the network.
+		// increase the stake of the new key
+		Self::increase_stake(netuid, &key, &key, 0);
+
 
 		return uid
 	}
