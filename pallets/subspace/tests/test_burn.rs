@@ -14,7 +14,7 @@ fn test_burn() {
     new_test_ext().execute_with(|| {
         
 	let netuid = 0;
-	let n = 20;
+	let n = 200;
 	let initial_stake: u64 = 1000;
 	let tempo = 100;
 

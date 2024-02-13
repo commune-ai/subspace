@@ -96,7 +96,11 @@ impl<T: Config> Pallet<T> {
 			// watchout for the overflow
 
 			let weight_age: u64 = current_block.saturating_sub(last_update_vector[uid_i as usize]);
-			if weight_age > subnet_params.max_weight_age || weights_i.len() > subnet_params.min_allowed_weights{
+
+			if weight_age > subnet_params.max_weight_age || 
+				weights_i.len() < subnet_params.min_allowed_weights as usize 
+			{
+				// if the weight is too old or too small, then reset it
 				weight_changed = true;
 				weights[uid_i as usize] = vec![];
 			} else {

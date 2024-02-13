@@ -83,13 +83,13 @@ fn test_max_weights() {
 		subnet_params = SubspaceModule::subnet_params(netuid);
 
 		let vote_uid : u16  = 0 ;
-		let uids = uids[1..(max_allowed_weights+1)].to_vec();
+		let uids = uids[1..(max_allowed_weights as usize +1)].to_vec();
 		let votes = vec![1; uids.len()];
 		assert_ok!(SubspaceModule::set_weights(get_origin(keys[vote_uid as usize]), netuid, uids, votes));
-		assert!(new_weights.len() == max_allowed_weights as usize);
 		// now set it to half the max allowed weights
-		Self::set_max_allowed_weights(netuid, max_allowed_weights);
+		SubspaceModule::set_max_allowed_weights(netuid, max_allowed_weights);
 		let old_weights = SubspaceModule::get_weights(netuid, vote_uid);
+		assert!(old_weights.len() == max_allowed_weights as usize);
 		step_block( subnet_params.tempo + 1);
 		let new_weights = SubspaceModule::get_weights(netuid, vote_uid);
 		let dividends = SubspaceModule::get_dividends(netuid);
