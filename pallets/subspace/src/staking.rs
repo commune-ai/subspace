@@ -125,8 +125,6 @@ impl<T: Config> Pallet<T> {
 		log::info!("StakeAdded( key:{:?}, stake_to_be_added:{:?} )", key, amount);
 		Self::deposit_event(Event::StakeAdded(key, module_key, amount));
 
-		
-
 		// --- 6. Ok and return.
 		Ok(())
 	}
