@@ -58,7 +58,7 @@ fn test_burn() {
 				incentives, 
 				emissions);
 
-	step_epoch(1);
+	step_epoch(netuid);
 
 
 	let dividends = SubspaceModule::get_dividends(netuid);

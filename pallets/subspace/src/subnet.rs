@@ -645,14 +645,11 @@ impl<T: Config> Pallet<T> {
 	// ==== Global Setters ====
 	// ========================
 	pub fn set_tempo(netuid: u16, tempo: u16) {
-		Tempo::<T>::insert(netuid, tempo);
+		Tempo::<T>::insert(netuid, tempo.max(100));
 	}
 
 	pub fn set_founder_share(netuid: u16, mut founder_share: u16) {
-		if founder_share > 100 {
-			founder_share = 100;
-		}
-		FounderShare::<T>::insert(netuid, founder_share);
+		FounderShare::<T>::insert(netuid, founder_share.min(100));
 	}
 	pub fn get_founder_share(netuid: u16) -> u16 {
 		return FounderShare::<T>::get(netuid)
@@ -667,10 +664,7 @@ impl<T: Config> Pallet<T> {
 	}
 
 	pub fn set_incentive_ratio(netuid: u16, mut incentive_ratio: u16) {
-		if incentive_ratio > 100 {
-			incentive_ratio = 100;
-		}
-		IncentiveRatio::<T>::insert(netuid, incentive_ratio);
+		IncentiveRatio::<T>::insert(netuid, incentive_ratio.min(100));
 	}
 
 	pub fn get_founder(netuid: u16) -> T::AccountId {
