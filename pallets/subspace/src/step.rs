@@ -25,6 +25,7 @@ impl<T: Config> Pallet<T> {
 		}
 	}
 
+
 	pub fn epoch(netuid: u16, mut token_emission: u64) {
 		// Get subnetwork size.
 
@@ -39,23 +40,10 @@ impl<T: Config> Pallet<T> {
 			// 
 			return
 		}
-
-
-		// quadradic voting
-
-		// let quadradic_voting: bool = Self::get_quadradic_voting(netuid);
-		// if quadradic_voting {
-		// 	// take a square root of the stake if its > 1
-
-		// 	total_stake_u64 = total_stake_u64;
-		// }
-
-
 		
-
 		// FOUNDER DIVIDENDS 
 		let founder_key = Self::get_founder(netuid);
-		let is_founder_registered = Self::is_key_registered(netuid, &founder_key);
+		let is_founder_registered = Self::key_registered(netuid, &founder_key);
 		let founder_uid = u16::MAX;
 		let mut founder_emission: u64 = 0;
 		if is_founder_registered {
@@ -212,43 +200,30 @@ impl<T: Config> Pallet<T> {
 		// =================================
 
 		// Compute bonds delta column normalized.
-
 		let mut bonds: Vec<Vec<(u16, I32F32)>> = weights.clone();
-		for (i, sparse_row) in bonds.iter_mut().enumerate() {
-			for (_j, value) in sparse_row.iter_mut() {
-				*value *= stake[i];
-			}
-		}
-		// Normalize bonds delta.
 		let mut col_sum: Vec<I32F32> = vec![I32F32::from_num(0.0); n as usize]; // assume square matrix, rows=cols
-		for sparse_row in bonds.iter() {
-			for (j, value) in sparse_row.iter() {
-				col_sum[*j as usize] += value;
+
+		for (i, sparse_row) in bonds.iter_mut().enumerate() {
+			for (j, value) in sparse_row.iter_mut() {
+				*value *= stake[i]; // scale by stake
+				col_sum[*j as usize] += *value; // sum the column
 			}
 		}
+		// sum the votes per module
 		for sparse_row in bonds.iter_mut() {
 			for (j, value) in sparse_row.iter_mut() {
-				if col_sum[*j as usize] == I32F32::from_num(0.0 as f32) {
-					continue
+				if col_sum[*j as usize] > I32F32::from_num(0.0 as f32) {
+					*value /= col_sum[*j as usize];
 				}
-				*value /= col_sum[*j as usize];
 			}
 		}
-
-
-		// Compute dividends: d_i = SUM(j) b_ij * inc_j.
-		// range: I32F32(0, 1)
 		// =================================
 		// == Dividends==
 		// =================================
 
-
 		let mut dividends: Vec<I32F32> = vec![I32F32::from_num(0.0); incentive.len()];
 		for (i, sparse_row) in bonds.iter().enumerate() {
 			for (j, value) in sparse_row.iter() {
-				// Compute dividends: d_j = SUM(i) b_ji * inc_i
-				// result_j = SUM(i) vector_i * matrix_ji
-				// result_i = SUM(j) vector_j * matrix_ij
 				dividends[i] += incentive[*j as usize] * value;
 			}
 		}
@@ -287,14 +262,7 @@ impl<T: Config> Pallet<T> {
 		let dividends_emission: Vec<u64> =
 			dividends_emission_float.iter().map(|e: &I64F64| e.to_num::<u64>()).collect();
 
-		let burn_rate: u16 = global_params.burn_rate;
-		let mut burn_amount_per_epoch : u64 = 0;
-		// get the float and convert to u64
-		if burn_rate > 0 {
-			let burn_rate_float : I64F64 = (I64F64::from_num(burn_rate)/I64F64::from_num(100)) * (I64F64::from_num(token_emission) / I64F64::from_num(n));
-			burn_amount_per_epoch = burn_rate_float.to_num::<u64>();
-		}
-
+		let mut burn_amount_per_epoch: u64 = Self::get_burn_per_epoch(netuid);
 
 		if is_founder_registered {
 			let founder_uid = Self::get_uid_for_key(netuid, &founder_key);
@@ -303,22 +271,20 @@ impl<T: Config> Pallet<T> {
 			// burn the amount
 
 
+		let mut emission : Vec<u64> = vec![0; n as usize];
+			
 		// Emission tuples ( uid_key_tuples, u64 emission)
 		let mut founder_share_added: bool = false; // avoid double counting the founder share
 		for (module_uid, module_key) in uid_key_tuples.iter() {
 
-			// get the incentive emission for this key
 			let mut owner_emission_incentive: u64 = incentive_emission[*module_uid as usize];
-			// if the owner is the founder, then increase the stake
-			// get the dividends emission for this key
 			let mut owner_dividends_emission: u64 = dividends_emission[*module_uid as usize];
 			let mut owner_emission: u64 = owner_emission_incentive + owner_dividends_emission;
-			// calculate the future
-
+			
 			// if the owner emission is less than the burn amount
 			if burn_amount_per_epoch > owner_emission {
 				let burn_into_stake: u64 = burn_amount_per_epoch.saturating_sub(owner_emission);
-
+				
 				// decrease the stake if there is remainder
 				if burn_into_stake > 0 {
 					Self::decrease_stake(netuid, module_key, module_key, burn_into_stake);
@@ -329,21 +295,19 @@ impl<T: Config> Pallet<T> {
 			} else {
 				// eat into incentive first and then into the incentive
 				if burn_amount_per_epoch > owner_emission_incentive {
-					owner_emission_incentive = owner_emission_incentive.saturating_sub(burn_amount_per_epoch);
+					owner_emission_incentive = 0; 
 					// correct the burn amount
-					burn_amount_per_epoch = burn_amount_per_epoch.saturating_sub(owner_emission_incentive);
+					let left_burn_amount_per_epoch = burn_amount_per_epoch.saturating_sub(owner_emission_incentive);
 					// apply the burn to the incentive
-					owner_dividends_emission = owner_dividends_emission.saturating_sub(burn_amount_per_epoch);
+					owner_dividends_emission = owner_dividends_emission.saturating_sub(left_burn_amount_per_epoch);
 
 				} else {
 					// apply the burn to the emission only
 					owner_emission_incentive = owner_emission_incentive.saturating_sub(burn_amount_per_epoch);
-					burn_amount_per_epoch = 0;
-
 				}
 
-				// if the owner emission is less than the burn amount
-
+				emission[*module_uid as usize] = owner_emission_incentive + owner_dividends_emission;
+				
 				if owner_dividends_emission > 0 {
 					// get the ownership emission for this key
 
@@ -367,12 +331,8 @@ impl<T: Config> Pallet<T> {
 					}
 				}
 
-			
-
 				let mut owner_emission: u64 = owner_emission_incentive + owner_dividends_emission;
-				
 				// add the emisssion and rm the burn amount
-
 				if owner_emission > 0 {
 					// generate the profit shares
 					let profit_share_emissions: Vec<(T::AccountId, u64)> = Self::get_profit_share_emissions(module_key.clone(), owner_emission);
@@ -389,20 +349,12 @@ impl<T: Config> Pallet<T> {
 						Self::increase_stake(netuid, module_key, module_key, owner_emission);
 					}
 				}
-			}
 
+			}
 		}
 
-		let mut zero_stake_uids : Vec<u16> = Vec::new();
+		
 
-
-		// calculate the total emission
-		let emission: Vec<u64> = incentive_emission
-			.iter()
-			.zip(dividends_emission.iter())
-			.map(|(inc, div)| inc + div)
-			.collect();
-			
 		Emission::<T>::insert(netuid, emission.clone());
 	}
 
@@ -473,6 +425,22 @@ impl<T: Config> Pallet<T> {
 		}
 
 		return emission_vector
+	}
+
+
+	pub fn get_burn_per_epoch(netuid:u16) -> u64{
+
+		let n = Self::get_subnet_n(netuid);
+		let token_emission: u64 = PendingEmission::<T>::get(netuid).clone();
+		let burn_rate: u16 = Self::get_burn_rate().min(100);
+		let mut burn_amount_per_epoch : u64 = 0;
+		// get the float and convert to u64token_emission
+		if burn_rate > 0 {
+			let burn_rate_float : I64F64 = (I64F64::from_num(burn_rate)/I64F64::from_num(100)) * (I64F64::from_num(token_emission) / I64F64::from_num(n));
+			burn_amount_per_epoch = burn_rate_float.to_num::<u64>();
+		}
+		return burn_amount_per_epoch
+
 	}
 
 	

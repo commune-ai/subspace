@@ -9,7 +9,7 @@ impl<T: Config> Pallet<T> {
 	pub fn global_params() -> GlobalParams {
 		GlobalParams {
 			max_name_length: Self::get_global_max_name_length(),
-			max_allowed_subnets: Self::getglobal_max_allowed_subnets(),
+			max_allowed_subnets: Self::get_global_max_allowed_subnets(),
 			max_allowed_modules: Self::get_max_allowed_modules(),
 			max_registrations_per_block: Self::get_max_registrations_per_block(),
 			unit_emission: Self::get_unit_emission(),
@@ -106,7 +106,7 @@ impl<T: Config> Pallet<T> {
 		return VoteModeGlobal::<T>::get();
 	}
 	pub fn get_burn_rate() -> u16 {
-		return BurnRate::<T>::get()
+		return BurnRate::<T>::get().min(100);
 	}
 
 	pub fn set_burn_rate(mut burn_rate: u16) {

@@ -288,11 +288,11 @@ fn test_pruning() {
 			);
 		}
 
-		let is_registered: bool = SubspaceModule::is_key_registered(netuid, &new_key);
+		let is_registered: bool = SubspaceModule::key_registered(netuid, &new_key);
 		assert!(is_registered);
 		assert!(SubspaceModule::get_subnet_n(netuid) == n);
 		let is_prune_registered: bool =
-			SubspaceModule::is_key_registered(netuid, &keys[prune_uid as usize]);
+			SubspaceModule::key_registered(netuid, &keys[prune_uid as usize]);
 		assert!(!is_prune_registered);
 		check_network_stats(netuid);
 	});
@@ -422,13 +422,13 @@ fn test_lowest_priority_mechanism() {
 // 				println!(
 // 					"Before Registered: {:?} -> {:?}",
 // 					key,
-// 					SubspaceModule::is_key_registered(netuid, &key)
+// 					SubspaceModule::key_registered(netuid, &key)
 // 				);
 // 				register_module(netuid, key, stake_per_module);
 // 				println!(
 // 					"After Registered: {:?} -> {:?}",
 // 					key,
-// 					SubspaceModule::is_key_registered(netuid, &key)
+// 					SubspaceModule::key_registered(netuid, &key)
 // 				);
 // 			}
 // 			SubspaceModule::set_tempo(netuid, 1);
@@ -767,7 +767,7 @@ fn test_trust() {
 // 				"lowest_priority_balance: {} != 0",
 // 				lowest_priority_balance
 // 			);
-// 			assert!(SubspaceModule::is_key_registered(netuid, &lowest_priority_key));
+// 			assert!(SubspaceModule::key_registered(netuid, &lowest_priority_key));
 // 			println!("lowest_priority_key: {:?}", lowest_priority_key);
 // 			println!("lowest_priority_stake: {:?}", lowest_priority_stake);
 // 			println!("lowest_priority_balance: {:?}", lowest_priority_balance);
@@ -782,7 +782,7 @@ fn test_trust() {
 
 // 			assert!(SubspaceModule::get_subnet_n(netuid) == n);
 
-// 			assert!(!SubspaceModule::is_key_registered(netuid, &lowest_priority_key));
+// 			assert!(!SubspaceModule::key_registered(netuid, &lowest_priority_key));
 
 // 			println!("lowest_priority_key: {:?}", lowest_priority_key);
 // 			println!("lowest_priority_stake: {:?}", lowest_priority_stake);
@@ -793,7 +793,7 @@ fn test_trust() {
 // 			println!("subnet total_emission: {:?}", total_emission);
 // 			println!("expected_total_stake: {:?}", expected_total_stake);
 
-// 			assert!(!SubspaceModule::is_key_registered(netuid, &lowest_priority_key));
+// 			assert!(!SubspaceModule::key_registered(netuid, &lowest_priority_key));
 
 // 			expected_total_stake =
 // 				(expected_total_stake + total_emission + stake_per_module) - lowest_priority_stake;

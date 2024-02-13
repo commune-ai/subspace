@@ -212,7 +212,6 @@ pub mod pallet {
 	pub fn DefaultGlobalParams<T: Config>() -> GlobalParams {
 		GlobalParams {
 			burn_rate: DefaultBurnRate::<T>::get(),
-
 			max_allowed_subnets: DefaultMaxAllowedSubnets::<T>::get(),
 			max_allowed_modules: DefaultMaxAllowedModules::<T>::get(),
 			max_allowed_weights: DefaultMaxAllowedWeightsGlobal::<T>::get(),
@@ -346,7 +345,7 @@ pub mod pallet {
 	
 	
 	#[pallet::type_value]
-	pub fn DefaultTempo<T: Config>() -> u16 {1}
+	pub fn DefaultTempo<T: Config>() -> u16 {100}
 	#[pallet::storage] // --- MAP ( netuid ) --> epoch
 	pub type Tempo<T> = StorageMap<_, Identity, u16, u16, ValueQuery, DefaultTempo<T>>;
 
