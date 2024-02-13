@@ -69,7 +69,6 @@ impl<T: Config> Pallet<T> {
 		Self::set_last_update_for_uid(netuid, uid, current_block);
 
 		// --- 18. Emit the tracking event.
-		log::info!("WeightsSet( netuid:{:?}, uid:{:?} )", netuid, uid);
 		Self::deposit_event(Event::WeightsSet(netuid, uid));
 
 		// --- 19. Return ok.
