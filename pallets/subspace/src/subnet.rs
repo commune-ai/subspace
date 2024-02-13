@@ -48,6 +48,13 @@ impl<T: Config> Pallet<T> {
 		Ok(())
 	}
 
+	// Returns a random index in range 0..n.
+	pub fn random_idx(n: u16) -> u16 {
+		let block_number: u64 = Self::get_current_block_as_u64();
+		// take the modulos of the blocknumber
+		let idx: u16 = ((block_number % u16::MAX as u64) % (n as u64)) as u16;
+		return idx
+	}
 
 
     pub fn check_subnet_params(params: SubnetParams<T>) -> DispatchResult{
@@ -237,7 +244,10 @@ impl<T: Config> Pallet<T> {
 
 	pub fn set_name_subnet(netuid: u16, name: Vec<u8>) {
 		// set the name if it doesnt exist
-		SubnetNames::<T>::insert(netuid, name.clone());
+		if !Self::subnet_name_exists(name.clone()) 
+		{
+			SubnetNames::<T>::insert(netuid, name.clone());
+		}
 	}
 
 
@@ -393,17 +403,13 @@ impl<T: Config> Pallet<T> {
 	
 	// Initializes a new subnetwork under netuid with parameters.
 	//
-	pub fn if_subnet_name_exists(name: Vec<u8>) -> bool {
+	pub fn subnet_name_exists(name: Vec<u8>) -> bool {
 		for (netuid, _name) in <SubnetNames<T> as IterableStorageMap<u16, Vec<u8>>>::iter() {
 			if _name == name {
 				return true
 			}
 		}
 		return false
-	}
-
-	pub fn subnet_name_exists(name: Vec<u8>) -> bool {
-		return Self::if_subnet_name_exists(name.clone()).into()
 	}
 
 	pub fn if_subnet_netuid_exists(netuid: u16) -> bool {
@@ -493,7 +499,6 @@ impl<T: Config> Pallet<T> {
 		N::<T>::remove(netuid);
 		TotalSubnets::<T>::mutate(|val| (*val).saturating_sub(1));
 		// --- 4. Emit the event.
-		log::info!("NetworkRemoved( netuid:{:?} )", netuid);
 		Self::deposit_event(Event::NetworkRemoved(netuid));
 
 		return netuid
@@ -525,7 +530,7 @@ impl<T: Config> Pallet<T> {
 		return Uids::<T>::contains_key(netuid, key)
 	}
 
-	pub fn is_key_registered(netuid: u16, key: &T::AccountId) -> bool {
+	pub fn key_registered(netuid: u16, key: &T::AccountId) -> bool {
 		return Uids::<T>::contains_key(netuid, key)
 	}
 
@@ -575,7 +580,7 @@ impl<T: Config> Pallet<T> {
 
 
 
-	pub fn if_module_name_exists(netuid: u16, name: Vec<u8>) -> bool {
+	pub fn module_name_exists(netuid: u16, name: Vec<u8>) -> bool {
 		for (uid, _name) in
 			<Name<T> as IterableStorageDoubleMap<u16, u16, Vec<u8>>>::iter_prefix(netuid)
 		{
@@ -644,15 +649,20 @@ impl<T: Config> Pallet<T> {
 	// ========================
 	// ==== Global Setters ====
 	// ========================
+	// TEMPO (MIN IS 100)
 	pub fn set_tempo(netuid: u16, tempo: u16) {
 		Tempo::<T>::insert(netuid, tempo.max(100));
 	}
+	pub fn get_tempo(netuid: u16) -> u16 {
+		Tempo::<T>::get(netuid).max(100)
+	}
 
+	// FOUNDER SHARE (MAX IS 100)
 	pub fn set_founder_share(netuid: u16, mut founder_share: u16) {
 		FounderShare::<T>::insert(netuid, founder_share.min(100));
 	}
 	pub fn get_founder_share(netuid: u16) -> u16 {
-		return FounderShare::<T>::get(netuid)
+		return FounderShare::<T>::get(netuid).min(100)
 	}
 
 	pub fn get_registration_block_for_uid(netuid: u16, uid: u16) -> u64 {
@@ -660,9 +670,8 @@ impl<T: Config> Pallet<T> {
 	}
 	
 	pub fn get_incentive_ratio(netuid: u16) -> u16 {
-		return IncentiveRatio::<T>::get(netuid)
+		return IncentiveRatio::<T>::get(netuid).min(100)
 	}
-
 	pub fn set_incentive_ratio(netuid: u16, mut incentive_ratio: u16) {
 		IncentiveRatio::<T>::insert(netuid, incentive_ratio.min(100));
 	}
@@ -676,7 +685,6 @@ impl<T: Config> Pallet<T> {
 	}
 
 
-
 	pub fn get_burn_emission_per_epoch(netuid: u16) -> u64 {
 		let burn_rate: u16 = BurnRate::<T>::get();
 		let epoch_emission: u64 = Self::get_subnet_emission(netuid);
@@ -687,7 +695,6 @@ impl<T: Config> Pallet<T> {
 		}
 		let burn_rate_float : I64F64 = I64F64::from_num(burn_rate) / I64F64::from_num(n * 100);
 		let burn_emission_per_epoch: u64 = (I64F64::from_num(epoch_emission) * burn_rate_float).to_num::<u64>();
-
 		return burn_emission_per_epoch
 	}
 
@@ -751,19 +758,16 @@ impl<T: Config> Pallet<T> {
 		}
 	}
 
-	pub fn getglobal_max_allowed_subnets() -> u16 {
+	pub fn get_global_max_allowed_subnets() -> u16 {
 		MaxAllowedSubnets::<T>::get()
 	}
 	pub fn set_global_max_allowed_subnets(max_allowed_subnets: u16) {
 		MaxAllowedSubnets::<T>::set(max_allowed_subnets)
 	}
-
 	// ============================
 	// ==== Subnetwork Getters ====
 	// ============================
-	pub fn get_tempo(netuid: u16) -> u16 {
-		Tempo::<T>::get(netuid)
-	}
+
 	pub fn get_pending_emission(netuid: u16) -> u64 {
 		PendingEmission::<T>::get(netuid)
 	}
@@ -778,8 +782,6 @@ impl<T: Config> Pallet<T> {
 	pub fn get_module_age(netuid: u16, uid: u16) -> u64 {
 		return Self::get_current_block_as_u64() - Self::get_module_registration_block(netuid, uid)
 	}
-
-
 
 	pub fn get_immunity_period(netuid: u16) -> u16 {
 		ImmunityPeriod::<T>::get(netuid)
