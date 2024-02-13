@@ -341,23 +341,7 @@ fn test_min_stake() {
 		// SubspaceModule::set_min_stake( netuid, min_stake - 100);
 
 		SubspaceModule::remove_stake(get_origin(keys[0]), netuid, keys[0], 10_000_000_000);
-		let pending_deregistration_uids = SubspaceModule::get_pending_deregister_uids(netuid);
-		println!("PENDING DEREGISTRATION UIDS: {:?}", pending_deregistration_uids);
 
-		let stakes = SubspaceModule::get_stakes(netuid);
-		println!("STAKES: {:?}", stakes);
-		step_epoch(netuid);
-		let stakes = SubspaceModule::get_stakes(netuid);
-		println!("STAKES: {:?}", stakes);
-		let pending_deregistration_uids = SubspaceModule::get_pending_deregister_uids(netuid);
-		println!("PENDING DEREGISTRATION UIDS: {:?}", pending_deregistration_uids);
-		assert_eq!(pending_deregistration_uids.len(), 1);
-		assert_eq!(pending_deregistration_uids[0], 0);
-		let is_registered = SubspaceModule::is_registered(netuid, &keys[0]);
-		assert_eq!(is_registered, true);
-		step_block(1);
-		let is_registered = SubspaceModule::is_registered(netuid, &keys[0]);
-		assert_eq!(is_registered, false);
 
 	});
 }

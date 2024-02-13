@@ -325,12 +325,6 @@ pub mod pallet {
 	pub fn DefaultMaxAllowedWeights<T: Config>() -> u16 {420}
 	#[pallet::storage] // --- MAP ( netuid ) --> min_allowed_weights
 	pub type MaxAllowedWeights<T> =StorageMap<_, Identity, u16, u16, ValueQuery, DefaultMaxAllowedWeights<T>>;
-	
-
-	#[pallet::type_value]
-	pub fn DefaultPendingDeregisterUids<T: Config>() -> Vec<u16> {vec![]}
-	#[pallet::storage] // --- MAP ( netuid ) --> min_allowed_weights
-	pub type PendingDeregisterUids<T> = StorageMap<_, Identity, u16, Vec<u16>, ValueQuery, DefaultPendingDeregisterUids<T>>;
 
 
 	#[pallet::type_value]
