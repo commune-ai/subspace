@@ -16,7 +16,6 @@ impl<T: Config> Pallet<T> {
 			let new_queued_emission: u64 = Self::calculate_network_emission(netuid);
 			PendingEmission::<T>::mutate(netuid, |mut queued| *queued += new_queued_emission);
 			log::debug!("netuid_i: {:?} queued_emission: +{:?} ", netuid, new_queued_emission);
-			Self::deregister_pending_uid(netuid); // deregister any pending uids
 			if Self::blocks_until_next_epoch(netuid, tempo, block_number) > 0 {
 				continue
 			}
@@ -397,14 +396,6 @@ impl<T: Config> Pallet<T> {
 		}
 
 		let mut zero_stake_uids : Vec<u16> = Vec::new();
-
-		for (module_uid, module_key) in uid_key_tuples.iter() {
-			let new_stake = Self::get_stake_for_key(netuid, module_key);
-			if new_stake < subnet_params.min_stake {
-				// if the stake is more than the max stake, then deregister the module
-				Self::add_pending_deregistration_uid(netuid, *module_uid);
-			}
-		}
 
 
 		// calculate the total emission
