@@ -208,29 +208,6 @@ impl<T: Config> Pallet<T> {
 
 
 
-	pub fn add_pending_deregistration_uid(netuid: u16, uid: u16) {
-		PendingDeregisterUids::<T>::mutate(netuid, |val| val.push(uid));
-	}
-
-	pub fn add_pending_deregistration_uids(netuid: u16, uids: Vec<u16>) {
-		for uid in uids {
-			PendingDeregisterUids::<T>::mutate(netuid, |val| val.push(uid));
-		}
-	}
-	
-	pub fn deregister_pending_uid(netuid: u16) {
-		let mut pending_deregister_uids:  Vec<u16> = PendingDeregisterUids::<T>::get(netuid);
-		if pending_deregister_uids.len() > 0 {
-			let n = Self::get_subnet_n(netuid);
-			let uid: u16 = pending_deregister_uids.remove(0);
-
-			if uid < n {
-				Self::remove_module(netuid, uid);
-				PendingDeregisterUids::<T>::insert(netuid, pending_deregister_uids);
-
-			}
-		}
-	}
 
 	pub fn set_max_allowed_uids(netuid: u16, mut max_allowed_uids: u16) {
 		let n: u16 = Self::get_subnet_n(netuid);
@@ -491,7 +468,6 @@ impl<T: Config> Pallet<T> {
 		Dividends::<T>::remove(netuid);
 		Trust::<T>::remove(netuid);
 		LastUpdate::<T>::remove(netuid);
-		PendingDeregisterUids::<T>::remove(netuid);
 		DelegationFee::<T>::clear_prefix(netuid, u32::max_value(), None);
 		RegistrationBlock::<T>::clear_prefix(netuid, u32::max_value(), None);
 		
@@ -1003,7 +979,4 @@ impl<T: Config> Pallet<T> {
 		MaxWeightAge::<T>::insert(netuid, max_weight_age);
 	}
 
-	pub fn get_pending_deregister_uids(netuid: u16) -> Vec<u16> {
-		return PendingDeregisterUids::<T>::get(netuid)
-	}
 }

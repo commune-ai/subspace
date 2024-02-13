@@ -82,7 +82,10 @@ impl<T: Config> Pallet<T> {
 		}
 
 		uid = Self::append_module(netuid, &module_key, name.clone(), address.clone());
+
+		// adding the stake amount
 		Self::do_add_stake(origin.clone(), netuid, module_key.clone(), stake_amount)?;
+		
 		// CONSTANT INITIAL BURN
 		if min_burn > 0 {
 			ensure!(stake_amount >= min_burn, Error::<T>::NotEnoughStakeToRegister);
@@ -153,18 +156,6 @@ impl<T: Config> Pallet<T> {
 	}
 	pub fn get_lowest_uid(netuid: u16) -> u16 {
 		let n: u16 = Self::get_subnet_n(netuid);
-
-		// If there are pending deregister uids, then return the first one.
-		let pending_deregister_uids: Vec<u16> = PendingDeregisterUids::<T>::get(netuid);
-		if pending_deregister_uids.len() > 0 {
-			let uid: u16 = pending_deregister_uids[0];
-			if uid < n {
-				PendingDeregisterUids::<T>::mutate(netuid, |v| v.remove(0));
-				return uid
-
-			}
-			
-		}
 
 		let mut min_score: u64 = u64::MAX;
 		let mut lowest_priority_uid: u16 = 0;
