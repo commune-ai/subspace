@@ -17,11 +17,8 @@ impl<T: Config> Pallet<T> {
 		let min_stake_per_weight: u64 = Self::get_min_weight_stake();
 		let min_stake_for_weights: u64 = min_stake_per_weight * uids.len() as u64;
 		ensure!(stake >= min_stake_for_weights, Error::<T>::NotEnoughtStakePerWeight);
-
 		ensure!(stake > 0, Error::<T>::NotEnoughStaketoSetWeights);
-
 		let stake: u64 = Self::get_stake_for_key(netuid, &key);
-
 		ensure!(stake > 0, Error::<T>::NotEnoughStaketoSetWeights);
 		// --- 2. Check to see if this is a valid network.
 		ensure!(Self::if_subnet_exist(netuid), Error::<T>::NetworkDoesNotExist);
@@ -136,6 +133,8 @@ impl<T: Config> Pallet<T> {
 
 	// Returns true if the uids and weights correspond to a self weight on the uid.
 	pub fn is_self_weight(uid: u16, uids: &Vec<u16>, weights: &Vec<u16>) -> bool {
+
+		// Check if the uid is in the uids.
 		if weights.len() != 1 {
 			return false
 		}
@@ -155,5 +154,19 @@ impl<T: Config> Pallet<T> {
 			return false
 		}
 		return true
+	}
+
+	pub fn get_weight_age(netuid: u16, uid: u16) -> u64 {
+		let current_block: u64 = Self::get_current_block_as_u64();
+		let last_update: u64 = Self::get_last_update_for_uid(netuid, uid);
+		return current_block.saturating_sub(last_update)
+	}
+
+	pub fn get_weights(netuid: u16, uid: u16) -> Vec<(u16, u16)> {
+		return Weights::<T>::get(netuid, uid)
+	}
+	pub fn get_weights_for_key(netuid: u16, key: &T::AccountId) -> Vec<(u16, u16)> {
+		let uid: u16 = Self::get_uid_for_key(netuid, key);
+		return Self::get_weights(netuid, uid)
 	}
 }
