@@ -85,7 +85,7 @@ impl<T: Config> Pallet<T> {
 
 		// adding the stake amount
 		Self::do_add_stake(origin.clone(), netuid, module_key.clone(), stake_amount)?;
-		
+
 		// CONSTANT INITIAL BURN
 		if min_burn > 0 {
 			ensure!(stake_amount >= min_burn, Error::<T>::NotEnoughStakeToRegister);
@@ -229,8 +229,6 @@ impl<T: Config> Pallet<T> {
 		// use default parameters
 		//
 
-
-
 		let num_subnets: u16 = Self::num_subnets();
 		let max_subnets: u16 = Self::getglobal_max_allowed_subnets();
 		// if we have not reached the max number of subnets, then we can start a new one
@@ -253,10 +251,7 @@ impl<T: Config> Pallet<T> {
 		params.name = name.clone();
 		let netuid = Self::add_subnet(params);
 		Founder::<T>::insert(netuid, founder_key.clone());
-		
-
-		
-
+	
 		Ok(())
 	}
 

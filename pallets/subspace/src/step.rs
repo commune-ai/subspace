@@ -170,8 +170,6 @@ impl<T: Config> Pallet<T> {
 				incentive[*uid_i as usize] = I32F32::from_num(1.0);
 			}
 		}
-
-		
 		inplace_normalize(&mut incentive); // range: I32F32(0, 1)
 
 		// =================================

@@ -90,7 +90,7 @@ fn test_dividends_same_stake() {
 
 
 		let stakes_before : Vec<u64> = SubspaceModule::get_stakes(netuid);
-		step_block(1);
+		step_epoch(netuid);
 		let incentives: Vec<u16> = SubspaceModule::get_incentives(netuid);
 		let dividends: Vec<u16> = SubspaceModule::get_dividends(netuid);
 		let emissions: Vec<u64> = SubspaceModule::get_emissions(netuid);
@@ -147,7 +147,7 @@ fn test_dividends_diff_stake() {
 		let n_list: Vec<u16> = vec![10, 50, 100, 1000];
 		let blocks_per_epoch_list: u64 = 1;
 		let stake_per_module: u64 = 10_000;
-		let tempo : u16 = 10;
+		let tempo : u16 = 100;
 
 		// SETUP NETWORK
 		for i in 0..n {
@@ -238,7 +238,7 @@ fn test_pruning() {
 		let n: u16 = 100;
 		let blocks_per_epoch_list: u64 = 1;
 		let stake_per_module: u64 = 10_000;
-		let tempo: u16 = 1;
+		let tempo: u16 = 100;
 
 		// SETUP NETWORK
 		register_n_modules(netuid, n, stake_per_module);
@@ -308,11 +308,12 @@ fn test_lowest_priority_mechanism() {
 		let n_list: Vec<u16> = vec![10, 50, 100, 1000];
 		let blocks_per_epoch_list: u64 = 1;
 		let stake_per_module: u64 = 10_000;
+		let tempo : u16 = 100;
 
 		// SETUP NETWORK
 		register_n_modules(netuid, n, stake_per_module);
 
-		SubspaceModule::set_tempo(netuid, 1);
+		SubspaceModule::set_tempo(netuid, tempo);
 		SubspaceModule::set_max_allowed_weights(netuid, n);
 		SubspaceModule::set_min_allowed_weights(netuid, 0);
 
@@ -334,7 +335,7 @@ fn test_lowest_priority_mechanism() {
 		weight_values[prune_uid as usize] = 0;
 		set_weights(netuid, keys[0], weight_uids.clone(), weight_values.clone());
 
-		step_block(1);
+		step_block(tempo);
 		let incentives: Vec<u16> = SubspaceModule::get_incentives(netuid);
 		let dividends: Vec<u16> = SubspaceModule::get_dividends(netuid);
 		let emissions: Vec<u64> = SubspaceModule::get_emissions(netuid);
@@ -497,7 +498,7 @@ fn test_incentives() {
 		let mut params = SubspaceModule::subnet_params(netuid);
 		params.min_allowed_weights = 0;
 		params.max_allowed_weights = n;
-		params.tempo = 1;
+		params.tempo = 100;
 
 		
 		let keys = SubspaceModule::get_keys(netuid);
@@ -509,7 +510,7 @@ fn test_incentives() {
 		let weight_values: Vec<u16> = [1, 1].to_vec();
 
 		set_weights(netuid, keys[0], weight_uids.clone(), weight_values.clone());
-		step_block(1);
+		step_block(params.tempo);
 
 		let incentives: Vec<u16> = SubspaceModule::get_incentives(netuid);
 		let emissions: Vec<u64> = SubspaceModule::get_emissions(netuid);
@@ -526,13 +527,13 @@ fn test_incentives() {
 		set_weights(netuid, keys[0], weight_uids.clone(), weight_values.clone());
 		set_weights(netuid, keys[9], weight_uids.clone(), weight_values.clone());
 
-		step_block(1);
+		step_block(params.tempo);
 
 		let incentives: Vec<u16> = SubspaceModule::get_incentives(netuid);
 		let emissions: Vec<u64> = SubspaceModule::get_emissions(netuid);
 
 		// evaluate votees
-		let delta : u64 = 100;
+		let delta : u64 = 100 * params.tempo as u64;
 		assert!(incentives[1] > 0);
 
 		assert!(emissions[2] > 2 * emissions[1] - delta && 
@@ -561,7 +562,7 @@ fn test_trust() {
 		let mut params = SubspaceModule::subnet_params(netuid);
 		params.min_allowed_weights = 0;
 		params.max_allowed_weights = n;
-		params.tempo = 1;
+		params.tempo = 100;
 		params.trust_ratio = 100;
 
 		SubspaceModule::set_subnet_params(netuid, params.clone());
@@ -579,7 +580,7 @@ fn test_trust() {
 		let weight_uids: Vec<u16> = [1, 2].to_vec();
 		let weight_values: Vec<u16> = [1, 1].to_vec();
 		set_weights(netuid, keys[9], weight_uids.clone(), weight_values.clone());
-		step_block(1);
+		step_block(params.tempo);
 
 		let trust: Vec<u16> = SubspaceModule::get_trust(netuid);
 		let emission : Vec<u64> = SubspaceModule::get_emissions(netuid);
@@ -855,14 +856,16 @@ fn test_founder_share() {
 	let founder_share = SubspaceModule::get_founder_share(netuid);
 	let founder_ratio: f64 = founder_share as f64 / 100.0;
 
+	let subnet_params = SubspaceModule::subnet_params(netuid);
+
 
 	let founder_stake_before = SubspaceModule::get_stake_for_key(netuid, &founder_key);
 	println!("founder_stake_before: {:?}", founder_stake_before);
 	// vote to avoid key[0] as we want to see the key[0] burn
 	step_epoch(netuid);
-	let total_emission = SubspaceModule::get_subnet_emission(netuid);
-	let expected_founder_share = (total_emission as f64 * founder_ratio) as u64;
-	let expected_emission = total_emission;
+	let total_emission = SubspaceModule::get_subnet_emission(netuid) * subnet_params.tempo as u64;
+	let expected_emission = total_emission  as u64;
+	let expected_founder_share = (expected_emission as f64 * founder_ratio) as u64;
 	let emissions = SubspaceModule::get_emissions(netuid);
 	let dividends = SubspaceModule::get_dividends(netuid);
 	let incentives = SubspaceModule::get_incentives(netuid);
@@ -884,21 +887,21 @@ fn test_founder_share() {
 
 
 	let calculated_founder_share = SubspaceModule::get_stake_for_key(netuid, &founder_key) - founder_stake_before - founder_emission;
-	let delta: u64 = 1000;
+	let delta: u64 = 100000;
 
 	
 	println!("expected_emission: {:?}", expected_emission);
 	println!("total_emission: {:?}", total_emission);
-	assert!(expected_emission > calcualted_total_emission - delta );
-	assert!(expected_emission < calcualted_total_emission + delta );
+	assert!(expected_emission > calcualted_total_emission - delta , "expected_emission: {} != calcualted_total_emission: {}", expected_emission, calcualted_total_emission);
+	assert!(expected_emission < calcualted_total_emission + delta , "expected_emission: {} != calcualted_total_emission: {}", expected_emission, calcualted_total_emission);
 
-	println!("calculated_founder_share: {:?}", calculated_founder_share);
 	println!("expected_founder_share: {:?}", expected_founder_share);
-	assert!(expected_founder_share > calculated_founder_share - delta );
-	assert!(expected_founder_share < calculated_founder_share + delta );
-
+	assert!(expected_founder_share > calculated_founder_share - delta , "expected_founder_share: {} != calculated_founder_share: {}", expected_founder_share, calculated_founder_share);
+	assert!(expected_founder_share < calculated_founder_share + delta , "expected_founder_share: {} != calculated_founder_share: {}", expected_founder_share, calculated_founder_share);
 
 	});
+
+
 
 
 }
