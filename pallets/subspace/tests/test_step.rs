@@ -38,6 +38,22 @@ fn check_network_stats(netuid: u16) {
 	);
 }
 
+
+#[test]
+fn test_stale_weights() {
+	new_test_ext().execute_with(|| {
+		let netuid: u16 = 0;
+		register_n_modules(0, 10, 1000);
+		let subnet_params = SubspaceModule::subnet_params(netuid);
+		let keys = SubspaceModule::get_keys(netuid);
+		let uids = SubspaceModule::get_uids(netuid);
+		
+		
+	});
+}
+
+
+
 #[test]
 fn test_no_weights() {
 	new_test_ext().execute_with(|| {
