@@ -75,10 +75,7 @@ impl<T: Config> Pallet<T> {
 		let key = ensure_signed(origin.clone())?;
 		ensure!(Self::is_registered(netuid, &module_key.clone()), Error::<T>::NotRegistered);
 		ensure!(Self::is_registered(netuid, &new_module_key.clone()), Error::<T>::NotRegistered);
-		ensure!(
-			Self::has_enough_stake(netuid, &key, &module_key, amount),
-			Error::<T>::NotEnoughStaketoWithdraw
-		);
+		ensure!(Self::has_enough_stake(netuid, &key, &module_key, amount),Error::<T>::NotEnoughStaketoWithdraw);
 
 		Self::do_remove_stake(origin.clone(), netuid, module_key.clone(), amount)?;
 		Self::do_add_stake(origin.clone(), netuid, new_module_key.clone(), amount)?;
@@ -101,18 +98,15 @@ impl<T: Config> Pallet<T> {
 
 		ensure!(Self::is_registered(netuid, &module_key.clone()), Error::<T>::NotRegistered);
 
-		log::info!("do_add_stake( origin:{:?} stake_to_be_added:{:?} )", key, amount);
-
 		ensure!(Self::has_enough_balance(&key, amount), Error::<T>::NotEnoughBalanceToStake);
 
 		let stake_before_add: u64 = Self::get_stake_to_module(netuid, &key, &module_key.clone());
 		let balance_before_add: u64 = Self::get_balance_u64(&key);
 		let module_stake_before_add: u64 = Self::get_stake_for_key(netuid, &module_key);
-
-		Self::increase_stake(netuid, &key, &module_key, amount);
 		let removed_balance: bool = Self::remove_balance_from_account(&key, Self::u64_to_balance(amount).unwrap());
 		ensure!(removed_balance, Error::<T>::BalanceNotRemoved);
-
+		Self::increase_stake(netuid, &key, &module_key, amount);
+		
 		let stake_after_add: u64 = Self::get_stake_to_module(netuid, &key, &module_key.clone());
 		let balance_after_add: u64 = Self::get_balance_u64(&key);
 		let module_stake_after_add = Self::get_stake_for_key(netuid, &module_key);
@@ -122,10 +116,9 @@ impl<T: Config> Pallet<T> {
 		ensure!(module_stake_after_add == module_stake_before_add.saturating_add(amount), Error::<T>::StakeNotAdded);
 
 		// --- 5. Emit the staking event.
-		log::info!("StakeAdded( key:{:?}, stake_to_be_added:{:?} )", key, amount);
 		Self::deposit_event(Event::StakeAdded(key, module_key, amount));
 
-		// --- 6. Ok and return.
+		// --- 6. Ok and return.get_total_emissions
 		Ok(())
 	}
 
@@ -138,7 +131,6 @@ impl<T: Config> Pallet<T> {
 		// --- 1. We check the transaction is signed by the caller and retrieve the T::AccountId key
 		// information.
 		let key = ensure_signed(origin)?;
-		log::info!("do_remove_stake( origin:{:?} stake_to_be_removed:{:?} )", key, amount);
 
 		ensure!(Self::is_registered(netuid, &module_key.clone()), Error::<T>::NotRegistered);
 
@@ -170,7 +162,6 @@ impl<T: Config> Pallet<T> {
 		ensure!(balance_after_remove == balance_before_remove.saturating_add(amount), Error::<T>::BalanceNotAdded);
 		ensure!(module_stake_after_remove == module_stake_before_remove.saturating_sub(amount), Error::<T>::StakeNotRemoved);
 
-		log::info!("StakeRemoved( key:{:?}, stake_to_be_removed:{:?} )", key, amount);
 		Self::deposit_event(Event::StakeRemoved(key, module_key, amount));
 
 		// --- 10. Done and ok.
@@ -198,8 +189,17 @@ impl<T: Config> Pallet<T> {
 		return Stake::<T>::get(netuid, key)
 	}
 
+
+
 	pub fn get_stakes(netuid: u16) -> Vec<u64> {
-		return Stake::<T>::iter_prefix(netuid).map(|(_, v)| v).collect::<Vec<u64>>()
+		let n = Self::get_subnet_n(netuid);
+		let mut stakes : Vec<u64> = Vec::new();
+	 	let mut uid_key_tuples: Vec<(u16, T::AccountId)> = Self::get_uid_key_tuples(netuid);
+		for (uid, key) in uid_key_tuples {
+			let stake: u64 = Self::get_stake(netuid, &key);
+			stakes.push(stake);
+		}
+		return stakes
 	}
 
 	// Returns the stake under the cold - hot pairing in the staking table.
