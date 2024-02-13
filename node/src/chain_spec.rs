@@ -183,7 +183,7 @@ pub fn generate_config(network: String) -> Result<ChainSpec, String> {
 					authority_keys_from_seed("Bob"),
 				],
 				// Sudo account
-				Ss58Codec::from_ss58check("5GZBhMZZRMWCiqgqdDGZCGo16Kg5aUQUcpuUGWwSgHn9HbRC")
+				Ss58Codec::from_ss58check("5FXymAnjbb7p57pNyfdLb6YCdzm73ZhVq6oFF1AdCEPEg8Uw")
 					.unwrap(),
 				// Pre-funded a
 				processed_balances.clone(), // balances
