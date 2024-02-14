@@ -55,8 +55,12 @@ impl<T: Config> Pallet<T> {
 
 		let min_burn: u64 = Self::get_min_burn();
 
+		let max_registrations_per_block: u16 = MaxRegistrationsPerBlock::<T>::get();
+		ensure!(
+			RegistrationsPerBlock::<T>::get() < max_registrations_per_block,
+			Error::<T>::TooManyRegistrationsPerBlock
+		);
 		RegistrationsPerBlock::<T>::mutate(|val| *val += 1);
-
 		let mut uid: u16;
 
 		let n: u16 = Self::get_subnet_n(netuid);
