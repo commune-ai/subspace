@@ -825,6 +825,7 @@ pub mod pallet {
 					min_allowed_weights: subnet.3,
 					max_allowed_weights: subnet.4,
 					max_allowed_uids: subnet.5,
+					// subnet.6
 					min_stake: subnet.7,
 					founder: subnet.8.clone(),
 					max_stake: default_params.max_stake,
