@@ -30,7 +30,7 @@ impl<T: Config> Pallet<T> {
 		let key = ensure_signed(origin.clone())?;
 
 		ensure!(
-			RegistrationsPerBlock::<T>::get() < max_registrations_per_block,
+			RegistrationsPerBlock::<T>::get() < MaxRegistrationsPerBlock::<T>::get(),
 			Error::<T>::TooManyRegistrationsPerBlock
 		);
 
@@ -53,30 +53,32 @@ impl<T: Config> Pallet<T> {
 		);
 		ensure!(!Self::key_registered(netuid, &key), Error::<T>::KeyAlreadyRegistered);
 		ensure!(!Self::module_name_exists(netuid, name.clone()),Error::<T>::NameAlreadyRegistered);
-		let min_burn: u64 = Self::get_min_burn();
-		let max_registrations_per_block: u16 = MaxRegistrationsPerBlock::<T>::get();
-		let mut uid: u16;
-		let n: u16 = Self::get_subnet_n(netuid);
-		let global_n =  Self::global_n();
+		
 		// replace a node if we reach the max allowed modules
-		if global_n >= Self::get_max_allowed_modules() ||  n >= Self::get_max_allowed_uids(netuid){
+		if Self::global_n() >= Self::get_max_allowed_modules() {
+			// get random netuid
+			let least_staked_netuid : u16 = Self::least_staked_netuid();
+			Self::remove_module(least_staked_netuid , Self::get_lowest_uid(least_staked_netuid));
+
+		} else if Self::get_subnet_n(netuid) >= Self::get_max_allowed_uids(netuid){
 			// if we reach the max allowed modules for this network, then we replace the lowest priority node
 			Self::remove_module(netuid, Self::get_lowest_uid(netuid));
 		}
 
-		uid = Self::append_module(netuid, &module_key, name.clone(), address.clone());
+		let uid = Self::append_module(netuid, &module_key, name.clone(), address.clone());
 
 		// adding the stake amount
 		Self::do_add_stake(origin.clone(), netuid, module_key.clone(), stake_amount)?;
+		
+		let min_burn: u64 = Self::get_min_burn();
+		let min_stake = Self::get_min_stake(netuid);
 
 		// CONSTANT INITIAL BURN
 		if min_burn > 0 {
-			ensure!(stake_amount >= min_burn, Error::<T>::NotEnoughStakeToRegister);
+			ensure!(stake_amount >= (min_burn + min_stake), Error::<T>::NotEnoughStakeToRegister);
 			Self::decrease_stake(netuid, &key, &module_key, min_burn);
-			let min_stake = Self::get_min_stake(netuid);
 			let current_stake = Self::get_total_stake_to(netuid, &key);
 			ensure!(current_stake == stake_amount.saturating_sub(min_burn), Error::<T>::NotEnoughStakeToRegister);
-			ensure!(current_stake >= min_stake, Error::<T>::NotEnoughStakeToRegister);
 		}
 		// ---Deposit successful event.
 
