@@ -328,20 +328,22 @@ fn test_ownership_ratio() {
 #[test]
 fn test_min_stake() {
 	new_test_ext().execute_with(|| {
+
 		let netuid: u16 = 0;
+
 		let num_modules: u16 = 10;
+
 		let min_stake: u64 = 10_000_000_000;
+
 		register_n_modules(netuid, num_modules, min_stake);
 
 		let keys = SubspaceModule::get_keys(netuid);
+
 		register_n_modules(netuid, num_modules, min_stake);
 
 		SubspaceModule::set_min_stake( netuid, min_stake - 100);
 
-		// SubspaceModule::set_min_stake( netuid, min_stake - 100);
-
 		SubspaceModule::remove_stake(get_origin(keys[0]), netuid, keys[0], 10_000_000_000);
-
 
 	});
 }

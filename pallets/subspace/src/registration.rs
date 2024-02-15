@@ -28,14 +28,11 @@ impl<T: Config> Pallet<T> {
 	) -> DispatchResult {
 		// --- 1. Check that the caller has signed the transaction.
 		let key = ensure_signed(origin.clone())?;
-
 		ensure!(
-			RegistrationsPerBlock::<T>::get() < MaxRegistrationsPerBlock::<T>::get(),
+			RegistrationsPerBlock::<T>::get() <= MaxRegistrationsPerBlock::<T>::get(),
 			Error::<T>::TooManyRegistrationsPerBlock
 		);
-
 		// --- 2. Ensure we are not exceeding the max allowed registrations per block.
-
 		ensure!(
 			Self::has_enough_balance(&key, stake_amount),
 			Error::<T>::NotEnoughBalanceToRegister
@@ -45,14 +42,16 @@ impl<T: Config> Pallet<T> {
 		if !Self::subnet_name_exists(network.clone()) {
 			Self::add_subnet_from_registration(network.clone(), stake_amount, &key)?;
 		}
+
 		// get the netuid
 		let netuid = Self::get_netuid_for_name(network.clone());
+
 		ensure!(
 			Self::enough_stake_to_register(netuid, stake_amount),
 			Error::<T>::NotEnoughStakeToRegister
 		);
+
 		ensure!(!Self::key_registered(netuid, &key), Error::<T>::KeyAlreadyRegistered);
-		ensure!(!Self::module_name_exists(netuid, name.clone()),Error::<T>::NameAlreadyRegistered);
 		
 		// replace a node if we reach the max allowed modules
 		if Self::global_n() >= Self::get_max_allowed_modules() {
@@ -71,11 +70,10 @@ impl<T: Config> Pallet<T> {
 		Self::do_add_stake(origin.clone(), netuid, module_key.clone(), stake_amount)?;
 		
 		let min_burn: u64 = Self::get_min_burn();
-		let min_stake = Self::get_min_stake(netuid);
 
 		// CONSTANT INITIAL BURN
 		if min_burn > 0 {
-			ensure!(stake_amount >= (min_burn + min_stake), Error::<T>::NotEnoughStakeToRegister);
+			ensure!(stake_amount >= min_burn, Error::<T>::NotEnoughStakeToRegister);
 			Self::decrease_stake(netuid, &key, &module_key, min_burn);
 			let current_stake = Self::get_total_stake_to(netuid, &key);
 			ensure!(current_stake == stake_amount.saturating_sub(min_burn), Error::<T>::NotEnoughStakeToRegister);

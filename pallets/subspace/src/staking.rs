@@ -134,9 +134,6 @@ impl<T: Config> Pallet<T> {
 
 		ensure!(Self::is_registered(netuid, &module_key.clone()), Error::<T>::NotRegistered);
 
-		// --- 6. Ensure we don't exceed tx rate limit
-		// ensure!( !Self::exceeds_tx_rate_limit(&key), Error::<T>::TxRateLimitExceeded );
-
 		// --- 5. Ensure that we can conver this u64 to a balance.
 		ensure!(
 			Self::has_enough_stake(netuid, &key, &module_key, amount),
@@ -188,8 +185,6 @@ impl<T: Config> Pallet<T> {
 	pub fn get_stake(netuid: u16, key: &T::AccountId) -> u64 {
 		return Stake::<T>::get(netuid, key)
 	}
-
-
 
 	pub fn get_stakes(netuid: u16) -> Vec<u64> {
 		let n = Self::get_subnet_n(netuid);
