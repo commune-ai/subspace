@@ -29,6 +29,10 @@ impl<T: Config> Pallet<T> {
 		// --- 1. Check that the caller has signed the transaction.
 		let key = ensure_signed(origin.clone())?;
 
+		ensure!(
+			RegistrationsPerBlock::<T>::get() < max_registrations_per_block,
+			Error::<T>::TooManyRegistrationsPerBlock
+		);
 
 		// --- 2. Ensure we are not exceeding the max allowed registrations per block.
 
@@ -43,41 +47,19 @@ impl<T: Config> Pallet<T> {
 		}
 		// get the netuid
 		let netuid = Self::get_netuid_for_name(network.clone());
-
-
-
 		ensure!(
 			Self::enough_stake_to_register(netuid, stake_amount),
 			Error::<T>::NotEnoughStakeToRegister
 		);
 		ensure!(!Self::key_registered(netuid, &key), Error::<T>::KeyAlreadyRegistered);
 		ensure!(!Self::module_name_exists(netuid, name.clone()),Error::<T>::NameAlreadyRegistered);
-
 		let min_burn: u64 = Self::get_min_burn();
-
 		let max_registrations_per_block: u16 = MaxRegistrationsPerBlock::<T>::get();
-		ensure!(
-			RegistrationsPerBlock::<T>::get() < max_registrations_per_block,
-			Error::<T>::TooManyRegistrationsPerBlock
-		);
-		RegistrationsPerBlock::<T>::mutate(|val| *val += 1);
 		let mut uid: u16;
-
 		let n: u16 = Self::get_subnet_n(netuid);
 		let global_n =  Self::global_n();
 		// replace a node if we reach the max allowed modules
-		if global_n >= Self::get_max_allowed_modules() {
-			// get random netuid
-			let mut netuid_n = 0;
-			let mut random_netuid = Self::random_netuid();
-			while netuid_n == 0  {
-				random_netuid = Self::random_netuid();
-				netuid_n = Self::get_subnet_n(random_netuid);
-			}
-			
-			Self::remove_module(netuid, Self::get_lowest_uid(random_netuid));
-
-		} else if n >= Self::get_max_allowed_uids(netuid){
+		if global_n >= Self::get_max_allowed_modules() ||  n >= Self::get_max_allowed_uids(netuid){
 			// if we reach the max allowed modules for this network, then we replace the lowest priority node
 			Self::remove_module(netuid, Self::get_lowest_uid(netuid));
 		}
@@ -98,6 +80,7 @@ impl<T: Config> Pallet<T> {
 		}
 		// ---Deposit successful event.
 
+		RegistrationsPerBlock::<T>::mutate(|val| *val += 1);
 		Self::deposit_event(Event::ModuleRegistered(netuid, uid, module_key.clone()));
 
 		// --- 5. Ok and done.
