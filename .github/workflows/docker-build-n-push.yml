@@ -2,8 +2,10 @@ name: Build and push Docker image
 
 on:
   push:
-    branches: [current, feb12]
+    branches: [current, test]
 
+env:
+  image_base: ghcr.io/agicommies/subspace
 
 jobs:
   build-n-push:
@@ -30,5 +32,6 @@ jobs:
       with:
         context: .
         push: true
-        tags: ghcr.io/agicommies/subspace:${{ steps.commit.outputs.short }}
-        # , ghcr.io/agicommies/subspace:latest
+        tags: |
+          ${{ env.image_base }}:${{ steps.commit.outputs.short }}
+          ${{ env.image_base }}:${{ github.head_ref || github.ref_name }}
