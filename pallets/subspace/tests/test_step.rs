@@ -362,7 +362,7 @@ fn test_lowest_priority_mechanism() {
 		assert!(dividends[prune_uid as usize] == 0);
 
 		let lowest_priority_uid: u16 = SubspaceModule::get_lowest_uid(netuid);
-		println!("lowest_priority_uid: {}", lowest_priority_uid);
+
 		println!("prune_uid: {}", prune_uid);
 		println!("emissions: {:?}", emissions);
 		println!("lowest_priority_uid: {:?}", lowest_priority_uid);

@@ -213,16 +213,14 @@ fn test_unvote() {
 	params.tempo = final_tempo;
 
 	assert_eq!(params.vote_mode, "stake".as_bytes().to_vec(), "vote mode not set");
-	assert_ok!(SubspaceModule::do_add_subnet_proposal(get_origin(keys[0]), netuid, 
-				params
-			
-			));
+	assert_ok!(SubspaceModule::do_add_subnet_proposal(get_origin(keys[0]), netuid, params));
 	assert!(SubspaceModule::proposal_exists(0));
 	assert!(SubspaceModule::is_proposal_owner(&keys[0], 0));
 	assert_ok!(SubspaceModule::unvote_proposal(get_origin(keys[0])));
 
 	// we have not passed the threshold yet
 	let proposals = SubspaceModule::get_subnet_proposals(netuid);
+	
 
 	println!("proposals: {:?}", proposals);
 	

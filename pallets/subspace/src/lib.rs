@@ -284,6 +284,8 @@ pub mod pallet {
 	#[pallet::storage] // --- MAP ( netuid ) --> max_allowed_uids
 	pub type MaxAllowedUids<T> = StorageMap<_, Identity, u16, u16, ValueQuery, DefaultMaxAllowedUids<T>>;
 
+	
+
 	#[pallet::type_value]
 	pub fn DefaultImmunityPeriod<T: Config>() -> u16 { 40 }
 	#[pallet::storage] // --- MAP ( netuid ) --> immunity_period
@@ -358,6 +360,13 @@ pub mod pallet {
 	pub fn DefaultQuadraticVoting<T: Config>() -> bool {false}
 	#[pallet::storage] // --- MAP ( netuid ) --> epoch
 	pub type QuadraticVoting<T> = StorageMap<_, Identity, u16, bool, ValueQuery, DefaultQuadraticVoting<T>>;
+
+
+	#[pallet::type_value]
+	pub fn DefaultRankedKeys<T: Config>() -> Vec<T::AccountId> {vec![]}
+	#[pallet::storage] // --- MAP ( netuid ) --> epoch
+	pub type RankedKeys<T: Config>  = StorageMap<_, Identity, u16, Vec<T::AccountId>, ValueQuery, DefaultRankedKeys<T>>;
+
 
 	// =======================================
 	// ==== Voting  ====

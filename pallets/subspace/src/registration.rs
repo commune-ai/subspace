@@ -129,36 +129,7 @@ impl<T: Config> Pallet<T> {
 			return 0 as u64
 		}
 	}
-	pub fn get_lowest_uid(netuid: u16) -> u16 {
-		let n: u16 = Self::get_subnet_n(netuid);
 
-		let mut min_score: u64 = u64::MAX;
-		let mut lowest_priority_uid: u16 = 0;
-		let mut prune_uids: Vec<u16> = Vec::new();
-		let current_block = Self::get_current_block_as_u64();
-		let immunity_period: u64 = Self::get_immunity_period(netuid) as u64;
-
-		for module_uid_i in 0..n {
-			let pruning_score: u64 = Self::get_pruning_score_for_uid(netuid, module_uid_i);
-
-			// Find min pruning score.
-
-			if min_score > pruning_score {
-				let block_at_registration: u64 = Self::get_module_registration_block(netuid, module_uid_i);
-				let module_age: u64 = current_block.saturating_sub(block_at_registration);
-				// only allow modules that have greater than immunity period
-				if module_age > immunity_period {
-					lowest_priority_uid = module_uid_i;
-					min_score = pruning_score;
-					if min_score == 0 {
-						break
-					}
-				}
-			}
-		}
-
-		return lowest_priority_uid
-	}
 
 
 	pub fn add_subnet_from_registration(
@@ -194,22 +165,6 @@ impl<T: Config> Pallet<T> {
 		Ok(())
 	}
 
-
-
-	pub fn check_module_limits(netuid: u16) {
-		// check if we have reached the max allowed modules
-
-		// replace a node if we reach the max allowed modules
-		if Self::global_n() >= Self::get_max_allowed_modules() {
-			// get the least staked network
-			let least_staked_netuid : u16 = Self::least_staked_netuid();
-			Self::remove_module(least_staked_netuid , Self::get_lowest_uid(least_staked_netuid));
-
-		} else if Self::get_subnet_n(netuid) >= Self::get_max_allowed_uids(netuid){
-			// if we reach the max allowed modules for this network, then we replace the lowest priority node
-			Self::remove_module(netuid, Self::get_lowest_uid(netuid));
-		}
-	}
 
 
 

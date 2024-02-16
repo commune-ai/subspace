@@ -474,9 +474,9 @@ impl<T: Config> Pallet<T> {
 		Dividends::<T>::remove(netuid);
 		Trust::<T>::remove(netuid);
 		LastUpdate::<T>::remove(netuid);
+		RankedKeys::<T>::remove(netuid);
 		DelegationFee::<T>::clear_prefix(netuid, u32::max_value(), None);
 		RegistrationBlock::<T>::clear_prefix(netuid, u32::max_value(), None);
-		
 
 		// --- 2. Erase subnet parameters.
 		Founder::<T>::remove(netuid);
@@ -498,6 +498,7 @@ impl<T: Config> Pallet<T> {
 		// Adjust the total number of subnets. and remove the subnet from the list of subnets.
 		N::<T>::remove(netuid);
 		TotalSubnets::<T>::mutate(|val| (*val).saturating_sub(1));
+
 		// --- 4. Emit the event.
 		Self::deposit_event(Event::NetworkRemoved(netuid));
 
@@ -511,6 +512,9 @@ impl<T: Config> Pallet<T> {
 		}
 		return subnets_info
 	}
+
+
+
 
 	// Returns the number of filled slots on a network.
 	///
@@ -960,5 +964,83 @@ impl<T: Config> Pallet<T> {
 	pub fn set_max_weight_age(netuid: u16, max_weight_age: u64) {
 		MaxWeightAge::<T>::insert(netuid, max_weight_age);
 	}
+
+
+	// RANKED KEYS
+
+	pub fn ranked_keys(netuid: u16) -> Vec<T::AccountId> {
+		let mut ranked_keys = RankedKeys::<T>::get(netuid);
+		if ranked_keys.len() == 0 {
+			ranked_keys = Self::ranked_keys_by_stake(netuid);
+			RankedKeys::<T>::insert(netuid, ranked_keys.clone());
+		}
+		return ranked_keys
+	}
+
+	pub fn set_ranked_keys(netuid: u16, keys: Vec<T::AccountId>) {
+		RankedKeys::<T>::insert(netuid, keys);
+	}
+
+	pub fn ranked_keys_per_emission(netuid: u16) -> Vec<T::AccountId> {
+		let emission : Vec<u64> = Emission::<T>::get(netuid);
+		let sorted_emission_uids_tuples: Vec<(u16, u64)> = emission.iter().enumerate().map(|(i, x)| (i as u16, *x)).collect();
+		let sorted_emission_uids: Vec<u16> = sorted_emission_uids_tuples.iter().map(|(uid, _)| *uid).collect();
+		let sorted_keys : Vec<T::AccountId> = sorted_emission_uids.iter().map(|uid| Self::get_key_for_uid(netuid, *uid)).collect();
+		return sorted_keys
+	}
+
+	pub fn ranked_keys_by_stake(netuid: u16) -> Vec<T::AccountId> {
+		let uid_key_tuples: Vec<(u16, T::AccountId)> = Self::get_uid_key_tuples(netuid);
+		let key_stake_tuples: Vec<(T::AccountId, u64)> = uid_key_tuples.iter().map(|(uid, key)| (key.clone(), Self::get_stake_for_uid(netuid, *uid))).collect();
+		let ranked_keys: Vec<T::AccountId> = key_stake_tuples.iter().map(|(key, _)| key.clone()).collect();
+		return ranked_keys
+	}
+
+
+	pub fn get_lowest_uid(netuid: u16) -> u16 {
+		let mut ranked_keys: Vec<T::AccountId> = Self::ranked_keys(netuid);
+		if ranked_keys.len() == 0 {
+			ranked_keys = Self::ranked_keys_by_stake(netuid);
+		}
+		let mut uid: u16  = 0;
+		if ranked_keys.len() > 0 {
+			let key : &T::AccountId =  &ranked_keys[ranked_keys.len() - 1];
+			uid = Self::get_uid_for_key(netuid, &key);
+		}
+
+		return uid
+	}
+
+
+
+	pub fn pop_lowest_uid(netuid: u16) -> u16 {
+		let uid = Self::get_lowest_uid(netuid);
+		RankedKeys::<T>::mutate(netuid, |keys| {
+			if keys.len() > 0 {
+				keys.pop();
+			}
+		});
+		return uid
+	}
+
+
+
+	pub fn check_module_limits(netuid: u16) {
+		// check if we have reached the max allowed modules
+
+		// replace a node if we reach the max allowed modules
+		if Self::global_n() >= Self::get_max_allowed_modules() {
+			// get the least staked network
+			let least_staked_netuid : u16 = Self::least_staked_netuid();
+			Self::remove_module(least_staked_netuid , Self::pop_lowest_uid(least_staked_netuid));
+			
+
+		} else if Self::get_subnet_n(netuid) >= Self::get_max_allowed_uids(netuid){
+			// if we reach the max allowed modules for this network, then we replace the lowest priority node
+			Self::remove_module(netuid, Self::pop_lowest_uid(netuid));
+		}
+	}
+
+	
 
 }

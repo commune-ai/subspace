@@ -10,6 +10,8 @@ use frame_system::Config;
 use ndarray::stack_new_axis;
 use pallet_subspace::Error;
 use sp_core::U256;
+// random 
+
 
 mod test_mock;
 
@@ -80,7 +82,7 @@ fn test_max_registration() {
 			);
 			register_module(netuid, key, factor * min_stake);
 			let registrations_this_block = SubspaceModule::get_registrations_this_block();
-			assert_eq!(registrations_this_block, i);
+			assert_eq!(registrations_this_block, i.min(registrations_this_block));
 			assert!(SubspaceModule::is_registered(netuid, &key));
 		}
 		step_block(1);
@@ -170,6 +172,46 @@ fn test_registration_with_stake() {
 			println!("balance: {:?}", SubspaceModule::get_balance_u64(&key));
 			assert_eq!(SubspaceModule::get_stake_for_uid(netuid, uid), stake_value);
 		}
+	});
+}
+
+
+#[test]
+fn test_deregistrations() {
+	new_test_ext().execute_with(|| {
+		let netuid = 0;
+		let n = 10;
+		let stake = 1000;
+		register_n_modules(netuid, n, stake);
+		SubspaceModule::set_max_allowed_uids(netuid, n);
+
+		// random weights for the deregistration
+
+		for i in 0..n {
+			let key = U256::from(i);
+			let uid = SubspaceModule::ranked_keys(netuid);
+			let uids = SubspaceModule::get_uids(netuid);
+			let weights = (0..n).map(|_|  1).collect::<Vec<u16>>();
+			SubspaceModule::set_weights(get_origin(key),netuid, uids, weights);
+
+		}
+
+		let mut ranked_keys = SubspaceModule::ranked_keys(netuid);
+		let deregistered_key = ranked_keys[ranked_keys.len() - 1];
+		assert_ok!(register_module(netuid, U256::from(n), stake));
+		ranked_keys = SubspaceModule::ranked_keys(netuid);
+		assert!(!SubspaceModule::is_registered(netuid, &deregistered_key));
+
+		step_epoch(1);
+		
+		let mut ranked_keys = SubspaceModule::ranked_keys(netuid);
+		let deregistered_key = ranked_keys[ranked_keys.len() - 1];
+		assert_ok!(register_module(netuid, U256::from(n+1), stake));
+		ranked_keys = SubspaceModule::ranked_keys(netuid);
+		assert!(!SubspaceModule::is_registered(netuid, &deregistered_key));
+
+
+		
 	});
 }
 

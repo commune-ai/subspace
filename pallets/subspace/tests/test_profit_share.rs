@@ -26,8 +26,8 @@ fn test_add_profit_share() {
 		SubspaceModule::set_min_allowed_weights(netuid, 1);
 
         
-		let profit_sharer_keys = vec![U256::from(2), U256::from(3)];
-        let shares = vec![2,2];
+		let profit_sharer_keys = vec![U256::from(2), U256::from(3), U256::from(4)];
+        let shares = vec![2,2,2];
         let result = SubspaceModule::add_profit_shares(get_origin(miner_key), profit_sharer_keys.clone(), shares.clone());
 		assert_ok!(result);
 		let profit_shares = SubspaceModule::get_profit_shares(miner_key);

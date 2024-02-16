@@ -272,7 +272,7 @@ impl<T: Config> Pallet<T> {
 
 
 		let mut emission : Vec<u64> = vec![0; n as usize];
-			
+
 		// Emission tuples ( uid_key_tuples, u64 emission)
 		let mut founder_share_added: bool = false; // avoid double counting the founder share
 		for (module_uid, module_key) in uid_key_tuples.iter() {
@@ -353,10 +353,10 @@ impl<T: Config> Pallet<T> {
 			}
 		}
 
-		
-
 		Emission::<T>::insert(netuid, emission.clone());
+		Self::set_ranked_keys(netuid, Self::ranked_keys_per_emission(netuid));
 	}
+
 
 	pub fn get_block_at_registration(netuid: u16) -> Vec<u64> {
 		let n: usize = Self::get_subnet_n(netuid) as usize;
