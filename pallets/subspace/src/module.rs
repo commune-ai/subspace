@@ -187,6 +187,11 @@ impl<T: Config> Pallet<T> {
 
 	}
 
+
+
+
+	
+
 	// Appends the uid to the network (without increasing stake).
 	pub fn append_module(netuid: u16, key: &T::AccountId, name: Vec<u8>, address: Vec<u8>) -> u16 {
 		// 1. Get the next uid. This is always equal to subnetwork_n.
