@@ -20,11 +20,11 @@ const LOG_TARGET: &'static str = "runtime::subspace::registration";
 impl<T: Config> Pallet<T> {
 	pub fn do_register(
 		origin: T::RuntimeOrigin,
-		network: Vec<u8>,
-		name: Vec<u8>,
-		address: Vec<u8>,
-		stake_amount: u64,
-		module_key: T::AccountId,
+		network: Vec<u8>, // network name
+		name: Vec<u8>, // module name
+		address: Vec<u8>, // module address
+		stake_amount: u64, // stake amount
+		module_key: T::AccountId, // module key
 	) -> DispatchResult {
 		// --- 1. Check that the caller has signed the transaction.
 		let key = ensure_signed(origin.clone())?;
@@ -54,17 +54,8 @@ impl<T: Config> Pallet<T> {
 		ensure!(!Self::key_registered(netuid, &key), Error::<T>::KeyAlreadyRegistered);
 		ensure!(!Self::module_name_exists(netuid, name.clone()),Error::<T>::NameAlreadyRegistered);
 		
-		// replace a node if we reach the max allowed modules
-		if Self::global_n() >= Self::get_max_allowed_modules() {
-			// get random netuid
-			let least_staked_netuid : u16 = Self::least_staked_netuid();
-			Self::remove_module(least_staked_netuid , Self::get_lowest_uid(least_staked_netuid));
-
-		} else if Self::get_subnet_n(netuid) >= Self::get_max_allowed_uids(netuid){
-			// if we reach the max allowed modules for this network, then we replace the lowest priority node
-			Self::remove_module(netuid, Self::get_lowest_uid(netuid));
-		}
-
+		Self::check_module_limits(netuid);
+		
 		let uid = Self::append_module(netuid, &module_key, name.clone(), address.clone());
 
 		// adding the stake amount
@@ -204,6 +195,25 @@ impl<T: Config> Pallet<T> {
 	
 		Ok(())
 	}
+
+
+
+	pub fn check_module_limits(netuid: u16) {
+		// check if we have reached the max allowed modules
+
+		// replace a node if we reach the max allowed modules
+		if Self::global_n() >= Self::get_max_allowed_modules() {
+			// get the least staked network
+			let least_staked_netuid : u16 = Self::least_staked_netuid();
+			Self::remove_module(least_staked_netuid , Self::get_lowest_uid(least_staked_netuid));
+
+		} else if Self::get_subnet_n(netuid) >= Self::get_max_allowed_uids(netuid){
+			// if we reach the max allowed modules for this network, then we replace the lowest priority node
+			Self::remove_module(netuid, Self::get_lowest_uid(netuid));
+		}
+	}
+
+
 
 }
 

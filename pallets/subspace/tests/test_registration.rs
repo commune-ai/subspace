@@ -55,6 +55,43 @@ fn test_min_stake() {
 	});
 }
 
+
+#[test]
+fn test_max_registration() {
+	new_test_ext().execute_with(|| {
+		let block_number: u64 = 0;
+		let netuid: u16 = 0;
+		let tempo: u16 = 13;
+		let netuid: u16 = 0;
+		let min_stake = 100_000_000;
+		let rounds = 3;
+		let max_registrations_per_block = 100;
+		let n: u16 = max_registrations_per_block * rounds;
+
+		SubspaceModule::set_min_stake(netuid, min_stake);
+		SubspaceModule::set_max_registrations_per_block(max_registrations_per_block);
+		
+		assert_eq!(SubspaceModule::get_registrations_this_block(), 0);
+
+		for i in 1..n {
+			let key = U256::from(i);
+			let min_stake_to_register = SubspaceModule::get_min_stake(netuid);
+			let factor: u64 = min_stake_to_register / min_stake;
+			println!(
+				"min_stake_to_register: {:?} min_stake: {:?} factor {:?}",
+				min_stake_to_register, min_stake, factor
+			);
+			register_module(netuid, key, factor * min_stake);
+			let registrations_this_block = SubspaceModule::get_registrations_this_block();
+			assert_eq!(registrations_this_block, i);
+			assert!(SubspaceModule::is_registered(netuid, &key));
+		}
+		step_block(1);
+		assert_eq!(SubspaceModule::get_registrations_this_block(), 0);
+	});
+}
+
+
 #[test]
 fn test_delegate_register() {
 	new_test_ext().execute_with(|| {
