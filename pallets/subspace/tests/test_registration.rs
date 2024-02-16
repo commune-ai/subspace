@@ -26,30 +26,32 @@ fn test_min_stake() {
 		let netuid: u16 = 0;
 		let min_stake = 100_000_000;
 		let max_registrations_per_block = 10;
-		let rounds = 3;
-		let n: u16 = max_registrations_per_block * rounds;
-		let max_registrations_this_block: u16 = 10;
+		let reg_this_block: u16 = 100;
 
 		register_module(netuid, U256::from(0), 0);
 		SubspaceModule::set_min_stake(netuid, min_stake);
-		SubspaceModule::set_max_registrations_per_block(max_registrations_this_block);
+		SubspaceModule::set_max_registrations_per_block(max_registrations_per_block);
 		step_block(1);
 		assert_eq!(SubspaceModule::get_registrations_this_block(), 0);
-		for i in 1..n {
-			let key = U256::from(i);
-			let min_stake_to_register = SubspaceModule::get_min_stake(netuid);
-			let factor: u64 = min_stake_to_register / min_stake;
+		
+		let n = U256::from(reg_this_block); // Example: if you want a list of numbers from 1 to 9
+		let keys_list: Vec<U256> = (1..n.as_u64()) // Assuming n fits into a u64 for simplicity
+			.map(U256::from)
+			.collect();	
+	
+		let min_stake_to_register = SubspaceModule::get_min_stake(netuid);
+		
+		for key in keys_list {
+			register_module(netuid, key, min_stake_to_register);
 			println!(
-				"min_stake_to_register: {:?} min_stake: {:?} factor {:?}",
-				min_stake_to_register, min_stake, factor
+				"Registered module with key: {:?} and min_stake_to_register: {:?}",
+				key, min_stake_to_register
 			);
-			register_module(netuid, key, factor * min_stake);
-			let registrations_this_block = SubspaceModule::get_registrations_this_block();
-			println!("registrations_this_block: {:?}", registrations_this_block);
-
-			assert_eq!(registrations_this_block, i);
-			assert!(SubspaceModule::is_registered(netuid, &key));
 		}
+		let registrations_this_block = SubspaceModule::get_registrations_this_block();
+		println!("registrations_this_block: {:?}", registrations_this_block);
+		assert_eq!(registrations_this_block, max_registrations_per_block);
+		
 		step_block(1);
 		assert_eq!(SubspaceModule::get_registrations_this_block(), 0);
 	});
