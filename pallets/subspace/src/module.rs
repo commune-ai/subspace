@@ -244,6 +244,7 @@ impl<T: Config> Pallet<T> {
 	}
 
 	pub fn get_module_stats(netuid: u16, uid: u16) -> ModuleStats<T> {
+		let key = Self::get_key_for_uid(netuid, uid);
 		let emission = Self::get_emission_for_uid(netuid, uid as u16);
 		let incentive = Self::get_incentive_for_uid(netuid, uid as u16);
 		let dividends = Self::get_dividends_for_uid(netuid, uid as u16);
@@ -253,9 +254,7 @@ impl<T: Config> Pallet<T> {
 			.iter()
 			.filter_map(|(i, w)| if *w > 0 { Some(((*i).into(), (*w).into())) } else { None })
 			.collect::<Vec<(u16, u16)>>();
-		let stake_from: Vec<(T::AccountId, u64)> = Stake::<T>::iter_prefix(netuid)
-			.map(|(key, stake)| (key, stake.into()))
-			.collect();
+		let stake_from: Vec<(T::AccountId, u64)> = StakeFrom::<T>::get(netuid, key);
 		let registration_block = Self::get_registration_block_for_uid(netuid, uid as u16);
 
 		let module_stats = ModuleStats {
