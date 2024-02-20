@@ -576,21 +576,6 @@ impl<T: Config> Pallet<T> {
 		QuadraticVoting::<T>::insert(netuid, quadradic_voting);
 	}
 
-
-
-
-
-	pub fn module_name_exists(netuid: u16, name: Vec<u8>) -> bool {
-		for (uid, _name) in
-			<Name<T> as IterableStorageDoubleMap<u16, u16, Vec<u8>>>::iter_prefix(netuid)
-		{
-			if _name == name {
-				return true
-			}
-		}
-		return false
-	}
-
 	// Returns the stake of the uid on network or 0 if it doesnt exist.
 	//
 	pub fn get_stake_for_uid(netuid: u16, module_uid: u16) -> u64 {

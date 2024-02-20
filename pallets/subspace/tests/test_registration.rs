@@ -26,15 +26,55 @@ fn test_min_stake() {
 		let netuid: u16 = 0;
 		let min_stake = 100_000_000;
 		let max_registrations_per_block = 10;
-		let rounds = 3;
-		let n: u16 = max_registrations_per_block * rounds;
-		let max_registrations_this_block: u16 = 10;
+		let reg_this_block: u16 = 100;
 
 		register_module(netuid, U256::from(0), 0);
 		SubspaceModule::set_min_stake(netuid, min_stake);
-		SubspaceModule::set_max_registrations_per_block(max_registrations_this_block);
+		SubspaceModule::set_max_registrations_per_block(max_registrations_per_block);
 		step_block(1);
 		assert_eq!(SubspaceModule::get_registrations_this_block(), 0);
+		
+		let n = U256::from(reg_this_block); // Example: if you want a list of numbers from 1 to 9
+		let keys_list: Vec<U256> = (1..n.as_u64()) // Assuming n fits into a u64 for simplicity
+			.map(U256::from)
+			.collect();	
+	
+		let min_stake_to_register = SubspaceModule::get_min_stake(netuid);
+		
+		for key in keys_list {
+			register_module(netuid, key, min_stake_to_register);
+			println!(
+				"Registered module with key: {:?} and min_stake_to_register: {:?}",
+				key, min_stake_to_register
+			);
+		}
+		let registrations_this_block = SubspaceModule::get_registrations_this_block();
+		println!("registrations_this_block: {:?}", registrations_this_block);
+		assert_eq!(registrations_this_block, max_registrations_per_block);
+		
+		step_block(1);
+		assert_eq!(SubspaceModule::get_registrations_this_block(), 0);
+	});
+}
+
+
+#[test]
+fn test_max_registration() {
+	new_test_ext().execute_with(|| {
+		let block_number: u64 = 0;
+		let netuid: u16 = 0;
+		let tempo: u16 = 13;
+		let netuid: u16 = 0;
+		let min_stake = 100_000_000;
+		let rounds = 3;
+		let max_registrations_per_block = 100;
+		let n: u16 = max_registrations_per_block * rounds;
+
+		SubspaceModule::set_min_stake(netuid, min_stake);
+		SubspaceModule::set_max_registrations_per_block(max_registrations_per_block);
+		
+		assert_eq!(SubspaceModule::get_registrations_this_block(), 0);
+
 		for i in 1..n {
 			let key = U256::from(i);
 			let min_stake_to_register = SubspaceModule::get_min_stake(netuid);
@@ -45,8 +85,6 @@ fn test_min_stake() {
 			);
 			register_module(netuid, key, factor * min_stake);
 			let registrations_this_block = SubspaceModule::get_registrations_this_block();
-			println!("registrations_this_block: {:?}", registrations_this_block);
-
 			assert_eq!(registrations_this_block, i);
 			assert!(SubspaceModule::is_registered(netuid, &key));
 		}
@@ -54,6 +92,7 @@ fn test_min_stake() {
 		assert_eq!(SubspaceModule::get_registrations_this_block(), 0);
 	});
 }
+
 
 #[test]
 fn test_delegate_register() {
