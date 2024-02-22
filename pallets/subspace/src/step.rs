@@ -301,79 +301,74 @@ impl<T: Config> Pallet<T> {
 				if burn_into_stake > 0 {
 					Self::decrease_stake(netuid, module_key, module_key, burn_into_stake);
 				}
+
+				continue;
+			}
+
+			// eat into incentive first and then into the incentive
+			if burn_amount_per_epoch > owner_emission_incentive {
 				owner_emission_incentive = 0;
-				owner_dividends_emission = 0;
-			// skip the rest of the loop
+				// correct the burn amount
+				let left_burn_amount_per_epoch =
+					burn_amount_per_epoch.saturating_sub(owner_emission_incentive);
+				// apply the burn to the incentive
+				owner_dividends_emission =
+					owner_dividends_emission.saturating_sub(left_burn_amount_per_epoch);
 			} else {
-				// eat into incentive first and then into the incentive
-				if burn_amount_per_epoch > owner_emission_incentive {
-					owner_emission_incentive = 0;
-					// correct the burn amount
-					let left_burn_amount_per_epoch =
-						burn_amount_per_epoch.saturating_sub(owner_emission_incentive);
-					// apply the burn to the incentive
-					owner_dividends_emission =
-						owner_dividends_emission.saturating_sub(left_burn_amount_per_epoch);
+				// apply the burn to the emission only
+				owner_emission_incentive =
+					owner_emission_incentive.saturating_sub(burn_amount_per_epoch);
+			}
+
+			emission[*module_uid as usize] = owner_emission_incentive + owner_dividends_emission;
+
+			if owner_dividends_emission > 0 {
+				// get the ownership emission for this key
+
+				let ownership_vector: Vec<(T::AccountId, I64F64)> =
+					Self::get_ownership_ratios(netuid, module_key);
+
+				let delegation_fee = Self::get_delegation_fee(netuid, module_key);
+
+				// add the ownership
+				for (delegate_key, delegate_ratio) in ownership_vector.iter() {
+					if delegate_key == module_key {
+						continue
+					}
+
+					let dividends_from_delegate: u64 =
+						(I64F64::from_num(owner_dividends_emission) * delegate_ratio)
+							.to_num::<u64>();
+					let to_module: u64 = delegation_fee.mul_floor(dividends_from_delegate);
+					let to_delegate: u64 = dividends_from_delegate.saturating_sub(to_module);
+					Self::increase_stake(netuid, delegate_key, module_key, to_delegate);
+					owner_dividends_emission = owner_dividends_emission.saturating_sub(to_delegate);
+				}
+			}
+
+			let owner_emission: u64 = owner_emission_incentive + owner_dividends_emission;
+			// add the emisssion and rm the burn amount
+			if owner_emission > 0 {
+				// generate the profit shares
+				let profit_share_emissions: Vec<(T::AccountId, u64)> =
+					Self::get_profit_share_emissions(module_key.clone(), owner_emission);
+
+				// if there are profit shares, then increase the balance of the profit share key
+				if profit_share_emissions.len() > 0 {
+					// if there are profit shares, then increase the balance of the profit share
+					// key
+					for (profit_share_key, profit_share_emission) in profit_share_emissions.iter() {
+						// increase the balance of the profit share key
+						Self::increase_stake(
+							netuid,
+							profit_share_key,
+							module_key,
+							*profit_share_emission,
+						);
+					}
 				} else {
-					// apply the burn to the emission only
-					owner_emission_incentive =
-						owner_emission_incentive.saturating_sub(burn_amount_per_epoch);
-				}
-
-				emission[*module_uid as usize] =
-					owner_emission_incentive + owner_dividends_emission;
-
-				if owner_dividends_emission > 0 {
-					// get the ownership emission for this key
-
-					let ownership_vector: Vec<(T::AccountId, I64F64)> =
-						Self::get_ownership_ratios(netuid, module_key);
-
-					let delegation_fee = Self::get_delegation_fee(netuid, module_key);
-
-					// add the ownership
-					for (delegate_key, delegate_ratio) in ownership_vector.iter() {
-						if delegate_key == module_key {
-							continue
-						}
-
-						let dividends_from_delegate: u64 =
-							(I64F64::from_num(owner_dividends_emission) * delegate_ratio)
-								.to_num::<u64>();
-						let to_module: u64 = delegation_fee.mul_floor(dividends_from_delegate);
-						let to_delegate: u64 = dividends_from_delegate.saturating_sub(to_module);
-						Self::increase_stake(netuid, delegate_key, module_key, to_delegate);
-						owner_dividends_emission =
-							owner_dividends_emission.saturating_sub(to_delegate);
-					}
-				}
-
-				let owner_emission: u64 = owner_emission_incentive + owner_dividends_emission;
-				// add the emisssion and rm the burn amount
-				if owner_emission > 0 {
-					// generate the profit shares
-					let profit_share_emissions: Vec<(T::AccountId, u64)> =
-						Self::get_profit_share_emissions(module_key.clone(), owner_emission);
-
-					// if there are profit shares, then increase the balance of the profit share key
-					if profit_share_emissions.len() > 0 {
-						// if there are profit shares, then increase the balance of the profit share
-						// key
-						for (profit_share_key, profit_share_emission) in
-							profit_share_emissions.iter()
-						{
-							// increase the balance of the profit share key
-							Self::increase_stake(
-								netuid,
-								profit_share_key,
-								module_key,
-								*profit_share_emission,
-							);
-						}
-					} else {
-						// increase it to the module key
-						Self::increase_stake(netuid, module_key, module_key, owner_emission);
-					}
+					// increase it to the module key
+					Self::increase_stake(netuid, module_key, module_key, owner_emission);
 				}
 			}
 		}

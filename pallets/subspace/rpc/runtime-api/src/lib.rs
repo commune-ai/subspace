@@ -7,10 +7,9 @@ use sp_arithmetic::per_things::Percent;
 use sp_runtime::{
 	sp_std::prelude::Vec,
 	traits::{IdentifyAccount, Verify},
-	DispatchError, MultiSignature,
+	MultiSignature,
 };
 
-type Result<T> = core::result::Result<T, DispatchError>;
 type Signature = MultiSignature;
 pub type AccountId = <<Signature as Verify>::Signer as IdentifyAccount>::AccountId;
 

@@ -1,12 +1,6 @@
 [workspace]
-members = [
-    "node",
-    "pallets/subspace",
-    "runtime",
-]
+members = ["node", "pallets/subspace", "runtime"]
+resolver = "2"
 
 [profile.release]
 panic = "unwind"
-
-[profile.test]
-opt-level = 3

@@ -10,8 +10,6 @@ use sp_std::vec::Vec;
 // IterableStorageMap
 use frame_support::storage::IterableStorageMap;
 
-const LOG_TARGET: &'static str = "runtime::subspace::registration";
-
 impl<T: Config> Pallet<T> {
 	pub fn do_register(
 		origin: T::RuntimeOrigin,
