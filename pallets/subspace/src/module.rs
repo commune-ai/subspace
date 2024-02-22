@@ -1,8 +1,5 @@
 use super::*;
-use frame_support::{
-	pallet_prelude::{Decode, DispatchResult, Encode},
-	storage::IterableStorageMap,
-};
+use frame_support::pallet_prelude::{Decode, DispatchResult, Encode};
 
 extern crate alloc;
 use alloc::vec::Vec;
@@ -106,7 +103,7 @@ impl<T: Config> Pallet<T> {
 		// 1. Get the old key under this position.
 		let n = Self::get_subnet_n(netuid);
 		if n == 0 {
-			/// No modules in the network.
+			// No modules in the network.
 			return
 		}
 		let uid_key: T::AccountId = Keys::<T>::get(netuid, uid);

@@ -340,18 +340,17 @@ impl<T: Config> Pallet<T> {
 		let subnet_stake: I64F64 = I64F64::from_num(Self::get_total_subnet_stake(netuid));
 		let total_stake: I64F64 = I64F64::from_num(Self::total_stake());
 
-		let mut subnet_ratio: I64F64 = I64F64::from_num(0);
-		if total_stake > I64F64::from_num(0) {
-			subnet_ratio = subnet_stake / total_stake;
+		let subnet_ratio = if total_stake > I64F64::from_num(0) {
+			subnet_stake / total_stake
 		} else {
 			let n = TotalSubnets::<T>::get();
 			if n > 1 {
-				subnet_ratio = I64F64::from_num(1) / I64F64::from_num(n);
+				I64F64::from_num(1) / I64F64::from_num(n)
 			} else {
 				// n == 1
-				subnet_ratio = I64F64::from_num(1);
+				I64F64::from_num(1)
 			}
-		}
+		};
 
 		let total_emission_per_block: u64 = Self::get_total_emission_per_block();
 		let token_emission: u64 =
@@ -435,6 +434,9 @@ impl<T: Config> Pallet<T> {
 	}
 
 	pub fn remove_subnet(netuid: u16) -> u16 {
+		// TODO: handle errors
+		#![allow(unused_must_use)]
+
 		// --- 2. Ensure the network to be removed exists.
 		if !Self::if_subnet_exist(netuid) {
 			return 0

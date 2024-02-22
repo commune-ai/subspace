@@ -1,4 +1,4 @@
-// disable all warnings
+#![allow(deprecated, non_camel_case_types, non_snake_case)]
 #![cfg_attr(not(feature = "std"), no_std)]
 #![recursion_limit = "512"]
 use frame_system::{self as system, ensure_signed};

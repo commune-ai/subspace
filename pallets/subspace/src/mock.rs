@@ -1,15 +1,13 @@
-// disable all warnings
 use crate as pallet_subspace;
 use frame_support::{parameter_types, traits::Everything};
 use frame_system as system;
 
-use sp_core::{Get, H256, U256};
+use sp_core::{H256, U256};
 use sp_runtime::{
 	traits::{BlakeTwo256, IdentityLookup},
 	BuildStorage,
 };
 
-type UncheckedExtrinsic = frame_system::mocking::MockUncheckedExtrinsic<Test>;
 type Block = frame_system::mocking::MockBlock<Test>;
 
 // Configure a mock runtime to test the pallet.
@@ -37,9 +35,6 @@ parameter_types! {
 
 #[allow(dead_code)]
 pub type AccountId = U256;
-
-// The address format for describing accounts.
-pub type Address = AccountId;
 
 // Balance of an account.
 #[allow(dead_code)]
