@@ -107,7 +107,7 @@ pub fn run() -> sc_cli::Result<()> {
 
 			runner.sync_run(|config| {
 				use sp_io::SubstrateHostFunctions;
-				
+
 				// This switch needs to be in the client, since the client decides
 				// which sub-commands it wants to support.
 				match cmd {

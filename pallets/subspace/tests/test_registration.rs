@@ -1,10 +1,9 @@
 use crate::test_mock::*;
 use frame_support::{
 	assert_ok,
-	dispatch::{DispatchInfo, GetDispatchInfo},
+	dispatch::{DispatchClass, DispatchInfo, GetDispatchInfo, Pays},
 	sp_runtime::DispatchError,
 	traits::Currency,
-	dispatch::{DispatchClass, Pays},
 };
 use frame_system::Config;
 use ndarray::stack_new_axis;
@@ -33,14 +32,14 @@ fn test_min_stake() {
 		SubspaceModule::set_max_registrations_per_block(max_registrations_per_block);
 		step_block(1);
 		assert_eq!(SubspaceModule::get_registrations_this_block(), 0);
-		
+
 		let n = U256::from(reg_this_block); // Example: if you want a list of numbers from 1 to 9
 		let keys_list: Vec<U256> = (1..n.as_u64()) // Assuming n fits into a u64 for simplicity
 			.map(U256::from)
-			.collect();	
-	
+			.collect();
+
 		let min_stake_to_register = SubspaceModule::get_min_stake(netuid);
-		
+
 		for key in keys_list {
 			register_module(netuid, key, min_stake_to_register);
 			println!(
@@ -51,12 +50,11 @@ fn test_min_stake() {
 		let registrations_this_block = SubspaceModule::get_registrations_this_block();
 		println!("registrations_this_block: {:?}", registrations_this_block);
 		assert_eq!(registrations_this_block, max_registrations_per_block);
-		
+
 		step_block(1);
 		assert_eq!(SubspaceModule::get_registrations_this_block(), 0);
 	});
 }
-
 
 #[test]
 fn test_max_registration() {
@@ -72,7 +70,7 @@ fn test_max_registration() {
 
 		SubspaceModule::set_min_stake(netuid, min_stake);
 		SubspaceModule::set_max_registrations_per_block(max_registrations_per_block);
-		
+
 		assert_eq!(SubspaceModule::get_registrations_this_block(), 0);
 
 		for i in 1..n {
@@ -92,7 +90,6 @@ fn test_max_registration() {
 		assert_eq!(SubspaceModule::get_registrations_this_block(), 0);
 	});
 }
-
 
 #[test]
 fn test_delegate_register() {
