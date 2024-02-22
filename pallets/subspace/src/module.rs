@@ -1,20 +1,21 @@
 use super::*;
 use frame_support::{
-	pallet_prelude::{Decode, Encode, DispatchResult},
+	pallet_prelude::{Decode, DispatchResult, Encode},
 	storage::IterableStorageMap,
 };
 
 extern crate alloc;
 use alloc::vec::Vec;
 use codec::Compact;
-use sp_std::vec;
 use sp_arithmetic::per_things::Percent;
+use sp_std::vec;
 
 #[derive(Decode, Encode, PartialEq, Eq, Clone, Debug)]
 pub struct ModuleStats<T: Config> {
 	pub last_update: u64,
 	pub registration_block: u64,
-	pub stake_from: Vec<(T::AccountId, u64)>, /* map of key to stake on this module/key * (includes delegations) */
+	pub stake_from: Vec<(T::AccountId, u64)>, /* map of key to stake on this module/key *
+	                                           * (includes delegations) */
 	pub emission: u64,
 	pub incentive: u16,
 	pub dividends: u16,
@@ -27,10 +28,7 @@ pub struct ModuleInfo<T: Config> {
 	stats: ModuleStats<T>,
 }
 
-
 impl<T: Config> Pallet<T> {
-
-
 	pub fn do_update_module(
 		origin: T::RuntimeOrigin,
 		netuid: u16,
@@ -45,21 +43,24 @@ impl<T: Config> Pallet<T> {
 		Ok(())
 	}
 
-
-
 	pub fn check_module_params(netuid: u16, params: ModuleParams<T>) -> DispatchResult {
-		
 		// if len(name) > 0, then we update the name.
 		assert!(params.name.len() > 0);
-		ensure!(params.name.len() <= MaxNameLength::<T>::get() as usize, Error::<T>::ModuleNameTooLong);
+		ensure!(
+			params.name.len() <= MaxNameLength::<T>::get() as usize,
+			Error::<T>::ModuleNameTooLong
+		);
 		assert!(params.address.len() > 0);
-		ensure!(params.address.len() <= MaxNameLength::<T>::get() as usize, Error::<T>::ModuleAddressTooLong);
+		ensure!(
+			params.address.len() <= MaxNameLength::<T>::get() as usize,
+			Error::<T>::ModuleAddressTooLong
+		);
 		// delegation fee is a percent
 		Ok(())
 	}
 
-	pub fn module_params(netuid: u16, uid:u16) -> ModuleParams<T> {
-		let module_params : ModuleParams<T> = ModuleParams {
+	pub fn module_params(netuid: u16, uid: u16) -> ModuleParams<T> {
+		let module_params: ModuleParams<T> = ModuleParams {
 			name: Self::get_module_name(netuid, uid),
 			address: Self::get_module_address(netuid, uid),
 			delegation_fee: Self::get_module_delegation_fee(netuid, uid),
@@ -71,26 +72,24 @@ impl<T: Config> Pallet<T> {
 	pub fn set_module_params(netuid: u16, uid: u16, module_params: ModuleParams<T>) {
 		Self::set_module_name(netuid, uid, module_params.name);
 		Self::set_module_address(netuid, uid, module_params.address);
-		Self::set_module_delegation_fee( netuid, uid, module_params.delegation_fee);
+		Self::set_module_delegation_fee(netuid, uid, module_params.delegation_fee);
 	}
-
 
 	pub fn get_module_address(netuid: u16, uid: u16) -> Vec<u8> {
 		return Address::<T>::get(netuid, uid)
 	}
 
-
-	pub fn set_module_address( netuid: u16, uid: u16, address: Vec<u8>) {
+	pub fn set_module_address(netuid: u16, uid: u16, address: Vec<u8>) {
 		Address::<T>::insert(netuid, uid, address);
 	}
-	
+
 	pub fn get_module_delegation_fee(netuid: u16, uid: u16) -> Percent {
 		let key = Self::get_key_for_uid(netuid, uid);
 		let mut delegation_fee: Percent = DelegationFee::<T>::get(netuid, key);
 		return delegation_fee
 	}
 
-	pub fn set_module_delegation_fee( netuid: u16, uid: u16, delegation_fee: Percent) {
+	pub fn set_module_delegation_fee(netuid: u16, uid: u16, delegation_fee: Percent) {
 		let key = Self::get_key_for_uid(netuid, uid);
 		DelegationFee::<T>::insert(netuid, key, delegation_fee);
 	}
@@ -99,7 +98,7 @@ impl<T: Config> Pallet<T> {
 		return Name::<T>::get(netuid, uid)
 	}
 
-	pub fn set_module_name( netuid: u16, uid: u16, name: Vec<u8>) {
+	pub fn set_module_name(netuid: u16, uid: u16, name: Vec<u8>) {
 		Name::<T>::insert(netuid, uid, name.clone());
 	}
 
@@ -159,7 +158,11 @@ impl<T: Config> Pallet<T> {
 		Weights::<T>::remove(netuid, replace_uid); // Make uid - key association.
 
 		// HANDLE THE REGISTRATION BLOCK
-		RegistrationBlock::<T>::insert(netuid,uid,RegistrationBlock::<T>::get(netuid, replace_uid),); // Fill block at registration.
+		RegistrationBlock::<T>::insert(
+			netuid,
+			uid,
+			RegistrationBlock::<T>::get(netuid, replace_uid),
+		); // Fill block at registration.
 		RegistrationBlock::<T>::remove(netuid, replace_uid); // Fill block at registration.
 
 		// HANDLE THE ADDRESS
@@ -171,7 +174,11 @@ impl<T: Config> Pallet<T> {
 		Name::<T>::remove(netuid, replace_uid); // Fill module namespace.
 
 		// HANDLE THE DELEGATION FEE
-		DelegationFee::<T>::insert(netuid,replace_key.clone(),DelegationFee::<T>::get(netuid, uid_key.clone())); // Make uid - key association.
+		DelegationFee::<T>::insert(
+			netuid,
+			replace_key.clone(),
+			DelegationFee::<T>::get(netuid, uid_key.clone()),
+		); // Make uid - key association.
 		DelegationFee::<T>::remove(netuid, uid_key.clone()); // Make uid - key association.
 
 		// 3. Remove the network if it is empty.
@@ -184,13 +191,7 @@ impl<T: Config> Pallet<T> {
 
 		// remove stake from old key and add to new key
 		Self::remove_stake_from_storage(netuid, &uid_key);
-
 	}
-
-
-
-
-	
 
 	// Appends the uid to the network (without increasing stake).
 	pub fn append_module(netuid: u16, key: &T::AccountId, name: Vec<u8>, address: Vec<u8>) -> u16 {
@@ -218,9 +219,8 @@ impl<T: Config> Pallet<T> {
 		); // Make uid - key association.
 
 		N::<T>::insert(netuid, N::<T>::get(netuid) + 1); // Decrease the number of modules in the network.
-		// increase the stake of the new key
+												 // increase the stake of the new key
 		Self::increase_stake(netuid, &key, &key, 0);
-
 
 		return uid
 	}
@@ -258,16 +258,15 @@ impl<T: Config> Pallet<T> {
 		let registration_block = Self::get_registration_block_for_uid(netuid, uid as u16);
 
 		let module_stats = ModuleStats {
-			stake_from: stake_from,
+			stake_from,
 			emission: emission.into(),
 			incentive: incentive.into(),
 			dividends: dividends.into(),
 			last_update: last_update.into(),
 			registration_block: registration_block.into(),
-			weights: weights,
+			weights,
 		};
 
 		return module_stats
 	}
-
 }

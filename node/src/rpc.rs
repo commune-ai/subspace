@@ -41,9 +41,9 @@ where
 	P: TransactionPool + 'static,
 {
 	use pallet_transaction_payment_rpc::{TransactionPayment, TransactionPaymentApiServer};
+	use subspace_rpc::{SubspaceApiServer, SubspacePallet};
 	use substrate_frame_rpc_system::{System, SystemApiServer};
-	use subspace_rpc::{SubspacePallet, SubspaceApiServer};
-	
+
 	let mut module = RpcModule::new(());
 	let FullDeps { client, pool, deny_unsafe } = deps;
 
