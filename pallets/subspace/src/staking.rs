@@ -1,5 +1,4 @@
 use super::*;
-use substrate_fixed::types::{I32F32, I64F64};
 
 use frame_support::storage::IterableStorageDoubleMap;
 
@@ -201,7 +200,7 @@ impl<T: Config> Pallet<T> {
 	// Returns the total amount of stake in the staking table.
 	pub fn total_stake() -> u64 {
 		let mut total_stake: u64 = 0;
-		for (netuid, subnet_total_stake) in TotalStake::<T>::iter() {
+		for (_netuid, subnet_total_stake) in TotalStake::<T>::iter() {
 			total_stake += subnet_total_stake;
 		}
 		return total_stake
@@ -214,10 +213,10 @@ impl<T: Config> Pallet<T> {
 	}
 
 	pub fn get_stakes(netuid: u16) -> Vec<u64> {
-		let n = Self::get_subnet_n(netuid);
+		let _n = Self::get_subnet_n(netuid);
 		let mut stakes: Vec<u64> = Vec::new();
-		let mut uid_key_tuples: Vec<(u16, T::AccountId)> = Self::get_uid_key_tuples(netuid);
-		for (uid, key) in uid_key_tuples {
+		let uid_key_tuples: Vec<(u16, T::AccountId)> = Self::get_uid_key_tuples(netuid);
+		for (_uid, key) in uid_key_tuples {
 			let stake: u64 = Self::get_stake(netuid, &key);
 			stakes.push(stake);
 		}
@@ -251,7 +250,7 @@ impl<T: Config> Pallet<T> {
 
 	pub fn get_stake_to_total(netuid: u16, key: &T::AccountId) -> u64 {
 		let mut total_stake_to: u64 = 0;
-		for (k, v) in Self::get_stake_to_vector(netuid, key) {
+		for (_k, v) in Self::get_stake_to_vector(netuid, key) {
 			total_stake_to += v;
 		}
 		return total_stake_to
@@ -306,7 +305,7 @@ impl<T: Config> Pallet<T> {
 		let stake_from_vector: Vec<(T::AccountId, u64)> =
 			Self::get_stake_from_vector(netuid, module_key);
 		let mut total_stake_from: u64 = 0;
-		for (k, v) in stake_from_vector {
+		for (_k, v) in stake_from_vector {
 			total_stake_from += v;
 		}
 		return total_stake_from
@@ -322,9 +321,9 @@ impl<T: Config> Pallet<T> {
 	}
 
 	pub fn get_total_stake_to(netuid: u16, key: &T::AccountId) -> u64 {
-		let mut stake_to_vector: Vec<(T::AccountId, u64)> = Self::get_stake_to_vector(netuid, key);
+		let stake_to_vector: Vec<(T::AccountId, u64)> = Self::get_stake_to_vector(netuid, key);
 		let mut total_stake_to: u64 = 0;
-		for (k, v) in stake_to_vector {
+		for (_k, v) in stake_to_vector {
 			total_stake_to += v;
 		}
 		return total_stake_to
@@ -450,7 +449,7 @@ impl<T: Config> Pallet<T> {
 	pub fn remove_stake_from_storage(netuid: u16, module_key: &T::AccountId) {
 		let stake_from_vector: Vec<(T::AccountId, u64)> =
 			Self::get_stake_from_vector(netuid, module_key);
-		for (i, (delegate_key, delegate_stake_amount)) in stake_from_vector.iter().enumerate() {
+		for (_i, (delegate_key, delegate_stake_amount)) in stake_from_vector.iter().enumerate() {
 			Self::decrease_stake(netuid, delegate_key, module_key, *delegate_stake_amount);
 			Self::add_balance_to_account(
 				delegate_key,
@@ -587,7 +586,7 @@ impl<T: Config> Pallet<T> {
 	// get the least staked network
 	pub fn least_staked_module_key(netuid: u16) -> T::AccountId {
 		let mut min_stake: u64 = u64::MAX;
-		let mut min_stake_uid: u16 = 0;
+		let _min_stake_uid: u16 = 0;
 		let mut module_key: T::AccountId = Self::get_subnet_founder(netuid);
 		for (m_key, m_stake) in
 			<Stake<T> as IterableStorageDoubleMap<u16, T::AccountId, u64>>::iter_prefix(netuid)

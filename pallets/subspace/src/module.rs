@@ -6,9 +6,8 @@ use frame_support::{
 
 extern crate alloc;
 use alloc::vec::Vec;
-use codec::Compact;
+
 use sp_arithmetic::per_things::Percent;
-use sp_std::vec;
 
 #[derive(Decode, Encode, PartialEq, Eq, Clone, Debug)]
 pub struct ModuleStats<T: Config> {
@@ -43,7 +42,7 @@ impl<T: Config> Pallet<T> {
 		Ok(())
 	}
 
-	pub fn check_module_params(netuid: u16, params: ModuleParams<T>) -> DispatchResult {
+	pub fn check_module_params(_netuid: u16, params: ModuleParams<T>) -> DispatchResult {
 		// if len(name) > 0, then we update the name.
 		assert!(params.name.len() > 0);
 		ensure!(
@@ -85,7 +84,7 @@ impl<T: Config> Pallet<T> {
 
 	pub fn get_module_delegation_fee(netuid: u16, uid: u16) -> Percent {
 		let key = Self::get_key_for_uid(netuid, uid);
-		let mut delegation_fee: Percent = DelegationFee::<T>::get(netuid, key);
+		let delegation_fee: Percent = DelegationFee::<T>::get(netuid, key);
 		return delegation_fee
 	}
 
@@ -132,7 +131,7 @@ impl<T: Config> Pallet<T> {
 		let mut dividends: Vec<u16> = Dividends::<T>::get(netuid);
 		let mut last_update: Vec<u64> = LastUpdate::<T>::get(netuid);
 		let mut emission: Vec<u64> = Emission::<T>::get(netuid);
-		let mut delegation_fee: Percent = DelegationFee::<T>::get(netuid, uid_key.clone());
+		let _delegation_fee: Percent = DelegationFee::<T>::get(netuid, uid_key.clone());
 
 		// swap consensus vectors
 
@@ -249,7 +248,7 @@ impl<T: Config> Pallet<T> {
 		let incentive = Self::get_incentive_for_uid(netuid, uid as u16);
 		let dividends = Self::get_dividends_for_uid(netuid, uid as u16);
 		let last_update = Self::get_last_update_for_uid(netuid, uid as u16);
-		let registration_block = Self::get_registration_block_for_uid(netuid, uid as u16);
+		let _registration_block = Self::get_registration_block_for_uid(netuid, uid as u16);
 		let weights = <Weights<T>>::get(netuid, uid)
 			.iter()
 			.filter_map(|(i, w)| if *w > 0 { Some(((*i).into(), (*w).into())) } else { None })

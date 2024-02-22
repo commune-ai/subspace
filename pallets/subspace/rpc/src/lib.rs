@@ -6,9 +6,8 @@ use jsonrpsee::{
 use sp_api::ProvideRuntimeApi;
 use sp_blockchain::HeaderBackend;
 use sp_runtime::{
-	generic::BlockId,
 	traits::{Block as BlockT, IdentifyAccount, Verify},
-	DispatchError, MultiSignature,
+	MultiSignature,
 };
 use std::sync::Arc;
 use subspace_runtime_api::ModuleInfo;

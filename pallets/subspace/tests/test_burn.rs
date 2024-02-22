@@ -1,10 +1,6 @@
 mod test_mock;
-use frame_support::{
-	assert_ok,
-	dispatch::{DispatchClass, DispatchInfo, GetDispatchInfo, Pays},
-};
-use frame_system::Config;
-use pallet_subspace::Error;
+use frame_support::assert_ok;
+
 use sp_core::U256;
 use sp_std::vec;
 use test_mock::*;
@@ -18,7 +14,7 @@ fn test_burn() {
 		let tempo = 100;
 
 		let keys: Vec<U256> = (0..n).into_iter().map(|x| U256::from(x)).collect();
-		let stakes: Vec<u64> = (0..n).into_iter().map(|x| initial_stake * 1_000_000_000).collect();
+		let stakes: Vec<u64> = (0..n).into_iter().map(|_x| initial_stake * 1_000_000_000).collect();
 
 		let mut subnet_params = SubspaceModule::subnet_params(netuid);
 		subnet_params.tempo = tempo;
@@ -50,7 +46,7 @@ fn test_burn() {
 			assert_ok!(SubspaceModule::set_weights(get_origin(voter_key), netuid, uids, votes));
 			println!("burn : {:?}", SubspaceModule::get_burn_emission_per_epoch(netuid));
 
-			let mut total_stake = SubspaceModule::get_total_subnet_stake(netuid);
+			let _total_stake = SubspaceModule::get_total_subnet_stake(netuid);
 
 			let dividends = SubspaceModule::get_dividends(netuid);
 			let incentives = SubspaceModule::get_incentives(netuid);
@@ -65,10 +61,10 @@ fn test_burn() {
 
 			println!("burn_per_epoch: {:?}", burn_per_epoch);
 
-			let mut stake_vector_before = SubspaceModule::get_stakes(netuid);
+			let stake_vector_before = SubspaceModule::get_stakes(netuid);
 			let total_stake_before = SubspaceModule::get_total_subnet_stake(netuid);
 			step_epoch(netuid);
-			let mut stake_vector_after = SubspaceModule::get_stakes(netuid);
+			let stake_vector_after = SubspaceModule::get_stakes(netuid);
 			let total_stake_after = SubspaceModule::get_total_subnet_stake(netuid);
 
 			println!(
@@ -93,7 +89,7 @@ fn test_burn() {
 				dividends, incentives, emissions
 			);
 
-			let calculated_subnet_emission = emissions.iter().sum::<u64>();
+			let _calculated_subnet_emission = emissions.iter().sum::<u64>();
 			let expected_subnet_emission: u64 = ((SubspaceModule::get_subnet_emission(netuid)
 				as f64 * (subnet_params.tempo as f64)) *
 				(((100 - burn_rate) as f64) / 100.0)) as u64;
@@ -123,7 +119,7 @@ fn test_min_burn() {
 		let initial_stake: u64 = 1000;
 
 		let keys: Vec<U256> = (0..n).into_iter().map(|x| U256::from(x)).collect();
-		let stakes: Vec<u64> = (0..n).into_iter().map(|x| initial_stake * 1_000_000_000).collect();
+		let stakes: Vec<u64> = (0..n).into_iter().map(|_x| initial_stake * 1_000_000_000).collect();
 
 		// founder register_module(netuid, keys[i]);
 		let founder_initial_stake = stakes[0];
@@ -155,6 +151,6 @@ fn test_min_burn() {
 			);
 		}
 
-		let voter_key = keys[1];
+		let _voter_key = keys[1];
 	});
 }

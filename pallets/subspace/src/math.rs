@@ -948,7 +948,7 @@ mod tests {
 	use rand::{seq::SliceRandom, thread_rng, Rng};
 	use substrate_fixed::{
 		transcendental::exp,
-		types::{I110F18, I32F32, I64F64, I96F32},
+		types::{I32F32, I64F64, I96F32},
 	};
 
 	fn assert_float_compare(a: I32F32, b: I32F32, epsilon: I32F32) {

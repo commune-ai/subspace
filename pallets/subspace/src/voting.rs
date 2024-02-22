@@ -1,9 +1,6 @@
-use core::ops::Add;
-
 use super::*;
 use crate::utils::is_vec_str;
 use frame_support::pallet_prelude::DispatchResult;
-use scale_info::prelude::string::String;
 
 impl<T: Config> Pallet<T> {
 	pub fn do_unregister_voter(origin: T::RuntimeOrigin) -> DispatchResult {
@@ -112,7 +109,7 @@ impl<T: Config> Pallet<T> {
 
 		let mut proposal = Proposals::<T>::get(proposal_id);
 
-		let mut voting_power: u64 = Self::get_voting_power(&key, proposal.clone());
+		let voting_power: u64 = Self::get_voting_power(&key, proposal.clone());
 		ensure!(voting_power > 0, Error::<T>::VotingPowerIsZero);
 
 		// register the voter to avoid double voting
@@ -216,7 +213,7 @@ impl<T: Config> Pallet<T> {
 		return proposal.participants[0] == *key;
 	}
 	pub fn default_proposal() -> Proposal<T> {
-		let mut proposal = Proposals::<T>::get(u64::MAX);
+		let proposal = Proposals::<T>::get(u64::MAX);
 		return proposal;
 	}
 
@@ -262,32 +259,28 @@ impl<T: Config> Pallet<T> {
 	}
 
 	pub fn get_voting_power(key: &T::AccountId, proposal: Proposal<T>) -> u64 {
-		let mut voting_power: u64 = 0;
 		if is_vec_str(proposal.mode.clone(), "subnet") {
-			voting_power = Self::get_total_stake_to(proposal.netuid, key);
+			Self::get_total_stake_to(proposal.netuid, key)
 		} else {
 			// get all of the stake for the key
-			voting_power = Self::get_global_stake_to(key);
+			Self::get_global_stake_to(key)
 		}
-		return voting_power;
 	}
 
 	pub fn get_proposal_vote_threshold(proposal_id: u64) -> u64 {
 		let proposal: Proposal<T> = Proposals::<T>::get(proposal_id);
-		let mut vote_threshold: u64 = 0;
 		if is_vec_str(proposal.mode.clone(), "subnet") {
 			let total_stake = Self::get_total_subnet_stake(proposal.netuid);
-			vote_threshold = (total_stake * proposal.subnet_params.vote_threshold as u64) / 100;
+			(total_stake * proposal.subnet_params.vote_threshold as u64) / 100
 		} else {
 			let total_stake = Self::total_stake();
-			vote_threshold = (total_stake * proposal.global_params.vote_threshold as u64) / 100;
+			(total_stake * proposal.global_params.vote_threshold as u64) / 100
 		}
-		return vote_threshold;
 	}
 
 	pub fn check_proposal_approval(proposal_id: u64) {
 		let proposal = Proposals::<T>::get(proposal_id);
-		let mut stake_threshold: u64 = Self::get_proposal_vote_threshold(proposal_id);
+		let stake_threshold: u64 = Self::get_proposal_vote_threshold(proposal_id);
 		if proposal.votes > stake_threshold {
 			//  unregister all voters
 
@@ -313,7 +306,7 @@ impl<T: Config> Pallet<T> {
 
 	pub fn get_subnet_proposals(netuid: u16) -> Vec<Proposal<T>> {
 		let mut proposals: Vec<Proposal<T>> = Vec::new();
-		for (proposal_id, proposal) in Proposals::<T>::iter() {
+		for proposal in Proposals::<T>::iter_values() {
 			if is_vec_str(proposal.mode.clone(), "subnet") && proposal.netuid == netuid {
 				proposals.push(proposal);
 			}
@@ -323,7 +316,7 @@ impl<T: Config> Pallet<T> {
 
 	pub fn get_global_proposals() -> Vec<Proposal<T>> {
 		let mut proposals: Vec<Proposal<T>> = Vec::new();
-		for (proposal_id, proposal) in Proposals::<T>::iter() {
+		for proposal in Proposals::<T>::iter_values() {
 			if is_vec_str(proposal.mode.clone(), "global") {
 				proposals.push(proposal);
 			}
