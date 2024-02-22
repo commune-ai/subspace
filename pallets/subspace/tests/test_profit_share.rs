@@ -1,10 +1,6 @@
 mod test_mock;
-use frame_support::{
-	assert_ok,
-	dispatch::{DispatchClass, DispatchInfo, GetDispatchInfo, Pays},
-};
-use frame_system::Config;
-use pallet_subspace::Error;
+use frame_support::assert_ok;
+
 use sp_core::U256;
 use sp_std::vec;
 use test_mock::*;
@@ -19,7 +15,7 @@ fn test_add_profit_share() {
 		register_module(netuid, miner_key, 1_000_000_000);
 		register_module(netuid, voter_key, 1_000_000_000);
 		let miner_uid = SubspaceModule::get_uid_for_key(netuid, &miner_key);
-		let voter_uid = SubspaceModule::get_uid_for_key(netuid, &voter_key);
+		let _voter_uid = SubspaceModule::get_uid_for_key(netuid, &voter_key);
 
 		SubspaceModule::set_min_allowed_weights(netuid, 1);
 
@@ -67,7 +63,7 @@ fn test_add_profit_share() {
 		println!("miner stake after: {:?}", miner_stake);
 		println!("voter stake after: {:?}", voter_stake);
 
-		let emission_for_subnet = SubspaceModule::get_subnet_emission(netuid);
+		let _emission_for_subnet = SubspaceModule::get_subnet_emission(netuid);
 		let profit_share_emissions = SubspaceModule::get_profit_shares(miner_key);
 		println!("profit share emissions: {:?}", profit_share_emissions);
 

@@ -1,13 +1,8 @@
 use crate::test_mock::*;
 use frame_support::assert_ok;
-use frame_system::Config;
-use rand::{distributions::Uniform, rngs::StdRng, seq::SliceRandom, thread_rng, Rng, SeedableRng};
+
 use sp_core::U256;
-use std::time::Instant;
-use substrate_fixed::{
-	transcendental::{cos, ln, sqrt, PI},
-	types::{I32F32, I64F64},
-};
+
 mod test_mock;
 
 fn check_network_stats(netuid: u16) {
@@ -41,9 +36,9 @@ fn test_stale_weights() {
 	new_test_ext().execute_with(|| {
 		let netuid: u16 = 0;
 		register_n_modules(0, 10, 1000);
-		let subnet_params = SubspaceModule::subnet_params(netuid);
-		let keys = SubspaceModule::get_keys(netuid);
-		let uids = SubspaceModule::get_uids(netuid);
+		let _subnet_params = SubspaceModule::subnet_params(netuid);
+		let _keys = SubspaceModule::get_keys(netuid);
+		let _uids = SubspaceModule::get_uids(netuid);
 	});
 }
 
@@ -53,15 +48,15 @@ fn test_no_weights() {
 		let netuid: u16 = 0;
 		register_n_modules(0, 10, 1000);
 		SubspaceModule::set_tempo(netuid, 1);
-		let keys = SubspaceModule::get_keys(netuid);
-		let uids = SubspaceModule::get_uids(netuid);
+		let _keys = SubspaceModule::get_keys(netuid);
+		let _uids = SubspaceModule::get_uids(netuid);
 
 		let incentives: Vec<u16> = SubspaceModule::get_incentives(netuid);
 		let dividends: Vec<u16> = SubspaceModule::get_dividends(netuid);
 		let emissions: Vec<u64> = SubspaceModule::get_emissions(netuid);
-		let total_incentives: u16 = incentives.iter().sum();
-		let total_dividends: u16 = dividends.iter().sum();
-		let total_emissions: u64 = emissions.iter().sum();
+		let _total_incentives: u16 = incentives.iter().sum();
+		let _total_dividends: u16 = dividends.iter().sum();
+		let _total_emissions: u64 = emissions.iter().sum();
 	});
 }
 
@@ -71,8 +66,8 @@ fn test_dividends_same_stake() {
 		// CONSSTANTS
 		let netuid: u16 = 0;
 		let n: u16 = 10;
-		let n_list: Vec<u16> = vec![10, 50, 100, 1000];
-		let blocks_per_epoch_list: u64 = 1;
+		let _n_list: Vec<u16> = vec![10, 50, 100, 1000];
+		let _blocks_per_epoch_list: u64 = 1;
 		let stake_per_module: u64 = 10_000;
 
 		// SETUP NETWORK
@@ -88,7 +83,7 @@ fn test_dividends_same_stake() {
 
 		// }
 		let keys = SubspaceModule::get_keys(netuid);
-		let uids = SubspaceModule::get_uids(netuid);
+		let _uids = SubspaceModule::get_uids(netuid);
 
 		// do a list of ones for weights
 		let weight_uids: Vec<u16> = [2, 3].to_vec();
@@ -162,8 +157,8 @@ fn test_dividends_diff_stake() {
 		// CONSSTANTS
 		let netuid: u16 = 0;
 		let n: u16 = 10;
-		let n_list: Vec<u16> = vec![10, 50, 100, 1000];
-		let blocks_per_epoch_list: u64 = 1;
+		let _n_list: Vec<u16> = vec![10, 50, 100, 1000];
+		let _blocks_per_epoch_list: u64 = 1;
 		let stake_per_module: u64 = 10_000;
 		let tempo: u16 = 100;
 
@@ -188,7 +183,7 @@ fn test_dividends_diff_stake() {
 
 		// }
 		let keys = SubspaceModule::get_keys(netuid);
-		let uids = SubspaceModule::get_uids(netuid);
+		let _uids = SubspaceModule::get_uids(netuid);
 
 		// do a list of ones for weights
 		let weight_uids: Vec<u16> = [2, 3].to_vec();
@@ -252,7 +247,7 @@ fn test_pruning() {
 		// CONSSTANTS
 		let netuid: u16 = 0;
 		let n: u16 = 100;
-		let blocks_per_epoch_list: u64 = 1;
+		let _blocks_per_epoch_list: u64 = 1;
 		let stake_per_module: u64 = 10_000;
 		let tempo: u16 = 100;
 
@@ -270,12 +265,12 @@ fn test_pruning() {
 
 		// }
 		let keys = SubspaceModule::get_keys(netuid);
-		let uids = SubspaceModule::get_uids(netuid);
+		let _uids = SubspaceModule::get_uids(netuid);
 
 		// do a list of ones for weights
 		let weight_uids: Vec<u16> = (0..n).collect();
 		// do a list of ones for weights
-		let mut weight_values: Vec<u16> = weight_uids.iter().map(|x| 1 as u16).collect();
+		let mut weight_values: Vec<u16> = weight_uids.iter().map(|_x| 1 as u16).collect();
 
 		let prune_uid: u16 = n - 1;
 		weight_values[prune_uid as usize] = 0;
@@ -321,8 +316,8 @@ fn test_lowest_priority_mechanism() {
 		// CONSSTANTS
 		let netuid: u16 = 0;
 		let n: u16 = 100;
-		let n_list: Vec<u16> = vec![10, 50, 100, 1000];
-		let blocks_per_epoch_list: u64 = 1;
+		let _n_list: Vec<u16> = vec![10, 50, 100, 1000];
+		let _blocks_per_epoch_list: u64 = 1;
 		let stake_per_module: u64 = 10_000;
 		let tempo: u16 = 100;
 
@@ -340,12 +335,12 @@ fn test_lowest_priority_mechanism() {
 
 		// }
 		let keys = SubspaceModule::get_keys(netuid);
-		let uids = SubspaceModule::get_uids(netuid);
+		let _uids = SubspaceModule::get_uids(netuid);
 
 		// do a list of ones for weights
 		let weight_uids: Vec<u16> = (0..n).collect();
 		// do a list of ones for weights
-		let mut weight_values: Vec<u16> = weight_uids.iter().map(|x| 1 as u16).collect();
+		let mut weight_values: Vec<u16> = weight_uids.iter().map(|_x| 1 as u16).collect();
 
 		let prune_uid: u16 = n - 1;
 		weight_values[prune_uid as usize] = 0;
@@ -355,7 +350,7 @@ fn test_lowest_priority_mechanism() {
 		let incentives: Vec<u16> = SubspaceModule::get_incentives(netuid);
 		let dividends: Vec<u16> = SubspaceModule::get_dividends(netuid);
 		let emissions: Vec<u64> = SubspaceModule::get_emissions(netuid);
-		let stakes: Vec<u64> = SubspaceModule::get_stakes(netuid);
+		let _stakes: Vec<u64> = SubspaceModule::get_stakes(netuid);
 
 		assert!(emissions[prune_uid as usize] == 0);
 		assert!(incentives[prune_uid as usize] == 0);
@@ -503,8 +498,8 @@ fn test_incentives() {
 		// CONSSTANTS
 		let netuid: u16 = 0;
 		let n: u16 = 10;
-		let n_list: Vec<u16> = vec![10, 50, 100, 1000];
-		let blocks_per_epoch_list: u64 = 1;
+		let _n_list: Vec<u16> = vec![10, 50, 100, 1000];
+		let _blocks_per_epoch_list: u64 = 1;
 		let stake_per_module: u64 = 10_000;
 
 		// SETUP NETWORK
@@ -515,7 +510,7 @@ fn test_incentives() {
 		params.tempo = 100;
 
 		let keys = SubspaceModule::get_keys(netuid);
-		let uids = SubspaceModule::get_uids(netuid);
+		let _uids = SubspaceModule::get_uids(netuid);
 
 		// do a list of ones for weights
 		let weight_uids: Vec<u16> = [1, 2].to_vec();
@@ -563,8 +558,8 @@ fn test_trust() {
 		// CONSSTANTS
 		let netuid: u16 = 0;
 		let n: u16 = 10;
-		let n_list: Vec<u16> = vec![10, 50, 100, 1000];
-		let blocks_per_epoch_list: u64 = 1;
+		let _n_list: Vec<u16> = vec![10, 50, 100, 1000];
+		let _blocks_per_epoch_list: u64 = 1;
 		let stake_per_module: u64 = 10_000;
 
 		// SETUP NETWORK
@@ -579,7 +574,7 @@ fn test_trust() {
 		SubspaceModule::set_subnet_params(netuid, params.clone());
 
 		let keys = SubspaceModule::get_keys(netuid);
-		let uids = SubspaceModule::get_uids(netuid);
+		let _uids = SubspaceModule::get_uids(netuid);
 
 		// do a list of ones for weights
 		let weight_uids: Vec<u16> = [2].to_vec();
@@ -844,7 +839,7 @@ fn test_founder_share() {
 		let n = 20;
 		let initial_stake: u64 = 1000;
 		let keys: Vec<U256> = (0..n).into_iter().map(|x| U256::from(x)).collect();
-		let stakes: Vec<u64> = (0..n).into_iter().map(|x| initial_stake * 1_000_000_000).collect();
+		let stakes: Vec<u64> = (0..n).into_iter().map(|_x| initial_stake * 1_000_000_000).collect();
 
 		let founder_key = keys[0];
 		for i in 0..n {

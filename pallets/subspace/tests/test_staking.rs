@@ -1,15 +1,9 @@
-use frame_support::{assert_ok, traits::Currency};
-use frame_system::Config;
 mod test_mock;
-use frame_support::{
-	dispatch::{DispatchClass, DispatchInfo, GetDispatchInfo, Pays},
-	sp_runtime::DispatchError,
-};
-use pallet_subspace::Error;
+
 use sp_core::U256;
 use test_mock::*;
 
-use substrate_fixed::types::{I32F32, I64F64};
+use substrate_fixed::types::I64F64;
 // /***********************************************************
 // 	staking::add_stake() tests
 // ************************************************************/
@@ -43,7 +37,7 @@ fn test_stake() {
 		let max_uids: u16 = 10;
 		let token_amount: u64 = 1_000_000_000;
 		let netuids: Vec<u16> = [0, 1, 2, 3].to_vec();
-		let amount_staked_vector: Vec<u64> = netuids.iter().map(|i| 10 * token_amount).collect();
+		let amount_staked_vector: Vec<u64> = netuids.iter().map(|_i| 10 * token_amount).collect();
 		let mut total_stake: u64 = 0;
 		let mut netuid: u16 = 0;
 		let mut subnet_stake: u64 = 0;
@@ -105,10 +99,10 @@ fn test_multiple_stake() {
 	new_test_ext().execute_with(|| {
 		let n: u16 = 10;
 		let stake_amount: u64 = 10_000_000_000;
-		let mut total_stake: u64 = 0;
-		let mut netuid: u16 = 0;
-		let mut subnet_stake: u64 = 0;
-		let mut uid: u16 = 0;
+		let _total_stake: u64 = 0;
+		let netuid: u16 = 0;
+		let _subnet_stake: u64 = 0;
+		let _uid: u16 = 0;
 		let num_staked_modules: u16 = 10;
 		let total_stake: u64 = stake_amount * num_staked_modules as u64;
 
@@ -168,12 +162,12 @@ fn test_transfer_stake() {
 	new_test_ext().execute_with(|| {
 		let n: u16 = 10;
 		let stake_amount: u64 = 10_000_000_000;
-		let mut total_stake: u64 = 0;
-		let mut netuid: u16 = 0;
-		let mut subnet_stake: u64 = 0;
-		let mut uid: u16 = 0;
+		let _total_stake: u64 = 0;
+		let netuid: u16 = 0;
+		let _subnet_stake: u64 = 0;
+		let _uid: u16 = 0;
 		let num_staked_modules: u16 = 10;
-		let total_stake: u64 = stake_amount * num_staked_modules as u64;
+		let _total_stake: u64 = stake_amount * num_staked_modules as u64;
 
 		register_n_modules(netuid, n, stake_amount);
 
@@ -201,7 +195,7 @@ fn test_delegate_stake() {
 		let max_uids: u16 = 10;
 		let token_amount: u64 = 1_000_000_000;
 		let netuids: Vec<u16> = [0, 1, 2, 3].to_vec();
-		let amount_staked_vector: Vec<u64> = netuids.iter().map(|i| 10 * token_amount).collect();
+		let amount_staked_vector: Vec<u64> = netuids.iter().map(|_i| 10 * token_amount).collect();
 		let mut total_stake: u64 = 0;
 		let mut netuid: u16 = 0;
 		let mut subnet_stake: u64 = 0;
@@ -276,7 +270,7 @@ fn test_ownership_ratio() {
 
 		let keys = SubspaceModule::get_keys(netuid);
 
-		for (k_i, k) in keys.iter().enumerate() {
+		for (_k_i, k) in keys.iter().enumerate() {
 			let delegate_keys: Vec<U256> =
 				(0..num_modules).map(|i| U256::from(i + num_modules + 1)).collect();
 			for d in delegate_keys.iter() {
@@ -304,7 +298,7 @@ fn test_ownership_ratio() {
 
 			let stake_from_vector = SubspaceModule::get_stake_from_vector(netuid, k);
 			let stake: u64 = SubspaceModule::get_stake(netuid, k);
-			let sumed_stake: u64 = stake_from_vector.iter().fold(0, |acc, (a, x)| acc + x);
+			let sumed_stake: u64 = stake_from_vector.iter().fold(0, |acc, (_a, x)| acc + x);
 			let total_stake: u64 = SubspaceModule::get_total_subnet_stake(netuid);
 
 			println!("STAKE: {}", stake);

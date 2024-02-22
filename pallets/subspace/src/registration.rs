@@ -1,13 +1,12 @@
 use super::*;
-use crate::system::ensure_root;
+
 use frame_support::pallet_prelude::DispatchResult;
 use frame_system::ensure_signed;
-use sp_arithmetic::per_things::Percent;
-use sp_core::{H256, U256};
-use sp_io::hashing::{keccak_256, sha2_256};
-use sp_std::{convert::TryInto, vec, vec::Vec};
-use substrate_fixed::types::I32F32;
-use system::pallet_prelude::BlockNumberFor;
+
+use sp_core::H256;
+
+use sp_std::vec::Vec;
+
 // IterableStorageMap
 use frame_support::storage::IterableStorageMap;
 
@@ -104,7 +103,7 @@ impl<T: Config> Pallet<T> {
 	}
 
 	pub fn enough_stake_to_register(
-		netuid: u16,
+		_netuid: u16,
 		min_stake: u64,
 		min_burn: u64,
 		stake_amount: u64,
@@ -137,7 +136,7 @@ impl<T: Config> Pallet<T> {
 
 		let mut min_score: u64 = u64::MAX;
 		let mut lowest_priority_uid: u16 = 0;
-		let mut prune_uids: Vec<u16> = Vec::new();
+		let _prune_uids: Vec<u16> = Vec::new();
 		let current_block = Self::get_current_block_as_u64();
 		let immunity_period: u64 = Self::get_immunity_period(netuid) as u64;
 
@@ -192,7 +191,7 @@ impl<T: Config> Pallet<T> {
 		let mut params: SubnetParams<T> = Self::default_subnet_params();
 		params.name = name.clone();
 		params.founder = founder_key.clone();
-		let netuid = Self::add_subnet(params);
+		let _netuid = Self::add_subnet(params);
 
 		Ok(())
 	}

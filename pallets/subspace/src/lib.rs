@@ -1,5 +1,4 @@
 // disable all warnings
-#![allow(warnings)]
 #![cfg_attr(not(feature = "std"), no_std)]
 #![recursion_limit = "512"]
 use frame_system::{self as system, ensure_signed};
@@ -53,9 +52,7 @@ pub mod pallet {
 	use super::*;
 	use frame_support::{pallet_prelude::*, traits::Currency};
 	use frame_system::pallet_prelude::*;
-	use scale_info::prelude::string::String;
-	use serde::{Deserialize, Serialize};
-	use serde_with::{serde_as, DisplayFromStr};
+
 	use sp_arithmetic::per_things::Percent;
 	pub use sp_std::{vec, vec::Vec};
 
@@ -260,12 +257,12 @@ pub mod pallet {
 	pub struct SubnetParams<T: Config> {
 		// --- parameters
 		pub founder: T::AccountId,
-		pub founder_share: u16,       // out of 100
-		pub immunity_period: u16,     // immunity period
-		pub incentive_ratio: u16,     // out of 100
-		pub max_allowed_uids: u16,    /* max number of weights allowed to be registered in this
-		                               * pub max_allowed_uids: u16, // max number of uids
-		                               * allowed to be registered in this subne */
+		pub founder_share: u16,   // out of 100
+		pub immunity_period: u16, // immunity period
+		pub incentive_ratio: u16, // out of 100
+		pub max_allowed_uids: u16, /* max number of weights allowed to be registered in this
+		                           * pub max_allowed_uids: u16, // max number of uids
+		                           * allowed to be registered in this subne */
 		pub max_allowed_weights: u16, /* max number of weights allowed to be registered in this
 		                               * pub max_allowed_uids: u16, // max number of uids
 		                               * allowed to be registered in this subnet */
@@ -923,7 +920,7 @@ pub mod pallet {
 				}
 			}
 			// Now we can add the stake to the network
-			for (subnet_idx, subnet) in self.subnets.iter().enumerate() {
+			for (subnet_idx, _subnet) in self.subnets.iter().enumerate() {
 				let netuid: u16 = subnet_idx as u16;
 
 				for (key, stake_to) in self.stake_to[netuid as usize].iter() {

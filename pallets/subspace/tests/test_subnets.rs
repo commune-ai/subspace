@@ -1,10 +1,6 @@
 mod test_mock;
-use frame_support::{
-	assert_ok,
-	dispatch::{DispatchClass, DispatchInfo, GetDispatchInfo, Pays},
-};
-use frame_system::Config;
-use pallet_subspace::Error;
+use frame_support::assert_ok;
+
 use sp_core::U256;
 use sp_std::vec;
 use test_mock::*;
@@ -14,11 +10,11 @@ use test_mock::*;
 #[test]
 fn test_add_subnets() {
 	new_test_ext().execute_with(|| {
-		let tempo: u16 = 13;
-		let mut stake_per_module: u64 = 1_000_000_000;
-		let mut max_allowed_subnets: u16 = SubspaceModule::get_global_max_allowed_subnets();
+		let _tempo: u16 = 13;
+		let stake_per_module: u64 = 1_000_000_000;
+		let max_allowed_subnets: u16 = SubspaceModule::get_global_max_allowed_subnets();
 		let mut expected_subnets = 0;
-		let mut n = 20;
+		let n = 20;
 		let num_subnets: u16 = n;
 
 		for i in 0..num_subnets {
@@ -81,18 +77,18 @@ fn test_set_single_temple(tempo: u16) {
 		let netuid: u16 = 0;
 		let stake: u64 = 0;
 		let key = U256::from(0);
-		let tempos: Vec<u16> = vec![2, 4];
+		let _tempos: Vec<u16> = vec![2, 4];
 		register_module(netuid, key, stake);
 		let mut params = SubspaceModule::subnet_params(netuid).clone();
 		params.tempo = tempo;
 
-		let total_blocks = 100;
+		let _total_blocks = 100;
 		let emission_per_block: u64 = SubspaceModule::get_subnet_emission(netuid);
 		let mut total_stake: u64 = 0;
 		let tempo = 5;
 		let min_stake = 1_000_000_000;
 
-		let result = SubspaceModule::set_subnet_params(netuid, params.clone());
+		let _result = SubspaceModule::set_subnet_params(netuid, params.clone());
 
 		let subnet_params = SubspaceModule::subnet_params(netuid);
 
@@ -108,7 +104,7 @@ fn test_set_single_temple(tempo: u16) {
 
 		let n_epochs = 3;
 		let n_steps = n_epochs * tempo;
-		for i in 0..n_steps {
+		for _i in 0..n_steps {
 			println!(
 				"tempo {} block number: {} stake {} pending_emissiion {}",
 				tempo,
@@ -156,15 +152,15 @@ fn test_emission_ratio() {
 		let stake_per_module: u64 = 1_000_000_000;
 		let mut emissions_per_subnet: Vec<u64> = Vec::new();
 		let max_delta: f64 = 1.0;
-		let n: u16 = 10;
+		let _n: u16 = 10;
 
 		for i in 0..netuids.len() {
-			let key = U256::from(netuids[i]);
+			let _key = U256::from(netuids[i]);
 			let netuid = netuids[i];
 			register_n_modules(netuid, 1, stake_per_module);
 			let subnet_emission: u64 = SubspaceModule::get_subnet_emission(netuid);
 			emissions_per_subnet.push(subnet_emission);
-			let expected_emission_factor: f64 = 1.0 / (netuids.len() as f64);
+			let _expected_emission_factor: f64 = 1.0 / (netuids.len() as f64);
 			let emission_per_block = SubspaceModule::get_total_emission_per_block();
 			let expected_emission: u64 = emission_per_block / (i as u64 + 1);
 
@@ -204,8 +200,8 @@ fn test_set_max_allowed_uids_growing() {
 			assert_eq!(SubspaceModule::get_subnet_n(netuid), i + 1);
 		}
 		let mut n: u16 = SubspaceModule::get_subnet_n(netuid);
-		let mut old_n: u16 = n.clone();
-		let mut uids: Vec<u16>;
+		let old_n: u16 = n.clone();
+		let mut _uids: Vec<u16>;
 		assert_eq!(SubspaceModule::get_subnet_n(netuid), max_uids);
 		let mut new_n: u16 = SubspaceModule::get_subnet_n(netuid);
 		for r in 1..rounds {
@@ -276,7 +272,7 @@ fn test_set_max_allowed_uids_shrinking() {
 				old_total_subnet_balance + SubspaceModule::get_balance_u64(&key);
 		}
 
-		let subnet = SubspaceModule::subnet_info(netuid);
+		let _subnet = SubspaceModule::subnet_info(netuid);
 
 		let mut params = SubspaceModule::subnet_params(netuid).clone();
 		params.max_allowed_uids = max_uids;
@@ -317,7 +313,7 @@ fn test_set_max_allowed_uids_shrinking() {
 		println!("calculated  stake {}", calc_stake);
 
 		expected_stake = (max_uids) as u64 * stake;
-		let subnet_stake = SubspaceModule::get_total_subnet_stake(netuid);
+		let _subnet_stake = SubspaceModule::get_total_subnet_stake(netuid);
 		total_stake = SubspaceModule::total_stake();
 
 		assert_eq!(total_stake, expected_stake);
@@ -329,8 +325,8 @@ fn test_set_max_allowed_modules() {
 	new_test_ext().execute_with(|| {
 		let netuid: u16 = 0;
 		let stake: u64 = 1_000_000_000;
-		let max_uids: u16 = 2000;
-		let extra_uids: u16 = 20;
+		let _max_uids: u16 = 2000;
+		let _extra_uids: u16 = 20;
 		let max_allowed_modules: u16 = 100;
 		let mut n = SubspaceModule::get_subnet_n(netuid);
 

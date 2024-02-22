@@ -1,15 +1,11 @@
-use frame_support::{assert_ok, traits::Currency};
-use frame_system::Config;
+use frame_support::assert_ok;
+
 mod test_mock;
-use frame_support::{
-	dispatch::{DispatchClass, DispatchInfo, GetDispatchInfo, Pays},
-	sp_runtime::DispatchError,
-};
-use pallet_subspace::Error;
+
 use sp_core::U256;
 use test_mock::*;
 
-use substrate_fixed::types::{I32F32, I64F64};
+use substrate_fixed::types::I64F64;
 // /***********************************************************
 // 	staking::add_stake() tests
 // ************************************************************/
@@ -216,9 +212,9 @@ fn test_ownership_ratio() {
 		assert_eq!(total_new_tokens, total_emissions);
 
 		let stake_from_vector = SubspaceModule::get_stake_from_vector(netuid, &voter_key);
-		let stake: u64 = SubspaceModule::get_stake(netuid, &voter_key);
-		let sumed_stake: u64 = stake_from_vector.iter().fold(0, |acc, (a, x)| acc + x);
-		let total_stake: u64 = SubspaceModule::get_total_subnet_stake(netuid);
+		let _stake: u64 = SubspaceModule::get_stake(netuid, &voter_key);
+		let _sumed_stake: u64 = stake_from_vector.iter().fold(0, |acc, (_a, x)| acc + x);
+		let _total_stake: u64 = SubspaceModule::get_total_subnet_stake(netuid);
 		println!("stake_from_vector: {:?}", stake_from_vector);
 	});
 }

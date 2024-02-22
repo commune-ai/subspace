@@ -1,18 +1,12 @@
 // disable all warnings
-#![allow(warnings)]
 use crate as pallet_subspace;
-use frame_support::{
-	assert_ok, parameter_types,
-	traits::{Everything, Hash, Hooks, StorageMapShim},
-	weights,
-};
+use frame_support::{parameter_types, traits::Everything};
 use frame_system as system;
-use frame_system::{limits, Config, EnsureNever, EnsureRoot, RawOrigin};
-use sp_core::{ConstU32, Get, H256, U256};
+
+use sp_core::{Get, H256, U256};
 use sp_runtime::{
-	testing::Header,
 	traits::{BlakeTwo256, IdentityLookup},
-	BuildStorage, DispatchResult,
+	BuildStorage,
 };
 
 type UncheckedExtrinsic = frame_system::mocking::MockUncheckedExtrinsic<Test>;

@@ -1,7 +1,7 @@
 use super::*;
 use crate::utils::is_vec_str;
 use frame_support::pallet_prelude::DispatchResult;
-use sp_runtime::DispatchError;
+
 use system::ensure_root;
 
 impl<T: Config> Pallet<T> {
@@ -104,7 +104,7 @@ impl<T: Config> Pallet<T> {
 		return BurnRate::<T>::get().min(100);
 	}
 
-	pub fn set_burn_rate(mut burn_rate: u16) {
+	pub fn set_burn_rate(burn_rate: u16) {
 		BurnRate::<T>::put(burn_rate.min(100));
 	}
 

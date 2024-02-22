@@ -1,5 +1,5 @@
 use frame_support::pallet_prelude::DispatchResult;
-use substrate_fixed::types::{I110F18, I32F32, I64F64, I96F32};
+use substrate_fixed::types::{I64F64, I96F32};
 
 use super::*;
 
@@ -18,7 +18,7 @@ impl<T: Config> Pallet<T> {
 
 		// make sure the keys are unique and the shares are unique
 
-		let mut total_shares: u32 = shares.iter().map(|x| *x as u32).sum();
+		let total_shares: u32 = shares.iter().map(|x| *x as u32).sum();
 		assert!(total_shares > 0);
 		let mut normalized_shares_float: Vec<I64F64> = Vec::new();
 		// normalize shares
@@ -54,7 +54,7 @@ impl<T: Config> Pallet<T> {
 		);
 
 		// check tssat the normalized shares add up to the unit
-		let total_normalized_shares: u16 = normalize_shares.iter().sum::<u16>();
+		let _total_normalized_shares: u16 = normalize_shares.iter().sum::<u16>();
 
 		// now send the normalized shares to the profit share pallet
 		let profit_share_tuples: Vec<(T::AccountId, u16)> =

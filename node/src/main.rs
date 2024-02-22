@@ -1,6 +1,5 @@
 //! Substrate Node Subspace CLI library.
 
-#![allow(warnings)]
 #![warn(missing_docs)]
 
 mod chain_spec;

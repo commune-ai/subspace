@@ -1,13 +1,13 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 
-use parity_scale_codec::{Decode, Encode, EncodeLike, MaxEncodedLen};
+use parity_scale_codec::{Decode, Encode};
 use scale_info::TypeInfo;
 use serde::{Deserialize, Serialize};
 use sp_arithmetic::per_things::Percent;
 use sp_runtime::{
 	sp_std::prelude::Vec,
 	traits::{IdentifyAccount, Verify},
-	ArithmeticError, DispatchError, MultiSignature,
+	DispatchError, MultiSignature,
 };
 
 type Result<T> = core::result::Result<T, DispatchError>;

@@ -1,8 +1,4 @@
-use sp_std::{vec, vec::Vec};
-use substrate_fixed::{
-	transcendental::exp,
-	types::{I32F32, I64F64},
-};
+use sp_std::vec::Vec;
 
 #[allow(dead_code)]
 fn string2vec(s: &str) -> Vec<u8> {

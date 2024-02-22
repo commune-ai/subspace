@@ -1,12 +1,11 @@
 use node_subspace_runtime::{
 	AccountId, AuraConfig, BalancesConfig, GrandpaConfig, Precompiles, RuntimeGenesisConfig,
-	Signature, SubspaceModuleConfig, SudoConfig, SystemConfig, WASM_BINARY,
+	SubspaceModuleConfig, SudoConfig, SystemConfig, WASM_BINARY,
 };
 use sc_service::ChainType;
 use sp_consensus_aura::sr25519::AuthorityId as AuraId;
 use sp_consensus_grandpa::AuthorityId as GrandpaId;
 use sp_core::{crypto::Ss58Codec, sr25519, Pair, Public};
-use sp_runtime::traits::{IdentifyAccount, Verify};
 
 // The URL for the telemetry server.
 // const STAGING_TELEMETRY_URL: &str = "wss://telemetry.polkadot.io/submit/";
@@ -16,36 +15,14 @@ pub type ChainSpec = sc_service::GenericChainSpec<RuntimeGenesisConfig>;
 
 // Generate a crypto pair from seed.
 pub fn get_from_seed<TPublic: Public>(seed: &str) -> <TPublic::Pair as Pair>::Public {
-	TPublic::Pair::from_string(&format!("//{}", seed), None)
+	<TPublic::Pair as Pair>::from_string(&format!("//{}", seed), None)
 		.expect("static values are valid; qed")
 		.public()
-}
-
-type AccountPublic = <Signature as Verify>::Signer;
-
-/// Generate an account ID from seed.
-pub fn get_account_id_from_seed<TPublic: Public>(seed: &str) -> AccountId
-where
-	AccountPublic: From<<TPublic::Pair as Pair>::Public>,
-{
-	AccountPublic::from(get_from_seed::<TPublic>(seed)).into_account()
 }
 
 /// Generate an Aura authority key.
 pub fn authority_keys_from_seed(s: &str) -> (AuraId, GrandpaId) {
 	(get_from_seed::<AuraId>(s), get_from_seed::<GrandpaId>(s))
-}
-
-pub fn authority_keys_from_ss58(s_aura: &str, s_grandpa: &str) -> (AuraId, GrandpaId) {
-	(get_aura_from_ss58_addr(s_aura), get_grandpa_from_ss58_addr(s_grandpa))
-}
-
-pub fn get_aura_from_ss58_addr(s: &str) -> AuraId {
-	Ss58Codec::from_ss58check(s).unwrap()
-}
-
-pub fn get_grandpa_from_ss58_addr(s: &str) -> GrandpaId {
-	Ss58Codec::from_ss58check(s).unwrap()
 }
 
 // Includes for nakamoto genesis
@@ -71,6 +48,7 @@ struct SubspaceJSONState {
 	block: u32,
 
 	// version
+	#[allow(unused)]
 	version: u32,
 }
 
@@ -120,7 +98,7 @@ pub fn generate_config(network: String) -> Result<ChainSpec, String> {
 
 		// Add  modules
 		modules.push(Vec::new());
-		for (uid, module) in state.modules[netuid].iter().enumerate() {
+		for module in state.modules[netuid].iter() {
 			modules[netuid].push((
 				sp_runtime::AccountId32::from(
 					// module_key
@@ -211,9 +189,6 @@ pub fn mainnet_config() -> Result<ChainSpec, String> {
 	return generate_config("main".to_string())
 }
 
-pub fn devnet_config() -> Result<ChainSpec, String> {
-	return generate_config("dev".to_string())
-}
 pub fn testnet_config() -> Result<ChainSpec, String> {
 	return generate_config("test".to_string())
 }
@@ -229,7 +204,7 @@ fn network_genesis(
 	stake_to: Vec<Vec<(AccountId, Vec<(AccountId, u64)>)>>,
 	block: u32,
 ) -> RuntimeGenesisConfig {
-	use node_subspace_runtime::{EVMChainIdConfig, EVMConfig};
+	use node_subspace_runtime::EVMConfig;
 
 	RuntimeGenesisConfig {
 		system: SystemConfig {
