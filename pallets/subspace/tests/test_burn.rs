@@ -13,8 +13,8 @@ fn test_burn() {
 		let initial_stake: u64 = 1000;
 		let tempo = 100;
 
-		let keys: Vec<U256> = (0..n).into_iter().map(|x| U256::from(x)).collect();
-		let stakes: Vec<u64> = (0..n).into_iter().map(|_x| initial_stake * 1_000_000_000).collect();
+		let keys: Vec<U256> = (0..n).map(U256::from).collect();
+		let stakes: Vec<u64> = (0..n).map(|_x| initial_stake * 1_000_000_000).collect();
 
 		let mut subnet_params = SubspaceModule::subnet_params(netuid);
 		subnet_params.tempo = tempo;
@@ -118,8 +118,8 @@ fn test_min_burn() {
 
 		let initial_stake: u64 = 1000;
 
-		let keys: Vec<U256> = (0..n).into_iter().map(|x| U256::from(x)).collect();
-		let stakes: Vec<u64> = (0..n).into_iter().map(|_x| initial_stake * 1_000_000_000).collect();
+		let keys: Vec<U256> = (0..n).map(U256::from).collect();
+		let stakes: Vec<u64> = (0..n).map(|_x| initial_stake * 1_000_000_000).collect();
 
 		// founder register_module(netuid, keys[i]);
 		let founder_initial_stake = stakes[0];

@@ -194,7 +194,7 @@ impl<T: Config> Pallet<T> {
 	// Returns the total amount of stake in the staking table.
 	//
 	pub fn get_total_subnet_stake(netuid: u16) -> u64 {
-		return TotalStake::<T>::get(netuid)
+		TotalStake::<T>::get(netuid)
 	}
 
 	// Returns the total amount of stake in the staking table.
@@ -203,13 +203,13 @@ impl<T: Config> Pallet<T> {
 		for (_netuid, subnet_total_stake) in TotalStake::<T>::iter() {
 			total_stake += subnet_total_stake;
 		}
-		return total_stake
+		total_stake
 	}
 
 	// Returns the stake under the cold - hot pairing in the staking table.
 	//
 	pub fn get_stake(netuid: u16, key: &T::AccountId) -> u64 {
-		return Stake::<T>::get(netuid, key)
+		Stake::<T>::get(netuid, key)
 	}
 
 	pub fn get_stakes(netuid: u16) -> Vec<u64> {
@@ -220,12 +220,12 @@ impl<T: Config> Pallet<T> {
 			let stake: u64 = Self::get_stake(netuid, &key);
 			stakes.push(stake);
 		}
-		return stakes
+		stakes
 	}
 
 	// Returns the stake under the cold - hot pairing in the staking table.
 	pub fn key_account_exists(netuid: u16, key: &T::AccountId) -> bool {
-		return Uids::<T>::contains_key(netuid, &key)
+		Uids::<T>::contains_key(netuid, &key)
 	}
 
 	// Returns the delegation fee of a module
@@ -241,11 +241,11 @@ impl<T: Config> Pallet<T> {
 		module_key: &T::AccountId,
 		amount: u64,
 	) -> bool {
-		return Self::get_stake_to_module(netuid, key, module_key) >= amount
+		Self::get_stake_to_module(netuid, key, module_key) >= amount
 	}
 
 	pub fn get_self_stake(netuid: u16, key: &T::AccountId) -> u64 {
-		return Self::get_stake_to_module(netuid, key, key)
+		Self::get_stake_to_module(netuid, key, key)
 	}
 
 	pub fn get_stake_to_total(netuid: u16, key: &T::AccountId) -> u64 {
@@ -253,7 +253,7 @@ impl<T: Config> Pallet<T> {
 		for (_k, v) in Self::get_stake_to_vector(netuid, key) {
 			total_stake_to += v;
 		}
-		return total_stake_to
+		total_stake_to
 	}
 
 	pub fn get_stake_to_module(netuid: u16, key: &T::AccountId, module_key: &T::AccountId) -> u64 {
@@ -264,11 +264,11 @@ impl<T: Config> Pallet<T> {
 			}
 		}
 
-		return state_to
+		state_to
 	}
 
 	pub fn get_stake_to_vector(netuid: u16, key: &T::AccountId) -> Vec<(T::AccountId, u64)> {
-		return StakeTo::<T>::get(netuid, key)
+		StakeTo::<T>::get(netuid, key)
 	}
 
 	pub fn set_stake_to_vector(
@@ -297,7 +297,7 @@ impl<T: Config> Pallet<T> {
 		netuid: u16,
 		module_key: &T::AccountId,
 	) -> Vec<(T::AccountId, u64)> {
-		return StakeFrom::<T>::get(netuid, module_key)
+		StakeFrom::<T>::get(netuid, module_key)
 			.into_iter()
 			.collect::<Vec<(T::AccountId, u64)>>()
 	}
@@ -308,7 +308,7 @@ impl<T: Config> Pallet<T> {
 		for (_k, v) in stake_from_vector {
 			total_stake_from += v;
 		}
-		return total_stake_from
+		total_stake_from
 	}
 
 	pub fn get_total_stake_to_global(key: &T::AccountId) -> u64 {
@@ -317,7 +317,7 @@ impl<T: Config> Pallet<T> {
 		for netuid in 0..total_networks {
 			total_stake_to += Self::get_total_stake_to(netuid, key);
 		}
-		return total_stake_to
+		total_stake_to
 	}
 
 	pub fn get_total_stake_to(netuid: u16, key: &T::AccountId) -> u64 {
@@ -326,7 +326,7 @@ impl<T: Config> Pallet<T> {
 		for (_k, v) in stake_to_vector {
 			total_stake_to += v;
 		}
-		return total_stake_to
+		total_stake_to
 	}
 
 	// INCREASE
@@ -376,7 +376,7 @@ impl<T: Config> Pallet<T> {
 			Stake::<T>::get(netuid, module_key).saturating_add(amount),
 		);
 		TotalStake::<T>::insert(netuid, TotalStake::<T>::get(netuid).saturating_add(amount));
-		return true
+		true
 	}
 
 	pub fn decrease_stake(
@@ -441,7 +441,7 @@ impl<T: Config> Pallet<T> {
 		);
 		TotalStake::<T>::insert(netuid, TotalStake::<T>::get(netuid).saturating_sub(amount));
 
-		return true
+		true
 	}
 
 	// Decreases the stake on the cold - hot pairing by the amount while decreasing other counters.
@@ -484,7 +484,7 @@ impl<T: Config> Pallet<T> {
 		to: &T::AccountId,
 		amount: u64,
 	) -> bool {
-		return match T::Currency::transfer(
+		match T::Currency::transfer(
 			&from,
 			&to,
 			Self::u64_to_balance(amount).unwrap(),
@@ -521,13 +521,13 @@ impl<T: Config> Pallet<T> {
 			new_potential_balance,
 		)
 		.is_ok();
-		return can_withdraw
+		can_withdraw
 	}
 
 	pub fn get_balance(
 		key: &T::AccountId,
 	) -> <<T as Config>::Currency as Currency<<T as system::Config>::AccountId>>::Balance {
-		return T::Currency::free_balance(&key)
+		T::Currency::free_balance(&key)
 	}
 
 	pub fn balance_to_u64(
@@ -537,7 +537,7 @@ impl<T: Config> Pallet<T> {
 	}
 
 	pub fn get_balance_u64(key: &T::AccountId) -> u64 {
-		return Self::balance_to_u64(Self::get_balance(key))
+		Self::balance_to_u64(Self::get_balance(key))
 	}
 
 	pub fn total_balance_for_keys(keys: Vec<T::AccountId>) -> u64 {
@@ -545,19 +545,19 @@ impl<T: Config> Pallet<T> {
 		for key in keys {
 			total_balance += Self::get_balance_u64(&key);
 		}
-		return total_balance;
+		total_balance
 	}
 
 	pub fn has_enough_balance(key: &T::AccountId, amount: u64) -> bool {
-		return Self::get_balance_u64(key) > amount || amount == 0
+		Self::get_balance_u64(key) > amount || amount == 0
 	}
 
 	pub fn num_stakedto_keys(netuid: u16, key: &T::AccountId) -> u16 {
-		return Self::get_stake_to_vector(netuid, key).len() as u16
+		Self::get_stake_to_vector(netuid, key).len() as u16
 	}
 
 	pub fn remove_balance_from_account_u64(key: &T::AccountId, amount: u64) -> bool {
-		return match T::Currency::withdraw(
+		match T::Currency::withdraw(
 			&key,
 			Self::u64_to_balance(amount).unwrap(),
 			WithdrawReasons::except(WithdrawReasons::TIP),
@@ -572,7 +572,7 @@ impl<T: Config> Pallet<T> {
 		key: &T::AccountId,
 		amount: <<T as Config>::Currency as Currency<<T as system::Config>::AccountId>>::Balance,
 	) -> bool {
-		return match T::Currency::withdraw(
+		match T::Currency::withdraw(
 			&key,
 			amount,
 			WithdrawReasons::except(WithdrawReasons::TIP),
@@ -597,11 +597,11 @@ impl<T: Config> Pallet<T> {
 			}
 		}
 
-		return module_key
+		module_key
 	}
 
 	pub fn least_staked_module_uid(netuid: u16) -> u16 {
 		// least_staked_module_uid
-		return Self::get_uid_for_key(netuid, &Self::least_staked_module_key(netuid))
+		Self::get_uid_for_key(netuid, &Self::least_staked_module_key(netuid))
 	}
 }

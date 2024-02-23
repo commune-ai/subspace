@@ -78,44 +78,42 @@ fn test_ownership_ratio() {
 		let founder_tokens_before = SubspaceModule::get_balance(&voter_key) +
 			SubspaceModule::get_stake_to_module(netuid, &voter_key, &voter_key);
 
-		let delegate_balances_before = delegate_keys
-			.iter()
-			.map(|k| SubspaceModule::get_balance(k))
-			.collect::<Vec<u64>>();
+		let delegate_balances_before =
+			delegate_keys.iter().map(SubspaceModule::get_balance).collect::<Vec<u64>>();
 		let delegate_stakes_before = delegate_keys
 			.iter()
-			.map(|k| SubspaceModule::get_stake_to_module(netuid, &k, &voter_key))
+			.map(|k| SubspaceModule::get_stake_to_module(netuid, k, &voter_key))
 			.collect::<Vec<u64>>();
 		let delegate_total_tokens_before = delegate_balances_before
 			.iter()
-			.zip(delegate_stakes_before.clone().into_iter())
+			.zip(delegate_stakes_before.clone())
 			.map(|(a, x)| a + x)
-			.fold(0, |acc, x| acc + x);
+			.sum::<u64>();
 
 		let total_balance = keys
 			.iter()
-			.map(|k| SubspaceModule::get_balance(k))
+			.map(SubspaceModule::get_balance)
 			.collect::<Vec<u64>>()
 			.iter()
-			.fold(0, |acc, x| acc + x);
+			.sum::<u64>();
 		let total_stake = keys
 			.iter()
-			.map(|k| SubspaceModule::get_stake_to_module(netuid, &k, &k))
+			.map(|k| SubspaceModule::get_stake_to_module(netuid, k, k))
 			.collect::<Vec<u64>>()
 			.iter()
-			.fold(0, |acc, x| acc + x);
+			.sum::<u64>();
 		let total_delegate_stake = delegate_keys
 			.iter()
-			.map(|k| SubspaceModule::get_stake_to_module(netuid, &k, &voter_key))
+			.map(|k| SubspaceModule::get_stake_to_module(netuid, k, &voter_key))
 			.collect::<Vec<u64>>()
 			.iter()
-			.fold(0, |acc, x| acc + x);
+			.sum::<u64>();
 		let total_delegate_balance = delegate_keys
 			.iter()
-			.map(|k| SubspaceModule::get_balance(k))
+			.map(SubspaceModule::get_balance)
 			.collect::<Vec<u64>>()
 			.iter()
-			.fold(0, |acc, x| acc + x);
+			.sum::<u64>();
 		let total_tokens_before =
 			total_balance + total_stake + total_delegate_stake + total_delegate_balance;
 		println!("total_tokens_before: {:?}", total_tokens_before);
@@ -142,34 +140,31 @@ fn test_ownership_ratio() {
 		println!("dividends: {:?}", dividends);
 		println!("incentives: {:?}", incentives);
 		println!("emissions: {:?}", emissions);
-		let total_emissions = emissions.iter().fold(0, |acc, x| acc + x);
+		let total_emissions = emissions.iter().sum::<u64>();
 
 		println!("total_emissions: {:?}", total_emissions);
 
-		let delegate_balances = delegate_keys
-			.iter()
-			.map(|k| SubspaceModule::get_balance(k))
-			.collect::<Vec<u64>>();
+		let delegate_balances =
+			delegate_keys.iter().map(SubspaceModule::get_balance).collect::<Vec<u64>>();
 		let delegate_stakes = delegate_keys
 			.iter()
-			.map(|k| SubspaceModule::get_stake_to_module(netuid, &k, &voter_key))
+			.map(|k| SubspaceModule::get_stake_to_module(netuid, k, &voter_key))
 			.collect::<Vec<u64>>();
 		let delegate_total_tokens = delegate_balances
 			.iter()
-			.zip(delegate_stakes.clone().into_iter())
+			.zip(delegate_stakes.clone())
 			.map(|(a, x)| a + x)
-			.fold(0, |acc, x| acc + x);
+			.sum::<u64>();
 		let founder_tokens = SubspaceModule::get_balance(&voter_key) +
 			SubspaceModule::get_stake_to_module(netuid, &voter_key, &voter_key);
 		let founder_new_tokens = founder_tokens - founder_tokens_before;
 		let delegate_new_tokens: Vec<u64> = delegate_stakes
 			.iter()
-			.zip(delegate_stakes_before.clone().into_iter())
+			.zip(delegate_stakes_before.clone())
 			.map(|(a, x)| a - x)
 			.collect::<Vec<u64>>();
 
-		let total_new_tokens =
-			founder_new_tokens + delegate_new_tokens.iter().fold(0, |acc, x| acc + x);
+		let total_new_tokens = founder_new_tokens + delegate_new_tokens.iter().sum::<u64>();
 
 		println!("owner_ratios: {:?}", ownership_ratios);
 		println!("total_new_tokens: {:?}", total_new_tokens);
@@ -182,28 +177,28 @@ fn test_ownership_ratio() {
 
 		let total_balance = keys
 			.iter()
-			.map(|k| SubspaceModule::get_balance(k))
+			.map(SubspaceModule::get_balance)
 			.collect::<Vec<u64>>()
 			.iter()
-			.fold(0, |acc, x| acc + x);
+			.sum::<u64>();
 		let total_stake = keys
 			.iter()
-			.map(|k| SubspaceModule::get_stake_to_module(netuid, &k, &k))
+			.map(|k| SubspaceModule::get_stake_to_module(netuid, k, k))
 			.collect::<Vec<u64>>()
 			.iter()
-			.fold(0, |acc, x| acc + x);
+			.sum::<u64>();
 		let total_delegate_stake = delegate_keys
 			.iter()
-			.map(|k| SubspaceModule::get_stake_to_module(netuid, &k, &voter_key))
+			.map(|k| SubspaceModule::get_stake_to_module(netuid, k, &voter_key))
 			.collect::<Vec<u64>>()
 			.iter()
-			.fold(0, |acc, x| acc + x);
+			.sum::<u64>();
 		let total_delegate_balance = delegate_keys
 			.iter()
-			.map(|k| SubspaceModule::get_balance(k))
+			.map(SubspaceModule::get_balance)
 			.collect::<Vec<u64>>()
 			.iter()
-			.fold(0, |acc, x| acc + x);
+			.sum::<u64>();
 		let total_tokens_after =
 			total_balance + total_stake + total_delegate_stake + total_delegate_balance;
 		let total_new_tokens = total_tokens_after - total_tokens_before;

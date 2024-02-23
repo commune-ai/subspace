@@ -62,7 +62,7 @@ impl<T: Config> Pallet<T> {
 			delegation_fee: Self::get_module_delegation_fee(netuid, uid),
 			controller: Self::get_key_for_uid(netuid, uid),
 		};
-		return module_params
+		module_params
 	}
 
 	pub fn set_module_params(netuid: u16, uid: u16, module_params: ModuleParams<T>) {
@@ -72,7 +72,7 @@ impl<T: Config> Pallet<T> {
 	}
 
 	pub fn get_module_address(netuid: u16, uid: u16) -> Vec<u8> {
-		return Address::<T>::get(netuid, uid)
+		Address::<T>::get(netuid, uid)
 	}
 
 	pub fn set_module_address(netuid: u16, uid: u16, address: Vec<u8>) {
@@ -82,7 +82,7 @@ impl<T: Config> Pallet<T> {
 	pub fn get_module_delegation_fee(netuid: u16, uid: u16) -> Percent {
 		let key = Self::get_key_for_uid(netuid, uid);
 		let delegation_fee: Percent = DelegationFee::<T>::get(netuid, key);
-		return delegation_fee
+		delegation_fee
 	}
 
 	pub fn set_module_delegation_fee(netuid: u16, uid: u16, delegation_fee: Percent) {
@@ -91,7 +91,7 @@ impl<T: Config> Pallet<T> {
 	}
 
 	pub fn get_module_name(netuid: u16, uid: u16) -> Vec<u8> {
-		return Name::<T>::get(netuid, uid)
+		Name::<T>::get(netuid, uid)
 	}
 
 	pub fn set_module_name(netuid: u16, uid: u16, name: Vec<u8>) {
@@ -218,7 +218,7 @@ impl<T: Config> Pallet<T> {
 												 // increase the stake of the new key
 		Self::increase_stake(netuid, &key, &key, 0);
 
-		return uid
+		uid
 	}
 
 	pub fn get_modules_stats(netuid: u16) -> Vec<ModuleStats<T>> {
@@ -236,7 +236,7 @@ impl<T: Config> Pallet<T> {
 
 			modules.push(module);
 		}
-		return modules
+		modules
 	}
 
 	pub fn get_module_stats(netuid: u16, uid: u16) -> ModuleStats<T> {
@@ -253,7 +253,7 @@ impl<T: Config> Pallet<T> {
 		let stake_from: Vec<(T::AccountId, u64)> = StakeFrom::<T>::get(netuid, key);
 		let registration_block = Self::get_registration_block_for_uid(netuid, uid as u16);
 
-		let module_stats = ModuleStats {
+		ModuleStats {
 			stake_from,
 			emission: emission.into(),
 			incentive: incentive.into(),
@@ -261,8 +261,6 @@ impl<T: Config> Pallet<T> {
 			last_update: last_update.into(),
 			registration_block: registration_block.into(),
 			weights,
-		};
-
-		return module_stats
+		}
 	}
 }

@@ -82,12 +82,12 @@ impl<T: Config> Pallet<T> {
 				return true
 			}
 		}
-		return false
+		false
 	}
 
 	// Returns true if the passed uids have the same length of the passed values.
 	fn uids_match_values(uids: &Vec<u16>, values: &Vec<u16>) -> bool {
-		return uids.len() == values.len()
+		uids.len() == values.len()
 	}
 
 	// Returns true if the items contain duplicates.
@@ -99,7 +99,7 @@ impl<T: Config> Pallet<T> {
 			}
 			parsed.push(item.clone());
 		}
-		return false
+		false
 	}
 
 	// Returns True if the uids and weights are have a valid length for uid on network.
@@ -119,7 +119,7 @@ impl<T: Config> Pallet<T> {
 			return true
 		}
 		// To few weights.
-		return false
+		false
 	}
 
 	// Implace normalizes the passed positive integer weights so that they sum to u16 max value.
@@ -131,7 +131,7 @@ impl<T: Config> Pallet<T> {
 		weights.iter_mut().for_each(|x| {
 			*x = (*x as u64 * u16::max_value() as u64 / sum) as u16;
 		});
-		return weights
+		weights
 	}
 
 	// Returns true if the uids and weights correspond to a self weight on the uid.
@@ -142,7 +142,7 @@ impl<T: Config> Pallet<T> {
 		if uid != uids[0] {
 			return false
 		}
-		return true
+		true
 	}
 
 	pub fn check_len_uids_within_allowed(netuid: u16, uids: &Vec<u16>) -> bool {
@@ -154,6 +154,6 @@ impl<T: Config> Pallet<T> {
 		if uids.len() < min_allowed_length as usize {
 			return false
 		}
-		return true
+		true
 	}
 }

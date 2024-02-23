@@ -83,10 +83,10 @@ impl<T: Config> Pallet<T> {
 			emission_shares.push((share_key.clone(), share_emission));
 		}
 
-		return emission_shares;
+		emission_shares
 	}
 
 	pub fn get_profit_shares(key: T::AccountId) -> Vec<(T::AccountId, u16)> {
-		return ProfitShares::<T>::get(&key);
+		ProfitShares::<T>::get(&key)
 	}
 }

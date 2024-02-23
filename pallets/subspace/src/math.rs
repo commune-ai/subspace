@@ -163,7 +163,7 @@ pub fn normalize(x: &Vec<I32F32>) -> Vec<I32F32> {
 	if x_sum != I32F32::from_num(0.0 as f32) {
 		return x.iter().map(|xi| xi / x_sum).collect()
 	} else {
-		return x.clone()
+		x.clone()
 	}
 }
 
@@ -2160,7 +2160,7 @@ mod tests {
 				0.9999999,
 				1.,
 			]) {
-				for allow_equal in vec![false, true] {
+				for allow_equal in [false, true] {
 					let mut stake: Vec<I32F32> = vec![];
 					let mut score: Vec<I32F32> = vec![];
 					let mut last_score: I32F32 = zero;

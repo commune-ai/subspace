@@ -75,7 +75,7 @@ fn test_no_signature() {
 		let uids: Vec<u16> = vec![];
 		let values: Vec<u16> = vec![];
 		let result = SubspaceModule::set_weights(RuntimeOrigin::none(), 1, uids, values);
-		assert_eq!(result, Err(DispatchError::BadOrigin.into()));
+		assert_eq!(result, Err(DispatchError::BadOrigin));
 	});
 }
 
@@ -108,7 +108,7 @@ fn test_set_weight_not_enough_values() {
 		SubspaceModule::set_max_registrations_per_block(n);
 		let account_id = U256::from(0);
 		register_module(netuid, account_id, 1_000_000_000);
-		let _neuron_uid: u16 = SubspaceModule::get_uid_for_key(netuid, &U256::from(account_id));
+		let _neuron_uid: u16 = SubspaceModule::get_uid_for_key(netuid, &account_id);
 		for i in 1..n {
 			register_module(netuid, U256::from(i), 1_000_000_000);
 		}
@@ -160,7 +160,7 @@ fn test_set_max_allowed_uids() {
 		SubspaceModule::set_max_registrations_per_block(n);
 		let account_id = U256::from(0);
 		register_module(netuid, account_id, 1_000_000_000);
-		let _neuron_uid: u16 = SubspaceModule::get_uid_for_key(netuid, &U256::from(account_id));
+		let _neuron_uid: u16 = SubspaceModule::get_uid_for_key(netuid, &account_id);
 		for i in 1..n {
 			register_module(netuid, U256::from(i), 1_000_000_000);
 		}
@@ -201,7 +201,7 @@ fn test_normalize_weights_does_not_mutate_when_sum_not_zero() {
 	new_test_ext().execute_with(|| {
 		let max_allowed: u16 = 3;
 
-		let weights: Vec<u16> = Vec::from_iter((0..max_allowed).map(|weight| weight));
+		let weights: Vec<u16> = Vec::from_iter(0..max_allowed);
 
 		let expected = weights.clone();
 		let result = SubspaceModule::normalize_weights(weights);
@@ -217,7 +217,7 @@ fn test_is_self_weight_weights_length_not_one() {
 		let max_allowed: u16 = 3;
 
 		let uids: Vec<u16> = Vec::from_iter((0..max_allowed).map(|id| id + 1));
-		let uid: u16 = uids[0].clone();
+		let uid: u16 = uids[0];
 		let weights: Vec<u16> = Vec::from_iter((0..max_allowed).map(|id| id + 1));
 
 		let expected = false;
@@ -234,7 +234,7 @@ fn test_is_self_weight_uid_not_in_uids() {
 		let max_allowed: u16 = 3;
 
 		let uids: Vec<u16> = Vec::from_iter((0..max_allowed).map(|id| id + 1));
-		let uid: u16 = uids[1].clone();
+		let uid: u16 = uids[1];
 		let weights: Vec<u16> = vec![0];
 
 		let expected = false;
@@ -252,7 +252,7 @@ fn test_is_self_weight_uid_in_uids() {
 		let max_allowed: u16 = 1;
 
 		let uids: Vec<u16> = Vec::from_iter((0..max_allowed).map(|id| id + 1));
-		let uid: u16 = uids[0].clone();
+		let uid: u16 = uids[0];
 		let weights: Vec<u16> = vec![0];
 
 		let expected = true;
@@ -277,10 +277,10 @@ fn test_check_len_uids_within_allowed_within_network_pool() {
 		register_module(netuid, U256::from(5), 1_000_000_000);
 		let max_allowed: u16 = SubspaceModule::get_subnet_n(netuid);
 
-		let uids: Vec<u16> = Vec::from_iter((0..max_allowed).map(|uid| uid));
+		let uids: Vec<u16> = Vec::from_iter(0..max_allowed);
 
 		let result = SubspaceModule::check_len_uids_within_allowed(netuid, &uids);
-		assert_eq!(result, true, "netuid network length and uids length incompatible");
+		assert!(result, "netuid network length and uids length incompatible");
 	});
 }
 
@@ -303,7 +303,7 @@ fn test_check_len_uids_within_allowed_not_within_network_pool() {
 
 		SubspaceModule::set_max_allowed_uids(netuid, max_allowed);
 
-		let uids: Vec<u16> = Vec::from_iter((0..(max_allowed + 1)).map(|uid| uid));
+		let uids: Vec<u16> = Vec::from_iter(0..(max_allowed + 1));
 
 		let expected = false;
 		let result = SubspaceModule::check_len_uids_within_allowed(netuid, &uids);

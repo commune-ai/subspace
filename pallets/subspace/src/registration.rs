@@ -107,14 +107,14 @@ impl<T: Config> Pallet<T> {
 		stake_amount: u64,
 	) -> bool {
 		// the amount has to cover, the minimal stake as well as burn if it's present
-		return stake_amount >= (min_stake + min_burn)
+		stake_amount >= (min_stake + min_burn)
 	}
 
 	pub fn vec_to_hash(vec_hash: Vec<u8>) -> H256 {
 		let de_ref_hash = &vec_hash; // b: &Vec<u8>
 		let de_de_ref_hash: &[u8] = &de_ref_hash; // c: &[u8]
 		let real_hash: H256 = H256::from_slice(de_de_ref_hash);
-		return real_hash
+		real_hash
 	}
 
 	// Determine which peer to prune from the network by finding the element with the lowest pruning
@@ -124,9 +124,9 @@ impl<T: Config> Pallet<T> {
 	pub fn get_pruning_score_for_uid(netuid: u16, uid: u16) -> u64 {
 		let vec: Vec<u64> = Emission::<T>::get(netuid);
 		if (uid as usize) < vec.len() {
-			return vec[uid as usize]
+			vec[uid as usize]
 		} else {
-			return 0 as u64
+			0 as u64
 		}
 	}
 	pub fn get_lowest_uid(netuid: u16) -> u16 {
@@ -158,7 +158,7 @@ impl<T: Config> Pallet<T> {
 			}
 		}
 
-		return lowest_priority_uid
+		lowest_priority_uid
 	}
 
 	pub fn add_subnet_from_registration(

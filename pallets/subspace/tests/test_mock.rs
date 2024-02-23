@@ -159,7 +159,7 @@ pub(crate) fn step_epoch(netuid: u16) {
 
 #[allow(dead_code)]
 pub(crate) fn block_number() -> u64 {
-	return System::block_number()
+	System::block_number()
 }
 
 #[allow(dead_code)]
@@ -193,8 +193,7 @@ pub fn decrease_stake(netuid: u16, key: U256, stake: u64) {
 }
 
 pub fn get_origin(key: U256) -> RuntimeOrigin {
-	let origin = <<Test as frame_system::Config>::RuntimeOrigin>::signed(key);
-	return origin
+	<<Test as frame_system::Config>::RuntimeOrigin>::signed(key)
 }
 
 pub fn register_n_modules(netuid: u16, n: u16, stake: u64) {
@@ -225,8 +224,7 @@ pub fn register_module(netuid: u16, key: U256, stake: u64) -> DispatchResult {
 	add_balance(key, stake + 1);
 	let balance = SubspaceModule::get_balance(&key);
 
-	let result = SubspaceModule::register(origin, network, name.clone(), address, stake, key);
-	return result
+	SubspaceModule::register(origin, network, name.clone(), address, stake, key)
 }
 
 #[allow(dead_code)]
@@ -273,7 +271,7 @@ pub fn delegate_register_module(
 		key
 	);
 
-	return result
+	result
 }
 
 #[allow(dead_code)]

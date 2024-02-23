@@ -66,7 +66,7 @@ fn test_stake() {
 					amount_staked
 				);
 
-				uid = SubspaceModule::get_uid_for_key(netuid, &key);
+				uid = SubspaceModule::get_uid_for_key(netuid, key);
 				// SubspaceModule::add_stake(get_origin(*key), netuid, amount_staked);
 				assert_eq!(SubspaceModule::get_stake(netuid, key), amount_staked);
 				assert_eq!(SubspaceModule::get_balance(key), 1);
@@ -82,10 +82,10 @@ fn test_stake() {
 				assert_eq!(SubspaceModule::get_balance(key), 1);
 
 				// AT THE END WE SHOULD HAVE THE SAME TOTAL STAKE
-				subnet_stake += SubspaceModule::get_stake(netuid, key).clone();
+				subnet_stake += SubspaceModule::get_stake(netuid, key);
 			}
 			assert_eq!(SubspaceModule::get_total_subnet_stake(netuid), subnet_stake);
-			total_stake += subnet_stake.clone();
+			total_stake += subnet_stake;
 			assert_eq!(SubspaceModule::total_stake(), total_stake);
 			subnet_stake = 0;
 			println!("TOTAL STAKE: {}", total_stake);
@@ -109,7 +109,7 @@ fn test_multiple_stake() {
 		register_n_modules(netuid, n, 0);
 		let controler_key = U256::from(n + 1);
 		let og_staker_balance: u64 = total_stake + 1;
-		add_balance(controler_key.clone(), og_staker_balance);
+		add_balance(controler_key, og_staker_balance);
 
 		let keys: Vec<U256> = SubspaceModule::get_keys(netuid);
 
@@ -207,8 +207,7 @@ fn test_delegate_stake() {
 			let amount_staked = amount_staked_vector[netuid as usize];
 			let key_vector: Vec<U256> =
 				(0..max_uids).map(|i| U256::from(i + max_uids * netuid)).collect();
-			let delegate_key_vector: Vec<U256> =
-				key_vector.iter().map(|i| U256::from(i.clone() + 1)).collect();
+			let delegate_key_vector: Vec<U256> = key_vector.iter().map(|i| (*i + 1)).collect();
 
 			for (i, key) in key_vector.iter().enumerate() {
 				println!(
@@ -230,7 +229,7 @@ fn test_delegate_stake() {
 				);
 
 				SubspaceModule::add_stake(get_origin(delegate_key), netuid, *key, amount_staked);
-				uid = SubspaceModule::get_uid_for_key(netuid, &key);
+				uid = SubspaceModule::get_uid_for_key(netuid, key);
 				// SubspaceModule::add_stake(get_origin(*key), netuid, amount_staked);
 				assert_eq!(SubspaceModule::get_stake_for_uid(netuid, uid), amount_staked);
 				assert_eq!(SubspaceModule::get_balance(&delegate_key), 1);
@@ -248,10 +247,10 @@ fn test_delegate_stake() {
 				assert_eq!(SubspaceModule::get_stake_to_vector(netuid, &delegate_key).len(), 1);
 
 				// AT THE END WE SHOULD HAVE THE SAME TOTAL STAKE
-				subnet_stake += SubspaceModule::get_stake_for_uid(netuid, uid).clone();
+				subnet_stake += SubspaceModule::get_stake_for_uid(netuid, uid);
 			}
 			assert_eq!(SubspaceModule::get_total_subnet_stake(netuid), subnet_stake);
-			total_stake += subnet_stake.clone();
+			total_stake += subnet_stake;
 			assert_eq!(SubspaceModule::total_stake(), total_stake);
 			subnet_stake = 0;
 			println!("TOTAL STAKE: {}", total_stake);

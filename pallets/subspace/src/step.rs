@@ -392,11 +392,11 @@ impl<T: Config> Pallet<T> {
 		if tempo == 0 {
 			return 0
 		}
-		return (block_number + netuid as u64) % (tempo as u64)
+		(block_number + netuid as u64) % (tempo as u64)
 	}
 
 	pub fn get_ownership_ratios_for_uid(netuid: u16, uid: u16) -> Vec<(T::AccountId, I64F64)> {
-		return Self::get_ownership_ratios(netuid, &Self::get_key_for_uid(netuid, uid))
+		Self::get_ownership_ratios(netuid, &Self::get_key_for_uid(netuid, uid))
 	}
 
 	pub fn get_ownership_ratios(
@@ -424,7 +424,7 @@ impl<T: Config> Pallet<T> {
 				ownership_vector.into_iter().map(|(k, v)| (k, v / total_stake_from)).collect();
 		}
 
-		return ownership_vector
+		ownership_vector
 	}
 
 	pub fn get_ownership_ratios_emission(
@@ -441,7 +441,7 @@ impl<T: Config> Pallet<T> {
 			emission_vector.push((k, emission_for_delegate));
 		}
 
-		return emission_vector
+		emission_vector
 	}
 
 	pub fn get_burn_per_epoch(netuid: u16) -> u64 {
@@ -455,6 +455,6 @@ impl<T: Config> Pallet<T> {
 				(I64F64::from_num(token_emission) / I64F64::from_num(n));
 			burn_amount_per_epoch = burn_rate_float.to_num::<u64>();
 		}
-		return burn_amount_per_epoch
+		burn_amount_per_epoch
 	}
 }
