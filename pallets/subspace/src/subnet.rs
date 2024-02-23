@@ -5,7 +5,7 @@ use frame_support::{
 	pallet_prelude::DispatchResult, storage::IterableStorageMap, IterableStorageDoubleMap,
 };
 
-pub use sp_std::{vec::Vec};
+pub use sp_std::vec::Vec;
 use substrate_fixed::types::I64F64;
 extern crate alloc;
 
