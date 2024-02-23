@@ -1,7 +1,3 @@
-#![cfg(feature = "runtime-benchmarks")]
-
-use super::*;
-
 use super::*;
 
 use crate::Pallet;

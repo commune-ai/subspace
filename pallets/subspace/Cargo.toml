@@ -13,35 +13,33 @@ repository = "https://github.com/commune-ai/subspace"
 targets = ["x86_64-unknown-linux-gnu"]
 
 [dependencies]
-codec = { package = "parity-scale-codec", version = "3.6.1", default-features = false, features = [
-	"derive",
-] }
-sp-arithmetic = { git = "https://github.com/paritytech/substrate", default-features = false, branch = "polkadot-v1.0.0" }
-sp-core = { default-features = false, git = "https://github.com/paritytech/substrate", branch = "polkadot-v1.0.0" }
-pallet-balances = { version = "4.0.0-dev", default-features = false, git = "https://github.com/paritytech/substrate", branch = "polkadot-v1.0.0" }
-scale-info = { version = "2.10.0", default-features = false, features = ["derive"] }
-frame-benchmarking = { version = "4.0.0-dev", default-features = false, optional = true, git = "https://github.com/paritytech/substrate", branch = "polkadot-v1.0.0" }
-frame-support = { version = "4.0.0-dev", default-features = false, git = "https://github.com/paritytech/substrate", branch = "polkadot-v1.0.0" }
-frame-system = { version = "4.0.0-dev", default-features = false, git = "https://github.com/paritytech/substrate", branch = "polkadot-v1.0.0" }
-sp-io = { version = "23.0.0", default-features = false, git = "https://github.com/paritytech/substrate", branch = "polkadot-v1.0.0" }
-serde = { version = "1.0.132", default-features = false, features = ["derive"] }
-serde-tuple-vec-map = { version = "1.0.1", default-features = false }
-serde_bytes = { version = "0.11.8", default-features = false, features = ["alloc"] }
-serde_with = { version = "=2.0.0", default-features = false, features=["macros"] }
-sp-runtime = { version = "24.0.0", default-features = false, git = "https://github.com/paritytech/substrate", branch = "polkadot-v1.0.0" }
-sp-std = { version = "8.0.0", git = "https://github.com/paritytech/substrate", default-features = false, branch = "polkadot-v1.0.0" }
-log = { version = "0.4.14", default-features = false }
-substrate-fixed = { git = 'https://github.com/encointer/substrate-fixed.git', tag = "v0.5.9" }
-pallet-transaction-payment = { git = "https://github.com/paritytech/substrate", default-features = false, branch = "polkadot-v1.0.0" }
-ndarray = { version = "0.15.0", default-features = false }
+codec.workspace = true
+sp-arithmetic.workspace = true
+sp-core.workspace = true
+pallet-balances.workspace = true
+scale-info.workspace = true
+frame-benchmarking = { workspace = true, optional = true }
+frame-support.workspace = true
+frame-system.workspace = true
+sp-io.workspace = true
+serde.workspace = true
+serde-tuple-vec-map.workspace = true
+serde_bytes.workspace = true
+serde_with.workspace = true
+sp-runtime.workspace = true
+sp-std.workspace = true
+log.workspace = true
+substrate-fixed.workspace = true
+pallet-transaction-payment.workspace = true
+ndarray.workspace = true
 
 [dev-dependencies]
-pallet-balances = { git = "https://github.com/paritytech/substrate", default-features = false, branch = "polkadot-v1.0.0", features = ["std"] }
-sp-version = { git = "https://github.com/paritytech/substrate", default-features = false, branch = "polkadot-v1.0.0" }
+pallet-balances = { workspace = true, features = ["std"] }
+sp-version.workspace = true
 # Substrate
-sp-tracing = { git = "https://github.com/paritytech/substrate", default-features = false, branch = "polkadot-v1.0.0" }
-parity-util-mem = { version = "0.11.0", features = ['primitive-types'] }
-rand = "0.8"
+sp-tracing.workspace = true
+parity-util-mem = { workspace = true, features = ['primitive-types'] }
+rand.workspace = true
 
 [features]
 default = ["std"]
@@ -51,7 +49,7 @@ std = [
 	"frame-support/std",
 	"frame-system/std",
 	"scale-info/std",
-	"sp-std/std"
+	"sp-std/std",
 ]
 runtime-benchmarks = ["frame-benchmarking/runtime-benchmarks"]
 try-runtime = ["frame-support/try-runtime"]
