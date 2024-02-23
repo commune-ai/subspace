@@ -106,8 +106,8 @@ fn test_dividends_same_stake() {
 		assert!((incentives[2] as u64) > (weight_values[0] as u64 * incentives[3] as u64) - delta);
 		assert!((incentives[2] as u64) < (weight_values[0] as u64 * incentives[3] as u64) + delta);
 
-		assert!((emissions[2] as u64) > (weight_values[0] as u64 * emissions[3] as u64) - delta);
-		assert!((emissions[2] as u64) < (weight_values[0] as u64 * emissions[3] as u64) + delta);
+		assert!(emissions[2] > (weight_values[0] as u64 * emissions[3]) - delta);
+		assert!(emissions[2] < (weight_values[0] as u64 * emissions[3]) + delta);
 
 		// evaluate voters
 		assert!(
@@ -132,11 +132,11 @@ fn test_dividends_same_stake() {
 			if emission == &0 {
 				continue;
 			}
-			let stake: u64 = stakes[uid as usize];
-			let stake_before: u64 = stakes_before[uid as usize];
+			let stake: u64 = stakes[uid];
+			let stake_before: u64 = stakes_before[uid];
 			let stake_difference: u64 = stake - stake_before;
-			let expected_stake_difference: u64 = emissions[uid as usize];
-			let error_delta: u64 = (emissions[uid as usize] as f64 * 0.001) as u64;
+			let expected_stake_difference: u64 = emissions[uid];
+			let error_delta: u64 = (emissions[uid] as f64 * 0.001) as u64;
 
 			assert!(
 				stake_difference < expected_stake_difference + error_delta &&
@@ -206,8 +206,8 @@ fn test_dividends_diff_stake() {
 		assert!((incentives[2] as u64) > (weight_values[0] as u64 * incentives[3] as u64) - delta);
 		assert!((incentives[2] as u64) < (weight_values[0] as u64 * incentives[3] as u64) + delta);
 
-		assert!((emissions[2] as u64) > (weight_values[0] as u64 * emissions[3] as u64) - delta);
-		assert!((emissions[2] as u64) < (weight_values[0] as u64 * emissions[3] as u64) + delta);
+		assert!(emissions[2] > (weight_values[0] as u64 * emissions[3]) - delta);
+		assert!(emissions[2] < (weight_values[0] as u64 * emissions[3]) + delta);
 
 		// evaluate voters
 		let delta: u64 = 100;
@@ -223,11 +223,11 @@ fn test_dividends_diff_stake() {
 			if emission == &0 {
 				continue;
 			}
-			let stake: u64 = stakes[uid as usize];
-			let stake_before: u64 = stakes_before[uid as usize];
+			let stake: u64 = stakes[uid];
+			let stake_before: u64 = stakes_before[uid];
 			let stake_difference: u64 = stake - stake_before;
-			let expected_stake_difference: u64 = emissions[uid as usize];
-			let error_delta: u64 = (emissions[uid as usize] as f64 * 0.001) as u64;
+			let expected_stake_difference: u64 = emissions[uid];
+			let error_delta: u64 = (emissions[uid] as f64 * 0.001) as u64;
 
 			assert!(
 				stake_difference < expected_stake_difference + error_delta &&
@@ -270,7 +270,7 @@ fn test_pruning() {
 		// do a list of ones for weights
 		let weight_uids: Vec<u16> = (0..n).collect();
 		// do a list of ones for weights
-		let mut weight_values: Vec<u16> = weight_uids.iter().map(|_x| 1 as u16).collect();
+		let mut weight_values: Vec<u16> = weight_uids.iter().map(|_x| 1_u16).collect();
 
 		let prune_uid: u16 = n - 1;
 		weight_values[prune_uid as usize] = 0;
@@ -340,7 +340,7 @@ fn test_lowest_priority_mechanism() {
 		// do a list of ones for weights
 		let weight_uids: Vec<u16> = (0..n).collect();
 		// do a list of ones for weights
-		let mut weight_values: Vec<u16> = weight_uids.iter().map(|_x| 1 as u16).collect();
+		let mut weight_values: Vec<u16> = weight_uids.iter().map(|_x| 1_u16).collect();
 
 		let prune_uid: u16 = n - 1;
 		weight_values[prune_uid as usize] = 0;
@@ -479,9 +479,9 @@ fn test_blocks_until_epoch() {
 		assert_eq!(SubspaceModule::blocks_until_next_epoch(0, 4, 3), 3);
 		assert_eq!(SubspaceModule::blocks_until_next_epoch(10, 5, 2), 2);
 		// Check general case.
-		for netuid in 0..30 as u16 {
-			for block in 0..30 as u64 {
-				for tempo in 1..30 as u16 {
+		for netuid in 0..30_u16 {
+			for block in 0..30_u64 {
+				for tempo in 1..30_u16 {
 					assert_eq!(
 						SubspaceModule::blocks_until_next_epoch(netuid, tempo, block),
 						(block + netuid as u64) % (tempo as u64)
@@ -838,8 +838,8 @@ fn test_founder_share() {
 		let netuid = 0;
 		let n = 20;
 		let initial_stake: u64 = 1000;
-		let keys: Vec<U256> = (0..n).into_iter().map(|x| U256::from(x)).collect();
-		let stakes: Vec<u64> = (0..n).into_iter().map(|_x| initial_stake * 1_000_000_000).collect();
+		let keys: Vec<U256> = (0..n).map(U256::from).collect();
+		let stakes: Vec<u64> = (0..n).map(|_x| initial_stake * 1_000_000_000).collect();
 
 		let founder_key = keys[0];
 		for i in 0..n {
@@ -859,7 +859,7 @@ fn test_founder_share() {
 		step_epoch(netuid);
 		let total_emission =
 			SubspaceModule::get_subnet_emission(netuid) * subnet_params.tempo as u64;
-		let expected_emission = total_emission as u64;
+		let expected_emission = total_emission;
 		let expected_founder_share = (expected_emission as f64 * founder_ratio) as u64;
 		let emissions = SubspaceModule::get_emissions(netuid);
 		let dividends = SubspaceModule::get_dividends(netuid);

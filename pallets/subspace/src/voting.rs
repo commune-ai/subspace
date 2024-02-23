@@ -87,12 +87,12 @@ impl<T: Config> Pallet<T> {
 
 	pub fn num_subnet_proposals(netuid: u16) -> u64 {
 		let subnet_proposals = Self::get_subnet_proposals(netuid);
-		return subnet_proposals.len() as u64;
+		subnet_proposals.len() as u64
 	}
 
 	pub fn is_proposal_participant(key: &T::AccountId, proposal_id: u64) -> bool {
 		let proposal: Proposal<T> = Proposals::<T>::get(proposal_id);
-		return proposal.participants.contains(key);
+		proposal.participants.contains(key)
 	}
 
 	pub fn do_vote_proposal(origin: T::RuntimeOrigin, proposal_id: u64) -> DispatchResult {
@@ -132,7 +132,7 @@ impl<T: Config> Pallet<T> {
 		Ok(())
 	}
 	pub fn num_proposals() -> u64 {
-		return Proposals::<T>::iter().count() as u64;
+		Proposals::<T>::iter().count() as u64
 	}
 
 	pub fn next_proposal_id() -> u64 {
@@ -141,11 +141,11 @@ impl<T: Config> Pallet<T> {
 		while Self::proposal_exists(next_proposal_id) {
 			next_proposal_id = next_proposal_id + 1;
 		}
-		return next_proposal_id;
+		next_proposal_id
 	}
 
 	pub fn has_max_proposals() -> bool {
-		return Self::num_proposals() >= Self::get_max_proposals();
+		Self::num_proposals() >= Self::get_max_proposals()
 	}
 
 	pub fn check_proposal(proposal: Proposal<T>) -> DispatchResult {
@@ -210,15 +210,14 @@ impl<T: Config> Pallet<T> {
 		if proposal.participants.len() == 0 {
 			return false;
 		}
-		return proposal.participants[0] == *key;
+		proposal.participants[0] == *key
 	}
 	pub fn default_proposal() -> Proposal<T> {
-		let proposal = Proposals::<T>::get(u64::MAX);
-		return proposal;
+		Proposals::<T>::get(u64::MAX)
 	}
 
 	pub fn get_proposal(proposal_id: u64) -> Proposal<T> {
-		return Proposals::<T>::get(proposal_id);
+		Proposals::<T>::get(proposal_id)
 	}
 
 	pub fn unregister_voter(key: &T::AccountId) {
@@ -250,12 +249,12 @@ impl<T: Config> Pallet<T> {
 
 	pub fn is_voter_registered(key: &T::AccountId) -> bool {
 		// check if voter is registered
-		return Voter2Info::<T>::contains_key(key);
+		Voter2Info::<T>::contains_key(key)
 	}
 
 	pub fn get_voter_info(key: &T::AccountId) -> VoterInfo {
 		// get the proposal id for the voter
-		return Voter2Info::<T>::get(key);
+		Voter2Info::<T>::get(key)
 	}
 
 	pub fn get_voting_power(key: &T::AccountId, proposal: Proposal<T>) -> u64 {
@@ -311,7 +310,7 @@ impl<T: Config> Pallet<T> {
 				proposals.push(proposal);
 			}
 		}
-		return proposals;
+		proposals
 	}
 
 	pub fn get_global_proposals() -> Vec<Proposal<T>> {
@@ -321,12 +320,12 @@ impl<T: Config> Pallet<T> {
 				proposals.push(proposal);
 			}
 		}
-		return proposals;
+		proposals
 	}
 
 	pub fn num_global_proposals() -> u64 {
 		let global_proposals = Self::get_global_proposals();
-		return global_proposals.len() as u64;
+		global_proposals.len() as u64
 	}
 
 	pub fn proposal_exists(proposal_id: u64) -> bool {
@@ -336,6 +335,6 @@ impl<T: Config> Pallet<T> {
 	pub fn is_vote_available(key: &T::AccountId, proposal_id: u64) -> bool {
 		let proposal: Proposal<T> = Proposals::<T>::get(proposal_id);
 		let is_vote_available: bool = !proposal.participants.contains(key) && !proposal.accepted;
-		return is_vote_available;
+		is_vote_available
 	}
 }

@@ -11,8 +11,8 @@ use test_mock::*;
 fn test_subnet_porposal() {
 	new_test_ext().execute_with(|| {
 		let netuid = 0;
-		let keys = vec![U256::from(0), U256::from(1), U256::from(2)];
-		let stakes = vec![1_000_000_000, 1_000_000_000, 1_000_000_000];
+		let keys = [U256::from(0), U256::from(1), U256::from(2)];
+		let stakes = [1_000_000_000, 1_000_000_000, 1_000_000_000];
 
 		for (i, key) in keys.iter().enumerate() {
 			assert_ok!(register_module(netuid, *key, stakes[i]));
@@ -39,13 +39,13 @@ fn test_subnet_porposal() {
 
 		let proposal = SubspaceModule::get_proposal(0);
 		assert_eq!(proposal.netuid, netuid, "proposal not added");
-		assert_eq!(proposal.accepted, false, "proposal not added");
+		assert!(!proposal.accepted, "proposal not added");
 		// now vote for the proposal
 
 		assert_ok!(SubspaceModule::vote_proposal(get_origin(keys[1]), 0));
 		let proposal = SubspaceModule::get_proposal(0);
 		assert_eq!(proposal.votes, stakes[0] + stakes[1], "proposal not voted");
-		assert_eq!(proposal.accepted, true, "proposal not voted");
+		assert!(proposal.accepted, "proposal not voted");
 
 		println!("proposal: {:?}", proposal);
 
@@ -59,7 +59,7 @@ fn test_max_proposals() {
 	new_test_ext().execute_with(|| {
 		let netuid = 0;
 		let n = 100;
-		let keys: Vec<U256> = (0..n).into_iter().map(|x| U256::from(x)).collect();
+		let keys: Vec<U256> = (0..n).map(U256::from).collect();
 		let mut stakes = vec![1_000_000_000; n];
 		// increase incrementally to avoid overflow
 		let stakes =
@@ -89,12 +89,12 @@ fn test_max_proposals() {
 		for i in 0..n {
 			if i % 2 == 0 {
 				assert_ok!(SubspaceModule::do_add_global_proposal(
-					get_origin(keys[i as usize]),
+					get_origin(keys[i]),
 					params.clone()
 				));
 			} else {
 				assert_ok!(SubspaceModule::do_add_subnet_proposal(
-					get_origin(keys[i as usize]),
+					get_origin(keys[i]),
 					netuid,
 					subnet_params.clone()
 				));
@@ -117,15 +117,15 @@ fn test_max_proposals() {
 			);
 
 			if num_proposals >= max_proposals {
-				assert_eq!(SubspaceModule::has_max_proposals(), true, "proposal not added");
+				assert!(SubspaceModule::has_max_proposals(), "proposal not added");
 			} else {
-				assert_eq!(SubspaceModule::has_max_proposals(), false, "proposal not added");
+				assert!(!SubspaceModule::has_max_proposals(), "proposal not added");
 			}
 
 			assert!(proposals.len() as u64 <= max_proposals, "proposal not added");
 		}
 
-		assert_eq!(SubspaceModule::has_max_proposals(), true, "proposal not added");
+		assert!(SubspaceModule::has_max_proposals(), "proposal not added");
 		assert_eq!(SubspaceModule::num_proposals(), max_proposals, "proposal not added");
 	});
 }
@@ -134,8 +134,8 @@ fn test_max_proposals() {
 fn test_global_porposal() {
 	new_test_ext().execute_with(|| {
 		let netuid = 0;
-		let keys = vec![U256::from(1), U256::from(2), U256::from(3)];
-		let stakes = vec![1_000_000_000, 1_000_000_000, 1_000_000_000];
+		let keys = [U256::from(1), U256::from(2), U256::from(3)];
+		let stakes = [1_000_000_000, 1_000_000_000, 1_000_000_000];
 
 		// register on seperate subnets
 		for (i, key) in keys.iter().enumerate() {
@@ -156,14 +156,14 @@ fn test_global_porposal() {
 		assert_eq!(proposals[0].votes, stakes[0], "proposal not added");
 
 		let proposal = SubspaceModule::get_proposal(0);
-		assert_eq!(proposal.accepted, false, "proposal not added");
+		assert!(!proposal.accepted, "proposal not added");
 
 		// now vote for the proposal
 
 		assert_ok!(SubspaceModule::vote_proposal(get_origin(keys[1]), 0));
 		let proposal = SubspaceModule::get_proposal(0);
 		assert_eq!(proposal.votes, stakes[0] + stakes[1], "proposal not voted");
-		assert_eq!(proposal.accepted, true, "proposal not voted");
+		assert!(proposal.accepted, "proposal not voted");
 
 		println!("proposal: {:?}", proposal);
 
@@ -179,8 +179,8 @@ fn test_global_porposal() {
 fn test_unvote() {
 	new_test_ext().execute_with(|| {
 		let netuid = 0;
-		let keys = vec![U256::from(0), U256::from(1), U256::from(2)];
-		let stakes = vec![1_000_000_000, 1_000_000_000, 1_000_000_000];
+		let keys = [U256::from(0), U256::from(1), U256::from(2)];
+		let stakes = [1_000_000_000, 1_000_000_000, 1_000_000_000];
 
 		for (i, key) in keys.iter().enumerate() {
 			assert_ok!(register_module(netuid, *key, stakes[i]));

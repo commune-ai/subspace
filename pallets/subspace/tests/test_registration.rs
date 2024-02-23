@@ -91,7 +91,7 @@ fn test_delegate_register() {
 		let _tempo: u16 = 13;
 		let n: u16 = 10;
 		let key: U256 = U256::from(n + 1);
-		let module_keys: Vec<U256> = (0..n).map(|i| U256::from(i)).collect();
+		let module_keys: Vec<U256> = (0..n).map(U256::from).collect();
 		let stake_amount: u64 = 10_000_000_000;
 		SubspaceModule::add_balance_to_account(&key, stake_amount * n as u64);
 		for module_key in module_keys {

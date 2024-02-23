@@ -56,8 +56,7 @@ fn test_add_subnets() {
 			assert_eq!(SubspaceModule::get_subnet_n(netuid), 0);
 			assert!(SubspaceModule::check_subnet_storage(netuid));
 
-			let total_tokens_after: u64 =
-				keys.iter().map(|key| SubspaceModule::get_balance_u64(key)).sum();
+			let total_tokens_after: u64 = keys.iter().map(SubspaceModule::get_balance_u64).sum();
 			println!("total tokens after {}", total_tokens_after);
 
 			assert_eq!(total_tokens_after, total_tokens_before);
@@ -88,7 +87,7 @@ fn test_set_single_temple(tempo: u16) {
 		let tempo = 5;
 		let min_stake = 1_000_000_000;
 
-		let _result = SubspaceModule::set_subnet_params(netuid, params.clone());
+		SubspaceModule::set_subnet_params(netuid, params.clone());
 
 		let subnet_params = SubspaceModule::subnet_params(netuid);
 
@@ -200,7 +199,7 @@ fn test_set_max_allowed_uids_growing() {
 			assert_eq!(SubspaceModule::get_subnet_n(netuid), i + 1);
 		}
 		let mut n: u16 = SubspaceModule::get_subnet_n(netuid);
-		let old_n: u16 = n.clone();
+		let old_n: u16 = n;
 		let mut _uids: Vec<u16>;
 		assert_eq!(SubspaceModule::get_subnet_n(netuid), max_uids);
 		let mut new_n: u16 = SubspaceModule::get_subnet_n(netuid);
@@ -268,8 +267,7 @@ fn test_set_max_allowed_uids_shrinking() {
 		let og_keys = SubspaceModule::get_keys(netuid);
 		let mut old_total_subnet_balance: u64 = 0;
 		for key in og_keys.clone() {
-			old_total_subnet_balance =
-				old_total_subnet_balance + SubspaceModule::get_balance_u64(&key);
+			old_total_subnet_balance += SubspaceModule::get_balance_u64(&key);
 		}
 
 		let _subnet = SubspaceModule::subnet_info(netuid);
@@ -294,8 +292,7 @@ fn test_set_max_allowed_uids_shrinking() {
 
 		let mut new_total_subnet_balance: u64 = 0;
 		for key in og_keys.clone() {
-			new_total_subnet_balance =
-				new_total_subnet_balance + SubspaceModule::get_balance_u64(&key);
+			new_total_subnet_balance += SubspaceModule::get_balance_u64(&key);
 		}
 		// let expected_total_subnet_balance: u64 =
 		// 	(extra_uids as u64) * (stake + 1) + max_uids as u64; // this is weitd, but we needed to
@@ -361,8 +358,8 @@ fn test_global_max_allowed_subnets() {
 		// set max_total modules
 
 		for i in 1..(2 * max_allowed_subnets) {
-			let netuid = i as u16;
-			stake = stake + i as u64;
+			let netuid = i;
+			stake += i as u64;
 			let least_staked_netuid = SubspaceModule::least_staked_netuid();
 
 			if i > 1 {

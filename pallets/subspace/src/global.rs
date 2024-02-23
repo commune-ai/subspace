@@ -72,22 +72,22 @@ impl<T: Config> Pallet<T> {
 	}
 
 	pub fn get_min_weight_stake() -> u64 {
-		return MinWeightStake::<T>::get()
+		MinWeightStake::<T>::get()
 	}
 	pub fn set_min_weight_stake(min_weight_stake: u64) {
 		MinWeightStake::<T>::put(min_weight_stake)
 	}
 
 	pub fn get_max_allowed_weights_global() -> u16 {
-		return MaxAllowedWeightsGlobal::<T>::get()
+		MaxAllowedWeightsGlobal::<T>::get()
 	}
 
 	pub fn set_max_allowed_weights_global() -> u16 {
-		return MaxAllowedWeightsGlobal::<T>::get()
+		MaxAllowedWeightsGlobal::<T>::get()
 	}
 
 	pub fn get_min_stake_global() -> u64 {
-		return MinStakeGlobal::<T>::get()
+		MinStakeGlobal::<T>::get()
 	}
 	pub fn set_min_stake_global(min_stake: u64) {
 		MinStakeGlobal::<T>::put(min_stake)
@@ -98,10 +98,10 @@ impl<T: Config> Pallet<T> {
 	}
 
 	pub fn get_vote_mode_global() -> Vec<u8> {
-		return VoteModeGlobal::<T>::get();
+		VoteModeGlobal::<T>::get()
 	}
 	pub fn get_burn_rate() -> u16 {
-		return BurnRate::<T>::get().min(100);
+		BurnRate::<T>::get().min(100)
 	}
 
 	pub fn set_burn_rate(burn_rate: u16) {
@@ -117,7 +117,7 @@ impl<T: Config> Pallet<T> {
 	}
 
 	pub fn get_global_vote_threshold() -> u16 {
-		return GlobalVoteThreshold::<T>::get();
+		GlobalVoteThreshold::<T>::get()
 	}
 	pub fn set_global_vote_threshold(vote_threshold: u16) {
 		GlobalVoteThreshold::<T>::put(vote_threshold);
@@ -126,7 +126,7 @@ impl<T: Config> Pallet<T> {
 		MaxRegistrationsPerBlock::<T>::get()
 	}
 	pub fn get_global_max_name_length() -> u16 {
-		return MaxNameLength::<T>::get();
+		MaxNameLength::<T>::get()
 	}
 
 	pub fn set_global_max_name_length(max_name_length: u16) {
@@ -145,7 +145,7 @@ impl<T: Config> Pallet<T> {
 		for netuid in Self::netuids() {
 			global_n += N::<T>::get(netuid);
 		}
-		return global_n
+		global_n
 	}
 
 	pub fn get_global_stake_to(key: &T::AccountId) -> u64 {

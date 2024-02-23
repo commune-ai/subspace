@@ -82,11 +82,8 @@ impl frame_benchmarking_cli::ExtrinsicBuilder for TransferKeepAliveBuilder {
 		let extrinsic: OpaqueExtrinsic = create_benchmark_extrinsic(
 			self.client.as_ref(),
 			acc,
-			BalancesCall::transfer_keep_alive {
-				dest: self.dest.clone().into(),
-				value: self.value.into(),
-			}
-			.into(),
+			BalancesCall::transfer_keep_alive { dest: self.dest.clone().into(), value: self.value }
+				.into(),
 			nonce,
 		)
 		.into();
@@ -111,7 +108,7 @@ pub fn create_benchmark_extrinsic(
 	let period = runtime::BlockHashCount::get()
 		.checked_next_power_of_two()
 		.map(|c| c / 2)
-		.unwrap_or(2) as u64;
+		.unwrap_or(2);
 	let extra: runtime::SignedExtra = (
 		frame_system::CheckNonZeroSender::<runtime::Runtime>::new(),
 		frame_system::CheckSpecVersion::<runtime::Runtime>::new(),

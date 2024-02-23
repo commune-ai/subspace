@@ -10,6 +10,15 @@ use pallet_evm_precompile_simple::{ECRecover, ECRecoverPublicKey, Identity, Ripe
 
 pub struct FrontierPrecompiles<R>(PhantomData<R>);
 
+impl<R> Default for FrontierPrecompiles<R>
+where
+	R: pallet_evm::Config,
+{
+	fn default() -> Self {
+		Self::new()
+	}
+}
+
 impl<R> FrontierPrecompiles<R>
 where
 	R: pallet_evm::Config,

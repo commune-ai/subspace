@@ -990,7 +990,7 @@ pub mod pallet {
 		fn on_initialize(_block_number: BlockNumberFor<T>) -> Weight {
 			Self::block_step();
 
-			return Weight::zero()
+			Weight::zero()
 		}
 	}
 
@@ -1298,17 +1298,17 @@ pub mod pallet {
 				let current_block_number: u64 = Self::get_current_block_as_u64();
 				return current_block_number - Self::get_last_update_for_uid(netuid, uid as u16)
 			}
-			return 0
+			0
 		}
 		// --- Returns the transaction priority for setting weights.
 		pub fn get_priority_stake(key: &T::AccountId, netuid: u16) -> u64 {
 			if Uids::<T>::contains_key(netuid, &key) {
 				return Self::get_stake(netuid, key)
 			}
-			return 0
+			0
 		}
 		pub fn get_priority_balance(key: &T::AccountId) -> u64 {
-			return Self::get_balance_u64(key)
+			Self::get_balance_u64(key)
 		}
 	}
 
@@ -1357,16 +1357,15 @@ where
 		// get the current block number
 		let current_block_number: u64 = Pallet::<T>::get_current_block_as_u64();
 		let balance = Pallet::<T>::get_balance_u64(who);
-		let priority = current_block_number + balance;
-		// proriorty is the current block number minus the last update block number
 
-		return priority
+		// this is the current block number minus the last update block number
+		current_block_number + balance
 	}
 
 	pub fn get_priority_set_weights(who: &T::AccountId, netuid: u16) -> u64 {
 		// Return the non vanilla priority for a set weights call.
 
-		return Pallet::<T>::get_priority_set_weights(who, netuid)
+		Pallet::<T>::get_priority_set_weights(who, netuid)
 	}
 
 	pub fn u64_to_balance(
