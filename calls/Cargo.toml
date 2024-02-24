@@ -1,0 +1,19 @@
+[package]
+name = 'calls'
+version = '0.1.0'
+authors = ['']
+edition = '2018'
+
+[dependencies]
+async-trait = "0.1.50"
+codec = { package = 'parity-scale-codec', version = '2.0.0', default-features = false, features = ['derive', 'full'] }
+substrate-subxt = { git = "https://github.com/octopus-network/substrate-subxt.git", branch = "master" }
+substrate-subxt-proc-macro = { version = "0.15.0" }
+
+pallet-ibc = { git = 'https://github.com/octopus-network/substrate-ibc.git', branch = 'master' }
+
+frame-system = { version = "4.0.0-dev", git = "https://github.com/paritytech/substrate", branch = "polkadot-v1.0.0" }
+pallet-balances = { version = "4.0.0-dev", default-features = false, git = "https://github.com/paritytech/substrate", branch = "polkadot-v1.0.0" }
+sp-core = { default-features = false, git = "https://github.com/paritytech/substrate", branch = "polkadot-v1.0.0" }
+sp-finality-grandpa = "16.0.0"
+sp-runtime = { version = "24.0.0", git = "https://github.com/paritytech/substrate", branch = "polkadot-v1.0.0" }

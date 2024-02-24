@@ -1,0 +1,15 @@
+[chains.appia]
+endpoint = "ws://127.0.0.1:9944"
+client_identifier = "appia-client-id"
+
+[chains.flaminia]
+endpoint = "ws://127.0.0.1:8844"
+client_identifier = "flaminia-client-id"
+
+[[relay]]
+from = "appia"
+to = "flaminia"
+
+[[relay]]
+from = "flaminia"
+to = "appia"

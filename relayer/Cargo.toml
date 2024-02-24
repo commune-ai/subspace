@@ -1,0 +1,42 @@
+[package]
+name = 'relayer'
+version = '0.1.0'
+authors = ['']
+edition = '2018'
+
+[dependencies]
+async-std = '1.6.2'
+clap = '2.33.0'
+codec = { package = 'parity-scale-codec', version = '1.3.4', default-features = false, features = ['derive', 'full'] }
+env_logger = '0.7.1'
+hex = '0.4.0'
+log = '0.4.0'
+serde = '1.0.115'
+serde_derive = '1.0'
+toml = '0.5'
+substrate-subxt = { git = 'https://github.com/octopus-network/substrate-subxt.git', branch = 'master'}
+
+calls = { path = '../calls' }
+node-runtime = { path = '../runtime', package = 'node-subspace-runtime' }
+# pallet-ibc = { path = '../pallets/ibc' }
+pallet-ibc = { git = 'https://github.com/octopus-network/substrate-ibc.git', branch = 'master' }
+
+frame-system = { version = "4.0.0-dev", git = "https://github.com/paritytech/substrate", branch = "polkadot-v1.0.0" }
+sp-core = { default-features = false, git = "https://github.com/paritytech/substrate", branch = "polkadot-v1.0.0" }
+sp-finality-grandpa = "16.0.0"
+sp-keyring = { version = "24.0.0", git = "https://github.com/paritytech/substrate", branch = "polkadot-v1.0.0" }
+sp-runtime = { version = "24.0.0", git = "https://github.com/paritytech/substrate", branch = "polkadot-v1.0.0" }
+sp-storage = { default-features = false, git = "https://github.com/paritytech/substrate", branch = "polkadot-v1.0.0" }
+sp-trie = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v1.0.0" }
+
+[dependencies.ibc]
+default-features = false
+git = 'https://github.com/octopus-network/hermes.git'
+package = 'ibc'
+branch = 'ys'
+
+[dependencies.tendermint]
+version = "=0.17.0"
+
+[dependencies.tendermint-proto]
+version = "=0.17.0"

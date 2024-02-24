@@ -3,6 +3,8 @@ members = [
     "node",
     "pallets/subspace",
     "runtime",
+    "calls",
+    "relayer"
 ]
 
 [profile.release]
@@ -10,3 +12,6 @@ panic = "unwind"
 
 [profile.test]
 opt-level = 3
+
+# [patch.crates-io]
+# zstd = { git = "https://github.com/gyscos/zstd-rs.git", tag = "v0.13.0" }
