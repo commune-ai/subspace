@@ -15,34 +15,47 @@ on:
 jobs:
   check:
     # The type of runner that the job will run on
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
 
     # Steps represent a sequence of tasks that will be executed as part of the job
     steps:
       # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
       - uses: actions/checkout@v4
+      
+      - name: Install Protoc
+        uses: arduino/setup-protoc@v1
+        with:
+          version: 3.20.1
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Set-Up
-        run: sudo apt install -y git clang curl libssl-dev llvm libudev-dev protobuf-compiler
+      - name: Setup Rust cache
+        uses: Swatinem/rust-cache@v2
 
-      - name: Install Rustup
+      - name: Install Rust toolchain
         run: |
-          curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
-          source ~/.cargo/env
-          rustup default stable
-          rustup update nightly
-          rustup update stable
-          rustup target add wasm32-unknown-unknown --toolchain nightly
+          rustup set profile minimal
+          rustup show
 
-      - name: Check Build
-        run: |
-          SKIP_WASM_BUILD=1 cargo check --release
+      - name: Ensure Rust formatting
+        uses: actions-rs/cargo@v1
+        with:
+          command: fmt
+          args: -- --check
+
+      - name: Check Clippy errors
+        uses: actions-rs/clippy-check@v1
+        env:
+          SKIP_WASM_BUILD: 1
+        with:
+          args: --color=always --timings -- -D warnings
+          token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Run tests
-        run: |
-          cargo test
+        env:
+          SKIP_WASM_BUILD: 1
+        run: cargo test
 
       - name: Check Build for Benchmarking
-        run: >
-          pushd node &&
+        run: |
+          pushd node
           cargo check --features=runtime-benchmarks --release
