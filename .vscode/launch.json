@@ -1,0 +1,60 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "type": "lldb",
+      "request": "launch",
+      "name": "Debug node 00",
+      "cargo": {
+        "args": ["build", "--bin=node-subspace", "--package=node-subspace"],
+        "filter": {
+          "name": "node-subspace",
+          "kind": "bin"
+        }
+      },
+      "args": [
+        "--validator",
+        "--unsafe-rpc-external",
+        "--port=30333",
+        "--rpc-port=9944",
+        "--base-path=node-data-00",
+        "--chain=node-data-00/specs/main.json",
+        "--prometheus-external",
+        "--rpc-cors=all"
+      ],
+      "cwd": "${workspaceFolder}/debug"
+    },
+    {
+      "type": "lldb",
+      "request": "launch",
+      "name": "Debug node 01",
+      "cargo": {
+        "args": ["build", "--bin=node-subspace", "--package=node-subspace"],
+        "filter": {
+          "name": "node-subspace",
+          "kind": "bin"
+        }
+      },
+      "args": [
+        "--validator",
+        "--unsafe-rpc-external",
+        "--port=30334",
+        "--rpc-port=9945",
+        "--base-path=node-data-01",
+        "--chain=node-data-01/specs/main.json",
+        "--prometheus-external",
+        "--rpc-cors=all",
+        "--bootnodes=/ip4/127.0.0.1/tcp/30333/p2p/${input:bootnodes}"
+      ],
+      "envFile": "${workspaceFolder}/debug/.env",
+      "cwd": "${workspaceFolder}/debug"
+    }
+  ],
+  "inputs": [
+    {
+      "id": "bootnodes",
+      "type": "promptString",
+      "description": "Enter bootnodes for the second node",
+    }
+  ]
+}
