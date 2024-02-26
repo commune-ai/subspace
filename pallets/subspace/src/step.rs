@@ -100,10 +100,11 @@ impl<T: Config> Pallet<T> {
 				weight_changed = true;
 				weights[uid_i as usize] = vec![];
 			} else {
-				if weight_ij.len() < subnet_params.min_allowed_weights as usize {
+				if (weights_i.len() as usize) < (subnet_params.min_allowed_weights as usize) {
 					weight_changed = true;
 					weights[uid_i as usize] = vec![];
 				}
+
 				for (pos, (uid_j, weight_ij)) in weights_i.iter().enumerate() {
 					// ignore the weights that are not in the top max allowed weights
 
@@ -322,7 +323,7 @@ impl<T: Config> Pallet<T> {
 					let delegation_fee = Self::get_delegation_fee(netuid, module_key);
 					
 					// add the ownership
-					let total_owner_dividends_emission: u64 = owner_dividends_emission;
+					let total_owner_dividends_emission: u64 = owner_dividends_emission.clone();
 					for (delegate_key, delegate_ratio) in ownership_vector.iter() {
 
 						if delegate_key == module_key {
