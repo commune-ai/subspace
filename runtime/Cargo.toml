@@ -1,6 +1,6 @@
 [package]
 name = "node-subspace-runtime"
-version = "4.0.0-dev"
+version = "1.2.0"
 description = "A Substrate node for commune-ai"
 authors = [
 	"Sal Vivona <https://github.com/salvivona>",
