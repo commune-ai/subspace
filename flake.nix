@@ -19,7 +19,7 @@
 
         generalBuildInputs = with pkgs; [pkg-config rocksdb zstd.dev bashInteractive];
         buildInputs = with pkgs;
-          if !pkgs.stdenv.isDarwin
+          if pkgs.stdenv.isLinux
           then generalBuildInputs ++ [jemalloc]
           else generalBuildInputs;
         nativeBuildInputs = with pkgs; [git rust clang protobuf];
@@ -32,12 +32,11 @@
         devShells.default = pkgs.mkShell {
           inherit buildInputs nativeBuildInputs;
 
-          env = rec {
+          env = {
             LIBCLANG_PATH = "${pkgs.libclang.lib}/lib";
             ROCKSDB_LIB_DIR = "${pkgs.rocksdb}/lib";
             ZSTD_SYS_USE_PKG_CONFIG = "true";
-            JEMALLOC_OVERRIDE = if !pkgs.stdenv.isDarwin then "${pkgs.jemalloc}/lib/libjemalloc.so" else "";
-          };
+          } // nixpkgs.lib.optionalAttrs pkgs.stdenv.isLinux { JEMALLOC_OVERRIDE = "${pkgs.jemalloc}/lib/libjemalloc.so"; };
         };
 
         packages.default = naersk'.buildPackage {
