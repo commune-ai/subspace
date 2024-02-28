@@ -59,7 +59,7 @@ fn test_weights_err_has_duplicate_ids() {
 		register_module(netuid, U256::from(3), 10000000);
 		SubspaceModule::get_uid_for_key(netuid, &U256::from(3));
 
-		assert_eq!(SubspaceModule::get_subnet_n(netuid), 4);
+		assert_eq!(SubspaceModule::get_subnet_n_uids(netuid), 4);
 
 		let weights_keys: Vec<u16> = vec![1, 1, 1]; // Contains duplicates
 		let weight_values: Vec<u16> = vec![1, 2, 3];
@@ -280,7 +280,7 @@ fn test_check_len_uids_within_allowed_within_network_pool() {
 		register_module(netuid, U256::from(1), 1_000_000_000);
 		register_module(netuid, U256::from(3), 1_000_000_000);
 		register_module(netuid, U256::from(5), 1_000_000_000);
-		let max_allowed: u16 = SubspaceModule::get_subnet_n(netuid);
+		let max_allowed: u16 = SubspaceModule::get_subnet_n_uids(netuid);
 
 		let uids: Vec<u16> = Vec::from_iter((0..max_allowed).map(|uid| uid));
 
@@ -304,7 +304,7 @@ fn test_check_len_uids_within_allowed_not_within_network_pool() {
 		register_module(netuid, U256::from(1), 1_000_000_000);
 		register_module(netuid, U256::from(3), 1_000_000_000);
 		register_module(netuid, U256::from(5), 1_000_000_000);
-		let max_allowed: u16 = SubspaceModule::get_subnet_n(netuid);
+		let max_allowed: u16 = SubspaceModule::get_subnet_n_uids(netuid);
 
 		SubspaceModule::set_max_allowed_uids(netuid, max_allowed);
 

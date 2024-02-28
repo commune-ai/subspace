@@ -23,8 +23,8 @@ fn test_burn() {
 
 	for i in 0..n {
 		assert_ok!(register_module(netuid, keys[i], stakes[i]));
-		let stake_from_vector = SubspaceModule::get_stake_to_vector(netuid, &keys[i]);
-		println!("{:?}", stake_from_vector);
+		let stake_from = SubspaceModule::get_stake_to(netuid, &keys[i]);
+		println!("{:?}", stake_from);
 	}
 
 	let voter_key = keys[1];

@@ -270,7 +270,7 @@ fn test_pruning() {
 
 		let new_key: U256 = U256::from(n + 1);
 		let lowest_priority_staker_vector: Vec<(U256, u64)> =
-			SubspaceModule::get_stake_from_vector(netuid, &keys[lowest_priority_uid as usize]);
+			SubspaceModule::get_stake_from(netuid, &keys[lowest_priority_uid as usize]);
 		let lowest_priority_stakers_balance_before: Vec<u64> = lowest_priority_staker_vector
 			.iter()
 			.map(|x| SubspaceModule::get_balance_u64(&x.0))
@@ -290,7 +290,7 @@ fn test_pruning() {
 
 		let is_registered: bool = SubspaceModule::is_key_registered(netuid, &new_key);
 		assert!(is_registered);
-		assert!(SubspaceModule::get_subnet_n(netuid) == n);
+		assert!(SubspaceModule::get_subnet_n_uids(netuid) == n);
 		let is_prune_registered: bool =
 			SubspaceModule::is_key_registered(netuid, &keys[prune_uid as usize]);
 		assert!(!is_prune_registered);
@@ -390,10 +390,10 @@ fn test_lowest_priority_mechanism() {
 //         weight_values[*uid as usize] = 0;
 
 //     }
-//     let old_n  : u16 = SubspaceModule::get_subnet_n( netuid );
+//     let old_n  : u16 = SubspaceModule::get_subnet_n_uids( netuid );
 //     set_weights(netuid, keys[0], weight_uids.clone() , weight_values.clone() );
 //     step_block( tempo );
-//     let n: u16 = SubspaceModule::get_subnet_n( netuid );
+//     let n: u16 = SubspaceModule::get_subnet_n_uids( netuid );
 //     assert !( old_n - num_zero_uids == n );
 
 //     });
@@ -695,8 +695,8 @@ fn test_trust() {
 // 			let test_key = keys.choose(&mut thread_rng()).unwrap();
 // 			let test_uid = SubspaceModule::get_uid_for_key(netuid, test_key);
 // 			let test_key_stake_before: u64 = SubspaceModule::get_stake(netuid, test_key);
-// 			let test_key_stake_from_vector_before: Vec<(U256, u64)> =
-// 				SubspaceModule::get_stake_from_vector(netuid, test_key);
+// 			let test_key_stake_from_before: Vec<(U256, u64)> =
+// 				SubspaceModule::get_stake_from(netuid, test_key);
 
 // 			// step block
 // 			step_block(tempo);
@@ -706,15 +706,15 @@ fn test_trust() {
 // 			expected_total_balance = expected_total_balance + total_emission;
 
 // 			let test_key_stake: u64 = SubspaceModule::get_stake(netuid, test_key);
-// 			let test_key_stake_from_vector: Vec<(U256, u64)> =
-// 				SubspaceModule::get_stake_from_vector(netuid, test_key);
-// 			let test_key_stake_from_vector_sum: u64 =
-// 				test_key_stake_from_vector.iter().map(|x| x.1).sum();
+// 			let test_key_stake_from: Vec<(U256, u64)> =
+// 				SubspaceModule::get_stake_from(netuid, test_key);
+// 			let test_key_stake_from_sum: u64 =
+// 				test_key_stake_from.iter().map(|x| x.1).sum();
 // 			assert!(
-// 				test_key_stake == test_key_stake_from_vector_sum,
-// 				"test_key_stake: {} != test_key_stake_from_vector_sum: {}",
+// 				test_key_stake == test_key_stake_from_sum,
+// 				"test_key_stake: {} != test_key_stake_from_sum: {}",
 // 				test_key_stake,
-// 				test_key_stake_from_vector_sum
+// 				test_key_stake_from_sum
 // 			);
 
 // 			let test_key_stake_difference: u64 = test_key_stake - test_key_stake_before;
@@ -730,13 +730,13 @@ fn test_trust() {
 // 					test_key_emission
 // 				);
 
-// 				for (i, (stake_key, stake_amount)) in test_key_stake_from_vector.iter().enumerate()
+// 				for (i, (stake_key, stake_amount)) in test_key_stake_from.iter().enumerate()
 // 				{
 // 					let stake_ratio: f64 = *stake_amount as f64 / test_key_stake as f64;
 // 					let expected_emission: u64 = (test_key_emission as f64 * stake_ratio) as u64;
 // 					let errror_delta: u64 = (*stake_amount as f64 * 0.001) as u64;
 // 					let test_key_difference: u64 =
-// 						stake_amount - test_key_stake_from_vector_before[i].1;
+// 						stake_amount - test_key_stake_from_before[i].1;
 
 // 					println!("test_key_difference: {}", test_key_difference);
 // 					println!("test_key_difference: {}", expected_emission);
@@ -776,10 +776,10 @@ fn test_trust() {
 // 			let new_key: U256 = U256::from(n + i as u16 + 1);
 // 			register_module(netuid, new_key, stake_per_module);
 // 			println!("n: {:?}", n);
-// 			println!("get_subnet_n: {:?}", SubspaceModule::get_subnet_n(netuid));
+// 			println!("get_subnet_n_uids: {:?}", SubspaceModule::get_subnet_n_uids(netuid));
 // 			println!("max_allowed: {:?}", SubspaceModule::get_max_allowed_uids(netuid));
 
-// 			assert!(SubspaceModule::get_subnet_n(netuid) == n);
+// 			assert!(SubspaceModule::get_subnet_n_uids(netuid) == n);
 
 // 			assert!(!SubspaceModule::is_key_registered(netuid, &lowest_priority_key));
 
@@ -845,8 +845,8 @@ fn test_pending_deregistration() {
 	
 	for i in 0..n {
 		assert_ok!(register_module(netuid, keys[i], stakes[i]));
-		let stake_from_vector = SubspaceModule::get_stake_to_vector(netuid, &keys[i]);
-		println!("{:?}", stake_from_vector);
+		let stake_from = SubspaceModule::get_stake_to(netuid, &keys[i]);
+		println!("{:?}", stake_from);
 	}
 	// now we set the p. rams
 	let mut params = SubspaceModule::global_params();
@@ -922,8 +922,8 @@ fn test_founder_share() {
 	let founder_key = keys[0];
 	for i in 0..n {
 		assert_ok!(register_module(netuid, keys[i], stakes[i]));
-		let stake_from_vector = SubspaceModule::get_stake_to_vector(netuid, &keys[i]);
-		println!("{:?}", stake_from_vector);
+		let stake_from = SubspaceModule::get_stake_to(netuid, &keys[i]);
+		println!("{:?}", stake_from);
 	}
 	SubspaceModule::set_founder_share(netuid, 50);
 	let founder_share = SubspaceModule::get_founder_share(netuid);

@@ -74,7 +74,7 @@ fn test_add_profit_share() {
 		for profit_sharer_key in profit_sharer_keys.iter() {
 				
 			let profit_share_balance = SubspaceModule::get_stake_to_total(netuid, profit_sharer_key);
-			let stake_to_vector = SubspaceModule::get_stake_to_vector(netuid, profit_sharer_key);
+			let stake_to_vector = SubspaceModule::get_stake_to(netuid, profit_sharer_key);
 			println!("profit share balance: {:?}", stake_to_vector);
 			println!("profit share balance: {:?}", profit_share_balance);
 			profit_share_balances.push(profit_share_balance);

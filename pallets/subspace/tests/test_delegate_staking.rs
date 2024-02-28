@@ -62,14 +62,14 @@ fn test_ownership_ratio() {
 			add_balance(*d, stake_per_module + 1);
 		}
 
-		let pre_delegate_stake_from_vector = SubspaceModule::get_stake_from_vector(netuid, &voter_key);
-		assert_eq!(pre_delegate_stake_from_vector.len(), 1); // +1 for the module itself, +1 for the delegate key on
+		let pre_delegate_stake_from = SubspaceModule::get_stake_from(netuid, &voter_key);
+		assert_eq!(pre_delegate_stake_from.len(), 1); // +1 for the module itself, +1 for the delegate key on
 
 		for (i, d) in delegate_keys.iter().enumerate() {
 			println!("DELEGATE KEY: {}", d);
 			assert_ok!(SubspaceModule::add_stake(get_origin(*d), netuid, voter_key, stake_per_module));
-			let stake_from_vector = SubspaceModule::get_stake_from_vector(netuid, &voter_key);
-			assert_eq!(stake_from_vector.len(), pre_delegate_stake_from_vector.len() + i + 1);
+			let stake_from = SubspaceModule::get_stake_from(netuid, &voter_key);
+			assert_eq!(stake_from.len(), pre_delegate_stake_from.len() + i + 1);
 		}
 		let ownership_ratios: Vec<(U256, I64F64)> =SubspaceModule::get_ownership_ratios(netuid, &voter_key);
 		assert_eq!(ownership_ratios.len(), delegate_keys.len() + 1);
@@ -147,10 +147,10 @@ fn test_ownership_ratio() {
 		assert_eq!(total_new_tokens, total_emissions);
 
 		
-		let stake_from_vector = SubspaceModule::get_stake_from_vector(netuid, &voter_key);
+		let stake_from = SubspaceModule::get_stake_from(netuid, &voter_key);
 		let stake: u64 = SubspaceModule::get_stake(netuid, &voter_key);
-		let sumed_stake: u64 = stake_from_vector.iter().fold(0, |acc, (a, x)| acc + x);
+		let sumed_stake: u64 = stake_from.iter().fold(0, |acc, (a, x)| acc + x);
 		let total_stake: u64 = SubspaceModule::get_total_subnet_stake(netuid);
-		println!("stake_from_vector: {:?}", stake_from_vector);
+		println!("stake_from: {:?}", stake_from);
 	});
 }

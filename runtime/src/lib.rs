@@ -32,7 +32,7 @@ use sp_runtime::{
 };
 
 use sp_std::{marker::PhantomData, prelude::*};
-use subspace_runtime_api::{ ModuleInfo, ModuleStats, ModuleParams };
+use subspace_runtime_api::{ ModuleInfo, ModuleState, ModuleParams };
 
 #[cfg(feature = "std")]
 use sp_version::NativeVersion;
@@ -1026,24 +1026,30 @@ impl_runtime_apis! {
 
 		fn get_module_info(key: AccountId, netuid: u16) -> ModuleInfo {
 			let uid = SubspaceModule::get_uid_for_key(netuid, &key);
-			let stats = SubspaceModule::get_module_stats(netuid, uid);
+			
+			let state = SubspaceModule::module_state(netuid, uid);
 			let params = SubspaceModule::module_params(netuid, uid);
 
 			ModuleInfo {
-				stats: ModuleStats {
-					stake_from: stats.stake_from,
-					emission: stats.emission,
-					incentive: stats.incentive,
-					dividends: stats.dividends,
-					last_update: stats.last_update,
-					registration_block: stats.registration_block,
-					weights: stats.weights,
+				state: ModuleState {
+					uid: state.uid,
+					module_key: state.module_key,
+					incentive: state.incentive,
+					trust: state.trust,
+					dividend: state.dividend,
+					emission: state.emission,
+					last_update: state.last_update,
+					registration_block: state.registration_block,
+					stake: state.stake,
+					stake_from: state.stake_from,
+					profit_shares: state.profit_shares,
 				},
 				params: ModuleParams {
 					name: params.name,
 					address: params.address,
 					delegation_fee: params.delegation_fee,
 					controller: params.controller,
+					weights: params.weights
 				}
 			}
 		}

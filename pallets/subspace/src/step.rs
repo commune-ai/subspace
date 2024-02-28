@@ -9,20 +9,32 @@ use sp_std::vec;
 impl<T: Config> Pallet<T> {
 	pub fn block_step() {
 		let block_number: u64 = Self::get_current_block_as_u64();
-		RegistrationsPerBlock::<T>::mutate(|val| *val = 0);
+
+		GlobalStateStorage::<T>::mutate(|global_state| global_state.registrations_per_block = 0);
+
 		log::debug!("block_step for block: {:?} ", block_number);
-		for (netuid, tempo) in <Tempo<T> as IterableStorageMap<u16, u16>>::iter() {
+		for (netuid, subnet_params) in <SubnetParamsStorage<T> as IterableStorageMap<u16, SubnetParams<T>>>::iter() {
 
 			let new_queued_emission: u64 = Self::calculate_network_emission(netuid);
-			PendingEmission::<T>::mutate(netuid, |mut queued| *queued += new_queued_emission);
+
+			SubnetStateStorage::<T>::mutate(netuid, |subnet_state| {
+				subnet_state.pending_emission += new_queued_emission;
+			});
+			
 			log::debug!("netuid_i: {:?} queued_emission: +{:?} ", netuid, new_queued_emission);
+			
 			Self::deregister_pending_uid(netuid); // deregister any pending uids
-			if Self::blocks_until_next_epoch(netuid, tempo, block_number) > 0 {
+			if Self::blocks_until_next_epoch(netuid, subnet_params.tempo, block_number) > 0 {
 				continue
 			}
-			let emission_to_drain: u64 = PendingEmission::<T>::get(netuid).clone();
+			
+			let emission_to_drain: u64 = Self::subnet_state(netuid).pending_emission;
+			
 			Self::epoch(netuid, emission_to_drain);
-			PendingEmission::<T>::insert(netuid, 0);
+			
+			SubnetStateStorage::<T>::mutate(netuid, |subnet_state| {
+				subnet_state.pending_emission = 0;
+			});
 		}
 	}
 
@@ -32,7 +44,7 @@ impl<T: Config> Pallet<T> {
 		let global_params = Self::global_params();
 		let subnet_params = Self::subnet_params(netuid);
 
-		let n: u16 = Self::get_subnet_n(netuid);
+		let n: u16 = Self::get_subnet_n_uids(netuid);
 		let current_block: u64 = Self::get_current_block_as_u64();
 		let block_at_registration: Vec<u64> = Self::get_block_at_registration(netuid);
 
@@ -41,7 +53,6 @@ impl<T: Config> Pallet<T> {
 			return
 		}
 
-
 		// quadradic voting
 
 		// let quadradic_voting: bool = Self::get_quadradic_voting(netuid);
@@ -49,11 +60,8 @@ impl<T: Config> Pallet<T> {
 		// 	// take a square root of the stake if its > 1
 
 		// 	total_stake_u64 = total_stake_u64;
-		// }
-
-
+		//
 		
-
 		// FOUNDER DIVIDENDS 
 		let founder_key = Self::get_founder(netuid);
 		let is_founder_registered = Self::is_key_registered(netuid, &founder_key);
@@ -95,15 +103,15 @@ impl<T: Config> Pallet<T> {
 		// == Weights (N x N) Sparsified ==
 		// =============
 		// Access network weights row normalized.
-		let last_update_vector: Vec<u64> = Self::get_last_update(netuid);
+		let last_update_vector: Vec<u64> = Self::get_last_updates(netuid);
 
 		let mut weights: Vec<Vec<(u16, u16)>> = vec![vec![]; n as usize];
 
 		let min_weight_stake_f64: I64F64 = I64F64::from_num(global_params.min_weight_stake);
 
 
-		for (uid_i, mut weights_i) in
-			<Weights<T> as IterableStorageDoubleMap<u16, u16, Vec<(u16, u16)>>>::iter_prefix(netuid)
+		for (uid_i, module_params) in
+			<ModuleParamsStorage<T> as IterableStorageDoubleMap<u16, u16, ModuleParams<T>>>::iter_prefix(netuid)
 		{
 			let mut weight_changed : bool = false;
 			// watchout for the overflow
@@ -113,7 +121,7 @@ impl<T: Config> Pallet<T> {
 				weight_changed = true;
 				weights[uid_i as usize] = vec![];
 			} else {
-				for (pos, (uid_j, weight_ij)) in weights_i.iter().enumerate() {
+				for (pos, (uid_j, weight_ij)) in module_params.weights.iter().enumerate() {
 					// ignore the weights that are not in the top max allowed weights
 					if (pos as u16) <= subnet_params.max_allowed_weights && *uid_j < n {
 						// okay , we passed the positioonal check, now check the weight
@@ -131,10 +139,11 @@ impl<T: Config> Pallet<T> {
 
 			}
 
-
 			if weight_changed {
 				// update the weights if it was changed
-				<Weights<T>>::insert(netuid, uid_i, weights[uid_i as usize].clone());
+				ModuleParamsStorage::<T>::mutate(netuid, uid_i, |module_params| {
+					module_params.weights = weights[uid_i as usize].clone();
+				});
 			}
 		}
 
@@ -201,14 +210,20 @@ impl<T: Config> Pallet<T> {
 
 			inplace_normalize(&mut trust);
 			incentive = incentive.iter().zip(trust.iter()).map(|(inc, tru)| (inc * incentive_share) + (tru * trust_share)).collect();
-			// save the trust into the trust vector
-			Trust::<T>::insert(netuid, trust.iter().map(|xi| fixed_proportion_to_u16(*xi)).collect::<Vec<u16>>());
+			
+			for (uid, _module_state) in <ModuleStateStorage<T> as IterableStorageDoubleMap<u16, u16, ModuleState<T>>>::iter_prefix(netuid) {
+				ModuleStateStorage::<T>::mutate(netuid, uid, |module_state| {
+					module_state.trust = fixed_proportion_to_u16(trust[uid as usize]);
+				});
+			}
 		}
 
-
 		// store the incentive
-		let cloned_incentive: Vec<u16> = incentive.iter().map(|xi| fixed_proportion_to_u16(*xi)).collect::<Vec<u16>>();
-		Incentive::<T>::insert(netuid, cloned_incentive);
+		for (uid, _module_state) in <ModuleStateStorage<T> as IterableStorageDoubleMap<u16, u16, ModuleState<T>>>::iter_prefix(netuid) {
+			ModuleStateStorage::<T>::mutate(netuid, uid, |module_state| {
+				module_state.incentive = fixed_proportion_to_u16(incentive[uid as usize]);
+			});
+		}
 
 		// =================================
 		// == Calculate Bonds==
@@ -265,8 +280,11 @@ impl<T: Config> Pallet<T> {
 		}
 		inplace_normalize(&mut dividends);
 
-		let cloned_dividends: Vec<u16> = dividends.iter().map(|xi| fixed_proportion_to_u16(*xi)).collect::<Vec<u16>>();
-		Dividends::<T>::insert(netuid, cloned_dividends);
+		for (uid, _module_state) in <ModuleStateStorage<T> as IterableStorageDoubleMap<u16, u16, ModuleState<T>>>::iter_prefix(netuid) {
+			ModuleStateStorage::<T>::mutate(netuid, uid, |module_state| {
+				module_state.dividend = fixed_proportion_to_u16(dividends[uid as usize]);
+			});
+		}
 
 		// =================================
 		// == Emission==
@@ -322,9 +340,11 @@ impl<T: Config> Pallet<T> {
 			if burn_amount_per_epoch > owner_emission {
 				let burn_into_stake: u64 = burn_amount_per_epoch.saturating_sub(owner_emission);
 
+				let uid = Self::get_uid_for_key(netuid, &module_key);
+
 				// decrease the stake if there is remainder
 				if burn_into_stake > 0 {
-					Self::decrease_stake(netuid, module_key, module_key, burn_into_stake);
+					Self::decrease_stake(netuid, uid, module_key, burn_into_stake);
 				}	
 				owner_emission_incentive = 0;
 				owner_dividends_emission = 0;			
@@ -414,18 +434,23 @@ impl<T: Config> Pallet<T> {
 			.map(|(inc, div)| inc + div)
 			.collect();
 			
-		Emission::<T>::insert(netuid, emission.clone());
+		for (uid, _module_state) in <ModuleStateStorage<T> as IterableStorageDoubleMap<u16, u16, ModuleState<T>>>::iter_prefix(netuid) {
+			ModuleStateStorage::<T>::mutate(netuid, uid, |module_state| {
+				module_state.emission = emission[uid as usize];
+			});
+		}
 	}
 
 	pub fn get_block_at_registration(netuid: u16) -> Vec<u64> {
-		let n: usize = Self::get_subnet_n(netuid) as usize;
+		let n: usize = Self::get_subnet_n_uids(netuid) as usize;
 		let mut block_at_registration: Vec<u64> = vec![0; n];
-		for module_uid in 0..n {
-			if Keys::<T>::contains_key(netuid, module_uid as u16) {
-				block_at_registration[module_uid] =
-					Self::get_module_registration_block(netuid, module_uid as u16);
+		
+		for uid in 0..n {
+			if ModuleStateStorage::<T>::contains_key(netuid, uid as u16) {
+				block_at_registration[uid] = Self::module_state(netuid, uid as u16).registration_block;
 			}
 		}
+
 		block_at_registration
 	}
 
@@ -445,14 +470,15 @@ impl<T: Config> Pallet<T> {
 		netuid: u16,
 		module_key: &T::AccountId,
 	) -> Vec<(T::AccountId, I64F64)> {
-		let stake_from_vector: Vec<(T::AccountId, u64)> =
-			Self::get_stake_from_vector(netuid, module_key);
+		let uid = Self::get_uid_for_key(netuid, &module_key);
+
+		let stake_from: Vec<(T::AccountId, u64)> = Self::get_stake_from(netuid, uid);
 		let uid = Self::get_uid_for_key(netuid, module_key);
 		let mut total_stake_from: I64F64 = I64F64::from_num(0);
 
 		let mut ownership_vector: Vec<(T::AccountId, I64F64)> = Vec::new();
 
-		for (k, v) in stake_from_vector.clone().into_iter() {
+		for (k, v) in stake_from.clone().into_iter() {
 			let ownership = I64F64::from_num(v);
 			ownership_vector.push((k.clone(), ownership));
 			total_stake_from += ownership;

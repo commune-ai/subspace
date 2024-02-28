@@ -175,7 +175,7 @@ pub(crate) fn run_to_block(n: u64) {
 
 #[allow(dead_code)]
 pub fn add_balance(key: U256, balance: u64) {
-	SubspaceModule::add_balance_to_account(&key, balance);
+	SubspaceModule::add_balance_to_account_u64(&key, balance);
 }
 #[allow(dead_code)]
 pub fn increase_stake(netuid: u16, key: U256, stake: u64) {

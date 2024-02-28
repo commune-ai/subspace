@@ -12,14 +12,18 @@ type Signature = MultiSignature;
 pub type AccountId = <<Signature as Verify>::Signer as IdentifyAccount>::AccountId;
 
 #[derive(Decode, Encode, PartialEq, Eq, Clone, Debug, TypeInfo, Serialize, Deserialize)]
-pub struct ModuleStats{
+pub struct ModuleState{
+	pub uid: u16,
+	pub module_key: AccountId,
+	pub incentive: u16,
+	pub trust: u16,
+	pub dividend: u16,
+	pub emission: u64,
 	pub last_update: u64,
 	pub registration_block: u64,
-	pub stake_from: Vec<(AccountId, u64)>, /* map of key to stake on this module/key * (includes delegations) */
-	pub emission: u64,
-	pub incentive: u16,
-	pub dividends: u16,
-	pub weights: Vec<(u16, u16)>, // Vec of (uid, weight)
+	pub stake: u64,
+	pub stake_from: Vec<(AccountId, u64)>,
+	pub profit_shares: Vec<(AccountId, u16)>
 }
 
 #[derive(Decode, Encode, PartialEq, Eq, Clone, Debug, TypeInfo, Serialize, Deserialize)]
@@ -28,12 +32,13 @@ pub struct ModuleParams {
 	pub address: Vec<u8>,
 	pub delegation_fee: Percent, // delegate_fee
 	pub controller: AccountId,
+	pub weights: Vec<(u16, u16)>
 }
 
 #[derive(Decode, Encode, PartialEq, Eq, Clone, Debug, TypeInfo, Serialize, Deserialize)]
 pub struct ModuleInfo {
 	pub params: ModuleParams,
-	pub stats: ModuleStats,
+	pub state: ModuleState,
 }
 
 
