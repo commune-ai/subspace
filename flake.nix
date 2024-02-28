@@ -16,7 +16,12 @@
           inherit system overlays;
         };
         rust = pkgs.rust-bin.fromRustupToolchainFile ./rust-toolchain.toml;
-        buildInputs = with pkgs; [pkg-config jemalloc rocksdb zstd.dev bashInteractive];
+
+        generalBuildInputs = with pkgs; [pkg-config rocksdb zstd.dev bashInteractive];
+        buildInputs = with pkgs;
+          if !pkgs.stdenv.isDarwin
+          then generalBuildInputs ++ [jemalloc]
+          else generalBuildInputs;
         nativeBuildInputs = with pkgs; [git rust clang protobuf];
 
         naersk' = pkgs.callPackage naersk {
@@ -29,9 +34,9 @@
 
           env = rec {
             LIBCLANG_PATH = "${pkgs.libclang.lib}/lib";
-            JEMALLOC_OVERRIDE = "${pkgs.jemalloc}/lib/libjemalloc.so";
             ROCKSDB_LIB_DIR = "${pkgs.rocksdb}/lib";
             ZSTD_SYS_USE_PKG_CONFIG = "true";
+            JEMALLOC_OVERRIDE = if !pkgs.stdenv.isDarwin then "${pkgs.jemalloc}/lib/libjemalloc.so" else "";
           };
         };
 
