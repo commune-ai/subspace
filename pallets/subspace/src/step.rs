@@ -101,6 +101,10 @@ impl<T: Config> Pallet<T> {
 				weight_changed = true;
 				weights[uid_i as usize] = vec![];
 			} else {
+				if weights_i.len() < (subnet_params.min_allowed_weights as usize) {
+					weight_changed = true;
+					weights[uid_i as usize] = vec![];
+				}
 				for (pos, (uid_j, weight_ij)) in weights_i.iter().enumerate() {
 					// ignore the weights that are not in the top max allowed weights
 					if (pos as u16) <= subnet_params.max_allowed_weights && *uid_j < n {
@@ -331,13 +335,14 @@ impl<T: Config> Pallet<T> {
 				let delegation_fee = Self::get_delegation_fee(netuid, module_key);
 
 				// add the ownership
+				let total_owner_dividends_emission: u64 = owner_dividends_emission;
 				for (delegate_key, delegate_ratio) in ownership_vector.iter() {
 					if delegate_key == module_key {
 						continue
 					}
 
 					let dividends_from_delegate: u64 =
-						(I64F64::from_num(owner_dividends_emission) * delegate_ratio)
+						(I64F64::from_num(total_owner_dividends_emission) * delegate_ratio)
 							.to_num::<u64>();
 					let to_module: u64 = delegation_fee.mul_floor(dividends_from_delegate);
 					let to_delegate: u64 = dividends_from_delegate.saturating_sub(to_module);
