@@ -9947,7 +9947,6 @@ checksum = "672423d4fea7ffa2f6c25ba60031ea13dc6258070556f125cc4d790007d4a155"
 name = "xtask"
 version = "0.1.0"
 dependencies = [
- "serde_json",
  "tempfile",
  "xflags",
 ]
