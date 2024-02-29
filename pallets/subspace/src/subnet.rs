@@ -269,6 +269,12 @@ impl<T: Config> Pallet<T> {
         Founder::<T>::get(netuid) == *key
     }
 
+	// TODO, see if we can optimize this further
+	pub fn does_module_name_exist(netuid: u16, name: Vec<u8>) -> bool {
+		<Name<T> as IterableStorageDoubleMap<u16, u16, Vec<u8>>>::iter_prefix(netuid)
+			.any(|(_uid, _name)| _name == name)
+	}
+
     pub fn get_subnet_founder(netuid: u16) -> T::AccountId {
         Founder::<T>::get(netuid)
     }
