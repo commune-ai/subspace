@@ -33,36 +33,32 @@ impl<T: Config> Pallet<T> {
 		// --- 1. We check the callers (key) signature.
 		let key = ensure_signed(origin)?;
 		let uid: u16 = Self::get_uid_for_key(netuid, &key);
-		Self::check_module_params(netuid, params.clone())?;
+		Self::check_module_params(netuid, &params)?;
 		Self::set_module_params(netuid, uid, params);
 		// --- 8. Return is successful dispatch.
 		Ok(())
 	}
 
-	pub fn check_module_params(_netuid: u16, params: ModuleParams<T>) -> DispatchResult {
-		// if len(name) > 0, then we update the name.
+	/// Checks whether the module params are valid. Name and address must be non-empty and below the
+	/// max name length allowed.
+	pub fn check_module_params(_netuid: u16, params: &ModuleParams<T>) -> DispatchResult {
+		let max_name_length = MaxNameLength::<T>::get() as usize;
+
 		assert!(params.name.len() > 0);
-		ensure!(
-			params.name.len() <= MaxNameLength::<T>::get() as usize,
-			Error::<T>::ModuleNameTooLong
-		);
+		ensure!(params.name.len() <= max_name_length, Error::<T>::ModuleNameTooLong);
 		assert!(params.address.len() > 0);
-		ensure!(
-			params.address.len() <= MaxNameLength::<T>::get() as usize,
-			Error::<T>::ModuleAddressTooLong
-		);
-		// delegation fee is a percent
+		ensure!(params.address.len() <= max_name_length, Error::<T>::ModuleAddressTooLong);
+
 		Ok(())
 	}
 
 	pub fn module_params(netuid: u16, uid: u16) -> ModuleParams<T> {
-		let module_params: ModuleParams<T> = ModuleParams {
+		ModuleParams {
 			name: Self::get_module_name(netuid, uid),
 			address: Self::get_module_address(netuid, uid),
 			delegation_fee: Self::get_module_delegation_fee(netuid, uid),
 			controller: Self::get_key_for_uid(netuid, uid),
-		};
-		module_params
+		}
 	}
 
 	pub fn set_module_params(netuid: u16, uid: u16, module_params: ModuleParams<T>) {
@@ -172,7 +168,7 @@ impl<T: Config> Pallet<T> {
 		// HANDLE THE DELEGATION FEE
 		DelegationFee::<T>::insert(
 			netuid,
-			replace_key.clone(),
+			replace_key,
 			DelegationFee::<T>::get(netuid, uid_key.clone()),
 		); // Make uid - key association.
 		DelegationFee::<T>::remove(netuid, uid_key.clone()); // Make uid - key association.
@@ -241,25 +237,25 @@ impl<T: Config> Pallet<T> {
 
 	pub fn get_module_stats(netuid: u16, uid: u16) -> ModuleStats<T> {
 		let key = Self::get_key_for_uid(netuid, uid);
-		let emission = Self::get_emission_for_uid(netuid, uid as u16);
-		let incentive = Self::get_incentive_for_uid(netuid, uid as u16);
-		let dividends = Self::get_dividends_for_uid(netuid, uid as u16);
-		let last_update = Self::get_last_update_for_uid(netuid, uid as u16);
-		let _registration_block = Self::get_registration_block_for_uid(netuid, uid as u16);
-		let weights = <Weights<T>>::get(netuid, uid)
+		let emission = Self::get_emission_for_uid(netuid, uid);
+		let incentive = Self::get_incentive_for_uid(netuid, uid);
+		let dividends = Self::get_dividends_for_uid(netuid, uid);
+		let last_update = Self::get_last_update_for_uid(netuid, uid);
+
+		let weights: Vec<(u16, u16)> = Weights::<T>::get(netuid, uid)
 			.iter()
 			.filter_map(|(i, w)| if *w > 0 { Some(((*i).into(), (*w).into())) } else { None })
-			.collect::<Vec<(u16, u16)>>();
+			.collect();
 		let stake_from: Vec<(T::AccountId, u64)> = StakeFrom::<T>::get(netuid, key);
-		let registration_block = Self::get_registration_block_for_uid(netuid, uid as u16);
+		let registration_block = Self::get_registration_block_for_uid(netuid, uid);
 
 		ModuleStats {
 			stake_from,
-			emission: emission.into(),
-			incentive: incentive.into(),
-			dividends: dividends.into(),
-			last_update: last_update.into(),
-			registration_block: registration_block.into(),
+			emission,
+			incentive,
+			dividends,
+			last_update,
+			registration_block,
 			weights,
 		}
 	}

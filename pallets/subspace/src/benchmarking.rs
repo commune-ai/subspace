@@ -41,7 +41,7 @@ fn register_helper<T: Config>(
 		module_key.clone(),
 	);
 
-	let netuid = <Pallet<T>>::get_netuid_for_name(network.clone());
+	let netuid = <Pallet<T>>::get_netuid_for_name(network.clone()).unwrap_or(u16::MAX);
 
 	netuid
 }
@@ -118,7 +118,7 @@ mod benchmarks {
 			module_key.clone(),
 		);
 
-		let netuid = <Pallet<T>>::get_netuid_for_name(network);
+		let netuid = <Pallet<T>>::get_netuid_for_name(network).unwrap_or(u16::MAX);
 
 		assert!(<Pallet<T>>::is_registered(netuid, &module_key), "Register failed");
 
@@ -425,7 +425,7 @@ mod benchmarks {
 			MIN_STAKE,
 		);
 
-		let netuid = <Pallet<T>>::get_netuid_for_name(network.clone());
+		let netuid = <Pallet<T>>::get_netuid_for_name(network.clone()).unwrap_or(u16::MAX);
 
 		#[extrinsic_call]
 		add_subnet_update(RawOrigin::Root, netuid, name, 1, 1, 1, 1, 1, 1, 1, 1, 1);
@@ -448,7 +448,7 @@ mod benchmarks {
 			MIN_STAKE,
 		);
 
-		let netuid = <Pallet<T>>::get_netuid_for_name(network.clone());
+		let netuid = <Pallet<T>>::get_netuid_for_name(network.clone()).unwrap_or(u16::MAX);
 
 		<Pallet<T>>::add_subnet_update(
 			RawOrigin::Root.into(),
@@ -486,7 +486,7 @@ mod benchmarks {
 			MIN_STAKE,
 		);
 
-		let netuid = <Pallet<T>>::get_netuid_for_name(network.clone());
+		let netuid = <Pallet<T>>::get_netuid_for_name(network.clone()).unwrap_or(u16::MAX);
 
 		<Pallet<T>>::add_subnet_update(
 			RawOrigin::Root.into(),

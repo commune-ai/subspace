@@ -1,11 +1,12 @@
+use crate::voting::{AUTHORITY_MODE, STAKE_MODE};
+
 use super::*;
-use crate::utils::is_vec_str;
 
 use frame_support::{
 	pallet_prelude::DispatchResult, storage::IterableStorageMap, IterableStorageDoubleMap,
 };
 
-pub use sp_std::vec::Vec;
+use sp_std::vec::Vec;
 use substrate_fixed::types::I64F64;
 extern crate alloc;
 
@@ -33,10 +34,7 @@ impl<T: Config> Pallet<T> {
 		let key = ensure_signed(origin)?;
 		// only the founder can update the network on authority mode
 
-		ensure!(
-			is_vec_str(Self::get_vote_mode_subnet(netuid), "authority"),
-			Error::<T>::NotAuthorityMode
-		);
+		ensure!(Self::get_vote_mode_subnet(netuid) == AUTHORITY_MODE, Error::<T>::NotAuthorityMode);
 		ensure!(Self::if_subnet_netuid_exists(netuid), Error::<T>::SubnetNameAlreadyExists);
 		ensure!(Self::is_subnet_founder(netuid, &key), Error::<T>::NotFounder);
 		ensure!(Self::if_subnet_netuid_exists(netuid), Error::<T>::SubnetNameAlreadyExists);
@@ -87,8 +85,7 @@ impl<T: Config> Pallet<T> {
 
 		// ensure the vode_mode is in "authority", "stake"
 		ensure!(
-			is_vec_str(params.vote_mode.clone(), "authority") ||
-				is_vec_str(params.vote_mode.clone(), "stake"),
+			params.vote_mode.clone() == AUTHORITY_MODE || params.vote_mode.clone() == STAKE_MODE,
 			Error::<T>::InvalidVoteMode
 		);
 		Ok(())
@@ -284,16 +281,6 @@ impl<T: Config> Pallet<T> {
 		SelfVote::<T>::get(netuid)
 	}
 
-	// pub fn total_balance() -> u64 {
-	//     let mut total_balance: u64 = 0;
-	//     // iterate through all of the accounts with balance (noo stake)
-
-	//     for ( key, stated_amount ) in <Stake<T> as IterableStorageDoubleMap<u16, T::AccountId,
-	// u64> >::iter(){         total_balance = Self::get_balance_u64( &key ) + total_balance;
-	//     }
-	//     return total_balance;
-	// }
-
 	pub fn market_cap() -> u64 {
 		let total_stake: u64 = Self::total_stake();
 		total_stake
@@ -397,17 +384,8 @@ impl<T: Config> Pallet<T> {
 		SubnetNames::<T>::contains_key(netuid).into()
 	}
 
-	pub fn get_netuid_for_name(name: Vec<u8>) -> u16 {
-		for (netuid, netname) in <SubnetNames<T> as IterableStorageMap<u16, Vec<u8>>>::iter() {
-			if name == netname {
-				return netuid
-			}
-		}
-		u16::MAX
-	}
-
-	pub fn get_subnet_name(netuid: u16) -> Vec<u8> {
-		SubnetNames::<T>::get(netuid)
+	pub fn get_netuid_for_name(name: &[u8]) -> Option<u16> {
+		SubnetNames::<T>::iter().find(|(_, n)| n == name).map(|(id, _)| id)
 	}
 
 	pub fn is_network_founder(netuid: u16, key: &T::AccountId) -> bool {
@@ -417,8 +395,12 @@ impl<T: Config> Pallet<T> {
 	}
 
 	pub fn remote_subnet_for_name(name: Vec<u8>) -> u16 {
-		let netuid = Self::get_netuid_for_name(name.clone());
-		Self::remove_subnet(netuid)
+		if let Some(netuid) = Self::get_netuid_for_name(&name) {
+			Self::remove_subnet(netuid);
+			netuid
+		} else {
+			u16::MAX
+		}
 	}
 
 	pub fn remove_netuid_stake_strorage(netuid: u16) {
@@ -441,7 +423,6 @@ impl<T: Config> Pallet<T> {
 		if !Self::if_subnet_exist(netuid) {
 			return 0
 		}
-		let _name: Vec<u8> = Self::get_subnet_name(netuid);
 
 		Self::remove_netuid_stake_strorage(netuid);
 

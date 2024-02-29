@@ -1,6 +1,7 @@
 #![allow(deprecated, non_camel_case_types, non_snake_case)]
 #![cfg_attr(not(feature = "std"), no_std)]
 #![recursion_limit = "512"]
+
 use frame_system::{self as system, ensure_signed};
 pub use pallet::*;
 
@@ -43,7 +44,6 @@ mod registration;
 mod staking;
 mod step;
 mod subnet;
-mod utils;
 mod voting;
 mod weights;
 
@@ -910,7 +910,7 @@ pub mod pallet {
 					max_weight_age: default_params.max_weight_age,
 				};
 
-				self::Pallet::<T>::add_subnet(params.clone());
+				self::Pallet::<T>::add_subnet(params);
 
 				for (uid_usize, (key, name, address, weights)) in
 					self.modules[subnet_idx].iter().enumerate()
