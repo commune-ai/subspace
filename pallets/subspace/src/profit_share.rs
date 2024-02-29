@@ -12,7 +12,10 @@ impl<T: Config> Pallet<T> {
         let key = ensure_signed(origin)?;
 
         // needs to be registered as a network
-        ensure!(Self::is_key_registered_on_any_network(&key), Error::<T>::NotRegistered);
+        ensure!(
+            Self::is_key_registered_on_any_network(&key),
+            Error::<T>::NotRegistered
+        );
         assert!(keys.len() > 0);
         assert!(keys.len() == shares.len()); // make sure the keys and shares are the same length
 

@@ -223,7 +223,10 @@ fn test_is_self_weight_weights_length_not_one() {
         let expected = false;
         let result = SubspaceModule::is_self_weight(uid, &uids, &weights);
 
-        assert_eq!(expected, result, "Failed get expected result when `weights.len() != 1`");
+        assert_eq!(
+            expected, result,
+            "Failed get expected result when `weights.len() != 1`"
+        );
     });
 }
 
@@ -240,7 +243,10 @@ fn test_is_self_weight_uid_not_in_uids() {
         let expected = false;
         let result = SubspaceModule::is_self_weight(uid, &uids, &weights);
 
-        assert_eq!(expected, result, "Failed get expected result when `uid != uids[0]`");
+        assert_eq!(
+            expected, result,
+            "Failed get expected result when `uid != uids[0]`"
+        );
     });
 }
 
@@ -258,7 +264,10 @@ fn test_is_self_weight_uid_in_uids() {
         let expected = true;
         let result = SubspaceModule::is_self_weight(uid, &uids, &weights);
 
-        assert_eq!(expected, result, "Failed get expected result when everything _should_ be fine");
+        assert_eq!(
+            expected, result,
+            "Failed get expected result when everything _should_ be fine"
+        );
     });
 }
 
@@ -307,6 +316,9 @@ fn test_check_len_uids_within_allowed_not_within_network_pool() {
 
         let expected = false;
         let result = SubspaceModule::check_len_uids_within_allowed(netuid, &uids);
-        assert_eq!(expected, result, "Failed to detect incompatible uids for network");
+        assert_eq!(
+            expected, result,
+            "Failed to detect incompatible uids for network"
+        );
     });
 }

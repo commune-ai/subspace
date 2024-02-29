@@ -26,8 +26,8 @@ fn check_network_stats(netuid: u16) {
     println!("dividends: {:?}", dividends);
 
     assert!(
-        total_emissions >= subnet_emission - emission_buffer ||
-            total_emissions <= subnet_emission + emission_buffer
+        total_emissions >= subnet_emission - emission_buffer
+            || total_emissions <= subnet_emission + emission_buffer
     );
 }
 
@@ -139,8 +139,8 @@ fn test_dividends_same_stake() {
             let error_delta: u64 = (emissions[uid] as f64 * 0.001) as u64;
 
             assert!(
-                stake_difference < expected_stake_difference + error_delta &&
-                    stake_difference > expected_stake_difference - error_delta,
+                stake_difference < expected_stake_difference + error_delta
+                    && stake_difference > expected_stake_difference - error_delta,
                 "stake_difference: {} != expected_stake_difference: {}",
                 stake_difference,
                 expected_stake_difference
@@ -230,8 +230,8 @@ fn test_dividends_diff_stake() {
             let error_delta: u64 = (emissions[uid] as f64 * 0.001) as u64;
 
             assert!(
-                stake_difference < expected_stake_difference + error_delta &&
-                    stake_difference > expected_stake_difference - error_delta,
+                stake_difference < expected_stake_difference + error_delta
+                    && stake_difference > expected_stake_difference - error_delta,
                 "stake_difference: {} != expected_stake_difference: {}",
                 stake_difference,
                 expected_stake_difference
@@ -870,11 +870,11 @@ fn test_founder_share() {
         println!("total_dividends: {:?}", total_dividends);
         println!("total_incentives: {:?}", total_incentives);
         let expected_emission_after_founder_share = expected_emission - expected_founder_share;
-        let founder_dividend_emission = ((dividends[0] as f64 / total_dividends as f64) *
-            (expected_emission_after_founder_share / 2) as f64)
+        let founder_dividend_emission = ((dividends[0] as f64 / total_dividends as f64)
+            * (expected_emission_after_founder_share / 2) as f64)
             as u64;
-        let founder_incentive_emission = ((incentives[0] as f64 / total_incentives as f64) *
-            (expected_emission_after_founder_share / 2) as f64)
+        let founder_incentive_emission = ((incentives[0] as f64 / total_incentives as f64)
+            * (expected_emission_after_founder_share / 2) as f64)
             as u64;
         let founder_emission = founder_incentive_emission + founder_dividend_emission;
 
@@ -884,9 +884,9 @@ fn test_founder_share() {
         println!("founder_emission FAM: {:?}", founder_emission);
         let calcualted_total_emission = emissions.iter().sum::<u64>();
 
-        let calculated_founder_share = SubspaceModule::get_stake_for_key(netuid, &founder_key) -
-            founder_stake_before -
-            founder_emission;
+        let calculated_founder_share = SubspaceModule::get_stake_for_key(netuid, &founder_key)
+            - founder_stake_before
+            - founder_emission;
         let delta: u64 = 100000;
 
         println!("expected_emission: {:?}", expected_emission);

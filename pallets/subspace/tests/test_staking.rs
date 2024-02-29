@@ -89,7 +89,10 @@ fn test_stake() {
             assert_eq!(SubspaceModule::total_stake(), total_stake);
             subnet_stake = 0;
             println!("TOTAL STAKE: {}", total_stake);
-            println!("TOTAL SUBNET STAKE: {}", SubspaceModule::get_total_subnet_stake(netuid));
+            println!(
+                "TOTAL SUBNET STAKE: {}",
+                SubspaceModule::get_total_subnet_stake(netuid)
+            );
         }
     });
 }
@@ -139,7 +142,11 @@ fn test_multiple_stake() {
             total_actual_stake, total_stake,
             "total stake should be equal to the sum of all stakes"
         );
-        assert_eq!(staker_balance, og_staker_balance - total_stake, "staker balance should be 0");
+        assert_eq!(
+            staker_balance,
+            og_staker_balance - total_stake,
+            "staker balance should be 0"
+        );
 
         // unstake from all modules
         SubspaceModule::remove_stake_multiple(
@@ -152,8 +159,14 @@ fn test_multiple_stake() {
         let total_actual_stake: u64 =
             keys.clone().into_iter().map(|k| SubspaceModule::get_stake(netuid, &k)).sum();
         let staker_balance = SubspaceModule::get_balance(&controler_key);
-        assert_eq!(total_actual_stake, 0, "total stake should be equal to the sum of all stakes");
-        assert_eq!(staker_balance, og_staker_balance, "staker balance should be 0");
+        assert_eq!(
+            total_actual_stake, 0,
+            "total stake should be equal to the sum of all stakes"
+        );
+        assert_eq!(
+            staker_balance, og_staker_balance,
+            "staker balance should be 0"
+        );
     });
 }
 
@@ -231,20 +244,38 @@ fn test_delegate_stake() {
                 SubspaceModule::add_stake(get_origin(delegate_key), netuid, *key, amount_staked);
                 uid = SubspaceModule::get_uid_for_key(netuid, key);
                 // SubspaceModule::add_stake(get_origin(*key), netuid, amount_staked);
-                assert_eq!(SubspaceModule::get_stake_for_uid(netuid, uid), amount_staked);
+                assert_eq!(
+                    SubspaceModule::get_stake_for_uid(netuid, uid),
+                    amount_staked
+                );
                 assert_eq!(SubspaceModule::get_balance(&delegate_key), 1);
-                assert_eq!(SubspaceModule::get_stake_to_vector(netuid, &delegate_key).len(), 1);
+                assert_eq!(
+                    SubspaceModule::get_stake_to_vector(netuid, &delegate_key).len(),
+                    1
+                );
                 // REMOVE STAKE
                 SubspaceModule::remove_stake(get_origin(delegate_key), netuid, *key, amount_staked);
-                assert_eq!(SubspaceModule::get_balance(&delegate_key), amount_staked + 1);
+                assert_eq!(
+                    SubspaceModule::get_balance(&delegate_key),
+                    amount_staked + 1
+                );
                 assert_eq!(SubspaceModule::get_stake_for_uid(netuid, uid), 0);
-                assert_eq!(SubspaceModule::get_stake_to_vector(netuid, &delegate_key).len(), 0);
+                assert_eq!(
+                    SubspaceModule::get_stake_to_vector(netuid, &delegate_key).len(),
+                    0
+                );
 
                 // ADD STAKE AGAIN LOL
                 SubspaceModule::add_stake(get_origin(delegate_key), netuid, *key, amount_staked);
-                assert_eq!(SubspaceModule::get_stake_for_uid(netuid, uid), amount_staked);
+                assert_eq!(
+                    SubspaceModule::get_stake_for_uid(netuid, uid),
+                    amount_staked
+                );
                 assert_eq!(SubspaceModule::get_balance(&delegate_key), 1);
-                assert_eq!(SubspaceModule::get_stake_to_vector(netuid, &delegate_key).len(), 1);
+                assert_eq!(
+                    SubspaceModule::get_stake_to_vector(netuid, &delegate_key).len(),
+                    1
+                );
 
                 // AT THE END WE SHOULD HAVE THE SAME TOTAL STAKE
                 subnet_stake += SubspaceModule::get_stake_for_uid(netuid, uid);
@@ -254,7 +285,10 @@ fn test_delegate_stake() {
             assert_eq!(SubspaceModule::total_stake(), total_stake);
             subnet_stake = 0;
             println!("TOTAL STAKE: {}", total_stake);
-            println!("TOTAL SUBNET STAKE: {}", SubspaceModule::get_total_subnet_stake(netuid));
+            println!(
+                "TOTAL SUBNET STAKE: {}",
+                SubspaceModule::get_total_subnet_stake(netuid)
+            );
         }
     });
 }
@@ -284,7 +318,10 @@ fn test_ownership_ratio() {
                 println!("DELEGATE KEY: {}", d);
                 SubspaceModule::add_stake(get_origin(*d), netuid, *k, stake_per_module);
                 let stake_from_vector = SubspaceModule::get_stake_from_vector(netuid, k);
-                assert_eq!(stake_from_vector.len(), pre_delegate_stake_from_vector.len() + i + 1);
+                assert_eq!(
+                    stake_from_vector.len(),
+                    pre_delegate_stake_from_vector.len() + i + 1
+                );
             }
             let ownership_ratios: Vec<(U256, I64F64)> =
                 SubspaceModule::get_ownership_ratios(netuid, k);

@@ -421,7 +421,11 @@ pub mod pallet {
 
     #[pallet::type_value]
     pub fn DefaultVoterInfo<T: Config>() -> VoterInfo {
-        VoterInfo { proposal_id: u64::MAX, votes: 0, participant_index: u16::MAX }
+        VoterInfo {
+            proposal_id: u64::MAX,
+            votes: 0,
+            participant_index: u16::MAX,
+        }
     }
     #[pallet::storage] // --- MAP ( netuid ) --> epoch
     pub type Voter2Info<T: Config> =
@@ -732,7 +736,7 @@ pub mod pallet {
         MaxAllowedSubnetsSet(u16), // --- Event created when setting the maximum allowed subnets
         MaxAllowedModulesSet(u16), // --- Event created when setting the maximum allowed modules
         MaxRegistrationsPerBlockSet(u16), /* --- Event created when we set max registrations
-                                           * per block */
+                              * per block */
         GlobalUpdate(u16, u16, u16, u16, u64, u64),
         GlobalProposalAccepted(u64),      // (id)
         CustomProposalAccepted(u64),      // (id)
@@ -1297,14 +1301,14 @@ pub mod pallet {
             if Uids::<T>::contains_key(netuid, &key) {
                 let uid: u16 = Self::get_uid_for_key(netuid, &key.clone());
                 let current_block_number: u64 = Self::get_current_block_as_u64();
-                return current_block_number - Self::get_last_update_for_uid(netuid, uid as u16)
+                return current_block_number - Self::get_last_update_for_uid(netuid, uid as u16);
             }
             0
         }
         // --- Returns the transaction priority for setting weights.
         pub fn get_priority_stake(key: &T::AccountId, netuid: u16) -> u64 {
             if Uids::<T>::contains_key(netuid, &key) {
-                return Self::get_stake(netuid, key)
+                return Self::get_stake(netuid, key);
             }
             0
         }
@@ -1410,8 +1414,12 @@ where
         match call.is_sub_type() {
             Some(Call::set_weights { netuid, .. }) => {
                 let priority: u64 = Self::get_priority_set_weights(who, *netuid);
-                Ok(ValidTransaction { priority, longevity: 1, ..Default::default() })
-            },
+                Ok(ValidTransaction {
+                    priority,
+                    longevity: 1,
+                    ..Default::default()
+                })
+            }
             Some(Call::add_stake { .. }) => Ok(ValidTransaction {
                 priority: Self::get_priority_vanilla(who),
                 ..Default::default()
@@ -1452,43 +1460,43 @@ where
             Some(Call::add_stake { .. }) => {
                 let transaction_fee = 0;
                 Ok((CallType::AddStake, transaction_fee, who.clone()))
-            },
+            }
             Some(Call::add_stake_multiple { .. }) => {
                 let transaction_fee = 0;
                 Ok((CallType::AddStakeMultiple, transaction_fee, who.clone()))
-            },
+            }
             Some(Call::remove_stake { .. }) => {
                 let transaction_fee = 0;
                 Ok((CallType::RemoveStake, transaction_fee, who.clone()))
-            },
+            }
             Some(Call::remove_stake_multiple { .. }) => {
                 let transaction_fee = 0;
                 Ok((CallType::RemoveStakeMultiple, transaction_fee, who.clone()))
-            },
+            }
             Some(Call::transfer_stake { .. }) => {
                 let transaction_fee = 0;
                 Ok((CallType::TransferStake, transaction_fee, who.clone()))
-            },
+            }
             Some(Call::transfer_multiple { .. }) => {
                 let transaction_fee = 0;
                 Ok((CallType::TransferMultiple, transaction_fee, who.clone()))
-            },
+            }
             Some(Call::set_weights { .. }) => {
                 let transaction_fee = 0;
                 Ok((CallType::SetWeights, transaction_fee, who.clone()))
-            },
+            }
             Some(Call::register { .. }) => {
                 let transaction_fee = 0;
                 Ok((CallType::Register, transaction_fee, who.clone()))
-            },
+            }
             Some(Call::update_module { .. }) => {
                 let transaction_fee = 0;
                 Ok((CallType::Serve, transaction_fee, who.clone()))
-            },
+            }
             _ => {
                 let transaction_fee = 0;
                 Ok((CallType::Other, transaction_fee, who.clone()))
-            },
+            }
         }
     }
 
@@ -1503,38 +1511,38 @@ where
             match call_type {
                 CallType::SetWeights => {
                     log::debug!("Not Implemented!");
-                },
+                }
                 CallType::AddStake => {
                     log::debug!("Not Implemented! Need to add potential transaction fees here.");
-                },
+                }
 
                 CallType::AddStakeMultiple => {
                     log::debug!("Not Implemented! Need to add potential transaction fees here.");
-                },
+                }
                 CallType::RemoveStake => {
                     log::debug!("Not Implemented! Need to add potential transaction fees here.");
-                },
+                }
                 CallType::RemoveStakeMultiple => {
                     log::debug!("Not Implemented! Need to add potential transaction fees here.");
-                },
+                }
                 CallType::TransferStake => {
                     log::debug!("Not Implemented! Need to add potential transaction fees here.");
-                },
+                }
                 CallType::TransferStakeMultiple => {
                     log::debug!("Not Implemented! Need to add potential transaction fees here.");
-                },
+                }
                 CallType::TransferMultiple => {
                     log::debug!("Not Implemented! Need to add potential transaction fees here.");
-                },
+                }
                 CallType::AddNetwork => {
                     log::debug!("Not Implemented! Need to add potential transaction fees here.");
-                },
+                }
                 CallType::Register => {
                     log::debug!("Not Implemented!");
-                },
+                }
                 _ => {
                     log::debug!("Not Implemented!");
-                },
+                }
             }
         }
         Ok(())

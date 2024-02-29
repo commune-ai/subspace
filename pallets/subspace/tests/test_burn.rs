@@ -42,9 +42,20 @@ fn test_burn() {
                 votes.push(1);
                 uids.push(i as u16);
             }
-            println!("{:?}", SubspaceModule::get_stake_for_key(netuid, &voter_key));
-            assert_ok!(SubspaceModule::set_weights(get_origin(voter_key), netuid, uids, votes));
-            println!("burn : {:?}", SubspaceModule::get_burn_emission_per_epoch(netuid));
+            println!(
+                "{:?}",
+                SubspaceModule::get_stake_for_key(netuid, &voter_key)
+            );
+            assert_ok!(SubspaceModule::set_weights(
+                get_origin(voter_key),
+                netuid,
+                uids,
+                votes
+            ));
+            println!(
+                "burn : {:?}",
+                SubspaceModule::get_burn_emission_per_epoch(netuid)
+            );
 
             let _total_stake = SubspaceModule::get_total_subnet_stake(netuid);
 
@@ -91,9 +102,9 @@ fn test_burn() {
 
             let _calculated_subnet_emission = emissions.iter().sum::<u64>();
             let expected_subnet_emission: u64 =
-                ((SubspaceModule::get_subnet_emission(netuid) as f64 *
-                    (subnet_params.tempo as f64)) *
-                    (((100 - burn_rate) as f64) / 100.0)) as u64;
+                ((SubspaceModule::get_subnet_emission(netuid) as f64
+                    * (subnet_params.tempo as f64))
+                    * (((100 - burn_rate) as f64) / 100.0)) as u64;
 
             let delta_ratio = 0.01;
             let delta = (total_stake_before as f64 * delta_ratio) as u64;
@@ -101,8 +112,8 @@ fn test_burn() {
             let expected_subnet_emission =
                 total_stake_before.saturating_add(expected_subnet_emission);
             assert!(
-                total_stake_after.saturating_sub(delta) < expected_subnet_emission &&
-                    total_stake_after + delta > expected_subnet_emission,
+                total_stake_after.saturating_sub(delta) < expected_subnet_emission
+                    && total_stake_after + delta > expected_subnet_emission,
                 "total_stake_after: {:?} expected_subnet_emission: {:?}",
                 total_stake_after,
                 expected_subnet_emission
