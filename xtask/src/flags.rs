@@ -1,25 +1,25 @@
 use std::path::PathBuf;
 
 xflags::xflags! {
-	src "src/flags.rs"
+    src "src/flags.rs"
 
-	cmd localnet {
+    cmd localnet {
 
-		cmd run {
-			optional -p, --path path: PathBuf
-			optional -c, --chain-spec chain_spec: PathBuf
-			optional --node-name node_name: String
-			optional --node-key node_key: String
-			optional --node-validator node_validator: bool
-			optional --account-suri account_suri: String
-			optional --tcp-port tcp_port: u16
-			optional --rpc-port rpc_port: u16
-			repeated --bootnodes bootnodes: String
+        cmd run {
+            optional -p, --path path: PathBuf
+            optional -c, --chain-spec chain_spec: PathBuf
+            optional --node-name node_name: String
+            optional --node-key node_key: String
+            optional --node-validator node_validator: bool
+            optional --account-suri account_suri: String
+            optional --tcp-port tcp_port: u16
+            optional --rpc-port rpc_port: u16
+            repeated --bootnodes bootnodes: String
 
-			optional --alice
-			optional --bob
-		}
-	}
+            optional --alice
+            optional --bob
+        }
+    }
 }
 
 // generated start
