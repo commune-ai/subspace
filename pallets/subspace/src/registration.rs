@@ -55,10 +55,7 @@ impl<T: Config> Pallet<T> {
         );
 
         // --- 6. Ensure the module key is not already registered.
-        ensure!(
-            !Self::key_registered(netuid, &key),
-            Error::<T>::KeyAlreadyRegistered
-        );
+        ensure!(!Self::key_registered(netuid, &key), Error::<T>::KeyAlreadyRegistered);
 
         // --- 7. Check if we are exceeding the max allowed modules per network.
         // If we do deregister slot.
@@ -90,19 +87,13 @@ impl<T: Config> Pallet<T> {
         // --- 1. Check that the caller has signed the transaction.
         let key = ensure_signed(origin.clone())?;
 
-        ensure!(
-            Self::key_registered(netuid, &key),
-            Error::<T>::NotRegistered
-        );
+        ensure!(Self::key_registered(netuid, &key), Error::<T>::NotRegistered);
 
         // --- 2. Ensure we are not exceeding the max allowed registrations per block.
         let uid: u16 = Self::get_uid_for_key(netuid, &key);
 
         Self::remove_module(netuid, uid);
-        ensure!(
-            !Self::key_registered(netuid, &key),
-            Error::<T>::StillRegistered
-        );
+        ensure!(!Self::key_registered(netuid, &key), Error::<T>::StillRegistered);
 
         // --- 5. Ok and done.
         Ok(())
@@ -127,7 +118,7 @@ impl<T: Config> Pallet<T> {
         if (uid as usize) < vec.len() {
             vec[uid as usize]
         } else {
-            0_u64
+            0 as u64
         }
     }
     pub fn get_lowest_uid(netuid: u16) -> u16 {
@@ -153,7 +144,7 @@ impl<T: Config> Pallet<T> {
                     lowest_priority_uid = module_uid_i;
                     min_score = pruning_score;
                     if min_score == 0 {
-                        break;
+                        break
                     }
                 }
             }
@@ -201,10 +192,7 @@ impl<T: Config> Pallet<T> {
             let least_staked_netuid: u16 = Self::least_staked_netuid();
 
             // deregister the lowest priority node
-            Self::remove_module(
-                least_staked_netuid,
-                Self::get_lowest_uid(least_staked_netuid),
-            );
+            Self::remove_module(least_staked_netuid, Self::get_lowest_uid(least_staked_netuid));
 
         // if we reach the max allowed modules for this network,
         // then we replace the lowest priority node

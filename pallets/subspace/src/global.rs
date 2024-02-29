@@ -32,32 +32,20 @@ impl<T: Config> Pallet<T> {
         // check if the name already exists
         ensure!(params.max_name_length > 0, Error::<T>::InvalidMaxNameLength);
 
-        ensure!(
-            params.max_allowed_subnets > 0,
-            Error::<T>::InvalidMaxAllowedSubnets
-        );
+        ensure!(params.max_allowed_subnets > 0, Error::<T>::InvalidMaxAllowedSubnets);
 
-        ensure!(
-            params.max_allowed_modules > 0,
-            Error::<T>::InvalidMaxAllowedModules
-        );
+        ensure!(params.max_allowed_modules > 0, Error::<T>::InvalidMaxAllowedModules);
 
         ensure!(
             params.max_registrations_per_block > 0,
             Error::<T>::InvalidMaxRegistrationsPerBlock
         );
 
-        ensure!(
-            params.vote_threshold < 100,
-            Error::<T>::InvalidVoteThreshold
-        );
+        ensure!(params.vote_threshold < 100, Error::<T>::InvalidVoteThreshold);
 
         ensure!(params.max_proposals > 0, Error::<T>::InvalidMaxProposals);
 
-        ensure!(
-            params.unit_emission <= og_params.unit_emission,
-            Error::<T>::InvalidUnitEmission
-        );
+        ensure!(params.unit_emission <= og_params.unit_emission, Error::<T>::InvalidUnitEmission);
 
         ensure!(params.tx_rate_limit > 0, Error::<T>::InvalidTxRateLimit);
 
@@ -92,6 +80,10 @@ impl<T: Config> Pallet<T> {
     }
 
     pub fn get_max_allowed_weights_global() -> u16 {
+        MaxAllowedWeightsGlobal::<T>::get()
+    }
+
+    pub fn set_max_allowed_weights_global() -> u16 {
         MaxAllowedWeightsGlobal::<T>::get()
     }
 
@@ -144,10 +136,7 @@ impl<T: Config> Pallet<T> {
 
     pub fn do_update_global(origin: T::RuntimeOrigin, params: GlobalParams) -> DispatchResult {
         ensure_root(origin)?;
-        ensure!(
-            Self::get_vote_mode_global() == AUTHORITY_MODE,
-            Error::<T>::InvalidVoteMode
-        );
+        ensure!(Self::get_vote_mode_global() == AUTHORITY_MODE, Error::<T>::InvalidVoteMode);
         Self::set_global_params(params);
         Ok(())
     }
@@ -185,6 +174,16 @@ impl<T: Config> Pallet<T> {
     }
 
     pub fn get_min_burn() -> u64 {
-        MinBurn::<T>::get()
+        MinBurn::<T>::get().into()
+    }
+
+    // ========================
+    // ==== Rate Limiting =====
+    // ========================
+    pub fn get_last_tx_block(key: &T::AccountId) -> u64 {
+        LastTxBlock::<T>::get(key)
+    }
+    pub fn set_last_tx_block(key: &T::AccountId, last_tx_block: u64) {
+        LastTxBlock::<T>::insert(key, last_tx_block)
     }
 }

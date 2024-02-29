@@ -18,12 +18,8 @@ fn default_register_helper<T: Config>() -> (Vec<u8>, Vec<u8>, Vec<u8>, T::Accoun
     let address: Vec<u8> = b"address".to_vec();
     let module_key: T::AccountId = account("key", 0, SEED);
 
-    let netuid = register_helper::<T>(
-        network.clone(),
-        name.clone(),
-        address.clone(),
-        module_key.clone(),
-    );
+    let netuid =
+        register_helper::<T>(network.clone(), name.clone(), address.clone(), module_key.clone());
 
     (network, name, address, module_key, netuid)
 }
@@ -124,10 +120,7 @@ mod benchmarks {
 
         let netuid = <Pallet<T>>::get_netuid_for_name(network).unwrap_or(u16::MAX);
 
-        assert!(
-            <Pallet<T>>::is_registered(netuid, &module_key),
-            "Register failed"
-        );
+        assert!(<Pallet<T>>::is_registered(netuid, &module_key), "Register failed");
 
         Ok(())
     }
@@ -167,12 +160,7 @@ mod benchmarks {
         let (network, name, address, module_key, netuid) = default_register_helper::<T>();
 
         #[extrinsic_call]
-        add_stake(
-            RawOrigin::Signed(module_key.clone()),
-            netuid,
-            module_key.clone(),
-            MIN_STAKE,
-        );
+        add_stake(RawOrigin::Signed(module_key.clone()), netuid, module_key.clone(), MIN_STAKE);
 
         Ok(())
     }
@@ -266,11 +254,7 @@ mod benchmarks {
         }
 
         #[extrinsic_call]
-        transfer_multiple(
-            RawOrigin::Signed(module_key.clone()),
-            new_module_keys,
-            amounts,
-        );
+        transfer_multiple(RawOrigin::Signed(module_key.clone()), new_module_keys, amounts);
 
         Ok(())
     }
@@ -291,12 +275,7 @@ mod benchmarks {
         );
 
         #[extrinsic_call]
-        remove_stake(
-            RawOrigin::Signed(module_key.clone()),
-            netuid,
-            module_key.clone(),
-            MIN_STAKE,
-        );
+        remove_stake(RawOrigin::Signed(module_key.clone()), netuid, module_key.clone(), MIN_STAKE);
 
         Ok(())
     }
@@ -308,12 +287,7 @@ mod benchmarks {
         let (netuid, module_keys, amounts) = add_stake_multiple_helper::<T>(caller.clone());
 
         #[extrinsic_call]
-        remove_stake_multiple(
-            RawOrigin::Signed(caller.clone()),
-            netuid,
-            module_keys,
-            amounts,
-        );
+        remove_stake_multiple(RawOrigin::Signed(caller.clone()), netuid, module_keys, amounts);
 
         Ok(())
     }

@@ -74,17 +74,8 @@ pub fn generate_config(network: String) -> Result<ChainSpec, String> {
     let block: u32 = state.block;
     // (name, tempo, immunity_period, min_allowed_weights, max_allowed_weights, max_allowed_uids,
     // founder)
-    let mut subnets: Vec<(
-        Vec<u8>,
-        u16,
-        u16,
-        u16,
-        u16,
-        u16,
-        u16,
-        u64,
-        sp_runtime::AccountId32,
-    )> = Vec::new();
+    let mut subnets: Vec<(Vec<u8>, u16, u16, u16, u16, u16, u16, u64, sp_runtime::AccountId32)> =
+        Vec::new();
     let mut modules: Vec<Vec<(sp_runtime::AccountId32, Vec<u8>, Vec<u8>, Vec<(u16, u16)>)>> =
         Vec::new();
     let mut stake_to: Vec<Vec<(sp_runtime::AccountId32, Vec<(sp_runtime::AccountId32, u64)>)>> =

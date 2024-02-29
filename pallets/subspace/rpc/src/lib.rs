@@ -43,10 +43,7 @@ pub struct SubspacePallet<C, Block> {
 
 impl<C, Block> SubspacePallet<C, Block> {
     pub fn new(client: Arc<C>) -> Self {
-        Self {
-            client,
-            _marker: Default::default(),
-        }
+        Self { client, _marker: Default::default() }
     }
 }
 
@@ -61,10 +58,7 @@ where
         let at = at.unwrap_or_else(|| self.client.info().best_hash);
 
         let value = api.get_burn_rate(at).map_err(runtime_error_into_rpc_err);
-        Ok(Custom {
-            code: 200,
-            burn_rate: value.unwrap(),
-        })
+        Ok(Custom { code: 200, burn_rate: value.unwrap() })
     }
 
     fn get_module_info(

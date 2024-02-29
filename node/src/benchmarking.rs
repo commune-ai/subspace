@@ -64,11 +64,7 @@ pub struct TransferKeepAliveBuilder {
 impl TransferKeepAliveBuilder {
     // Creates a new [`Self`] from the given client.
     pub fn new(client: Arc<FullClient>, dest: AccountId, value: Balance) -> Self {
-        Self {
-            client,
-            dest,
-            value,
-        }
+        Self { client, dest, value }
     }
 }
 
@@ -86,11 +82,8 @@ impl frame_benchmarking_cli::ExtrinsicBuilder for TransferKeepAliveBuilder {
         let extrinsic: OpaqueExtrinsic = create_benchmark_extrinsic(
             self.client.as_ref(),
             acc,
-            BalancesCall::transfer_keep_alive {
-                dest: self.dest.clone().into(),
-                value: self.value,
-            }
-            .into(),
+            BalancesCall::transfer_keep_alive { dest: self.dest.clone().into(), value: self.value }
+                .into(),
             nonce,
         )
         .into();
