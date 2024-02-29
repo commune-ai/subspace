@@ -49,6 +49,13 @@ mod weights;
 
 #[frame_support::pallet]
 pub mod pallet {
+    #![allow(
+        deprecated,
+        clippy::let_unit_value,
+        clippy::too_many_arguments,
+        clippy::type_complexity
+    )]
+
     use super::*;
     use frame_support::{pallet_prelude::*, traits::Currency};
     use frame_system::pallet_prelude::*;
@@ -1298,16 +1305,16 @@ pub mod pallet {
     impl<T: Config> Pallet<T> {
         // --- Returns the transaction priority for setting weights.
         pub fn get_priority_set_weights(key: &T::AccountId, netuid: u16) -> u64 {
-            if Uids::<T>::contains_key(netuid, &key) {
+            if Uids::<T>::contains_key(netuid, key) {
                 let uid: u16 = Self::get_uid_for_key(netuid, &key.clone());
                 let current_block_number: u64 = Self::get_current_block_as_u64();
-                return current_block_number - Self::get_last_update_for_uid(netuid, uid as u16);
+                return current_block_number - Self::get_last_update_for_uid(netuid, uid);
             }
             0
         }
         // --- Returns the transaction priority for setting weights.
         pub fn get_priority_stake(key: &T::AccountId, netuid: u16) -> u64 {
-            if Uids::<T>::contains_key(netuid, &key) {
+            if Uids::<T>::contains_key(netuid, key) {
                 return Self::get_stake(netuid, key);
             }
             0
@@ -1322,7 +1329,7 @@ pub mod pallet {
     ************************************************************/
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Default)]
 pub enum CallType {
     SetWeights,
     AddStake,
@@ -1336,16 +1343,22 @@ pub enum CallType {
     Register,
     AddNetwork,
     Serve,
+    #[default]
     Other,
-}
-impl Default for CallType {
-    fn default() -> Self {
-        CallType::Other
-    }
 }
 
 #[derive(Encode, Decode, Clone, Eq, PartialEq, TypeInfo)]
 pub struct SubspaceSignedExtension<T: Config + Send + Sync + TypeInfo>(pub PhantomData<T>);
+
+impl<T: Config + Send + Sync + TypeInfo> Default for SubspaceSignedExtension<T>
+where
+    T::RuntimeCall: Dispatchable<Info = DispatchInfo, PostInfo = PostDispatchInfo>,
+    <T as frame_system::Config>::RuntimeCall: IsSubType<Call<T>>,
+{
+    fn default() -> Self {
+        Self::new()
+    }
+}
 
 impl<T: Config + Send + Sync + TypeInfo> SubspaceSignedExtension<T>
 where

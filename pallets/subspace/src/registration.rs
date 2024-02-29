@@ -127,7 +127,7 @@ impl<T: Config> Pallet<T> {
         if (uid as usize) < vec.len() {
             vec[uid as usize]
         } else {
-            0 as u64
+            0_u64
         }
     }
     pub fn get_lowest_uid(netuid: u16) -> u16 {

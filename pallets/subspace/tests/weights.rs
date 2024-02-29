@@ -1,11 +1,11 @@
-mod test_mock;
+mod mock;
 use frame_support::assert_ok;
 
 use pallet_subspace::Error;
 use sp_core::U256;
 use sp_runtime::DispatchError;
 
-use test_mock::*;
+use mock::*;
 
 /***************************
   pub fn set_weights() tests

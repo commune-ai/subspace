@@ -1,9 +1,9 @@
-mod test_mock;
+mod mock;
 
+use mock::*;
 use sp_core::U256;
-use test_mock::*;
-
 use substrate_fixed::types::I64F64;
+
 // /***********************************************************
 // 	staking::add_stake() tests
 // ************************************************************/
@@ -36,15 +36,12 @@ fn test_stake() {
     new_test_ext().execute_with(|| {
         let max_uids: u16 = 10;
         let token_amount: u64 = 1_000_000_000;
-        let netuids: Vec<u16> = [0, 1, 2, 3].to_vec();
-        let amount_staked_vector: Vec<u64> = netuids.iter().map(|_i| 10 * token_amount).collect();
+        let netuids: [u16; 4] = core::array::from_fn(|i| i as u16);
+        let amount_staked_vector: Vec<u64> = netuids.iter().map(|_| 10 * token_amount).collect();
         let mut total_stake: u64 = 0;
-        let mut netuid: u16 = 0;
         let mut subnet_stake: u64 = 0;
-        let mut uid: u16 = 0;
 
-        for i in netuids.iter() {
-            netuid = *i;
+        for netuid in netuids {
             println!("NETUID: {}", netuid);
             let amount_staked = amount_staked_vector[netuid as usize];
             let key_vector: Vec<U256> =
@@ -66,7 +63,6 @@ fn test_stake() {
                     amount_staked
                 );
 
-                uid = SubspaceModule::get_uid_for_key(netuid, key);
                 // SubspaceModule::add_stake(get_origin(*key), netuid, amount_staked);
                 assert_eq!(SubspaceModule::get_stake(netuid, key), amount_staked);
                 assert_eq!(SubspaceModule::get_balance(key), 1);
@@ -210,12 +206,10 @@ fn test_delegate_stake() {
         let netuids: Vec<u16> = [0, 1, 2, 3].to_vec();
         let amount_staked_vector: Vec<u64> = netuids.iter().map(|_i| 10 * token_amount).collect();
         let mut total_stake: u64 = 0;
-        let mut netuid: u16 = 0;
         let mut subnet_stake: u64 = 0;
-        let mut uid: u16 = 0;
 
         for i in netuids.iter() {
-            netuid = *i;
+            let netuid = *i;
             println!("NETUID: {}", netuid);
             let amount_staked = amount_staked_vector[netuid as usize];
             let key_vector: Vec<U256> =
@@ -242,7 +236,7 @@ fn test_delegate_stake() {
                 );
 
                 SubspaceModule::add_stake(get_origin(delegate_key), netuid, *key, amount_staked);
-                uid = SubspaceModule::get_uid_for_key(netuid, key);
+                let uid = SubspaceModule::get_uid_for_key(netuid, key);
                 // SubspaceModule::add_stake(get_origin(*key), netuid, amount_staked);
                 assert_eq!(
                     SubspaceModule::get_stake_for_uid(netuid, uid),
@@ -303,7 +297,7 @@ fn test_ownership_ratio() {
 
         let keys = SubspaceModule::get_keys(netuid);
 
-        for (_k_i, k) in keys.iter().enumerate() {
+        for k in &keys {
             let delegate_keys: Vec<U256> =
                 (0..num_modules).map(|i| U256::from(i + num_modules + 1)).collect();
             for d in delegate_keys.iter() {

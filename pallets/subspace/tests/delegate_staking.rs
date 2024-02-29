@@ -1,11 +1,10 @@
+mod mock;
+
 use frame_support::assert_ok;
-
-mod test_mock;
-
+use mock::*;
 use sp_core::U256;
-use test_mock::*;
-
 use substrate_fixed::types::I64F64;
+
 // /***********************************************************
 // 	staking::add_stake() tests
 // ************************************************************/

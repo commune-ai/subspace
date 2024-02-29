@@ -1,9 +1,9 @@
-mod test_mock;
+mod mock;
 use frame_support::assert_ok;
 
+use mock::*;
 use sp_core::U256;
 use sp_std::vec;
-use test_mock::*;
 
 /* TO DO SAM: write test for LatuUpdate after it is set */
 
@@ -110,23 +110,23 @@ fn test_max_proposals() {
             "vote mode not set"
         );
 
-        for i in 0..n {
+        for (i, &key) in keys.iter().enumerate() {
             if i % 2 == 0 {
                 assert_ok!(SubspaceModule::do_add_global_proposal(
-                    get_origin(keys[i]),
+                    get_origin(key),
                     params.clone()
                 ));
             } else {
                 assert_ok!(SubspaceModule::do_add_subnet_proposal(
-                    get_origin(keys[i]),
+                    get_origin(key),
                     netuid,
                     subnet_params.clone()
                 ));
             }
+
             let num_proposals = SubspaceModule::num_proposals();
             let proposals = SubspaceModule::get_global_proposals();
             let has_max_proposals = SubspaceModule::has_max_proposals();
-            // assert_eq!(max_proposals, (n - 1) as u64, "proposal not added");
             println!("max_proposals: {:?}", max_proposals);
             println!("has_max_proposals: {:?}", has_max_proposals);
             println!("num_proposals: {:?}", num_proposals);

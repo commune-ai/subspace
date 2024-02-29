@@ -12,6 +12,19 @@ repository = "https://github.com/commune-ai/subspace"
 [package.metadata.docs.rs]
 targets = ["x86_64-unknown-linux-gnu"]
 
+[features]
+default = ["std"]
+std = [
+	"codec/std",
+	"frame-benchmarking/std",
+	"frame-support/std",
+	"frame-system/std",
+	"scale-info/std",
+	"sp-std/std",
+]
+runtime-benchmarks = ["frame-benchmarking/runtime-benchmarks"]
+try-runtime = ["frame-support/try-runtime"]
+
 [dependencies]
 codec.workspace = true
 sp-arithmetic.workspace = true
@@ -40,16 +53,3 @@ sp-version.workspace = true
 sp-tracing.workspace = true
 parity-util-mem = { workspace = true, features = ['primitive-types'] }
 rand.workspace = true
-
-[features]
-default = ["std"]
-std = [
-	"codec/std",
-	"frame-benchmarking/std",
-	"frame-support/std",
-	"frame-system/std",
-	"scale-info/std",
-	"sp-std/std",
-]
-runtime-benchmarks = ["frame-benchmarking/runtime-benchmarks"]
-try-runtime = ["frame-support/try-runtime"]

@@ -1,9 +1,9 @@
-mod test_mock;
+mod mock;
 use frame_support::assert_ok;
 
+use mock::*;
 use sp_core::U256;
 use sp_std::vec;
-use test_mock::*;
 
 #[test]
 fn test_burn() {
@@ -19,7 +19,6 @@ fn test_burn() {
         let mut subnet_params = SubspaceModule::subnet_params(netuid);
         subnet_params.tempo = tempo;
         SubspaceModule::set_subnet_params(netuid, subnet_params);
-        subnet_params = SubspaceModule::subnet_params(netuid);
 
         for i in 0..n {
             assert_ok!(register_module(netuid, keys[i], stakes[i]));
@@ -31,7 +30,6 @@ fn test_burn() {
             let mut params = SubspaceModule::global_params();
             params.burn_rate = *burn_rate;
             SubspaceModule::set_global_params(params);
-            params = SubspaceModule::global_params();
 
             let voter_key = keys[1];
 

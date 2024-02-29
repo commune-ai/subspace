@@ -1,3 +1,5 @@
+#![allow(warnings)]
+
 use sp_std::{vec, vec::Vec};
 use substrate_fixed::{
     transcendental::exp,

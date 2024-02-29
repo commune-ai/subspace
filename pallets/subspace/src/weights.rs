@@ -39,7 +39,7 @@ impl<T: Config> Pallet<T> {
 
         // --- 3. Check that the length of uid list and value list are equal for this network.
         ensure!(
-            Self::uids_match_values(&uids, &values),
+            Self::uids_match_len(&uids, &values),
             Error::<T>::WeightVecNotEqualSize
         );
 
@@ -67,13 +67,10 @@ impl<T: Config> Pallet<T> {
             );
         }
         ensure!(
-            uids.len() >= min_allowed_length as usize,
+            uids.len() >= min_allowed_length,
             Error::<T>::NotSettingEnoughWeights
         );
-        ensure!(
-            uids.len() <= max_allowed_length as usize,
-            Error::<T>::TooManyUids
-        );
+        ensure!(uids.len() <= max_allowed_length, Error::<T>::TooManyUids);
 
         // --- 13. Normalize the weights.
         let normalized_values = Self::normalize_weights(values);
@@ -110,39 +107,19 @@ impl<T: Config> Pallet<T> {
     }
 
     // Returns true if the passed uids have the same length of the passed values.
-    fn uids_match_values(uids: &Vec<u16>, values: &Vec<u16>) -> bool {
+    fn uids_match_len(uids: &[u16], values: &[u16]) -> bool {
         uids.len() == values.len()
     }
 
     // Returns true if the items contain duplicates.
-    fn has_duplicate_uids(items: &Vec<u16>) -> bool {
-        let mut parsed: Vec<u16> = Vec::new();
+    fn has_duplicate_uids(items: &[u16]) -> bool {
+        let mut parsed = Vec::with_capacity(items.len());
         for item in items {
-            if parsed.contains(&item) {
+            if parsed.contains(item) {
                 return true;
             }
-            parsed.push(item.clone());
+            parsed.push(*item);
         }
-        false
-    }
-
-    // Returns True if the uids and weights are have a valid length for uid on network.
-    pub fn check_length(netuid: u16, uid: u16, uids: &Vec<u16>, weights: &Vec<u16>) -> bool {
-        let min_allowed_length: usize = Self::get_min_allowed_weights(netuid) as usize;
-        let n: usize = Self::get_subnet_n(netuid) as usize;
-        // Check self weight. Allowed to set single value for self weight.
-        if Self::is_self_weight(uid, uids, weights) {
-            return true;
-        }
-        // Check if number of weights exceeds min.
-        if weights.len() >= min_allowed_length {
-            return true;
-        }
-
-        if weights.len() > n {
-            return true;
-        }
-        // To few weights.
         false
     }
 
@@ -159,7 +136,7 @@ impl<T: Config> Pallet<T> {
     }
 
     // Returns true if the uids and weights correspond to a self weight on the uid.
-    pub fn is_self_weight(uid: u16, uids: &Vec<u16>, weights: &Vec<u16>) -> bool {
+    pub fn is_self_weight(uid: u16, uids: &[u16], weights: &[u16]) -> bool {
         if weights.len() != 1 {
             return false;
         }
@@ -169,13 +146,14 @@ impl<T: Config> Pallet<T> {
         true
     }
 
-    pub fn check_len_uids_within_allowed(netuid: u16, uids: &Vec<u16>) -> bool {
+    #[cfg(debug_assertions)]
+    pub fn check_len_uids_within_allowed(netuid: u16, uids: &[u16]) -> bool {
         let min_allowed_length: usize = Self::get_min_allowed_weights(netuid) as usize;
         let max_allowed_length: usize = Self::get_max_allowed_weights(netuid) as usize;
-        if uids.len() > max_allowed_length as usize {
+        if uids.len() > max_allowed_length {
             return false;
         }
-        if uids.len() < min_allowed_length as usize {
+        if uids.len() < min_allowed_length {
             return false;
         }
         true
