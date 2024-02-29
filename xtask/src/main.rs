@@ -64,6 +64,9 @@ fn localnet_run(mut r: flags::Run) {
     let chain_path = r
         .chain_spec
         .unwrap_or_else(|| std::env::current_dir().unwrap().join("spec.json"));
+    if !chain_path.exists() {
+        panic!("Missing spec.json file. Define it with --chain-spec path/to/spec.json");
+    }
 
     ops::key_insert_cmd(&path, &chain_path, &account.suri, "aura");
     ops::key_insert_cmd(&path, &chain_path, &account.suri, "gran");
@@ -263,11 +266,12 @@ mod ops {
             "--rpc-cors", "all",
             "--port", node.tcp_port.to_string(),
             "--rpc-port", node.rpc_port.to_string(),
-            "--force-authoring",
-            "--bootnodes"
+            "--force-authoring"
         );
 
-        cmd.args(bootnodes);
+        if !bootnodes.is_empty() {
+            cmd.arg("--bootnodes").args(bootnodes);
+        }
 
         if node.validator {
             cmd.arg("--validator");
