@@ -22,12 +22,6 @@ jobs:
       # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
       - uses: actions/checkout@v4
       
-      - name: Install Protoc
-        uses: arduino/setup-protoc@v1
-        with:
-          version: 3.20.1
-          repo-token: ${{ secrets.GITHUB_TOKEN }}
-
       - name: Setup Rust cache
         uses: Swatinem/rust-cache@v2
 
@@ -41,6 +35,12 @@ jobs:
         with:
           command: fmt
           args: -- --check
+
+      - name: Install Protoc
+        uses: arduino/setup-protoc@v1
+        with:
+          version: 3.20.1
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Check Clippy errors
         uses: actions-rs/clippy-check@v1
