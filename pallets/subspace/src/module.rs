@@ -237,13 +237,7 @@ impl<T: Config> Pallet<T> {
 
         let weights: Vec<(u16, u16)> = Weights::<T>::get(netuid, uid)
             .iter()
-            .filter_map(|(i, w)| {
-                if *w > 0 {
-                    Some(((*i), (*w)))
-                } else {
-                    None
-                }
-            })
+            .filter_map(|(i, w)| if *w > 0 { Some((*i, *w)) } else { None })
             .collect();
         let stake_from: Vec<(T::AccountId, u64)> = StakeFrom::<T>::get(netuid, key);
         let registration_block = Self::get_registration_block_for_uid(netuid, uid);
