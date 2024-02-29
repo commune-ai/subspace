@@ -165,26 +165,34 @@ mod ops {
         process::{Command, Stdio},
     };
 
-    pub fn base_node_run_cmd() -> Command {
-        let mut cmd = Command::new("cargo");
-        cmd.args(["run", "--release", "--package", "node-subspace", "--"]);
-        cmd
-    }
+    macro_rules! node_subspace {
+		($($arg:expr),*) => {{
+        	let mut cmd = Command::new("cargo");
+        	cmd.args(["run", "--release", "--package", "node-subspace", "--"]);
+        	$(cmd.arg($arg);)*
+        	cmd
+		}};
+	}
 
     pub fn build_chain_spec(chain_spec: &str) -> Command {
-        let mut cmd = base_node_run_cmd();
-        cmd.args(["build-spec", "--raw"])
-            .args(["--chain", chain_spec])
-            .arg("--disable-default-bootnode");
-        cmd
+        node_subspace!(
+            "build-spec",
+            "--raw",
+            "--chain",
+            chain_spec,
+            "--disable-default-bootnode"
+        )
     }
 
     pub fn key_generate() -> Command {
-        let mut cmd = base_node_run_cmd();
-        cmd.args(["key", "generate"])
-            .args(["--scheme", "sr25519"])
-            .args(["--output-type", "json"]);
-        cmd
+        node_subspace!(
+            "key",
+            "generate",
+            "--scheme",
+            "sr25519",
+            "--output-type",
+            "json"
+        )
     }
 
     pub fn key_insert_cmd(
@@ -193,36 +201,41 @@ mod ops {
         suri: &str,
         key_type: &str,
     ) {
-        let mut cmd = base_node_run_cmd();
         let scheme = match key_type {
             "aura" => "sr25519",
             "gran" => "ed25519",
             _ => panic!(),
         };
-        cmd.args(["key", "insert"])
-            .args([&"--base-path" as &(dyn AsRef<_>), base_path])
-            .args([&"--chain" as &(dyn AsRef<_>), chain_spec])
-            .args(["--scheme", scheme])
-            .args(["--suri", &suri])
-            .args(["--key-type", key_type])
-            .spawn()
-            .unwrap()
-            .wait()
-            .expect("failed to run key insert");
+
+        #[rustfmt::skip]
+        node_subspace!(
+            "key", "insert",
+            "--base-path", base_path,
+            "--chain", chain_spec,
+            "--scheme", scheme,
+            "--suri", suri,
+            "--key-type", key_type
+        )
+        .spawn()
+        .unwrap()
+        .wait()
+        .expect("failed to run key insert");
     }
 
     pub fn key_inspect_cmd(suri: &str) -> Command {
-        let mut cmd = base_node_run_cmd();
-        cmd.args(["key", "inspect"])
-            .args(["--scheme", "ed25519"])
-            .args(["--output-type", "json"])
-            .arg(suri);
-        cmd
+        node_subspace!(
+            "key",
+            "inspect",
+            "--scheme",
+            "ed25519",
+            "--output-type",
+            "json",
+            suri
+        )
     }
 
     pub fn key_inspect_node_cmd(key: &str) -> String {
-        let mut child = base_node_run_cmd()
-            .args(["key", "inspect-node-key"])
+        let mut child = node_subspace!("key", "inspect-node-key")
             .stdin(Stdio::piped())
             .spawn()
             .expect("failed to inspect node key");
@@ -242,16 +255,19 @@ mod ops {
         node: &Node<'_>,
         bootnodes: &[String],
     ) -> Command {
-        let mut cmd = base_node_run_cmd();
+        #[rustfmt::skip]
+        let mut cmd = node_subspace!(
+            "--base-path", base_path,
+            "--chain", chain_spec,
+            "--unsafe-rpc-external",
+            "--rpc-cors", "all",
+            "--port", node.tcp_port.to_string(),
+            "--rpc-port", node.rpc_port.to_string(),
+            "--force-authoring",
+			"--bootnodes"
+        );
 
-        cmd.args([&"--base-path" as &(dyn AsRef<_>), base_path])
-            .args([&"--chain" as &(dyn AsRef<_>), chain_spec])
-            .args(["--unsafe-rpc-external", "--rpc-cors", "all"])
-            .args(["--port", &node.tcp_port.to_string()])
-            .args(["--rpc-port", &node.rpc_port.to_string()])
-            .arg("--bootnodes")
-            .args(bootnodes)
-            .args(["--force-authoring"]);
+        cmd.args(bootnodes);
 
         if node.validator {
             cmd.arg("--validator");
