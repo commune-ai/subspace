@@ -20,13 +20,13 @@ fn localnet_run(mut r: flags::Run) {
                 r.bootnodes.push(BOB_NODE.bootnode_uri(Ipv4Addr::LOCALHOST.into()));
             }
             (ALICE_NODE.clone(), ALICE_ACCOUNT.clone())
-        },
+        }
         (false, true) => {
             if r.bootnodes.is_empty() {
                 r.bootnodes.push(ALICE_NODE.bootnode_uri(Ipv4Addr::LOCALHOST.into()));
             }
             (BOB_NODE.clone(), BOB_ACCOUNT.clone())
-        },
+        }
         (false, false) => (Node::default(), Account::default()),
         _ => panic!("select only one of: --alice, --bob"),
     };
@@ -58,7 +58,7 @@ fn localnet_run(mut r: flags::Run) {
     match (path.exists(), path.is_dir()) {
         (true, false) => panic!("provided path must be a directory"),
         (false, false) => std::fs::create_dir(&path).unwrap(),
-        _ => {},
+        _ => {}
     }
 
     let chain_path = r
@@ -118,8 +118,12 @@ struct Account<'a> {
 
 static ALICE_NODE: Node<'static> = Node {
     name: Some(Cow::Borrowed("Alice")),
-    id: Some(Cow::Borrowed("12D3KooWBorpca6RKiebVjeFJA5o9iVWnZpg98yQbYqRC6f8CnLw")),
-    key: Some(Cow::Borrowed("2756181a3b9bca683a35b51a0a5d75ee536738680bcb9066c68be1db305a1ac5")),
+    id: Some(Cow::Borrowed(
+        "12D3KooWBorpca6RKiebVjeFJA5o9iVWnZpg98yQbYqRC6f8CnLw",
+    )),
+    key: Some(Cow::Borrowed(
+        "2756181a3b9bca683a35b51a0a5d75ee536738680bcb9066c68be1db305a1ac5",
+    )),
     tcp_port: 30341,
     rpc_port: 9951,
     validator: true,
@@ -134,8 +138,12 @@ static ALICE_ACCOUNT: Account<'static> = Account {
 
 static BOB_NODE: Node<'static> = Node {
     name: Some(Cow::Borrowed("Bob")),
-    id: Some(Cow::Borrowed("12D3KooWQh3CeSp2rpUVvPb6jqvmHVCUieoZmKbkUhZ8rPR77vmA")),
-    key: Some(Cow::Borrowed("e83fa0787cb280d95c666ead866a2a4bc1ee1e36faa1ed06623595eb3f474681")),
+    id: Some(Cow::Borrowed(
+        "12D3KooWQh3CeSp2rpUVvPb6jqvmHVCUieoZmKbkUhZ8rPR77vmA",
+    )),
+    key: Some(Cow::Borrowed(
+        "e83fa0787cb280d95c666ead866a2a4bc1ee1e36faa1ed06623595eb3f474681",
+    )),
     tcp_port: 30342,
     rpc_port: 9952,
     validator: true,

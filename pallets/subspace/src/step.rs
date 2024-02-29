@@ -12,9 +12,13 @@ impl<T: Config> Pallet<T> {
         for (netuid, tempo) in <Tempo<T> as IterableStorageMap<u16, u16>>::iter() {
             let new_queued_emission: u64 = Self::calculate_network_emission(netuid);
             PendingEmission::<T>::mutate(netuid, |queued| *queued += new_queued_emission);
-            log::debug!("netuid_i: {:?} queued_emission: +{:?} ", netuid, new_queued_emission);
+            log::debug!(
+                "netuid_i: {:?} queued_emission: +{:?} ",
+                netuid,
+                new_queued_emission
+            );
             if Self::blocks_until_next_epoch(netuid, tempo, block_number) > 0 {
-                continue
+                continue;
             }
             let emission_to_drain: u64 = PendingEmission::<T>::get(netuid).clone();
             Self::epoch(netuid, emission_to_drain);
@@ -34,7 +38,7 @@ impl<T: Config> Pallet<T> {
 
         if n == 0 {
             //
-            return
+            return;
         }
 
         // FOUNDER DIVIDENDS
@@ -110,8 +114,8 @@ impl<T: Config> Pallet<T> {
                     if (pos as u16) <= subnet_params.max_allowed_weights && *uid_j < n {
                         // okay , we passed the positioonal check, now check the weight
                         let weight_f64 = I64F64::from_num(*weight_ij) / I64F64::from_num(u16::MAX);
-                        let weight_stake = (stake_f64[uid_i as usize] * weight_f64) *
-                            I64F64::from_num(total_stake_u64);
+                        let weight_stake = (stake_f64[uid_i as usize] * weight_f64)
+                            * I64F64::from_num(total_stake_u64);
                         if weight_stake > min_weight_stake_f64 {
                             weights[uid_i as usize].push((*uid_j, *weight_ij));
                         } else {
@@ -338,7 +342,7 @@ impl<T: Config> Pallet<T> {
                 let total_owner_dividends_emission: u64 = owner_dividends_emission;
                 for (delegate_key, delegate_ratio) in ownership_vector.iter() {
                     if delegate_key == module_key {
-                        continue
+                        continue;
                     }
 
                     let dividends_from_delegate: u64 =
@@ -395,7 +399,7 @@ impl<T: Config> Pallet<T> {
 
     pub fn blocks_until_next_epoch(netuid: u16, tempo: u16, block_number: u64) -> u64 {
         if tempo == 0 {
-            return 0
+            return 0;
         }
         (block_number + netuid as u64) % (tempo as u64)
     }
@@ -456,8 +460,8 @@ impl<T: Config> Pallet<T> {
         let mut burn_amount_per_epoch: u64 = 0;
         // get the float and convert to u64token_emission
         if burn_rate > 0 {
-            let burn_rate_float: I64F64 = (I64F64::from_num(burn_rate) / I64F64::from_num(100)) *
-                (I64F64::from_num(token_emission) / I64F64::from_num(n));
+            let burn_rate_float: I64F64 = (I64F64::from_num(burn_rate) / I64F64::from_num(100))
+                * (I64F64::from_num(token_emission) / I64F64::from_num(n));
             burn_amount_per_epoch = burn_rate_float.to_num::<u64>();
         }
         burn_amount_per_epoch

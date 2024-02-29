@@ -139,7 +139,12 @@ fn test_many_registrations() {
         SubspaceModule::set_max_registrations_per_block(n);
         for i in 0..n {
             register_module(netuid, U256::from(i), stake);
-            assert_eq!(SubspaceModule::get_subnet_n(netuid), i + 1, "Failed at i={}", i);
+            assert_eq!(
+                SubspaceModule::get_subnet_n(netuid),
+                i + 1,
+                "Failed at i={}",
+                i
+            );
         }
     });
 }

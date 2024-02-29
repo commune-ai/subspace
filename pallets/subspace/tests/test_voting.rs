@@ -18,7 +18,11 @@ fn test_subnet_porposal() {
             assert_ok!(register_module(netuid, *key, stakes[i]));
         }
         let mut params = SubspaceModule::subnet_params(netuid);
-        assert_eq!(params.vote_mode, "authority".as_bytes().to_vec(), "vote mode not set");
+        assert_eq!(
+            params.vote_mode,
+            "authority".as_bytes().to_vec(),
+            "vote mode not set"
+        );
         params.vote_mode = "stake".as_bytes().to_vec();
         println!("params: {:?}", params);
         SubspaceModule::set_subnet_params(netuid, params.clone());
@@ -27,8 +31,16 @@ fn test_subnet_porposal() {
         let final_tempo = 1000;
         params.tempo = final_tempo;
 
-        assert_eq!(params.vote_mode, "stake".as_bytes().to_vec(), "vote mode not set");
-        assert_ok!(SubspaceModule::do_add_subnet_proposal(get_origin(keys[0]), netuid, params));
+        assert_eq!(
+            params.vote_mode,
+            "stake".as_bytes().to_vec(),
+            "vote mode not set"
+        );
+        assert_ok!(SubspaceModule::do_add_subnet_proposal(
+            get_origin(keys[0]),
+            netuid,
+            params
+        ));
         // we have not passed the threshold yet
         let proposals = SubspaceModule::get_subnet_proposals(netuid);
 
@@ -70,13 +82,21 @@ fn test_max_proposals() {
         }
 
         let mut params = SubspaceModule::global_params();
-        assert_eq!(params.vote_mode, "authority".as_bytes().to_vec(), "vote mode not set");
+        assert_eq!(
+            params.vote_mode,
+            "authority".as_bytes().to_vec(),
+            "vote mode not set"
+        );
         params.vote_mode = "stake".as_bytes().to_vec();
         params.max_proposals = (n / 2) as u64;
         println!("params: {:?}", params);
         SubspaceModule::set_global_params(params.clone());
 
-        assert_eq!(params.vote_mode, "stake".as_bytes().to_vec(), "vote mode not set");
+        assert_eq!(
+            params.vote_mode,
+            "stake".as_bytes().to_vec(),
+            "vote mode not set"
+        );
         let max_proposals = SubspaceModule::get_max_proposals();
         let _modes = ["authority".as_bytes().to_vec(), "stake".as_bytes().to_vec()];
 
@@ -84,7 +104,11 @@ fn test_max_proposals() {
         subnet_params.vote_mode = "stake".as_bytes().to_vec();
         SubspaceModule::set_subnet_params(netuid, subnet_params.clone());
         subnet_params = SubspaceModule::subnet_params(netuid);
-        assert_eq!(subnet_params.vote_mode, "stake".as_bytes().to_vec(), "vote mode not set");
+        assert_eq!(
+            subnet_params.vote_mode,
+            "stake".as_bytes().to_vec(),
+            "vote mode not set"
+        );
 
         for i in 0..n {
             if i % 2 == 0 {
@@ -122,11 +146,18 @@ fn test_max_proposals() {
                 assert!(!SubspaceModule::has_max_proposals(), "proposal not added");
             }
 
-            assert!(proposals.len() as u64 <= max_proposals, "proposal not added");
+            assert!(
+                proposals.len() as u64 <= max_proposals,
+                "proposal not added"
+            );
         }
 
         assert!(SubspaceModule::has_max_proposals(), "proposal not added");
-        assert_eq!(SubspaceModule::num_proposals(), max_proposals, "proposal not added");
+        assert_eq!(
+            SubspaceModule::num_proposals(),
+            max_proposals,
+            "proposal not added"
+        );
     });
 }
 
@@ -147,7 +178,10 @@ fn test_global_porposal() {
         let max_registrations_per_block = 1000;
 
         params.max_registrations_per_block = max_registrations_per_block;
-        assert_ok!(SubspaceModule::do_add_global_proposal(get_origin(keys[0]), params));
+        assert_ok!(SubspaceModule::do_add_global_proposal(
+            get_origin(keys[0]),
+            params
+        ));
 
         // we have not passed the threshold yet
         let proposals = SubspaceModule::get_global_proposals();
@@ -186,7 +220,11 @@ fn test_unvote() {
             assert_ok!(register_module(netuid, *key, stakes[i]));
         }
         let mut params = SubspaceModule::subnet_params(netuid);
-        assert_eq!(params.vote_mode, "authority".as_bytes().to_vec(), "vote mode not set");
+        assert_eq!(
+            params.vote_mode,
+            "authority".as_bytes().to_vec(),
+            "vote mode not set"
+        );
         params.vote_mode = "stake".as_bytes().to_vec();
         println!("params: {:?}", params);
         SubspaceModule::set_subnet_params(netuid, params.clone());
@@ -195,8 +233,16 @@ fn test_unvote() {
         let final_tempo = 1000;
         params.tempo = final_tempo;
 
-        assert_eq!(params.vote_mode, "stake".as_bytes().to_vec(), "vote mode not set");
-        assert_ok!(SubspaceModule::do_add_subnet_proposal(get_origin(keys[0]), netuid, params));
+        assert_eq!(
+            params.vote_mode,
+            "stake".as_bytes().to_vec(),
+            "vote mode not set"
+        );
+        assert_ok!(SubspaceModule::do_add_subnet_proposal(
+            get_origin(keys[0]),
+            netuid,
+            params
+        ));
         assert!(SubspaceModule::proposal_exists(0));
         assert!(SubspaceModule::is_proposal_owner(&keys[0], 0));
         assert_ok!(SubspaceModule::unvote_proposal(get_origin(keys[0])));

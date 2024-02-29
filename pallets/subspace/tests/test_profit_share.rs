@@ -83,8 +83,8 @@ fn test_add_profit_share() {
         let sum_profit_share_balances: u64 = profit_share_balances.iter().sum();
         let delta = 1000;
         assert!(
-            sum_profit_share_balances > miner_emission - delta ||
-                sum_profit_share_balances < miner_emission + delta,
+            sum_profit_share_balances > miner_emission - delta
+                || sum_profit_share_balances < miner_emission + delta,
             "profit share balances do not add up to the emission"
         );
     })

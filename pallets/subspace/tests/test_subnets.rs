@@ -94,8 +94,14 @@ fn test_set_single_temple(tempo: u16) {
         assert_eq!(subnet_params.tempo, tempo);
         assert_eq!(subnet_params.min_stake, min_stake);
         assert_eq!(subnet_params.max_allowed_uids, params.max_allowed_uids);
-        assert_eq!(subnet_params.min_allowed_weights, params.min_allowed_weights);
-        assert_eq!(subnet_params.max_allowed_weights, params.max_allowed_weights);
+        assert_eq!(
+            subnet_params.min_allowed_weights,
+            params.min_allowed_weights
+        );
+        assert_eq!(
+            subnet_params.max_allowed_weights,
+            params.max_allowed_weights
+        );
         assert_eq!(subnet_params.immunity_period, params.immunity_period);
         assert_eq!(subnet_params.name, params.name);
 

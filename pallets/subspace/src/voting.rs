@@ -9,9 +9,15 @@ pub const AUTHORITY_MODE: &[u8] = b"authority";
 impl<T: Config> Pallet<T> {
     pub fn do_unregister_voter(origin: T::RuntimeOrigin) -> DispatchResult {
         let key = ensure_signed(origin)?;
-        ensure!(Self::is_voter_registered(&key), Error::<T>::VoterIsNotRegistered);
+        ensure!(
+            Self::is_voter_registered(&key),
+            Error::<T>::VoterIsNotRegistered
+        );
         Self::unregister_voter(&key);
-        ensure!(!Self::is_voter_registered(&key), Error::<T>::VoterIsRegistered);
+        ensure!(
+            !Self::is_voter_registered(&key),
+            Error::<T>::VoterIsRegistered
+        );
         Ok(())
     }
 
@@ -102,7 +108,10 @@ impl<T: Config> Pallet<T> {
     pub fn do_vote_proposal(origin: T::RuntimeOrigin, proposal_id: u64) -> DispatchResult {
         let key = ensure_signed(origin)?;
 
-        ensure!(Self::proposal_exists(proposal_id), Error::<T>::ProposalDoesNotExist);
+        ensure!(
+            Self::proposal_exists(proposal_id),
+            Error::<T>::ProposalDoesNotExist
+        );
 
         // if you vote the proposal on a subnet, you are no longer a participant
 
@@ -163,7 +172,7 @@ impl<T: Config> Pallet<T> {
                 if proposal.accepted || proposal.votes == 0 {
                     least_votes = 0;
                     least_voted_proposal_id = proposal_id;
-                    break
+                    break;
                 }
 
                 if proposal.votes < least_votes {
@@ -172,7 +181,10 @@ impl<T: Config> Pallet<T> {
                 }
             }
 
-            ensure!(proposal.votes > least_votes, Error::<T>::TooFewVotesForNewProposal);
+            ensure!(
+                proposal.votes > least_votes,
+                Error::<T>::TooFewVotesForNewProposal
+            );
 
             // remove proposal participants
             let proposal = Proposals::<T>::get(least_voted_proposal_id);
@@ -192,8 +204,11 @@ impl<T: Config> Pallet<T> {
                 Self::check_subnet_params(proposal.subnet_params.clone())?;
                 //  check if vote mode is valid
                 let subnet_params: SubnetParams<T> = Self::subnet_params(proposal.netuid);
-                ensure!(subnet_params.vote_mode == STAKE_MODE, Error::<T>::InvalidVoteMode);
-            },
+                ensure!(
+                    subnet_params.vote_mode == STAKE_MODE,
+                    Error::<T>::InvalidVoteMode
+                );
+            }
             _ => ensure!(proposal.data.len() > 0, Error::<T>::InvalidProposalData),
         }
 

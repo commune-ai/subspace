@@ -69,14 +69,17 @@ fn test_ownership_ratio() {
                 stake_per_module
             ));
             let stake_from_vector = SubspaceModule::get_stake_from_vector(netuid, &voter_key);
-            assert_eq!(stake_from_vector.len(), pre_delegate_stake_from_vector.len() + i + 1);
+            assert_eq!(
+                stake_from_vector.len(),
+                pre_delegate_stake_from_vector.len() + i + 1
+            );
         }
         let ownership_ratios: Vec<(U256, I64F64)> =
             SubspaceModule::get_ownership_ratios(netuid, &voter_key);
         assert_eq!(ownership_ratios.len(), delegate_keys.len() + 1);
 
-        let founder_tokens_before = SubspaceModule::get_balance(&voter_key) +
-            SubspaceModule::get_stake_to_module(netuid, &voter_key, &voter_key);
+        let founder_tokens_before = SubspaceModule::get_balance(&voter_key)
+            + SubspaceModule::get_stake_to_module(netuid, &voter_key, &voter_key);
 
         let delegate_balances_before =
             delegate_keys.iter().map(SubspaceModule::get_balance).collect::<Vec<u64>>();
@@ -120,7 +123,10 @@ fn test_ownership_ratio() {
 
         println!("delegate_balances before: {:?}", delegate_balances_before);
         println!("delegate_stakes before: {:?}", delegate_stakes_before);
-        println!("delegate_total_tokens before: {:?}", delegate_total_tokens_before);
+        println!(
+            "delegate_total_tokens before: {:?}",
+            delegate_total_tokens_before
+        );
 
         let result = SubspaceModule::set_weights(
             get_origin(voter_key),
@@ -155,8 +161,8 @@ fn test_ownership_ratio() {
             .zip(delegate_stakes.clone())
             .map(|(a, x)| a + x)
             .sum::<u64>();
-        let founder_tokens = SubspaceModule::get_balance(&voter_key) +
-            SubspaceModule::get_stake_to_module(netuid, &voter_key, &voter_key);
+        let founder_tokens = SubspaceModule::get_balance(&voter_key)
+            + SubspaceModule::get_stake_to_module(netuid, &voter_key, &voter_key);
         let founder_new_tokens = founder_tokens - founder_tokens_before;
         let delegate_new_tokens: Vec<u64> = delegate_stakes
             .iter()
