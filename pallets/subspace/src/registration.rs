@@ -3,8 +3,6 @@ use super::*;
 use frame_support::pallet_prelude::DispatchResult;
 use frame_system::ensure_signed;
 
-use sp_core::H256;
-
 use sp_std::vec::Vec;
 
 // IterableStorageMap
@@ -38,13 +36,14 @@ impl<T: Config> Pallet<T> {
 		);
 
 		// --- 4. Resolve the network in case it doesn't exist
-		if !Self::subnet_name_exists(network.clone()) {
-			// If the subnet doesn't exist, registration will create it.
-			Self::add_subnet_from_registration(network.clone(), stake_amount, &key)?;
-		}
+		let netuid = if let Some(netuid) = Self::get_netuid_for_name(&network) {
+			netuid
+		} else {
+			// Create subnet if it does not exist.
+			Self::add_subnet_from_registration(network, stake_amount, &key)?
+		};
 
 		// --- 5. Ensure the caller has enough stake to register.
-		let netuid: u16 = Self::get_netuid_for_name(network.clone());
 		let min_stake: u64 = MinStake::<T>::get(netuid);
 		let min_burn: u64 = Self::get_min_burn();
 
@@ -66,7 +65,7 @@ impl<T: Config> Pallet<T> {
 		let uid: u16 = Self::append_module(netuid, &module_key, name.clone(), address.clone());
 
 		// --- 9. Add the stake to the module, now that it is registered on the network.
-		Self::do_add_stake(origin.clone(), netuid, module_key.clone(), stake_amount)?;
+		Self::do_add_stake(origin, netuid, module_key.clone(), stake_amount)?;
 
 		// constant -> min_burn logic
 		if min_burn > 0 {
@@ -100,21 +99,14 @@ impl<T: Config> Pallet<T> {
 		Ok(())
 	}
 
+	/// Whether the netuid has enough stake to cover the minimal stake and min burn
 	pub fn enough_stake_to_register(
 		_netuid: u16,
 		min_stake: u64,
 		min_burn: u64,
 		stake_amount: u64,
 	) -> bool {
-		// the amount has to cover, the minimal stake as well as burn if it's present
 		stake_amount >= (min_stake + min_burn)
-	}
-
-	pub fn vec_to_hash(vec_hash: Vec<u8>) -> H256 {
-		let de_ref_hash = &vec_hash; // b: &Vec<u8>
-		let de_de_ref_hash: &[u8] = &de_ref_hash; // c: &[u8]
-		let real_hash: H256 = H256::from_slice(de_de_ref_hash);
-		real_hash
 	}
 
 	// Determine which peer to prune from the network by finding the element with the lowest pruning
@@ -165,10 +157,7 @@ impl<T: Config> Pallet<T> {
 		name: Vec<u8>,
 		stake: u64,
 		founder_key: &T::AccountId,
-	) -> DispatchResult {
-		// use default parameters
-		//
-
+	) -> Result<u16, sp_runtime::DispatchError> {
 		let num_subnets: u16 = Self::num_subnets();
 		let max_subnets: u16 = Self::get_global_max_allowed_subnets();
 		// if we have not reached the max number of subnets, then we can start a new one
@@ -187,11 +176,10 @@ impl<T: Config> Pallet<T> {
 		// if we have reached the max number of subnets, then we can start a new one if the stake is
 		// greater than the least staked network
 		let mut params: SubnetParams<T> = Self::default_subnet_params();
-		params.name = name.clone();
+		params.name = name;
 		params.founder = founder_key.clone();
-		let _netuid = Self::add_subnet(params);
 
-		Ok(())
+		Ok(Self::add_subnet(params))
 	}
 
 	pub fn check_module_limits(netuid: u16) {

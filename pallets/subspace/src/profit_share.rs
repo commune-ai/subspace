@@ -32,9 +32,9 @@ impl<T: Config> Pallet<T> {
 		// make sure the normalized shares add up to the unit
 		// convert the normalized shares to u16
 		let mut normalize_shares: Vec<u16> =
-			normalized_shares_float.iter().map(|x| x.to_num::<u16>()).collect::<Vec<u16>>();
+			normalized_shares_float.iter().map(|x| x.to_num::<u16>()).collect();
 
-		let mut total_normalized_shares: u16 = normalize_shares.iter().sum::<u16>();
+		let mut total_normalized_shares: u16 = normalize_shares.iter().sum();
 
 		// ensure the profit shares add up to the unit
 		if total_normalized_shares < u16::MAX {
@@ -52,9 +52,6 @@ impl<T: Config> Pallet<T> {
 			total_normalized_shares,
 			u16::MAX
 		);
-
-		// check tssat the normalized shares add up to the unit
-		let _total_normalized_shares: u16 = normalize_shares.iter().sum::<u16>();
 
 		// now send the normalized shares to the profit share pallet
 		let profit_share_tuples: Vec<(T::AccountId, u16)> =
@@ -79,7 +76,7 @@ impl<T: Config> Pallet<T> {
 		for (share_key, share_ratio) in profit_shares.iter() {
 			let share_emission_float: I96F32 =
 				I96F32::from(emission) * (I96F32::from(*share_ratio) / I96F32::from(u16::MAX));
-			let share_emission: u64 = share_emission_float.to_num::<u64>();
+			let share_emission: u64 = share_emission_float.to_num();
 			emission_shares.push((share_key.clone(), share_emission));
 		}
 

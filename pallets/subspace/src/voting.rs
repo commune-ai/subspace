@@ -1,6 +1,10 @@
 use super::*;
-use crate::utils::is_vec_str;
 use frame_support::pallet_prelude::DispatchResult;
+
+pub const STAKE_MODE: &[u8] = b"stake";
+pub const GLOBAL_MODE: &[u8] = b"global";
+pub const SUBNET_MODE: &[u8] = b"subnet";
+pub const AUTHORITY_MODE: &[u8] = b"authority";
 
 impl<T: Config> Pallet<T> {
 	pub fn do_unregister_voter(origin: T::RuntimeOrigin) -> DispatchResult {
@@ -182,19 +186,17 @@ impl<T: Config> Pallet<T> {
 		let mode = proposal.mode.clone();
 
 		// check if proposal is valid
-		if is_vec_str(mode.clone(), "global") {
-			Self::check_global_params(proposal.global_params)?;
-		} else if is_vec_str(mode.clone(), "subnet") {
-			Self::check_subnet_params(proposal.subnet_params.clone())?;
-			//  check if vote mode is valid
-			let subnet_params: SubnetParams<T> = Self::subnet_params(proposal.netuid);
-			ensure!(
-				is_vec_str(subnet_params.vote_mode.clone(), "stake"),
-				Error::<T>::InvalidVoteMode
-			);
-		} else {
-			ensure!(proposal.data.len() > 0, Error::<T>::InvalidProposalData);
+		match mode.as_slice() {
+			GLOBAL_MODE => Self::check_global_params(proposal.global_params)?,
+			SUBNET_MODE => {
+				Self::check_subnet_params(proposal.subnet_params.clone())?;
+				//  check if vote mode is valid
+				let subnet_params: SubnetParams<T> = Self::subnet_params(proposal.netuid);
+				ensure!(subnet_params.vote_mode == STAKE_MODE, Error::<T>::InvalidVoteMode);
+			},
+			_ => ensure!(proposal.data.len() > 0, Error::<T>::InvalidProposalData),
 		}
+
 		// check if proposal is valid
 		ensure!(proposal.data.len() < 256, Error::<T>::ProposalDataTooLarge);
 		// avoid an exploit with large data, cap it at 256 bytes
@@ -258,7 +260,7 @@ impl<T: Config> Pallet<T> {
 	}
 
 	pub fn get_voting_power(key: &T::AccountId, proposal: Proposal<T>) -> u64 {
-		if is_vec_str(proposal.mode.clone(), "subnet") {
+		if proposal.mode == SUBNET_MODE {
 			Self::get_total_stake_to(proposal.netuid, key)
 		} else {
 			// get all of the stake for the key
@@ -268,7 +270,7 @@ impl<T: Config> Pallet<T> {
 
 	pub fn get_proposal_vote_threshold(proposal_id: u64) -> u64 {
 		let proposal: Proposal<T> = Proposals::<T>::get(proposal_id);
-		if is_vec_str(proposal.mode.clone(), "subnet") {
+		if proposal.mode == SUBNET_MODE {
 			let total_stake = Self::get_total_subnet_stake(proposal.netuid);
 			(total_stake * proposal.subnet_params.vote_threshold as u64) / 100
 		} else {
@@ -291,10 +293,10 @@ impl<T: Config> Pallet<T> {
 				proposal.participants = Vec::new();
 			});
 
-			if is_vec_str(proposal.mode.clone(), "subnet") {
+			if proposal.mode == SUBNET_MODE {
 				Self::set_subnet_params(proposal.netuid, proposal.subnet_params);
 				Self::deposit_event(Event::SubnetProposalAccepted(proposal_id, proposal.netuid));
-			} else if is_vec_str(proposal.mode.clone(), "global") {
+			} else if proposal.mode == GLOBAL_MODE {
 				Self::set_global_params(proposal.global_params);
 				Self::deposit_event(Event::GlobalProposalAccepted(proposal_id));
 			} else {
@@ -306,7 +308,7 @@ impl<T: Config> Pallet<T> {
 	pub fn get_subnet_proposals(netuid: u16) -> Vec<Proposal<T>> {
 		let mut proposals: Vec<Proposal<T>> = Vec::new();
 		for proposal in Proposals::<T>::iter_values() {
-			if is_vec_str(proposal.mode.clone(), "subnet") && proposal.netuid == netuid {
+			if proposal.mode == SUBNET_MODE && proposal.netuid == netuid {
 				proposals.push(proposal);
 			}
 		}
@@ -316,7 +318,7 @@ impl<T: Config> Pallet<T> {
 	pub fn get_global_proposals() -> Vec<Proposal<T>> {
 		let mut proposals: Vec<Proposal<T>> = Vec::new();
 		for proposal in Proposals::<T>::iter_values() {
-			if is_vec_str(proposal.mode.clone(), "global") {
+			if proposal.mode == GLOBAL_MODE {
 				proposals.push(proposal);
 			}
 		}

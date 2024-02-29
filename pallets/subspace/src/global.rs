@@ -1,5 +1,6 @@
+use crate::voting::AUTHORITY_MODE;
+
 use super::*;
-use crate::utils::is_vec_str;
 use frame_support::pallet_prelude::DispatchResult;
 
 use system::ensure_root;
@@ -135,8 +136,8 @@ impl<T: Config> Pallet<T> {
 
 	pub fn do_update_global(origin: T::RuntimeOrigin, params: GlobalParams) -> DispatchResult {
 		ensure_root(origin)?;
-		ensure!(is_vec_str(Self::get_vote_mode_global(), "authority"), Error::<T>::InvalidVoteMode);
-		Self::set_global_params(params.clone());
+		ensure!(Self::get_vote_mode_global() == AUTHORITY_MODE, Error::<T>::InvalidVoteMode);
+		Self::set_global_params(params);
 		Ok(())
 	}
 
