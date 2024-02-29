@@ -6,16 +6,18 @@ xflags::xflags! {
 	cmd localnet {
 
 		cmd run {
-			optional --path path: PathBuf
-			optional --chain-name chain_name: String
-			optional --chain-path chain: PathBuf
-			optional --secrets-path secrets_path: PathBuf
-			optional --base-path base_path: PathBuf
-			optional --port tcp_port: u16
+			optional -p, --path path: PathBuf
+			optional -c, --chain-spec chain_spec: PathBuf
+			optional --node-name node_name: String
+			optional --node-key node_key: String
+			optional --node-validator node_validator: bool
+			optional --account-suri account_suri: String
+			optional --tcp-port tcp_port: u16
 			optional --rpc-port rpc_port: u16
 			repeated --bootnodes bootnodes: String
-			optional --validator
-			optional --purge
+
+			optional --alice
+			optional --bob
 		}
 	}
 }
@@ -36,15 +38,16 @@ pub enum LocalnetCmd {
 #[derive(Debug)]
 pub struct Run {
     pub path: Option<PathBuf>,
-    pub chain_name: Option<String>,
-    pub chain_path: Option<PathBuf>,
-    pub secrets_path: Option<PathBuf>,
-    pub base_path: Option<PathBuf>,
-    pub port: Option<u16>,
+    pub chain_spec: Option<PathBuf>,
+    pub node_name: Option<String>,
+    pub node_key: Option<String>,
+    pub node_validator: Option<bool>,
+    pub account_suri: Option<String>,
+    pub tcp_port: Option<u16>,
     pub rpc_port: Option<u16>,
     pub bootnodes: Vec<String>,
-    pub validator: bool,
-    pub purge: bool,
+    pub alice: bool,
+    pub bob: bool,
 }
 
 impl Localnet {
