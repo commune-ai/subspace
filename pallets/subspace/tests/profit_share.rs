@@ -1,9 +1,9 @@
-mod test_mock;
-use frame_support::assert_ok;
+mod mock;
 
+use frame_support::assert_ok;
+use mock::*;
 use sp_core::U256;
 use sp_std::vec;
-use test_mock::*;
 
 /* TO DO SAM: write test for LatuUpdate after it is set */
 #[test]

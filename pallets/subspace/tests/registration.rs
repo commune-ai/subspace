@@ -1,8 +1,7 @@
-use crate::test_mock::*;
+mod mock;
 
+use mock::*;
 use sp_core::U256;
-
-mod test_mock;
 
 /********************************************
     subscribing::subscribe() tests
@@ -172,6 +171,7 @@ fn test_registration_with_stake() {
     });
 }
 
+#[test]
 fn register_same_key_twice() {
     new_test_ext().execute_with(|| {
         let netuid = 0;

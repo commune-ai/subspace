@@ -44,12 +44,12 @@ impl<T: Config> Pallet<T> {
     pub fn check_module_params(_netuid: u16, params: &ModuleParams<T>) -> DispatchResult {
         let max_name_length = MaxNameLength::<T>::get() as usize;
 
-        assert!(params.name.len() > 0);
+        assert!(!params.name.is_empty());
         ensure!(
             params.name.len() <= max_name_length,
             Error::<T>::ModuleNameTooLong
         );
-        assert!(params.address.len() > 0);
+        assert!(!params.address.is_empty());
         ensure!(
             params.address.len() <= max_name_length,
             Error::<T>::ModuleAddressTooLong
@@ -223,27 +223,9 @@ impl<T: Config> Pallet<T> {
 
         N::<T>::insert(netuid, N::<T>::get(netuid) + 1); // Decrease the number of modules in the network.
                                                          // increase the stake of the new key
-        Self::increase_stake(netuid, &key, &key, 0);
+        Self::increase_stake(netuid, key, key, 0);
 
         uid
-    }
-
-    pub fn get_modules_stats(netuid: u16) -> Vec<ModuleStats<T>> {
-        if !Self::if_subnet_exist(netuid) {
-            return Vec::new();
-        }
-
-        let mut modules = Vec::new();
-        let n = Self::get_subnet_n(netuid);
-        for uid in 0..n {
-            let uid = uid;
-            let netuid = netuid;
-
-            let module = Self::get_module_stats(netuid, uid);
-
-            modules.push(module);
-        }
-        modules
     }
 
     pub fn get_module_stats(netuid: u16, uid: u16) -> ModuleStats<T> {
@@ -257,7 +239,7 @@ impl<T: Config> Pallet<T> {
             .iter()
             .filter_map(|(i, w)| {
                 if *w > 0 {
-                    Some(((*i).into(), (*w).into()))
+                    Some(((*i), (*w)))
                 } else {
                     None
                 }

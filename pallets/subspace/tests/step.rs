@@ -1,9 +1,8 @@
-use crate::test_mock::*;
+mod mock;
+
 use frame_support::assert_ok;
-
+use mock::*;
 use sp_core::U256;
-
-mod test_mock;
 
 fn check_network_stats(netuid: u16) {
     let emission_buffer: u64 = 1_000; // the numbers arent perfect but we want to make sure they fall within a range (10_000 / 2**64)
@@ -242,6 +241,7 @@ fn test_dividends_diff_stake() {
     });
 }
 
+#[test]
 fn test_pruning() {
     new_test_ext().execute_with(|| {
         // CONSSTANTS

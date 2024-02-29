@@ -1,9 +1,9 @@
-mod test_mock;
-use frame_support::assert_ok;
+mod mock;
 
+use frame_support::assert_ok;
+use mock::*;
 use sp_core::U256;
 use sp_std::vec;
-use test_mock::*;
 
 /* TO DO SAM: write test for LatuUpdate after it is set */
 
@@ -70,6 +70,7 @@ fn test_add_subnets() {
     });
 }
 
+#[allow(dead_code)]
 fn test_set_single_temple(tempo: u16) {
     new_test_ext().execute_with(|| {
         // creates a subnet when you register a module
@@ -171,12 +172,11 @@ fn test_emission_ratio() {
 
             let block = block_number();
             // magnitude of difference between expected and actual emission
-            let mut delta: f64 = 0.0;
-            if subnet_emission > expected_emission {
-                delta = subnet_emission as f64 - expected_emission as f64;
+            let delta = if subnet_emission > expected_emission {
+                subnet_emission - expected_emission
             } else {
-                delta = expected_emission as f64 - subnet_emission as f64;
-            }
+                expected_emission - subnet_emission
+            } as f64;
 
             assert!(
                 delta <= max_delta,
@@ -208,12 +208,11 @@ fn test_set_max_allowed_uids_growing() {
         let old_n: u16 = n;
         let mut _uids: Vec<u16>;
         assert_eq!(SubspaceModule::get_subnet_n(netuid), max_uids);
-        let mut new_n: u16 = SubspaceModule::get_subnet_n(netuid);
         for r in 1..rounds {
             // set max allowed uids to max_uids + extra_uids
             SubspaceModule::set_max_allowed_uids(netuid, max_uids + extra_uids * (r - 1));
             max_uids = SubspaceModule::get_max_allowed_uids(netuid);
-            new_n = old_n + extra_uids * (r - 1);
+            let new_n = old_n + extra_uids * (r - 1);
             // print the pruned uids
             for uid in old_n + extra_uids * (r - 1)..old_n + extra_uids * r {
                 register_module(netuid, U256::from(uid), stake);
@@ -270,12 +269,6 @@ fn test_set_max_allowed_uids_shrinking() {
         println!("expected stake {}", expected_stake);
         assert_eq!(total_stake, expected_stake);
 
-        let og_keys = SubspaceModule::get_keys(netuid);
-        let mut old_total_subnet_balance: u64 = 0;
-        for key in og_keys.clone() {
-            old_total_subnet_balance += SubspaceModule::get_balance_u64(&key);
-        }
-
         let _subnet = SubspaceModule::subnet_info(netuid);
 
         let mut params = SubspaceModule::subnet_params(netuid).clone();
@@ -286,7 +279,7 @@ fn test_set_max_allowed_uids_shrinking() {
         println!("subnet params {:?}", SubspaceModule::subnet_params(netuid));
         assert_ok!(result);
         let params = SubspaceModule::subnet_params(netuid);
-        let mut n = SubspaceModule::get_subnet_n(netuid);
+        let n = SubspaceModule::get_subnet_n(netuid);
         assert_eq!(
             params.max_allowed_uids, max_uids,
             "max allowed uids is not equal to expected max allowed uids"
@@ -296,20 +289,6 @@ fn test_set_max_allowed_uids_shrinking() {
             "min allowed weights is not equal to expected min allowed weights"
         );
 
-        let mut new_total_subnet_balance: u64 = 0;
-        for key in og_keys.clone() {
-            new_total_subnet_balance += SubspaceModule::get_balance_u64(&key);
-        }
-        // let expected_total_subnet_balance: u64 =
-        // 	(extra_uids as u64) * (stake + 1) + max_uids as u64; // this is weitd, but we needed to
-        // add 1 to make sure that the stake is not 0 assert!(
-        // 	new_total_subnet_balance == expected_total_subnet_balance,
-        // 	"new total subnet balance {} is not equal to expected total subnet balance {}",
-        // 	new_total_subnet_balance,
-        // 	expected_total_subnet_balance
-        // );
-
-        n = SubspaceModule::get_subnet_n(netuid);
         let stake_vector: Vec<u64> = SubspaceModule::get_stakes(netuid);
         let calc_stake: u64 = stake_vector.iter().sum();
 
@@ -331,14 +310,13 @@ fn test_set_max_allowed_modules() {
         let _max_uids: u16 = 2000;
         let _extra_uids: u16 = 20;
         let max_allowed_modules: u16 = 100;
-        let mut n = SubspaceModule::get_subnet_n(netuid);
 
         SubspaceModule::set_max_allowed_modules(max_allowed_modules);
         // set max_total modules
 
         for i in 1..(2 * max_allowed_modules) {
             assert_ok!(register_module(netuid, U256::from(i), stake));
-            n = SubspaceModule::get_subnet_n(netuid);
+            let n = SubspaceModule::get_subnet_n(netuid);
             assert!(
                 n <= max_allowed_modules,
                 "subnet_n {:?} is not less than max_allowed_modules {:?}",

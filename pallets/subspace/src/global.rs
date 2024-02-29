@@ -95,10 +95,6 @@ impl<T: Config> Pallet<T> {
         MaxAllowedWeightsGlobal::<T>::get()
     }
 
-    pub fn set_max_allowed_weights_global() -> u16 {
-        MaxAllowedWeightsGlobal::<T>::get()
-    }
-
     pub fn get_min_stake_global() -> u64 {
         MinStakeGlobal::<T>::get()
     }
@@ -189,16 +185,6 @@ impl<T: Config> Pallet<T> {
     }
 
     pub fn get_min_burn() -> u64 {
-        MinBurn::<T>::get().into()
-    }
-
-    // ========================
-    // ==== Rate Limiting =====
-    // ========================
-    pub fn get_last_tx_block(key: &T::AccountId) -> u64 {
-        LastTxBlock::<T>::get(key)
-    }
-    pub fn set_last_tx_block(key: &T::AccountId, last_tx_block: u64) {
-        LastTxBlock::<T>::insert(key, last_tx_block)
+        MinBurn::<T>::get()
     }
 }
