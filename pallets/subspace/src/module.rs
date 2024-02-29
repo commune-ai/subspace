@@ -44,16 +44,10 @@ impl<T: Config> Pallet<T> {
     pub fn check_module_params(_netuid: u16, params: &ModuleParams<T>) -> DispatchResult {
         let max_name_length = MaxNameLength::<T>::get() as usize;
 
-        assert!(!params.name.is_empty());
-        ensure!(
-            params.name.len() <= max_name_length,
-            Error::<T>::ModuleNameTooLong
-        );
-        assert!(!params.address.is_empty());
-        ensure!(
-            params.address.len() <= max_name_length,
-            Error::<T>::ModuleAddressTooLong
-        );
+        assert!(params.name.len() > 0);
+        ensure!(params.name.len() <= max_name_length, Error::<T>::ModuleNameTooLong);
+        assert!(params.address.len() > 0);
+        ensure!(params.address.len() <= max_name_length, Error::<T>::ModuleAddressTooLong);
 
         Ok(())
     }
@@ -106,7 +100,7 @@ impl<T: Config> Pallet<T> {
         let n = Self::get_subnet_n(netuid);
         if n == 0 {
             // No modules in the network.
-            return;
+            return
         }
         let uid_key: T::AccountId = Keys::<T>::get(netuid, uid);
         let replace_uid = n - 1;
@@ -196,12 +190,7 @@ impl<T: Config> Pallet<T> {
         // 1. Get the next uid. This is always equal to subnetwork_n.
         let uid: u16 = Self::get_subnet_n(netuid);
         let block_number = Self::get_current_block_as_u64();
-        log::debug!(
-            "append_module( netuid: {:?} | uid: {:?} | new_key: {:?} ) ",
-            netuid,
-            key,
-            uid
-        );
+        log::debug!("append_module( netuid: {:?} | uid: {:?} | new_key: {:?} ) ", netuid, key, uid);
 
         // 3. Expand Yuma with new position.
         Emission::<T>::mutate(netuid, |v| v.push(0));
@@ -223,9 +212,27 @@ impl<T: Config> Pallet<T> {
 
         N::<T>::insert(netuid, N::<T>::get(netuid) + 1); // Decrease the number of modules in the network.
                                                          // increase the stake of the new key
-        Self::increase_stake(netuid, key, key, 0);
+        Self::increase_stake(netuid, &key, &key, 0);
 
         uid
+    }
+
+    pub fn get_modules_stats(netuid: u16) -> Vec<ModuleStats<T>> {
+        if !Self::if_subnet_exist(netuid) {
+            return Vec::new()
+        }
+
+        let mut modules = Vec::new();
+        let n = Self::get_subnet_n(netuid);
+        for uid in 0..n {
+            let uid = uid;
+            let netuid = netuid;
+
+            let module = Self::get_module_stats(netuid, uid);
+
+            modules.push(module);
+        }
+        modules
     }
 
     pub fn get_module_stats(netuid: u16, uid: u16) -> ModuleStats<T> {
@@ -237,7 +244,7 @@ impl<T: Config> Pallet<T> {
 
         let weights: Vec<(u16, u16)> = Weights::<T>::get(netuid, uid)
             .iter()
-            .filter_map(|(i, w)| if *w > 0 { Some((*i, *w)) } else { None })
+            .filter_map(|(i, w)| if *w > 0 { Some(((*i).into(), (*w).into())) } else { None })
             .collect();
         let stake_from: Vec<(T::AccountId, u64)> = StakeFrom::<T>::get(netuid, key);
         let registration_block = Self::get_registration_block_for_uid(netuid, uid);
