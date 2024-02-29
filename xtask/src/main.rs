@@ -166,13 +166,13 @@ mod ops {
     };
 
     macro_rules! node_subspace {
-		($($arg:expr),*) => {{
-        	let mut cmd = Command::new("cargo");
-        	cmd.args(["run", "--release", "--package", "node-subspace", "--"]);
-        	$(cmd.arg($arg);)*
-        	cmd
-		}};
-	}
+        ($($arg:expr),*) => {{
+            let mut cmd = Command::new("cargo");
+            cmd.args(["run", "--release", "--package", "node-subspace", "--"]);
+            $(cmd.arg($arg);)*
+            cmd
+        }};
+    }
 
     pub fn build_chain_spec(chain_spec: &str) -> Command {
         node_subspace!(
@@ -264,7 +264,7 @@ mod ops {
             "--port", node.tcp_port.to_string(),
             "--rpc-port", node.rpc_port.to_string(),
             "--force-authoring",
-			"--bootnodes"
+            "--bootnodes"
         );
 
         cmd.args(bootnodes);
