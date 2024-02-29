@@ -42,6 +42,21 @@ jobs:
           version: 3.20.1
           repo-token: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Install sccache and dependencies
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          SCCACHE_BUCKET: "agicommies-subspace-cache"
+          SCCACHE_ENDPOINT: ${{ vars.SCCACHE_ENDPOINT }}
+          SCCACHE_REGION: auto
+        run: |
+          curl https://github.com/mozilla/sccache/releases/download/v0.7.7/sccache-v0.7.7-x86_64-unknown-linux-musl.tar.gz \
+            -Lo sccache-v0.7.7-x86_64-unknown-linux-musl.tar.gz
+          tar -xzf sccache-v0.7.7-x86_64-unknown-linux-musl.tar.gz --strip-components=1 sccache-v0.7.7-x86_64-unknown-linux-musl/sccache
+          ./sccache --start-server
+
+          echo "RUSTC_WRAPPER=${{ github.workspace }}/sccache" >> "$GITHUB_ENV"
+
       - name: Check Clippy errors
         uses: actions-rs/clippy-check@v1
         env:
