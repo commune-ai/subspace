@@ -123,6 +123,7 @@ impl<T: Config> Pallet<T> {
 		let balance_after_add: u64 = Self::get_balance_u64(&key);
 		let module_stake_after_add = Self::get_stake_for_key(netuid, &module_key);
 
+		
 		ensure!(stake_after_add == stake_before_add.saturating_add(amount), Error::<T>::StakeNotAdded);
 		ensure!(balance_after_add == balance_before_add.saturating_sub(amount), Error::<T>::BalanceNotRemoved);
 		ensure!(module_stake_after_add == module_stake_before_add.saturating_add(amount), Error::<T>::StakeNotAdded);
@@ -336,11 +337,7 @@ impl<T: Config> Pallet<T> {
 		module_key: &T::AccountId,
 		amount: u64,
 	) -> bool {
-		let mut uid = 0;
-
-		for (module_uid, _module_state) in <ModuleStateStorage<T> as IterableStorageDoubleMap<u16, u16, ModuleState<T>>>::iter_prefix(netuid) {
-			uid = module_uid;
-		}
+		let uid = Self::get_uid_for_key(netuid, module_key);
 
 		let mut stake_from: Vec<(T::AccountId, u64)> = Self::get_stake_from(netuid, uid);
 
@@ -374,11 +371,11 @@ impl<T: Config> Pallet<T> {
 
 		ModuleStateStorage::<T>::mutate(netuid, uid, |module_state| {
 			module_state.stake_from = stake_from;
-			module_state.stake.saturating_add(amount);
+			module_state.stake = module_state.stake.saturating_add(amount);
 		});
 
 		SubnetStateStorage::<T>::mutate(netuid, |subnet_state| {
-			subnet_state.total_stake.saturating_add(amount);
+			subnet_state.total_stake = subnet_state.total_stake.saturating_add(amount);
 		});
 
 		true
@@ -420,11 +417,11 @@ impl<T: Config> Pallet<T> {
 
 		// --- 8. We add the balancer to the key.  If the above fails we will not credit this key.
 		ModuleStateStorage::<T>::mutate(netuid, uid, |module_state| {
-			module_state.stake.saturating_sub(amount);
+			module_state.stake = module_state.stake.saturating_sub(amount);
 		});
 
 		SubnetStateStorage::<T>::mutate(netuid, |subnet_state| {
-			subnet_state.total_stake.saturating_sub(amount);
+			subnet_state.total_stake = subnet_state.total_stake.saturating_sub(amount);
 		});
 
 		true

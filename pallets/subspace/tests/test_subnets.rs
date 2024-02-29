@@ -379,7 +379,8 @@ fn test_set_max_allowed_modules() {
 
 
 				if i > max_allowed_subnets {
-					assert!(!SubspaceModule::if_subnet_exist(least_staked_netuid));
+					assert!(SubspaceModule::if_subnet_exist(least_staked_netuid));
+					assert!(!SubspaceModule::if_subnet_exist(i));
 
 				}
 				println!("n_subnets {}", n_subnets);
@@ -387,4 +388,4 @@ fn test_set_max_allowed_modules() {
 				assert!(n_subnets <= max_allowed_subnets);
 			}
 		})
-		}
+	}

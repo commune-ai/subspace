@@ -270,7 +270,7 @@ fn test_pruning() {
 
 		let new_key: U256 = U256::from(n + 1);
 		let lowest_priority_staker_vector: Vec<(U256, u64)> =
-			SubspaceModule::get_stake_from(netuid, &keys[lowest_priority_uid as usize]);
+			SubspaceModule::get_stake_from(netuid, lowest_priority_uid);
 		let lowest_priority_stakers_balance_before: Vec<u64> = lowest_priority_staker_vector
 			.iter()
 			.map(|x| SubspaceModule::get_balance_u64(&x.0))

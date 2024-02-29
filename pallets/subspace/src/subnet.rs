@@ -13,10 +13,6 @@ use substrate_fixed::types::{I32F32, I64F64};
 extern crate alloc;
 
 impl<T: Config> Pallet<T> {
-	// Returns true if the subnetwork exists.
-	//
-
-
 	pub fn do_remote_subnet(origin: T::RuntimeOrigin, netuid: u16) -> DispatchResult {
 		let key = ensure_signed(origin)?;
 		// --- 1. Ensure the network name does not already exist.
@@ -42,6 +38,15 @@ impl<T: Config> Pallet<T> {
 		ensure!(Self::is_subnet_founder(netuid, &key), Error::<T>::NotFounder);
 		ensure!(Self::if_subnet_netuid_exists(netuid), Error::<T>::SubnetNameAlreadyExists);
 		ensure!(Self::is_subnet_founder(netuid, &key), Error::<T>::NotFounder);
+
+		let mut n = Self::get_subnet_n_uids(netuid);
+
+		while n > params.max_allowed_uids {
+			Self::remove_module(netuid, Self::get_lowest_uid(netuid));
+
+			n = Self::get_subnet_n_uids(netuid);
+		}
+
 		Self::check_subnet_params(params.clone())?;
 		Self::set_subnet_params(netuid, params);
 		// --- 16. Ok and done.
@@ -287,10 +292,8 @@ impl<T: Config> Pallet<T> {
 	}
 
 	pub fn add_subnet(params: SubnetParams<T>) -> u16 {
-
 		// --- 1. Enfnsure that the network name does not already exist.
 		let total_networks: u16 = Self::global_state().total_subnets;
-		let max_networks = Self::get_global_max_allowed_subnets();
 		let netuid = total_networks;
 
 		Self::set_subnet_params(netuid, params.clone());
@@ -307,6 +310,21 @@ impl<T: Config> Pallet<T> {
 		Self::deposit_event(Event::NetworkAdded(netuid, params.name.clone()));
 
 		netuid
+	}
+
+	pub fn add_subnet_on_netuid(netuid: u16, params: SubnetParams<T>) {
+		Self::set_subnet_params(netuid, params.clone());
+		// set stat once network is created
+		GlobalStateStorage::<T>::mutate(|global_state| {
+			global_state.total_subnets +=  1;
+		});
+
+		SubnetStateStorage::<T>::mutate(netuid, |subnet_state| {
+			subnet_state.n_uids =  0;
+		});
+
+		// --- 6. Emit the new network event.
+		Self::deposit_event(Event::NetworkAdded(netuid, params.name.clone()));
 	}
 	
 	// Initializes a new subnetwork under netuid with parameters.
@@ -360,7 +378,7 @@ impl<T: Config> Pallet<T> {
 		SubnetParamsStorage::<T>::remove(netuid);
 
 		GlobalStateStorage::<T>::mutate(|global_state| {
-			global_state.total_subnets.saturating_sub(1);
+			global_state.total_subnets = global_state.total_subnets.saturating_sub(1);
 		});
 		
 		// --- 4. Emit the event.
@@ -781,5 +799,13 @@ impl<T: Config> Pallet<T> {
 
 	pub fn get_pending_deregister_uids(netuid: u16) -> Vec<u16> {
 		Self::subnet_state(netuid).pending_deregister_uids
+	}
+
+	pub fn set_subnet_state(netuid: u16, mut subnet_state: SubnetState) {
+		SubnetStateStorage::<T>::insert(netuid, subnet_state)
+	}
+
+	pub fn get_min_stake(netuid: u16) -> u64 {
+		Self::subnet_params(netuid).min_stake
 	}
 }

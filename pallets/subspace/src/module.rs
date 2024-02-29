@@ -18,8 +18,6 @@ pub struct ModuleInfo<T: Config> {
 
 
 impl<T: Config> Pallet<T> {
-
-
 	pub fn do_update_module(
 		origin: T::RuntimeOrigin,
 		netuid: u16,
@@ -44,40 +42,6 @@ impl<T: Config> Pallet<T> {
 
 		Ok(())
 	}
-
-	pub fn set_module_params(netuid: u16, uid: u16, module_params: ModuleParams<T>) {
-		// Self::set_module_name(netuid, uid, module_params.name);
-		// Self::set_module_address(netuid, uid, module_params.address);
-		// Self::set_module_delegation_fee( netuid, uid, module_params.delegation_fee);
-	}
-
-	// pub fn get_module_address(netuid: u16, uid: u16) -> Vec<u8> {
-	// 	return Address::<T>::get(netuid, uid)
-	// }
-
-
-	// pub fn set_module_address( netuid: u16, uid: u16, address: Vec<u8>) {
-	// 	Address::<T>::insert(netuid, uid, address);
-	// }
-	
-	// pub fn get_module_delegation_fee(netuid: u16, uid: u16) -> Percent {
-	// 	let key = Self::get_key_for_uid(netuid, uid);
-	// 	let mut delegation_fee: Percent = DelegationFee::<T>::get(netuid, key);
-	// 	return delegation_fee
-	// }
-
-	// pub fn set_module_delegation_fee( netuid: u16, uid: u16, delegation_fee: Percent) {
-	// 	let key = Self::get_key_for_uid(netuid, uid);
-	// 	DelegationFee::<T>::insert(netuid, key, delegation_fee);
-	// }
-
-	// pub fn get_module_name(netuid: u16, uid: u16) -> Vec<u8> {
-	// 	return Name::<T>::get(netuid, uid)
-	// }
-
-	// pub fn set_module_name( netuid: u16, uid: u16, name: Vec<u8>) {
-	// 	Name::<T>::insert(netuid, uid, name.clone());
-	// }
 
 	pub fn get_module_key(netuid: u16, uid: u16) -> T::AccountId {
 		Self::module_state(netuid, uid).module_key
@@ -194,5 +158,13 @@ impl<T: Config> Pallet<T> {
 		}
 
 		u16::MAX
+	}
+
+	pub fn set_module_params(netuid: u16, uid: u16, module_params: ModuleParams<T>) {
+		ModuleParamsStorage::<T>::insert(netuid, uid, module_params);
+	}
+
+	pub fn set_module_state(netuid: u16, uid: u16, module_state: ModuleState<T>) {
+		ModuleStateStorage::<T>::insert(netuid, uid, module_state);
 	}
 }

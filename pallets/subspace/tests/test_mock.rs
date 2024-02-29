@@ -187,11 +187,6 @@ pub fn delegate_stake(netuid: u16, key: U256, module_key: U256, stake: u64) {
 	SubspaceModule::increase_stake(netuid, &key, &module_key, stake);
 }
 
-#[allow(dead_code)]
-pub fn decrease_stake(netuid: u16, key: U256, stake: u64) {
-	SubspaceModule::decrease_stake(netuid, &key, &key, stake);
-}
-
 pub fn get_origin(key: U256) -> RuntimeOrigin {
 	let origin = <<Test as frame_system::Config>::RuntimeOrigin>::signed(key);
 	return origin
@@ -224,6 +219,8 @@ pub fn register_module(netuid: u16, key: U256, stake: u64) -> DispatchResult {
 
 	add_balance(key, stake + 1);
 	let balance = SubspaceModule::get_balance(&key);
+
+	println!("stake {}", stake);
 
 	let result = SubspaceModule::register(origin, network, name.clone(), address, stake, key);
 	return result

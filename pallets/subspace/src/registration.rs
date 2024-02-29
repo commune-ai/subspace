@@ -10,9 +10,7 @@ use substrate_fixed::types::I32F32;
 use sp_std::vec;
 use system::pallet_prelude::BlockNumberFor;
 // IterableStorageMap
-use frame_support::{
-	storage::IterableStorageMap,
-};
+use frame_support::storage::IterableStorageMap;
 
 
 const LOG_TARGET: &'static str = "runtime::subspace::registration";
@@ -40,6 +38,7 @@ impl<T: Config> Pallet<T> {
 		if !Self::subnet_name_exists(network.clone()) {
 			Self::add_subnet_from_registration(network.clone(), stake_amount, &key)?;
 		}
+		
 		// get the netuid
 		let netuid = Self::get_netuid_for_name(network.clone());
 
@@ -61,6 +60,8 @@ impl<T: Config> Pallet<T> {
 		let n: u16 = Self::get_subnet_n_uids(netuid);
 		let global_n =  Self::global_n();
 
+		
+
 		// replace a node if we reach the max allowed modules
 		if global_n >= Self::get_max_allowed_modules() {
 			// get random netuid
@@ -78,6 +79,7 @@ impl<T: Config> Pallet<T> {
 			// if we reach the max allowed modules for this network, then we replace the lowest priority node
 			Self::remove_module(netuid, Self::get_lowest_uid(netuid));
 		}
+
 
 		uid = Self::append_module(netuid, &module_key, name.clone(), address.clone());
 
@@ -131,7 +133,7 @@ impl<T: Config> Pallet<T> {
 	}
 
 	pub fn enough_stake_to_register(netuid: u16, stake_amount: u64) -> bool {
-		let min_stake = Self::get_min_stake();
+		let min_stake = Self::get_min_stake(netuid);
 		let min_burn = Self::get_min_burn();
 
 		stake_amount >= (min_stake + min_burn)
@@ -259,19 +261,19 @@ impl<T: Config> Pallet<T> {
 			}
 
 			ensure!(stake > min_stake , Error::<T>::NotEnoughStakeToStartNetwork);
-
+			
 			Self::remove_subnet(min_stake_netuid);
+			
+			let mut params: SubnetParams<T> = Self::subnet_params(min_stake_netuid);
+			params.name = name.clone();
+			params.founder = founder_key.clone();
+			Self::add_subnet_on_netuid(min_stake_netuid, params);
+		} else {
+			let mut params: SubnetParams<T> = Self::default_subnet_params();
+			params.name = name.clone();
+			params.founder = founder_key.clone();
+			let netuid = Self::add_subnet(params);
 		}
-		// if we have reached the max number of subnets, then we can start a new one if the stake is
-		// greater than the least staked network
-
-		let mut params: SubnetParams<T> = Self::default_subnet_params();
-		params.name = name.clone();
-		let netuid = Self::add_subnet(params);
-		
-		SubnetParamsStorage::<T>::mutate(netuid, |subnet_param| {
-			subnet_param.founder = founder_key.clone();
-		});
 		
 		Ok(())
 	}

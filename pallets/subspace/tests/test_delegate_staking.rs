@@ -54,21 +54,19 @@ fn test_ownership_ratio() {
 		let miner_uids: Vec<u16> = miner_keys.iter().map(|k| SubspaceModule::get_uid_for_key(netuid, k)).collect();
 		let miner_weights = vec![1; miner_uids.len()];
 
-
-
 		let delegate_keys: Vec<U256> =
 			(0..num_modules).map(|i| U256::from(i + num_modules + 1)).collect();
 		for d in delegate_keys.iter() {
 			add_balance(*d, stake_per_module + 1);
 		}
 
-		let pre_delegate_stake_from = SubspaceModule::get_stake_from(netuid, &voter_key);
+		let pre_delegate_stake_from = SubspaceModule::get_stake_from(netuid, 0);
 		assert_eq!(pre_delegate_stake_from.len(), 1); // +1 for the module itself, +1 for the delegate key on
 
 		for (i, d) in delegate_keys.iter().enumerate() {
 			println!("DELEGATE KEY: {}", d);
 			assert_ok!(SubspaceModule::add_stake(get_origin(*d), netuid, voter_key, stake_per_module));
-			let stake_from = SubspaceModule::get_stake_from(netuid, &voter_key);
+			let stake_from = SubspaceModule::get_stake_from(netuid, 0);
 			assert_eq!(stake_from.len(), pre_delegate_stake_from.len() + i + 1);
 		}
 		let ownership_ratios: Vec<(U256, I64F64)> =SubspaceModule::get_ownership_ratios(netuid, &voter_key);
@@ -147,7 +145,7 @@ fn test_ownership_ratio() {
 		assert_eq!(total_new_tokens, total_emissions);
 
 		
-		let stake_from = SubspaceModule::get_stake_from(netuid, &voter_key);
+		let stake_from = SubspaceModule::get_stake_from(netuid, 0);
 		let stake: u64 = SubspaceModule::get_stake(netuid, &voter_key);
 		let sumed_stake: u64 = stake_from.iter().fold(0, |acc, (a, x)| acc + x);
 		let total_stake: u64 = SubspaceModule::get_total_subnet_stake(netuid);

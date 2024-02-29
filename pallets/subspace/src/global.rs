@@ -91,7 +91,7 @@ impl<T: Config> Pallet<T> {
 		Self::global_params().min_burn
 	}
 
-	pub fn get_min_stake() -> u64 {
+	pub fn get_min_stake_global() -> u64 {
 		Self::global_params().min_stake
 	}
 
