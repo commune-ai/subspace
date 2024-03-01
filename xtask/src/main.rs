@@ -31,20 +31,17 @@ fn localnet_run(mut r: flags::Run) {
         _ => panic!("select only one of: --alice, --bob"),
     };
 
-    if let Some(node_name) = r.node_name {
-        node.name = Some(node_name.into());
-    }
-    if let Some(node_validator) = r.node_validator {
-        node.validator = node_validator;
-    }
+    node.name = r.node_name.map(Into::into).or(node.name);
+    node.validator = r.node_validator.unwrap_or(node.validator);
+    node.tcp_port = r.tcp_port.unwrap_or(node.tcp_port);
+    node.rpc_port = r.rpc_port.unwrap_or(node.rpc_port);
     if let Some(node_key) = r.node_key {
         let node_id = ops::key_inspect_node_cmd(&node_key);
         node.key = Some(node_key.into());
         node.id = Some(node_id.into());
     }
-    if let Some(account_suri) = r.account_suri {
-        account.suri = account_suri.into();
-    }
+
+    account.suri = r.account_suri.map(Into::into).unwrap_or(account.suri);
 
     let path = r.path.unwrap_or_else(|| {
         tempfile::Builder::new()
