@@ -18,8 +18,14 @@ impl<T: Config> Pallet<T> {
         let key = ensure_signed(origin)?;
         // --- 1. Ensure the network name does not already exist.
 
-        ensure!(Self::if_subnet_netuid_exists(netuid), Error::<T>::SubnetNameAlreadyExists);
-        ensure!(Self::is_subnet_founder(netuid, &key), Error::<T>::NotFounder);
+        ensure!(
+            Self::if_subnet_netuid_exists(netuid),
+            Error::<T>::SubnetNameAlreadyExists
+        );
+        ensure!(
+            Self::is_subnet_founder(netuid, &key),
+            Error::<T>::NotFounder
+        );
 
         Self::remove_subnet(netuid);
         // --- 16. Ok and done.
@@ -34,11 +40,26 @@ impl<T: Config> Pallet<T> {
         let key = ensure_signed(origin)?;
         // only the founder can update the network on authority mode
 
-        ensure!(Self::get_vote_mode_subnet(netuid) == AUTHORITY_MODE, Error::<T>::NotAuthorityMode);
-        ensure!(Self::if_subnet_netuid_exists(netuid), Error::<T>::SubnetNameAlreadyExists);
-        ensure!(Self::is_subnet_founder(netuid, &key), Error::<T>::NotFounder);
-        ensure!(Self::if_subnet_netuid_exists(netuid), Error::<T>::SubnetNameAlreadyExists);
-        ensure!(Self::is_subnet_founder(netuid, &key), Error::<T>::NotFounder);
+        ensure!(
+            Self::get_vote_mode_subnet(netuid) == AUTHORITY_MODE,
+            Error::<T>::NotAuthorityMode
+        );
+        ensure!(
+            Self::if_subnet_netuid_exists(netuid),
+            Error::<T>::SubnetNameAlreadyExists
+        );
+        ensure!(
+            Self::is_subnet_founder(netuid, &key),
+            Error::<T>::NotFounder
+        );
+        ensure!(
+            Self::if_subnet_netuid_exists(netuid),
+            Error::<T>::SubnetNameAlreadyExists
+        );
+        ensure!(
+            Self::is_subnet_founder(netuid, &key),
+            Error::<T>::NotFounder
+        );
         Self::check_subnet_params(params.clone())?;
         Self::set_subnet_params(netuid, params);
         // --- 16. Ok and done.
@@ -64,7 +85,10 @@ impl<T: Config> Pallet<T> {
             Error::<T>::InvalidMinAllowedWeights
         );
 
-        ensure!(params.min_allowed_weights >= 1, Error::<T>::InvalidMinAllowedWeights);
+        ensure!(
+            params.min_allowed_weights >= 1,
+            Error::<T>::InvalidMinAllowedWeights
+        );
 
         ensure!(
             params.max_allowed_weights <= global_params.max_allowed_weights,
@@ -72,13 +96,22 @@ impl<T: Config> Pallet<T> {
         );
 
         // the  global params must be larger than the global min_stake
-        ensure!(params.min_stake >= global_params.min_stake, Error::<T>::InvalidMinStake);
+        ensure!(
+            params.min_stake >= global_params.min_stake,
+            Error::<T>::InvalidMinStake
+        );
 
-        ensure!(params.max_stake > params.min_stake, Error::<T>::InvalidMaxStake);
+        ensure!(
+            params.max_stake > params.min_stake,
+            Error::<T>::InvalidMaxStake
+        );
 
         ensure!(params.tempo > 0, Error::<T>::InvalidTempo);
 
-        ensure!(params.max_weight_age > params.tempo as u64, Error::<T>::InvalidMaxWeightAge);
+        ensure!(
+            params.max_weight_age > params.tempo as u64,
+            Error::<T>::InvalidMaxWeightAge
+        );
 
         // ensure the trust_ratio is between 0 and 100
         ensure!(params.trust_ratio <= 100, Error::<T>::InvalidTrustRatio);
@@ -269,11 +302,11 @@ impl<T: Config> Pallet<T> {
         Founder::<T>::get(netuid) == *key
     }
 
-	// TODO, see if we can optimize this further
-	pub fn does_module_name_exist(netuid: u16, name: Vec<u8>) -> bool {
-		<Name<T> as IterableStorageDoubleMap<u16, u16, Vec<u8>>>::iter_prefix(netuid)
-			.any(|(_uid, _name)| _name == name)
-	}
+    // TODO, see if we can optimize this further
+    pub fn does_module_name_exist(netuid: u16, name: Vec<u8>) -> bool {
+        <Name<T> as IterableStorageDoubleMap<u16, u16, Vec<u8>>>::iter_prefix(netuid)
+            .any(|(_uid, _name)| _name == name)
+    }
 
     pub fn get_subnet_founder(netuid: u16) -> T::AccountId {
         Founder::<T>::get(netuid)
@@ -318,7 +351,7 @@ impl<T: Config> Pallet<T> {
             let halving_factor = 2u64.pow((i) as u32);
             if market_cap < *having_stake {
                 emission_per_block = emission_per_block / halving_factor;
-                break
+                break;
             }
         }
 
@@ -326,7 +359,7 @@ impl<T: Config> Pallet<T> {
     }
     pub fn get_total_subnet_balance(netuid: u16) -> u64 {
         let keys = Self::get_keys(netuid);
-        return keys.iter().map(|x| Self::get_balance_u64(x)).sum()
+        return keys.iter().map(|x| Self::get_balance_u64(x)).sum();
     }
 
     pub fn calculate_network_emission(netuid: u16) -> u64 {
@@ -380,7 +413,7 @@ impl<T: Config> Pallet<T> {
     pub fn subnet_name_exists(name: Vec<u8>) -> bool {
         for (_netuid, _name) in <SubnetNames<T> as IterableStorageMap<u16, Vec<u8>>>::iter() {
             if _name == name {
-                return true
+                return true;
             }
         }
         false
@@ -427,7 +460,7 @@ impl<T: Config> Pallet<T> {
 
         // --- 2. Ensure the network to be removed exists.
         if !Self::if_subnet_exist(netuid) {
-            return 0
+            return 0;
         }
 
         Self::remove_netuid_stake_strorage(netuid);
@@ -507,7 +540,7 @@ impl<T: Config> Pallet<T> {
     pub fn is_key_registered_on_any_network(key: &T::AccountId) -> bool {
         for netuid in Self::netuids() {
             if Uids::<T>::contains_key(netuid, key) {
-                return true
+                return true;
             }
         }
         false
@@ -639,16 +672,12 @@ impl<T: Config> Pallet<T> {
         let n: u16 = Self::get_subnet_n(netuid);
         // get the float and convert to u64
         if n == 0 {
-            return 0
+            return 0;
         }
         let burn_rate_float: I64F64 = I64F64::from_num(burn_rate) / I64F64::from_num(n * 100);
         let burn_emission_per_epoch: u64 =
             (I64F64::from_num(epoch_emission) * burn_rate_float).to_num::<u64>();
         burn_emission_per_epoch
-    }
-
-    pub fn set_registrations_this_block(registrations_this_block: u16) {
-        RegistrationsPerBlock::<T>::set(registrations_this_block);
     }
 
     // ========================
@@ -724,6 +753,10 @@ impl<T: Config> Pallet<T> {
         RegistrationsPerBlock::<T>::get()
     }
 
+    pub fn set_registrations_this_block(registrations_this_block: u16) {
+        RegistrationsPerBlock::<T>::set(registrations_this_block);
+    }
+
     pub fn get_module_registration_block(netuid: u16, uid: u16) -> u64 {
         RegistrationBlock::<T>::get(netuid, uid)
     }
@@ -738,6 +771,7 @@ impl<T: Config> Pallet<T> {
     pub fn set_immunity_period(netuid: u16, immunity_period: u16) {
         ImmunityPeriod::<T>::insert(netuid, immunity_period);
     }
+
 
     pub fn get_min_allowed_weights(netuid: u16) -> u16 {
         let min_allowed_weights = MinAllowedWeights::<T>::get(netuid);
@@ -850,40 +884,40 @@ impl<T: Config> Pallet<T> {
         let last_update = Self::get_last_update(netuid);
 
         if (n as usize) != uids.len() {
-            return false
+            return false;
         }
         if (n as usize) != keys.len() {
-            return false
+            return false;
         }
         if (n as usize) != names.len() {
-            return false
+            return false;
         }
         if (n as usize) != addresses.len() {
-            return false
+            return false;
         }
         if (n as usize) != emissions.len() {
-            return false
+            return false;
         }
         if (n as usize) != incentives.len() {
-            return false
+            return false;
         }
         if (n as usize) != dividends.len() {
-            return false
+            return false;
         }
         if (n as usize) != last_update.len() {
-            return false
+            return false;
         }
 
         // length of addresss
         let name_vector = Self::name_vector(netuid);
         if (n as usize) != name_vector.len() {
-            return false
+            return false;
         }
 
         // length of addresss
         let address_vector = Self::address_vector(netuid);
         if (n as usize) != address_vector.len() {
-            return false
+            return false;
         }
 
         true
@@ -904,22 +938,15 @@ impl<T: Config> Pallet<T> {
     pub fn get_last_update(netuid: u16) -> Vec<u64> {
         LastUpdate::<T>::get(netuid)
     }
-    pub fn set_max_registrations_per_block(max_registrations_per_block: u16) {
-        MaxRegistrationsPerBlock::<T>::set(max_registrations_per_block);
-    }
-
     pub fn is_registered(netuid: u16, key: &T::AccountId) -> bool {
         Uids::<T>::contains_key(netuid, &key)
     }
-
     pub fn is_uid_registered(netuid: u16, uid: u16) -> bool {
         Keys::<T>::contains_key(netuid, uid)
     }
-
     pub fn get_max_weight_age(netuid: u16) -> u64 {
         MaxWeightAge::<T>::get(netuid)
     }
-
     pub fn set_max_weight_age(netuid: u16, max_weight_age: u64) {
         MaxWeightAge::<T>::insert(netuid, max_weight_age);
     }

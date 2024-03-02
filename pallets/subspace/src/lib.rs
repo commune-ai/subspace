@@ -122,8 +122,24 @@ pub mod pallet {
     pub fn DefaultMinBurn<T: Config>() -> u64 {
         0
     }
-    #[pallet::storage] // --- MAP ( netuid ) --> min_allowed_weights
+    #[pallet::storage] // --- MinBurn
     pub type MinBurn<T> = StorageValue<_, u64, ValueQuery, DefaultMinBurn<T>>;
+
+    #[pallet::type_value]
+    pub fn DefaultMaxBurn<T: Config>() -> u64 {
+        100_000_000_000 // 100 commune
+    }
+
+    #[pallet::type_value]
+    pub fn DefaultAdjustmentAlpha<T: Config>() -> u64 {
+        0
+    }
+
+    #[pallet::storage] // --- adjusment alpha
+    pub type AdjustmentAlpha<T> = StorageValue<_, u64, ValueQuery, DefaultAdjustmentAlpha<T>>;
+
+    #[pallet::storage] // --- MaxBurn
+    pub type MaxBurn<T> = StorageValue<_, u64, ValueQuery, DefaultMaxBurn<T>>;
 
     #[pallet::type_value]
     pub fn DefaultLastTxBlock<T: Config>() -> u64 {
@@ -149,6 +165,34 @@ pub mod pallet {
     pub(super) type MaxAllowedSubnets<T: Config> =
         StorageValue<_, u16, ValueQuery, DefaultMaxAllowedSubnets<T>>;
 
+    
+    #[pallet::type_value]
+    pub fn DefaultRegistrationsThisInterval<T: Config>() -> u16 {
+        0
+    }    
+    
+    #[pallet::storage] // --- ITEM ( registrations_this_interval )
+    pub(super) type RegistrationsThisInterval<T: Config> =
+        StorageValue<_, u16, ValueQuery, DefaultRegistrationsThisInterval<T>>;
+
+    #[pallet::type_value]
+    pub fn DefaultBurn<T: Config>() -> u64 {
+        0
+    }
+
+    #[pallet::storage] // --- ITEM ( burn )
+    pub(super) type Burn<T: Config> =
+        StorageValue<_, u64, ValueQuery, DefaultBurn<T>>;
+
+    #[pallet::type_value]
+    pub fn DefaultTargetRegistrationsThisInterval<T: Config>() -> u16 {
+        50
+    }
+
+    #[pallet::storage] // --- ITEM ( target_registrations_this_interval )
+    pub(super) type TargetRegistrationsThisInterval<T: Config> =
+        StorageValue<_, u16, ValueQuery, DefaultTargetRegistrationsThisInterval<T>>;
+
     #[pallet::type_value]
     pub fn DefaultMaxAllowedModules<T: Config>() -> u16 {
         10_000
@@ -172,7 +216,15 @@ pub mod pallet {
     #[pallet::storage] // --- ITEM( global_max_registrations_per_block )
     pub type MaxRegistrationsPerBlock<T> =
         StorageValue<_, u16, ValueQuery, DefaultMaxRegistrationsPerBlock<T>>;
-
+   
+    #[pallet::type_value]
+    pub fn DefaultTargetRegistrationsPerInterval<T: Config>() -> u16 {
+        50
+    }
+    #[pallet::storage] // --- ITEM( global_target_registrations_interval )
+    pub type TargetRegistrationsPerInterval<T> =
+            StorageValue<_, u16, ValueQuery, DefaultTargetRegistrationsPerInterval<T>>;
+    
     #[pallet::type_value]
     pub fn DefaultMinStakeGlobal<T: Config>() -> u64 {
         100
@@ -213,15 +265,18 @@ pub mod pallet {
         pub max_allowed_subnets: u16,         // max number of subnets allowed
         pub max_allowed_modules: u16,         // max number of modules allowed per subnet
         pub max_registrations_per_block: u16, // max number of registrations per block
+        pub target_registrations_interval: u16, // max number of target registrations per interval
         pub max_allowed_weights: u16,         // max number of weights per module
         pub max_proposals: u64,               // max number of proposals per block
 
         // mins
         pub min_burn: u64,         // min burn required
+        pub max_burn: u64,         // max burn allowed
         pub min_stake: u64,        // min stake required
         pub min_weight_stake: u64, // min weight stake required
 
         // other
+        pub adjustment_alpha: u64, // adjustment alpha
         pub unit_emission: u64,  // emission per block
         pub tx_rate_limit: u64,  // tx rate limit
         pub vote_threshold: u16, // out of 100
@@ -236,11 +291,14 @@ pub mod pallet {
             max_allowed_modules: DefaultMaxAllowedModules::<T>::get(),
             max_allowed_weights: DefaultMaxAllowedWeightsGlobal::<T>::get(),
             max_registrations_per_block: DefaultMaxRegistrationsPerBlock::<T>::get(),
+            target_registrations_interval: DefaultTargetRegistrationsPerInterval::<T>::get(),
             max_name_length: DefaultMaxNameLength::<T>::get(),
             max_proposals: DefaultMaxProposals::<T>::get(),
             min_burn: DefaultMinBurn::<T>::get(),
+            max_burn: DefaultMaxBurn::<T>::get(),
             min_stake: DefaultMinStakeGlobal::<T>::get(),
             min_weight_stake: DefaultMinWeightStake::<T>::get(),
+            adjustment_alpha: DefaultAdjustmentAlpha::<T>::get(),
             unit_emission: DefaultUnitEmission::<T>::get(),
             tx_rate_limit: DefaultTxRateLimit::<T>::get(),
             vote_threshold: DefaultVoteThreshold::<T>::get(),
@@ -337,6 +395,8 @@ pub mod pallet {
     }
     #[pallet::storage] // --- MAP ( netuid ) --> min_allowed_weights
     pub type MinStake<T> = StorageMap<_, Identity, u16, u64, ValueQuery, DefaultMinStake<T>>;
+
+
 
     #[pallet::type_value]
     pub fn DefaultMaxStake<T: Config>() -> u64 {
@@ -731,8 +791,8 @@ pub mod pallet {
         MaxNameLengthSet(u16), // --- Event created when setting the maximum network name length
         MaxAllowedSubnetsSet(u16), // --- Event created when setting the maximum allowed subnets
         MaxAllowedModulesSet(u16), // --- Event created when setting the maximum allowed modules
-        MaxRegistrationsPerBlockSet(u16), /* --- Event created when we set max registrations
-                                           * per block */
+        MaxRegistrationsPerBlockSet(u16), // --- Event created when we set max registrations
+        target_registrations_intervalSet(u16), // --- Event created when we set target registrations
         GlobalUpdate(u16, u16, u16, u16, u64, u64),
         GlobalProposalAccepted(u64),      // (id)
         CustomProposalAccepted(u64),      // (id)
@@ -837,6 +897,7 @@ pub mod pallet {
         InvalidMaxAllowedSubnets,
         InvalidMaxAllowedModules,
         InvalidMaxRegistrationsPerBlock,
+        InvalidTargetRegistrationsInterval,
         InvalidVoteThreshold,
         InvalidMaxProposals,
         InvalidUnitEmission,
@@ -1125,6 +1186,7 @@ pub mod pallet {
             max_name_length: u16,
             max_proposals: u64,
             max_registrations_per_block: u16,
+            target_registrations_interval: u16,
             min_burn: u64,
             min_stake: u64,
             min_weight_stake: u64,
@@ -1141,6 +1203,7 @@ pub mod pallet {
             params.max_name_length = max_name_length;
             params.max_proposals = max_proposals;
             params.max_registrations_per_block = max_registrations_per_block;
+            params.target_registrations_interval = target_registrations_interval;
             params.min_burn = min_burn;
             params.min_stake = min_stake;
             params.min_weight_stake = min_weight_stake;

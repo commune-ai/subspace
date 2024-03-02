@@ -45,7 +45,7 @@ impl<T: Config> Pallet<T> {
 
         // --- 5. Ensure the caller has enough stake to register.
         let min_stake: u64 = MinStake::<T>::get(netuid);
-        let min_burn: u64 = Self::get_min_burn();
+        let min_burn: u64 = Self::get_burn();
 
         // also ensures that in the case min_burn is present, the stake is enough
         // as burn, will be decreased from the stake on the module
@@ -95,8 +95,9 @@ impl<T: Config> Pallet<T> {
             Error::<T>::NotRegistered
         );
 
-        // --- 10. Increment the number of registrations per block.
+        // --- 10. Increment the number of registrations.
         RegistrationsPerBlock::<T>::mutate(|val| *val += 1);
+        RegistrationsThisInterval::<T>::mutate(|val| *val += 1);
 
         // --- Deposit successful event.
         Self::deposit_event(Event::ModuleRegistered(netuid, uid, module_key.clone()));
