@@ -3,11 +3,18 @@ use crate::math::*;
 use frame_support::storage::{IterableStorageDoubleMap, IterableStorageMap};
 use sp_std::vec;
 use substrate_fixed::types::{I32F32, I64F64};
+use substrate_fixed::types::I110F18;
 
 impl<T: Config> Pallet<T> {
     pub fn block_step() {
         let block_number: u64 = Self::get_current_block_as_u64();
         RegistrationsPerBlock::<T>::mutate(|val| *val = 0);
+        
+        let registration_interval = Self::get_registrations_this_interval();
+        if block_number % u64::from(registration_interval) == 0 {
+            RegistrationsThisInterval::<T>::mutate(|val| *val = 0);
+        }
+
         log::debug!("block_step for block: {:?} ", block_number);
         for (netuid, tempo) in <Tempo<T> as IterableStorageMap<u16, u16>>::iter() {
             let new_queued_emission: u64 = Self::calculate_network_emission(netuid);
@@ -461,5 +468,41 @@ impl<T: Config> Pallet<T> {
             burn_amount_per_epoch = burn_rate_float.to_num::<u64>();
         }
         burn_amount_per_epoch
+    }
+
+    pub fn adjust_registration() {
+        let registrations_this_interval: u16 = Self::get_registrations_this_interval();
+        let target_registrations_this_interval: u16 = Self::get_target_registrations_per_interval();
+        let current_burn = Self::get_burn();
+        
+        Self::set_burn(Self::adjust_burn(
+            current_burn,
+            registrations_this_interval,
+            target_registrations_this_interval,
+        ));
+            
+    }
+
+    pub fn adjust_burn(
+        current_burn: u64,
+        registrations_this_interval: u16,
+        target_registrations_interval: u16,
+    ) -> u64 {
+        let updated_burn: I110F18 = I110F18::from_num(current_burn)
+            * I110F18::from_num(registrations_this_interval + target_registrations_interval)
+            / I110F18::from_num(
+                target_registrations_interval + target_registrations_interval,
+            );
+        let alpha: I110F18 =
+            I110F18::from_num(Self::get_adjustment_alpha()) / I110F18::from_num(u64::MAX);
+        let next_value: I110F18 = alpha * I110F18::from_num(current_burn)
+            + (I110F18::from_num(1.0) - alpha) * updated_burn;
+        if next_value >= I110F18::from_num(Self::get_max_burn()) {
+            return Self::get_max_burn();
+        } else if next_value <= I110F18::from_num(Self::get_min_burn()) {
+            return Self::get_min_burn();
+        } else {
+            return next_value.to_num::<u64>();
+        }
     }
 }
