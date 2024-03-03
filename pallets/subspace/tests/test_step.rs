@@ -26,8 +26,8 @@ fn check_network_stats(netuid: u16) {
     println!("dividends: {:?}", dividends);
 
     assert!(
-        total_emissions >= subnet_emission - emission_buffer ||
-            total_emissions <= subnet_emission + emission_buffer
+        total_emissions >= subnet_emission - emission_buffer
+            || total_emissions <= subnet_emission + emission_buffer
     );
 }
 
@@ -139,8 +139,8 @@ fn test_dividends_same_stake() {
             let error_delta: u64 = (emissions[uid] as f64 * 0.001) as u64;
 
             assert!(
-                stake_difference < expected_stake_difference + error_delta &&
-                    stake_difference > expected_stake_difference - error_delta,
+                stake_difference < expected_stake_difference + error_delta
+                    && stake_difference > expected_stake_difference - error_delta,
                 "stake_difference: {} != expected_stake_difference: {}",
                 stake_difference,
                 expected_stake_difference
@@ -230,8 +230,8 @@ fn test_dividends_diff_stake() {
             let error_delta: u64 = (emissions[uid] as f64 * 0.001) as u64;
 
             assert!(
-                stake_difference < expected_stake_difference + error_delta &&
-                    stake_difference > expected_stake_difference - error_delta,
+                stake_difference < expected_stake_difference + error_delta
+                    && stake_difference > expected_stake_difference - error_delta,
                 "stake_difference: {} != expected_stake_difference: {}",
                 stake_difference,
                 expected_stake_difference
@@ -870,11 +870,11 @@ fn test_founder_share() {
         println!("total_dividends: {:?}", total_dividends);
         println!("total_incentives: {:?}", total_incentives);
         let expected_emission_after_founder_share = expected_emission - expected_founder_share;
-        let founder_dividend_emission = ((dividends[0] as f64 / total_dividends as f64) *
-            (expected_emission_after_founder_share / 2) as f64)
+        let founder_dividend_emission = ((dividends[0] as f64 / total_dividends as f64)
+            * (expected_emission_after_founder_share / 2) as f64)
             as u64;
-        let founder_incentive_emission = ((incentives[0] as f64 / total_incentives as f64) *
-            (expected_emission_after_founder_share / 2) as f64)
+        let founder_incentive_emission = ((incentives[0] as f64 / total_incentives as f64)
+            * (expected_emission_after_founder_share / 2) as f64)
             as u64;
         let founder_emission = founder_incentive_emission + founder_dividend_emission;
 
@@ -884,9 +884,9 @@ fn test_founder_share() {
         println!("founder_emission FAM: {:?}", founder_emission);
         let calcualted_total_emission = emissions.iter().sum::<u64>();
 
-        let calculated_founder_share = SubspaceModule::get_stake_for_key(netuid, &founder_key) -
-            founder_stake_before -
-            founder_emission;
+        let calculated_founder_share = SubspaceModule::get_stake_for_key(netuid, &founder_key)
+            - founder_stake_before
+            - founder_emission;
         let delta: u64 = 100000;
 
         println!("expected_emission: {:?}", expected_emission);
@@ -916,6 +916,77 @@ fn test_founder_share() {
             "expected_founder_share: {} != calculated_founder_share: {}",
             expected_founder_share,
             calculated_founder_share
+        );
+    });
+}
+
+#[test]
+fn test_dynamic_burn() {
+    new_test_ext().execute_with(|| {
+        // Using the default GlobalParameters:
+        // - registration target interval =  2 * tempo (200 blocks)
+        // - registration target for interval = registration_target_interval / 2
+        // - adjustment alpha = 0
+        // - min_burn = 2 $COMAI
+        // - max_burn = 250 $COMAI
+
+        let token_amount = 100_000_000;
+        let netuid = 0;
+        // first register 1000 modules (10 * the default registration target interval)
+        // this is 5 modules per block
+        let n: usize = 1000;
+        // second registration wave registers just 50 modules
+        let n2: usize = 50;
+        let initial_stake: u64 = 1000;
+        let keys: Vec<U256> = (0..n).map(U256::from).collect();
+        let keys2: Vec<U256> = (n + 1..n + 1 + n2).map(U256::from).collect();
+        let stakes: Vec<u64> = (0..n).map(|_x: usize| initial_stake * 1_000_000_000).collect();
+
+        // make sure we are starting with no burn
+        assert!(
+            SubspaceModule::get_burn() == 0,
+            "start burn: {:?}",
+            SubspaceModule::get_burn()
+        );
+
+        // step 2 epochs to wait for the burn to get updated to the min_burn
+
+        step_block(200);
+
+        assert!(
+            SubspaceModule::get_burn() == SubspaceModule::get_min_burn(),
+            "current burn: {:?}",
+            SubspaceModule::get_burn()
+        );
+
+        // register the first 1000 modules, this 10x the registration target
+        let registrations_per_block = 5;
+        for i in 0..n {
+            assert_ok!(register_module(netuid, keys[i], stakes[i]));
+            if (i + 1) % registrations_per_block == 0 {
+                step_block(1);
+            }
+        }
+
+        // burn is now at 11 instead of 2
+        assert!(
+            SubspaceModule::get_burn() == 11 * token_amount,
+            "current burn: {:?}",
+            SubspaceModule::get_burn()
+        );
+
+        // register only half of the target
+        for i in 0..n2 {
+            assert_ok!(register_module(netuid, keys2[i], stakes[i]));
+        }
+
+        step_block(200);
+
+        // make sure the burn correctly decreased base on demand
+        assert!(
+            SubspaceModule::get_burn() == 825000000,
+            "current burn: {:?}",
+            SubspaceModule::get_burn()
         );
     });
 }

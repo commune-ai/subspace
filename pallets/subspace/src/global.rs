@@ -14,6 +14,7 @@ impl<T: Config> Pallet<T> {
             max_allowed_modules: Self::get_max_allowed_modules(),
             max_registrations_per_block: Self::get_max_registrations_per_block(),
             target_registrations_interval: Self::get_target_registrations_interval(),
+            target_registrations_per_interval: Self::get_target_registrations_per_interval(),
             unit_emission: Self::get_unit_emission(),
             tx_rate_limit: Self::get_tx_rate_limit(),
             vote_threshold: Self::get_global_vote_threshold(),
@@ -83,6 +84,8 @@ impl<T: Config> Pallet<T> {
         Self::set_global_max_allowed_subnets(params.max_allowed_subnets);
         Self::set_max_allowed_modules(params.max_allowed_modules);
         Self::set_max_registrations_per_block(params.max_registrations_per_block);
+        Self::set_target_registrations_interval(params.target_registrations_interval);
+        Self::set_target_registrations_per_interval(params.target_registrations_per_interval);
         Self::set_adjustment_alpha(params.adjustment_alpha);
         Self::set_unit_emission(params.unit_emission);
         Self::set_tx_rate_limit(params.tx_rate_limit);
@@ -175,10 +178,10 @@ impl<T: Config> Pallet<T> {
         MaxRegistrationsPerBlock::<T>::set(max_registrations_per_block);
     }
     pub fn get_target_registrations_interval() -> u16 {
-        TargetRegistrationsPerInterval::<T>::get()
+        TargetRegistrationsInterval::<T>::get()
     }
     pub fn set_target_registrations_interval(target_registrations_interval: u16) {
-        TargetRegistrationsPerInterval::<T>::set(target_registrations_interval);
+        TargetRegistrationsInterval::<T>::set(target_registrations_interval);
     }
     pub fn get_global_max_name_length() -> u16 {
         MaxNameLength::<T>::get()

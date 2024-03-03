@@ -124,7 +124,9 @@ impl<T: Config> Pallet<T> {
             Error::<T>::StillRegistered
         );
 
-        // --- 5. Ok and done.
+        // --- Deposit successful event.
+        Self::deposit_event(Event::ModuleDeregistered(netuid, uid, key));
+        // --- 3. Ok and done.
         Ok(())
     }
 
