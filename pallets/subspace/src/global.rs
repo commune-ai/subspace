@@ -1,5 +1,5 @@
 use crate::voting::AUTHORITY_MODE;
-// TODO, deposit events on sets
+// TODO: deposit events on sets
 
 use super::*;
 use frame_support::pallet_prelude::DispatchResult;
@@ -27,7 +27,6 @@ impl<T: Config> Pallet<T> {
             min_stake: Self::get_min_stake_global(),
             min_weight_stake: Self::get_min_weight_stake(),
             max_allowed_weights: Self::get_max_allowed_weights_global(),
-            
         }
     }
 
@@ -99,16 +98,15 @@ impl<T: Config> Pallet<T> {
         Self::set_min_stake_global(params.min_stake);
     }
 
-
-    pub fn get_registrations_this_interval() -> u16{
+    pub fn get_registrations_this_interval() -> u16 {
         RegistrationsThisInterval::<T>::get()
     }
 
-    pub fn get_target_registrations_per_interval() -> u16{
+    pub fn get_target_registrations_per_interval() -> u16 {
         TargetRegistrationsPerInterval::<T>::get()
     }
 
-    pub fn set_target_registrations_per_interval(target_interval: u16){
+    pub fn set_target_registrations_per_interval(target_interval: u16) {
         TargetRegistrationsPerInterval::<T>::set(target_interval)
     }
 
@@ -120,10 +118,6 @@ impl<T: Config> Pallet<T> {
     }
 
     pub fn get_max_allowed_weights_global() -> u16 {
-        MaxAllowedWeightsGlobal::<T>::get()
-    }
-
-    pub fn set_max_allowed_weights_global() -> u16 {
         MaxAllowedWeightsGlobal::<T>::get()
     }
 
@@ -149,7 +143,7 @@ impl<T: Config> Pallet<T> {
         Burn::<T>::get()
     }
 
-    pub fn set_burn(burn: u64){
+    pub fn set_burn(burn: u64) {
         Burn::<T>::set(burn)
     }
 
@@ -230,15 +224,15 @@ impl<T: Config> Pallet<T> {
     }
 
     pub fn get_min_burn() -> u64 {
-        MinBurn::<T>::get().into()
+        MinBurn::<T>::get()
     }
-    
+
     pub fn set_min_burn(min_burn: u64) {
         MinBurn::<T>::put(min_burn);
     }
-    
+
     pub fn get_max_burn() -> u64 {
-        MaxBurn::<T>::get().into()
+        MaxBurn::<T>::get()
     }
 
     pub fn set_max_burn(max_burn: u64) {
@@ -246,20 +240,10 @@ impl<T: Config> Pallet<T> {
     }
 
     pub fn get_adjustment_alpha() -> u64 {
-        AdjustmentAlpha::<T>::get().into()
+        AdjustmentAlpha::<T>::get()
     }
 
     pub fn set_adjustment_alpha(adjustment_alpha: u64) {
         AdjustmentAlpha::<T>::put(adjustment_alpha);
-    }
-
-    // ========================
-    // ==== Rate Limiting =====
-    // ========================
-    pub fn get_last_tx_block(key: &T::AccountId) -> u64 {
-        LastTxBlock::<T>::get(key)
-    }
-    pub fn set_last_tx_block(key: &T::AccountId, last_tx_block: u64) {
-        LastTxBlock::<T>::insert(key, last_tx_block)
     }
 }

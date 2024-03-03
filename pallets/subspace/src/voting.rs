@@ -9,9 +9,15 @@ pub const AUTHORITY_MODE: &[u8] = b"authority";
 impl<T: Config> Pallet<T> {
     pub fn do_unregister_voter(origin: T::RuntimeOrigin) -> DispatchResult {
         let key = ensure_signed(origin)?;
-        ensure!(Self::is_voter_registered(&key), Error::<T>::VoterIsNotRegistered);
+        ensure!(
+            Self::is_voter_registered(&key),
+            Error::<T>::VoterIsNotRegistered
+        );
         Self::unregister_voter(&key);
-        ensure!(!Self::is_voter_registered(&key), Error::<T>::VoterIsRegistered);
+        ensure!(
+            !Self::is_voter_registered(&key),
+            Error::<T>::VoterIsRegistered
+        );
         Ok(())
     }
 
@@ -89,20 +95,19 @@ impl<T: Config> Pallet<T> {
         Ok(())
     }
 
+    #[cfg(debug_assertions)]
     pub fn num_subnet_proposals(netuid: u16) -> u64 {
         let subnet_proposals = Self::get_subnet_proposals(netuid);
         subnet_proposals.len() as u64
     }
 
-    pub fn is_proposal_participant(key: &T::AccountId, proposal_id: u64) -> bool {
-        let proposal: Proposal<T> = Proposals::<T>::get(proposal_id);
-        proposal.participants.contains(key)
-    }
-
     pub fn do_vote_proposal(origin: T::RuntimeOrigin, proposal_id: u64) -> DispatchResult {
         let key = ensure_signed(origin)?;
 
-        ensure!(Self::proposal_exists(proposal_id), Error::<T>::ProposalDoesNotExist);
+        ensure!(
+            Self::proposal_exists(proposal_id),
+            Error::<T>::ProposalDoesNotExist
+        );
 
         // if you vote the proposal on a subnet, you are no longer a participant
 
@@ -143,7 +148,7 @@ impl<T: Config> Pallet<T> {
         let mut next_proposal_id: u64 = 0;
         // add proposal id until it is not in the map
         while Self::proposal_exists(next_proposal_id) {
-            next_proposal_id = next_proposal_id + 1;
+            next_proposal_id += 1;
         }
         next_proposal_id
     }
@@ -163,7 +168,7 @@ impl<T: Config> Pallet<T> {
                 if proposal.accepted || proposal.votes == 0 {
                     least_votes = 0;
                     least_voted_proposal_id = proposal_id;
-                    break
+                    break;
                 }
 
                 if proposal.votes < least_votes {
@@ -172,7 +177,10 @@ impl<T: Config> Pallet<T> {
                 }
             }
 
-            ensure!(proposal.votes > least_votes, Error::<T>::TooFewVotesForNewProposal);
+            ensure!(
+                proposal.votes > least_votes,
+                Error::<T>::TooFewVotesForNewProposal
+            );
 
             // remove proposal participants
             let proposal = Proposals::<T>::get(least_voted_proposal_id);
@@ -192,9 +200,12 @@ impl<T: Config> Pallet<T> {
                 Self::check_subnet_params(proposal.subnet_params.clone())?;
                 //  check if vote mode is valid
                 let subnet_params: SubnetParams<T> = Self::subnet_params(proposal.netuid);
-                ensure!(subnet_params.vote_mode == STAKE_MODE, Error::<T>::InvalidVoteMode);
-            },
-            _ => ensure!(proposal.data.len() > 0, Error::<T>::InvalidProposalData),
+                ensure!(
+                    subnet_params.vote_mode == STAKE_MODE,
+                    Error::<T>::InvalidVoteMode
+                );
+            }
+            _ => ensure!(!proposal.data.is_empty(), Error::<T>::InvalidProposalData),
         }
 
         // check if proposal is valid
@@ -203,13 +214,14 @@ impl<T: Config> Pallet<T> {
         Ok(())
     }
 
+    #[cfg(debug_assertions)]
     pub fn is_proposal_owner(
         // check if the key is the owner of the proposal
         key: &T::AccountId,
         proposal_id: u64,
     ) -> bool {
         let proposal: Proposal<T> = Proposals::<T>::get(proposal_id);
-        if proposal.participants.len() == 0 {
+        if proposal.participants.is_empty() {
             return false;
         }
         proposal.participants[0] == *key
@@ -238,7 +250,7 @@ impl<T: Config> Pallet<T> {
         proposal.votes = proposal.votes.saturating_sub(voter_info.votes);
 
         // remove proposal if there are no participants
-        if proposal.participants.len() == 0 || proposal.votes == 0 {
+        if proposal.participants.is_empty() || proposal.votes == 0 {
             // remove proposal if there are no participants
             Proposals::<T>::remove(voter_info.proposal_id);
         } else {
@@ -305,6 +317,7 @@ impl<T: Config> Pallet<T> {
         }
     }
 
+    #[cfg(debug_assertions)]
     pub fn get_subnet_proposals(netuid: u16) -> Vec<Proposal<T>> {
         let mut proposals: Vec<Proposal<T>> = Vec::new();
         for proposal in Proposals::<T>::iter_values() {
@@ -315,6 +328,7 @@ impl<T: Config> Pallet<T> {
         proposals
     }
 
+    #[cfg(debug_assertions)]
     pub fn get_global_proposals() -> Vec<Proposal<T>> {
         let mut proposals: Vec<Proposal<T>> = Vec::new();
         for proposal in Proposals::<T>::iter_values() {
@@ -325,6 +339,7 @@ impl<T: Config> Pallet<T> {
         proposals
     }
 
+    #[cfg(debug_assertions)]
     pub fn num_global_proposals() -> u64 {
         let global_proposals = Self::get_global_proposals();
         global_proposals.len() as u64
@@ -332,11 +347,5 @@ impl<T: Config> Pallet<T> {
 
     pub fn proposal_exists(proposal_id: u64) -> bool {
         Proposals::<T>::contains_key(proposal_id)
-    }
-
-    pub fn is_vote_available(key: &T::AccountId, proposal_id: u64) -> bool {
-        let proposal: Proposal<T> = Proposals::<T>::get(proposal_id);
-        let is_vote_available: bool = !proposal.participants.contains(key) && !proposal.accepted;
-        is_vote_available
     }
 }

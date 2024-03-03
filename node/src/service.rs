@@ -213,8 +213,11 @@ pub fn new_full(config: Configuration) -> Result<TaskManager, ServiceError> {
         let pool = transaction_pool.clone();
 
         Box::new(move |deny_unsafe, _| {
-            let deps =
-                crate::rpc::FullDeps { client: client.clone(), pool: pool.clone(), deny_unsafe };
+            let deps = crate::rpc::FullDeps {
+                client: client.clone(),
+                pool: pool.clone(),
+                deny_unsafe,
+            };
             crate::rpc::create_full(deps).map_err(Into::into)
         })
     };
@@ -285,7 +288,11 @@ pub fn new_full(config: Configuration) -> Result<TaskManager, ServiceError> {
     if enable_grandpa {
         // if the node isn't actively participating in consensus then it doesn't
         // need a keystore, regardless of which protocol we use below.
-        let keystore = if role.is_authority() { Some(keystore_container.keystore()) } else { None };
+        let keystore = if role.is_authority() {
+            Some(keystore_container.keystore())
+        } else {
+            None
+        };
 
         let grandpa_config = sc_consensus_grandpa::Config {
             // FIXME #1578 make this available through chainspec

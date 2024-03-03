@@ -20,31 +20,28 @@ fn localnet_run(mut r: flags::Run) {
                 r.bootnodes.push(BOB_NODE.bootnode_uri(Ipv4Addr::LOCALHOST.into()));
             }
             (ALICE_NODE.clone(), ALICE_ACCOUNT.clone())
-        },
+        }
         (false, true) => {
             if r.bootnodes.is_empty() {
                 r.bootnodes.push(ALICE_NODE.bootnode_uri(Ipv4Addr::LOCALHOST.into()));
             }
             (BOB_NODE.clone(), BOB_ACCOUNT.clone())
-        },
+        }
         (false, false) => (Node::default(), Account::default()),
         _ => panic!("select only one of: --alice, --bob"),
     };
 
-    if let Some(node_name) = r.node_name {
-        node.name = Some(node_name.into());
-    }
-    if let Some(node_validator) = r.node_validator {
-        node.validator = node_validator;
-    }
+    node.name = r.node_name.map(Into::into).or(node.name);
+    node.validator = r.node_validator.unwrap_or(node.validator);
+    node.tcp_port = r.tcp_port.unwrap_or(node.tcp_port);
+    node.rpc_port = r.rpc_port.unwrap_or(node.rpc_port);
     if let Some(node_key) = r.node_key {
         let node_id = ops::key_inspect_node_cmd(&node_key);
         node.key = Some(node_key.into());
         node.id = Some(node_id.into());
     }
-    if let Some(account_suri) = r.account_suri {
-        account.suri = account_suri.into();
-    }
+
+    account.suri = r.account_suri.map(Into::into).unwrap_or(account.suri);
 
     let path = r.path.unwrap_or_else(|| {
         tempfile::Builder::new()
@@ -58,12 +55,15 @@ fn localnet_run(mut r: flags::Run) {
     match (path.exists(), path.is_dir()) {
         (true, false) => panic!("provided path must be a directory"),
         (false, false) => std::fs::create_dir(&path).unwrap(),
-        _ => {},
+        _ => {}
     }
 
     let chain_path = r
         .chain_spec
         .unwrap_or_else(|| std::env::current_dir().unwrap().join("spec.json"));
+    if !chain_path.exists() {
+        panic!("Missing spec.json file. Define it with --chain-spec path/to/spec.json");
+    }
 
     ops::key_insert_cmd(&path, &chain_path, &account.suri, "aura");
     ops::key_insert_cmd(&path, &chain_path, &account.suri, "gran");
@@ -118,8 +118,12 @@ struct Account<'a> {
 
 static ALICE_NODE: Node<'static> = Node {
     name: Some(Cow::Borrowed("Alice")),
-    id: Some(Cow::Borrowed("12D3KooWBorpca6RKiebVjeFJA5o9iVWnZpg98yQbYqRC6f8CnLw")),
-    key: Some(Cow::Borrowed("2756181a3b9bca683a35b51a0a5d75ee536738680bcb9066c68be1db305a1ac5")),
+    id: Some(Cow::Borrowed(
+        "12D3KooWBorpca6RKiebVjeFJA5o9iVWnZpg98yQbYqRC6f8CnLw",
+    )),
+    key: Some(Cow::Borrowed(
+        "2756181a3b9bca683a35b51a0a5d75ee536738680bcb9066c68be1db305a1ac5",
+    )),
     tcp_port: 30341,
     rpc_port: 9951,
     validator: true,
@@ -134,8 +138,12 @@ static ALICE_ACCOUNT: Account<'static> = Account {
 
 static BOB_NODE: Node<'static> = Node {
     name: Some(Cow::Borrowed("Bob")),
-    id: Some(Cow::Borrowed("12D3KooWQh3CeSp2rpUVvPb6jqvmHVCUieoZmKbkUhZ8rPR77vmA")),
-    key: Some(Cow::Borrowed("e83fa0787cb280d95c666ead866a2a4bc1ee1e36faa1ed06623595eb3f474681")),
+    id: Some(Cow::Borrowed(
+        "12D3KooWQh3CeSp2rpUVvPb6jqvmHVCUieoZmKbkUhZ8rPR77vmA",
+    )),
+    key: Some(Cow::Borrowed(
+        "e83fa0787cb280d95c666ead866a2a4bc1ee1e36faa1ed06623595eb3f474681",
+    )),
     tcp_port: 30342,
     rpc_port: 9952,
     validator: true,
@@ -157,26 +165,34 @@ mod ops {
         process::{Command, Stdio},
     };
 
-    pub fn base_node_run_cmd() -> Command {
-        let mut cmd = Command::new("cargo");
-        cmd.args(["run", "--release", "--package", "node-subspace", "--"]);
-        cmd
+    macro_rules! node_subspace {
+        ($($arg:expr),*) => {{
+            let mut cmd = Command::new("cargo");
+            cmd.args(["run", "--release", "--package", "node-subspace", "--"]);
+            $(cmd.arg($arg);)*
+            cmd
+        }};
     }
 
     pub fn build_chain_spec(chain_spec: &str) -> Command {
-        let mut cmd = base_node_run_cmd();
-        cmd.args(["build-spec", "--raw"])
-            .args(["--chain", chain_spec])
-            .arg("--disable-default-bootnode");
-        cmd
+        node_subspace!(
+            "build-spec",
+            "--raw",
+            "--chain",
+            chain_spec,
+            "--disable-default-bootnode"
+        )
     }
 
     pub fn key_generate() -> Command {
-        let mut cmd = base_node_run_cmd();
-        cmd.args(["key", "generate"])
-            .args(["--scheme", "sr25519"])
-            .args(["--output-type", "json"]);
-        cmd
+        node_subspace!(
+            "key",
+            "generate",
+            "--scheme",
+            "sr25519",
+            "--output-type",
+            "json"
+        )
     }
 
     pub fn key_insert_cmd(
@@ -185,36 +201,41 @@ mod ops {
         suri: &str,
         key_type: &str,
     ) {
-        let mut cmd = base_node_run_cmd();
         let scheme = match key_type {
             "aura" => "sr25519",
             "gran" => "ed25519",
             _ => panic!(),
         };
-        cmd.args(["key", "insert"])
-            .args([&"--base-path" as &(dyn AsRef<_>), base_path])
-            .args([&"--chain" as &(dyn AsRef<_>), chain_spec])
-            .args(["--scheme", scheme])
-            .args(["--suri", &suri])
-            .args(["--key-type", key_type])
-            .spawn()
-            .unwrap()
-            .wait()
-            .expect("failed to run key insert");
+
+        #[rustfmt::skip]
+        node_subspace!(
+            "key", "insert",
+            "--base-path", base_path,
+            "--chain", chain_spec,
+            "--scheme", scheme,
+            "--suri", suri,
+            "--key-type", key_type
+        )
+        .spawn()
+        .unwrap()
+        .wait()
+        .expect("failed to run key insert");
     }
 
     pub fn key_inspect_cmd(suri: &str) -> Command {
-        let mut cmd = base_node_run_cmd();
-        cmd.args(["key", "inspect"])
-            .args(["--scheme", "ed25519"])
-            .args(["--output-type", "json"])
-            .arg(suri);
-        cmd
+        node_subspace!(
+            "key",
+            "inspect",
+            "--scheme",
+            "ed25519",
+            "--output-type",
+            "json",
+            suri
+        )
     }
 
     pub fn key_inspect_node_cmd(key: &str) -> String {
-        let mut child = base_node_run_cmd()
-            .args(["key", "inspect-node-key"])
+        let mut child = node_subspace!("key", "inspect-node-key")
             .stdin(Stdio::piped())
             .spawn()
             .expect("failed to inspect node key");
@@ -234,16 +255,20 @@ mod ops {
         node: &Node<'_>,
         bootnodes: &[String],
     ) -> Command {
-        let mut cmd = base_node_run_cmd();
+        #[rustfmt::skip]
+        let mut cmd = node_subspace!(
+            "--base-path", base_path,
+            "--chain", chain_spec,
+            "--unsafe-rpc-external",
+            "--rpc-cors", "all",
+            "--port", node.tcp_port.to_string(),
+            "--rpc-port", node.rpc_port.to_string(),
+            "--force-authoring"
+        );
 
-        cmd.args([&"--base-path" as &(dyn AsRef<_>), base_path])
-            .args([&"--chain" as &(dyn AsRef<_>), chain_spec])
-            .args(["--unsafe-rpc-external", "--rpc-cors", "all"])
-            .args(["--port", &node.tcp_port.to_string()])
-            .args(["--rpc-port", &node.rpc_port.to_string()])
-            .arg("--bootnodes")
-            .args(bootnodes)
-            .args(["--force-authoring"]);
+        if !bootnodes.is_empty() {
+            cmd.arg("--bootnodes").args(bootnodes);
+        }
 
         if node.validator {
             cmd.arg("--validator");
