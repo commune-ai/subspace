@@ -2,26 +2,29 @@ use super::*;
 use crate::math::*;
 use frame_support::storage::{IterableStorageDoubleMap, IterableStorageMap};
 use sp_std::vec;
-use substrate_fixed::types::{I32F32, I64F64};
-use substrate_fixed::types::I110F18;
+use substrate_fixed::types::{I110F18, I32F32, I64F64};
 
 impl<T: Config> Pallet<T> {
     pub fn block_step() {
         let block_number: u64 = Self::get_current_block_as_u64();
         RegistrationsPerBlock::<T>::mutate(|val| *val = 0);
-        
-        let registration_interval = Self::get_registrations_this_interval();
-        if block_number % u64::from(registration_interval) == 0 {
-            RegistrationsThisInterval::<T>::mutate(|val| *val = 0);
-        }
+
+        let registration_this_interval = Self::get_registrations_this_interval();
+
+        // adjust registrations parameters
+        Self::adjust_registration(block_number, registration_this_interval);
 
         log::debug!("block_step for block: {:?} ", block_number);
         for (netuid, tempo) in <Tempo<T> as IterableStorageMap<u16, u16>>::iter() {
             let new_queued_emission: u64 = Self::calculate_network_emission(netuid);
             PendingEmission::<T>::mutate(netuid, |queued| *queued += new_queued_emission);
-            log::debug!("netuid_i: {:?} queued_emission: +{:?} ", netuid, new_queued_emission);
+            log::debug!(
+                "netuid_i: {:?} queued_emission: +{:?} ",
+                netuid,
+                new_queued_emission
+            );
             if Self::blocks_until_next_epoch(netuid, tempo, block_number) > 0 {
-                continue
+                continue;
             }
             let emission_to_drain: u64 = PendingEmission::<T>::get(netuid).clone();
             Self::epoch(netuid, emission_to_drain);
@@ -41,7 +44,7 @@ impl<T: Config> Pallet<T> {
 
         if n == 0 {
             //
-            return
+            return;
         }
 
         // FOUNDER DIVIDENDS
@@ -117,8 +120,8 @@ impl<T: Config> Pallet<T> {
                     if (pos as u16) <= subnet_params.max_allowed_weights && *uid_j < n {
                         // okay , we passed the positioonal check, now check the weight
                         let weight_f64 = I64F64::from_num(*weight_ij) / I64F64::from_num(u16::MAX);
-                        let weight_stake = (stake_f64[uid_i as usize] * weight_f64) *
-                            I64F64::from_num(total_stake_u64);
+                        let weight_stake = (stake_f64[uid_i as usize] * weight_f64)
+                            * I64F64::from_num(total_stake_u64);
                         if weight_stake > min_weight_stake_f64 {
                             weights[uid_i as usize].push((*uid_j, *weight_ij));
                         } else {
@@ -345,7 +348,7 @@ impl<T: Config> Pallet<T> {
                 let total_owner_dividends_emission: u64 = owner_dividends_emission;
                 for (delegate_key, delegate_ratio) in ownership_vector.iter() {
                     if delegate_key == module_key {
-                        continue
+                        continue;
                     }
 
                     let dividends_from_delegate: u64 =
@@ -402,7 +405,7 @@ impl<T: Config> Pallet<T> {
 
     pub fn blocks_until_next_epoch(netuid: u16, tempo: u16, block_number: u64) -> u64 {
         if tempo == 0 {
-            return 0
+            return 0;
         }
         (block_number + netuid as u64) % (tempo as u64)
     }
@@ -463,35 +466,38 @@ impl<T: Config> Pallet<T> {
         let mut burn_amount_per_epoch: u64 = 0;
         // get the float and convert to u64token_emission
         if burn_rate > 0 {
-            let burn_rate_float: I64F64 = (I64F64::from_num(burn_rate) / I64F64::from_num(100)) *
-                (I64F64::from_num(token_emission) / I64F64::from_num(n));
+            let burn_rate_float: I64F64 = (I64F64::from_num(burn_rate) / I64F64::from_num(100))
+                * (I64F64::from_num(token_emission) / I64F64::from_num(n));
             burn_amount_per_epoch = burn_rate_float.to_num::<u64>();
         }
         burn_amount_per_epoch
     }
 
-    pub fn adjust_registration() {
-        let registrations_this_interval: u16 = Self::get_registrations_this_interval();
-        let target_registrations_this_interval: u16 = Self::get_target_registrations_per_interval();
-        let current_burn = Self::get_burn();
-        
-        Self::set_burn(Self::adjust_burn(
-            current_burn,
-            registrations_this_interval,
-            target_registrations_this_interval,
-        ));
-            
+    pub fn adjust_registration(block_number: u64, registrations_this_interval: u16) {
+        let target_registrations_interval = Self::get_target_registrations_interval();
+        if block_number % u64::from(target_registrations_interval) == 0 {
+            let current_burn = Self::get_burn();
+            let target_registrations_per_interval = Self::get_target_registrations_per_interval();
+
+            Self::set_burn(Self::adjust_burn(
+                current_burn,
+                registrations_this_interval,
+                target_registrations_per_interval,
+            ));
+
+            RegistrationsThisInterval::<T>::mutate(|val| *val = 0);
+        }
     }
 
     pub fn adjust_burn(
         current_burn: u64,
         registrations_this_interval: u16,
-        target_registrations_interval: u16,
+        target_registrations_per_interval: u16,
     ) -> u64 {
         let updated_burn: I110F18 = I110F18::from_num(current_burn)
-            * I110F18::from_num(registrations_this_interval + target_registrations_interval)
+            * I110F18::from_num(registrations_this_interval + target_registrations_per_interval)
             / I110F18::from_num(
-                target_registrations_interval + target_registrations_interval,
+                target_registrations_per_interval + target_registrations_per_interval,
             );
         let alpha: I110F18 =
             I110F18::from_num(Self::get_adjustment_alpha()) / I110F18::from_num(u64::MAX);
