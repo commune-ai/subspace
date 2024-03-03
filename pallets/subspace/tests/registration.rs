@@ -94,7 +94,7 @@ fn test_delegate_register() {
         let stake_amount: u64 = 10_000_000_000;
         SubspaceModule::add_balance_to_account(&key, stake_amount * n as u64);
         for module_key in module_keys {
-            delegate_register_module(netuid, key, module_key, stake_amount);
+            let _ = delegate_register_module(netuid, key, module_key, stake_amount);
             let key_balance = SubspaceModule::get_balance_u64(&key);
             let stake_to_module = SubspaceModule::get_stake_to_module(netuid, &key, &module_key);
             println!("key_balance: {:?}", key_balance);
