@@ -12,8 +12,11 @@ impl<T: Config> Pallet<T> {
         let key = ensure_signed(origin)?;
 
         // needs to be registered as a network
-        ensure!(Self::is_key_registered_on_any_network(&key), Error::<T>::NotRegistered);
-        assert!(keys.len() > 0);
+        ensure!(
+            Self::is_key_registered_on_any_network(&key),
+            Error::<T>::NotRegistered
+        );
+        assert!(!keys.is_empty());
         assert!(keys.len() == shares.len()); // make sure the keys and shares are the same length
 
         // make sure the keys are unique and the shares are unique
@@ -22,11 +25,9 @@ impl<T: Config> Pallet<T> {
         assert!(total_shares > 0);
         let mut normalized_shares_float: Vec<I64F64> = Vec::new();
         // normalize shares
-        let mut total_normalized_length: u32 = 0;
         for share in shares.iter() {
             let normalized_share =
                 (I64F64::from(*share) / I64F64::from(total_shares as u16)) * I64F64::from(u16::MAX);
-            total_normalized_length = total_normalized_length + normalized_share.to_num::<u32>();
             normalized_shares_float.push(normalized_share);
         }
         // make sure the normalized shares add up to the unit
@@ -41,7 +42,7 @@ impl<T: Config> Pallet<T> {
             let diff = u16::MAX - total_normalized_shares;
             for i in 0..diff {
                 let idx = (i % normalize_shares.len() as u16) as usize;
-                normalize_shares[idx] = normalize_shares[idx] + 1;
+                normalize_shares[idx] += 1;
             }
             total_normalized_shares = normalize_shares.iter().sum::<u16>();
         }
@@ -83,6 +84,7 @@ impl<T: Config> Pallet<T> {
         emission_shares
     }
 
+    #[cfg(debug_assertions)]
     pub fn get_profit_shares(key: T::AccountId) -> Vec<(T::AccountId, u16)> {
         ProfitShares::<T>::get(&key)
     }

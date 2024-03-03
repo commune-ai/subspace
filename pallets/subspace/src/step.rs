@@ -26,7 +26,7 @@ impl<T: Config> Pallet<T> {
             if Self::blocks_until_next_epoch(netuid, tempo, block_number) > 0 {
                 continue;
             }
-            let emission_to_drain: u64 = PendingEmission::<T>::get(netuid).clone();
+            let emission_to_drain: u64 = PendingEmission::<T>::get(netuid);
             Self::epoch(netuid, emission_to_drain);
             PendingEmission::<T>::insert(netuid, 0);
         }
@@ -69,7 +69,7 @@ impl<T: Config> Pallet<T> {
 
         let uid_key_tuples: Vec<(u16, T::AccountId)> = Self::get_uid_key_tuples(netuid);
         let _stake_64: Vec<I64F64> = vec![I64F64::from_num(0.0); n as usize];
-        let mut total_stake_u64: u64 = Self::get_total_subnet_stake(netuid).clone();
+        let mut total_stake_u64: u64 = Self::get_total_subnet_stake(netuid);
         if total_stake_u64 == 0 {
             total_stake_u64 = 1;
         }
@@ -83,10 +83,9 @@ impl<T: Config> Pallet<T> {
         // clip it to the max stake
         let stake_f64: Vec<I64F64> = stake_u64
             .iter()
-            .map(|x| I64F64::from_num(x.clone()) / I64F64::from_num(total_stake_u64))
+            .map(|x| I64F64::from_num(*x) / I64F64::from_num(total_stake_u64))
             .collect();
-        let mut stake: Vec<I32F32> =
-            stake_f64.iter().map(|x| I32F32::from_num(x.clone())).collect();
+        let mut stake: Vec<I32F32> = stake_f64.iter().map(|x| I32F32::from_num(*x)).collect();
         // Normalize active stake.
         inplace_normalize(&mut stake);
 
@@ -233,7 +232,7 @@ impl<T: Config> Pallet<T> {
         // sum the votes per module
         for sparse_row in bonds.iter_mut() {
             for (j, value) in sparse_row.iter_mut() {
-                if col_sum[*j as usize] > I32F32::from_num(0.0 as f32) {
+                if col_sum[*j as usize] > I32F32::from_num(0.0f32) {
                     *value /= col_sum[*j as usize];
                 }
             }
@@ -272,16 +271,12 @@ impl<T: Config> Pallet<T> {
         let incentive_emission_float: Vec<I64F64> = incentive
             .clone()
             .iter()
-            .map(|x| {
-                I64F64::from_num(x.clone()) * I64F64::from_num(token_emission) * incentive_ratio
-            })
+            .map(|x| I64F64::from_num(*x) * I64F64::from_num(token_emission) * incentive_ratio)
             .collect();
         let dividends_emission_float: Vec<I64F64> = dividends
             .clone()
             .iter()
-            .map(|x| {
-                I64F64::from_num(x.clone()) * I64F64::from_num(token_emission) * dividend_ratio
-            })
+            .map(|x| I64F64::from_num(*x) * I64F64::from_num(token_emission) * dividend_ratio)
             .collect();
 
         let mut incentive_emission: Vec<u64> =
@@ -369,7 +364,7 @@ impl<T: Config> Pallet<T> {
                     Self::get_profit_share_emissions(module_key.clone(), owner_emission);
 
                 // if there are profit shares, then increase the balance of the profit share key
-                if profit_share_emissions.len() > 0 {
+                if !profit_share_emissions.is_empty() {
                     // if there are profit shares, then increase the balance of the profit share
                     // key
                     for (profit_share_key, profit_share_emission) in profit_share_emissions.iter() {
@@ -392,14 +387,17 @@ impl<T: Config> Pallet<T> {
     }
 
     pub fn get_block_at_registration(netuid: u16) -> Vec<u64> {
-        let n: usize = Self::get_subnet_n(netuid) as usize;
+        let n = Self::get_subnet_n(netuid) as usize;
         let mut block_at_registration: Vec<u64> = vec![0; n];
-        for module_uid in 0..n {
-            if Keys::<T>::contains_key(netuid, module_uid as u16) {
-                block_at_registration[module_uid] =
-                    Self::get_module_registration_block(netuid, module_uid as u16);
+
+        for (module_uid, block) in block_at_registration.iter_mut().enumerate() {
+            let module_uid = module_uid as u16;
+
+            if Keys::<T>::contains_key(netuid, module_uid) {
+                *block = Self::get_module_registration_block(netuid, module_uid);
             }
         }
+
         block_at_registration
     }
 
@@ -408,10 +406,6 @@ impl<T: Config> Pallet<T> {
             return 0;
         }
         (block_number + netuid as u64) % (tempo as u64)
-    }
-
-    pub fn get_ownership_ratios_for_uid(netuid: u16, uid: u16) -> Vec<(T::AccountId, I64F64)> {
-        Self::get_ownership_ratios(netuid, &Self::get_key_for_uid(netuid, uid))
     }
 
     pub fn get_ownership_ratios(
@@ -442,6 +436,7 @@ impl<T: Config> Pallet<T> {
         ownership_vector
     }
 
+    #[cfg(debug_assertions)]
     pub fn get_ownership_ratios_emission(
         netuid: u16,
         module_key: &T::AccountId,
@@ -461,7 +456,7 @@ impl<T: Config> Pallet<T> {
 
     pub fn get_burn_per_epoch(netuid: u16) -> u64 {
         let n = Self::get_subnet_n(netuid);
-        let token_emission: u64 = PendingEmission::<T>::get(netuid).clone();
+        let token_emission: u64 = PendingEmission::<T>::get(netuid);
         let burn_rate: u16 = Self::get_burn_rate().min(100);
         let mut burn_amount_per_epoch: u64 = 0;
         // get the float and convert to u64token_emission
@@ -504,11 +499,11 @@ impl<T: Config> Pallet<T> {
         let next_value: I110F18 = alpha * I110F18::from_num(current_burn)
             + (I110F18::from_num(1.0) - alpha) * updated_burn;
         if next_value >= I110F18::from_num(Self::get_max_burn()) {
-            return Self::get_max_burn();
+            Self::get_max_burn()
         } else if next_value <= I110F18::from_num(Self::get_min_burn()) {
-            return Self::get_min_burn();
+            Self::get_min_burn()
         } else {
-            return next_value.to_num::<u64>();
+            next_value.to_num::<u64>()
         }
     }
 }

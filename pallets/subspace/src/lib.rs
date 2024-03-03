@@ -49,6 +49,13 @@ mod weights;
 
 #[frame_support::pallet]
 pub mod pallet {
+    #![allow(
+        deprecated,
+        clippy::let_unit_value,
+        clippy::too_many_arguments,
+        clippy::type_complexity
+    )]
+
     use super::*;
     use frame_support::{pallet_prelude::*, traits::Currency};
     use frame_system::pallet_prelude::*;
@@ -132,7 +139,7 @@ pub mod pallet {
 
     #[pallet::type_value]
     pub fn DefaultAdjustmentAlpha<T: Config>() -> u64 {
-       0 // u64::MAX / 2
+        0 // u64::MAX / 2
     }
 
     #[pallet::storage] // --- adjusment alpha
@@ -165,12 +172,11 @@ pub mod pallet {
     pub(super) type MaxAllowedSubnets<T: Config> =
         StorageValue<_, u16, ValueQuery, DefaultMaxAllowedSubnets<T>>;
 
-    
     #[pallet::type_value]
     pub fn DefaultRegistrationsThisInterval<T: Config>() -> u16 {
         0
-    }    
-    
+    }
+
     #[pallet::storage] // --- ITEM ( registrations_this_interval )
     pub(super) type RegistrationsThisInterval<T: Config> =
         StorageValue<_, u16, ValueQuery, DefaultRegistrationsThisInterval<T>>;
@@ -181,8 +187,7 @@ pub mod pallet {
     }
 
     #[pallet::storage] // --- ITEM ( burn )
-    pub(super) type Burn<T: Config> =
-        StorageValue<_, u64, ValueQuery, DefaultBurn<T>>;
+    pub(super) type Burn<T: Config> = StorageValue<_, u64, ValueQuery, DefaultBurn<T>>;
 
     #[pallet::type_value]
     pub fn DefaultMaxAllowedModules<T: Config>() -> u16 {
@@ -207,15 +212,15 @@ pub mod pallet {
     #[pallet::storage] // --- ITEM( global_max_registrations_per_block )
     pub type MaxRegistrationsPerBlock<T> =
         StorageValue<_, u16, ValueQuery, DefaultMaxRegistrationsPerBlock<T>>;
-   
+
     #[pallet::type_value]
     pub fn DefaultTargetRegistrationsPerInterval<T: Config>() -> u16 {
         DefaultTargetRegistrationsInterval::<T>::get() / 2
     }
     #[pallet::storage] // --- ITEM( global_target_registrations_interval )
     pub type TargetRegistrationsPerInterval<T> =
-            StorageValue<_, u16, ValueQuery, DefaultTargetRegistrationsPerInterval<T>>;
-    
+        StorageValue<_, u16, ValueQuery, DefaultTargetRegistrationsPerInterval<T>>;
+
     #[pallet::type_value] // --- ITEM( global_target_registrations_interval ) Measured in the number of blocks
     pub fn DefaultTargetRegistrationsInterval<T: Config>() -> u16 {
         DefaultTempo::<T>::get() * 2 // 2 times the epoch
@@ -267,21 +272,22 @@ pub mod pallet {
         pub max_registrations_per_block: u16, // max number of registrations per block
         pub max_allowed_weights: u16,         // max number of weights per module
         pub max_proposals: u64,               // max number of proposals per block
-        
+
         // mins
         pub min_burn: u64,         // min burn required
         pub max_burn: u64,         // max burn allowed
         pub min_stake: u64,        // min stake required
         pub min_weight_stake: u64, // min weight stake required
-        
+
         // other
         pub target_registrations_per_interval: u16, // desired number of registrations per interval
-        pub target_registrations_interval: u16, // the number of blocks that defines the registration interval
+        pub target_registrations_interval: u16,     /* the number of blocks that defines the
+                                                     * registration interval */
         pub adjustment_alpha: u64, // adjustment alpha
-        pub unit_emission: u64,  // emission per block
-        pub tx_rate_limit: u64,  // tx rate limit
-        pub vote_threshold: u16, // out of 100
-        pub vote_mode: Vec<u8>,  // out of 100
+        pub unit_emission: u64,    // emission per block
+        pub tx_rate_limit: u64,    // tx rate limit
+        pub vote_threshold: u16,   // out of 100
+        pub vote_mode: Vec<u8>,    // out of 100
     }
 
     #[pallet::type_value]
@@ -398,8 +404,6 @@ pub mod pallet {
     #[pallet::storage] // --- MAP ( netuid ) --> min_allowed_weights
     pub type MinStake<T> = StorageMap<_, Identity, u16, u64, ValueQuery, DefaultMinStake<T>>;
 
-
-
     #[pallet::type_value]
     pub fn DefaultMaxStake<T: Config>() -> u64 {
         u64::MAX
@@ -483,7 +487,11 @@ pub mod pallet {
 
     #[pallet::type_value]
     pub fn DefaultVoterInfo<T: Config>() -> VoterInfo {
-        VoterInfo { proposal_id: u64::MAX, votes: 0, participant_index: u16::MAX }
+        VoterInfo {
+            proposal_id: u64::MAX,
+            votes: 0,
+            participant_index: u16::MAX,
+        }
     }
     #[pallet::storage] // --- MAP ( netuid ) --> epoch
     pub type Voter2Info<T: Config> =
@@ -1361,17 +1369,17 @@ pub mod pallet {
     impl<T: Config> Pallet<T> {
         // --- Returns the transaction priority for setting weights.
         pub fn get_priority_set_weights(key: &T::AccountId, netuid: u16) -> u64 {
-            if Uids::<T>::contains_key(netuid, &key) {
+            if Uids::<T>::contains_key(netuid, key) {
                 let uid: u16 = Self::get_uid_for_key(netuid, &key.clone());
                 let current_block_number: u64 = Self::get_current_block_as_u64();
-                return current_block_number - Self::get_last_update_for_uid(netuid, uid as u16)
+                return current_block_number - Self::get_last_update_for_uid(netuid, uid);
             }
             0
         }
         // --- Returns the transaction priority for setting weights.
         pub fn get_priority_stake(key: &T::AccountId, netuid: u16) -> u64 {
-            if Uids::<T>::contains_key(netuid, &key) {
-                return Self::get_stake(netuid, key)
+            if Uids::<T>::contains_key(netuid, key) {
+                return Self::get_stake(netuid, key);
             }
             0
         }
@@ -1385,7 +1393,7 @@ pub mod pallet {
     ************************************************************/
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Default)]
 pub enum CallType {
     SetWeights,
     AddStake,
@@ -1399,16 +1407,22 @@ pub enum CallType {
     Register,
     AddNetwork,
     Serve,
+    #[default]
     Other,
-}
-impl Default for CallType {
-    fn default() -> Self {
-        CallType::Other
-    }
 }
 
 #[derive(Encode, Decode, Clone, Eq, PartialEq, TypeInfo)]
 pub struct SubspaceSignedExtension<T: Config + Send + Sync + TypeInfo>(pub PhantomData<T>);
+
+impl<T: Config + Send + Sync + TypeInfo> Default for SubspaceSignedExtension<T>
+where
+    T::RuntimeCall: Dispatchable<Info = DispatchInfo, PostInfo = PostDispatchInfo>,
+    <T as frame_system::Config>::RuntimeCall: IsSubType<Call<T>>,
+{
+    fn default() -> Self {
+        Self::new()
+    }
+}
 
 impl<T: Config + Send + Sync + TypeInfo> SubspaceSignedExtension<T>
 where
@@ -1477,8 +1491,12 @@ where
         match call.is_sub_type() {
             Some(Call::set_weights { netuid, .. }) => {
                 let priority: u64 = Self::get_priority_set_weights(who, *netuid);
-                Ok(ValidTransaction { priority, longevity: 1, ..Default::default() })
-            },
+                Ok(ValidTransaction {
+                    priority,
+                    longevity: 1,
+                    ..Default::default()
+                })
+            }
             Some(Call::add_stake { .. }) => Ok(ValidTransaction {
                 priority: Self::get_priority_vanilla(who),
                 ..Default::default()
@@ -1519,43 +1537,43 @@ where
             Some(Call::add_stake { .. }) => {
                 let transaction_fee = 0;
                 Ok((CallType::AddStake, transaction_fee, who.clone()))
-            },
+            }
             Some(Call::add_stake_multiple { .. }) => {
                 let transaction_fee = 0;
                 Ok((CallType::AddStakeMultiple, transaction_fee, who.clone()))
-            },
+            }
             Some(Call::remove_stake { .. }) => {
                 let transaction_fee = 0;
                 Ok((CallType::RemoveStake, transaction_fee, who.clone()))
-            },
+            }
             Some(Call::remove_stake_multiple { .. }) => {
                 let transaction_fee = 0;
                 Ok((CallType::RemoveStakeMultiple, transaction_fee, who.clone()))
-            },
+            }
             Some(Call::transfer_stake { .. }) => {
                 let transaction_fee = 0;
                 Ok((CallType::TransferStake, transaction_fee, who.clone()))
-            },
+            }
             Some(Call::transfer_multiple { .. }) => {
                 let transaction_fee = 0;
                 Ok((CallType::TransferMultiple, transaction_fee, who.clone()))
-            },
+            }
             Some(Call::set_weights { .. }) => {
                 let transaction_fee = 0;
                 Ok((CallType::SetWeights, transaction_fee, who.clone()))
-            },
+            }
             Some(Call::register { .. }) => {
                 let transaction_fee = 0;
                 Ok((CallType::Register, transaction_fee, who.clone()))
-            },
+            }
             Some(Call::update_module { .. }) => {
                 let transaction_fee = 0;
                 Ok((CallType::Serve, transaction_fee, who.clone()))
-            },
+            }
             _ => {
                 let transaction_fee = 0;
                 Ok((CallType::Other, transaction_fee, who.clone()))
-            },
+            }
         }
     }
 
@@ -1570,38 +1588,38 @@ where
             match call_type {
                 CallType::SetWeights => {
                     log::debug!("Not Implemented!");
-                },
+                }
                 CallType::AddStake => {
                     log::debug!("Not Implemented! Need to add potential transaction fees here.");
-                },
+                }
 
                 CallType::AddStakeMultiple => {
                     log::debug!("Not Implemented! Need to add potential transaction fees here.");
-                },
+                }
                 CallType::RemoveStake => {
                     log::debug!("Not Implemented! Need to add potential transaction fees here.");
-                },
+                }
                 CallType::RemoveStakeMultiple => {
                     log::debug!("Not Implemented! Need to add potential transaction fees here.");
-                },
+                }
                 CallType::TransferStake => {
                     log::debug!("Not Implemented! Need to add potential transaction fees here.");
-                },
+                }
                 CallType::TransferStakeMultiple => {
                     log::debug!("Not Implemented! Need to add potential transaction fees here.");
-                },
+                }
                 CallType::TransferMultiple => {
                     log::debug!("Not Implemented! Need to add potential transaction fees here.");
-                },
+                }
                 CallType::AddNetwork => {
                     log::debug!("Not Implemented! Need to add potential transaction fees here.");
-                },
+                }
                 CallType::Register => {
                     log::debug!("Not Implemented!");
-                },
+                }
                 _ => {
                     log::debug!("Not Implemented!");
-                },
+                }
             }
         }
         Ok(())
