@@ -1,4 +1,5 @@
 use crate::voting::AUTHORITY_MODE;
+// TODO: deposit events on sets
 
 use super::*;
 use frame_support::pallet_prelude::DispatchResult;
@@ -12,6 +13,8 @@ impl<T: Config> Pallet<T> {
             max_allowed_subnets: Self::get_global_max_allowed_subnets(),
             max_allowed_modules: Self::get_max_allowed_modules(),
             max_registrations_per_block: Self::get_max_registrations_per_block(),
+            target_registrations_interval: Self::get_target_registrations_interval(),
+            target_registrations_per_interval: Self::get_target_registrations_per_interval(),
             unit_emission: Self::get_unit_emission(),
             tx_rate_limit: Self::get_tx_rate_limit(),
             vote_threshold: Self::get_global_vote_threshold(),
@@ -19,6 +22,8 @@ impl<T: Config> Pallet<T> {
             vote_mode: Self::get_vote_mode_global(),
             burn_rate: Self::get_burn_rate(),
             min_burn: Self::get_min_burn(),
+            max_burn: Self::get_max_burn(),
+            adjustment_alpha: Self::get_adjustment_alpha(),
             min_stake: Self::get_min_stake_global(),
             min_weight_stake: Self::get_min_weight_stake(),
             max_allowed_weights: Self::get_max_allowed_weights_global(),
@@ -48,6 +53,11 @@ impl<T: Config> Pallet<T> {
         );
 
         ensure!(
+            params.target_registrations_interval > 0,
+            Error::<T>::InvalidTargetRegistrationsInterval
+        );
+
+        ensure!(
             params.vote_threshold < 100,
             Error::<T>::InvalidVoteThreshold
         );
@@ -73,6 +83,9 @@ impl<T: Config> Pallet<T> {
         Self::set_global_max_allowed_subnets(params.max_allowed_subnets);
         Self::set_max_allowed_modules(params.max_allowed_modules);
         Self::set_max_registrations_per_block(params.max_registrations_per_block);
+        Self::set_target_registrations_interval(params.target_registrations_interval);
+        Self::set_target_registrations_per_interval(params.target_registrations_per_interval);
+        Self::set_adjustment_alpha(params.adjustment_alpha);
         Self::set_unit_emission(params.unit_emission);
         Self::set_tx_rate_limit(params.tx_rate_limit);
         Self::set_global_vote_threshold(params.vote_threshold);
@@ -80,8 +93,21 @@ impl<T: Config> Pallet<T> {
         Self::set_vote_mode_global(params.vote_mode);
         Self::set_burn_rate(params.burn_rate);
         Self::set_min_burn(params.min_burn);
+        Self::set_max_burn(params.max_burn);
         Self::set_min_weight_stake(params.min_weight_stake);
         Self::set_min_stake_global(params.min_stake);
+    }
+
+    pub fn get_registrations_this_interval() -> u16 {
+        RegistrationsThisInterval::<T>::get()
+    }
+
+    pub fn get_target_registrations_per_interval() -> u16 {
+        TargetRegistrationsPerInterval::<T>::get()
+    }
+
+    pub fn set_target_registrations_per_interval(target_interval: u16) {
+        TargetRegistrationsPerInterval::<T>::set(target_interval)
     }
 
     pub fn get_min_weight_stake() -> u64 {
@@ -113,6 +139,14 @@ impl<T: Config> Pallet<T> {
         BurnRate::<T>::get().min(100)
     }
 
+    pub fn get_burn() -> u64 {
+        Burn::<T>::get()
+    }
+
+    pub fn set_burn(burn: u64) {
+        Burn::<T>::set(burn)
+    }
+
     pub fn set_burn_rate(burn_rate: u16) {
         BurnRate::<T>::put(burn_rate.min(100));
     }
@@ -133,6 +167,15 @@ impl<T: Config> Pallet<T> {
     }
     pub fn get_max_registrations_per_block() -> u16 {
         MaxRegistrationsPerBlock::<T>::get()
+    }
+    pub fn set_max_registrations_per_block(max_registrations_per_block: u16) {
+        MaxRegistrationsPerBlock::<T>::set(max_registrations_per_block);
+    }
+    pub fn get_target_registrations_interval() -> u16 {
+        TargetRegistrationsInterval::<T>::get()
+    }
+    pub fn set_target_registrations_interval(target_registrations_interval: u16) {
+        TargetRegistrationsInterval::<T>::set(target_registrations_interval);
     }
     pub fn get_global_max_name_length() -> u16 {
         MaxNameLength::<T>::get()
@@ -180,11 +223,27 @@ impl<T: Config> Pallet<T> {
         TxRateLimit::<T>::put(tx_rate_limit)
     }
 
+    pub fn get_min_burn() -> u64 {
+        MinBurn::<T>::get()
+    }
+
     pub fn set_min_burn(min_burn: u64) {
         MinBurn::<T>::put(min_burn);
     }
 
-    pub fn get_min_burn() -> u64 {
-        MinBurn::<T>::get()
+    pub fn get_max_burn() -> u64 {
+        MaxBurn::<T>::get()
+    }
+
+    pub fn set_max_burn(max_burn: u64) {
+        MaxBurn::<T>::put(max_burn);
+    }
+
+    pub fn get_adjustment_alpha() -> u64 {
+        AdjustmentAlpha::<T>::get()
+    }
+
+    pub fn set_adjustment_alpha(adjustment_alpha: u64) {
+        AdjustmentAlpha::<T>::put(adjustment_alpha);
     }
 }

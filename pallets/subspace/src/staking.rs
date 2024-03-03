@@ -1,6 +1,5 @@
 use super::*;
 
-// import vec
 use sp_arithmetic::per_things::Percent;
 use sp_std::vec::Vec;
 

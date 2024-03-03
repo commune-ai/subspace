@@ -254,6 +254,12 @@ impl<T: Config> Pallet<T> {
         }
     }
 
+    // TODO: see if we can optimize this further
+    pub fn does_module_name_exist(netuid: u16, name: Vec<u8>) -> bool {
+        <Name<T> as IterableStorageDoubleMap<u16, u16, Vec<u8>>>::iter_prefix(netuid)
+            .any(|(_uid, _name)| _name == name)
+    }
+
     pub fn is_subnet_founder(netuid: u16, key: &T::AccountId) -> bool {
         Founder::<T>::get(netuid) == *key
     }
@@ -822,9 +828,6 @@ impl<T: Config> Pallet<T> {
     }
     pub fn get_last_update(netuid: u16) -> Vec<u64> {
         LastUpdate::<T>::get(netuid)
-    }
-    pub fn set_max_registrations_per_block(max_registrations_per_block: u16) {
-        MaxRegistrationsPerBlock::<T>::set(max_registrations_per_block);
     }
 
     pub fn is_registered(netuid: u16, key: &T::AccountId) -> bool {

@@ -2,12 +2,18 @@ use super::*;
 use crate::math::*;
 use frame_support::storage::{IterableStorageDoubleMap, IterableStorageMap};
 use sp_std::vec;
-use substrate_fixed::types::{I32F32, I64F64};
+use substrate_fixed::types::{I110F18, I32F32, I64F64};
 
 impl<T: Config> Pallet<T> {
     pub fn block_step() {
         let block_number: u64 = Self::get_current_block_as_u64();
         RegistrationsPerBlock::<T>::mutate(|val| *val = 0);
+
+        let registration_this_interval = Self::get_registrations_this_interval();
+
+        // adjust registrations parameters
+        Self::adjust_registration(block_number, registration_this_interval);
+
         log::debug!("block_step for block: {:?} ", block_number);
         for (netuid, tempo) in <Tempo<T> as IterableStorageMap<u16, u16>>::iter() {
             let new_queued_emission: u64 = Self::calculate_network_emission(netuid);
@@ -226,7 +232,7 @@ impl<T: Config> Pallet<T> {
         // sum the votes per module
         for sparse_row in bonds.iter_mut() {
             for (j, value) in sparse_row.iter_mut() {
-                if col_sum[*j as usize] > I32F32::from_num(0.0_f32) {
+                if col_sum[*j as usize] > I32F32::from_num(0.0f32) {
                     *value /= col_sum[*j as usize];
                 }
             }
@@ -460,5 +466,44 @@ impl<T: Config> Pallet<T> {
             burn_amount_per_epoch = burn_rate_float.to_num::<u64>();
         }
         burn_amount_per_epoch
+    }
+
+    pub fn adjust_registration(block_number: u64, registrations_this_interval: u16) {
+        let target_registrations_interval = Self::get_target_registrations_interval();
+        if block_number % u64::from(target_registrations_interval) == 0 {
+            let current_burn = Self::get_burn();
+            let target_registrations_per_interval = Self::get_target_registrations_per_interval();
+
+            Self::set_burn(Self::adjust_burn(
+                current_burn,
+                registrations_this_interval,
+                target_registrations_per_interval,
+            ));
+
+            RegistrationsThisInterval::<T>::mutate(|val| *val = 0);
+        }
+    }
+
+    pub fn adjust_burn(
+        current_burn: u64,
+        registrations_this_interval: u16,
+        target_registrations_per_interval: u16,
+    ) -> u64 {
+        let updated_burn: I110F18 = I110F18::from_num(current_burn)
+            * I110F18::from_num(registrations_this_interval + target_registrations_per_interval)
+            / I110F18::from_num(
+                target_registrations_per_interval + target_registrations_per_interval,
+            );
+        let alpha: I110F18 =
+            I110F18::from_num(Self::get_adjustment_alpha()) / I110F18::from_num(u64::MAX);
+        let next_value: I110F18 = alpha * I110F18::from_num(current_burn)
+            + (I110F18::from_num(1.0) - alpha) * updated_burn;
+        if next_value >= I110F18::from_num(Self::get_max_burn()) {
+            Self::get_max_burn()
+        } else if next_value <= I110F18::from_num(Self::get_min_burn()) {
+            Self::get_min_burn()
+        } else {
+            next_value.to_num::<u64>()
+        }
     }
 }
