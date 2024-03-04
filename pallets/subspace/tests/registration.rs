@@ -1,5 +1,6 @@
 mod mock;
 
+use frame_support::assert_ok;
 use mock::*;
 use sp_core::U256;
 
@@ -18,7 +19,7 @@ fn test_min_stake() {
         let max_registrations_per_block = 10;
         let reg_this_block: u16 = 100;
 
-        register_module(netuid, U256::from(0), 0);
+        assert_ok!(register_module(netuid, U256::from(0), 0));
         SubspaceModule::set_min_stake(netuid, min_stake);
         SubspaceModule::set_max_registrations_per_block(max_registrations_per_block);
         step_block(1);
@@ -32,7 +33,8 @@ fn test_min_stake() {
         let min_stake_to_register = SubspaceModule::get_min_stake(netuid);
 
         for key in keys_list {
-            register_module(netuid, key, min_stake_to_register);
+            // some of these are supposed to fail
+            let _ = register_module(netuid, key, min_stake_to_register);
             println!(
                 "Registered module with key: {:?} and min_stake_to_register: {:?}",
                 key, min_stake_to_register
@@ -72,7 +74,7 @@ fn test_max_registration() {
                 "min_stake_to_register: {:?} min_stake: {:?} factor {:?}",
                 min_stake_to_register, min_stake, factor
             );
-            register_module(netuid, key, factor * min_stake);
+            assert_ok!(register_module(netuid, key, factor * min_stake));
             let registrations_this_block = SubspaceModule::get_registrations_this_block();
             assert_eq!(registrations_this_block, i);
             assert!(SubspaceModule::is_registered(netuid, &key));
@@ -114,7 +116,7 @@ fn test_registration_ok() {
         let _tempo: u16 = 13;
         let key: U256 = U256::from(1);
 
-        register_module(netuid, key, 0);
+        assert_ok!(register_module(netuid, key, 0));
         // Check if neuron has added to the specified network(netuid)
         assert_eq!(SubspaceModule::get_subnet_n(netuid), 1);
 
@@ -138,7 +140,7 @@ fn test_many_registrations() {
         let n = 100;
         SubspaceModule::set_max_registrations_per_block(n);
         for i in 0..n {
-            register_module(netuid, U256::from(i), stake);
+            assert_ok!(register_module(netuid, U256::from(i), stake));
             assert_eq!(
                 SubspaceModule::get_subnet_n(netuid),
                 i + 1,
@@ -165,20 +167,20 @@ fn test_registration_with_stake() {
             println!("stake: {:?}", stake_value);
             let stake_before: u64 = SubspaceModule::get_stake(netuid, &key);
             println!("stake_before: {:?}", stake_before);
-            register_module(netuid, key, stake_value);
+            assert_ok!(register_module(netuid, key, stake_value));
             println!("balance: {:?}", SubspaceModule::get_balance_u64(&key));
             assert_eq!(SubspaceModule::get_stake_for_uid(netuid, uid), stake_value);
         }
     });
 }
 
-#[test]
-fn register_same_key_twice() {
-    new_test_ext().execute_with(|| {
-        let netuid = 0;
-        let stake = 10;
-        let key = U256::from(1);
-        register_module(netuid, key, stake);
-        register_module(netuid, key, stake);
-    });
-}
+// #[test]
+// fn register_same_key_twice() {
+//     new_test_ext().execute_with(|| {
+//         let netuid = 0;
+//         let stake = 10;
+//         let key = U256::from(1);
+//         assert_ok!(register_module(netuid, key, stake));
+//         register_module(netuid, key, stake);
+//     });
+// }

@@ -1,5 +1,6 @@
 mod mock;
 
+use frame_support::assert_ok;
 use mock::*;
 use sp_core::U256;
 use substrate_fixed::types::I64F64;
@@ -55,7 +56,7 @@ fn test_stake() {
                     amount_staked
                 );
 
-                register_module(netuid, *key, amount_staked);
+                assert_ok!(register_module(netuid, *key, amount_staked));
                 // add_stake_and_balance(netuid, *key, amount_staked);
                 println!(
                     " KEY STAKE {} STAKING AMOUNT {} ",
