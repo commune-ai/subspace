@@ -916,6 +916,7 @@ pub mod pallet {
         InvalidTxRateLimit,
         InvalidBurnRate,
         InvalidMinBurn,
+        InvalidMaxBurn,
 
         // VOTING
         ProposalDoesNotExist,
