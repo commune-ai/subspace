@@ -19,7 +19,6 @@ impl<T: Config> Pallet<T> {
     ) -> DispatchResult {
         // --- 1. Check that the caller has signed the transaction.
         let key = ensure_signed(origin.clone())?;
-
         // --- 2. Ensure, that we are not exceeding the max allowed
         // registrations per block.
         ensure!(
@@ -45,12 +44,12 @@ impl<T: Config> Pallet<T> {
 
         // --- 5. Ensure the caller has enough stake to register.
         let min_stake: u64 = MinStake::<T>::get(netuid);
-        let min_burn: u64 = Self::get_burn();
+        let current_burn: u64 = Self::get_burn();
 
-        // also ensures that in the case min_burn is present, the stake is enough
+        // also ensures that in the case current_burn is present, the stake is enough
         // as burn, will be decreased from the stake on the module
         ensure!(
-            Self::enough_stake_to_register(netuid, min_stake, min_burn, stake_amount),
+            Self::enough_stake_to_register(netuid, min_stake, current_burn, stake_amount),
             Error::<T>::NotEnoughStakeToRegister
         );
 
@@ -76,17 +75,10 @@ impl<T: Config> Pallet<T> {
         // --- 9. Add the stake to the module, now that it is registered on the network.
         Self::do_add_stake(origin, netuid, module_key.clone(), stake_amount)?;
 
-        // constant -> min_burn logic
-        if min_burn > 0 {
+        // constant -> current_burn logic
+        if current_burn > 0 {
             // if min burn is present, decrease the stake by the min burn
-            Self::decrease_stake(netuid, &key, &module_key, min_burn);
-
-            // Ensure that the stake decreased after the burn.
-            let current_stake: u64 = Self::get_total_stake_to(netuid, &key);
-            ensure!(
-                current_stake == stake_amount.saturating_sub(min_burn),
-                Error::<T>::NotEnoughStakeToRegister
-            );
+            Self::decrease_stake(netuid, &key, &module_key, current_burn);
         }
 
         // Make sure that the registration went through.

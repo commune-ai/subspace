@@ -12,8 +12,8 @@ fn test_add_profit_share() {
         let netuid = 0;
         let miner_key = U256::from(0);
         let voter_key = U256::from(1);
-        register_module(netuid, miner_key, 1_000_000_000);
-        register_module(netuid, voter_key, 1_000_000_000);
+        assert_ok!(register_module(netuid, miner_key, 1_000_000_000));
+        assert_ok!(register_module(netuid, voter_key, 1_000_000_000));
         let miner_uid = SubspaceModule::get_uid_for_key(netuid, &miner_key);
         let _voter_uid = SubspaceModule::get_uid_for_key(netuid, &voter_key);
 
