@@ -18,7 +18,7 @@ fn test_min_stake() {
         let max_registrations_per_block = 10;
         let reg_this_block: u16 = 100;
 
-        register_module(netuid, U256::from(0), 0);
+        register_module(netuid, U256::from(0), 0).expect("register module failed");
         SubspaceModule::set_min_stake(netuid, min_stake);
         SubspaceModule::set_max_registrations_per_block(max_registrations_per_block);
         step_block(1);
@@ -32,7 +32,9 @@ fn test_min_stake() {
         let min_stake_to_register = SubspaceModule::get_min_stake(netuid);
 
         for key in keys_list {
-            register_module(netuid, key, min_stake_to_register);
+            register_module(netuid, key, min_stake_to_register).unwrap_or_else(|_| {
+                panic!("Failed to register module with key: {key:?} and min_stake_to_register: {min_stake_to_register:?}",)
+            });
             println!(
                 "Registered module with key: {:?} and min_stake_to_register: {:?}",
                 key, min_stake_to_register
@@ -68,11 +70,9 @@ fn test_max_registration() {
             let key = U256::from(i);
             let min_stake_to_register = SubspaceModule::get_min_stake(netuid);
             let factor: u64 = min_stake_to_register / min_stake;
-            println!(
-                "min_stake_to_register: {:?} min_stake: {:?} factor {:?}",
-                min_stake_to_register, min_stake, factor
-            );
-            register_module(netuid, key, factor * min_stake);
+            println!("min_stake_to_register: {min_stake_to_register:?} min_stake: {min_stake:?} factor {factor:?}");
+            register_module(netuid, key, factor * min_stake).expect("register module failed");
+
             let registrations_this_block = SubspaceModule::get_registrations_this_block();
             assert_eq!(registrations_this_block, i);
             assert!(SubspaceModule::is_registered(netuid, &key));
@@ -94,12 +94,13 @@ fn test_delegate_register() {
         let stake_amount: u64 = 10_000_000_000;
         SubspaceModule::add_balance_to_account(&key, stake_amount * n as u64);
         for module_key in module_keys {
-            delegate_register_module(netuid, key, module_key, stake_amount);
+            delegate_register_module(netuid, key, module_key, stake_amount)
+                .expect("delegate register module failed");
             let key_balance = SubspaceModule::get_balance_u64(&key);
             let stake_to_module = SubspaceModule::get_stake_to_module(netuid, &key, &module_key);
-            println!("key_balance: {:?}", key_balance);
+            println!("key_balance: {key_balance:?}");
             let stake_to_vector = SubspaceModule::get_stake_to_vector(netuid, &key);
-            println!("stake_to_vector: {:?}", stake_to_vector);
+            println!("stake_to_vector: {stake_to_vector:?}");
             assert_eq!(stake_to_module, stake_amount);
         }
     });
@@ -113,7 +114,9 @@ fn test_registration_ok() {
         let _tempo: u16 = 13;
         let key: U256 = U256::from(1);
 
-        register_module(netuid, key, 0);
+        register_module(netuid, key, 0)
+            .unwrap_or_else(|_| panic!("register module failed for key {key:?}"));
+
         // Check if neuron has added to the specified network(netuid)
         assert_eq!(SubspaceModule::get_subnet_n(netuid), 1);
 
@@ -137,12 +140,13 @@ fn test_many_registrations() {
         let n = 100;
         SubspaceModule::set_max_registrations_per_block(n);
         for i in 0..n {
-            register_module(netuid, U256::from(i), stake);
+            register_module(netuid, U256::from(i), stake).unwrap_or_else(|_| {
+                panic!("Failed to register module with key: {i:?} and stake: {stake:?}",)
+            });
             assert_eq!(
                 SubspaceModule::get_subnet_n(netuid),
                 i + 1,
-                "Failed at i={}",
-                i
+                "Failed at i={i}",
             );
         }
     });
@@ -153,18 +157,19 @@ fn test_registration_with_stake() {
     new_test_ext().execute_with(|| {
         let netuid = 0;
         let stake_vector: Vec<u64> = [100000, 1000000, 10000000].to_vec();
-        let _n = stake_vector.len() as u16;
 
         for (i, stake) in stake_vector.iter().enumerate() {
             let uid: u16 = i as u16;
             let stake_value: u64 = *stake;
 
             let key = U256::from(uid);
-            println!("key: {:?}", key);
-            println!("stake: {:?}", stake_value);
+            println!("key: {key:?}");
+            println!("stake: {stake_value:?}");
             let stake_before: u64 = SubspaceModule::get_stake(netuid, &key);
-            println!("stake_before: {:?}", stake_before);
-            register_module(netuid, key, stake_value);
+            println!("stake_before: {stake_before:?}");
+            register_module(netuid, key, stake_value).unwrap_or_else(|_| {
+                panic!("Failed to register module with key: {key:?} and stake: {stake_value:?}",)
+            });
             println!("balance: {:?}", SubspaceModule::get_balance_u64(&key));
             assert_eq!(SubspaceModule::get_stake_for_uid(netuid, uid), stake_value);
         }
@@ -177,7 +182,7 @@ fn register_same_key_twice() {
         let netuid = 0;
         let stake = 10;
         let key = U256::from(1);
-        register_module(netuid, key, stake);
-        register_module(netuid, key, stake);
+        register_module(netuid, key, stake).expect("register module failed");
+        register_module(netuid, key, stake).expect("register module failed");
     });
 }
