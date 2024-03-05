@@ -32,16 +32,11 @@ fn test_min_stake() {
         let min_stake_to_register = SubspaceModule::get_min_stake(netuid);
 
         for key in keys_list {
-            register_module(netuid, key, min_stake_to_register).unwrap_or_else(|_| {
-                panic!("Failed to register module with key: {key:?} and min_stake_to_register: {min_stake_to_register:?}",)
-            });
-            println!(
-                "Registered module with key: {:?} and min_stake_to_register: {:?}",
-                key, min_stake_to_register
-            );
+            register_module(netuid, key, min_stake_to_register);
+            println!("registered module with key: {key:?} and min_stake_to_register: {min_stake_to_register:?}");
         }
         let registrations_this_block = SubspaceModule::get_registrations_this_block();
-        println!("registrations_this_block: {:?}", registrations_this_block);
+        println!("registrations_this_block: {registrations_this_block:?}");
         assert_eq!(registrations_this_block, max_registrations_per_block);
 
         step_block(1);
