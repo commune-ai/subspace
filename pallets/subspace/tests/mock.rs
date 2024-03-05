@@ -180,7 +180,9 @@ pub fn get_origin(key: U256) -> RuntimeOrigin {
 
 pub fn register_n_modules(netuid: u16, n: u16, stake: u64) {
     for i in 0..n {
-        register_module(netuid, U256::from(i), stake);
+        register_module(netuid, U256::from(i), stake).unwrap_or_else(|_| {
+            panic!("register module failed for netuid: {netuid:?} key: {i:?} stake: {stake:?}")
+        })
     }
 }
 
@@ -233,20 +235,12 @@ pub fn delegate_register_module(
     if stake >= balance {
         add_balance(key, stake + 1);
     }
-    println!(
-        "Registering module: network: {:?}, key: {:?} stake {:?}",
-        network, module_key, balance
-    );
+    println!("Registering module: network: {network:?}, key: {module_key:?} stake {balance:?}",);
 
     let result =
         SubspaceModule::register(origin, network, name.clone(), address, stake, module_key);
 
-    log::info!(
-        "Register ok neuron: network: {:?}, module_key: {:?} key: {:?}",
-        name.clone(),
-        module_key,
-        key
-    );
+    log::info!("Register ok neuron: network: {name:?}, module_key: {module_key:?} key: {key:?}",);
 
     result
 }
@@ -264,10 +258,10 @@ pub fn register(netuid: u16, key: U256, stake: u64) {
     assert_ok!(result);
 }
 
-pub fn add_subnet(netuid: u16, founder: U256) {
+pub fn add_subnet(netuid: u16, founder: U256) -> Result<u16, sp_runtime::DispatchError> {
     let network: Vec<u8> = netuid.to_string().as_bytes().to_vec();
     let stake: u64 = 1_000_000_000;
-    SubspaceModule::add_subnet_from_registration(network, stake, &founder);
+    SubspaceModule::add_subnet_from_registration(network, stake, &founder)
 }
 
 pub fn remote_subnet(netuid: u16, key: U256) {
