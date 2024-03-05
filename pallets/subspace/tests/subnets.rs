@@ -18,12 +18,12 @@ fn test_add_subnets() {
         let num_subnets: u16 = n;
 
         for i in 0..num_subnets {
-            register_module(i, U256::from(i), stake_per_module);
+            assert_ok!(register_module(i, U256::from(i), stake_per_module));
             for j in 0..n {
                 if j != i {
                     let n = SubspaceModule::get_subnet_n(i);
                     println!("registering module i:{} j:{} n:{}", i, j, n);
-                    register_module(i, U256::from(j), stake_per_module);
+                    assert_ok!(register_module(i, U256::from(j), stake_per_module));
                 }
             }
             expected_subnets += 1;
@@ -78,7 +78,7 @@ fn test_set_single_temple(tempo: u16) {
         let stake: u64 = 0;
         let key = U256::from(0);
         let _tempos: Vec<u16> = vec![2, 4];
-        register_module(netuid, key, stake);
+        assert_ok!(register_module(netuid, key, stake));
         let mut params = SubspaceModule::subnet_params(netuid).clone();
         params.tempo = tempo;
 

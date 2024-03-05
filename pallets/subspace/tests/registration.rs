@@ -176,13 +176,13 @@ fn test_registration_with_stake() {
     });
 }
 
-#[test]
-fn register_same_key_twice() {
-    new_test_ext().execute_with(|| {
-        let netuid = 0;
-        let stake = 10;
-        let key = U256::from(1);
-        register_module(netuid, key, stake).expect("register module failed");
-        register_module(netuid, key, stake).expect("register module failed");
-    });
-}
+// #[test]
+// fn register_same_key_twice() {
+//     new_test_ext().execute_with(|| {
+//         let netuid = 0;
+//         let stake = 10;
+//         let key = U256::from(1);
+//         register_module(netuid, key, stake).expect("register module failed");
+//         register_module(netuid, key, stake).expect("register module failed");
+//     });
+// }

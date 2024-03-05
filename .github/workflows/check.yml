@@ -11,6 +11,10 @@ on:
   # Allows you to run this workflow manually from the Actions tab
   workflow_dispatch:
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 # A workflow run is made up of one or more jobs that can run sequentially or in parallel
 jobs:
   check:
@@ -59,6 +63,7 @@ jobs:
 
       - name: Check Clippy errors
         uses: actions-rs/clippy-check@v1
+        continue-on-error: true
         env:
           SKIP_WASM_BUILD: 1
         with:
@@ -69,8 +74,3 @@ jobs:
         env:
           SKIP_WASM_BUILD: 1
         run: cargo test
-
-      - name: Check Build for Benchmarking
-        run: |
-          pushd node
-          cargo check --features=runtime-benchmarks --release

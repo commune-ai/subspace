@@ -59,7 +59,7 @@ impl<T: Config> Pallet<T> {
     ) -> DispatchResult {
         let mut proposal = Self::default_proposal();
         proposal.global_params = params;
-        proposal.mode = "global".as_bytes().to_vec();
+        proposal.mode = GLOBAL_MODE.to_vec();
         Self::do_add_proposal(origin, proposal)?;
         Ok(())
     }
