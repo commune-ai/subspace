@@ -2,7 +2,11 @@ name: Build and push Docker image
 
 on:
   push:
-    branches: []
+    branches: [main]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   build-n-push:

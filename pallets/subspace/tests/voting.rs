@@ -164,16 +164,16 @@ fn test_max_proposals() {
 #[test]
 fn test_global_porposal() {
     new_test_ext().execute_with(|| {
-        let netuid = 0;
         let keys = [U256::from(1), U256::from(2), U256::from(3)];
         let stakes = [1_000_000_000, 1_000_000_000, 1_000_000_000];
 
         // register on seperate subnets
-        for (i, key) in keys.iter().enumerate() {
-            register_module(netuid + i as u16, *key, stakes[i]);
+        for (i, (key, stake)) in keys.iter().zip(stakes).enumerate() {
+            assert_ok!(register_module(i as u16, *key, stake));
         }
 
         let mut params = SubspaceModule::global_params();
+        eprintln!("{}", params.min_burn);
         let _initial_max_registrations_per_block = params.max_registrations_per_block;
         let max_registrations_per_block = 1000;
 

@@ -1,5 +1,6 @@
 mod mock;
 
+use frame_support::assert_ok;
 use mock::*;
 use sp_core::U256;
 use substrate_fixed::types::I64F64;
@@ -55,7 +56,7 @@ fn test_stake() {
                     amount_staked
                 );
 
-                register_module(netuid, *key, amount_staked);
+                assert_ok!(register_module(netuid, *key, amount_staked));
                 // add_stake_and_balance(netuid, *key, amount_staked);
                 println!(
                     " KEY STAKE {} STAKING AMOUNT {} ",
@@ -351,14 +352,11 @@ fn test_min_stake() {
         let netuid: u16 = 0;
         let num_modules: u16 = 10;
         let min_stake: u64 = 10_000_000_000;
-        register_n_modules(netuid, num_modules, min_stake);
 
-        let keys = SubspaceModule::get_keys(netuid);
         register_n_modules(netuid, num_modules, min_stake);
+        let keys = SubspaceModule::get_keys(netuid);
 
         SubspaceModule::set_min_stake(netuid, min_stake - 100);
-
-        // SubspaceModule::set_min_stake( netuid, min_stake - 100);
 
         SubspaceModule::remove_stake(get_origin(keys[0]), netuid, keys[0], 10_000_000_000);
     });
