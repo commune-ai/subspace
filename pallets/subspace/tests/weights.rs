@@ -305,7 +305,7 @@ fn test_check_len_uids_within_allowed_not_within_network_pool() {
         SubspaceModule::set_max_registrations_per_block(100);
 
         /* @TODO: use a loop maybe */
-        assert_ok!( register_module(netuid, U256::from(1), 1_000_000_000));
+        assert_ok!(register_module(netuid, U256::from(1), 1_000_000_000));
         assert_ok!(register_module(netuid, U256::from(3), 1_000_000_000));
         assert_ok!(register_module(netuid, U256::from(5), 1_000_000_000));
         let max_allowed: u16 = SubspaceModule::get_subnet_n(netuid);
