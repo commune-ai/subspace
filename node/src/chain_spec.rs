@@ -100,25 +100,34 @@ pub fn generate_config(network: String) -> Result<ChainSpec, String> {
     let state: SubspaceJSONState =
         json::from_slice(&bytes).map_err(|e| format!("Error parsing genesis file: {}", e))?;
 
-    let block: u32 = state.block;
-    // (name, tempo, immunity_period, min_allowed_weights, max_allowed_weights, max_allowed_uids,
-    // founder)
     let mut subnets: Vec<Subnet> = Vec::new();
     let mut modules: Vec<Vec<Module>> = Vec::new();
     let mut stake_to: Vec<Vec<StakeTo>> = Vec::new();
 
-    for (netuid, subnet) in state.subnets.iter().enumerate() {
+    for (netuid, subnet) in state.subnets.into_iter().enumerate() {
+        let (
+            name,
+            tempo,
+            immunity_period,
+            min_allowed_weights,
+            max_allowed_weights,
+            max_allowed_uids,
+            burn_rate,
+            min_stake,
+            founder,
+        ) = subnet;
+
         subnets.push((
-            subnet.0.as_bytes().to_vec(), // name
-            subnet.1,                     // tempo
-            subnet.2,                     // immunity_period
-            subnet.3,                     // min_allowed_weights
-            subnet.4,                     // max_allowed_weights
-            subnet.5,                     // max_allowed_uids
-            subnet.6,                     // burn_rate
-            subnet.7,                     // min_stake
+            name.as_bytes().to_vec(),
+            tempo,
+            immunity_period,
+            min_allowed_weights,
+            max_allowed_weights,
+            max_allowed_uids,
+            burn_rate,
+            min_stake,
             sp_runtime::AccountId32::from(
-                <sr25519::Public as Ss58Codec>::from_ss58check(&subnet.8).unwrap(),
+                <sr25519::Public as Ss58Codec>::from_ss58check(&founder).unwrap(),
             ),
         ));
 
@@ -194,7 +203,7 @@ pub fn generate_config(network: String) -> Result<ChainSpec, String> {
                 modules.clone(),            // modules,
                 subnets.clone(),            // subnets,
                 stake_to.clone(),           // stake_to,
-                block,
+                state.block,
             )
         },
         // Bootnodes
