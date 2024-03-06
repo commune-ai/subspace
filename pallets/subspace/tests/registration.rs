@@ -10,9 +10,6 @@ use sp_core::U256;
 #[test]
 fn test_min_stake() {
     new_test_ext().execute_with(|| {
-        let _block_number: u64 = 0;
-        let _netuid: u16 = 0;
-        let _tempo: u16 = 13;
         let netuid: u16 = 0;
         let min_stake = 100_000_000;
         let max_registrations_per_block = 10;
@@ -47,21 +44,17 @@ fn test_min_stake() {
 #[test]
 fn test_max_registration() {
     new_test_ext().execute_with(|| {
-        let _block_number: u64 = 0;
-        let _netuid: u16 = 0;
-        let _tempo: u16 = 13;
         let netuid: u16 = 0;
         let min_stake = 100_000_000;
         let rounds = 3;
         let max_registrations_per_block = 100;
-        let n: u16 = max_registrations_per_block * rounds;
 
         SubspaceModule::set_min_stake(netuid, min_stake);
         SubspaceModule::set_max_registrations_per_block(max_registrations_per_block);
 
         assert_eq!(SubspaceModule::get_registrations_this_block(), 0);
 
-        for i in 1..n {
+        for i in 1..(max_registrations_per_block * rounds) {
             let key = U256::from(i);
             let min_stake_to_register = SubspaceModule::get_min_stake(netuid);
             let factor: u64 = min_stake_to_register / min_stake;
@@ -80,9 +73,7 @@ fn test_max_registration() {
 #[test]
 fn test_delegate_register() {
     new_test_ext().execute_with(|| {
-        let _block_number: u64 = 0;
         let netuid: u16 = 0;
-        let _tempo: u16 = 13;
         let n: u16 = 10;
         let key: U256 = U256::from(n + 1);
         let module_keys: Vec<U256> = (0..n).map(U256::from).collect();
@@ -104,9 +95,7 @@ fn test_delegate_register() {
 #[test]
 fn test_registration_ok() {
     new_test_ext().execute_with(|| {
-        let _block_number: u64 = 0;
         let netuid: u16 = 0;
-        let _tempo: u16 = 13;
         let key: U256 = U256::from(1);
 
         register_module(netuid, key, 0)
