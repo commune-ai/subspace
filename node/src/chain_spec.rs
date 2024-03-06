@@ -30,19 +30,48 @@ use serde::Deserialize;
 use serde_json as json;
 use std::{fs::File, path::PathBuf};
 
+/// (name, tempo, immunity_period, min_allowed_weights, max_allowed_weights,
+/// max_allowed_uids, founder)
+pub type JSONSubnet = (String, u16, u16, u16, u16, u16, u16, u64, String);
+
+/// (key, name, address, stake, weights)
+pub type JSONModule = (String, String, String, Vec<(u16, u16)>);
+
+/// (module_key, amount)
+pub type JSONStakeTo = (String, Vec<(String, u64)>);
+
+/// (name, tempo, immunity_period, min_allowed_weights, max_allowed_weights,
+/// max_allowed_uids, founder)
+pub type Subnet = (
+    Vec<u8>,
+    u16,
+    u16,
+    u16,
+    u16,
+    u16,
+    u16,
+    u64,
+    sp_runtime::AccountId32,
+);
+
+/// (key, name, address, stake, weights)
+pub type Module = (sp_runtime::AccountId32, Vec<u8>, Vec<u8>, Vec<(u16, u16)>);
+
+/// (module_key, amount)
+pub type StakeTo = (sp_runtime::AccountId32, Vec<(sp_runtime::AccountId32, u64)>);
+
 // Configure storage from nakamoto data
 #[derive(Deserialize, Debug)]
 struct SubspaceJSONState {
     balances: std::collections::HashMap<String, u64>,
-    // subnet -> (name, tempo, immunity_period, min_allowed_weights, max_allowed_weights,
-    // max_allowed_uids, founder)
-    subnets: Vec<(String, u16, u16, u16, u16, u16, u16, u64, String)>,
+    // subnet -> Subnet
+    subnets: Vec<JSONSubnet>,
 
-    // subnet -> module -> (key, name, address, stake, weights)
-    modules: Vec<Vec<(String, String, String, Vec<(u16, u16)>)>>,
+    // subnet -> module -> Module
+    modules: Vec<Vec<JSONModule>>,
 
-    // subnet -> key -> (module_key, amount)
-    stake_to: Vec<Vec<(String, Vec<(String, u64)>)>>,
+    // subnet -> key -> StakeTo
+    stake_to: Vec<Vec<JSONStakeTo>>,
 
     // block at sync
     block: u32,
@@ -74,21 +103,9 @@ pub fn generate_config(network: String) -> Result<ChainSpec, String> {
     let block: u32 = state.block;
     // (name, tempo, immunity_period, min_allowed_weights, max_allowed_weights, max_allowed_uids,
     // founder)
-    let mut subnets: Vec<(
-        Vec<u8>,
-        u16,
-        u16,
-        u16,
-        u16,
-        u16,
-        u16,
-        u64,
-        sp_runtime::AccountId32,
-    )> = Vec::new();
-    let mut modules: Vec<Vec<(sp_runtime::AccountId32, Vec<u8>, Vec<u8>, Vec<(u16, u16)>)>> =
-        Vec::new();
-    let mut stake_to: Vec<Vec<(sp_runtime::AccountId32, Vec<(sp_runtime::AccountId32, u64)>)>> =
-        Vec::new();
+    let mut subnets: Vec<Subnet> = Vec::new();
+    let mut modules: Vec<Vec<Module>> = Vec::new();
+    let mut stake_to: Vec<Vec<StakeTo>> = Vec::new();
 
     for (netuid, subnet) in state.subnets.iter().enumerate() {
         subnets.push((
