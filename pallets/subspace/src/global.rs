@@ -3,6 +3,7 @@ use crate::voting::AUTHORITY_MODE;
 
 use super::*;
 use frame_support::pallet_prelude::DispatchResult;
+use sp_arithmetic::per_things::Percent;
 
 use system::ensure_root;
 
@@ -25,17 +26,21 @@ impl<T: Config> Pallet<T> {
             max_burn: Self::get_max_burn(),
             adjustment_alpha: Self::get_adjustment_alpha(),
             min_stake: Self::get_min_stake_global(),
+            min_delegation_fee: Self::get_min_deleg_fee_global(),
             min_weight_stake: Self::get_min_weight_stake(),
             max_allowed_weights: Self::get_max_allowed_weights_global(),
         }
     }
 
+    // TODO: make sure there are checks for all values
     pub fn check_global_params(params: GlobalParams) -> DispatchResult {
         // checks if params are valid
         let og_params = Self::global_params();
 
         // check if the name already exists
         ensure!(params.max_name_length > 0, Error::<T>::InvalidMaxNameLength);
+
+        ensure!(params.min_delegation_fee.deconstruct() <= 100, Error::<T>::InvalidMinDelegationFee);
 
         ensure!(
             params.max_allowed_subnets > 0,
@@ -105,6 +110,7 @@ impl<T: Config> Pallet<T> {
         Self::set_max_burn(params.max_burn);
         Self::set_min_weight_stake(params.min_weight_stake);
         Self::set_min_stake_global(params.min_stake);
+        Self::set_min_deleg_fee_global(params.min_delegation_fee);
     }
 
     pub fn get_registrations_this_interval() -> u16 {
@@ -135,6 +141,14 @@ impl<T: Config> Pallet<T> {
     }
     pub fn set_min_stake_global(min_stake: u64) {
         MinStakeGlobal::<T>::put(min_stake)
+    }
+
+    pub fn get_min_deleg_fee_global() -> Percent {
+        MinDelegationFeeGlobal::<T>::get()
+    }
+
+    pub fn set_min_deleg_fee_global(delegation_fee: Percent) {
+        MinDelegationFeeGlobal::<T>::put(delegation_fee)
     }
 
     pub fn set_vote_mode_global(vote_mode: Vec<u8>) {
@@ -171,21 +185,27 @@ impl<T: Config> Pallet<T> {
     pub fn get_global_vote_threshold() -> u16 {
         GlobalVoteThreshold::<T>::get()
     }
+
     pub fn set_global_vote_threshold(vote_threshold: u16) {
         GlobalVoteThreshold::<T>::put(vote_threshold);
     }
+
     pub fn get_max_registrations_per_block() -> u16 {
         MaxRegistrationsPerBlock::<T>::get()
     }
+
     pub fn set_max_registrations_per_block(max_registrations_per_block: u16) {
         MaxRegistrationsPerBlock::<T>::set(max_registrations_per_block);
     }
+
     pub fn get_target_registrations_interval() -> u16 {
         TargetRegistrationsInterval::<T>::get()
     }
+
     pub fn set_target_registrations_interval(target_registrations_interval: u16) {
         TargetRegistrationsInterval::<T>::set(target_registrations_interval);
     }
+
     pub fn get_global_max_name_length() -> u16 {
         MaxNameLength::<T>::get()
     }
