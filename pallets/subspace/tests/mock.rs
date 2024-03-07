@@ -266,7 +266,7 @@ pub fn add_subnet(netuid: u16, founder: U256) -> Result<u16, sp_runtime::Dispatc
 
 pub fn remote_subnet(netuid: u16, key: U256) {
     let origin = get_origin(key);
-    let result = SubspaceModule::do_remote_subnet(origin, netuid);
+    let result = SubspaceModule::do_remove_subnet(origin, netuid);
     assert_ok!(result);
 }
 
