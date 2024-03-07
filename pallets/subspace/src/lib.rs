@@ -238,6 +238,14 @@ pub mod pallet {
     pub type MinStakeGlobal<T> = StorageValue<_, u64, ValueQuery, DefaultMinStake<T>>;
 
     #[pallet::type_value]
+    pub fn DefaultMinDelegationFeeGlobal<T: Config>() -> Percent {
+        Percent::from_percent(5u8)
+    }
+
+    #[pallet::storage] 
+    pub type MinDelegationFeeGlobal<T> = StorageValue<_, Percent, ValueQuery, DefaultMinDelegationFeeGlobal<T>>;
+
+    #[pallet::type_value]
     pub fn DefaultMinWeightStake<T: Config>() -> u64 {
         0
     }
@@ -277,6 +285,7 @@ pub mod pallet {
         pub min_burn: u64,         // min burn required
         pub max_burn: u64,         // max burn allowed
         pub min_stake: u64,        // min stake required
+        pub min_delegation_fee: Percent, // min delegation fee
         pub min_weight_stake: u64, // min weight stake required
 
         // other
@@ -305,6 +314,7 @@ pub mod pallet {
             min_burn: DefaultMinBurn::<T>::get(),
             max_burn: DefaultMaxBurn::<T>::get(),
             min_stake: DefaultMinStakeGlobal::<T>::get(),
+            min_delegation_fee: DefaultMinDelegationFeeGlobal::<T>::get(),
             min_weight_stake: DefaultMinWeightStake::<T>::get(),
             adjustment_alpha: DefaultAdjustmentAlpha::<T>::get(),
             unit_emission: DefaultUnitEmission::<T>::get(),
@@ -903,6 +913,7 @@ pub mod pallet {
         InvalidMinAllowedWeights,
         InvalidMaxAllowedWeights,
         InvalidMinStake,
+        InvalidMinDelegationFee,
 
         InvalidGlobalParams,
         InvalidMaxNameLength,
@@ -1159,6 +1170,9 @@ pub mod pallet {
             params.name = name;
             params.address = address;
             if let Some(delegation_fee) = delegation_fee {
+                ensure!(delegation_fee >= Self::get_min_deleg_fee_global(),
+                    Error::<T>::InvalidMinDelegationFee
+                );
                 params.delegation_fee = delegation_fee;
             }
             Self::do_update_module(origin, netuid, params)
