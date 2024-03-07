@@ -1170,6 +1170,9 @@ pub mod pallet {
             params.name = name;
             params.address = address;
             if let Some(delegation_fee) = delegation_fee {
+                ensure!(delegation_fee >= Self::get_min_deleg_fee_global(),
+                    Error::<T>::InvalidMinDelegationFee
+                );
                 params.delegation_fee = delegation_fee;
             }
             Self::do_update_module(origin, netuid, params)

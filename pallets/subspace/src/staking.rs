@@ -253,7 +253,10 @@ impl<T: Config> Pallet<T> {
 
     // Returns the delegation fee of a module
     pub fn get_delegation_fee(netuid: u16, module_key: &T::AccountId) -> Percent {
-        DelegationFee::<T>::get(netuid, module_key)
+        let min_deleg_fee_global = Self::get_min_deleg_fee_global();
+        let delegation_fee = DelegationFee::<T>::get(netuid, module_key);
+    
+        delegation_fee.max(min_deleg_fee_global)
     }
 
     // Returns true if the cold-hot staking account has enough balance to fufil the amount.

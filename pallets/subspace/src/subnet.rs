@@ -12,7 +12,7 @@ extern crate alloc;
 
 impl<T: Config> Pallet<T> {
     #[cfg(debug_assertions)]
-    pub fn do_remote_subnet(origin: T::RuntimeOrigin, netuid: u16) -> DispatchResult {
+    pub fn do_remove_subnet(origin: T::RuntimeOrigin, netuid: u16) -> DispatchResult {
         let key = ensure_signed(origin)?;
         // --- 1. Ensure the network name does not already exist.
 
