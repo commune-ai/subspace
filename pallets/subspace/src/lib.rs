@@ -5,6 +5,8 @@
 use frame_system::{self as system, ensure_signed};
 pub use pallet::*;
 
+mod migration;
+
 use frame_support::{
     dispatch,
     dispatch::{DispatchInfo, PostDispatchInfo},
@@ -63,11 +65,15 @@ pub mod pallet {
     use sp_arithmetic::per_things::Percent;
     pub use sp_std::{vec, vec::Vec};
 
+    const STORAGE_VERSION: StorageVersion = StorageVersion::new(2);
+
     #[pallet::pallet]
     #[pallet::generate_store(pub(super) trait Store)]
+    #[pallet::storage_version(STORAGE_VERSION)]
     #[pallet::without_storage_info]
     pub struct Pallet<T>(_);
 
+    
     // Configure the pallet by specifying the parameters and types on which it depends.
     #[pallet::config]
     pub trait Config: frame_system::Config {
@@ -1073,12 +1079,17 @@ pub mod pallet {
         // # Args:
         // 	* 'n': (T::BlockNumber):
         // 		- The number of the block we are initializing.
+        fn on_runtime_upgrade() -> frame_support::weights::Weight {
+			migration::on_runtime_upgrade::<T>()
+		}
+
         fn on_initialize(_block_number: BlockNumberFor<T>) -> Weight {
             Self::block_step();
 
             Weight::zero()
         }
     }
+
 
     // Dispatchable functions allow users to interact with the pallet and invoke state changes.
     // These functions materialize as "extrinsics", which are often compared to transactions.

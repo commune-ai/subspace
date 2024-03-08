@@ -1,1 +1,0 @@
-let new_storage_version = 2;
