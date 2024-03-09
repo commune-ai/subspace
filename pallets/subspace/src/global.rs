@@ -40,7 +40,10 @@ impl<T: Config> Pallet<T> {
         // check if the name already exists
         ensure!(params.max_name_length > 0, Error::<T>::InvalidMaxNameLength);
 
-        ensure!(params.min_delegation_fee.deconstruct() <= 100, Error::<T>::InvalidMinDelegationFee);
+        ensure!(
+            params.min_delegation_fee.deconstruct() <= 100,
+            Error::<T>::InvalidMinDelegationFee
+        );
 
         ensure!(
             params.max_allowed_subnets > 0,
