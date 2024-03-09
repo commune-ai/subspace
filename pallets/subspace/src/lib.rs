@@ -5,6 +5,9 @@
 use frame_system::{self as system, ensure_signed};
 pub use pallet::*;
 
+// export the migrations here
+pub mod migrations;
+
 use frame_support::{
     dispatch,
     dispatch::{DispatchInfo, PostDispatchInfo},
@@ -63,8 +66,11 @@ pub mod pallet {
     use sp_arithmetic::per_things::Percent;
     pub use sp_std::{vec, vec::Vec};
 
+    const STORAGE_VERSION: StorageVersion = StorageVersion::new(1);
+
     #[pallet::pallet]
     #[pallet::generate_store(pub(super) trait Store)]
+    #[pallet::storage_version(STORAGE_VERSION)]
     #[pallet::without_storage_info]
     pub struct Pallet<T>(_);
 
@@ -1074,6 +1080,10 @@ pub mod pallet {
         // # Args:
         // 	* 'n': (T::BlockNumber):
         // 		- The number of the block we are initializing.
+        // fn on_runtime_upgrade() -> frame_support::weights::Weight {
+        // 	migration::on_runtime_upgrade::<T>()
+        // }
+
         fn on_initialize(_block_number: BlockNumberFor<T>) -> Weight {
             Self::block_step();
 
