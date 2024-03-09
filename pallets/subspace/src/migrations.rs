@@ -44,7 +44,9 @@ pub mod v1 {
     impl<T: Config> OnRuntimeUpgrade for MigrateToV1<T> {
         fn on_runtime_upgrade() -> Weight {
             let on_chain_version = StorageVersion::get::<Pallet<T>>();
-            if on_chain_version < 2 {
+            
+            // Migrate GlobalParams to v1
+            if on_chain_version == 0 {
                 let encoded = StorageValue::<Pallet<T>, OldGlobalParams>::get().unwrap_or_default().encode();
                 let old_global_params = OldGlobalParams::decode(&mut encoded.as_slice())
                     .expect("Decoding old global params failed");
@@ -72,11 +74,10 @@ pub mod v1 {
                 };
 
                 StorageValue::<Pallet<T>, GlobalParams>::put(&new_global_params);
-                StorageVersion::new(2).put::<Pallet<T>>();
+                StorageVersion::new(1).put::<Pallet<T>>();
 
-                log::info!("Migrated GlobalParams to v2");
+                log::info!("Migrated GlobalParams to v1");
                 
-                // TODO: I am not sure if this is correct at all
                 T::DbWeight::get().writes(2)
             } else {
                 log::info!("GlobalParams already updated");
