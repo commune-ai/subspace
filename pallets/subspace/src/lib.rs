@@ -242,8 +242,9 @@ pub mod pallet {
         Percent::from_percent(5u8)
     }
 
-    #[pallet::storage] 
-    pub type MinDelegationFeeGlobal<T> = StorageValue<_, Percent, ValueQuery, DefaultMinDelegationFeeGlobal<T>>;
+    #[pallet::storage]
+    pub type MinDelegationFeeGlobal<T> =
+        StorageValue<_, Percent, ValueQuery, DefaultMinDelegationFeeGlobal<T>>;
 
     #[pallet::type_value]
     pub fn DefaultMinWeightStake<T: Config>() -> u64 {
@@ -282,11 +283,11 @@ pub mod pallet {
         pub max_proposals: u64,               // max number of proposals per block
 
         // mins
-        pub min_burn: u64,         // min burn required
-        pub max_burn: u64,         // max burn allowed
-        pub min_stake: u64,        // min stake required
+        pub min_burn: u64,               // min burn required
+        pub max_burn: u64,               // max burn allowed
+        pub min_stake: u64,              // min stake required
         pub min_delegation_fee: Percent, // min delegation fee
-        pub min_weight_stake: u64, // min weight stake required
+        pub min_weight_stake: u64,       // min weight stake required
 
         // other
         pub target_registrations_per_interval: u16, // desired number of registrations per interval
@@ -1170,7 +1171,8 @@ pub mod pallet {
             params.name = name;
             params.address = address;
             if let Some(delegation_fee) = delegation_fee {
-                ensure!(delegation_fee >= Self::get_min_deleg_fee_global(),
+                ensure!(
+                    delegation_fee >= Self::get_min_deleg_fee_global(),
                     Error::<T>::InvalidMinDelegationFee
                 );
                 params.delegation_fee = delegation_fee;
