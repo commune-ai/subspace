@@ -1,14 +1,12 @@
 use super::*;
 
-use frame_support::codec::{Decode, Encode};
-use scale_info::TypeInfo;
-use frame_support::traits::StorageInstance;
 use frame_support::{
+    codec::{Decode, Encode},
     pallet_prelude::StorageValue,
-    traits::{Get, OnRuntimeUpgrade, StorageVersion},
+    traits::{Get, OnRuntimeUpgrade, StorageInstance, StorageVersion},
     weights::Weight,
 };
-
+use scale_info::TypeInfo;
 
 #[derive(Decode, Encode, TypeInfo, Default)]
 pub struct OldGlobalParams {
@@ -44,10 +42,11 @@ pub mod v1 {
     impl<T: Config> OnRuntimeUpgrade for MigrateToV1<T> {
         fn on_runtime_upgrade() -> Weight {
             let on_chain_version = StorageVersion::get::<Pallet<T>>();
-            
+
             // Migrate GlobalParams to v1
             if on_chain_version == 0 {
-                let encoded = StorageValue::<Pallet<T>, OldGlobalParams>::get().unwrap_or_default().encode();
+                let encoded =
+                    StorageValue::<Pallet<T>, OldGlobalParams>::get().unwrap_or_default().encode();
                 let old_global_params = OldGlobalParams::decode(&mut encoded.as_slice())
                     .expect("Decoding old global params failed");
 
@@ -68,7 +67,8 @@ pub mod v1 {
                     vote_mode: old_global_params.vote_mode,
                     max_burn: DefaultMaxBurn::<T>::get(),
                     min_delegation_fee: DefaultMinDelegationFeeGlobal::<T>::get(),
-                    target_registrations_per_interval: DefaultTargetRegistrationsPerInterval::<T>::get(),
+                    target_registrations_per_interval:
+                        DefaultTargetRegistrationsPerInterval::<T>::get(),
                     target_registrations_interval: DefaultTargetRegistrationsInterval::<T>::get(),
                     adjustment_alpha: DefaultAdjustmentAlpha::<T>::get(),
                 };
@@ -77,8 +77,8 @@ pub mod v1 {
                 StorageVersion::new(1).put::<Pallet<T>>();
 
                 log::info!("Migrated GlobalParams to v1");
-                
-                T::DbWeight::get().writes(2)
+
+                T::DbWeight::get().writes(1)
             } else {
                 log::info!("GlobalParams already updated");
                 Weight::zero()
