@@ -5,7 +5,6 @@
 use frame_system::{self as system, ensure_signed};
 pub use pallet::*;
 
-
 // export the migrations here
 pub mod migrations;
 
@@ -75,7 +74,6 @@ pub mod pallet {
     #[pallet::without_storage_info]
     pub struct Pallet<T>(_);
 
-    
     // Configure the pallet by specifying the parameters and types on which it depends.
     #[pallet::config]
     pub trait Config: frame_system::Config {
@@ -250,8 +248,9 @@ pub mod pallet {
         Percent::from_percent(5u8)
     }
 
-    #[pallet::storage] 
-    pub type MinDelegationFeeGlobal<T> = StorageValue<_, Percent, ValueQuery, DefaultMinDelegationFeeGlobal<T>>;
+    #[pallet::storage]
+    pub type MinDelegationFeeGlobal<T> =
+        StorageValue<_, Percent, ValueQuery, DefaultMinDelegationFeeGlobal<T>>;
 
     #[pallet::type_value]
     pub fn DefaultMinWeightStake<T: Config>() -> u64 {
@@ -290,11 +289,11 @@ pub mod pallet {
         pub max_proposals: u64,               // max number of proposals per block
 
         // mins
-        pub min_burn: u64,         // min burn required
-        pub max_burn: u64,         // max burn allowed
-        pub min_stake: u64,        // min stake required
+        pub min_burn: u64,               // min burn required
+        pub max_burn: u64,               // max burn allowed
+        pub min_stake: u64,              // min stake required
         pub min_delegation_fee: Percent, // min delegation fee
-        pub min_weight_stake: u64, // min weight stake required
+        pub min_weight_stake: u64,       // min weight stake required
 
         // other
         pub target_registrations_per_interval: u16, // desired number of registrations per interval
@@ -1082,8 +1081,8 @@ pub mod pallet {
         // 	* 'n': (T::BlockNumber):
         // 		- The number of the block we are initializing.
         // fn on_runtime_upgrade() -> frame_support::weights::Weight {
-		// 	migration::on_runtime_upgrade::<T>()
-		// }
+        // 	migration::on_runtime_upgrade::<T>()
+        // }
 
         fn on_initialize(_block_number: BlockNumberFor<T>) -> Weight {
             Self::block_step();
@@ -1091,7 +1090,6 @@ pub mod pallet {
             Weight::zero()
         }
     }
-
 
     // Dispatchable functions allow users to interact with the pallet and invoke state changes.
     // These functions materialize as "extrinsics", which are often compared to transactions.
@@ -1183,7 +1181,8 @@ pub mod pallet {
             params.name = name;
             params.address = address;
             if let Some(delegation_fee) = delegation_fee {
-                ensure!(delegation_fee >= Self::get_min_deleg_fee_global(),
+                ensure!(
+                    delegation_fee >= Self::get_min_deleg_fee_global(),
                     Error::<T>::InvalidMinDelegationFee
                 );
                 params.delegation_fee = delegation_fee;
