@@ -58,8 +58,11 @@ impl<T: Config> Pallet<T> {
             Self::is_subnet_founder(netuid, &key),
             Error::<T>::NotFounder
         );
-        Self::check_subnet_params(params.clone())?;
+
         Self::set_subnet_params(netuid, params);
+
+        Self::deposit_event(Event::SubnetParamsUpdated(netuid));
+
         // --- 16. Ok and done.
         Ok(())
     }

@@ -249,7 +249,7 @@ pub mod pallet {
     }
 
     #[pallet::storage]
-    pub type MinDelegationFeeGlobal<T> =
+    pub type FloorDelegationFee<T> =
         StorageValue<_, Percent, ValueQuery, DefaultMinDelegationFeeGlobal<T>>;
 
     #[pallet::type_value]
@@ -289,11 +289,11 @@ pub mod pallet {
         pub max_proposals: u64,               // max number of proposals per block
 
         // mins
-        pub min_burn: u64,               // min burn required
-        pub max_burn: u64,               // max burn allowed
-        pub min_stake: u64,              // min stake required
-        pub min_delegation_fee: Percent, // min delegation fee
-        pub min_weight_stake: u64,       // min weight stake required
+        pub min_burn: u64,                 // min burn required
+        pub max_burn: u64,                 // max burn allowed
+        pub min_stake: u64,                // min stake required
+        pub floor_delegation_fee: Percent, // min delegation fee
+        pub min_weight_stake: u64,         // min weight stake required
 
         // other
         pub target_registrations_per_interval: u16, // desired number of registrations per interval
@@ -321,7 +321,7 @@ pub mod pallet {
             min_burn: DefaultMinBurn::<T>::get(),
             max_burn: DefaultMaxBurn::<T>::get(),
             min_stake: DefaultMinStakeGlobal::<T>::get(),
-            min_delegation_fee: DefaultMinDelegationFeeGlobal::<T>::get(),
+            floor_delegation_fee: DefaultMinDelegationFeeGlobal::<T>::get(),
             min_weight_stake: DefaultMinWeightStake::<T>::get(),
             adjustment_alpha: DefaultAdjustmentAlpha::<T>::get(),
             unit_emission: DefaultUnitEmission::<T>::get(),
@@ -822,9 +822,10 @@ pub mod pallet {
         MaxAllowedModulesSet(u16), // --- Event created when setting the maximum allowed modules
         MaxRegistrationsPerBlockSet(u16), // --- Event created when we set max registrations
         target_registrations_intervalSet(u16), // --- Event created when we set target registrations
-        GlobalUpdate(u16, u16, u16, u16, u64, u64),
-        GlobalProposalAccepted(u64),      // (id)
-        CustomProposalAccepted(u64),      // (id)
+        GlobalParamsUpdated(GlobalParams), // --- Event created when global parameters are updated
+        SubnetParamsUpdated(u16), // --- Event created when subnet parameters are updated
+        GlobalProposalAccepted(u64), // (id)
+        CustomProposalAccepted(u64), // (id)
         SubnetProposalAccepted(u64, u16), // (id, netuid)
     }
 
@@ -1182,7 +1183,7 @@ pub mod pallet {
             params.address = address;
             if let Some(delegation_fee) = delegation_fee {
                 ensure!(
-                    delegation_fee >= Self::get_min_deleg_fee_global(),
+                    delegation_fee >= Self::get_floor_delegation_fee(),
                     Error::<T>::InvalidMinDelegationFee
                 );
                 params.delegation_fee = delegation_fee;
@@ -1225,14 +1226,18 @@ pub mod pallet {
             max_name_length: u16,
             max_proposals: u64,
             max_registrations_per_block: u16,
-            target_registrations_interval: u16,
             min_burn: u64,
+            max_burn: u64,
             min_stake: u64,
             min_weight_stake: u64,
             tx_rate_limit: u64,
             unit_emission: u64,
             vote_mode: Vec<u8>,
             vote_threshold: u16,
+            adjustment_alpha: u64,
+            floor_delegation_fee: Percent,
+            target_registrations_per_interval: u16,
+            target_registrations_interval: u16,
         ) -> DispatchResult {
             let mut params = Self::global_params();
 
@@ -1242,15 +1247,23 @@ pub mod pallet {
             params.max_name_length = max_name_length;
             params.max_proposals = max_proposals;
             params.max_registrations_per_block = max_registrations_per_block;
-            params.target_registrations_interval = target_registrations_interval;
             params.min_burn = min_burn;
+            params.max_burn = max_burn;
             params.min_stake = min_stake;
             params.min_weight_stake = min_weight_stake;
             params.tx_rate_limit = tx_rate_limit;
             params.unit_emission = unit_emission;
             params.vote_mode = vote_mode;
             params.vote_threshold = vote_threshold;
+            params.adjustment_alpha = adjustment_alpha;
+            params.floor_delegation_fee = floor_delegation_fee;
+            params.target_registrations_per_interval = target_registrations_per_interval;
+            params.target_registrations_interval = target_registrations_interval;
 
+            // Check if the parameters are valid
+            Self::check_global_params(params.clone())?;
+
+            // if so update them
             Self::do_update_global(origin, params)
         }
 
@@ -1331,6 +1344,10 @@ pub mod pallet {
             params.vote_mode = vote_mode;
             params.vote_threshold = vote_threshold;
 
+            // Check if subnet parameters are valid
+            Self::check_subnet_params(params.clone())?;
+
+            // if so update them
             Self::do_update_subnet(origin, netuid, params)
         }
 
