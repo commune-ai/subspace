@@ -200,6 +200,7 @@ impl<T: Config> Pallet<T> {
                 Self::check_subnet_params(proposal.subnet_params.clone())?;
                 //  check if vote mode is valid
                 let subnet_params: SubnetParams<T> = Self::subnet_params(proposal.netuid);
+                // TODO: once decentralization is achieved, remove this check
                 ensure!(
                     subnet_params.vote_mode == STAKE_MODE,
                     Error::<T>::InvalidVoteMode
