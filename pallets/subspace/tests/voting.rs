@@ -2,6 +2,7 @@ mod mock;
 use frame_support::assert_ok;
 
 use mock::*;
+use sp_arithmetic::per_things::Percent;
 use sp_core::U256;
 use sp_std::vec;
 

@@ -228,15 +228,23 @@ pub fn testnet_config() -> Result<ChainSpec, String> {
     generate_config("test".to_string())
 }
 
+type ModuleData = (AccountId, Vec<u8>, Vec<u8>, Vec<(u16, u16)>);
+type Modules = Vec<Vec<ModuleData>>;
+type SubnetData = (Vec<u8>, u16, u16, u16, u16, u16, u16, u64, AccountId);
+type Subnets = Vec<SubnetData>;
+type StakeToData = (AccountId, Vec<(AccountId, u64)>);
+type StakeToVec = Vec<Vec<StakeToData>>;
+
 // Configure initial storage state for FRAME modules.
+#[allow(clippy::too_many_arguments)]
 fn network_genesis(
     wasm_binary: &[u8],
     initial_authorities: Vec<(AuraId, GrandpaId)>,
     root_key: AccountId,
     balances: Vec<(AccountId, u64)>,
-    modules: Vec<Vec<(AccountId, Vec<u8>, Vec<u8>, Vec<(u16, u16)>)>>,
-    subnets: Vec<(Vec<u8>, u16, u16, u16, u16, u16, u16, u64, AccountId)>,
-    stake_to: Vec<Vec<(AccountId, Vec<(AccountId, u64)>)>>,
+    modules: Modules,
+    subnets: Subnets,
+    stake_to: StakeToVec,
     block: u32,
 ) -> RuntimeGenesisConfig {
     use node_subspace_runtime::EVMConfig;
