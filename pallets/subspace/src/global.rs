@@ -26,7 +26,7 @@ impl<T: Config> Pallet<T> {
             max_burn: Self::get_max_burn(),
             adjustment_alpha: Self::get_adjustment_alpha(),
             min_stake: Self::get_min_stake_global(),
-            min_delegation_fee: Self::get_min_deleg_fee_global(),
+            floor_delegation_fee: Self::get_floor_delegation_fee(),
             min_weight_stake: Self::get_min_weight_stake(),
             max_allowed_weights: Self::get_max_allowed_weights_global(),
         }
@@ -35,13 +35,17 @@ impl<T: Config> Pallet<T> {
     // TODO: make sure there are checks for all values
     pub fn check_global_params(params: GlobalParams) -> DispatchResult {
         // checks if params are valid
-        let og_params = Self::global_params();
+        let old_params = Self::global_params();
 
         // check if the name already exists
         ensure!(params.max_name_length > 0, Error::<T>::InvalidMaxNameLength);
 
+        // we need to ensure that the delegation fee floor is only moven up, moving it down would
+        // require a storage migration
         ensure!(
-            params.min_delegation_fee.deconstruct() <= 100,
+            params.floor_delegation_fee.deconstruct() <= 100
+                && params.floor_delegation_fee.deconstruct()
+                    >= old_params.floor_delegation_fee.deconstruct(),
             Error::<T>::InvalidMinDelegationFee
         );
 
@@ -73,7 +77,7 @@ impl<T: Config> Pallet<T> {
         ensure!(params.max_proposals > 0, Error::<T>::InvalidMaxProposals);
 
         ensure!(
-            params.unit_emission <= og_params.unit_emission,
+            params.unit_emission <= old_params.unit_emission,
             Error::<T>::InvalidUnitEmission
         );
 
@@ -113,7 +117,7 @@ impl<T: Config> Pallet<T> {
         Self::set_max_burn(params.max_burn);
         Self::set_min_weight_stake(params.min_weight_stake);
         Self::set_min_stake_global(params.min_stake);
-        Self::set_min_deleg_fee_global(params.min_delegation_fee);
+        Self::set_floor_delegation_fee(params.floor_delegation_fee);
     }
 
     pub fn get_registrations_this_interval() -> u16 {
@@ -146,12 +150,12 @@ impl<T: Config> Pallet<T> {
         MinStakeGlobal::<T>::put(min_stake)
     }
 
-    pub fn get_min_deleg_fee_global() -> Percent {
-        MinDelegationFeeGlobal::<T>::get()
+    pub fn get_floor_delegation_fee() -> Percent {
+        FloorDelegationFee::<T>::get()
     }
 
-    pub fn set_min_deleg_fee_global(delegation_fee: Percent) {
-        MinDelegationFeeGlobal::<T>::put(delegation_fee)
+    pub fn set_floor_delegation_fee(delegation_fee: Percent) {
+        FloorDelegationFee::<T>::put(delegation_fee)
     }
 
     pub fn set_vote_mode_global(vote_mode: Vec<u8>) {
@@ -223,7 +227,11 @@ impl<T: Config> Pallet<T> {
             Self::get_vote_mode_global() == AUTHORITY_MODE,
             Error::<T>::InvalidVoteMode
         );
-        Self::set_global_params(params);
+        Self::set_global_params(params.clone());
+
+        // event
+        Self::deposit_event(Event::GlobalParamsUpdated(params));
+
         Ok(())
     }
 
