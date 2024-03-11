@@ -174,7 +174,9 @@ impl<T: Config> Pallet<T> {
     }
 
     pub fn set_burn(burn: u64) {
-        Burn::<T>::set(burn)
+        Burn::<T>::set(burn);
+        // announce a burn change
+        Self::deposit_event(Event::RegistrationBurnChanged(burn));
     }
 
     pub fn set_burn_rate(burn_rate: u16) {
@@ -223,6 +225,8 @@ impl<T: Config> Pallet<T> {
 
     pub fn do_update_global(origin: T::RuntimeOrigin, params: GlobalParams) -> DispatchResult {
         ensure_root(origin)?;
+
+        // TODO, once decentralization is reached, remove this
         ensure!(
             Self::get_vote_mode_global() == AUTHORITY_MODE,
             Error::<T>::InvalidVoteMode

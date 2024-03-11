@@ -133,7 +133,7 @@ pub mod pallet {
 
     #[pallet::type_value]
     pub fn DefaultMinBurn<T: Config>() -> u64 {
-        200_000_000 // 2 $COMAI
+        4_000_000_000 // 4 $COMAI
     }
     #[pallet::storage] // --- MinBurn
     pub type MinBurn<T> = StorageValue<_, u64, ValueQuery, DefaultMinBurn<T>>;
@@ -145,7 +145,7 @@ pub mod pallet {
 
     #[pallet::type_value]
     pub fn DefaultAdjustmentAlpha<T: Config>() -> u64 {
-        0 // u64::MAX / 2
+        u64::MAX / 2
     }
 
     #[pallet::storage] // --- adjusment alpha
@@ -231,7 +231,6 @@ pub mod pallet {
     pub fn DefaultTargetRegistrationsInterval<T: Config>() -> u16 {
         DefaultTempo::<T>::get() * 2 // 2 times the epoch
     }
-
     #[pallet::storage] // --- ITEM( global_target_registrations_interval )
     pub type TargetRegistrationsInterval<T> =
         StorageValue<_, u16, ValueQuery, DefaultTargetRegistrationsInterval<T>>;
@@ -827,6 +826,7 @@ pub mod pallet {
         GlobalProposalAccepted(u64), // (id)
         CustomProposalAccepted(u64), // (id)
         SubnetProposalAccepted(u64, u16), // (id, netuid)
+        RegistrationBurnChanged(u64),
     }
 
     // Errors inform users that something went wrong.
