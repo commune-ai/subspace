@@ -92,7 +92,7 @@ impl<T: Config> Pallet<T> {
         RegistrationsThisInterval::<T>::mutate(|val| *val += 1);
 
         // --- Deposit successful event.
-        Self::deposit_event(Event::ModuleRegistered(netuid, uid, module_key.clone()));
+        Self::deposit_event(Event::ModuleRegistered(netuid, uid, module_key));
 
         // --- 11. Ok and done.
         Ok(())
