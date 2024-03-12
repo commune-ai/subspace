@@ -36,7 +36,7 @@ impl<T: Config> Pallet<T> {
             netuid
         } else {
             // Create subnet if it does not exist.
-            Self::add_subnet_from_registration(network, &key)?
+            Self::add_subnet_from_registration(network, stake_amount, &key)?
         };
 
         // --- 5. Ensure the caller has enough stake to register.
@@ -175,6 +175,7 @@ impl<T: Config> Pallet<T> {
 
     pub fn add_subnet_from_registration(
         name: Vec<u8>,
+        stake: u64,
         founder_key: &T::AccountId,
     ) -> Result<u16, sp_runtime::DispatchError> {
         let num_subnets: u16 = Self::num_subnets();
@@ -182,8 +183,9 @@ impl<T: Config> Pallet<T> {
         let mut target_subnet = None;
         // if we have not reached the max number of subnets, then we can start a new one
         if num_subnets >= max_subnets {
-            let (min_stake_netuid, _) = Self::least_staked_netuid();
+            let (min_stake_netuid, min_stake) = Self::least_staked_netuid();
             target_subnet = Some(min_stake_netuid);
+            ensure!(stake > min_stake, Error::<T>::NotEnoughStakeToStartNetwork);
             Self::remove_subnet(min_stake_netuid);
         }
         // if we have reached the max number of subnets, then we can start a new one if the stake is
