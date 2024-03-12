@@ -347,16 +347,21 @@ impl<T: Config> Pallet<T> {
     pub fn add_subnet(params: SubnetParams<T>) -> u16 {
         // --- 1. Enfnsure that the network name does not already exist.
         let total_networks: u16 = TotalSubnets::<T>::get();
-        let _max_networks = MaxAllowedSubnets::<T>::get();
-        let netuid = total_networks;
+        let max_networks = MaxAllowedSubnets::<T>::get();
+        let netuid = if total_networks <= max_networks {
+            // set stat once network is created
+            TotalSubnets::<T>::mutate(|n| *n += 1);
+
+            total_networks
+        } else {
+            dbg!(Self::least_staked_netuid())
+        };
 
         Self::set_subnet_params(netuid, params.clone());
-        // set stat once network is created
-        TotalSubnets::<T>::mutate(|n| *n += 1);
         N::<T>::insert(netuid, 0);
 
         // --- 6. Emit the new network event.
-        Self::deposit_event(Event::NetworkAdded(netuid, params.name.clone()));
+        Self::deposit_event(Event::NetworkAdded(netuid, params.name));
 
         netuid
     }
