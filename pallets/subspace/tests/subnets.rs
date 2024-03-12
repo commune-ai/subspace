@@ -367,7 +367,7 @@ fn test_global_max_allowed_subnets() {
 #[test]
 fn test_deregister_subnet_when_overflows_max_allowed_subnets() {
     new_test_ext().execute_with(|| {
-        let extra = 0;
+        let extra = 1;
         let mut params = SubspaceModule::global_params();
         params.max_allowed_subnets = 3;
         SubspaceModule::set_global_params(params.clone());
