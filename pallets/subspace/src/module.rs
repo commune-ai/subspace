@@ -137,7 +137,7 @@ impl<T: Config> Pallet<T> {
         incentive[uid as usize] = incentive[replace_uid as usize];
         dividends[uid as usize] = dividends[replace_uid as usize];
         emission[uid as usize] = emission[replace_uid as usize];
-        last_update[uid as usize] = emission[replace_uid as usize];
+        last_update[uid as usize] = last_update[replace_uid as usize];
 
         // pop the last element (which is now a duplicate)
         incentive.pop();

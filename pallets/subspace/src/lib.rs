@@ -133,7 +133,7 @@ pub mod pallet {
 
     #[pallet::type_value]
     pub fn DefaultMinBurn<T: Config>() -> u64 {
-        200_000_000 // 2 $COMAI
+        4_000_000_000 // 4 $COMAI
     }
     #[pallet::storage] // --- MinBurn
     pub type MinBurn<T> = StorageValue<_, u64, ValueQuery, DefaultMinBurn<T>>;
@@ -145,7 +145,7 @@ pub mod pallet {
 
     #[pallet::type_value]
     pub fn DefaultAdjustmentAlpha<T: Config>() -> u64 {
-        0 // u64::MAX / 2
+        u64::MAX / 2
     }
 
     #[pallet::storage] // --- adjusment alpha
@@ -231,7 +231,6 @@ pub mod pallet {
     pub fn DefaultTargetRegistrationsInterval<T: Config>() -> u16 {
         DefaultTempo::<T>::get() * 2 // 2 times the epoch
     }
-
     #[pallet::storage] // --- ITEM( global_target_registrations_interval )
     pub type TargetRegistrationsInterval<T> =
         StorageValue<_, u16, ValueQuery, DefaultTargetRegistrationsInterval<T>>;
@@ -354,8 +353,7 @@ pub mod pallet {
         pub max_weight_age: u64,      // max age of a weight
         pub min_stake: u64,           // min stake required
         pub name: Vec<u8>,
-        pub self_vote: bool, //
-        pub tempo: u16,      // how many blocks to wait before rewarding models
+        pub tempo: u16, // how many blocks to wait before rewarding models
         pub trust_ratio: u16,
         pub vote_threshold: u16, // out of 100
         pub vote_mode: Vec<u8>,
@@ -375,7 +373,6 @@ pub mod pallet {
             vote_threshold: DefaultVoteThreshold::<T>::get(),
             vote_mode: DefaultVoteMode::<T>::get(),
             trust_ratio: DefaultTrustRatio::<T>::get(),
-            self_vote: DefaultSelfVote::<T>::get(),
             founder_share: DefaultFounderShare::<T>::get(),
             incentive_ratio: DefaultIncentiveRatio::<T>::get(),
             min_stake: DefaultMinStake::<T>::get(),
@@ -827,6 +824,7 @@ pub mod pallet {
         GlobalProposalAccepted(u64), // (id)
         CustomProposalAccepted(u64), // (id)
         SubnetProposalAccepted(u64, u16), // (id, netuid)
+        RegistrationBurnChanged(u64),
     }
 
     // Errors inform users that something went wrong.
@@ -998,7 +996,6 @@ pub mod pallet {
                     vote_threshold: default_params.vote_threshold,
                     vote_mode: default_params.vote_mode.clone(),
                     trust_ratio: default_params.trust_ratio,
-                    self_vote: default_params.self_vote,
                     founder_share: default_params.founder_share,
                     incentive_ratio: default_params.incentive_ratio,
                     max_weight_age: default_params.max_weight_age,
@@ -1320,7 +1317,6 @@ pub mod pallet {
             max_weight_age: u64,
             min_stake: u64,
             name: Vec<u8>,
-            self_vote: bool,
             tempo: u16,
             trust_ratio: u16,
             vote_mode: Vec<u8>,
@@ -1338,7 +1334,6 @@ pub mod pallet {
             params.max_weight_age = max_weight_age;
             params.min_stake = min_stake;
             params.name = name;
-            params.self_vote = self_vote;
             params.tempo = tempo;
             params.trust_ratio = trust_ratio;
             params.vote_mode = vote_mode;
@@ -1366,7 +1361,6 @@ pub mod pallet {
             min_allowed_weights: u16,
             min_stake: u64,
             name: Vec<u8>,
-            self_vote: bool,
             tempo: u16,
             trust_ratio: u16,
             vote_mode: Vec<u8>,
@@ -1384,7 +1378,6 @@ pub mod pallet {
             params.min_allowed_weights = min_allowed_weights;
             params.min_stake = min_stake;
             params.name = name;
-            params.self_vote = self_vote;
             params.tempo = tempo;
             params.trust_ratio = trust_ratio;
             params.vote_mode = vote_mode;
