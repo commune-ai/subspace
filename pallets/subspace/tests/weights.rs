@@ -170,7 +170,7 @@ fn test_set_max_allowed_uids() {
         SubspaceModule::set_max_allowed_weights(netuid, max_allowed_uids);
 
         // Should fail because we are only setting a single value and its not the self weight.
-        let weight_keys: Vec<u16> = (0..max_allowed_uids).collect(); // not weight.
+        let weight_keys: Vec<u16> = (1..max_allowed_uids + 1).collect(); // not weight.
         let weight_values: Vec<u16> = vec![1; max_allowed_uids as usize]; // random value.
         let result = SubspaceModule::set_weights(
             RuntimeOrigin::signed(account_id),
@@ -218,10 +218,9 @@ fn test_is_self_weight_weights_length_not_one() {
 
         let uids: Vec<u16> = Vec::from_iter((0..max_allowed).map(|id| id + 1));
         let uid: u16 = uids[0];
-        let weights: Vec<u16> = Vec::from_iter((0..max_allowed).map(|id| id + 1));
 
-        let expected = false;
-        let result = SubspaceModule::is_self_weight(uid, &uids, &weights);
+        let expected = true;
+        let result = SubspaceModule::is_self_weight(uid, &uids);
 
         assert_eq!(
             expected, result,
@@ -230,27 +229,6 @@ fn test_is_self_weight_weights_length_not_one() {
     });
 }
 
-/// Check _falsey_ path for uid vs uids[0]
-#[test]
-fn test_is_self_weight_uid_not_in_uids() {
-    new_test_ext().execute_with(|| {
-        let max_allowed: u16 = 3;
-
-        let uids: Vec<u16> = Vec::from_iter((0..max_allowed).map(|id| id + 1));
-        let uid: u16 = uids[1];
-        let weights: Vec<u16> = vec![0];
-
-        let expected = false;
-        let result = SubspaceModule::is_self_weight(uid, &uids, &weights);
-
-        assert_eq!(
-            expected, result,
-            "Failed get expected result when `uid != uids[0]`"
-        );
-    });
-}
-
-/// Check _truthy_ path
 /// @TODO: double-check if this really be desired behavior
 #[test]
 fn test_is_self_weight_uid_in_uids() {
@@ -259,10 +237,9 @@ fn test_is_self_weight_uid_in_uids() {
 
         let uids: Vec<u16> = Vec::from_iter((0..max_allowed).map(|id| id + 1));
         let uid: u16 = uids[0];
-        let weights: Vec<u16> = vec![0];
 
         let expected = true;
-        let result = SubspaceModule::is_self_weight(uid, &uids, &weights);
+        let result = SubspaceModule::is_self_weight(uid, &uids);
 
         assert_eq!(
             expected, result,
