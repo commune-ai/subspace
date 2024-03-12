@@ -145,10 +145,7 @@ impl<T: Config> Pallet<T> {
             })
             .collect();
 
-        // enabling self voting (if enabled)
-        if !subnet_params.self_vote {
-            weights = mask_diag_sparse(&weights);
-        }
+        weights = mask_diag_sparse(&weights);
 
         // Normalize remaining weights.
         inplace_row_normalize_sparse(&mut weights);

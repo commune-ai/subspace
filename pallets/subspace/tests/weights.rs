@@ -221,7 +221,7 @@ fn test_is_self_weight_weights_length_not_one() {
         let weights: Vec<u16> = Vec::from_iter((0..max_allowed).map(|id| id + 1));
 
         let expected = false;
-        let result = SubspaceModule::is_self_weight(uid, &uids, &weights);
+        let result = SubspaceModule::is_self_weight(uid, &uids);
 
         assert_eq!(
             expected, result,
@@ -241,7 +241,7 @@ fn test_is_self_weight_uid_not_in_uids() {
         let weights: Vec<u16> = vec![0];
 
         let expected = false;
-        let result = SubspaceModule::is_self_weight(uid, &uids, &weights);
+        let result = SubspaceModule::is_self_weight(uid, &uids);
 
         assert_eq!(
             expected, result,
@@ -259,10 +259,9 @@ fn test_is_self_weight_uid_in_uids() {
 
         let uids: Vec<u16> = Vec::from_iter((0..max_allowed).map(|id| id + 1));
         let uid: u16 = uids[0];
-        let weights: Vec<u16> = vec![0];
 
         let expected = true;
-        let result = SubspaceModule::is_self_weight(uid, &uids, &weights);
+        let result = SubspaceModule::is_self_weight(uid, &uids);
 
         assert_eq!(
             expected, result,

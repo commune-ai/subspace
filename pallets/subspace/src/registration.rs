@@ -5,9 +5,6 @@ use frame_system::ensure_signed;
 
 use sp_std::vec::Vec;
 
-// IterableStorageMap
-use frame_support::storage::IterableStorageMap;
-
 impl<T: Config> Pallet<T> {
     pub fn do_register(
         origin: T::RuntimeOrigin,
@@ -185,15 +182,7 @@ impl<T: Config> Pallet<T> {
         let max_subnets: u16 = Self::get_global_max_allowed_subnets();
         // if we have not reached the max number of subnets, then we can start a new one
         if num_subnets >= max_subnets {
-            let mut min_stake: u64 = u64::MAX; // initially represents the maximum amount that is possible to have
-            let mut min_stake_netuid: u16 = max_subnets.saturating_sub(1); // initially represents the last netuid
-
-            for (netuid, net_stake) in <TotalStake<T> as IterableStorageMap<u16, u64>>::iter() {
-                if net_stake <= min_stake {
-                    min_stake = net_stake;
-                    min_stake_netuid = netuid;
-                }
-            }
+            let (min_stake_netuid, min_stake) = Self::least_staked_netuid();
             // if the stake is greater than the least staked network, then we can start a new one
             ensure!(stake > min_stake, Error::<T>::NotEnoughStakeToStartNetwork);
             Self::remove_subnet(min_stake_netuid);
@@ -214,7 +203,7 @@ impl<T: Config> Pallet<T> {
         // replace a node if we reach the max allowed modules for the network
         if Self::global_n() >= Self::get_max_allowed_modules() {
             // get the least staked network (subnet)
-            let least_staked_netuid: u16 = Self::least_staked_netuid();
+            let (least_staked_netuid, _) = Self::least_staked_netuid();
 
             // deregister the lowest priority node
             Self::remove_module(

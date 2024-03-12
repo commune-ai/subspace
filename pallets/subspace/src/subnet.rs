@@ -131,7 +131,6 @@ impl<T: Config> Pallet<T> {
             vote_threshold: VoteThresholdSubnet::<T>::get(netuid),
             vote_mode: VoteModeSubnet::<T>::get(netuid),
             trust_ratio: TrustRatio::<T>::get(netuid),
-            self_vote: SelfVote::<T>::get(netuid),
             founder_share: FounderShare::<T>::get(netuid),
             incentive_ratio: IncentiveRatio::<T>::get(netuid),
             founder: Founder::<T>::get(netuid),
@@ -155,7 +154,6 @@ impl<T: Config> Pallet<T> {
         Self::set_trust_ratio(netuid, params.trust_ratio);
         Self::set_vote_threshold_subnet(netuid, params.vote_threshold);
         Self::set_vote_mode_subnet(netuid, params.vote_mode);
-        Self::set_self_vote(netuid, params.self_vote);
         Self::set_incentive_ratio(netuid, params.incentive_ratio);
     }
 
@@ -177,7 +175,7 @@ impl<T: Config> Pallet<T> {
     }
 
     // get the least staked network
-    pub fn least_staked_netuid() -> u16 {
+    pub fn least_staked_netuid() -> (u16, u64) {
         let mut min_stake: u64 = u64::MAX;
         let mut min_stake_netuid: u16 = u16::MAX;
         for (netuid, net_stake) in <TotalStake<T> as IterableStorageMap<u16, u64>>::iter() {
@@ -186,7 +184,7 @@ impl<T: Config> Pallet<T> {
                 min_stake_netuid = netuid;
             }
         }
-        min_stake_netuid
+        (min_stake_netuid, min_stake)
     }
 
     pub fn address_vector(netuid: u16) -> Vec<Vec<u8>> {
@@ -267,19 +265,6 @@ impl<T: Config> Pallet<T> {
         Founder::<T>::get(netuid) == *key
     }
 
-    pub fn set_self_vote(netuid: u16, self_vote: bool) {
-        SelfVote::<T>::insert(netuid, self_vote);
-    }
-
-    pub fn get_self_vote(netuid: u16) -> bool {
-        SelfVote::<T>::get(netuid)
-    }
-
-    pub fn market_cap() -> u64 {
-        let total_stake: u64 = Self::total_stake();
-        total_stake
-    }
-
     pub fn get_unit_emission() -> u64 {
         UnitEmission::<T>::get()
     }
@@ -290,7 +275,7 @@ impl<T: Config> Pallet<T> {
 
     // Returns the total amount of stake in the staking table.
     pub fn get_total_emission_per_block() -> u64 {
-        let market_cap: u64 = Self::market_cap();
+        let total_stake: u64 = Self::total_stake();
         let unit_emission: u64 = Self::get_unit_emission();
         let mut emission_per_block: u64 = unit_emission; // assuming 8 second block times
         let halving_total_stake_checkpoints: Vec<u64> =
@@ -300,7 +285,7 @@ impl<T: Config> Pallet<T> {
                 .collect();
         for (i, having_stake) in halving_total_stake_checkpoints.iter().enumerate() {
             let halving_factor = 2u64.pow((i) as u32);
-            if market_cap < *having_stake {
+            if total_stake < *having_stake {
                 emission_per_block /= halving_factor;
                 break;
             }
