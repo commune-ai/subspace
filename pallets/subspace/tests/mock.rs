@@ -258,7 +258,6 @@ pub fn register(netuid: u16, key: U256, stake: u64) {
     assert_ok!(result);
 }
 
-
 pub fn remote_subnet(netuid: u16, key: U256) {
     let origin = get_origin(key);
     let result = SubspaceModule::do_remove_subnet(origin, netuid);
