@@ -344,20 +344,12 @@ impl<T: Config> Pallet<T> {
         Self::calculate_network_emission(netuid)
     }
 
-    pub fn add_subnet(params: SubnetParams<T>) -> u16 {
+    pub fn add_subnet(params: SubnetParams<T>, netuid: Option<u16>) -> u16 {
         // --- 1. Enfnsure that the network name does not already exist.
-        let total_networks: u16 = TotalSubnets::<T>::get();
-        let max_networks = MaxAllowedSubnets::<T>::get();
-        let netuid = if total_networks <= max_networks {
-            // set stat once network is created
-            TotalSubnets::<T>::mutate(|n| *n += 1);
-
-            total_networks
-        } else {
-            dbg!(Self::least_staked_netuid())
-        };
+        let netuid = netuid.unwrap_or_else(TotalSubnets::<T>::get);
 
         Self::set_subnet_params(netuid, params.clone());
+        TotalSubnets::<T>::mutate(|n| *n += 1);
         N::<T>::insert(netuid, 0);
 
         // --- 6. Emit the new network event.
@@ -443,7 +435,7 @@ impl<T: Config> Pallet<T> {
 
         // Adjust the total number of subnets. and remove the subnet from the list of subnets.
         N::<T>::remove(netuid);
-        TotalSubnets::<T>::mutate(|val| (*val).saturating_sub(1));
+        TotalSubnets::<T>::mutate(|val| *val -= 1);
         // --- 4. Emit the event.
         Self::deposit_event(Event::NetworkRemoved(netuid));
 
@@ -528,19 +520,13 @@ impl<T: Config> Pallet<T> {
     // Return the total number of subnetworks available on the chain.
     //
     pub fn num_subnets() -> u16 {
-        let mut number_of_subnets: u16 = 0;
-        for (_, _) in <N<T> as IterableStorageMap<u16, u16>>::iter() {
-            number_of_subnets += 1;
-        }
-        number_of_subnets
+        TotalSubnets::<T>::get()
     }
 
     pub fn netuids() -> Vec<u16> {
-        let mut netuids: Vec<u16> = Vec::new();
-        for (netuid, _net_n) in <N<T> as IterableStorageMap<u16, u16>>::iter() {
-            netuids.push(netuid);
-        }
-        netuids
+        <N<T> as IterableStorageMap<u16, u16>>::iter()
+            .map(|(netuid, _)| netuid)
+            .collect()
     }
 
     // ========================
