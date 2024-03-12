@@ -1,20 +1,13 @@
 mod test_mock;
-use frame_support::{
-	assert_ok,
-	dispatch::{DispatchClass, DispatchInfo, GetDispatchInfo, Pays},
-};
-use frame_system::Config;
+use frame_support::assert_ok;
 use pallet_subspace::Error;
 use sp_core::U256;
 use sp_runtime::DispatchError;
-use substrate_fixed::types::I32F32;
 use test_mock::*;
 
 /***************************
   pub fn set_weights() tests
 *****************************/
-
-
 
 // Test ensures that uids -- weights must have the same size.
 #[test]
@@ -22,8 +15,7 @@ fn test_weights_err_weights_vec_not_equal_size() {
 	new_test_ext().execute_with(|| {
 		let netuid: u16 = 0;
 		let key_account_id = U256::from(55);
-		register_module(netuid, key_account_id, 1_000_000_000);
-		let neuron_uid: u16 = SubspaceModule::get_uid_for_key(netuid, &key_account_id);
+		register_module(netuid, key_account_id, 1_000_000_000).ok();
 		let weights_keys: Vec<u16> = vec![1, 2, 3, 4, 5, 6];
 		let weight_values: Vec<u16> = vec![1, 2, 3, 4, 5]; // Uneven sizes
 		let result = SubspaceModule::set_weights(
@@ -44,19 +36,19 @@ fn test_weights_err_has_duplicate_ids() {
 		let netuid: u16 = 0;
 		SubspaceModule::set_max_registrations_per_block(100);
 
-		register_module(netuid, key_account_id, 10);
+		register_module(netuid, key_account_id, 10).ok();
 		SubspaceModule::set_max_allowed_uids(netuid, 100); // Allow many registrations per block.
 
 		// uid 1
-		register_module(netuid, U256::from(1), 100);
+		register_module(netuid, U256::from(1), 100).ok();
 		SubspaceModule::get_uid_for_key(netuid, &U256::from(1));
 
 		// uid 2
-		register_module(netuid, U256::from(2), 10000);
+		register_module(netuid, U256::from(2), 10000).ok();
 		SubspaceModule::get_uid_for_key(netuid, &U256::from(2));
 
 		// uid 3
-		register_module(netuid, U256::from(3), 10000000);
+		register_module(netuid, U256::from(3), 10000000).ok();
 		SubspaceModule::get_uid_for_key(netuid, &U256::from(3));
 
 		assert_eq!(SubspaceModule::get_subnet_n_uids(netuid), 4);
@@ -90,8 +82,7 @@ fn test_set_weights_err_invalid_uid() {
 	new_test_ext().execute_with(|| {
 		let key_account_id = U256::from(55);
 		let netuid: u16 = 0;
-		register_module(netuid, key_account_id, 1_000_000_000);
-		let neuron_uid: u16 = SubspaceModule::get_uid_for_key(netuid, &key_account_id);
+		register_module(netuid, key_account_id, 1_000_000_000).ok();
 		let weight_keys: Vec<u16> = vec![9999]; // Does not exist
 		let weight_values: Vec<u16> = vec![88]; // random value
 		let result = SubspaceModule::set_weights(
@@ -112,10 +103,9 @@ fn test_set_weight_not_enough_values() {
 		let n = 100;
 		SubspaceModule::set_max_registrations_per_block(n);
 		let account_id = U256::from(0);
-		register_module(netuid, account_id, 1_000_000_000);
-		let neuron_uid: u16 = SubspaceModule::get_uid_for_key(netuid, &U256::from(account_id));
+		register_module(netuid, account_id, 1_000_000_000).ok();
 		for i in 1..n {
-			register_module(netuid, U256::from(i), 1_000_000_000);
+			register_module(netuid, U256::from(i), 1_000_000_000).ok();
 		}
 
 		SubspaceModule::set_min_allowed_weights(netuid, 2);
@@ -164,10 +154,9 @@ fn test_set_max_allowed_uids() {
 		let n = 100;
 		SubspaceModule::set_max_registrations_per_block(n);
 		let account_id = U256::from(0);
-		register_module(netuid, account_id, 1_000_000_000);
-		let neuron_uid: u16 = SubspaceModule::get_uid_for_key(netuid, &U256::from(account_id));
+		register_module(netuid, account_id, 1_000_000_000).ok();
 		for i in 1..n {
-			register_module(netuid, U256::from(i), 1_000_000_000);
+			register_module(netuid, U256::from(i), 1_000_000_000).ok();
 		}
 
 		let max_allowed_uids: u16 = 10;
@@ -195,8 +184,8 @@ fn test_normalize_weights_does_not_mutate_when_sum_is_zero() {
 
 		let weights: Vec<u16> = Vec::from_iter((0..max_allowed).map(|_| 0));
 
-		let expected = weights.clone();
-		let result = SubspaceModule::normalize_weights(weights);
+		let _expected = weights.clone();
+		let _result = SubspaceModule::normalize_weights(weights);
 	});
 }
 
@@ -272,14 +261,13 @@ fn test_is_self_weight_uid_in_uids() {
 fn test_check_len_uids_within_allowed_within_network_pool() {
 	new_test_ext().execute_with(|| {
 		let netuid: u16 = 0;
-		let tempo: u16 = 13;
 
 		SubspaceModule::set_max_registrations_per_block(100);
 
 		/* @TODO: use a loop maybe */
-		register_module(netuid, U256::from(1), 1_000_000_000);
-		register_module(netuid, U256::from(3), 1_000_000_000);
-		register_module(netuid, U256::from(5), 1_000_000_000);
+		register_module(netuid, U256::from(1), 1_000_000_000).ok();
+		register_module(netuid, U256::from(3), 1_000_000_000).ok();
+		register_module(netuid, U256::from(5), 1_000_000_000).ok();
 		let max_allowed: u16 = SubspaceModule::get_subnet_n_uids(netuid);
 
 		let uids: Vec<u16> = Vec::from_iter((0..max_allowed).map(|uid| uid));
@@ -295,15 +283,12 @@ fn test_check_len_uids_within_allowed_not_within_network_pool() {
 	new_test_ext().execute_with(|| {
 		let netuid: u16 = 0;
 
-		let tempo: u16 = 13;
-		let modality: u16 = 0;
-
 		SubspaceModule::set_max_registrations_per_block(100);
 
 		/* @TODO: use a loop maybe */
-		register_module(netuid, U256::from(1), 1_000_000_000);
-		register_module(netuid, U256::from(3), 1_000_000_000);
-		register_module(netuid, U256::from(5), 1_000_000_000);
+		register_module(netuid, U256::from(1), 1_000_000_000).ok();
+		register_module(netuid, U256::from(3), 1_000_000_000).ok();
+		register_module(netuid, U256::from(5), 1_000_000_000).ok();
 		let max_allowed: u16 = SubspaceModule::get_subnet_n_uids(netuid);
 
 		SubspaceModule::set_max_allowed_uids(netuid, max_allowed);

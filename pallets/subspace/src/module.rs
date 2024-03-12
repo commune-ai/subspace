@@ -1,21 +1,21 @@
 use super::*;
 use frame_support::{
 	pallet_prelude::{Decode, DispatchResult, Encode},
-	storage::IterableStorageMap, IterableStorageDoubleMap,
+	storage::IterableStorageMap,
+	IterableStorageDoubleMap,
 };
 
 extern crate alloc;
 use alloc::vec::Vec;
 use codec::Compact;
-use sp_std::vec;
 use sp_arithmetic::per_things::Percent;
+use sp_std::vec;
 
 #[derive(Decode, Encode, PartialEq, Eq, Clone, Debug)]
 pub struct ModuleInfo<T: Config> {
 	params: ModuleParams<T>,
 	state: ModuleState<T>,
 }
-
 
 impl<T: Config> Pallet<T> {
 	pub fn do_update_module(
@@ -35,9 +35,15 @@ impl<T: Config> Pallet<T> {
 	pub fn check_module_params(netuid: u16, params: ModuleParams<T>) -> DispatchResult {
 		// if len(name) > 0, then we update the name.
 		assert!(params.name.len() > 0);
-		ensure!(params.name.len() <= Self::get_global_max_name_length() as usize, Error::<T>::ModuleNameTooLong);
+		ensure!(
+			params.name.len() <= Self::get_global_max_name_length() as usize,
+			Error::<T>::ModuleNameTooLong
+		);
 		assert!(params.address.len() > 0);
-		ensure!(params.address.len() <= Self::get_global_max_name_length() as usize, Error::<T>::ModuleAddressTooLong);
+		ensure!(
+			params.address.len() <= Self::get_global_max_name_length() as usize,
+			Error::<T>::ModuleAddressTooLong
+		);
 		// delegation fee is a percent
 
 		Ok(())
@@ -90,7 +96,6 @@ impl<T: Config> Pallet<T> {
 
 		// remove stake from old key and add to new key
 		Self::remove_stake_from(netuid, uid);
-
 	}
 
 	// Appends the uid to the network.
@@ -101,7 +106,9 @@ impl<T: Config> Pallet<T> {
 
 		log::debug!("append_module( netuid: {:?} | uid: {:?} | new_key: {:?} ) ", netuid, uid, key);
 
-		ModuleStateStorage::<T>::insert(netuid, uid,
+		ModuleStateStorage::<T>::insert(
+			netuid,
+			uid,
 			ModuleState {
 				uid,
 				module_key: key.clone(),
@@ -114,17 +121,22 @@ impl<T: Config> Pallet<T> {
 				stake: 0,
 				stake_from: vec![],
 				profit_shares: vec![],
-			}
+			},
 		);
 
-		ModuleParamsStorage::<T>::insert(netuid, uid,
+		ModuleParamsStorage::<T>::insert(
+			netuid,
+			uid,
 			ModuleParams {
 				name,
 				address,
 				delegation_fee: Percent::from_percent(20u8),
-				controller: T::AccountId::decode(&mut sp_runtime::traits::TrailingZeroInput::zeroes()).unwrap(),
-				weights: vec![]
-			}
+				controller: T::AccountId::decode(
+					&mut sp_runtime::traits::TrailingZeroInput::zeroes(),
+				)
+				.unwrap(),
+				weights: vec![],
+			},
 		);
 
 		SubnetStateStorage::<T>::mutate(netuid, |subnet_state| {
@@ -136,8 +148,11 @@ impl<T: Config> Pallet<T> {
 
 	pub fn get_netuid_and_uid(module_key: &T::AccountId) -> (u16, u16) {
 		for netuid in Self::netuids() {
-			for (uid, module_state) in 
-				<ModuleStateStorage<T> as IterableStorageDoubleMap<u16, u16, ModuleState<T>>>::iter_prefix(netuid)
+			for (uid, module_state) in <ModuleStateStorage<T> as IterableStorageDoubleMap<
+				u16,
+				u16,
+				ModuleState<T>,
+			>>::iter_prefix(netuid)
 			{
 				if *module_key == module_state.module_key {
 					return (netuid, uid);
@@ -149,8 +164,11 @@ impl<T: Config> Pallet<T> {
 	}
 
 	pub fn get_uid_for_key(netuid: u16, module_key: &T::AccountId) -> u16 {
-		for (uid, module_state) in 
-			<ModuleStateStorage<T> as IterableStorageDoubleMap<u16, u16, ModuleState<T>>>::iter_prefix(netuid)
+		for (uid, module_state) in <ModuleStateStorage<T> as IterableStorageDoubleMap<
+			u16,
+			u16,
+			ModuleState<T>,
+		>>::iter_prefix(netuid)
 		{
 			if *module_key == module_state.module_key {
 				return uid;

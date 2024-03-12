@@ -72,9 +72,9 @@ impl pallet_balances::Config for Test {
 	type WeightInfo = ();
 	type MaxReserves = MaxReserves;
 	type ReserveIdentifier = ();
-    type RuntimeHoldReason = ();
-    type FreezeIdentifier = ();
-    type MaxHolds = frame_support::traits::ConstU32<16>;
+	type RuntimeHoldReason = ();
+	type FreezeIdentifier = ();
+	type MaxHolds = frame_support::traits::ConstU32<16>;
 	type MaxFreezes = frame_support::traits::ConstU32<16>;
 }
 
@@ -110,11 +110,6 @@ impl pallet_subspace::Config for Test {
 	type WeightInfo = ();
 }
 
-// Build genesis storage according to the mock runtime.
-//pub fn new_test_ext() -> sp_io::TestExternalities {
-//	system::GenesisConfig::default().build_storage().unwrap().into()
-//}
-
 #[allow(dead_code)]
 pub fn set_weights(netuid: u16, key: U256, uids: Vec<u16>, values: Vec<u16>) {
 	SubspaceModule::set_weights(get_origin(key), netuid, uids.clone(), values.clone()).unwrap();
@@ -130,6 +125,7 @@ pub fn new_test_ext() -> sp_io::TestExternalities {
 #[allow(dead_code)]
 pub fn test_ext_with_balances(balances: Vec<(U256, u128)>) -> sp_io::TestExternalities {
 	sp_tracing::try_init_simple();
+
 	let mut t = frame_system::GenesisConfig::<Test>::default().build_storage().unwrap();
 
 	pallet_balances::GenesisConfig::<Test> {
@@ -154,6 +150,7 @@ pub(crate) fn step_block(n: u16) {
 
 pub(crate) fn step_epoch(netuid: u16) {
 	let tempo: u16 = SubspaceModule::get_tempo(netuid);
+
 	step_block(tempo);
 }
 
@@ -201,11 +198,12 @@ pub fn register_n_modules(netuid: u16, n: u16, stake: u64) {
 #[allow(dead_code)]
 pub fn register_module(netuid: u16, key: U256, stake: u64) -> DispatchResult {
 	// can i format the test in rus
-
 	let mut network: Vec<u8> = "test".as_bytes().to_vec();
+
 	network.extend(netuid.to_string().as_bytes().to_vec());
 
 	let mut name: Vec<u8> = "module".as_bytes().to_vec();
+
 	name.extend(key.to_string().as_bytes().to_vec());
 
 	let address: Vec<u8> = "0.0.0.0:30333".as_bytes().to_vec();
@@ -213,11 +211,13 @@ pub fn register_module(netuid: u16, key: U256, stake: u64) -> DispatchResult {
 	let block_number: u64 = SubspaceModule::get_current_block_as_u64();
 	let origin = get_origin(key);
 	let is_new_subnet: bool = !SubspaceModule::if_subnet_exist(netuid);
+	
 	if is_new_subnet {
 		SubspaceModule::set_max_registrations_per_block(1000)
 	}
 
 	add_balance(key, stake + 1);
+
 	let balance = SubspaceModule::get_balance(&key);
 
 	println!("stake {}", stake);
@@ -234,11 +234,12 @@ pub fn delegate_register_module(
 	stake: u64,
 ) -> DispatchResult {
 	// can i format the test in rus
-
 	let mut network: Vec<u8> = "test".as_bytes().to_vec();
+
 	network.extend(netuid.to_string().as_bytes().to_vec());
 
 	let mut name: Vec<u8> = "module".as_bytes().to_vec();
+
 	name.extend(module_key.to_string().as_bytes().to_vec());
 
 	let address: Vec<u8> = "0.0.0.0:30333".as_bytes().to_vec();
@@ -246,6 +247,7 @@ pub fn delegate_register_module(
 	let block_number: u64 = SubspaceModule::get_current_block_as_u64();
 	let origin = get_origin(key);
 	let is_new_subnet: bool = !SubspaceModule::if_subnet_exist(netuid);
+
 	if is_new_subnet {
 		SubspaceModule::set_max_registrations_per_block(1000)
 	}
@@ -255,6 +257,7 @@ pub fn delegate_register_module(
 	if stake >= balance {
 		add_balance(key, stake + 1);
 	}
+
 	println!(
 		"Registering module: network: {:?}, key: {:?} stake {:?}",
 		network, module_key, balance
@@ -277,14 +280,19 @@ pub fn delegate_register_module(
 pub fn register(netuid: u16, key: U256, stake: u64) {
 	// can i format the test in rus
 	let mut network: Vec<u8> = "test".as_bytes().to_vec();
+
 	network.extend(netuid.to_string().as_bytes().to_vec());
+
 	let mut name: Vec<u8> = "module".as_bytes().to_vec();
+
 	name.extend(key.to_string().as_bytes().to_vec());
+
 	let address: Vec<u8> = "0.0.0.0:30333".as_bytes().to_vec();
 	let origin = get_origin(key);
 	let is_new_subnet: bool = !SubspaceModule::if_subnet_exist(netuid);
 
 	let result = SubspaceModule::register(origin, network, name.clone(), address, stake, key);
+
 	assert_ok!(result);
 }
 
@@ -299,6 +307,7 @@ pub fn add_subnet(netuid: u16, founder: U256) {
 pub fn remote_subnet(netuid: u16, key: U256) {
 	let origin = get_origin(key);
 	let result = SubspaceModule::do_remote_subnet(origin, netuid);
+
 	assert_ok!(result);
 }
 
@@ -320,7 +329,9 @@ pub fn add_stake(netuid: u16, key: U256, amount: u64) {
 #[allow(dead_code)]
 pub fn add_stake_and_balance(netuid: u16, key: U256, amount: u64) {
 	let origin = get_origin(key);
+
 	add_balance(key, amount);
+	
 	let result = SubspaceModule::add_stake(origin, netuid, key, amount);
 
 	assert_ok!(result);

@@ -1,4 +1,5 @@
 use super::*;
+use crate::utils::is_vec_str;
 use codec::Compact;
 use frame_support::{
 	pallet_prelude::{Decode, DispatchError, DispatchResult, Encode},
@@ -6,7 +7,6 @@ use frame_support::{
 	traits::Currency,
 	IterableStorageDoubleMap,
 };
-use crate::utils::is_vec_str;
 use frame_system::ensure_root;
 pub use sp_std::{vec, vec::Vec};
 use substrate_fixed::types::{I32F32, I64F64};
@@ -32,8 +32,11 @@ impl<T: Config> Pallet<T> {
 	) -> DispatchResult {
 		let key = ensure_signed(origin)?;
 		// only the founder can update the network on authority mode
-		
-		ensure!(is_vec_str(Self::get_vote_mode_subnet(netuid), "authority"), Error::<T>::NotAuthorityMode);
+
+		ensure!(
+			is_vec_str(Self::get_vote_mode_subnet(netuid), "authority"),
+			Error::<T>::NotAuthorityMode
+		);
 		ensure!(Self::if_subnet_netuid_exists(netuid), Error::<T>::SubnetNameAlreadyExists);
 		ensure!(Self::is_subnet_founder(netuid, &key), Error::<T>::NotFounder);
 		ensure!(Self::if_subnet_netuid_exists(netuid), Error::<T>::SubnetNameAlreadyExists);
@@ -53,19 +56,23 @@ impl<T: Config> Pallet<T> {
 		Ok(())
 	}
 
-
-
-    pub fn check_subnet_params(params: SubnetParams<T>) -> DispatchResult{
-        // checks if params are valid
+	pub fn check_subnet_params(params: SubnetParams<T>) -> DispatchResult {
+		// checks if params are valid
 
 		let global_params = Self::global_params();
 
-        // check valid tempo		
-		ensure!(params.min_allowed_weights <= params.max_allowed_weights, Error::<T>::InvalidMinAllowedWeights);
-		
+		// check valid tempo
+		ensure!(
+			params.min_allowed_weights <= params.max_allowed_weights,
+			Error::<T>::InvalidMinAllowedWeights
+		);
+
 		ensure!(params.min_allowed_weights >= 1, Error::<T>::InvalidMinAllowedWeights);
 
-		ensure!(params.max_allowed_weights <= global_params.max_allowed_weights, Error::<T>::InvalidMaxAllowedWeights);
+		ensure!(
+			params.max_allowed_weights <= global_params.max_allowed_weights,
+			Error::<T>::InvalidMaxAllowedWeights
+		);
 
 		// the  global params must be larger than the global min_stake
 		ensure!(params.min_stake >= global_params.min_stake, Error::<T>::InvalidMinStake);
@@ -74,20 +81,19 @@ impl<T: Config> Pallet<T> {
 
 		ensure!(params.tempo > 0, Error::<T>::InvalidTempo);
 
-		ensure!(params.max_weight_age > params.tempo as u64,  Error::<T>::InvalidMaxWeightAge);
-                		
+		ensure!(params.max_weight_age > params.tempo as u64, Error::<T>::InvalidMaxWeightAge);
+
 		// ensure the trust_ratio is between 0 and 100
 		ensure!(params.trust_ratio <= 100, Error::<T>::InvalidTrustRatio);
 
 		// ensure the vode_mode is in "authority", "stake"
 		ensure!(
-			is_vec_str(params.vote_mode.clone(),"authority") ||
-			is_vec_str(params.vote_mode.clone(),"stake"),
-		 Error::<T>::InvalidVoteMode);
-        Ok(())
-
-
-    }
+			is_vec_str(params.vote_mode.clone(), "authority") ||
+				is_vec_str(params.vote_mode.clone(), "stake"),
+			Error::<T>::InvalidVoteMode
+		);
+		Ok(())
+	}
 
 	pub fn set_subnet_params(netuid: u16, mut params: SubnetParams<T>) {
 		SubnetParamsStorage::<T>::insert(netuid, params)
@@ -111,37 +117,48 @@ impl<T: Config> Pallet<T> {
 	pub fn least_staked_netuid() -> u16 {
 		let mut min_stake: u64 = u64::MAX;
 		let mut min_stake_netuid: u16 = u16::MAX;
-		
-		for (netuid, subnet_state) in <SubnetStateStorage<T> as IterableStorageMap<u16, SubnetState>>::iter() {
+
+		for (netuid, subnet_state) in
+			<SubnetStateStorage<T> as IterableStorageMap<u16, SubnetState>>::iter()
+		{
 			if subnet_state.total_stake <= min_stake {
 				min_stake = subnet_state.total_stake;
 				min_stake_netuid = netuid;
 			}
 		}
-		
+
 		min_stake_netuid
 	}
 
-	pub fn address_vector(netuid: u16) -> Vec<Vec<u8>>{
+	pub fn address_vector(netuid: u16) -> Vec<Vec<u8>> {
 		let mut addresses: Vec<Vec<u8>> = Vec::new();
-		
-		for (_uid, module_params) in <ModuleParamsStorage<T> as IterableStorageDoubleMap<u16, u16, ModuleParams<T>>>::iter_prefix(netuid) {
+
+		for (_uid, module_params) in <ModuleParamsStorage<T> as IterableStorageDoubleMap<
+			u16,
+			u16,
+			ModuleParams<T>,
+		>>::iter_prefix(netuid)
+		{
 			addresses.push(module_params.address);
 		}
 
 		return addresses
 	}
 
-	pub fn name_vector(netuid: u16) -> Vec<Vec<u8>>{
+	pub fn name_vector(netuid: u16) -> Vec<Vec<u8>> {
 		let mut names: Vec<Vec<u8>> = Vec::new();
 
-		for (_uid, module_params) in <ModuleParamsStorage<T> as IterableStorageDoubleMap<u16, u16, ModuleParams<T>>>::iter_prefix(netuid) {
+		for (_uid, module_params) in <ModuleParamsStorage<T> as IterableStorageDoubleMap<
+			u16,
+			u16,
+			ModuleParams<T>,
+		>>::iter_prefix(netuid)
+		{
 			names.push(module_params.name);
 		}
-		
+
 		return names
 	}
-
 
 	pub fn add_pending_deregistration_uid(netuid: u16, uid: u16) {
 		SubnetStateStorage::<T>::mutate(netuid, |subnet_state| {
@@ -154,9 +171,10 @@ impl<T: Config> Pallet<T> {
 			Self::add_pending_deregistration_uid(netuid, uid);
 		}
 	}
-	
+
 	pub fn deregister_pending_uid(netuid: u16) {
-		let mut pending_deregister_uids:  Vec<u16> = Self::subnet_state(netuid).pending_deregister_uids;
+		let mut pending_deregister_uids: Vec<u16> =
+			Self::subnet_state(netuid).pending_deregister_uids;
 
 		if pending_deregister_uids.len() > 0 {
 			let n = Self::get_subnet_n_uids(netuid);
@@ -179,14 +197,14 @@ impl<T: Config> Pallet<T> {
 
 			let mut remainder_n: u16 = (n - max_allowed_uids);
 			let max_remainder = 256;
-			if  remainder_n > max_remainder {
+			if remainder_n > max_remainder {
 				// remove the modules in small amounts, as this can be a heavy load on the chain
 				remainder_n = max_remainder;
 				max_allowed_uids = n - remainder_n;
 			}
 			// remove the modules by adding the to the deregister queue
 			for i in 0..remainder_n {
-				let next_uid: u16= n - 1 - i;
+				let next_uid: u16 = n - 1 - i;
 				Self::remove_module(netuid, next_uid);
 			}
 		}
@@ -204,7 +222,7 @@ impl<T: Config> Pallet<T> {
 	}
 
 	pub fn default_subnet_params() -> SubnetParams<T> {
-		// get an invalid 
+		// get an invalid
 		let default_netuid: u16 = Self::num_subnets() + 1;
 
 		Self::subnet_params(default_netuid)
@@ -224,7 +242,7 @@ impl<T: Config> Pallet<T> {
 
 	pub fn market_cap() -> u64 {
 		let total_stake: u64 = Self::total_stake();
-		
+
 		total_stake
 	}
 
@@ -299,11 +317,11 @@ impl<T: Config> Pallet<T> {
 		Self::set_subnet_params(netuid, params.clone());
 		// set stat once network is created
 		GlobalStateStorage::<T>::mutate(|global_state| {
-			global_state.total_subnets +=  1;
+			global_state.total_subnets += 1;
 		});
 
 		SubnetStateStorage::<T>::mutate(netuid, |subnet_state| {
-			subnet_state.n_uids =  0;
+			subnet_state.n_uids = 0;
 		});
 
 		// --- 6. Emit the new network event.
@@ -316,21 +334,23 @@ impl<T: Config> Pallet<T> {
 		Self::set_subnet_params(netuid, params.clone());
 		// set stat once network is created
 		GlobalStateStorage::<T>::mutate(|global_state| {
-			global_state.total_subnets +=  1;
+			global_state.total_subnets += 1;
 		});
 
 		SubnetStateStorage::<T>::mutate(netuid, |subnet_state| {
-			subnet_state.n_uids =  0;
+			subnet_state.n_uids = 0;
 		});
 
 		// --- 6. Emit the new network event.
 		Self::deposit_event(Event::NetworkAdded(netuid, params.name.clone()));
 	}
-	
+
 	// Initializes a new subnetwork under netuid with parameters.
 	//
 	pub fn subnet_name_exists(name: Vec<u8>) -> bool {
-		for (netuid, subnet_params) in <SubnetParamsStorage<T> as IterableStorageMap<u16, SubnetParams<T>>>::iter() {
+		for (netuid, subnet_params) in
+			<SubnetParamsStorage<T> as IterableStorageMap<u16, SubnetParams<T>>>::iter()
+		{
 			if subnet_params.name == name {
 				return true
 			}
@@ -344,7 +364,9 @@ impl<T: Config> Pallet<T> {
 	}
 
 	pub fn get_netuid_for_name(name: Vec<u8>) -> u16 {
-		for (netuid, subnet_params) in <SubnetParamsStorage<T> as IterableStorageMap<u16, SubnetParams<T>>>::iter() {
+		for (netuid, subnet_params) in
+			<SubnetParamsStorage<T> as IterableStorageMap<u16, SubnetParams<T>>>::iter()
+		{
 			if name == subnet_params.name {
 				return netuid
 			}
@@ -365,8 +387,11 @@ impl<T: Config> Pallet<T> {
 
 		let name: Vec<u8> = Self::get_subnet_name(netuid);
 
-		for (uid, stated_amount) in
-			<ModuleStateStorage<T> as IterableStorageDoubleMap<u16, u16, ModuleState<T>>>::iter_prefix(netuid)
+		for (uid, stated_amount) in <ModuleStateStorage<T> as IterableStorageDoubleMap<
+			u16,
+			u16,
+			ModuleState<T>,
+		>>::iter_prefix(netuid)
 		{
 			Self::remove_stake_from(netuid, uid);
 		}
@@ -380,10 +405,10 @@ impl<T: Config> Pallet<T> {
 		GlobalStateStorage::<T>::mutate(|global_state| {
 			global_state.total_subnets = global_state.total_subnets.saturating_sub(1);
 		});
-		
+
 		// --- 4. Emit the event.
 		log::info!("NetworkRemoved( netuid:{:?} )", netuid);
-		
+
 		Self::deposit_event(Event::NetworkRemoved(netuid));
 
 		return netuid
@@ -424,8 +449,11 @@ impl<T: Config> Pallet<T> {
 	}
 
 	pub fn if_module_name_exists(netuid: u16, name: Vec<u8>) -> bool {
-		for (uid, module_params) in
-			<ModuleParamsStorage<T> as IterableStorageDoubleMap<u16, u16, ModuleParams<T>>>::iter_prefix(netuid)
+		for (uid, module_params) in <ModuleParamsStorage<T> as IterableStorageDoubleMap<
+			u16,
+			u16,
+			ModuleParams<T>,
+		>>::iter_prefix(netuid)
 		{
 			if module_params.name == name {
 				return true
@@ -448,7 +476,11 @@ impl<T: Config> Pallet<T> {
 	}
 
 	pub fn get_stake_for_key(netuid: u16, key: &T::AccountId) -> u64 {
-		for (_uid, module_state) in  <ModuleStateStorage<T> as IterableStorageDoubleMap<u16, u16, ModuleState<T>>>::iter_prefix(netuid)
+		for (_uid, module_state) in <ModuleStateStorage<T> as IterableStorageDoubleMap<
+			u16,
+			u16,
+			ModuleState<T>,
+		>>::iter_prefix(netuid)
 		{
 			if module_state.module_key == *key {
 				return module_state.stake;
@@ -471,21 +503,23 @@ impl<T: Config> Pallet<T> {
 	}
 
 	pub fn netuids() -> Vec<u16> {
-		let mut netuids : Vec<u16> = Vec::new();
-		
-		for (netuid, _subnet_state) in <SubnetStateStorage<T> as IterableStorageMap<u16, SubnetState>>::iter() {
+		let mut netuids: Vec<u16> = Vec::new();
+
+		for (netuid, _subnet_state) in
+			<SubnetStateStorage<T> as IterableStorageMap<u16, SubnetState>>::iter()
+		{
 			netuids.push(netuid);
 		}
 
 		netuids
 	}
 
-	pub fn random_netuid() -> u16{
+	pub fn random_netuid() -> u16 {
 		// get the number of subnets
 		let netuids = Self::netuids();
 		// get a random number between 0 and number_of_subnets
 		let random_netuid_idx: usize = Self::random_idx(netuids.len() as u16) as usize;
-		
+
 		netuids[random_netuid_idx]
 	}
 
@@ -533,12 +567,12 @@ impl<T: Config> Pallet<T> {
 		if n == 0 {
 			return 0
 		}
-		let burn_rate_float : I64F64 = I64F64::from_num(burn_rate) / I64F64::from_num(n * 100);
-		let burn_emission_per_epoch: u64 = (I64F64::from_num(epoch_emission) * burn_rate_float).to_num::<u64>();
+		let burn_rate_float: I64F64 = I64F64::from_num(burn_rate) / I64F64::from_num(n * 100);
+		let burn_emission_per_epoch: u64 =
+			(I64F64::from_num(epoch_emission) * burn_rate_float).to_num::<u64>();
 
 		burn_emission_per_epoch
 	}
-
 
 	// ========================
 	// ==== Global Getters ====
@@ -559,14 +593,14 @@ impl<T: Config> Pallet<T> {
 
 	pub fn get_emission_for_key(netuid: u16, key: &T::AccountId) -> u64 {
 		let uid = Self::get_uid_for_key(netuid, key);
-		
+
 		Self::get_emission_for_uid(netuid, uid)
 	}
 
 	pub fn get_emission_for_uid(netuid: u16, uid: u16) -> u64 {
 		Self::module_state(netuid, uid).emission
 	}
-	
+
 	pub fn get_last_update_for_uid(netuid: u16, uid: u16) -> u64 {
 		Self::module_state(netuid, uid).last_update
 	}
@@ -602,7 +636,7 @@ impl<T: Config> Pallet<T> {
 		if (n < min_allowed_weights) {
 			return n;
 		}
-		
+
 		min_allowed_weights
 	}
 
@@ -624,7 +658,8 @@ impl<T: Config> Pallet<T> {
 		let global_params = Self::global_params();
 
 		SubnetParamsStorage::<T>::mutate(netuid, |subnet_params| {
-			subnet_params.max_allowed_weights = max_allowed_weights.min(global_params.max_allowed_weights);
+			subnet_params.max_allowed_weights =
+				max_allowed_weights.min(global_params.max_allowed_weights);
 		});
 	}
 
@@ -639,17 +674,19 @@ impl<T: Config> Pallet<T> {
 	pub fn total_n() -> u16 {
 		let mut total_n: u16 = 0;
 
-		for (netuid, subnet_state) in <SubnetStateStorage<T> as IterableStorageMap<u16, SubnetState>>::iter() {
+		for (netuid, subnet_state) in
+			<SubnetStateStorage<T> as IterableStorageMap<u16, SubnetState>>::iter()
+		{
 			total_n += subnet_state.n_uids;
 		}
-		
+
 		total_n
 	}
 
 	pub fn enough_space_for_n(n: u16) -> bool {
 		let total_n: u16 = Self::total_n();
 		let max_allowed_modules: u16 = Self::get_max_allowed_modules();
-		
+
 		total_n + n <= max_allowed_modules
 	}
 
@@ -673,7 +710,7 @@ impl<T: Config> Pallet<T> {
 	pub fn get_uid_key_tuples(netuid: u16) -> Vec<(u16, T::AccountId)> {
 		let n = Self::get_subnet_n_uids(netuid);
 		let mut uid_key_tuples = Vec::<(u16, T::AccountId)>::new();
-		for uid in 0..n{
+		for uid in 0..n {
 			let key = Self::get_key_for_uid(netuid, uid);
 			uid_key_tuples.push((uid, key));
 		}
@@ -682,8 +719,11 @@ impl<T: Config> Pallet<T> {
 
 	pub fn get_names(netuid: u16) -> Vec<Vec<u8>> {
 		let mut names = Vec::<Vec<u8>>::new();
-		for (uid, module_params) in
-			<ModuleParamsStorage<T> as IterableStorageDoubleMap<u16, u16, ModuleParams<T>>>::iter_prefix(netuid)
+		for (uid, module_params) in <ModuleParamsStorage<T> as IterableStorageDoubleMap<
+			u16,
+			u16,
+			ModuleParams<T>,
+		>>::iter_prefix(netuid)
 		{
 			names.push(module_params.name);
 		}
@@ -693,13 +733,16 @@ impl<T: Config> Pallet<T> {
 
 	pub fn get_addresses(netuid: u16) -> Vec<Vec<u8>> {
 		let mut addresses = Vec::<Vec<u8>>::new();
-		
-		for (uid, module_params) in
-			<ModuleParamsStorage<T> as IterableStorageDoubleMap<u16, u16, ModuleParams<T>>>::iter_prefix(netuid)
+
+		for (uid, module_params) in <ModuleParamsStorage<T> as IterableStorageDoubleMap<
+			u16,
+			u16,
+			ModuleParams<T>,
+		>>::iter_prefix(netuid)
 		{
 			addresses.push(module_params.address);
 		}
-		
+
 		addresses
 	}
 
@@ -709,30 +752,39 @@ impl<T: Config> Pallet<T> {
 		let mut module_params_n = 0;
 		let mut module_state_n = 0;
 
-		for (_uid, _module_params) in
-			<ModuleParamsStorage<T> as IterableStorageDoubleMap<u16, u16, ModuleParams<T>>>::iter_prefix(netuid)
+		for (_uid, _module_params) in <ModuleParamsStorage<T> as IterableStorageDoubleMap<
+			u16,
+			u16,
+			ModuleParams<T>,
+		>>::iter_prefix(netuid)
 		{
 			module_params_n += 1;
 		}
 
-		for (_uid, _module_state) in
-			<ModuleStateStorage<T> as IterableStorageDoubleMap<u16, u16, ModuleState<T>>>::iter_prefix(netuid)
+		for (_uid, _module_state) in <ModuleStateStorage<T> as IterableStorageDoubleMap<
+			u16,
+			u16,
+			ModuleState<T>,
+		>>::iter_prefix(netuid)
 		{
 			module_state_n += 1;
 		}
-		
+
 		if module_params_n != n || module_state_n != n {
 			return false;
 		}
-	
+
 		true
 	}
 
 	pub fn get_emissions(netuid: u16) -> Vec<u64> {
 		let mut emissions: Vec<u64> = Vec::new();
 
-		for (_uid, module_state) in
-			<ModuleStateStorage<T> as IterableStorageDoubleMap<u16, u16, ModuleState<T>>>::iter_prefix(netuid)
+		for (_uid, module_state) in <ModuleStateStorage<T> as IterableStorageDoubleMap<
+			u16,
+			u16,
+			ModuleState<T>,
+		>>::iter_prefix(netuid)
 		{
 			emissions.push(module_state.emission);
 		}
@@ -742,8 +794,11 @@ impl<T: Config> Pallet<T> {
 	pub fn get_incentives(netuid: u16) -> Vec<u16> {
 		let mut incentives: Vec<u16> = Vec::new();
 
-		for (_uid, module_state) in
-			<ModuleStateStorage<T> as IterableStorageDoubleMap<u16, u16, ModuleState<T>>>::iter_prefix(netuid)
+		for (_uid, module_state) in <ModuleStateStorage<T> as IterableStorageDoubleMap<
+			u16,
+			u16,
+			ModuleState<T>,
+		>>::iter_prefix(netuid)
 		{
 			incentives.push(module_state.incentive);
 		}
@@ -753,8 +808,11 @@ impl<T: Config> Pallet<T> {
 	pub fn get_trust(netuid: u16) -> Vec<u16> {
 		let mut trusts: Vec<u16> = Vec::new();
 
-		for (_uid, module_state) in
-			<ModuleStateStorage<T> as IterableStorageDoubleMap<u16, u16, ModuleState<T>>>::iter_prefix(netuid)
+		for (_uid, module_state) in <ModuleStateStorage<T> as IterableStorageDoubleMap<
+			u16,
+			u16,
+			ModuleState<T>,
+		>>::iter_prefix(netuid)
 		{
 			trusts.push(module_state.trust);
 		}
@@ -764,8 +822,11 @@ impl<T: Config> Pallet<T> {
 	pub fn get_dividends(netuid: u16) -> Vec<u16> {
 		let mut dividends: Vec<u16> = Vec::new();
 
-		for (_uid, module_state) in
-			<ModuleStateStorage<T> as IterableStorageDoubleMap<u16, u16, ModuleState<T>>>::iter_prefix(netuid)
+		for (_uid, module_state) in <ModuleStateStorage<T> as IterableStorageDoubleMap<
+			u16,
+			u16,
+			ModuleState<T>,
+		>>::iter_prefix(netuid)
 		{
 			dividends.push(module_state.dividend);
 		}
@@ -776,8 +837,11 @@ impl<T: Config> Pallet<T> {
 	pub fn get_last_updates(netuid: u16) -> Vec<u64> {
 		let mut last_updates: Vec<u64> = Vec::new();
 
-		for (_uid, module_state) in
-			<ModuleStateStorage<T> as IterableStorageDoubleMap<u16, u16, ModuleState<T>>>::iter_prefix(netuid)
+		for (_uid, module_state) in <ModuleStateStorage<T> as IterableStorageDoubleMap<
+			u16,
+			u16,
+			ModuleState<T>,
+		>>::iter_prefix(netuid)
 		{
 			last_updates.push(module_state.last_update);
 		}

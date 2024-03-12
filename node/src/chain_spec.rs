@@ -120,7 +120,7 @@ pub fn generate_config(network: String) -> Result<ChainSpec, String> {
 
 		// Add  modules
 		modules.push(Vec::new());
-		for (uid, module) in state.modules[netuid].iter().enumerate() {
+		for (_uid, module) in state.modules[netuid].iter().enumerate() {
 			modules[netuid].push((
 				sp_runtime::AccountId32::from(
 					// module_key
@@ -229,7 +229,7 @@ fn network_genesis(
 	stake_to: Vec<Vec<(AccountId, Vec<(AccountId, u64)>)>>,
 	block: u32,
 ) -> RuntimeGenesisConfig {
-	use node_subspace_runtime::{EVMChainIdConfig, EVMConfig};
+	use node_subspace_runtime::EVMConfig;
 	
 	RuntimeGenesisConfig {
 		system: SystemConfig {

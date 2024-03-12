@@ -32,7 +32,7 @@ use sp_runtime::{
 };
 
 use sp_std::{marker::PhantomData, prelude::*};
-use subspace_runtime_api::{ ModuleInfo, ModuleState, ModuleParams };
+use subspace_runtime_api::{ ModuleInfo, KeyInfo, ModuleState, ModuleParams };
 
 #[cfg(feature = "std")]
 use sp_version::NativeVersion;
@@ -61,6 +61,7 @@ use pallet_transaction_payment::{ConstFeeMultiplier, CurrencyAdapter, Multiplier
 #[cfg(any(feature = "std", test))]
 pub use sp_runtime::BuildStorage;
 pub use sp_runtime::{Perbill, Permill};
+use scale_info::prelude::string::String;
 
 // Subspace module
 pub use pallet_subspace;
@@ -1020,8 +1021,24 @@ impl_runtime_apis! {
 		}
 	}
 	impl subspace_runtime_api::SubspaceRuntimeApi<Block> for Runtime {
-		fn get_burn_rate() -> u16 {
-			SubspaceModule::get_burn_rate()
+		fn get_key_info(key: AccountId) -> KeyInfo {
+			let balance = SubspaceModule::get_balance_u64(&key);
+			let total_stake = SubspaceModule::get_global_stake_to(&key);
+			let mut stake_to: Vec<(String, u64)> = Vec::new();
+
+			for netuid in SubspaceModule::netuids() {
+				let subnet_name_bytes = SubspaceModule::get_subnet_name(netuid);
+				stake_to.push((
+					String::from_utf8(subnet_name_bytes).expect("Name bytes should be valid utf8"),
+					SubspaceModule::get_total_subnet_stake(netuid)
+				))
+			}
+
+			KeyInfo {
+				balance,
+				total_stake,
+				stake_to
+			}
 		}
 
 		fn get_module_info(key: AccountId, netuid: u16) -> ModuleInfo {
