@@ -185,14 +185,16 @@ impl<T: Config> Pallet<T> {
         let max_subnets: u16 = Self::get_global_max_allowed_subnets();
         // if we have not reached the max number of subnets, then we can start a new one
         if num_subnets >= max_subnets {
-            let mut min_stake: u64 = u64::MAX;
-            let mut min_stake_netuid: u16 = max_subnets.saturating_sub(1); // the default last ui
+            let mut min_stake: u64 = u64::MAX; // initially represents the maximum amount that is possible to have
+            let mut min_stake_netuid: u16 = max_subnets.saturating_sub(1); // initially represents the last netuid
+
             for (netuid, net_stake) in <TotalStake<T> as IterableStorageMap<u16, u64>>::iter() {
                 if net_stake <= min_stake {
                     min_stake = net_stake;
                     min_stake_netuid = netuid;
                 }
             }
+            // if the stake is greater than the least staked network, then we can start a new one
             ensure!(stake > min_stake, Error::<T>::NotEnoughStakeToStartNetwork);
             Self::remove_subnet(min_stake_netuid);
         }

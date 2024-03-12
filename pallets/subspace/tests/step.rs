@@ -927,8 +927,14 @@ fn test_dynamic_burn() {
         // - adjustment alpha = 0
         // - min_burn = 2 $COMAI
         // - max_burn = 250 $COMAI
-
         let token_amount = 100_000_000;
+        let mut params = SubspaceModule::global_params();
+        params.min_burn = 2 * token_amount;
+        params.max_burn = 250 * token_amount;
+        params.adjustment_alpha = 0;
+        params.target_registrations_interval = 200;
+        params.target_registrations_per_interval = 100;
+        SubspaceModule::set_global_params(params);
         let netuid = 0;
         // first register 1000 modules (10 * the default registration target interval)
         // this is 5 modules per block
@@ -969,7 +975,7 @@ fn test_dynamic_burn() {
         // burn is now at 11 instead of 2
         assert!(
             SubspaceModule::get_burn() == 11 * token_amount,
-            "current burn: {:?}",
+            "current burn {:?}",
             SubspaceModule::get_burn()
         );
 
