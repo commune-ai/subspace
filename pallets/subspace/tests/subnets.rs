@@ -198,7 +198,7 @@ fn test_set_max_allowed_uids_growing() {
         let mut max_uids: u16 = 100;
         let extra_uids: u16 = 10;
         let rounds = 10;
-        register_module(netuid, U256::from(0), stake);
+        assert_ok!(register_module(netuid, U256::from(0), stake));
         SubspaceModule::set_max_registrations_per_block(max_uids + extra_uids * rounds);
         for i in 1..max_uids {
             assert_ok!(register_module(netuid, U256::from(i), stake));
@@ -215,7 +215,7 @@ fn test_set_max_allowed_uids_growing() {
             let new_n = old_n + extra_uids * (r - 1);
             // print the pruned uids
             for uid in old_n + extra_uids * (r - 1)..old_n + extra_uids * r {
-                register_module(netuid, U256::from(uid), stake);
+                assert_ok!(register_module(netuid, U256::from(uid), stake));
             }
 
             // set max allowed uids to max_uids
@@ -248,7 +248,7 @@ fn test_set_max_allowed_uids_shrinking() {
 
         let mut n = SubspaceModule::get_subnet_n(netuid);
         println!("registering module {}", n);
-        register_module(netuid, U256::from(0), stake);
+        assert_ok!(register_module(netuid, U256::from(0), stake));
         SubspaceModule::set_max_allowed_uids(netuid, max_uids + extra_uids);
         SubspaceModule::set_max_registrations_per_block(max_uids + extra_uids);
 
