@@ -307,7 +307,6 @@ fn test_pruning() {
     });
 }
 
-// TODO:
 #[test]
 fn test_lowest_priority_mechanism() {
     new_test_ext().execute_with(|| {
@@ -326,24 +325,32 @@ fn test_lowest_priority_mechanism() {
         SubspaceModule::set_max_allowed_weights(netuid, n);
         SubspaceModule::set_min_allowed_weights(netuid, 0);
 
-        // for i in 0..n {
-
-        //     let key: U256 = U256::from(i);
-        //     register_module( netuid, key, stake_per_module );
-
-        // }
         let keys = SubspaceModule::get_keys(netuid);
         let _uids = SubspaceModule::get_uids(netuid);
+        let voter_idx = 0;
 
-        // do a list of ones for weights
-        let weight_uids: Vec<u16> = (0..n).collect();
-        // do a list of ones for weights
+        // Create a list of UIDs excluding the voter_idx
+        let weight_uids: Vec<u16> = (0..n).filter(|&x| x != voter_idx).map(|x| x as u16).collect();
+
+        // Create a list of ones for weights, excluding the voter_idx
         let mut weight_values: Vec<u16> = weight_uids.iter().map(|_x| 1_u16).collect();
 
         let prune_uid: u16 = n - 1;
-        weight_values[prune_uid as usize] = 0;
-        set_weights(netuid, keys[0], weight_uids.clone(), weight_values.clone());
 
+        // Check if the prune_uid is still valid after excluding the voter_idx
+        if prune_uid != voter_idx {
+            // Find the index of prune_uid in the updated weight_uids vector
+            if let Some(prune_idx) = weight_uids.iter().position(|&uid| uid == prune_uid) {
+                weight_values[prune_idx] = 0;
+            }
+        }
+
+        set_weights(
+            netuid,
+            keys[voter_idx as usize],
+            weight_uids.clone(),
+            weight_values.clone(),
+        );
         step_block(tempo);
         let incentives: Vec<u16> = SubspaceModule::get_incentives(netuid);
         let dividends: Vec<u16> = SubspaceModule::get_dividends(netuid);
@@ -927,8 +934,14 @@ fn test_dynamic_burn() {
         // - adjustment alpha = 0
         // - min_burn = 2 $COMAI
         // - max_burn = 250 $COMAI
-
         let token_amount = 100_000_000;
+        let mut params = SubspaceModule::global_params();
+        params.min_burn = 2 * token_amount;
+        params.max_burn = 250 * token_amount;
+        params.adjustment_alpha = 0;
+        params.target_registrations_interval = 200;
+        params.target_registrations_per_interval = 100;
+        SubspaceModule::set_global_params(params);
         let netuid = 0;
         // first register 1000 modules (10 * the default registration target interval)
         // this is 5 modules per block
@@ -969,7 +982,7 @@ fn test_dynamic_burn() {
         // burn is now at 11 instead of 2
         assert!(
             SubspaceModule::get_burn() == 11 * token_amount,
-            "current burn: {:?}",
+            "current burn {:?}",
             SubspaceModule::get_burn()
         );
 

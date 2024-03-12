@@ -59,13 +59,9 @@ impl<T: Config> Pallet<T> {
 
         let min_allowed_length: usize = Self::get_min_allowed_weights(netuid) as usize;
         let max_allowed_length: usize = Self::get_max_allowed_weights(netuid) as usize;
-        let self_vote = Self::get_self_vote(netuid);
-        if self_vote {
-            ensure!(
-                !Self::is_self_weight(uid, &uids, &values),
-                Error::<T>::NoSelfWeight
-            );
-        }
+
+        ensure!(!Self::is_self_weight(uid, &uids), Error::<T>::NoSelfWeight);
+
         ensure!(
             uids.len() >= min_allowed_length,
             Error::<T>::NotSettingEnoughWeights
@@ -136,14 +132,8 @@ impl<T: Config> Pallet<T> {
     }
 
     // Returns true if the uids and weights correspond to a self weight on the uid.
-    pub fn is_self_weight(uid: u16, uids: &[u16], weights: &[u16]) -> bool {
-        if weights.len() != 1 {
-            return false;
-        }
-        if uid != uids[0] {
-            return false;
-        }
-        true
+    pub fn is_self_weight(uid: u16, uids: &[u16]) -> bool {
+        uids.contains(&uid)
     }
 
     #[cfg(debug_assertions)]
