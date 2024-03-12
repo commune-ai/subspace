@@ -1,7 +1,10 @@
 mod mock;
 
+use frame_support::{assert_err, assert_ok};
 use mock::*;
 use sp_core::U256;
+
+use pallet_subspace::Error;
 
 /********************************************
     subscribing::subscribe() tests
@@ -29,7 +32,7 @@ fn test_min_stake() {
         let min_stake_to_register = SubspaceModule::get_min_stake(netuid);
 
         for key in keys_list {
-            register_module(netuid, key, min_stake_to_register);
+            let _ = register_module(netuid, key, min_stake_to_register);
             println!("registered module with key: {key:?} and min_stake_to_register: {min_stake_to_register:?}");
         }
         let registrations_this_block = SubspaceModule::get_registrations_this_block();
@@ -160,13 +163,16 @@ fn test_registration_with_stake() {
     });
 }
 
-// #[test]
-// fn register_same_key_twice() {
-//     new_test_ext().execute_with(|| {
-//         let netuid = 0;
-//         let stake = 10;
-//         let key = U256::from(1);
-//         register_module(netuid, key, stake).expect("register module failed");
-//         register_module(netuid, key, stake).expect("register module failed");
-//     });
-// }
+#[test]
+fn register_same_key_twice() {
+    new_test_ext().execute_with(|| {
+        let netuid = 0;
+        let stake = 10;
+        let key = U256::from(1);
+        assert_ok!(register_module(netuid, key, stake));
+        assert_err!(
+            register_module(netuid, key, stake),
+            Error::<Test>::KeyAlreadyRegistered
+        );
+    });
+}
