@@ -145,6 +145,7 @@ impl<T: Config> Pallet<T> {
             })
             .collect();
 
+        // Remove self-weight by masking diagonal.
         weights = mask_diag_sparse(&weights);
 
         // Normalize remaining weights.
