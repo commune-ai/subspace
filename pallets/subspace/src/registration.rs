@@ -184,12 +184,14 @@ impl<T: Config> Pallet<T> {
     ) -> Result<u16, sp_runtime::DispatchError> {
         let num_subnets: u16 = Self::num_subnets();
         let max_subnets: u16 = Self::get_global_max_allowed_subnets();
-        let target_subnet = Self::least_staked_netuid();
+        let mut target_subnet = None;
         // if we have not reached the max number of subnets, then we can start a new one
         if num_subnets >= max_subnets {
             println!("TRYING TO REMOVE SUBNET");
             println!("  . REMOVED SUCCESSFULLY");
-            Self::remove_subnet(target_subnet);
+            let value = Self::least_staked_netuid();
+            target_subnet = Some(value);
+            Self::remove_subnet(value);
         }
         // if we have reached the max number of subnets, then we can start a new one if the stake is
         // greater than the least staked network
@@ -198,7 +200,7 @@ impl<T: Config> Pallet<T> {
         params.founder = founder_key.clone();
         println!("  . NOW ADDING A NEW SUBNET");
 
-        Ok(dbg!(Self::add_subnet(params, Some(target_subnet))))
+        Ok(dbg!(Self::add_subnet(params, target_subnet)))
     }
 
     pub fn check_module_limits(netuid: u16) {

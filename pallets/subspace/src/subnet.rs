@@ -179,7 +179,7 @@ impl<T: Config> Pallet<T> {
     // get the least staked network
     pub fn least_staked_netuid() -> u16 {
         let mut min_stake: u64 = u64::MAX;
-        let mut min_stake_netuid: u16 = u16::MAX;
+        let mut min_stake_netuid: u16 = Self::get_global_max_allowed_subnets() - 1;
         for (netuid, net_stake) in <TotalStake<T> as IterableStorageMap<u16, u64>>::iter() {
             if net_stake <= min_stake {
                 min_stake = net_stake;
