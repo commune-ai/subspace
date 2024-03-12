@@ -388,7 +388,7 @@ fn test_deregister_subnet_when_overflows_max_allowed_subnets() {
         }
 
         assert_eq!(SubspaceModule::num_subnets(), 3);
-        assert_eq!(SubspaceModule::get_total_subnet_stake(0), 0);
+        assert_eq!(SubspaceModule::get_total_subnet_stake(0), stakes[3]);
         assert_eq!(SubspaceModule::get_total_subnet_stake(1), stakes[1]);
         assert_eq!(SubspaceModule::get_total_subnet_stake(2), stakes[2]);
     });

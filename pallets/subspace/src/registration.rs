@@ -72,6 +72,7 @@ impl<T: Config> Pallet<T> {
         // --- 8. Register the module.
         let uid: u16 = Self::append_module(netuid, &module_key, name.clone(), address.clone());
 
+        println!(">>> ADDING STAKE {stake_amount} to {netuid}");
         // --- 9. Add the stake to the module, now that it is registered on the network.
         Self::do_add_stake(origin, netuid, module_key.clone(), stake_amount)?;
 
@@ -183,26 +184,21 @@ impl<T: Config> Pallet<T> {
     ) -> Result<u16, sp_runtime::DispatchError> {
         let num_subnets: u16 = Self::num_subnets();
         let max_subnets: u16 = Self::get_global_max_allowed_subnets();
+        let target_subnet = Self::least_staked_netuid();
         // if we have not reached the max number of subnets, then we can start a new one
         if num_subnets >= max_subnets {
-            let mut min_stake: u64 = u64::MAX;
-            let mut min_stake_netuid: u16 = max_subnets.saturating_sub(1); // the default last ui
-            for (netuid, net_stake) in <TotalStake<T> as IterableStorageMap<u16, u64>>::iter() {
-                if net_stake <= min_stake {
-                    min_stake = net_stake;
-                    min_stake_netuid = netuid;
-                }
-            }
-            ensure!(stake > min_stake, Error::<T>::NotEnoughStakeToStartNetwork);
-            Self::remove_subnet(min_stake_netuid);
+            println!("TRYING TO REMOVE SUBNET");
+            println!("  . REMOVED SUCCESSFULLY");
+            Self::remove_subnet(target_subnet);
         }
         // if we have reached the max number of subnets, then we can start a new one if the stake is
         // greater than the least staked network
         let mut params: SubnetParams<T> = Self::default_subnet_params();
         params.name = name;
         params.founder = founder_key.clone();
+        println!("  . NOW ADDING A NEW SUBNET");
 
-        Ok(Self::add_subnet(params))
+        Ok(dbg!(Self::add_subnet(params, Some(target_subnet))))
     }
 
     pub fn check_module_limits(netuid: u16) {
