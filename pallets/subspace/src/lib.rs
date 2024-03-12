@@ -1001,7 +1001,7 @@ pub mod pallet {
                     max_weight_age: default_params.max_weight_age,
                 };
 
-                self::Pallet::<T>::add_subnet(params);
+                self::Pallet::<T>::add_subnet(params, None);
 
                 for (uid_usize, (key, name, address, weights)) in
                     self.modules[subnet_idx].iter().enumerate()

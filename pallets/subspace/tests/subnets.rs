@@ -328,38 +328,31 @@ fn test_set_max_allowed_modules() {
 }
 
 #[test]
-fn test_global_max_allowed_subnets() {
+fn test_deregister_subnet_when_overflows_max_allowed_subnets() {
     new_test_ext().execute_with(|| {
-        let max_allowed_subnets: u16 = 100;
+        let extra = 1;
+        let mut params = SubspaceModule::global_params();
+        params.max_allowed_subnets = 3;
+        SubspaceModule::set_global_params(params.clone());
 
-        let mut params = SubspaceModule::global_params().clone();
-        params.max_allowed_subnets = max_allowed_subnets;
-        SubspaceModule::set_global_params(params);
-        let params = SubspaceModule::global_params();
-        assert_eq!(params.max_allowed_subnets, max_allowed_subnets);
-        let mut stake: u64 = 1_000_000_000;
+        assert_eq!(params.max_allowed_subnets, 3);
 
-        // set max_total modules
+        let stakes: Vec<u64> = vec![
+            2_000_000_000,
+            6_000_000_000,
+            3_000_000_000,
+            4_000_000_000,
+            9_000_000_000,
+        ];
 
-        for i in 1..(2 * max_allowed_subnets) {
-            let netuid = i;
-            stake += i as u64;
-            let (least_staked_netuid, _) = SubspaceModule::least_staked_netuid();
-
-            if i > 1 {
-                println!("least staked netuid {}", least_staked_netuid);
-                assert!(SubspaceModule::if_subnet_exist(least_staked_netuid));
-            }
-
-            assert_ok!(register_module(netuid, U256::from(i), stake));
-            let n_subnets = SubspaceModule::num_subnets();
-
-            if i > max_allowed_subnets {
-                assert!(!SubspaceModule::if_subnet_exist(least_staked_netuid));
-            }
-            println!("n_subnets {}", n_subnets);
-            println!("max_allowed_subnets {}", max_allowed_subnets);
-            assert!(n_subnets <= max_allowed_subnets);
+        for netuid in 0..params.max_allowed_subnets + extra {
+            let stake: u64 = stakes[netuid as usize];
+            assert_ok!(register_module(netuid, U256::from(netuid), stake));
         }
-    })
+
+        assert_eq!(SubspaceModule::get_total_subnet_stake(1), stakes[1]);
+        assert_eq!(SubspaceModule::get_total_subnet_stake(2), stakes[2]);
+        assert_eq!(SubspaceModule::get_total_subnet_stake(0), stakes[3]);
+        assert_eq!(SubspaceModule::num_subnets(), 3);
+    });
 }
