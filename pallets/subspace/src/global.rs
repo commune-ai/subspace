@@ -1,5 +1,4 @@
 use crate::voting::AUTHORITY_MODE;
-// TODO: deposit events on sets
 
 use super::*;
 use frame_support::pallet_prelude::DispatchResult;

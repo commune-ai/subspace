@@ -344,7 +344,7 @@ fn test_global_max_allowed_subnets() {
         for i in 1..(2 * max_allowed_subnets) {
             let netuid = i;
             stake += i as u64;
-            let least_staked_netuid = SubspaceModule::least_staked_netuid();
+            let (least_staked_netuid, _) = SubspaceModule::least_staked_netuid();
 
             if i > 1 {
                 println!("least staked netuid {}", least_staked_netuid);
