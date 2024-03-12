@@ -363,3 +363,33 @@ fn test_global_max_allowed_subnets() {
         }
     })
 }
+
+#[test]
+fn test_deregister_subnet_when_overflows_max_allowed_subnets() {
+    new_test_ext().execute_with(|| {
+        let extra = 0;
+        let mut params = SubspaceModule::global_params();
+        params.max_allowed_subnets = 3;
+        SubspaceModule::set_global_params(params.clone());
+
+        assert_eq!(params.max_allowed_subnets, 3);
+
+        let stakes: Vec<u64> = vec![
+            2_000_000_000,
+            6_000_000_000,
+            3_000_000_000,
+            4_000_000_000,
+            9_000_000_000,
+        ];
+
+        for netuid in 0..params.max_allowed_subnets + extra {
+            let stake: u64 = stakes[netuid as usize];
+            assert_ok!(register_module(netuid, U256::from(netuid), stake));
+        }
+
+        assert_eq!(SubspaceModule::num_subnets(), 3);
+        assert_eq!(SubspaceModule::get_total_subnet_stake(0), stakes[0]);
+        assert_eq!(SubspaceModule::get_total_subnet_stake(1), stakes[1]);
+        assert_eq!(SubspaceModule::get_total_subnet_stake(2), stakes[2]);
+    });
+}
