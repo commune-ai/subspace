@@ -60,11 +60,7 @@ impl<T: Config> Pallet<T> {
         let min_allowed_length: usize = Self::get_min_allowed_weights(netuid) as usize;
         let max_allowed_length: usize = Self::get_max_allowed_weights(netuid) as usize;
 
-        // TODO: fix this function
-        ensure!(
-            !Self::is_self_weight(uid, &uids),
-            Error::<T>::NoSelfWeight
-        );
+        ensure!(!Self::is_self_weight(uid, &uids), Error::<T>::NoSelfWeight);
 
         ensure!(
             uids.len() >= min_allowed_length,

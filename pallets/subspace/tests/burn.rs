@@ -11,10 +11,10 @@ fn test_burn() {
         let n = 20;
         let initial_stake: u64 = 1000;
         let tempo = 100;
-
         let keys: Vec<U256> = (0..n).map(U256::from).collect();
         let stakes: Vec<u64> = std::iter::repeat(initial_stake * 1_000_000_000).take(n).collect();
-        let voter_key = keys[1];
+        let voter_key_index = 1;
+        let voter_key = keys[voter_key_index];
         let mut subnet_params = SubspaceModule::subnet_params(netuid);
         subnet_params.tempo = tempo;
 
@@ -30,9 +30,15 @@ fn test_burn() {
 
             SubspaceModule::set_global_params(params);
 
-            // vote to avoid key[0] as we want to see the key[0] burn
-            let votes: Vec<u16> = std::iter::repeat(1).take(n).collect();
-            let uids: Vec<u16> = (0..n).map(|x| x as u16).collect();
+            let votes: Vec<u16> = (0..n)
+                .filter(|&x| x != voter_key_index)
+                .map(|_| 1)
+                .collect();
+
+            let uids: Vec<u16> = (0..n)
+                .filter(|&x| x != voter_key_index)
+                .map(|x| x as u16)
+                .collect();
 
             assert_ok!(SubspaceModule::set_weights(
                 get_origin(voter_key),
