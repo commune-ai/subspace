@@ -39,7 +39,7 @@ impl<T: Config> Pallet<T> {
             netuid
         } else {
             // Create subnet if it does not exist.
-            Self::add_subnet_from_registration(network, stake_amount, &key)?
+            Self::add_subnet_from_registration(network, &key)?
         };
 
         // --- 5. Ensure the caller has enough stake to register.
@@ -178,7 +178,6 @@ impl<T: Config> Pallet<T> {
 
     pub fn add_subnet_from_registration(
         name: Vec<u8>,
-        stake: u64,
         founder_key: &T::AccountId,
     ) -> Result<u16, sp_runtime::DispatchError> {
         let num_subnets: u16 = Self::num_subnets();

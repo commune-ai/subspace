@@ -260,8 +260,7 @@ pub fn register(netuid: u16, key: U256, stake: u64) {
 
 pub fn add_subnet(netuid: u16, founder: U256) -> Result<u16, sp_runtime::DispatchError> {
     let network: Vec<u8> = netuid.to_string().as_bytes().to_vec();
-    let stake: u64 = 1_000_000_000;
-    SubspaceModule::add_subnet_from_registration(network, stake, &founder)
+    SubspaceModule::add_subnet_from_registration(network, &founder)
 }
 
 pub fn remote_subnet(netuid: u16, key: U256) {
