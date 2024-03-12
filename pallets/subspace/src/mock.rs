@@ -2,17 +2,17 @@
 #![allow(warnings)]
 use crate as pallet_subspace;
 use frame_support::{
-    assert_ok, parameter_types,
+	assert_ok, parameter_types,
 	traits::{Everything, Hash, Hooks, StorageMapShim},
 	weights,
 };
 use frame_system as system;
 use frame_system::{limits, Config, EnsureNever, EnsureRoot, RawOrigin};
-use sp_core::{Get, H256, U256, ConstU32};
+use sp_core::{ConstU32, Get, H256, U256};
 use sp_runtime::{
 	testing::Header,
 	traits::{BlakeTwo256, IdentityLookup},
-	DispatchResult, BuildStorage,
+	BuildStorage, DispatchResult,
 };
 
 type UncheckedExtrinsic = frame_system::mocking::MockUncheckedExtrinsic<Test>;
@@ -67,21 +67,21 @@ impl pallet_balances::Config for Test {
 	type WeightInfo = ();
 	type MaxReserves = MaxReserves;
 	type ReserveIdentifier = ();
-    type RuntimeHoldReason = ();
-    type FreezeIdentifier = ();
-    type MaxHolds = frame_support::traits::ConstU32<16>;
+	type RuntimeHoldReason = ();
+	type FreezeIdentifier = ();
+	type MaxHolds = frame_support::traits::ConstU32<16>;
 	type MaxFreezes = frame_support::traits::ConstU32<16>;
 }
 
 impl system::Config for Test {
 	type BaseCallFilter = Everything;
-    type Block = Block;
+	type Block = Block;
 	type BlockWeights = ();
 	type BlockLength = ();
 	type DbWeight = ();
 	type RuntimeOrigin = RuntimeOrigin;
 	type RuntimeCall = RuntimeCall;
-    type Nonce = u32;
+	type Nonce = u32;
 	type Hash = H256;
 	type Hashing = BlakeTwo256;
 	type AccountId = U256;
@@ -102,12 +102,12 @@ impl system::Config for Test {
 impl pallet_subspace::Config for Test {
 	type RuntimeEvent = RuntimeEvent;
 	type Currency = Balances;
-    type WeightInfo = ();
+	type WeightInfo = ();
 }
 
 // Build genesis storage according to the mock runtime.
 #[allow(dead_code)]
 pub fn new_test_ext() -> sp_io::TestExternalities {
 	sp_tracing::try_init_simple();
-	<frame_system::GenesisConfig::<Test>>::default().build_storage().unwrap().into()
+	<frame_system::GenesisConfig<Test>>::default().build_storage().unwrap().into()
 }

@@ -1,4 +1,4 @@
-use subspace_runtime_api::ModuleInfo;
+use subspace_runtime_api::{KeyInfo, ModuleInfo};
 pub use subspace_runtime_api::SubspaceRuntimeApi;
 use jsonrpsee::{
 	core::{Error as JsonRpseeError, RpcResult},
@@ -7,30 +7,21 @@ use jsonrpsee::{
 };
 use sp_api::ProvideRuntimeApi;
 use sp_blockchain::HeaderBackend;
-use sp_runtime::{generic::BlockId, traits::Block as BlockT};
+use sp_runtime::traits::Block as BlockT;
 use std::sync::Arc;
-use sp_runtime::{DispatchError, MultiSignature, traits::{Verify, IdentifyAccount}};
+use sp_runtime::{MultiSignature, traits::{Verify, IdentifyAccount}};
 
 type Signature = MultiSignature;
 type AccountId = <<Signature as Verify>::Signer as IdentifyAccount>::AccountId;
 
-
-#[derive(serde::Deserialize, serde::Serialize)]
-pub struct Custom {
-	code: u32,
-	burn_rate: u16,
-}
-
 #[rpc(client, server)]
 pub trait SubspaceApi<BlockHash, AccountId>
 {
-	#[method(name = "subspace_getBurnRate")]
-	fn get_burn_rate(&self, at: Option<BlockHash>) -> RpcResult<Custom>;
-
 	#[method(name = "subspace_getModuleInfo")]
 	fn get_module_info(&self, key: AccountId, netuid: u16, at: Option<BlockHash>) -> RpcResult<ModuleInfo>;
 
-
+	#[method(name = "subspace_getKeyInfo")]
+	fn get_key_info(&self, key: AccountId, at: Option<BlockHash>) -> RpcResult<KeyInfo>;
 }
 
 pub struct SubspacePallet<C, Block> {
@@ -50,19 +41,19 @@ where
 	C: Send + Sync + 'static + ProvideRuntimeApi<Block> + HeaderBackend<Block>,
 	C::Api: SubspaceRuntimeApi<Block>,
 {
-    fn get_burn_rate(&self, at: Option<<Block as BlockT>::Hash>) -> RpcResult<Custom> {
-		let api = self.client.runtime_api();
-		let at = at.unwrap_or_else(|| self.client.info().best_hash);
-
-		let value = api.get_burn_rate(at).map_err(runtime_error_into_rpc_err);
-		Ok(Custom{ code: 200, burn_rate: value.unwrap()})
-	}
-
 	fn get_module_info(&self, key: AccountId, netuid: u16, at: Option<<Block as BlockT>::Hash>) -> RpcResult<ModuleInfo> {
 		let api = self.client.runtime_api();
 		let at = at.unwrap_or_else(|| self.client.info().best_hash);
 
 		let value = api.get_module_info(at, key, netuid, ).map_err(runtime_error_into_rpc_err);
+		Ok(value.unwrap())
+	}
+
+	fn get_key_info(&self, key: AccountId, at: Option<<Block as BlockT>::Hash>) -> RpcResult<KeyInfo> {
+		let api = self.client.runtime_api();
+		let at = at.unwrap_or_else(|| self.client.info().best_hash);
+
+		let value = api.get_key_info(at, key, ).map_err(runtime_error_into_rpc_err);
 		Ok(value.unwrap())
 	}
 }
