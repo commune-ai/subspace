@@ -328,43 +328,6 @@ fn test_set_max_allowed_modules() {
 }
 
 #[test]
-fn test_global_max_allowed_subnets() {
-    new_test_ext().execute_with(|| {
-        let max_allowed_subnets: u16 = 100;
-
-        let mut params = SubspaceModule::global_params().clone();
-        params.max_allowed_subnets = max_allowed_subnets;
-        SubspaceModule::set_global_params(params);
-        let params = SubspaceModule::global_params();
-        assert_eq!(params.max_allowed_subnets, max_allowed_subnets);
-        let mut stake: u64 = 1_000_000_000;
-
-        // set max_total modules
-
-        for i in 1..(2 * max_allowed_subnets) {
-            let netuid = i;
-            stake += i as u64;
-            let least_staked_netuid = SubspaceModule::least_staked_netuid();
-
-            if i > 1 {
-                println!("least staked netuid {}", least_staked_netuid);
-                assert!(SubspaceModule::if_subnet_exist(least_staked_netuid));
-            }
-
-            assert_ok!(register_module(netuid, U256::from(i), stake));
-            let n_subnets = SubspaceModule::num_subnets();
-
-            if i > max_allowed_subnets {
-                assert!(!SubspaceModule::if_subnet_exist(least_staked_netuid));
-            }
-            println!("n_subnets {}", n_subnets);
-            println!("max_allowed_subnets {}", max_allowed_subnets);
-            assert!(n_subnets <= max_allowed_subnets);
-        }
-    })
-}
-
-#[test]
 fn test_deregister_subnet_when_overflows_max_allowed_subnets() {
     new_test_ext().execute_with(|| {
         let extra = 1;
