@@ -72,7 +72,6 @@ impl<T: Config> Pallet<T> {
         // --- 8. Register the module.
         let uid: u16 = Self::append_module(netuid, &module_key, name.clone(), address.clone());
 
-        println!(">>> ADDING STAKE {stake_amount} to {netuid}");
         // --- 9. Add the stake to the module, now that it is registered on the network.
         Self::do_add_stake(origin, netuid, module_key.clone(), stake_amount)?;
 
@@ -187,8 +186,6 @@ impl<T: Config> Pallet<T> {
         let mut target_subnet = None;
         // if we have not reached the max number of subnets, then we can start a new one
         if num_subnets >= max_subnets {
-            println!("TRYING TO REMOVE SUBNET");
-            println!("  . REMOVED SUCCESSFULLY");
             let value = Self::least_staked_netuid();
             target_subnet = Some(value);
             Self::remove_subnet(value);
@@ -198,9 +195,8 @@ impl<T: Config> Pallet<T> {
         let mut params: SubnetParams<T> = Self::default_subnet_params();
         params.name = name;
         params.founder = founder_key.clone();
-        println!("  . NOW ADDING A NEW SUBNET");
 
-        Ok(dbg!(Self::add_subnet(params, target_subnet)))
+        Ok(Self::add_subnet(params, target_subnet))
     }
 
     pub fn check_module_limits(netuid: u16) {
