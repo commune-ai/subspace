@@ -1,7 +1,7 @@
 mod mock;
-use frame_support::assert_ok;
+use frame_support::{assert_err, assert_ok};
 
-use pallet_subspace::Error;
+use pallet_subspace::{Error, GlobalParams};
 use sp_core::U256;
 use sp_runtime::DispatchError;
 
@@ -270,7 +270,6 @@ fn test_check_len_uids_within_allowed_within_network_pool() {
     });
 }
 
-/// Check _falsey_ path
 #[test]
 fn test_check_len_uids_within_allowed_not_within_network_pool() {
     new_test_ext().execute_with(|| {
@@ -296,6 +295,104 @@ fn test_check_len_uids_within_allowed_not_within_network_pool() {
         assert_eq!(
             expected, result,
             "Failed to detect incompatible uids for network"
+        );
+    });
+}
+
+#[test]
+fn test_min_weight_stake() {
+    new_test_ext().execute_with(|| {
+        let mut global_params: GlobalParams = SubspaceModule::global_params();
+        global_params.min_weight_stake = to_nano(20);
+        SubspaceModule::set_global_params(global_params);
+
+        let netuid: u16 = 0;
+        let module_count: u16 = 16;
+        let voter_idx: u16 = 0;
+
+        // registers the modules
+        for i in 0..module_count {
+            assert_ok!(register_module(netuid, U256::from(i), to_nano(10)));
+        }
+
+        let uids: Vec<u16> = (0..module_count).filter(|&uid| uid != voter_idx).collect();
+        let weights = vec![1; uids.len()]; 
+
+        assert_err!(
+            SubspaceModule::set_weights(
+                get_origin(U256::from(voter_idx)),
+                netuid,
+                uids.clone(),
+                weights.clone(),
+            ),
+            Error::<Test>::NotEnoughtStakePerWeight
+        );
+
+        increase_stake(netuid, U256::from(voter_idx), to_nano(400));
+
+        assert_ok!(SubspaceModule::set_weights(
+            get_origin(U256::from(voter_idx)),
+            netuid,
+            uids,
+            weights,
+        ));
+    });
+}
+
+#[test]
+fn test_weight_age() {
+    new_test_ext().execute_with(|| {
+        const NETUID: u16 = 0;
+        const MODULE_COUNT: u16 = 16;
+        const TEMPO: u64 = 100;
+        const VOTER_IDX: u16 = 0;
+
+        let mut subnet_params = SubspaceModule::subnet_params(NETUID);
+        subnet_params.tempo = TEMPO as u16;
+        subnet_params.max_weight_age = TEMPO;
+        SubspaceModule::set_subnet_params(NETUID, subnet_params);
+
+        (0..MODULE_COUNT).for_each(|i| {
+            assert_ok!(register_module(NETUID, U256::from(i), to_nano(10)));
+        });
+
+        let uids: Vec<u16> = (0..MODULE_COUNT).filter(|&uid| uid != VOTER_IDX).collect();
+        let weights = vec![1; uids.len()];
+
+        assert_ok!(SubspaceModule::set_weights(
+            get_origin(U256::from(VOTER_IDX)),
+            NETUID,
+            uids.clone(),
+            weights,
+        ));
+
+        let stakes_before: Vec<u64> = uids
+            .iter()
+            .map(|uid| SubspaceModule::get_total_stake_to(NETUID, &U256::from(*uid)))
+            .collect();
+
+        step_block((TEMPO as u16) * 10);
+
+        let stakes_after: Vec<u64> = uids
+            .iter()
+            .map(|uid| SubspaceModule::get_total_stake_to(NETUID, &U256::from(*uid)))
+            .collect();
+
+        assert!(
+            stakes_before.iter().sum::<u64>() < stakes_after.iter().sum::<u64>(),
+            "Total stake should increase after weight aging"
+        );
+
+        step_block((TEMPO as u16) * 10);
+
+        let stakes_after_v2: Vec<u64> = uids
+            .iter()
+            .map(|uid: &u16| SubspaceModule::get_total_stake_to(NETUID, &U256::from(*uid)))
+            .collect();
+
+        assert_eq!(
+            stakes_after, stakes_after_v2,
+            "Stake values should remain the same after maximum weight age"
         );
     });
 }

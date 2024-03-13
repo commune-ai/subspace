@@ -12,6 +12,7 @@ use sp_runtime::{
 };
 
 type Block = frame_system::mocking::MockBlock<Test>;
+const TOKEN_DECIMALS: u32 = 9;
 
 // Configure a mock runtime to test the pallet.
 frame_support::construct_runtime!(
@@ -284,4 +285,8 @@ pub fn add_stake_and_balance(netuid: u16, key: U256, amount: u64) {
     let result = SubspaceModule::add_stake(origin, netuid, key, amount);
 
     assert_ok!(result);
+}
+
+pub fn to_nano(x: u64) -> u64 {
+    x * 10u64.pow(TOKEN_DECIMALS)
 }
