@@ -1,6 +1,6 @@
 # Subspace
 
-[![Discord Chat](https://img.shields.io/discord/308323056592486420.svg)](discord.gg/communeai)
+[![Discord Chat](https://img.shields.io/discord/308323056592486420.svg)](https://discord.gg/communeai)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Build Status](https://img.shields.io/travis/com/paritytech/substrate/master?label=stable)](https://travis-ci.com/paritytech/substrate)
 [![Coverage Status](https://img.shields.io/codecov/c/gh/paritytech/substrate?label=coverage)](https://codecov.io/gh/paritytech/substrate)
@@ -105,7 +105,7 @@ We welcome contributions to Subspace! Feel free to submit issues, fork the repos
 
 Please make sure your code follows the house coding style and passes all tests before submitting. See [CONTRIBUTING.md](docs/CONTRIBUTING.md) for detailed guidelines.
 
-Join our [Discord community](discord.gg/communeai) to discuss the project, ask questions and meet other contributors.
+Join our [Discord community](https://discord.gg/communeai) to discuss the project, ask questions and meet other contributors.
 
 ## Acknowledgments
 Special thanks to the teams at [Parity Technologies](https://www.parity.io/) and [Web3 Foundation](https://web3.foundation/) for their work on Substrate and FRAME.
