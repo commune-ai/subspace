@@ -934,10 +934,9 @@ fn test_dynamic_burn() {
         // - adjustment alpha = 0
         // - min_burn = 2 $COMAI
         // - max_burn = 250 $COMAI
-        let token_amount = 100_000_000;
         let mut params = SubspaceModule::global_params();
-        params.min_burn = 2 * token_amount;
-        params.max_burn = 250 * token_amount;
+        params.min_burn = to_nano(2);
+        params.max_burn = to_nano(250);
         params.adjustment_alpha = 0;
         params.target_registrations_interval = 200;
         params.target_registrations_per_interval = 100;
@@ -981,7 +980,7 @@ fn test_dynamic_burn() {
 
         // burn is now at 11 instead of 2
         assert!(
-            SubspaceModule::get_burn() == 11 * token_amount,
+            SubspaceModule::get_burn() == to_nano(11),
             "current burn {:?}",
             SubspaceModule::get_burn()
         );
@@ -995,7 +994,7 @@ fn test_dynamic_burn() {
 
         // make sure the burn correctly decreased base on demand
         assert!(
-            SubspaceModule::get_burn() == 825000000,
+            SubspaceModule::get_burn() == 8250000000,
             "current burn: {:?}",
             SubspaceModule::get_burn()
         );

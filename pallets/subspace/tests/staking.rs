@@ -4,41 +4,15 @@ use frame_support::assert_ok;
 use mock::*;
 use sp_core::U256;
 use substrate_fixed::types::I64F64;
-
 // /***********************************************************
 // 	staking::add_stake() tests
 // ************************************************************/
-// #[test]
-// fn test_stake_overflow() {
-// 	new_test_ext().execute_with(|| {
-
-//         let token_amount : u64 = 1_000_000_000;
-//         let balance : u64 = 10 * token_amount;
-//         let netuid : u16 = 0;
-
-//         for i in [0,1].iter() {
-//             let delta : u64 = 1 * token_amount;
-//             let stake : u64 = balance + delta*(*i);
-//             let key : U256 = U256::from(*i);
-//             add_balance(key, balance);
-//             let result =register_module(netuid, key, stake);
-//             println!("RESULT: {:?}", result);
-
-//             println!("STAKE {}", SubspaceModule::get_stake(netuid, &key));
-//             assert_eq!(SubspaceModule::get_stake(netuid, &key), balance);
-//             assert_eq!(SubspaceModule::get_balance(&key), 0);
-//         }
-
-// 	});
-// }
-
 #[test]
 fn test_stake() {
     new_test_ext().execute_with(|| {
         let max_uids: u16 = 10;
-        let token_amount: u64 = 1_000_000_000;
         let netuids: [u16; 4] = core::array::from_fn(|i| i as u16);
-        let amount_staked_vector: Vec<u64> = netuids.iter().map(|_| 10 * token_amount).collect();
+        let amount_staked_vector: Vec<u64> = netuids.iter().map(|_| to_nano(10)).collect();
         let mut total_stake: u64 = 0;
         let mut subnet_stake: u64 = 0;
 
@@ -225,9 +199,8 @@ fn test_transfer_stake() {
 fn test_delegate_stake() {
     new_test_ext().execute_with(|| {
         let max_uids: u16 = 10;
-        let token_amount: u64 = 1_000_000_000;
         let netuids: Vec<u16> = [0, 1, 2, 3].to_vec();
-        let amount_staked_vector: Vec<u64> = netuids.iter().map(|_i| 10 * token_amount).collect();
+        let amount_staked_vector: Vec<u64> = netuids.iter().map(|_i| to_nano(10)).collect();
         let mut total_stake: u64 = 0;
         let mut subnet_stake: u64 = 0;
 
