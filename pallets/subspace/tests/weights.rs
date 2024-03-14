@@ -316,7 +316,7 @@ fn test_min_weight_stake() {
         }
 
         let uids: Vec<u16> = (0..module_count).filter(|&uid| uid != voter_idx).collect();
-        let weights = vec![1; uids.len()]; 
+        let weights = vec![1; uids.len()];
 
         assert_err!(
             SubspaceModule::set_weights(
@@ -345,54 +345,78 @@ fn test_weight_age() {
         const NETUID: u16 = 0;
         const MODULE_COUNT: u16 = 16;
         const TEMPO: u64 = 100;
-        const VOTER_IDX: u16 = 0;
+        const PASSIVE_VOTER: u16 = 0;
+        const ACTIVE_VOTER: u16 = 1;
 
+        // Register modules
+        (0..MODULE_COUNT).for_each(|i| {
+            assert_ok!(register_module(NETUID, U256::from(i), to_nano(10)));
+        });
+
+        let uids: Vec<u16> = (0..MODULE_COUNT)
+            .filter(|&uid| uid != PASSIVE_VOTER && uid != ACTIVE_VOTER)
+            .collect();
+        let weights = vec![1; uids.len()];
+
+        // Set subnet parameters
         let mut subnet_params = SubspaceModule::subnet_params(NETUID);
         subnet_params.tempo = TEMPO as u16;
         subnet_params.max_weight_age = TEMPO;
         SubspaceModule::set_subnet_params(NETUID, subnet_params);
 
-        (0..MODULE_COUNT).for_each(|i| {
-            assert_ok!(register_module(NETUID, U256::from(i), to_nano(10)));
-        });
-
-        let uids: Vec<u16> = (0..MODULE_COUNT).filter(|&uid| uid != VOTER_IDX).collect();
-        let weights = vec![1; uids.len()];
-
+        // Set weights for passive and active voters
         assert_ok!(SubspaceModule::set_weights(
-            get_origin(U256::from(VOTER_IDX)),
+            get_origin(U256::from(PASSIVE_VOTER)),
             NETUID,
             uids.clone(),
+            weights.clone(),
+        ));
+        assert_ok!(SubspaceModule::set_weights(
+            get_origin(U256::from(ACTIVE_VOTER)),
+            NETUID,
+            uids.clone(),
+            weights.clone(),
+        ));
+
+        let passive_stake_before =
+            SubspaceModule::get_total_stake_to(NETUID, &U256::from(PASSIVE_VOTER));
+        let active_stake_before =
+            SubspaceModule::get_total_stake_to(NETUID, &U256::from(ACTIVE_VOTER));
+
+        step_block(TEMPO as u16);
+
+        let passive_stake_after =
+            SubspaceModule::get_total_stake_to(NETUID, &U256::from(PASSIVE_VOTER));
+        let active_stake_after =
+            SubspaceModule::get_total_stake_to(NETUID, &U256::from(ACTIVE_VOTER));
+
+        assert!(
+            passive_stake_before < passive_stake_after || active_stake_before < active_stake_after,
+            "Stake should be increasing"
+        );
+
+        // Set weights again for active voter
+        assert_ok!(SubspaceModule::set_weights(
+            get_origin(U256::from(ACTIVE_VOTER)),
+            NETUID,
+            uids,
             weights,
         ));
 
-        let stakes_before: Vec<u64> = uids
-            .iter()
-            .map(|uid| SubspaceModule::get_total_stake_to(NETUID, &U256::from(*uid)))
-            .collect();
+        step_block(TEMPO as u16);
 
-        step_block((TEMPO as u16) * 10);
-
-        let stakes_after: Vec<u64> = uids
-            .iter()
-            .map(|uid| SubspaceModule::get_total_stake_to(NETUID, &U256::from(*uid)))
-            .collect();
-
-        assert!(
-            stakes_before.iter().sum::<u64>() < stakes_after.iter().sum::<u64>(),
-            "Total stake should increase after weight aging"
-        );
-
-        step_block((TEMPO as u16) * 10);
-
-        let stakes_after_v2: Vec<u64> = uids
-            .iter()
-            .map(|uid: &u16| SubspaceModule::get_total_stake_to(NETUID, &U256::from(*uid)))
-            .collect();
+        let passive_stake_after_v2 =
+            SubspaceModule::get_total_stake_to(NETUID, &U256::from(PASSIVE_VOTER));
+        let active_stake_after_v2 =
+            SubspaceModule::get_total_stake_to(NETUID, &U256::from(ACTIVE_VOTER));
 
         assert_eq!(
-            stakes_after, stakes_after_v2,
+            passive_stake_after, passive_stake_after_v2,
             "Stake values should remain the same after maximum weight age"
+        );
+        assert!(
+            active_stake_after < active_stake_after_v2,
+            "Stake should be increasing"
         );
     });
 }
