@@ -1,11 +1,11 @@
 # Subspace
 
-[![Discord Chat](https://img.shields.io/discord/308323056592486420.svg)](https://discord.gg/commune)
+[![Discord Chat](https://img.shields.io/discord/308323056592486420.svg)](discord.gg/communeai)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Build Status](https://img.shields.io/travis/com/paritytech/substrate/master?label=stable)](https://travis-ci.com/paritytech/substrate)
 [![Coverage Status](https://img.shields.io/codecov/c/gh/paritytech/substrate?label=coverage)](https://codecov.io/gh/paritytech/substrate)
 
-Subspace is a FRAME-based [Substrate](https://substrate.io/) blockchain node that provides the foundation for [Commune's](https://commune.network/) decentralized cloud platform. It serves as the trusted base layer responsible for consensus, module advertising, and peer discovery.
+Subspace is a FRAME-based [Substrate](https://substrate.io/) blockchain node that provides the foundation for [Commune's](https://www.communeai.org/) network. It serves as the trusted base layer responsible for consensus, module advertising, and peer discovery.
 
 ## Table of Contents
 - [Overview](#overview)
@@ -105,7 +105,7 @@ We welcome contributions to Subspace! Feel free to submit issues, fork the repos
 
 Please make sure your code follows the house coding style and passes all tests before submitting. See [CONTRIBUTING.md](CONTRIBUTING.md) for detailed guidelines.
 
-Join our [Discord community](https://discord.gg/commune) to discuss the project, ask questions and meet other contributors.
+Join our [Discord community](discord.gg/communeai) to discuss the project, ask questions and meet other contributors.
 
 ## License
 Subspace is licensed under the [MIT License](LICENSE).
