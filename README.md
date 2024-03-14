@@ -103,7 +103,7 @@ Notable components:
 ## Contributing 
 We welcome contributions to Subspace! Feel free to submit issues, fork the repository and send pull requests. 
 
-Please make sure your code follows the house coding style and passes all tests before submitting. See [CONTRIBUTING.md](CONTRIBUTING.md) for detailed guidelines.
+Please make sure your code follows the house coding style and passes all tests before submitting. See [CONTRIBUTING.md](docs/CONTRIBUTING.md) for detailed guidelines.
 
 Join our [Discord community](discord.gg/communeai) to discuss the project, ask questions and meet other contributors.
 
