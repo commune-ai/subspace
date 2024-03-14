@@ -67,7 +67,7 @@ mkdir my-chain-state/
 Other useful commands:
 ```bash
 # Purge chain state
-./target/release/subspace purge-chain --dev
+./target/release/node-subspace purge-chain --dev
 
 # Detailed logging
 RUST_BACKTRACE=1 ./target/release/subspace-ldebug --dev
@@ -106,9 +106,6 @@ We welcome contributions to Subspace! Feel free to submit issues, fork the repos
 Please make sure your code follows the house coding style and passes all tests before submitting. See [CONTRIBUTING.md](CONTRIBUTING.md) for detailed guidelines.
 
 Join our [Discord community](discord.gg/communeai) to discuss the project, ask questions and meet other contributors.
-
-## License
-Subspace is licensed under the [MIT License](LICENSE).
 
 ## Acknowledgments
 Special thanks to the teams at [Parity Technologies](https://www.parity.io/) and [Web3 Foundation](https://web3.foundation/) for their work on Substrate and FRAME.
