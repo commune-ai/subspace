@@ -11,6 +11,8 @@ use sp_runtime::{
     BuildStorage, DispatchResult,
 };
 
+use log::info;
+
 type Block = frame_system::mocking::MockBlock<Test>;
 const TOKEN_DECIMALS: u32 = 9;
 
@@ -236,7 +238,7 @@ pub fn delegate_register_module(
     if stake >= balance {
         add_balance(key, stake + 1);
     }
-    println!("Registering module: network: {network:?}, key: {module_key:?} stake {balance:?}",);
+    info!("Registering module: network: {network:?}, key: {module_key:?} stake {balance:?}",);
 
     let result =
         SubspaceModule::register(origin, network, name.clone(), address, stake, module_key);

@@ -31,8 +31,7 @@ impl<T: Config> Pallet<T> {
         }
     }
 
-    // TODO: make sure there are checks for all values
-    pub fn check_global_params(params: GlobalParams) -> DispatchResult {
+    pub fn check_global_params(params: &GlobalParams) -> DispatchResult {
         // checks if params are valid
         let old_params = Self::global_params();
 
@@ -95,10 +94,23 @@ impl<T: Config> Pallet<T> {
             Error::<T>::InvalidMaxBurn
         );
 
+        ensure!(
+            params.target_registrations_per_interval > 0,
+            Error::<T>::InvalidTargetRegistrationsPerInterval
+        );
+
+        ensure!(
+            params.max_allowed_weights > 0,
+            Error::<T>::InvalidMaxAllowedWeights
+        );
+
         Ok(())
     }
 
     pub fn set_global_params(params: GlobalParams) {
+        // Check if the params are valid
+        Self::check_global_params(&params).expect("global params are invalid");
+
         Self::set_global_max_name_length(params.max_name_length);
         Self::set_global_max_allowed_subnets(params.max_allowed_subnets);
         Self::set_max_allowed_modules(params.max_allowed_modules);
@@ -165,7 +177,7 @@ impl<T: Config> Pallet<T> {
         VoteModeGlobal::<T>::get()
     }
     pub fn get_burn_rate() -> u16 {
-        BurnRate::<T>::get().min(100)
+        BurnRate::<T>::get()
     }
 
     pub fn get_burn() -> u64 {

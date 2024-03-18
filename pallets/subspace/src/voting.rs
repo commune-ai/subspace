@@ -13,6 +13,7 @@ impl<T: Config> Pallet<T> {
             Self::is_voter_registered(&key),
             Error::<T>::VoterIsNotRegistered
         );
+
         Self::unregister_voter(&key);
         ensure!(
             !Self::is_voter_registered(&key),
@@ -51,7 +52,6 @@ impl<T: Config> Pallet<T> {
     }
 
     // GLOBAL LAND
-
     pub fn do_add_global_proposal(
         origin: T::RuntimeOrigin,
         // params
@@ -65,7 +65,6 @@ impl<T: Config> Pallet<T> {
     }
 
     // CUSTOM LAND
-
     pub fn do_add_custom_proposal(
         origin: T::RuntimeOrigin,
         // params
@@ -80,7 +79,6 @@ impl<T: Config> Pallet<T> {
     }
 
     // SUBNET LAND
-
     pub fn do_add_subnet_proposal(
         origin: T::RuntimeOrigin,
         // params
@@ -195,9 +193,9 @@ impl<T: Config> Pallet<T> {
 
         // check if proposal is valid
         match mode.as_slice() {
-            GLOBAL_MODE => Self::check_global_params(proposal.global_params)?,
+            GLOBAL_MODE => Self::check_global_params(&proposal.global_params)?,
             SUBNET_MODE => {
-                Self::check_subnet_params(proposal.subnet_params.clone())?;
+                Self::check_subnet_params(&proposal.subnet_params.clone())?;
                 //  check if vote mode is valid
                 let subnet_params: SubnetParams<T> = Self::subnet_params(proposal.netuid);
                 // TODO: once decentralization is achieved, remove this check

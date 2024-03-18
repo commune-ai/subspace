@@ -4,6 +4,7 @@ use frame_support::{assert_err, assert_ok};
 use mock::*;
 use sp_core::U256;
 
+use log::info;
 use pallet_subspace::Error;
 
 /********************************************
@@ -33,10 +34,10 @@ fn test_min_stake() {
 
         for key in keys_list {
             let _ = register_module(netuid, key, min_stake_to_register);
-            println!("registered module with key: {key:?} and min_stake_to_register: {min_stake_to_register:?}");
+            info!("registered module with key: {key:?} and min_stake_to_register: {min_stake_to_register:?}");
         }
         let registrations_this_block = SubspaceModule::get_registrations_this_block();
-        println!("registrations_this_block: {registrations_this_block:?}");
+        info!("registrations_this_block: {registrations_this_block:?}");
         assert_eq!(registrations_this_block, max_registrations_per_block);
 
         step_block(1);
@@ -61,7 +62,7 @@ fn test_max_registration() {
             let key = U256::from(i);
             let min_stake_to_register = SubspaceModule::get_min_stake(netuid);
             let factor: u64 = min_stake_to_register / min_stake;
-            println!("min_stake_to_register: {min_stake_to_register:?} min_stake: {min_stake:?} factor {factor:?}");
+            info!("min_stake_to_register: {min_stake_to_register:?} min_stake: {min_stake:?} factor {factor:?}");
             register_module(netuid, key, factor * min_stake).expect("register module failed");
 
             let registrations_this_block = SubspaceModule::get_registrations_this_block();
@@ -87,9 +88,9 @@ fn test_delegate_register() {
                 .expect("delegate register module failed");
             let key_balance = SubspaceModule::get_balance_u64(&key);
             let stake_to_module = SubspaceModule::get_stake_to_module(netuid, &key, &module_key);
-            println!("key_balance: {key_balance:?}");
+            info!("key_balance: {key_balance:?}");
             let stake_to_vector = SubspaceModule::get_stake_to_vector(netuid, &key);
-            println!("stake_to_vector: {stake_to_vector:?}");
+            info!("stake_to_vector: {stake_to_vector:?}");
             assert_eq!(stake_to_module, stake_amount);
         }
     });
@@ -150,14 +151,14 @@ fn test_registration_with_stake() {
             let stake_value: u64 = *stake;
 
             let key = U256::from(uid);
-            println!("key: {key:?}");
-            println!("stake: {stake_value:?}");
+            info!("key: {key:?}");
+            info!("stake: {stake_value:?}");
             let stake_before: u64 = SubspaceModule::get_stake(netuid, &key);
-            println!("stake_before: {stake_before:?}");
+            info!("stake_before: {stake_before:?}");
             register_module(netuid, key, stake_value).unwrap_or_else(|_| {
                 panic!("Failed to register module with key: {key:?} and stake: {stake_value:?}",)
             });
-            println!("balance: {:?}", SubspaceModule::get_balance_u64(&key));
+            info!("balance: {:?}", SubspaceModule::get_balance_u64(&key));
             assert_eq!(SubspaceModule::get_stake_for_uid(netuid, uid), stake_value);
         }
     });

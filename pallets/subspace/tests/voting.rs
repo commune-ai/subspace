@@ -3,10 +3,11 @@ use frame_support::assert_ok;
 
 use mock::*;
 
+use log::info;
 use sp_core::U256;
 use sp_std::vec;
 
-/* TO DO SAM: write test for LatuUpdate after it is set */
+/* TODO SAM: write test for LatuUpdate after it is set */
 
 #[test]
 fn test_subnet_porposal() {
@@ -25,7 +26,7 @@ fn test_subnet_porposal() {
             "vote mode not set"
         );
         params.vote_mode = "stake".as_bytes().to_vec();
-        println!("params: {:?}", params);
+        info!("params: {params:?}");
         SubspaceModule::set_subnet_params(netuid, params.clone());
         let mut params = SubspaceModule::subnet_params(netuid);
         let _initial_tempo = params.tempo;
@@ -45,7 +46,7 @@ fn test_subnet_porposal() {
         // we have not passed the threshold yet
         let proposals = SubspaceModule::get_subnet_proposals(netuid);
 
-        println!("proposals: {:?}", proposals);
+        info!("proposals: {proposals:?}");
 
         assert_eq!(proposals.len(), 1, "proposal not added");
         assert_eq!(proposals[0].votes, stakes[0], "proposal not added");
@@ -60,7 +61,7 @@ fn test_subnet_porposal() {
         assert_eq!(proposal.votes, stakes[0] + stakes[1], "proposal not voted");
         assert!(proposal.accepted, "proposal not voted");
 
-        println!("proposal: {:?}", proposal);
+        info!("proposal: {proposal:?}");
 
         let params = SubspaceModule::subnet_params(netuid);
         assert_eq!(params.tempo, final_tempo, "proposal not voted");
@@ -90,7 +91,7 @@ fn test_max_proposals() {
         );
         params.vote_mode = "stake".as_bytes().to_vec();
         params.max_proposals = (n / 2) as u64;
-        println!("params: {:?}", params);
+        info!("params: {params:?}");
         SubspaceModule::set_global_params(params.clone());
 
         assert_eq!(
@@ -128,10 +129,10 @@ fn test_max_proposals() {
             let num_proposals = SubspaceModule::num_proposals();
             let proposals = SubspaceModule::get_global_proposals();
             let has_max_proposals = SubspaceModule::has_max_proposals();
-            println!("max_proposals: {:?}", max_proposals);
-            println!("has_max_proposals: {:?}", has_max_proposals);
-            println!("num_proposals: {:?}", num_proposals);
-            println!("proposals: {:?}", proposals.len());
+            info!("max_proposals: {max_proposals:?}");
+            info!("has_max_proposals: {has_max_proposals:?}");
+            info!("num_proposals: {num_proposals:?}");
+            info!("proposals {:?}", proposals.len());
 
             let num_subnet_proposals = SubspaceModule::num_subnet_proposals(netuid);
             let num_global_proposals = SubspaceModule::num_global_proposals();
@@ -174,7 +175,7 @@ fn test_global_porposal() {
         }
 
         let mut params = SubspaceModule::global_params();
-        eprintln!("{}", params.min_burn);
+        info!("{}", params.min_burn);
         let _initial_max_registrations_per_block = params.max_registrations_per_block;
         let max_registrations_per_block = 1000;
 
@@ -200,7 +201,7 @@ fn test_global_porposal() {
         assert_eq!(proposal.votes, stakes[0] + stakes[1], "proposal not voted");
         assert!(proposal.accepted, "proposal not voted");
 
-        println!("proposal: {:?}", proposal);
+        info!("proposal: {proposal:?}");
 
         let params = SubspaceModule::global_params();
         assert_eq!(
@@ -227,7 +228,7 @@ fn test_unvote() {
             "vote mode not set"
         );
         params.vote_mode = "stake".as_bytes().to_vec();
-        println!("params: {:?}", params);
+        info!("params: {:?}", params);
         SubspaceModule::set_subnet_params(netuid, params.clone());
         let mut params = SubspaceModule::subnet_params(netuid);
         let _initial_tempo = params.tempo;
@@ -251,7 +252,7 @@ fn test_unvote() {
         // we have not passed the threshold yet
         let proposals = SubspaceModule::get_subnet_proposals(netuid);
 
-        println!("proposals: {:?}", proposals);
+        info!("proposals: {proposals:?}");
 
         assert_eq!(proposals.len(), 0, "proposal not added");
     });

@@ -1,6 +1,7 @@
 mod mock;
 
 use frame_support::assert_ok;
+use log::info;
 use mock::*;
 use sp_core::U256;
 use sp_std::vec;
@@ -29,13 +30,13 @@ fn test_add_profit_share() {
         assert_ok!(result);
         let profit_shares = SubspaceModule::get_profit_shares(miner_key);
         assert_eq!(profit_shares.len(), shares.len(), "profit shares not added");
-        println!("founder profit shares: {profit_shares:?}");
+        info!("founder profit shares: {profit_shares:?}");
         let result =
             SubspaceModule::set_weights(get_origin(voter_key), netuid, vec![miner_uid], vec![1]);
 
         assert_ok!(result);
         let params = SubspaceModule::subnet_params(netuid);
-        println!("params: {params:?}");
+        info!("params: {params:?}");
         let miner_emission = SubspaceModule::get_emission_for_key(netuid, &miner_key);
         let voter_emission = SubspaceModule::get_emission_for_key(netuid, &voter_key);
         assert_eq!(miner_emission, voter_emission, "emission not equal");
@@ -43,8 +44,8 @@ fn test_add_profit_share() {
         assert!(voter_emission == 0, "emission not equal");
         let miner_stake = SubspaceModule::get_stake_for_key(netuid, &miner_key);
         let voter_stake = SubspaceModule::get_stake_for_key(netuid, &voter_key);
-        println!("miner stake before: {miner_stake:?}");
-        println!("voter stake before: {voter_stake:?}");
+        info!("miner stake before: {miner_stake:?}");
+        info!("voter stake before: {voter_stake:?}");
         step_epoch(netuid);
         let miner_emission = SubspaceModule::get_emission_for_key(netuid, &miner_key);
         let voter_emission = SubspaceModule::get_emission_for_key(netuid, &voter_key);
@@ -52,20 +53,20 @@ fn test_add_profit_share() {
         assert!(voter_emission > 0, "emission not equal");
         assert_eq!(miner_emission, voter_emission, "emission not equal");
 
-        println!("miner emission: {miner_emission:?}");
-        println!("voter emission: {voter_emission:?}");
+        info!("miner emission: {miner_emission:?}");
+        info!("voter emission: {voter_emission:?}");
         let miner_balance = SubspaceModule::get_balance_u64(&miner_key);
         let voter_balance = SubspaceModule::get_balance_u64(&voter_key);
-        println!("miner balance: {miner_balance:?}");
-        println!("voter balance: {voter_balance:?}");
+        info!("miner balance: {miner_balance:?}");
+        info!("voter balance: {voter_balance:?}");
         let miner_stake = SubspaceModule::get_stake_for_key(netuid, &miner_key);
         let voter_stake = SubspaceModule::get_stake_for_key(netuid, &voter_key);
-        println!("miner stake after: {miner_stake:?}");
-        println!("voter stake after: {voter_stake:?}");
+        info!("miner stake after: {miner_stake:?}");
+        info!("voter stake after: {voter_stake:?}");
 
         let _emission_for_subnet = SubspaceModule::get_subnet_emission(netuid);
         let profit_share_emissions = SubspaceModule::get_profit_shares(miner_key);
-        println!("profit share emissions: {profit_share_emissions:?}");
+        info!("profit share emissions: {profit_share_emissions:?}");
 
         // check the profit sharers
         let mut profit_share_balances: Vec<u64> = Vec::new();
@@ -73,8 +74,8 @@ fn test_add_profit_share() {
             let profit_share_balance =
                 SubspaceModule::get_stake_to_total(netuid, profit_sharer_key);
             let stake_to_vector = SubspaceModule::get_stake_to_vector(netuid, profit_sharer_key);
-            println!("profit share balance: {stake_to_vector:?}");
-            println!("profit share balance: {profit_share_balance:?}");
+            info!("profit share balance: {stake_to_vector:?}");
+            info!("profit share balance: {profit_share_balance:?}");
             profit_share_balances.push(profit_share_balance);
             assert!(profit_share_balances[0] > 0, "profit share balance is zero");
         }
