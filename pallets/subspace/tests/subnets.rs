@@ -1,6 +1,7 @@
 mod mock;
 
 use frame_support::assert_ok;
+use log::info;
 use mock::*;
 use sp_core::U256;
 use sp_std::vec;
@@ -22,7 +23,7 @@ fn test_add_subnets() {
             for j in 0..n {
                 if j != i {
                     let n = SubspaceModule::get_subnet_n(i);
-                    println!("registering module i:{} j:{} n:{}", i, j, n);
+                    info!("registering module i:{} j:{} n:{}", i, j, n);
                     assert_ok!(register_module(i, U256::from(j), stake_per_module));
                 }
             }
@@ -46,9 +47,9 @@ fn test_add_subnets() {
 
             let keys = SubspaceModule::get_keys(netuid);
 
-            println!("total stake {}", total_stake);
-            println!("total balance {}", total_balance);
-            println!("total tokens before {}", total_tokens_before);
+            info!("total stake {total_stake}");
+            info!("total balance {total_balance}");
+            info!("total tokens before {total_tokens_before}");
 
             assert_eq!(keys.len() as u16, n);
             assert!(SubspaceModule::check_subnet_storage(netuid));
@@ -57,7 +58,7 @@ fn test_add_subnets() {
             assert!(SubspaceModule::check_subnet_storage(netuid));
 
             let total_tokens_after: u64 = keys.iter().map(SubspaceModule::get_balance_u64).sum();
-            println!("total tokens after {}", total_tokens_after);
+            info!("total tokens after {}", total_tokens_after);
 
             assert_eq!(total_tokens_after, total_tokens_before);
             expected_subnets = expected_subnets.saturating_sub(1);
@@ -111,7 +112,7 @@ fn test_set_single_temple(tempo: u16) {
         let n_epochs = 3;
         let n_steps = n_epochs * tempo;
         for _i in 0..n_steps {
-            println!(
+            info!(
                 "tempo {} block number: {} stake {} pending_emissiion {}",
                 tempo,
                 block_number(),
@@ -124,16 +125,14 @@ fn test_set_single_temple(tempo: u16) {
             let dividends: Vec<u16> = SubspaceModule::get_dividends(netuid);
             let emissions: Vec<u64> = SubspaceModule::get_emissions(netuid);
 
-            println!("emission {:?}", emissions);
-            println!("incentives {:?}", incentives);
-            println!("dividends {:?}", dividends);
-            // println!("EMMISSIONS {:?}", SubspaceModule::get_ownership_ratios_emission(netuid,
-            // &U256::from(0),emissions[0] ));
+            info!("emission {emissions:?}");
+            info!("incentives {incentives:?}");
+            info!("dividends {dividends:?}");
 
             let stake: u64 = SubspaceModule::get_stake_for_uid(netuid, 0);
-            println!("stake {:?}", stake);
+            info!("stake {:?}", stake);
             total_stake = SubspaceModule::get_total_subnet_stake(netuid);
-            println!("total stake {}", total_stake);
+            info!("total stake {}", total_stake);
         }
 
         assert_eq!(
@@ -185,7 +184,7 @@ fn test_emission_ratio() {
                 expected_emission
             );
             assert!(block == 0, "block {} is not 0", block);
-            println!("block {} subnet_emission {} ", block, subnet_emission);
+            info!("block {} subnet_emission {} ", block, subnet_emission);
         }
     });
 }
@@ -247,7 +246,7 @@ fn test_set_max_allowed_uids_shrinking() {
         let extra_uids: u16 = 20;
 
         let mut n = SubspaceModule::get_subnet_n(netuid);
-        println!("registering module {}", n);
+        info!("registering module {}", n);
         assert_ok!(register_module(netuid, U256::from(0), stake));
         SubspaceModule::set_max_allowed_uids(netuid, max_uids + extra_uids);
         SubspaceModule::set_max_registrations_per_block(max_uids + extra_uids);
@@ -265,8 +264,8 @@ fn test_set_max_allowed_uids_shrinking() {
         let mut total_stake: u64 = SubspaceModule::get_total_subnet_stake(netuid);
         let mut expected_stake: u64 = n as u64 * stake;
 
-        println!("total stake {}", total_stake);
-        println!("expected stake {}", expected_stake);
+        info!("total stake {total_stake}");
+        info!("expected stake {expected_stake}");
         assert_eq!(total_stake, expected_stake);
 
         let _subnet = SubspaceModule::subnet_info(netuid);
@@ -275,8 +274,8 @@ fn test_set_max_allowed_uids_shrinking() {
         params.max_allowed_uids = max_uids;
         let result = SubspaceModule::do_update_subnet(get_origin(keys[0]), netuid, params);
         let global_params = SubspaceModule::global_params();
-        println!("global params {:?}", global_params);
-        println!("subnet params {:?}", SubspaceModule::subnet_params(netuid));
+        info!("global params {:?}", global_params);
+        info!("subnet params {:?}", SubspaceModule::subnet_params(netuid));
         assert_ok!(result);
         let params = SubspaceModule::subnet_params(netuid);
         let n = SubspaceModule::get_subnet_n(netuid);
@@ -292,7 +291,7 @@ fn test_set_max_allowed_uids_shrinking() {
         let stake_vector: Vec<u64> = SubspaceModule::get_stakes(netuid);
         let calc_stake: u64 = stake_vector.iter().sum();
 
-        println!("calculated  stake {}", calc_stake);
+        info!("calculated  stake {}", calc_stake);
 
         expected_stake = (max_uids) as u64 * stake;
         let _subnet_stake = SubspaceModule::get_total_subnet_stake(netuid);

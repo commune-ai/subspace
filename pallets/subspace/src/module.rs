@@ -120,9 +120,9 @@ impl<T: Config> Pallet<T> {
         );
 
         // HANDLE THE KEY AND UID ASSOCIATIONS
-        Uids::<T>::insert(netuid, replace_key.clone(), uid); // Remove old key - uid association.
-        Keys::<T>::insert(netuid, uid, replace_key.clone()); // Make key - uid association.
-        Uids::<T>::remove(netuid, uid_key.clone()); // Remove old key - uid association.
+        Uids::<T>::insert(netuid, &replace_key, uid); // Remove old key - uid association.
+        Keys::<T>::insert(netuid, uid, &replace_key); // Make key - uid association.
+        Uids::<T>::remove(netuid, &uid_key); // Remove old key - uid association.
         Keys::<T>::remove(netuid, replace_uid); // Remove key - uid association.
 
         // pop frm incentive vector and push to new key
@@ -130,10 +130,8 @@ impl<T: Config> Pallet<T> {
         let mut dividends: Vec<u16> = Dividends::<T>::get(netuid);
         let mut last_update: Vec<u64> = LastUpdate::<T>::get(netuid);
         let mut emission: Vec<u64> = Emission::<T>::get(netuid);
-        let _delegation_fee: Percent = DelegationFee::<T>::get(netuid, uid_key.clone());
 
         // swap consensus vectors
-
         incentive[uid as usize] = incentive[replace_uid as usize];
         dividends[uid as usize] = dividends[replace_uid as usize];
         emission[uid as usize] = emission[replace_uid as usize];
@@ -174,10 +172,10 @@ impl<T: Config> Pallet<T> {
         // HANDLE THE DELEGATION FEE
         DelegationFee::<T>::insert(
             netuid,
-            replace_key,
-            DelegationFee::<T>::get(netuid, uid_key.clone()),
+            &replace_key,
+            DelegationFee::<T>::get(netuid, &uid_key),
         ); // Make uid - key association.
-        DelegationFee::<T>::remove(netuid, uid_key.clone()); // Make uid - key association.
+        DelegationFee::<T>::remove(netuid, &uid_key); // Make uid - key association.
 
         // 3. Remove the network if it is empty.
         N::<T>::mutate(netuid, |v| *v -= 1); // Decrease the number of modules in the network.
@@ -195,34 +193,25 @@ impl<T: Config> Pallet<T> {
     pub fn append_module(netuid: u16, key: &T::AccountId, name: Vec<u8>, address: Vec<u8>) -> u16 {
         // 1. Get the next uid. This is always equal to subnetwork_n.
         let uid: u16 = Self::get_subnet_n(netuid);
-        let block_number = Self::get_current_block_as_u64();
-        log::debug!(
-            "append_module( netuid: {:?} | uid: {:?} | new_key: {:?} ) ",
-            netuid,
-            key,
-            uid
-        );
-
-        // 3. Expand Yuma with new position.
-        Emission::<T>::mutate(netuid, |v| v.push(0));
-        Incentive::<T>::mutate(netuid, |v| v.push(0));
-        Dividends::<T>::mutate(netuid, |v| v.push(0));
-        LastUpdate::<T>::mutate(netuid, |v| v.push(block_number));
+        let block_number = Self::get_current_block_number();
+        log::debug!("append_module( netuid: {netuid:?} | uid: {key:?} | new_key: {uid:?})");
+        // 3. Expand with new position.
+        Emission::<T>::append(netuid, 0);
+        Incentive::<T>::append(netuid, 0);
+        Dividends::<T>::append(netuid, 0);
+        LastUpdate::<T>::append(netuid, block_number);
 
         // 4. Insert new account information.
-        Keys::<T>::insert(netuid, uid, key.clone()); // Make key - uid association.
-        Uids::<T>::insert(netuid, key.clone(), uid); // Make uid - key association.
+        Keys::<T>::insert(netuid, uid, key); // Make key - uid association.
+        Uids::<T>::insert(netuid, key, uid); // Make uid - key association.
         RegistrationBlock::<T>::insert(netuid, uid, block_number); // Fill block at registration.
-        Name::<T>::insert(netuid, uid, name.clone()); // Fill module namespace.
-        Address::<T>::insert(netuid, uid, address.clone()); // Fill module info.
-        DelegationFee::<T>::insert(
-            netuid,
-            key.clone(),
-            DelegationFee::<T>::get(netuid, key.clone()),
-        ); // Make uid - key association.
+        Name::<T>::insert(netuid, uid, name); // Fill module namespace.
+        Address::<T>::insert(netuid, uid, address); // Fill module info.
+        DelegationFee::<T>::insert(netuid, key, DelegationFee::<T>::get(netuid, key)); // Make uid - key association.
 
-        N::<T>::insert(netuid, N::<T>::get(netuid) + 1); // Decrease the number of modules in the network.
-                                                         // increase the stake of the new key
+        N::<T>::insert(netuid, N::<T>::get(netuid) + 1); // Increase the number of modules in the network.
+
+        // increase the stake of the new key
         Self::increase_stake(netuid, key, key, 0);
 
         uid
