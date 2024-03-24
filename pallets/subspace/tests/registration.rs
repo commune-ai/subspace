@@ -278,7 +278,7 @@ fn validates_module_on_update() {
         assert_ok!(update_module(b"test2", b"0.0.0.0:2"));
         assert_ok!(update_module(b"test3", b"0.0.0.0:3"));
 
-        let params = SubspaceModule::module_params(0, 1);
+        let params = SubspaceModule::module_params(0, &key_1);
         assert_eq!(params.name, b"test3");
         assert_eq!(params.address, b"0.0.0.0:3");
 

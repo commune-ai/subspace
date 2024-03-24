@@ -1025,9 +1025,8 @@ impl_runtime_apis! {
         }
 
         fn get_module_info(key: AccountId, netuid: u16) -> ModuleInfo {
-            let uid = SubspaceModule::get_uid_for_key(netuid, &key);
-            let stats = SubspaceModule::get_module_stats(netuid, uid);
-            let params = SubspaceModule::module_params(netuid, uid);
+            let stats = SubspaceModule::get_module_stats(netuid, &key);
+            let params = SubspaceModule::module_params(netuid, &key);
 
             ModuleInfo {
                 stats: ModuleStats {

@@ -268,7 +268,7 @@ pub mod pallet {
     pub struct ModuleParams<T: Config> {
         pub name: Vec<u8>,
         pub address: Vec<u8>,
-        pub delegation_fee: Percent, // delegate_fee
+        pub delegation_fee: Percent,
         pub controller: T::AccountId,
     }
 
@@ -1202,8 +1202,8 @@ pub mod pallet {
         ) -> DispatchResult {
             let key = ensure_signed(origin.clone())?;
             ensure!(Self::is_registered(netuid, &key), Error::<T>::NotRegistered);
-            let uid: u16 = Self::get_uid_for_key(netuid, &key);
-            let params = Self::module_params(netuid, uid);
+
+            let params = Self::module_params(netuid, &key);
 
             let changeset = ModuleChangeset::update(&params, name, address, delegation_fee);
             Self::do_update_module(origin, netuid, changeset)

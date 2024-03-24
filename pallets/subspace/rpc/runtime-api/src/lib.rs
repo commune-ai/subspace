@@ -39,19 +39,9 @@ pub struct ModuleInfo {
     pub stats: ModuleStats,
 }
 
-// sp_api::decl_runtime_apis! {
-// 	pub trait SubspaceRuntimeApi where
-// 	AccountId: <<Signature as Verify>::Signer as IdentifyAccount>::AccountId
-// 	{
-// 		fn get_module_info() -> Result<ModuleInfo>;
-// 	}
-// }
-
 sp_api::decl_runtime_apis! {
-    pub trait SubspaceRuntimeApi
-    {
+    pub trait SubspaceRuntimeApi {
         fn get_burn_rate() -> u16;
-
         fn get_module_info(key: AccountId, netuid: u16) -> ModuleInfo;
     }
 }
