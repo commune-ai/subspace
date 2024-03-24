@@ -6,6 +6,7 @@ use sp_core::U256;
 
 use log::info;
 use pallet_subspace::Error;
+use sp_runtime::{DispatchResult, Percent};
 
 /********************************************
     subscribing::subscribe() tests
@@ -193,5 +194,98 @@ fn test_whitelist() {
             adding_key
         ));
         assert!(SubspaceModule::is_in_legit_whitelist(&adding_key));
+    });
+}
+
+fn register_custom(netuid: u16, key: U256, name: &[u8], addr: &[u8]) -> DispatchResult {
+    let network: Vec<u8> = format!("test{netuid}").as_bytes().to_vec();
+
+    let origin = get_origin(key);
+    let is_new_subnet: bool = !SubspaceModule::if_subnet_exist(netuid);
+    if is_new_subnet {
+        SubspaceModule::set_max_registrations_per_block(1000)
+    }
+
+    SubspaceModule::register(origin, network, name.to_vec(), addr.to_vec(), 0, key)
+}
+
+fn test_validation_cases(f: impl Fn(&[u8], &[u8]) -> DispatchResult) {
+    assert_err!(f(b"", b""), Error::<Test>::InvalidModuleName);
+    assert_err!(
+        f("o".repeat(100).as_bytes(), b""),
+        Error::<Test>::ModuleNameTooLong
+    );
+    assert_err!(f(b"\xc3\x28", b""), Error::<Test>::InvalidModuleName);
+
+    assert_err!(f(b"test", b""), Error::<Test>::InvalidModuleAddress);
+    assert_err!(
+        f(b"test", "o".repeat(100).as_bytes()),
+        Error::<Test>::ModuleAddressTooLong
+    );
+    assert_err!(f(b"test", b"\xc3\x28"), Error::<Test>::InvalidModuleAddress);
+
+    assert_ok!(f(b"test", b"abc"));
+}
+
+#[test]
+fn validates_module_on_registration() {
+    new_test_ext().execute_with(|| {
+        test_validation_cases(|name, addr| register_custom(0, 0.into(), name, addr));
+
+        assert_err!(
+            register_custom(0, 1.into(), b"test", b"0.0.0.0:1"),
+            Error::<Test>::ModuleNameAlreadyExists
+        );
+    });
+}
+
+#[test]
+fn validates_module_on_update() {
+    new_test_ext().execute_with(|| {
+        let subnet = 0;
+        let key_0: U256 = 0.into();
+        let origin_0 = get_origin(0.into());
+        assert_ok!(register_custom(subnet, key_0, b"test", b"0.0.0.0:1"));
+
+        test_validation_cases(|name, addr| {
+            SubspaceModule::update_module(
+                origin_0.clone(),
+                subnet,
+                name.to_vec(),
+                addr.to_vec(),
+                None,
+            )
+        });
+
+        let key_1: U256 = 1.into();
+        let origin_1 = get_origin(key_1);
+        assert_ok!(register_custom(0, key_1, b"test2", b"0.0.0.0:2"));
+
+        let update_module = |name: &[u8], addr: &[u8]| {
+            SubspaceModule::update_module(
+                origin_1.clone(),
+                subnet,
+                name.to_vec(),
+                addr.to_vec(),
+                Some(Percent::from_percent(5)),
+            )
+        };
+
+        assert_err!(
+            update_module(b"test", b""),
+            Error::<Test>::ModuleNameAlreadyExists
+        );
+        assert_ok!(update_module(b"test2", b"0.0.0.0:2"));
+        assert_ok!(update_module(b"test3", b"0.0.0.0:3"));
+
+        let params = SubspaceModule::module_params(0, 1);
+        assert_eq!(params.name, b"test3");
+        assert_eq!(params.address, b"0.0.0.0:3");
+
+        SubspaceModule::set_floor_delegation_fee(Percent::from_percent(10));
+        assert_err!(
+            update_module(b"test3", b"0.0.0.0:3"),
+            Error::<Test>::InvalidMinDelegationFee
+        );
     });
 }

@@ -321,6 +321,6 @@ impl<T: Config> Pallet<T> {
     }
 
     pub fn rm_from_whitelist(module_key: &T::AccountId) {
-        LegitWhitelist::<T>::remove(&module_key);
+        LegitWhitelist::<T>::remove(module_key);
     }
 }

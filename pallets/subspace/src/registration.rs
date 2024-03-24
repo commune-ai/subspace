@@ -1,3 +1,5 @@
+use crate::module::ModuleChangeset;
+
 use super::*;
 
 use frame_support::pallet_prelude::DispatchResult;
@@ -104,16 +106,10 @@ impl<T: Config> Pallet<T> {
             Error::<T>::NotEnoughStakeToRegister
         );
 
-        // --- 6. Ensure the module key is not already registered,
-        // and namespace is not already taken.
+        // --- 6. Ensure the module key is not already registered.
         ensure!(
             !Self::key_registered(netuid, &module_key),
             Error::<T>::KeyAlreadyRegistered
-        );
-
-        ensure!(
-            !Self::does_module_name_exist(netuid, name.clone()),
-            Error::<T>::NameAlreadyRegistered
         );
 
         // --- 7. Check if we are exceeding the max allowed modules per network.
@@ -121,7 +117,8 @@ impl<T: Config> Pallet<T> {
         Self::check_module_limits(netuid);
 
         // --- 8. Register the module.
-        let uid: u16 = Self::append_module(netuid, &module_key, name, address);
+        let changeset = ModuleChangeset::new(name, address);
+        let uid: u16 = Self::append_module(netuid, &module_key, changeset)?;
 
         // --- 9. Add the stake to the module, now that it is registered on the network.
         Self::do_add_stake(origin, netuid, module_key.clone(), stake)?;

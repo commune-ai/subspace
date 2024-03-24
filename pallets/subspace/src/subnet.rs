@@ -280,9 +280,9 @@ impl<T: Config> Pallet<T> {
     }
 
     // TODO: see if we can optimize this further
-    pub fn does_module_name_exist(netuid: u16, name: Vec<u8>) -> bool {
+    pub fn does_module_name_exist(netuid: u16, name: &[u8]) -> bool {
         <Name<T> as IterableStorageDoubleMap<u16, u16, Vec<u8>>>::iter_prefix(netuid)
-            .any(|(_uid, _name)| _name == name)
+            .any(|(_, existing)| existing == name)
     }
 
     pub fn is_subnet_founder(netuid: u16, key: &T::AccountId) -> bool {
@@ -616,37 +616,18 @@ impl<T: Config> Pallet<T> {
         let uid = Self::get_uid_for_key(netuid, key);
         Self::get_emission_for_uid(netuid, uid)
     }
+
     pub fn get_emission_for_uid(netuid: u16, uid: u16) -> u64 {
-        let vec = Emission::<T>::get(netuid);
-        if (uid as usize) < vec.len() {
-            vec[uid as usize]
-        } else {
-            0
-        }
+        Emission::<T>::get(netuid).get(uid as usize).copied().unwrap_or_default()
     }
     pub fn get_incentive_for_uid(netuid: u16, uid: u16) -> u16 {
-        let vec = Incentive::<T>::get(netuid);
-        if (uid as usize) < vec.len() {
-            vec[uid as usize]
-        } else {
-            0
-        }
+        Incentive::<T>::get(netuid).get(uid as usize).copied().unwrap_or_default()
     }
     pub fn get_dividends_for_uid(netuid: u16, uid: u16) -> u16 {
-        let vec = Dividends::<T>::get(netuid);
-        if (uid as usize) < vec.len() {
-            vec[uid as usize]
-        } else {
-            0
-        }
+        Dividends::<T>::get(netuid).get(uid as usize).copied().unwrap_or_default()
     }
     pub fn get_last_update_for_uid(netuid: u16, uid: u16) -> u64 {
-        let vec = LastUpdate::<T>::get(netuid);
-        if (uid as usize) < vec.len() {
-            vec[uid as usize]
-        } else {
-            0
-        }
+        LastUpdate::<T>::get(netuid).get(uid as usize).copied().unwrap_or_default()
     }
 
     pub fn get_global_max_allowed_subnets() -> u16 {
