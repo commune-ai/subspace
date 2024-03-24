@@ -6,6 +6,58 @@ use frame_system::ensure_signed;
 use sp_std::vec::Vec;
 
 impl<T: Config> Pallet<T> {
+    pub fn do_add_to_whitelist(
+        origin: T::RuntimeOrigin,
+        module_key: T::AccountId,
+    ) -> DispatchResult {
+        // --- 1. Check that the caller has signed the transaction.
+        let key = ensure_signed(origin)?;
+
+        // --- 2. Ensure that the key is the nominator multisig.
+        ensure!(Self::get_nominator() == key, Error::<T>::NotNominator);
+
+        // --- 3. Ensure that the module_key is not already in the whitelist.
+        ensure!(
+            !Self::is_in_legit_whitelist(&module_key),
+            Error::<T>::AlreadyWhitelisted
+        );
+
+        // --- 4. Insert the module_key into the whitelist.
+        Self::insert_to_whitelist(module_key.clone());
+
+        // -- deposit event
+        Self::deposit_event(Event::WhitelistModuleAdded(module_key));
+
+        // --- 5. Ok and done.
+        Ok(())
+    }
+
+    pub fn do_remove_from_whitelist(
+        origin: T::RuntimeOrigin,
+        module_key: T::AccountId,
+    ) -> DispatchResult {
+        // --- 1. Check that the caller has signed the transaction.
+        let key = ensure_signed(origin)?;
+
+        // --- 2. Ensure that the key is the nominator multisig.
+        ensure!(Self::get_nominator() == key, Error::<T>::NotNominator);
+
+        // --- 3. Ensure that the module_key is in the whitelist.
+        ensure!(
+            Self::is_in_legit_whitelist(&module_key),
+            Error::<T>::NotWhitelisted
+        );
+
+        // --- 4. Remove the module_key from the whitelist.
+        Self::rm_from_whitelist(&module_key);
+
+        // -- deposit event
+        Self::deposit_event(Event::WhitelistModuleRemoved(module_key));
+
+        // --- 5. Ok and done.
+        Ok(())
+    }
+
     // TODO:
     //- check ip
     // - add ability to set delegaiton fee, straight in registration

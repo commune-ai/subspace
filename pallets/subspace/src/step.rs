@@ -424,7 +424,7 @@ impl<T: Config> Pallet<T> {
     fn process_weights(
         netuid: u16,
         n: u16,
-        global_params: &GlobalParams,
+        global_params: &GlobalParams<T>,
         subnet_params: &SubnetParams<T>,
         current_block: u64,
         stake_f64: &[I64F64],

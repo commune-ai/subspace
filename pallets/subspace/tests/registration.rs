@@ -105,13 +105,13 @@ fn test_registration_ok() {
         register_module(netuid, key, 0)
             .unwrap_or_else(|_| panic!("register module failed for key {key:?}"));
 
-        // Check if neuron has added to the specified network(netuid)
+        // Check if module has added to the specified network(netuid)
         assert_eq!(SubspaceModule::get_subnet_n(netuid), 1);
 
-        // Check if the neuron has added to the Keys
+        // Check if the module has added to the Keys
         let neuron_uid = SubspaceModule::get_uid_for_key(netuid, &key);
         assert_eq!(SubspaceModule::get_uid_for_key(netuid, &key), 0);
-        // Check if neuron has added to Uids
+        // Check if module has added to Uids
         let neuro_uid = SubspaceModule::get_uid_for_key(netuid, &key);
         assert_eq!(neuro_uid, neuron_uid);
 
@@ -175,5 +175,23 @@ fn register_same_key_twice() {
             register_module(netuid, key, stake),
             Error::<Test>::KeyAlreadyRegistered
         );
+    });
+}
+
+#[test]
+fn test_whitelist() {
+    new_test_ext().execute_with(|| {
+        let key = U256::from(0);
+        let adding_key = U256::from(1);
+        let mut params = SubspaceModule::global_params();
+        params.nominator = key;
+        SubspaceModule::set_global_params(params);
+
+        // add key to whitelist
+        assert_ok!(SubspaceModule::add_to_whitelist(
+            get_origin(key),
+            adding_key
+        ));
+        assert!(SubspaceModule::is_in_legit_whitelist(&adding_key));
     });
 }
