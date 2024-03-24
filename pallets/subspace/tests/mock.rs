@@ -243,7 +243,7 @@ pub fn delegate_register_module(
     let result =
         SubspaceModule::register(origin, network, name.clone(), address, stake, module_key);
 
-    log::info!("Register ok neuron: network: {name:?}, module_key: {module_key:?} key: {key:?}",);
+    log::info!("Register ok module: network: {name:?}, module_key: {module_key:?} key: {key:?}",);
 
     result
 }

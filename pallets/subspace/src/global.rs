@@ -7,7 +7,7 @@ use sp_arithmetic::per_things::Percent;
 use system::ensure_root;
 
 impl<T: Config> Pallet<T> {
-    pub fn global_params() -> GlobalParams {
+    pub fn global_params() -> GlobalParams<T> {
         GlobalParams {
             max_name_length: Self::get_global_max_name_length(),
             max_allowed_subnets: Self::get_global_max_allowed_subnets(),
@@ -20,6 +20,7 @@ impl<T: Config> Pallet<T> {
             vote_threshold: Self::get_global_vote_threshold(),
             max_proposals: Self::get_max_proposals(),
             vote_mode: Self::get_vote_mode_global(),
+            nominator: Self::get_nominator(),
             burn_rate: Self::get_burn_rate(),
             min_burn: Self::get_min_burn(),
             max_burn: Self::get_max_burn(),
@@ -31,7 +32,7 @@ impl<T: Config> Pallet<T> {
         }
     }
 
-    pub fn check_global_params(params: &GlobalParams) -> DispatchResult {
+    pub fn check_global_params(params: &GlobalParams<T>) -> DispatchResult {
         // checks if params are valid
         let old_params = Self::global_params();
 
@@ -107,7 +108,7 @@ impl<T: Config> Pallet<T> {
         Ok(())
     }
 
-    pub fn set_global_params(params: GlobalParams) {
+    pub fn set_global_params(params: GlobalParams<T>) {
         // Check if the params are valid
         Self::check_global_params(&params).expect("global params are invalid");
 
@@ -129,6 +130,15 @@ impl<T: Config> Pallet<T> {
         Self::set_min_weight_stake(params.min_weight_stake);
         Self::set_min_stake_global(params.min_stake);
         Self::set_floor_delegation_fee(params.floor_delegation_fee);
+        Self::set_nominator(params.nominator);
+    }
+
+    pub fn get_nominator() -> T::AccountId {
+        Nominator::<T>::get()
+    }
+
+    pub fn set_nominator(nominator: T::AccountId) {
+        Nominator::<T>::put(nominator)
     }
 
     pub fn get_registrations_this_interval() -> u16 {
@@ -179,6 +189,9 @@ impl<T: Config> Pallet<T> {
     pub fn get_burn_rate() -> u16 {
         BurnRate::<T>::get()
     }
+    pub fn set_burn_rate(burn_rate: u16) {
+        BurnRate::<T>::put(burn_rate.min(100));
+    }
 
     pub fn get_burn() -> u64 {
         Burn::<T>::get()
@@ -190,16 +203,11 @@ impl<T: Config> Pallet<T> {
         Self::deposit_event(Event::RegistrationBurnChanged(burn));
     }
 
-    pub fn set_burn_rate(burn_rate: u16) {
-        BurnRate::<T>::put(burn_rate.min(100));
-    }
-
-    pub fn set_max_proposals(max_proposals: u64) {
-        MaxProposals::<T>::put(max_proposals);
-    }
-
     pub fn get_max_proposals() -> u64 {
         MaxProposals::<T>::get()
+    }
+    pub fn set_max_proposals(max_proposals: u64) {
+        MaxProposals::<T>::put(max_proposals);
     }
 
     pub fn get_global_vote_threshold() -> u16 {
@@ -234,7 +242,7 @@ impl<T: Config> Pallet<T> {
         MaxNameLength::<T>::put(max_name_length)
     }
 
-    pub fn do_update_global(origin: T::RuntimeOrigin, params: GlobalParams) -> DispatchResult {
+    pub fn do_update_global(origin: T::RuntimeOrigin, params: GlobalParams<T>) -> DispatchResult {
         ensure_root(origin)?;
 
         // TODO, once decentralization is reached, remove this
@@ -300,5 +308,19 @@ impl<T: Config> Pallet<T> {
 
     pub fn set_adjustment_alpha(adjustment_alpha: u64) {
         AdjustmentAlpha::<T>::put(adjustment_alpha);
+    }
+
+    // Whitelist management
+
+    pub fn is_in_legit_whitelist(account_id: &T::AccountId) -> bool {
+        LegitWhitelist::<T>::contains_key(account_id)
+    }
+
+    pub fn insert_to_whitelist(module_key: T::AccountId) {
+        LegitWhitelist::<T>::insert(module_key, ());
+    }
+
+    pub fn rm_from_whitelist(module_key: &T::AccountId) {
+        LegitWhitelist::<T>::remove(&module_key);
     }
 }

@@ -215,7 +215,7 @@ fn test_normalize_weights_does_not_mutate_when_sum_not_zero() {
 #[test]
 fn test_min_weight_stake() {
     new_test_ext().execute_with(|| {
-        let mut global_params: GlobalParams = SubspaceModule::global_params();
+        let mut global_params = SubspaceModule::global_params();
         global_params.min_weight_stake = to_nano(20);
         SubspaceModule::set_global_params(global_params);
 

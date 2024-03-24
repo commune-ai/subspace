@@ -271,9 +271,9 @@ pub mod pallet {
         pub controller: T::AccountId,
     }
 
-    #[derive(Decode, Encode, PartialEq, Eq, Clone, Debug, TypeInfo)]
-    // skip
-    pub struct GlobalParams {
+    #[derive(Decode, Encode, PartialEq, Eq, Clone, TypeInfo)]
+    #[scale_info(skip_type_params(T))]
+    pub struct GlobalParams<T: Config> {
         pub burn_rate: u16,
         // max
         pub max_name_length: u16,             // max length of a network name
@@ -299,10 +299,50 @@ pub mod pallet {
         pub tx_rate_limit: u64,    // tx rate limit
         pub vote_threshold: u16,   // out of 100
         pub vote_mode: Vec<u8>,    // out of 100
+        pub nominator: T::AccountId,
+    }
+
+    impl<T: Config> core::fmt::Debug for GlobalParams<T>
+    where
+        T::AccountId: core::fmt::Debug,
+    {
+        fn fmt(&self, f: &mut core::fmt::Formatter) -> core::fmt::Result {
+            f.debug_struct("GlobalParams")
+                .field("burn_rate", &self.burn_rate)
+                .field("max_name_length", &self.max_name_length)
+                .field("max_allowed_subnets", &self.max_allowed_subnets)
+                .field("max_allowed_modules", &self.max_allowed_modules)
+                .field(
+                    "max_registrations_per_block",
+                    &self.max_registrations_per_block,
+                )
+                .field("max_allowed_weights", &self.max_allowed_weights)
+                .field("max_proposals", &self.max_proposals)
+                .field("min_burn", &self.min_burn)
+                .field("max_burn", &self.max_burn)
+                .field("min_stake", &self.min_stake)
+                .field("floor_delegation_fee", &self.floor_delegation_fee)
+                .field("min_weight_stake", &self.min_weight_stake)
+                .field(
+                    "target_registrations_per_interval",
+                    &self.target_registrations_per_interval,
+                )
+                .field(
+                    "target_registrations_interval",
+                    &self.target_registrations_interval,
+                )
+                .field("adjustment_alpha", &self.adjustment_alpha)
+                .field("unit_emission", &self.unit_emission)
+                .field("tx_rate_limit", &self.tx_rate_limit)
+                .field("vote_threshold", &self.vote_threshold)
+                .field("vote_mode", &self.vote_mode)
+                .field("nominator", &self.nominator)
+                .finish()
+        }
     }
 
     #[pallet::type_value]
-    pub fn DefaultGlobalParams<T: Config>() -> GlobalParams {
+    pub fn DefaultGlobalParams<T: Config>() -> GlobalParams<T> {
         GlobalParams {
             burn_rate: DefaultBurnRate::<T>::get(),
             max_allowed_subnets: DefaultMaxAllowedSubnets::<T>::get(),
@@ -323,6 +363,7 @@ pub mod pallet {
             tx_rate_limit: DefaultTxRateLimit::<T>::get(),
             vote_threshold: DefaultVoteThreshold::<T>::get(),
             vote_mode: DefaultVoteMode::<T>::get(),
+            nominator: DefaultNominator::<T>::get(),
         }
     }
 
@@ -522,6 +563,13 @@ pub mod pallet {
     #[pallet::storage] // --- MAP ( netuid ) --> epoch
     pub type GlobalVoteThreshold<T> = StorageValue<_, u16, ValueQuery, DefaultVoteThreshold<T>>;
 
+    #[pallet::type_value]
+    pub fn DefaultNominator<T: Config>() -> T::AccountId {
+        T::AccountId::decode(&mut sp_runtime::traits::TrailingZeroInput::zeroes()).unwrap()
+    }
+    #[pallet::storage]
+    pub type Nominator<T: Config> = StorageValue<_, T::AccountId, ValueQuery, DefaultNominator<T>>;
+
     // VOTING MODE
     // OPTIONS -> [stake, authority, quadratic]
     #[pallet::type_value]
@@ -588,7 +636,6 @@ pub mod pallet {
     #[pallet::storage] // --- DMAP ( netuid, uid ) --> module_key
     pub(super) type Keys<T: Config> =
         StorageDoubleMap<_, Identity, u16, Identity, u16, T::AccountId, ValueQuery, DefaultKey<T>>;
-
     #[pallet::type_value]
     pub fn DefaultName<T: Config>() -> Vec<u8> {
         vec![]
@@ -622,7 +669,6 @@ pub mod pallet {
     >;
 
     // STATE OF THE MODULE
-
     #[pallet::type_value]
     pub fn DefaultBlockAtRegistration<T: Config>() -> u64 {
         0
@@ -746,6 +792,11 @@ pub mod pallet {
         DefaultWeights<T>,
     >;
 
+    // whitelist for the base subnet (netuid 0)
+    #[pallet::storage]
+    pub(super) type LegitWhitelist<T: Config> =
+        StorageMap<_, Identity, T::AccountId, (), ValueQuery, GetDefault>;
+
     // ========================================================
     // ==== Voting System to Update Global and Subnet  ====
     // ========================================================
@@ -754,7 +805,7 @@ pub mod pallet {
     pub struct Proposal<T: Config> {
         // --- parameters
         pub subnet_params: SubnetParams<T>,
-        pub global_params: GlobalParams,
+        pub global_params: GlobalParams<T>,
         pub netuid: u16, // FOR SUBNET PROPOSAL ONLY
         pub votes: u64,
         pub participants: Vec<T::AccountId>,
@@ -807,6 +858,10 @@ pub mod pallet {
                                                    * account has been registered to the chain. */
         ModuleDeregistered(u16, u16, T::AccountId), /* --- Event created when a module account
                                                      * has been deregistered from the chain. */
+        WhitelistModuleAdded(T::AccountId), /* --- Event created when a module account has been
+                                             * added to the whitelist. */
+        WhitelistModuleRemoved(T::AccountId), /* --- Event created when a module account has
+                                               * been removed from the whitelist. */
         BulkModulesRegistered(u16, u16), /* --- Event created when multiple uids have been
                                           * concurrently registered. */
         BulkBalancesSet(u16, u16),
@@ -827,7 +882,8 @@ pub mod pallet {
         MaxAllowedModulesSet(u16), // --- Event created when setting the maximum allowed modules
         MaxRegistrationsPerBlockSet(u16), // --- Event created when we set max registrations
         target_registrations_intervalSet(u16), // --- Event created when we set target registrations
-        GlobalParamsUpdated(GlobalParams), // --- Event created when global parameters are updated
+        GlobalParamsUpdated(GlobalParams<T>), /* --- Event created when global parameters are
+                              * updated */
         SubnetParamsUpdated(u16), // --- Event created when subnet parameters are updated
         GlobalProposalAccepted(u64), // (id)
         CustomProposalAccepted(u64), // (id)
@@ -902,6 +958,12 @@ pub mod pallet {
         ModuleNameDoesNotExist, /* --- Thrown when the user tries to remove a module name that
                                * does not exist. */
         EmptyKeys,
+        NotNominator, /* --- Thrown when the user tries to set the nominator and is not the
+                       * nominator */
+        AlreadyWhitelisted, /* --- Thrown when the user tries to whitelist an account that is
+                             * already whitelisted. */
+        NotWhitelisted, /* --- Thrown when the user tries to remove an account from the
+                         * whitelist that is not whitelisted. */
         InvalidShares,
         ProfitSharesNotAdded,
         NotFounder,
@@ -1170,6 +1232,19 @@ pub mod pallet {
         }
 
         #[pallet::weight((Weight::zero(), DispatchClass::Normal, Pays::No))]
+        pub fn add_to_whitelist(origin: OriginFor<T>, module_key: T::AccountId) -> DispatchResult {
+            Self::do_add_to_whitelist(origin, module_key)
+        }
+
+        #[pallet::weight((Weight::zero(), DispatchClass::Normal, Pays::No))]
+        pub fn remove_from_whitelist(
+            origin: OriginFor<T>,
+            module_key: T::AccountId,
+        ) -> DispatchResult {
+            Self::do_remove_from_whitelist(origin, module_key)
+        }
+
+        #[pallet::weight((Weight::zero(), DispatchClass::Normal, Pays::No))]
         pub fn update_global(
             origin: OriginFor<T>,
             burn_rate: u16,
@@ -1190,6 +1265,7 @@ pub mod pallet {
             floor_delegation_fee: Percent,
             target_registrations_per_interval: u16,
             target_registrations_interval: u16,
+            nominator: T::AccountId,
         ) -> DispatchResult {
             let mut params = Self::global_params();
 
@@ -1211,6 +1287,7 @@ pub mod pallet {
             params.floor_delegation_fee = floor_delegation_fee;
             params.target_registrations_per_interval = target_registrations_per_interval;
             params.target_registrations_interval = target_registrations_interval;
+            params.nominator = nominator;
 
             // Check if the parameters are valid
             Self::check_global_params(&params)?;

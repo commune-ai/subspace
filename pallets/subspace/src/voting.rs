@@ -55,7 +55,7 @@ impl<T: Config> Pallet<T> {
     pub fn do_add_global_proposal(
         origin: T::RuntimeOrigin,
         // params
-        params: GlobalParams,
+        params: GlobalParams<T>,
     ) -> DispatchResult {
         let mut proposal = Self::default_proposal();
         proposal.global_params = params;
