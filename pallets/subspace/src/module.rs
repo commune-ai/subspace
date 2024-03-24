@@ -18,12 +18,6 @@ pub struct ModuleStats<T: Config> {
     pub weights: Vec<(u16, u16)>, // Vec of (uid, weight)
 }
 
-#[derive(Decode, Encode, PartialEq, Eq, Clone, Debug)]
-pub struct ModuleInfo<T: Config> {
-    params: ModuleParams<T>,
-    stats: ModuleStats<T>,
-}
-
 #[derive(Debug)]
 pub struct ModuleChangeset {
     pub name: Option<Vec<u8>>,
@@ -32,6 +26,7 @@ pub struct ModuleChangeset {
 }
 
 impl ModuleChangeset {
+    #[must_use]
     pub fn new(name: Vec<u8>, address: Vec<u8>) -> Self {
         Self {
             name: Some(name),
@@ -40,6 +35,7 @@ impl ModuleChangeset {
         }
     }
 
+    #[must_use]
     pub fn update<T: Config>(
         params: &ModuleParams<T>,
         name: Vec<u8>,
@@ -110,40 +106,15 @@ impl<T: Config> Pallet<T> {
         Ok(())
     }
 
-    pub fn module_params(netuid: u16, uid: u16) -> ModuleParams<T> {
+    pub fn module_params(netuid: u16, key: &T::AccountId) -> ModuleParams<T> {
+        let uid = Uids::<T>::try_get(netuid, key).expect("module key does not exist");
+
         ModuleParams {
-            name: Self::get_module_name(netuid, uid),
-            address: Self::get_module_address(netuid, uid),
-            delegation_fee: Self::get_module_delegation_fee(netuid, uid),
-            controller: Self::get_key_for_uid(netuid, uid),
+            name: Name::<T>::get(netuid, uid),
+            address: Address::<T>::get(netuid, uid),
+            delegation_fee: DelegationFee::<T>::get(netuid, key),
+            controller: key.clone(),
         }
-    }
-
-    pub fn get_module_address(netuid: u16, uid: u16) -> Vec<u8> {
-        Address::<T>::get(netuid, uid)
-    }
-
-    pub fn set_module_address(netuid: u16, uid: u16, address: Vec<u8>) {
-        Address::<T>::insert(netuid, uid, address);
-    }
-
-    pub fn get_module_delegation_fee(netuid: u16, uid: u16) -> Percent {
-        let key = Self::get_key_for_uid(netuid, uid);
-        let delegation_fee: Percent = DelegationFee::<T>::get(netuid, key);
-        delegation_fee
-    }
-
-    pub fn set_module_delegation_fee(netuid: u16, uid: u16, delegation_fee: Percent) {
-        let key = Self::get_key_for_uid(netuid, uid);
-        DelegationFee::<T>::insert(netuid, key, delegation_fee);
-    }
-
-    pub fn get_module_name(netuid: u16, uid: u16) -> Vec<u8> {
-        Name::<T>::get(netuid, uid)
-    }
-
-    pub fn set_module_name(netuid: u16, uid: u16, name: Vec<u8>) {
-        Name::<T>::insert(netuid, uid, name.clone());
     }
 
     // Replace the module under this uid.
@@ -269,7 +240,9 @@ impl<T: Config> Pallet<T> {
         Ok(uid)
     }
 
-    pub fn get_module_stats(netuid: u16, uid: u16) -> ModuleStats<T> {
+    pub fn get_module_stats(netuid: u16, key: &T::AccountId) -> ModuleStats<T> {
+        let uid = Uids::<T>::try_get(netuid, key).expect("module key does not exist");
+
         let key = Self::get_key_for_uid(netuid, uid);
         let emission = Self::get_emission_for_uid(netuid, uid);
         let incentive = Self::get_incentive_for_uid(netuid, uid);
