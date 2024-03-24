@@ -59,6 +59,7 @@ pub mod pallet {
     use frame_support::{pallet_prelude::*, traits::Currency};
     use frame_system::pallet_prelude::*;
 
+    use module::ModuleChangeset;
     use sp_arithmetic::per_things::Percent;
     pub use sp_std::{vec, vec::Vec};
 
@@ -894,10 +895,8 @@ pub mod pallet {
     // Errors inform users that something went wrong.
     #[pallet::error]
     pub enum Error<T> {
-        ModuleNameAlreadyExists, // --- Thrown when a module name already exists.
-        NetworkDoesNotExist,     // --- Thrown when the network does not exist.
+        NetworkDoesNotExist, // --- Thrown when the network does not exist.
         TooFewVotesForNewProposal,
-        ModuleAddressTooLong,
         NetworkExist, // --- Thrown when the network already exist.
         InvalidIpType, /* ---- Thrown when the user tries to serve an module which
                        * is not of type	4 (IPv4) or 6 (IPv6). */
@@ -952,11 +951,7 @@ pub mod pallet {
         BalanceNotAdded,
         StakeNotRemoved,
         SubnetNameNotExists,
-        ModuleNameTooLong, /* --- Thrown when the user tries to register a module name that is
-                            * too long. */
         KeyAlreadyRegistered, //
-        ModuleNameDoesNotExist, /* --- Thrown when the user tries to remove a module name that
-                               * does not exist. */
         EmptyKeys,
         NotNominator, /* --- Thrown when the user tries to set the nominator and is not the
                        * nominator */
@@ -1001,6 +996,20 @@ pub mod pallet {
         InvalidMinBurn,
         InvalidMaxBurn,
         InvalidTargetRegistrationsPerInterval,
+
+        // Modules
+        /// The module name is too long.
+        ModuleNameTooLong,
+        /// The module name is invalid. It has to be a UTF-8 encoded string.
+        InvalidModuleName,
+        /// The address is too long.
+        ModuleAddressTooLong,
+        /// The module address is invalid.
+        InvalidModuleAddress,
+        /// The module name does not exist in the subnet.
+        ModuleNameDoesNotExist,
+        /// A module with this name already exists in the subnet.
+        ModuleNameAlreadyExists,
 
         // VOTING
         ProposalDoesNotExist,
@@ -1076,7 +1085,9 @@ pub mod pallet {
                 for (uid_usize, (key, name, address, weights)) in
                     self.modules[subnet_idx].iter().enumerate()
                 {
-                    self::Pallet::<T>::append_module(netuid, key, name.clone(), address.clone());
+                    let changeset = ModuleChangeset::new(name.clone(), address.clone());
+                    self::Pallet::<T>::append_module(netuid, key, changeset)
+                        .expect("genesis modules are valid");
                     Weights::<T>::insert(netuid, uid_usize as u16, weights);
                 }
             }
@@ -1192,17 +1203,10 @@ pub mod pallet {
             let key = ensure_signed(origin.clone())?;
             ensure!(Self::is_registered(netuid, &key), Error::<T>::NotRegistered);
             let uid: u16 = Self::get_uid_for_key(netuid, &key);
-            let mut params = Self::module_params(netuid, uid);
-            params.name = name;
-            params.address = address;
-            if let Some(delegation_fee) = delegation_fee {
-                ensure!(
-                    delegation_fee >= Self::get_floor_delegation_fee(),
-                    Error::<T>::InvalidMinDelegationFee
-                );
-                params.delegation_fee = delegation_fee;
-            }
-            Self::do_update_module(origin, netuid, params)
+            let params = Self::module_params(netuid, uid);
+
+            let changeset = ModuleChangeset::update(&params, name, address, delegation_fee);
+            Self::do_update_module(origin, netuid, changeset)
         }
 
         #[pallet::weight((Weight::zero(), DispatchClass::Normal, Pays::No))]
