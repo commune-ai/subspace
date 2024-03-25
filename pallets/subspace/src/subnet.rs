@@ -362,6 +362,10 @@ impl<T: Config> Pallet<T> {
         SubnetNames::<T>::iter().find(|(_, n)| n == name).map(|(id, _)| id)
     }
 
+    pub fn get_subnet_name(netuid: u16) -> Vec<u8> {
+		Self::subnet_params(netuid).name
+	}
+
     pub fn remove_netuid_stake_strorage(netuid: u16) {
         // --- 1. Erase network stake, and remove network from list of networks.
         for (key, _stated_amount) in
@@ -635,13 +639,10 @@ impl<T: Config> Pallet<T> {
     // ============================
     // ==== Subnetwork Getters ====
     // ============================
-
-    #[cfg(debug_assertions)]
     pub fn get_pending_emission(netuid: u16) -> u64 {
         PendingEmission::<T>::get(netuid)
     }
 
-    #[cfg(debug_assertions)]
     pub fn get_registrations_this_block() -> u16 {
         RegistrationsPerBlock::<T>::get()
     }

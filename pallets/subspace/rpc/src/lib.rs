@@ -10,22 +10,31 @@ use sp_runtime::{
     MultiSignature,
 };
 use std::sync::Arc;
-use subspace_runtime_api::ModuleInfo;
+use subspace_runtime_api::{
+    GlobalInfo,
+    SubnetInfo,
+    KeyInfo,
+    ModuleInfo,
+};
 pub use subspace_runtime_api::SubspaceRuntimeApi;
 
 type Signature = MultiSignature;
 type AccountId = <<Signature as Verify>::Signer as IdentifyAccount>::AccountId;
 
-#[derive(serde::Deserialize, serde::Serialize)]
-pub struct Custom {
-    code: u32,
-    burn_rate: u16,
-}
-
 #[rpc(client, server)]
 pub trait SubspaceApi<BlockHash, AccountId> {
-    #[method(name = "subspace_getBurnRate")]
-    fn get_burn_rate(&self, at: Option<BlockHash>) -> RpcResult<Custom>;
+    #[method(name = "subspace_getGlobalInfo")]
+	fn get_global_info(
+        &self,
+        at: Option<BlockHash>,
+    ) -> RpcResult<GlobalInfo>;
+
+    #[method(name = "subspace_getSubnetInfo")]
+	fn get_subnet_info(
+        &self,
+        netuid: u16,
+        at: Option<BlockHash>,
+    ) -> RpcResult<SubnetInfo>;
 
     #[method(name = "subspace_getModuleInfo")]
     fn get_module_info(
@@ -34,6 +43,13 @@ pub trait SubspaceApi<BlockHash, AccountId> {
         netuid: u16,
         at: Option<BlockHash>,
     ) -> RpcResult<ModuleInfo>;
+
+    #[method(name = "subspace_getKeyInfo")]
+	fn get_key_info(
+        &self,
+        key: AccountId,
+        at: Option<BlockHash>,
+    ) -> RpcResult<KeyInfo>;
 }
 
 pub struct SubspacePallet<C, Block> {
@@ -56,15 +72,27 @@ where
     C: Send + Sync + 'static + ProvideRuntimeApi<Block> + HeaderBackend<Block>,
     C::Api: SubspaceRuntimeApi<Block>,
 {
-    fn get_burn_rate(&self, at: Option<<Block as BlockT>::Hash>) -> RpcResult<Custom> {
+    fn get_global_info(
+        &self,
+        at: Option<<Block as BlockT>::Hash>,
+    ) -> RpcResult<GlobalInfo> {
         let api = self.client.runtime_api();
         let at = at.unwrap_or_else(|| self.client.info().best_hash);
 
-        let value = api.get_burn_rate(at).map_err(runtime_error_into_rpc_err);
-        Ok(Custom {
-            code: 200,
-            burn_rate: value.unwrap(),
-        })
+        let value = api.get_global_info(at, ).map_err(runtime_error_into_rpc_err);
+        Ok(value.unwrap())
+    }
+
+    fn get_subnet_info(
+        &self,
+        netuid: u16,
+        at: Option<<Block as BlockT>::Hash>,
+    ) -> RpcResult<SubnetInfo> {
+        let api = self.client.runtime_api();
+        let at = at.unwrap_or_else(|| self.client.info().best_hash);
+
+        let value = api.get_subnet_info(at, netuid,).map_err(runtime_error_into_rpc_err);
+        Ok(value.unwrap())
     }
 
     fn get_module_info(
@@ -79,6 +107,14 @@ where
         let value = api.get_module_info(at, key, netuid).map_err(runtime_error_into_rpc_err);
         Ok(value.unwrap())
     }
+
+    fn get_key_info(&self, key: AccountId, at: Option<<Block as BlockT>::Hash>) -> RpcResult<KeyInfo> {
+		let api = self.client.runtime_api();
+		let at = at.unwrap_or_else(|| self.client.info().best_hash);
+
+		let value = api.get_key_info(at, key, ).map_err(runtime_error_into_rpc_err);
+		Ok(value.unwrap())
+	}
 }
 
 const RUNTIME_ERROR: i32 = 1;
