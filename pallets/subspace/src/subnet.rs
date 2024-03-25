@@ -127,7 +127,7 @@ impl<T: Config> Pallet<T> {
             max_weight_age: MaxWeightAge::<T>::get(netuid),
             min_stake: MinStake::<T>::get(netuid),
             tempo: Tempo::<T>::get(netuid),
-            name: <Vec<u8>>::new(),
+            name: SubnetNames::<T>::get(netuid),
             vote_threshold: VoteThresholdSubnet::<T>::get(netuid),
             vote_mode: VoteModeSubnet::<T>::get(netuid),
             trust_ratio: TrustRatio::<T>::get(netuid),

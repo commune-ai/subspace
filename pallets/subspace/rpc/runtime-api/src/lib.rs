@@ -28,8 +28,8 @@ pub struct ModuleStats {
 
 #[derive(Decode, Encode, PartialEq, Eq, Clone, Debug, TypeInfo, Serialize, Deserialize)]
 pub struct ModuleParams {
-    pub name: Vec<u8>,
-    pub address: Vec<u8>,
+    pub name: String,
+    pub address: String,
     pub delegation_fee: Percent, // delegate_fee
     pub controller: AccountId,
 }
@@ -75,7 +75,7 @@ pub struct GlobalParams {
     pub unit_emission: u64,    // emission per block
     pub tx_rate_limit: u64,    // tx rate limit
     pub vote_threshold: u16,   // out of 100
-    pub vote_mode: Vec<u8>,    // out of 100
+    pub vote_mode: String,    // out of 100
 }
 
 #[derive(Decode, Encode, PartialEq, Eq, Clone, Debug, TypeInfo, Serialize, Deserialize)]
@@ -108,11 +108,11 @@ pub struct SubnetParams {
     pub max_stake: u64,           // max stake allowed
     pub max_weight_age: u64,      // max age of a weight
     pub min_stake: u64,           // min stake required
-    pub name: Vec<u8>,
+    pub name: String,
     pub tempo: u16, // how many blocks to wait before rewarding models
     pub trust_ratio: u16,
     pub vote_threshold: u16, // out of 100
-    pub vote_mode: Vec<u8>,
+    pub vote_mode: String,
 }
 
 #[derive(Decode, Encode, PartialEq, Eq, Clone, Debug, TypeInfo, Serialize, Deserialize)]

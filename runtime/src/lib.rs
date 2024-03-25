@@ -1066,7 +1066,7 @@ impl_runtime_apis! {
                     unit_emission: params.unit_emission,
                     tx_rate_limit: params.tx_rate_limit,
                     vote_threshold: params.vote_threshold,
-                    vote_mode: params.vote_mode
+                    vote_mode: String::from_utf8(params.vote_mode).expect("Name bytes should be valid utf8").into()
                 }
             }
         }
@@ -1093,11 +1093,11 @@ impl_runtime_apis! {
                     max_stake: params.max_stake,
                     max_weight_age: params.max_weight_age,
                     min_stake: params.min_stake,
-                    name: params.name,
+                    name: String::from_utf8(params.name).expect("Name bytes should be valid utf8").into(),
                     tempo: params.tempo,
                     trust_ratio: params.trust_ratio,
                     vote_threshold: params.vote_threshold,
-                    vote_mode: params.vote_mode,
+                    vote_mode: String::from_utf8(params.vote_mode).expect("Name bytes should be valid utf8").into(),
                 }
             }
         }
@@ -1119,8 +1119,8 @@ impl_runtime_apis! {
                     weights: stats.weights,
                 },
                 params: ModuleParams {
-                    name: params.name,
-                    address: params.address,
+                    name: String::from_utf8(params.name).expect("Name bytes should be valid utf8").into(),
+                    address: String::from_utf8(params.address).expect("Name bytes should be valid utf8").into(),
                     delegation_fee: params.delegation_fee,
                     controller: params.controller,
                 }
@@ -1135,7 +1135,7 @@ impl_runtime_apis! {
 			for netuid in SubspaceModule::netuids() {
 				let subnet_name_bytes = SubspaceModule::get_subnet_name(netuid);
 				stake_to.push((
-					String::from_utf8(subnet_name_bytes).expect("Name bytes should be valid utf8"),
+					String::from_utf8(subnet_name_bytes).expect("Name bytes should be valid utf8").into(),
 					SubspaceModule::get_total_subnet_stake(netuid)
 				))
 			}
