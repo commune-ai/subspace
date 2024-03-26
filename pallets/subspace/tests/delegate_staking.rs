@@ -1,6 +1,7 @@
 mod mock;
 
 use frame_support::assert_ok;
+use log::info;
 use mock::*;
 use sp_core::U256;
 use substrate_fixed::types::I64F64;
@@ -36,7 +37,7 @@ fn test_ownership_ratio() {
         assert_eq!(pre_delegate_stake_from_vector.len(), 1); // +1 for the module itself, +1 for the delegate key on
 
         for (i, d) in delegate_keys.iter().enumerate() {
-            println!("DELEGATE KEY: {}", d);
+            info!("DELEGATE KEY: {d}");
             assert_ok!(SubspaceModule::add_stake(
                 get_origin(*d),
                 netuid,
@@ -94,14 +95,11 @@ fn test_ownership_ratio() {
             .sum::<u64>();
         let total_tokens_before =
             total_balance + total_stake + total_delegate_stake + total_delegate_balance;
-        println!("total_tokens_before: {:?}", total_tokens_before);
+        info!("total_tokens_before: {total_tokens_before:?}");
 
-        println!("delegate_balances before: {:?}", delegate_balances_before);
-        println!("delegate_stakes before: {:?}", delegate_stakes_before);
-        println!(
-            "delegate_total_tokens before: {:?}",
-            delegate_total_tokens_before
-        );
+        info!("delegate_balances before: {delegate_balances_before:?}");
+        info!("delegate_stakes before: {delegate_stakes_before:?}");
+        info!("delegate_total_tokens before: {delegate_total_tokens_before:?}");
 
         let result = SubspaceModule::set_weights(
             get_origin(voter_key),
@@ -118,12 +116,12 @@ fn test_ownership_ratio() {
         let incentives = SubspaceModule::get_incentives(netuid);
         let emissions = SubspaceModule::get_emissions(netuid);
 
-        println!("dividends: {:?}", dividends);
-        println!("incentives: {:?}", incentives);
-        println!("emissions: {:?}", emissions);
+        info!("dividends: {dividends:?}");
+        info!("incentives: {incentives:?}");
+        info!("emissions: {emissions:?}");
         let total_emissions = emissions.iter().sum::<u64>();
 
-        println!("total_emissions: {:?}", total_emissions);
+        info!("total_emissions: {total_emissions:?}");
 
         let delegate_balances =
             delegate_keys.iter().map(SubspaceModule::get_balance).collect::<Vec<u64>>();
@@ -147,14 +145,14 @@ fn test_ownership_ratio() {
 
         let total_new_tokens = founder_new_tokens + delegate_new_tokens.iter().sum::<u64>();
 
-        println!("owner_ratios: {:?}", ownership_ratios);
-        println!("total_new_tokens: {:?}", total_new_tokens);
-        println!("founder_tokens: {:?}", founder_tokens);
-        println!("delegate_balances: {:?}", delegate_balances);
-        println!("delegate_stakes: {:?}", delegate_stakes);
-        println!("delegate_total_tokens: {:?}", delegate_total_tokens);
-        println!("founder_new_tokens: {:?}", founder_new_tokens);
-        println!("delegate_new_tokens: {:?}", delegate_new_tokens);
+        info!("owner_ratios: {ownership_ratios:?}");
+        info!("total_new_tokens: {total_new_tokens:?}");
+        info!("founder_tokens: {founder_tokens:?}");
+        info!("delegate_balances: {delegate_balances:?}");
+        info!("delegate_stakes: {delegate_stakes:?}");
+        info!("delegate_total_tokens: {delegate_total_tokens:?}");
+        info!("founder_new_tokens: {founder_new_tokens:?}");
+        info!("delegate_new_tokens: {delegate_new_tokens:?}");
 
         let total_balance = keys
             .iter()
@@ -183,14 +181,14 @@ fn test_ownership_ratio() {
         let total_tokens_after =
             total_balance + total_stake + total_delegate_stake + total_delegate_balance;
         let total_new_tokens = total_tokens_after - total_tokens_before;
-        println!("total_tokens_after: {:?}", total_tokens_before);
-        println!("total_new_tokens: {:?}", total_new_tokens);
+        info!("total_tokens_after: {total_tokens_before:?}");
+        info!("total_new_tokens: {total_new_tokens:?}");
         assert_eq!(total_new_tokens, total_emissions);
 
         let stake_from_vector = SubspaceModule::get_stake_from_vector(netuid, &voter_key);
         let _stake: u64 = SubspaceModule::get_stake(netuid, &voter_key);
         let _sumed_stake: u64 = stake_from_vector.iter().fold(0, |acc, (_a, x)| acc + x);
         let _total_stake: u64 = SubspaceModule::get_total_subnet_stake(netuid);
-        println!("stake_from_vector: {:?}", stake_from_vector);
+        info!("stake_from_vector: {stake_from_vector:?}");
     });
 }

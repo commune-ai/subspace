@@ -195,7 +195,7 @@ pub fn generate_config(network: String) -> Result<ChainSpec, String> {
                     authority_keys_from_seed("Alice"),
                     authority_keys_from_seed("Bob"),
                 ],
-                // Sudo account
+                // Sudo account, this is multisig of 5
                 Ss58Codec::from_ss58check("5FXymAnjbb7p57pNyfdLb6YCdzm73ZhVq6oFF1AdCEPEg8Uw")
                     .unwrap(),
                 // Pre-funded a

@@ -67,7 +67,27 @@ impl<T: Config> Pallet<T> {
         Ok(())
     }
 
-    pub fn check_subnet_params(params: SubnetParams<T>) -> DispatchResult {
+    pub fn subnet_params(netuid: u16) -> SubnetParams<T> {
+        SubnetParams {
+            immunity_period: ImmunityPeriod::<T>::get(netuid),
+            min_allowed_weights: MinAllowedWeights::<T>::get(netuid),
+            max_allowed_weights: MaxAllowedWeights::<T>::get(netuid),
+            max_allowed_uids: MaxAllowedUids::<T>::get(netuid),
+            max_stake: MaxStake::<T>::get(netuid),
+            max_weight_age: MaxWeightAge::<T>::get(netuid),
+            min_stake: MinStake::<T>::get(netuid),
+            tempo: Tempo::<T>::get(netuid),
+            name: <Vec<u8>>::new(),
+            vote_threshold: VoteThresholdSubnet::<T>::get(netuid),
+            vote_mode: VoteModeSubnet::<T>::get(netuid),
+            trust_ratio: TrustRatio::<T>::get(netuid),
+            founder_share: FounderShare::<T>::get(netuid),
+            incentive_ratio: IncentiveRatio::<T>::get(netuid),
+            founder: Founder::<T>::get(netuid),
+        }
+    }
+
+    pub fn check_subnet_params(params: &SubnetParams<T>) -> DispatchResult {
         // checks if params are valid
 
         let global_params = Self::global_params();
@@ -114,6 +134,29 @@ impl<T: Config> Pallet<T> {
             params.vote_mode.clone() == AUTHORITY_MODE || params.vote_mode.clone() == STAKE_MODE,
             Error::<T>::InvalidVoteMode
         );
+
+        ensure!(
+            params.immunity_period > 0,
+            Error::<T>::InvalidImmunityPeriod
+        );
+
+        ensure!(
+            params.max_allowed_uids > 0,
+            Error::<T>::InvalidMaxAllowedUids
+        );
+
+        ensure!(
+            params.vote_threshold <= 100,
+            Error::<T>::InvalidVoteThreshold
+        );
+
+        ensure!(params.founder_share <= 100, Error::<T>::InvalidFounderShare);
+
+        ensure!(
+            params.incentive_ratio <= 100,
+            Error::<T>::InvalidIncentiveRatio
+        );
+
         Ok(())
     }
 
@@ -138,8 +181,9 @@ impl<T: Config> Pallet<T> {
     }
 
     pub fn set_subnet_params(netuid: u16, params: SubnetParams<T>) {
-        // TEMPO, IMMUNITY_PERIOD, MIN_ALLOWED_WEIGHTS, MAX_ALLOWED_WEIGHTS, MAX_ALLOWED_UIDS,
-        // MAX_IMMUNITY_RATIO
+        // Check if the params are valid
+        Self::check_subnet_params(&params).expect("subnet params are invalid");
+
         Self::set_founder(netuid, params.founder);
         Self::set_founder_share(netuid, params.founder_share);
         Self::set_tempo(netuid, params.tempo);
@@ -256,9 +300,9 @@ impl<T: Config> Pallet<T> {
     }
 
     // TODO: see if we can optimize this further
-    pub fn does_module_name_exist(netuid: u16, name: Vec<u8>) -> bool {
+    pub fn does_module_name_exist(netuid: u16, name: &[u8]) -> bool {
         <Name<T> as IterableStorageDoubleMap<u16, u16, Vec<u8>>>::iter_prefix(netuid)
-            .any(|(_uid, _name)| _name == name)
+            .any(|(_, existing)| existing == name)
     }
 
     pub fn is_subnet_founder(netuid: u16, key: &T::AccountId) -> bool {
@@ -344,7 +388,6 @@ impl<T: Config> Pallet<T> {
     }
 
     // Initializes a new subnetwork under netuid with parameters.
-    //
     pub fn subnet_name_exists(name: Vec<u8>) -> bool {
         for (_netuid, _name) in <SubnetNames<T> as IterableStorageMap<u16, Vec<u8>>>::iter() {
             if _name == name {
@@ -576,7 +619,7 @@ impl<T: Config> Pallet<T> {
     // ========================
     // ==== Global Getters ====
     // ========================
-    pub fn get_current_block_as_u64() -> u64 {
+    pub fn get_current_block_number() -> u64 {
         TryInto::try_into(<frame_system::Pallet<T>>::block_number())
             .ok()
             .expect("blockchain will not exceed 2^64 blocks; QED.")
@@ -597,44 +640,25 @@ impl<T: Config> Pallet<T> {
         let uid = Self::get_uid_for_key(netuid, key);
         Self::get_emission_for_uid(netuid, uid)
     }
+
     pub fn get_emission_for_uid(netuid: u16, uid: u16) -> u64 {
-        let vec = Emission::<T>::get(netuid);
-        if (uid as usize) < vec.len() {
-            vec[uid as usize]
-        } else {
-            0
-        }
+        Emission::<T>::get(netuid).get(uid as usize).copied().unwrap_or_default()
     }
     pub fn get_incentive_for_uid(netuid: u16, uid: u16) -> u16 {
-        let vec = Incentive::<T>::get(netuid);
-        if (uid as usize) < vec.len() {
-            vec[uid as usize]
-        } else {
-            0
-        }
+        Incentive::<T>::get(netuid).get(uid as usize).copied().unwrap_or_default()
     }
     pub fn get_dividends_for_uid(netuid: u16, uid: u16) -> u16 {
-        let vec = Dividends::<T>::get(netuid);
-        if (uid as usize) < vec.len() {
-            vec[uid as usize]
-        } else {
-            0
-        }
+        Dividends::<T>::get(netuid).get(uid as usize).copied().unwrap_or_default()
     }
     pub fn get_last_update_for_uid(netuid: u16, uid: u16) -> u64 {
-        let vec = LastUpdate::<T>::get(netuid);
-        if (uid as usize) < vec.len() {
-            vec[uid as usize]
-        } else {
-            0
-        }
+        LastUpdate::<T>::get(netuid).get(uid as usize).copied().unwrap_or_default()
     }
 
     pub fn get_global_max_allowed_subnets() -> u16 {
         MaxAllowedSubnets::<T>::get()
     }
     pub fn set_global_max_allowed_subnets(max_allowed_subnets: u16) {
-        MaxAllowedSubnets::<T>::set(max_allowed_subnets)
+        MaxAllowedSubnets::<T>::put(max_allowed_subnets)
     }
     // ============================
     // ==== Subnetwork Getters ====
@@ -791,16 +815,16 @@ impl<T: Config> Pallet<T> {
         true
     }
 
+    #[cfg(debug_assertions)]
+    pub fn get_trust(netuid: u16) -> Vec<u16> {
+        Trust::<T>::get(netuid)
+    }
+
     pub fn get_emissions(netuid: u16) -> Vec<u64> {
         Emission::<T>::get(netuid)
     }
     pub fn get_incentives(netuid: u16) -> Vec<u16> {
         Incentive::<T>::get(netuid)
-    }
-
-    #[cfg(debug_assertions)]
-    pub fn get_trust(netuid: u16) -> Vec<u16> {
-        Trust::<T>::get(netuid)
     }
 
     pub fn get_dividends(netuid: u16) -> Vec<u16> {

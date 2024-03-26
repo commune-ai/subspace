@@ -18,86 +18,103 @@ pub struct ModuleStats<T: Config> {
     pub weights: Vec<(u16, u16)>, // Vec of (uid, weight)
 }
 
-#[derive(Decode, Encode, PartialEq, Eq, Clone, Debug)]
-pub struct ModuleInfo<T: Config> {
-    params: ModuleParams<T>,
-    stats: ModuleStats<T>,
+#[derive(Debug)]
+pub struct ModuleChangeset {
+    pub name: Option<Vec<u8>>,
+    pub address: Option<Vec<u8>>,
+    pub delegation_fee: Option<Percent>,
+}
+
+impl ModuleChangeset {
+    #[must_use]
+    pub fn new(name: Vec<u8>, address: Vec<u8>) -> Self {
+        Self {
+            name: Some(name),
+            address: Some(address),
+            delegation_fee: None,
+        }
+    }
+
+    #[must_use]
+    pub fn update<T: Config>(
+        params: &ModuleParams<T>,
+        name: Vec<u8>,
+        address: Vec<u8>,
+        delegation_fee: Option<Percent>,
+    ) -> Self {
+        Self {
+            name: (name != params.name).then_some(name),
+            address: (address != params.address).then_some(address),
+            delegation_fee,
+        }
+    }
+
+    /// Checks whether the module params are valid. Name and address must be non-empty and below the
+    /// max name length allowed.
+    pub fn apply<T: Config>(
+        self,
+        netuid: u16,
+        key: T::AccountId,
+        uid: u16,
+    ) -> Result<(), sp_runtime::DispatchError> {
+        let max = MaxNameLength::<T>::get() as usize;
+
+        if let Some(name) = self.name {
+            ensure!(!name.is_empty(), Error::<T>::InvalidModuleName);
+            ensure!(name.len() <= max, Error::<T>::ModuleNameTooLong);
+            core::str::from_utf8(&name).map_err(|_| Error::<T>::InvalidModuleName)?;
+            ensure!(
+                !Pallet::<T>::does_module_name_exist(netuid, &name),
+                Error::<T>::ModuleNameAlreadyExists
+            );
+
+            Name::<T>::insert(netuid, uid, name);
+        }
+
+        if let Some(addr) = self.address {
+            ensure!(!addr.is_empty(), Error::<T>::InvalidModuleAddress);
+            ensure!(addr.len() <= max, Error::<T>::ModuleAddressTooLong);
+            core::str::from_utf8(&addr).map_err(|_| Error::<T>::InvalidModuleAddress)?;
+
+            Address::<T>::insert(netuid, uid, addr);
+        }
+
+        if let Some(fee) = self.delegation_fee {
+            let floor = Pallet::<T>::get_floor_delegation_fee();
+            ensure!(fee >= floor, Error::<T>::InvalidMinDelegationFee);
+
+            DelegationFee::<T>::insert(netuid, key, fee);
+        }
+
+        Ok(())
+    }
 }
 
 impl<T: Config> Pallet<T> {
     pub fn do_update_module(
         origin: T::RuntimeOrigin,
         netuid: u16,
-        params: ModuleParams<T>,
+        changeset: ModuleChangeset,
     ) -> DispatchResult {
-        // --- 1. We check the callers (key) signature.
+        // 1. We check the callers (key) signature.
         let key = ensure_signed(origin)?;
         let uid: u16 = Self::get_uid_for_key(netuid, &key);
-        Self::check_module_params(netuid, &params)?;
-        Self::set_module_params(netuid, uid, params);
-        // --- 8. Return is successful dispatch.
-        Ok(())
-    }
 
-    /// Checks whether the module params are valid. Name and address must be non-empty and below the
-    /// max name length allowed.
-    pub fn check_module_params(_netuid: u16, params: &ModuleParams<T>) -> DispatchResult {
-        let max_name_length = MaxNameLength::<T>::get() as usize;
-
-        assert!(!params.name.is_empty());
-        ensure!(
-            params.name.len() <= max_name_length,
-            Error::<T>::ModuleNameTooLong
-        );
-        assert!(!params.address.is_empty());
-        ensure!(
-            params.address.len() <= max_name_length,
-            Error::<T>::ModuleAddressTooLong
-        );
+        // 2. Apply the changeset
+        changeset.apply::<T>(netuid, key, uid)?;
 
         Ok(())
     }
 
-    pub fn module_params(netuid: u16, uid: u16) -> ModuleParams<T> {
+    pub fn module_params(netuid: u16, key: &T::AccountId) -> ModuleParams<T> {
+        let uid = Uids::<T>::try_get(netuid, key).expect("module key does not exist");
+
         ModuleParams {
-            name: Self::get_module_name(netuid, uid),
-            address: Self::get_module_address(netuid, uid),
-            delegation_fee: Self::get_module_delegation_fee(netuid, uid),
-            controller: Self::get_key_for_uid(netuid, uid),
+            name: Name::<T>::get(netuid, uid),
+            address: Address::<T>::get(netuid, uid),
+            delegation_fee: DelegationFee::<T>::get(netuid, key),
+            controller: key.clone(),
         }
-    }
-
-    pub fn set_module_params(netuid: u16, uid: u16, module_params: ModuleParams<T>) {
-        Self::set_module_name(netuid, uid, module_params.name);
-        Self::set_module_address(netuid, uid, module_params.address);
-        Self::set_module_delegation_fee(netuid, uid, module_params.delegation_fee);
-    }
-
-    pub fn get_module_address(netuid: u16, uid: u16) -> Vec<u8> {
-        Address::<T>::get(netuid, uid)
-    }
-
-    pub fn set_module_address(netuid: u16, uid: u16, address: Vec<u8>) {
-        Address::<T>::insert(netuid, uid, address);
-    }
-
-    pub fn get_module_delegation_fee(netuid: u16, uid: u16) -> Percent {
-        let key = Self::get_key_for_uid(netuid, uid);
-        let delegation_fee: Percent = DelegationFee::<T>::get(netuid, key);
-        delegation_fee
-    }
-
-    pub fn set_module_delegation_fee(netuid: u16, uid: u16, delegation_fee: Percent) {
-        let key = Self::get_key_for_uid(netuid, uid);
-        DelegationFee::<T>::insert(netuid, key, delegation_fee);
-    }
-
-    pub fn get_module_name(netuid: u16, uid: u16) -> Vec<u8> {
-        Name::<T>::get(netuid, uid)
-    }
-
-    pub fn set_module_name(netuid: u16, uid: u16, name: Vec<u8>) {
-        Name::<T>::insert(netuid, uid, name.clone());
     }
 
     // Replace the module under this uid.
@@ -120,9 +137,9 @@ impl<T: Config> Pallet<T> {
         );
 
         // HANDLE THE KEY AND UID ASSOCIATIONS
-        Uids::<T>::insert(netuid, replace_key.clone(), uid); // Remove old key - uid association.
-        Keys::<T>::insert(netuid, uid, replace_key.clone()); // Make key - uid association.
-        Uids::<T>::remove(netuid, uid_key.clone()); // Remove old key - uid association.
+        Uids::<T>::insert(netuid, &replace_key, uid); // Remove old key - uid association.
+        Keys::<T>::insert(netuid, uid, &replace_key); // Make key - uid association.
+        Uids::<T>::remove(netuid, &uid_key); // Remove old key - uid association.
         Keys::<T>::remove(netuid, replace_uid); // Remove key - uid association.
 
         // pop frm incentive vector and push to new key
@@ -130,10 +147,8 @@ impl<T: Config> Pallet<T> {
         let mut dividends: Vec<u16> = Dividends::<T>::get(netuid);
         let mut last_update: Vec<u64> = LastUpdate::<T>::get(netuid);
         let mut emission: Vec<u64> = Emission::<T>::get(netuid);
-        let _delegation_fee: Percent = DelegationFee::<T>::get(netuid, uid_key.clone());
 
         // swap consensus vectors
-
         incentive[uid as usize] = incentive[replace_uid as usize];
         dividends[uid as usize] = dividends[replace_uid as usize];
         emission[uid as usize] = emission[replace_uid as usize];
@@ -174,10 +189,10 @@ impl<T: Config> Pallet<T> {
         // HANDLE THE DELEGATION FEE
         DelegationFee::<T>::insert(
             netuid,
-            replace_key,
-            DelegationFee::<T>::get(netuid, uid_key.clone()),
+            &replace_key,
+            DelegationFee::<T>::get(netuid, &uid_key),
         ); // Make uid - key association.
-        DelegationFee::<T>::remove(netuid, uid_key.clone()); // Make uid - key association.
+        DelegationFee::<T>::remove(netuid, &uid_key); // Make uid - key association.
 
         // 3. Remove the network if it is empty.
         N::<T>::mutate(netuid, |v| *v -= 1); // Decrease the number of modules in the network.
@@ -192,43 +207,42 @@ impl<T: Config> Pallet<T> {
     }
 
     // Appends the uid to the network (without increasing stake).
-    pub fn append_module(netuid: u16, key: &T::AccountId, name: Vec<u8>, address: Vec<u8>) -> u16 {
+    pub fn append_module(
+        netuid: u16,
+        key: &T::AccountId,
+        changeset: ModuleChangeset,
+    ) -> Result<u16, sp_runtime::DispatchError> {
         // 1. Get the next uid. This is always equal to subnetwork_n.
         let uid: u16 = Self::get_subnet_n(netuid);
-        let block_number = Self::get_current_block_as_u64();
-        log::debug!(
-            "append_module( netuid: {:?} | uid: {:?} | new_key: {:?} ) ",
-            netuid,
-            key,
-            uid
-        );
+        let block_number = Self::get_current_block_number();
 
-        // 3. Expand Yuma with new position.
-        Emission::<T>::mutate(netuid, |v| v.push(0));
-        Incentive::<T>::mutate(netuid, |v| v.push(0));
-        Dividends::<T>::mutate(netuid, |v| v.push(0));
-        LastUpdate::<T>::mutate(netuid, |v| v.push(block_number));
+        log::debug!("append_module( netuid: {netuid:?} | uid: {key:?} | new_key: {uid:?})");
 
-        // 4. Insert new account information.
-        Keys::<T>::insert(netuid, uid, key.clone()); // Make key - uid association.
-        Uids::<T>::insert(netuid, key.clone(), uid); // Make uid - key association.
+        // 2. Apply the changeset
+        changeset.apply::<T>(netuid, key.clone(), uid)?;
+
+        // 3. Insert new account information.
+        Keys::<T>::insert(netuid, uid, key); // Make key - uid association.
+        Uids::<T>::insert(netuid, key, uid); // Make uid - key association.
         RegistrationBlock::<T>::insert(netuid, uid, block_number); // Fill block at registration.
-        Name::<T>::insert(netuid, uid, name.clone()); // Fill module namespace.
-        Address::<T>::insert(netuid, uid, address.clone()); // Fill module info.
-        DelegationFee::<T>::insert(
-            netuid,
-            key.clone(),
-            DelegationFee::<T>::get(netuid, key.clone()),
-        ); // Make uid - key association.
 
-        N::<T>::insert(netuid, N::<T>::get(netuid) + 1); // Decrease the number of modules in the network.
-                                                         // increase the stake of the new key
+        N::<T>::mutate(netuid, |n| *n += 1); // Increase the number of modules in the network.
+
+        // 4. Expand with new position.
+        Emission::<T>::append(netuid, 0);
+        Incentive::<T>::append(netuid, 0);
+        Dividends::<T>::append(netuid, 0);
+        LastUpdate::<T>::append(netuid, block_number);
+
+        // increase the stake of the new key
         Self::increase_stake(netuid, key, key, 0);
 
-        uid
+        Ok(uid)
     }
 
-    pub fn get_module_stats(netuid: u16, uid: u16) -> ModuleStats<T> {
+    pub fn get_module_stats(netuid: u16, key: &T::AccountId) -> ModuleStats<T> {
+        let uid = Uids::<T>::try_get(netuid, key).expect("module key does not exist");
+
         let key = Self::get_key_for_uid(netuid, uid);
         let emission = Self::get_emission_for_uid(netuid, uid);
         let incentive = Self::get_incentive_for_uid(netuid, uid);

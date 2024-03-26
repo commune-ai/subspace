@@ -34,7 +34,7 @@ RUN if [ -n "$AWS_ACCESS_KEY_ID" ]; then \
     fi && \
     cargo build -p node-subspace --release --locked
 
-RUN if [ -n "$SCCACHE_BUCKET" ]; then \
+RUN if [ -n "$AWS_ACCESS_KEY_ID" ]; then \
         ./sccache --show-stats; \
     fi
 
