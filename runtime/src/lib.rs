@@ -39,6 +39,7 @@ use subspace_runtime_api::{
     SubnetInfo,
     SubnetParams,
     SubnetState,
+    KeyStakeToInfo,
     KeyInfo,
     ModuleInfo,
     ModuleParams,
@@ -1130,14 +1131,35 @@ impl_runtime_apis! {
         fn get_key_info(key: AccountId) -> KeyInfo {
 			let balance = SubspaceModule::get_balance_u64(&key);
 			let total_stake = SubspaceModule::get_global_stake_to(&key);
-			let mut stake_to: Vec<(String, u64)> = Vec::new();
+			let mut stake_to: Vec<KeyStakeToInfo> = Vec::new();
 
 			for netuid in SubspaceModule::netuids() {
-				let subnet_name_bytes = SubspaceModule::get_subnet_name(netuid);
-				stake_to.push((
-					String::from_utf8(subnet_name_bytes).expect("Name bytes should be valid utf8").into(),
-					SubspaceModule::get_total_subnet_stake(netuid)
-				))
+                let  mut stake_to_module: Vec<(String, u64)> = Vec::new();
+
+                for uid in 0..SubspaceModule::get_subnet_n(netuid) {
+                    let module_key = SubspaceModule::get_key_for_uid(netuid, uid);
+                    let module_name = SubspaceModule::get_module_name(netuid, uid);
+
+                    let stake_amount = SubspaceModule::get_stake_to_module(netuid, &key, &module_key);
+
+                    if stake_amount > 0 {
+                        stake_to_module.push((
+                            String::from_utf8(module_name).expect("Name bytes should be valid utf8").into(),
+                            SubspaceModule::get_stake_to_module(netuid, &key, &module_key),
+                        )) 
+                    }
+                }
+
+                if stake_to_module.len() > 0 {
+                    let subnet_name_bytes = SubspaceModule::get_subnet_name(netuid);
+                    stake_to.push(
+                        KeyStakeToInfo {
+                            netuid,
+                            subnet_name: String::from_utf8(subnet_name_bytes).expect("Name bytes should be valid utf8").into(),
+                            stake_to_module
+                        }
+                    )
+                }
 			}
 
 			KeyInfo {

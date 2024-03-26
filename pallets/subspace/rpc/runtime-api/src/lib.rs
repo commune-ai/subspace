@@ -42,10 +42,17 @@ pub struct ModuleInfo {
 }
 
 #[derive(Decode, Encode, PartialEq, Eq, Clone, Debug, TypeInfo, Serialize, Deserialize)]
+pub struct KeyStakeToInfo {
+	pub netuid: u16,
+	pub subnet_name: String,
+	pub stake_to_module: Vec<(String, u64)>
+}
+
+#[derive(Decode, Encode, PartialEq, Eq, Clone, Debug, TypeInfo, Serialize, Deserialize)]
 pub struct KeyInfo {
 	pub balance: u64,
 	pub total_stake: u64,
-	pub stake_to: Vec<(String, u64)>
+	pub stake_to: Vec<KeyStakeToInfo>
 }
 
 #[derive(Decode, Encode, PartialEq, Eq, Clone, Debug, TypeInfo, Serialize, Deserialize)]
