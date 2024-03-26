@@ -67,26 +67,6 @@ impl<T: Config> Pallet<T> {
         Ok(())
     }
 
-    pub fn subnet_params(netuid: u16) -> SubnetParams<T> {
-        SubnetParams {
-            immunity_period: ImmunityPeriod::<T>::get(netuid),
-            min_allowed_weights: MinAllowedWeights::<T>::get(netuid),
-            max_allowed_weights: MaxAllowedWeights::<T>::get(netuid),
-            max_allowed_uids: MaxAllowedUids::<T>::get(netuid),
-            max_stake: MaxStake::<T>::get(netuid),
-            max_weight_age: MaxWeightAge::<T>::get(netuid),
-            min_stake: MinStake::<T>::get(netuid),
-            tempo: Tempo::<T>::get(netuid),
-            name: <Vec<u8>>::new(),
-            vote_threshold: VoteThresholdSubnet::<T>::get(netuid),
-            vote_mode: VoteModeSubnet::<T>::get(netuid),
-            trust_ratio: TrustRatio::<T>::get(netuid),
-            founder_share: FounderShare::<T>::get(netuid),
-            incentive_ratio: IncentiveRatio::<T>::get(netuid),
-            founder: Founder::<T>::get(netuid),
-        }
-    }
-
     pub fn check_subnet_params(params: &SubnetParams<T>) -> DispatchResult {
         // checks if params are valid
 
@@ -406,7 +386,7 @@ impl<T: Config> Pallet<T> {
     }
 
     pub fn get_subnet_name(netuid: u16) -> Vec<u8> {
-        Self::subnet_params(netuid).name
+        SubnetNames::<T>::get(netuid)
     }
 
     pub fn remove_netuid_stake_strorage(netuid: u16) {

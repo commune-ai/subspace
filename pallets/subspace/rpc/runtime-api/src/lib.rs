@@ -17,19 +17,18 @@ pub type AccountId = <<Signature as Verify>::Signer as IdentifyAccount>::Account
 pub struct ModuleStats {
     pub last_update: u64,
     pub registration_block: u64,
-    pub stake_from: Vec<(AccountId, u64)>, /* map of key to stake on this module/key * (includes
-                                            * delegations) */
+    pub stake_from: Vec<(AccountId, u64)>,
     pub emission: u64,
     pub incentive: u16,
     pub dividends: u16,
-    pub weights: Vec<(u16, u16)>, // Vec of (uid, weight)
+    pub weights: Vec<(u16, u16)>,
 }
 
 #[derive(Decode, Encode, PartialEq, Eq, Clone, Debug, TypeInfo, Serialize, Deserialize)]
 pub struct ModuleParams {
     pub name: String,
     pub address: String,
-    pub delegation_fee: Percent, // delegate_fee
+    pub delegation_fee: Percent,
     pub controller: AccountId,
 }
 
@@ -58,30 +57,27 @@ pub struct KeyInfo {
 pub struct GlobalParams {
     pub burn_rate: u16,
 
-    // max
-    pub max_name_length: u16,             // max length of a network name
-    pub max_allowed_subnets: u16,         // max number of subnets allowed
-    pub max_allowed_modules: u16,         // max number of modules allowed per subnet
-    pub max_registrations_per_block: u16, // max number of registrations per block
-    pub max_allowed_weights: u16,         // max number of weights per module
-    pub max_proposals: u64,               // max number of proposals per block
-    pub max_burn: u64,                    // max burn allowed
+    pub max_name_length: u16,
+    pub max_allowed_subnets: u16,
+    pub max_allowed_modules: u16,
+    pub max_registrations_per_block: u16,
+    pub max_allowed_weights: u16,
+    pub max_proposals: u64,
+    pub max_burn: u64,
 
-    // mins
-    pub min_burn: u64,                 // min burn required
-    pub min_stake: u64,                // min stake required
-    pub floor_delegation_fee: Percent, // min delegation fee
-    pub min_weight_stake: u64,         // min weight stake required
+    pub min_burn: u64,
+    pub min_stake: u64,
+    pub floor_delegation_fee: Percent,
+    pub min_weight_stake: u64,
 
-    // other
-    pub target_registrations_per_interval: u16, // desired number of registrations per interval
-    pub target_registrations_interval: u16,     /* the number of blocks that defines the
-                                                 * registration interval */
-    pub adjustment_alpha: u64, // adjustment alpha
-    pub unit_emission: u64,    // emission per block
-    pub tx_rate_limit: u64,    // tx rate limit
-    pub vote_threshold: u16,   // out of 100
-    pub vote_mode: String,     // out of 100
+    pub target_registrations_per_interval: u16,
+    pub target_registrations_interval: u16,
+
+    pub adjustment_alpha: u64,
+    pub unit_emission: u64,
+    pub tx_rate_limit: u64,
+    pub vote_threshold: u16,
+    pub vote_mode: String,
 }
 
 #[derive(Decode, Encode, PartialEq, Eq, Clone, Debug, TypeInfo, Serialize, Deserialize)]
@@ -99,32 +95,27 @@ pub struct GlobalInfo {
 
 #[derive(Decode, Encode, PartialEq, Eq, Clone, Debug, TypeInfo, Serialize, Deserialize)]
 pub struct SubnetParams {
-    // --- parameters
     pub founder: AccountId,
-    pub founder_share: u16,   // out of 100
-    pub immunity_period: u16, // immunity period
-    pub incentive_ratio: u16, // out of 100
-    pub max_allowed_uids: u16, /* max number of weights allowed to be registered in this
-                               * pub max_allowed_uids: u16, // max number of uids
-                               * allowed to be registered in this subne */
-    pub max_allowed_weights: u16, /* max number of weights allowed to be registered in this
-                                   * pub max_allowed_uids: u16, // max number of uids
-                                   * allowed to be registered in this subnet */
-    pub min_allowed_weights: u16, // min number of weights allowed to be registered in this
-    pub max_stake: u64,           // max stake allowed
-    pub max_weight_age: u64,      // max age of a weight
-    pub min_stake: u64,           // min stake required
+    pub founder_share: u16,
+    pub immunity_period: u16,
+    pub incentive_ratio: u16,
+    pub max_allowed_uids: u16,
+    pub max_allowed_weights: u16,
+    pub min_allowed_weights: u16,
+    pub max_stake: u64,
+    pub max_weight_age: u64,
+    pub min_stake: u64,
     pub name: String,
-    pub tempo: u16, // how many blocks to wait before rewarding models
+    pub tempo: u16,
     pub trust_ratio: u16,
-    pub vote_threshold: u16, // out of 100
+    pub vote_threshold: u16,
     pub vote_mode: String,
 }
 
 #[derive(Decode, Encode, PartialEq, Eq, Clone, Debug, TypeInfo, Serialize, Deserialize)]
 pub struct SubnetState {
     pub emission: u64,
-    pub n_uids: u16, //number of uids
+    pub n_uids: u16,
     pub pending_emission: u64,
 
     pub total_stake: u64,

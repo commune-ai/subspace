@@ -1095,6 +1095,7 @@ impl_runtime_apis! {
         }
 
         fn get_module_info(key: AccountId, netuid: u16) -> ModuleInfo {
+            let uid = SubspaceModule::get_uid_for_key(netuid, &key);
             let stats = SubspaceModule::get_module_stats(netuid, &key);
             let params = SubspaceModule::module_params(netuid, &key);
 
@@ -1126,17 +1127,18 @@ impl_runtime_apis! {
             for netuid in SubspaceModule::netuids() {
                 let  mut stake_to_module: Vec<(String, u64)> = Vec::new();
 
-                for uid in 0..SubspaceModule::get_subnet_n(netuid) {
-                    let module_key = SubspaceModule::get_key_for_uid(netuid, uid);
-                    let module_name = SubspaceModule::get_module_name(netuid, uid);
+                let stake_to_vec = SubspaceModule::get_stake_to_vector(netuid, &key);
 
-                    let stake_amount = SubspaceModule::get_stake_to_module(netuid, &key, &module_key);
+                if !stake_to_vec.is_empty() {
+                    for (module_key, amount) in stake_to_vec.iter() {
+                        let module_name = SubspaceModule::module_params(netuid, module_key).name;
 
-                    if stake_amount > 0 {
-                        stake_to_module.push((
-                            String::from_utf8(module_name).expect("Name bytes should be valid utf8"),
-                            SubspaceModule::get_stake_to_module(netuid, &key, &module_key),
-                        ))
+                        if *amount > 0 {
+                            stake_to_module.push((
+                                String::from_utf8(module_name).expect("Name bytes should be valid utf8"),
+                                *amount,
+                            ))
+                        }
                     }
                 }
 

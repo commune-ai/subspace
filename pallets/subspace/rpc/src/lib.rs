@@ -60,8 +60,7 @@ where
         let api = self.client.runtime_api();
         let at = at.unwrap_or_else(|| self.client.info().best_hash);
 
-        let value = api.get_global_info(at).map_err(runtime_error_into_rpc_err);
-        Ok(value.unwrap())
+        api.get_global_info(at).map_err(runtime_error_into_rpc_err)
     }
 
     fn get_subnet_info(
@@ -72,8 +71,7 @@ where
         let api = self.client.runtime_api();
         let at = at.unwrap_or_else(|| self.client.info().best_hash);
 
-        let value = api.get_subnet_info(at, netuid).map_err(runtime_error_into_rpc_err);
-        Ok(value.unwrap())
+        api.get_subnet_info(at, netuid).map_err(runtime_error_into_rpc_err)
     }
 
     fn get_module_info(
@@ -85,8 +83,7 @@ where
         let api = self.client.runtime_api();
         let at = at.unwrap_or_else(|| self.client.info().best_hash);
 
-        let value = api.get_module_info(at, key, netuid).map_err(runtime_error_into_rpc_err);
-        Ok(value.unwrap())
+        api.get_module_info(at, key, netuid).map_err(runtime_error_into_rpc_err)
     }
 
     fn get_key_info(
@@ -97,8 +94,7 @@ where
         let api = self.client.runtime_api();
         let at = at.unwrap_or_else(|| self.client.info().best_hash);
 
-        let value = api.get_key_info(at, key).map_err(runtime_error_into_rpc_err);
-        Ok(value.unwrap())
+        api.get_key_info(at, key).map_err(runtime_error_into_rpc_err)
     }
 }
 
