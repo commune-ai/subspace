@@ -286,7 +286,7 @@ pub mod pallet {
         pub max_registrations_per_block: u16, // max number of registrations per block
         pub max_allowed_weights: u16,         // max number of weights per module
         pub max_proposals: u64,               // max number of proposals per block
-        pub max_burn: u64,                 // max burn allowed
+        pub max_burn: u64,                    // max burn allowed
 
         // mins
         pub min_burn: u64,                 // min burn required

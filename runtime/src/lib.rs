@@ -33,17 +33,8 @@ use sp_runtime::{
 
 use sp_std::{marker::PhantomData, prelude::*};
 use subspace_runtime_api::{
-    GlobalInfo,
-    GlobalParams,
-    GlobalState,
-    SubnetInfo,
-    SubnetParams,
-    SubnetState,
-    KeyStakeToInfo,
-    KeyInfo,
-    ModuleInfo,
-    ModuleParams,
-    ModuleStats,
+    GlobalInfo, GlobalParams, GlobalState, KeyInfo, KeyStakeToInfo, ModuleInfo, ModuleParams,
+    ModuleStats, SubnetInfo, SubnetParams, SubnetState,
 };
 
 #[cfg(feature = "std")]
@@ -71,10 +62,10 @@ pub use frame_system::Call as SystemCall;
 pub use pallet_balances::Call as BalancesCall;
 pub use pallet_timestamp::Call as TimestampCall;
 use pallet_transaction_payment::{ConstFeeMultiplier, CurrencyAdapter, Multiplier};
+use scale_info::prelude::string::String;
 #[cfg(any(feature = "std", test))]
 pub use sp_runtime::BuildStorage;
 pub use sp_runtime::{Perbill, Permill};
-use scale_info::prelude::string::String;
 
 // Subspace module
 pub use pallet_subspace;
@@ -1129,11 +1120,11 @@ impl_runtime_apis! {
         }
 
         fn get_key_info(key: AccountId) -> KeyInfo {
-			let balance = SubspaceModule::get_balance_u64(&key);
-			let total_stake = SubspaceModule::get_global_stake_to(&key);
-			let mut stake_to: Vec<KeyStakeToInfo> = Vec::new();
+            let balance = SubspaceModule::get_balance_u64(&key);
+            let total_stake = SubspaceModule::get_global_stake_to(&key);
+            let mut stake_to: Vec<KeyStakeToInfo> = Vec::new();
 
-			for netuid in SubspaceModule::netuids() {
+            for netuid in SubspaceModule::netuids() {
                 let  mut stake_to_module: Vec<(String, u64)> = Vec::new();
 
                 for uid in 0..SubspaceModule::get_subnet_n(netuid) {
@@ -1146,7 +1137,7 @@ impl_runtime_apis! {
                         stake_to_module.push((
                             String::from_utf8(module_name).expect("Name bytes should be valid utf8").into(),
                             SubspaceModule::get_stake_to_module(netuid, &key, &module_key),
-                        )) 
+                        ))
                     }
                 }
 
@@ -1160,14 +1151,14 @@ impl_runtime_apis! {
                         }
                     )
                 }
-			}
+           }
 
-			KeyInfo {
-				balance,
-				total_stake,
-				stake_to
-			}
-		}
+            KeyInfo {
+                balance,
+                total_stake,
+                stake_to
+            }
+        }
     }
 
 

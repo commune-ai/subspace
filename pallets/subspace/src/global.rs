@@ -164,7 +164,7 @@ impl<T: Config> Pallet<T> {
     pub fn get_vote_mode_global() -> Vec<u8> {
         VoteModeGlobal::<T>::get()
     }
-    
+
     pub fn get_burn_rate() -> u16 {
         BurnRate::<T>::get().min(100)
     }

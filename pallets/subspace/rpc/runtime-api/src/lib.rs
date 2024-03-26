@@ -1,7 +1,7 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 
 use parity_scale_codec::{Decode, Encode};
-use scale_info::TypeInfo;
+use scale_info::{prelude::string::String, TypeInfo};
 use serde::{Deserialize, Serialize};
 use sp_arithmetic::per_things::Percent;
 use sp_runtime::{
@@ -9,7 +9,6 @@ use sp_runtime::{
     traits::{IdentifyAccount, Verify},
     MultiSignature,
 };
-use scale_info::prelude::string::String;
 
 type Signature = MultiSignature;
 pub type AccountId = <<Signature as Verify>::Signer as IdentifyAccount>::AccountId;
@@ -43,16 +42,16 @@ pub struct ModuleInfo {
 
 #[derive(Decode, Encode, PartialEq, Eq, Clone, Debug, TypeInfo, Serialize, Deserialize)]
 pub struct KeyStakeToInfo {
-	pub netuid: u16,
-	pub subnet_name: String,
-	pub stake_to_module: Vec<(String, u64)>
+    pub netuid: u16,
+    pub subnet_name: String,
+    pub stake_to_module: Vec<(String, u64)>,
 }
 
 #[derive(Decode, Encode, PartialEq, Eq, Clone, Debug, TypeInfo, Serialize, Deserialize)]
 pub struct KeyInfo {
-	pub balance: u64,
-	pub total_stake: u64,
-	pub stake_to: Vec<KeyStakeToInfo>
+    pub balance: u64,
+    pub total_stake: u64,
+    pub stake_to: Vec<KeyStakeToInfo>,
 }
 
 #[derive(Decode, Encode, PartialEq, Eq, Clone, Debug, TypeInfo, Serialize, Deserialize)]
@@ -66,7 +65,7 @@ pub struct GlobalParams {
     pub max_registrations_per_block: u16, // max number of registrations per block
     pub max_allowed_weights: u16,         // max number of weights per module
     pub max_proposals: u64,               // max number of proposals per block
-    pub max_burn: u64,                 // max burn allowed
+    pub max_burn: u64,                    // max burn allowed
 
     // mins
     pub min_burn: u64,                 // min burn required
@@ -77,24 +76,24 @@ pub struct GlobalParams {
     // other
     pub target_registrations_per_interval: u16, // desired number of registrations per interval
     pub target_registrations_interval: u16,     /* the number of blocks that defines the
-                                                    * registration interval */
+                                                 * registration interval */
     pub adjustment_alpha: u64, // adjustment alpha
     pub unit_emission: u64,    // emission per block
     pub tx_rate_limit: u64,    // tx rate limit
     pub vote_threshold: u16,   // out of 100
-    pub vote_mode: String,    // out of 100
+    pub vote_mode: String,     // out of 100
 }
 
 #[derive(Decode, Encode, PartialEq, Eq, Clone, Debug, TypeInfo, Serialize, Deserialize)]
-	pub struct GlobalState {
-		// status
-		pub registrations_per_block: u16,
-		pub total_subnets: u16,
-	}
+pub struct GlobalState {
+    // status
+    pub registrations_per_block: u16,
+    pub total_subnets: u16,
+}
 
 #[derive(Decode, Encode, PartialEq, Eq, Clone, Debug, TypeInfo, Serialize, Deserialize)]
 pub struct GlobalInfo {
-	pub params: GlobalParams,
+    pub params: GlobalParams,
     pub stats: GlobalState,
 }
 
@@ -106,11 +105,11 @@ pub struct SubnetParams {
     pub immunity_period: u16, // immunity period
     pub incentive_ratio: u16, // out of 100
     pub max_allowed_uids: u16, /* max number of weights allowed to be registered in this
-                                * pub max_allowed_uids: u16, // max number of uids
-                                * allowed to be registered in this subne */
+                               * pub max_allowed_uids: u16, // max number of uids
+                               * allowed to be registered in this subne */
     pub max_allowed_weights: u16, /* max number of weights allowed to be registered in this
-                                    * pub max_allowed_uids: u16, // max number of uids
-                                    * allowed to be registered in this subnet */
+                                   * pub max_allowed_uids: u16, // max number of uids
+                                   * allowed to be registered in this subnet */
     pub min_allowed_weights: u16, // min number of weights allowed to be registered in this
     pub max_stake: u64,           // max stake allowed
     pub max_weight_age: u64,      // max age of a weight
@@ -133,7 +132,7 @@ pub struct SubnetState {
 
 #[derive(Decode, Encode, PartialEq, Eq, Clone, Debug, TypeInfo, Serialize, Deserialize)]
 pub struct SubnetInfo {
-	pub params: SubnetParams,
+    pub params: SubnetParams,
     pub stats: SubnetState,
 }
 
@@ -143,9 +142,9 @@ sp_api::decl_runtime_apis! {
         fn get_global_info() -> GlobalInfo;
 
         fn get_subnet_info(netuid: u16) -> SubnetInfo;
-        
+
         fn get_module_info(key: AccountId, netuid: u16) -> ModuleInfo;
-        
+
         fn get_key_info(key: AccountId) -> KeyInfo;
     }
 }

@@ -363,8 +363,8 @@ impl<T: Config> Pallet<T> {
     }
 
     pub fn get_subnet_name(netuid: u16) -> Vec<u8> {
-		Self::subnet_params(netuid).name
-	}
+        Self::subnet_params(netuid).name
+    }
 
     pub fn remove_netuid_stake_strorage(netuid: u16) {
         // --- 1. Erase network stake, and remove network from list of networks.
