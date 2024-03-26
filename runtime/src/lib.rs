@@ -1125,22 +1125,17 @@ impl_runtime_apis! {
             let mut stake_to: Vec<KeyStakeToInfo> = Vec::new();
 
             for netuid in SubspaceModule::netuids() {
-                let  mut stake_to_module: Vec<(String, u64)> = Vec::new();
-
                 let stake_to_vec = SubspaceModule::get_stake_to_vector(netuid, &key);
 
-                if !stake_to_vec.is_empty() {
-                    for (module_key, amount) in stake_to_vec.iter() {
-                        let module_name = SubspaceModule::module_params(netuid, module_key).name;
-
-                        if *amount > 0 {
-                            stake_to_module.push((
-                                String::from_utf8(module_name).expect("Name bytes should be valid utf8"),
-                                *amount,
-                            ))
-                        }
-                    }
-                }
+                let stake_to_module: Vec<(String, u64)> = stake_to_vec
+                    .into_iter()
+                    .filter(|(_, a)| *a > 0)
+                    .map(|(module_key, amount)| {
+                        let name = SubspaceModule::get_module_name(netuid, &module_key);
+                        let name = String::from_utf8(name).expect("Name must be valid utf8");
+                        (name, amount)
+                    })
+                    .collect();
 
                 if !stake_to_module.is_empty() {
                     let subnet_name_bytes = SubspaceModule::get_subnet_name(netuid);

@@ -117,6 +117,12 @@ impl<T: Config> Pallet<T> {
         }
     }
 
+    pub fn get_module_name(netuid: u16, key: &T::AccountId) -> Vec<u8> {
+        let uid = Uids::<T>::try_get(netuid, key).expect("module key does not exist");
+        
+        Name::<T>::get(netuid, uid)
+    }
+
     // Replace the module under this uid.
     pub fn remove_module(netuid: u16, uid: u16) {
         // 1. Get the old key under this position.
