@@ -119,7 +119,7 @@ impl<T: Config> Pallet<T> {
 
     pub fn get_module_name(netuid: u16, key: &T::AccountId) -> Vec<u8> {
         let uid = Uids::<T>::try_get(netuid, key).expect("module key does not exist");
-        
+
         Name::<T>::get(netuid, uid)
     }
 
