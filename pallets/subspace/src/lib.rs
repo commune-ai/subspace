@@ -161,7 +161,7 @@ pub mod pallet {
 
     #[pallet::type_value]
     pub fn DefaultMaxNameLength<T: Config>() -> u16 {
-        32
+        96
     }
     #[pallet::storage] // --- ITEM ( max_name_length )
     pub(super) type MaxNameLength<T: Config> =
