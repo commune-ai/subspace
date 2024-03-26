@@ -1058,7 +1058,7 @@ impl_runtime_apis! {
                     unit_emission: params.unit_emission,
                     tx_rate_limit: params.tx_rate_limit,
                     vote_threshold: params.vote_threshold,
-                    vote_mode: String::from_utf8(params.vote_mode).expect("Name bytes should be valid utf8").into()
+                    vote_mode: String::from_utf8(params.vote_mode).expect("Name bytes should be valid utf8")
                 }
             }
         }
@@ -1085,11 +1085,11 @@ impl_runtime_apis! {
                     max_stake: params.max_stake,
                     max_weight_age: params.max_weight_age,
                     min_stake: params.min_stake,
-                    name: String::from_utf8(params.name).expect("Name bytes should be valid utf8").into(),
+                    name: String::from_utf8(params.name).expect("Name bytes should be valid utf8"),
                     tempo: params.tempo,
                     trust_ratio: params.trust_ratio,
                     vote_threshold: params.vote_threshold,
-                    vote_mode: String::from_utf8(params.vote_mode).expect("Name bytes should be valid utf8").into(),
+                    vote_mode: String::from_utf8(params.vote_mode).expect("Name bytes should be valid utf8"),
                 }
             }
         }
@@ -1111,8 +1111,8 @@ impl_runtime_apis! {
                     weights: stats.weights,
                 },
                 params: ModuleParams {
-                    name: String::from_utf8(params.name).expect("Name bytes should be valid utf8").into(),
-                    address: String::from_utf8(params.address).expect("Name bytes should be valid utf8").into(),
+                    name: String::from_utf8(params.name).expect("Name bytes should be valid utf8"),
+                    address: String::from_utf8(params.address).expect("Name bytes should be valid utf8"),
                     delegation_fee: params.delegation_fee,
                     controller: params.controller,
                 }
@@ -1135,18 +1135,18 @@ impl_runtime_apis! {
 
                     if stake_amount > 0 {
                         stake_to_module.push((
-                            String::from_utf8(module_name).expect("Name bytes should be valid utf8").into(),
+                            String::from_utf8(module_name).expect("Name bytes should be valid utf8"),
                             SubspaceModule::get_stake_to_module(netuid, &key, &module_key),
                         ))
                     }
                 }
 
-                if stake_to_module.len() > 0 {
+                if !stake_to_module.is_empty() {
                     let subnet_name_bytes = SubspaceModule::get_subnet_name(netuid);
                     stake_to.push(
                         KeyStakeToInfo {
                             netuid,
-                            subnet_name: String::from_utf8(subnet_name_bytes).expect("Name bytes should be valid utf8").into(),
+                            subnet_name: String::from_utf8(subnet_name_bytes).expect("Name bytes should be valid utf8"),
                             stake_to_module
                         }
                     )
