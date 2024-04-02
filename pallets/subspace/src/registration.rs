@@ -244,7 +244,7 @@ impl<T: Config> Pallet<T> {
             None
         };
 
-        Ok(Self::add_subnet(changeset, target_subnet))
+        Self::add_subnet(changeset, target_subnet)
     }
 
     pub fn check_module_limits(netuid: u16) {

@@ -6,6 +6,7 @@ use frame_support::{
     pallet_prelude::DispatchResult, storage::IterableStorageMap, IterableStorageDoubleMap,
 };
 
+use sp_runtime::DispatchError;
 use sp_std::vec::Vec;
 use substrate_fixed::types::I64F64;
 extern crate alloc;
@@ -418,13 +419,17 @@ impl<T: Config> Pallet<T> {
         Self::calculate_network_emission(netuid)
     }
 
-    pub fn add_subnet(changeset: SubnetChangeset<T>, netuid: Option<u16>) -> u16 {
+    pub fn add_subnet(
+        changeset: SubnetChangeset<T>,
+        netuid: Option<u16>,
+    ) -> Result<u16, DispatchError> {
         // --- 1. Ensure that the network name does not already exist.
         let netuid = netuid.unwrap_or_else(TotalSubnets::<T>::get);
 
         // Extract the necessary fields from changeset
-        let name = changeset.name.clone().expect("Name should be present in the changeset");
-        changeset.apply(netuid).unwrap();
+        let name = changeset.name.clone().ok_or(Error::<T>::MissingSubnetName)?;
+
+        changeset.apply(netuid)?;
         TotalSubnets::<T>::mutate(|n| *n += 1);
         N::<T>::insert(netuid, 0);
 
@@ -436,7 +441,7 @@ impl<T: Config> Pallet<T> {
         // --- 6. Emit the new network event.
         Self::deposit_event(Event::NetworkAdded(netuid, name));
 
-        netuid
+        Ok(netuid)
     }
     // Initializes a new subnetwork under netuid with parameters.
     pub fn subnet_name_exists(name: Vec<u8>) -> bool {
