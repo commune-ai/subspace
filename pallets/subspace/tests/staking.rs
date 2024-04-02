@@ -17,6 +17,8 @@ fn test_stake() {
         let amount_staked_vector: Vec<u64> = netuids.iter().map(|_| to_nano(10)).collect();
         let mut total_stake: u64 = 0;
         let mut subnet_stake: u64 = 0;
+        // make sure that the results won´t get affected by burn
+        SubspaceModule::set_min_burn(0);
 
         for netuid in netuids {
             info!("NETUID: {}", netuid);
@@ -91,6 +93,8 @@ fn test_multiple_stake() {
         let _uid: u16 = 0;
         let num_staked_modules: u16 = 10;
         let total_stake: u64 = stake_amount * num_staked_modules as u64;
+        // make sure that the results won´t get affected by burn
+        SubspaceModule::set_min_burn(0);
 
         register_n_modules(netuid, n, 0);
         let controler_key = U256::from(n + 1);
@@ -164,6 +168,8 @@ fn test_transfer_stake() {
         let _uid: u16 = 0;
         let num_staked_modules: u16 = 10;
         let _total_stake: u64 = stake_amount * num_staked_modules as u64;
+        // make sure that the results won´t get affected by burn
+        SubspaceModule::set_min_burn(0);
 
         register_n_modules(netuid, n, stake_amount);
 
@@ -205,6 +211,8 @@ fn test_delegate_stake() {
         let amount_staked_vector: Vec<u64> = netuids.iter().map(|_i| to_nano(10)).collect();
         let mut total_stake: u64 = 0;
         let mut subnet_stake: u64 = 0;
+        // make sure that the results won´t get affected by burn
+        SubspaceModule::set_min_burn(0);
 
         for i in netuids.iter() {
             let netuid = *i;
@@ -306,6 +314,9 @@ fn test_ownership_ratio() {
         let netuid: u16 = 0;
         let num_modules: u16 = 10;
         let stake_per_module: u64 = 1_000_000_000;
+        // make sure that the results won´t get affected by burn
+        SubspaceModule::set_min_burn(0);
+
         register_n_modules(netuid, num_modules, 0);
 
         let keys = SubspaceModule::get_keys(netuid);
@@ -369,6 +380,8 @@ fn test_min_stake() {
         let netuid: u16 = 0;
         let num_modules: u16 = 10;
         let min_stake: u64 = 10_000_000_000;
+        // make sure that the results won´t get affected by burn
+        SubspaceModule::set_min_burn(0);
 
         register_n_modules(netuid, num_modules, min_stake);
         let keys = SubspaceModule::get_keys(netuid);

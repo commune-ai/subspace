@@ -10,15 +10,81 @@ use sp_std::vec::Vec;
 use substrate_fixed::types::I64F64;
 extern crate alloc;
 
+#[derive(Debug)]
+pub struct SubnetChangeset<T: Config> {
+    pub name: Option<Vec<u8>>,
+    pub founder_key: Option<T::AccountId>,
+    pub params: Option<SubnetParams<T>>,
+}
+
+impl<T: Config> SubnetChangeset<T> {
+    #[must_use]
+    pub fn new(name: &[u8], founder_key: &T::AccountId, params: SubnetParams<T>) -> Self {
+        Self {
+            name: Some(name.to_vec()),
+            founder_key: Some(founder_key.clone()),
+            params: Some(params),
+        }
+    }
+
+    #[must_use]
+    pub fn update(
+        name: &[u8],
+        founder_key: &T::AccountId,
+        netuid: u16,
+        params: SubnetParams<T>,
+    ) -> Self {
+        let old_params = Pallet::<T>::subnet_params(netuid);
+        Self {
+            name: (name != old_params.name).then_some(name.to_vec()),
+            founder_key: (*founder_key != old_params.founder).then_some(founder_key.clone()),
+            params: (!params.eq(&old_params)).then_some(params),
+        }
+    }
+
+    pub fn apply(self, netuid: u16) -> Result<(), sp_runtime::DispatchError> {
+        // check for name validity
+        if let Some(name) = self.name {
+            ensure!(
+                !Pallet::<T>::does_subnet_name_exist(&name),
+                Error::<T>::SubnetNameAlreadyExists
+            );
+
+            let min = MinNameLength::<T>::get() as usize;
+            let max = MaxNameLength::<T>::get() as usize;
+            ensure!(!name.is_empty(), Error::<T>::InvalidSubnetName);
+            ensure!(name.len() >= min, Error::<T>::SubnetNameTooShort);
+            ensure!(name.len() <= max, Error::<T>::SubnetNameTooLong);
+            core::str::from_utf8(&name).map_err(|_| Error::<T>::InvalidSubnetName)?;
+            SubnetNames::<T>::insert(netuid, name);
+        }
+
+        if let Some(founder_key) = self.founder_key {
+            Founder::<T>::insert(netuid, founder_key);
+        }
+
+        if let Some(params) = self.params {
+            ensure!(
+                Pallet::<T>::get_vote_mode_subnet(netuid) == AUTHORITY_MODE,
+                Error::<T>::NotAuthorityMode
+            );
+
+            Pallet::<T>::set_subnet_params(netuid, params);
+        }
+
+        Pallet::<T>::deposit_event(Event::SubnetParamsUpdated(netuid));
+        Ok(())
+    }
+}
+
 impl<T: Config> Pallet<T> {
     #[cfg(debug_assertions)]
     pub fn do_remove_subnet(origin: T::RuntimeOrigin, netuid: u16) -> DispatchResult {
         let key = ensure_signed(origin)?;
-        // --- 1. Ensure the network name does not already exist.
 
         ensure!(
             Self::if_subnet_netuid_exists(netuid),
-            Error::<T>::SubnetNameAlreadyExists
+            Error::<T>::NetuidDoesNotExist
         );
         ensure!(
             Self::is_subnet_founder(netuid, &key),
@@ -33,35 +99,21 @@ impl<T: Config> Pallet<T> {
     pub fn do_update_subnet(
         origin: T::RuntimeOrigin,
         netuid: u16,
-        params: SubnetParams<T>,
+        changeset: SubnetChangeset<T>,
     ) -> DispatchResult {
         let key = ensure_signed(origin)?;
-        // only the founder can update the network on authority mode
-
-        ensure!(
-            Self::get_vote_mode_subnet(netuid) == AUTHORITY_MODE,
-            Error::<T>::NotAuthorityMode
-        );
-        ensure!(
-            Self::if_subnet_netuid_exists(netuid),
-            Error::<T>::SubnetNameAlreadyExists
-        );
-        ensure!(
-            Self::is_subnet_founder(netuid, &key),
-            Error::<T>::NotFounder
-        );
-        ensure!(
-            Self::if_subnet_netuid_exists(netuid),
-            Error::<T>::SubnetNameAlreadyExists
-        );
         ensure!(
             Self::is_subnet_founder(netuid, &key),
             Error::<T>::NotFounder
         );
 
-        Self::set_subnet_params(netuid, params);
+        ensure!(
+            Self::if_subnet_netuid_exists(netuid),
+            Error::<T>::NetuidDoesNotExist
+        );
 
-        Self::deposit_event(Event::SubnetParamsUpdated(netuid));
+        // apply the changeset
+        changeset.apply(netuid)?;
 
         // --- 16. Ok and done.
         Ok(())
@@ -185,6 +237,8 @@ impl<T: Config> Pallet<T> {
         N::<T>::contains_key(netuid)
     }
 
+    // stake
+
     #[cfg(debug_assertions)]
     pub fn get_min_stake(netuid: u16) -> u64 {
         MinStake::<T>::get(netuid)
@@ -196,6 +250,23 @@ impl<T: Config> Pallet<T> {
 
     pub fn set_max_stake(netuid: u16, stake: u64) {
         MaxStake::<T>::insert(netuid, stake)
+    }
+
+    // registrations
+    pub fn get_registrations_this_interval(netuid: u16) -> u16 {
+        RegistrationsThisInterval::<T>::get(netuid)
+    }
+
+    pub fn set_registrations_this_interval(netuid: u16, registrations: u16) {
+        RegistrationsThisInterval::<T>::insert(netuid, registrations);
+    }
+
+    pub fn get_burn(netuid: u16) -> u64 {
+        Burn::<T>::get(netuid)
+    }
+
+    pub fn set_burn(netuid: u16, burn: u64) {
+        Burn::<T>::insert(netuid, burn);
     }
 
     // get the least staked network
@@ -279,12 +350,6 @@ impl<T: Config> Pallet<T> {
         }
     }
 
-    // TODO: see if we can optimize this further
-    pub fn does_module_name_exist(netuid: u16, name: &[u8]) -> bool {
-        <Name<T> as IterableStorageDoubleMap<u16, u16, Vec<u8>>>::iter_prefix(netuid)
-            .any(|(_, existing)| existing == name)
-    }
-
     pub fn is_subnet_founder(netuid: u16, key: &T::AccountId) -> bool {
         Founder::<T>::get(netuid) == *key
     }
@@ -353,20 +418,26 @@ impl<T: Config> Pallet<T> {
         Self::calculate_network_emission(netuid)
     }
 
-    pub fn add_subnet(params: SubnetParams<T>, netuid: Option<u16>) -> u16 {
-        // --- 1. Enfnsure that the network name does not already exist.
+    pub fn add_subnet(changeset: SubnetChangeset<T>, netuid: Option<u16>) -> u16 {
+        // --- 1. Ensure that the network name does not already exist.
         let netuid = netuid.unwrap_or_else(TotalSubnets::<T>::get);
 
-        Self::set_subnet_params(netuid, params.clone());
+        // Extract the necessary fields from changeset
+        let name = changeset.name.clone().expect("Name should be present in the changeset");
+        changeset.apply(netuid).unwrap();
         TotalSubnets::<T>::mutate(|n| *n += 1);
         N::<T>::insert(netuid, 0);
 
+        // Insert the minimum burn to the netuid,
+        // to prevent free registrations the first target registration interval.
+        let min_burn = Self::get_min_burn();
+        Burn::<T>::insert(netuid, min_burn);
+
         // --- 6. Emit the new network event.
-        Self::deposit_event(Event::NetworkAdded(netuid, params.name));
+        Self::deposit_event(Event::NetworkAdded(netuid, name));
 
         netuid
     }
-
     // Initializes a new subnetwork under netuid with parameters.
     pub fn subnet_name_exists(name: Vec<u8>) -> bool {
         for (_netuid, _name) in <SubnetNames<T> as IterableStorageMap<u16, Vec<u8>>>::iter() {
@@ -379,6 +450,10 @@ impl<T: Config> Pallet<T> {
 
     pub fn if_subnet_netuid_exists(netuid: u16) -> bool {
         SubnetNames::<T>::contains_key(netuid)
+    }
+
+    pub fn does_subnet_name_exist(name: &[u8]) -> bool {
+        SubnetNames::<T>::iter().any(|(_, n)| n == name)
     }
 
     pub fn get_netuid_for_name(name: &[u8]) -> Option<u16> {

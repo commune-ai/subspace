@@ -16,6 +16,9 @@ fn test_ownership_ratio() {
         let num_modules: u16 = 10;
         let tempo = 1;
         let stake_per_module: u64 = 1_000_000_000;
+        // make sure that the results won´t get affected by burn
+        SubspaceModule::set_min_burn(0);
+
         register_n_modules(netuid, num_modules, stake_per_module);
         SubspaceModule::set_tempo(netuid, tempo);
 

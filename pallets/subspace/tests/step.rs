@@ -34,6 +34,9 @@ fn check_network_stats(netuid: u16) {
 fn test_stale_weights() {
     new_test_ext().execute_with(|| {
         let netuid: u16 = 0;
+        // make sure that the results won´t get affected by burn
+        SubspaceModule::set_min_burn(0);
+
         register_n_modules(0, 10, 1000);
         let _subnet_params = SubspaceModule::subnet_params(netuid);
         let _keys = SubspaceModule::get_keys(netuid);
@@ -45,6 +48,10 @@ fn test_stale_weights() {
 fn test_no_weights() {
     new_test_ext().execute_with(|| {
         let netuid: u16 = 0;
+
+        // make sure that the results won´t get affected by burn
+        SubspaceModule::set_min_burn(0);
+
         register_n_modules(0, 10, 1000);
         SubspaceModule::set_tempo(netuid, 1);
         let _keys = SubspaceModule::get_keys(netuid);
@@ -68,6 +75,9 @@ fn test_dividends_same_stake() {
         let _n_list: Vec<u16> = vec![10, 50, 100, 1000];
         let _blocks_per_epoch_list: u64 = 1;
         let stake_per_module: u64 = 10_000;
+
+        // make sure that the results won´t get affected by burn
+        SubspaceModule::set_min_burn(0);
 
         // SETUP NETWORK
         register_n_modules(netuid, n, stake_per_module);
@@ -155,6 +165,9 @@ fn test_dividends_diff_stake() {
         let stake_per_module: u64 = 10_000;
         let tempo: u16 = 100;
 
+        // make sure that the results won´t get affected by burn
+        SubspaceModule::set_min_burn(0);
+
         // SETUP NETWORK
         for i in 0..n {
             let mut stake = stake_per_module;
@@ -237,6 +250,9 @@ fn test_pruning() {
         let stake_per_module: u64 = 10_000;
         let tempo: u16 = 100;
 
+        // make sure that the results won´t get affected by burn
+        SubspaceModule::set_min_burn(0);
+
         // SETUP NETWORK
         register_n_modules(netuid, n, stake_per_module);
         SubspaceModule::set_max_allowed_modules(n);
@@ -269,7 +285,7 @@ fn test_pruning() {
 
         step_block(tempo);
 
-        let lowest_priority_uid: u16 = SubspaceModule::get_lowest_uid(netuid);
+        let lowest_priority_uid: u16 = SubspaceModule::get_lowest_uid(netuid, false);
         assert!(lowest_priority_uid == prune_uid);
 
         let new_key: U256 = U256::from(n + 1);
@@ -304,6 +320,9 @@ fn test_lowest_priority_mechanism() {
         let _blocks_per_epoch_list: u64 = 1;
         let stake_per_module: u64 = 10_000;
         let tempo: u16 = 100;
+
+        // make sure that the results won´t get affected by burn
+        SubspaceModule::set_min_burn(0);
 
         // SETUP NETWORK
         register_n_modules(netuid, n, stake_per_module);
@@ -348,7 +367,7 @@ fn test_lowest_priority_mechanism() {
         assert!(incentives[prune_uid as usize] == 0);
         assert!(dividends[prune_uid as usize] == 0);
 
-        let lowest_priority_uid: u16 = SubspaceModule::get_lowest_uid(netuid);
+        let lowest_priority_uid: u16 = SubspaceModule::get_lowest_uid(netuid, false);
         info!("lowest_priority_uid: {lowest_priority_uid}");
         info!("prune_uid: {prune_uid}");
         info!("emissions: {emissions:?}");
@@ -494,6 +513,9 @@ fn test_incentives() {
         let _blocks_per_epoch_list: u64 = 1;
         let stake_per_module: u64 = 10_000;
 
+        // make sure that the results won´t get affected by burn
+        SubspaceModule::set_min_burn(0);
+
         // SETUP NETWORK
         register_n_modules(netuid, n, stake_per_module);
         let mut params = SubspaceModule::subnet_params(netuid);
@@ -553,9 +575,10 @@ fn test_trust() {
         let _n_list: Vec<u16> = vec![10, 50, 100, 1000];
         let _blocks_per_epoch_list: u64 = 1;
         let stake_per_module: u64 = 10_000;
+        // make sure that the results won´t get affected by burn
+        SubspaceModule::set_min_burn(0);
 
         // SETUP NETWORK
-
         register_n_modules(netuid, n, stake_per_module);
         let mut params = SubspaceModule::subnet_params(netuid);
         params.min_allowed_weights = 1;
@@ -915,8 +938,17 @@ fn test_founder_share() {
 #[test]
 fn test_dynamic_burn() {
     new_test_ext().execute_with(|| {
+        let netuid = 0;
+        let initial_stake: u64 = 1000;
+
+        // make sure that the results won´t get affected by burn
+        SubspaceModule::set_min_burn(0);
+
+        // Create the subnet
+        let subnet_key = U256::from(2050);
+        assert_ok!(register_module(netuid, subnet_key, initial_stake));
         // Using the default GlobalParameters:
-        // - registration target interval =  2 * tempo (200 blocks)
+        // - registration target interval = 2 * tempo (200 blocks)
         // - registration target for interval = registration_target_interval / 2
         // - adjustment alpha = 0
         // - min_burn = 2 $COMAI
@@ -928,62 +960,49 @@ fn test_dynamic_burn() {
         params.target_registrations_interval = 200;
         params.target_registrations_per_interval = 100;
         SubspaceModule::set_global_params(params);
-        let netuid = 0;
-        // first register 1000 modules (10 * the default registration target interval)
-        // this is 5 modules per block
-        let n: usize = 1000;
-        // second registration wave registers just 50 modules
-        let n2: usize = 50;
-        let initial_stake: u64 = 1000;
-        let keys: Vec<U256> = (0..n).map(U256::from).collect();
-        let keys2: Vec<U256> = (n + 1..n + 1 + n2).map(U256::from).collect();
-        let stakes: Vec<u64> = (0..n).map(|_x: usize| initial_stake * 1_000_000_000).collect();
 
-        // make sure we are starting with no burn
-        assert!(
-            SubspaceModule::get_burn() == 0,
-            "start burn: {:?}",
-            SubspaceModule::get_burn()
-        );
-
-        // step 2 epochs to wait for the burn to get updated to the min_burn
-
+        // update the burn to the minimum
         step_block(200);
 
         assert!(
-            SubspaceModule::get_burn() == SubspaceModule::get_min_burn(),
+            SubspaceModule::get_burn(netuid) == SubspaceModule::get_min_burn(),
             "current burn: {:?}",
-            SubspaceModule::get_burn()
+            SubspaceModule::get_burn(netuid)
         );
 
-        // register the first 1000 modules, this 10x the registration target
+        // Register the first 1000 modules, this is 10x the registration target
         let registrations_per_block = 5;
+        let n: usize = 1000;
+        let stakes: Vec<u64> = (0..n).map(|_| initial_stake * 1_000_000_000).collect();
         for i in 0..n {
-            assert_ok!(register_module(netuid, keys[i], stakes[i]));
+            let key = U256::from(i);
+            assert_ok!(register_module(netuid, key, stakes[i]));
             if (i + 1) % registrations_per_block == 0 {
                 step_block(1);
             }
         }
 
-        // burn is now at 11 instead of 2
+        // Burn is now at 11 instead of 2
         assert!(
-            SubspaceModule::get_burn() == to_nano(11),
+            SubspaceModule::get_burn(netuid) == to_nano(11),
             "current burn {:?}",
-            SubspaceModule::get_burn()
+            SubspaceModule::get_burn(netuid)
         );
 
-        // register only half of the target
+        // Register only half of the target
+        let n2: usize = 50;
         for i in 0..n2 {
-            assert_ok!(register_module(netuid, keys2[i], stakes[i]));
+            let key = U256::from(n + i);
+            assert_ok!(register_module(netuid, key, stakes[i]));
         }
 
         step_block(200);
 
-        // make sure the burn correctly decreased base on demand
+        // Make sure the burn correctly decreased based on demand
         assert!(
-            SubspaceModule::get_burn() == 8250000000,
+            SubspaceModule::get_burn(netuid) == 8250000000,
             "current burn: {:?}",
-            SubspaceModule::get_burn()
+            SubspaceModule::get_burn(netuid)
         );
     });
 }
