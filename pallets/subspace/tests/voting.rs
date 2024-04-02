@@ -16,6 +16,9 @@ fn test_subnet_porposal() {
         let keys = [U256::from(0), U256::from(1), U256::from(2)];
         let stakes = [1_000_000_000, 1_000_000_000, 1_000_000_000];
 
+        // make sure that the results won´t get affected by burn
+        SubspaceModule::set_min_burn(0);
+
         for (i, key) in keys.iter().enumerate() {
             assert_ok!(register_module(netuid, *key, stakes[i]));
         }
@@ -75,6 +78,9 @@ fn test_max_proposals() {
         let n = 100;
         let keys: Vec<U256> = (0..n).map(U256::from).collect();
         let mut stakes = vec![1_000_000_000; n];
+
+        // make sure that the results won´t get affected by burn
+        SubspaceModule::set_min_burn(0);
         // increase incrementally to avoid overflow
         let stakes =
             stakes.iter_mut().enumerate().map(|(i, x)| *x + i as u64).collect::<Vec<u64>>();
@@ -91,6 +97,7 @@ fn test_max_proposals() {
         );
         params.vote_mode = "stake".as_bytes().to_vec();
         params.max_proposals = (n / 2) as u64;
+        params.min_burn = 110_000_000;
         info!("params: {params:?}");
         SubspaceModule::set_global_params(params.clone());
 
@@ -169,6 +176,9 @@ fn test_global_porposal() {
         let keys = [U256::from(1), U256::from(2), U256::from(3)];
         let stakes = [1_000_000_000, 1_000_000_000, 1_000_000_000];
 
+        // make sure that the results won´t get affected by burn
+        SubspaceModule::set_min_burn(0);
+
         // register on seperate subnets
         for (i, (key, stake)) in keys.iter().zip(stakes).enumerate() {
             assert_ok!(register_module(i as u16, *key, stake));
@@ -180,6 +190,7 @@ fn test_global_porposal() {
         let max_registrations_per_block = 1000;
 
         params.max_registrations_per_block = max_registrations_per_block;
+        params.min_burn = 110_000_000;
         assert_ok!(SubspaceModule::do_add_global_proposal(
             get_origin(keys[0]),
             params
@@ -217,6 +228,9 @@ fn test_unvote() {
         let netuid = 0;
         let keys = [U256::from(0), U256::from(1), U256::from(2)];
         let stakes = [1_000_000_000, 1_000_000_000, 1_000_000_000];
+
+        // make sure that the results won´t get affected by burn
+        SubspaceModule::set_min_burn(0);
 
         for (i, key) in keys.iter().enumerate() {
             assert_ok!(register_module(netuid, *key, stakes[i]));

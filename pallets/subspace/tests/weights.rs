@@ -17,6 +17,8 @@ fn test_weights_err_weights_vec_not_equal_size() {
     new_test_ext().execute_with(|| {
         let netuid: u16 = 0;
         let key_account_id = U256::from(55);
+        // make sure that the results won´t get affected by burn
+        SubspaceModule::set_min_burn(0);
         assert_ok!(register_module(netuid, key_account_id, 1_000_000_000));
         let _neuron_uid: u16 = SubspaceModule::get_uid_for_key(netuid, &key_account_id);
         let weights_keys: Vec<u16> = vec![1, 2, 3, 4, 5, 6];
@@ -37,6 +39,8 @@ fn test_weights_err_has_duplicate_ids() {
     new_test_ext().execute_with(|| {
         let key_account_id = U256::from(666);
         let netuid: u16 = 0;
+        // make sure that the results won´t get affected by burn
+        SubspaceModule::set_min_burn(0);
         SubspaceModule::set_max_registrations_per_block(100);
 
         assert_ok!(register_module(netuid, key_account_id, 10));
@@ -85,6 +89,8 @@ fn test_set_weights_err_invalid_uid() {
     new_test_ext().execute_with(|| {
         let key_account_id = U256::from(55);
         let netuid: u16 = 0;
+        // make sure that the results won´t get affected by burn
+        SubspaceModule::set_min_burn(0);
         assert_ok!(register_module(netuid, key_account_id, 1_000_000_000));
         let _neuron_uid: u16 = SubspaceModule::get_uid_for_key(netuid, &key_account_id);
         let weight_keys: Vec<u16> = vec![9999]; // Does not exist
@@ -107,7 +113,8 @@ fn test_set_weight_not_enough_values() {
         let n = 100;
         SubspaceModule::set_max_registrations_per_block(n);
         let account_id = U256::from(0);
-
+        // make sure that the results won´t get affected by burn
+        SubspaceModule::set_min_burn(0);
         assert_ok!(register_module(netuid, account_id, 1_000_000_000));
 
         let _neuron_uid: u16 = SubspaceModule::get_uid_for_key(netuid, &account_id);
@@ -161,6 +168,8 @@ fn test_set_max_allowed_uids() {
         let n = 100;
         SubspaceModule::set_max_registrations_per_block(n);
         let account_id = U256::from(0);
+        // make sure that the results won´t get affected by burn
+        SubspaceModule::set_min_burn(0);
         assert_ok!(register_module(netuid, account_id, 1_000_000_000));
         let _neuron_uid: u16 = SubspaceModule::get_uid_for_key(netuid, &account_id);
         for i in 1..n {

@@ -1,4 +1,4 @@
-use crate::module::ModuleChangeset;
+use crate::{module::ModuleChangeset, subnet::SubnetChangeset};
 
 use super::*;
 
@@ -60,9 +60,6 @@ impl<T: Config> Pallet<T> {
         Ok(())
     }
 
-    // TODO:
-    //- check ip
-    // - add ability to set delegaiton fee, straight in registration
     pub fn do_register(
         origin: T::RuntimeOrigin,
         network_name: Vec<u8>,
@@ -92,13 +89,20 @@ impl<T: Config> Pallet<T> {
         let netuid = if let Some(netuid) = Self::get_netuid_for_name(&network_name) {
             netuid
         } else {
+            let params = SubnetParams {
+                name: network_name.clone(),
+                founder: key.clone(),
+                ..Self::default_subnet_params()
+            };
+            let subnet_changeset: SubnetChangeset<T> =
+                SubnetChangeset::new(&network_name, &key, params);
             // Create subnet if it does not exist.
-            Self::add_subnet_from_registration(network_name, stake, &key)?
+            Self::add_subnet_from_registration(stake, subnet_changeset)?
         };
 
         // --- 5. Ensure the caller has enough stake to register.
         let min_stake: u64 = MinStake::<T>::get(netuid);
-        let current_burn: u64 = Self::get_burn();
+        let current_burn: u64 = Self::get_burn(netuid);
         // also ensures that in the case current_burn is present, the stake is enough
         // as burn, will be decreased from the stake on the module
         ensure!(
@@ -116,9 +120,10 @@ impl<T: Config> Pallet<T> {
         // If we do deregister slot.
         Self::check_module_limits(netuid);
 
-        // --- 8. Register the module.
-        let changeset = ModuleChangeset::new(name, address);
-        let uid: u16 = Self::append_module(netuid, &module_key, changeset)?;
+        // --- 8. Register the module and changeset.
+        let module_changeset = ModuleChangeset::new(name, address);
+
+        let uid: u16 = Self::append_module(netuid, &module_key, module_changeset)?;
 
         // --- 9. Add the stake to the module, now that it is registered on the network.
         Self::do_add_stake(origin, netuid, module_key.clone(), stake)?;
@@ -137,7 +142,9 @@ impl<T: Config> Pallet<T> {
 
         // --- 10. Increment the number of registrations.
         RegistrationsPerBlock::<T>::mutate(|val| *val += 1);
-        RegistrationsThisInterval::<T>::mutate(|val| *val += 1);
+        RegistrationsThisInterval::<T>::mutate(netuid, |registrations| {
+            *registrations = registrations.saturating_add(1);
+        });
 
         // --- Deposit successful event.
         Self::deposit_event(Event::ModuleRegistered(netuid, uid, module_key));
@@ -183,7 +190,10 @@ impl<T: Config> Pallet<T> {
         *vec.get(uid as usize).unwrap_or(&0)
     }
 
-    pub fn get_lowest_uid(netuid: u16) -> u16 {
+    pub fn get_lowest_uid(netuid: u16, ignore_immunity: bool) -> u16 {
+        // immunity ignoring is used if the deregistration is forced by global (network) module
+        // limit immunity period is considered if the deregistration is forced by subnet
+        // module limit
         let n: u16 = Self::get_subnet_n(netuid);
 
         let mut min_score: u64 = u64::MAX;
@@ -201,8 +211,10 @@ impl<T: Config> Pallet<T> {
                 let block_at_registration: u64 =
                     Self::get_module_registration_block(netuid, module_uid_i);
                 let module_age: u64 = current_block.saturating_sub(block_at_registration);
+
                 // only allow modules that have greater than immunity period
-                if module_age > immunity_period {
+                // or if we are ignoring immunity period
+                if module_age > immunity_period || ignore_immunity {
                     lowest_priority_uid = module_uid_i;
                     min_score = pruning_score;
                     if min_score == 0 {
@@ -216,13 +228,13 @@ impl<T: Config> Pallet<T> {
     }
 
     pub fn add_subnet_from_registration(
-        name: Vec<u8>,
         stake: u64,
-        founder_key: &T::AccountId,
+        changeset: SubnetChangeset<T>,
     ) -> Result<u16, sp_runtime::DispatchError> {
         let num_subnets: u16 = Self::num_subnets();
         let max_subnets: u16 = Self::get_global_max_allowed_subnets();
 
+        // resolve possible subnet deregistering
         let target_subnet = if num_subnets >= max_subnets {
             let (min_stake_netuid, min_stake) = Self::least_staked_netuid();
             ensure!(stake > min_stake, Error::<T>::NotEnoughStakeToStartNetwork);
@@ -232,13 +244,7 @@ impl<T: Config> Pallet<T> {
             None
         };
 
-        let params = SubnetParams {
-            name,
-            founder: founder_key.clone(),
-            ..Self::default_subnet_params()
-        };
-
-        Ok(Self::add_subnet(params, target_subnet))
+        Ok(Self::add_subnet(changeset, target_subnet))
     }
 
     pub fn check_module_limits(netuid: u16) {
@@ -248,14 +254,17 @@ impl<T: Config> Pallet<T> {
             let (least_staked_netuid, _) = Self::least_staked_netuid();
 
             // Deregister the lowest priority node in the least staked network
+            // in this case we should ignore the immunity period,
+            // Because if the lowest subnet has unreasonably high immunity period,
+            // it could lead to exploitation of the network.
             Self::remove_module(
                 least_staked_netuid,
-                Self::get_lowest_uid(least_staked_netuid),
+                Self::get_lowest_uid(least_staked_netuid, true),
             );
         } else if Self::get_subnet_n(netuid) >= Self::get_max_allowed_uids(netuid) {
-            // If we reach the max allowed modules for this network,
-            // then we replace the lowest priority node in the current network
-            Self::remove_module(netuid, Self::get_lowest_uid(netuid));
+            // If we reach the max allowed modules for this subnet,
+            // then we replace the lowest priority node in the current subnet
+            Self::remove_module(netuid, Self::get_lowest_uid(netuid, false));
         }
     }
 }

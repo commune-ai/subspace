@@ -10,6 +10,7 @@ impl<T: Config> Pallet<T> {
     pub fn global_params() -> GlobalParams<T> {
         GlobalParams {
             max_name_length: Self::get_global_max_name_length(),
+            min_name_length: Self::get_global_min_name_length(),
             max_allowed_subnets: Self::get_global_max_allowed_subnets(),
             max_allowed_modules: Self::get_max_allowed_modules(),
             max_registrations_per_block: Self::get_max_registrations_per_block(),
@@ -38,6 +39,11 @@ impl<T: Config> Pallet<T> {
 
         // check if the name already exists
         ensure!(params.max_name_length > 0, Error::<T>::InvalidMaxNameLength);
+
+        ensure!(
+            params.min_name_length < params.max_name_length,
+            Error::<T>::InvalidMinNameLenght
+        );
 
         // we need to ensure that the delegation fee floor is only moven up, moving it down would
         // require a storage migration
@@ -141,10 +147,6 @@ impl<T: Config> Pallet<T> {
         Nominator::<T>::put(nominator)
     }
 
-    pub fn get_registrations_this_interval() -> u16 {
-        RegistrationsThisInterval::<T>::get()
-    }
-
     pub fn get_target_registrations_per_interval() -> u16 {
         TargetRegistrationsPerInterval::<T>::get()
     }
@@ -193,16 +195,6 @@ impl<T: Config> Pallet<T> {
         BurnRate::<T>::put(burn_rate.min(100));
     }
 
-    pub fn get_burn() -> u64 {
-        Burn::<T>::get()
-    }
-
-    pub fn set_burn(burn: u64) {
-        Burn::<T>::set(burn);
-        // announce a burn change
-        Self::deposit_event(Event::RegistrationBurnChanged(burn));
-    }
-
     pub fn get_max_proposals() -> u64 {
         MaxProposals::<T>::get()
     }
@@ -240,6 +232,14 @@ impl<T: Config> Pallet<T> {
 
     pub fn set_global_max_name_length(max_name_length: u16) {
         MaxNameLength::<T>::put(max_name_length)
+    }
+
+    pub fn get_global_min_name_length() -> u16 {
+        MinNameLength::<T>::get()
+    }
+
+    pub fn set_global_min_name_length(min_name_length: u16) {
+        MinNameLength::<T>::put(min_name_length)
     }
 
     pub fn do_update_global(origin: T::RuntimeOrigin, params: GlobalParams<T>) -> DispatchResult {

@@ -44,3 +44,37 @@ pub mod v1 {
         }
     }
 }
+
+pub mod v2 {
+    use super::*;
+
+    pub struct MigrateToV2<T>(sp_std::marker::PhantomData<T>);
+
+    impl<T: Config> OnRuntimeUpgrade for MigrateToV2<T> {
+        fn on_runtime_upgrade() -> Weight {
+            let on_chain_version = StorageVersion::get::<Pallet<T>>();
+
+            // Migrate Burn to v2
+            if on_chain_version == 1 {
+                // Here we will just use the lower bound of the burn
+                let old_burn = Pallet::<T>::global_params().min_burn;
+
+                // Find the highest netuid from the subnetnames
+                let largest_netuid = SubnetNames::<T>::iter_keys().max().unwrap_or(0);
+                // Iterate through all netuids and insert the old burn (minimum) value for each
+                // this is important as we don't want free registrations right after the runtime
+                // udpate
+                for netuid in 0..=largest_netuid {
+                    Burn::<T>::insert(netuid, old_burn);
+                }
+
+                StorageVersion::new(2).put::<Pallet<T>>();
+                log::info!("Migrated Burn to v2");
+                T::DbWeight::get().writes(largest_netuid as u64)
+            } else {
+                log::info!("Burn already updated");
+                Weight::zero()
+            }
+        }
+    }
+}

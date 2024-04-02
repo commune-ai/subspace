@@ -9,13 +9,13 @@ impl<T: Config> Pallet<T> {
         let block_number: u64 = Self::get_current_block_number();
         RegistrationsPerBlock::<T>::mutate(|val| *val = 0);
 
-        let registration_this_interval = Self::get_registrations_this_interval();
-
-        // adjust registrations parameters
-        Self::adjust_registration(block_number, registration_this_interval);
-
         log::debug!("block_step for block: {:?} ", block_number);
         for (netuid, tempo) in <Tempo<T> as IterableStorageMap<u16, u16>>::iter() {
+            let registration_this_interval = Self::get_registrations_this_interval(netuid);
+
+            // adjust registrations parameters
+            Self::adjust_registration(netuid, block_number, registration_this_interval);
+
             let new_queued_emission: u64 = Self::calculate_network_emission(netuid);
             PendingEmission::<T>::mutate(netuid, |queued| *queued += new_queued_emission);
             log::debug!(
@@ -575,19 +575,22 @@ impl<T: Config> Pallet<T> {
         burn_amount_per_epoch
     }
 
-    pub fn adjust_registration(block_number: u64, registrations_this_interval: u16) {
+    pub fn adjust_registration(netuid: u16, block_number: u64, registrations_this_interval: u16) {
         let target_registrations_interval = Self::get_target_registrations_interval();
         if block_number % u64::from(target_registrations_interval) == 0 {
-            let current_burn = Self::get_burn();
+            let current_burn = Self::get_burn(netuid);
             let target_registrations_per_interval = Self::get_target_registrations_per_interval();
 
-            Self::set_burn(Self::adjust_burn(
+            let adjusted_burn = Self::adjust_burn(
                 current_burn,
                 registrations_this_interval,
                 target_registrations_per_interval,
-            ));
+            );
 
-            RegistrationsThisInterval::<T>::mutate(|val| *val = 0);
+            Self::set_burn(netuid, adjusted_burn);
+
+            // reset the registrations
+            Self::set_registrations_this_interval(netuid, 0);
         }
     }
 

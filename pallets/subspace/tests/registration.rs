@@ -19,6 +19,8 @@ fn test_min_stake() {
         let min_stake = 100_000_000;
         let max_registrations_per_block = 10;
         let reg_this_block: u16 = 100;
+        // make sure that the results won´t get affected by burn
+        SubspaceModule::set_min_burn(0);
 
         register_module(netuid, U256::from(0), 0).expect("register module failed");
         SubspaceModule::set_min_stake(netuid, min_stake);
@@ -53,6 +55,8 @@ fn test_max_registration() {
         let min_stake = 100_000_000;
         let rounds = 3;
         let max_registrations_per_block = 100;
+        // make sure that the results won´t get affected by burn
+        SubspaceModule::set_min_burn(0);
 
         SubspaceModule::set_min_stake(netuid, min_stake);
         SubspaceModule::set_max_registrations_per_block(max_registrations_per_block);
@@ -83,6 +87,9 @@ fn test_delegate_register() {
         let key: U256 = U256::from(n + 1);
         let module_keys: Vec<U256> = (0..n).map(U256::from).collect();
         let stake_amount: u64 = 10_000_000_000;
+        // make sure that the results won´t get affected by burn
+        SubspaceModule::set_min_burn(0);
+
         SubspaceModule::add_balance_to_account(&key, stake_amount * n as u64);
         for module_key in module_keys {
             delegate_register_module(netuid, key, module_key, stake_amount)
@@ -102,6 +109,8 @@ fn test_registration_ok() {
     new_test_ext().execute_with(|| {
         let netuid: u16 = 0;
         let key: U256 = U256::from(1);
+        // make sure that the results won´t get affected by burn
+        SubspaceModule::set_min_burn(0);
 
         register_module(netuid, key, 0)
             .unwrap_or_else(|_| panic!("register module failed for key {key:?}"));
@@ -127,6 +136,9 @@ fn test_many_registrations() {
         let netuid = 0;
         let stake = 10;
         let n = 100;
+        // make sure that the results won´t get affected by burn
+        SubspaceModule::set_min_burn(0);
+
         SubspaceModule::set_max_registrations_per_block(n);
         for i in 0..n {
             register_module(netuid, U256::from(i), stake).unwrap_or_else(|_| {
@@ -146,6 +158,9 @@ fn test_registration_with_stake() {
     new_test_ext().execute_with(|| {
         let netuid = 0;
         let stake_vector: Vec<u64> = [100000, 1000000, 10000000].to_vec();
+
+        // make sure that the results won´t get affected by burn
+        SubspaceModule::set_min_burn(0);
 
         for (i, stake) in stake_vector.iter().enumerate() {
             let uid: u16 = i as u16;
@@ -171,6 +186,9 @@ fn register_same_key_twice() {
         let netuid = 0;
         let stake = 10;
         let key = U256::from(1);
+        // make sure that the results won´t get affected by burn
+        SubspaceModule::set_min_burn(0);
+
         assert_ok!(register_module(netuid, key, stake));
         assert_err!(
             register_module(netuid, key, stake),
@@ -230,6 +248,8 @@ fn test_validation_cases(f: impl Fn(&[u8], &[u8]) -> DispatchResult) {
 #[test]
 fn validates_module_on_registration() {
     new_test_ext().execute_with(|| {
+        // make sure that the results won´t get affected by burn
+        SubspaceModule::set_min_burn(0);
         test_validation_cases(|name, addr| register_custom(0, 0.into(), name, addr));
 
         assert_err!(
@@ -245,6 +265,9 @@ fn validates_module_on_update() {
         let subnet = 0;
         let key_0: U256 = 0.into();
         let origin_0 = get_origin(0.into());
+        // make sure that the results won´t get affected by burn
+        SubspaceModule::set_min_burn(0);
+
         assert_ok!(register_custom(subnet, key_0, b"test", b"0.0.0.0:1"));
 
         test_validation_cases(|name, addr| {

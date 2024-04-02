@@ -2,6 +2,7 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 #![recursion_limit = "512"]
 
+use crate::subnet::SubnetChangeset;
 use frame_system::{self as system, ensure_signed};
 pub use pallet::*;
 
@@ -63,7 +64,7 @@ pub mod pallet {
     use sp_arithmetic::per_things::Percent;
     pub use sp_std::{vec, vec::Vec};
 
-    const STORAGE_VERSION: StorageVersion = StorageVersion::new(1);
+    const STORAGE_VERSION: StorageVersion = StorageVersion::new(2);
 
     #[pallet::pallet]
     #[pallet::generate_store(pub(super) trait Store)]
@@ -168,6 +169,15 @@ pub mod pallet {
         StorageValue<_, u16, ValueQuery, DefaultMaxNameLength<T>>;
 
     #[pallet::type_value]
+    pub fn DefaultMinNameLength<T: Config>() -> u16 {
+        2
+    }
+
+    #[pallet::storage]
+    pub(super) type MinNameLength<T: Config> =
+        StorageValue<_, u16, ValueQuery, DefaultMinNameLength<T>>;
+
+    #[pallet::type_value]
     pub fn DefaultMaxAllowedSubnets<T: Config>() -> u16 {
         256
     }
@@ -175,22 +185,14 @@ pub mod pallet {
     pub(super) type MaxAllowedSubnets<T: Config> =
         StorageValue<_, u16, ValueQuery, DefaultMaxAllowedSubnets<T>>;
 
-    #[pallet::type_value]
-    pub fn DefaultRegistrationsThisInterval<T: Config>() -> u16 {
-        0
-    }
-
-    #[pallet::storage] // --- ITEM ( registrations_this_interval )
+    #[pallet::storage]
+    // --- MAP (netuid) --> registrations_this_interval
     pub(super) type RegistrationsThisInterval<T: Config> =
-        StorageValue<_, u16, ValueQuery, DefaultRegistrationsThisInterval<T>>;
+        StorageMap<_, Identity, u16, u16, ValueQuery>;
 
-    #[pallet::type_value]
-    pub fn DefaultBurn<T: Config>() -> u64 {
-        0
-    }
-
-    #[pallet::storage] // --- ITEM ( burn )
-    pub(super) type Burn<T: Config> = StorageValue<_, u64, ValueQuery, DefaultBurn<T>>;
+    #[pallet::storage]
+    // --- MAP (netuid) --> burn
+    pub(super) type Burn<T: Config> = StorageMap<_, Identity, u16, u64, ValueQuery>;
 
     #[pallet::type_value]
     pub fn DefaultMaxAllowedModules<T: Config>() -> u16 {
@@ -278,6 +280,7 @@ pub mod pallet {
         pub burn_rate: u16,
         // max
         pub max_name_length: u16,             // max length of a network name
+        pub min_name_length: u16,             // min length of a network name
         pub max_allowed_subnets: u16,         // max number of subnets allowed
         pub max_allowed_modules: u16,         // max number of modules allowed per subnet
         pub max_registrations_per_block: u16, // max number of registrations per block
@@ -353,6 +356,7 @@ pub mod pallet {
             target_registrations_per_interval: DefaultTargetRegistrationsPerInterval::<T>::get(),
             target_registrations_interval: DefaultTargetRegistrationsInterval::<T>::get(),
             max_name_length: DefaultMaxNameLength::<T>::get(),
+            min_name_length: DefaultMinNameLength::<T>::get(),
             max_proposals: DefaultMaxProposals::<T>::get(),
             min_burn: DefaultMinBurn::<T>::get(),
             max_burn: DefaultMaxBurn::<T>::get(),
@@ -879,6 +883,7 @@ pub mod pallet {
         TxRateLimitSet(u64), // --- Event created when setting the transaction rate limit.
         UnitEmissionSet(u64), // --- Event created when setting the unit emission
         MaxNameLengthSet(u16), // --- Event created when setting the maximum network name length
+        MinNameLenghtSet(u16), // --- Event created when setting the minimum network name length
         MaxAllowedSubnetsSet(u16), // --- Event created when setting the maximum allowed subnets
         MaxAllowedModulesSet(u16), // --- Event created when setting the maximum allowed modules
         MaxRegistrationsPerBlockSet(u16), // --- Event created when we set max registrations
@@ -947,10 +952,13 @@ pub mod pallet {
                               * transactions. */
         InvalidMaxAllowedUids, /* --- Thrown when the user tries to set max allowed uids to a
                                 * value less than the current number of registered uids. */
+        NetuidDoesNotExist,
         SubnetNameAlreadyExists,
+        SubnetNameTooShort,
+        SubnetNameTooLong,
+        InvalidSubnetName,
         BalanceNotAdded,
         StakeNotRemoved,
-        SubnetNameNotExists,
         KeyAlreadyRegistered, //
         EmptyKeys,
         NotNominator, /* --- Thrown when the user tries to set the nominator and is not the
@@ -984,6 +992,7 @@ pub mod pallet {
         InvalidMinDelegationFee,
 
         InvalidMaxNameLength,
+        InvalidMinNameLenght,
         InvalidMaxAllowedSubnets,
         InvalidMaxAllowedModules,
         InvalidMaxRegistrationsPerBlock,
@@ -1000,6 +1009,7 @@ pub mod pallet {
         // Modules
         /// The module name is too long.
         ModuleNameTooLong,
+        ModuleNameTooShort,
         /// The module name is invalid. It has to be a UTF-8 encoded string.
         InvalidModuleName,
         /// The address is too long.
@@ -1061,7 +1071,7 @@ pub mod pallet {
 
                 let default_params = self::Pallet::<T>::default_subnet_params();
 
-                let params = SubnetParams {
+                let params: SubnetParams<T> = SubnetParams {
                     name: subnet.0.clone(),
                     tempo: subnet.1,
                     immunity_period: subnet.2,
@@ -1080,7 +1090,9 @@ pub mod pallet {
                     max_weight_age: default_params.max_weight_age,
                 };
 
-                self::Pallet::<T>::add_subnet(params, None);
+                let changeset: SubnetChangeset<T> =
+                    SubnetChangeset::new(&params.name, &params.founder, params.clone());
+                self::Pallet::<T>::add_subnet(changeset, Some(netuid));
 
                 for (uid_usize, (key, name, address, weights)) in
                     self.modules[subnet_idx].iter().enumerate()
@@ -1378,8 +1390,10 @@ pub mod pallet {
             // Check if subnet parameters are valid
             Self::check_subnet_params(&params)?;
 
+            let subnet_set =
+                SubnetChangeset::update(&params.name, &params.founder, netuid, params.clone());
             // if so update them
-            Self::do_update_subnet(origin, netuid, params)
+            Self::do_update_subnet(origin, netuid, subnet_set)
         }
 
         #[pallet::weight((Weight::zero(), DispatchClass::Normal, Pays::No))]
