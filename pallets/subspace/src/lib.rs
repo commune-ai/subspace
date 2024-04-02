@@ -954,6 +954,7 @@ pub mod pallet {
                                 * value less than the current number of registered uids. */
         NetuidDoesNotExist,
         SubnetNameAlreadyExists,
+        MissingSubnetName,
         SubnetNameTooShort,
         SubnetNameTooLong,
         InvalidSubnetName,
@@ -1092,7 +1093,7 @@ pub mod pallet {
 
                 let changeset: SubnetChangeset<T> =
                     SubnetChangeset::new(&params.name, &params.founder, params.clone());
-                self::Pallet::<T>::add_subnet(changeset, Some(netuid));
+                let _ = self::Pallet::<T>::add_subnet(changeset, Some(netuid));
 
                 for (uid_usize, (key, name, address, weights)) in
                     self.modules[subnet_idx].iter().enumerate()
