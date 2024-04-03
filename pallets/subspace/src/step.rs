@@ -1,44 +1,62 @@
 use super::*;
 use crate::math::*;
-use frame_support::storage::{IterableStorageDoubleMap, IterableStorageMap};
+use frame_support::storage::IterableStorageDoubleMap;
+use sp_arithmetic::per_things::Percent;
 use sp_std::vec;
 use substrate_fixed::types::{I110F18, I32F32, I64F64};
+
+pub mod yuma;
 
 impl<T: Config> Pallet<T> {
     pub fn block_step() {
         let block_number: u64 = Self::get_current_block_number();
-        RegistrationsPerBlock::<T>::mutate(|val| *val = 0);
+        RegistrationsPerBlock::<T>::mutate(|val: &mut u16| *val = 0);
 
-        log::debug!("block_step for block: {:?} ", block_number);
-        for (netuid, tempo) in <Tempo<T> as IterableStorageMap<u16, u16>>::iter() {
+        log::debug!("block_step for block: {block_number:?}");
+
+        let subnet_stake_threshold: Percent = SubnetStakeThreshold::<T>::get();
+        for (netuid, tempo) in Tempo::<T>::iter() {
             let registration_this_interval = Self::get_registrations_this_interval(netuid);
 
             // adjust registrations parameters
             Self::adjust_registration(netuid, block_number, registration_this_interval);
 
-            let new_queued_emission: u64 = Self::calculate_network_emission(netuid);
-            PendingEmission::<T>::mutate(netuid, |queued| *queued += new_queued_emission);
-            log::debug!(
-                "netuid_i: {:?} queued_emission: +{:?} ",
-                netuid,
-                new_queued_emission
-            );
+            let new_queued_emission: u64 =
+                Self::calculate_network_emission(netuid, subnet_stake_threshold);
+            PendingEmission::<T>::mutate(netuid, |queued: &mut u64| *queued += new_queued_emission);
+            log::debug!("netuid_i: {netuid:?} queued_emission: +{new_queued_emission:?} ");
+
             if Self::blocks_until_next_epoch(netuid, tempo, block_number) > 0 {
                 continue;
             }
+
             let emission_to_drain: u64 = PendingEmission::<T>::get(netuid);
-            Self::epoch(netuid, emission_to_drain);
+            let has_enough_stake_for_yuma = || {
+                let subnet_stake = Self::get_total_subnet_stake(netuid) as u128;
+                let total_stake = Self::total_stake() as u128;
+
+                if total_stake == 0 {
+                    false
+                } else {
+                    let subnet_stake_percent = (subnet_stake * 100) / total_stake;
+                    subnet_stake_threshold <= Percent::from_parts(subnet_stake_percent as u8)
+                }
+            };
+
+            if netuid == 0 {
+                Self::linear_epoch(netuid, emission_to_drain)
+            } else if has_enough_stake_for_yuma() {
+                yuma::YumaCalc::<T>::new(netuid, emission_to_drain).run();
+            }
+
             PendingEmission::<T>::insert(netuid, 0);
         }
     }
 
-    pub fn epoch(netuid: u16, token_emission: u64) {
-        /*
-        This function acts as the main function of the entire blockchain reward distribution.
-        It calculates the dividends, the incentive, the weights, the bonds,
-        the trust and the emission for the epoch.
-        */
-
+    /// This function acts as the main function of the entire blockchain reward distribution.
+    /// It calculates the dividends, the incentive, the weights, the bonds,
+    /// the trust and the emission for the epoch.
+    pub fn linear_epoch(netuid: u16, token_emission: u64) {
         // get the network parameters
         let global_params = Self::global_params();
         let subnet_params = Self::subnet_params(netuid);
@@ -49,7 +67,6 @@ impl<T: Config> Pallet<T> {
 
         // if there are no modules, then return
         if n == 0 {
-            //
             return;
         }
 
@@ -239,7 +256,7 @@ impl<T: Config> Pallet<T> {
             let owner_emission: u64 = owner_emission_incentive + owner_dividends_emission;
             if owner_emission > 0 {
                 let profit_share_emissions: Vec<(T::AccountId, u64)> =
-                    Self::get_profit_share_emissions(module_key.clone(), owner_emission);
+                    Self::get_profit_share_emissions(module_key, owner_emission);
 
                 if !profit_share_emissions.is_empty() {
                     for (profit_share_key, profit_share_emission) in profit_share_emissions.iter() {

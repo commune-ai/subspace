@@ -30,6 +30,7 @@ impl<T: Config> Pallet<T> {
             floor_delegation_fee: Self::get_floor_delegation_fee(),
             min_weight_stake: Self::get_min_weight_stake(),
             max_allowed_weights: Self::get_max_allowed_weights_global(),
+            subnet_stake_threshold: Self::get_subnet_stake_threshold(),
         }
     }
 
@@ -134,6 +135,7 @@ impl<T: Config> Pallet<T> {
         Self::set_min_burn(params.min_burn);
         Self::set_max_burn(params.max_burn);
         Self::set_min_weight_stake(params.min_weight_stake);
+        Self::set_subnet_stake_threshold(params.subnet_stake_threshold);
         Self::set_min_stake_global(params.min_stake);
         Self::set_floor_delegation_fee(params.floor_delegation_fee);
         Self::set_nominator(params.nominator);
@@ -164,6 +166,14 @@ impl<T: Config> Pallet<T> {
 
     pub fn get_max_allowed_weights_global() -> u16 {
         MaxAllowedWeightsGlobal::<T>::get()
+    }
+
+    pub fn get_subnet_stake_threshold() -> Percent {
+        SubnetStakeThreshold::<T>::get()
+    }
+
+    pub fn set_subnet_stake_threshold(stake_threshold: Percent) {
+        SubnetStakeThreshold::<T>::put(stake_threshold)
     }
 
     pub fn get_min_stake_global() -> u64 {

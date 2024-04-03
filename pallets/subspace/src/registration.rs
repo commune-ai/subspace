@@ -141,7 +141,7 @@ impl<T: Config> Pallet<T> {
         );
 
         // --- 10. Increment the number of registrations.
-        RegistrationsPerBlock::<T>::mutate(|val| *val += 1);
+        RegistrationsPerBlock::<T>::mutate(|val: &mut u16| *val += 1);
         RegistrationsThisInterval::<T>::mutate(netuid, |registrations| {
             *registrations = registrations.saturating_add(1);
         });

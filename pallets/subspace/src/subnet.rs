@@ -6,6 +6,7 @@ use frame_support::{
     pallet_prelude::DispatchResult, storage::IterableStorageMap, IterableStorageDoubleMap,
 };
 
+use sp_arithmetic::per_things::Percent;
 use sp_runtime::DispatchError;
 use sp_std::vec::Vec;
 use substrate_fixed::types::I64F64;
@@ -390,21 +391,27 @@ impl<T: Config> Pallet<T> {
         return keys.iter().map(|x| Self::get_balance_u64(x)).sum();
     }
 
-    pub fn calculate_network_emission(netuid: u16) -> u64 {
+    pub fn calculate_network_emission(netuid: u16, subnet_stake_threshold: Percent) -> u64 {
         let subnet_stake: I64F64 = I64F64::from_num(Self::get_total_subnet_stake(netuid));
-        let total_stake: I64F64 = I64F64::from_num(Self::total_stake());
+        let total_stake: I64F64 = Self::adjust_total_stake(subnet_stake_threshold);
 
         let subnet_ratio = if total_stake > I64F64::from_num(0) {
             subnet_stake / total_stake
         } else {
-            let n = TotalSubnets::<T>::get();
-            if n > 1 {
-                I64F64::from_num(1) / I64F64::from_num(n)
-            } else {
-                // n == 1
-                I64F64::from_num(1)
-            }
+            I64F64::from_num(0)
         };
+
+        // Convert subnet_stake_threshold from % to I64F64
+        let subnet_stake_threshold_i64f64 =
+            I64F64::from_num(subnet_stake_threshold.deconstruct()) / I64F64::from_num(100);
+
+        // Check if subnet_ratio meets the subnet_stake_threshold,
+        // or netuid is not the general subnet
+        if subnet_ratio < subnet_stake_threshold_i64f64 && netuid != 0 {
+            // Return early if the threshold is not met,
+            // this prevents emission gapping, of subnets that don't meet emission threshold
+            return 0;
+        }
 
         let total_emission_per_block: u64 = Self::get_total_emission_per_block();
         let token_emission: u64 =
@@ -415,8 +422,34 @@ impl<T: Config> Pallet<T> {
         token_emission
     }
 
-    pub fn get_subnet_emission(netuid: u16) -> u64 {
-        Self::calculate_network_emission(netuid)
+    // This is the total stake of the network without subnets that can not get emission
+    pub fn adjust_total_stake(subnet_stake_threshold: Percent) -> I64F64 {
+        let total_global_stake = I64F64::from_num(Self::total_stake());
+        if total_global_stake == 0 {
+            return I64F64::from_num(0);
+        }
+
+        let mut total_stake = I64F64::from_num(0);
+        let subnet_stake_threshold_i64f64 =
+            I64F64::from_num(subnet_stake_threshold.deconstruct()) / I64F64::from_num(100);
+
+        // Iterate over all subnets
+        for netuid in 0..TotalSubnets::<T>::get() {
+            let subnet_stake: I64F64 = I64F64::from_num(Self::get_total_subnet_stake(netuid));
+            if subnet_stake == 0 {
+                continue;
+            }
+
+            let subnet_ratio = subnet_stake / total_global_stake;
+            // Check if subnet_ratio meets the subnet_stake_threshold,
+            // or the netuid is the general subnet
+            if subnet_ratio >= subnet_stake_threshold_i64f64 || netuid == 0 {
+                // Add subnet_stake to total_stake if it meets the threshold
+                total_stake += subnet_stake;
+            }
+        }
+
+        total_stake
     }
 
     pub fn add_subnet(
@@ -496,11 +529,19 @@ impl<T: Config> Pallet<T> {
 
         // Remove consnesus vectors
         Weights::<T>::clear_prefix(netuid, u32::max_value(), None);
+
+        Active::<T>::remove(netuid);
+        Consensus::<T>::remove(netuid);
+        Dividends::<T>::remove(netuid);
         Emission::<T>::remove(netuid);
         Incentive::<T>::remove(netuid);
-        Dividends::<T>::remove(netuid);
-        Trust::<T>::remove(netuid);
         LastUpdate::<T>::remove(netuid);
+        PruningScores::<T>::remove(netuid);
+        Rank::<T>::remove(netuid);
+        Trust::<T>::remove(netuid);
+        ValidatorPermits::<T>::remove(netuid);
+        ValidatorTrust::<T>::remove(netuid);
+
         DelegationFee::<T>::clear_prefix(netuid, u32::max_value(), None);
         RegistrationBlock::<T>::clear_prefix(netuid, u32::max_value(), None);
 
@@ -617,9 +658,6 @@ impl<T: Config> Pallet<T> {
             .collect()
     }
 
-    // ========================
-    // ==== Global Setters ====
-    // ========================
     // TEMPO (MIN IS 100)
     pub fn set_tempo(netuid: u16, tempo: u16) {
         Tempo::<T>::insert(netuid, tempo.max(100));
@@ -660,7 +698,8 @@ impl<T: Config> Pallet<T> {
     #[cfg(debug_assertions)]
     pub fn get_burn_emission_per_epoch(netuid: u16) -> u64 {
         let burn_rate: u16 = BurnRate::<T>::get();
-        let epoch_emission: u64 = Self::get_subnet_emission(netuid);
+        let threshold: Percent = SubnetStakeThreshold::<T>::get();
+        let epoch_emission: u64 = Self::calculate_network_emission(netuid, threshold);
         let n: u16 = Self::get_subnet_n(netuid);
         // get the float and convert to u64
         if n == 0 {

@@ -53,10 +53,10 @@ impl<T: Config> Pallet<T> {
     }
 
     pub fn get_profit_share_emissions(
-        key: T::AccountId,
+        key: &T::AccountId,
         emission: u64,
     ) -> Vec<(T::AccountId, u64)> {
-        let profit_shares = ProfitShares::<T>::get(&key);
+        let profit_shares = ProfitShares::<T>::get(key);
 
         profit_shares
             .into_iter()
