@@ -53,8 +53,9 @@ fn test_burn() {
             let total_stake_after = SubspaceModule::get_total_subnet_stake(netuid);
             let subnet_params = SubspaceModule::subnet_params(netuid);
 
+            let threshold = SubspaceModule::get_subnet_stake_threshold();
             let expected_subnet_emission: u64 =
-                ((SubspaceModule::get_subnet_emission(netuid) as f64
+                ((SubspaceModule::calculate_network_emission(netuid, threshold) as f64
                     * (subnet_params.tempo as f64))
                     * (((100 - burn_rate) as f64) / 100.0)) as u64;
 

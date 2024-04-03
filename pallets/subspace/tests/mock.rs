@@ -289,6 +289,21 @@ pub fn add_stake_and_balance(netuid: u16, key: U256, amount: u64) {
     assert_ok!(result);
 }
 
-pub fn to_nano(x: u64) -> u64 {
+pub const fn to_nano(x: u64) -> u64 {
     x * 10u64.pow(TOKEN_DECIMALS)
+}
+
+pub const fn from_nano(x: u64) -> u64 {
+    x / 10u64.pow(TOKEN_DECIMALS)
+}
+
+pub fn round_first_five(num: u64) -> u64 {
+    let place_value = 10_u64.pow(num.to_string().len() as u32 - 5);
+    let first_five = num / place_value;
+
+    if first_five % 10 >= 5 {
+        (first_five / 10 + 1) * place_value * 10
+    } else {
+        (first_five / 10) * place_value * 10
+    }
 }

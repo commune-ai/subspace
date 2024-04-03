@@ -31,6 +31,9 @@ pub use autogen_weights::WeightInfo;
 #[cfg(test)]
 mod mock;
 
+#[cfg(debug_assertions)]
+pub use step::yuma;
+
 // =========================
 //	==== Pallet Imports =====
 // =========================
@@ -159,6 +162,81 @@ pub mod pallet {
     #[pallet::storage] // --- MAP ( key ) --> last_block
     pub(super) type LastTxBlock<T: Config> =
         StorageMap<_, Identity, T::AccountId, u64, ValueQuery, DefaultLastTxBlock<T>>;
+
+    #[pallet::type_value]
+    pub fn DefaultSubnetStakeThreshold<T: Config>() -> Percent {
+        Percent::from_percent(10)
+    }
+
+    #[pallet::storage]
+    pub type SubnetStakeThreshold<T> =
+        StorageValue<_, Percent, ValueQuery, DefaultSubnetStakeThreshold<T>>;
+
+    #[pallet::type_value]
+    pub fn DefaultKappa<T: Config>() -> u16 {
+        32_767 // This coresponds to 0,5 (majority of stake agreement)
+    }
+
+    #[pallet::storage]
+    pub type Kappa<T> = StorageValue<_, u16, ValueQuery, DefaultKappa<T>>;
+
+    #[pallet::type_value]
+    pub fn DefaultBonds<T: Config>() -> Vec<(u16, u16)> {
+        vec![]
+    }
+
+    #[pallet::storage] // --- DMAP ( netuid, uid ) --> bonds
+    pub(super) type Bonds<T: Config> = StorageDoubleMap<
+        _,
+        Identity,
+        u16,
+        Identity,
+        u16,
+        Vec<(u16, u16)>,
+        ValueQuery,
+        DefaultBonds<T>,
+    >;
+
+    #[pallet::type_value]
+    pub fn DefaultBondsMovingAverage<T: Config>() -> u64 {
+        900_000
+    }
+
+    #[pallet::storage] // --- MAP ( netuid ) --> bonds_moving_average
+    pub type BondsMovingAverage<T> =
+        StorageMap<_, Identity, u16, u64, ValueQuery, DefaultBondsMovingAverage<T>>;
+
+    #[pallet::storage] // --- DMAP ( netuid ) --> validator_permit
+    pub(super) type ValidatorPermits<T: Config> =
+        StorageMap<_, Identity, u16, Vec<bool>, ValueQuery, EmptyBoolVec<T>>;
+
+    #[pallet::storage] // --- DMAP ( netuid ) --> validator_trust
+    pub(super) type ValidatorTrust<T: Config> =
+        StorageMap<_, Identity, u16, Vec<u16>, ValueQuery, EmptyU16Vec<T>>;
+
+    #[pallet::storage] // --- DMAP ( netuid ) --> pruning_scores
+    pub(super) type PruningScores<T: Config> =
+        StorageMap<_, Identity, u16, Vec<u16>, ValueQuery, EmptyU16Vec<T>>;
+
+    #[pallet::type_value]
+    pub fn DefaultMaxAllowedValidators<T: Config>() -> Option<u16> {
+        None // Some(128)
+    }
+
+    #[pallet::storage] // --- MAP ( netuid ) --> max_allowed_validators
+    pub type MaxAllowedValidators<T> =
+        StorageMap<_, Identity, u16, Option<u16>, ValueQuery, DefaultMaxAllowedValidators<T>>;
+
+    #[pallet::storage] // --- DMAP ( netuid ) --> consensus
+    pub type Consensus<T: Config> =
+        StorageMap<_, Identity, u16, Vec<u16>, ValueQuery, EmptyU16Vec<T>>;
+
+    #[pallet::storage] // --- DMAP ( netuid ) --> active
+    pub type Active<T: Config> =
+        StorageMap<_, Identity, u16, Vec<bool>, ValueQuery, EmptyBoolVec<T>>;
+
+    #[pallet::storage] // --- DMAP ( netuid ) --> rank
+    pub type Rank<T: Config> = StorageMap<_, Identity, u16, Vec<u16>, ValueQuery, EmptyU16Vec<T>>;
 
     #[pallet::type_value]
     pub fn DefaultMaxNameLength<T: Config>() -> u16 {
@@ -304,6 +382,7 @@ pub mod pallet {
         pub vote_threshold: u16,   // out of 100
         pub vote_mode: Vec<u8>,    // out of 100
         pub nominator: T::AccountId,
+        pub subnet_stake_threshold: Percent,
     }
 
     impl<T: Config> core::fmt::Debug for GlobalParams<T>
@@ -327,6 +406,7 @@ pub mod pallet {
                 .field("min_stake", &self.min_stake)
                 .field("floor_delegation_fee", &self.floor_delegation_fee)
                 .field("min_weight_stake", &self.min_weight_stake)
+                .field("subnet_stake_threshold", &self.subnet_stake_threshold)
                 .field(
                     "target_registrations_per_interval",
                     &self.target_registrations_per_interval,
@@ -369,6 +449,7 @@ pub mod pallet {
             vote_threshold: DefaultVoteThreshold::<T>::get(),
             vote_mode: DefaultVoteMode::<T>::get(),
             nominator: DefaultNominator::<T>::get(),
+            subnet_stake_threshold: DefaultSubnetStakeThreshold::<T>::get(),
         }
     }
 
@@ -469,7 +550,7 @@ pub mod pallet {
 
     #[pallet::type_value]
     pub fn DefaultMaxWeightAge<T: Config>() -> u64 {
-        u64::MAX
+        15_000 // 15k blocks
     }
     #[pallet::storage] // --- MAP ( netuid ) --> min_allowed_weights
     pub type MaxWeightAge<T> =
@@ -766,16 +847,15 @@ pub mod pallet {
     // ==== Module Consensus Variables  ====
     // =======================================
     #[pallet::storage] // --- MAP ( netuid ) --> incentive
-    pub(super) type Incentive<T: Config> =
+    pub type Incentive<T: Config> =
         StorageMap<_, Identity, u16, Vec<u16>, ValueQuery, EmptyU16Vec<T>>;
     #[pallet::storage] // --- MAP ( netuid ) --> trust
-    pub(super) type Trust<T: Config> =
-        StorageMap<_, Identity, u16, Vec<u16>, ValueQuery, EmptyU16Vec<T>>;
+    pub type Trust<T: Config> = StorageMap<_, Identity, u16, Vec<u16>, ValueQuery, EmptyU16Vec<T>>;
     #[pallet::storage] // --- MAP ( netuid ) --> dividends
-    pub(super) type Dividends<T: Config> =
+    pub type Dividends<T: Config> =
         StorageMap<_, Identity, u16, Vec<u16>, ValueQuery, EmptyU16Vec<T>>;
     #[pallet::storage] // --- MAP ( netuid ) --> emission
-    pub(super) type Emission<T: Config> =
+    pub type Emission<T: Config> =
         StorageMap<_, Identity, u16, Vec<u64>, ValueQuery, EmptyU64Vec<T>>;
     #[pallet::storage] // --- MAP ( netuid ) --> last_update
     pub(super) type LastUpdate<T: Config> =
@@ -1283,6 +1363,7 @@ pub mod pallet {
             target_registrations_per_interval: u16,
             target_registrations_interval: u16,
             nominator: T::AccountId,
+            subnet_stake_threshold: Percent,
         ) -> DispatchResult {
             let mut params = Self::global_params();
 
@@ -1305,6 +1386,7 @@ pub mod pallet {
             params.target_registrations_per_interval = target_registrations_per_interval;
             params.target_registrations_interval = target_registrations_interval;
             params.nominator = nominator;
+            params.subnet_stake_threshold = subnet_stake_threshold;
 
             // Check if the parameters are valid
             Self::check_global_params(&params)?;

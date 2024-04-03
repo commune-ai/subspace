@@ -6,6 +6,7 @@ resolver = "2"
 panic = "unwind"
 
 [workspace.dependencies]
+bty = { version = "0.1.0", default-features = false }
 clap = "4.4.6"
 futures = "0.3.21"
 jsonrpsee = "0.16.2"

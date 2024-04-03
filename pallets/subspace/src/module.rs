@@ -153,28 +153,56 @@ impl<T: Config> Pallet<T> {
         Keys::<T>::remove(netuid, replace_uid); // Remove key - uid association.
 
         // pop frm incentive vector and push to new key
-        let mut incentive: Vec<u16> = Incentive::<T>::get(netuid);
-        let mut dividends: Vec<u16> = Dividends::<T>::get(netuid);
-        let mut last_update: Vec<u64> = LastUpdate::<T>::get(netuid);
-        let mut emission: Vec<u64> = Emission::<T>::get(netuid);
+        let mut active = Active::<T>::get(netuid);
+        let mut consensus = Consensus::<T>::get(netuid);
+        let mut dividends = Dividends::<T>::get(netuid);
+        let mut emission = Emission::<T>::get(netuid);
+        let mut incentive = Incentive::<T>::get(netuid);
+        let mut last_update = LastUpdate::<T>::get(netuid);
+        let mut pruning_scores = PruningScores::<T>::get(netuid);
+        let mut rank = Rank::<T>::get(netuid);
+        let mut trust = Trust::<T>::get(netuid);
+        let mut validator_permit = ValidatorPermits::<T>::get(netuid);
+        let mut validator_trust = ValidatorTrust::<T>::get(netuid);
 
         // swap consensus vectors
-        incentive[uid as usize] = incentive[replace_uid as usize];
+        active[uid as usize] = active[replace_uid as usize];
+        consensus[uid as usize] = consensus[replace_uid as usize];
         dividends[uid as usize] = dividends[replace_uid as usize];
         emission[uid as usize] = emission[replace_uid as usize];
+        incentive[uid as usize] = incentive[replace_uid as usize];
         last_update[uid as usize] = last_update[replace_uid as usize];
+        pruning_scores[uid as usize] = pruning_scores[replace_uid as usize];
+        rank[uid as usize] = rank[replace_uid as usize];
+        trust[uid as usize] = trust[replace_uid as usize];
+        validator_permit[uid as usize] = validator_permit[replace_uid as usize];
+        validator_trust[uid as usize] = validator_trust[replace_uid as usize];
 
         // pop the last element (which is now a duplicate)
-        incentive.pop();
+        active.pop();
+        consensus.pop();
         dividends.pop();
         emission.pop();
+        incentive.pop();
         last_update.pop();
+        pruning_scores.pop();
+        rank.pop();
+        trust.pop();
+        validator_permit.pop();
+        validator_trust.pop();
 
         // update the vectors
-        Incentive::<T>::insert(netuid, incentive); // Make uid - key association.
-        Dividends::<T>::insert(netuid, dividends); // Make uid - key association.
-        Emission::<T>::insert(netuid, emission); // Make uid - key association.
-        LastUpdate::<T>::insert(netuid, last_update); // Make uid - key association.
+        Active::<T>::insert(netuid, active);
+        Consensus::<T>::insert(netuid, consensus);
+        Dividends::<T>::insert(netuid, dividends);
+        Emission::<T>::insert(netuid, emission);
+        Incentive::<T>::insert(netuid, incentive);
+        LastUpdate::<T>::insert(netuid, last_update);
+        PruningScores::<T>::insert(netuid, pruning_scores);
+        Rank::<T>::insert(netuid, rank);
+        Trust::<T>::insert(netuid, trust);
+        ValidatorPermits::<T>::insert(netuid, validator_permit);
+        ValidatorTrust::<T>::insert(netuid, validator_trust);
 
         // SWAP WEIGHTS
         Weights::<T>::insert(netuid, uid, Weights::<T>::get(netuid, replace_uid)); // Make uid - key association.
@@ -236,13 +264,21 @@ impl<T: Config> Pallet<T> {
         Uids::<T>::insert(netuid, key, uid); // Make uid - key association.
         RegistrationBlock::<T>::insert(netuid, uid, block_number); // Fill block at registration.
 
-        N::<T>::mutate(netuid, |n| *n += 1); // Increase the number of modules in the network.
-
-        // 4. Expand with new position.
+        // 4. Expand consensus parameters with new position.
+        Active::<T>::append(netuid, true);
+        Consensus::<T>::append(netuid, 0);
         Emission::<T>::append(netuid, 0);
         Incentive::<T>::append(netuid, 0);
         Dividends::<T>::append(netuid, 0);
         LastUpdate::<T>::append(netuid, block_number);
+        PruningScores::<T>::append(netuid, 0);
+        Rank::<T>::append(netuid, 0);
+        Trust::<T>::append(netuid, 0);
+        ValidatorPermits::<T>::append(netuid, false);
+        ValidatorTrust::<T>::append(netuid, 0);
+
+        // 5. Increase the number of modules in the network.
+        N::<T>::mutate(netuid, |n| *n += 1);
 
         // increase the stake of the new key
         Self::increase_stake(netuid, key, key, 0);

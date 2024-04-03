@@ -66,6 +66,14 @@ pub mod v2 {
                 // udpate
                 for netuid in 0..=largest_netuid {
                     Burn::<T>::insert(netuid, old_burn);
+
+                    Active::<T>::mutate(netuid, |v| v.push(true));
+                    Consensus::<T>::mutate(netuid, |v| v.push(0));
+                    PruningScores::<T>::mutate(netuid, |v| v.push(0));
+                    Rank::<T>::mutate(netuid, |v| v.push(0));
+                    Trust::<T>::mutate(netuid, |v| v.push(0));
+                    ValidatorPermits::<T>::mutate(netuid, |v| v.push(false));
+                    ValidatorTrust::<T>::mutate(netuid, |v| v.push(0));
                 }
 
                 StorageVersion::new(2).put::<Pallet<T>>();

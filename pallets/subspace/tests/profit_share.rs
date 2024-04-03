@@ -67,7 +67,6 @@ fn test_add_profit_share() {
         info!("miner stake after: {miner_stake:?}");
         info!("voter stake after: {voter_stake:?}");
 
-        let _emission_for_subnet = SubspaceModule::get_subnet_emission(netuid);
         let profit_share_emissions = SubspaceModule::get_profit_shares(miner_key);
         info!("profit share emissions: {profit_share_emissions:?}");
 
