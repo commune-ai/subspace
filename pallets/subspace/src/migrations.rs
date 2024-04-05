@@ -89,7 +89,7 @@ pub mod v2 {
                     ValidatorTrust::<T>::mutate(netuid, |v| v.push(0));
                 }
 
-                StorageVersion::new(6).put::<Pallet<T>>();
+                StorageVersion::new(2).put::<Pallet<T>>();
                 log::info!("Migrated subnets to v2");
                 T::DbWeight::get().writes(largest_netuid as u64)
             } else {
