@@ -56,6 +56,8 @@ pub mod v2 {
 
             // Migrate Burn to v2
             if on_chain_version == 1 {
+                // Query for the threshold of stake that subnet needs to have
+                let subnet_stake_threshold = SubnetStakeThreshold::<T>::get();
                 // Here we will just use the lower bound of the burn
                 let old_burn = Pallet::<T>::global_params().min_burn;
 
@@ -66,6 +68,17 @@ pub mod v2 {
                 // udpate
                 for netuid in 0..=largest_netuid {
                     Burn::<T>::insert(netuid, old_burn);
+                    // update the emission that are below the threshold
+                    let emission_for_netuid =
+                        Pallet::<T>::calculate_network_emission(netuid, subnet_stake_threshold);
+                    // empty out the module emissin on that subnet, as their epoch won't run, we
+                    // don't want to confuse the user querying for the storage
+                    if emission_for_netuid == 0 {
+                        let name_count = Name::<T>::iter_prefix(netuid).count();
+                        let new_emission = vec![0; name_count];
+                        Emission::<T>::insert(netuid, new_emission);
+                    }
+                    SubnetEmission::<T>::insert(netuid, emission_for_netuid);
 
                     Active::<T>::mutate(netuid, |v| v.push(true));
                     Consensus::<T>::mutate(netuid, |v| v.push(0));
@@ -76,11 +89,11 @@ pub mod v2 {
                     ValidatorTrust::<T>::mutate(netuid, |v| v.push(0));
                 }
 
-                StorageVersion::new(2).put::<Pallet<T>>();
-                log::info!("Migrated Burn to v2");
+                StorageVersion::new(6).put::<Pallet<T>>();
+                log::info!("Migrated subnets to v2");
                 T::DbWeight::get().writes(largest_netuid as u64)
             } else {
-                log::info!("Burn already updated");
+                log::info!("Subnets already updated");
                 Weight::zero()
             }
         }

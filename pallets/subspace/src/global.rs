@@ -55,6 +55,15 @@ impl<T: Config> Pallet<T> {
             Error::<T>::InvalidMinDelegationFee
         );
 
+        // we can not increase the stake threshold without a migration
+        // that would mean that subnets that are getting emission would have to get them erased to 0
+        ensure!(
+            params.subnet_stake_threshold.deconstruct() <= 100
+                && params.subnet_stake_threshold.deconstruct()
+                    <= old_params.subnet_stake_threshold.deconstruct(),
+            Error::<T>::InvalidSubnetStakeThreshold
+        );
+
         ensure!(
             params.max_allowed_subnets > 0,
             Error::<T>::InvalidMaxAllowedSubnets
