@@ -1071,6 +1071,7 @@ pub mod pallet {
         InvalidMaxAllowedWeights,
         InvalidMinStake,
         InvalidMinDelegationFee,
+        InvalidSubnetStakeThreshold,
 
         InvalidMaxNameLength,
         InvalidMinNameLenght,
