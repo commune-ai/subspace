@@ -1,5 +1,3 @@
-use crate::voting::{AUTHORITY_MODE, STAKE_MODE};
-
 use super::*;
 
 use frame_support::{
@@ -38,10 +36,6 @@ impl<T: Config> Pallet<T> {
         let key = ensure_signed(origin)?;
         // only the founder can update the network on authority mode
 
-        ensure!(
-            Self::get_vote_mode_subnet(netuid) == AUTHORITY_MODE,
-            Error::<T>::NotAuthorityMode
-        );
         ensure!(
             Self::if_subnet_netuid_exists(netuid),
             Error::<T>::SubnetNameAlreadyExists
@@ -110,10 +104,6 @@ impl<T: Config> Pallet<T> {
         ensure!(params.trust_ratio <= 100, Error::<T>::InvalidTrustRatio);
 
         // ensure the vode_mode is in "authority", "stake"
-        ensure!(
-            params.vote_mode.clone() == AUTHORITY_MODE || params.vote_mode.clone() == STAKE_MODE,
-            Error::<T>::InvalidVoteMode
-        );
         Ok(())
     }
 
@@ -128,8 +118,6 @@ impl<T: Config> Pallet<T> {
             min_stake: MinStake::<T>::get(netuid),
             tempo: Tempo::<T>::get(netuid),
             name: <Vec<u8>>::new(),
-            vote_threshold: VoteThresholdSubnet::<T>::get(netuid),
-            vote_mode: VoteModeSubnet::<T>::get(netuid),
             trust_ratio: TrustRatio::<T>::get(netuid),
             founder_share: FounderShare::<T>::get(netuid),
             incentive_ratio: IncentiveRatio::<T>::get(netuid),
@@ -152,8 +140,6 @@ impl<T: Config> Pallet<T> {
         Self::set_min_stake(netuid, params.min_stake);
         Self::set_name_subnet(netuid, params.name);
         Self::set_trust_ratio(netuid, params.trust_ratio);
-        Self::set_vote_threshold_subnet(netuid, params.vote_threshold);
-        Self::set_vote_mode_subnet(netuid, params.vote_mode);
         Self::set_incentive_ratio(netuid, params.incentive_ratio);
     }
 
@@ -416,7 +402,6 @@ impl<T: Config> Pallet<T> {
         Tempo::<T>::remove(netuid);
         TrustRatio::<T>::remove(netuid);
         VoteModeSubnet::<T>::remove(netuid);
-        VoteThresholdSubnet::<T>::remove(netuid);
 
         // Adjust the total number of subnets. and remove the subnet from the list of subnets.
         N::<T>::remove(netuid);
@@ -482,20 +467,6 @@ impl<T: Config> Pallet<T> {
     #[cfg(debug_assertions)]
     pub fn get_stake_for_uid(netuid: u16, module_uid: u16) -> u64 {
         Self::get_stake_for_key(netuid, &Self::get_key_for_uid(netuid, module_uid))
-    }
-
-    // we need to prefix the voting power by the network uid
-
-    pub fn set_vote_threshold_subnet(netuid: u16, vote_threshold: u16) {
-        VoteThresholdSubnet::<T>::insert(netuid, vote_threshold);
-    }
-
-    pub fn get_vote_mode_subnet(netuid: u16) -> Vec<u8> {
-        VoteModeSubnet::<T>::get(netuid)
-    }
-
-    pub fn set_vote_mode_subnet(netuid: u16, vote_mode: Vec<u8>) {
-        VoteModeSubnet::<T>::insert(netuid, vote_mode);
     }
 
     pub fn get_stake_for_key(netuid: u16, key: &T::AccountId) -> u64 {
