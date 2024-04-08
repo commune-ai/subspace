@@ -4,6 +4,8 @@
 
 use frame_system::{self as system, ensure_signed};
 pub use pallet::*;
+use scale_info::TypeInfo;
+use sp_std::collections::btree_map::BTreeMap;
 
 // export the migrations here
 pub mod migrations;
@@ -17,7 +19,6 @@ use frame_support::{
 
 use codec::{Decode, Encode};
 use frame_support::sp_runtime::transaction_validity::ValidTransaction;
-use scale_info::TypeInfo;
 use sp_runtime::{
     traits::{DispatchInfoOf, Dispatchable, PostDispatchInfoOf, SignedExtension},
     transaction_validity::{TransactionValidity, TransactionValidityError},
@@ -115,14 +116,6 @@ pub mod pallet {
     }
     #[pallet::storage] // --- ITEM ( unit_emission )
     pub(super) type UnitEmission<T> = StorageValue<_, u64, ValueQuery, DefaultUnitEmission<T>>;
-
-    #[pallet::type_value]
-    pub fn DefaultTxRateLimit<T: Config>() -> u64 {
-        1
-    }
-    #[pallet::storage] // --- ITEM ( tx_rate_limit )
-    pub(super) type TxRateLimit<T> = StorageValue<_, u64, ValueQuery, DefaultTxRateLimit<T>>;
-    // FIXME: NOT IN USE
 
     #[pallet::type_value]
     pub fn DefaultBurnRate<T: Config>() -> u16 {
@@ -285,7 +278,6 @@ pub mod pallet {
         pub max_allowed_modules: u16,         // max number of modules allowed per subnet
         pub max_registrations_per_block: u16, // max number of registrations per block
         pub max_allowed_weights: u16,         // max number of weights per module
-        pub max_proposals: u64,               // max number of proposals per block
 
         // mins
         pub min_burn: u64,                 // min burn required
@@ -300,9 +292,11 @@ pub mod pallet {
                                                      * registration interval */
         pub adjustment_alpha: u64, // adjustment alpha
         pub unit_emission: u64,    // emission per block
-        pub tx_rate_limit: u64,    // tx rate limit
-        pub vote_threshold: u16,   // out of 100
-        pub vote_mode: Vec<u8>,    // out of 100
+
+        // porposals
+        pub proposal_cost: u64,
+        pub proposal_expiration: u32,
+        pub proposal_participation_threshold: Percent,
     }
 
     #[pallet::type_value]
@@ -316,7 +310,6 @@ pub mod pallet {
             target_registrations_per_interval: DefaultTargetRegistrationsPerInterval::<T>::get(),
             target_registrations_interval: DefaultTargetRegistrationsInterval::<T>::get(),
             max_name_length: DefaultMaxNameLength::<T>::get(),
-            max_proposals: DefaultMaxProposals::<T>::get(),
             min_burn: DefaultMinBurn::<T>::get(),
             max_burn: DefaultMaxBurn::<T>::get(),
             min_stake: DefaultMinStakeGlobal::<T>::get(),
@@ -324,9 +317,9 @@ pub mod pallet {
             min_weight_stake: DefaultMinWeightStake::<T>::get(),
             adjustment_alpha: DefaultAdjustmentAlpha::<T>::get(),
             unit_emission: DefaultUnitEmission::<T>::get(),
-            tx_rate_limit: DefaultTxRateLimit::<T>::get(),
-            vote_threshold: DefaultVoteThreshold::<T>::get(),
-            vote_mode: DefaultVoteMode::<T>::get(),
+            proposal_cost: DefaultProposalCost::<T>::get(),
+            proposal_expiration: DefaultProposalExpiration::<T>::get(),
+            proposal_participation_threshold: DefaultProposalParticipationThreshold::<T>::get(),
         }
     }
 
@@ -355,8 +348,6 @@ pub mod pallet {
         pub name: Vec<u8>,
         pub tempo: u16, // how many blocks to wait before rewarding models
         pub trust_ratio: u16,
-        pub vote_threshold: u16, // out of 100
-        pub vote_mode: Vec<u8>,
     }
 
     #[pallet::type_value]
@@ -370,8 +361,6 @@ pub mod pallet {
             max_allowed_uids: DefaultMaxAllowedUids::<T>::get(),
             max_weight_age: DefaultMaxWeightAge::<T>::get(),
             max_stake: DefaultMaxStake::<T>::get(),
-            vote_threshold: DefaultVoteThreshold::<T>::get(),
-            vote_mode: DefaultVoteMode::<T>::get(),
             trust_ratio: DefaultTrustRatio::<T>::get(),
             founder_share: DefaultFounderShare::<T>::get(),
             incentive_ratio: DefaultIncentiveRatio::<T>::get(),
@@ -479,55 +468,10 @@ pub mod pallet {
     #[pallet::storage] // --- MAP ( netuid ) --> epoch
     pub type TrustRatio<T> = StorageMap<_, Identity, u16, u16, ValueQuery, DefaultTrustRatio<T>>;
 
-    #[pallet::type_value]
-    pub fn DefaultQuadraticVoting<T: Config>() -> bool {
-        false
-    }
-    #[pallet::storage] // --- MAP ( netuid ) --> epoch
-    pub type QuadraticVoting<T> =
-        StorageMap<_, Identity, u16, bool, ValueQuery, DefaultQuadraticVoting<T>>;
-
     // =======================================
     // ==== Voting  ====
     // =======================================
 
-    #[derive(Decode, Encode, PartialEq, Eq, Clone, Debug, TypeInfo)]
-    pub struct VoterInfo {
-        // --- parameters
-        pub proposal_id: u64,
-        pub votes: u64,
-        pub participant_index: u16,
-    }
-
-    #[pallet::type_value]
-    pub fn DefaultVoterInfo<T: Config>() -> VoterInfo {
-        VoterInfo {
-            proposal_id: u64::MAX,
-            votes: 0,
-            participant_index: u16::MAX,
-        }
-    }
-    #[pallet::storage] // --- MAP ( netuid ) --> epoch
-    pub type Voter2Info<T: Config> =
-        StorageMap<_, Identity, T::AccountId, VoterInfo, ValueQuery, DefaultVoterInfo<T>>;
-
-    pub fn DefaultVoteStake<T: Config>() -> u64 {
-        0
-    } // out of 100
-
-    // VOTING THRESHOOLD
-    #[pallet::type_value]
-    pub fn DefaultVoteThreshold<T: Config>() -> u16 {
-        50
-    } // out of 100
-    #[pallet::storage] // --- MAP ( netuid ) --> epoch
-    pub type VoteThresholdSubnet<T> =
-        StorageMap<_, Identity, u16, u16, ValueQuery, DefaultVoteThreshold<T>>;
-    #[pallet::storage] // --- MAP ( netuid ) --> epoch
-    pub type GlobalVoteThreshold<T> = StorageValue<_, u16, ValueQuery, DefaultVoteThreshold<T>>;
-
-    // VOTING MODE
-    // OPTIONS -> [stake, authority, quadratic]
     #[pallet::type_value]
     pub fn DefaultVoteMode<T: Config>() -> Vec<u8> {
         "authority".as_bytes().to_vec()
@@ -535,8 +479,6 @@ pub mod pallet {
     #[pallet::storage] // --- MAP ( netuid ) --> epoch
     pub type VoteModeSubnet<T> =
         StorageMap<_, Identity, u16, Vec<u8>, ValueQuery, DefaultVoteMode<T>>;
-    #[pallet::storage] // --- MAP ( netuid ) --> epoch
-    pub type VoteModeGlobal<T> = StorageValue<_, Vec<u8>, ValueQuery, DefaultVoteMode<T>>;
 
     #[derive(Decode, Encode, PartialEq, Eq, Clone, Debug, TypeInfo)]
     pub struct SubnetInfo<T: Config> {
@@ -648,7 +590,6 @@ pub mod pallet {
     >;
 
     // STATE OF THE MODULE
-
     #[pallet::type_value]
     pub fn DefaultBlockAtRegistration<T: Config>() -> u64 {
         0
@@ -723,7 +664,6 @@ pub mod pallet {
         StorageMap<_, Identity, T::AccountId, Vec<(T::AccountId, u64)>, ValueQuery>;
 
     // PROFIT SHARE VARIABLES
-
     #[pallet::type_value]
     pub fn DefaultProfitShares<T: Config>() -> Vec<(T::AccountId, u16)> {
         vec![]
@@ -812,7 +752,6 @@ pub mod pallet {
                                            * information is added to the network. */
         DelegateAdded(T::AccountId, T::AccountId, u16), /* --- Event created to signal a key
                                                          * has become a delegate. */
-        TxRateLimitSet(u64), // --- Event created when setting the transaction rate limit.
         UnitEmissionSet(u64), // --- Event created when setting the unit emission
         MaxNameLengthSet(u16), // --- Event created when setting the maximum network name length
         MaxAllowedSubnetsSet(u16), // --- Event created when setting the maximum allowed subnets
@@ -877,9 +816,7 @@ pub mod pallet {
         MaxAllowedUidsExceeded, /* --- Thrown when number of accounts going to be registered
                           * exceed MaxAllowedUids for the network. */
         TooManyUids, /* ---- Thrown when the caller attempts to set weights with more uids than
-                      * allowed. */
-        TxRateLimitExceeded, /* --- Thrown when a transactor exceeds the rate limit for
-                              * transactions. */
+                      * are allowed. */
         InvalidMaxAllowedUids, /* --- Thrown when the user tries to set max allowed uids to a
                                 * value less than the current number of registered uids. */
         SubnetNameAlreadyExists,
@@ -928,9 +865,7 @@ pub mod pallet {
         InvalidMaxRegistrationsPerBlock,
         InvalidTargetRegistrationsInterval,
         InvalidVoteThreshold,
-        InvalidMaxProposals,
         InvalidUnitEmission,
-        InvalidTxRateLimit,
         InvalidBurnRate,
         InvalidMinBurn,
         InvalidMaxBurn,
@@ -945,9 +880,6 @@ pub mod pallet {
         InvalidVoteMode,
         InvalidMaxWeightAge,
         InvalidMaxStake,
-
-        AlreadyControlled,
-        AlreadyController,
     }
 
     // ==================
@@ -993,8 +925,6 @@ pub mod pallet {
                     min_stake: subnet.7,
                     founder: subnet.8.clone(),
                     max_stake: default_params.max_stake,
-                    vote_threshold: default_params.vote_threshold,
-                    vote_mode: default_params.vote_mode.clone(),
                     trust_ratio: default_params.trust_ratio,
                     founder_share: default_params.founder_share,
                     incentive_ratio: default_params.incentive_ratio,
@@ -1023,48 +953,79 @@ pub mod pallet {
         }
     }
 
-    // ========================================================
-    // ==== Voting System to Update Global and Subnet  ====
-    // ========================================================
-    #[derive(Decode, Encode, PartialEq, Eq, Clone, Debug, TypeInfo)]
-    #[scale_info(skip_type_params(T))]
-    pub struct Proposal<T: Config> {
-        // --- parameters
-        pub subnet_params: SubnetParams<T>,
-        pub global_params: GlobalParams,
-        pub netuid: u16, // FOR SUBNET PROPOSAL ONLY
-        pub votes: u64,
-        pub participants: Vec<T::AccountId>,
-        pub accepted: bool,
-        pub data: Vec<u8>, // for custom proposal
-        pub mode: Vec<u8>, // "global", "subnet", "custom"
-    }
+    // ==================
+    // ==== Proposals ===
+    // ==================
+
+    // Global Parameters of proposals
 
     #[pallet::type_value]
-    pub fn DefaultProposal<T: Config>() -> Proposal<T> {
-        Proposal {
-            global_params: DefaultGlobalParams::<T>::get(),
-            subnet_params: DefaultSubnetParams::<T>::get(),
-            votes: 0,
-            netuid: 0,
-            participants: vec![],
-            accepted: false,
-            mode: vec![],
-            data: vec![],
+    pub fn DefaultProposalCost<T: Config>() -> u64 {
+        100_000_000_000 // 100 $COMAI
+    }
+
+    #[pallet::storage]
+    pub(super) type ProposalCost<T: Config> =
+        StorageValue<_, u64, ValueQuery, DefaultProposalCost<T>>;
+
+    #[pallet::type_value]
+    pub fn DefaultProposalExpiration<T: Config>() -> u32 {
+        32_000 // Aprox 3 days
+    }
+
+    #[pallet::storage]
+    pub(super) type ProposalExpiration<T: Config> =
+        StorageValue<_, u32, ValueQuery, DefaultProposalExpiration<T>>;
+
+    #[pallet::type_value]
+    pub fn DefaultProposalParticipationThreshold<T: Config>() -> Percent {
+        Percent::from_percent(50)
+    }
+
+    #[pallet::storage]
+    pub(super) type ProposalParticipationThreshold<T: Config> =
+        StorageValue<_, Percent, ValueQuery, DefaultProposalParticipationThreshold<T>>;
+
+    // Proposal Storages
+    #[derive(Clone, Encode, Decode, Default, scale_info::TypeInfo)]
+    #[scale_info(skip_type_params(T))]
+    pub struct Proposal<T: Config> {
+        pub id: u64,
+        pub proposer: T::AccountId,
+        pub data: ProposalData<T>,
+        pub proposal_status: ProposalStatus,
+        pub votes_for: BTreeMap<T::AccountId, u64>, // account, stake
+        pub votes_against: BTreeMap<T::AccountId, u64>, // account, stake
+    }
+
+    #[derive(Clone, Encode, Decode, Default, scale_info::TypeInfo)]
+    pub enum ProposalStatus {
+        #[default]
+        Pending,
+        Accepted,
+        Refused,
+    }
+
+    #[derive(Clone, Encode, Decode, scale_info::TypeInfo)]
+    #[scale_info(skip_type_params(T))]
+    pub enum ProposalData<T: Config> {
+        Custom(Vec<u8>),
+        GlobalParams(GlobalParams),
+        SubnetParams {
+            netuid: u16,
+            params: SubnetParams<T>,
+        },
+    }
+
+    impl<T: Config> Default for ProposalData<T> {
+        fn default() -> Self {
+            ProposalData::Custom(Vec::new())
         }
     }
 
-    #[pallet::storage] // --- MAP ( global_proposal_id ) --> global_update_proposal
-    pub(super) type Proposals<T: Config> =
-        StorageMap<_, Identity, u64, Proposal<T>, ValueQuery, DefaultProposal<T>>;
-
-    #[pallet::type_value]
-    pub fn DefaultMaxProposals<T: Config>() -> u64 {
-        128
-    }
     #[pallet::storage]
-    pub(super) type MaxProposals<T: Config> =
-        StorageValue<_, u64, ValueQuery, DefaultMaxProposals<T>>;
+    #[pallet::getter(fn proposals)]
+    pub(super) type Proposals<T: Config> = StorageMap<_, Twox64Concat, u64, Proposal<T>>;
 
     // ================
     // ==== Hooks =====
@@ -1073,15 +1034,6 @@ pub mod pallet {
     #[pallet::hooks]
     impl<T: Config> Hooks<BlockNumberFor<T>> for Pallet<T> {
         // ---- Called on the initialization of this pallet. (the order of on_finalize calls is
-        // determined in the runtime)
-        //
-        // # Args:
-        // 	* 'n': (T::BlockNumber):
-        // 		- The number of the block we are initializing.
-        // fn on_runtime_upgrade() -> frame_support::weights::Weight {
-        // 	migration::on_runtime_upgrade::<T>()
-        // }
-
         fn on_initialize(_block_number: BlockNumberFor<T>) -> Weight {
             Self::block_step();
 
@@ -1221,37 +1173,28 @@ pub mod pallet {
             max_allowed_modules: u16,
             max_allowed_subnets: u16,
             max_name_length: u16,
-            max_proposals: u64,
             max_registrations_per_block: u16,
             min_burn: u64,
             max_burn: u64,
             min_stake: u64,
             min_weight_stake: u64,
-            tx_rate_limit: u64,
             unit_emission: u64,
-            vote_mode: Vec<u8>,
-            vote_threshold: u16,
             adjustment_alpha: u64,
             floor_delegation_fee: Percent,
             target_registrations_per_interval: u16,
             target_registrations_interval: u16,
         ) -> DispatchResult {
             let mut params = Self::global_params();
-
             params.burn_rate = burn_rate;
             params.max_allowed_modules = max_allowed_modules;
             params.max_allowed_subnets = max_allowed_subnets;
             params.max_name_length = max_name_length;
-            params.max_proposals = max_proposals;
             params.max_registrations_per_block = max_registrations_per_block;
             params.min_burn = min_burn;
             params.max_burn = max_burn;
             params.min_stake = min_stake;
             params.min_weight_stake = min_weight_stake;
-            params.tx_rate_limit = tx_rate_limit;
             params.unit_emission = unit_emission;
-            params.vote_mode = vote_mode;
-            params.vote_threshold = vote_threshold;
             params.adjustment_alpha = adjustment_alpha;
             params.floor_delegation_fee = floor_delegation_fee;
             params.target_registrations_per_interval = target_registrations_per_interval;
@@ -1262,43 +1205,6 @@ pub mod pallet {
 
             // if so update them
             Self::do_update_global(origin, params)
-        }
-
-        #[pallet::weight((Weight::zero(), DispatchClass::Normal, Pays::No))]
-        pub fn add_global_proposal(
-            origin: OriginFor<T>,
-            // params
-            burn_rate: u16,
-            max_name_length: u16,
-            max_allowed_subnets: u16,
-            max_allowed_modules: u16,
-            max_proposals: u64,
-            max_registrations_per_block: u16,
-            min_burn: u64,
-            min_stake: u64,
-            min_weight_stake: u64,
-            unit_emission: u64,
-            tx_rate_limit: u64,
-            vote_threshold: u16,
-            vote_mode: Vec<u8>,
-        ) -> DispatchResult {
-            let mut params = Self::global_params();
-
-            params.burn_rate = burn_rate;
-            params.max_allowed_modules = max_allowed_modules;
-            params.max_allowed_subnets = max_allowed_subnets;
-            params.max_name_length = max_name_length;
-            params.max_proposals = max_proposals;
-            params.max_registrations_per_block = max_registrations_per_block;
-            params.min_burn = min_burn;
-            params.min_stake = min_stake;
-            params.min_weight_stake = min_weight_stake;
-            params.tx_rate_limit = tx_rate_limit;
-            params.unit_emission = unit_emission;
-            params.vote_mode = vote_mode;
-            params.vote_threshold = vote_threshold;
-
-            Self::do_add_global_proposal(origin, params)
         }
 
         #[pallet::weight((Weight::zero(), DispatchClass::Normal, Pays::No))]
@@ -1319,8 +1225,6 @@ pub mod pallet {
             name: Vec<u8>,
             tempo: u16,
             trust_ratio: u16,
-            vote_mode: Vec<u8>,
-            vote_threshold: u16,
         ) -> DispatchResult {
             let mut params = Self::subnet_params(netuid);
             params.founder = founder;
@@ -1336,8 +1240,6 @@ pub mod pallet {
             params.name = name;
             params.tempo = tempo;
             params.trust_ratio = trust_ratio;
-            params.vote_mode = vote_mode;
-            params.vote_threshold = vote_threshold;
 
             // Check if subnet parameters are valid
             Self::check_subnet_params(params.clone())?;
@@ -1346,10 +1248,40 @@ pub mod pallet {
             Self::do_update_subnet(origin, netuid, params)
         }
 
+        // Proposal Calls
+        #[pallet::weight((Weight::zero(), DispatchClass::Normal, Pays::No))]
+        pub fn add_global_proposal(
+            origin: OriginFor<T>,
+            // params
+            burn_rate: u16,
+            max_name_length: u16,
+            max_allowed_subnets: u16,
+            max_allowed_modules: u16,
+            max_registrations_per_block: u16,
+            min_burn: u64,
+            min_stake: u64,
+            min_weight_stake: u64,
+            unit_emission: u64,
+        ) -> DispatchResult {
+            let mut params = Self::global_params();
+
+            params.burn_rate = burn_rate;
+            params.max_allowed_modules = max_allowed_modules;
+            params.max_allowed_subnets = max_allowed_subnets;
+            params.max_name_length = max_name_length;
+            params.max_registrations_per_block = max_registrations_per_block;
+            params.min_burn = min_burn;
+            params.min_stake = min_stake;
+            params.min_weight_stake = min_weight_stake;
+            params.unit_emission = unit_emission;
+
+            Self::do_add_global_proposal(origin, params)
+        }
+
         #[pallet::weight((Weight::zero(), DispatchClass::Normal, Pays::No))]
         pub fn add_subnet_proposal(
             origin: OriginFor<T>,
-            netuid: u16, // FOR SUBNET PROPOSAL ONLY
+            netuid: u16,
             founder: T::AccountId,
             founder_share: u16,
             immunity_period: u16,
@@ -1363,10 +1295,9 @@ pub mod pallet {
             name: Vec<u8>,
             tempo: u16,
             trust_ratio: u16,
-            vote_mode: Vec<u8>,
-            vote_threshold: u16,
         ) -> DispatchResult {
             let mut params = Self::subnet_params(netuid);
+
             params.founder = founder;
             params.founder_share = founder_share;
             params.immunity_period = immunity_period;
@@ -1380,8 +1311,6 @@ pub mod pallet {
             params.name = name;
             params.tempo = tempo;
             params.trust_ratio = trust_ratio;
-            params.vote_mode = vote_mode;
-            params.vote_threshold = vote_threshold;
 
             Self::do_add_subnet_proposal(origin, netuid, params)
         }

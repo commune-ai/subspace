@@ -112,9 +112,6 @@ impl<T: Config> Pallet<T> {
         // T::AccountId key information.
         let key = ensure_signed(origin)?;
 
-        // --- 1. Ensure we don't exceed tx rate limit
-        // ensure!( !Self::exceeds_tx_rate_limit(&key), Error::<T>::TxRateLimitExceeded);
-
         ensure!(
             Self::is_registered(netuid, &module_key.clone()),
             Error::<T>::NotRegistered
@@ -171,9 +168,6 @@ impl<T: Config> Pallet<T> {
             Self::is_registered(netuid, &module_key.clone()),
             Error::<T>::NotRegistered
         );
-
-        // --- 6. Ensure we don't exceed tx rate limit
-        // ensure!( !Self::exceeds_tx_rate_limit(&key), Error::<T>::TxRateLimitExceeded );
 
         // --- 5. Ensure that we can conver this u64 to a balance.
         ensure!(
