@@ -1336,8 +1336,8 @@ pub mod pallet {
         }
 
         #[pallet::weight((Weight::zero(), DispatchClass::Normal, Pays::No))]
-        pub fn unvote_proposal(origin: OriginFor<T>) -> DispatchResult {
-            Self::do_unregister_vote(origin)
+        pub fn unvote_proposal(origin: OriginFor<T>, proposal_id: u64) -> DispatchResult {
+            Self::do_unregister_vote(origin, proposal_id)
         }
     }
 

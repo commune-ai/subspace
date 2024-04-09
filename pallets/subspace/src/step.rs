@@ -510,70 +510,20 @@ impl<T: Config> Pallet<T> {
         }
     }
 
-    pub fn resolve_proposals(block_number: u64) {
-        let proposals = Proposals::<T>::iter();
-        for (proposal_id, proposal) in proposals {
-            if proposal.proposal_status == ProposalStatus::Pending {
-                let netuid = match &proposal.data {
-                    ProposalData::SubnetParams { netuid, .. } => Some(*netuid),
-                    _ => None,
-                };
-
-                let (votes_for_stake, votes_against_stake) = proposal
-                    .votes_for
-                    .iter()
-                    .chain(proposal.votes_against.iter())
-                    .fold((0, 0), |(votes_for_stake, votes_against_stake), voter| {
-                        let stake = Self::get_account_stake(voter, netuid);
-                        if proposal.votes_for.contains(voter) {
-                            (votes_for_stake + stake, votes_against_stake)
-                        } else {
-                            (votes_for_stake, votes_against_stake + stake)
-                        }
-                    });
-
-                let total_stake = votes_for_stake + votes_against_stake;
-                let minimal_stake_to_execute = Self::get_minimal_stake_to_execute(netuid);
-                let is_approved = votes_for_stake >= votes_against_stake;
-
-                if total_stake >= minimal_stake_to_execute {
-                    // use the result to check for err
-                    Self::execute_proposal(proposal_id, is_approved);
-                } else if block_number >= proposal.expiration_block {
-                    Proposals::<T>::remove(&proposal_id);
-                }
-            }
-        }
-    }
-
     // gets the overall stake value for a given account_id,
     // if netuid is present only the specific subnet will be used
     pub fn get_account_stake(account_id: &T::AccountId, netuid: Option<u16>) -> u64 {
-        let mut total_stake = 0;
         match netuid {
             Some(specific_netuid) => {
-                let stake_entries = StakeTo::<T>::get(specific_netuid, account_id);
-                // Sum up the stake for each module_key for the specific netuid
-                for (_, stake) in stake_entries {
-                    total_stake += stake;
-                }
+                StakeTo::<T>::get(specific_netuid, account_id).into_values().sum()
             }
             None => {
                 let total_networks: u16 = TotalSubnets::<T>::get();
-                // Iterate through the range of possible netuid values
-                for netuid in 0..=total_networks {
-                    let stake_entries = StakeTo::<T>::get(netuid, account_id);
-                    // Sum up the stake for each module_key
-                    for (_, stake) in stake_entries {
-                        total_stake += stake;
-                    }
-                    // Exit early if total_stake is greater than zero
-                    if total_stake > 0 {
-                        break;
-                    }
-                }
+                (0..total_networks)
+                    .filter_map(|netuid| StakeTo::<T>::try_get(netuid, account_id).ok())
+                    .flat_map(|entries| entries.into_values())
+                    .sum()
             }
         }
-        total_stake
     }
 }
