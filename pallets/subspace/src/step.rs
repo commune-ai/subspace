@@ -14,6 +14,12 @@ impl<T: Config> Pallet<T> {
         // adjust registrations parameters
         Self::adjust_registration(block_number, registration_this_interval);
 
+        // execute proposals if any,
+        // this is done every 100 blocks (the proposal expiration can only be in 100ths)
+        if block_number % 100 == 0 {
+            Self::resolve_proposals(block_number);
+        }
+
         log::debug!("block_step for block: {:?} ", block_number);
         for (netuid, tempo) in <Tempo<T> as IterableStorageMap<u16, u16>>::iter() {
             let new_queued_emission: u64 = Self::calculate_network_emission(netuid);
@@ -503,5 +509,75 @@ impl<T: Config> Pallet<T> {
         } else {
             next_value.to_num::<u64>()
         }
+    }
+
+    pub fn resolve_proposals(block_number: u64) {
+        let proposals = Proposals::<T>::iter();
+
+        for (proposal_id, proposal) in proposals {
+            if proposal.proposal_status == ProposalStatus::Pending {
+                let mut votes_for_stake = 0;
+                let mut votes_against_stake = 0;
+
+                // Determine the netuid based on the proposal data
+                let netuid = match &proposal.data {
+                    ProposalData::SubnetParams { netuid, .. } => Some(*netuid),
+                    _ => None,
+                };
+
+                // Calculate the total stake of votes_for
+                for voter in &proposal.votes_for {
+                    let stake = Self::get_account_stake(voter, netuid);
+                    votes_for_stake += stake;
+                }
+
+                // Calculate the total stake of votes_against
+                for voter in &proposal.votes_against {
+                    let stake = Self::get_account_stake(voter, netuid);
+                    votes_against_stake += stake;
+                }
+
+                let total_stake = votes_for_stake + votes_against_stake;
+                let minimal_stake_to_execute = Self::get_minimal_stake_to_execute(netuid);
+
+                if total_stake >= minimal_stake_to_execute {
+                    // Execute the proposal
+                    Self::execute_proposal(proposal_id);
+                } else if block_number >= proposal.expiration_block {
+                    // Clear the proposal if it has expired and the total stake is less than the
+                    // minimal stake to execute
+                    Proposals::<T>::remove(&proposal_id);
+                }
+            }
+        }
+    }
+
+    // gets all of the stake of account, on all netuids
+    fn get_account_stake(account_id: &T::AccountId, netuid: Option<u16>) -> u64 {
+        let mut total_stake = 0;
+
+        match netuid {
+            Some(specific_netuid) => {
+                let stake_entries = StakeTo::<T>::get(specific_netuid, account_id);
+                // Sum up the stake for each module_key for the specific netuid
+                for (_, stake) in stake_entries {
+                    total_stake += stake;
+                }
+            }
+            None => {
+                // Iterate through all netuid values in the StakeTo storage
+                for (netuid, account, _) in StakeTo::<T>::iter() {
+                    if account == *account_id {
+                        let stake_entries = StakeTo::<T>::get(netuid, account_id);
+                        // Sum up the stake for each module_key
+                        for (_, stake) in stake_entries {
+                            total_stake += stake;
+                        }
+                    }
+                }
+            }
+        }
+
+        total_stake
     }
 }

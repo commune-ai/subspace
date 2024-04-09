@@ -89,6 +89,18 @@ impl<T: Config> Pallet<T> {
             Error::<T>::InvalidMaxBurn
         );
 
+        // Proposal checks
+        ensure!(params.proposal_cost > 0, Error::<T>::InvalidProposalCost);
+
+        ensure!(
+            params.proposal_expiration % 100 == 0, // for computational reasons
+            Error::<T>::InvalidProposalExpiration
+        );
+        ensure!(
+            params.proposal_participation_threshold.deconstruct() <= 100,
+            Error::<T>::InvalidProposalParticipationThreshold
+        );
+
         Ok(())
     }
 
