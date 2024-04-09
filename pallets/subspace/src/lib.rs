@@ -757,12 +757,17 @@ pub mod pallet {
         MaxAllowedModulesSet(u16), // --- Event created when setting the maximum allowed modules
         MaxRegistrationsPerBlockSet(u16), // --- Event created when we set max registrations
         target_registrations_intervalSet(u16), // --- Event created when we set target registrations
-        GlobalParamsUpdated(GlobalParams), // --- Event created when global parameters are updated
-        SubnetParamsUpdated(u16), // --- Event created when subnet parameters are updated
-        GlobalProposalAccepted(u64), // (id)
-        CustomProposalAccepted(u64), // (id)
-        SubnetProposalAccepted(u64, u16), // (id, netuid)
         RegistrationBurnChanged(u64),
+
+        //voting
+        ProposalCreated(u64), // id of the proposal
+        ProposalVoted(u64, T::AccountId, bool), // (id, voter, vote)
+        ProposalVoteUnregistered(u64, T::AccountId), // (id, voter)
+        GlobalParamsUpdated(GlobalParams), // --- Event created when global parameters are updated
+        SubnetParamsUpdated(u16),          // --- Event created when subnet parameters are updated
+        GlobalProposalAccepted(u64),       // (id)
+        CustomProposalAccepted(u64),       // (id)
+        SubnetProposalAccepted(u64, u16),  // (id, netuid)
     }
 
     // Errors inform users that something went wrong.
