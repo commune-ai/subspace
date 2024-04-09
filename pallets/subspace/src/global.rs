@@ -29,8 +29,8 @@ impl<T: Config> Pallet<T> {
             proposal_cost: Self::get_proposal_cost(), // denominated in $COMAI
             proposal_expiration: Self::get_proposal_expiration(), /* denominated in the number of
                                                        * blocks */
-            proposal_participation_threshold: Self::proposal_participation_threshold(), /* denominated
-                                                                                        in percent of the overall network stake */
+            proposal_participation_threshold: Self::get_proposal_participation_threshold(), /* denominated
+                                                                                            in percent of the overall network stake */
         }
     }
 
@@ -177,6 +177,8 @@ impl<T: Config> Pallet<T> {
         BurnRate::<T>::put(burn_rate.min(100));
     }
 
+    // Proposals
+
     pub fn set_proposal_cost(proposal_cost: u64) {
         ProposalCost::<T>::put(proposal_cost);
     }
@@ -197,7 +199,7 @@ impl<T: Config> Pallet<T> {
         ProposalParticipationThreshold::<T>::put(proposal_participation_threshold);
     }
 
-    pub fn proposal_participation_threshold() -> Percent {
+    pub fn get_proposal_participation_threshold() -> Percent {
         ProposalParticipationThreshold::<T>::get()
     }
 

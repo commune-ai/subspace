@@ -1,5 +1,6 @@
 use super::*;
 use frame_support::pallet_prelude::{Decode, DispatchResult, Encode};
+use sp_std::collections::btree_map::BTreeMap;
 
 extern crate alloc;
 use alloc::vec::Vec;
@@ -10,8 +11,8 @@ use sp_arithmetic::per_things::Percent;
 pub struct ModuleStats<T: Config> {
     pub last_update: u64,
     pub registration_block: u64,
-    pub stake_from: Vec<(T::AccountId, u64)>, /* map of key to stake on this module/key *
-                                               * (includes delegations) */
+    pub stake_from: BTreeMap<T::AccountId, u64>, /* map of key to stake on this module/key *
+                                                  * (includes delegations) */
     pub emission: u64,
     pub incentive: u16,
     pub dividends: u16,
@@ -227,7 +228,6 @@ impl<T: Config> Pallet<T> {
 
         uid
     }
-
     pub fn get_module_stats(netuid: u16, uid: u16) -> ModuleStats<T> {
         let key = Self::get_key_for_uid(netuid, uid);
         let emission = Self::get_emission_for_uid(netuid, uid);
@@ -239,7 +239,8 @@ impl<T: Config> Pallet<T> {
             .iter()
             .filter_map(|(i, w)| if *w > 0 { Some((*i, *w)) } else { None })
             .collect();
-        let stake_from: Vec<(T::AccountId, u64)> = StakeFrom::<T>::get(netuid, key);
+        let stake_from: BTreeMap<T::AccountId, u64> = StakeFrom::<T>::get(netuid, key);
+
         let registration_block = Self::get_registration_block_for_uid(netuid, uid);
 
         ModuleStats {

@@ -12,6 +12,26 @@ impl<T: Config> StorageInstance for Pallet<T> {
 
     const STORAGE_PREFIX: &'static str = "Subspace";
 }
+// TODO:
+
+/*
+
+# Migrate
+StakeTo and StakeFrom
+
+pub type StakeTo<T: Config> = StorageDoubleMap<
+    _,
+    Identity,
+    u16,
+    Identity,
+    T::AccountId,
+    BTreeMap<T::AccountId, u64>,
+    ValueQuery,
+>;
+
+where we used `BTreeMap<T::AccountId, u64>,` instead of `Vec<(T::AccountId, u64)>`
+
+*/
 
 pub mod v1 {
     use super::*;
