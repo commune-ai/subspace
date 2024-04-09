@@ -48,6 +48,7 @@ impl<T: Config> Pallet<T> {
             ExistenceRequirement::KeepAlive,
         )?;
 
+        Event::<T>::ProposalCreated(proposal_id);
         Ok(())
     }
 
@@ -141,17 +142,17 @@ impl<T: Config> Pallet<T> {
         ensure!(voter_stake > 0, Error::<T>::InsufficientStake);
 
         // Update the proposal based on the vote
-        if agree {
-            proposal.votes_for.insert(key);
-        } else {
-            proposal.votes_against.insert(key);
-        }
+        match agree {
+            true => proposal.votes_for.insert(key.clone()),
+            false => proposal.votes_against.insert(key.clone()),
+        };
 
         // Update the proposal in storage
         Proposals::<T>::insert(&proposal_id, proposal);
-
+        Event::<T>::ProposalVoted(proposal_id, key, agree);
         Ok(())
     }
+
     // Unregister the vote on a proposal
     // Unregister the vote on a proposal
     pub fn do_unregister_vote(origin: T::RuntimeOrigin, proposal_id: u64) -> DispatchResult {
@@ -175,7 +176,7 @@ impl<T: Config> Pallet<T> {
 
         // Update the proposal in storage
         Proposals::<T>::insert(&proposal_id, proposal);
-
+        Event::<T>::ProposalVoteUnregistered(proposal_id, key);
         Ok(())
     }
 
