@@ -41,9 +41,9 @@ impl<T: Config> Pallet<T> {
         Proposals::<T>::insert(proposal_id, proposal);
 
         // Burn the proposal cost from the proposer's balance
-        T::Currency::withdraw(
+        let _ = T::Currency::withdraw(
             &key,
-            stake_amount.into(),
+            Self::u64_to_balance(stake_amount).unwrap(),
             WithdrawReasons::TRANSFER,
             ExistenceRequirement::KeepAlive,
         )?;
@@ -86,7 +86,7 @@ impl<T: Config> Pallet<T> {
         let key = ensure_signed(origin)?;
         // TODO: Luiz pls change the data type of the subnet vote mode to enum
         // make sure that vote mode is authority, if not throw an error
-        let vote_mode = VoteModeSubnet::<T>::get(netuid);
+        let _vote_mode = VoteModeSubnet::<T>::get(netuid);
         /*
                 #[pallet::type_value]
         pub fn DefaultVoteMode<T: Config>() -> Vec<u8> {
@@ -111,14 +111,10 @@ impl<T: Config> Pallet<T> {
     ) -> DispatchResult {
         let key = ensure_signed(origin)?;
 
-        // Check if the proposal exists
-        ensure!(
-            Proposals::<T>::contains_key(&proposal_id),
-            Error::<T>::ProposalNotFound
-        );
-
         // Get the proposal from storage
-        let mut proposal = Proposals::<T>::get(&proposal_id);
+        let Ok(mut proposal) = Proposals::<T>::try_get(&proposal_id) else {
+            return Err(Error::<T>::ProposalNotFound.into());
+        };
 
         // Check if the proposal is in a valid state for voting
         ensure!(
@@ -134,12 +130,11 @@ impl<T: Config> Pallet<T> {
 
         // Get the netuid from the proposal data
         let netuid = match &proposal.data {
-            ProposalData::SubnetParams { netuid, .. } => Some(netuid),
+            ProposalData::SubnetParams { netuid, .. } => Some(*netuid),
             _ => None,
         };
 
         // Get the voter's stake
-
         let voter_stake = Self::get_account_stake(&key, netuid);
 
         // Check if the voter has non-zero stake
@@ -147,9 +142,9 @@ impl<T: Config> Pallet<T> {
 
         // Update the proposal based on the vote
         if agree {
-            proposal.votes_for.insert(key.clone());
+            proposal.votes_for.insert(key);
         } else {
-            proposal.votes_against.insert(key.clone());
+            proposal.votes_against.insert(key);
         }
 
         // Update the proposal in storage
@@ -162,14 +157,10 @@ impl<T: Config> Pallet<T> {
     pub fn do_unregister_vote(origin: T::RuntimeOrigin, proposal_id: u64) -> DispatchResult {
         let key = ensure_signed(origin)?;
 
-        // Check if the proposal exists
-        ensure!(
-            Proposals::<T>::contains_key(&proposal_id),
-            Error::<T>::ProposalNotFound
-        );
-
         // Get the proposal from storage
-        let mut proposal = Proposals::<T>::get(&proposal_id);
+        let Ok(mut proposal) = Proposals::<T>::try_get(&proposal_id) else {
+            return Err(Error::<T>::ProposalNotFound.into());
+        };
 
         // Check if the proposal is in a valid state for unregistering a vote
         ensure!(
@@ -177,18 +168,10 @@ impl<T: Config> Pallet<T> {
             Error::<T>::InvalidProposalStatus
         );
 
-        // Check if the voter has actually voted on the proposal
-        ensure!(
-            proposal.votes_for.contains(&key) || proposal.votes_against.contains(&key),
-            Error::<T>::VoteNotFound
-        );
+        let removed = proposal.votes_for.remove(&key) || proposal.votes_against.remove(&key);
 
-        // Remove the voter's vote from the proposal
-        if proposal.votes_for.contains(&key) {
-            proposal.votes_for.remove(&key);
-        } else if proposal.votes_against.contains(&key) {
-            proposal.votes_against.remove(&key);
-        }
+        // Check if the voter has actually voted on the proposal
+        ensure!(removed, Error::<T>::VoteNotFound);
 
         // Update the proposal in storage
         Proposals::<T>::insert(&proposal_id, proposal);
@@ -196,10 +179,39 @@ impl<T: Config> Pallet<T> {
         Ok(())
     }
 
-    pub fn execute_proposal(proposal_id: u64, is_approved: bool) -> DispatchResult {
-        // Get the proposal from storage
-        let mut proposal = Proposals::<T>::get(proposal_id).ok_or(Error::<T>::ProposalNotFound)?;
+    pub(crate) fn resolve_proposals(block_number: u64) {
+        for (proposal_id, proposal) in Proposals::<T>::iter() {
+            if !matches!(proposal.proposal_status, ProposalStatus::Pending) {
+                continue;
+            }
 
+            let netuid = match &proposal.data {
+                ProposalData::SubnetParams { netuid, .. } => Some(*netuid),
+                _ => None,
+            };
+
+            let votes_for: u64 =
+                proposal.votes_for.iter().map(|id| Self::get_account_stake(id, netuid)).sum();
+            let votes_against: u64 = proposal
+                .votes_against
+                .iter()
+                .map(|id| Self::get_account_stake(id, netuid))
+                .sum();
+
+            let total_stake = votes_for + votes_against;
+            let minimal_stake_to_execute = Self::get_minimal_stake_to_execute(netuid);
+            let is_approved = votes_for >= votes_against;
+
+            if total_stake > minimal_stake_to_execute {
+                // use the result to check for err
+                Self::execute_proposal(proposal, is_approved);
+            } else if block_number >= proposal.expiration_block {
+                Proposals::<T>::remove(&proposal_id);
+            }
+        }
+    }
+
+    fn execute_proposal(mut proposal: Proposal<T>, is_approved: bool) {
         // Update the proposal status based on the approval
         proposal.proposal_status = if is_approved {
             ProposalStatus::Accepted
@@ -208,31 +220,29 @@ impl<T: Config> Pallet<T> {
         };
 
         // Perform actions based on the proposal data type
-        match proposal.data {
+        match &proposal.data {
             ProposalData::Custom(_) => {
                 // No specific action needed for custom proposals
                 // The owners will handle the off-chain logic
             }
             ProposalData::GlobalParams(params) => {
                 // Update the global parameters
-                Self::set_global_params(params);
+                Self::set_global_params(params.clone());
 
                 // Emit the GlobalParamsUpdated event
-                Self::deposit_event(Event::GlobalParamsUpdated(params));
+                Self::deposit_event(Event::GlobalParamsUpdated(params.clone()));
             }
             ProposalData::SubnetParams { netuid, params } => {
                 // Update the subnet parameters
-                Self::set_subnet_params(netuid, params);
+                Self::set_subnet_params(*netuid, params.clone());
 
                 // Emit the SubnetParamsUpdated event
-                Self::deposit_event(Event::SubnetParamsUpdated(netuid));
+                Self::deposit_event(Event::SubnetParamsUpdated(*netuid));
             }
         }
 
         // Update the proposal in storage
-        Proposals::<T>::insert(proposal_id, proposal);
-
-        Ok(())
+        Proposals::<T>::insert(proposal.id, proposal);
     }
 
     // returns how much stake is needed to execute a proposal
