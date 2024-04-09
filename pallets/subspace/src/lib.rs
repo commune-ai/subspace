@@ -5,7 +5,6 @@
 use frame_system::{self as system, ensure_signed};
 pub use pallet::*;
 use scale_info::TypeInfo;
-use sp_std::collections::btree_map::BTreeMap;
 
 // export the migrations here
 pub mod migrations;
@@ -872,12 +871,16 @@ pub mod pallet {
 
         // VOTING
         ProposalDoesNotExist,
-        VotingPowerIsZero,
         InvalidProposalData,
         ProposalDataTooLarge,
         VoterIsNotRegistered,
         VoterIsRegistered,
         InvalidVoteMode,
+        InvalidProposalCost,
+        InvalidProposalExpiration,
+        InvalidProposalParticipationThreshold,
+
+        // Other
         InvalidMaxWeightAge,
         InvalidMaxStake,
     }
@@ -992,13 +995,14 @@ pub mod pallet {
     pub struct Proposal<T: Config> {
         pub id: u64,
         pub proposer: T::AccountId,
+        pub expiration_block: u64,
         pub data: ProposalData<T>,
         pub proposal_status: ProposalStatus,
-        pub votes_for: BTreeMap<T::AccountId, u64>, // account, stake
-        pub votes_against: BTreeMap<T::AccountId, u64>, // account, stake
+        pub votes_for: Vec<T::AccountId>,     // account addresses
+        pub votes_against: Vec<T::AccountId>, // account addresses
     }
 
-    #[derive(Clone, Encode, Decode, Default, scale_info::TypeInfo)]
+    #[derive(Clone, Encode, Decode, Default, scale_info::TypeInfo, PartialEq)]
     pub enum ProposalStatus {
         #[default]
         Pending,
@@ -1327,7 +1331,7 @@ pub mod pallet {
 
         #[pallet::weight((Weight::zero(), DispatchClass::Normal, Pays::No))]
         pub fn unvote_proposal(origin: OriginFor<T>) -> DispatchResult {
-            Self::do_unregister_voter(origin)
+            Self::do_unregister_vote(origin)
         }
     }
 
