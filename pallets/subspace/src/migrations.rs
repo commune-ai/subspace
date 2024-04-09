@@ -64,3 +64,69 @@ pub mod v1 {
         }
     }
 }
+
+pub mod v2 {
+    use super::*;
+
+    pub mod old_storage {
+        use super::*;
+        use frame_support::{pallet_prelude::ValueQuery, storage_alias, Identity};
+
+        type AccountId<T> = <T as frame_system::Config>::AccountId;
+
+        #[storage_alias]
+        pub(super) type StakeFrom<T: Config> = StorageDoubleMap<
+            Pallet<T>,
+            Identity,
+            u16,
+            Identity,
+            AccountId<T>,
+            Vec<(AccountId<T>, u64)>,
+            ValueQuery,
+        >;
+
+        #[storage_alias]
+        pub(super) type StakeTo<T: Config> = StorageDoubleMap<
+            Pallet<T>,
+            Identity,
+            u16,
+            Identity,
+            AccountId<T>,
+            Vec<(AccountId<T>, u64)>,
+            ValueQuery,
+        >;
+    }
+
+    pub struct MigrateToV2<T>(sp_std::marker::PhantomData<T>);
+
+    impl<T: Config> OnRuntimeUpgrade for MigrateToV2<T> {
+        fn on_runtime_upgrade() -> Weight {
+            let on_chain_version = StorageVersion::get::<Pallet<T>>();
+
+            if on_chain_version == 1 {
+                // Migrate StakeFrom storage
+                for (netuid, module_key, stake_from) in old_storage::StakeFrom::<T>::iter() {
+                    let new_stake_from: BTreeMap<T::AccountId, u64> =
+                        stake_from.into_iter().collect();
+                    StakeFrom::<T>::insert(netuid, module_key, new_stake_from);
+                }
+
+                // Migrate StakeTo storage
+                for (netuid, account_id, stake_to) in old_storage::StakeTo::<T>::iter() {
+                    let new_stake_to: BTreeMap<T::AccountId, u64> = stake_to.into_iter().collect();
+                    StakeTo::<T>::insert(netuid, account_id, new_stake_to);
+                }
+
+                // Update the storage version to 2
+                StorageVersion::new(2).put::<Pallet<T>>();
+                log::info!("Migrated StakeFrom and StakeTo to v2");
+
+                // Return the appropriate weight for the migration
+                T::DbWeight::get().reads_writes(1, 1)
+            } else {
+                log::info!("StakeFrom and StakeTo are already updated to v2");
+                Weight::zero()
+            }
+        }
+    }
+}
