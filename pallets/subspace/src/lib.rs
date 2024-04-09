@@ -971,7 +971,7 @@ pub mod pallet {
 
     #[pallet::type_value]
     pub fn DefaultProposalCost<T: Config>() -> u64 {
-        100_000_000_000 // 100 $COMAI
+        1_000_000_000_000 // 1000 $COMAI, the value is returned if the proosal passes
     }
 
     #[pallet::storage]
