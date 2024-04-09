@@ -5,7 +5,7 @@
 use frame_system::{self as system, ensure_signed};
 pub use pallet::*;
 use scale_info::TypeInfo;
-
+use sp_std::collections::{btree_map::BTreeMap, btree_set::BTreeSet};
 // export the migrations here
 pub mod migrations;
 
@@ -633,7 +633,7 @@ pub mod pallet {
         u16,
         Identity,
         T::AccountId,
-        Vec<(T::AccountId, u64)>,
+        BTreeMap<T::AccountId, u64>,
         ValueQuery,
     >;
 
@@ -644,7 +644,7 @@ pub mod pallet {
         u16,
         Identity,
         T::AccountId,
-        Vec<(T::AccountId, u64)>,
+        BTreeMap<T::AccountId, u64>,
         ValueQuery,
     >;
 
@@ -870,15 +870,17 @@ pub mod pallet {
         InvalidMaxBurn,
 
         // VOTING
-        ProposalDoesNotExist,
+        ProposalNotFound,
+        InvalidProposalStatus,
         InvalidProposalData,
+        AlreadyVoted,
         ProposalDataTooLarge,
-        VoterIsNotRegistered,
-        VoterIsRegistered,
         InvalidVoteMode,
         InvalidProposalCost,
         InvalidProposalExpiration,
         InvalidProposalParticipationThreshold,
+        InsufficientStake,
+        VoteNotFound,
 
         // Other
         InvalidMaxWeightAge,
@@ -998,8 +1000,8 @@ pub mod pallet {
         pub expiration_block: u64,
         pub data: ProposalData<T>,
         pub proposal_status: ProposalStatus,
-        pub votes_for: Vec<T::AccountId>,     // account addresses
-        pub votes_against: Vec<T::AccountId>, // account addresses
+        pub votes_for: BTreeSet<T::AccountId>, // account addresses
+        pub votes_against: BTreeSet<T::AccountId>, // account addresses
     }
 
     #[derive(Clone, Encode, Decode, Default, scale_info::TypeInfo, PartialEq)]
@@ -1325,8 +1327,12 @@ pub mod pallet {
         }
 
         #[pallet::weight((Weight::zero(), DispatchClass::Normal, Pays::No))]
-        pub fn vote_proposal(origin: OriginFor<T>, proposal_id: u64) -> DispatchResult {
-            Self::do_vote_proposal(origin, proposal_id)
+        pub fn vote_proposal(
+            origin: OriginFor<T>,
+            proposal_id: u64,
+            agree: bool,
+        ) -> DispatchResult {
+            Self::do_vote_proposal(origin, proposal_id, agree)
         }
 
         #[pallet::weight((Weight::zero(), DispatchClass::Normal, Pays::No))]

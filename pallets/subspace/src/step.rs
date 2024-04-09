@@ -416,8 +416,7 @@ impl<T: Config> Pallet<T> {
         netuid: u16,
         module_key: &T::AccountId,
     ) -> Vec<(T::AccountId, I64F64)> {
-        let stake_from_vector: Vec<(T::AccountId, u64)> =
-            Self::get_stake_from_vector(netuid, module_key);
+        let stake_from_vector = Self::get_stake_from_vector(netuid, module_key);
         let _uid = Self::get_uid_for_key(netuid, module_key);
         let mut total_stake_from: I64F64 = I64F64::from_num(0);
 
@@ -513,49 +512,44 @@ impl<T: Config> Pallet<T> {
 
     pub fn resolve_proposals(block_number: u64) {
         let proposals = Proposals::<T>::iter();
-
         for (proposal_id, proposal) in proposals {
             if proposal.proposal_status == ProposalStatus::Pending {
-                let mut votes_for_stake = 0;
-                let mut votes_against_stake = 0;
-
-                // Determine the netuid based on the proposal data
                 let netuid = match &proposal.data {
                     ProposalData::SubnetParams { netuid, .. } => Some(*netuid),
                     _ => None,
                 };
 
-                // Calculate the total stake of votes_for
-                for voter in &proposal.votes_for {
-                    let stake = Self::get_account_stake(voter, netuid);
-                    votes_for_stake += stake;
-                }
-
-                // Calculate the total stake of votes_against
-                for voter in &proposal.votes_against {
-                    let stake = Self::get_account_stake(voter, netuid);
-                    votes_against_stake += stake;
-                }
+                let (votes_for_stake, votes_against_stake) = proposal
+                    .votes_for
+                    .iter()
+                    .chain(proposal.votes_against.iter())
+                    .fold((0, 0), |(votes_for_stake, votes_against_stake), voter| {
+                        let stake = Self::get_account_stake(voter, netuid);
+                        if proposal.votes_for.contains(voter) {
+                            (votes_for_stake + stake, votes_against_stake)
+                        } else {
+                            (votes_for_stake, votes_against_stake + stake)
+                        }
+                    });
 
                 let total_stake = votes_for_stake + votes_against_stake;
                 let minimal_stake_to_execute = Self::get_minimal_stake_to_execute(netuid);
+                let is_approved = votes_for_stake >= votes_against_stake;
 
                 if total_stake >= minimal_stake_to_execute {
-                    // Execute the proposal
-                    Self::execute_proposal(proposal_id);
+                    // use the result to check for err
+                    Self::execute_proposal(proposal_id, is_approved);
                 } else if block_number >= proposal.expiration_block {
-                    // Clear the proposal if it has expired and the total stake is less than the
-                    // minimal stake to execute
                     Proposals::<T>::remove(&proposal_id);
                 }
             }
         }
     }
 
-    // gets all of the stake of account, on all netuids
-    fn get_account_stake(account_id: &T::AccountId, netuid: Option<u16>) -> u64 {
+    // gets the overall stake value for a given account_id,
+    // if netuid is present only the specific subnet will be used
+    pub fn get_account_stake(account_id: &T::AccountId, netuid: Option<u16>) -> u64 {
         let mut total_stake = 0;
-
         match netuid {
             Some(specific_netuid) => {
                 let stake_entries = StakeTo::<T>::get(specific_netuid, account_id);
@@ -565,19 +559,21 @@ impl<T: Config> Pallet<T> {
                 }
             }
             None => {
-                // Iterate through all netuid values in the StakeTo storage
-                for (netuid, account, _) in StakeTo::<T>::iter() {
-                    if account == *account_id {
-                        let stake_entries = StakeTo::<T>::get(netuid, account_id);
-                        // Sum up the stake for each module_key
-                        for (_, stake) in stake_entries {
-                            total_stake += stake;
-                        }
+                let total_networks: u16 = TotalSubnets::<T>::get();
+                // Iterate through the range of possible netuid values
+                for netuid in 0..=total_networks {
+                    let stake_entries = StakeTo::<T>::get(netuid, account_id);
+                    // Sum up the stake for each module_key
+                    for (_, stake) in stake_entries {
+                        total_stake += stake;
+                    }
+                    // Exit early if total_stake is greater than zero
+                    if total_stake > 0 {
+                        break;
                     }
                 }
             }
         }
-
         total_stake
     }
 }

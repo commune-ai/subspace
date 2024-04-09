@@ -5,7 +5,7 @@ use scale_info::TypeInfo;
 use serde::{Deserialize, Serialize};
 use sp_arithmetic::per_things::Percent;
 use sp_runtime::{
-    sp_std::prelude::Vec,
+    sp_std::{collections::btree_map::BTreeMap, prelude::Vec},
     traits::{IdentifyAccount, Verify},
     MultiSignature,
 };
@@ -14,11 +14,12 @@ type Signature = MultiSignature;
 pub type AccountId = <<Signature as Verify>::Signer as IdentifyAccount>::AccountId;
 
 #[derive(Decode, Encode, PartialEq, Eq, Clone, Debug, TypeInfo, Serialize, Deserialize)]
-pub struct ModuleStats {
+pub struct ModuleStats<T: IdentifyAccount<AccountId = AccountId>> {
     pub last_update: u64,
     pub registration_block: u64,
-    pub stake_from: Vec<(AccountId, u64)>, /* map of key to stake on this module/key * (includes
-                                            * delegations) */
+    pub stake_from: BTreeMap<T::AccountId, u64>, /* map of key to stake on this module/key *
+                                                  * (includes
+                                                  * delegations) */
     pub emission: u64,
     pub incentive: u16,
     pub dividends: u16,
@@ -34,9 +35,9 @@ pub struct ModuleParams {
 }
 
 #[derive(Decode, Encode, PartialEq, Eq, Clone, Debug, TypeInfo, Serialize, Deserialize)]
-pub struct ModuleInfo {
+pub struct ModuleInfo<T: IdentifyAccount<AccountId = AccountId>> {
     pub params: ModuleParams,
-    pub stats: ModuleStats,
+    pub stats: ModuleStats<T>,
 }
 
 // sp_api::decl_runtime_apis! {
@@ -48,10 +49,8 @@ pub struct ModuleInfo {
 // }
 
 sp_api::decl_runtime_apis! {
-    pub trait SubspaceRuntimeApi
-    {
+    pub trait SubspaceRuntimeApi<T: IdentifyAccount<AccountId = AccountId>> {
         fn get_burn_rate() -> u16;
-
-        fn get_module_info(key: AccountId, netuid: u16) -> ModuleInfo;
+        fn get_module_info(key: T::AccountId, netuid: u16) -> ModuleInfo<T>;
     }
 }
