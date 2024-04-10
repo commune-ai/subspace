@@ -884,7 +884,6 @@ pub mod pallet {
         InvalidProposalStatus,
         InvalidProposalData,
         AlreadyVoted,
-        ProposalDataTooLarge,
         InvalidVoteMode,
         InvalidProposalCost,
         InvalidProposalExpiration,
@@ -894,6 +893,7 @@ pub mod pallet {
         InvalidProposalCustomData,
         ProposalCustomDataTooSmall,
         ProposalCustomDataTooLarge,
+        NotEnoughBalanceToPropose,
 
         // Other
         InvalidMaxWeightAge,
@@ -979,7 +979,7 @@ pub mod pallet {
 
     #[pallet::type_value]
     pub fn DefaultProposalCost<T: Config>() -> u64 {
-        1_000_000_000_000 // 1000 $COMAI, the value is returned if the proosal passes
+        10_000_000_000_000 // 10_000 $COMAI, the value is returned if the proosal passes
     }
 
     #[pallet::storage]
