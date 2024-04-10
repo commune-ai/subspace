@@ -105,20 +105,28 @@ impl<T: Config> Pallet<T> {
     }
 
     pub fn set_global_params(params: GlobalParams) {
+        // Network
         Self::set_global_max_name_length(params.max_name_length);
         Self::set_global_max_allowed_subnets(params.max_allowed_subnets);
         Self::set_max_allowed_modules(params.max_allowed_modules);
-        Self::set_max_registrations_per_block(params.max_registrations_per_block);
-        Self::set_target_registrations_interval(params.target_registrations_interval);
-        Self::set_target_registrations_per_interval(params.target_registrations_per_interval);
-        Self::set_adjustment_alpha(params.adjustment_alpha);
         Self::set_unit_emission(params.unit_emission);
+        Self::set_floor_delegation_fee(params.floor_delegation_fee);
+        // burn & registrations
+        Self::set_max_registrations_per_block(params.max_registrations_per_block);
+        Self::set_target_registrations_per_interval(params.target_registrations_per_interval);
+        Self::set_target_registrations_interval(params.target_registrations_interval);
         Self::set_burn_rate(params.burn_rate);
         Self::set_min_burn(params.min_burn);
         Self::set_max_burn(params.max_burn);
-        Self::set_min_weight_stake(params.min_weight_stake);
+        Self::set_adjustment_alpha(params.adjustment_alpha);
         Self::set_min_stake_global(params.min_stake);
-        Self::set_floor_delegation_fee(params.floor_delegation_fee);
+        // weights
+        Self::set_max_allowed_weights_global(params.max_allowed_weights);
+        Self::set_min_weight_stake(params.min_weight_stake);
+        // proposals
+        // ! important, this is not a bug, proposal cost is fixed and can't be changed
+        Self::set_proposal_expiration(params.proposal_expiration);
+        Self::set_proposal_participation_threshold(params.proposal_participation_threshold);
     }
 
     pub fn get_registrations_this_interval() -> u16 {
@@ -142,6 +150,10 @@ impl<T: Config> Pallet<T> {
 
     pub fn get_max_allowed_weights_global() -> u16 {
         MaxAllowedWeightsGlobal::<T>::get()
+    }
+
+    pub fn set_max_allowed_weights_global(max_allowed_weights: u16) {
+        MaxAllowedWeightsGlobal::<T>::put(max_allowed_weights)
     }
 
     pub fn get_min_stake_global() -> u64 {
@@ -179,9 +191,7 @@ impl<T: Config> Pallet<T> {
 
     // Proposals
 
-    pub fn set_proposal_cost(proposal_cost: u64) {
-        ProposalCost::<T>::put(proposal_cost);
-    }
+    // ! set_proposal_cost, is not present, as value can not be changed
 
     pub fn get_proposal_cost() -> u64 {
         ProposalCost::<T>::get()

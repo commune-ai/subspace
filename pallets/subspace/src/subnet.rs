@@ -4,6 +4,7 @@ use frame_support::{
     pallet_prelude::DispatchResult, storage::IterableStorageMap, IterableStorageDoubleMap,
 };
 
+use self::voting::VoteMode;
 use sp_std::vec::Vec;
 use substrate_fixed::types::I64F64;
 extern crate alloc;
@@ -110,19 +111,19 @@ impl<T: Config> Pallet<T> {
 
     pub fn subnet_params(netuid: u16) -> SubnetParams<T> {
         SubnetParams {
+            founder: Founder::<T>::get(netuid),
+            founder_share: FounderShare::<T>::get(netuid),
+            tempo: Tempo::<T>::get(netuid),
             immunity_period: ImmunityPeriod::<T>::get(netuid),
-            min_allowed_weights: MinAllowedWeights::<T>::get(netuid),
             max_allowed_weights: MaxAllowedWeights::<T>::get(netuid),
             max_allowed_uids: MaxAllowedUids::<T>::get(netuid),
             max_stake: MaxStake::<T>::get(netuid),
             max_weight_age: MaxWeightAge::<T>::get(netuid),
+            min_allowed_weights: MinAllowedWeights::<T>::get(netuid),
             min_stake: MinStake::<T>::get(netuid),
-            tempo: Tempo::<T>::get(netuid),
             name: <Vec<u8>>::new(),
             trust_ratio: TrustRatio::<T>::get(netuid),
-            founder_share: FounderShare::<T>::get(netuid),
             incentive_ratio: IncentiveRatio::<T>::get(netuid),
-            founder: Founder::<T>::get(netuid),
             vote_mode: VoteModeSubnet::<T>::get(netuid),
         }
     }
@@ -143,6 +144,7 @@ impl<T: Config> Pallet<T> {
         Self::set_name_subnet(netuid, params.name);
         Self::set_trust_ratio(netuid, params.trust_ratio);
         Self::set_incentive_ratio(netuid, params.incentive_ratio);
+        Self::set_vote_mode(netuid, params.vote_mode);
     }
 
     pub fn if_subnet_exist(netuid: u16) -> bool {
@@ -525,6 +527,10 @@ impl<T: Config> Pallet<T> {
 
     pub fn set_founder(netuid: u16, founder: T::AccountId) {
         Founder::<T>::insert(netuid, founder);
+    }
+
+    pub fn set_vote_mode(netuid: u16, vote_mode: VoteMode) {
+        VoteModeSubnet::<T>::insert(netuid, vote_mode);
     }
 
     #[cfg(debug_assertions)]

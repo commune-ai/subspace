@@ -217,6 +217,15 @@ impl<T: Config> Pallet<T> {
             ProposalStatus::Refused
         };
 
+        // give the proposer back his tokens, if the proposal passed
+        if is_approved {
+            let return_amount = ProposalCost::<T>::get();
+            Self::add_balance_to_account(
+                &proposal.proposer,
+                Self::u64_to_balance(return_amount).unwrap(),
+            )
+        }
+
         // Perform actions based on the proposal data type
         match &proposal.data {
             ProposalData::Custom(_) => {
