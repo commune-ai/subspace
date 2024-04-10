@@ -1,6 +1,14 @@
 use super::*;
 use frame_support::pallet_prelude::DispatchResult;
-use sp_runtime::{DispatchError, Percent, SaturatedConversion};
+use sp_runtime::{Percent, SaturatedConversion};
+
+#[derive(Clone, Debug, Default, PartialEq, Eq, TypeInfo, Decode, Encode)]
+pub enum ProposalStatus {
+    #[default]
+    Pending,
+    Accepted,
+    Refused,
+}
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, TypeInfo, Decode, Encode)]
 pub enum VoteMode {
@@ -8,39 +16,71 @@ pub enum VoteMode {
     Vote = 1,
 }
 
+#[derive(Clone, Debug, PartialEq, Eq, TypeInfo, Decode, Encode)]
+#[scale_info(skip_type_params(T))]
+pub enum ProposalData<T: Config> {
+    Custom(Vec<u8>),
+    GlobalParams(GlobalParams),
+    SubnetParams {
+        netuid: u16,
+        params: SubnetParams<T>,
+    },
+    SubnetCustom {
+        netuid: u16,
+        data: Vec<u8>,
+    },
+}
+
+impl<T: Config> ProposalData<T> {
+    pub fn netuid(&self) -> Option<u16> {
+        match self {
+            Self::SubnetParams { netuid, .. } | Self::SubnetCustom { netuid, .. } => Some(*netuid),
+            _ => None,
+        }
+    }
+}
+
 impl<T: Config> Pallet<T> {
     // Helper function to get the next proposal ID
-    fn get_next_proposal_id() -> Result<u64, DispatchError> {
-        let proposal_id = match Proposals::<T>::iter().last() {
-            Some((id, _)) => id + 1,
+    fn get_next_proposal_id() -> u64 {
+        match Proposals::<T>::iter_keys().last() {
+            Some(id) => id + 1,
             None => 0,
-        };
-        Ok(proposal_id)
+        }
     }
 
     pub fn add_proposal(key: T::AccountId, data: ProposalData<T>) -> DispatchResult {
         // Check if the proposer has enough balance
-        let stake_amount = ProposalCost::<T>::get();
+        let proposal_cost = ProposalCost::<T>::get();
         ensure!(
-            Self::has_enough_balance(&key, stake_amount),
+            Self::has_enough_balance(&key, proposal_cost),
             "Insufficient balance"
         );
 
         // Get the next proposal ID
-        let proposal_id = Self::get_next_proposal_id()?;
+        let proposal_id = Self::get_next_proposal_id();
 
         // Get the proposal expiration value from storage
         let proposal_expiration = ProposalExpiration::<T>::get();
 
         // Create the proposal
+        let expiration_block = Self::get_current_block_as_u64() + proposal_expiration as u64;
+        let expiration_block = if expiration_block % 100 == 0 {
+            expiration_block
+        } else {
+            expiration_block + 100 - (expiration_block % 100)
+        };
+
         let proposal = Proposal {
             id: proposal_id,
             proposer: key.clone(),
-            expiration_block: Self::get_current_block_as_u64() + proposal_expiration as u64,
+            expiration_block,
             data,
             proposal_status: ProposalStatus::Pending,
             votes_for: BTreeSet::new(),
             votes_against: BTreeSet::new(),
+            proposal_cost,
+            finalization_block: None,
         };
 
         // Store the proposal
@@ -49,24 +89,36 @@ impl<T: Config> Pallet<T> {
         // Burn the proposal cost from the proposer's balance
         let _ = T::Currency::withdraw(
             &key,
-            Self::u64_to_balance(stake_amount).unwrap(),
+            Self::u64_to_balance(proposal_cost).unwrap(),
             WithdrawReasons::TRANSFER,
             ExistenceRequirement::KeepAlive,
         )?;
 
-        Event::<T>::ProposalCreated(proposal_id);
+        Self::deposit_event(Event::<T>::ProposalCreated(proposal_id));
         Ok(())
     }
 
-    // Proposal with custom IPFS data
+    // Proposal with custom data
     pub fn do_add_custom_proposal(origin: T::RuntimeOrigin, data: Vec<u8>) -> DispatchResult {
-        // Validate the data as a link to an IPFS document
         let key = ensure_signed(origin)?;
-        let ipfs_link = sp_std::str::from_utf8(&data).map_err(|_| "Invalid IPFS link")?;
-        ensure!(ipfs_link.starts_with("ipfs://"), "Invalid IPFS link format");
-        ensure!(ipfs_link.len() <= 150, "IPFS link exceeds maximum length"); // 150 character limit should be more than enough
+        ensure!(data.len() <= 256, "Link exceeds maximum length (256)");
+        sp_std::str::from_utf8(&data).map_err(|_| "Invalid link encoding")?;
 
         let proposal_data = ProposalData::Custom(data);
+        Self::add_proposal(key, proposal_data)
+    }
+
+    // Subnet proposal with custom data
+    pub fn do_add_custom_subnet_proposal(
+        origin: T::RuntimeOrigin,
+        netuid: u16,
+        data: Vec<u8>,
+    ) -> DispatchResult {
+        let key = ensure_signed(origin)?;
+        ensure!(data.len() <= 256, "Link exceeds maximum length (256)");
+        sp_std::str::from_utf8(&data).map_err(|_| "Invalid link encoding")?;
+
+        let proposal_data = ProposalData::SubnetCustom { netuid, data };
         Self::add_proposal(key, proposal_data)
     }
 
@@ -94,7 +146,7 @@ impl<T: Config> Pallet<T> {
         let vote_mode = VoteModeSubnet::<T>::get(netuid);
         // make sure that the subnet is set on `Vote`,
         // in authority only the founder can make changes
-        ensure!(vote_mode == VoteMode::Vote, Error::<T>::NotVoteMode,);
+        ensure!(vote_mode == VoteMode::Vote, Error::<T>::NotVoteMode);
 
         Self::check_subnet_params(params.clone())?;
 
@@ -128,10 +180,7 @@ impl<T: Config> Pallet<T> {
         );
 
         // Get the netuid from the proposal data
-        let netuid = match &proposal.data {
-            ProposalData::SubnetParams { netuid, .. } => Some(*netuid),
-            _ => None,
-        };
+        let netuid = proposal.data.netuid();
 
         // Get the voter's stake
         let voter_stake = Self::get_account_stake(&key, netuid);
@@ -172,8 +221,9 @@ impl<T: Config> Pallet<T> {
         ensure!(removed, Error::<T>::VoteNotFound);
 
         // Update the proposal in storage
-        Proposals::<T>::insert(&proposal_id, proposal);
-        Event::<T>::ProposalVoteUnregistered(proposal_id, key);
+        Proposals::<T>::insert(proposal.id, proposal);
+        Self::deposit_event(Event::<T>::ProposalVoteUnregistered(proposal_id, key));
+
         Ok(())
     }
 
@@ -183,10 +233,7 @@ impl<T: Config> Pallet<T> {
                 continue;
             }
 
-            let netuid = match &proposal.data {
-                ProposalData::SubnetParams { netuid, .. } => Some(*netuid),
-                _ => None,
-            };
+            let netuid = proposal.data.netuid();
 
             let votes_for: u64 =
                 proposal.votes_for.iter().map(|id| Self::get_account_stake(id, netuid)).sum();
@@ -202,49 +249,49 @@ impl<T: Config> Pallet<T> {
 
             if total_stake > minimal_stake_to_execute {
                 // use the result to check for err
-                Self::execute_proposal(proposal, is_approved);
+                Self::execute_proposal(proposal, is_approved, block_number);
             } else if block_number >= proposal.expiration_block {
                 Proposals::<T>::remove(&proposal_id);
             }
         }
     }
 
-    fn execute_proposal(mut proposal: Proposal<T>, is_approved: bool) {
+    fn execute_proposal(mut proposal: Proposal<T>, is_approved: bool, block_number: u64) {
         // Update the proposal status based on the approval
         proposal.proposal_status = if is_approved {
             ProposalStatus::Accepted
         } else {
             ProposalStatus::Refused
         };
+        proposal.finalization_block = Some(block_number);
 
-        // give the proposer back his tokens, if the proposal passed
         if is_approved {
-            let return_amount = ProposalCost::<T>::get();
+            // give the proposer back his tokens, if the proposal passed
             Self::add_balance_to_account(
                 &proposal.proposer,
-                Self::u64_to_balance(return_amount).unwrap(),
-            )
-        }
+                Self::u64_to_balance(proposal.proposal_cost).unwrap(),
+            );
 
-        // Perform actions based on the proposal data type
-        match &proposal.data {
-            ProposalData::Custom(_) => {
-                // No specific action needed for custom proposals
-                // The owners will handle the off-chain logic
-            }
-            ProposalData::GlobalParams(params) => {
-                // Update the global parameters
-                Self::set_global_params(params.clone());
+            // Perform actions based on the proposal data type
+            match &proposal.data {
+                ProposalData::Custom(_) | ProposalData::SubnetCustom { .. } => {
+                    // No specific action needed for custom proposals
+                    // The owners will handle the off-chain logic
+                }
+                ProposalData::GlobalParams(params) => {
+                    // Update the global parameters
+                    Self::set_global_params(params.clone());
 
-                // Emit the GlobalParamsUpdated event
-                Self::deposit_event(Event::GlobalParamsUpdated(params.clone()));
-            }
-            ProposalData::SubnetParams { netuid, params } => {
-                // Update the subnet parameters
-                Self::set_subnet_params(*netuid, params.clone());
+                    // Emit the GlobalParamsUpdated event
+                    Self::deposit_event(Event::GlobalParamsUpdated(params.clone()));
+                }
+                ProposalData::SubnetParams { netuid, params } => {
+                    // Update the subnet parameters
+                    Self::set_subnet_params(*netuid, params.clone());
 
-                // Emit the SubnetParamsUpdated event
-                Self::deposit_event(Event::SubnetParamsUpdated(*netuid));
+                    // Emit the SubnetParamsUpdated event
+                    Self::deposit_event(Event::SubnetParamsUpdated(*netuid));
+                }
             }
         }
 
