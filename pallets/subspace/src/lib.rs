@@ -68,7 +68,7 @@ pub mod pallet {
     use sp_arithmetic::per_things::Percent;
     pub use sp_std::{vec, vec::Vec};
 
-    const STORAGE_VERSION: StorageVersion = StorageVersion::new(1);
+    const STORAGE_VERSION: StorageVersion = StorageVersion::new(2);
 
     #[pallet::pallet]
     #[pallet::generate_store(pub(super) trait Store)]
