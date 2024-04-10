@@ -14,12 +14,12 @@ type Signature = MultiSignature;
 pub type AccountId = <<Signature as Verify>::Signer as IdentifyAccount>::AccountId;
 
 #[derive(Decode, Encode, PartialEq, Eq, Clone, Debug, TypeInfo, Serialize, Deserialize)]
-pub struct ModuleStats<T: IdentifyAccount<AccountId = AccountId>> {
+pub struct ModuleStats {
     pub last_update: u64,
     pub registration_block: u64,
-    pub stake_from: BTreeMap<T::AccountId, u64>, /* map of key to stake on this module/key *
-                                                  * (includes
-                                                  * delegations) */
+    pub stake_from: BTreeMap<AccountId, u64>, /* map of key to stake on this module/key *
+                                               * (includes
+                                               * delegations) */
     pub emission: u64,
     pub incentive: u16,
     pub dividends: u16,
@@ -35,22 +35,14 @@ pub struct ModuleParams {
 }
 
 #[derive(Decode, Encode, PartialEq, Eq, Clone, Debug, TypeInfo, Serialize, Deserialize)]
-pub struct ModuleInfo<T: IdentifyAccount<AccountId = AccountId>> {
+pub struct ModuleInfo {
     pub params: ModuleParams,
-    pub stats: ModuleStats<T>,
+    pub stats: ModuleStats,
 }
 
-// sp_api::decl_runtime_apis! {
-// 	pub trait SubspaceRuntimeApi where
-// 	AccountId: <<Signature as Verify>::Signer as IdentifyAccount>::AccountId
-// 	{
-// 		fn get_module_info() -> Result<ModuleInfo>;
-// 	}
-// }
-
 sp_api::decl_runtime_apis! {
-    pub trait SubspaceRuntimeApi<T: IdentifyAccount<AccountId = AccountId>> {
+    pub trait SubspaceRuntimeApi {
         fn get_burn_rate() -> u16;
-        fn get_module_info(key: T::AccountId, netuid: u16) -> ModuleInfo<T>;
+        fn get_module_info(key: AccountId, netuid: u16) -> ModuleInfo;
     }
 }
