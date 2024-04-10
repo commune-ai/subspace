@@ -349,6 +349,7 @@ pub mod pallet {
         pub name: Vec<u8>,
         pub tempo: u16, // how many blocks to wait before rewarding models
         pub trust_ratio: u16,
+        pub vote_mode: VoteMode,
     }
 
     #[pallet::type_value]
@@ -367,6 +368,7 @@ pub mod pallet {
             incentive_ratio: DefaultIncentiveRatio::<T>::get(),
             min_stake: DefaultMinStake::<T>::get(),
             founder: DefaultFounder::<T>::get(),
+            vote_mode: DefaultVoteMode::<T>::get(),
         }
     }
 
@@ -858,7 +860,7 @@ pub mod pallet {
         UpdateProposalVoteNotAvailable,
         NotEnoughVotesToAccept,
         NotEnoughBalanceToTransfer,
-        NotAuthorityMode,
+        NotVoteMode,
         InvalidTrustRatio,
         InvalidMinAllowedWeights,
         InvalidMaxAllowedWeights,
@@ -934,7 +936,6 @@ pub mod pallet {
                     min_allowed_weights: subnet.3,
                     max_allowed_weights: subnet.4,
                     max_allowed_uids: subnet.5,
-                    // subnet.6
                     min_stake: subnet.7,
                     founder: subnet.8.clone(),
                     max_stake: default_params.max_stake,
@@ -942,6 +943,7 @@ pub mod pallet {
                     founder_share: default_params.founder_share,
                     incentive_ratio: default_params.incentive_ratio,
                     max_weight_age: default_params.max_weight_age,
+                    vote_mode: default_params.vote_mode,
                 };
 
                 self::Pallet::<T>::add_subnet(params, None);
@@ -1239,6 +1241,7 @@ pub mod pallet {
             name: Vec<u8>,
             tempo: u16,
             trust_ratio: u16,
+            vote_mode: VoteMode,
         ) -> DispatchResult {
             let mut params = Self::subnet_params(netuid);
             params.founder = founder;
@@ -1254,6 +1257,7 @@ pub mod pallet {
             params.name = name;
             params.tempo = tempo;
             params.trust_ratio = trust_ratio;
+            params.vote_mode = vote_mode;
 
             // Check if subnet parameters are valid
             Self::check_subnet_params(params.clone())?;
