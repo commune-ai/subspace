@@ -47,7 +47,7 @@ mod registration;
 mod staking;
 mod step;
 mod subnet;
-mod voting;
+pub mod voting;
 mod weights;
 
 #[frame_support::pallet]
@@ -59,7 +59,7 @@ pub mod pallet {
         clippy::type_complexity
     )]
 
-    use self::voting::VoteMode;
+    use self::voting::{ProposalData, ProposalStatus, VoteMode};
 
     use super::*;
     use frame_support::{pallet_prelude::*, traits::Currency};
@@ -980,8 +980,7 @@ pub mod pallet {
     }
 
     #[pallet::storage]
-    pub(super) type ProposalCost<T: Config> =
-        StorageValue<_, u64, ValueQuery, DefaultProposalCost<T>>;
+    pub type ProposalCost<T: Config> = StorageValue<_, u64, ValueQuery, DefaultProposalCost<T>>;
 
     #[pallet::type_value]
     pub fn DefaultProposalExpiration<T: Config>() -> u32 {
@@ -989,7 +988,7 @@ pub mod pallet {
     }
 
     #[pallet::storage]
-    pub(super) type ProposalExpiration<T: Config> =
+    pub type ProposalExpiration<T: Config> =
         StorageValue<_, u32, ValueQuery, DefaultProposalExpiration<T>>;
 
     #[pallet::type_value]
@@ -1002,7 +1001,7 @@ pub mod pallet {
         StorageValue<_, Percent, ValueQuery, DefaultProposalParticipationThreshold<T>>;
 
     // Proposal Storages
-    #[derive(Clone, Encode, Decode, Default, scale_info::TypeInfo)]
+    #[derive(Clone, Debug, TypeInfo, Decode, Encode)]
     #[scale_info(skip_type_params(T))]
     pub struct Proposal<T: Config> {
         pub id: u64,
@@ -1012,36 +1011,13 @@ pub mod pallet {
         pub proposal_status: ProposalStatus,
         pub votes_for: BTreeSet<T::AccountId>, // account addresses
         pub votes_against: BTreeSet<T::AccountId>, // account addresses
-    }
-
-    #[derive(Clone, Encode, Decode, Default, scale_info::TypeInfo, PartialEq)]
-    pub enum ProposalStatus {
-        #[default]
-        Pending,
-        Accepted,
-        Refused,
-    }
-
-    #[derive(Clone, Encode, Decode, scale_info::TypeInfo)]
-    #[scale_info(skip_type_params(T))]
-    pub enum ProposalData<T: Config> {
-        Custom(Vec<u8>),
-        GlobalParams(GlobalParams),
-        SubnetParams {
-            netuid: u16,
-            params: SubnetParams<T>,
-        },
-    }
-
-    impl<T: Config> Default for ProposalData<T> {
-        fn default() -> Self {
-            ProposalData::Custom(Vec::new())
-        }
+        pub proposal_cost: u64,
+        pub finalization_block: Option<u64>,
     }
 
     #[pallet::storage]
     #[pallet::getter(fn proposals)]
-    pub(super) type Proposals<T: Config> = StorageMap<_, Twox64Concat, u64, Proposal<T>>;
+    pub type Proposals<T: Config> = StorageMap<_, Twox64Concat, u64, Proposal<T>>;
 
     // ================
     // ==== Hooks =====
@@ -1353,6 +1329,15 @@ pub mod pallet {
         #[pallet::weight((Weight::zero(), DispatchClass::Normal, Pays::No))]
         pub fn add_custom_proposal(origin: OriginFor<T>, data: Vec<u8>) -> DispatchResult {
             Self::do_add_custom_proposal(origin, data)
+        }
+
+        #[pallet::weight((Weight::zero(), DispatchClass::Normal, Pays::No))]
+        pub fn add_custom_subnet_proposal(
+            origin: OriginFor<T>,
+            netuid: u16,
+            data: Vec<u8>,
+        ) -> DispatchResult {
+            Self::do_add_custom_subnet_proposal(origin, netuid, data)
         }
 
         #[pallet::weight((Weight::zero(), DispatchClass::Normal, Pays::No))]

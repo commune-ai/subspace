@@ -479,7 +479,7 @@ impl<T: Config> Pallet<T> {
     }
 
     pub fn has_enough_balance(key: &T::AccountId, amount: u64) -> bool {
-        Self::get_balance_u64(key) > amount || amount == 0
+        amount == 0 || Self::get_balance_u64(key) > amount
     }
 
     pub fn remove_balance_from_account(
