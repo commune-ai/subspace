@@ -21,6 +21,11 @@ fn creates_global_params_proposal_correctly_and_expires() {
 
         step_block(1);
 
+        let key = U256::from(0);
+        add_balance(key, COST + 1);
+        assert_ok!(register_module(0, U256::from(1), 1_000_000_000));
+        assert_ok!(register_module(0, U256::from(2), 1_000_000_000));
+
         let original = SubspaceModule::global_params();
         let params = GlobalParams {
             min_burn: 100_000_000,
@@ -47,9 +52,6 @@ fn creates_global_params_proposal_correctly_and_expires() {
             proposal_expiration,
             proposal_participation_threshold,
         } = params.clone();
-
-        let key = U256::from(0);
-        add_balance(key, COST + 1);
 
         SubspaceModule::add_global_proposal(
             get_origin(key),
@@ -89,6 +91,8 @@ fn creates_global_params_proposal_correctly_and_expires() {
         assert_eq!(proposal.votes_against, Default::default());
         assert_eq!(proposal.proposal_cost, COST);
         assert_eq!(proposal.finalization_block, None);
+
+        SubspaceModule::vote_proposal(get_origin(U256::from(1)), 0, true).unwrap();
 
         step_block(200);
 

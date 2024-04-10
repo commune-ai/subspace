@@ -115,8 +115,9 @@ impl<T: Config> Pallet<T> {
         data: Vec<u8>,
     ) -> DispatchResult {
         let key = ensure_signed(origin)?;
-        ensure!(data.len() <= 256, "Link exceeds maximum length (256)");
-        sp_std::str::from_utf8(&data).map_err(|_| "Invalid link encoding")?;
+        ensure!(!data.is_empty(), Error::<T>::ProposalCustomDataTooSmall);
+        ensure!(data.len() <= 256, Error::<T>::ProposalCustomDataTooLarge);
+        sp_std::str::from_utf8(&data).map_err(|_| Error::<T>::InvalidProposalCustomData)?;
 
         let proposal_data = ProposalData::SubnetCustom { netuid, data };
         Self::add_proposal(key, proposal_data)
