@@ -93,7 +93,8 @@ impl<T: Config> Pallet<T> {
             Error::<T>::InvalidMaxStake
         );
 
-        ensure!(params.tempo > 0, Error::<T>::InvalidTempo);
+        // for computational purposes
+        ensure!(params.tempo >= 50, Error::<T>::InvalidTempo);
 
         ensure!(
             params.max_weight_age > params.tempo as u64,
@@ -122,6 +123,7 @@ impl<T: Config> Pallet<T> {
             founder_share: FounderShare::<T>::get(netuid),
             incentive_ratio: IncentiveRatio::<T>::get(netuid),
             founder: Founder::<T>::get(netuid),
+            vote_mode: VoteModeSubnet::<T>::get(netuid),
         }
     }
 

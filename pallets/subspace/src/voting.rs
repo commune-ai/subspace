@@ -5,7 +5,7 @@ use sp_runtime::{DispatchError, Percent, SaturatedConversion};
 #[derive(Clone, Copy, Debug, PartialEq, Eq, TypeInfo, Decode, Encode)]
 pub enum VoteMode {
     Authority = 0,
-    Stake = 1,
+    Vote = 1,
 }
 
 impl<T: Config> Pallet<T> {
@@ -92,10 +92,9 @@ impl<T: Config> Pallet<T> {
     ) -> DispatchResult {
         let key = ensure_signed(origin)?;
         let vote_mode = VoteModeSubnet::<T>::get(netuid);
-        ensure!(
-            vote_mode == VoteMode::Authority,
-            Error::<T>::NotAuthorityMode
-        );
+        // make sure that the subnet is set on `Vote`,
+        // in authority only the founder can make changes
+        ensure!(vote_mode == VoteMode::Vote, Error::<T>::NotVoteMode,);
 
         Self::check_subnet_params(params.clone())?;
 
