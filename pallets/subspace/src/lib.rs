@@ -891,6 +891,9 @@ pub mod pallet {
         InvalidProposalParticipationThreshold,
         InsufficientStake,
         VoteNotFound,
+        InvalidProposalCustomData,
+        ProposalCustomDataTooSmall,
+        ProposalCustomDataTooLarge,
 
         // Other
         InvalidMaxWeightAge,
