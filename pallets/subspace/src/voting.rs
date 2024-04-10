@@ -54,7 +54,7 @@ impl<T: Config> Pallet<T> {
         let proposal_cost = ProposalCost::<T>::get();
         ensure!(
             Self::has_enough_balance(&key, proposal_cost),
-            "Insufficient balance"
+            Error::<T>::NotEnoughBalanceToPropose
         );
 
         // Get the next proposal ID
