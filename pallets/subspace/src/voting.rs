@@ -2,6 +2,12 @@ use super::*;
 use frame_support::pallet_prelude::DispatchResult;
 use sp_runtime::{DispatchError, Percent, SaturatedConversion};
 
+#[derive(Clone, Copy, Debug, PartialEq, Eq, TypeInfo, Decode, Encode)]
+pub enum VoteMode {
+    Authority = 0,
+    Stake = 1,
+}
+
 impl<T: Config> Pallet<T> {
     // Helper function to get the next proposal ID
     fn get_next_proposal_id() -> Result<u64, DispatchError> {
@@ -64,7 +70,7 @@ impl<T: Config> Pallet<T> {
         Self::add_proposal(key, proposal_data)
     }
 
-    // Proposal to change the global parameters
+    /// Proposal to change the global parameters
     pub fn do_add_global_proposal(
         origin: T::RuntimeOrigin,
         params: GlobalParams,
@@ -78,25 +84,18 @@ impl<T: Config> Pallet<T> {
     }
 
     // Proposal to change subnet parameters
-    // Subnet has to be on a "vote" mode, otherwise this proposal will throw an error
+    /// Subnet has to be on a "vote" mode, otherwise this proposal will throw an error
     pub fn do_add_subnet_proposal(
         origin: T::RuntimeOrigin,
         netuid: u16,
         params: SubnetParams<T>,
     ) -> DispatchResult {
         let key = ensure_signed(origin)?;
-        // TODO: Luiz pls change the data type of the subnet vote mode to enum
-        // make sure that vote mode is authority, if not throw an error
-        let _vote_mode = VoteModeSubnet::<T>::get(netuid);
-        /*
-                #[pallet::type_value]
-        pub fn DefaultVoteMode<T: Config>() -> Vec<u8> {
-            "authority".as_bytes().to_vec()
-        }
-        #[pallet::storage] // --- MAP ( netuid ) --> epoch
-        pub type VoteModeSubnet<T> =
-            StorageMap<_, Identity, u16, Vec<u8>, ValueQuery, DefaultVoteMode<T>>;
-         */
+        let vote_mode = VoteModeSubnet::<T>::get(netuid);
+        ensure!(
+            vote_mode == VoteMode::Authority,
+            Error::<T>::NotAuthorityMode
+        );
 
         Self::check_subnet_params(params.clone())?;
 
@@ -104,7 +103,7 @@ impl<T: Config> Pallet<T> {
         Self::add_proposal(key, proposal_data)
     }
 
-    // Votes on proposals,
+    /// Votes on proposals,
     pub fn do_vote_proposal(
         origin: T::RuntimeOrigin,
         proposal_id: u64,
@@ -153,8 +152,7 @@ impl<T: Config> Pallet<T> {
         Ok(())
     }
 
-    // Unregister the vote on a proposal
-    // Unregister the vote on a proposal
+    /// Unregister the vote on a proposal
     pub fn do_unregister_vote(origin: T::RuntimeOrigin, proposal_id: u64) -> DispatchResult {
         let key = ensure_signed(origin)?;
 

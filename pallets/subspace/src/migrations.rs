@@ -12,26 +12,6 @@ impl<T: Config> StorageInstance for Pallet<T> {
 
     const STORAGE_PREFIX: &'static str = "Subspace";
 }
-// TODO:
-
-/*
-
-# Migrate
-StakeTo and StakeFrom
-
-pub type StakeTo<T: Config> = StorageDoubleMap<
-    _,
-    Identity,
-    u16,
-    Identity,
-    T::AccountId,
-    BTreeMap<T::AccountId, u64>,
-    ValueQuery,
->;
-
-where we used `BTreeMap<T::AccountId, u64>,` instead of `Vec<(T::AccountId, u64)>`
-
-*/
 
 pub mod v1 {
     use super::*;
@@ -66,6 +46,8 @@ pub mod v1 {
 }
 
 pub mod v2 {
+    use crate::voting::VoteMode;
+
     use super::*;
 
     pub mod old_storage {
@@ -95,6 +77,10 @@ pub mod v2 {
             Vec<(AccountId<T>, u64)>,
             ValueQuery,
         >;
+
+        #[storage_alias]
+        pub(super) type VoteModeSubnet<T: Config> =
+            StorageMap<Pallet<T>, Identity, u16, Vec<u8>, ValueQuery>;
     }
 
     pub struct MigrateToV2<T>(sp_std::marker::PhantomData<T>);
@@ -117,14 +103,23 @@ pub mod v2 {
                     StakeTo::<T>::insert(netuid, account_id, new_stake_to);
                 }
 
+                for (netuid, mode) in old_storage::VoteModeSubnet::<T>::iter() {
+                    let mode = match &mode[..] {
+                        b"authority" => VoteMode::Authority,
+                        b"stake" => VoteMode::Stake,
+                        _ => panic!("invalid vote mode {:?}", core::str::from_utf8(&mode)),
+                    };
+                    VoteModeSubnet::<T>::insert(netuid, mode);
+                }
+
                 // Update the storage version to 2
                 StorageVersion::new(2).put::<Pallet<T>>();
-                log::info!("Migrated StakeFrom and StakeTo to v2");
+                log::info!("Migrated StakeFrom, StakeTo and VoteMode to v2");
 
                 // Return the appropriate weight for the migration
                 T::DbWeight::get().reads_writes(1, 1)
             } else {
-                log::info!("StakeFrom and StakeTo are already updated to v2");
+                log::info!("StakeFrom, StakeTo, VoteMode are already updated to v2");
                 Weight::zero()
             }
         }
