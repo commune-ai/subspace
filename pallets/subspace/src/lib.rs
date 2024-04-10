@@ -59,6 +59,8 @@ pub mod pallet {
         clippy::type_complexity
     )]
 
+    use self::voting::VoteMode;
+
     use super::*;
     use frame_support::{pallet_prelude::*, traits::Currency};
     use frame_system::pallet_prelude::*;
@@ -472,12 +474,12 @@ pub mod pallet {
     // =======================================
 
     #[pallet::type_value]
-    pub fn DefaultVoteMode<T: Config>() -> Vec<u8> {
-        "authority".as_bytes().to_vec()
+    pub fn DefaultVoteMode<T: Config>() -> VoteMode {
+        VoteMode::Authority
     }
     #[pallet::storage] // --- MAP ( netuid ) --> epoch
     pub type VoteModeSubnet<T> =
-        StorageMap<_, Identity, u16, Vec<u8>, ValueQuery, DefaultVoteMode<T>>;
+        StorageMap<_, Identity, u16, VoteMode, ValueQuery, DefaultVoteMode<T>>;
 
     #[derive(Decode, Encode, PartialEq, Eq, Clone, Debug, TypeInfo)]
     pub struct SubnetInfo<T: Config> {
@@ -760,14 +762,15 @@ pub mod pallet {
         RegistrationBurnChanged(u64),
 
         //voting
-        ProposalCreated(u64), // id of the proposal
-        ProposalVoted(u64, T::AccountId, bool), // (id, voter, vote)
+        ProposalCreated(u64),                        // id of the proposal
+        ProposalVoted(u64, T::AccountId, bool),      // (id, voter, vote)
         ProposalVoteUnregistered(u64, T::AccountId), // (id, voter)
-        GlobalParamsUpdated(GlobalParams), // --- Event created when global parameters are updated
-        SubnetParamsUpdated(u16),          // --- Event created when subnet parameters are updated
-        GlobalProposalAccepted(u64),       // (id)
-        CustomProposalAccepted(u64),       // (id)
-        SubnetProposalAccepted(u64, u16),  // (id, netuid)
+        GlobalParamsUpdated(GlobalParams),           /* --- Event created when global
+                                                      * parameters are updated */
+        SubnetParamsUpdated(u16), // --- Event created when subnet parameters are updated
+        GlobalProposalAccepted(u64), // (id)
+        CustomProposalAccepted(u64), // (id)
+        SubnetProposalAccepted(u64, u16), // (id, netuid)
     }
 
     // Errors inform users that something went wrong.
