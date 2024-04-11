@@ -86,7 +86,7 @@ fn creates_global_params_proposal_correctly_and_expires() {
             proposal.data,
             ProposalData::<Test>::GlobalParams(params.clone())
         );
-        assert_eq!(proposal.proposal_status, ProposalStatus::Pending);
+        assert_eq!(proposal.status, ProposalStatus::Pending);
         assert_eq!(proposal.votes_for, Default::default());
         assert_eq!(proposal.votes_against, Default::default());
         assert_eq!(proposal.proposal_cost, COST);
@@ -181,7 +181,7 @@ fn creates_global_params_proposal_correctly_and_is_approved() {
         step_block(100);
 
         let proposal = Proposals::<Test>::get(0).expect("proposal was not created");
-        assert_eq!(proposal.proposal_status, ProposalStatus::Accepted);
+        assert_eq!(proposal.status, ProposalStatus::Accepted);
         assert_eq!(proposal.finalization_block, Some(100));
         assert_eq!(
             SubspaceModule::get_balance_u64(&keys[0]),
@@ -270,7 +270,7 @@ fn creates_global_params_proposal_correctly_and_is_refused() {
         step_block(100);
 
         let proposal = Proposals::<Test>::get(0).expect("proposal was not created");
-        assert_eq!(proposal.proposal_status, ProposalStatus::Refused);
+        assert_eq!(proposal.status, ProposalStatus::Refused);
         assert_eq!(proposal.finalization_block, Some(100));
         assert_eq!(SubspaceModule::get_balance_u64(&keys[0]), 01,);
 
@@ -351,7 +351,7 @@ fn creates_subnet_params_proposal_correctly_and_is_approved() {
         step_block(100);
 
         let proposal = Proposals::<Test>::get(0).expect("proposal was not created");
-        assert_eq!(proposal.proposal_status, ProposalStatus::Accepted);
+        assert_eq!(proposal.status, ProposalStatus::Accepted);
         assert_eq!(proposal.finalization_block, Some(100));
         assert_eq!(
             SubspaceModule::get_balance_u64(&keys[0]),
