@@ -410,7 +410,7 @@ impl<T: Config> Pallet<T> {
         // Adjust the total number of subnets. and remove the subnet from the list of subnets.
         N::<T>::remove(netuid);
         TotalSubnets::<T>::mutate(|val| *val -= 1);
-		RemovedSubnet::<T>::insert(netuid, 0);
+		RemovedSubnets::<T>::insert(netuid, 0);
         // --- 4. Emit the event.
         Self::deposit_event(Event::NetworkRemoved(netuid));
 

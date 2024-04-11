@@ -654,11 +654,11 @@ pub mod pallet {
 
 
     #[pallet::type_value]
-    pub fn DefaultRemovedSubnet<T: Config>() -> u16 {
+    pub fn DefaultRemovedSubnets<T: Config>() -> u16 {
         0
     }
     #[pallet::storage] // --- MAP( netuid ) --> lowest_subnet
-    pub type RemovedSubnet<T> = StorageMap<_, Identity, u16, u16, ValueQuery, DefaultRemovedSubnet<T>>;
+    pub type RemovedSubnets<T> = StorageMap<_, Identity, u16, u16, ValueQuery, DefaultRemovedSubnets<T>>;
 
     // TOTAL STAKE PER SUBNET
     #[pallet::storage] // --- MAP ( netuid ) --> subnet_total_stake
