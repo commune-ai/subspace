@@ -256,18 +256,6 @@ impl<T: Config> Pallet<T> {
         global_n
     }
 
-    pub fn get_global_stake_to(key: &T::AccountId) -> u64 {
-        // get all of the stake to
-        let total_networks: u16 = TotalSubnets::<T>::get();
-        let mut total_stake_to = 0;
-
-        for netuid in 0..total_networks {
-            total_stake_to += Self::get_total_stake_to(netuid, key);
-        }
-
-        total_stake_to
-    }
-
     pub fn get_min_burn() -> u64 {
         MinBurn::<T>::get()
     }

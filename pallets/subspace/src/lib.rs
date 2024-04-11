@@ -300,6 +300,29 @@ pub mod pallet {
         pub proposal_participation_threshold: Percent,
     }
 
+    pub struct DefaultSubnetParams<T: Config>(sp_std::marker::PhantomData<((), T)>);
+
+    impl<T: Config> DefaultSubnetParams<T> {
+        pub fn get() -> SubnetParams<T> {
+            SubnetParams {
+                name: vec![],
+                tempo: DefaultTempo::<T>::get(),
+                immunity_period: DefaultImmunityPeriod::<T>::get(),
+                min_allowed_weights: DefaultMinAllowedWeights::<T>::get(),
+                max_allowed_weights: DefaultMaxAllowedWeights::<T>::get(),
+                max_allowed_uids: DefaultMaxAllowedUids::<T>::get(),
+                max_weight_age: DefaultMaxWeightAge::<T>::get(),
+                max_stake: DefaultMaxStake::<T>::get(),
+                trust_ratio: DefaultTrustRatio::<T>::get(),
+                founder_share: DefaultFounderShare::<T>::get(),
+                incentive_ratio: DefaultIncentiveRatio::<T>::get(),
+                min_stake: DefaultMinStake::<T>::get(),
+                founder: DefaultFounder::<T>::get(),
+                vote_mode: DefaultVoteMode::<T>::get(),
+            }
+        }
+    }
+
     #[pallet::type_value]
     pub fn DefaultGlobalParams<T: Config>() -> GlobalParams {
         GlobalParams {
@@ -350,26 +373,6 @@ pub mod pallet {
         pub tempo: u16, // how many blocks to wait before rewarding models
         pub trust_ratio: u16,
         pub vote_mode: VoteMode,
-    }
-
-    #[pallet::type_value]
-    pub fn DefaultSubnetParams<T: Config>() -> SubnetParams<T> {
-        SubnetParams {
-            name: vec![],
-            tempo: DefaultTempo::<T>::get(),
-            immunity_period: DefaultImmunityPeriod::<T>::get(),
-            min_allowed_weights: DefaultMinAllowedWeights::<T>::get(),
-            max_allowed_weights: DefaultMaxAllowedWeights::<T>::get(),
-            max_allowed_uids: DefaultMaxAllowedUids::<T>::get(),
-            max_weight_age: DefaultMaxWeightAge::<T>::get(),
-            max_stake: DefaultMaxStake::<T>::get(),
-            trust_ratio: DefaultTrustRatio::<T>::get(),
-            founder_share: DefaultFounderShare::<T>::get(),
-            incentive_ratio: DefaultIncentiveRatio::<T>::get(),
-            min_stake: DefaultMinStake::<T>::get(),
-            founder: DefaultFounder::<T>::get(),
-            vote_mode: DefaultVoteMode::<T>::get(),
-        }
     }
 
     #[pallet::type_value]
@@ -665,7 +668,6 @@ pub mod pallet {
     pub type TotalStake<T> = StorageMap<_, Identity, u16, u64, ValueQuery>;
 
     // LOAN VARIABLES
-
     #[pallet::storage] // --- DMAP ( netuid, module_key ) --> Vec<(delegater, stake )> | Returns the list of delegates
     pub type LoanTo<T: Config> =
         StorageMap<_, Identity, T::AccountId, Vec<(T::AccountId, u64)>, ValueQuery>;
@@ -938,7 +940,7 @@ pub mod pallet {
                 let netuid: u16 = subnet_idx as u16;
                 // --- Set subnet parameters
 
-                let default_params = self::Pallet::<T>::default_subnet_params();
+                let default_params = DefaultSubnetParams::<T>::get();
 
                 let params = SubnetParams {
                     name: subnet.0.clone(),
