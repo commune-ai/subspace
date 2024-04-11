@@ -83,6 +83,8 @@ impl<T: Config> Pallet<T> {
         // Create the proposal
         let current_block = Self::get_current_block_as_u64();
         let expiration_block = current_block + proposal_expiration as u64;
+
+        // TODO: extract rounding function
         let expiration_block = if expiration_block % 100 == 0 {
             expiration_block
         } else {
@@ -109,7 +111,7 @@ impl<T: Config> Pallet<T> {
         let _ = T::Currency::withdraw(
             &key,
             Self::u64_to_balance(proposal_cost).unwrap(),
-            WithdrawReasons::TRANSFER,
+            WithdrawReasons::TRANSFER, // TODO
             ExistenceRequirement::KeepAlive,
         )?;
 
@@ -120,8 +122,9 @@ impl<T: Config> Pallet<T> {
     // Proposal with custom data
     pub fn do_add_custom_proposal(origin: T::RuntimeOrigin, data: Vec<u8>) -> DispatchResult {
         let key = ensure_signed(origin)?;
-        ensure!(data.len() <= 256, "Link exceeds maximum length (256)");
-        sp_std::str::from_utf8(&data).map_err(|_| "Invalid link encoding")?;
+        ensure!(!data.is_empty(), Error::<T>::ProposalCustomDataTooSmall);
+        ensure!(data.len() <= 256, Error::<T>::ProposalCustomDataTooLarge);
+        sp_std::str::from_utf8(&data).map_err(|_| Error::<T>::InvalidProposalCustomData)?;
 
         let proposal_data = ProposalData::Custom(data);
         Self::add_proposal(key, proposal_data)
@@ -150,7 +153,6 @@ impl<T: Config> Pallet<T> {
         let key = ensure_signed(origin)?;
 
         Self::check_global_params(params.clone())?;
-
         let proposal_data = ProposalData::GlobalParams(params);
         Self::add_proposal(key, proposal_data)
     }
@@ -163,13 +165,13 @@ impl<T: Config> Pallet<T> {
         params: SubnetParams<T>,
     ) -> DispatchResult {
         let key = ensure_signed(origin)?;
+
+        // Make sure that the subnet is set on `Vote` mode.
+        // In Authority mode, only the founder can make changes.
         let vote_mode = VoteModeSubnet::<T>::get(netuid);
-        // make sure that the subnet is set on `Vote`,
-        // in authority only the founder can make changes
         ensure!(vote_mode == VoteMode::Vote, Error::<T>::NotVoteMode);
 
         Self::check_subnet_params(params.clone())?;
-
         let proposal_data = ProposalData::SubnetParams { netuid, params };
         Self::add_proposal(key, proposal_data)
     }
@@ -183,7 +185,7 @@ impl<T: Config> Pallet<T> {
         let key = ensure_signed(origin)?;
 
         // Get the proposal from storage
-        let Ok(mut proposal) = Proposals::<T>::try_get(&proposal_id) else {
+        let Ok(mut proposal) = Proposals::<T>::try_get(proposal_id) else {
             return Err(Error::<T>::ProposalNotFound.into());
         };
 
@@ -215,8 +217,8 @@ impl<T: Config> Pallet<T> {
         };
 
         // Update the proposal in storage
-        Proposals::<T>::insert(&proposal_id, proposal);
-        Event::<T>::ProposalVoted(proposal_id, key, agree);
+        Proposals::<T>::insert(proposal_id, proposal);
+        Self::deposit_event(Event::<T>::ProposalVoted(proposal_id, key, agree));
         Ok(())
     }
 
@@ -225,7 +227,7 @@ impl<T: Config> Pallet<T> {
         let key = ensure_signed(origin)?;
 
         // Get the proposal from storage
-        let Ok(mut proposal) = Proposals::<T>::try_get(&proposal_id) else {
+        let Ok(mut proposal) = Proposals::<T>::try_get(proposal_id) else {
             return Err(Error::<T>::ProposalNotFound.into());
         };
 
@@ -243,7 +245,6 @@ impl<T: Config> Pallet<T> {
         // Update the proposal in storage
         Proposals::<T>::insert(proposal.id, proposal);
         Self::deposit_event(Event::<T>::ProposalVoteUnregistered(proposal_id, key));
-
         Ok(())
     }
 
@@ -267,12 +268,14 @@ impl<T: Config> Pallet<T> {
             let minimal_stake_to_execute = Self::get_minimal_stake_to_execute(netuid);
             let is_approved = votes_for >= votes_against;
 
-            if total_stake > minimal_stake_to_execute {
-                // use the result to check for err
+            if total_stake >= minimal_stake_to_execute {
+                // Use the result to check for err
                 Self::execute_proposal(proposal, is_approved, block_number);
             } else if block_number >= proposal.expiration_block {
                 proposal.status = ProposalStatus::Expired;
                 proposal.data = ProposalData::Expired;
+                proposal.finalization_block = Some(block_number);
+                // TODO: should we delete the votes?
                 Proposals::<T>::insert(proposal.id, proposal);
             }
         }
@@ -287,15 +290,18 @@ impl<T: Config> Pallet<T> {
         };
         proposal.finalization_block = Some(block_number);
 
+        // Update the proposal in storage
+        Proposals::<T>::insert(proposal.id, &proposal);
+
         if is_approved {
-            // give the proposer back his tokens, if the proposal passed
+            // Give the proposer back his tokens, if the proposal passed
             Self::add_balance_to_account(
                 &proposal.proposer,
                 Self::u64_to_balance(proposal.proposal_cost).unwrap(),
             );
 
             // Perform actions based on the proposal data type
-            match &proposal.data {
+            match proposal.data {
                 ProposalData::Custom(_) | ProposalData::SubnetCustom { .. } => {
                     // No specific action needed for custom proposals
                     // The owners will handle the off-chain logic
@@ -303,45 +309,30 @@ impl<T: Config> Pallet<T> {
                 ProposalData::GlobalParams(params) => {
                     // Update the global parameters
                     Self::set_global_params(params.clone());
-
                     // Emit the GlobalParamsUpdated event
                     Self::deposit_event(Event::GlobalParamsUpdated(params.clone()));
                 }
                 ProposalData::SubnetParams { netuid, params } => {
                     // Update the subnet parameters
-                    Self::set_subnet_params(*netuid, params.clone());
-
+                    Self::set_subnet_params(netuid, params.clone());
                     // Emit the SubnetParamsUpdated event
-                    Self::deposit_event(Event::SubnetParamsUpdated(*netuid));
+                    Self::deposit_event(Event::SubnetParamsUpdated(netuid));
                 }
                 ProposalData::Expired => {
-                    unreachable!("expired data is illegal at this point")
+                    unreachable!("Expired data is illegal at this point")
                 }
             }
         }
-
-        // Update the proposal in storage
-        Proposals::<T>::insert(proposal.id, proposal);
     }
 
-    // returns how much stake is needed to execute a proposal
+    /// Returns how much stake is needed to execute a proposal
     pub fn get_minimal_stake_to_execute(netuid: Option<u16>) -> u64 {
-        // in Percent
         let threshold: Percent = Self::get_proposal_participation_threshold();
 
-        let needed_stake = match netuid {
-            Some(specific_netuid) => {
-                let subnet_stake = TotalStake::<T>::get(specific_netuid);
-                (subnet_stake.saturated_into::<u128>() * threshold.deconstruct() as u128 / 100)
-                    as u64
-            }
-            None => {
-                let global_stake = Self::total_stake();
-                (global_stake.saturated_into::<u128>() * threshold.deconstruct() as u128 / 100)
-                    as u64
-            }
+        let stake = match netuid {
+            Some(specific_netuid) => TotalStake::<T>::get(specific_netuid),
+            None => Self::total_stake(),
         };
-
-        needed_stake
+        (stake.saturated_into::<u128>() * threshold.deconstruct() as u128 / 100) as u64
     }
 }
