@@ -11,11 +11,10 @@ impl<T: Config> Pallet<T> {
 
         let registration_this_interval = Self::get_registrations_this_interval();
 
-        // adjust registrations parameters
+        // Adjust registrations parameters.
         Self::adjust_registration(block_number, registration_this_interval);
 
-        // execute proposals if any,
-        // this is done every 100 blocks (the proposal expiration can only be in 100ths)
+        // Execute proposals if any should be executed, this is done every 100 blocks.
         if block_number % 100 == 0 {
             Self::resolve_proposals(block_number);
         }
