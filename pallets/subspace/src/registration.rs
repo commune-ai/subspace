@@ -43,7 +43,7 @@ impl<T: Config> Pallet<T> {
 		let netuid = match RemovedSubnets::<T>::get(netuid) {
 			Some(0) => {
 				let new_netuid = RemovedSubnets::<T>::iter().map(|(k, _)| k).min().unwrap();
-				RemovedSubnets::<T>::put(netuid, new_netuid);
+				RemovedSubnets::<T>::put(new_netuid, netuid);
 				new_netuid
 			},
 			Some(target) => target,
