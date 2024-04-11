@@ -226,12 +226,6 @@ impl<T: Config> Pallet<T> {
         }
     }
 
-    pub fn default_subnet_params() -> SubnetParams<T> {
-        // get an invalid
-        let default_netuid: u16 = Self::num_subnets() + 1;
-        Self::subnet_params(default_netuid)
-    }
-
     #[cfg(debug_assertions)]
     pub fn subnet_info(netuid: u16) -> SubnetInfo<T> {
         let subnet_params: SubnetParams<T> = Self::subnet_params(netuid);
@@ -334,7 +328,6 @@ impl<T: Config> Pallet<T> {
     }
 
     // Initializes a new subnetwork under netuid with parameters.
-    //
     pub fn subnet_name_exists(name: Vec<u8>) -> bool {
         for (_netuid, _name) in <SubnetNames<T> as IterableStorageMap<u16, Vec<u8>>>::iter() {
             if _name == name {
@@ -479,7 +472,6 @@ impl<T: Config> Pallet<T> {
     }
 
     // Return the total number of subnetworks available on the chain.
-    //
     pub fn num_subnets() -> u16 {
         TotalSubnets::<T>::get()
     }

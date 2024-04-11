@@ -517,13 +517,11 @@ impl<T: Config> Pallet<T> {
             Some(specific_netuid) => {
                 StakeTo::<T>::get(specific_netuid, account_id).into_values().sum()
             }
-            None => {
-                let total_networks: u16 = TotalSubnets::<T>::get();
-                (0..total_networks)
-                    .filter_map(|netuid| StakeTo::<T>::try_get(netuid, account_id).ok())
-                    .flat_map(|entries| entries.into_values())
-                    .sum()
-            }
+            None => N::<T>::iter()
+                .map(|(netuid, _)| netuid)
+                .filter_map(|netuid| StakeTo::<T>::try_get(netuid, account_id).ok())
+                .flat_map(|entries| entries.into_values())
+                .sum(),
         }
     }
 }

@@ -192,6 +192,7 @@ impl<T: Config> Pallet<T> {
         let num_subnets: u16 = Self::num_subnets();
         let max_subnets: u16 = Self::get_global_max_allowed_subnets();
         let mut target_subnet = RemovedSubnets::<T>::iter().map(|(k, _)| k).min();
+
         // if we have not reached the max number of subnets, then we can start a new one
         if num_subnets >= max_subnets {
             let (min_stake_netuid, min_stake) = Self::least_staked_netuid();
@@ -199,15 +200,15 @@ impl<T: Config> Pallet<T> {
             ensure!(stake > min_stake, Error::<T>::NotEnoughStakeToStartNetwork);
             Self::remove_subnet(min_stake_netuid);
         }
+
         // if we have reached the max number of subnets, then we can start a new one if the stake is
         // greater than the least staked network
-        let mut params: SubnetParams<T> = Self::default_subnet_params();
+        let mut params: SubnetParams<T> = DefaultSubnetParams::<T>::get();
         params.name = name;
         params.founder = founder_key.clone();
 
         Ok(Self::add_subnet(params, target_subnet))
     }
-
     pub fn check_module_limits(netuid: u16) {
         // check if we have reached the max allowed modules,
         // if so deregister the lowest priority node
