@@ -59,7 +59,7 @@ pub mod pallet {
         clippy::type_complexity
     )]
 
-    use self::voting::{ProposalData, ProposalStatus, VoteMode};
+    use self::voting::{Proposal, VoteMode};
 
     use super::*;
     use frame_support::{pallet_prelude::*, traits::Currency};
@@ -1012,21 +1012,6 @@ pub mod pallet {
     #[pallet::storage]
     pub(super) type ProposalParticipationThreshold<T: Config> =
         StorageValue<_, Percent, ValueQuery, DefaultProposalParticipationThreshold<T>>;
-
-    // Proposal Storages
-    #[derive(Clone, Debug, TypeInfo, Decode, Encode)]
-    #[scale_info(skip_type_params(T))]
-    pub struct Proposal<T: Config> {
-        pub id: u64,
-        pub proposer: T::AccountId,
-        pub expiration_block: u64,
-        pub data: ProposalData<T>,
-        pub proposal_status: ProposalStatus,
-        pub votes_for: BTreeSet<T::AccountId>, // account addresses
-        pub votes_against: BTreeSet<T::AccountId>, // account addresses
-        pub proposal_cost: u64,
-        pub finalization_block: Option<u64>,
-    }
 
     #[pallet::storage]
     #[pallet::getter(fn proposals)]

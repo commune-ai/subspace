@@ -2,6 +2,21 @@ use super::*;
 use frame_support::pallet_prelude::DispatchResult;
 use sp_runtime::{Percent, SaturatedConversion};
 
+#[derive(Clone, Debug, TypeInfo, Decode, Encode)]
+#[scale_info(skip_type_params(T))]
+pub struct Proposal<T: Config> {
+    pub id: u64,
+    pub proposer: T::AccountId,
+    pub expiration_block: u64,
+    pub data: ProposalData<T>,
+    pub proposal_status: ProposalStatus,
+    pub votes_for: BTreeSet<T::AccountId>, // account addresses
+    pub votes_against: BTreeSet<T::AccountId>, // account addresses
+    pub proposal_cost: u64,
+    pub creation_block: u64,
+    pub finalization_block: Option<u64>,
+}
+
 #[derive(Clone, Debug, Default, PartialEq, Eq, TypeInfo, Decode, Encode)]
 pub enum ProposalStatus {
     #[default]
@@ -64,7 +79,8 @@ impl<T: Config> Pallet<T> {
         let proposal_expiration = ProposalExpiration::<T>::get();
 
         // Create the proposal
-        let expiration_block = Self::get_current_block_as_u64() + proposal_expiration as u64;
+        let current_block = Self::get_current_block_as_u64();
+        let expiration_block = current_block + proposal_expiration as u64;
         let expiration_block = if expiration_block % 100 == 0 {
             expiration_block
         } else {
@@ -80,6 +96,7 @@ impl<T: Config> Pallet<T> {
             votes_for: BTreeSet::new(),
             votes_against: BTreeSet::new(),
             proposal_cost,
+            creation_block: current_block,
             finalization_block: None,
         };
 
