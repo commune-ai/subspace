@@ -40,9 +40,9 @@ impl<T: Config> Pallet<T> {
         };
 
 		//  4.1 If a subnet was removed, we need to swap the netuid with the removed one
-		let netuid =  if AbsentSubnet::<T>::contains_key(netuid) {
-			let netuid = AbsentSubnet::<T>::iter().map(|(k, _)| k).min().unwrap();
-			AbsentSubnet::<T>::remove(netuid);
+		let netuid =  if RemovedSubnet::<T>::contains_key(netuid) {
+			let netuid = RemovedSubnet::<T>::iter().map(|(k, _)| k).min().unwrap();
+			RemovedSubnet::<T>::remove(netuid);
 			netuid
 		} else {
 			netuid
