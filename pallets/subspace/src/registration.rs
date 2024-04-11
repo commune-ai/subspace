@@ -191,7 +191,7 @@ impl<T: Config> Pallet<T> {
     ) -> Result<u16, sp_runtime::DispatchError> {
         let num_subnets: u16 = Self::num_subnets();
         let max_subnets: u16 = Self::get_global_max_allowed_subnets();
-        let mut target_subnet = None;
+        let mut target_subnet = RemovedSubnets::<T>::iter().map(|(k, _)| k).min();
         // if we have not reached the max number of subnets, then we can start a new one
         if num_subnets >= max_subnets {
             let (min_stake_netuid, min_stake) = Self::least_staked_netuid();
