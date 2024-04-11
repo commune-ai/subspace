@@ -107,7 +107,10 @@ pub mod v2 {
                     let mode = match &mode[..] {
                         b"authority" => VoteMode::Authority,
                         b"stake" => VoteMode::Vote,
-                        _ => panic!("invalid vote mode {:?}", core::str::from_utf8(&mode)),
+                        _ => {
+                            log::warn!("invalid vote mode {:?}", core::str::from_utf8(&mode));
+                            VoteMode::Vote
+                        }
                     };
                     VoteModeSubnet::<T>::insert(netuid, mode);
                 }
