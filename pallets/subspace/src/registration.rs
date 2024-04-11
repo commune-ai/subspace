@@ -39,6 +39,15 @@ impl<T: Config> Pallet<T> {
             Self::add_subnet_from_registration(network, stake_amount, &key)?
         };
 
+		//  4.1 If a subnet was removed, we need to swap the netuid with the removed one
+		let netuid =  if AbsentSubnet::<T>::contains_key(netuid) {
+			let netuid = AbsentSubnet::<T>::iter().map(|(k, _)| k).min().unwrap();
+			AbsentSubnet::<T>::remove(netuid);
+			netuid
+		} else {
+			netuid
+		};
+
         // --- 5. Ensure the caller has enough stake to register.
         let min_stake: u64 = MinStake::<T>::get(netuid);
         let current_burn: u64 = Self::get_burn();
