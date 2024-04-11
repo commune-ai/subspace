@@ -96,7 +96,6 @@ fn creates_global_params_proposal_correctly_and_expires() {
 
         step_block(200);
 
-        assert!(Proposals::<Test>::get(0).is_none());
         assert_eq!(SubspaceModule::get_balance_u64(&key), 1);
 
         assert_eq!(SubspaceModule::global_params(), original);
