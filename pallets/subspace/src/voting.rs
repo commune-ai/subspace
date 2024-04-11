@@ -9,7 +9,7 @@ pub struct Proposal<T: Config> {
     pub proposer: T::AccountId,
     pub expiration_block: u64,
     pub data: ProposalData<T>,
-    pub proposal_status: ProposalStatus,
+    pub status: ProposalStatus,
     pub votes_for: BTreeSet<T::AccountId>, // account addresses
     pub votes_against: BTreeSet<T::AccountId>, // account addresses
     pub proposal_cost: u64,
@@ -23,6 +23,7 @@ pub enum ProposalStatus {
     Pending,
     Accepted,
     Refused,
+    Expired,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, TypeInfo, Decode, Encode)]
@@ -44,6 +45,7 @@ pub enum ProposalData<T: Config> {
         netuid: u16,
         data: Vec<u8>,
     },
+    Expired,
 }
 
 impl<T: Config> ProposalData<T> {
@@ -92,7 +94,7 @@ impl<T: Config> Pallet<T> {
             proposer: key.clone(),
             expiration_block,
             data,
-            proposal_status: ProposalStatus::Pending,
+            status: ProposalStatus::Pending,
             votes_for: BTreeSet::new(),
             votes_against: BTreeSet::new(),
             proposal_cost,
@@ -187,7 +189,7 @@ impl<T: Config> Pallet<T> {
 
         // Check if the proposal is in a valid state for voting
         ensure!(
-            proposal.proposal_status == ProposalStatus::Pending,
+            proposal.status == ProposalStatus::Pending,
             Error::<T>::InvalidProposalStatus
         );
 
@@ -229,7 +231,7 @@ impl<T: Config> Pallet<T> {
 
         // Check if the proposal is in a valid state for unregistering a vote
         ensure!(
-            proposal.proposal_status == ProposalStatus::Pending,
+            proposal.status == ProposalStatus::Pending,
             Error::<T>::InvalidProposalStatus
         );
 
@@ -246,8 +248,8 @@ impl<T: Config> Pallet<T> {
     }
 
     pub(crate) fn resolve_proposals(block_number: u64) {
-        for (proposal_id, proposal) in Proposals::<T>::iter() {
-            if !matches!(proposal.proposal_status, ProposalStatus::Pending) {
+        for mut proposal in Proposals::<T>::iter_values() {
+            if !matches!(proposal.status, ProposalStatus::Pending) {
                 continue;
             }
 
@@ -269,14 +271,16 @@ impl<T: Config> Pallet<T> {
                 // use the result to check for err
                 Self::execute_proposal(proposal, is_approved, block_number);
             } else if block_number >= proposal.expiration_block {
-                Proposals::<T>::remove(&proposal_id);
+                proposal.status = ProposalStatus::Expired;
+                proposal.data = ProposalData::Expired;
+                Proposals::<T>::insert(proposal.id, proposal);
             }
         }
     }
 
     fn execute_proposal(mut proposal: Proposal<T>, is_approved: bool, block_number: u64) {
         // Update the proposal status based on the approval
-        proposal.proposal_status = if is_approved {
+        proposal.status = if is_approved {
             ProposalStatus::Accepted
         } else {
             ProposalStatus::Refused
@@ -309,6 +313,9 @@ impl<T: Config> Pallet<T> {
 
                     // Emit the SubnetParamsUpdated event
                     Self::deposit_event(Event::SubnetParamsUpdated(*netuid));
+                }
+                ProposalData::Expired => {
+                    unreachable!("expired data is illegal at this point")
                 }
             }
         }
