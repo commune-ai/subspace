@@ -40,14 +40,14 @@ impl<T: Config> Pallet<T> {
         };
 
 		//  4.1 If a subnet was removed, we need to swap the netuid with the removed one
-		let netuid = match RemovedSubnets::<T>::get(netuid) {
-			Some(0) => {
+		let netuid = match RemovedSubnets::<T>::try_get(netuid) {
+			Ok(0) => {
 				let new_netuid = RemovedSubnets::<T>::iter().map(|(k, _)| k).min().unwrap();
-				RemovedSubnets::<T>::put(new_netuid, netuid);
+				RemovedSubnets::<T>::insert(new_netuid, netuid);
 				new_netuid
 			},
-			Some(target) => target,
-			None => netuid,
+			Ok(target) => target,
+			Err(_) => netuid,
 		};
 
         // --- 5. Ensure the caller has enough stake to register.
