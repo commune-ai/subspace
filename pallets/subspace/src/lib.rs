@@ -652,6 +652,14 @@ pub mod pallet {
         ValueQuery,
     >;
 
+
+    #[pallet::type_value]
+    pub fn DefaultAbsentSubnet<T: Config>() -> bool {
+        false
+    }
+    #[pallet::storage] // --- MAP( netuid ) --> bool
+    pub type AbsentSubnet<T> = StorageMap<_, Identity, u16, bool, ValueQuery, DefaultAbsentSubnet<T>>;
+
     // TOTAL STAKE PER SUBNET
     #[pallet::storage] // --- MAP ( netuid ) --> subnet_total_stake
     pub type TotalStake<T> = StorageMap<_, Identity, u16, u64, ValueQuery>;
