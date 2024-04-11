@@ -1015,7 +1015,7 @@ pub mod pallet {
 
     #[pallet::storage]
     #[pallet::getter(fn proposals)]
-    pub type Proposals<T: Config> = StorageMap<_, Twox64Concat, u64, Proposal<T>>;
+    pub type Proposals<T: Config> = StorageMap<_, Identity, u64, Proposal<T>>;
 
     // ================
     // ==== Hooks =====

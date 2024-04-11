@@ -58,7 +58,7 @@ impl<T: Config> ProposalData<T> {
 impl<T: Config> Pallet<T> {
     // Helper function to get the next proposal ID
     fn get_next_proposal_id() -> u64 {
-        match Proposals::<T>::iter_keys().last() {
+        match Proposals::<T>::iter_keys().max() {
             Some(id) => id + 1,
             None => 0,
         }
