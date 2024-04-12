@@ -122,6 +122,7 @@ impl<T: Config> Pallet<T> {
         ModuleParams {
             name: Name::<T>::get(netuid, uid),
             address: Address::<T>::get(netuid, uid),
+            arbitrary_uri: ArbitraryUri::<T>::get(netuid, uid),
             delegation_fee: DelegationFee::<T>::get(netuid, key),
             controller: key.clone(),
         }
