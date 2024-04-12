@@ -349,6 +349,7 @@ pub mod pallet {
         pub name: Vec<u8>,
         pub address: Vec<u8>,
         pub delegation_fee: Percent,
+        pub arbitrary_uri: Vec<u8>,
         pub controller: T::AccountId,
     }
 
@@ -739,6 +740,14 @@ pub mod pallet {
         StorageDoubleMap<_, Twox64Concat, u16, Twox64Concat, u16, Vec<u8>, ValueQuery>;
 
     #[pallet::type_value]
+    pub fn DefaultArbitraryUri<T: Config>() -> Vec<u8> {
+        vec![]
+    }
+    #[pallet::storage] // --- DMAP ( netuid, uid ) --> module_address
+    pub type ArbitraryUri<T: Config> =
+        StorageDoubleMap<_, Twox64Concat, u16, Twox64Concat, u16, Vec<u8>, ValueQuery>;
+
+    #[pallet::type_value]
     pub fn DefaultDelegationFee<T: Config>() -> Percent {
         Percent::from_percent(20u8)
     }
@@ -985,10 +994,10 @@ pub mod pallet {
         NetworkExist, // --- Thrown when the network already exist.
         InvalidIpType, /* ---- Thrown when the user tries to serve an module which
                        * is not of type	4 (IPv4) or 6 (IPv6). */
-        NotRegistered, // module which does not exist in the active set. 
+        NotRegistered, // module which does not exist in the active set.
         NotEnoughStaketoWithdraw, /* ---- Thrown when the caller requests removing more stake
-                                   * then there exists in the staking account. See: fn
-                                   * remove_stake. */
+                        * then there exists in the staking account. See: fn
+                        * remove_stake. */
         NotEnoughBalanceToStake, /*  ---- Thrown when the caller requests adding more stake
                                   * than there exists in the cold key account. See: fn
                                   * add_stake */
