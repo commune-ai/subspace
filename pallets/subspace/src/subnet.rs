@@ -41,17 +41,22 @@ impl<T: Config> Pallet<T> {
             Self::if_subnet_netuid_exists(netuid),
             Error::<T>::SubnetNameAlreadyExists
         );
+
+        // Ensure that the subnet is not in a `Vote` mode.
+        // Update by founder can be executed only in `Authority` mode.
+        ensure!(
+            VoteModeSubnet::<T>::get(netuid) == VoteMode::Authority,
+            Error::<T>::InvalidVoteMode
+        );
+
         ensure!(
             Self::is_subnet_founder(netuid, &key),
             Error::<T>::NotFounder
         );
+
         ensure!(
             Self::if_subnet_netuid_exists(netuid),
             Error::<T>::SubnetNameAlreadyExists
-        );
-        ensure!(
-            Self::is_subnet_founder(netuid, &key),
-            Error::<T>::NotFounder
         );
 
         Self::set_subnet_params(netuid, params);

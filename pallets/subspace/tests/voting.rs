@@ -24,7 +24,7 @@ fn creates_global_params_proposal_correctly_and_expires() {
         let key = U256::from(0);
         add_balance(key, COST + 1);
         assert_ok!(register_module(0, U256::from(1), 1_000_000_000));
-        assert_ok!(register_module(0, U256::from(2), 1_000_000_000));
+        assert_ok!(register_module(0, U256::from(2), 1_000_000_100));
 
         let original = SubspaceModule::global_params();
         let params = GlobalParams {
@@ -375,7 +375,7 @@ fn unregister_vote_from_pending_proposal() {
 
         ProposalCost::<Test>::set(COST);
 
-        SubspaceModule::add_custom_proposal(get_origin(key), vec![])
+        SubspaceModule::add_custom_proposal(get_origin(key),  b"test".to_vec())
             .expect("failed to create proposal");
 
         SubspaceModule::vote_proposal(get_origin(key), 0, true).unwrap();
