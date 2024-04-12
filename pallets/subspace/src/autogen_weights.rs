@@ -48,7 +48,6 @@ pub trait WeightInfo {
 	fn update_subnet() -> Weight;
 	fn remote_subnet() -> Weight;
 	fn update_module() -> Weight;
-	fn update_global() -> Weight;
 	fn add_global_update() -> Weight;
 	fn vote_global_update() -> Weight;
 	fn accept_global_update() -> Weight;
@@ -387,14 +386,6 @@ impl<T: frame_system::Config> WeightInfo for SubstrateWeight<T> {
 	/// Proof: `SubspaceModule::MaxNameLength` (`max_values`: Some(1), `max_size`: None, mode: `Measured`)
 	/// Storage: `SubspaceModule::UnitEmission` (r:0 w:1)
 	/// Proof: `SubspaceModule::UnitEmission` (`max_values`: Some(1), `max_size`: None, mode: `Measured`)
-	fn update_global() -> Weight {
-		// Proof Size summary in bytes:
-		//  Measured:  `0`
-		//  Estimated: `0`
-		// Minimum execution time: 18_323_000 picoseconds.
-		Weight::from_parts(19_208_000, 0)
-			.saturating_add(T::DbWeight::get().writes(6_u64))
-	}
 	fn add_global_update() -> Weight {
 		// Proof Size summary in bytes:
 		//  Measured:  `0`
@@ -780,14 +771,6 @@ impl WeightInfo for () {
 	/// Proof: `SubspaceModule::MaxNameLength` (`max_values`: Some(1), `max_size`: None, mode: `Measured`)
 	/// Storage: `SubspaceModule::UnitEmission` (r:0 w:1)
 	/// Proof: `SubspaceModule::UnitEmission` (`max_values`: Some(1), `max_size`: None, mode: `Measured`)
-	fn update_global() -> Weight {
-		// Proof Size summary in bytes:
-		//  Measured:  `0`
-		//  Estimated: `0`
-		// Minimum execution time: 18_323_000 picoseconds.
-		Weight::from_parts(19_208_000, 0)
-			.saturating_add(RocksDbWeight::get().writes(6_u64))
-	}
 	fn add_global_update() -> Weight {
 		// Proof Size summary in bytes:
 		//  Measured:  `0`

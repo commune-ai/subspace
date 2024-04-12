@@ -237,17 +237,6 @@ impl<T: Config> Pallet<T> {
         MaxNameLength::<T>::put(max_name_length)
     }
 
-    pub fn do_update_global(origin: T::RuntimeOrigin, params: GlobalParams) -> DispatchResult {
-        ensure_root(origin)?;
-
-        Self::set_global_params(params.clone());
-
-        // event
-        Self::deposit_event(Event::GlobalParamsUpdated(params));
-
-        Ok(())
-    }
-
     pub fn global_n() -> u16 {
         let mut global_n: u16 = 0;
         for netuid in Self::netuids() {
