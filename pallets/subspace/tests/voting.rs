@@ -375,7 +375,7 @@ fn unregister_vote_from_pending_proposal() {
 
         ProposalCost::<Test>::set(COST);
 
-        SubspaceModule::add_custom_proposal(get_origin(key),  b"test".to_vec())
+        SubspaceModule::add_custom_proposal(get_origin(key), b"test".to_vec())
             .expect("failed to create proposal");
 
         SubspaceModule::vote_proposal(get_origin(key), 0, true).unwrap();

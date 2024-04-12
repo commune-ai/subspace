@@ -1157,47 +1157,6 @@ pub mod pallet {
         }
 
         #[pallet::weight((Weight::zero(), DispatchClass::Normal, Pays::No))]
-        pub fn update_global(
-            origin: OriginFor<T>,
-            burn_rate: u16,
-            max_allowed_modules: u16,
-            max_allowed_subnets: u16,
-            max_name_length: u16,
-            max_registrations_per_block: u16,
-            min_burn: u64,
-            max_burn: u64,
-            min_stake: u64,
-            min_weight_stake: u64,
-            unit_emission: u64,
-            adjustment_alpha: u64,
-            floor_delegation_fee: Percent,
-            target_registrations_per_interval: u16,
-            target_registrations_interval: u16,
-        ) -> DispatchResult {
-            let mut params = Self::global_params();
-            params.burn_rate = burn_rate;
-            params.max_allowed_modules = max_allowed_modules;
-            params.max_allowed_subnets = max_allowed_subnets;
-            params.max_name_length = max_name_length;
-            params.max_registrations_per_block = max_registrations_per_block;
-            params.min_burn = min_burn;
-            params.max_burn = max_burn;
-            params.min_stake = min_stake;
-            params.min_weight_stake = min_weight_stake;
-            params.unit_emission = unit_emission;
-            params.adjustment_alpha = adjustment_alpha;
-            params.floor_delegation_fee = floor_delegation_fee;
-            params.target_registrations_per_interval = target_registrations_per_interval;
-            params.target_registrations_interval = target_registrations_interval;
-
-            // Check if the parameters are valid
-            Self::check_global_params(params.clone())?;
-
-            // if so update them
-            Self::do_update_global(origin, params)
-        }
-
-        #[pallet::weight((Weight::zero(), DispatchClass::Normal, Pays::No))]
         pub fn update_subnet(
             origin: OriginFor<T>,
             netuid: u16,
