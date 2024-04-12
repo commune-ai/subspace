@@ -4,9 +4,8 @@ use frame_support::assert_ok;
 use log::info;
 use mock::*;
 use sp_core::U256;
+use sp_runtime::Percent;
 use sp_std::vec;
-
-/* TO DO SAM: write test for LatuUpdate after it is set */
 
 #[test]
 fn test_add_subnets() {
@@ -145,14 +144,6 @@ fn test_set_single_temple(tempo: u16) {
         );
     });
 }
-
-// TODO:
-// #[test]
-// fn test_set_tempo() {
-// 	for tempo in [1, 2, 4, 8, 16, 32, 64, 128] {
-// 		test_set_single_temple(tempo);
-// 	}
-// }
 
 #[test]
 fn test_emission_ratio() {
@@ -597,5 +588,46 @@ fn test_yuma_self_vote() {
         let actual_stake_change = round_first_five(end_day_stake - start_stake);
 
         assert_eq!(actual_stake_change, expected_stake_change);
+    });
+}
+
+#[test]
+fn test_emission_activation() {
+    new_test_ext().execute_with(|| {
+        // Define the subnet stakes
+        let subnet_stakes = [
+            ("Subnet A", to_nano(10), true),
+            ("Subnet B", to_nano(4), false), // This one should not activate
+            ("Subnet C", to_nano(86), true),
+        ];
+
+        // Set the stake threshold and minimum burn
+        SubspaceModule::set_subnet_stake_threshold(Percent::from_percent(5));
+        SubspaceModule::set_min_burn(0);
+
+        // Register the subnets
+        for (i, (name, stake, _)) in subnet_stakes.iter().enumerate() {
+            assert_ok!(register_module(i as u16, U256::from(i as u64), *stake));
+            info!("Registered {name} with stake: {stake}");
+        }
+
+        step_block(1_000);
+
+        // Check if subnet rewards have increased, but Subnet B should not have activated
+        for (i, (name, initial_stake, should_activate)) in subnet_stakes.iter().enumerate() {
+            let current_stake = SubspaceModule::get_total_subnet_stake(i as u16);
+            if *should_activate {
+                assert!(
+                    current_stake > *initial_stake,
+                    "{name} should have activated and increased its stake"
+                );
+            } else {
+                assert_eq!(
+                    current_stake, *initial_stake,
+                    "{name} should not have activated"
+                );
+            }
+            info!("{name} current stake: {current_stake}");
+        }
     });
 }

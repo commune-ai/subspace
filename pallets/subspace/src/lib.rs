@@ -165,7 +165,7 @@ pub mod pallet {
 
     #[pallet::type_value]
     pub fn DefaultSubnetStakeThreshold<T: Config>() -> Percent {
-        Percent::from_percent(10)
+        Percent::from_percent(5)
     }
 
     #[pallet::storage]
@@ -985,10 +985,7 @@ pub mod pallet {
         NetworkExist, // --- Thrown when the network already exist.
         InvalidIpType, /* ---- Thrown when the user tries to serve an module which
                        * is not of type	4 (IPv4) or 6 (IPv6). */
-        InvalidIpAddress, /* --- Thrown when an invalid IP address is passed to the serve
-                           * function. */
-        NotRegistered, /* ---- Thrown when the caller requests setting or removing data from a
-                        * module which does not exist in the active set. */
+        NotRegistered, // module which does not exist in the active set. 
         NotEnoughStaketoWithdraw, /* ---- Thrown when the caller requests removing more stake
                                    * then there exists in the staking account. See: fn
                                    * remove_stake. */
