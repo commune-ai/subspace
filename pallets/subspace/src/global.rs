@@ -330,7 +330,6 @@ impl<T: Config> Pallet<T> {
     }
 
     // Whitelist management
-
     pub fn is_in_legit_whitelist(account_id: &T::AccountId) -> bool {
         LegitWhitelist::<T>::contains_key(account_id)
     }
