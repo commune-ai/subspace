@@ -16,6 +16,8 @@ fn creates_global_params_proposal_correctly_and_expires() {
     new_test_ext().execute_with(|| {
         const COST: u64 = to_nano(10);
 
+        MinBurn::<Test>::set(0);
+
         ProposalCost::<Test>::set(COST);
         ProposalExpiration::<Test>::set(100);
 
@@ -377,6 +379,8 @@ fn creates_subnet_params_proposal_correctly_and_is_approved() {
 fn unregister_vote_from_pending_proposal() {
     new_test_ext().execute_with(|| {
         const COST: u64 = to_nano(10);
+
+        MinBurn::<Test>::set(0);
 
         let key = U256::from(0);
         assert_ok!(register_module(0, key, 1_000_000_000));
