@@ -48,7 +48,6 @@ pub trait WeightInfo {
 	fn update_subnet() -> Weight;
 	fn remote_subnet() -> Weight;
 	fn update_module() -> Weight;
-	fn update_global() -> Weight;
 	fn add_global_update() -> Weight;
 	fn vote_global_update() -> Weight;
 	fn accept_global_update() -> Weight;
@@ -90,8 +89,6 @@ impl<T: frame_system::Config> WeightInfo for SubstrateWeight<T> {
 	/// Proof: `SubspaceModule::BurnRate` (`max_values`: None, `max_size`: None, mode: `Measured`)
 	/// Storage: `SubspaceModule::VotePeriod` (r:1 w:0)
 	/// Proof: `SubspaceModule::VotePeriod` (`max_values`: None, `max_size`: None, mode: `Measured`)
-	/// Storage: `SubspaceModule::VoteThresholdSubnet` (r:1 w:0)
-	/// Proof: `SubspaceModule::VoteThresholdSubnet` (`max_values`: None, `max_size`: None, mode: `Measured`)
 	/// Storage: `SubspaceModule::TotalSubnets` (r:1 w:1)
 	/// Proof: `SubspaceModule::TotalSubnets` (`max_values`: Some(1), `max_size`: None, mode: `Measured`)
 	/// Storage: `SubspaceModule::Emission` (r:1 w:1)
@@ -385,20 +382,10 @@ impl<T: frame_system::Config> WeightInfo for SubstrateWeight<T> {
 	/// Proof: `SubspaceModule::MaxAllowedModules` (`max_values`: Some(1), `max_size`: None, mode: `Measured`)
 	/// Storage: `SubspaceModule::MaxRegistrationsPerBlock` (r:0 w:1)
 	/// Proof: `SubspaceModule::MaxRegistrationsPerBlock` (`max_values`: Some(1), `max_size`: None, mode: `Measured`)
-	/// Storage: `SubspaceModule::TxRateLimit` (r:0 w:1)
-	/// Proof: `SubspaceModule::TxRateLimit` (`max_values`: Some(1), `max_size`: None, mode: `Measured`)
 	/// Storage: `SubspaceModule::MaxNameLength` (r:0 w:1)
 	/// Proof: `SubspaceModule::MaxNameLength` (`max_values`: Some(1), `max_size`: None, mode: `Measured`)
 	/// Storage: `SubspaceModule::UnitEmission` (r:0 w:1)
 	/// Proof: `SubspaceModule::UnitEmission` (`max_values`: Some(1), `max_size`: None, mode: `Measured`)
-	fn update_global() -> Weight {
-		// Proof Size summary in bytes:
-		//  Measured:  `0`
-		//  Estimated: `0`
-		// Minimum execution time: 18_323_000 picoseconds.
-		Weight::from_parts(19_208_000, 0)
-			.saturating_add(T::DbWeight::get().writes(6_u64))
-	}
 	fn add_global_update() -> Weight {
 		// Proof Size summary in bytes:
 		//  Measured:  `0`
@@ -487,8 +474,6 @@ impl WeightInfo for () {
 	/// Proof: `SubspaceModule::BurnRate` (`max_values`: None, `max_size`: None, mode: `Measured`)
 	/// Storage: `SubspaceModule::VotePeriod` (r:1 w:0)
 	/// Proof: `SubspaceModule::VotePeriod` (`max_values`: None, `max_size`: None, mode: `Measured`)
-	/// Storage: `SubspaceModule::VoteThresholdSubnet` (r:1 w:0)
-	/// Proof: `SubspaceModule::VoteThresholdSubnet` (`max_values`: None, `max_size`: None, mode: `Measured`)
 	/// Storage: `SubspaceModule::TotalSubnets` (r:1 w:1)
 	/// Proof: `SubspaceModule::TotalSubnets` (`max_values`: Some(1), `max_size`: None, mode: `Measured`)
 	/// Storage: `SubspaceModule::Emission` (r:1 w:1)
@@ -782,20 +767,10 @@ impl WeightInfo for () {
 	/// Proof: `SubspaceModule::MaxAllowedModules` (`max_values`: Some(1), `max_size`: None, mode: `Measured`)
 	/// Storage: `SubspaceModule::MaxRegistrationsPerBlock` (r:0 w:1)
 	/// Proof: `SubspaceModule::MaxRegistrationsPerBlock` (`max_values`: Some(1), `max_size`: None, mode: `Measured`)
-	/// Storage: `SubspaceModule::TxRateLimit` (r:0 w:1)
-	/// Proof: `SubspaceModule::TxRateLimit` (`max_values`: Some(1), `max_size`: None, mode: `Measured`)
 	/// Storage: `SubspaceModule::MaxNameLength` (r:0 w:1)
 	/// Proof: `SubspaceModule::MaxNameLength` (`max_values`: Some(1), `max_size`: None, mode: `Measured`)
 	/// Storage: `SubspaceModule::UnitEmission` (r:0 w:1)
 	/// Proof: `SubspaceModule::UnitEmission` (`max_values`: Some(1), `max_size`: None, mode: `Measured`)
-	fn update_global() -> Weight {
-		// Proof Size summary in bytes:
-		//  Measured:  `0`
-		//  Estimated: `0`
-		// Minimum execution time: 18_323_000 picoseconds.
-		Weight::from_parts(19_208_000, 0)
-			.saturating_add(RocksDbWeight::get().writes(6_u64))
-	}
 	fn add_global_update() -> Weight {
 		// Proof Size summary in bytes:
 		//  Measured:  `0`

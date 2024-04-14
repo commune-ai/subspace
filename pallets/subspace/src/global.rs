@@ -1,36 +1,37 @@
-use crate::voting::AUTHORITY_MODE;
-
 use super::*;
 use frame_support::pallet_prelude::DispatchResult;
 use sp_arithmetic::per_things::Percent;
 
-use system::ensure_root;
-
 impl<T: Config> Pallet<T> {
     pub fn global_params() -> GlobalParams<T> {
         GlobalParams {
+            // network
             max_name_length: Self::get_global_max_name_length(),
             min_name_length: Self::get_global_min_name_length(),
             max_allowed_subnets: Self::get_global_max_allowed_subnets(),
             max_allowed_modules: Self::get_max_allowed_modules(),
-            max_registrations_per_block: Self::get_max_registrations_per_block(),
-            target_registrations_interval: Self::get_target_registrations_interval(),
-            target_registrations_per_interval: Self::get_target_registrations_per_interval(),
             unit_emission: Self::get_unit_emission(),
-            tx_rate_limit: Self::get_tx_rate_limit(),
-            vote_threshold: Self::get_global_vote_threshold(),
-            max_proposals: Self::get_max_proposals(),
-            vote_mode: Self::get_vote_mode_global(),
             nominator: Self::get_nominator(),
+            floor_delegation_fee: Self::get_floor_delegation_fee(),
+            // burn & registrations
+            max_registrations_per_block: Self::get_max_registrations_per_block(),
+            target_registrations_per_interval: Self::get_target_registrations_per_interval(),
+            target_registrations_interval: Self::get_target_registrations_interval(),
             burn_rate: Self::get_burn_rate(),
             min_burn: Self::get_min_burn(),
             max_burn: Self::get_max_burn(),
             adjustment_alpha: Self::get_adjustment_alpha(),
             min_stake: Self::get_min_stake_global(),
-            floor_delegation_fee: Self::get_floor_delegation_fee(),
-            min_weight_stake: Self::get_min_weight_stake(),
+            // weights
             max_allowed_weights: Self::get_max_allowed_weights_global(),
             subnet_stake_threshold: Self::get_subnet_stake_threshold(),
+            min_weight_stake: Self::get_min_weight_stake(),
+            // proposals
+            proposal_cost: Self::get_proposal_cost(), // denominated in $COMAI
+            proposal_expiration: Self::get_proposal_expiration(), /* denominated in the number of
+                                                       * blocks */
+            proposal_participation_threshold: Self::get_proposal_participation_threshold(), /* denominated
+                                                                                            in percent of the overall network stake */
         }
     }
 
@@ -85,18 +86,9 @@ impl<T: Config> Pallet<T> {
         );
 
         ensure!(
-            params.vote_threshold < 100,
-            Error::<T>::InvalidVoteThreshold
-        );
-
-        ensure!(params.max_proposals > 0, Error::<T>::InvalidMaxProposals);
-
-        ensure!(
             params.unit_emission <= old_params.unit_emission,
             Error::<T>::InvalidUnitEmission
         );
-
-        ensure!(params.tx_rate_limit > 0, Error::<T>::InvalidTxRateLimit);
 
         // Make sure that the burn rate is below 100%
         ensure!(params.burn_rate <= 100, Error::<T>::InvalidBurnRate);
@@ -121,6 +113,18 @@ impl<T: Config> Pallet<T> {
             Error::<T>::InvalidMaxAllowedWeights
         );
 
+        // Proposal checks
+        ensure!(params.proposal_cost > 0, Error::<T>::InvalidProposalCost);
+
+        ensure!(
+            params.proposal_expiration % 100 == 0, // for computational reasons
+            Error::<T>::InvalidProposalExpiration
+        );
+        ensure!(
+            params.proposal_participation_threshold.deconstruct() <= 100,
+            Error::<T>::InvalidProposalParticipationThreshold
+        );
+
         Ok(())
     }
 
@@ -128,26 +132,33 @@ impl<T: Config> Pallet<T> {
         // Check if the params are valid
         Self::check_global_params(&params).expect("global params are invalid");
 
+        // Network
         Self::set_global_max_name_length(params.max_name_length);
         Self::set_global_max_allowed_subnets(params.max_allowed_subnets);
         Self::set_max_allowed_modules(params.max_allowed_modules);
-        Self::set_max_registrations_per_block(params.max_registrations_per_block);
-        Self::set_target_registrations_interval(params.target_registrations_interval);
-        Self::set_target_registrations_per_interval(params.target_registrations_per_interval);
-        Self::set_adjustment_alpha(params.adjustment_alpha);
         Self::set_unit_emission(params.unit_emission);
-        Self::set_tx_rate_limit(params.tx_rate_limit);
-        Self::set_global_vote_threshold(params.vote_threshold);
-        Self::set_max_proposals(params.max_proposals);
-        Self::set_vote_mode_global(params.vote_mode);
+        Self::set_floor_delegation_fee(params.floor_delegation_fee);
+        // burn & registrations
+        Self::set_max_registrations_per_block(params.max_registrations_per_block);
+        Self::set_target_registrations_per_interval(params.target_registrations_per_interval);
+        Self::set_target_registrations_interval(params.target_registrations_interval);
         Self::set_burn_rate(params.burn_rate);
         Self::set_min_burn(params.min_burn);
         Self::set_max_burn(params.max_burn);
         Self::set_min_weight_stake(params.min_weight_stake);
         Self::set_subnet_stake_threshold(params.subnet_stake_threshold);
+        Self::set_adjustment_alpha(params.adjustment_alpha);
         Self::set_min_stake_global(params.min_stake);
         Self::set_floor_delegation_fee(params.floor_delegation_fee);
         Self::set_nominator(params.nominator);
+
+        // weights
+        Self::set_max_allowed_weights_global(params.max_allowed_weights);
+        Self::set_min_weight_stake(params.min_weight_stake);
+        // proposals
+        // ! important, this is not a bug, proposal cost is fixed and can't be changed
+        Self::set_proposal_expiration(params.proposal_expiration);
+        Self::set_proposal_participation_threshold(params.proposal_participation_threshold);
     }
 
     pub fn get_nominator() -> T::AccountId {
@@ -185,6 +196,10 @@ impl<T: Config> Pallet<T> {
         SubnetStakeThreshold::<T>::put(stake_threshold)
     }
 
+    pub fn set_max_allowed_weights_global(max_allowed_weights: u16) {
+        MaxAllowedWeightsGlobal::<T>::put(max_allowed_weights)
+    }
+
     pub fn get_min_stake_global() -> u64 {
         MinStakeGlobal::<T>::get()
     }
@@ -200,13 +215,6 @@ impl<T: Config> Pallet<T> {
         FloorDelegationFee::<T>::put(delegation_fee)
     }
 
-    pub fn set_vote_mode_global(vote_mode: Vec<u8>) {
-        VoteModeGlobal::<T>::put(vote_mode);
-    }
-
-    pub fn get_vote_mode_global() -> Vec<u8> {
-        VoteModeGlobal::<T>::get()
-    }
     pub fn get_burn_rate() -> u16 {
         BurnRate::<T>::get()
     }
@@ -214,19 +222,26 @@ impl<T: Config> Pallet<T> {
         BurnRate::<T>::put(burn_rate.min(100));
     }
 
-    pub fn get_max_proposals() -> u64 {
-        MaxProposals::<T>::get()
-    }
-    pub fn set_max_proposals(max_proposals: u64) {
-        MaxProposals::<T>::put(max_proposals);
+    // Proposals
+
+    pub fn get_proposal_cost() -> u64 {
+        ProposalCost::<T>::get()
     }
 
-    pub fn get_global_vote_threshold() -> u16 {
-        GlobalVoteThreshold::<T>::get()
+    pub fn set_proposal_expiration(proposal_expiration: u32) {
+        ProposalExpiration::<T>::put(proposal_expiration);
     }
 
-    pub fn set_global_vote_threshold(vote_threshold: u16) {
-        GlobalVoteThreshold::<T>::put(vote_threshold);
+    pub fn get_proposal_expiration() -> u32 {
+        ProposalExpiration::<T>::get()
+    }
+
+    pub fn set_proposal_participation_threshold(proposal_participation_threshold: Percent) {
+        ProposalParticipationThreshold::<T>::put(proposal_participation_threshold);
+    }
+
+    pub fn get_proposal_participation_threshold() -> Percent {
+        ProposalParticipationThreshold::<T>::get()
     }
 
     pub fn get_max_registrations_per_block() -> u16 {
@@ -261,48 +276,12 @@ impl<T: Config> Pallet<T> {
         MinNameLength::<T>::put(min_name_length)
     }
 
-    pub fn do_update_global(origin: T::RuntimeOrigin, params: GlobalParams<T>) -> DispatchResult {
-        ensure_root(origin)?;
-
-        // TODO, once decentralization is reached, remove this
-        ensure!(
-            Self::get_vote_mode_global() == AUTHORITY_MODE,
-            Error::<T>::InvalidVoteMode
-        );
-        Self::set_global_params(params.clone());
-
-        // event
-        Self::deposit_event(Event::GlobalParamsUpdated(params));
-
-        Ok(())
-    }
-
     pub fn global_n() -> u16 {
         let mut global_n: u16 = 0;
         for netuid in Self::netuids() {
             global_n += N::<T>::get(netuid);
         }
         global_n
-    }
-
-    pub fn get_global_stake_to(key: &T::AccountId) -> u64 {
-        // get all of the stake to
-        let total_networks: u16 = TotalSubnets::<T>::get();
-        let mut total_stake_to = 0;
-
-        for netuid in 0..total_networks {
-            total_stake_to += Self::get_total_stake_to(netuid, key);
-        }
-
-        total_stake_to
-    }
-
-    // Configure tx rate limiting
-    pub fn get_tx_rate_limit() -> u64 {
-        TxRateLimit::<T>::get()
-    }
-    pub fn set_tx_rate_limit(tx_rate_limit: u64) {
-        TxRateLimit::<T>::put(tx_rate_limit)
     }
 
     pub fn get_min_burn() -> u64 {

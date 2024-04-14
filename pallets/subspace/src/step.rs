@@ -12,6 +12,11 @@ impl<T: Config> Pallet<T> {
         let block_number: u64 = Self::get_current_block_number();
         RegistrationsPerBlock::<T>::mutate(|val: &mut u16| *val = 0);
 
+        // Execute proposals if any should be executed, this is done every 100 blocks.
+        if block_number % 100 == 0 {
+            Self::resolve_proposals(block_number);
+        }
+
         log::debug!("block_step for block: {block_number:?}");
 
         let subnet_stake_threshold: Percent = SubnetStakeThreshold::<T>::get();
@@ -536,8 +541,7 @@ impl<T: Config> Pallet<T> {
         netuid: u16,
         module_key: &T::AccountId,
     ) -> Vec<(T::AccountId, I64F64)> {
-        let stake_from_vector: Vec<(T::AccountId, u64)> =
-            Self::get_stake_from_vector(netuid, module_key);
+        let stake_from_vector = Self::get_stake_from_vector(netuid, module_key);
         let _uid = Self::get_uid_for_key(netuid, module_key);
         let mut total_stake_from: I64F64 = I64F64::from_num(0);
 
@@ -631,6 +635,21 @@ impl<T: Config> Pallet<T> {
             Self::get_min_burn()
         } else {
             next_value.to_num::<u64>()
+        }
+    }
+
+    // gets the overall stake value for a given account_id,
+    // if netuid is present only the specific subnet will be used
+    pub fn get_account_stake(account_id: &T::AccountId, netuid: Option<u16>) -> u64 {
+        match netuid {
+            Some(specific_netuid) => {
+                StakeTo::<T>::get(specific_netuid, account_id).into_values().sum()
+            }
+            None => N::<T>::iter()
+                .map(|(netuid, _)| netuid)
+                .filter_map(|netuid| StakeTo::<T>::try_get(netuid, account_id).ok())
+                .flat_map(|entries| entries.into_values())
+                .sum(),
         }
     }
 }
