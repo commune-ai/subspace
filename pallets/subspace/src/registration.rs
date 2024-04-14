@@ -92,12 +92,23 @@ impl<T: Config> Pallet<T> {
             let params = SubnetParams {
                 name: network_name.clone(),
                 founder: key.clone(),
-                ..Self::default_subnet_params()
+                ..DefaultSubnetParams::<T>::get()
             };
             let subnet_changeset: SubnetChangeset<T> =
                 SubnetChangeset::new(&network_name, &key, params);
             // Create subnet if it does not exist.
             Self::add_subnet_from_registration(stake, subnet_changeset)?
+        };
+
+        //  4.1 If a subnet was removed, we need to swap the netuid with the removed one
+        let netuid = match RemovedSubnets::<T>::try_get(netuid) {
+            Ok(0) => {
+                let new_netuid = RemovedSubnets::<T>::iter().map(|(k, _)| k).min().unwrap();
+                RemovedSubnets::<T>::insert(new_netuid, netuid);
+                new_netuid
+            }
+            Ok(target) => target,
+            Err(_) => netuid,
         };
 
         // --- 5. Ensure the caller has enough stake to register.
@@ -234,19 +245,19 @@ impl<T: Config> Pallet<T> {
         let num_subnets: u16 = Self::num_subnets();
         let max_subnets: u16 = Self::get_global_max_allowed_subnets();
 
-        // resolve possible subnet deregistering
-        let target_subnet = if num_subnets >= max_subnets {
+        let mut target_subnet = RemovedSubnets::<T>::iter().map(|(k, _)| k).min();
+
+        // if we have not reached the max number of subnets, then we can start a new one
+        if num_subnets >= max_subnets {
             let (min_stake_netuid, min_stake) = Self::least_staked_netuid();
+            // if the stake is greater than the least staked network, then we can start a new one
             ensure!(stake > min_stake, Error::<T>::NotEnoughStakeToStartNetwork);
             Self::remove_subnet(min_stake_netuid);
-            Some(min_stake_netuid)
-        } else {
-            None
-        };
+            target_subnet = Some(min_stake_netuid);
+        }
 
         Self::add_subnet(changeset, target_subnet)
     }
-
     pub fn check_module_limits(netuid: u16) {
         // Check if we have reached the max allowed modules for the network
         if Self::global_n() >= Self::get_max_allowed_modules() {

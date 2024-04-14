@@ -289,6 +289,8 @@ pub fn add_stake_and_balance(netuid: u16, key: U256, amount: u64) {
     assert_ok!(result);
 }
 
+const TOKEN_DECIMALS: u32 = 9;
+
 pub const fn to_nano(x: u64) -> u64 {
     x * 10u64.pow(TOKEN_DECIMALS)
 }

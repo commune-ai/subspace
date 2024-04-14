@@ -23,7 +23,7 @@ pub struct Custom {
 }
 
 #[rpc(client, server)]
-pub trait SubspaceApi<BlockHash, AccountId> {
+pub trait SubspaceApi<BlockHash> {
     #[method(name = "subspace_getBurnRate")]
     fn get_burn_rate(&self, at: Option<BlockHash>) -> RpcResult<Custom>;
 
@@ -50,7 +50,7 @@ impl<C, Block> SubspacePallet<C, Block> {
     }
 }
 
-impl<C, Block> SubspaceApiServer<<Block as BlockT>::Hash, AccountId> for SubspacePallet<C, Block>
+impl<C, Block> SubspaceApiServer<<Block as BlockT>::Hash> for SubspacePallet<C, Block>
 where
     Block: BlockT,
     C: Send + Sync + 'static + ProvideRuntimeApi<Block> + HeaderBackend<Block>,
