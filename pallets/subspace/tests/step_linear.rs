@@ -336,7 +336,7 @@ fn test_lowest_priority_mechanism() {
         let voter_idx = 0;
 
         // Create a list of UIDs excluding the voter_idx
-        let weight_uids: Vec<u16> = (0..n).filter(|&x| x != voter_idx).map(|x| x as u16).collect();
+        let weight_uids: Vec<u16> = (0..n).filter(|&x| x != voter_idx).collect();
 
         // Create a list of ones for weights, excluding the voter_idx
         let mut weight_values: Vec<u16> = weight_uids.iter().map(|_x| 1_u16).collect();
@@ -975,9 +975,9 @@ fn test_dynamic_burn() {
         let registrations_per_block = 5;
         let n: usize = 1000;
         let stakes: Vec<u64> = (0..n).map(|_| initial_stake * 1_000_000_000).collect();
-        for i in 0..n {
+        for (i, stake) in stakes.iter().enumerate() {
             let key = U256::from(i);
-            assert_ok!(register_module(netuid, key, stakes[i]));
+            assert_ok!(register_module(netuid, key, *stake));
             if (i + 1) % registrations_per_block == 0 {
                 step_block(1);
             }
@@ -990,11 +990,11 @@ fn test_dynamic_burn() {
             SubspaceModule::get_burn(netuid)
         );
 
-        // Register only half of the target
-        let n2: usize = 50;
-        for i in 0..n2 {
+        // Register only 50 of the target
+        let amount: usize = 50;
+        for (i, &stake) in stakes.iter().enumerate().take(amount) {
             let key = U256::from(n + i);
-            assert_ok!(register_module(netuid, key, stakes[i]));
+            assert_ok!(register_module(netuid, key, stake));
         }
 
         step_block(200);

@@ -51,6 +51,9 @@ fn creates_global_params_proposal_correctly_and_expires() {
             proposal_cost,
             proposal_expiration,
             proposal_participation_threshold,
+            min_name_length: _,
+            nominator: _,
+            subnet_stake_threshold: _,
         } = params.clone();
 
         SubspaceModule::add_global_proposal(
@@ -144,6 +147,9 @@ fn creates_global_params_proposal_correctly_and_is_approved() {
             proposal_cost,
             proposal_expiration,
             proposal_participation_threshold,
+            min_name_length: _,
+            nominator: _,
+            subnet_stake_threshold: _,
         } = params.clone();
 
         SubspaceModule::add_global_proposal(
@@ -230,6 +236,9 @@ fn creates_global_params_proposal_correctly_and_is_refused() {
             proposal_cost,
             proposal_expiration,
             proposal_participation_threshold,
+            min_name_length: _,
+            nominator: _,
+            subnet_stake_threshold: _,
         } = GlobalParams {
             min_burn: 100_000_000,
             ..original.clone()
@@ -271,7 +280,7 @@ fn creates_global_params_proposal_correctly_and_is_refused() {
         let proposal = Proposals::<Test>::get(0).expect("proposal was not created");
         assert_eq!(proposal.status, ProposalStatus::Refused);
         assert_eq!(proposal.finalization_block, Some(100));
-        assert_eq!(SubspaceModule::get_balance_u64(&keys[0]), 01,);
+        assert_eq!(SubspaceModule::get_balance_u64(&keys[0]), 1,);
 
         ProposalCost::<Test>::set(COST);
         assert_eq!(SubspaceModule::global_params(), original);

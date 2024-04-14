@@ -296,8 +296,7 @@ fn test_set_max_allowed_uids_shrinking() {
             params.name.clone(),
             params.tempo,
             params.trust_ratio,
-            params.vote_mode.clone(),
-            params.vote_threshold,
+            params.vote_mode,
         );
         let global_params = SubspaceModule::global_params();
         info!("global params {:?}", global_params);
@@ -532,13 +531,13 @@ fn test_yuma_self_vote() {
             stake_yuma_miner_self
         ));
         step_block(1);
-        let _ = set_weights(
+        set_weights(
             netuid_yuma,
             validator_key,
             [SubspaceModule::get_uid_for_key(netuid_yuma, &miner_key)].to_vec(),
             [1].to_vec(),
         );
-        let _ = set_weights(
+        set_weights(
             netuid_yuma,
             validator_self_key,
             [SubspaceModule::get_uid_for_key(
