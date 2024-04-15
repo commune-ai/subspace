@@ -125,6 +125,7 @@ pub mod opaque {
 pub type Migrations = (
     pallet_subspace::migrations::v1::MigrateToV1<Runtime>,
     pallet_subspace::migrations::v2::MigrateToV2<Runtime>,
+    pallet_subspace::migrations::v3::MigrateToV3<Runtime>,
 );
 // To learn more about runtime versioning, see:
 // https://docs.substrate.io/main-docs/build/upgrade#runtime-versioning
