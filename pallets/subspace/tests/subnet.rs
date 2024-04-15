@@ -387,11 +387,8 @@ fn test_deregister_subnet_when_overflows_max_allowed_subnets() {
 }
 
 #[test]
-#[ignore]
-/// Test if subnet emissions are distributed correctly, even without voting
-///
-/// TODO: fix test
 fn test_emission_distribution_novote() {
+    // test if subnet emissions are distributed correctly, even without voting
     new_test_ext().execute_with(|| {
         let netuid_general: u16 = 0; // hold 50% of the networks stake
         let stake_general: u64 = to_nano(500_000);
@@ -405,6 +402,7 @@ fn test_emission_distribution_novote() {
         // making sure the unit emission are set correctly
         SubspaceModule::set_unit_emission(23148148148);
         SubspaceModule::set_min_burn(0);
+        SubspaceModule::set_subnet_stake_threshold(Percent::from_percent(10));
         let blocks_in_day: u16 = 10_800;
         // this is aprox. the stake we expect at the end of the day with the above unit emission
         let expected_stake_change = to_nano(250_000);
