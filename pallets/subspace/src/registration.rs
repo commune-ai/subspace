@@ -100,7 +100,17 @@ impl<T: Config> Pallet<T> {
             Self::add_subnet_from_registration(stake, subnet_changeset)?
         };
 
-        //  4.1 If a subnet was removed, we need to swap the netuid with the removed one
+        // TODO: later, once legit whitelist has been filled up, turn on the code below.
+        // We also have to declear a migration, of modules on netuid 0 that are not whitelisted.
+
+        // --- 4.1 Ensure that the module_key is in the whitelist, if netuid is 0.
+
+        // ensure!(
+        //     netuid != 0 || Self::is_in_legit_whitelist(&module_key),
+        //     Error::<T>::NotWhitelisted
+        // );
+
+        //  4.2 If a subnet was removed, we need to swap the netuid with the removed one
         let netuid = match RemovedSubnets::<T>::try_get(netuid) {
             Ok(0) => {
                 let new_netuid = RemovedSubnets::<T>::iter().map(|(k, _)| k).min().unwrap();

@@ -180,6 +180,11 @@ pub mod v3 {
                     ValidatorTrust::<T>::mutate(netuid, |v| v.push(0));
                 }
 
+                // Due to the incoming incentives refactoring, `max_stake` value
+                // is no longer needed to be limited on the subnet 0
+                let general_netuid = 0;
+                MaxStake::<T>::insert(general_netuid, u64::MAX);
+
                 StorageVersion::new(3).put::<Pallet<T>>();
                 log::info!("Migrated subnets to v3");
                 T::DbWeight::get().writes(largest_netuid as u64)
