@@ -1,16 +1,14 @@
-use crate::voting::{AUTHORITY_MODE, STAKE_MODE};
-
 use super::*;
 
 use frame_support::{
     pallet_prelude::DispatchResult, storage::IterableStorageMap, IterableStorageDoubleMap,
 };
 
+use self::voting::VoteMode;
 use sp_arithmetic::per_things::Percent;
 use sp_runtime::DispatchError;
 use sp_std::vec::Vec;
 use substrate_fixed::types::I64F64;
-extern crate alloc;
 
 #[derive(Debug)]
 pub struct SubnetChangeset<T: Config> {
@@ -66,11 +64,6 @@ impl<T: Config> SubnetChangeset<T> {
         }
 
         if let Some(params) = self.params {
-            ensure!(
-                Pallet::<T>::get_vote_mode_subnet(netuid) == AUTHORITY_MODE,
-                Error::<T>::NotAuthorityMode
-            );
-
             Pallet::<T>::set_subnet_params(netuid, params);
         }
 
@@ -104,6 +97,20 @@ impl<T: Config> Pallet<T> {
         changeset: SubnetChangeset<T>,
     ) -> DispatchResult {
         let key = ensure_signed(origin)?;
+        // only the founder can update the network on authority mode
+
+        ensure!(
+            Self::if_subnet_netuid_exists(netuid),
+            Error::<T>::SubnetNameAlreadyExists
+        );
+
+        // Ensure that the subnet is not in a `Vote` mode.
+        // Update by founder can be executed only in `Authority` mode.
+        ensure!(
+            VoteModeSubnet::<T>::get(netuid) == VoteMode::Authority,
+            Error::<T>::InvalidVoteMode
+        );
+
         ensure!(
             Self::is_subnet_founder(netuid, &key),
             Error::<T>::NotFounder
@@ -119,26 +126,6 @@ impl<T: Config> Pallet<T> {
 
         // --- 16. Ok and done.
         Ok(())
-    }
-
-    pub fn subnet_params(netuid: u16) -> SubnetParams<T> {
-        SubnetParams {
-            immunity_period: ImmunityPeriod::<T>::get(netuid),
-            min_allowed_weights: MinAllowedWeights::<T>::get(netuid),
-            max_allowed_weights: MaxAllowedWeights::<T>::get(netuid),
-            max_allowed_uids: MaxAllowedUids::<T>::get(netuid),
-            max_stake: MaxStake::<T>::get(netuid),
-            max_weight_age: MaxWeightAge::<T>::get(netuid),
-            min_stake: MinStake::<T>::get(netuid),
-            tempo: Tempo::<T>::get(netuid),
-            name: <Vec<u8>>::new(),
-            vote_threshold: VoteThresholdSubnet::<T>::get(netuid),
-            vote_mode: VoteModeSubnet::<T>::get(netuid),
-            trust_ratio: TrustRatio::<T>::get(netuid),
-            founder_share: FounderShare::<T>::get(netuid),
-            incentive_ratio: IncentiveRatio::<T>::get(netuid),
-            founder: Founder::<T>::get(netuid),
-        }
     }
 
     pub fn check_subnet_params(params: &SubnetParams<T>) -> DispatchResult {
@@ -173,7 +160,8 @@ impl<T: Config> Pallet<T> {
             Error::<T>::InvalidMaxStake
         );
 
-        ensure!(params.tempo > 0, Error::<T>::InvalidTempo);
+        // for computational purposes
+        ensure!(params.tempo >= 50, Error::<T>::InvalidTempo);
 
         ensure!(
             params.max_weight_age > params.tempo as u64,
@@ -182,12 +170,6 @@ impl<T: Config> Pallet<T> {
 
         // ensure the trust_ratio is between 0 and 100
         ensure!(params.trust_ratio <= 100, Error::<T>::InvalidTrustRatio);
-
-        // ensure the vode_mode is in "authority", "stake"
-        ensure!(
-            params.vote_mode.clone() == AUTHORITY_MODE || params.vote_mode.clone() == STAKE_MODE,
-            Error::<T>::InvalidVoteMode
-        );
 
         ensure!(
             params.immunity_period > 0,
@@ -199,11 +181,6 @@ impl<T: Config> Pallet<T> {
             Error::<T>::InvalidMaxAllowedUids
         );
 
-        ensure!(
-            params.vote_threshold <= 100,
-            Error::<T>::InvalidVoteThreshold
-        );
-
         ensure!(params.founder_share <= 100, Error::<T>::InvalidFounderShare);
 
         ensure!(
@@ -212,6 +189,25 @@ impl<T: Config> Pallet<T> {
         );
 
         Ok(())
+    }
+
+    pub fn subnet_params(netuid: u16) -> SubnetParams<T> {
+        SubnetParams {
+            founder: Founder::<T>::get(netuid),
+            founder_share: FounderShare::<T>::get(netuid),
+            tempo: Tempo::<T>::get(netuid),
+            immunity_period: ImmunityPeriod::<T>::get(netuid),
+            max_allowed_weights: MaxAllowedWeights::<T>::get(netuid),
+            max_allowed_uids: MaxAllowedUids::<T>::get(netuid),
+            max_stake: MaxStake::<T>::get(netuid),
+            max_weight_age: MaxWeightAge::<T>::get(netuid),
+            min_allowed_weights: MinAllowedWeights::<T>::get(netuid),
+            min_stake: MinStake::<T>::get(netuid),
+            name: <Vec<u8>>::new(),
+            trust_ratio: TrustRatio::<T>::get(netuid),
+            incentive_ratio: IncentiveRatio::<T>::get(netuid),
+            vote_mode: VoteModeSubnet::<T>::get(netuid),
+        }
     }
 
     pub fn set_subnet_params(netuid: u16, params: SubnetParams<T>) {
@@ -230,9 +226,8 @@ impl<T: Config> Pallet<T> {
         Self::set_min_stake(netuid, params.min_stake);
         Self::set_name_subnet(netuid, params.name);
         Self::set_trust_ratio(netuid, params.trust_ratio);
-        Self::set_vote_threshold_subnet(netuid, params.vote_threshold);
-        Self::set_vote_mode_subnet(netuid, params.vote_mode);
         Self::set_incentive_ratio(netuid, params.incentive_ratio);
+        Self::set_vote_mode(netuid, params.vote_mode);
     }
 
     pub fn if_subnet_exist(netuid: u16) -> bool {
@@ -331,12 +326,6 @@ impl<T: Config> Pallet<T> {
         if !Self::subnet_name_exists(name.clone()) {
             SubnetNames::<T>::insert(netuid, name.clone());
         }
-    }
-
-    pub fn default_subnet_params() -> SubnetParams<T> {
-        // get an invalid
-        let default_netuid: u16 = Self::num_subnets() + 1;
-        Self::subnet_params(default_netuid)
     }
 
     #[cfg(debug_assertions)]
@@ -560,15 +549,21 @@ impl<T: Config> Pallet<T> {
         Tempo::<T>::remove(netuid);
         TrustRatio::<T>::remove(netuid);
         VoteModeSubnet::<T>::remove(netuid);
-        VoteThresholdSubnet::<T>::remove(netuid);
 
         // Adjust the total number of subnets. and remove the subnet from the list of subnets.
         N::<T>::remove(netuid);
         TotalSubnets::<T>::mutate(|val| *val -= 1);
+        RemovedSubnets::<T>::insert(netuid, 0);
         // --- 4. Emit the event.
         Self::deposit_event(Event::NetworkRemoved(netuid));
 
         netuid
+    }
+
+    pub fn get_current_block_as_u64() -> u64 {
+        TryInto::try_into(<frame_system::Pallet<T>>::block_number())
+            .ok()
+            .expect("blockchain will not exceed 2^64 blocks; QED.")
     }
 
     // Returns the number of filled slots on a network.
@@ -628,26 +623,11 @@ impl<T: Config> Pallet<T> {
         Self::get_stake_for_key(netuid, &Self::get_key_for_uid(netuid, module_uid))
     }
 
-    // we need to prefix the voting power by the network uid
-
-    pub fn set_vote_threshold_subnet(netuid: u16, vote_threshold: u16) {
-        VoteThresholdSubnet::<T>::insert(netuid, vote_threshold);
-    }
-
-    pub fn get_vote_mode_subnet(netuid: u16) -> Vec<u8> {
-        VoteModeSubnet::<T>::get(netuid)
-    }
-
-    pub fn set_vote_mode_subnet(netuid: u16, vote_mode: Vec<u8>) {
-        VoteModeSubnet::<T>::insert(netuid, vote_mode);
-    }
-
     pub fn get_stake_for_key(netuid: u16, key: &T::AccountId) -> u64 {
         Stake::<T>::get(netuid, key)
     }
 
     // Return the total number of subnetworks available on the chain.
-    //
     pub fn num_subnets() -> u16 {
         TotalSubnets::<T>::get()
     }
@@ -693,6 +673,10 @@ impl<T: Config> Pallet<T> {
 
     pub fn set_founder(netuid: u16, founder: T::AccountId) {
         Founder::<T>::insert(netuid, founder);
+    }
+
+    pub fn set_vote_mode(netuid: u16, vote_mode: VoteMode) {
+        VoteModeSubnet::<T>::insert(netuid, vote_mode);
     }
 
     #[cfg(debug_assertions)]

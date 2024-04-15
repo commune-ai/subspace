@@ -296,8 +296,7 @@ fn test_set_max_allowed_uids_shrinking() {
             params.name.clone(),
             params.tempo,
             params.trust_ratio,
-            params.vote_mode.clone(),
-            params.vote_threshold,
+            params.vote_mode,
         );
         let global_params = SubspaceModule::global_params();
         info!("global params {:?}", global_params);
@@ -403,6 +402,7 @@ fn test_emission_distribution_novote() {
         // making sure the unit emission are set correctly
         SubspaceModule::set_unit_emission(23148148148);
         SubspaceModule::set_min_burn(0);
+        SubspaceModule::set_subnet_stake_threshold(Percent::from_percent(10));
         let blocks_in_day: u16 = 10_800;
         // this is aprox. the stake we expect at the end of the day with the above unit emission
         let expected_stake_change = to_nano(250_000);
@@ -532,13 +532,13 @@ fn test_yuma_self_vote() {
             stake_yuma_miner_self
         ));
         step_block(1);
-        let _ = set_weights(
+        set_weights(
             netuid_yuma,
             validator_key,
             [SubspaceModule::get_uid_for_key(netuid_yuma, &miner_key)].to_vec(),
             [1].to_vec(),
         );
-        let _ = set_weights(
+        set_weights(
             netuid_yuma,
             validator_self_key,
             [SubspaceModule::get_uid_for_key(

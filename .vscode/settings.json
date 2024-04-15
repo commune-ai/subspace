@@ -1,0 +1,15 @@
+{
+  // Ignore autogen files on VS Code
+  "files.exclude": {
+    "**/*_BASE_*": true,
+    "**/*_BACKUP_*": true,
+    "**/*_LOCAL_*": true,
+    "**/*_REMOTE_*": true
+    // "**/autogen_weights.rs": true
+  },
+  "search.exclude": {
+    "**/autogen_weights.rs": true
+  },
+  "rust-analyzer.linkedProjects": ["./pallets/subspace/Cargo.toml"],
+  "search.useParentIgnoreFiles": false
+}

@@ -373,14 +373,6 @@ mod benchmarks {
     }
 
     #[benchmark]
-    fn update_global() -> Result<(), BenchmarkError> {
-        #[extrinsic_call]
-        update_global(RawOrigin::Root, 1, 1, 1, 1, 1, 1);
-
-        Ok(())
-    }
-
-    #[benchmark]
     fn add_global_update() -> Result<(), BenchmarkError> {
         #[extrinsic_call]
         add_global_update(RawOrigin::Root, 1, 1, 1, 1, 1, 1);

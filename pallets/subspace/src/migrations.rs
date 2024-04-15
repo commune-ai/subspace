@@ -13,6 +13,7 @@ impl<T: Config> StorageInstance for Pallet<T> {
     const STORAGE_PREFIX: &'static str = "Subspace";
 }
 
+// Delegation update, migrations.
 pub mod v1 {
     use super::*;
 
@@ -38,15 +39,51 @@ pub mod v1 {
                 log::info!("Migrated DelegationFee to v1");
                 T::DbWeight::get().writes(1)
             } else {
-                log::info!("DelegationFee already updated");
+                log::info!("Storage v1 already updated");
                 Weight::zero()
             }
         }
     }
 }
 
+// Proposal update, migrations.
 pub mod v2 {
+    use crate::voting::VoteMode;
+
     use super::*;
+
+    pub mod old_storage {
+        use super::*;
+        use frame_support::{pallet_prelude::ValueQuery, storage_alias, Identity};
+
+        type AccountId<T> = <T as frame_system::Config>::AccountId;
+
+        #[storage_alias]
+        pub(super) type StakeFrom<T: Config> = StorageDoubleMap<
+            Pallet<T>,
+            Identity,
+            u16,
+            Identity,
+            AccountId<T>,
+            Vec<(AccountId<T>, u64)>,
+            ValueQuery,
+        >;
+
+        #[storage_alias]
+        pub(super) type StakeTo<T: Config> = StorageDoubleMap<
+            Pallet<T>,
+            Identity,
+            u16,
+            Identity,
+            AccountId<T>,
+            Vec<(AccountId<T>, u64)>,
+            ValueQuery,
+        >;
+
+        #[storage_alias]
+        pub(super) type VoteModeSubnet<T: Config> =
+            StorageMap<Pallet<T>, Identity, u16, Vec<u8>, ValueQuery>;
+    }
 
     pub struct MigrateToV2<T>(sp_std::marker::PhantomData<T>);
 
@@ -54,8 +91,62 @@ pub mod v2 {
         fn on_runtime_upgrade() -> Weight {
             let on_chain_version = StorageVersion::get::<Pallet<T>>();
 
-            // Migrate Burn to v2
             if on_chain_version == 1 {
+                log::info!("Migrating to V2");
+
+                // Migrate StakeFrom storage
+                for (netuid, module_key, stake_from) in old_storage::StakeFrom::<T>::iter() {
+                    let new_stake_from: BTreeMap<T::AccountId, u64> =
+                        stake_from.into_iter().collect();
+                    StakeFrom::<T>::insert(netuid, module_key, new_stake_from);
+                }
+                log::info!("Migrated StakeFrom");
+
+                // Migrate StakeTo storage
+                for (netuid, account_id, stake_to) in old_storage::StakeTo::<T>::iter() {
+                    let new_stake_to: BTreeMap<T::AccountId, u64> = stake_to.into_iter().collect();
+                    StakeTo::<T>::insert(netuid, account_id, new_stake_to);
+                }
+                log::info!("Migrated StakeTo");
+
+                for (netuid, mode) in old_storage::VoteModeSubnet::<T>::iter() {
+                    let mode = match &mode[..] {
+                        b"authority" => VoteMode::Authority,
+                        b"stake" => VoteMode::Vote,
+                        _ => {
+                            log::warn!("invalid vote mode {:?}", core::str::from_utf8(&mode));
+                            VoteMode::Vote
+                        }
+                    };
+                    VoteModeSubnet::<T>::insert(netuid, mode);
+                }
+                log::info!("Migrated VoteMode");
+
+                // Update the storage version to 2
+                StorageVersion::new(2).put::<Pallet<T>>();
+
+                log::info!("Migrated to v2");
+                T::DbWeight::get().reads_writes(1, 1)
+            } else {
+                log::info!("Storage v2 already updated");
+                Weight::zero()
+            }
+        }
+    }
+}
+
+// Incentives update, migrations.
+pub mod v3 {
+    use super::*;
+
+    pub struct MigrateToV3<T>(sp_std::marker::PhantomData<T>);
+
+    impl<T: Config> OnRuntimeUpgrade for MigrateToV3<T> {
+        fn on_runtime_upgrade() -> Weight {
+            let on_chain_version = StorageVersion::get::<Pallet<T>>();
+
+            // Migrate Burn to v3
+            if on_chain_version == 2 {
                 // Query for the threshold of stake that subnet needs to have
                 let subnet_stake_threshold = SubnetStakeThreshold::<T>::get();
                 // Here we will just use the lower bound of the burn
@@ -89,11 +180,11 @@ pub mod v2 {
                     ValidatorTrust::<T>::mutate(netuid, |v| v.push(0));
                 }
 
-                StorageVersion::new(2).put::<Pallet<T>>();
-                log::info!("Migrated subnets to v2");
+                StorageVersion::new(3).put::<Pallet<T>>();
+                log::info!("Migrated subnets to v3");
                 T::DbWeight::get().writes(largest_netuid as u64)
             } else {
-                log::info!("Subnets already updated");
+                log::info!("Storage v3 already updated");
                 Weight::zero()
             }
         }

@@ -62,7 +62,7 @@ fn test_1_graph() {
         assert_ok!(SubspaceModule::set_weights(
             RuntimeOrigin::signed(U256::from(1)),
             netuid,
-            vec![uid as u16],
+            vec![uid],
             vec![u16::MAX],
         ));
 
