@@ -17,9 +17,9 @@ pub type AccountId = <<Signature as Verify>::Signer as IdentifyAccount>::Account
 pub struct ModuleStats {
     pub last_update: u64,
     pub registration_block: u64,
-    pub stake_from: BTreeMap<AccountId, u64>, /* map of key to stake on this module/key *
-                                               * (includes
-                                               * delegations) */
+    /// A map of AccountId to stake amount (in u64) for this module/key.
+    /// This includes both direct stakes and delegations.
+    pub stake_from: BTreeMap<AccountId, u64>,
     pub emission: u64,
     pub incentive: u16,
     pub dividends: u16,
