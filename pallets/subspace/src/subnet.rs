@@ -268,15 +268,11 @@ impl<T: Config> Pallet<T> {
 
     // get the least staked network
     pub fn least_staked_netuid() -> (u16, u64) {
-        let mut min_stake: u64 = u64::MAX;
-        let mut min_stake_netuid: u16 = Self::get_global_max_allowed_subnets() - 1;
-        for (netuid, net_stake) in <TotalStake<T> as IterableStorageMap<u16, u64>>::iter() {
-            if net_stake <= min_stake {
-                min_stake = net_stake;
-                min_stake_netuid = netuid;
-            }
-        }
-        (min_stake_netuid, min_stake)
+        TotalStake::<T>::iter().min_by_key(|(_, stake)| *stake).unwrap_or_else(|| {
+            let stake = u64::MAX;
+            let netuid = Self::get_global_max_allowed_subnets() - 1;
+            (netuid, stake)
+        })
     }
 
     pub fn address_vector(netuid: u16) -> Vec<Vec<u8>> {

@@ -264,14 +264,14 @@ pub mod pallet {
 
     #[pallet::storage]
     // --- MAP (netuid) --> burn
-    pub(super) type Burn<T: Config> = StorageMap<_, Identity, u16, u64, ValueQuery>;
+    pub type Burn<T: Config> = StorageMap<_, Identity, u16, u64, ValueQuery>;
 
     #[pallet::type_value]
     pub fn DefaultMaxAllowedModules<T: Config>() -> u16 {
         10_000
     }
     #[pallet::storage] // --- ITEM ( max_allowed_modules )
-    pub(super) type MaxAllowedModules<T: Config> =
+    pub type MaxAllowedModules<T: Config> =
         StorageValue<_, u16, ValueQuery, DefaultMaxAllowedModules<T>>;
 
     #[pallet::type_value]
