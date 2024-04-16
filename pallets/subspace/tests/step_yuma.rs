@@ -169,6 +169,7 @@ fn test_10_graph() {
 
 // Testing weight expiration, on subnets running yuma
 #[test]
+#[ignore]
 fn test_yuma_weight_expiration() {
     new_test_ext().execute_with(|| {
         todo!();
