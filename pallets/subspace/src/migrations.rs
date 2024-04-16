@@ -179,6 +179,18 @@ pub mod v3 {
                     Trust::<T>::mutate(netuid, |v| v.push(0));
                     ValidatorPermits::<T>::mutate(netuid, |v| v.push(false));
                     ValidatorTrust::<T>::mutate(netuid, |v| v.push(0));
+
+                    // If the subnet has more modules than allowed, remove the lowest ones.
+
+                    let max_allowed = MaxAllowedUids::<T>::get(netuid);
+                    let currently_registered = Pallet::<T>::get_subnet_n(netuid);
+                    let overflown = currently_registered.saturating_sub(max_allowed);
+                    for _ in 0..overflown {
+                        Pallet::<T>::remove_module(
+                            netuid,
+                            Pallet::<T>::get_lowest_uid(netuid, false),
+                        );
+                    }
                 }
 
                 // Due to the incoming incentives refactoring, `max_stake` value

@@ -139,7 +139,7 @@ impl<T: Config> Pallet<T> {
 
         // --- 7. Check if we are exceeding the max allowed modules per network.
         // If we do deregister slot.
-        Self::check_module_limits(netuid);
+        Self::reserve_module_slot(netuid);
 
         // --- 8. Register the module and changeset.
         let module_changeset = ModuleChangeset::new(name, address);
@@ -268,24 +268,25 @@ impl<T: Config> Pallet<T> {
 
         Self::add_subnet(changeset, target_subnet)
     }
-    pub fn check_module_limits(netuid: u16) {
-        // Check if we have reached the max allowed modules for the network
-        if Self::global_n() >= Self::get_max_allowed_modules() {
-            // Get the least staked network (subnet)
-            let (least_staked_netuid, _) = Self::least_staked_netuid();
+
+    /// This function checks whether there are still available module slots on the network. If the
+    /// subnet is filled, deregister the least staked module on it, or if the max allowed modules on
+    /// the network is reached, deregisters the least staked module on the least staked netuid.
+    pub fn reserve_module_slot(netuid: u16) {
+        if Self::get_subnet_n(netuid) >= Self::get_max_allowed_uids(netuid) {
+            // If we reach the max allowed modules for this subnet,
+            // then we replace the lowest priority node in the current subnet
+            Self::remove_module(netuid, Self::get_lowest_uid(netuid, false));
+        } else if Self::global_n() >= Self::get_max_allowed_modules() {
+            // Get the least staked network (subnet) and its least staked module.
+            let (subnet_uid, _) = Self::least_staked_netuid();
+            let module_uid = Self::get_lowest_uid(subnet_uid, true);
 
             // Deregister the lowest priority node in the least staked network
             // in this case we should ignore the immunity period,
             // Because if the lowest subnet has unreasonably high immunity period,
             // it could lead to exploitation of the network.
-            Self::remove_module(
-                least_staked_netuid,
-                Self::get_lowest_uid(least_staked_netuid, true),
-            );
-        } else if Self::get_subnet_n(netuid) >= Self::get_max_allowed_uids(netuid) {
-            // If we reach the max allowed modules for this subnet,
-            // then we replace the lowest priority node in the current subnet
-            Self::remove_module(netuid, Self::get_lowest_uid(netuid, false));
+            Self::remove_module(subnet_uid, module_uid);
         }
     }
 }

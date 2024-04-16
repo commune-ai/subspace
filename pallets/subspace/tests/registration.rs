@@ -5,7 +5,7 @@ use mock::*;
 use sp_core::U256;
 
 use log::info;
-use pallet_subspace::Error;
+use pallet_subspace::{Emission, Error, MaxAllowedModules, MaxAllowedUids, Stake};
 use sp_runtime::{DispatchResult, Percent};
 
 /********************************************
@@ -310,5 +310,54 @@ fn validates_module_on_update() {
             update_module(b"test3", b"0.0.0.0:3"),
             Error::<Test>::InvalidMinDelegationFee
         );
+    });
+}
+
+#[test]
+fn deregister_within_subnet_when_limit_is_reached() {
+    new_test_ext().execute_with(|| {
+        MaxAllowedModules::<Test>::set(3);
+
+        assert_ok!(register_module(0, 0.into(), to_nano(10_000)));
+        assert_ok!(register_module(1, 1.into(), to_nano(5_000)));
+
+        assert_eq!(Stake::<Test>::get(0, U256::from(0)), to_nano(9_996));
+        assert_eq!(Stake::<Test>::get(1, U256::from(1)), to_nano(4_996));
+
+        MaxAllowedUids::<Test>::set(0, 1);
+        MaxAllowedUids::<Test>::set(1, 1);
+
+        assert_ok!(register_module(0, 2.into(), to_nano(15_000)));
+
+        assert_eq!(Stake::<Test>::get(0, U256::from(2)), to_nano(14_996));
+        assert_eq!(Stake::<Test>::get(1, U256::from(1)), to_nano(4_996));
+
+        assert_eq!(Emission::<Test>::get(0).len(), 1);
+        assert_eq!(Emission::<Test>::get(1).len(), 1);
+    });
+}
+
+#[test]
+fn deregister_globally_when_global_limit_is_reached() {
+    new_test_ext().execute_with(|| {
+        MaxAllowedModules::<Test>::set(2);
+
+        assert_ok!(register_module(0, 0.into(), to_nano(10_000)));
+        assert_ok!(register_module(1, 1.into(), to_nano(5_000)));
+
+        assert_eq!(Stake::<Test>::get(0, U256::from(0)), to_nano(9_996));
+        assert_eq!(Stake::<Test>::get(1, U256::from(1)), to_nano(4_996));
+
+        MaxAllowedUids::<Test>::set(0, 2);
+        MaxAllowedUids::<Test>::set(1, 1);
+
+        assert_ok!(register_module(0, 2.into(), to_nano(15_000)));
+
+        assert_eq!(Stake::<Test>::get(0, U256::from(0)), to_nano(9_996));
+        assert_eq!(Stake::<Test>::get(0, U256::from(2)), to_nano(14_996));
+        assert_eq!(Stake::<Test>::get(1, U256::from(1)), 0);
+
+        assert_eq!(Emission::<Test>::get(0).len(), 2);
+        assert_eq!(Emission::<Test>::get(1).len(), 0);
     });
 }
