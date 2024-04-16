@@ -154,14 +154,22 @@ pub mod v3 {
             if on_chain_version == 2 {
                 // Query for the threshold of stake that subnet needs to have
                 let subnet_stake_threshold = SubnetStakeThreshold::<T>::get();
-                // Here we will just use the lower bound of the burn
-                let old_burn = Pallet::<T>::global_params().min_burn;
+
+                // Migrating registration adjustment
+                // Here we will just use the lower bound of the `old` min burn
+                let old_burn_min_burn = 2500000000; // 2.5 $COMAI tokens
+
+                MaxBurn::<T>::put(150000000000); // Migrate the max_burn to 150 $COMAI tokens
+                                                 // Find the highest netuid from the subnetnames
+                MaxRegistrationsPerBlock::<T>::put(5); // Old is 10
+                TargetRegistrationsPerInterval::<T>::put(20); // Old is 25
+                let largest_netuid = SubnetNames::<T>::iter_keys().max().unwrap_or(0);
 
                 // Iterate through all netuids and insert the old burn (minimum) value for each
                 // this is important as we don't want free registrations right after the runtime
                 // udpate
                 for netuid in N::<T>::iter_keys() {
-                    Burn::<T>::insert(netuid, old_burn);
+                    Burn::<T>::insert(netuid, old_burn_min_burn);
                     // update the emission that are below the threshold
                     let emission_for_netuid =
                         Pallet::<T>::calculate_network_emission(netuid, subnet_stake_threshold);
