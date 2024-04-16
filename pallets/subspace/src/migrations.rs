@@ -163,7 +163,6 @@ pub mod v3 {
                                                  // Find the highest netuid from the subnetnames
                 MaxRegistrationsPerBlock::<T>::put(5); // Old is 10
                 TargetRegistrationsPerInterval::<T>::put(20); // Old is 25
-                let largest_netuid = SubnetNames::<T>::iter_keys().max().unwrap_or(0);
 
                 // Iterate through all netuids and insert the old burn (minimum) value for each
                 // this is important as we don't want free registrations right after the runtime
