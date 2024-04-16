@@ -17,6 +17,47 @@ pub struct Proposal<T: Config> {
     pub finalization_block: Option<u64>,
 }
 
+impl<T: Config> Proposal<T> {
+    /// Whether the proposal is still active.
+    pub fn is_active(&self) -> bool {
+        matches!(self.status, ProposalStatus::Pending)
+    }
+
+    /// Marks a proposal as accepted and overrides the storage value.
+    fn accept(mut self, block_number: u64) {
+        assert!(self.is_active());
+
+        self.status = ProposalStatus::Accepted;
+        self.finalization_block = Some(block_number);
+
+        Proposals::<T>::insert(self.id, self);
+    }
+
+    /// Marks a proposal as refused and overrides the storage value.
+    fn refuse(mut self, block_number: u64) {
+        assert!(self.is_active());
+
+        self.status = ProposalStatus::Refused;
+        self.finalization_block = Some(block_number);
+
+        Proposals::<T>::insert(self.id, self);
+    }
+
+    /// Marks a proposal as expired and overrides the storage value.
+    fn expire(mut self, block_number: u64) {
+        assert!(self.is_active());
+        assert!(block_number >= self.expiration_block);
+
+        self.status = ProposalStatus::Expired;
+        self.data = ProposalData::Expired;
+        self.finalization_block = Some(block_number);
+        self.votes_for = Default::default();
+        self.votes_against = Default::default();
+
+        Proposals::<T>::insert(self.id, self);
+    }
+}
+
 #[derive(Clone, Debug, Default, PartialEq, Eq, TypeInfo, Decode, Encode)]
 pub enum ProposalStatus {
     #[default]
@@ -249,7 +290,7 @@ impl<T: Config> Pallet<T> {
     }
 
     pub(crate) fn resolve_proposals(block_number: u64) {
-        for mut proposal in Proposals::<T>::iter_values() {
+        for proposal in Proposals::<T>::iter_values() {
             if !matches!(proposal.status, ProposalStatus::Pending) {
                 continue;
             }
@@ -266,63 +307,50 @@ impl<T: Config> Pallet<T> {
 
             let total_stake = votes_for + votes_against;
             let minimal_stake_to_execute = Self::get_minimal_stake_to_execute(netuid);
-            let is_approved = votes_for >= votes_against;
 
             if total_stake >= minimal_stake_to_execute {
-                // Use the result to check for err
-                Self::execute_proposal(proposal, is_approved, block_number);
+                if votes_against > votes_for {
+                    proposal.refuse(block_number);
+                } else {
+                    Self::execute_proposal(proposal, block_number);
+                }
             } else if block_number >= proposal.expiration_block {
-                proposal.status = ProposalStatus::Expired;
-                proposal.data = ProposalData::Expired;
-                proposal.finalization_block = Some(block_number);
-                // TODO: should we delete the votes?
-                Proposals::<T>::insert(proposal.id, proposal);
+                proposal.expire(block_number);
             }
         }
     }
 
-    fn execute_proposal(mut proposal: Proposal<T>, is_approved: bool, block_number: u64) {
-        // Update the proposal status based on the approval
-        proposal.status = if is_approved {
-            ProposalStatus::Accepted
-        } else {
-            ProposalStatus::Refused
-        };
-        proposal.finalization_block = Some(block_number);
+    fn execute_proposal(proposal: Proposal<T>, block_number: u64) {
+        // Give the proposer back his tokens, if the proposal passed
+        Self::add_balance_to_account(
+            &proposal.proposer,
+            Self::u64_to_balance(proposal.proposal_cost).unwrap(),
+        );
 
-        // Update the proposal in storage
-        Proposals::<T>::insert(proposal.id, &proposal);
-
-        if is_approved {
-            // Give the proposer back his tokens, if the proposal passed
-            Self::add_balance_to_account(
-                &proposal.proposer,
-                Self::u64_to_balance(proposal.proposal_cost).unwrap(),
-            );
-
-            // Perform actions based on the proposal data type
-            match proposal.data {
-                ProposalData::Custom(_) | ProposalData::SubnetCustom { .. } => {
-                    // No specific action needed for custom proposals
-                    // The owners will handle the off-chain logic
-                }
-                ProposalData::GlobalParams(params) => {
-                    // Update the global parameters
-                    Self::set_global_params(params.clone());
-                    // Emit the GlobalParamsUpdated event
-                    Self::deposit_event(Event::GlobalParamsUpdated(params.clone()));
-                }
-                ProposalData::SubnetParams { netuid, params } => {
-                    // Update the subnet parameters
-                    Self::set_subnet_params(netuid, params.clone());
-                    // Emit the SubnetParamsUpdated event
-                    Self::deposit_event(Event::SubnetParamsUpdated(netuid));
-                }
-                ProposalData::Expired => {
-                    unreachable!("Expired data is illegal at this point")
-                }
+        // Perform actions based on the proposal data type
+        match &proposal.data {
+            ProposalData::Custom(_) | ProposalData::SubnetCustom { .. } => {
+                // No specific action needed for custom proposals
+                // The owners will handle the off-chain logic
+            }
+            ProposalData::GlobalParams(params) => {
+                // Update the global parameters
+                Self::set_global_params(params.clone());
+                // Emit the GlobalParamsUpdated event
+                Self::deposit_event(Event::GlobalParamsUpdated(params.clone()));
+            }
+            ProposalData::SubnetParams { netuid, params } => {
+                // Update the subnet parameters
+                Self::set_subnet_params(*netuid, params.clone());
+                // Emit the SubnetParamsUpdated event
+                Self::deposit_event(Event::SubnetParamsUpdated(*netuid));
+            }
+            ProposalData::Expired => {
+                unreachable!("Expired data is illegal at this point")
             }
         }
+
+        proposal.accept(block_number);
     }
 
     /// Returns how much stake is needed to execute a proposal

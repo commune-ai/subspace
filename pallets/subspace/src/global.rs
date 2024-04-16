@@ -155,7 +155,7 @@ impl<T: Config> Pallet<T> {
         // weights
         Self::set_max_allowed_weights_global(params.max_allowed_weights);
         Self::set_min_weight_stake(params.min_weight_stake);
-       
+
         // proposals
         Self::set_proposal_cost(params.proposal_cost);
         Self::set_proposal_expiration(params.proposal_expiration);
