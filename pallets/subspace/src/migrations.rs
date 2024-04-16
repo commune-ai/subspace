@@ -137,10 +137,12 @@ pub mod v2 {
 }
 
 // Incentives update, migrations.
+// TODO: fix migration, now it assumes no subnet gaps
 pub mod v3 {
     use crate::voting::VoteMode;
 
     use super::*;
+    use sp_core::bytes::from_hex;
 
     pub struct MigrateToV3<T>(sp_std::marker::PhantomData<T>);
 
@@ -152,14 +154,21 @@ pub mod v3 {
             if on_chain_version == 2 {
                 // Query for the threshold of stake that subnet needs to have
                 let subnet_stake_threshold = SubnetStakeThreshold::<T>::get();
-                // Here we will just use the lower bound of the burn
-                let old_burn = Pallet::<T>::global_params().min_burn;
+
+                // Migrating registration adjustment
+                // Here we will just use the lower bound of the `old` min burn
+                let old_burn_min_burn = 2500000000; // 2.5 $COMAI tokens
+
+                MaxBurn::<T>::put(150000000000); // Migrate the max_burn to 150 $COMAI tokens
+                                                 // Find the highest netuid from the subnetnames
+                MaxRegistrationsPerBlock::<T>::put(5); // Old is 10
+                TargetRegistrationsPerInterval::<T>::put(20); // Old is 25
 
                 // Iterate through all netuids and insert the old burn (minimum) value for each
                 // this is important as we don't want free registrations right after the runtime
                 // udpate
                 for netuid in N::<T>::iter_keys() {
-                    Burn::<T>::insert(netuid, old_burn);
+                    Burn::<T>::insert(netuid, old_burn_min_burn);
                     // update the emission that are below the threshold
                     let emission_for_netuid =
                         Pallet::<T>::calculate_network_emission(netuid, subnet_stake_threshold);
@@ -192,15 +201,47 @@ pub mod v3 {
                         );
                     }
                 }
+                log::info!("Emission and consensus updated");
 
                 // Due to the incoming incentives refactoring, `max_stake` value
                 // is no longer needed to be limited on the subnet 0
                 let general_netuid = 0;
                 MaxStake::<T>::insert(general_netuid, u64::MAX);
+                log::info!("Min stake migrated");
 
                 log::info!("Setting subnet 0 to vote mode");
                 VoteModeSubnet::<T>::set(0, VoteMode::Vote);
 
+                // Migrate the nominator, to the DAO bot mutli-sig account
+                // -> `5EZJYuTFdkzkLZew7Tnm7phuZrejHBks4XPz3UDZdMh11ALA`
+                // Decode the multi-sig account from its base58 representation
+
+                // (Anyone can pass a proposal that automatically changes this account)
+                // The bot approach has been approved in the proposal ID 2
+                let multi_sig_account_hex = "0x5EZJYuTFdkzkLZew7Tnm7phuZrejHBks4XPz3UDZdMh11ALA";
+                let multi_sig_account_bytes = match from_hex(multi_sig_account_hex) {
+                    Ok(bytes) => bytes,
+                    Err(_) => {
+                        log::warn!(
+                            "Failed to decode multi-sig account hex. Using default nominator."
+                        );
+                        DefaultNominator::<T>::get().encode()
+                    }
+                };
+
+                let multi_sig_account = match T::AccountId::decode(
+                    &mut &multi_sig_account_bytes[..],
+                ) {
+                    Ok(account) => account,
+                    Err(_) => {
+                        log::warn!("Failed to convert multi-sig account bytes to AccountId. Using default nominator.");
+                        DefaultNominator::<T>::get()
+                    }
+                };
+                Nominator::<T>::put(multi_sig_account);
+                log::info!("Nominator migration completed.");
+
+                // update the storage version
                 StorageVersion::new(3).put::<Pallet<T>>();
                 log::info!("Migrated subnets to v3");
 

@@ -166,3 +166,11 @@ fn test_10_graph() {
         assert_eq!(emissions, expected);
     });
 }
+
+// Testing weight expiration, on subnets running yuma
+#[test]
+fn yuma_weights_older_than_max_age_are_discarded() {
+    new_test_ext().execute_with(|| {
+        todo!();
+    });
+}

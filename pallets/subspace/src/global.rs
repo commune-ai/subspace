@@ -175,7 +175,7 @@ impl<T: Config> Pallet<T> {
     }
 
     pub fn set_target_registrations_per_interval(target_interval: u16) {
-        TargetRegistrationsPerInterval::<T>::set(target_interval)
+        TargetRegistrationsPerInterval::<T>::put(target_interval)
     }
 
     pub fn get_min_weight_stake() -> u64 {
@@ -280,7 +280,8 @@ impl<T: Config> Pallet<T> {
         MinNameLength::<T>::put(min_name_length)
     }
 
-    pub fn global_n() -> u16 {
+    // returns the amount of total modules on the network
+    pub fn global_n_modules() -> u16 {
         let mut global_n: u16 = 0;
         for netuid in Self::netuids() {
             global_n += N::<T>::get(netuid);
