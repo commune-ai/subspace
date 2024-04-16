@@ -97,11 +97,11 @@ impl<T: Config> Pallet<T> {
         changeset: SubnetChangeset<T>,
     ) -> DispatchResult {
         let key = ensure_signed(origin)?;
-        // only the founder can update the network on authority mode
 
+        // only the founder can update the network on authority mode
         ensure!(
-            Self::if_subnet_netuid_exists(netuid),
-            Error::<T>::SubnetNameAlreadyExists
+            Self::is_subnet_founder(netuid, &key),
+            Error::<T>::NotFounder
         );
 
         // Ensure that the subnet is not in a `Vote` mode.
@@ -112,8 +112,8 @@ impl<T: Config> Pallet<T> {
         );
 
         ensure!(
-            Self::is_subnet_founder(netuid, &key),
-            Error::<T>::NotFounder
+            Self::if_subnet_netuid_exists(netuid),
+            Error::<T>::SubnetNameAlreadyExists
         );
 
         ensure!(
@@ -703,8 +703,6 @@ impl<T: Config> Pallet<T> {
             .ok()
             .expect("blockchain will not exceed 2^64 blocks; QED.")
     }
-
-    // Emission is the same as the Yomama params
 
     pub fn set_last_update_for_uid(netuid: u16, uid: u16, last_update: u64) {
         let mut updated_last_update_vec = Self::get_last_update(netuid);

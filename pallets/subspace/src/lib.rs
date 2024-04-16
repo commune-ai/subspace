@@ -1070,8 +1070,6 @@ pub mod pallet {
         fn build(&self) {
             // Set initial total issuance from balances
             // Subnet config values
-            // let block: u32 = self.block;
-            // frame_system::Pallet::<T>::set_block_number(T::BlockNumber::from(block));
 
             for (subnet_idx, subnet) in self.subnets.iter().enumerate() {
                 let netuid: u16 = subnet_idx as u16;
@@ -1352,35 +1350,43 @@ pub mod pallet {
         #[pallet::weight((Weight::zero(), DispatchClass::Normal, Pays::No))]
         pub fn add_global_proposal(
             origin: OriginFor<T>,
-            // params
-            burn_rate: u16,
-            max_name_length: u16,
-            max_allowed_subnets: u16,
-            max_allowed_modules: u16,
-            max_registrations_per_block: u16,
-            max_allowed_weights: u16,
-            min_burn: u64,
-            max_burn: u64,
-            min_stake: u64,
-            floor_delegation_fee: Percent,
-            min_weight_stake: u64,
-            target_registrations_per_interval: u16,
-            target_registrations_interval: u16,
-            adjustment_alpha: u64,
-            unit_emission: u64,
-            proposal_cost: u64,
-            proposal_expiration: u32,
-            proposal_participation_threshold: Percent,
+            burn_rate: u16,                   // max
+            max_name_length: u16,             // max length of a network name
+            min_name_length: u16,             // min length of a network name
+            max_allowed_subnets: u16,         // max number of subnets allowed
+            max_allowed_modules: u16,         // max number of modules allowed per subnet
+            max_registrations_per_block: u16, // max number of registrations per block
+            max_allowed_weights: u16,         // max number of weights per module
+            max_burn: u64,                    // max burn allowed to register
+            min_burn: u64,                    // min burn required to register
+            min_stake: u64,                   // min stake required
+            floor_delegation_fee: Percent,    // min delegation fee
+            min_weight_stake: u64,            // min weight stake required
+            target_registrations_per_interval: u16, /* desired number of registrations per
+                                               * interval */
+            target_registrations_interval: u16, /* the number of blocks that defines the
+                                                 * registration interval */
+            adjustment_alpha: u64,           // adjustment alpha
+            unit_emission: u64,              // emission per block
+            nominator: T::AccountId,         // subnet 0 dao multisig
+            subnet_stake_threshold: Percent, // stake needed to start subnet emission
+            proposal_cost: u64,              /*amount of $COMAI to create a proposal
+                                              * returned if proposal gets accepted */
+            proposal_expiration: u32, // the block number, proposal expires at
+            proposal_participation_threshold: Percent, /*  minimum stake of the overall network
+                                       * stake,
+                                       *  in order for proposal to get executed */
         ) -> DispatchResult {
             let mut params = Self::global_params();
             params.burn_rate = burn_rate;
             params.max_name_length = max_name_length;
+            params.min_name_length = min_name_length;
             params.max_allowed_subnets = max_allowed_subnets;
             params.max_allowed_modules = max_allowed_modules;
             params.max_registrations_per_block = max_registrations_per_block;
             params.max_allowed_weights = max_allowed_weights;
-            params.min_burn = min_burn;
             params.max_burn = max_burn;
+            params.min_burn = min_burn;
             params.min_stake = min_stake;
             params.floor_delegation_fee = floor_delegation_fee;
             params.min_weight_stake = min_weight_stake;
@@ -1388,6 +1394,8 @@ pub mod pallet {
             params.target_registrations_interval = target_registrations_interval;
             params.adjustment_alpha = adjustment_alpha;
             params.unit_emission = unit_emission;
+            params.nominator = nominator;
+            params.subnet_stake_threshold = subnet_stake_threshold;
             params.proposal_cost = proposal_cost;
             params.proposal_expiration = proposal_expiration;
             params.proposal_participation_threshold = proposal_participation_threshold;
@@ -1397,24 +1405,28 @@ pub mod pallet {
         #[pallet::weight((Weight::zero(), DispatchClass::Normal, Pays::No))]
         pub fn add_subnet_proposal(
             origin: OriginFor<T>,
-            founder: T::AccountId,
-            founder_share: u16,
-            immunity_period: u16,
-            incentive_ratio: u16,
-            max_allowed_uids: u16,
-            max_allowed_weights: u16,
-            min_allowed_weights: u16,
-            max_stake: u64,
-            max_weight_age: u64,
-            min_stake: u64,
-            name: Vec<u8>,
-            tempo: u16,
-            trust_ratio: u16,
-            vote_mode: VoteMode,
-            netuid: u16,
+            netuid: u16,           // subnet id
+            founder: T::AccountId, // parameters
+            name: Vec<u8>,         // parameters
+            founder_share: u16,    // out of 100
+            immunity_period: u16,  // immunity period
+            incentive_ratio: u16,  // out of 100
+            max_allowed_uids: u16, /* max number of weights allowed to be registered in this
+                                    * subnet */
+            max_allowed_weights: u16, /* max number of weights allowed to be registered in this
+                                       * subnet */
+            min_allowed_weights: u16, /* min number of weights allowed to be registered in this
+                                       * subnet */
+            max_stake: u64,      // max stake allowed
+            min_stake: u64,      // min stake required
+            max_weight_age: u64, // max age of a weight
+            tempo: u16,          // how many blocks to wait before rewarding models
+            trust_ratio: u16,    // missing comment
+            vote_mode: VoteMode, // missing comment
         ) -> DispatchResult {
             let mut params = Self::subnet_params(netuid);
             params.founder = founder;
+            params.name = name;
             params.founder_share = founder_share;
             params.immunity_period = immunity_period;
             params.incentive_ratio = incentive_ratio;
@@ -1422,13 +1434,11 @@ pub mod pallet {
             params.max_allowed_weights = max_allowed_weights;
             params.min_allowed_weights = min_allowed_weights;
             params.max_stake = max_stake;
-            params.max_weight_age = max_weight_age;
             params.min_stake = min_stake;
-            params.name = name;
+            params.max_weight_age = max_weight_age;
             params.tempo = tempo;
             params.trust_ratio = trust_ratio;
             params.vote_mode = vote_mode;
-
             Self::do_add_subnet_proposal(origin, netuid, params)
         }
 

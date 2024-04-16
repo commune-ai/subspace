@@ -119,14 +119,14 @@ fn test_registration_ok() {
         assert_eq!(SubspaceModule::get_subnet_n(netuid), 1);
 
         // Check if the module has added to the Keys
-        let neuron_uid = SubspaceModule::get_uid_for_key(netuid, &key);
+        let module_uid = SubspaceModule::get_uid_for_key(netuid, &key);
         assert_eq!(SubspaceModule::get_uid_for_key(netuid, &key), 0);
         // Check if module has added to Uids
         let neuro_uid = SubspaceModule::get_uid_for_key(netuid, &key);
-        assert_eq!(neuro_uid, neuron_uid);
+        assert_eq!(neuro_uid, module_uid);
 
         // Check if the balance of this hotkey account for this subnetwork == 0
-        assert_eq!(SubspaceModule::get_stake_for_uid(netuid, neuron_uid), 0);
+        assert_eq!(SubspaceModule::get_stake_for_uid(netuid, module_uid), 0);
     });
 }
 

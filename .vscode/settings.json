@@ -11,5 +11,6 @@
     "**/autogen_weights.rs": true
   },
   "rust-analyzer.linkedProjects": ["./pallets/subspace/Cargo.toml"],
-  "search.useParentIgnoreFiles": false
+  "search.useParentIgnoreFiles": false,
+  //"workbench.iconTheme": "developer-icon-theme"
 }

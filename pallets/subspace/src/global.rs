@@ -155,8 +155,9 @@ impl<T: Config> Pallet<T> {
         // weights
         Self::set_max_allowed_weights_global(params.max_allowed_weights);
         Self::set_min_weight_stake(params.min_weight_stake);
+       
         // proposals
-        // ! important, this is not a bug, proposal cost is fixed and can't be changed
+        Self::set_proposal_cost(params.proposal_cost);
         Self::set_proposal_expiration(params.proposal_expiration);
         Self::set_proposal_participation_threshold(params.proposal_participation_threshold);
     }
@@ -223,9 +224,12 @@ impl<T: Config> Pallet<T> {
     }
 
     // Proposals
-
     pub fn get_proposal_cost() -> u64 {
         ProposalCost::<T>::get()
+    }
+
+    pub fn set_proposal_cost(proposal_cost: u64) {
+        ProposalCost::<T>::put(proposal_cost);
     }
 
     pub fn set_proposal_expiration(proposal_expiration: u32) {
