@@ -114,7 +114,7 @@ fn test_set_single_temple(tempo: u16) {
 
         let n_epochs = 3;
         let n_steps = n_epochs * tempo;
-        for _i in 0..n_steps {
+        for _ in 0..n_steps {
             info!(
                 "tempo {} block number: {} stake {} pending_emissiion {}",
                 tempo,
@@ -629,5 +629,113 @@ fn test_emission_activation() {
             }
             info!("{name} current stake: {current_stake}");
         }
+    });
+}
+
+// immunity period attack
+// this test should ignore, immunity period of subnet under specific conditions
+#[test]
+fn test_parasite_subnet_registrations() {
+    new_test_ext().execute_with(|| {
+        let expected_module_amount: u16 = 5;
+        SubspaceModule::set_max_allowed_modules(expected_module_amount);
+
+        let main_subnet_netuid: u16 = 0;
+        let main_subnet_stake = to_nano(500_000);
+        let main_subnet_key = U256::from(0);
+
+        let parasite_netuid: u16 = 1;
+        let parasite_subnet_stake = to_nano(1_000);
+        let parasite_subnet_key = U256::from(1);
+
+        // Register the honest subnet.
+        assert_ok!(register_module(
+            main_subnet_netuid,
+            main_subnet_key,
+            main_subnet_stake
+        ));
+        // Set the immunity period of the honest subnet to 1000 blocks.
+        SubspaceModule::set_immunity_period(main_subnet_netuid, 1000);
+
+        // Register the parasite subnet
+        assert_ok!(register_module(
+            parasite_netuid,
+            parasite_subnet_key,
+            parasite_subnet_stake
+        ));
+        // Parasite subnet set it's immunity period to 100k blocks.
+        SubspaceModule::set_immunity_period(parasite_netuid, u16::MAX);
+
+        // Honest subnet will now register another module, so it will have 2 in total.
+        assert_ok!(register_module(
+            main_subnet_netuid,
+            U256::from(2),
+            main_subnet_stake
+        ));
+
+        // Parasite subnet will now try to register a large number of modules.
+        // This is in hope of deregistering modules from the honest subnet.
+        for i in 10..50 {
+            let result = register_module(parasite_netuid, U256::from(i), parasite_subnet_stake);
+            assert_ok!(result);
+        }
+
+        // Check if the honest subnet has 2 modules.
+        let main_subnet_module_amount = SubspaceModule::get_subnet_n(main_subnet_netuid);
+        assert_eq!(main_subnet_module_amount, 2);
+
+        // Check if the parasite subnet has 3 modules
+        let parasite_subnet_module_amount = SubspaceModule::get_subnet_n(parasite_netuid);
+        assert_eq!(parasite_subnet_module_amount, 3);
+    });
+}
+
+// After reaching maximum global modules, subnets will start getting deregisterd
+// Test ensures that newly registered subnets will take the "spots" of these deregistered subnets.
+// And modules go beyond the global maximum.
+#[test]
+fn test_subnet_replacing() {
+    new_test_ext().execute_with(|| {
+        // Defines the maximum number of modules, that can be registered,
+        // on all subnets at once.
+        let expected_subnet_amount: u16 = 3;
+        SubspaceModule::set_max_allowed_modules(expected_subnet_amount);
+
+        let subnets = vec![
+            (U256::from(0), to_nano(100_000)),
+            (U256::from(1), to_nano(5000)),
+            (U256::from(2), to_nano(4_000)),
+            (U256::from(3), to_nano(1_100)),
+        ];
+
+        let random_keys = vec![U256::from(4), U256::from(5)];
+
+        // Register all subnets
+        for (i, (subnet_key, subnet_stake)) in subnets.iter().enumerate() {
+            assert_ok!(register_module(i as u16, *subnet_key, *subnet_stake));
+        }
+
+        let subnet_amount = SubspaceModule::num_subnets();
+        assert_eq!(subnet_amount as u16, expected_subnet_amount);
+
+        // Register module on the subnet one (netuid 0), this means that subnet
+        // subnet two (netuid 1) will be deregistered, as we reached global module limit.
+        assert_ok!(register_module(0, random_keys[0], to_nano(1_000)));
+        assert_ok!(register_module(4, random_keys[1], to_nano(150_000)));
+
+        let subnet_amount = SubspaceModule::num_subnets();
+        assert_eq!(subnet_amount as u16, expected_subnet_amount - 1);
+
+        // netuid 1 replaced by subnet four
+        assert_ok!(register_module(3, subnets[3].0, subnets[3].1));
+
+        let subnet_amount = SubspaceModule::num_subnets();
+        let total_module_amount = SubspaceModule::global_n_modules();
+        assert_eq!(subnet_amount as u16, expected_subnet_amount);
+        assert_eq!(total_module_amount as u16, expected_subnet_amount);
+
+        let netuids = SubspaceModule::netuids();
+        let max_netuid = netuids.iter().max().unwrap();
+        assert_eq!(*max_netuid, 2);
     });
 }

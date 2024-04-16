@@ -842,6 +842,7 @@ pub mod pallet {
     >;
 
     // whitelist for the base subnet (netuid 0)
+    // TODO: add the recommended weight value from 1 to 100 instead of ()
     #[pallet::storage]
     pub(super) type LegitWhitelist<T: Config> =
         StorageMap<_, Identity, T::AccountId, (), ValueQuery, GetDefault>;
