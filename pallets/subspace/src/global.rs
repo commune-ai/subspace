@@ -175,7 +175,7 @@ impl<T: Config> Pallet<T> {
     }
 
     pub fn set_target_registrations_per_interval(target_interval: u16) {
-        TargetRegistrationsPerInterval::<T>::set(target_interval)
+        TargetRegistrationsPerInterval::<T>::put(target_interval)
     }
 
     pub fn get_min_weight_stake() -> u64 {
