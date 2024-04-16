@@ -78,25 +78,28 @@ fn test_burn() {
 #[test]
 fn test_local_subnet_burn() {
     new_test_ext().execute_with(|| {
+        let min_burn = to_nano(10);
         // set the min_burn to 10 $COMAI
-        SubspaceModule::set_min_burn(to_nano(10));
-        
+        SubspaceModule::set_min_burn(min_burn);
+
+        let max_burn = to_nano(1000);
         // Adjust max burn to allow for the burn to move
-        SubspaceModule::set_max_burn(to_nano(1000));
+        SubspaceModule::set_max_burn(max_burn);
 
         // Adjust max registrations per block to a high number.
         // We will be doing "registration raid"
         SubspaceModule::set_target_registrations_interval(50);
-        
+        SubspaceModule::set_target_registrations_per_interval(5);
+
         SubspaceModule::set_max_registrations_per_block(10);
 
         // register the general subnet
         assert_ok!(register_module(0, U256::from(0), to_nano(20)));
 
         // register 200 modules on yuma subnet
-        let netuid = 0;
+        let netuid = 1;
         let n = 200;
-        let initial_stake: u64 = to_nano(11);
+        let initial_stake: u64 = to_nano(500);
 
         for i in 1..n {
             assert_ok!(register_module(netuid, U256::from(i), initial_stake));
@@ -105,8 +108,9 @@ fn test_local_subnet_burn() {
             }
         }
 
-        dbg!(SubspaceModule::get_burn(0));
-        dbg!(SubspaceModule::get_burn(1));
-
+        let subnet_zero_burn = SubspaceModule::get_burn(0);
+        assert_eq!(subnet_zero_burn, min_burn);
+        let subnet_one_burn = SubspaceModule::get_burn(1);
+        assert!(min_burn < subnet_one_burn && subnet_one_burn < max_burn);
     });
 }
