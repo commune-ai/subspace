@@ -262,12 +262,8 @@ pub mod pallet {
     pub type TargetRegistrationsInterval<T> =
         StorageValue<_, u16, ValueQuery, DefaultTargetRegistrationsInterval<T>>;
 
-    #[pallet::type_value]
-    pub fn DefaultMinStakeGlobal<T: Config>() -> u64 {
-        100
-    }
     #[pallet::storage] // --- MAP ( netuid ) --> min_allowed_weights
-    pub type MinStakeGlobal<T> = StorageValue<_, u64, ValueQuery, DefaultMinStakeGlobal<T>>;
+    pub type MinStakeGlobal<T> = StorageValue<_, u64, ValueQuery>;
 
     #[pallet::type_value]
     pub fn DefaultMinDelegationFeeGlobal<T: Config>() -> Percent {
