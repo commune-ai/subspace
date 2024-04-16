@@ -280,7 +280,8 @@ impl<T: Config> Pallet<T> {
         MinNameLength::<T>::put(min_name_length)
     }
 
-    pub fn global_n() -> u16 {
+    // returns the amount of total modules on the network
+    pub fn global_n_modules() -> u16 {
         let mut global_n: u16 = 0;
         for netuid in Self::netuids() {
             global_n += N::<T>::get(netuid);

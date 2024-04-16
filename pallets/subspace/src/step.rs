@@ -24,6 +24,7 @@ impl<T: Config> Pallet<T> {
             let registration_this_interval = Self::get_registrations_this_interval(netuid);
 
             // adjust registrations parameters
+            dbg!(registration_this_interval);
             Self::adjust_registration(netuid, block_number, registration_this_interval);
 
             let new_queued_emission: u64 =
