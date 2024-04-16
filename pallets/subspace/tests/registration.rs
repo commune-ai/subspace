@@ -1,6 +1,6 @@
 mod mock;
 
-use frame_support::{assert_err, assert_ok};
+use frame_support::{assert_err, assert_noop, assert_ok};
 use mock::*;
 use sp_core::U256;
 
@@ -359,5 +359,254 @@ fn deregister_globally_when_global_limit_is_reached() {
 
         assert_eq!(Emission::<Test>::get(0).len(), 2);
         assert_eq!(Emission::<Test>::get(1).len(), 0);
+    });
+}
+
+// Names
+#[test]
+fn test_register_invalid_name() {
+    new_test_ext().execute_with(|| {
+        let network_name = b"testnet".to_vec();
+        let address = b"0x1234567890".to_vec();
+        let stake = to_nano(0);
+
+        // make registrations free
+        SubspaceModule::set_min_burn(0);
+
+        // set min name lenght
+        SubspaceModule::set_global_min_name_length(2);
+
+        // Get the minimum and maximum name lengths from the configuration
+        let min_name_length = SubspaceModule::get_global_min_name_length();
+        let max_name_length = SubspaceModule::get_global_max_name_length();
+
+        // Try registering with an empty name (invalid)
+        let empty_name = Vec::new();
+        let register_one = U256::from(0);
+
+        assert_noop!(
+            SubspaceModule::register(
+                get_origin(register_one),
+                network_name.clone(),
+                empty_name,
+                address.clone(),
+                stake,
+                register_one,
+            ),
+            Error::<Test>::InvalidModuleName
+        );
+
+        // Try registering with a name that is too short (invalid)
+        let register_two = U256::from(1);
+        let short_name = b"a".to_vec();
+        assert_noop!(
+            SubspaceModule::register(
+                get_origin(register_two),
+                network_name.clone(),
+                short_name,
+                address.clone(),
+                stake,
+                register_two
+            ),
+            Error::<Test>::ModuleNameTooShort
+        );
+
+        // Try registering with a name that is exactly the minimum length (valid)
+        let register_three = U256::from(2);
+        let min_length_name = vec![b'a'; min_name_length as usize];
+        assert_ok!(SubspaceModule::register(
+            get_origin(register_three),
+            network_name.clone(),
+            min_length_name,
+            address.clone(),
+            stake,
+            register_three,
+        ));
+
+        // Try registering with a name that is exactly the maximum length (valid)
+        let max_length_name = vec![b'a'; max_name_length as usize];
+        let register_four = U256::from(3);
+        assert_ok!(SubspaceModule::register(
+            get_origin(register_four),
+            network_name.clone(),
+            max_length_name,
+            address.clone(),
+            stake,
+            register_four,
+        ));
+
+        // Try registering with a name that is too long (invalid)
+        let long_name = vec![b'a'; (max_name_length + 1) as usize];
+        let register_five = U256::from(4);
+        assert_noop!(
+            SubspaceModule::register(
+                get_origin(register_five),
+                network_name,
+                long_name,
+                address,
+                stake,
+                register_five
+            ),
+            Error::<Test>::ModuleNameTooLong
+        );
+    });
+}
+
+#[test]
+fn test_register_invalid_subnet_name() {
+    new_test_ext().execute_with(|| {
+        let address = b"0x1234567890".to_vec();
+        let stake = to_nano(0);
+        let module_name = b"test".to_vec();
+
+        // Make registrations free
+        SubspaceModule::set_min_burn(0);
+
+        // Set min name length
+        SubspaceModule::set_global_min_name_length(2);
+
+        // Get the minimum and maximum name lengths from the configuration
+        let min_name_length = SubspaceModule::get_global_min_name_length();
+        let max_name_length = SubspaceModule::get_global_max_name_length();
+
+        let register_one = U256::from(0);
+        let empty_name = Vec::new();
+        assert_noop!(
+            SubspaceModule::register(
+                get_origin(register_one),
+                empty_name,
+                module_name.clone(),
+                address.clone(),
+                stake,
+                register_one,
+            ),
+            Error::<Test>::InvalidSubnetName
+        );
+
+        // Try registering with a name that is too short (invalid)
+        let register_two = U256::from(1);
+        let short_name = b"a".to_vec();
+        assert_noop!(
+            SubspaceModule::register(
+                get_origin(register_two),
+                short_name,
+                module_name.clone(),
+                address.clone(),
+                stake,
+                register_two,
+            ),
+            Error::<Test>::SubnetNameTooShort
+        );
+
+        // Try registering with a name that is exactly the minimum length (valid)
+        let register_three = U256::from(2);
+        let min_length_name = vec![b'a'; min_name_length as usize];
+        assert_ok!(SubspaceModule::register(
+            get_origin(register_three),
+            min_length_name,
+            module_name.clone(),
+            address.clone(),
+            stake,
+            register_three,
+        ));
+
+        // Try registering with a name that is exactly the maximum length (valid)
+        let max_length_name = vec![b'a'; max_name_length as usize];
+        let register_four = U256::from(3);
+        assert_ok!(SubspaceModule::register(
+            get_origin(register_four),
+            max_length_name,
+            module_name.clone(),
+            address.clone(),
+            stake,
+            register_four,
+        ));
+
+        // Try registering with a name that is too long (invalid)
+        let long_name = vec![b'a'; (max_name_length + 1) as usize];
+        let register_five = U256::from(4);
+        assert_noop!(
+            SubspaceModule::register(
+                get_origin(register_five),
+                long_name,
+                module_name.clone(),
+                address.clone(),
+                stake,
+                register_five,
+            ),
+            Error::<Test>::SubnetNameTooLong
+        );
+
+        // Try registering with an invalid UTF-8 name (invalid)
+        let invalid_utf8_name = vec![0xFF, 0xFF];
+        let register_six = U256::from(5);
+        assert_noop!(
+            SubspaceModule::register(
+                get_origin(register_six),
+                invalid_utf8_name,
+                module_name.clone(),
+                address,
+                stake,
+                register_six,
+            ),
+            Error::<Test>::InvalidSubnetName
+        );
+    });
+}
+
+// Subnet 0 Whitelist
+
+#[test]
+fn test_add_to_whitelist() {
+    new_test_ext().execute_with(|| {
+        let whitelist_key = U256::from(0);
+        let module_key = U256::from(1);
+        SubspaceModule::set_nominator(whitelist_key);
+
+        assert_ok!(SubspaceModule::add_to_whitelist(
+            get_origin(whitelist_key),
+            module_key
+        ));
+        assert!(SubspaceModule::is_in_legit_whitelist(&module_key));
+    });
+}
+
+#[test]
+fn test_remove_from_whitelist() {
+    new_test_ext().execute_with(|| {
+        let whitelist_key = U256::from(0);
+        let module_key = U256::from(1);
+        SubspaceModule::set_nominator(whitelist_key);
+
+        // Add the module_key to the whitelist
+        assert_ok!(SubspaceModule::add_to_whitelist(
+            get_origin(whitelist_key),
+            module_key
+        ));
+        assert!(SubspaceModule::is_in_legit_whitelist(&module_key));
+
+        // Remove the module_key from the whitelist
+        assert_ok!(SubspaceModule::remove_from_whitelist(
+            get_origin(whitelist_key),
+            module_key
+        ));
+        assert!(!SubspaceModule::is_in_legit_whitelist(&module_key));
+    });
+}
+
+#[test]
+fn test_invalid_nominator() {
+    new_test_ext().execute_with(|| {
+        let whitelist_key = U256::from(0);
+        let invalid_key = U256::from(1);
+        let module_key = U256::from(2);
+        SubspaceModule::set_nominator(whitelist_key);
+
+        // Try to add to whitelist with an invalid nominator key
+        assert_noop!(
+            SubspaceModule::add_to_whitelist(get_origin(invalid_key), module_key),
+            Error::<Test>::NotNominator
+        );
+        assert!(!SubspaceModule::is_in_legit_whitelist(&module_key));
     });
 }

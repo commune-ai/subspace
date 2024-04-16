@@ -73,3 +73,11 @@ fn test_burn() {
         }
     });
 }
+
+// test subnet specific burn
+#[test]
+fn test_parasite_subnet_registrations() {
+    new_test_ext().execute_with(|| {
+        todo!();
+    });
+}
