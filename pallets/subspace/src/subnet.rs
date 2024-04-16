@@ -19,11 +19,11 @@ pub struct SubnetChangeset<T: Config> {
 
 impl<T: Config> SubnetChangeset<T> {
     #[must_use]
-    pub fn new(name: &[u8], founder_key: &T::AccountId, params: SubnetParams<T>) -> Self {
+    pub fn new(name: &[u8], founder_key: &T::AccountId, params: Option<SubnetParams<T>>) -> Self {
         Self {
             name: Some(name.to_vec()),
             founder_key: Some(founder_key.clone()),
-            params: Some(params),
+            params,
         }
     }
 
