@@ -137,6 +137,7 @@ pub mod v2 {
 }
 
 // Incentives update, migrations.
+// TODO: fix migration, now it assumes no subnet gaps
 pub mod v3 {
     use crate::voting::VoteMode;
 
