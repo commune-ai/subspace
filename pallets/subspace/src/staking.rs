@@ -417,7 +417,7 @@ impl<T: Config> Pallet<T> {
         }
 
         StakeFrom::<T>::remove(netuid, module_key);
-        Stake::<T>::remove(netuid, &module_key);
+        Stake::<T>::remove(netuid, module_key);
     }
 
     pub fn u64_to_balance(

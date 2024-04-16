@@ -701,14 +701,14 @@ fn test_subnet_replacing() {
         let expected_subnet_amount: u16 = 3;
         SubspaceModule::set_max_allowed_modules(expected_subnet_amount);
 
-        let subnets = vec![
+        let subnets = [
             (U256::from(0), to_nano(100_000)),
             (U256::from(1), to_nano(5000)),
             (U256::from(2), to_nano(4_000)),
             (U256::from(3), to_nano(1_100)),
         ];
 
-        let random_keys = vec![U256::from(4), U256::from(5)];
+        let random_keys = [U256::from(4), U256::from(5)];
 
         // Register all subnets
         for (i, (subnet_key, subnet_stake)) in subnets.iter().enumerate() {
@@ -716,7 +716,7 @@ fn test_subnet_replacing() {
         }
 
         let subnet_amount = SubspaceModule::num_subnets();
-        assert_eq!(subnet_amount as u16, expected_subnet_amount);
+        assert_eq!(subnet_amount, expected_subnet_amount);
 
         // Register module on the subnet one (netuid 0), this means that subnet
         // subnet two (netuid 1) will be deregistered, as we reached global module limit.
@@ -724,15 +724,15 @@ fn test_subnet_replacing() {
         assert_ok!(register_module(4, random_keys[1], to_nano(150_000)));
 
         let subnet_amount = SubspaceModule::num_subnets();
-        assert_eq!(subnet_amount as u16, expected_subnet_amount - 1);
+        assert_eq!(subnet_amount, expected_subnet_amount - 1);
 
         // netuid 1 replaced by subnet four
         assert_ok!(register_module(3, subnets[3].0, subnets[3].1));
 
         let subnet_amount = SubspaceModule::num_subnets();
         let total_module_amount = SubspaceModule::global_n_modules();
-        assert_eq!(subnet_amount as u16, expected_subnet_amount);
-        assert_eq!(total_module_amount as u16, expected_subnet_amount);
+        assert_eq!(subnet_amount, expected_subnet_amount);
+        assert_eq!(total_module_amount, expected_subnet_amount);
 
         let netuids = SubspaceModule::netuids();
         let max_netuid = netuids.iter().max().unwrap();
