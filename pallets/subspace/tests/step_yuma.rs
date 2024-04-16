@@ -166,3 +166,11 @@ fn test_10_graph() {
         assert_eq!(emissions, expected);
     });
 }
+
+// Testing weight expiration, on subnets running yuma
+#[test]
+fn test_yuma_weight_expiration() {
+    new_test_ext().execute_with(|| {
+        todo!();
+    });
+}

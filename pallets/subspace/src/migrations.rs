@@ -141,6 +141,7 @@ pub mod v3 {
     use crate::voting::VoteMode;
 
     use super::*;
+    use sp_core::bytes::from_hex;
 
     pub struct MigrateToV3<T>(sp_std::marker::PhantomData<T>);
 
@@ -192,15 +193,47 @@ pub mod v3 {
                         );
                     }
                 }
+                log::info!("Emission and consensus updated");
 
                 // Due to the incoming incentives refactoring, `max_stake` value
                 // is no longer needed to be limited on the subnet 0
                 let general_netuid = 0;
                 MaxStake::<T>::insert(general_netuid, u64::MAX);
+                log::info!("Min stake migrated");
 
                 log::info!("Setting subnet 0 to vote mode");
                 VoteModeSubnet::<T>::set(0, VoteMode::Vote);
 
+                // Migrate the nominator, to the DAO bot mutli-sig account
+                // -> `5EZJYuTFdkzkLZew7Tnm7phuZrejHBks4XPz3UDZdMh11ALA`
+                // Decode the multi-sig account from its base58 representation
+
+                // (Anyone can pass a proposal that automatically changes this account)
+                // The bot approach has been approved in the proposal ID 2
+                let multi_sig_account_hex = "0x5EZJYuTFdkzkLZew7Tnm7phuZrejHBks4XPz3UDZdMh11ALA";
+                let multi_sig_account_bytes = match from_hex(multi_sig_account_hex) {
+                    Ok(bytes) => bytes,
+                    Err(_) => {
+                        log::warn!(
+                            "Failed to decode multi-sig account hex. Using default nominator."
+                        );
+                        DefaultNominator::<T>::get().encode()
+                    }
+                };
+
+                let multi_sig_account = match T::AccountId::decode(
+                    &mut &multi_sig_account_bytes[..],
+                ) {
+                    Ok(account) => account,
+                    Err(_) => {
+                        log::warn!("Failed to convert multi-sig account bytes to AccountId. Using default nominator.");
+                        DefaultNominator::<T>::get()
+                    }
+                };
+                Nominator::<T>::put(multi_sig_account);
+                log::info!("Nominator migration completed.");
+
+                // update the storage version
                 StorageVersion::new(3).put::<Pallet<T>>();
                 log::info!("Migrated subnets to v3");
 

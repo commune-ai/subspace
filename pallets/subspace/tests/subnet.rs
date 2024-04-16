@@ -631,3 +631,37 @@ fn test_emission_activation() {
         }
     });
 }
+
+// immunity period attack
+// this test should ignore, immunity period of subnet under specific conditions
+#[test]
+fn test_parasite_subnet_registrations() {
+    new_test_ext().execute_with(|| {
+        todo!();
+    });
+}
+
+// After reaching maximum global modules, subnets will start getting deregisterd
+// Test ensures that newly registered subnets will take the "spots" of these deregistered subnets.
+// And modules go beyond the global maximum.
+#[test]
+fn test_subnet_replacing() {
+    new_test_ext().execute_with(|| {
+        // Defines the maximum number of modules, that can be registered,
+        // on all subnets at once.
+        SubspaceModule::set_max_allowed_modules(3);
+        
+        let subnet_one_key = U256::from(0);
+        let subnet_one_stake = to_nano(100_000);
+        let subnet_two_key = U256::from(1);
+        let subnet_two_stake = to_nano(40_000);
+        let subnet_three_key = U256::from(2);
+        let subnet_three_stake = to_nano(1_000);
+
+        // Register all subnets
+        assert_ok!(register_module(0, subnet_one_key, subnet_one_stake));
+        assert_ok!(register_module(1, subnet_two_key, subnet_two_stake));
+        assert_ok!(register_module(2, subnet_three_key, subnet_three_stake))
+
+    });
+}
