@@ -37,6 +37,7 @@ pub mod v1 {
 
                 StorageVersion::new(1).put::<Pallet<T>>();
                 log::info!("Migrated DelegationFee to v1");
+
                 T::DbWeight::get().writes(1)
             } else {
                 log::info!("Storage v1 already updated");
@@ -154,12 +155,10 @@ pub mod v3 {
                 // Here we will just use the lower bound of the burn
                 let old_burn = Pallet::<T>::global_params().min_burn;
 
-                // Find the highest netuid from the subnetnames
-                let largest_netuid = SubnetNames::<T>::iter_keys().max().unwrap_or(0);
                 // Iterate through all netuids and insert the old burn (minimum) value for each
                 // this is important as we don't want free registrations right after the runtime
                 // udpate
-                for netuid in 0..=largest_netuid {
+                for netuid in N::<T>::iter_keys() {
                     Burn::<T>::insert(netuid, old_burn);
                     // update the emission that are below the threshold
                     let emission_for_netuid =
@@ -192,7 +191,8 @@ pub mod v3 {
 
                 StorageVersion::new(3).put::<Pallet<T>>();
                 log::info!("Migrated subnets to v3");
-                T::DbWeight::get().writes(largest_netuid as u64)
+
+                T::DbWeight::get().reads_writes(1, 1)
             } else {
                 log::info!("Storage v3 already updated");
                 Weight::zero()
