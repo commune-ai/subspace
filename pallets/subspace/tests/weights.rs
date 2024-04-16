@@ -20,7 +20,6 @@ fn test_weights_err_weights_vec_not_equal_size() {
         // make sure that the results won´t get affected by burn
         SubspaceModule::set_min_burn(0);
         assert_ok!(register_module(netuid, key_account_id, 1_000_000_000));
-        let _neuron_uid: u16 = SubspaceModule::get_uid_for_key(netuid, &key_account_id);
         let weights_keys: Vec<u16> = vec![1, 2, 3, 4, 5, 6];
         let weight_values: Vec<u16> = vec![1, 2, 3, 4, 5]; // Uneven sizes
         let result = SubspaceModule::set_weights(
@@ -92,7 +91,6 @@ fn test_set_weights_err_invalid_uid() {
         // make sure that the results won´t get affected by burn
         SubspaceModule::set_min_burn(0);
         assert_ok!(register_module(netuid, key_account_id, 1_000_000_000));
-        let _neuron_uid: u16 = SubspaceModule::get_uid_for_key(netuid, &key_account_id);
         let weight_keys: Vec<u16> = vec![9999]; // Does not exist
         let weight_values: Vec<u16> = vec![88]; // random value
         let result = SubspaceModule::set_weights(
@@ -117,7 +115,6 @@ fn test_set_weight_not_enough_values() {
         SubspaceModule::set_min_burn(0);
         assert_ok!(register_module(netuid, account_id, 1_000_000_000));
 
-        let _neuron_uid: u16 = SubspaceModule::get_uid_for_key(netuid, &account_id);
         for i in 1..n {
             assert_ok!(register_module(netuid, U256::from(i), 1_000_000_000));
         }
@@ -171,7 +168,6 @@ fn test_set_max_allowed_uids() {
         // make sure that the results won´t get affected by burn
         SubspaceModule::set_min_burn(0);
         assert_ok!(register_module(netuid, account_id, 1_000_000_000));
-        let _neuron_uid: u16 = SubspaceModule::get_uid_for_key(netuid, &account_id);
         for i in 1..n {
             assert_ok!(register_module(netuid, U256::from(i), 1_000_000_000));
         }
