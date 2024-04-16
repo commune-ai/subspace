@@ -277,7 +277,7 @@ impl<T: Config> Pallet<T> {
             // If we reach the max allowed modules for this subnet,
             // then we replace the lowest priority node in the current subnet
             Self::remove_module(netuid, Self::get_lowest_uid(netuid, false));
-        } else if Self::global_n() >= Self::get_max_allowed_modules() {
+        } else if Self::global_n_modules() >= Self::get_max_allowed_modules() {
             // Get the least staked network (subnet) and its least staked module.
             let (subnet_uid, _) = Self::least_staked_netuid();
             let module_uid = Self::get_lowest_uid(subnet_uid, true);
