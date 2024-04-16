@@ -111,6 +111,7 @@ fn test_local_subnet_burn() {
                 step_block(30);
             }
         }
+
         // We are at block 1,8 k now.
         // We performed 300 registrations
         // this means avg.  0.166.. per block
@@ -119,7 +120,6 @@ fn test_local_subnet_burn() {
         let subnet_zero_burn = SubspaceModule::get_burn(0);
         assert_eq!(subnet_zero_burn, min_burn);
         let subnet_one_burn = SubspaceModule::get_burn(1);
-        dbg!(from_nano(subnet_one_burn));
         assert!(min_burn < subnet_one_burn && subnet_one_burn < max_burn);
     });
 }

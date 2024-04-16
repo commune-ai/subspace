@@ -920,7 +920,7 @@ pub mod pallet {
                 };
 
                 let changeset: SubnetChangeset<T> =
-                    SubnetChangeset::new(&params.name, &params.founder, Some(params.clone()));
+                    SubnetChangeset::new(&params.name, &params.founder, params.clone());
                 let _ = self::Pallet::<T>::add_subnet(changeset, Some(netuid))
                     .expect("Failed to register genesis subnet");
                 for (uid_usize, (key, name, address, weights)) in

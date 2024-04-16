@@ -89,7 +89,12 @@ impl<T: Config> Pallet<T> {
         let netuid = if let Some(netuid) = Self::get_netuid_for_name(&network_name) {
             netuid
         } else {
-            let subnet_changeset = SubnetChangeset::new(&network_name, &key, None);
+            let params = SubnetParams {
+                name: network_name.clone(),
+                founder: key.clone(),
+                ..DefaultSubnetParams::<T>::get()
+            };
+            let subnet_changeset = SubnetChangeset::new(&network_name, &key, params);
             // Create subnet if it does not exist.
             Self::add_subnet_from_registration(stake, subnet_changeset)?
         };
