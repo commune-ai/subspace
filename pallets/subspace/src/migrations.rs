@@ -137,6 +137,8 @@ pub mod v2 {
 
 // Incentives update, migrations.
 pub mod v3 {
+    use crate::voting::VoteMode;
+
     use super::*;
 
     pub struct MigrateToV3<T>(sp_std::marker::PhantomData<T>);
@@ -184,6 +186,9 @@ pub mod v3 {
                 // is no longer needed to be limited on the subnet 0
                 let general_netuid = 0;
                 MaxStake::<T>::insert(general_netuid, u64::MAX);
+
+                log::info!("Setting subnet 0 to vote mode");
+                VoteModeSubnet::<T>::set(0, VoteMode::Vote);
 
                 StorageVersion::new(3).put::<Pallet<T>>();
                 log::info!("Migrated subnets to v3");
