@@ -190,14 +190,13 @@ pub mod v3 {
                     ValidatorTrust::<T>::mutate(netuid, |v| v.push(0));
 
                     // If the subnet has more modules than allowed, remove the lowest ones.
-
                     let max_allowed = MaxAllowedUids::<T>::get(netuid);
                     let currently_registered = Pallet::<T>::get_subnet_n(netuid);
                     let overflown = currently_registered.saturating_sub(max_allowed);
                     for _ in 0..overflown {
                         Pallet::<T>::remove_module(
                             netuid,
-                            Pallet::<T>::get_lowest_uid(netuid, false),
+                            Pallet::<T>::get_lowest_uid(netuid, true),
                         );
                     }
                 }
@@ -218,7 +217,7 @@ pub mod v3 {
 
                 // (Anyone can pass a proposal that automatically changes this account)
                 // The bot approach has been approved in the proposal ID 2
-                let multi_sig_account_hex = "0x5EZJYuTFdkzkLZew7Tnm7phuZrejHBks4XPz3UDZdMh11ALA";
+                let multi_sig_account_hex = "35455a4a59755446646b7a6b4c5a657737546e6d377068755a72656a48426b733458507a3355445a644d683131414c41";
                 let multi_sig_account_bytes = match from_hex(multi_sig_account_hex) {
                     Ok(bytes) => bytes,
                     Err(_) => {
