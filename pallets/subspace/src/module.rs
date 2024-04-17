@@ -31,12 +31,12 @@ pub struct ModuleChangeset {
 
 impl ModuleChangeset {
     #[must_use]
-    pub fn new(name: Vec<u8>, address: Vec<u8>) -> Self {
+    pub fn new(name: Vec<u8>, address: Vec<u8>, metadata: Option<Vec<u8>>) -> Self {
         Self {
             name: Some(name),
             address: Some(address),
             delegation_fee: None,
-            metadata: None,
+            metadata,
         }
     }
 
@@ -93,6 +93,12 @@ impl ModuleChangeset {
             ensure!(fee >= floor, Error::<T>::InvalidMinDelegationFee);
 
             DelegationFee::<T>::insert(netuid, key, fee);
+        }
+
+        if let Some(metadata) = self.metadata {
+            ensure!(metadata.len() <= 256, Error::<T>::ModuleMetadataTooLong);
+
+            Metadata::<T>::insert(netuid, uid, metadata);
         }
 
         Ok(())
