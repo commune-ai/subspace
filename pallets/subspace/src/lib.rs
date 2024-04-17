@@ -1074,6 +1074,7 @@ pub mod pallet {
         InvalidMinStake,
         InvalidMinDelegationFee,
         InvalidSubnetStakeThreshold,
+        InvalidModuleMetadata,
 
         InvalidMaxNameLength,
         InvalidMinNameLenght,
@@ -1104,6 +1105,8 @@ pub mod pallet {
         ModuleNameDoesNotExist,
         /// A module with this name already exists in the subnet.
         ModuleNameAlreadyExists,
+        /// A module with this name already exists in the subnet.
+        ModuleMetadataTooLong,
 
         // VOTING
         ProposalDoesNotExist,
@@ -1181,7 +1184,7 @@ pub mod pallet {
                 for (uid_usize, (key, name, address, weights)) in
                     self.modules[subnet_idx].iter().enumerate()
                 {
-                    let changeset = ModuleChangeset::new(name.clone(), address.clone());
+                    let changeset = ModuleChangeset::new(name.clone(), address.clone(), None);
                     self::Pallet::<T>::append_module(netuid, key, changeset)
                         .expect("genesis modules are valid");
                     Weights::<T>::insert(netuid, uid_usize as u16, weights);
@@ -1315,8 +1318,9 @@ pub mod pallet {
             address: Vec<u8>,
             stake: u64,
             module_key: T::AccountId,
+            metadata: Option<Vec<u8>>,
         ) -> DispatchResult {
-            Self::do_register(origin, network, name, address, stake, module_key)
+            Self::do_register(origin, network, name, address, stake, module_key, metadata)
         }
 
         #[pallet::weight((Weight::zero(), DispatchClass::Normal, Pays::No))]
