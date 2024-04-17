@@ -23,7 +23,7 @@ impl<T: Config> Pallet<T> {
         let target_registrations_interval = Self::get_target_registrations_interval();
         // Query the target amount of registrations
         let target_registrations_per_interval = Self::get_target_registrations_per_interval();
-    
+
         let subnet_stake_threshold: Percent = SubnetStakeThreshold::<T>::get();
         for (netuid, tempo) in Tempo::<T>::iter() {
             let registration_this_interval = Self::get_registrations_this_interval(netuid);
