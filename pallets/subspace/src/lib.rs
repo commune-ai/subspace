@@ -349,7 +349,7 @@ pub mod pallet {
         pub name: Vec<u8>,
         pub address: Vec<u8>,
         pub delegation_fee: Percent,
-        pub arbitrary_uri: Option<Vec<u8>>,
+        pub metadata: Option<Vec<u8>>,
         pub controller: T::AccountId,
     }
 
@@ -739,8 +739,8 @@ pub mod pallet {
     pub type Address<T: Config> =
         StorageDoubleMap<_, Twox64Concat, u16, Twox64Concat, u16, Vec<u8>, ValueQuery>;
 
-    #[pallet::storage] // --- DMAP ( netuid, uid ) --> module_address
-    pub type ArbitraryUri<T: Config> =
+    #[pallet::storage] // --- DMAP ( netuid, uid ) --> metadata_uri
+    pub type Metadata<T: Config> =
         StorageDoubleMap<_, Twox64Concat, u16, Twox64Concat, u16, Vec<u8>>;
 
     #[pallet::type_value]
