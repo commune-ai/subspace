@@ -10,6 +10,7 @@ pub mod yuma;
 impl<T: Config> Pallet<T> {
     pub fn block_step() {
         let block_number: u64 = Self::get_current_block_number();
+        log::debug!("block_step for block: {block_number:?}");
         RegistrationsPerBlock::<T>::mutate(|val: &mut u16| *val = 0);
 
         // Execute proposals if any should be executed, this is done every 100 blocks.
@@ -17,14 +18,23 @@ impl<T: Config> Pallet<T> {
             Self::resolve_proposals(block_number);
         }
 
-        log::debug!("block_step for block: {block_number:?}");
-
+        // -- Adjust registrations parameters --
+        // Query the target interval
+        let target_registrations_interval = Self::get_target_registrations_interval();
+        // Query the target amount of registrations
+        let target_registrations_per_interval = Self::get_target_registrations_per_interval();
+    
         let subnet_stake_threshold: Percent = SubnetStakeThreshold::<T>::get();
         for (netuid, tempo) in Tempo::<T>::iter() {
             let registration_this_interval = Self::get_registrations_this_interval(netuid);
 
-            // adjust registrations parameters
-            Self::adjust_registration(netuid, block_number, registration_this_interval);
+            Self::adjust_registration(
+                netuid,
+                block_number,
+                registration_this_interval,
+                target_registrations_interval,
+                target_registrations_per_interval,
+            );
 
             let new_queued_emission: u64 =
                 Self::calculate_network_emission(netuid, subnet_stake_threshold);
@@ -596,11 +606,15 @@ impl<T: Config> Pallet<T> {
         burn_amount_per_epoch
     }
 
-    pub fn adjust_registration(netuid: u16, block_number: u64, registrations_this_interval: u16) {
-        let target_registrations_interval = Self::get_target_registrations_interval();
+    pub fn adjust_registration(
+        netuid: u16,
+        block_number: u64,
+        registrations_this_interval: u16,
+        target_registrations_interval: u16,
+        target_registrations_per_interval: u16,
+    ) {
         if block_number % u64::from(target_registrations_interval) == 0 {
             let current_burn = Self::get_burn(netuid);
-            let target_registrations_per_interval = Self::get_target_registrations_per_interval();
 
             let adjusted_burn = Self::adjust_burn(
                 current_burn,
