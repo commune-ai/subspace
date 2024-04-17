@@ -168,7 +168,6 @@ pub mod v3 {
                 let old_burn_min_burn = 2500000000; // 2.5 $COMAI tokens
 
                 MaxBurn::<T>::put(150000000000); // Migrate the max_burn to 150 $COMAI tokens
-                                                 // Find the highest netuid from the subnetnames
                 MaxRegistrationsPerBlock::<T>::put(5); // Old is 10
                 TargetRegistrationsPerInterval::<T>::put(20); // Old is 25
 
@@ -211,17 +210,13 @@ pub mod v3 {
                 log::info!("Emission and consensus updated");
 
                 // Due to the incoming incentives refactoring, `max_stake` value
-                // is no longer needed to be limited on the subnet 0
+                // is no longer needed to be limited on the general subnet 0
                 let general_netuid = 0;
                 MaxStake::<T>::insert(general_netuid, u64::MAX);
                 log::info!("Min stake migrated");
 
                 log::info!("Setting subnet 0 to vote mode");
                 VoteModeSubnet::<T>::set(0, VoteMode::Vote);
-
-                // Migrate the nominator, to the DAO bot mutli-sig account
-                // -> `5EZJYuTFdkzkLZew7Tnm7phuZrejHBks4XPz3UDZdMh11ALA`
-                // Decode the multi-sig account from its base58 representation
 
                 // (Anyone can pass a proposal that automatically changes this account)
                 // The bot approach has been approved in the proposal ID 2

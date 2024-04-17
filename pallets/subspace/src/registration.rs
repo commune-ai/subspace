@@ -26,7 +26,7 @@ impl<T: Config> Pallet<T> {
         );
 
         ensure!(
-            recommended_weight <= 100,
+            recommended_weight <= 100 && recommended_weight > 0,
             Error::<T>::InvalidRecommendedWeight
         );
 
