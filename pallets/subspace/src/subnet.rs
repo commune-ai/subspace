@@ -524,8 +524,10 @@ impl<T: Config> Pallet<T> {
         SubnetNames::<T>::remove(netuid);
         Name::<T>::clear_prefix(netuid, u32::max_value(), None);
         Address::<T>::clear_prefix(netuid, u32::max_value(), None);
+        Metadata::<T>::clear_prefix(netuid, u32::max_value(), None);
         Uids::<T>::clear_prefix(netuid, u32::max_value(), None);
         Keys::<T>::clear_prefix(netuid, u32::max_value(), None);
+        DelegationFee::<T>::clear_prefix(netuid, u32::max_value(), None);
 
         // Remove consnesus vectors
         Weights::<T>::clear_prefix(netuid, u32::max_value(), None);
@@ -542,7 +544,6 @@ impl<T: Config> Pallet<T> {
         ValidatorPermits::<T>::remove(netuid);
         ValidatorTrust::<T>::remove(netuid);
 
-        DelegationFee::<T>::clear_prefix(netuid, u32::max_value(), None);
         RegistrationBlock::<T>::clear_prefix(netuid, u32::max_value(), None);
 
         // --- 2. Erase subnet parameters.
