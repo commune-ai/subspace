@@ -673,10 +673,9 @@ pub mod pallet {
         StorageDoubleMap<_, Identity, u16, Identity, u16, Vec<(u16, u16)>, ValueQuery>;
 
     // whitelist for the base subnet (netuid 0)
-    // TODO: add the recommended weight value from 1 to 100 instead of ()
     #[pallet::storage]
     pub(super) type LegitWhitelist<T: Config> =
-        StorageMap<_, Identity, T::AccountId, (), ValueQuery>;
+        StorageMap<_, Identity, T::AccountId, u8, ValueQuery>;
 
     #[pallet::event]
     #[pallet::generate_deposit(pub(super) fn deposit_event)]
@@ -875,6 +874,7 @@ pub mod pallet {
 
         // Other
         InvalidMaxWeightAge,
+        InvalidRecommendedWeight,
         InvalidMaxStake,
         ArithmeticError,
     }
@@ -961,7 +961,7 @@ pub mod pallet {
 
     #[pallet::type_value]
     pub fn DefaultProposalExpiration<T: Config>() -> u32 {
-        32_000 // Aprox 3 days
+        130000 // Aprox 12 days
     }
 
     #[pallet::storage]
@@ -1114,8 +1114,12 @@ pub mod pallet {
         }
 
         #[pallet::weight((Weight::zero(), DispatchClass::Normal, Pays::No))]
-        pub fn add_to_whitelist(origin: OriginFor<T>, module_key: T::AccountId) -> DispatchResult {
-            Self::do_add_to_whitelist(origin, module_key)
+        pub fn add_to_whitelist(
+            origin: OriginFor<T>,
+            module_key: T::AccountId,
+            recommended_weight: u8,
+        ) -> DispatchResult {
+            Self::do_add_to_whitelist(origin, module_key, recommended_weight)
         }
 
         #[pallet::weight((Weight::zero(), DispatchClass::Normal, Pays::No))]

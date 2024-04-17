@@ -318,8 +318,8 @@ impl<T: Config> Pallet<T> {
         LegitWhitelist::<T>::contains_key(account_id)
     }
 
-    pub fn insert_to_whitelist(module_key: T::AccountId) {
-        LegitWhitelist::<T>::insert(module_key, ());
+    pub fn insert_to_whitelist(module_key: T::AccountId, recommended_weight: u8) {
+        LegitWhitelist::<T>::insert(module_key, recommended_weight);
     }
 
     pub fn rm_from_whitelist(module_key: &T::AccountId) {

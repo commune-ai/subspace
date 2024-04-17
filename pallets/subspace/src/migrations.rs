@@ -137,12 +137,20 @@ pub mod v2 {
 }
 
 // Incentives update, migrations.
-// TODO: fix migration, now it assumes no subnet gaps
 pub mod v3 {
-    use crate::voting::VoteMode;
-
     use super::*;
-    use sp_core::bytes::from_hex;
+
+    use crate::voting::{ProposalStatus, VoteMode};
+    use sp_core::crypto::Ss58Codec;
+    use sp_runtime::AccountId32;
+
+    fn ss58_to_account_id<T: Config>(
+        ss58_address: &str,
+    ) -> Result<T::AccountId, sp_core::crypto::PublicError> {
+        let account_id = AccountId32::from_ss58check(ss58_address)?;
+        let account_id_vec = account_id.encode();
+        Ok(T::AccountId::decode(&mut &account_id_vec[..]).unwrap())
+    }
 
     pub struct MigrateToV3<T>(sp_std::marker::PhantomData<T>);
 
@@ -217,28 +225,30 @@ pub mod v3 {
 
                 // (Anyone can pass a proposal that automatically changes this account)
                 // The bot approach has been approved in the proposal ID 2
-                let multi_sig_account_hex = "35455a4a59755446646b7a6b4c5a657737546e6d377068755a72656a48426b733458507a3355445a644d683131414c41";
-                let multi_sig_account_bytes = match from_hex(multi_sig_account_hex) {
-                    Ok(bytes) => bytes,
-                    Err(_) => {
-                        log::warn!(
-                            "Failed to decode multi-sig account hex. Using default nominator."
-                        );
-                        DefaultNominator::<T>::get().encode()
-                    }
-                };
+                let dao_bot = "5GnXkyoCGVHD7PL3ZRGM2oELpUhDG6HFqAHZT3hHTmFD8CZF";
+                let dao_bot_account_id = ss58_to_account_id::<T>(dao_bot).unwrap();
 
-                let multi_sig_account = match T::AccountId::decode(
-                    &mut &multi_sig_account_bytes[..],
-                ) {
-                    Ok(account) => account,
-                    Err(_) => {
-                        log::warn!("Failed to convert multi-sig account bytes to AccountId. Using default nominator.");
-                        DefaultNominator::<T>::get()
+                Nominator::<T>::put(dao_bot_account_id);
+                log::info!("Nominator migrated");
+
+                // Proposals
+                // Migrate the proposal expiration to 12 days,
+                // as current timeframe is not sustainable.
+                ProposalExpiration::<T>::put(130000); // Old 32_000 blocks
+                log::info!("Proposal expiration migrated");
+
+                // Cleanup the expired proposal from votes_for / against
+                // This logic is now automatically running onchain,
+                // but to avoid confustion on expired proposal 0, we migrate.
+                for mut proposal in Proposals::<T>::iter_values() {
+                    if !matches!(proposal.status, ProposalStatus::Expired) {
+                        proposal.votes_for = Default::default();
+                        proposal.votes_against = Default::default();
+
+                        Proposals::<T>::insert(proposal.id, proposal);
                     }
-                };
-                Nominator::<T>::put(multi_sig_account);
-                log::info!("Nominator migration completed.");
+                }
+                log::info!("Expired proposals migrated");
 
                 // update the storage version
                 StorageVersion::new(3).put::<Pallet<T>>();
