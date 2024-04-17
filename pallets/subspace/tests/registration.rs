@@ -395,6 +395,7 @@ fn test_register_invalid_name() {
                 address.clone(),
                 stake,
                 register_one,
+                None,
             ),
             Error::<Test>::InvalidModuleName
         );
@@ -409,7 +410,8 @@ fn test_register_invalid_name() {
                 short_name,
                 address.clone(),
                 stake,
-                register_two
+                register_two,
+                None,
             ),
             Error::<Test>::ModuleNameTooShort
         );
@@ -424,6 +426,7 @@ fn test_register_invalid_name() {
             address.clone(),
             stake,
             register_three,
+            None,
         ));
 
         // Try registering with a name that is exactly the maximum length (valid)
@@ -436,6 +439,7 @@ fn test_register_invalid_name() {
             address.clone(),
             stake,
             register_four,
+            None,
         ));
 
         // Try registering with a name that is too long (invalid)
@@ -448,7 +452,8 @@ fn test_register_invalid_name() {
                 long_name,
                 address,
                 stake,
-                register_five
+                register_five,
+                None,
             ),
             Error::<Test>::ModuleNameTooLong
         );
@@ -482,6 +487,7 @@ fn test_register_invalid_subnet_name() {
                 address.clone(),
                 stake,
                 register_one,
+                None,
             ),
             Error::<Test>::InvalidSubnetName
         );
@@ -497,6 +503,7 @@ fn test_register_invalid_subnet_name() {
                 address.clone(),
                 stake,
                 register_two,
+                None,
             ),
             Error::<Test>::SubnetNameTooShort
         );
@@ -511,6 +518,7 @@ fn test_register_invalid_subnet_name() {
             address.clone(),
             stake,
             register_three,
+            None,
         ));
 
         // Try registering with a name that is exactly the maximum length (valid)
@@ -523,6 +531,7 @@ fn test_register_invalid_subnet_name() {
             address.clone(),
             stake,
             register_four,
+            None,
         ));
 
         // Try registering with a name that is too long (invalid)
@@ -536,6 +545,7 @@ fn test_register_invalid_subnet_name() {
                 address.clone(),
                 stake,
                 register_five,
+                None,
             ),
             Error::<Test>::SubnetNameTooLong
         );
@@ -551,6 +561,7 @@ fn test_register_invalid_subnet_name() {
                 address,
                 stake,
                 register_six,
+                None,
             ),
             Error::<Test>::InvalidSubnetName
         );
