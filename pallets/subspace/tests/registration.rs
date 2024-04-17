@@ -209,7 +209,8 @@ fn test_whitelist() {
         // add key to whitelist
         assert_ok!(SubspaceModule::add_to_whitelist(
             get_origin(key),
-            adding_key
+            adding_key,
+            1,
         ));
         assert!(SubspaceModule::is_in_legit_whitelist(&adding_key));
     });
@@ -565,7 +566,8 @@ fn test_add_to_whitelist() {
 
         assert_ok!(SubspaceModule::add_to_whitelist(
             get_origin(whitelist_key),
-            module_key
+            module_key,
+            1,
         ));
         assert!(SubspaceModule::is_in_legit_whitelist(&module_key));
     });
@@ -581,7 +583,8 @@ fn test_remove_from_whitelist() {
         // Add the module_key to the whitelist
         assert_ok!(SubspaceModule::add_to_whitelist(
             get_origin(whitelist_key),
-            module_key
+            module_key,
+            1
         ));
         assert!(SubspaceModule::is_in_legit_whitelist(&module_key));
 
@@ -604,7 +607,7 @@ fn test_invalid_nominator() {
 
         // Try to add to whitelist with an invalid nominator key
         assert_noop!(
-            SubspaceModule::add_to_whitelist(get_origin(invalid_key), module_key),
+            SubspaceModule::add_to_whitelist(get_origin(invalid_key), module_key, 1),
             Error::<Test>::NotNominator
         );
         assert!(!SubspaceModule::is_in_legit_whitelist(&module_key));
