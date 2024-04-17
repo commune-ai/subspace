@@ -225,7 +225,7 @@ fn register_custom(netuid: u16, key: U256, name: &[u8], addr: &[u8]) -> Dispatch
         SubspaceModule::set_max_registrations_per_block(1000)
     }
 
-    SubspaceModule::register(origin, network, name.to_vec(), addr.to_vec(), 0, key)
+    SubspaceModule::register(origin, network, name.to_vec(), addr.to_vec(), 0, key, None)
 }
 
 fn test_validation_cases(f: impl Fn(&[u8], &[u8]) -> DispatchResult) {
@@ -278,6 +278,7 @@ fn validates_module_on_update() {
                 name.to_vec(),
                 addr.to_vec(),
                 None,
+                None,
             )
         });
 
@@ -292,6 +293,7 @@ fn validates_module_on_update() {
                 name.to_vec(),
                 addr.to_vec(),
                 Some(Percent::from_percent(5)),
+                None,
             )
         };
 

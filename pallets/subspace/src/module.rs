@@ -24,15 +24,17 @@ pub struct ModuleChangeset {
     pub name: Option<Vec<u8>>,
     pub address: Option<Vec<u8>>,
     pub delegation_fee: Option<Percent>,
+    pub metadata: Option<Vec<u8>>,
 }
 
 impl ModuleChangeset {
     #[must_use]
-    pub fn new(name: Vec<u8>, address: Vec<u8>) -> Self {
+    pub fn new(name: Vec<u8>, address: Vec<u8>, metadata: Option<Vec<u8>>) -> Self {
         Self {
             name: Some(name),
             address: Some(address),
             delegation_fee: None,
+            metadata,
         }
     }
 
@@ -42,11 +44,13 @@ impl ModuleChangeset {
         name: Vec<u8>,
         address: Vec<u8>,
         delegation_fee: Option<Percent>,
+        metadata: Option<Vec<u8>>,
     ) -> Self {
         Self {
             name: (name != params.name).then_some(name),
             address: (address != params.address).then_some(address),
             delegation_fee,
+            metadata,
         }
     }
 
@@ -89,6 +93,14 @@ impl ModuleChangeset {
             DelegationFee::<T>::insert(netuid, key, fee);
         }
 
+        if let Some(metadata) = self.metadata {
+            ensure!(!metadata.is_empty(), Error::<T>::InvalidModuleMetadata);
+            ensure!(metadata.len() <= 59, Error::<T>::ModuleMetadataTooLong);
+            core::str::from_utf8(&metadata).map_err(|_| Error::<T>::InvalidModuleMetadata)?;
+
+            Metadata::<T>::insert(netuid, uid, metadata);
+        }
+
         Ok(())
     }
 }
@@ -120,6 +132,7 @@ impl<T: Config> Pallet<T> {
         ModuleParams {
             name: Name::<T>::get(netuid, uid),
             address: Address::<T>::get(netuid, uid),
+            metadata: Metadata::<T>::get(netuid, uid),
             delegation_fee: DelegationFee::<T>::get(netuid, key),
             controller: key.clone(),
         }
@@ -212,15 +225,23 @@ impl<T: Config> Pallet<T> {
             uid,
             RegistrationBlock::<T>::get(netuid, replace_uid),
         ); // Fill block at registration.
-        RegistrationBlock::<T>::remove(netuid, replace_uid); // Fill block at registration.
+        RegistrationBlock::<T>::remove(netuid, replace_uid);
 
         // HANDLE THE ADDRESS
-        Address::<T>::insert(netuid, uid, Address::<T>::get(netuid, replace_uid)); // Fill module info.
-        Address::<T>::remove(netuid, replace_uid); // Fill module info.
+        Address::<T>::insert(netuid, uid, Address::<T>::get(netuid, replace_uid));
+        Address::<T>::remove(netuid, replace_uid);
+
+        // HANDLE THE METADATA
+        Metadata::<T>::insert(
+            netuid,
+            uid,
+            Metadata::<T>::get(netuid, replace_uid).unwrap_or_default(),
+        );
+        Metadata::<T>::remove(netuid, replace_uid);
 
         // HANDLE THE NAMES
-        Name::<T>::insert(netuid, uid, Name::<T>::get(netuid, replace_uid)); // Fill module namespace.
-        Name::<T>::remove(netuid, replace_uid); // Fill module namespace.
+        Name::<T>::insert(netuid, uid, Name::<T>::get(netuid, replace_uid));
+        Name::<T>::remove(netuid, replace_uid);
 
         // HANDLE THE DELEGATION FEE
         DelegationFee::<T>::insert(
