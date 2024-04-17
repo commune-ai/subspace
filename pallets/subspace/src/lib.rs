@@ -291,6 +291,7 @@ pub mod pallet {
         pub name: Vec<u8>,
         pub address: Vec<u8>,
         pub delegation_fee: Percent,
+        pub metadata: Option<Vec<u8>>,
         pub controller: T::AccountId,
     }
 
@@ -574,6 +575,10 @@ pub mod pallet {
     pub type Address<T: Config> =
         StorageDoubleMap<_, Twox64Concat, u16, Twox64Concat, u16, Vec<u8>, ValueQuery>;
 
+    #[pallet::storage] // --- DMAP ( netuid, uid ) --> metadata_uri
+    pub type Metadata<T: Config> =
+        StorageDoubleMap<_, Twox64Concat, u16, Twox64Concat, u16, Vec<u8>>;
+
     #[pallet::type_value]
     pub fn DefaultDelegationFee<T: Config>() -> Percent {
         Percent::from_percent(20u8)
@@ -823,6 +828,8 @@ pub mod pallet {
         InvalidMinStake,
         InvalidMinDelegationFee,
         InvalidSubnetStakeThreshold,
+        InvalidModuleMetadata,
+        ModuleMetadataTooLong,
 
         InvalidMaxNameLength,
         InvalidMinNameLenght,
@@ -851,7 +858,7 @@ pub mod pallet {
         ModuleNameDoesNotExist,
         /// A module with this name already exists in the subnet.
         ModuleNameAlreadyExists,
-
+        /// A module with this name already exists in the subnet.
         // VOTING
         ProposalNotFound,
         InvalidProposalStatus,
@@ -926,7 +933,7 @@ pub mod pallet {
                 for (uid_usize, (key, name, address, weights)) in
                     self.modules[subnet_idx].iter().enumerate()
                 {
-                    let changeset = ModuleChangeset::new(name.clone(), address.clone());
+                    let changeset = ModuleChangeset::new(name.clone(), address.clone(), None);
                     self::Pallet::<T>::append_module(netuid, key, changeset)
                         .expect("genesis modules are valid");
                     Weights::<T>::insert(netuid, uid_usize as u16, weights);
@@ -1077,13 +1084,15 @@ pub mod pallet {
             name: Vec<u8>,
             address: Vec<u8>,
             delegation_fee: Option<Percent>,
+            metadata: Option<Vec<u8>>,
         ) -> DispatchResult {
             let key = ensure_signed(origin.clone())?;
             ensure!(Self::is_registered(netuid, &key), Error::<T>::NotRegistered);
 
             let params = Self::module_params(netuid, &key);
 
-            let changeset = ModuleChangeset::update(&params, name, address, delegation_fee);
+            let changeset =
+                ModuleChangeset::update(&params, name, address, delegation_fee, metadata);
             Self::do_update_module(origin, netuid, changeset)
         }
 
@@ -1095,8 +1104,9 @@ pub mod pallet {
             address: Vec<u8>,
             stake: u64,
             module_key: T::AccountId,
+            metadata: Option<Vec<u8>>,
         ) -> DispatchResult {
-            Self::do_register(origin, network, name, address, stake, module_key)
+            Self::do_register(origin, network, name, address, stake, module_key, metadata)
         }
 
         #[pallet::weight((Weight::zero(), DispatchClass::Normal, Pays::No))]

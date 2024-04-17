@@ -73,6 +73,7 @@ impl<T: Config> Pallet<T> {
         address: Vec<u8>,
         stake: u64,
         module_key: T::AccountId,
+        metadata: Option<Vec<u8>>,
     ) -> DispatchResult {
         // --- 1. Check that the caller has signed the transaction.
         let key = ensure_signed(origin.clone())?;
@@ -147,7 +148,7 @@ impl<T: Config> Pallet<T> {
         Self::reserve_module_slot(netuid);
 
         // --- 8. Register the module and changeset.
-        let module_changeset = ModuleChangeset::new(name, address);
+        let module_changeset = ModuleChangeset::new(name, address, metadata);
 
         let uid: u16 = Self::append_module(netuid, &module_key, module_changeset)?;
 
