@@ -349,7 +349,7 @@ pub mod pallet {
         pub name: Vec<u8>,
         pub address: Vec<u8>,
         pub delegation_fee: Percent,
-        pub arbitrary_uri: Vec<u8>,
+        pub arbitrary_uri: Option<Vec<u8>>,
         pub controller: T::AccountId,
     }
 
