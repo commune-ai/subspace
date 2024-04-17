@@ -739,13 +739,9 @@ pub mod pallet {
     pub type Address<T: Config> =
         StorageDoubleMap<_, Twox64Concat, u16, Twox64Concat, u16, Vec<u8>, ValueQuery>;
 
-    #[pallet::type_value]
-    pub fn DefaultArbitraryUri<T: Config>() -> Vec<u8> {
-        vec![]
-    }
     #[pallet::storage] // --- DMAP ( netuid, uid ) --> module_address
     pub type ArbitraryUri<T: Config> =
-        StorageDoubleMap<_, Twox64Concat, u16, Twox64Concat, u16, Vec<u8>, ValueQuery>;
+        StorageDoubleMap<_, Twox64Concat, u16, Twox64Concat, u16, Vec<u8>>;
 
     #[pallet::type_value]
     pub fn DefaultDelegationFee<T: Config>() -> Percent {
