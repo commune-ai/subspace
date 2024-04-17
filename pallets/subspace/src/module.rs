@@ -96,7 +96,9 @@ impl ModuleChangeset {
         }
 
         if let Some(metadata) = self.metadata {
-            ensure!(metadata.len() <= 256, Error::<T>::ModuleMetadataTooLong);
+            ensure!(!metadata.is_empty(), Error::<T>::InvalidModuleMetadata);
+            ensure!(metadata.len() <= 59, Error::<T>::ModuleMetadataTooLong);
+            core::str::from_utf8(&metadata).map_err(|_| Error::<T>::InvalidModuleMetadata)?;
 
             Metadata::<T>::insert(netuid, uid, metadata);
         }
@@ -225,15 +227,23 @@ impl<T: Config> Pallet<T> {
             uid,
             RegistrationBlock::<T>::get(netuid, replace_uid),
         ); // Fill block at registration.
-        RegistrationBlock::<T>::remove(netuid, replace_uid); // Fill block at registration.
+        RegistrationBlock::<T>::remove(netuid, replace_uid);
 
         // HANDLE THE ADDRESS
-        Address::<T>::insert(netuid, uid, Address::<T>::get(netuid, replace_uid)); // Fill module info.
-        Address::<T>::remove(netuid, replace_uid); // Fill module info.
+        Address::<T>::insert(netuid, uid, Address::<T>::get(netuid, replace_uid));
+        Address::<T>::remove(netuid, replace_uid);
+
+        // HANDLE THE METADATA
+        Metadata::<T>::insert(
+            netuid,
+            uid,
+            Metadata::<T>::get(netuid, replace_uid).unwrap_or_default(),
+        );
+        Metadata::<T>::remove(netuid, replace_uid);
 
         // HANDLE THE NAMES
-        Name::<T>::insert(netuid, uid, Name::<T>::get(netuid, replace_uid)); // Fill module namespace.
-        Name::<T>::remove(netuid, replace_uid); // Fill module namespace.
+        Name::<T>::insert(netuid, uid, Name::<T>::get(netuid, replace_uid));
+        Name::<T>::remove(netuid, replace_uid);
 
         // HANDLE THE DELEGATION FEE
         DelegationFee::<T>::insert(

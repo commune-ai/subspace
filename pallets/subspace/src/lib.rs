@@ -1075,6 +1075,7 @@ pub mod pallet {
         InvalidMinDelegationFee,
         InvalidSubnetStakeThreshold,
         InvalidModuleMetadata,
+        ModuleMetadataTooLong,
 
         InvalidMaxNameLength,
         InvalidMinNameLenght,
@@ -1106,8 +1107,6 @@ pub mod pallet {
         /// A module with this name already exists in the subnet.
         ModuleNameAlreadyExists,
         /// A module with this name already exists in the subnet.
-        ModuleMetadataTooLong,
-
         // VOTING
         ProposalDoesNotExist,
         VotingPowerIsZero,
