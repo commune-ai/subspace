@@ -277,6 +277,7 @@ fn validates_module_on_update() {
                 name.to_vec(),
                 addr.to_vec(),
                 None,
+                None,
             )
         });
 
@@ -291,6 +292,7 @@ fn validates_module_on_update() {
                 name.to_vec(),
                 addr.to_vec(),
                 Some(Percent::from_percent(5)),
+                None,
             )
         };
 

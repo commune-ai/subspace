@@ -1295,13 +1295,15 @@ pub mod pallet {
             name: Vec<u8>,
             address: Vec<u8>,
             delegation_fee: Option<Percent>,
+            metadata: Option<Vec<u8>>,
         ) -> DispatchResult {
             let key = ensure_signed(origin.clone())?;
             ensure!(Self::is_registered(netuid, &key), Error::<T>::NotRegistered);
 
             let params = Self::module_params(netuid, &key);
 
-            let changeset = ModuleChangeset::update(&params, name, address, delegation_fee);
+            let changeset =
+                ModuleChangeset::update(&params, name, address, delegation_fee, metadata);
             Self::do_update_module(origin, netuid, changeset)
         }
 

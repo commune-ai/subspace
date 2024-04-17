@@ -26,6 +26,7 @@ pub struct ModuleChangeset {
     pub name: Option<Vec<u8>>,
     pub address: Option<Vec<u8>>,
     pub delegation_fee: Option<Percent>,
+    pub metadata: Option<Vec<u8>>,
 }
 
 impl ModuleChangeset {
@@ -35,6 +36,7 @@ impl ModuleChangeset {
             name: Some(name),
             address: Some(address),
             delegation_fee: None,
+            metadata: None,
         }
     }
 
@@ -44,11 +46,13 @@ impl ModuleChangeset {
         name: Vec<u8>,
         address: Vec<u8>,
         delegation_fee: Option<Percent>,
+        metadata: Option<Vec<u8>>,
     ) -> Self {
         Self {
             name: (name != params.name).then_some(name),
             address: (address != params.address).then_some(address),
             delegation_fee,
+            metadata,
         }
     }
 
