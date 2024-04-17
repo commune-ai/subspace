@@ -11,6 +11,7 @@ impl<T: Config> Pallet<T> {
     pub fn do_add_to_whitelist(
         origin: T::RuntimeOrigin,
         module_key: T::AccountId,
+        recommended_weight: u8,
     ) -> DispatchResult {
         // --- 1. Check that the caller has signed the transaction.
         let key = ensure_signed(origin)?;
@@ -24,8 +25,13 @@ impl<T: Config> Pallet<T> {
             Error::<T>::AlreadyWhitelisted
         );
 
+        ensure!(
+            recommended_weight <= 100,
+            Error::<T>::InvalidRecommendedWeight
+        );
+
         // --- 4. Insert the module_key into the whitelist.
-        Self::insert_to_whitelist(module_key.clone());
+        Self::insert_to_whitelist(module_key.clone(), recommended_weight);
 
         // -- deposit event
         Self::deposit_event(Event::WhitelistModuleAdded(module_key));
