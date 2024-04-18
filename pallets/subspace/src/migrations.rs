@@ -175,36 +175,48 @@ pub mod v3 {
                 // this is important as we don't want free registrations right after the runtime
                 // udpate
                 for netuid in N::<T>::iter_keys() {
+                    let module_count = Pallet::<T>::get_subnet_n(netuid) as usize;
+
                     Burn::<T>::insert(netuid, old_burn_min_burn);
+
                     // update the emission that are below the threshold
                     let emission_for_netuid =
                         Pallet::<T>::calculate_network_emission(netuid, subnet_stake_threshold);
+
                     // empty out the module emissin on that subnet, as their epoch won't run, we
                     // don't want to confuse the user querying for the storage
                     if emission_for_netuid == 0 {
-                        let name_count = Name::<T>::iter_prefix(netuid).count();
-                        let new_emission = vec![0; name_count];
+                        let new_emission = vec![0; module_count];
                         Emission::<T>::insert(netuid, new_emission);
                     }
+
                     SubnetEmission::<T>::insert(netuid, emission_for_netuid);
 
-                    Active::<T>::mutate(netuid, |v| v.push(true));
-                    Consensus::<T>::mutate(netuid, |v| v.push(0));
-                    PruningScores::<T>::mutate(netuid, |v| v.push(0));
-                    Rank::<T>::mutate(netuid, |v| v.push(0));
-                    Trust::<T>::mutate(netuid, |v| v.push(0));
-                    ValidatorPermits::<T>::mutate(netuid, |v| v.push(false));
-                    ValidatorTrust::<T>::mutate(netuid, |v| v.push(0));
+                    let empty_vec = vec![0; module_count];
+
+                    Active::<T>::insert(netuid, vec![true; module_count]);
+                    Consensus::<T>::insert(netuid, &empty_vec);
+                    PruningScores::<T>::insert(netuid, &empty_vec);
+                    Rank::<T>::insert(netuid, &empty_vec);
+                    Trust::<T>::insert(netuid, &empty_vec);
+                    ValidatorPermits::<T>::insert(netuid, vec![false; module_count]);
+                    ValidatorTrust::<T>::insert(netuid, &empty_vec);
 
                     // If the subnet has more modules than allowed, remove the lowest ones.
                     let max_allowed = MaxAllowedUids::<T>::get(netuid);
                     let currently_registered = Pallet::<T>::get_subnet_n(netuid);
                     let overflown = currently_registered.saturating_sub(max_allowed);
-                    for _ in 0..overflown {
-                        Pallet::<T>::remove_module(
-                            netuid,
-                            Pallet::<T>::get_lowest_uid(netuid, true),
+
+                    if overflown > 0 {
+                        log::warn!(
+                            "netuid {netuid} has {overflown} overflown modules, deregistering"
                         );
+                    }
+
+                    for _ in 0..overflown {
+                        let module_uid = Pallet::<T>::get_lowest_uid(netuid, true);
+                        Pallet::<T>::remove_module(netuid, module_uid);
+                        log::debug!("deregistered module {module_uid}");
                     }
                 }
                 log::info!("Emission and consensus updated");

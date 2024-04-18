@@ -17,3 +17,9 @@ chmod_scripts:
 
 compose:
 	docker-compose up -d ${service}
+
+RUST_LOG ?= info,pallet_subspace::migrations=debug
+
+try-runtime-upgrade:
+	cargo build --release --features try-runtime
+	RUST_LOG="${RUST_LOG}"; try-runtime --runtime target/release/wbuild/node-subspace-runtime/node_subspace_runtime.compact.compressed.wasm on-runtime-upgrade live --uri wss://commune-api-node-0.communeai.net:443
