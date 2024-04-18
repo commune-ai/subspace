@@ -151,7 +151,7 @@ impl<T: Config> Pallet<T> {
         let replace_key: T::AccountId = Keys::<T>::get(netuid, replace_uid);
 
         log::debug!(
-            "remote_subnet( netuid: {:?} | uid : {:?} | new_key: {:?} ) ",
+            "remove_module( netuid: {:?} | uid : {:?} | new_key: {:?} ) ",
             netuid,
             uid,
             uid_key
