@@ -194,25 +194,27 @@ pub mod v3 {
                     // update the emission that are below the threshold
                     let emission_for_netuid =
                         Pallet::<T>::calculate_network_emission(netuid, subnet_stake_threshold);
-
-                    // empty out the module emissin on that subnet, as their epoch won't run, we
-                    // don't want to confuse the user querying for the storage
-                    if emission_for_netuid == 0 {
-                        let new_emission = vec![0; module_count];
-                        Emission::<T>::insert(netuid, new_emission);
-                    }
-
                     SubnetEmission::<T>::insert(netuid, emission_for_netuid);
 
-                    let empty_vec = vec![0; module_count];
+                    let zeroed = vec![0; module_count];
+
+                    if netuid != 0 {
+                        // empty out the module emissin on that subnet, as their epoch won't run, we
+                        // don't want to confuse the user querying for the storage
+                        if emission_for_netuid == 0 {
+                            Emission::<T>::insert(netuid, vec![0; module_count]);
+                            Incentive::<T>::insert(netuid, &zeroed);
+                            Dividends::<T>::insert(netuid, &zeroed);
+                        }
+                    }
 
                     Active::<T>::insert(netuid, vec![true; module_count]);
-                    Consensus::<T>::insert(netuid, &empty_vec);
-                    PruningScores::<T>::insert(netuid, &empty_vec);
-                    Rank::<T>::insert(netuid, &empty_vec);
-                    Trust::<T>::insert(netuid, &empty_vec);
+                    Consensus::<T>::insert(netuid, &zeroed);
+                    PruningScores::<T>::insert(netuid, &zeroed);
+                    Rank::<T>::insert(netuid, &zeroed);
+                    Trust::<T>::insert(netuid, &zeroed);
                     ValidatorPermits::<T>::insert(netuid, vec![false; module_count]);
-                    ValidatorTrust::<T>::insert(netuid, &empty_vec);
+                    ValidatorTrust::<T>::insert(netuid, &zeroed);
 
                     // If the subnet has more modules than allowed, remove the lowest ones.
                     let max_allowed = MaxAllowedUids::<T>::get(netuid);
