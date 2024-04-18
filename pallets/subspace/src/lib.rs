@@ -926,6 +926,7 @@ pub mod pallet {
                     ..DefaultSubnetParams::<T>::get()
                 };
 
+                let fee = DelegationFee::<T>::get(netuid, &params.founder);
                 let changeset: SubnetChangeset<T> =
                     SubnetChangeset::new(&params.name, &params.founder, params.clone());
                 let _ = self::Pallet::<T>::add_subnet(changeset, Some(netuid))
@@ -933,7 +934,7 @@ pub mod pallet {
                 for (uid_usize, (key, name, address, weights)) in
                     self.modules[subnet_idx].iter().enumerate()
                 {
-                    let changeset = ModuleChangeset::new(name.clone(), address.clone(), None);
+                    let changeset = ModuleChangeset::new(name.clone(), address.clone(), fee, None);
                     self::Pallet::<T>::append_module(netuid, key, changeset)
                         .expect("genesis modules are valid");
                     Weights::<T>::insert(netuid, uid_usize as u16, weights);
