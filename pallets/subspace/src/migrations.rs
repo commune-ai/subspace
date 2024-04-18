@@ -253,13 +253,23 @@ pub mod v3 {
                 // With the current subnet emission threshold (5%), only 20 subnets
                 // can actually activelly produce emission, the old value 256
                 // is in current model a security vounrability for cheap subnet DDOS.
-                let target_subnets = 54;
+                let target_subnets = 42;
                 // Make sure there is no subnet over target, if so deregister it.
                 // Iterate over all netuids and deregister subnets above the target
                 for (netuid, _) in N::<T>::iter() {
                     if netuid > target_subnets {
-                        log::warn!("Deregistering subnet with netuid: {netuid}");
-                        Pallet::<T>::remove_subnet(netuid);
+                        let subnet_module_count: u16 =
+                            (Pallet::<T>::get_subnet_n(netuid)).saturating_sub(1);
+                        log::warn!("Deregistering subnet with netuid: {}", netuid);
+                        log::info!("Subnet module count: {subnet_module_count}");
+                        // deregister all modules on the subnet, which will also
+                        // remove the subnet itself
+                        for module_uid in
+                            0..=subnet_module_count.min(Pallet::<T>::get_subnet_n(netuid) - 1)
+                        {
+                            log::warn!("Deregistering module with uid: {module_uid}");
+                            Pallet::<T>::remove_module(netuid, module_uid);
+                        }
                     }
                 }
 
