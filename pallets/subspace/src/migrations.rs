@@ -221,24 +221,52 @@ pub mod v3 {
                 }
                 log::info!("Emission and consensus updated");
 
+                // -- GENERAL SUBNET PARAMS --
+
                 // Due to the incoming incentives refactoring, `max_stake` value
                 // is no longer needed to be limited on the general subnet 0
                 let general_netuid = 0;
                 MaxStake::<T>::insert(general_netuid, u64::MAX);
                 log::info!("Min stake migrated");
 
+                // Due to the incoming subnet 0 whitelist, `min_allowed_weights`,
+                // can no longer be set to such high limit,
+                // as whitelist would not cover for it.
+                MinAllowedWeights::<T>::insert(general_netuid, 5); // Old 190 >
+                log::info!("Min allowed weights migrated");
+
                 log::info!("Setting subnet 0 to vote mode");
                 VoteModeSubnet::<T>::set(0, VoteMode::Vote);
 
+                // GLOBAL PARAMS
+
+                // We are changing 3 values, that are crucial for incentives v1 update
+                // to be successfully implemented.
                 // (Anyone can pass a proposal that automatically changes this account)
                 // The bot approach has been approved in the proposal ID 2
                 let dao_bot = "5GnXkyoCGVHD7PL3ZRGM2oELpUhDG6HFqAHZT3hHTmFD8CZF";
                 let dao_bot_account_id = ss58_to_account_id::<T>(dao_bot).unwrap();
 
-                Nominator::<T>::put(dao_bot_account_id);
+                Nominator::<T>::put(dao_bot_account_id); // Old empty
                 log::info!("Nominator migrated");
 
-                // Proposals
+                // With the current subnet emission threshold (5%), only 20 subnets
+                // can actually activelly produce emission, the old value 256
+                // is in current model a security vounrability for cheap subnet DDOS.
+                let target_subnets = 54;
+                // Make sure there is no subnet over target, if so deregister it.
+                // Iterate over all netuids and deregister subnets above the target
+                for (netuid, _) in N::<T>::iter() {
+                    if netuid > target_subnets {
+                        log::warn!("Deregistering subnet with netuid: {netuid}");
+                        Pallet::<T>::remove_subnet(netuid);
+                    }
+                }
+
+                // Finally update
+                MaxAllowedSubnets::<T>::put(target_subnets); // Old 256
+                log::info!("Max allowed subnets migrated");
+
                 // Migrate the proposal expiration to 12 days,
                 // as current timeframe is not sustainable.
                 ProposalExpiration::<T>::put(130000); // Old 32_000 blocks
