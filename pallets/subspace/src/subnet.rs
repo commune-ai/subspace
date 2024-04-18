@@ -508,6 +508,7 @@ impl<T: Config> Pallet<T> {
         Self::remove_netuid_stake_strorage(netuid);
 
         SubnetNames::<T>::remove(netuid);
+        MaxWeightAge::<T>::remove(netuid);
         Name::<T>::clear_prefix(netuid, u32::max_value(), None);
         Address::<T>::clear_prefix(netuid, u32::max_value(), None);
         Metadata::<T>::clear_prefix(netuid, u32::max_value(), None);
