@@ -176,6 +176,7 @@ impl<T: Config> Pallet<T> {
         let mut validator_permit = ValidatorPermits::<T>::get(netuid);
         let mut validator_trust = ValidatorTrust::<T>::get(netuid);
 
+        log::info!("active len: {:?}", active.len());
         // swap consensus vectors
         active[uid as usize] = active[replace_uid as usize];
         consensus[uid as usize] = consensus[replace_uid as usize];
