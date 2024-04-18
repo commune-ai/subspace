@@ -144,6 +144,8 @@ pub mod v3 {
     use sp_core::crypto::Ss58Codec;
     use sp_runtime::AccountId32;
 
+    const SUBNET_CEILING: u16 = 42;
+
     fn ss58_to_account_id<T: Config>(
         ss58_address: &str,
     ) -> Result<T::AccountId, sp_core::crypto::PublicError> {
@@ -176,6 +178,16 @@ pub mod v3 {
                 // udpate
                 for netuid in N::<T>::iter_keys() {
                     let module_count = Pallet::<T>::get_subnet_n(netuid) as usize;
+
+                    // With the current subnet emission threshold (5%), only 20 subnets
+                    // can actually activelly produce emission, the old value 256
+                    // is in current model a security vounrability for cheap subnet DDOS.
+                    // Make sure there is no subnet over target, if so deregister it.
+                    if netuid > SUBNET_CEILING {
+                        log::warn!("subnet {netuid} is over the limit ({SUBNET_CEILING}), deregistering {module_count} modules");
+                        Pallet::<T>::remove_subnet(netuid);
+                        continue;
+                    }
 
                     Burn::<T>::insert(netuid, old_burn_min_burn);
 
@@ -250,31 +262,8 @@ pub mod v3 {
                 Nominator::<T>::put(dao_bot_account_id); // Old empty
                 log::info!("Nominator migrated");
 
-                // With the current subnet emission threshold (5%), only 20 subnets
-                // can actually activelly produce emission, the old value 256
-                // is in current model a security vounrability for cheap subnet DDOS.
-                let target_subnets = 42;
-                // Make sure there is no subnet over target, if so deregister it.
-                // Iterate over all netuids and deregister subnets above the target
-                for (netuid, _) in N::<T>::iter() {
-                    if netuid > target_subnets {
-                        let subnet_module_count: u16 =
-                            (Pallet::<T>::get_subnet_n(netuid)).saturating_sub(1);
-                        log::warn!("Deregistering subnet with netuid: {}", netuid);
-                        log::info!("Subnet module count: {subnet_module_count}");
-                        // deregister all modules on the subnet, which will also
-                        // remove the subnet itself
-                        for module_uid in
-                            0..=subnet_module_count.min(Pallet::<T>::get_subnet_n(netuid) - 1)
-                        {
-                            log::warn!("Deregistering module with uid: {module_uid}");
-                            Pallet::<T>::remove_module(netuid, module_uid);
-                        }
-                    }
-                }
-
                 // Finally update
-                MaxAllowedSubnets::<T>::put(target_subnets); // Old 256
+                MaxAllowedSubnets::<T>::put(SUBNET_CEILING); // Old 256
                 log::info!("Max allowed subnets migrated");
 
                 // Migrate the proposal expiration to 12 days,
@@ -286,10 +275,9 @@ pub mod v3 {
                 // This logic is now automatically running onchain,
                 // but to avoid confustion on expired proposal 0, we migrate.
                 for mut proposal in Proposals::<T>::iter_values() {
-                    if !matches!(proposal.status, ProposalStatus::Expired) {
+                    if matches!(proposal.status, ProposalStatus::Expired) {
                         proposal.votes_for = Default::default();
                         proposal.votes_against = Default::default();
-
                         Proposals::<T>::insert(proposal.id, proposal);
                     }
                 }
