@@ -450,6 +450,7 @@ impl<T: Config> Pallet<T> {
         changeset.apply(netuid)?;
         TotalSubnets::<T>::mutate(|n| *n += 1);
         N::<T>::insert(netuid, 0);
+        SubnetEmission::<T>::insert(netuid, 0);
 
         // Insert the minimum burn to the netuid,
         // to prevent free registrations the first target registration interval.
