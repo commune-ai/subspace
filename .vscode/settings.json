@@ -12,5 +12,6 @@
   },
   "rust-analyzer.linkedProjects": ["./pallets/subspace/Cargo.toml"],
   "search.useParentIgnoreFiles": false,
+  "workbench.iconTheme": "developer-icon-theme",
   //"workbench.iconTheme": "developer-icon-theme"
 }
