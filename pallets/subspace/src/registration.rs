@@ -147,8 +147,9 @@ impl<T: Config> Pallet<T> {
         // If we do deregister slot.
         Self::reserve_module_slot(netuid);
 
+        let fee = DelegationFee::<T>::get(netuid, &module_key);
         // --- 8. Register the module and changeset.
-        let module_changeset = ModuleChangeset::new(name, address, metadata);
+        let module_changeset = ModuleChangeset::new(name, address, fee, metadata);
 
         let uid: u16 = Self::append_module(netuid, &module_key, module_changeset)?;
 

@@ -29,11 +29,16 @@ pub struct ModuleChangeset {
 
 impl ModuleChangeset {
     #[must_use]
-    pub fn new(name: Vec<u8>, address: Vec<u8>, metadata: Option<Vec<u8>>) -> Self {
+    pub fn new(
+        name: Vec<u8>,
+        address: Vec<u8>,
+        delegation_fee: Percent,
+        metadata: Option<Vec<u8>>,
+    ) -> Self {
         Self {
             name: Some(name),
             address: Some(address),
-            delegation_fee: None,
+            delegation_fee: Some(delegation_fee),
             metadata,
         }
     }
