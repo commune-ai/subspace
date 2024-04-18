@@ -285,6 +285,10 @@ pub mod v3 {
                 }
                 log::info!("Expired proposals migrated");
 
+                MaxWeightAge::<T>::iter_keys()
+                    .filter(|n| !N::<T>::contains_key(n))
+                    .for_each(MaxWeightAge::<T>::remove);
+
                 // update the storage version
                 StorageVersion::new(3).put::<Pallet<T>>();
                 log::info!("Migrated subnets to v3");
