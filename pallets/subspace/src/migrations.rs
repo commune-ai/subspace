@@ -161,7 +161,7 @@ pub mod v3 {
             let on_chain_version = StorageVersion::get::<Pallet<T>>();
 
             // Migrate Burn to v3
-            if on_chain_version == 2 {
+            if on_chain_version == 3 {
                 // Query for the threshold of stake that subnet needs to have
                 let subnet_stake_threshold = SubnetStakeThreshold::<T>::get();
 
@@ -185,7 +185,7 @@ pub mod v3 {
                     // can actually activelly produce emission, the old value 256
                     // is in current model a security vounrability for cheap subnet DDOS.
                     // Make sure there is no subnet over target, if so deregister it.
-                    if netuid > SUBNET_CEILING {
+                    if netuid >= SUBNET_CEILING {
                         log::warn!("subnet {netuid} is over the limit ({SUBNET_CEILING}), deregistering {module_count} modules");
                         Pallet::<T>::remove_subnet(netuid);
                         continue;

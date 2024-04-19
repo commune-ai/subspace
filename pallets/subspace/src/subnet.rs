@@ -350,6 +350,7 @@ impl<T: Config> Pallet<T> {
     }
 
     // Returns the total amount of stake in the staking table.
+    // TODO: refactor the halving logic, it's not correct.
     pub fn get_total_emission_per_block() -> u64 {
         let total_stake: u64 = Self::total_stake();
         let unit_emission: u64 = Self::get_unit_emission();
@@ -376,6 +377,26 @@ impl<T: Config> Pallet<T> {
         return keys.iter().map(|x| Self::get_balance_u64(x)).sum();
     }
 
+    /// Empties out all:
+    /// emission, dividends, incentives, trust on the specific netuid.
+    fn deactivate_subnet(netuid: u16) {
+        let module_count = Self::get_subnet_n(netuid) as usize;
+        let zeroed = vec![0; module_count];
+
+        SubnetEmission::<T>::insert(netuid, 0);
+
+        Active::<T>::insert(netuid, vec![true; module_count]);
+        Consensus::<T>::insert(netuid, &zeroed);
+        Dividends::<T>::insert(netuid, &zeroed);
+        Emission::<T>::insert(netuid, vec![0; module_count]);
+        Incentive::<T>::insert(netuid, &zeroed);
+        PruningScores::<T>::insert(netuid, &zeroed);
+        Rank::<T>::insert(netuid, &zeroed);
+        Trust::<T>::insert(netuid, &zeroed);
+        ValidatorPermits::<T>::insert(netuid, vec![false; module_count]);
+        ValidatorTrust::<T>::insert(netuid, &zeroed);
+    }
+
     pub fn calculate_network_emission(netuid: u16, subnet_stake_threshold: Percent) -> u64 {
         let subnet_stake: I64F64 = I64F64::from_num(Self::get_total_subnet_stake(netuid));
         let total_stake: I64F64 = Self::adjust_total_stake(subnet_stake_threshold);
@@ -395,6 +416,7 @@ impl<T: Config> Pallet<T> {
         if subnet_ratio < subnet_stake_threshold_i64f64 && netuid != 0 {
             // Return early if the threshold is not met,
             // this prevents emission gapping, of subnets that don't meet emission threshold
+            Self::deactivate_subnet(netuid);
             return 0;
         }
 

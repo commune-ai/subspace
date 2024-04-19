@@ -3,6 +3,7 @@ mod mock;
 use frame_support::assert_ok;
 use log::info;
 use mock::*;
+use pallet_subspace::{Dividends, N};
 use sp_core::U256;
 use sp_runtime::Percent;
 use sp_std::vec;
@@ -737,5 +738,105 @@ fn test_subnet_replacing() {
         let netuids = SubspaceModule::netuids();
         let max_netuid = netuids.iter().max().unwrap();
         assert_eq!(*max_netuid, 2);
+    });
+}
+
+#[test]
+fn test_active_stake() {
+    new_test_ext().execute_with(|| {
+        SubspaceModule::set_subnet_stake_threshold(Percent::from_percent(5));
+        let max_subnets = 10;
+        SubspaceModule::set_global_max_allowed_subnets(max_subnets);
+
+        let general_subnet_stake = to_nano(65_000_000);
+        let general_subnet_key = U256::from(0);
+        assert_ok!(register_module(0, general_subnet_key, general_subnet_stake));
+        step_block(1);
+        // register 9 subnets reaching the subnet limit,
+        // make sure they can't get emission
+        let n: u16 = 9;
+        let stake_per_subnet: u64 = to_nano(8_001);
+        for i in 1..n + 1 {
+            assert_ok!(register_module(
+                i,
+                U256::from(i),
+                stake_per_subnet - (i as u64 * 1000)
+            ));
+            step_block(1)
+        }
+
+        for i in 0..max_subnets {
+            assert_eq!(N::<Test>::get(i), 1);
+        }
+
+        step_block(200);
+
+        // deregister subnet netuid 9, and get enough emission to produce yuma
+        let new_subnet_stake = to_nano(9_900_000);
+        assert_ok!(register_module(10, U256::from(10), new_subnet_stake));
+        step_block(7);
+
+        for i in 0..max_subnets {
+            assert_eq!(N::<Test>::get(i), 1);
+        }
+        assert_eq!(SubspaceModule::is_registered(9, &U256::from(10)), true);
+
+        // Make sure the subnet has some meaningful temp & max weight age
+        SubspaceModule::set_tempo(10, 50);
+        SubspaceModule::set_max_weight_age(10, 15_000);
+
+        // register another module on the newly re-registered subnet 9,
+        // and set weights on it from the key 11
+        let miner_key = U256::from(11);
+        let miner_stake = to_nano(100_000);
+        assert_ok!(register_module(10, miner_key, miner_stake));
+        step_block(1);
+
+        assert_eq!(N::<Test>::get(9), 2);
+
+        // set weights from key 11 to miner
+        let uids = [1].to_vec();
+        let weights = [1].to_vec();
+
+        let _ = set_weights(9, U256::from(10), uids, weights);
+
+        step_block(100);
+
+        // register another massive module on the subnet
+        let new_module_stake = to_nano(9_000_000);
+        assert_ok!(register_module(10, U256::from(12), new_module_stake));
+
+        step_block(1);
+        assert_eq!(SubspaceModule::is_registered(9, &U256::from(12)), true);
+        // check if the module is registered
+        assert_eq!(N::<Test>::get(9), 3);
+
+        // set weights from key 12 to both modules
+        let uids = [0, 1].to_vec();
+        let weights = [1, 1].to_vec();
+
+        let _ = set_weights(9, U256::from(12), uids, weights);
+
+        let n = 10;
+        let stake_per_n = to_nano(20_000_000);
+        let start_key = 13;
+        // register the n modules
+        for i in 0..n {
+            assert_ok!(register_module(10, U256::from(i + start_key), stake_per_n));
+        }
+
+        assert_eq!(N::<Test>::get(9), 3 + n);
+        step_block(100);
+
+        dbg!(Dividends::<Test>::get(9));
+        let uid_zero_dividends = SubspaceModule::get_dividends_for_uid(9, 0);
+        let uid_two_dividends = SubspaceModule::get_dividends_for_uid(9, 2);
+
+        assert!(uid_zero_dividends > uid_two_dividends);
+
+        let total_dividends_sum = Dividends::<Test>::get(9).iter().sum::<u16>();
+        let active_dividends = uid_zero_dividends + uid_two_dividends;
+
+        assert_eq!(total_dividends_sum, active_dividends);
     });
 }
