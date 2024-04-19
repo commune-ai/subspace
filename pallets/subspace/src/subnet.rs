@@ -36,8 +36,8 @@ impl<T: Config> SubnetChangeset<T> {
     ) -> Self {
         let old_params = Pallet::<T>::subnet_params(netuid);
         Self {
-            name: (name != old_params.name).then_some(name.to_vec()),
-            founder_key: (*founder_key != old_params.founder).then_some(founder_key.clone()),
+            name: (name != old_params.name).then(|| name.to_vec()),
+            founder_key: (*founder_key != old_params.founder).then(|| founder_key.clone()),
             params: (!params.eq(&old_params)).then_some(params),
         }
     }
@@ -441,8 +441,10 @@ impl<T: Config> Pallet<T> {
         changeset: SubnetChangeset<T>,
         netuid: Option<u16>,
     ) -> Result<u16, DispatchError> {
-        // --- 1. Ensure that the network name does not already exist.
-        let netuid = netuid.unwrap_or_else(TotalSubnets::<T>::get);
+        let netuid = netuid.unwrap_or_else(|| match RemovedSubnets::<T>::get().first().copied() {
+            Some(removed) => removed,
+            None => TotalSubnets::<T>::get(),
+        });
 
         // Extract the necessary fields from changeset
         let name = changeset.name.clone().ok_or(Error::<T>::MissingSubnetName)?;
@@ -456,6 +458,8 @@ impl<T: Config> Pallet<T> {
         // to prevent free registrations the first target registration interval.
         let min_burn = Self::get_min_burn();
         Burn::<T>::insert(netuid, min_burn);
+
+        RemovedSubnets::<T>::mutate(|subnets| subnets.remove(&netuid));
 
         // --- 6. Emit the new network event.
         Self::deposit_event(Event::NetworkAdded(netuid, name));
@@ -486,11 +490,10 @@ impl<T: Config> Pallet<T> {
 
     pub fn remove_netuid_stake_strorage(netuid: u16) {
         // --- 1. Erase network stake, and remove network from list of networks.
-        for (key, _stated_amount) in
-            <Stake<T> as IterableStorageDoubleMap<u16, T::AccountId, u64>>::iter_prefix(netuid)
-        {
+        for key in Stake::<T>::iter_key_prefix(netuid) {
             Self::remove_stake_from_storage(netuid, &key);
         }
+
         // --- 4. Remove all stake.
         Stake::<T>::remove_prefix(netuid, None);
         TotalStake::<T>::remove(netuid);
@@ -552,7 +555,8 @@ impl<T: Config> Pallet<T> {
         // Adjust the total number of subnets. and remove the subnet from the list of subnets.
         N::<T>::remove(netuid);
         TotalSubnets::<T>::mutate(|val| *val -= 1);
-        RemovedSubnets::<T>::insert(netuid, 0);
+        RemovedSubnets::<T>::mutate(|subnets| subnets.insert(netuid));
+
         // --- 4. Emit the event.
         Self::deposit_event(Event::NetworkRemoved(netuid));
 

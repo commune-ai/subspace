@@ -173,6 +173,8 @@ pub mod v3 {
                 MaxRegistrationsPerBlock::<T>::put(5); // Old is 10
                 TargetRegistrationsPerInterval::<T>::put(20); // Old is 25
 
+                let mut netuids = BTreeSet::new();
+
                 // Iterate through all netuids and insert the old burn (minimum) value for each
                 // this is important as we don't want free registrations right after the runtime
                 // udpate
@@ -232,8 +234,21 @@ pub mod v3 {
                         Pallet::<T>::remove_module(netuid, module_uid);
                         log::debug!("deregistered module {module_uid}");
                     }
+
+                    netuids.insert(netuid);
                 }
                 log::info!("Emission and consensus updated");
+
+                let mut gaps = BTreeSet::new();
+                for netuid in 0..netuids.last().copied().unwrap_or_default() {
+                    if !netuids.contains(&netuid) {
+                        gaps.insert(netuid);
+                    }
+                }
+
+                log::info!("Existing subnets:        {netuids:?}");
+                log::info!("Updated removed subnets: {gaps:?}");
+                RemovedSubnets::<T>::set(gaps);
 
                 // -- GENERAL SUBNET PARAMS --
 

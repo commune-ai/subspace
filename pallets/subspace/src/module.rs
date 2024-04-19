@@ -251,21 +251,24 @@ impl<T: Config> Pallet<T> {
         // HANDLE THE DELEGATION FEE
         DelegationFee::<T>::insert(
             netuid,
-            &replace_key,
-            DelegationFee::<T>::get(netuid, &uid_key),
+            &uid_key,
+            DelegationFee::<T>::get(netuid, &replace_key),
         ); // Make uid - key association.
-        DelegationFee::<T>::remove(netuid, &uid_key); // Make uid - key association.
-
-        // 3. Remove the network if it is empty.
-        N::<T>::mutate(netuid, |v| *v -= 1); // Decrease the number of modules in the network.
-
-        // remove the network if it is empty
-        if N::<T>::get(netuid) == 0 {
-            Self::remove_subnet(netuid);
-        }
+        DelegationFee::<T>::remove(netuid, &replace_key); // Make uid - key association.
 
         // remove stake from old key and add to new key
         Self::remove_stake_from_storage(netuid, &uid_key);
+
+        // 3. Remove the network if it is empty.
+        let module_count = N::<T>::mutate(netuid, |v| {
+            *v -= 1;
+            *v
+        }); // Decrease the number of modules in the network.
+
+        // remove the network if it is empty
+        if module_count == 0 {
+            Self::remove_subnet(netuid);
+        }
     }
 
     // Appends the uid to the network (without increasing stake).
