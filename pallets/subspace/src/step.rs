@@ -61,7 +61,11 @@ impl<T: Config> Pallet<T> {
             if netuid == 0 {
                 Self::linear_epoch(netuid, emission_to_drain)
             } else if has_enough_stake_for_yuma() {
-                yuma::YumaCalc::<T>::new(netuid, emission_to_drain).run();
+                if let Err(err) = yuma::YumaCalc::<T>::new(netuid, emission_to_drain).run() {
+                    log::error!(
+                        "failed to run yuma consensus algorithm, {err}, skipping this block"
+                    );
+                }
             }
 
             PendingEmission::<T>::insert(netuid, 0);

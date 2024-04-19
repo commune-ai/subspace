@@ -69,7 +69,7 @@ fn test_1_graph() {
         let emissions = YumaCalc::<Test>::new(netuid, ONE).run();
 
         assert_eq!(
-            emissions,
+            emissions.unwrap(),
             [(ModuleKey(key), [(AccountKey(key), ONE)].into())].into()
         );
 
@@ -163,7 +163,7 @@ fn test_10_graph() {
                 .insert(AccountKey(i.into()), 99999999);
         }
 
-        assert_eq!(emissions, expected);
+        assert_eq!(emissions.unwrap(), expected);
     });
 }
 

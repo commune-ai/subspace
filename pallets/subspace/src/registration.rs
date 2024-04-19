@@ -93,17 +93,18 @@ impl<T: Config> Pallet<T> {
         );
 
         // --- 4. Resolve the network in case it doesn't exist
-        let netuid = if let Some(netuid) = Self::get_netuid_for_name(&network_name) {
-            netuid
-        } else {
-            let params = SubnetParams {
-                name: network_name.clone(),
-                founder: key.clone(),
-                ..DefaultSubnetParams::<T>::get()
-            };
-            let subnet_changeset = SubnetChangeset::new(&network_name, &key, params);
+        let netuid = match Self::get_netuid_for_name(&network_name) {
+            Some(netuid) => netuid,
             // Create subnet if it does not exist.
-            Self::add_subnet_from_registration(stake, subnet_changeset)?
+            None => {
+                let params = SubnetParams {
+                    name: network_name.clone(),
+                    founder: key.clone(),
+                    ..DefaultSubnetParams::<T>::get()
+                };
+                let subnet_changeset = SubnetChangeset::new(&network_name, &key, params);
+                Self::add_subnet_from_registration(stake, subnet_changeset)?
+            }
         };
 
         // TODO: later, once legit whitelist has been filled up, turn on the code below.
@@ -115,17 +116,6 @@ impl<T: Config> Pallet<T> {
         //     netuid != 0 || Self::is_in_legit_whitelist(&module_key),
         //     Error::<T>::NotWhitelisted
         // );
-
-        //  4.2 If a subnet was removed, we need to swap the netuid with the removed one
-        let netuid = match RemovedSubnets::<T>::try_get(netuid) {
-            Ok(0) => {
-                let new_netuid = RemovedSubnets::<T>::iter().map(|(k, _)| k).min().unwrap();
-                RemovedSubnets::<T>::insert(new_netuid, netuid);
-                new_netuid
-            }
-            Ok(target) => target,
-            Err(_) => netuid,
-        };
 
         // --- 5. Ensure the caller has enough stake to register.
         let min_stake: u64 = MinStake::<T>::get(netuid);
@@ -262,16 +252,16 @@ impl<T: Config> Pallet<T> {
         let num_subnets: u16 = Self::num_subnets();
         let max_subnets: u16 = Self::get_global_max_allowed_subnets();
 
-        let mut target_subnet = RemovedSubnets::<T>::iter().map(|(k, _)| k).min();
-
         // if we have not reached the max number of subnets, then we can start a new one
-        if num_subnets >= max_subnets {
+        let target_subnet = if num_subnets >= max_subnets {
             let (min_stake_netuid, min_stake) = Self::least_staked_netuid();
             // if the stake is greater than the least staked network, then we can start a new one
             ensure!(stake > min_stake, Error::<T>::NotEnoughStakeToStartNetwork);
             Self::remove_subnet(min_stake_netuid);
-            target_subnet = Some(min_stake_netuid);
-        }
+            Some(min_stake_netuid)
+        } else {
+            None
+        };
 
         Self::add_subnet(changeset, target_subnet)
     }

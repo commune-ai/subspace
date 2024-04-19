@@ -1,11 +1,16 @@
 mod mock;
 
+use std::collections::BTreeSet;
+
 use frame_support::{assert_err, assert_noop, assert_ok};
 use mock::*;
 use sp_core::U256;
 
 use log::info;
-use pallet_subspace::{Emission, Error, MaxAllowedModules, MaxAllowedUids, Stake};
+use pallet_subspace::{
+    Emission, Error, MaxAllowedModules, MaxAllowedUids, RemovedSubnets, Stake, SubnetNames,
+    TotalSubnets, N,
+};
 use sp_runtime::{DispatchResult, Percent};
 
 /********************************************
@@ -624,5 +629,74 @@ fn test_invalid_nominator() {
             Error::<Test>::NotNominator
         );
         assert!(!SubspaceModule::is_in_legit_whitelist(&module_key));
+    });
+}
+
+#[test]
+fn new_subnet_reutilized_removed_netuid_if_total_is_bigger_than_removed() {
+    new_test_ext().execute_with(|| {
+        SubspaceModule::set_min_burn(0);
+
+        TotalSubnets::<Test>::set(10);
+        RemovedSubnets::<Test>::set(BTreeSet::from([5]));
+        assert_ok!(register_module(0, 0.into(), to_nano(1)));
+
+        let subnets: Vec<_> = N::<Test>::iter().collect();
+        assert_eq!(subnets, vec![(5, 1)]);
+        assert_eq!(RemovedSubnets::<Test>::get(), BTreeSet::from([]));
+    });
+}
+
+#[test]
+fn new_subnet_does_not_reute_removed_netuid_if_total_is_smaller_than_removed() {
+    new_test_ext().execute_with(|| {
+        SubspaceModule::set_min_burn(0);
+
+        TotalSubnets::<Test>::set(3);
+        RemovedSubnets::<Test>::set(BTreeSet::from([7]));
+        assert_ok!(register_module(0, 0.into(), to_nano(1)));
+
+        let subnets: Vec<_> = N::<Test>::iter().collect();
+        assert_eq!(subnets, vec![(7, 1)]);
+        assert_eq!(RemovedSubnets::<Test>::get(), BTreeSet::from([]));
+    });
+}
+
+#[test]
+fn new_subnets_on_removed_uids_register_modules_to_the_correct_netuids() {
+    fn assert_subnets(v: &[(u16, &str)]) {
+        let v: Vec<_> = v.iter().map(|(u, n)| (*u, n.as_bytes().to_vec())).collect();
+        let names: Vec<_> = SubnetNames::<Test>::iter().collect();
+        assert_eq!(names, v);
+    }
+
+    new_test_ext().execute_with(|| {
+        SubspaceModule::set_min_burn(0);
+        SubspaceModule::set_global_max_allowed_subnets(3);
+
+        assert_ok!(register_module(0, 0.into(), to_nano(10)));
+        assert_ok!(register_module(1, 1.into(), to_nano(5)));
+        assert_ok!(register_module(2, 2.into(), to_nano(1)));
+        assert_subnets(&[(0, "test0"), (1, "test1"), (2, "test2")]);
+
+        assert_ok!(register_module(3, 3.into(), to_nano(15)));
+        assert_subnets(&[(0, "test0"), (1, "test1"), (2, "test3")]);
+
+        assert_ok!(register_module(4, 4.into(), to_nano(20)));
+        assert_subnets(&[(0, "test0"), (1, "test4"), (2, "test3")]);
+
+        add_balance(0.into(), to_nano(50));
+        add_stake(0, 0.into(), to_nano(10));
+
+        assert_ok!(register_module(5, 5.into(), to_nano(17)));
+        assert_subnets(&[(0, "test0"), (1, "test4"), (2, "test5")]);
+
+        assert_eq!(Stake::<Test>::iter_key_prefix(0).count(), 1);
+        assert_eq!(Stake::<Test>::iter_key_prefix(1).count(), 1);
+        assert_eq!(Stake::<Test>::iter_key_prefix(2).count(), 1);
+
+        assert_eq!(N::<Test>::get(0), 1);
+        assert_eq!(N::<Test>::get(1), 1);
+        assert_eq!(N::<Test>::get(2), 1);
     });
 }

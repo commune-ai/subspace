@@ -8,7 +8,7 @@ use crate::{
     Incentive, Kappa, Keys, MaxAllowedValidators, MaxWeightAge, Pallet, PruningScores, Rank, Stake,
     Trust, ValidatorPermits, ValidatorTrust, Weights,
 };
-use frame_support::dispatch::Vec;
+use frame_support::{dispatch::Vec, ensure};
 
 pub type EmissionMap<T> = BTreeMap<ModuleKey<T>, BTreeMap<AccountKey<T>, u64>>;
 
@@ -69,7 +69,9 @@ impl<T: Config> YumaCalc<T> {
 
     /// Runs the YUMA consensus calculation on the network and distributes the emissions. Returns a
     /// map of emissions distributed per module key.
-    pub fn run(self) -> EmissionMap<T> {
+    pub fn run(self) -> Result<EmissionMap<T>, &'static str> {
+        log::debug!("running yuma for netuid {}", self.netuid);
+
         let (inactive, active): (Vec<_>, Vec<_>) = self
             .last_update
             .iter()
@@ -82,7 +84,7 @@ impl<T: Config> YumaCalc<T> {
         log::trace!("Active: {active:?}");
 
         let mut weights = self.compute_weights();
-        let stake = self.compute_stake();
+        let stake = self.compute_stake()?;
 
         let new_permits: Vec<bool> = if let Some(max) = self.max_allowed_validators {
             is_topk(stake.as_ref(), max as usize)
@@ -139,6 +141,19 @@ impl<T: Config> YumaCalc<T> {
         ValidatorPermits::<T>::insert(self.netuid, &new_permits);
         ValidatorTrust::<T>::insert(self.netuid, validator_trust);
 
+        ensure!(
+            new_permits.len() == self.module_count as usize,
+            "unequal number of permits and modules"
+        );
+        ensure!(
+            ema_bonds.len() == self.module_count as usize,
+            "unequal number of bonds and modules"
+        );
+        ensure!(
+            self.validator_permits.len() == self.module_count as usize,
+            "unequal number of bonds and modules"
+        );
+
         for i in 0..self.module_count as usize {
             // Set bonds only if uid retains validator permit, otherwise clear bonds.
             if new_permits[i] {
@@ -164,7 +179,7 @@ impl<T: Config> YumaCalc<T> {
             ));
         }
 
-        self.distribute_emissions(result)
+        Ok(self.distribute_emissions(result))
     }
 
     fn distribute_emissions(&self, result: Vec<(ModuleKey<T>, u64, u64)>) -> EmissionMap<T> {
@@ -272,16 +287,21 @@ impl<T: Config> YumaCalc<T> {
         WeightsVal::unchecked_from_inner(weights)
     }
 
-    fn compute_stake(&self) -> StakeVal {
+    fn compute_stake(&self) -> Result<StakeVal, &'static str> {
         // Access network stake as normalized vector.
         let mut stake: Vec<_> =
             Stake::<T>::iter_prefix_values(self.netuid).map(I64F64::from_num).collect();
-        assert_eq!(stake.len(), self.module_count as usize);
+        ensure!(
+            stake.len() == self.module_count as usize,
+            "unequal number of stakes and modules"
+        );
 
         inplace_normalize_64(&mut stake);
 
         log::trace!("S: {:?}", &stake);
-        StakeVal::unchecked_from_inner(vec_fixed64_to_fixed32(stake)) // range: I32F32(0, 1)
+        Ok(StakeVal::unchecked_from_inner(vec_fixed64_to_fixed32(
+            stake,
+        ))) // range: I32F32(0, 1)
     }
 
     fn compute_active_stake(&self, inactive: &[bool], stake: &StakeVal) -> ActiveStake {

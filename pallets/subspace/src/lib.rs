@@ -631,7 +631,7 @@ pub mod pallet {
     >;
 
     #[pallet::storage] // --- MAP( netuid ) --> lowest_subnet
-    pub type RemovedSubnets<T> = StorageMap<_, Identity, u16, u16, ValueQuery>;
+    pub type RemovedSubnets<T> = StorageValue<_, BTreeSet<u16>, ValueQuery>;
 
     // TOTAL STAKE PER SUBNET
     #[pallet::storage] // --- MAP ( netuid ) --> subnet_total_stake
