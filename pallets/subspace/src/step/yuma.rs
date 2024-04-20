@@ -70,7 +70,7 @@ impl<T: Config> YumaCalc<T> {
     /// Runs the YUMA consensus calculation on the network and distributes the emissions. Returns a
     /// map of emissions distributed per module key.
     pub fn run(self) -> Result<EmissionMap<T>, &'static str> {
-        log::debug!("running yuma for netuid {}", self.netuid);
+        log::warn!("running yuma for netuid {}", self.netuid);
 
         let (inactive, active): (Vec<_>, Vec<_>) = self
             .last_update
@@ -184,7 +184,13 @@ impl<T: Config> YumaCalc<T> {
             ));
         }
 
-        Ok(self.distribute_emissions(result))
+        let distribute_emissions = self.distribute_emissions(result);
+        log::warn!(
+            "finished yuma for {} with distributed: {distribute_emissions:?}",
+            self.netuid
+        );
+
+        Ok(distribute_emissions)
     }
 
     fn distribute_emissions(&self, result: Vec<(ModuleKey<T>, u64, u64)>) -> EmissionMap<T> {
