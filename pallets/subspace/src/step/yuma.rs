@@ -80,19 +80,24 @@ impl<T: Config> YumaCalc<T> {
                 (is_inactive, !is_inactive)
             })
             .unzip();
-        log::trace!("Inactive: {inactive:?}");
-        log::trace!("Active: {active:?}");
+        log::warn!("Inactive: {inactive:?}");
+        log::warn!("Active: {active:?}");
 
         let mut weights = self.compute_weights();
+        log::warn!("final weights: {weights:?}");
+
         let stake = self.compute_stake()?;
+        log::warn!("final stake: {stake:?}");
 
         let new_permits: Vec<bool> = if let Some(max) = self.max_allowed_validators {
             is_topk(stake.as_ref(), max as usize)
         } else {
             vec![true; stake.as_ref().len()]
         };
+        log::warn!("new permis: {new_permits:?}");
 
         let active_stake = self.compute_active_stake(&inactive, &stake);
+        log::warn!("final active stake: {active_stake:?}");
 
         let ConsensusAndTrust {
             consensus,
@@ -261,17 +266,17 @@ impl<T: Config> YumaCalc<T> {
     fn compute_weights(&self) -> WeightsVal {
         // Access network weights row unnormalized.
         let mut weights = Pallet::<T>::get_weights_sparse(self.netuid);
-        log::trace!("W: {weights:?}");
+        log::warn!("  original weights: {weights:?}");
 
         if self.max_allowed_validators.is_some() {
             // Mask weights that are not from permitted validators.
             weights = mask_rows_sparse(&self.validator_forbids, &weights);
-            log::trace!("W (permit): {weights:?}");
+            log::warn!("  no forbidden validator weights: {weights:?}");
         }
 
         // Remove self-weight by masking diagonal.
         weights = mask_diag_sparse(&weights);
-        log::trace!("W (permit+diag): {weights:?}");
+        log::warn!("  no self-weight weights: {weights:?}");
 
         // Remove weights referring to deregistered modules.
         weights = vec_mask_sparse_matrix(
@@ -280,9 +285,11 @@ impl<T: Config> YumaCalc<T> {
             &self.block_at_registration,
             |updated, registered| updated <= registered,
         );
-        log::trace!("W (permit+diag+outdate): {weights:?}");
+        log::warn!("  no deregistered modules weights: {weights:?}");
+
         // Normalize remaining weights.
         inplace_row_normalize_sparse(&mut weights);
+        log::warn!("  normalized weights: {weights:?}");
 
         WeightsVal::unchecked_from_inner(weights)
     }
@@ -295,10 +302,11 @@ impl<T: Config> YumaCalc<T> {
             stake.len() == self.module_count as usize,
             "unequal number of stakes and modules"
         );
+        log::warn!("  original stake: {stake:?}");
 
         inplace_normalize_64(&mut stake);
+        log::warn!("  normalized stake: {stake:?}");
 
-        log::trace!("S: {:?}", &stake);
         Ok(StakeVal::unchecked_from_inner(vec_fixed64_to_fixed32(
             stake,
         ))) // range: I32F32(0, 1)
@@ -306,17 +314,21 @@ impl<T: Config> YumaCalc<T> {
 
     fn compute_active_stake(&self, inactive: &[bool], stake: &StakeVal) -> ActiveStake {
         let mut active_stake = stake.as_ref().clone();
+        log::warn!("  original active stake: {active_stake:?}");
 
         // Remove inactive stake.
         inplace_mask_vector(inactive, &mut active_stake);
+        log::warn!("  no inactive active stake: {active_stake:?}");
 
         if self.max_allowed_validators.is_some() {
             // Remove non-validator stake.
             inplace_mask_vector(&self.validator_forbids, &mut active_stake);
+            log::warn!("  no non-validator active stake: {active_stake:?}");
         }
 
         // Normalize active stake.
         inplace_normalize(&mut active_stake);
+        log::warn!("  normalized active stake: {active_stake:?}");
 
         ActiveStake::unchecked_from_inner(active_stake)
     }
@@ -326,10 +338,6 @@ impl<T: Config> YumaCalc<T> {
         weights: &mut WeightsVal,
         active_stake: &ActiveStake,
     ) -> ConsensusAndTrust {
-        // Compute preranks: r_j = SUM(i) w_ij * s_i
-        let preranks = matmul_sparse(weights.as_ref(), active_stake.as_ref(), self.module_count);
-        log::trace!("R (before): {:?}", &preranks);
-
         // Clip weights at majority consensus
         let consensus = weighted_median_col_sparse(
             active_stake.as_ref(),
@@ -337,12 +345,17 @@ impl<T: Config> YumaCalc<T> {
             self.module_count,
             self.kappa,
         );
-        log::trace!("C: {:?}", &consensus);
+        log::warn!("final consensus: {consensus:?}");
+
         *weights = WeightsVal::unchecked_from_inner(col_clip_sparse(weights.as_ref(), &consensus));
-        log::trace!("W: {:?}", &weights);
+        log::warn!("final consensus weights: {weights:?}");
+
+        // Compute preranks: r_j = SUM(i) w_ij * s_i
+        let preranks = matmul_sparse(weights.as_ref(), active_stake.as_ref(), self.module_count);
+        log::warn!("final preranks: {preranks:?}");
 
         let validator_trust = row_sum_sparse(weights.as_ref());
-        log::trace!("Tv: {:?}", &validator_trust);
+        log::warn!("final validator trust: {validator_trust:?}");
 
         ConsensusAndTrust {
             consensus: ConsensusVal::unchecked_from_inner(consensus),
@@ -359,15 +372,17 @@ impl<T: Config> YumaCalc<T> {
     ) -> IncentivesAndTrust {
         // Compute ranks: r_j = SUM(i) w_ij * s_i.
         let ranks = matmul_sparse(weights.as_ref(), active_stake.as_ref(), self.module_count);
-        log::trace!("R (after): {:?}", &ranks);
+        log::warn!("final ranks: {ranks:?}");
 
         // Compute server trust: ratio of rank after vs. rank before.
         let trust = vecdiv(&ranks, preranks.as_ref()); // range: I32F32(0, 1)
-        log::trace!("T: {:?}", &trust);
+        log::warn!("final trust: {ranks:?}");
 
         let mut incentives = ranks.clone();
+        log::warn!("  original incentives: {incentives:?}");
+
         inplace_normalize(&mut incentives); // range: I32F32(0, 1)
-        log::trace!("I (=R): {:?}", &incentives);
+        log::warn!("  normalized incentives: {incentives:?}");
 
         IncentivesAndTrust {
             incentives: IncentivesVal::unchecked_from_inner(incentives),
@@ -384,7 +399,7 @@ impl<T: Config> YumaCalc<T> {
     ) -> BondsAndDividends {
         // Access network bonds.
         let mut bonds = Pallet::<T>::get_bonds_sparse(self.netuid);
-        log::trace!("B: {:?}", &bonds);
+        log::warn!("  original bonds: {bonds:?}");
 
         // Remove bonds referring to deregistered modules.
         bonds = vec_mask_sparse_matrix(
@@ -393,38 +408,43 @@ impl<T: Config> YumaCalc<T> {
             &self.block_at_registration,
             |updated, registered| updated <= registered,
         );
-        log::trace!("B (outdatedmask): {:?}", &bonds);
+        log::warn!("  no deregistered modules bonds: {bonds:?}");
 
         // Normalize remaining bonds: sum_i b_ij = 1.
         inplace_col_normalize_sparse(&mut bonds, self.module_count);
-        log::trace!("B (mask+norm): {:?}", &bonds);
+        log::warn!("  normalized bonds: {bonds:?}");
 
         // Compute bonds delta column normalized.
         let mut bonds_delta = row_hadamard_sparse(weights.as_ref(), active_stake.as_ref()); // ΔB = W◦S (outdated W masked)
-        log::trace!("ΔB: {:?}", &bonds_delta);
+        log::warn!("  original bonds delta: {bonds_delta:?}");
 
         // Normalize bonds delta.
         inplace_col_normalize_sparse(&mut bonds_delta, self.module_count); // sum_i b_ij = 1
-        log::trace!("ΔB (norm): {:?}", &bonds_delta);
+        log::warn!("  normalized bonds delta: {bonds_delta:?}");
 
         // Compute bonds moving average.
         let bonds_moving_average = I64F64::from_num(BondsMovingAverage::<T>::get(self.netuid))
             / I64F64::from_num(1_000_000);
+        log::warn!("  bonds moving average: {bonds_moving_average}");
         let alpha = I32F32::from_num(1) - I32F32::from_num(bonds_moving_average);
         let mut ema_bonds = mat_ema_sparse(&bonds_delta, &bonds, alpha);
+        log::warn!("  original ema bonds: {ema_bonds:?}");
 
         // Normalize EMA bonds.
         inplace_col_normalize_sparse(&mut ema_bonds, self.module_count); // sum_i b_ij = 1
-        log::trace!("emaB: {:?}", &ema_bonds);
+        log::warn!("  normalized ema bonds: {ema_bonds:?}");
 
         // Compute dividends: d_i = SUM(j) b_ij * inc_j.
         // range: I32F32(0, 1)
         let mut dividends = matmul_transpose_sparse(&ema_bonds, incentives.as_ref());
+        log::warn!("  original dividends: {dividends:?}");
+
         inplace_normalize(&mut dividends);
-        log::trace!("D: {:?}", &dividends);
+        log::warn!("  normalized dividends: {dividends:?}");
 
         // Column max-upscale EMA bonds for storage: max_i w_ij = 1.
         inplace_col_max_upscale_sparse(&mut ema_bonds, self.module_count);
+        log::warn!("  upscaled ema bonds: {ema_bonds:?}");
 
         BondsAndDividends {
             ema_bonds,
@@ -449,10 +469,13 @@ impl<T: Config> YumaCalc<T> {
             .zip(dividends.as_ref().iter())
             .map(|(ii, di)| ii + di)
             .collect();
+        log::warn!("  original combined emissions: {combined_emission:?}");
         let emission_sum: I32F32 = combined_emission.iter().sum();
+        log::warn!("  emission sum: {emission_sum:?}");
 
         let mut normalized_server_emission = incentives.as_ref().clone(); // Servers get incentive.
         inplace_normalize_using_sum(&mut normalized_server_emission, emission_sum);
+        log::warn!("  normalized server emissions: {normalized_server_emission:?}");
 
         let normalized_validator_emission: Cow<'a, [I32F32]>;
         let normalized_combined_emission: Cow<'a, [I32F32]>;
@@ -488,12 +511,14 @@ impl<T: Config> YumaCalc<T> {
             .map(|&se| I96F32::from_num(se) * to_be_emitted)
             .map(I96F32::to_num)
             .collect();
+        log::warn!("  server emissions: {server_emissions:?}");
 
         let validator_emissions: Vec<u64> = normalized_validator_emission
             .iter()
             .map(|&ve| I96F32::from_num(ve) * to_be_emitted)
             .map(I96F32::to_num)
             .collect();
+        log::warn!("  validator_emissions: {validator_emissions:?}");
 
         // Only used to track emission in storage.
         let combined_emissions: Vec<u64> = normalized_combined_emission
@@ -501,6 +526,7 @@ impl<T: Config> YumaCalc<T> {
             .map(|&ce| I96F32::from_num(ce) * to_be_emitted)
             .map(I96F32::to_num)
             .collect();
+        log::warn!("  combined_emissions: {combined_emissions:?}");
 
         log::trace!("nSE: {:?}", &normalized_server_emission);
         log::trace!("SE: {:?}", &server_emissions);
