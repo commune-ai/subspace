@@ -144,6 +144,7 @@ impl<T: Config> Pallet<T> {
         let uid: u16 = Self::append_module(netuid, &module_key, module_changeset)?;
 
         // --- 9. Add the stake to the module, now that it is registered on the network.
+        // allow to register with zero stake
         Self::do_add_stake(origin, netuid, module_key.clone(), stake)?;
 
         // constant -> current_burn logic

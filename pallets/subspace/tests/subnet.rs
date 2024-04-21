@@ -20,6 +20,7 @@ fn test_add_subnets() {
 
         // make sure that the results won´t get affected by burn
         SubspaceModule::set_min_burn(0);
+        SubspaceModule::set_max_registrations_per_block(1000);
 
         for i in 0..num_subnets {
             assert_ok!(register_module(i, U256::from(i), stake_per_module));
@@ -266,7 +267,7 @@ fn test_set_max_allowed_modules() {
 
         // make sure that the results won´t get affected by burn
         SubspaceModule::set_min_burn(0);
-
+        SubspaceModule::set_max_registrations_per_block(1000);
         SubspaceModule::set_max_allowed_modules(max_allowed_modules);
         // set max_total modules
 
@@ -568,6 +569,7 @@ fn test_parasite_subnet_registrations() {
     new_test_ext().execute_with(|| {
         let expected_module_amount: u16 = 5;
         SubspaceModule::set_max_allowed_modules(expected_module_amount);
+        SubspaceModule::set_max_registrations_per_block(1000);
 
         let main_subnet_netuid: u16 = 0;
         let main_subnet_stake = to_nano(500_000);

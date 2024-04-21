@@ -192,10 +192,6 @@ pub fn register_module(netuid: u16, key: U256, stake: u64) -> DispatchResult {
     let address: Vec<u8> = "0.0.0.0:30333".as_bytes().to_vec();
 
     let origin = get_origin(key);
-    let is_new_subnet: bool = !SubspaceModule::if_subnet_exist(netuid);
-    if is_new_subnet {
-        SubspaceModule::set_max_registrations_per_block(1000)
-    }
 
     add_balance(key, stake + 1);
 
