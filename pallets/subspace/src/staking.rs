@@ -21,7 +21,7 @@ impl<T: Config> Pallet<T> {
         );
 
         // --- 2.1 make sure that the lengths are not zero
-        ensure!(amounts.len() > 0, Error::<T>::EmptyKeys);
+        ensure!(!amounts.is_empty(), Error::<T>::EmptyKeys);
 
         // -- 2.2 Make sure they are not above 100
         // the reason for this check at staking is that it has no fee,
@@ -95,7 +95,7 @@ impl<T: Config> Pallet<T> {
         );
 
         // --- 2.1 make sure that the lengths are not zero
-        ensure!(amounts.len() > 0, Error::<T>::EmptyKeys);
+        ensure!(!amounts.is_empty(), Error::<T>::EmptyKeys);
 
         // -- 2.2 Make sure they are not above 100
         ensure!(amounts.len() <= 100, Error::<T>::TooManyKeys);
