@@ -92,10 +92,6 @@ pub mod pallet {
 
     pub type AccountIdOf<T> = <T as frame_system::Config>::AccountId;
 
-    // =======================================
-    // ==== Defaults ====
-    // =======================================
-
     // ============================
     // ==== Global Variables ====
     // ============================
@@ -132,9 +128,6 @@ pub mod pallet {
     #[pallet::storage] // --- MaxBurn
     pub type MaxBurn<T> = StorageValue<_, u64, ValueQuery, DefaultMaxBurn<T>>;
 
-    #[pallet::storage] // --- MAP ( key ) --> last_block
-    pub(super) type LastTxBlock<T: Config> = StorageMap<_, Identity, T::AccountId, u64, ValueQuery>;
-
     #[pallet::type_value]
     pub fn DefaultSubnetStakeThreshold<T: Config>() -> Percent {
         Percent::from_percent(5)
@@ -153,7 +146,7 @@ pub mod pallet {
     pub type Kappa<T> = StorageValue<_, u16, ValueQuery, DefaultKappa<T>>;
 
     #[pallet::storage] // --- DMAP ( netuid, uid ) --> bonds
-    pub(super) type Bonds<T: Config> =
+    pub type Bonds<T: Config> =
         StorageDoubleMap<_, Identity, u16, Identity, u16, Vec<(u16, u16)>, ValueQuery>;
 
     #[pallet::type_value]
@@ -166,14 +159,13 @@ pub mod pallet {
         StorageMap<_, Identity, u16, u64, ValueQuery, DefaultBondsMovingAverage<T>>;
 
     #[pallet::storage] // --- DMAP ( netuid ) --> validator_permit
-    pub(super) type ValidatorPermits<T: Config> =
-        StorageMap<_, Identity, u16, Vec<bool>, ValueQuery>;
+    pub type ValidatorPermits<T: Config> = StorageMap<_, Identity, u16, Vec<bool>, ValueQuery>;
 
     #[pallet::storage] // --- DMAP ( netuid ) --> validator_trust
-    pub(super) type ValidatorTrust<T: Config> = StorageMap<_, Identity, u16, Vec<u16>, ValueQuery>;
+    pub type ValidatorTrust<T: Config> = StorageMap<_, Identity, u16, Vec<u16>, ValueQuery>;
 
     #[pallet::storage] // --- DMAP ( netuid ) --> pruning_scores
-    pub(super) type PruningScores<T: Config> = StorageMap<_, Identity, u16, Vec<u16>, ValueQuery>;
+    pub type PruningScores<T: Config> = StorageMap<_, Identity, u16, Vec<u16>, ValueQuery>;
 
     #[pallet::type_value]
     pub fn DefaultMaxAllowedValidators<T: Config>() -> Option<u16> {
@@ -607,6 +599,7 @@ pub mod pallet {
     #[pallet::storage] // --- DMAP ( netuid, module_key ) --> stake | Returns the stake under a module.
     pub type Stake<T: Config> =
         StorageDoubleMap<_, Identity, u16, Identity, T::AccountId, u64, ValueQuery>;
+
     #[pallet::storage] // --- DMAP ( netuid, module_key ) --> Vec<(delegater, stake )> | Returns the list of delegates
                        // and their staked amount under a module
     pub type StakeFrom<T: Config> = StorageDoubleMap<
@@ -637,15 +630,6 @@ pub mod pallet {
     #[pallet::storage] // --- MAP ( netuid ) --> subnet_total_stake
     pub type TotalStake<T> = StorageMap<_, Identity, u16, u64, ValueQuery>;
 
-    // LOAN VARIABLES
-    #[pallet::storage] // --- DMAP ( netuid, module_key ) --> Vec<(delegater, stake )> | Returns the list of delegates
-    pub type LoanTo<T: Config> =
-        StorageMap<_, Identity, T::AccountId, Vec<(T::AccountId, u64)>, ValueQuery>;
-
-    #[pallet::storage] // --- DMAP ( netuid, module_key ) --> Vec<(delegater, stake )> | Returns the list of delegates
-    pub type LoanFrom<T: Config> =
-        StorageMap<_, Identity, T::AccountId, Vec<(T::AccountId, u64)>, ValueQuery>;
-
     // PROFIT SHARE VARIABLES
     #[pallet::storage] // --- DMAP ( netuid, account_id ) --> Vec<(module_key, stake )> | Returns the list of the
     pub type ProfitShares<T: Config> =
@@ -671,16 +655,15 @@ pub mod pallet {
     #[pallet::storage] // --- MAP ( netuid ) --> emission
     pub type Emission<T: Config> = StorageMap<_, Identity, u16, Vec<u64>, ValueQuery>;
     #[pallet::storage] // --- MAP ( netuid ) --> last_update
-    pub(super) type LastUpdate<T: Config> = StorageMap<_, Identity, u16, Vec<u64>, ValueQuery>;
+    pub type LastUpdate<T: Config> = StorageMap<_, Identity, u16, Vec<u64>, ValueQuery>;
 
     #[pallet::storage] // --- DMAP ( netuid, uid ) --> weights
-    pub(super) type Weights<T: Config> =
+    pub type Weights<T: Config> =
         StorageDoubleMap<_, Identity, u16, Identity, u16, Vec<(u16, u16)>, ValueQuery>;
 
     // whitelist for the base subnet (netuid 0)
     #[pallet::storage]
-    pub(super) type LegitWhitelist<T: Config> =
-        StorageMap<_, Identity, T::AccountId, u8, ValueQuery>;
+    pub type LegitWhitelist<T: Config> = StorageMap<_, Identity, T::AccountId, u8, ValueQuery>;
 
     #[pallet::event]
     #[pallet::generate_deposit(pub(super) fn deposit_event)]
@@ -796,8 +779,9 @@ pub mod pallet {
         InvalidSubnetName,
         BalanceNotAdded,
         StakeNotRemoved,
-        KeyAlreadyRegistered, //
+        KeyAlreadyRegistered,
         EmptyKeys,
+        TooManyKeys,
         NotNominator, /* --- Thrown when the user tries to set the nominator and is not the
                        * nominator */
         AlreadyWhitelisted, /* --- Thrown when the user tries to whitelist an account that is
@@ -816,6 +800,7 @@ pub mod pallet {
         NotEnoughBalanceToRegister,
         StakeNotAdded,
         BalanceNotRemoved,
+        BalanceCouldNotBeRemoved,
         NotEnoughStakeToRegister,
         StillRegistered,
         MaxAllowedModules, /* --- Thrown when the user tries to set max allowed modules to a
@@ -1025,6 +1010,7 @@ pub mod pallet {
             module_key: T::AccountId,
             amount: u64,
         ) -> DispatchResult {
+            // do not allow zero stakes
             Self::do_add_stake(origin, netuid, module_key, amount)
         }
 
