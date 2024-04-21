@@ -264,6 +264,10 @@ pub mod v3 {
                 MinAllowedWeights::<T>::insert(general_netuid, 5); // Old 190 >
                 log::info!("Min allowed weights migrated");
 
+                // Also make sure there is no weight age, as we are doing manual validation
+                MaxWeightAge::<T>::insert(general_netuid, u64::MAX);
+                log::info!("Max weight age migrated");
+
                 log::info!("Setting subnet 0 to vote mode");
                 VoteModeSubnet::<T>::set(0, VoteMode::Vote);
 
