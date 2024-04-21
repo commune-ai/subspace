@@ -1,4 +1,4 @@
-#![allow(dead_code, non_camel_case_types)]
+#![allow(non_camel_case_types)]
 
 use frame_support::{
     assert_ok, parameter_types,
@@ -14,7 +14,6 @@ use sp_runtime::{
 use log::info;
 
 type Block = frame_system::mocking::MockBlock<Test>;
-const TOKEN_DECIMALS: u32 = 9;
 
 // Configure a mock runtime to test the pallet.
 frame_support::construct_runtime!(
@@ -25,10 +24,13 @@ frame_support::construct_runtime!(
     }
 );
 
+#[allow(dead_code)]
 pub type SubspaceCall = pallet_subspace::Call<Test>;
 
+#[allow(dead_code)]
 pub type BalanceCall = pallet_balances::Call<Test>;
 
+#[allow(dead_code)]
 pub type TestRuntimeCall = frame_system::Call<Test>;
 
 parameter_types! {
@@ -36,17 +38,18 @@ parameter_types! {
     pub const SS58Prefix: u8 = 42;
 }
 
+#[allow(dead_code)]
 pub type AccountId = U256;
 
 // The address format for describing accounts.
+#[allow(dead_code)]
 pub type Address = AccountId;
 
 // Balance of an account.
-
 pub type Balance = u64;
 
 // An index to a block.
-
+#[allow(dead_code)]
 pub type BlockNumber = u64;
 
 parameter_types! {
@@ -103,35 +106,18 @@ impl pallet_subspace::Config for Test {
     type WeightInfo = ();
 }
 
-// Build genesis storage according to the mock runtime.
-//pub fn new_test_ext() -> sp_io::TestExternalities {
-//	system::GenesisConfig::default().build_storage().unwrap().into()
-//}
-
+#[allow(dead_code)]
 pub fn set_weights(netuid: u16, key: U256, uids: Vec<u16>, values: Vec<u16>) {
     SubspaceModule::set_weights(get_origin(key), netuid, uids.clone(), values.clone()).unwrap();
 }
 
 // Build genesis storage according to the mock runtime.
-
 pub fn new_test_ext() -> sp_io::TestExternalities {
     sp_tracing::try_init_simple();
     frame_system::GenesisConfig::<Test>::default().build_storage().unwrap().into()
 }
 
-pub fn test_ext_with_balances(balances: Vec<(U256, u128)>) -> sp_io::TestExternalities {
-    sp_tracing::try_init_simple();
-    let mut t = frame_system::GenesisConfig::<Test>::default().build_storage().unwrap();
-
-    pallet_balances::GenesisConfig::<Test> {
-        balances: balances.iter().map(|(a, b)| (*a, *b as u64)).collect::<Vec<(U256, u64)>>(),
-    }
-    .assimilate_storage(&mut t)
-    .unwrap();
-
-    t.into()
-}
-
+#[allow(dead_code)]
 pub(crate) fn step_block(n: u16) {
     for _ in 0..n {
         SubspaceModule::on_finalize(System::block_number());
@@ -142,15 +128,18 @@ pub(crate) fn step_block(n: u16) {
     }
 }
 
+#[allow(dead_code)]
 pub(crate) fn step_epoch(netuid: u16) {
     let tempo: u16 = SubspaceModule::get_tempo(netuid);
     step_block(tempo);
 }
 
+#[allow(dead_code)]
 pub(crate) fn block_number() -> u64 {
     System::block_number()
 }
 
+#[allow(dead_code)]
 pub(crate) fn run_to_block(n: u64) {
     while System::block_number() < n {
         SubspaceModule::on_finalize(System::block_number());
@@ -165,14 +154,17 @@ pub fn add_balance(key: U256, balance: u64) {
     SubspaceModule::add_balance_to_account(&key, balance);
 }
 
+#[allow(dead_code)]
 pub fn increase_stake(netuid: u16, key: U256, stake: u64) {
     SubspaceModule::increase_stake(netuid, &key, &key, stake);
 }
 
+#[allow(dead_code)]
 pub fn delegate_stake(netuid: u16, key: U256, module_key: U256, stake: u64) {
     SubspaceModule::increase_stake(netuid, &key, &module_key, stake);
 }
 
+#[allow(dead_code)]
 pub fn decrease_stake(netuid: u16, key: U256, stake: u64) {
     SubspaceModule::decrease_stake(netuid, &key, &key, stake);
 }
@@ -181,6 +173,7 @@ pub fn get_origin(key: U256) -> RuntimeOrigin {
     <<Test as frame_system::Config>::RuntimeOrigin>::signed(key)
 }
 
+#[allow(dead_code)]
 pub fn register_n_modules(netuid: u16, n: u16, stake: u64) {
     for i in 0..n {
         register_module(netuid, U256::from(i), stake).unwrap_or_else(|_| {
@@ -190,8 +183,6 @@ pub fn register_n_modules(netuid: u16, n: u16, stake: u64) {
 }
 
 pub fn register_module(netuid: u16, key: U256, stake: u64) -> DispatchResult {
-    // can i format the test in rus
-
     let mut network: Vec<u8> = "test".as_bytes().to_vec();
     network.extend(netuid.to_string().as_bytes().to_vec());
 
@@ -211,6 +202,7 @@ pub fn register_module(netuid: u16, key: U256, stake: u64) -> DispatchResult {
     SubspaceModule::register(origin, network, name.clone(), address, stake, key, None)
 }
 
+#[allow(dead_code)]
 pub fn delegate_register_module(
     netuid: u16,
     key: U256,
@@ -255,6 +247,7 @@ pub fn delegate_register_module(
     result
 }
 
+#[allow(dead_code)]
 pub fn register(netuid: u16, key: U256, stake: u64) {
     // can i format the test in rus
     let mut network: Vec<u8> = "test".as_bytes().to_vec();
@@ -268,12 +261,7 @@ pub fn register(netuid: u16, key: U256, stake: u64) {
     assert_ok!(result);
 }
 
-pub fn remote_subnet(netuid: u16, key: U256) {
-    let origin = get_origin(key);
-    let result = SubspaceModule::do_remove_subnet(origin, netuid);
-    assert_ok!(result);
-}
-
+#[allow(dead_code)]
 pub fn remove_stake(netuid: u16, key: U256, amount: u64) {
     let origin = get_origin(key);
     let result = SubspaceModule::remove_stake(origin, netuid, key, amount);
@@ -281,6 +269,7 @@ pub fn remove_stake(netuid: u16, key: U256, amount: u64) {
     assert_ok!(result);
 }
 
+#[allow(dead_code)]
 pub fn add_stake(netuid: u16, key: U256, amount: u64) {
     let origin = get_origin(key);
     let result = SubspaceModule::add_stake(origin, netuid, key, amount);
@@ -288,22 +277,20 @@ pub fn add_stake(netuid: u16, key: U256, amount: u64) {
     assert_ok!(result);
 }
 
-pub fn add_stake_and_balance(netuid: u16, key: U256, amount: u64) {
-    let origin = get_origin(key);
-    add_balance(key, amount);
-    let result = SubspaceModule::add_stake(origin, netuid, key, amount);
+#[allow(dead_code)]
+const TOKEN_DECIMALS: u32 = 9;
 
-    assert_ok!(result);
-}
-
+#[allow(dead_code)]
 pub const fn to_nano(x: u64) -> u64 {
     x * 10u64.pow(TOKEN_DECIMALS)
 }
 
+#[allow(dead_code)]
 pub const fn from_nano(x: u64) -> u64 {
     x / 10u64.pow(TOKEN_DECIMALS)
 }
 
+#[allow(dead_code)]
 pub fn round_first_five(num: u64) -> u64 {
     let place_value = 10_u64.pow(num.to_string().len() as u32 - 5);
     let first_five = num / place_value;
