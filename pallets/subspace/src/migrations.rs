@@ -161,7 +161,7 @@ pub mod v3 {
             let on_chain_version = StorageVersion::get::<Pallet<T>>();
 
             // Migrate Burn to v3
-            if on_chain_version == 3 {
+            if on_chain_version == 2 {
                 // Query for the threshold of stake that subnet needs to have
                 let subnet_stake_threshold = SubnetStakeThreshold::<T>::get();
 
