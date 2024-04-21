@@ -35,7 +35,6 @@ fn test_stake() {
                 );
 
                 assert_ok!(register_module(netuid, *key, amount_staked));
-                // add_stake_and_balance(netuid, *key, amount_staked);
                 info!(
                     " KEY STAKE {} STAKING AMOUNT {} ",
                     SubspaceModule::get_stake(netuid, key),
@@ -234,7 +233,6 @@ fn test_delegate_stake() {
                 add_balance(delegate_key, amount_staked + 1);
 
                 assert_ok!(register_module(netuid, *key, 0));
-                // add_stake_and_balance(netuid, *key, amount_staked);
                 info!(
                     " DELEGATE KEY STAKE {} STAKING AMOUNT {} ",
                     SubspaceModule::get_stake(netuid, &delegate_key),

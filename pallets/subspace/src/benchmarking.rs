@@ -344,16 +344,6 @@ mod benchmarks {
     }
 
     #[benchmark]
-    fn remote_subnet() -> Result<(), BenchmarkError> {
-        let (network, name, address, module_key, netuid) = default_register_helper::<T>();
-
-        #[extrinsic_call]
-        remote_subnet(RawOrigin::Signed(module_key.clone()), netuid);
-
-        Ok(())
-    }
-
-    #[benchmark]
     fn update_module() -> Result<(), BenchmarkError> {
         let (network, name, address, module_key, netuid) = default_register_helper::<T>();
 

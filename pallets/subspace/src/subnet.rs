@@ -113,11 +113,6 @@ impl<T: Config> Pallet<T> {
 
         ensure!(
             Self::if_subnet_netuid_exists(netuid),
-            Error::<T>::SubnetNameAlreadyExists
-        );
-
-        ensure!(
-            Self::if_subnet_netuid_exists(netuid),
             Error::<T>::NetuidDoesNotExist
         );
 
@@ -160,8 +155,8 @@ impl<T: Config> Pallet<T> {
             Error::<T>::InvalidMaxStake
         );
 
-        // for computational purposes
-        ensure!(params.tempo >= 50, Error::<T>::InvalidTempo);
+        // lower tempos might significantly slow down the chain
+        ensure!(params.tempo >= 25, Error::<T>::InvalidTempo);
 
         ensure!(
             params.max_weight_age > params.tempo as u64,
@@ -663,14 +658,12 @@ impl<T: Config> Pallet<T> {
             .collect()
     }
 
-    // TEMPO (MIN IS 100)
     pub fn set_tempo(netuid: u16, tempo: u16) {
-        Tempo::<T>::insert(netuid, tempo.max(100));
+        Tempo::<T>::insert(netuid, tempo);
     }
 
-    #[cfg(debug_assertions)]
     pub fn get_tempo(netuid: u16) -> u16 {
-        Tempo::<T>::get(netuid).max(100)
+        Tempo::<T>::get(netuid)
     }
 
     // FOUNDER SHARE (MAX IS 100)

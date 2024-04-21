@@ -3,7 +3,7 @@ mod mock;
 use frame_support::assert_ok;
 use log::info;
 use mock::*;
-use pallet_subspace::{Dividends, N};
+use pallet_subspace::{Dividends, SubnetNames, N};
 use sp_core::U256;
 use sp_runtime::Percent;
 use sp_std::vec;
@@ -71,78 +71,6 @@ fn test_add_subnets() {
                 "number of subnets is not equal to expected subnets"
             );
         }
-    });
-}
-
-#[allow(dead_code)]
-fn test_set_single_temple(tempo: u16) {
-    new_test_ext().execute_with(|| {
-        // creates a subnet when you register a module
-        let netuid: u16 = 0;
-        let stake: u64 = 0;
-        let key = U256::from(0);
-        let _tempos: Vec<u16> = vec![2, 4];
-        assert_ok!(register_module(netuid, key, stake));
-        let mut params = SubspaceModule::subnet_params(netuid).clone();
-        params.tempo = tempo;
-
-        let _total_blocks = 100;
-        let threshold = SubspaceModule::get_subnet_stake_threshold();
-        let emission_per_block: u64 = SubspaceModule::calculate_network_emission(netuid, threshold);
-        let mut total_stake: u64 = 0;
-        let tempo = 5;
-        let min_stake = 1_000_000_000;
-
-        SubspaceModule::set_subnet_params(netuid, params.clone());
-
-        let subnet_params = SubspaceModule::subnet_params(netuid);
-
-        assert_eq!(subnet_params.tempo, tempo);
-        assert_eq!(subnet_params.min_stake, min_stake);
-        assert_eq!(subnet_params.max_allowed_uids, params.max_allowed_uids);
-        assert_eq!(
-            subnet_params.min_allowed_weights,
-            params.min_allowed_weights
-        );
-        assert_eq!(
-            subnet_params.max_allowed_weights,
-            params.max_allowed_weights
-        );
-        assert_eq!(subnet_params.immunity_period, params.immunity_period);
-        assert_eq!(subnet_params.name, params.name);
-
-        let previous_total_stake: u64 = block_number() * emission_per_block;
-
-        let n_epochs = 3;
-        let n_steps = n_epochs * tempo;
-        for _ in 0..n_steps {
-            info!(
-                "tempo {} block number: {} stake {} pending_emissiion {}",
-                tempo,
-                block_number(),
-                SubspaceModule::get_total_subnet_stake(netuid),
-                SubspaceModule::get_pending_emission(netuid)
-            );
-            step_block(1);
-            // get_block_number() is a function in mock.rs
-            let incentives: Vec<u16> = SubspaceModule::get_incentives(netuid);
-            let dividends: Vec<u16> = SubspaceModule::get_dividends(netuid);
-            let emissions: Vec<u64> = SubspaceModule::get_emissions(netuid);
-
-            info!("emission {emissions:?}");
-            info!("incentives {incentives:?}");
-            info!("dividends {dividends:?}");
-
-            let stake: u64 = SubspaceModule::get_stake_for_uid(netuid, 0);
-            info!("stake {:?}", stake);
-            total_stake = SubspaceModule::get_total_subnet_stake(netuid);
-            info!("total stake {}", total_stake);
-        }
-
-        assert_eq!(
-            total_stake,
-            (tempo as u64) * emission_per_block * (n_epochs as u64) + previous_total_stake
-        );
     });
 }
 
@@ -831,12 +759,55 @@ fn test_active_stake() {
         dbg!(Dividends::<Test>::get(9));
         let uid_zero_dividends = SubspaceModule::get_dividends_for_uid(9, 0);
         let uid_two_dividends = SubspaceModule::get_dividends_for_uid(9, 2);
-
-        assert!(uid_zero_dividends > uid_two_dividends);
-
         let total_dividends_sum = Dividends::<Test>::get(9).iter().sum::<u16>();
         let active_dividends = uid_zero_dividends + uid_two_dividends;
 
+        assert!(uid_zero_dividends > 0);
+        assert!(uid_two_dividends > 0);
+        assert!(uid_zero_dividends > uid_two_dividends);
         assert_eq!(total_dividends_sum, active_dividends);
+    });
+}
+
+// this test, should confirm that we can update subnet using the same name
+#[test]
+fn test_update_same_name() {
+    new_test_ext().execute_with(|| {
+        // general subnet
+        let netuid: u16 = 0;
+        let key = U256::from(0);
+        let stake = to_nano(100_000);
+
+        assert_ok!(register_module(netuid, key, stake));
+
+        assert_eq!(N::<Test>::get(0), 1);
+
+        dbg!(SubnetNames::<Test>::get(netuid));
+        let mut params = SubspaceModule::subnet_params(netuid);
+        let new_tempo = 30;
+        params.tempo = new_tempo;
+        let result = SubspaceModule::update_subnet(
+            get_origin(key),
+            netuid,
+            params.founder,
+            params.founder_share,
+            params.immunity_period,
+            params.incentive_ratio,
+            params.max_allowed_uids,
+            params.max_allowed_weights,
+            params.max_stake,
+            params.min_allowed_weights,
+            params.max_weight_age,
+            params.min_stake,
+            params.name,
+            params.tempo,
+            params.trust_ratio,
+            params.vote_mode,
+        );
+
+        dbg!(SubnetNames::<Test>::get(netuid));
+        assert_ok!(result);
+        let new_params = SubspaceModule::subnet_params(netuid);
+        assert_eq!(new_params.tempo, new_tempo);
     });
 }
