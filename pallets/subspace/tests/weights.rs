@@ -223,6 +223,7 @@ fn test_min_weight_stake() {
         let mut global_params = SubspaceModule::global_params();
         global_params.min_weight_stake = to_nano(20);
         SubspaceModule::set_global_params(global_params);
+        SubspaceModule::set_max_registrations_per_block(1000);
 
         let netuid: u16 = 0;
         let module_count: u16 = 16;
@@ -265,6 +266,7 @@ fn test_weight_age() {
         const TEMPO: u64 = 100;
         const PASSIVE_VOTER: u16 = 0;
         const ACTIVE_VOTER: u16 = 1;
+        SubspaceModule::set_max_registrations_per_block(1000);
 
         // Register modules
         (0..MODULE_COUNT).for_each(|i| {

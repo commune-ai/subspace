@@ -46,7 +46,6 @@ pub trait WeightInfo {
 	fn remove_stake() -> Weight;
 	fn remove_stake_multiple() -> Weight;
 	fn update_subnet() -> Weight;
-	fn remote_subnet() -> Weight;
 	fn update_module() -> Weight;
 	fn add_global_update() -> Weight;
 	fn vote_global_update() -> Weight;
@@ -348,15 +347,6 @@ impl<T: frame_system::Config> WeightInfo for SubstrateWeight<T> {
 	/// Proof: `SubspaceModule::ImmunityPeriod` (`max_values`: None, `max_size`: None, mode: `Measured`)
 	/// Storage: `SubspaceModule::MaxAllowedUids` (r:0 w:1)
 	/// Proof: `SubspaceModule::MaxAllowedUids` (`max_values`: None, `max_size`: None, mode: `Measured`)
-	fn remote_subnet() -> Weight {
-		// Proof Size summary in bytes:
-		//  Measured:  `4742`
-		//  Estimated: `13157`
-		// Minimum execution time: 190_107_000 picoseconds.
-		Weight::from_parts(193_679_000, 13157)
-			.saturating_add(T::DbWeight::get().reads(16_u64))
-			.saturating_add(T::DbWeight::get().writes(26_u64))
-	}
 	/// Storage: `SubspaceModule::Name2Subnet` (r:3 w:0)
 	/// Proof: `SubspaceModule::Name2Subnet` (`max_values`: None, `max_size`: None, mode: `Measured`)
 	/// Storage: `SubspaceModule::Uids` (r:1 w:0)
@@ -733,15 +723,6 @@ impl WeightInfo for () {
 	/// Proof: `SubspaceModule::ImmunityPeriod` (`max_values`: None, `max_size`: None, mode: `Measured`)
 	/// Storage: `SubspaceModule::MaxAllowedUids` (r:0 w:1)
 	/// Proof: `SubspaceModule::MaxAllowedUids` (`max_values`: None, `max_size`: None, mode: `Measured`)
-	fn remote_subnet() -> Weight {
-		// Proof Size summary in bytes:
-		//  Measured:  `4742`
-		//  Estimated: `13157`
-		// Minimum execution time: 190_107_000 picoseconds.
-		Weight::from_parts(193_679_000, 13157)
-			.saturating_add(RocksDbWeight::get().reads(16_u64))
-			.saturating_add(RocksDbWeight::get().writes(26_u64))
-	}
 	/// Storage: `SubspaceModule::Name2Subnet` (r:3 w:0)
 	/// Proof: `SubspaceModule::Name2Subnet` (`max_values`: None, `max_size`: None, mode: `Measured`)
 	/// Storage: `SubspaceModule::Uids` (r:1 w:0)

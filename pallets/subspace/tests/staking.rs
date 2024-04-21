@@ -19,6 +19,7 @@ fn test_stake() {
         let mut subnet_stake: u64 = 0;
         // make sure that the results won´t get affected by burn
         SubspaceModule::set_min_burn(0);
+        SubspaceModule::set_max_registrations_per_block(1000);
 
         for netuid in netuids {
             info!("NETUID: {}", netuid);
@@ -35,7 +36,6 @@ fn test_stake() {
                 );
 
                 assert_ok!(register_module(netuid, *key, amount_staked));
-                // add_stake_and_balance(netuid, *key, amount_staked);
                 info!(
                     " KEY STAKE {} STAKING AMOUNT {} ",
                     SubspaceModule::get_stake(netuid, key),
@@ -96,7 +96,7 @@ fn test_multiple_stake() {
         // make sure that the results won´t get affected by burn
         SubspaceModule::set_min_burn(0);
 
-        register_n_modules(netuid, n, 0);
+        register_n_modules(netuid, n, 10);
         let controler_key = U256::from(n + 1);
         let og_staker_balance: u64 = total_stake + 1;
         add_balance(controler_key, og_staker_balance);
@@ -126,7 +126,8 @@ fn test_multiple_stake() {
         let staker_balance = SubspaceModule::get_balance(&controler_key);
 
         assert_eq!(
-            total_actual_stake, total_stake,
+            total_actual_stake,
+            total_stake + (n as u64 * 10),
             "total stake should be equal to the sum of all stakes"
         );
         assert_eq!(
@@ -147,7 +148,8 @@ fn test_multiple_stake() {
             keys.clone().into_iter().map(|k| SubspaceModule::get_stake(netuid, &k)).sum();
         let staker_balance = SubspaceModule::get_balance(&controler_key);
         assert_eq!(
-            total_actual_stake, 0,
+            total_actual_stake,
+            n as u64 * 10,
             "total stake should be equal to the sum of all stakes"
         );
         assert_eq!(
@@ -162,13 +164,7 @@ fn test_transfer_stake() {
     new_test_ext().execute_with(|| {
         let n: u16 = 10;
         let stake_amount: u64 = 10_000_000_000;
-        let _total_stake: u64 = 0;
         let netuid: u16 = 0;
-        let _subnet_stake: u64 = 0;
-        let _uid: u16 = 0;
-        let num_staked_modules: u16 = 10;
-        let _total_stake: u64 = stake_amount * num_staked_modules as u64;
-        // make sure that the results won´t get affected by burn
         SubspaceModule::set_min_burn(0);
 
         register_n_modules(netuid, n, stake_amount);
@@ -213,6 +209,7 @@ fn test_delegate_stake() {
         let mut subnet_stake: u64 = 0;
         // make sure that the results won´t get affected by burn
         SubspaceModule::set_min_burn(0);
+        SubspaceModule::set_max_registrations_per_block(1000);
 
         for i in netuids.iter() {
             let netuid = *i;
@@ -233,8 +230,7 @@ fn test_delegate_stake() {
                 let delegate_key: U256 = delegate_key_vector[i];
                 add_balance(delegate_key, amount_staked + 1);
 
-                assert_ok!(register_module(netuid, *key, 0));
-                // add_stake_and_balance(netuid, *key, amount_staked);
+                assert_ok!(register_module(netuid, *key, 10));
                 info!(
                     " DELEGATE KEY STAKE {} STAKING AMOUNT {} ",
                     SubspaceModule::get_stake(netuid, &delegate_key),
@@ -251,7 +247,7 @@ fn test_delegate_stake() {
                 // SubspaceModule::add_stake(get_origin(*key), netuid, amount_staked);
                 assert_eq!(
                     SubspaceModule::get_stake_for_uid(netuid, uid),
-                    amount_staked
+                    amount_staked + 10
                 );
                 assert_eq!(SubspaceModule::get_balance(&delegate_key), 1);
                 assert_eq!(
@@ -269,7 +265,7 @@ fn test_delegate_stake() {
                     SubspaceModule::get_balance(&delegate_key),
                     amount_staked + 1
                 );
-                assert_eq!(SubspaceModule::get_stake_for_uid(netuid, uid), 0);
+                assert_eq!(SubspaceModule::get_stake_for_uid(netuid, uid), 10);
                 assert_eq!(
                     SubspaceModule::get_stake_to_vector(netuid, &delegate_key).len(),
                     0
@@ -284,7 +280,7 @@ fn test_delegate_stake() {
                 ));
                 assert_eq!(
                     SubspaceModule::get_stake_for_uid(netuid, uid),
-                    amount_staked
+                    amount_staked + 10
                 );
                 assert_eq!(SubspaceModule::get_balance(&delegate_key), 1);
                 assert_eq!(
@@ -317,7 +313,7 @@ fn test_ownership_ratio() {
         // make sure that the results won´t get affected by burn
         SubspaceModule::set_min_burn(0);
 
-        register_n_modules(netuid, num_modules, 0);
+        register_n_modules(netuid, num_modules, 10);
 
         let keys = SubspaceModule::get_keys(netuid);
 
@@ -351,7 +347,6 @@ fn test_ownership_ratio() {
 
             assert_eq!(ownership_ratios.len(), delegate_keys.len() + 1);
             info!("OWNERSHIP RATIOS: {ownership_ratios:?}");
-            // step_block();
 
             step_epoch(netuid);
 

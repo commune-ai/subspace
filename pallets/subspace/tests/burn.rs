@@ -19,7 +19,7 @@ fn test_burn() {
         subnet_params.tempo = tempo;
 
         SubspaceModule::set_subnet_params(netuid, subnet_params);
-
+        SubspaceModule::set_max_registrations_per_block(1000);
         for (key, stake) in keys.iter().zip(stakes.iter()) {
             assert_ok!(register_module(netuid, *key, *stake));
         }
@@ -101,6 +101,7 @@ fn test_local_subnet_burn() {
         let n = 300;
         let initial_stake: u64 = to_nano(500);
 
+        SubspaceModule::set_max_registrations_per_block(1000);
         // this will perform 300 registrations and step in between
         for i in 1..n {
             // this registers five in block

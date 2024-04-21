@@ -26,15 +26,19 @@ fn test_min_stake() {
         let reg_this_block: u16 = 100;
         // make sure that the results won´t get affected by burn
         SubspaceModule::set_min_burn(0);
-
-        register_module(netuid, U256::from(0), 0).expect("register module failed");
+        let mut network: Vec<u8> = "test".as_bytes().to_vec();
+        let address: Vec<u8> = "0.0.0.0:30333".as_bytes().to_vec();
+        network.extend(netuid.to_string().as_bytes().to_vec());
+        let name = "module".as_bytes().to_vec();
+        assert_noop!(SubspaceModule::do_register(get_origin(U256::from(0)), network, name, address, 0, U256::from(0), None), Error::<Test>::NotEnoughBalanceToRegister);
         SubspaceModule::set_min_stake(netuid, min_stake);
         SubspaceModule::set_max_registrations_per_block(max_registrations_per_block);
+        dbg!("after set");
         step_block(1);
         assert_eq!(SubspaceModule::get_registrations_this_block(), 0);
 
-        let n = U256::from(reg_this_block); // Example: if you want a list of numbers from 1 to 9
-        let keys_list: Vec<U256> = (1..n.as_u64()) // Assuming n fits into a u64 for simplicity
+        let n = U256::from(reg_this_block);
+        let keys_list: Vec<U256> = (1..n.as_u64())
             .map(U256::from)
             .collect();
 
@@ -64,17 +68,13 @@ fn test_max_registration() {
         SubspaceModule::set_min_burn(0);
 
         SubspaceModule::set_min_stake(netuid, min_stake);
-        SubspaceModule::set_max_registrations_per_block(max_registrations_per_block);
 
         assert_eq!(SubspaceModule::get_registrations_this_block(), 0);
 
+        SubspaceModule::set_max_registrations_per_block(1000);
         for i in 1..(max_registrations_per_block * rounds) {
             let key = U256::from(i);
-            let min_stake_to_register = SubspaceModule::get_min_stake(netuid);
-            let factor: u64 = min_stake_to_register / min_stake;
-            info!("min_stake_to_register: {min_stake_to_register:?} min_stake: {min_stake:?} factor {factor:?}");
-            register_module(netuid, key, factor * min_stake).expect("register module failed");
-
+            assert_ok!(register_module(netuid, U256::from(i), to_nano(100)));
             let registrations_this_block = SubspaceModule::get_registrations_this_block();
             assert_eq!(registrations_this_block, i);
             assert!(SubspaceModule::is_registered(netuid, &key));
@@ -117,7 +117,9 @@ fn test_registration_ok() {
         // make sure that the results won´t get affected by burn
         SubspaceModule::set_min_burn(0);
 
-        register_module(netuid, key, 0)
+        // make sure there is some balance
+        add_balance(key, 2);
+        register_module(netuid, key, 1)
             .unwrap_or_else(|_| panic!("register module failed for key {key:?}"));
 
         // Check if module has added to the specified network(netuid)
@@ -131,7 +133,7 @@ fn test_registration_ok() {
         assert_eq!(neuro_uid, module_uid);
 
         // Check if the balance of this hotkey account for this subnetwork == 0
-        assert_eq!(SubspaceModule::get_stake_for_uid(netuid, module_uid), 0);
+        assert_eq!(SubspaceModule::get_stake_for_uid(netuid, module_uid), 1);
     });
 }
 
@@ -230,7 +232,9 @@ fn register_custom(netuid: u16, key: U256, name: &[u8], addr: &[u8]) -> Dispatch
         SubspaceModule::set_max_registrations_per_block(1000)
     }
 
-    SubspaceModule::register(origin, network, name.to_vec(), addr.to_vec(), 0, key, None)
+    // make sure there is some balance
+    add_balance(key, 2);
+    SubspaceModule::register(origin, network, name.to_vec(), addr.to_vec(), 1, key, None)
 }
 
 fn test_validation_cases(f: impl Fn(&[u8], &[u8]) -> DispatchResult) {
@@ -376,7 +380,7 @@ fn test_register_invalid_name() {
     new_test_ext().execute_with(|| {
         let network_name = b"testnet".to_vec();
         let address = b"0x1234567890".to_vec();
-        let stake = to_nano(0);
+        let stake = to_nano(1);
 
         // make registrations free
         SubspaceModule::set_min_burn(0);
@@ -391,6 +395,7 @@ fn test_register_invalid_name() {
         // Try registering with an empty name (invalid)
         let empty_name = Vec::new();
         let register_one = U256::from(0);
+        add_balance(register_one, stake + 1);
 
         assert_noop!(
             SubspaceModule::register(
@@ -408,6 +413,7 @@ fn test_register_invalid_name() {
         // Try registering with a name that is too short (invalid)
         let register_two = U256::from(1);
         let short_name = b"a".to_vec();
+        add_balance(register_two, stake + 1);
         assert_noop!(
             SubspaceModule::register(
                 get_origin(register_two),
@@ -424,6 +430,7 @@ fn test_register_invalid_name() {
         // Try registering with a name that is exactly the minimum length (valid)
         let register_three = U256::from(2);
         let min_length_name = vec![b'a'; min_name_length as usize];
+        add_balance(register_three, stake + 1);
         assert_ok!(SubspaceModule::register(
             get_origin(register_three),
             network_name.clone(),
@@ -437,6 +444,7 @@ fn test_register_invalid_name() {
         // Try registering with a name that is exactly the maximum length (valid)
         let max_length_name = vec![b'a'; max_name_length as usize];
         let register_four = U256::from(3);
+        add_balance(register_four, stake + 1);
         assert_ok!(SubspaceModule::register(
             get_origin(register_four),
             network_name.clone(),
@@ -450,6 +458,7 @@ fn test_register_invalid_name() {
         // Try registering with a name that is too long (invalid)
         let long_name = vec![b'a'; (max_name_length + 1) as usize];
         let register_five = U256::from(4);
+        add_balance(register_five, stake + 1);
         assert_noop!(
             SubspaceModule::register(
                 get_origin(register_five),
@@ -469,7 +478,7 @@ fn test_register_invalid_name() {
 fn test_register_invalid_subnet_name() {
     new_test_ext().execute_with(|| {
         let address = b"0x1234567890".to_vec();
-        let stake = to_nano(0);
+        let stake = to_nano(1);
         let module_name = b"test".to_vec();
 
         // Make registrations free
@@ -484,6 +493,7 @@ fn test_register_invalid_subnet_name() {
 
         let register_one = U256::from(0);
         let empty_name = Vec::new();
+        add_balance(register_one, stake + 1);
         assert_noop!(
             SubspaceModule::register(
                 get_origin(register_one),
@@ -500,6 +510,7 @@ fn test_register_invalid_subnet_name() {
         // Try registering with a name that is too short (invalid)
         let register_two = U256::from(1);
         let short_name = b"a".to_vec();
+        add_balance(register_two, stake + 1);
         assert_noop!(
             SubspaceModule::register(
                 get_origin(register_two),
@@ -516,6 +527,7 @@ fn test_register_invalid_subnet_name() {
         // Try registering with a name that is exactly the minimum length (valid)
         let register_three = U256::from(2);
         let min_length_name = vec![b'a'; min_name_length as usize];
+        add_balance(register_three, stake + 1);
         assert_ok!(SubspaceModule::register(
             get_origin(register_three),
             min_length_name,
@@ -529,6 +541,7 @@ fn test_register_invalid_subnet_name() {
         // Try registering with a name that is exactly the maximum length (valid)
         let max_length_name = vec![b'a'; max_name_length as usize];
         let register_four = U256::from(3);
+        add_balance(register_four, stake + 1);
         assert_ok!(SubspaceModule::register(
             get_origin(register_four),
             max_length_name,
@@ -542,6 +555,7 @@ fn test_register_invalid_subnet_name() {
         // Try registering with a name that is too long (invalid)
         let long_name = vec![b'a'; (max_name_length + 1) as usize];
         let register_five = U256::from(4);
+        add_balance(register_five, stake + 1);
         assert_noop!(
             SubspaceModule::register(
                 get_origin(register_five),
@@ -558,6 +572,7 @@ fn test_register_invalid_subnet_name() {
         // Try registering with an invalid UTF-8 name (invalid)
         let invalid_utf8_name = vec![0xFF, 0xFF];
         let register_six = U256::from(5);
+        add_balance(register_six, stake + 1);
         assert_noop!(
             SubspaceModule::register(
                 get_origin(register_six),

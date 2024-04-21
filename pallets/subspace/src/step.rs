@@ -1,6 +1,6 @@
 use super::*;
 use crate::math::*;
-use frame_support::storage::IterableStorageDoubleMap;
+use frame_support::storage::{with_storage_layer, IterableStorageDoubleMap};
 use sp_arithmetic::per_things::Percent;
 use sp_std::vec;
 use substrate_fixed::types::{I110F18, I32F32, I64F64};
@@ -50,6 +50,7 @@ impl<T: Config> Pallet<T> {
                 let subnet_stake = Self::get_total_subnet_stake(netuid) as u128;
                 let total_stake = Self::total_stake() as u128;
 
+                // simplify this to just checking if there are pending emission
                 if total_stake == 0 {
                     false
                 } else {
@@ -61,10 +62,18 @@ impl<T: Config> Pallet<T> {
             if netuid == 0 {
                 Self::linear_epoch(netuid, emission_to_drain)
             } else if has_enough_stake_for_yuma() {
-                if let Err(err) = yuma::YumaCalc::<T>::new(netuid, emission_to_drain).run() {
+                let res = with_storage_layer(|| {
+                    yuma::YumaCalc::<T>::new(netuid, emission_to_drain).run()
+                });
+
+                if let Err(err) = res {
                     log::error!(
-                        "failed to run yuma consensus algorithm, {err}, skipping this block"
+                        "\
+failed to run yuma consensus algorithm, {err}, skipping this block. \
+{emission_to_drain} tokens will be emitted on the next run.\
+"
                     );
+                    return;
                 }
             }
 

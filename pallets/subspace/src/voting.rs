@@ -149,12 +149,7 @@ impl<T: Config> Pallet<T> {
         Proposals::<T>::insert(proposal_id, proposal);
 
         // Burn the proposal cost from the proposer's balance
-        let _ = T::Currency::withdraw(
-            &key,
-            Self::u64_to_balance(proposal_cost).unwrap(),
-            WithdrawReasons::TRANSFER, // TODO
-            ExistenceRequirement::KeepAlive,
-        )?;
+        Self::remove_balance_from_account(&key, Self::u64_to_balance(proposal_cost).unwrap());
 
         Self::deposit_event(Event::<T>::ProposalCreated(proposal_id));
         Ok(())

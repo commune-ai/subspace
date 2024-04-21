@@ -185,7 +185,7 @@ pub mod v3 {
                     // can actually activelly produce emission, the old value 256
                     // is in current model a security vounrability for cheap subnet DDOS.
                     // Make sure there is no subnet over target, if so deregister it.
-                    if netuid > SUBNET_CEILING {
+                    if netuid >= SUBNET_CEILING {
                         log::warn!("subnet {netuid} is over the limit ({SUBNET_CEILING}), deregistering {module_count} modules");
                         Pallet::<T>::remove_subnet(netuid);
                         continue;

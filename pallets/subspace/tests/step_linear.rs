@@ -246,12 +246,12 @@ fn test_pruning() {
         // CONSTANTS
         let netuid: u16 = 0;
         let n: u16 = 100;
-        let _blocks_per_epoch_list: u64 = 1;
         let stake_per_module: u64 = 10_000;
         let tempo: u16 = 100;
 
         // make sure that the results won´t get affected by burn
         SubspaceModule::set_min_burn(0);
+        SubspaceModule::set_max_registrations_per_block(1000);
 
         // SETUP NETWORK
         register_n_modules(netuid, n, stake_per_module);
@@ -316,13 +316,12 @@ fn test_lowest_priority_mechanism() {
         // CONSSTANTS
         let netuid: u16 = 0;
         let n: u16 = 100;
-        let _n_list: Vec<u16> = vec![10, 50, 100, 1000];
-        let _blocks_per_epoch_list: u64 = 1;
         let stake_per_module: u64 = 10_000;
         let tempo: u16 = 100;
 
         // make sure that the results won´t get affected by burn
         SubspaceModule::set_min_burn(0);
+        SubspaceModule::set_max_registrations_per_block(1000);
 
         // SETUP NETWORK
         register_n_modules(netuid, n, stake_per_module);
@@ -332,7 +331,6 @@ fn test_lowest_priority_mechanism() {
         SubspaceModule::set_min_allowed_weights(netuid, 0);
 
         let keys = SubspaceModule::get_keys(netuid);
-        let _uids = SubspaceModule::get_uids(netuid);
         let voter_idx = 0;
 
         // Create a list of UIDs excluding the voter_idx
@@ -857,6 +855,7 @@ fn test_founder_share() {
         let stakes: Vec<u64> = (0..n).map(|_x| initial_stake * 1_000_000_000).collect();
 
         let founder_key = keys[0];
+        SubspaceModule::set_max_registrations_per_block(1000);
         for i in 0..n {
             assert_ok!(register_module(netuid, keys[i], stakes[i]));
             let stake_from_vector = SubspaceModule::get_stake_to_vector(netuid, &keys[i]);
@@ -990,6 +989,7 @@ fn test_dynamic_burn() {
             SubspaceModule::get_burn(netuid)
         );
 
+        SubspaceModule::set_max_registrations_per_block(1000);
         // Register only 50 of the target
         let amount: usize = 50;
         for (i, &stake) in stakes.iter().enumerate().take(amount) {
