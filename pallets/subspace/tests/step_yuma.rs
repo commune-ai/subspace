@@ -174,6 +174,84 @@ fn test_10_graph() {
 #[test]
 fn yuma_weights_older_than_max_age_are_discarded() {
     new_test_ext().execute_with(|| {
-        // register the general subnet
+        const MAX_WEIGHT_AGE: u64 = 300;
+        const SUBNET_TEMPO: u16 = 100;
+        // Register the general subnet.
+        let netuid: u16 = 0;
+        let key = U256::from(0);
+        let stake_amount: u64 = to_nano(1_000);
+
+        assert_ok!(register_module(netuid, key, stake_amount));
+
+        // Register the yuma subnet.
+        let yuma_netuid: u16 = 1;
+        let yuma_validator_key = U256::from(1);
+        let yuma_miner_key = U256::from(2);
+        let yuma_stake_amount: u64 = to_nano(10_000);
+        let yuma_miner_amount = to_nano(1_000);
+
+        // This will act as an validator.
+        assert_ok!(register_module(
+            yuma_netuid,
+            yuma_validator_key,
+            yuma_stake_amount
+        ));
+        // This will act as an miner.
+        assert_ok!(register_module(
+            yuma_netuid,
+            yuma_miner_key,
+            yuma_miner_amount
+        ));
+
+        step_block(1);
+
+        // Set the max weight age to 300 blocks
+        SubspaceModule::set_max_weight_age(yuma_netuid, MAX_WEIGHT_AGE);
+        SubspaceModule::set_tempo(yuma_netuid, SUBNET_TEMPO);
+
+        let miner_uid = SubspaceModule::get_uid_for_key(yuma_netuid, &yuma_miner_key);
+        let validator_uid = SubspaceModule::get_uid_for_key(yuma_netuid, &yuma_validator_key);
+        let uid = [miner_uid].to_vec();
+        let weight = [1].to_vec();
+
+        // set the weights
+        assert_ok!(SubspaceModule::do_set_weights(
+            get_origin(yuma_validator_key),
+            yuma_netuid,
+            uid,
+            weight
+        ));
+
+        step_block(100);
+
+        // Make sure we have incentive and dividends
+        let miner_incentive = SubspaceModule::get_incentive_for_uid(yuma_netuid, miner_uid);
+        let miner_dividends = SubspaceModule::get_dividends_for_uid(yuma_netuid, miner_uid);
+        let validator_incentive = SubspaceModule::get_incentive_for_uid(yuma_netuid, validator_uid);
+        let validator_dividends = SubspaceModule::get_dividends_for_uid(yuma_netuid, validator_uid);
+
+        assert!(miner_incentive > 0);
+        assert_eq!(miner_dividends, 0);
+        assert!(validator_dividends > 0);
+        assert_eq!(validator_incentive, 0);
+
+        // now go pass the max weight age
+        step_block(MAX_WEIGHT_AGE as u16);
+
+        // Make sure we have no incentive and dividends
+        let miner_incentive = SubspaceModule::get_incentive_for_uid(yuma_netuid, miner_uid);
+        let miner_dividends = SubspaceModule::get_dividends_for_uid(yuma_netuid, miner_uid);
+        let validator_incentive = SubspaceModule::get_incentive_for_uid(yuma_netuid, validator_uid);
+        let validator_dividends = SubspaceModule::get_dividends_for_uid(yuma_netuid, validator_uid);
+
+        assert_eq!(miner_incentive, 0);
+        assert_eq!(miner_dividends, 0);
+        assert_eq!(validator_dividends, 0);
+        assert_eq!(validator_incentive, 0);
+
+        // But make sure there are emissions
+
+        let subnet_emission_sum = SubspaceModule::get_emissions(yuma_netuid).iter().sum::<u64>();
+        assert!(subnet_emission_sum > 0);
     });
 }
