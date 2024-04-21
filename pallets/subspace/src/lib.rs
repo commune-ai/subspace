@@ -779,8 +779,9 @@ pub mod pallet {
         InvalidSubnetName,
         BalanceNotAdded,
         StakeNotRemoved,
-        KeyAlreadyRegistered, //
+        KeyAlreadyRegistered,
         EmptyKeys,
+        TooManyKeys,
         NotNominator, /* --- Thrown when the user tries to set the nominator and is not the
                        * nominator */
         AlreadyWhitelisted, /* --- Thrown when the user tries to whitelist an account that is
@@ -799,6 +800,7 @@ pub mod pallet {
         NotEnoughBalanceToRegister,
         StakeNotAdded,
         BalanceNotRemoved,
+        BalanceCouldNotBeRemoved,
         NotEnoughStakeToRegister,
         StillRegistered,
         MaxAllowedModules, /* --- Thrown when the user tries to set max allowed modules to a
@@ -1008,6 +1010,7 @@ pub mod pallet {
             module_key: T::AccountId,
             amount: u64,
         ) -> DispatchResult {
+            // do not allow zero stakes
             Self::do_add_stake(origin, netuid, module_key, amount)
         }
 
