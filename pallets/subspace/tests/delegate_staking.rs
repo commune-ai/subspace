@@ -3,6 +3,7 @@ mod mock;
 use frame_support::assert_ok;
 use log::info;
 use mock::*;
+use pallet_subspace::Tempo;
 use sp_core::U256;
 use substrate_fixed::types::I64F64;
 
@@ -20,7 +21,7 @@ fn test_ownership_ratio() {
         SubspaceModule::set_min_burn(0);
 
         register_n_modules(netuid, num_modules, stake_per_module);
-        SubspaceModule::set_tempo(netuid, tempo);
+        Tempo::<Test>::insert(netuid, tempo);
 
         let keys = SubspaceModule::get_keys(netuid);
         let voter_key = keys[0];

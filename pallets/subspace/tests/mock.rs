@@ -297,3 +297,18 @@ pub fn round_first_five(num: u64) -> u64 {
         (first_five / 10) * place_value * 10
     }
 }
+
+#[macro_export]
+macro_rules! update_params {
+    ($netuid:expr => {$($f:ident:$v:expr),+}) => {{
+        let params = ::pallet_subspace::SubnetParams {
+            $($f: $v),+,
+            ..SubspaceModule::subnet_params($netuid)
+        };
+        dbg!(&params);
+        ::pallet_subspace::subnet::SubnetChangeset::<Test>::update($netuid, params).unwrap().apply($netuid).unwrap();
+    }};
+    ($netuid:expr => $params:expr) => {{
+        ::pallet_subspace::subnet::SubnetChangeset::<Test>::update($netuid, $params).unwrap().apply($netuid).unwrap();
+    }};
+}

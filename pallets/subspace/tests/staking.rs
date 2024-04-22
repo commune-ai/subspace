@@ -382,7 +382,7 @@ fn test_min_stake() {
         register_n_modules(netuid, num_modules, min_stake);
         let keys = SubspaceModule::get_keys(netuid);
 
-        SubspaceModule::set_min_stake(netuid, min_stake - 100);
+        update_params!(netuid => { min_stake: min_stake - 100 });
 
         assert_ok!(SubspaceModule::remove_stake(
             get_origin(keys[0]),

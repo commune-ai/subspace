@@ -98,12 +98,12 @@ impl<T: Config> Pallet<T> {
             // Create subnet if it does not exist.
             None => {
                 let params = SubnetParams {
-                    name: network_name.clone(),
+                    name: network_name,
                     founder: key.clone(),
                     ..DefaultSubnetParams::<T>::get()
                 };
-                let subnet_changeset = SubnetChangeset::new(&network_name, &key, params);
-                Self::add_subnet_from_registration(stake, subnet_changeset)?
+                let changeset = SubnetChangeset::new(params)?;
+                Self::add_subnet_from_registration(stake, changeset)?
             }
         };
 
