@@ -1,5 +1,5 @@
 use super::*;
-use frame_support::pallet_prelude::DispatchResult;
+use frame_support::{pallet_prelude::DispatchResult, storage::with_storage_layer};
 use sp_runtime::{Percent, SaturatedConversion};
 
 #[derive(Clone, Debug, TypeInfo, Decode, Encode)]
@@ -286,6 +286,8 @@ impl<T: Config> Pallet<T> {
 
     pub(crate) fn resolve_proposals(block_number: u64) {
         for proposal in Proposals::<T>::iter_values() {
+            let proposal_id = proposal.id;
+
             if !matches!(proposal.status, ProposalStatus::Pending) {
                 continue;
             }
@@ -303,25 +305,27 @@ impl<T: Config> Pallet<T> {
             let total_stake = votes_for + votes_against;
             let minimal_stake_to_execute = Self::get_minimal_stake_to_execute(netuid);
 
-            if total_stake >= minimal_stake_to_execute {
-                if votes_against > votes_for {
-                    proposal.refuse(block_number);
-                } else {
-                    Self::execute_proposal(proposal, block_number);
+            let res: DispatchResult = with_storage_layer(|| {
+                if total_stake >= minimal_stake_to_execute {
+                    if votes_against > votes_for {
+                        proposal.refuse(block_number);
+                    } else {
+                        Self::execute_proposal(proposal, block_number)?;
+                    }
+                } else if block_number >= proposal.expiration_block {
+                    proposal.expire(block_number);
                 }
-            } else if block_number >= proposal.expiration_block {
-                proposal.expire(block_number);
+
+                Ok(())
+            });
+
+            if let Err(err) = res {
+                log::error!("failed to resolve proposal {proposal_id}: {err:?}");
             }
         }
     }
 
-    fn execute_proposal(proposal: Proposal<T>, block_number: u64) {
-        // Give the proposer back his tokens, if the proposal passed
-        Self::add_balance_to_account(
-            &proposal.proposer,
-            Self::u64_to_balance(proposal.proposal_cost).unwrap(),
-        );
-
+    fn execute_proposal(proposal: Proposal<T>, block_number: u64) -> DispatchResult {
         // Perform actions based on the proposal data type
         match &proposal.data {
             ProposalData::Custom(_) | ProposalData::SubnetCustom { .. } => {
@@ -335,8 +339,9 @@ impl<T: Config> Pallet<T> {
                 Self::deposit_event(Event::GlobalParamsUpdated(params.clone()));
             }
             ProposalData::SubnetParams { netuid, params } => {
-                // Update the subnet parameters
-                Self::set_subnet_params(*netuid, params.clone());
+                let changeset = SubnetChangeset::<T>::update(*netuid, params.clone())?;
+                changeset.apply(*netuid)?;
+
                 // Emit the SubnetParamsUpdated event
                 Self::deposit_event(Event::SubnetParamsUpdated(*netuid));
             }
@@ -345,7 +350,15 @@ impl<T: Config> Pallet<T> {
             }
         }
 
+        // Give the proposer back his tokens, if the proposal passed
+        Self::add_balance_to_account(
+            &proposal.proposer,
+            Self::u64_to_balance(proposal.proposal_cost).unwrap(),
+        );
+
         proposal.accept(block_number);
+
+        Ok(())
     }
 
     /// Returns how much stake is needed to execute a proposal

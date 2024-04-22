@@ -3,7 +3,14 @@ mod mock;
 use frame_support::assert_ok;
 use log::info;
 use mock::*;
+use pallet_subspace::{MaxAllowedWeights, MinAllowedWeights, Tempo};
 use sp_core::U256;
+
+fn update_params(netuid: u16, tempo: u16, max_weights: u16, min_weights: u16) {
+    Tempo::<Test>::insert(netuid, tempo);
+    MaxAllowedWeights::<Test>::insert(netuid, max_weights);
+    MinAllowedWeights::<Test>::insert(netuid, min_weights);
+}
 
 fn check_network_stats(netuid: u16) {
     let emission_buffer: u64 = 1_000; // the numbers arent perfect but we want to make sure they fall within a range (10_000 / 2**64)
@@ -53,7 +60,7 @@ fn test_no_weights() {
         SubspaceModule::set_min_burn(0);
 
         register_n_modules(0, 10, 1000);
-        SubspaceModule::set_tempo(netuid, 1);
+        Tempo::<Test>::insert(netuid, 1);
         let _keys = SubspaceModule::get_keys(netuid);
         let _uids = SubspaceModule::get_uids(netuid);
 
@@ -81,9 +88,7 @@ fn test_dividends_same_stake() {
 
         // SETUP NETWORK
         register_n_modules(netuid, n, stake_per_module);
-        SubspaceModule::set_tempo(netuid, 1);
-        SubspaceModule::set_max_allowed_weights(netuid, n);
-        SubspaceModule::set_min_allowed_weights(netuid, 0);
+        update_params(netuid, 1, n, 0);
 
         let keys = SubspaceModule::get_keys(netuid);
         let _uids = SubspaceModule::get_uids(netuid);
@@ -177,9 +182,7 @@ fn test_dividends_diff_stake() {
             let key: U256 = U256::from(i);
             assert_ok!(register_module(netuid, key, stake));
         }
-        SubspaceModule::set_tempo(netuid, tempo);
-        SubspaceModule::set_max_allowed_weights(netuid, n);
-        SubspaceModule::set_min_allowed_weights(netuid, 0);
+        update_params(netuid, tempo, n, 0);
 
         let keys = SubspaceModule::get_keys(netuid);
         let _uids = SubspaceModule::get_uids(netuid);
@@ -256,9 +259,7 @@ fn test_pruning() {
         // SETUP NETWORK
         register_n_modules(netuid, n, stake_per_module);
         SubspaceModule::set_max_allowed_modules(n);
-        SubspaceModule::set_tempo(netuid, 1);
-        SubspaceModule::set_max_allowed_weights(netuid, n);
-        SubspaceModule::set_min_allowed_weights(netuid, 0);
+        update_params(netuid, 1, n, 0);
 
         let voter_idx = 0;
         let keys = SubspaceModule::get_keys(netuid);
@@ -326,9 +327,7 @@ fn test_lowest_priority_mechanism() {
         // SETUP NETWORK
         register_n_modules(netuid, n, stake_per_module);
 
-        SubspaceModule::set_tempo(netuid, tempo);
-        SubspaceModule::set_max_allowed_weights(netuid, n);
-        SubspaceModule::set_min_allowed_weights(netuid, 0);
+        update_params(netuid, tempo, n, 0);
 
         let keys = SubspaceModule::get_keys(netuid);
         let voter_idx = 0;
@@ -584,7 +583,7 @@ fn test_trust() {
         params.tempo = 100;
         params.trust_ratio = 100;
 
-        SubspaceModule::set_subnet_params(netuid, params.clone());
+        update_params!(netuid => params.clone());
 
         let keys = SubspaceModule::get_keys(netuid);
         let _uids = SubspaceModule::get_uids(netuid);
@@ -861,7 +860,7 @@ fn test_founder_share() {
             let stake_from_vector = SubspaceModule::get_stake_to_vector(netuid, &keys[i]);
             info!("{:?}", stake_from_vector);
         }
-        SubspaceModule::set_founder_share(netuid, 50);
+        update_params!(netuid => { founder_share: 50 });
         let founder_share = SubspaceModule::get_founder_share(netuid);
         let founder_ratio: f64 = founder_share as f64 / 100.0;
 
