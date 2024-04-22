@@ -187,14 +187,14 @@ fn yuma_weights_older_than_max_age_are_discarded() {
         let yuma_netuid: u16 = 1;
         let yuma_validator_key = U256::from(1);
         let yuma_miner_key = U256::from(2);
-        let yuma_stake_amount: u64 = to_nano(10_000);
+        let yuma_vali_amount: u64 = to_nano(10_000);
         let yuma_miner_amount = to_nano(1_000);
 
         // This will act as an validator.
         assert_ok!(register_module(
             yuma_netuid,
             yuma_validator_key,
-            yuma_stake_amount
+            yuma_vali_amount
         ));
         // This will act as an miner.
         assert_ok!(register_module(
@@ -253,5 +253,151 @@ fn yuma_weights_older_than_max_age_are_discarded() {
 
         let subnet_emission_sum = SubspaceModule::get_emissions(yuma_netuid).iter().sum::<u64>();
         assert!(subnet_emission_sum > 0);
+    });
+}
+
+// Bad actor will try to move stake quickly from one subnet to another,
+// in hopes of increasing their emissions.
+// Logic is getting above the subnet_stake threshold with a faster tempo
+// (this is not possible due to emissions_to_drain calculated at evry block, making such exploits
+// impossible)
+#[test]
+fn test_emission_exploit() {
+    new_test_ext().execute_with(|| {
+        const SUBNET_TEMPO: u16 = 15;
+        // Register the general subnet.
+        let netuid: u16 = 0;
+        let key = U256::from(0);
+        let stake_amount: u64 = to_nano(1_000);
+
+        // Make sure registration cost is not affected
+        SubspaceModule::set_min_burn(0);
+
+        assert_ok!(register_module(netuid, key, stake_amount));
+
+        // Register the yuma subnet.
+        let yuma_netuid: u16 = 1;
+        let yuma_badactor_key = U256::from(1);
+        let yuma_badactor_amount: u64 = to_nano(10_000);
+
+        assert_ok!(register_module(
+            yuma_netuid,
+            yuma_badactor_key,
+            yuma_badactor_amount
+        ));
+        SubspaceModule::set_tempo(yuma_netuid, SUBNET_TEMPO);
+
+        // step first 40 blocks from the registration
+        step_block(40);
+
+        let stake_accumulated = SubspaceModule::get_stake_for_key(yuma_netuid, &yuma_badactor_key);
+        // User will now unstake and register another subnet.
+        assert_ok!(SubspaceModule::do_remove_stake(
+            get_origin(yuma_badactor_key),
+            yuma_netuid,
+            yuma_badactor_key,
+            stake_accumulated - 1
+        ));
+
+        // simulate real conditions by stepping  block
+        step_block(2); // 42 blocks passed since the registration
+
+        let new_netuid = 2;
+        // register the new subnet
+        let mut network: Vec<u8> = "test".as_bytes().to_vec();
+        network.extend(new_netuid.to_string().as_bytes().to_vec());
+        let mut name: Vec<u8> = "module".as_bytes().to_vec();
+        name.extend(key.to_string().as_bytes().to_vec());
+        let address: Vec<u8> = "0.0.0.0:30333".as_bytes().to_vec();
+        let origin = get_origin(yuma_badactor_key);
+        assert_ok!(SubspaceModule::register(
+            origin,
+            network,
+            name,
+            address,
+            yuma_badactor_amount - 1,
+            yuma_badactor_key,
+            None
+        ));
+
+        // set the tempo
+        SubspaceModule::set_tempo(new_netuid, SUBNET_TEMPO);
+
+        // now 100 blocks went by since the registration, 1 + 40 + 58 = 100
+        step_block(58);
+
+        // remove the stake again
+        let stake_accumulated_two =
+            SubspaceModule::get_stake_for_key(new_netuid, &yuma_badactor_key);
+        assert_ok!(SubspaceModule::do_remove_stake(
+            get_origin(yuma_badactor_key),
+            new_netuid,
+            yuma_badactor_key,
+            stake_accumulated_two - 2
+        ));
+
+        let badactor_balance_after = SubspaceModule::get_balance(&yuma_badactor_key);
+
+        let new_netuid = 3;
+        // Now an honest actor will come, the goal is for him to accumulate more
+        let honest_actor_key = U256::from(3);
+        assert_ok!(register_module(
+            new_netuid,
+            honest_actor_key,
+            yuma_badactor_amount
+        ));
+        // we will set a slower tempo
+        SubspaceModule::set_tempo(new_netuid, 100);
+        step_block(101);
+
+        // get the stake of honest actor
+        let hones_stake = SubspaceModule::get_stake_for_key(3, &honest_actor_key);
+        dbg!(hones_stake);
+        dbg!(badactor_balance_after);
+
+        assert!(hones_stake > badactor_balance_after);
+    });
+}
+
+#[test]
+fn test_tempo_compound() {
+    new_test_ext().execute_with(|| {
+        const QUICK_TEMPO: u16 = 25;
+        const SLOW_TEMPO: u16 = 1000;
+        // Register the general subnet.
+        let netuid: u16 = 0;
+        let key = U256::from(0);
+        let stake_amount: u64 = to_nano(1_000);
+
+        // Make sure registration cost is not affected
+        SubspaceModule::set_min_burn(0);
+
+        assert_ok!(register_module(netuid, key, stake_amount));
+
+        // Register the yuma subnets, the important part of the tests starts here:
+        // FAST
+        let s_netuid: u16 = 1;
+        let s_key = U256::from(1);
+        let s_amount: u64 = to_nano(10_000);
+
+        assert_ok!(register_module(s_netuid, s_key, s_amount));
+        SubspaceModule::set_tempo(s_netuid, SLOW_TEMPO);
+
+        // SLOW
+        let f_netuid = 2;
+        // Now an honest actor will come, the goal is for him to accumulate more
+        let f_key = U256::from(3);
+        assert_ok!(register_module(f_netuid, f_key, s_amount));
+        // we will set a slower tempo
+        SubspaceModule::set_tempo(f_netuid, QUICK_TEMPO);
+
+        // we will now step 1000 blocks
+        step_block(1000);
+
+        let fast = SubspaceModule::get_stake_for_key(f_netuid, &f_key);
+        let slow = SubspaceModule::get_stake_for_key(s_netuid, &s_key);
+
+        // faster tempo should have quicker compound rate
+        assert!(fast > slow);
     });
 }

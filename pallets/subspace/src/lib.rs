@@ -730,7 +730,7 @@ pub mod pallet {
         InvalidIpType, /* ---- Thrown when the user tries to serve an module which
                        * is not of type	4 (IPv4) or 6 (IPv6). */
         NotRegistered, // module which does not exist in the active set.
-        NotEnoughStaketoWithdraw, /* ---- Thrown when the caller requests removing more stake
+        NotEnoughStakeToWithdraw, /* ---- Thrown when the caller requests removing more stake
                         * then there exists in the staking account. See: fn
                         * remove_stake. */
         NotEnoughBalanceToStake, /*  ---- Thrown when the caller requests adding more stake
