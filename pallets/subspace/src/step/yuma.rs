@@ -193,7 +193,10 @@ impl<T: Config> YumaCalc<T> {
         distribute_emissions
     }
 
-    fn distribute_emissions(&self, result: Vec<(ModuleKey<T>, u64, u64)>) -> Result<EmissionMap<T>,&'static str> {
+    fn distribute_emissions(
+        &self,
+        result: Vec<(ModuleKey<T>, u64, u64)>,
+    ) -> Result<EmissionMap<T>, &'static str> {
         let mut emissions: EmissionMap<T> = Default::default();
         let mut emitted = 0;
 
@@ -266,7 +269,7 @@ impl<T: Config> YumaCalc<T> {
             self.founder_emission + self.to_be_emitted
         );
 
-       Ok( emissions)
+        Ok(emissions)
     }
 
     fn compute_weights(&self) -> WeightsVal {
