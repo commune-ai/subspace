@@ -43,7 +43,7 @@ fn test_weights_err_has_duplicate_ids() {
         SubspaceModule::set_max_registrations_per_block(100);
 
         assert_ok!(register_module(netuid, key_account_id, 10));
-        SubspaceModule::set_max_allowed_uids(netuid, 100); // Allow many registrations per block.
+        update_params!(netuid => { max_allowed_uids: 100 });
 
         // uid 1
         assert_ok!(register_module(netuid, U256::from(1), 100));
@@ -119,7 +119,7 @@ fn test_set_weight_not_enough_values() {
             assert_ok!(register_module(netuid, U256::from(i), 1_000_000_000));
         }
 
-        SubspaceModule::set_min_allowed_weights(netuid, 2);
+        update_params!(netuid => { min_allowed_weights: 2 });
 
         // setting weight below minimim
         let weight_keys: Vec<u16> = vec![1]; // not weight.
@@ -132,7 +132,7 @@ fn test_set_weight_not_enough_values() {
         );
         assert_eq!(result, Err(Error::<Test>::InvalidUidsLength.into()));
 
-        SubspaceModule::set_min_allowed_weights(netuid, 1);
+        update_params!(netuid => { min_allowed_weights: 1 });
 
         let weight_keys: Vec<u16> = vec![0]; // self weight.
         let weight_values: Vec<u16> = vec![88]; // random value.
@@ -147,7 +147,7 @@ fn test_set_weight_not_enough_values() {
         // Should pass because we are setting enough values.
         let weight_keys: Vec<u16> = vec![1, 2]; // self weight.
         let weight_values: Vec<u16> = vec![10, 10]; // random value.
-        SubspaceModule::set_min_allowed_weights(netuid, 1);
+        update_params!(netuid => { min_allowed_weights: 1 });
         assert_ok!(SubspaceModule::set_weights(
             RuntimeOrigin::signed(account_id),
             netuid,
@@ -174,7 +174,7 @@ fn test_set_max_allowed_uids() {
 
         let max_allowed_uids: u16 = 10;
 
-        SubspaceModule::set_max_allowed_weights(netuid, max_allowed_uids);
+        update_params!(netuid => { max_allowed_weights: max_allowed_uids });
 
         // Should fail because we are only setting a single value and its not the self weight.
         let weight_keys: Vec<u16> = (1..max_allowed_uids + 1).collect(); // not weight.
@@ -279,10 +279,7 @@ fn test_weight_age() {
         let weights = vec![1; uids.len()];
 
         // Set subnet parameters
-        let mut subnet_params = SubspaceModule::subnet_params(NETUID);
-        subnet_params.tempo = TEMPO as u16;
-        subnet_params.max_weight_age = TEMPO * 2;
-        SubspaceModule::set_subnet_params(NETUID, subnet_params);
+        update_params!(NETUID => { tempo: TEMPO as u16, max_weight_age: TEMPO * 2 });
 
         // Set weights for passive and active voters
         assert_ok!(SubspaceModule::set_weights(

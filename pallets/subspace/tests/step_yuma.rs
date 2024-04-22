@@ -54,8 +54,11 @@ fn test_1_graph() {
         let uid: u16 = 0;
         let stake_amount: u64 = to_nano(100);
 
-        SubspaceModule::set_max_allowed_uids(netuid, 1);
         assert_ok!(register_module(netuid, key, stake_amount));
+        update_params!(netuid => {
+            max_allowed_uids: 2
+        });
+
         assert_ok!(register_module(netuid, key + 1, 1));
         assert_eq!(SubspaceModule::get_subnet_n(netuid), 2);
 
@@ -122,11 +125,14 @@ fn test_10_graph() {
         let n: usize = 10;
         let netuid: u16 = 1;
         let stake_amount_per_node = ONE;
-        SubspaceModule::set_max_allowed_uids(netuid, n as u16 + 1);
 
         for i in 0..n {
             add_node(netuid, U256::from(i), i as u16, stake_amount_per_node)
         }
+
+        update_params!(netuid => {
+            max_allowed_uids: n as u16 + 1
+        });
 
         assert_ok!(register_module(netuid, U256::from(n + 1), 1));
         assert_eq!(SubspaceModule::get_subnet_n(netuid), 11);
@@ -206,8 +212,10 @@ fn yuma_weights_older_than_max_age_are_discarded() {
         step_block(1);
 
         // Set the max weight age to 300 blocks
-        SubspaceModule::set_max_weight_age(yuma_netuid, MAX_WEIGHT_AGE);
-        SubspaceModule::set_tempo(yuma_netuid, SUBNET_TEMPO);
+        update_params!(yuma_netuid => {
+            tempo: SUBNET_TEMPO,
+            max_weight_age: MAX_WEIGHT_AGE
+        });
 
         let miner_uid = SubspaceModule::get_uid_for_key(yuma_netuid, &yuma_miner_key);
         let validator_uid = SubspaceModule::get_uid_for_key(yuma_netuid, &yuma_validator_key);

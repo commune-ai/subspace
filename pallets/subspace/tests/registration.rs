@@ -8,8 +8,8 @@ use sp_core::U256;
 
 use log::info;
 use pallet_subspace::{
-    Emission, Error, MaxAllowedModules, MaxAllowedUids, RemovedSubnets, Stake, SubnetNames,
-    TotalSubnets, N,
+    Emission, Error, MaxAllowedModules, MaxAllowedUids, MinStake, RemovedSubnets, Stake,
+    SubnetNames, TotalSubnets, N,
 };
 use sp_runtime::{DispatchResult, Percent};
 
@@ -31,9 +31,8 @@ fn test_min_stake() {
         network.extend(netuid.to_string().as_bytes().to_vec());
         let name = "module".as_bytes().to_vec();
         assert_noop!(SubspaceModule::do_register(get_origin(U256::from(0)), network, name, address, 0, U256::from(0), None), Error::<Test>::NotEnoughBalanceToRegister);
-        SubspaceModule::set_min_stake(netuid, min_stake);
+        MinStake::<Test>::set(netuid, min_stake);
         SubspaceModule::set_max_registrations_per_block(max_registrations_per_block);
-        dbg!("after set");
         step_block(1);
         assert_eq!(SubspaceModule::get_registrations_this_block(), 0);
 
@@ -61,13 +60,10 @@ fn test_min_stake() {
 fn test_max_registration() {
     new_test_ext().execute_with(|| {
         let netuid: u16 = 0;
-        let min_stake = 100_000_000;
         let rounds = 3;
         let max_registrations_per_block = 100;
         // make sure that the results won´t get affected by burn
         SubspaceModule::set_min_burn(0);
-
-        SubspaceModule::set_min_stake(netuid, min_stake);
 
         assert_eq!(SubspaceModule::get_registrations_this_block(), 0);
 

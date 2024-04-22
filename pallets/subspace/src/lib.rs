@@ -44,7 +44,7 @@ mod profit_share;
 mod registration;
 mod staking;
 mod step;
-mod subnet;
+pub mod subnet;
 pub mod voting;
 mod weights;
 
@@ -411,7 +411,7 @@ pub mod pallet {
 
     #[pallet::type_value]
     pub fn DefaultMaxAllowedUids<T: Config>() -> u16 {
-        4096
+        820
     }
     #[pallet::storage] // --- MAP ( netuid ) --> max_allowed_uids
     pub type MaxAllowedUids<T> =
@@ -913,7 +913,7 @@ pub mod pallet {
 
                 let fee = DelegationFee::<T>::get(netuid, &params.founder);
                 let changeset: SubnetChangeset<T> =
-                    SubnetChangeset::new(&params.name, &params.founder, params.clone());
+                    SubnetChangeset::new(params).expect("genesis subnets are valid");
                 let _ = self::Pallet::<T>::add_subnet(changeset, Some(netuid))
                     .expect("Failed to register genesis subnet");
                 for (uid_usize, (key, name, address, weights)) in
@@ -1147,29 +1147,25 @@ pub mod pallet {
             trust_ratio: u16,
             vote_mode: VoteMode,
         ) -> DispatchResult {
-            let mut params = Self::subnet_params(netuid);
-            params.founder = founder;
-            params.founder_share = founder_share;
-            params.immunity_period = immunity_period;
-            params.incentive_ratio = incentive_ratio;
-            params.max_allowed_uids = max_allowed_uids;
-            params.max_allowed_weights = max_allowed_weights;
-            params.max_stake = max_stake;
-            params.min_allowed_weights = min_allowed_weights;
-            params.max_weight_age = max_weight_age;
-            params.min_stake = min_stake;
-            params.name = name;
-            params.tempo = tempo;
-            params.trust_ratio = trust_ratio;
-            params.vote_mode = vote_mode;
+            let params = SubnetParams {
+                founder,
+                founder_share,
+                immunity_period,
+                incentive_ratio,
+                max_allowed_uids,
+                max_allowed_weights,
+                max_stake,
+                min_allowed_weights,
+                max_weight_age,
+                min_stake,
+                name,
+                tempo,
+                trust_ratio,
+                vote_mode,
+            };
 
-            // Check if subnet parameters are valid
-            Self::check_subnet_params(&params)?;
-
-            let subnet_set =
-                SubnetChangeset::update(&params.name, &params.founder, netuid, params.clone());
-            // if so update them
-            Self::do_update_subnet(origin, netuid, subnet_set)
+            let changeset = SubnetChangeset::update(netuid, params)?;
+            Self::do_update_subnet(origin, netuid, changeset)
         }
 
         // Proposal Calls

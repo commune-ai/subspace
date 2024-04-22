@@ -143,7 +143,9 @@ fn test_set_max_allowed_uids_growing() {
         assert_eq!(SubspaceModule::get_subnet_n(netuid), max_uids);
         for r in 1..rounds {
             // set max allowed uids to max_uids + extra_uids
-            SubspaceModule::set_max_allowed_uids(netuid, max_uids + extra_uids * (r - 1));
+            update_params!(netuid => {
+                max_allowed_uids: max_uids + extra_uids * (r - 1)
+            });
             max_uids = SubspaceModule::get_max_allowed_uids(netuid);
             let new_n = old_n + extra_uids * (r - 1);
             // print the pruned uids
@@ -185,7 +187,9 @@ fn test_set_max_allowed_uids_shrinking() {
         let mut n = SubspaceModule::get_subnet_n(netuid);
         info!("registering module {}", n);
         assert_ok!(register_module(netuid, U256::from(0), stake));
-        SubspaceModule::set_max_allowed_uids(netuid, max_uids + extra_uids);
+        update_params!(netuid => {
+            max_allowed_uids: max_uids + extra_uids
+        });
         SubspaceModule::set_max_registrations_per_block(max_uids + extra_uids);
 
         for i in 1..(max_uids + extra_uids) {
@@ -449,7 +453,7 @@ fn test_yuma_self_vote() {
             validator_key,
             stake_yuma_voter
         ));
-        SubspaceModule::set_max_weight_age(netuid_yuma, (blocks_in_day + 1) as u64);
+        update_params!(netuid_yuma => { max_weight_age: (blocks_in_day + 1) as u64});
         assert_ok!(register_module(netuid_yuma, miner_key, stake_yuma_miner));
         assert_ok!(register_module(
             netuid_yuma,
@@ -586,7 +590,7 @@ fn test_parasite_subnet_registrations() {
             main_subnet_stake
         ));
         // Set the immunity period of the honest subnet to 1000 blocks.
-        SubspaceModule::set_immunity_period(main_subnet_netuid, 1000);
+        update_params!(main_subnet_netuid => { immunity_period: 1000 });
 
         // Register the parasite subnet
         assert_ok!(register_module(
@@ -595,7 +599,7 @@ fn test_parasite_subnet_registrations() {
             parasite_subnet_stake
         ));
         // Parasite subnet set it's immunity period to 100k blocks.
-        SubspaceModule::set_immunity_period(parasite_netuid, u16::MAX);
+        update_params!(parasite_netuid => { immunity_period: u16::MAX });
 
         // Honest subnet will now register another module, so it will have 2 in total.
         assert_ok!(register_module(
@@ -711,15 +715,12 @@ fn test_active_stake() {
         }
         assert_eq!(SubspaceModule::is_registered(9, &U256::from(10)), true);
 
-        // Make sure the subnet has some meaningful temp & max weight age
-        SubspaceModule::set_tempo(10, 50);
-        SubspaceModule::set_max_weight_age(10, 15_000);
-
         // register another module on the newly re-registered subnet 9,
         // and set weights on it from the key 11
         let miner_key = U256::from(11);
         let miner_stake = to_nano(100_000);
         assert_ok!(register_module(10, miner_key, miner_stake));
+
         step_block(1);
 
         assert_eq!(N::<Test>::get(9), 2);
