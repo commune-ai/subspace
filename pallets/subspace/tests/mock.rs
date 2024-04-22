@@ -195,7 +195,7 @@ pub fn register_module(netuid: u16, key: U256, stake: u64) -> DispatchResult {
 
     add_balance(key, stake + 1);
 
-    SubspaceModule::register(origin, network, name.clone(), address, stake, key, None)
+    SubspaceModule::register(origin, network, name, address, stake, key, None)
 }
 
 #[allow(dead_code)]
@@ -253,7 +253,7 @@ pub fn register(netuid: u16, key: U256, stake: u64) {
     let address: Vec<u8> = "0.0.0.0:30333".as_bytes().to_vec();
     let origin = get_origin(key);
 
-    let result = SubspaceModule::register(origin, network, name.clone(), address, stake, key, None);
+    let result = SubspaceModule::register(origin, network, name, address, stake, key, None);
     assert_ok!(result);
 }
 

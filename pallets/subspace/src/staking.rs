@@ -32,7 +32,7 @@ impl<T: Config> Pallet<T> {
         let total_amount: u64 = amounts.iter().sum();
         ensure!(
             Self::has_enough_balance(&key, total_amount),
-            Error::<T>::NotEnoughStaketoWithdraw
+            Error::<T>::NotEnoughStakeToWithdraw
         );
 
         // --- 4. Add stake to each module
@@ -104,7 +104,7 @@ impl<T: Config> Pallet<T> {
         for (m_key, amount) in module_keys.iter().zip(amounts.iter()) {
             ensure!(
                 Self::has_enough_stake(netuid, &key, m_key, *amount),
-                Error::<T>::NotEnoughStaketoWithdraw
+                Error::<T>::NotEnoughStakeToWithdraw
             );
             Self::do_remove_stake(origin.clone(), netuid, m_key.clone(), *amount)?;
         }
@@ -139,7 +139,7 @@ impl<T: Config> Pallet<T> {
         // --- 3. Check if the caller has enough stake in the old module
         ensure!(
             Self::has_enough_stake(netuid, &key, &module_key, amount),
-            Error::<T>::NotEnoughStaketoWithdraw
+            Error::<T>::NotEnoughStakeToWithdraw
         );
 
         // --- 4. Remove stake from the source module and add it to the destination module
@@ -239,7 +239,7 @@ impl<T: Config> Pallet<T> {
         // --- 3. We check that the caller has enough stake in the module.
         ensure!(
             Self::has_enough_stake(netuid, &key, &module_key, amount),
-            Error::<T>::NotEnoughStaketoWithdraw
+            Error::<T>::NotEnoughStakeToWithdraw
         );
 
         // --- 4. Make sure we can convert to balance

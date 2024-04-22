@@ -1,8 +1,9 @@
 mod mock;
 
-use frame_support::assert_ok;
+use frame_support::{assert_noop, assert_ok};
 use log::info;
 use mock::*;
+use pallet_subspace::Error;
 use sp_core::U256;
 use substrate_fixed::types::I64F64;
 
@@ -389,5 +390,51 @@ fn test_min_stake() {
             keys[0],
             10_000_000_000
         ));
+    });
+}
+
+#[test]
+fn test_stake_zero() {
+    new_test_ext().execute_with(|| {
+        // Register the general subnet.
+        let netuid: u16 = 0;
+        let key = U256::from(0);
+        let stake_amount: u64 = to_nano(1_000);
+
+        // Make sure registration cost is not affected
+        SubspaceModule::set_min_burn(0);
+
+        assert_ok!(register_module(netuid, key, stake_amount));
+
+        // try to stake zero
+        let key_two = U256::from(1);
+
+        assert_noop!(
+            SubspaceModule::do_add_stake(get_origin(key_two), netuid, key, 0),
+            Error::<Test>::NotEnoughBalanceToStake
+        );
+    });
+}
+
+#[test]
+fn test_unstake_zero() {
+    new_test_ext().execute_with(|| {
+        // Register the general subnet.
+        let netuid: u16 = 0;
+        let key = U256::from(0);
+        let stake_amount: u64 = to_nano(1_000);
+
+        // Make sure registration cost is not affected
+        SubspaceModule::set_min_burn(0);
+
+        assert_ok!(register_module(netuid, key, stake_amount));
+
+        // try to unstake zero
+        let key_two = U256::from(1);
+
+        assert_noop!(
+            SubspaceModule::do_remove_stake(get_origin(key_two), netuid, key, 0),
+            Error::<Test>::NotEnoughStakeToWithdraw
+        );
     });
 }
