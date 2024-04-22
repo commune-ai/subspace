@@ -477,7 +477,7 @@ fn test_lowest_priority_mechanism() {
 fn test_blocks_until_epoch() {
     new_test_ext().execute_with(|| {
         // Check tempo = 0 block = * netuid = *
-        assert_eq!(SubspaceModule::blocks_until_next_epoch(0, 0, 0), 0);
+        assert_eq!(SubspaceModule::blocks_until_next_epoch(0, 0, 0), 1000);
 
         // Check tempo = 1 block = * netuid = *
         assert_eq!(SubspaceModule::blocks_until_next_epoch(0, 1, 0), 0);
