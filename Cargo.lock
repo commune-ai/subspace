@@ -4346,7 +4346,7 @@ dependencies = [
 
 [[package]]
 name = "node-subspace"
-version = "1.5.1"
+version = "1.5.2"
 dependencies = [
  "clap",
  "fp-evm",
@@ -4397,7 +4397,7 @@ dependencies = [
 
 [[package]]
 name = "node-subspace-runtime"
-version = "1.5.1"
+version = "1.5.2"
 dependencies = [
  "fp-account",
  "fp-evm",
@@ -4870,7 +4870,7 @@ dependencies = [
 
 [[package]]
 name = "pallet-subspace"
-version = "1.5.1"
+version = "1.5.2"
 dependencies = [
  "bty",
  "frame-benchmarking",

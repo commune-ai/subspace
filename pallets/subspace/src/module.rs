@@ -319,7 +319,6 @@ impl<T: Config> Pallet<T> {
     pub fn get_module_stats(netuid: u16, key: &T::AccountId) -> ModuleStats<T> {
         let uid = Uids::<T>::get(netuid, key).unwrap_or(u16::MAX);
 
-        let key = Self::get_key_for_uid(netuid, uid);
         let emission = Self::get_emission_for_uid(netuid, uid);
         let incentive = Self::get_incentive_for_uid(netuid, uid);
         let dividends = Self::get_dividends_for_uid(netuid, uid);
