@@ -178,8 +178,8 @@ pub mod v3 {
                 // Iterate through all netuids and insert the old burn (minimum) value for each
                 // this is important as we don't want free registrations right after the runtime
                 // udpate
-                for netuid in N::<T>::iter_keys() {
-                    let module_count = Pallet::<T>::get_subnet_n(netuid) as usize;
+                for (netuid, module_count) in N::<T>::iter() {
+                    let module_count = module_count as usize;
 
                     // With the current subnet emission threshold (5%), only 20 subnets
                     // can actually activelly produce emission, the old value 256
@@ -220,8 +220,7 @@ pub mod v3 {
 
                     // If the subnet has more modules than allowed, remove the lowest ones.
                     let max_allowed = MaxAllowedUids::<T>::get(netuid);
-                    let currently_registered = Pallet::<T>::get_subnet_n(netuid);
-                    let overflown = currently_registered.saturating_sub(max_allowed);
+                    let overflown = (module_count as u16).saturating_sub(max_allowed);
 
                     if overflown > 0 {
                         log::warn!(
@@ -236,6 +235,48 @@ pub mod v3 {
                     }
 
                     netuids.insert(netuid);
+
+                    let uids_count = Uids::<T>::iter_key_prefix(netuid).count();
+                    let keys_count = Keys::<T>::iter_key_prefix(netuid).count();
+
+                    if uids_count != keys_count && netuid != 0 {
+                        log::warn!("{netuid}: subnet has inconsistent uids ({keys_count}) and keys ({uids_count}), deregistering...");
+
+                        let mut keys = BTreeMap::new();
+                        let mut broken_keys = BTreeSet::new();
+                        let mut broken_uids = BTreeSet::new();
+                        for (uid, key) in Keys::<T>::iter_prefix(netuid) {
+                            if let Some(old_uid) = keys.insert(key.clone(), uid) {
+                                broken_keys.insert(key);
+                                broken_uids.insert(uid);
+                                broken_uids.insert(old_uid);
+                            }
+                        }
+
+                        log::warn!("{netuid}: broken uids {broken_uids:?}");
+
+                        'outer: for key in broken_keys {
+                            loop {
+                                let Some((uid, _)) =
+                                    Keys::<T>::iter_prefix(netuid).find(|(_, k)| k == &key)
+                                else {
+                                    continue 'outer;
+                                };
+                                log::warn!(
+                                    "{netuid}: removing duplicate key {key:?} with uid {uid}"
+                                );
+                                Pallet::<T>::remove_module(netuid, uid);
+                            }
+                        }
+
+                        let uids_count = Uids::<T>::iter_key_prefix(netuid).count();
+                        let keys_count = Keys::<T>::iter_key_prefix(netuid).count();
+                        if uids_count != keys_count {
+                            log::error!(
+                                "{netuid}: subnet continues to have wrong number of uids and keys"
+                            );
+                        }
+                    }
                 }
                 log::info!("Emission and consensus updated");
 

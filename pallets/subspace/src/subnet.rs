@@ -612,14 +612,9 @@ impl<T: Config> Pallet<T> {
         Keys::<T>::contains_key(netuid, uid)
     }
 
-    // Returns true if the key holds a slot on the network.
-    //
-    pub fn is_key_registered_on_network(netuid: u16, key: &T::AccountId) -> bool {
-        Uids::<T>::contains_key(netuid, key)
-    }
-
     pub fn key_registered(netuid: u16, key: &T::AccountId) -> bool {
         Uids::<T>::contains_key(netuid, key)
+            || Keys::<T>::iter_prefix_values(netuid).any(|k| &k == key)
     }
 
     pub fn is_key_registered_on_any_network(key: &T::AccountId) -> bool {

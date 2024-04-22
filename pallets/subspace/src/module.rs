@@ -7,6 +7,8 @@ use frame_support::{
 use sp_arithmetic::per_things::Percent;
 use sp_std::collections::btree_map::BTreeMap;
 
+pub struct SubnetDistributionParameters;
+
 #[derive(Decode, Encode, PartialEq, Eq, Clone, Debug)]
 pub struct ModuleStats<T: Config> {
     pub last_update: u64,
@@ -95,7 +97,7 @@ impl ModuleChangeset {
             let floor = Pallet::<T>::get_floor_delegation_fee();
             ensure!(fee >= floor, Error::<T>::InvalidMinDelegationFee);
 
-            DelegationFee::<T>::insert(netuid, key, fee);
+            DelegationFee::<T>::insert(netuid, &key, fee);
         }
 
         if let Some(metadata) = self.metadata {
@@ -103,7 +105,7 @@ impl ModuleChangeset {
             ensure!(metadata.len() <= 59, Error::<T>::ModuleMetadataTooLong);
             core::str::from_utf8(&metadata).map_err(|_| Error::<T>::InvalidModuleMetadata)?;
 
-            Metadata::<T>::insert(netuid, uid, metadata);
+            Metadata::<T>::insert(netuid, key, metadata);
         }
 
         Ok(())
@@ -137,13 +139,55 @@ impl<T: Config> Pallet<T> {
         ModuleParams {
             name: Name::<T>::get(netuid, uid),
             address: Address::<T>::get(netuid, uid),
-            metadata: Metadata::<T>::get(netuid, uid),
+            metadata: Metadata::<T>::get(netuid, key),
             delegation_fee: DelegationFee::<T>::get(netuid, key),
             controller: key.clone(),
         }
     }
 
-    // Replace the module under this uid.
+    /// Appends the uid to the network (without increasing stake).
+    pub fn append_module(
+        netuid: u16,
+        key: &T::AccountId,
+        changeset: ModuleChangeset,
+    ) -> Result<u16, sp_runtime::DispatchError> {
+        // 1. Get the next uid. This is always equal to subnetwork_n.
+        let uid: u16 = Self::get_subnet_n(netuid);
+        let block_number = Self::get_current_block_number();
+
+        log::debug!("append_module( netuid: {netuid:?} | uid: {key:?} | new_key: {uid:?})");
+
+        // 2. Apply the changeset
+        changeset.apply::<T>(netuid, key.clone(), uid)?;
+
+        // 3. Insert new account information.
+        Keys::<T>::insert(netuid, uid, key); // Make key - uid association.
+        Uids::<T>::insert(netuid, key, uid); // Make uid - key association.
+        RegistrationBlock::<T>::insert(netuid, uid, block_number); // Fill block at registration.
+
+        // 4. Expand consensus parameters with new position.
+        Active::<T>::append(netuid, true);
+        Consensus::<T>::append(netuid, 0);
+        Emission::<T>::append(netuid, 0);
+        Incentive::<T>::append(netuid, 0);
+        Dividends::<T>::append(netuid, 0);
+        LastUpdate::<T>::append(netuid, block_number);
+        PruningScores::<T>::append(netuid, 0);
+        Rank::<T>::append(netuid, 0);
+        Trust::<T>::append(netuid, 0);
+        ValidatorPermits::<T>::append(netuid, false);
+        ValidatorTrust::<T>::append(netuid, 0);
+
+        // 5. Increase the number of modules in the network.
+        N::<T>::mutate(netuid, |n| *n += 1);
+
+        // increase the stake of the new key
+        Self::increase_stake(netuid, key, key, 0);
+
+        Ok(uid)
+    }
+
+    /// Replace the module under this uid.
     pub fn remove_module(netuid: u16, uid: u16) {
         // 1. Get the old key under this position.
         let n = Self::get_subnet_n(netuid);
@@ -151,21 +195,22 @@ impl<T: Config> Pallet<T> {
             // No modules in the network.
             return;
         }
-        let uid_key: T::AccountId = Keys::<T>::get(netuid, uid);
+        let module_key: T::AccountId = Keys::<T>::get(netuid, uid);
         let replace_uid = n - 1;
         let replace_key: T::AccountId = Keys::<T>::get(netuid, replace_uid);
 
         log::debug!(
-            "remove_module( netuid: {:?} | uid : {:?} | new_key: {:?} ) ",
+            "remove_module( netuid: {:?} | uid : {:?} | key: {:?} ) ",
             netuid,
             uid,
-            uid_key
+            module_key
         );
 
         // HANDLE THE KEY AND UID ASSOCIATIONS
-        Uids::<T>::insert(netuid, &replace_key, uid); // Remove old key - uid association.
+        Uids::<T>::insert(netuid, &replace_key, uid); // Replace UID related to the replaced key.
+        Uids::<T>::remove(netuid, &module_key); // Remove old key - uid association.
+
         Keys::<T>::insert(netuid, uid, &replace_key); // Make key - uid association.
-        Uids::<T>::remove(netuid, &uid_key); // Remove old key - uid association.
         Keys::<T>::remove(netuid, replace_uid); // Remove key - uid association.
 
         // pop frm incentive vector and push to new key
@@ -239,10 +284,10 @@ impl<T: Config> Pallet<T> {
         // HANDLE THE METADATA
         Metadata::<T>::insert(
             netuid,
-            uid,
-            Metadata::<T>::get(netuid, replace_uid).unwrap_or_default(),
+            &module_key,
+            Metadata::<T>::get(netuid, &replace_key).unwrap_or_default(),
         );
-        Metadata::<T>::remove(netuid, replace_uid);
+        Metadata::<T>::remove(netuid, &replace_key);
 
         // HANDLE THE NAMES
         Name::<T>::insert(netuid, uid, Name::<T>::get(netuid, replace_uid));
@@ -251,13 +296,13 @@ impl<T: Config> Pallet<T> {
         // HANDLE THE DELEGATION FEE
         DelegationFee::<T>::insert(
             netuid,
-            &uid_key,
+            &module_key,
             DelegationFee::<T>::get(netuid, &replace_key),
         ); // Make uid - key association.
         DelegationFee::<T>::remove(netuid, &replace_key); // Make uid - key association.
 
         // remove stake from old key and add to new key
-        Self::remove_stake_from_storage(netuid, &uid_key);
+        Self::remove_stake_from_storage(netuid, &module_key);
 
         // 3. Remove the network if it is empty.
         let module_count = N::<T>::mutate(netuid, |v| {
@@ -269,48 +314,6 @@ impl<T: Config> Pallet<T> {
         if module_count == 0 {
             Self::remove_subnet(netuid);
         }
-    }
-
-    // Appends the uid to the network (without increasing stake).
-    pub fn append_module(
-        netuid: u16,
-        key: &T::AccountId,
-        changeset: ModuleChangeset,
-    ) -> Result<u16, sp_runtime::DispatchError> {
-        // 1. Get the next uid. This is always equal to subnetwork_n.
-        let uid: u16 = Self::get_subnet_n(netuid);
-        let block_number = Self::get_current_block_number();
-
-        log::debug!("append_module( netuid: {netuid:?} | uid: {key:?} | new_key: {uid:?})");
-
-        // 2. Apply the changeset
-        changeset.apply::<T>(netuid, key.clone(), uid)?;
-
-        // 3. Insert new account information.
-        Keys::<T>::insert(netuid, uid, key); // Make key - uid association.
-        Uids::<T>::insert(netuid, key, uid); // Make uid - key association.
-        RegistrationBlock::<T>::insert(netuid, uid, block_number); // Fill block at registration.
-
-        // 4. Expand consensus parameters with new position.
-        Active::<T>::append(netuid, true);
-        Consensus::<T>::append(netuid, 0);
-        Emission::<T>::append(netuid, 0);
-        Incentive::<T>::append(netuid, 0);
-        Dividends::<T>::append(netuid, 0);
-        LastUpdate::<T>::append(netuid, block_number);
-        PruningScores::<T>::append(netuid, 0);
-        Rank::<T>::append(netuid, 0);
-        Trust::<T>::append(netuid, 0);
-        ValidatorPermits::<T>::append(netuid, false);
-        ValidatorTrust::<T>::append(netuid, 0);
-
-        // 5. Increase the number of modules in the network.
-        N::<T>::mutate(netuid, |n| *n += 1);
-
-        // increase the stake of the new key
-        Self::increase_stake(netuid, key, key, 0);
-
-        Ok(uid)
     }
 
     pub fn get_module_stats(netuid: u16, key: &T::AccountId) -> ModuleStats<T> {
