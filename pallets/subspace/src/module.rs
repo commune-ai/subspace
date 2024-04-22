@@ -134,7 +134,7 @@ impl<T: Config> Pallet<T> {
     }
 
     pub fn module_params(netuid: u16, key: &T::AccountId) -> ModuleParams<T> {
-        let uid = Uids::<T>::try_get(netuid, key).expect("module key does not exist");
+        let uid = Uids::<T>::get(netuid, key).unwrap_or(u16::MAX);
 
         ModuleParams {
             name: Name::<T>::get(netuid, uid),
@@ -317,7 +317,7 @@ impl<T: Config> Pallet<T> {
     }
 
     pub fn get_module_stats(netuid: u16, key: &T::AccountId) -> ModuleStats<T> {
-        let uid = Uids::<T>::try_get(netuid, key).expect("module key does not exist");
+        let uid = Uids::<T>::get(netuid, key).unwrap_or(u16::MAX);
 
         let key = Self::get_key_for_uid(netuid, uid);
         let emission = Self::get_emission_for_uid(netuid, uid);

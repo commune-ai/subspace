@@ -594,12 +594,6 @@ impl<T: Config> Pallet<T> {
         netuid
     }
 
-    pub fn get_current_block_as_u64() -> u64 {
-        TryInto::try_into(<frame_system::Pallet<T>>::block_number())
-            .ok()
-            .expect("blockchain will not exceed 2^64 blocks; QED.")
-    }
-
     // Returns the number of filled slots on a network.
     ///
     pub fn get_subnet_n(netuid: u16) -> u16 {
