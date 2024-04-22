@@ -411,7 +411,7 @@ pub mod pallet {
 
     #[pallet::type_value]
     pub fn DefaultMaxAllowedUids<T: Config>() -> u16 {
-        4096
+        820
     }
     #[pallet::storage] // --- MAP ( netuid ) --> max_allowed_uids
     pub type MaxAllowedUids<T> =
