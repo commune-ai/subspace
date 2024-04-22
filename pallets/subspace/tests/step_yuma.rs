@@ -272,7 +272,7 @@ fn yuma_weights_older_than_max_age_are_discarded() {
 #[test]
 fn test_emission_exploit() {
     new_test_ext().execute_with(|| {
-        const SUBNET_TEMPO: u16 = 15;
+        const SUBNET_TEMPO: u16 = 25;
         // Register the general subnet.
         let netuid: u16 = 0;
         let key = U256::from(0);
@@ -293,7 +293,7 @@ fn test_emission_exploit() {
             yuma_badactor_key,
             yuma_badactor_amount
         ));
-        SubspaceModule::set_tempo(yuma_netuid, SUBNET_TEMPO);
+        update_params!(netuid => { tempo: SUBNET_TEMPO });
 
         // step first 40 blocks from the registration
         step_block(40);
@@ -329,7 +329,7 @@ fn test_emission_exploit() {
         ));
 
         // set the tempo
-        SubspaceModule::set_tempo(new_netuid, SUBNET_TEMPO);
+        update_params!(netuid => { tempo: SUBNET_TEMPO });
 
         // now 100 blocks went by since the registration, 1 + 40 + 58 = 100
         step_block(58);
@@ -354,8 +354,8 @@ fn test_emission_exploit() {
             honest_actor_key,
             yuma_badactor_amount
         ));
-        // we will set a slower tempo
-        SubspaceModule::set_tempo(new_netuid, 100);
+        // we will set a slower tempo, standard 100
+        update_params!(new_netuid => { tempo: 100 });
         step_block(101);
 
         // get the stake of honest actor
@@ -389,7 +389,7 @@ fn test_tempo_compound() {
         let s_amount: u64 = to_nano(10_000);
 
         assert_ok!(register_module(s_netuid, s_key, s_amount));
-        SubspaceModule::set_tempo(s_netuid, SLOW_TEMPO);
+        update_params!(s_netuid => { tempo: SLOW_TEMPO });
 
         // SLOW
         let f_netuid = 2;
@@ -397,10 +397,10 @@ fn test_tempo_compound() {
         let f_key = U256::from(3);
         assert_ok!(register_module(f_netuid, f_key, s_amount));
         // we will set a slower tempo
-        SubspaceModule::set_tempo(f_netuid, QUICK_TEMPO);
+        update_params!(f_netuid => { tempo: QUICK_TEMPO });
 
-        // we will now step 1000 blocks
-        step_block(1000);
+        // we will now step, SLOW_TEMPO -> 1000 blocks
+        step_block(SLOW_TEMPO);
 
         let fast = SubspaceModule::get_stake_for_key(f_netuid, &f_key);
         let slow = SubspaceModule::get_stake_for_key(s_netuid, &s_key);
