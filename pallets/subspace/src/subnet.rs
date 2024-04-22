@@ -623,8 +623,8 @@ impl<T: Config> Pallet<T> {
 
     // Returs the key under the network uid as a Result. Ok if the uid is taken.
     //
-    pub fn get_key_for_uid(netuid: u16, module_uid: u16) -> T::AccountId {
-        Keys::<T>::try_get(netuid, module_uid).unwrap()
+    pub fn get_key_for_uid(netuid: u16, module_uid: u16) -> Option<T::AccountId> {
+        Keys::<T>::try_get(netuid, module_uid).ok()
     }
 
     // Returns the uid of the key in the network as a Result. Ok if the key has a slot.
@@ -640,7 +640,10 @@ impl<T: Config> Pallet<T> {
     /// Returns the stake of the uid on network or 0 if it doesnt exist.
     #[cfg(debug_assertions)]
     pub fn get_stake_for_uid(netuid: u16, module_uid: u16) -> u64 {
-        Self::get_stake_for_key(netuid, &Self::get_key_for_uid(netuid, module_uid))
+        let Some(key) = Self::get_key_for_uid(netuid, module_uid) else {
+            return 0;
+        };
+        Self::get_stake_for_key(netuid, &key)
     }
 
     pub fn get_stake_for_key(netuid: u16, key: &T::AccountId) -> u64 {
@@ -796,7 +799,7 @@ impl<T: Config> Pallet<T> {
     pub fn get_keys(netuid: u16) -> Vec<T::AccountId> {
         let uids: Vec<u16> = Self::get_uids(netuid);
         let keys: Vec<T::AccountId> =
-            uids.iter().map(|uid| Self::get_key_for_uid(netuid, *uid)).collect();
+            uids.iter().map(|uid| Self::get_key_for_uid(netuid, *uid).unwrap()).collect();
         keys
     }
 
@@ -804,7 +807,7 @@ impl<T: Config> Pallet<T> {
         let n = Self::get_subnet_n(netuid);
         let mut uid_key_tuples = Vec::<(u16, T::AccountId)>::new();
         for uid in 0..n {
-            let key = Self::get_key_for_uid(netuid, uid);
+            let key = Self::get_key_for_uid(netuid, uid).unwrap();
             uid_key_tuples.push((uid, key));
         }
         uid_key_tuples
