@@ -554,8 +554,9 @@ failed to run yuma consensus algorithm, {err}, skipping this block. \
     }
 
     pub fn blocks_until_next_epoch(netuid: u16, tempo: u16, block_number: u64) -> u64 {
+        // in this case network never runs
         if tempo == 0 {
-            return 0;
+            return 1000;
         }
         (block_number + netuid as u64) % (tempo as u64)
     }
