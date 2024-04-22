@@ -548,7 +548,7 @@ pub mod pallet {
     // =======================================
 
     #[pallet::storage] // --- DMAP ( netuid, module_key ) --> uid
-    pub(super) type Uids<T: Config> =
+    pub type Uids<T: Config> =
         StorageDoubleMap<_, Identity, u16, Blake2_128Concat, T::AccountId, u16, OptionQuery>;
 
     #[pallet::type_value]
@@ -567,9 +567,9 @@ pub mod pallet {
     pub type Address<T: Config> =
         StorageDoubleMap<_, Twox64Concat, u16, Twox64Concat, u16, Vec<u8>, ValueQuery>;
 
-    #[pallet::storage] // --- DMAP ( netuid, uid ) --> metadata_uri
+    #[pallet::storage] // --- DMAP ( netuid, module key ) --> metadata_uri
     pub type Metadata<T: Config> =
-        StorageDoubleMap<_, Twox64Concat, u16, Twox64Concat, u16, Vec<u8>>;
+        StorageDoubleMap<_, Twox64Concat, u16, Twox64Concat, T::AccountId, Vec<u8>>;
 
     #[pallet::type_value]
     pub fn DefaultDelegationFee<T: Config>() -> Percent {

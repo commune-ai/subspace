@@ -5,6 +5,7 @@ use super::*;
 use frame_support::pallet_prelude::DispatchResult;
 use frame_system::ensure_signed;
 
+use sp_core::Get;
 use sp_std::vec::Vec;
 
 impl<T: Config> Pallet<T> {
@@ -137,7 +138,7 @@ impl<T: Config> Pallet<T> {
         // If we do deregister slot.
         Self::reserve_module_slot(netuid);
 
-        let fee = DelegationFee::<T>::get(netuid, &module_key);
+        let fee = DefaultDelegationFee::<T>::get();
         // --- 8. Register the module and changeset.
         let module_changeset = ModuleChangeset::new(name, address, fee, metadata);
 

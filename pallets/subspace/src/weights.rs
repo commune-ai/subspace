@@ -30,7 +30,7 @@ impl<T: Config> Pallet<T> {
 
         // --- 4. Check to see if the key is registered to the passed network.
         ensure!(
-            Self::is_key_registered_on_network(netuid, &key),
+            Self::key_registered(netuid, &key),
             Error::<T>::NotRegistered
         );
 
