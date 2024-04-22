@@ -190,10 +190,10 @@ impl<T: Config> YumaCalc<T> {
             self.netuid
         );
 
-        Ok(distribute_emissions)
+        distribute_emissions
     }
 
-    fn distribute_emissions(&self, result: Vec<(ModuleKey<T>, u64, u64)>) -> EmissionMap<T> {
+    fn distribute_emissions(&self, result: Vec<(ModuleKey<T>, u64, u64)>) -> Result<EmissionMap<T>,&'static str> {
         let mut emissions: EmissionMap<T> = Default::default();
         let mut emitted = 0;
 
@@ -233,7 +233,7 @@ impl<T: Config> YumaCalc<T> {
 
                     validator_emission = validator_emission
                         .checked_sub(to_delegate)
-                        .expect("more validator emissions were done than expected");
+                        .ok_or("more validator emissions were done than expected")?;
                 }
             }
 
@@ -248,7 +248,7 @@ impl<T: Config> YumaCalc<T> {
 
                         remaining_emission = remaining_emission
                             .checked_sub(profit_share_emission)
-                            .expect("more remaining emissions were done than expected");
+                            .ok_or("more remaining emissions were done than expected")?;
                     }
                 } else {
                     increase_stake(&AccountKey(module_key.0.clone()), remaining_emission);
@@ -266,7 +266,7 @@ impl<T: Config> YumaCalc<T> {
             self.founder_emission + self.to_be_emitted
         );
 
-        emissions
+       Ok( emissions)
     }
 
     fn compute_weights(&self) -> WeightsVal {

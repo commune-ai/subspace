@@ -122,7 +122,7 @@ impl<T: Config> Pallet<T> {
         let proposal_expiration = ProposalExpiration::<T>::get();
 
         // Create the proposal
-        let current_block = Self::get_current_block_as_u64();
+        let current_block = Self::get_current_block_number();
         let expiration_block = current_block + proposal_expiration as u64;
 
         // TODO: extract rounding function
