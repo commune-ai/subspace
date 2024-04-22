@@ -361,3 +361,29 @@ pub mod v3 {
         }
     }
 }
+
+// Set global minimum stake to 0.
+pub mod v4 {
+    use super::*;
+
+    pub struct MigrateToV4<T>(sp_std::marker::PhantomData<T>);
+
+    impl<T: Config> OnRuntimeUpgrade for MigrateToV4<T> {
+        fn on_runtime_upgrade() -> Weight {
+            let on_chain_version = StorageVersion::get::<Pallet<T>>();
+
+            if on_chain_version == 3 {
+                MinStakeGlobal::<T>::set(0);
+                TrustRatio::<T>::set(0, 5);
+
+                StorageVersion::new(4).put::<Pallet<T>>();
+                log::info!("Migrated v4");
+
+                T::DbWeight::get().writes(1)
+            } else {
+                log::info!("Storage v4 already updated");
+                Weight::zero()
+            }
+        }
+    }
+}

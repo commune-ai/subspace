@@ -69,7 +69,7 @@ pub mod pallet {
     use sp_arithmetic::per_things::Percent;
     pub use sp_std::{vec, vec::Vec};
 
-    const STORAGE_VERSION: StorageVersion = StorageVersion::new(3);
+    const STORAGE_VERSION: StorageVersion = StorageVersion::new(4);
 
     #[pallet::pallet]
     #[pallet::generate_store(pub(super) trait Store)]
@@ -374,7 +374,7 @@ pub mod pallet {
                 trust_ratio: GetDefault::get(),
                 founder_share: GetDefault::get(),
                 incentive_ratio: DefaultIncentiveRatio::<T>::get(),
-                min_stake: GetDefault::get(),
+                min_stake: MinStakeGlobal::<T>::get(),
                 founder: DefaultFounder::<T>::get(),
                 vote_mode: DefaultVoteMode::<T>::get(),
             }

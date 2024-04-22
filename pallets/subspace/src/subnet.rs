@@ -96,14 +96,15 @@ impl<T: Config> SubnetChangeset<T> {
             Error::<T>::InvalidIncentiveRatio
         );
 
-        let max_allowed_weights = Pallet::<T>::get_max_allowed_weights_global();
         ensure!(
-            params.max_allowed_weights <= max_allowed_weights,
+            params.max_allowed_weights <= Pallet::<T>::get_max_allowed_weights_global(),
             Error::<T>::InvalidMaxAllowedWeights
         );
 
-        let min_stake = Pallet::<T>::get_min_stake_global();
-        ensure!(params.min_stake >= min_stake, Error::<T>::InvalidMinStake);
+        ensure!(
+            params.min_stake >= Pallet::<T>::get_min_stake_global(),
+            Error::<T>::InvalidMinStake
+        );
 
         match Pallet::<T>::get_netuid_for_name(&params.name) {
             Some(id) if netuid.is_some_and(|netuid| netuid == id) => { /* subnet kept same name */ }
