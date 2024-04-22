@@ -15,14 +15,13 @@ fn test_burn() {
         let stakes: Vec<u64> = std::iter::repeat(initial_stake * 1_000_000_000).take(n).collect();
         let voter_key_index = 1;
         let voter_key = keys[voter_key_index];
-        let mut subnet_params = SubspaceModule::subnet_params(netuid);
-        subnet_params.tempo = tempo;
 
-        SubspaceModule::set_subnet_params(netuid, subnet_params);
         SubspaceModule::set_max_registrations_per_block(1000);
         for (key, stake) in keys.iter().zip(stakes.iter()) {
             assert_ok!(register_module(netuid, *key, *stake));
         }
+
+        update_params!(netuid => { tempo: tempo });
 
         for burn_rate in (0..9).map(|n| n * 10) {
             let mut params = SubspaceModule::global_params();
