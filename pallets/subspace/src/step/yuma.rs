@@ -78,7 +78,7 @@ impl<T: Config> YumaCalc<T> {
             .zip(&self.block_at_registration)
             .map(|(updated, block_at_registration)| {
                 let is_inactive = *updated <= *block_at_registration
-                    || *updated + self.activity_cutoff < self.current_block;
+                    || updated.saturating_add(self.activity_cutoff) < self.current_block;
                 (is_inactive, !is_inactive)
             })
             .unzip();
