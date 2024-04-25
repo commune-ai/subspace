@@ -69,8 +69,13 @@ impl<T: Config> YumaCalc<T> {
 
     /// Runs the YUMA consensus calculation on the network and distributes the emissions. Returns a
     /// map of emissions distributed per module key.
-    pub fn run(self) -> Result<EmissionMap<T>, &'static str> {
-        log::debug!("running yuma for netuid {}", self.netuid);
+    pub fn run(self) -> Result<EmissionMap<T>, YumaError> {
+        log::debug!(
+            "running yuma for netuid {}, will emit {} modules and {} to founder",
+            self.netuid,
+            self.to_be_emitted,
+            self.founder_emission
+        );
 
         let (inactive, active): (Vec<_>, Vec<_>) = self
             .last_update
@@ -196,7 +201,7 @@ impl<T: Config> YumaCalc<T> {
     fn distribute_emissions(
         &self,
         result: Vec<(ModuleKey<T>, u64, u64)>,
-    ) -> Result<EmissionMap<T>, &'static str> {
+    ) -> Result<EmissionMap<T>, YumaError> {
         let mut emissions: EmissionMap<T> = Default::default();
         let mut emitted = 0;
 
@@ -260,14 +265,21 @@ impl<T: Config> YumaCalc<T> {
                 }
             }
 
-            assert_eq!(remaining_emission, 0);
+            ensure!(
+                remaining_emission == 0,
+                YumaError::HasEmissionRemaining { emitted }
+            );
         }
 
-        assert!(
+        ensure!(
             emitted <= self.founder_emission + self.to_be_emitted,
-            "emitted more than was supposed to: {emitted} > {}",
-            self.founder_emission + self.to_be_emitted
+            YumaError::EmittedMoreThanExpected {
+                emitted,
+                expected: self.founder_emission + self.to_be_emitted
+            }
         );
+
+        log::trace!("emitted {emitted} tokens in total");
 
         Ok(emissions)
     }
@@ -491,7 +503,6 @@ impl<T: Config> YumaCalc<T> {
 
         let mut normalized_miner_emission = incentives.as_ref().clone(); // Servers get incentive.
         inplace_normalize_using_sum(&mut normalized_miner_emission, emission_sum);
-        log::trace!("  normalized miner emissions: {normalized_miner_emission:?}");
 
         let normalized_validator_emission: Cow<'a, [I32F32]>;
         let normalized_combined_emission: Cow<'a, [I32F32]>;
@@ -519,8 +530,13 @@ impl<T: Config> YumaCalc<T> {
             normalized_combined_emission = Cow::Owned(combined_emission);
         }
 
+        log::trace!("  normalized miner emission: {normalized_miner_emission:?}");
+        log::trace!("  normalized validator emission: {normalized_validator_emission:?}");
+        log::trace!("  normalized combined emission: {normalized_combined_emission:?}");
+
         // Compute rao based emission scores. range: I96F32(0, rao_emission)
-        let to_be_emitted = I96F32::from_num(self.to_be_emitted as usize);
+        let to_be_emitted = I96F32::from_num(self.to_be_emitted);
+        log::trace!("  to be emitted: {to_be_emitted}");
 
         let miner_emissions: Vec<u64> = normalized_miner_emission
             .iter()
@@ -665,5 +681,18 @@ impl<T: Config> Pallet<T> {
             }
         }
         bonds
+    }
+}
+
+#[derive(Debug)]
+pub enum YumaError {
+    EmittedMoreThanExpected { emitted: u64, expected: u64 },
+    HasEmissionRemaining { emitted: u64 },
+    Other(&'static str),
+}
+
+impl From<&'static str> for YumaError {
+    fn from(v: &'static str) -> Self {
+        Self::Other(v)
     }
 }
