@@ -38,14 +38,16 @@ impl<T: Config> Pallet<T> {
 
             let new_queued_emission: u64 =
                 Self::calculate_network_emission(netuid, subnet_stake_threshold);
-            PendingEmission::<T>::mutate(netuid, |queued: &mut u64| *queued += new_queued_emission);
-            log::debug!("netuid_i: {netuid:?} queued_emission: +{new_queued_emission:?} ");
+            let emission_to_drain = PendingEmission::<T>::mutate(netuid, |queued: &mut u64| {
+                *queued += new_queued_emission;
+                *queued
+            });
+            log::debug!("netuid {netuid} total pending emission: {emission_to_drain} (+{new_queued_emission:?}) ");
 
             if Self::blocks_until_next_epoch(netuid, tempo, block_number) > 0 {
                 continue;
             }
 
-            let emission_to_drain: u64 = PendingEmission::<T>::get(netuid);
             let has_enough_stake_for_yuma = || {
                 let subnet_stake = Self::get_total_subnet_stake(netuid) as u128;
                 let total_stake = Self::total_stake() as u128;
@@ -63,16 +65,21 @@ impl<T: Config> Pallet<T> {
                 Self::linear_epoch(netuid, emission_to_drain)
             } else if has_enough_stake_for_yuma() {
                 let res = with_storage_layer(|| {
-                    yuma::YumaCalc::<T>::new(netuid, emission_to_drain).run()
-                });
+                    let Err(err) = yuma::YumaCalc::<T>::new(netuid, emission_to_drain).run() else {
+                        return Ok(());
+                    };
 
-                if let Err(err) = res {
                     log::error!(
                         "\
-failed to run yuma consensus algorithm, {err}, skipping this block. \
-{emission_to_drain} tokens will be emitted on the next run.\
+failed to run yuma consensus algorithm: {err:?}, skipping this block. \
+{emission_to_drain} tokens will be emitted on the next epoch.\
 "
                     );
+
+                    Err("yuma failed")
+                });
+
+                if res.is_err() {
                     return;
                 }
             }
