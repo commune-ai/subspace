@@ -675,7 +675,7 @@ impl<T: Config> Pallet<T> {
             .map(|(uid_i, bonds_i)| {
                 bonds_i
                     .iter()
-                    .map(|(uid_j, bonds_ij)| (uid_j, I32F32::from_num(*bonds_ij)))
+                    .map(|(uid_j, bonds_ij)| (*uid_j, I32F32::from_num(*bonds_ij)))
                     .collect()
             })
             .collect()
