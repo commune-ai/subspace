@@ -657,19 +657,16 @@ impl<T: Config> Pallet<T> {
     fn get_weights_sparse(netuid: u16) -> Vec<Vec<(u16, I32F32)>> {
         let n = Self::get_subnet_n(netuid) as usize;
         let mut weights: Vec<Vec<(u16, I32F32)>> = vec![vec![]; n];
-        for (uid_i, weights_i) in Weights::<T>::iter_prefix(netuid) {
-            if uid_i >= n as u16 {
-                continue;
-            }
 
-            for (uid_j, weight_ij) in weights_i.iter() {
-                if *uid_j >= n as u16 {
-                    continue;
-                }
-                weights[uid_i as usize].push((*uid_j, I32F32::from_num(*weight_ij)));
-            }
-        }
-        weights
+        Weights::<T>::iter_prefix(netuid)
+            .filter(|(uid_i, _)| uid_i < n as u16)
+            .map(|(uid_i, weights)| {
+                weights
+                    .iter()
+                    .filter(|(uid_j, _)| *uid_j < n as u16)
+                    .map(|(uid_j, weight_ij)| (*uid_j, I32F32::from_num(*weight_ij)))
+            })
+            .collect()
     }
 
     fn get_bonds_sparse(netuid: u16) -> Vec<Vec<(u16, I32F32)>> {
