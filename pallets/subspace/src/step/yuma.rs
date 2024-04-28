@@ -658,12 +658,13 @@ impl<T: Config> Pallet<T> {
         let n = Self::get_subnet_n(netuid) as usize;
 
         Weights::<T>::iter_prefix(netuid)
-            .filter(|(uid_i, _)| uid_i < n as u16)
+            .filter(|(uid_i, _)| *uid_i < n as u16)
             .map(|(uid_i, weights)| {
                 weights
                     .iter()
                     .filter(|(uid_j, _)| *uid_j < n as u16)
                     .map(|(uid_j, weight_ij)| (*uid_j, I32F32::from_num(*weight_ij)))
+                    .collect()
             })
             .collect()
     }
