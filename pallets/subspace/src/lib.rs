@@ -90,6 +90,9 @@ pub mod pallet {
         type WeightInfo: WeightInfo;
     }
 
+    pub type BalanceOf<T> =
+        <<T as Config>::Currency as Currency<<T as system::Config>::AccountId>>::Balance;
+
     pub type AccountIdOf<T> = <T as frame_system::Config>::AccountId;
 
     // ============================
