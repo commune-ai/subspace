@@ -674,13 +674,15 @@ impl<T: Config> Pallet<T> {
 
     fn get_bonds_sparse(netuid: u16) -> Vec<Vec<(u16, I32F32)>> {
         let n: usize = Self::get_subnet_n(netuid) as usize;
-        let mut bonds: Vec<Vec<(u16, I32F32)>> = vec![vec![]; n];
-        for (uid_i, bonds_i) in Bonds::<T>::iter_prefix(netuid) {
-            for (uid_j, bonds_ij) in bonds_i {
-                bonds[uid_i as usize].push((uid_j, I32F32::from_num(bonds_ij)));
-            }
-        }
-        bonds
+
+        Bonds::<T>::iter_prefix(netuid)
+            .map(|(uid_i, bonds_i)| {
+                bonds_i
+                    .iter()
+                    .enumerate()
+                    .map(|(uid_j, bonds_ij)| (uid_i, I32F32::from_num(bonds_ij)))
+            })
+            .collect()
     }
 }
 
