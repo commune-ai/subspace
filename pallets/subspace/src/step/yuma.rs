@@ -656,7 +656,6 @@ impl<T: Config> Pallet<T> {
 
     fn get_weights_sparse(netuid: u16) -> Vec<Vec<(u16, I32F32)>> {
         let n = Self::get_subnet_n(netuid) as usize;
-        let mut weights: Vec<Vec<(u16, I32F32)>> = vec![vec![]; n];
 
         Weights::<T>::iter_prefix(netuid)
             .filter(|(uid_i, _)| uid_i < n as u16)
