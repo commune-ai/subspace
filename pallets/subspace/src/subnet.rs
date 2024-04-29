@@ -295,23 +295,11 @@ impl<T: Config> Pallet<T> {
     }
 
     pub fn address_vector(netuid: u16) -> Vec<Vec<u8>> {
-        let mut addresses: Vec<Vec<u8>> = Vec::new();
-        for (_uid, address) in
-            <Address<T> as IterableStorageDoubleMap<u16, u16, Vec<u8>>>::iter_prefix(netuid)
-        {
-            addresses.push(address);
-        }
-        addresses
+        Address::<T>::iter_prefix_values(netuid).collect()
     }
 
     pub fn name_vector(netuid: u16) -> Vec<Vec<u8>> {
-        let mut names: Vec<Vec<u8>> = Vec::new();
-        for (_uid, name) in
-            <Name<T> as IterableStorageDoubleMap<u16, u16, Vec<u8>>>::iter_prefix(netuid)
-        {
-            names.push(name);
-        }
-        names
+        Name::<T>::iter_prefix_values(netuid).collect()
     }
 
     fn set_max_allowed_uids(netuid: u16, mut max_allowed_uids: u16) {
