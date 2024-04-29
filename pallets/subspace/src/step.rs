@@ -486,9 +486,7 @@ failed to run yuma consensus algorithm: {err:?}, skipping this block. \
         let min_weight_stake_f64 = I64F64::from_num(global_params.min_weight_stake);
         let mut weights: Vec<Vec<(u16, u16)>> = vec![vec![]; n as usize];
 
-        for (uid_i, weights_i) in
-            <Weights<T> as IterableStorageDoubleMap<u16, u16, Vec<(u16, u16)>>>::iter_prefix(netuid)
-        {
+        for (uid_i, weights_i) in Weights::<T>::iter_prefix(netuid) {
             let weight_age =
                 Self::get_current_weight_age(&last_update_vector, current_block, uid_i);
             let (weight_changed, valid_weights) = Self::check_weight_validity(
