@@ -57,6 +57,7 @@ pub use frame_support::{
 };
 pub use frame_system::Call as SystemCall;
 pub use pallet_balances::Call as BalancesCall;
+use pallet_evm::Config;
 pub use pallet_timestamp::Call as TimestampCall;
 use pallet_transaction_payment::{ConstFeeMultiplier, CurrencyAdapter, Multiplier};
 #[cfg(any(feature = "std", test))]
@@ -787,7 +788,7 @@ impl_runtime_apis! {
 
     impl fp_rpc::EthereumRuntimeRPCApi<Block> for Runtime {
         fn chain_id() -> u64 {
-            <Runtime as pallet_evm::Config>::ChainId::get()
+            <Runtime as Config>::ChainId::get()
         }
 
         fn account_basic(address: H160) -> EVMAccount {
@@ -796,7 +797,7 @@ impl_runtime_apis! {
         }
 
         fn gas_price() -> U256 {
-            let (gas_price, _) = <Runtime as pallet_evm::Config>::FeeCalculator::min_gas_price();
+            let (gas_price, _) = <Runtime as Config>::FeeCalculator::min_gas_price();
             gas_price
         }
 
@@ -829,7 +830,7 @@ impl_runtime_apis! {
             use pallet_evm::GasWeightMapping;
 
             let config = if estimate {
-                let mut config = <Runtime as pallet_evm::Config>::config().clone();
+                let mut config = Runtime::config().clone();
                 config.estimate = true;
                 Some(config)
             } else {
@@ -870,7 +871,7 @@ impl_runtime_apis! {
                     }
                     _ => (None, None),
                 };
-            let evm_config = config.as_ref().unwrap_or(<Runtime as pallet_evm::Config>::config());
+            let evm_config = config.as_ref().unwrap_or(Runtime::config());
 
             <Runtime as pallet_evm::Config>::Runner::call(
                 from,
@@ -904,7 +905,7 @@ impl_runtime_apis! {
             use pallet_evm::GasWeightMapping;
 
             let config = if estimate {
-                let mut config = <Runtime as pallet_evm::Config>::config().clone();
+                let mut config = Runtime::config().clone();
                 config.estimate = true;
                 Some(config)
             } else {
@@ -944,7 +945,7 @@ impl_runtime_apis! {
                     }
                     _ => (None, None),
                 };
-            let evm_config = config.as_ref().unwrap_or(<Runtime as pallet_evm::Config>::config());
+            let evm_config = config.as_ref().unwrap_or(Runtime::config());
             <Runtime as pallet_evm::Config>::Runner::create(
                 from,
                 data,
