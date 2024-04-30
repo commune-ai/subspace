@@ -1,10 +1,10 @@
 mod mock;
 
 use frame_support::assert_ok;
+use log::info;
 use mock::*;
 use pallet_subspace::{MaxAllowedWeights, MinAllowedWeights, Tempo};
 use sp_core::U256;
-use tracing::info;
 
 fn update_params(netuid: u16, tempo: u16, max_weights: u16, min_weights: u16) {
     Tempo::<Test>::insert(netuid, tempo);

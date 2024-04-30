@@ -11,7 +11,7 @@ use sp_runtime::{
     BuildStorage, DispatchResult,
 };
 
-use tracing::info;
+use log::info;
 
 type Block = frame_system::mocking::MockBlock<Test>;
 
@@ -238,9 +238,7 @@ pub fn delegate_register_module(
         None,
     );
 
-    tracing::info!(
-        "Register ok module: network: {name:?}, module_key: {module_key:?} key: {key:?}",
-    );
+    log::info!("Register ok module: network: {name:?}, module_key: {module_key:?} key: {key:?}",);
 
     result
 }

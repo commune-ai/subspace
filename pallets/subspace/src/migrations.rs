@@ -36,11 +36,11 @@ pub mod v1 {
                 }
 
                 StorageVersion::new(1).put::<Pallet<T>>();
-                tracing::info!("Migrated DelegationFee to v1");
+                log::info!("Migrated DelegationFee to v1");
 
                 T::DbWeight::get().writes(1)
             } else {
-                tracing::info!("Storage v1 already updated");
+                log::info!("Storage v1 already updated");
                 Weight::zero()
             }
         }
@@ -93,7 +93,7 @@ pub mod v2 {
             let on_chain_version = StorageVersion::get::<Pallet<T>>();
 
             if on_chain_version == 1 {
-                tracing::info!("Migrating to V2");
+                log::info!("Migrating to V2");
 
                 // Migrate StakeFrom storage
                 for (netuid, module_key, stake_from) in old_storage::StakeFrom::<T>::iter() {
@@ -101,35 +101,35 @@ pub mod v2 {
                         stake_from.into_iter().collect();
                     StakeFrom::<T>::insert(netuid, module_key, new_stake_from);
                 }
-                tracing::info!("Migrated StakeFrom");
+                log::info!("Migrated StakeFrom");
 
                 // Migrate StakeTo storage
                 for (netuid, account_id, stake_to) in old_storage::StakeTo::<T>::iter() {
                     let new_stake_to: BTreeMap<T::AccountId, u64> = stake_to.into_iter().collect();
                     StakeTo::<T>::insert(netuid, account_id, new_stake_to);
                 }
-                tracing::info!("Migrated StakeTo");
+                log::info!("Migrated StakeTo");
 
                 for (netuid, mode) in old_storage::VoteModeSubnet::<T>::iter() {
                     let mode = match &mode[..] {
                         b"authority" => VoteMode::Authority,
                         b"stake" => VoteMode::Vote,
                         _ => {
-                            tracing::warn!("invalid vote mode {:?}", core::str::from_utf8(&mode));
+                            log::warn!("invalid vote mode {:?}", core::str::from_utf8(&mode));
                             VoteMode::Vote
                         }
                     };
                     VoteModeSubnet::<T>::insert(netuid, mode);
                 }
-                tracing::info!("Migrated VoteMode");
+                log::info!("Migrated VoteMode");
 
                 // Update the storage version to 2
                 StorageVersion::new(2).put::<Pallet<T>>();
 
-                tracing::info!("Migrated to v2");
+                log::info!("Migrated to v2");
                 T::DbWeight::get().reads_writes(1, 1)
             } else {
-                tracing::info!("Storage v2 already updated");
+                log::info!("Storage v2 already updated");
                 Weight::zero()
             }
         }
@@ -186,7 +186,7 @@ pub mod v3 {
                     // is in current model a security vounrability for cheap subnet DDOS.
                     // Make sure there is no subnet over target, if so deregister it.
                     if netuid >= SUBNET_CEILING {
-                        tracing::warn!("subnet {netuid} is over the limit ({SUBNET_CEILING}), deregistering {module_count} modules");
+                        log::warn!("subnet {netuid} is over the limit ({SUBNET_CEILING}), deregistering {module_count} modules");
                         Pallet::<T>::remove_subnet(netuid);
                         continue;
                     }
@@ -223,7 +223,7 @@ pub mod v3 {
                     let overflown = (module_count as u16).saturating_sub(max_allowed);
 
                     if overflown > 0 {
-                        tracing::warn!(
+                        log::warn!(
                             "netuid {netuid} has {overflown} overflown modules, deregistering"
                         );
                     }
@@ -231,7 +231,7 @@ pub mod v3 {
                     for _ in 0..overflown {
                         let module_uid = Pallet::<T>::get_lowest_uid(netuid, true);
                         Pallet::<T>::remove_module(netuid, module_uid);
-                        tracing::debug!("deregistered module {module_uid}");
+                        log::debug!("deregistered module {module_uid}");
                     }
 
                     netuids.insert(netuid);
@@ -240,7 +240,7 @@ pub mod v3 {
                     let keys_count = Keys::<T>::iter_key_prefix(netuid).count();
 
                     if uids_count != keys_count && netuid != 0 {
-                        tracing::warn!("{netuid}: subnet has inconsistent uids ({keys_count}) and keys ({uids_count}), deregistering...");
+                        log::warn!("{netuid}: subnet has inconsistent uids ({keys_count}) and keys ({uids_count}), deregistering...");
 
                         let mut keys = BTreeMap::new();
                         let mut broken_keys = BTreeSet::new();
@@ -253,7 +253,7 @@ pub mod v3 {
                             }
                         }
 
-                        tracing::warn!("{netuid}: broken uids {broken_uids:?}");
+                        log::warn!("{netuid}: broken uids {broken_uids:?}");
 
                         'outer: for key in broken_keys {
                             loop {
@@ -262,7 +262,7 @@ pub mod v3 {
                                 else {
                                     continue 'outer;
                                 };
-                                tracing::warn!(
+                                log::warn!(
                                     "{netuid}: removing duplicate key {key:?} with uid {uid}"
                                 );
                                 Pallet::<T>::remove_module(netuid, uid);
@@ -272,13 +272,13 @@ pub mod v3 {
                         let uids_count = Uids::<T>::iter_key_prefix(netuid).count();
                         let keys_count = Keys::<T>::iter_key_prefix(netuid).count();
                         if uids_count != keys_count {
-                            tracing::error!(
+                            log::error!(
                                 "{netuid}: subnet continues to have wrong number of uids and keys"
                             );
                         }
                     }
                 }
-                tracing::info!("Emission and consensus updated");
+                log::info!("Emission and consensus updated");
 
                 let mut gaps = BTreeSet::new();
                 for netuid in 0..netuids.last().copied().unwrap_or_default() {
@@ -287,8 +287,8 @@ pub mod v3 {
                     }
                 }
 
-                tracing::info!("Existing subnets:        {netuids:?}");
-                tracing::info!("Updated removed subnets: {gaps:?}");
+                log::info!("Existing subnets:        {netuids:?}");
+                log::info!("Updated removed subnets: {gaps:?}");
                 RemovedSubnets::<T>::set(gaps);
 
                 // -- GENERAL SUBNET PARAMS --
@@ -297,19 +297,19 @@ pub mod v3 {
                 // is no longer needed to be limited on the general subnet 0
                 let general_netuid = 0;
                 MaxStake::<T>::insert(general_netuid, u64::MAX);
-                tracing::info!("Min stake migrated");
+                log::info!("Min stake migrated");
 
                 // Due to the incoming subnet 0 whitelist, `min_allowed_weights`,
                 // can no longer be set to such high limit,
                 // as whitelist would not cover for it.
                 MinAllowedWeights::<T>::insert(general_netuid, 5); // Old 190 >
-                tracing::info!("Min allowed weights migrated");
+                log::info!("Min allowed weights migrated");
 
                 // Also make sure there is no weight age, as we are doing manual validation
                 MaxWeightAge::<T>::insert(general_netuid, u64::MAX);
-                tracing::info!("Max weight age migrated");
+                log::info!("Max weight age migrated");
 
-                tracing::info!("Setting subnet 0 to vote mode");
+                log::info!("Setting subnet 0 to vote mode");
                 VoteModeSubnet::<T>::set(0, VoteMode::Vote);
 
                 // GLOBAL PARAMS
@@ -322,16 +322,16 @@ pub mod v3 {
                 let dao_bot_account_id = ss58_to_account_id::<T>(dao_bot).unwrap();
 
                 Nominator::<T>::put(dao_bot_account_id); // Old empty
-                tracing::info!("Nominator migrated");
+                log::info!("Nominator migrated");
 
                 // Finally update
                 MaxAllowedSubnets::<T>::put(SUBNET_CEILING); // Old 256
-                tracing::info!("Max allowed subnets migrated");
+                log::info!("Max allowed subnets migrated");
 
                 // Migrate the proposal expiration to 12 days,
                 // as current timeframe is not sustainable.
                 ProposalExpiration::<T>::put(130000); // Old 32_000 blocks
-                tracing::info!("Proposal expiration migrated");
+                log::info!("Proposal expiration migrated");
 
                 // Cleanup the expired proposal from votes_for / against
                 // This logic is now automatically running onchain,
@@ -343,7 +343,7 @@ pub mod v3 {
                         Proposals::<T>::insert(proposal.id, proposal);
                     }
                 }
-                tracing::info!("Expired proposals migrated");
+                log::info!("Expired proposals migrated");
 
                 MaxWeightAge::<T>::iter_keys()
                     .filter(|n| !N::<T>::contains_key(n))
@@ -351,11 +351,11 @@ pub mod v3 {
 
                 // update the storage version
                 StorageVersion::new(3).put::<Pallet<T>>();
-                tracing::info!("Migrated subnets to v3");
+                log::info!("Migrated subnets to v3");
 
                 T::DbWeight::get().reads_writes(1, 1)
             } else {
-                tracing::info!("Storage v3 already updated");
+                log::info!("Storage v3 already updated");
                 Weight::zero()
             }
         }
@@ -377,11 +377,11 @@ pub mod v4 {
                 TrustRatio::<T>::set(0, 5);
 
                 StorageVersion::new(4).put::<Pallet<T>>();
-                tracing::info!("Migrated v4");
+                log::info!("Migrated v4");
 
                 T::DbWeight::get().writes(1)
             } else {
-                tracing::info!("Storage v4 already updated");
+                log::info!("Storage v4 already updated");
                 Weight::zero()
             }
         }

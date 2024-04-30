@@ -993,7 +993,6 @@ pub mod pallet {
     // Dispatchable functions must be annotated with a weight and must return a DispatchResult.
     #[pallet::call]
     impl<T: Config> Pallet<T> {
-        #[tracing::instrument(fields(origin, netuid))]
         #[pallet::weight((Weight::zero(), DispatchClass::Normal, Pays::No))]
         pub fn set_weights(
             origin: OriginFor<T>,
@@ -1004,7 +1003,6 @@ pub mod pallet {
             Self::do_set_weights(origin, netuid, uids, weights)
         }
 
-        #[tracing::instrument(fields(origin, netuid))]
         #[pallet::weight((Weight::zero(), DispatchClass::Normal, Pays::No))]
         pub fn add_stake(
             origin: OriginFor<T>,
@@ -1016,7 +1014,6 @@ pub mod pallet {
             Self::do_add_stake(origin, netuid, module_key, amount)
         }
 
-        #[tracing::instrument(fields(origin, netuid))]
         #[pallet::weight((Weight::zero(), DispatchClass::Normal, Pays::No))]
         pub fn add_stake_multiple(
             origin: OriginFor<T>,
@@ -1027,7 +1024,6 @@ pub mod pallet {
             Self::do_add_stake_multiple(origin, netuid, module_keys, amounts)
         }
 
-        #[tracing::instrument(fields(origin, netuid))]
         #[pallet::weight((Weight::zero(), DispatchClass::Normal, Pays::No))]
         pub fn remove_stake(
             origin: OriginFor<T>,
@@ -1038,7 +1034,6 @@ pub mod pallet {
             Self::do_remove_stake(origin, netuid, module_key, amount)
         }
 
-        #[tracing::instrument(fields(origin, netuid))]
         #[pallet::weight((Weight::zero(), DispatchClass::Normal, Pays::No))]
         pub fn remove_stake_multiple(
             origin: OriginFor<T>,
@@ -1049,7 +1044,6 @@ pub mod pallet {
             Self::do_remove_stake_multiple(origin, netuid, module_keys, amounts)
         }
 
-        #[tracing::instrument(fields(origin, netuid))]
         #[pallet::weight((Weight::zero(), DispatchClass::Normal, Pays::No))]
         pub fn transfer_stake(
             origin: OriginFor<T>,         // --- The account that is calling this function.
@@ -1061,7 +1055,6 @@ pub mod pallet {
             Self::do_transfer_stake(origin, netuid, module_key, new_module_key, amount)
         }
 
-        #[tracing::instrument(fields(origin, netuid))]
         #[pallet::weight((Weight::zero(), DispatchClass::Normal, Pays::No))]
         pub fn transfer_multiple(
             origin: OriginFor<T>, // --- The account that is calling this function.
@@ -1071,7 +1064,6 @@ pub mod pallet {
             Self::do_transfer_multiple(origin, destinations, amounts)
         }
 
-        #[tracing::instrument(fields(origin, netuid))]
         #[pallet::weight((Weight::zero(), DispatchClass::Normal, Pays::No))]
         pub fn update_module(
             origin: OriginFor<T>,
@@ -1091,7 +1083,6 @@ pub mod pallet {
             Self::do_update_module(origin, netuid, changeset)
         }
 
-        #[tracing::instrument(fields(origin))]
         #[pallet::weight((Weight::zero(), DispatchClass::Normal, Pays::No))]
         pub fn register(
             origin: OriginFor<T>,
@@ -1105,13 +1096,11 @@ pub mod pallet {
             Self::do_register(origin, network, name, address, stake, module_key, metadata)
         }
 
-        #[tracing::instrument(fields(origin, netuid))]
         #[pallet::weight((Weight::zero(), DispatchClass::Normal, Pays::No))]
         pub fn deregister(origin: OriginFor<T>, netuid: u16) -> DispatchResult {
             Self::do_deregister(origin, netuid)
         }
 
-        #[tracing::instrument(fields(origin))]
         #[pallet::weight((Weight::zero(), DispatchClass::Normal, Pays::No))]
         pub fn add_profit_shares(
             origin: OriginFor<T>,
@@ -1121,7 +1110,6 @@ pub mod pallet {
             Self::do_add_profit_shares(origin, keys, shares)
         }
 
-        #[tracing::instrument(fields(origin))]
         #[pallet::weight((Weight::zero(), DispatchClass::Normal, Pays::No))]
         pub fn add_to_whitelist(
             origin: OriginFor<T>,
@@ -1131,7 +1119,6 @@ pub mod pallet {
             Self::do_add_to_whitelist(origin, module_key, recommended_weight)
         }
 
-        #[tracing::instrument(fields(origin))]
         #[pallet::weight((Weight::zero(), DispatchClass::Normal, Pays::No))]
         pub fn remove_from_whitelist(
             origin: OriginFor<T>,
@@ -1140,7 +1127,6 @@ pub mod pallet {
             Self::do_remove_from_whitelist(origin, module_key)
         }
 
-        #[tracing::instrument(fields(origin, netuid))]
         #[pallet::weight((Weight::zero(), DispatchClass::Normal, Pays::No))]
         pub fn update_subnet(
             origin: OriginFor<T>,
@@ -1183,7 +1169,6 @@ pub mod pallet {
         }
 
         // Proposal Calls
-        #[tracing::instrument(fields(origin))]
         #[pallet::weight((Weight::zero(), DispatchClass::Normal, Pays::No))]
         pub fn add_global_proposal(
             origin: OriginFor<T>,
@@ -1239,7 +1224,6 @@ pub mod pallet {
             Self::do_add_global_proposal(origin, params)
         }
 
-        #[tracing::instrument(fields(origin, netuid))]
         #[pallet::weight((Weight::zero(), DispatchClass::Normal, Pays::No))]
         pub fn add_subnet_proposal(
             origin: OriginFor<T>,
@@ -1280,13 +1264,11 @@ pub mod pallet {
             Self::do_add_subnet_proposal(origin, netuid, params)
         }
 
-        #[tracing::instrument(fields(origin))]
         #[pallet::weight((Weight::zero(), DispatchClass::Normal, Pays::No))]
         pub fn add_custom_proposal(origin: OriginFor<T>, data: Vec<u8>) -> DispatchResult {
             Self::do_add_custom_proposal(origin, data)
         }
 
-        #[tracing::instrument(fields(origin, netuid))]
         #[pallet::weight((Weight::zero(), DispatchClass::Normal, Pays::No))]
         pub fn add_custom_subnet_proposal(
             origin: OriginFor<T>,
@@ -1296,7 +1278,6 @@ pub mod pallet {
             Self::do_add_custom_subnet_proposal(origin, netuid, data)
         }
 
-        #[tracing::instrument(fields(origin))]
         #[pallet::weight((Weight::zero(), DispatchClass::Normal, Pays::No))]
         pub fn vote_proposal(
             origin: OriginFor<T>,
@@ -1306,7 +1287,6 @@ pub mod pallet {
             Self::do_vote_proposal(origin, proposal_id, agree)
         }
 
-        #[tracing::instrument(fields(origin))]
         #[pallet::weight((Weight::zero(), DispatchClass::Normal, Pays::No))]
         pub fn unvote_proposal(origin: OriginFor<T>, proposal_id: u64) -> DispatchResult {
             Self::do_unregister_vote(origin, proposal_id)
@@ -1502,20 +1482,39 @@ where
     ) -> Result<(), TransactionValidityError> {
         if let Some((call_type, _transaction_fee, _who)) = maybe_pre {
             match call_type {
-                CallType::AddStake
-                | CallType::AddStakeMultiple
-                | CallType::RemoveStake
-                | CallType::RemoveStakeMultiple
-                | CallType::TransferStake
-                | CallType::TransferStakeMultiple
-                | CallType::TransferMultiple
-                | CallType::AddNetwork => {
-                    tracing::debug!(
-                        "Not Implemented! Need to add potential transaction fees here."
-                    );
+                CallType::SetWeights => {
+                    log::debug!("Not Implemented!");
                 }
-                CallType::SetWeights | CallType::Register | _ => {
-                    tracing::debug!("Not Implemented!");
+                CallType::AddStake => {
+                    log::debug!("Not Implemented! Need to add potential transaction fees here.");
+                }
+
+                CallType::AddStakeMultiple => {
+                    log::debug!("Not Implemented! Need to add potential transaction fees here.");
+                }
+                CallType::RemoveStake => {
+                    log::debug!("Not Implemented! Need to add potential transaction fees here.");
+                }
+                CallType::RemoveStakeMultiple => {
+                    log::debug!("Not Implemented! Need to add potential transaction fees here.");
+                }
+                CallType::TransferStake => {
+                    log::debug!("Not Implemented! Need to add potential transaction fees here.");
+                }
+                CallType::TransferStakeMultiple => {
+                    log::debug!("Not Implemented! Need to add potential transaction fees here.");
+                }
+                CallType::TransferMultiple => {
+                    log::debug!("Not Implemented! Need to add potential transaction fees here.");
+                }
+                CallType::AddNetwork => {
+                    log::debug!("Not Implemented! Need to add potential transaction fees here.");
+                }
+                CallType::Register => {
+                    log::debug!("Not Implemented!");
+                }
+                _ => {
+                    log::debug!("Not Implemented!");
                 }
             }
         }
