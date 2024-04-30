@@ -320,7 +320,7 @@ impl<T: Config> Pallet<T> {
             });
 
             if let Err(err) = res {
-                log::error!("failed to resolve proposal {proposal_id}: {err:?}");
+                tracing::error!("failed to resolve proposal {proposal_id}: {err:?}");
             }
         }
     }

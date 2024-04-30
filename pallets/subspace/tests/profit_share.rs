@@ -1,10 +1,10 @@
 mod mock;
 
 use frame_support::assert_ok;
-use log::info;
 use mock::*;
 use sp_core::U256;
 use sp_std::vec;
+use tracing::info;
 
 /* TO DO SAM: write test for LatuUpdate after it is set */
 #[test]

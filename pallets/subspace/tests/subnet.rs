@@ -1,12 +1,12 @@
 mod mock;
 
 use frame_support::assert_ok;
-use log::info;
 use mock::*;
 use pallet_subspace::{Dividends, SubnetNames, N};
 use sp_core::U256;
 use sp_runtime::Percent;
 use sp_std::vec;
+use tracing::info;
 
 #[test]
 fn test_add_subnets() {

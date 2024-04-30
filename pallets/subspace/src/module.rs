@@ -155,7 +155,7 @@ impl<T: Config> Pallet<T> {
         let uid: u16 = Self::get_subnet_n(netuid);
         let block_number = Self::get_current_block_number();
 
-        log::debug!("append_module( netuid: {netuid:?} | uid: {key:?} | new_key: {uid:?})");
+        tracing::debug!("append_module( netuid: {netuid:?} | uid: {key:?} | new_key: {uid:?})");
 
         // 2. Apply the changeset
         changeset.apply::<T>(netuid, key.clone(), uid)?;
@@ -199,7 +199,7 @@ impl<T: Config> Pallet<T> {
         let replace_uid = n - 1;
         let replace_key: T::AccountId = Keys::<T>::get(netuid, replace_uid);
 
-        log::debug!(
+        tracing::debug!(
             "remove_module( netuid: {:?} | uid : {:?} | key: {:?} ) ",
             netuid,
             uid,

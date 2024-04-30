@@ -11,7 +11,6 @@ clap = "4.4.6"
 futures = "0.3.21"
 jsonrpsee = "0.16.2"
 lazy_static = "1.4.0"
-log = { version = "0.4.14", default-features = false }
 memmap2 = "0.5.0"
 ndarray = { version = "0.15.0", default-features = false }
 rand = "0.8"
@@ -31,6 +30,9 @@ serde_with = { version = "=2.0.0", default-features = false, features = [
 serde-tuple-vec-map = { version = "1.0.1", default-features = false }
 smallvec = "1.6.1"
 tokio = "1.17.0"
+tracing = { version = "0.1.40", default-features = false, features = [
+    "attributes"
+] }
 
 codec = { version = "3.6.1", package = "parity-scale-codec", default-features = false, features = [
     "derive",

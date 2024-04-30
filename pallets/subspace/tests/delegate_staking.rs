@@ -1,11 +1,11 @@
 mod mock;
 
 use frame_support::assert_ok;
-use log::info;
 use mock::*;
 use pallet_subspace::Tempo;
 use sp_core::U256;
 use substrate_fixed::types::I64F64;
+use tracing::info;
 
 // /***********************************************************
 // 	staking::add_stake() tests
