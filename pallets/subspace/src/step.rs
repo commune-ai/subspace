@@ -10,7 +10,7 @@ pub mod yuma;
 impl<T: Config> Pallet<T> {
     pub fn block_step() {
         let block_number: u64 = Self::get_current_block_number();
-        tracing::debug!("block_step for block: {block_number:?}");
+        log::debug!("block_step for block: {block_number:?}");
         RegistrationsPerBlock::<T>::mutate(|val: &mut u16| *val = 0);
 
         // Execute proposals if any should be executed, this is done every 100 blocks.
@@ -42,7 +42,7 @@ impl<T: Config> Pallet<T> {
                 *queued += new_queued_emission;
                 *queued
             });
-            tracing::debug!("netuid {netuid} total pending emission: {emission_to_drain} (+{new_queued_emission:?}) ");
+            log::debug!("netuid {netuid} total pending emission: {emission_to_drain} (+{new_queued_emission:?}) ");
 
             if Self::blocks_until_next_epoch(netuid, tempo, block_number) > 0 {
                 continue;
@@ -69,7 +69,7 @@ impl<T: Config> Pallet<T> {
                         return Ok(());
                     };
 
-                    tracing::error!(
+                    log::error!(
                         "\
 failed to run yuma consensus algorithm: {err:?}, skipping this block. \
 {emission_to_drain} tokens will be emitted on the next epoch.\

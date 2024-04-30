@@ -4876,6 +4876,7 @@ dependencies = [
  "frame-benchmarking",
  "frame-support",
  "frame-system",
+ "log",
  "ndarray",
  "pallet-balances",
  "pallet-transaction-payment",
@@ -4895,7 +4896,6 @@ dependencies = [
  "sp-tracing",
  "sp-version",
  "substrate-fixed",
- "tracing",
 ]
 
 [[package]]

@@ -6,12 +6,12 @@ use frame_support::{assert_err, assert_noop, assert_ok};
 use mock::*;
 use sp_core::U256;
 
+use log::info;
 use pallet_subspace::{
     Emission, Error, MaxAllowedModules, MaxAllowedUids, MinStake, RemovedSubnets, Stake,
     SubnetNames, TotalSubnets, N,
 };
 use sp_runtime::{DispatchResult, Percent};
-use tracing::info;
 
 /********************************************
     subscribing::subscribe() tests
