@@ -31,6 +31,9 @@ serde_with = { version = "=2.0.0", default-features = false, features = [
 serde-tuple-vec-map = { version = "1.0.1", default-features = false }
 smallvec = "1.6.1"
 tokio = "1.17.0"
+tracing = { version = "0.1.40", default-features = false, features = [
+    "attributes"
+] }
 
 codec = { version = "3.6.1", package = "parity-scale-codec", default-features = false, features = [
     "derive",

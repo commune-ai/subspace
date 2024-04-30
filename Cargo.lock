@@ -4896,6 +4896,7 @@ dependencies = [
  "sp-tracing",
  "sp-version",
  "substrate-fixed",
+ "tracing",
 ]
 
 [[package]]
