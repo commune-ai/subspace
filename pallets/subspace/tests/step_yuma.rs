@@ -48,7 +48,7 @@ fn test_1_graph() {
         // Register general subnet
         assert_ok!(register_module(0, 10.into(), 1));
 
-        log::info!("test_1_graph:");
+        tracing::info!("test_1_graph:");
         let netuid: u16 = 1;
         let key = U256::from(0);
         let uid: u16 = 0;
@@ -98,7 +98,7 @@ fn test_1_graph() {
 fn test_10_graph() {
     /// Function for adding a nodes to the graph.
     fn add_node(netuid: u16, key: U256, uid: u16, stake_amount: u64) {
-        log::info!(
+        tracing::info!(
             "+Add net:{:?} hotkey:{:?} uid:{:?} stake_amount: {:?} subn: {:?}",
             netuid,
             key,
@@ -118,7 +118,7 @@ fn test_10_graph() {
         // Register general subnet
         assert_ok!(register_module(0, 10_000.into(), 1));
 
-        log::info!("test_10_graph");
+        tracing::info!("test_10_graph");
 
         // Build the graph with 10 items
         // each with 1 stake and self weights.
