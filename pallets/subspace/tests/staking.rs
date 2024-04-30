@@ -1,7 +1,7 @@
 mod mock;
 
 use frame_support::{assert_noop, assert_ok};
-use log::info;
+use tracing::info;
 use mock::*;
 use pallet_subspace::Error;
 use sp_core::U256;

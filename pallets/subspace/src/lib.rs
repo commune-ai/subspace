@@ -1483,38 +1483,38 @@ where
         if let Some((call_type, _transaction_fee, _who)) = maybe_pre {
             match call_type {
                 CallType::SetWeights => {
-                    log::debug!("Not Implemented!");
+                    tracing::debug!("Not Implemented!");
                 }
                 CallType::AddStake => {
-                    log::debug!("Not Implemented! Need to add potential transaction fees here.");
+                    tracing::debug!("Not Implemented! Need to add potential transaction fees here.");
                 }
 
                 CallType::AddStakeMultiple => {
-                    log::debug!("Not Implemented! Need to add potential transaction fees here.");
+                    tracing::debug!("Not Implemented! Need to add potential transaction fees here.");
                 }
                 CallType::RemoveStake => {
-                    log::debug!("Not Implemented! Need to add potential transaction fees here.");
+                    tracing::debug!("Not Implemented! Need to add potential transaction fees here.");
                 }
                 CallType::RemoveStakeMultiple => {
-                    log::debug!("Not Implemented! Need to add potential transaction fees here.");
+                    tracing::debug!("Not Implemented! Need to add potential transaction fees here.");
                 }
                 CallType::TransferStake => {
-                    log::debug!("Not Implemented! Need to add potential transaction fees here.");
+                    tracing::debug!("Not Implemented! Need to add potential transaction fees here.");
                 }
                 CallType::TransferStakeMultiple => {
-                    log::debug!("Not Implemented! Need to add potential transaction fees here.");
+                    tracing::debug!("Not Implemented! Need to add potential transaction fees here.");
                 }
                 CallType::TransferMultiple => {
-                    log::debug!("Not Implemented! Need to add potential transaction fees here.");
+                    tracing::debug!("Not Implemented! Need to add potential transaction fees here.");
                 }
                 CallType::AddNetwork => {
-                    log::debug!("Not Implemented! Need to add potential transaction fees here.");
+                    tracing::debug!("Not Implemented! Need to add potential transaction fees here.");
                 }
                 CallType::Register => {
-                    log::debug!("Not Implemented!");
+                    tracing::debug!("Not Implemented!");
                 }
                 _ => {
-                    log::debug!("Not Implemented!");
+                    tracing::debug!("Not Implemented!");
                 }
             }
         }

@@ -1,7 +1,7 @@
 mod mock;
 
 use frame_support::assert_ok;
-use log::info;
+use tracing::info;
 use mock::*;
 use sp_core::U256;
 use sp_std::vec;
