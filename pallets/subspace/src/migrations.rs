@@ -13,6 +13,17 @@ impl<T: Config> StorageInstance for Pallet<T> {
     const STORAGE_PREFIX: &'static str = "Subspace";
 }
 
+use sp_core::crypto::Ss58Codec;
+use sp_runtime::AccountId32;
+
+pub fn ss58_to_account_id<T: Config>(
+    ss58_address: &str,
+) -> Result<T::AccountId, sp_core::crypto::PublicError> {
+    let account_id = AccountId32::from_ss58check(ss58_address)?;
+    let account_id_vec = account_id.encode();
+    Ok(T::AccountId::decode(&mut &account_id_vec[..]).unwrap())
+}
+
 // Delegation update, migrations.
 pub mod v1 {
     use super::*;
@@ -141,18 +152,8 @@ pub mod v3 {
     use super::*;
 
     use crate::voting::{ProposalStatus, VoteMode};
-    use sp_core::crypto::Ss58Codec;
-    use sp_runtime::AccountId32;
 
     const SUBNET_CEILING: u16 = 42;
-
-    fn ss58_to_account_id<T: Config>(
-        ss58_address: &str,
-    ) -> Result<T::AccountId, sp_core::crypto::PublicError> {
-        let account_id = AccountId32::from_ss58check(ss58_address)?;
-        let account_id_vec = account_id.encode();
-        Ok(T::AccountId::decode(&mut &account_id_vec[..]).unwrap())
-    }
 
     pub struct MigrateToV3<T>(sp_std::marker::PhantomData<T>);
 
@@ -321,8 +322,8 @@ pub mod v3 {
                 let dao_bot = "5GnXkyoCGVHD7PL3ZRGM2oELpUhDG6HFqAHZT3hHTmFD8CZF";
                 let dao_bot_account_id = ss58_to_account_id::<T>(dao_bot).unwrap();
 
-                Nominator::<T>::put(dao_bot_account_id); // Old empty
-                log::info!("Nominator migrated");
+                Curator::<T>::put(dao_bot_account_id); // Old empty
+                log::info!("Curator migrated");
 
                 // Finally update
                 MaxAllowedSubnets::<T>::put(SUBNET_CEILING); // Old 256
@@ -378,6 +379,43 @@ pub mod v4 {
 
                 StorageVersion::new(4).put::<Pallet<T>>();
                 log::info!("Migrated v4");
+
+                T::DbWeight::get().writes(1)
+            } else {
+                log::info!("Storage v4 already updated");
+                Weight::zero()
+            }
+        }
+    }
+}
+
+pub mod v5 {
+    use super::*;
+
+    pub struct MigrateToV5<T>(sp_std::marker::PhantomData<T>);
+
+    impl<T: Config> OnRuntimeUpgrade for MigrateToV5<T> {
+        fn on_runtime_upgrade() -> Weight {
+            let on_chain_version = StorageVersion::get::<Pallet<T>>();
+
+            if on_chain_version == 4 {
+                let dao_bot = "5GnXkyoCGVHD7PL3ZRGM2oELpUhDG6HFqAHZT3hHTmFD8CZF";
+                let dao_bot_account_id = match ss58_to_account_id::<T>(dao_bot) {
+                    Ok(account_id) => Some(account_id),
+                    Err(_) => {
+                        log::warn!("Failed to convert SS58 to account ID");
+                        None
+                    }
+                };
+
+                if let Some(account_id) = dao_bot_account_id {
+                    Curator::<T>::put(account_id);
+                } else {
+                    log::warn!("Skipping storage update due to missing account ID");
+                }
+
+                StorageVersion::new(5).put::<Pallet<T>>();
+                log::info!("Migrated v5");
 
                 T::DbWeight::get().writes(1)
             } else {

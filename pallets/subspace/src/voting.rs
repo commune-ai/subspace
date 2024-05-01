@@ -17,6 +17,17 @@ pub struct Proposal<T: Config> {
     pub finalization_block: Option<u64>,
 }
 
+#[derive(Clone, Debug, TypeInfo, Decode, Encode)]
+#[scale_info(skip_type_params(T))]
+pub struct CuratorApplication<T: Config> {
+    pub id: u64,
+    pub user_id: T::AccountId,
+    pub paying_for: T::AccountId,
+    pub data: Vec<u8>,
+    pub status: ApplicationStatus,
+    pub application_cost: u64,
+}
+
 impl<T: Config> Proposal<T> {
     /// Whether the proposal is still active.
     pub fn is_active(&self) -> bool {
@@ -67,6 +78,14 @@ pub enum ProposalStatus {
     Expired,
 }
 
+#[derive(Clone, Debug, Default, PartialEq, Eq, TypeInfo, Decode, Encode)]
+pub enum ApplicationStatus {
+    #[default]
+    Pending,
+    Accepted,
+    Refused,
+}
+
 #[derive(Clone, Copy, Debug, PartialEq, Eq, TypeInfo, Decode, Encode)]
 pub enum VoteMode {
     Authority = 0,
@@ -107,12 +126,25 @@ impl<T: Config> Pallet<T> {
         }
     }
 
+    fn get_next_application_id() -> u64 {
+        match CuratorApplications::<T>::iter_keys().max() {
+            Some(id) => id + 1,
+            None => 0,
+        }
+    }
+
     pub fn add_proposal(key: T::AccountId, data: ProposalData<T>) -> DispatchResult {
         // Check if the proposer has enough balance
         let proposal_cost = ProposalCost::<T>::get();
         ensure!(
             Self::has_enough_balance(&key, proposal_cost),
             Error::<T>::NotEnoughBalanceToPropose
+        );
+
+        let removed_balance_as_currency = Self::u64_to_balance(proposal_cost);
+        ensure!(
+            removed_balance_as_currency.is_some(),
+            Error::<T>::CouldNotConvertToBalance
         );
 
         // Get the next proposal ID
@@ -145,14 +177,96 @@ impl<T: Config> Pallet<T> {
             finalization_block: None,
         };
 
+        // Burn the proposal cost from the proposer's balance
+        let removed_balance: bool =
+            Self::remove_balance_from_account(&key, removed_balance_as_currency.unwrap());
+        ensure!(removed_balance, Error::<T>::BalanceCouldNotBeRemoved);
+
         // Store the proposal
         Proposals::<T>::insert(proposal_id, proposal);
 
-        // Burn the proposal cost from the proposer's balance
-        Self::remove_balance_from_account(&key, Self::u64_to_balance(proposal_cost).unwrap());
-
         Self::deposit_event(Event::<T>::ProposalCreated(proposal_id));
         Ok(())
+    }
+
+    pub fn add_application(
+        key: T::AccountId,
+        application_key: T::AccountId,
+        data: Vec<u8>,
+    ) -> DispatchResult {
+        // Check if the proposer has enough balance
+        // re use the same value as for proposals
+        let application_cost = ProposalCost::<T>::get();
+
+        ensure!(
+            Self::has_enough_balance(&key, application_cost),
+            Error::<T>::NotEnoughtBalnceToApply
+        );
+
+        let removed_balance_as_currency = Self::u64_to_balance(application_cost);
+        ensure!(
+            removed_balance_as_currency.is_some(),
+            Error::<T>::CouldNotConvertToBalance
+        );
+
+        let application_id = Self::get_next_application_id();
+
+        let application = CuratorApplication {
+            user_id: application_key,
+            paying_for: key.clone(),
+            id: application_id,
+            data,
+            status: ApplicationStatus::Pending,
+            application_cost,
+        };
+
+        // Burn the application cost from the proposer's balance
+        let removed_balance: bool =
+            Self::remove_balance_from_account(&key, removed_balance_as_currency.unwrap());
+        ensure!(removed_balance, Error::<T>::BalanceCouldNotBeRemoved);
+
+        CuratorApplications::<T>::insert(application_id, application);
+
+        Self::deposit_event(Event::<T>::ApplicationCreated(application_id));
+        Ok(())
+    }
+
+    pub fn do_refuse_dao_application(
+        origin: T::RuntimeOrigin,
+        application_id: u64,
+    ) -> DispatchResult {
+        let key = ensure_signed(origin)?;
+
+        // --- 2. Ensure that the key is the curator multisig.
+        ensure!(Self::get_curator() == key, Error::<T>::NotCurator);
+
+        let mut application =
+            CuratorApplications::<T>::get(application_id).ok_or(Error::<T>::ApplicationNotFound)?;
+
+        ensure!(
+            application.status == ApplicationStatus::Pending,
+            Error::<T>::ApplicationNotPending
+        );
+
+        // Change the status of application to refused
+        application.status = ApplicationStatus::Refused;
+
+        CuratorApplications::<T>::insert(application_id, application);
+
+        Ok(())
+    }
+
+    pub fn do_add_dao_application(
+        origin: T::RuntimeOrigin,
+        application_key: T::AccountId,
+        data: Vec<u8>,
+    ) -> DispatchResult {
+        let key = ensure_signed(origin)?;
+        ensure!(!data.is_empty(), Error::<T>::ApplicationTooSmall);
+        ensure!(data.len() <= 256, Error::<T>::ApplicationTooLarge);
+        sp_std::str::from_utf8(&data).map_err(|_| Error::<T>::InvalidApplication)?;
+
+        Self::add_application(key, application_key, data)
     }
 
     // Proposal with custom data
@@ -323,6 +437,26 @@ impl<T: Config> Pallet<T> {
                 log::error!("failed to resolve proposal {proposal_id}: {err:?}");
             }
         }
+    }
+
+    pub fn execute_application(user_id: &T::AccountId) -> DispatchResult {
+        // Perform actions based on the application data type
+        // The owners will handle the off-chain logic
+
+        let mut application = CuratorApplications::<T>::iter_values()
+            .find(|app| app.user_id == *user_id)
+            .ok_or(Error::<T>::ApplicationNotFound)?;
+
+        // Give the proposer back his tokens, if the application passed
+        Self::add_balance_to_account(
+            &application.paying_for,
+            Self::u64_to_balance(application.application_cost).unwrap(),
+        );
+        application.status = ApplicationStatus::Accepted;
+
+        CuratorApplications::<T>::insert(application.id, application);
+
+        Ok(())
     }
 
     fn execute_proposal(proposal: Proposal<T>, block_number: u64) -> DispatchResult {
