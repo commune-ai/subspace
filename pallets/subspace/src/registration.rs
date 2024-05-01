@@ -17,8 +17,14 @@ impl<T: Config> Pallet<T> {
         // --- 1. Check that the caller has signed the transaction.
         let key = ensure_signed(origin)?;
 
-        // --- 2. Ensure that the key is the nominator multisig.
-        ensure!(Self::get_nominator() == key, Error::<T>::NotNominator);
+        // --- 2. Ensure that the key is the curator multisig.
+        ensure!(Self::get_curator() == key, Error::<T>::NotCurator);
+
+        // --- 2.1 Make sure the key application was submitted
+        let application_exists = CuratorApplications::<T>::iter()
+            .any(|(_, application)| application.user_id == module_key);
+
+        ensure!(application_exists, Error::<T>::ApplicationNotFound);
 
         // --- 3. Ensure that the module_key is not already in the whitelist.
         ensure!(
@@ -34,6 +40,9 @@ impl<T: Config> Pallet<T> {
         // --- 4. Insert the module_key into the whitelist.
         Self::insert_to_whitelist(module_key.clone(), recommended_weight);
 
+        // execute the application
+        Self::execute_application(&module_key).unwrap();
+
         // -- deposit event
         Self::deposit_event(Event::WhitelistModuleAdded(module_key));
 
@@ -48,8 +57,8 @@ impl<T: Config> Pallet<T> {
         // --- 1. Check that the caller has signed the transaction.
         let key = ensure_signed(origin)?;
 
-        // --- 2. Ensure that the key is the nominator multisig.
-        ensure!(Self::get_nominator() == key, Error::<T>::NotNominator);
+        // --- 2. Ensure that the key is the curator multisig.
+        ensure!(Self::get_curator() == key, Error::<T>::NotCurator);
 
         // --- 3. Ensure that the module_key is in the whitelist.
         ensure!(

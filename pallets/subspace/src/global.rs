@@ -11,7 +11,7 @@ impl<T: Config> Pallet<T> {
             max_allowed_subnets: Self::get_global_max_allowed_subnets(),
             max_allowed_modules: Self::get_max_allowed_modules(),
             unit_emission: Self::get_unit_emission(),
-            nominator: Self::get_nominator(),
+            curator: Self::get_curator(),
             floor_delegation_fee: Self::get_floor_delegation_fee(),
             // burn & registrations
             max_registrations_per_block: Self::get_max_registrations_per_block(),
@@ -150,7 +150,7 @@ impl<T: Config> Pallet<T> {
         Self::set_adjustment_alpha(params.adjustment_alpha);
         Self::set_min_stake_global(params.min_stake);
         Self::set_floor_delegation_fee(params.floor_delegation_fee);
-        Self::set_nominator(params.nominator);
+        Self::set_curator(params.curator);
 
         // weights
         Self::set_max_allowed_weights_global(params.max_allowed_weights);
@@ -162,12 +162,12 @@ impl<T: Config> Pallet<T> {
         Self::set_proposal_participation_threshold(params.proposal_participation_threshold);
     }
 
-    pub fn get_nominator() -> T::AccountId {
-        Nominator::<T>::get()
+    pub fn get_curator() -> T::AccountId {
+        Curator::<T>::get()
     }
 
-    pub fn set_nominator(nominator: T::AccountId) {
-        Nominator::<T>::put(nominator)
+    pub fn set_curator(curator: T::AccountId) {
+        Curator::<T>::put(curator)
     }
 
     pub fn get_target_registrations_per_interval() -> u16 {

@@ -127,6 +127,7 @@ pub type Migrations = (
     pallet_subspace::migrations::v2::MigrateToV2<Runtime>,
     pallet_subspace::migrations::v3::MigrateToV3<Runtime>,
     pallet_subspace::migrations::v4::MigrateToV4<Runtime>,
+    pallet_subspace::migrations::v5::MigrateToV5<Runtime>,
 );
 // To learn more about runtime versioning, see:
 // https://docs.substrate.io/main-docs/build/upgrade#runtime-versioning

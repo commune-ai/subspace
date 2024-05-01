@@ -59,17 +59,17 @@ pub mod pallet {
         clippy::type_complexity
     )]
 
-    use self::voting::{Proposal, VoteMode};
+    use self::voting::{CuratorApplication, Proposal, VoteMode};
 
     use super::*;
-    use frame_support::{pallet_prelude::*, traits::Currency};
+    use frame_support::{pallet_prelude::*, traits::Currency, Identity};
     use frame_system::pallet_prelude::*;
 
     use module::ModuleChangeset;
     use sp_arithmetic::per_things::Percent;
     pub use sp_std::{vec, vec::Vec};
 
-    const STORAGE_VERSION: StorageVersion = StorageVersion::new(4);
+    const STORAGE_VERSION: StorageVersion = StorageVersion::new(5);
 
     #[pallet::pallet]
     #[pallet::generate_store(pub(super) trait Store)]
@@ -312,7 +312,7 @@ pub mod pallet {
                                                      * registration interval */
         pub adjustment_alpha: u64, // adjustment alpha
         pub unit_emission: u64,    // emission per block
-        pub nominator: T::AccountId,
+        pub curator: T::AccountId,
 
         pub subnet_stake_threshold: Percent,
 
@@ -353,7 +353,7 @@ pub mod pallet {
                 )
                 .field("adjustment_alpha", &self.adjustment_alpha)
                 .field("unit_emission", &self.unit_emission)
-                .field("nominator", &self.nominator)
+                .field("curator", &self.curator)
                 .finish()
         }
     }
@@ -500,12 +500,12 @@ pub mod pallet {
     // =======================================
 
     #[pallet::type_value]
-    pub fn DefaultNominator<T: Config>() -> T::AccountId {
+    pub fn DefaultCurator<T: Config>() -> T::AccountId {
         T::AccountId::decode(&mut sp_runtime::traits::TrailingZeroInput::zeroes()).unwrap()
     }
 
     #[pallet::storage]
-    pub type Nominator<T: Config> = StorageValue<_, T::AccountId, ValueQuery, DefaultNominator<T>>;
+    pub type Curator<T: Config> = StorageValue<_, T::AccountId, ValueQuery, DefaultCurator<T>>;
 
     // VOTING MODE
     #[pallet::type_value]
@@ -710,6 +710,7 @@ pub mod pallet {
 
         //voting
         ProposalCreated(u64),                        // id of the proposal
+        ApplicationCreated(u64),                     // id of the application
         ProposalVoted(u64, T::AccountId, bool),      // (id, voter, vote)
         ProposalVoteUnregistered(u64, T::AccountId), // (id, voter)
         GlobalParamsUpdated(GlobalParams<T>),        /* --- Event created when global
@@ -782,8 +783,9 @@ pub mod pallet {
         KeyAlreadyRegistered,
         EmptyKeys,
         TooManyKeys,
-        NotNominator, /* --- Thrown when the user tries to set the nominator and is not the
-                       * nominator */
+        NotCurator, /* --- Thrown when the user tries to set the curator and is not the
+                     * curator */
+        ApplicationNotFound,
         AlreadyWhitelisted, /* --- Thrown when the user tries to whitelist an account that is
                              * already whitelisted. */
         NotWhitelisted, /* --- Thrown when the user tries to remove an account from the
@@ -862,7 +864,13 @@ pub mod pallet {
         InvalidProposalCustomData,
         ProposalCustomDataTooSmall,
         ProposalCustomDataTooLarge,
+        // DAO / Governance
+        ApplicationTooSmall,
+        ApplicationTooLarge,
+        ApplicationNotPending,
+        InvalidApplication,
         NotEnoughBalanceToPropose,
+        NotEnoughtBalnceToApply,
 
         // Other
         InvalidMaxWeightAge,
@@ -972,6 +980,9 @@ pub mod pallet {
 
     #[pallet::storage]
     pub type Proposals<T: Config> = StorageMap<_, Identity, u64, Proposal<T>>;
+
+    #[pallet::storage]
+    pub type CuratorApplications<T: Config> = StorageMap<_, Identity, u64, CuratorApplication<T>>;
 
     // ================
     // ==== Hooks =====
@@ -1190,7 +1201,7 @@ pub mod pallet {
                                                  * registration interval */
             adjustment_alpha: u64,           // adjustment alpha
             unit_emission: u64,              // emission per block
-            nominator: T::AccountId,         // subnet 0 dao multisig
+            curator: T::AccountId,           // subnet 0 dao multisig
             subnet_stake_threshold: Percent, // stake needed to start subnet emission
             proposal_cost: u64,              /*amount of $COMAI to create a proposal
                                               * returned if proposal gets accepted */
@@ -1216,7 +1227,7 @@ pub mod pallet {
             params.target_registrations_interval = target_registrations_interval;
             params.adjustment_alpha = adjustment_alpha;
             params.unit_emission = unit_emission;
-            params.nominator = nominator;
+            params.curator = curator;
             params.subnet_stake_threshold = subnet_stake_threshold;
             params.proposal_cost = proposal_cost;
             params.proposal_expiration = proposal_expiration;
@@ -1267,6 +1278,21 @@ pub mod pallet {
         #[pallet::weight((Weight::zero(), DispatchClass::Normal, Pays::No))]
         pub fn add_custom_proposal(origin: OriginFor<T>, data: Vec<u8>) -> DispatchResult {
             Self::do_add_custom_proposal(origin, data)
+        }
+
+        // Subnet 0 DAO
+        #[pallet::weight((Weight::zero(), DispatchClass::Normal, Pays::No))]
+        pub fn add_dao_application(
+            origin: OriginFor<T>,
+            application_key: T::AccountId,
+            data: Vec<u8>,
+        ) -> DispatchResult {
+            Self::do_add_dao_application(origin, application_key, data)
+        }
+
+        #[pallet::weight((Weight::zero(), DispatchClass::Normal, Pays::No))]
+        pub fn refuse_dao_application(origin: OriginFor<T>, id: u64) -> DispatchResult {
+            Self::do_refuse_dao_application(origin, id)
         }
 
         #[pallet::weight((Weight::zero(), DispatchClass::Normal, Pays::No))]
