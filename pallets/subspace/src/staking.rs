@@ -470,10 +470,7 @@ impl<T: Config> Pallet<T> {
         Stake::<T>::remove(netuid, module_key);
     }
 
-    pub fn add_balance_to_account(
-        key: &T::AccountId,
-        amount: <<T as Config>::Currency as Currency<<T as system::Config>::AccountId>>::Balance,
-    ) {
+    pub fn add_balance_to_account(key: &T::AccountId, amount: BalanceOf<T>) {
         let _ = T::Currency::deposit_creating(key, amount); // Infallibe
     }
 
@@ -482,34 +479,24 @@ impl<T: Config> Pallet<T> {
         to: &T::AccountId,
         amount: u64,
     ) -> bool {
-        match T::Currency::transfer(
+        T::Currency::transfer(
             from,
             to,
             Self::u64_to_balance(amount).unwrap(),
             ExistenceRequirement::KeepAlive,
-        ) {
-            Ok(_result) => true,
-            Err(_error) => false,
-        }
+        )
+        .is_ok()
     }
 
-    pub fn get_balance(
-        key: &T::AccountId,
-    ) -> <<T as Config>::Currency as Currency<<T as system::Config>::AccountId>>::Balance {
+    pub fn get_balance(key: &T::AccountId) -> BalanceOf<T> {
         T::Currency::free_balance(key)
     }
 
-    pub fn balance_to_u64(
-        input: <<T as Config>::Currency as Currency<<T as system::Config>::AccountId>>::Balance,
-    ) -> u64 {
+    pub fn balance_to_u64(input: BalanceOf<T>) -> u64 {
         input.try_into().ok().unwrap()
     }
 
-    pub fn u64_to_balance(
-        input: u64,
-    ) -> Option<
-        <<T as Config>::Currency as Currency<<T as frame_system::Config>::AccountId>>::Balance,
-    > {
+    pub fn u64_to_balance(input: u64) -> Option<BalanceOf<T>> {
         input.try_into().ok()
     }
 
@@ -525,10 +512,7 @@ impl<T: Config> Pallet<T> {
         }
     }
 
-    pub fn remove_balance_from_account(
-        key: &T::AccountId,
-        amount: <<T as Config>::Currency as Currency<<T as system::Config>::AccountId>>::Balance,
-    ) -> bool {
+    pub fn remove_balance_from_account(key: &T::AccountId, amount: BalanceOf<T>) -> bool {
         T::Currency::withdraw(
             key,
             amount,

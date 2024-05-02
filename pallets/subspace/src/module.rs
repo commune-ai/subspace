@@ -1,9 +1,6 @@
 use super::*;
 
-use frame_support::{
-    pallet_prelude::{Decode, DispatchResult, Encode},
-    IterableStorageDoubleMap,
-};
+use frame_support::pallet_prelude::{Decode, DispatchResult, Encode};
 use sp_arithmetic::per_things::Percent;
 use sp_std::collections::btree_map::BTreeMap;
 
@@ -129,8 +126,7 @@ impl<T: Config> Pallet<T> {
     }
 
     pub fn does_module_name_exist(netuid: u16, name: &[u8]) -> bool {
-        <Name<T> as IterableStorageDoubleMap<u16, u16, Vec<u8>>>::iter_prefix(netuid)
-            .any(|(_, existing)| existing == name)
+        Name::<T>::iter_prefix_values(netuid).any(|existing| existing == name)
     }
 
     pub fn module_params(netuid: u16, key: &T::AccountId) -> ModuleParams<T> {

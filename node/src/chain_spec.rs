@@ -15,7 +15,7 @@ pub type ChainSpec = sc_service::GenericChainSpec<RuntimeGenesisConfig>;
 
 // Generate a crypto pair from seed.
 pub fn get_from_seed<TPublic: Public>(seed: &str) -> <TPublic::Pair as Pair>::Public {
-    <TPublic::Pair as Pair>::from_string(&format!("//{}", seed), None)
+    TPublic::Pair::from_string(&format!("//{}", seed), None)
         .expect("static values are valid; qed")
         .public()
 }
@@ -126,9 +126,7 @@ pub fn generate_config(network: String) -> Result<ChainSpec, String> {
             max_allowed_uids,
             burn_rate,
             min_stake,
-            sp_runtime::AccountId32::from(
-                <sr25519::Public as Ss58Codec>::from_ss58check(&founder).unwrap(),
-            ),
+            sp_runtime::AccountId32::from(sr25519::Public::from_ss58check(&founder).unwrap()),
         ));
 
         // Add  modules
@@ -137,7 +135,7 @@ pub fn generate_config(network: String) -> Result<ChainSpec, String> {
             modules[netuid].push((
                 sp_runtime::AccountId32::from(
                     // module_key
-                    <sr25519::Public as Ss58Codec>::from_ss58check(&module.0).unwrap(),
+                    sr25519::Public::from_ss58check(&module.0).unwrap(),
                 ),
                 module.1.as_bytes().to_vec(),                     // name
                 module.2.as_bytes().to_vec(),                     // address
@@ -147,15 +145,13 @@ pub fn generate_config(network: String) -> Result<ChainSpec, String> {
         stake_to.push(Vec::new());
         for (key_str, key_stake_to) in state.stake_to[netuid].iter() {
             stake_to[netuid].push((
-                sp_runtime::AccountId32::from(
-                    <sr25519::Public as Ss58Codec>::from_ss58check(key_str).unwrap(),
-                ),
+                sp_runtime::AccountId32::from(sr25519::Public::from_ss58check(key_str).unwrap()),
                 key_stake_to
                     .iter()
                     .map(|(a, b)| {
                         (
                             sp_runtime::AccountId32::from(
-                                <sr25519::Public as Ss58Codec>::from_ss58check(a).unwrap(),
+                                sr25519::Public::from_ss58check(a).unwrap(),
                             ),
                             *b,
                         )
@@ -167,7 +163,7 @@ pub fn generate_config(network: String) -> Result<ChainSpec, String> {
 
     let mut processed_balances: Vec<(sp_runtime::AccountId32, u64)> = Vec::new();
     for (key_str, amount) in state.balances.iter() {
-        let key = <sr25519::Public as Ss58Codec>::from_ss58check(key_str).unwrap();
+        let key = sr25519::Public::from_ss58check(key_str).unwrap();
         let key_account = sp_runtime::AccountId32::from(key);
 
         processed_balances.push((key_account, *amount));
