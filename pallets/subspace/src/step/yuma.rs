@@ -656,30 +656,39 @@ impl<T: Config> Pallet<T> {
 
     fn get_weights_sparse(netuid: u16) -> Vec<Vec<(u16, I32F32)>> {
         let n = Self::get_subnet_n(netuid) as usize;
+        let mut weights_sparse: Vec<Vec<(u16, I32F32)>> = vec![vec![]; n + 1];
 
-        Weights::<T>::iter_prefix(netuid)
-            .filter(|(uid_i, _)| *uid_i < n as u16)
-            .map(|(uid_i, weights)| {
-                weights
-                    .iter()
-                    .filter(|(uid_j, _)| *uid_j < n as u16)
-                    .map(|(uid_j, weight_ij)| (*uid_j, I32F32::from_num(*weight_ij)))
-                    .collect()
-            })
-            .collect()
+        for (uid, weights) in Weights::<T>::iter_prefix(netuid) {
+            if *uid >= n as u16 {
+                continue;
+            }
+
+            weights_sparse[uid] = weights
+                .iter()
+                .filter(|(uid_j, _)| *uid_j < n as u16)
+                .map(|(uid_j, weight_ij)| (*uid_j, I32F32::from_num(*weight_ij)))
+                .collect();
+        }
+
+        weights_sparse
     }
 
     fn get_bonds_sparse(netuid: u16) -> Vec<Vec<(u16, I32F32)>> {
-        let n: usize = Self::get_subnet_n(netuid) as usize;
+        let n = Self::get_subnet_n(netuid) as usize;
+        let mut bonds_sparse: Vec<Vec<(u16, I32F32)>> = vec![vec![]; n + 1];
 
-        Bonds::<T>::iter_prefix(netuid)
-            .map(|(uid_i, bonds_i)| {
-                bonds_i
-                    .iter()
-                    .map(|(uid_j, bonds_ij)| (*uid_j, I32F32::from_num(*bonds_ij)))
-                    .collect()
-            })
-            .collect()
+        for (uid, bonds) in Weights::<T>::iter_prefix(netuid) {
+            if *uid >= n as u16 {
+                continue;
+            }
+
+            bonds_sparse[uid] = bonds
+                .iter()
+                .map(|(uid_j, bonds_ij)| (*uid_j, I32F32::from_num(*bonds_ij)))
+                .collect();
+        }
+
+        bonds_sparse
     }
 }
 
