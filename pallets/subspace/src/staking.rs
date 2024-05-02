@@ -479,15 +479,13 @@ impl<T: Config> Pallet<T> {
         to: &T::AccountId,
         amount: u64,
     ) -> bool {
-        match T::Currency::transfer(
+        T::Currency::transfer(
             from,
             to,
             Self::u64_to_balance(amount).unwrap(),
             ExistenceRequirement::KeepAlive,
-        ) {
-            Ok(_) => true,
-            Err(_) => false,
-        }
+        )
+        .is_ok()
     }
 
     pub fn get_balance(key: &T::AccountId) -> BalanceOf<T> {
