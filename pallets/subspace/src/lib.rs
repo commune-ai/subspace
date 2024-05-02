@@ -876,6 +876,7 @@ pub mod pallet {
         InvalidMaxWeightAge,
         InvalidRecommendedWeight,
         InvalidMaxStake,
+        InvalidFounderShare, // Whether the value is less than FloorFounderShare
         ArithmeticError,
     }
 
