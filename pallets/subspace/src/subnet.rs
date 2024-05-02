@@ -50,6 +50,8 @@ impl<T: Config> SubnetChangeset<T> {
     }
 
     pub fn validate_params(netuid: Option<u16>, params: &SubnetParams<T>) -> DispatchResult {
+        let floor_founder_share = FloorFounderShare::<T>::get() as u16;
+
         // checks if params are valid
 
         // check valid tempo
@@ -90,6 +92,11 @@ impl<T: Config> SubnetChangeset<T> {
         );
 
         ensure!(params.founder_share <= 100, Error::<T>::InvalidFounderShare);
+
+        ensure!(
+            params.founder_share < floor_founder_share,
+            Error::<T>::InvalidFounderShare
+        );
 
         ensure!(
             params.incentive_ratio <= 100,

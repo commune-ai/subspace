@@ -46,6 +46,7 @@ fn creates_global_params_proposal_correctly_and_expires() {
             max_burn,
             min_stake,
             floor_delegation_fee,
+            floor_founder_share,
             min_weight_stake,
             target_registrations_per_interval,
             target_registrations_interval,
@@ -71,6 +72,7 @@ fn creates_global_params_proposal_correctly_and_expires() {
             min_burn,
             min_stake,
             floor_delegation_fee,
+            floor_founder_share,
             min_weight_stake,
             target_registrations_per_interval,
             target_registrations_interval,
@@ -145,6 +147,7 @@ fn creates_global_params_proposal_correctly_and_is_approved() {
             max_burn,
             min_stake,
             floor_delegation_fee,
+            floor_founder_share,
             min_weight_stake,
             target_registrations_per_interval,
             target_registrations_interval,
@@ -170,6 +173,7 @@ fn creates_global_params_proposal_correctly_and_is_approved() {
             min_burn,
             min_stake,
             floor_delegation_fee,
+            floor_founder_share,
             min_weight_stake,
             target_registrations_per_interval,
             target_registrations_interval,
@@ -226,6 +230,7 @@ fn creates_global_params_proposal_correctly_and_is_refused() {
 
         let original = SubspaceModule::global_params();
         let GlobalParams {
+            floor_founder_share,
             burn_rate,
             max_name_length,
             min_name_length,
@@ -265,6 +270,7 @@ fn creates_global_params_proposal_correctly_and_is_refused() {
             min_burn,
             min_stake,
             floor_delegation_fee,
+            floor_founder_share,
             min_weight_stake,
             target_registrations_per_interval,
             target_registrations_interval,
