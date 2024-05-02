@@ -1,9 +1,6 @@
 use super::*;
 
-use frame_support::{
-    pallet_prelude::{Decode, DispatchResult, Encode},
-    IterableStorageDoubleMap,
-};
+use frame_support::pallet_prelude::{Decode, DispatchResult, Encode};
 use sp_arithmetic::per_things::Percent;
 use sp_std::collections::btree_map::BTreeMap;
 

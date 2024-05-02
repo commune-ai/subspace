@@ -659,11 +659,11 @@ impl<T: Config> Pallet<T> {
         let mut weights_sparse: Vec<Vec<(u16, I32F32)>> = vec![vec![]; n + 1];
 
         for (uid, weights) in Weights::<T>::iter_prefix(netuid) {
-            if *uid >= n as u16 {
+            if uid >= n as u16 {
                 continue;
             }
 
-            weights_sparse[uid] = weights
+            weights_sparse[uid as usize] = weights
                 .iter()
                 .filter(|(uid_j, _)| *uid_j < n as u16)
                 .map(|(uid_j, weight_ij)| (*uid_j, I32F32::from_num(*weight_ij)))
@@ -678,11 +678,11 @@ impl<T: Config> Pallet<T> {
         let mut bonds_sparse: Vec<Vec<(u16, I32F32)>> = vec![vec![]; n + 1];
 
         for (uid, bonds) in Weights::<T>::iter_prefix(netuid) {
-            if *uid >= n as u16 {
+            if uid >= n as u16 {
                 continue;
             }
 
-            bonds_sparse[uid] = bonds
+            bonds_sparse[uid as usize] = bonds
                 .iter()
                 .map(|(uid_j, bonds_ij)| (*uid_j, I32F32::from_num(*bonds_ij)))
                 .collect();
