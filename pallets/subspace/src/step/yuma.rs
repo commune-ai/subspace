@@ -656,39 +656,31 @@ impl<T: Config> Pallet<T> {
 
     fn get_weights_sparse(netuid: u16) -> Vec<Vec<(u16, I32F32)>> {
         let n = Self::get_subnet_n(netuid) as usize;
-        let mut weights_sparse: Vec<Vec<(u16, I32F32)>> = vec![vec![]; n + 1];
-
-        for (uid, weights) in Weights::<T>::iter_prefix(netuid) {
-            if uid >= n as u16 {
+        let mut weights: Vec<Vec<(u16, I32F32)>> = vec![vec![]; n];
+        for (uid_i, weights_i) in Weights::<T>::iter_prefix(netuid) {
+            if uid_i >= n as u16 {
                 continue;
             }
 
-            weights_sparse[uid as usize] = weights
-                .iter()
-                .filter(|(uid_j, _)| *uid_j < n as u16)
-                .map(|(uid_j, weight_ij)| (*uid_j, I32F32::from_num(*weight_ij)))
-                .collect();
+            for (uid_j, weight_ij) in weights_i.iter() {
+                if *uid_j >= n as u16 {
+                    continue;
+                }
+                weights[uid_i as usize].push((*uid_j, I32F32::from_num(*weight_ij)));
+            }
         }
-
-        weights_sparse
+        weights
     }
 
     fn get_bonds_sparse(netuid: u16) -> Vec<Vec<(u16, I32F32)>> {
-        let n = Self::get_subnet_n(netuid) as usize;
-        let mut bonds_sparse: Vec<Vec<(u16, I32F32)>> = vec![vec![]; n + 1];
-
-        for (uid, bonds) in Weights::<T>::iter_prefix(netuid) {
-            if uid >= n as u16 {
-                continue;
+        let n: usize = Self::get_subnet_n(netuid) as usize;
+        let mut bonds: Vec<Vec<(u16, I32F32)>> = vec![vec![]; n];
+        for (uid_i, bonds_i) in Bonds::<T>::iter_prefix(netuid) {
+            for (uid_j, bonds_ij) in bonds_i {
+                bonds[uid_i as usize].push((uid_j, I32F32::from_num(bonds_ij)));
             }
-
-            bonds_sparse[uid as usize] = bonds
-                .iter()
-                .map(|(uid_j, bonds_ij)| (*uid_j, I32F32::from_num(*bonds_ij)))
-                .collect();
         }
-
-        bonds_sparse
+        bonds
     }
 }
 
