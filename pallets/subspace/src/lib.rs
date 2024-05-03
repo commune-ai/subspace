@@ -376,7 +376,7 @@ pub mod pallet {
                 max_weight_age: DefaultMaxWeightAge::<T>::get(),
                 max_stake: DefaultMaxStake::<T>::get(),
                 trust_ratio: GetDefault::get(),
-                founder_share: GetDefault::get(),
+                founder_share: FloorFounderShare::<T>::get() as u16,
                 incentive_ratio: DefaultIncentiveRatio::<T>::get(),
                 min_stake: MinStakeGlobal::<T>::get(),
                 founder: DefaultFounder::<T>::get(),
@@ -479,7 +479,13 @@ pub mod pallet {
         StorageMap<_, Identity, u16, T::AccountId, ValueQuery, DefaultFounder<T>>;
 
     #[pallet::storage] // --- DMAP ( key, netuid ) --> bool
-    pub type FounderShare<T: Config> = StorageMap<_, Identity, u16, u16, ValueQuery>;
+    pub type FounderShare<T: Config> =
+        StorageMap<_, Identity, u16, u16, ValueQuery, DefaultFounderShare<T>>;
+
+    #[pallet::type_value]
+    pub fn DefaultFounderShare<T: Config>() -> u16 {
+        FloorFounderShare::<T>::get() as u16
+    }
 
     #[pallet::type_value]
     pub fn DefaultIncentiveRatio<T: Config>() -> u16 {
