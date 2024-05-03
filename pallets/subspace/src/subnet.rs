@@ -94,7 +94,7 @@ impl<T: Config> SubnetChangeset<T> {
         ensure!(params.founder_share <= 100, Error::<T>::InvalidFounderShare);
 
         ensure!(
-            params.founder_share < floor_founder_share,
+            params.founder_share >= floor_founder_share,
             Error::<T>::InvalidFounderShare
         );
 
