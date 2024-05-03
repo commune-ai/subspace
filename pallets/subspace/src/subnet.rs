@@ -44,6 +44,15 @@ impl<T: Config> SubnetChangeset<T> {
         IncentiveRatio::<T>::insert(netuid, self.params.incentive_ratio);
         VoteModeSubnet::<T>::insert(netuid, self.params.vote_mode);
 
+        if self.params.maximum_set_weight_calls_per_epoch == 0 {
+            MaximumSetWeightCallsPerEpoch::<T>::remove(netuid);
+        } else {
+            MaximumSetWeightCallsPerEpoch::<T>::insert(
+                netuid,
+                self.params.maximum_set_weight_calls_per_epoch,
+            );
+        }
+
         Pallet::<T>::deposit_event(Event::SubnetParamsUpdated(netuid));
 
         Ok(())
@@ -263,6 +272,7 @@ impl<T: Config> Pallet<T> {
             name: SubnetNames::<T>::get(netuid),
             trust_ratio: TrustRatio::<T>::get(netuid),
             incentive_ratio: IncentiveRatio::<T>::get(netuid),
+            maximum_set_weight_calls_per_epoch: MaximumSetWeightCallsPerEpoch::<T>::get(netuid),
             vote_mode: VoteModeSubnet::<T>::get(netuid),
         }
     }

@@ -343,6 +343,7 @@ fn creates_subnet_params_proposal_correctly_and_is_approved() {
             max_weight_age,
             tempo,
             trust_ratio,
+            maximum_set_weight_calls_per_epoch,
             vote_mode,
         } = params.clone();
 
@@ -362,6 +363,7 @@ fn creates_subnet_params_proposal_correctly_and_is_approved() {
             max_weight_age,
             tempo,
             trust_ratio,
+            maximum_set_weight_calls_per_epoch,
             vote_mode,
         )
         .expect("failed to create proposal");

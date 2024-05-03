@@ -34,6 +34,19 @@ impl<T: Config> Pallet<T> {
             Error::<T>::NotRegistered
         );
 
+        let max_set_weights = MaximumSetWeightCallsPerEpoch::<T>::get(netuid);
+        if max_set_weights != 0 {
+            let set_weight_uses = SetWeightCallsPerEpoch::<T>::mutate(netuid, &key, |value| {
+                *value = value.saturating_add(1);
+                *value
+            });
+
+            ensure!(
+                set_weight_uses <= max_set_weights,
+                Error::<T>::MaximumSetWeightsPerEpochReached
+            );
+        }
+
         // --- 5. Get the module uid of associated key on network netuid.
         let uid: u16 = Self::get_uid_for_key(netuid, &key);
 

@@ -48,6 +48,9 @@ impl<T: Config> Pallet<T> {
                 continue;
             }
 
+            // Clearing `set_weight` rate limiter values.
+            let _ = SetWeightCallsPerEpoch::<T>::clear_prefix(netuid, u32::MAX, None);
+
             let has_enough_stake_for_yuma = || {
                 let subnet_stake = Self::get_total_subnet_stake(netuid) as u128;
                 let total_stake = Self::total_stake() as u128;

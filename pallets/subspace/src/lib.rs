@@ -280,6 +280,14 @@ pub mod pallet {
     pub type MaxAllowedWeightsGlobal<T> =
         StorageValue<_, u16, ValueQuery, DefaultMaxAllowedWeightsGlobal<T>>;
 
+    #[pallet::storage]
+    pub type MaximumSetWeightCallsPerEpoch<T: Config> =
+        StorageMap<_, Identity, u16, u16, ValueQuery>;
+
+    #[pallet::storage]
+    pub type SetWeightCallsPerEpoch<T: Config> =
+        StorageDoubleMap<_, Identity, u16, Identity, T::AccountId, u16, ValueQuery>;
+
     #[derive(Decode, Encode, PartialEq, Eq, Clone, Debug, TypeInfo)]
     #[scale_info(skip_type_params(T))]
     pub struct ModuleParams<T: Config> {
@@ -384,6 +392,7 @@ pub mod pallet {
                 min_stake: MinStakeGlobal::<T>::get(),
                 founder: DefaultFounder::<T>::get(),
                 vote_mode: DefaultVoteMode::<T>::get(),
+                maximum_set_weight_calls_per_epoch: 0,
             }
         }
     }
@@ -413,6 +422,7 @@ pub mod pallet {
         pub name: Vec<u8>,
         pub tempo: u16, // how many blocks to wait before rewarding models
         pub trust_ratio: u16,
+        pub maximum_set_weight_calls_per_epoch: u16,
         pub vote_mode: VoteMode,
     }
 
@@ -900,6 +910,8 @@ pub mod pallet {
         InvalidRecommendedWeight,
         InvalidMaxStake,
         ArithmeticError,
+
+        MaximumSetWeightsPerEpochReached,
     }
 
     // ==================
@@ -1179,6 +1191,7 @@ pub mod pallet {
             name: Vec<u8>,
             tempo: u16,
             trust_ratio: u16,
+            maximum_set_weight_calls_per_epoch: u16,
             vote_mode: VoteMode,
         ) -> DispatchResult {
             let params = SubnetParams {
@@ -1195,6 +1208,7 @@ pub mod pallet {
                 name,
                 tempo,
                 trust_ratio,
+                maximum_set_weight_calls_per_epoch,
                 vote_mode,
             };
 
@@ -1280,6 +1294,7 @@ pub mod pallet {
             max_weight_age: u64, // max age of a weight
             tempo: u16,          // how many blocks to wait before rewarding models
             trust_ratio: u16,    // missing comment
+            maximum_set_weight_calls_per_epoch: u16,
             vote_mode: VoteMode, // missing comment
         ) -> DispatchResult {
             let mut params = Self::subnet_params(netuid);
@@ -1296,6 +1311,7 @@ pub mod pallet {
             params.max_weight_age = max_weight_age;
             params.tempo = tempo;
             params.trust_ratio = trust_ratio;
+            params.maximum_set_weight_calls_per_epoch = maximum_set_weight_calls_per_epoch;
             params.vote_mode = vote_mode;
             Self::do_add_subnet_proposal(origin, netuid, params)
         }
