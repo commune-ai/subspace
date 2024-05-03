@@ -6,8 +6,8 @@ use frame_support::assert_ok;
 use mock::*;
 use pallet_subspace::{
     voting::{ProposalData, ProposalStatus, VoteMode},
-    GlobalParams, MinBurn, ProposalCost, ProposalExpiration, Proposals, SubnetParams, Tempo,
-    VoteModeSubnet,
+    FloorFounderShare, GlobalParams, MinBurn, ProposalCost, ProposalExpiration, Proposals,
+    SubnetParams, Tempo, VoteModeSubnet,
 };
 use sp_core::U256;
 
@@ -17,6 +17,7 @@ fn creates_global_params_proposal_correctly_and_expires() {
         const COST: u64 = to_nano(10);
 
         MinBurn::<Test>::set(0);
+        FloorFounderShare::<Test>::set(0);
 
         ProposalCost::<Test>::set(COST);
         ProposalExpiration::<Test>::set(100);

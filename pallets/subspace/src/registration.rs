@@ -117,8 +117,6 @@ impl<T: Config> Pallet<T> {
             }
         };
 
-        log::info!("AAAAAAAAAAAA");
-
         // TODO: later, once legit whitelist has been filled up, turn on the code below.
         // We also have to declear a migration, of modules on netuid 0 that are not whitelisted.
 

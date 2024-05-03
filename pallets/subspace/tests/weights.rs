@@ -267,6 +267,7 @@ fn test_weight_age() {
         const PASSIVE_VOTER: u16 = 0;
         const ACTIVE_VOTER: u16 = 1;
         SubspaceModule::set_max_registrations_per_block(1000);
+        SubspaceModule::set_floor_founder_share(0);
 
         // Register modules
         (0..MODULE_COUNT).for_each(|i| {

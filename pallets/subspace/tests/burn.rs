@@ -16,11 +16,8 @@ fn test_burn() {
         let voter_key_index = 1;
         let voter_key = keys[voter_key_index];
 
-        println!("biiiiii");
-
         SubspaceModule::set_max_registrations_per_block(1000);
         for (key, stake) in keys.iter().zip(stakes.iter()) {
-            println!("a");
             assert_ok!(register_module(netuid, *key, *stake));
         }
 

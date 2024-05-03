@@ -318,6 +318,10 @@ impl<T: Config> Pallet<T> {
         AdjustmentAlpha::<T>::put(adjustment_alpha);
     }
 
+    pub fn set_floor_founder_share(founder_share: u8) {
+        FloorFounderShare::<T>::put(founder_share);
+    }
+
     // Whitelist management
     pub fn is_in_legit_whitelist(account_id: &T::AccountId) -> bool {
         LegitWhitelist::<T>::contains_key(account_id)
