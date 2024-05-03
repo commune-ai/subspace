@@ -12,7 +12,7 @@ impl<T: Config> Pallet<T> {
             max_allowed_modules: Self::get_max_allowed_modules(),
             unit_emission: Self::get_unit_emission(),
             curator: Self::get_curator(),
-            floor_founder_share: Self::get_floor_founder_share(),
+            floor_founder_share: FloorFounderShare::<T>::get(),
             floor_delegation_fee: Self::get_floor_delegation_fee(),
             // burn & registrations
             max_registrations_per_block: Self::get_max_registrations_per_block(),
@@ -208,10 +208,6 @@ impl<T: Config> Pallet<T> {
     }
     pub fn set_min_stake_global(min_stake: u64) {
         MinStakeGlobal::<T>::put(min_stake)
-    }
-
-    pub fn get_floor_founder_share() -> u8 {
-        FloorFounderShare::<T>::get()
     }
 
     pub fn get_floor_delegation_fee() -> Percent {
