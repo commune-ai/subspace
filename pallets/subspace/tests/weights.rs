@@ -1,7 +1,7 @@
 mod mock;
 use frame_support::{assert_err, assert_ok};
 
-use pallet_subspace::Error;
+use pallet_subspace::{Error, FloorFounderShare};
 use sp_core::U256;
 use sp_runtime::DispatchError;
 
@@ -267,6 +267,7 @@ fn test_weight_age() {
         const PASSIVE_VOTER: u16 = 0;
         const ACTIVE_VOTER: u16 = 1;
         SubspaceModule::set_max_registrations_per_block(1000);
+        FloorFounderShare::<Test>::put(0);
 
         // Register modules
         (0..MODULE_COUNT).for_each(|i| {

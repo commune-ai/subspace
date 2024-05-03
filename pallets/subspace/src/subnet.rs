@@ -92,6 +92,11 @@ impl<T: Config> SubnetChangeset<T> {
         ensure!(params.founder_share <= 100, Error::<T>::InvalidFounderShare);
 
         ensure!(
+            params.founder_share >= FloorFounderShare::<T>::get() as u16,
+            Error::<T>::InvalidFounderShare
+        );
+
+        ensure!(
             params.incentive_ratio <= 100,
             Error::<T>::InvalidIncentiveRatio
         );
@@ -229,6 +234,11 @@ impl<T: Config> Pallet<T> {
         );
 
         ensure!(params.founder_share <= 100, Error::<T>::InvalidFounderShare);
+
+        ensure!(
+            params.founder_share >= global_params.floor_founder_share as u16,
+            Error::<T>::InvalidFounderShare
+        );
 
         ensure!(
             params.incentive_ratio <= 100,

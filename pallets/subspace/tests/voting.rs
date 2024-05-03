@@ -6,8 +6,8 @@ use frame_support::assert_ok;
 use mock::*;
 use pallet_subspace::{
     voting::{ProposalData, ProposalStatus, VoteMode},
-    GlobalParams, MinBurn, ProposalCost, ProposalExpiration, Proposals, SubnetParams, Tempo,
-    VoteModeSubnet,
+    FloorFounderShare, GlobalParams, MinBurn, ProposalCost, ProposalExpiration, Proposals,
+    SubnetParams, Tempo, VoteModeSubnet,
 };
 use sp_core::U256;
 
@@ -17,6 +17,7 @@ fn creates_global_params_proposal_correctly_and_expires() {
         const COST: u64 = to_nano(10);
 
         MinBurn::<Test>::set(0);
+        FloorFounderShare::<Test>::set(0);
 
         ProposalCost::<Test>::set(COST);
         ProposalExpiration::<Test>::set(100);
@@ -46,6 +47,7 @@ fn creates_global_params_proposal_correctly_and_expires() {
             max_burn,
             min_stake,
             floor_delegation_fee,
+            floor_founder_share,
             min_weight_stake,
             target_registrations_per_interval,
             target_registrations_interval,
@@ -71,6 +73,7 @@ fn creates_global_params_proposal_correctly_and_expires() {
             min_burn,
             min_stake,
             floor_delegation_fee,
+            floor_founder_share,
             min_weight_stake,
             target_registrations_per_interval,
             target_registrations_interval,
@@ -145,6 +148,7 @@ fn creates_global_params_proposal_correctly_and_is_approved() {
             max_burn,
             min_stake,
             floor_delegation_fee,
+            floor_founder_share,
             min_weight_stake,
             target_registrations_per_interval,
             target_registrations_interval,
@@ -170,6 +174,7 @@ fn creates_global_params_proposal_correctly_and_is_approved() {
             min_burn,
             min_stake,
             floor_delegation_fee,
+            floor_founder_share,
             min_weight_stake,
             target_registrations_per_interval,
             target_registrations_interval,
@@ -226,6 +231,7 @@ fn creates_global_params_proposal_correctly_and_is_refused() {
 
         let original = SubspaceModule::global_params();
         let GlobalParams {
+            floor_founder_share,
             burn_rate,
             max_name_length,
             min_name_length,
@@ -265,6 +271,7 @@ fn creates_global_params_proposal_correctly_and_is_refused() {
             min_burn,
             min_stake,
             floor_delegation_fee,
+            floor_founder_share,
             min_weight_stake,
             target_registrations_per_interval,
             target_registrations_interval,

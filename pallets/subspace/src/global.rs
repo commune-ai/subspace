@@ -12,6 +12,7 @@ impl<T: Config> Pallet<T> {
             max_allowed_modules: Self::get_max_allowed_modules(),
             unit_emission: Self::get_unit_emission(),
             curator: Self::get_curator(),
+            floor_founder_share: FloorFounderShare::<T>::get(),
             floor_delegation_fee: Self::get_floor_delegation_fee(),
             // burn & registrations
             max_registrations_per_block: Self::get_max_registrations_per_block(),
@@ -151,6 +152,7 @@ impl<T: Config> Pallet<T> {
         Self::set_min_stake_global(params.min_stake);
         Self::set_floor_delegation_fee(params.floor_delegation_fee);
         Self::set_curator(params.curator);
+        FloorFounderShare::<T>::put(params.floor_founder_share);
 
         // weights
         Self::set_max_allowed_weights_global(params.max_allowed_weights);
