@@ -39,6 +39,7 @@ impl<T: Config> Pallet<T> {
     pub fn check_global_params(params: &GlobalParams<T>) -> DispatchResult {
         // checks if params are valid
         let old_params = Self::global_params();
+        let floor_founder_share = FloorFounderShare::<T>::get() as u16;
 
         // check if the name already exists
         ensure!(params.max_name_length > 0, Error::<T>::InvalidMaxNameLength);
@@ -89,6 +90,12 @@ impl<T: Config> Pallet<T> {
         ensure!(
             params.unit_emission <= old_params.unit_emission,
             Error::<T>::InvalidUnitEmission
+        );
+
+        // Make sure of floor founder share
+        ensure!(
+            floor_founder_share >= params.founder_share,
+            Error::<T>::InvalidFounderShare
         );
 
         // Make sure that the burn rate is below 100%
