@@ -130,10 +130,8 @@ impl<T: Config> Pallet<T> {
     }
 
     pub fn set_global_params(params: GlobalParams<T>) {
+        // Check if the params are valid
         Self::check_global_params(&params).expect("global params are invalid");
-        if params.floor_founder_share < 8 {
-            panic!("floor founder share can not be lower than 8%");
-        }
 
         // Network
         Self::set_global_max_name_length(params.max_name_length);
