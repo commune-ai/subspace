@@ -1,6 +1,9 @@
 use crate::mock::*;
 use frame_support::assert_ok;
-use pallet_subspace::yuma::{AccountKey, EmissionMap, ModuleKey, YumaCalc};
+use pallet_subspace::{
+    yuma::{AccountKey, EmissionMap, ModuleKey, YumaCalc},
+    FloorFounderShare,
+};
 use sp_core::U256;
 use std::collections::BTreeMap;
 mod mock;
@@ -44,6 +47,7 @@ fn test_1_graph() {
     new_test_ext().execute_with(|| {
         SubspaceModule::set_unit_emission(23148148148);
         SubspaceModule::set_min_burn(0);
+        FloorFounderShare::<Test>::put(0);
 
         // Register general subnet
         assert_ok!(register_module(0, 10.into(), 1));
@@ -114,6 +118,7 @@ fn test_10_graph() {
     new_test_ext().execute_with(|| {
         SubspaceModule::set_unit_emission(23148148148);
         SubspaceModule::set_min_burn(0);
+        FloorFounderShare::<Test>::put(0);
         SubspaceModule::set_max_registrations_per_block(1000);
         // Register general subnet
         assert_ok!(register_module(0, 10_000.into(), 1));

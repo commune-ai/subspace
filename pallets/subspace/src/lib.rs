@@ -323,6 +323,9 @@ pub mod pallet {
         pub proposal_cost: u64,
         pub proposal_expiration: u32,
         pub proposal_participation_threshold: Percent,
+
+        // founder share
+        pub floor_founder_share: u8,
     }
 
     impl<T: Config> core::fmt::Debug for GlobalParams<T>
@@ -357,6 +360,7 @@ pub mod pallet {
                 .field("adjustment_alpha", &self.adjustment_alpha)
                 .field("unit_emission", &self.unit_emission)
                 .field("curator", &self.curator)
+                .field("floor_founder_share", &self.floor_founder_share)
                 .finish()
         }
     }
@@ -375,7 +379,7 @@ pub mod pallet {
                 max_weight_age: DefaultMaxWeightAge::<T>::get(),
                 max_stake: DefaultMaxStake::<T>::get(),
                 trust_ratio: GetDefault::get(),
-                founder_share: GetDefault::get(),
+                founder_share: FloorFounderShare::<T>::get() as u16,
                 incentive_ratio: DefaultIncentiveRatio::<T>::get(),
                 min_stake: MinStakeGlobal::<T>::get(),
                 founder: DefaultFounder::<T>::get(),
@@ -478,7 +482,13 @@ pub mod pallet {
         StorageMap<_, Identity, u16, T::AccountId, ValueQuery, DefaultFounder<T>>;
 
     #[pallet::storage] // --- DMAP ( key, netuid ) --> bool
-    pub type FounderShare<T: Config> = StorageMap<_, Identity, u16, u16, ValueQuery>;
+    pub type FounderShare<T: Config> =
+        StorageMap<_, Identity, u16, u16, ValueQuery, DefaultFounderShare<T>>;
+
+    #[pallet::type_value]
+    pub fn DefaultFounderShare<T: Config>() -> u16 {
+        FloorFounderShare::<T>::get() as u16
+    }
 
     #[pallet::type_value]
     pub fn DefaultIncentiveRatio<T: Config>() -> u16 {
@@ -505,6 +515,16 @@ pub mod pallet {
     #[pallet::type_value]
     pub fn DefaultCurator<T: Config>() -> T::AccountId {
         T::AccountId::decode(&mut sp_runtime::traits::TrailingZeroInput::zeroes()).unwrap()
+    }
+
+    #[pallet::storage]
+    pub type FloorFounderShare<T: Config> =
+        StorageValue<_, u8, ValueQuery, DefaultFloorFounderShare<T>>;
+
+    // VOTING MODE
+    #[pallet::type_value]
+    pub fn DefaultFloorFounderShare<T: Config>() -> u8 {
+        8
     }
 
     #[pallet::storage]
@@ -1197,6 +1217,7 @@ pub mod pallet {
             min_burn: u64,                    // min burn required to register
             min_stake: u64,                   // min stake required
             floor_delegation_fee: Percent,    // min delegation fee
+            floor_founder_share: u8,          // min founder share
             min_weight_stake: u64,            // min weight stake required
             target_registrations_per_interval: u16, /* desired number of registrations per
                                                * interval */
@@ -1225,6 +1246,7 @@ pub mod pallet {
             params.min_burn = min_burn;
             params.min_stake = min_stake;
             params.floor_delegation_fee = floor_delegation_fee;
+            params.floor_founder_share = floor_founder_share;
             params.min_weight_stake = min_weight_stake;
             params.target_registrations_per_interval = target_registrations_per_interval;
             params.target_registrations_interval = target_registrations_interval;

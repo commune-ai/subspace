@@ -3,6 +3,7 @@ mod mock;
 use frame_support::assert_ok;
 use log::info;
 use mock::*;
+use pallet_subspace::FloorFounderShare;
 use sp_core::U256;
 use sp_std::vec;
 
@@ -15,6 +16,7 @@ fn test_add_profit_share() {
         let voter_key = U256::from(1);
         // make sure that the results won´t get affected by burn
         SubspaceModule::set_min_burn(0);
+        FloorFounderShare::<Test>::put(0);
 
         register_module(netuid, miner_key, 1_000_000_000).expect("register miner module failed");
         register_module(netuid, voter_key, 1_000_000_000).expect("register voter module failed");
