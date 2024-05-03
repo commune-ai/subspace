@@ -152,6 +152,7 @@ impl<T: Config> Pallet<T> {
         Self::set_min_stake_global(params.min_stake);
         Self::set_floor_delegation_fee(params.floor_delegation_fee);
         Self::set_curator(params.curator);
+        FloorFounderShare::<T>::put(params.floor_founder_share);
 
         // weights
         Self::set_max_allowed_weights_global(params.max_allowed_weights);
