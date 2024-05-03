@@ -93,10 +93,7 @@ impl<T: Config> Pallet<T> {
         );
 
         // Make sure of floor founder share
-        ensure!(
-            floor_founder_share >= params.founder_share,
-            Error::<T>::InvalidFounderShare
-        );
+        ensure!(floor_founder_share >= 8, Error::<T>::InvalidFounderShare);
 
         // Make sure that the burn rate is below 100%
         ensure!(params.burn_rate <= 100, Error::<T>::InvalidBurnRate);
@@ -323,10 +320,6 @@ impl<T: Config> Pallet<T> {
 
     pub fn set_adjustment_alpha(adjustment_alpha: u64) {
         AdjustmentAlpha::<T>::put(adjustment_alpha);
-    }
-
-    pub fn set_floor_founder_share(founder_share: u8) {
-        FloorFounderShare::<T>::put(founder_share);
     }
 
     // Whitelist management
