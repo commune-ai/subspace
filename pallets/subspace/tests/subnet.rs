@@ -1,9 +1,9 @@
 mod mock;
 
-use frame_support::assert_ok;
+use frame_support::{assert_err, assert_ok};
 use log::info;
 use mock::*;
-use pallet_subspace::{Dividends, SubnetNames, N};
+use pallet_subspace::{Dividends, Error, MaximumSetWeightCallsPerEpoch, SubnetNames, Tempo, N};
 use sp_core::U256;
 use sp_runtime::Percent;
 use sp_std::vec;
@@ -230,6 +230,7 @@ fn test_set_max_allowed_uids_shrinking() {
             params.name.clone(),
             params.tempo,
             params.trust_ratio,
+            params.maximum_set_weight_calls_per_epoch,
             params.vote_mode,
         );
         let global_params = SubspaceModule::global_params();
@@ -805,6 +806,7 @@ fn test_update_same_name() {
             params.name,
             params.tempo,
             params.trust_ratio,
+            params.maximum_set_weight_calls_per_epoch,
             params.vote_mode,
         );
 
@@ -812,5 +814,45 @@ fn test_update_same_name() {
         assert_ok!(result);
         let new_params = SubspaceModule::subnet_params(netuid);
         assert_eq!(new_params.tempo, new_tempo);
+    });
+}
+
+#[test]
+fn test_set_weight_rate_limiting() {
+    new_test_ext().execute_with(|| {
+        let netuid: u16 = 0;
+        let key = U256::from(0);
+        let stake = to_nano(100_000);
+
+        assert_ok!(register_module(netuid, key, stake));
+        assert_ok!(register_module(netuid, 1.into(), stake));
+
+        Tempo::<Test>::set(netuid, 5);
+
+        MaximumSetWeightCallsPerEpoch::<Test>::set(netuid, 1);
+
+        let set_weights =
+            || SubspaceModule::set_weights(get_origin(key), netuid, vec![1], vec![10]);
+
+        assert_ok!(set_weights());
+        assert_err!(
+            set_weights(),
+            Error::<Test>::MaximumSetWeightsPerEpochReached
+        );
+
+        step_block(5);
+
+        assert_ok!(set_weights());
+        assert_err!(
+            set_weights(),
+            Error::<Test>::MaximumSetWeightsPerEpochReached
+        );
+
+        MaximumSetWeightCallsPerEpoch::<Test>::set(netuid, 0);
+
+        assert_ok!(set_weights());
+        assert_ok!(set_weights());
+        assert_ok!(set_weights());
+        assert_ok!(set_weights());
     });
 }
