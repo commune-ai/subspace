@@ -448,6 +448,12 @@ pub mod v6 {
             TargetRegistrationsPerInterval::<T>::set(5);
             log::info!("TargetRegistrationsPerInterval set to 5");
 
+            let floor_founder_share = FloorFounderShare::<T>::get() as u16;
+            for (subnet_id, value) in FounderShare::<T>::iter() {
+                FounderShare::<T>::insert(subnet_id, value.max(floor_founder_share));
+            }
+            log::info!("All founder share set to minimum floor founder share");
+
             TargetRegistrationsInterval::<T>::set(400);
             log::info!("TargetRegistrationsInterval set to 400");
 
