@@ -178,9 +178,7 @@ impl<T: Config> Pallet<T> {
         };
 
         // Burn the proposal cost from the proposer's balance
-        let removed_balance: bool =
-            Self::remove_balance_from_account(&key, removed_balance_as_currency.unwrap());
-        ensure!(removed_balance, Error::<T>::BalanceCouldNotBeRemoved);
+        Self::remove_balance_from_account(&key, removed_balance_as_currency.unwrap())?;
 
         // Store the proposal
         Proposals::<T>::insert(proposal_id, proposal);
@@ -221,9 +219,7 @@ impl<T: Config> Pallet<T> {
         };
 
         // Burn the application cost from the proposer's balance
-        let removed_balance: bool =
-            Self::remove_balance_from_account(&key, removed_balance_as_currency.unwrap());
-        ensure!(removed_balance, Error::<T>::BalanceCouldNotBeRemoved);
+        Self::remove_balance_from_account(&key, removed_balance_as_currency.unwrap())?;
 
         CuratorApplications::<T>::insert(application_id, application);
 
