@@ -209,7 +209,7 @@ fn test_whitelist() {
         params.curator = key;
         SubspaceModule::set_global_params(params);
 
-        let proposal_cost = SubspaceModule::get_proposal_cost();
+        let proposal_cost = SubspaceModule::get_general_subnet_application_cost();
         let data = "test".as_bytes().to_vec();
 
         add_balance(key, proposal_cost + 1);

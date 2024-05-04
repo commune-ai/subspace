@@ -58,6 +58,7 @@ fn creates_global_params_proposal_correctly_and_expires() {
             proposal_cost,
             proposal_expiration,
             proposal_participation_threshold,
+            general_subnet_application_cost,
         } = params.clone();
 
         SubspaceModule::add_global_proposal(
@@ -84,6 +85,7 @@ fn creates_global_params_proposal_correctly_and_expires() {
             proposal_cost,
             proposal_expiration,
             proposal_participation_threshold,
+            general_subnet_application_cost,
         )
         .expect("failed to create proposal");
 
@@ -159,6 +161,7 @@ fn creates_global_params_proposal_correctly_and_is_approved() {
             proposal_cost,
             proposal_expiration,
             proposal_participation_threshold,
+            general_subnet_application_cost,
         } = params.clone();
 
         SubspaceModule::add_global_proposal(
@@ -185,6 +188,7 @@ fn creates_global_params_proposal_correctly_and_is_approved() {
             proposal_cost,
             proposal_expiration,
             proposal_participation_threshold,
+            general_subnet_application_cost,
         )
         .expect("failed to create proposal");
 
@@ -253,6 +257,7 @@ fn creates_global_params_proposal_correctly_and_is_refused() {
             proposal_cost,
             proposal_expiration,
             proposal_participation_threshold,
+            general_subnet_application_cost,
         } = GlobalParams {
             min_burn: 100_000_000,
             ..original.clone()
@@ -282,6 +287,7 @@ fn creates_global_params_proposal_correctly_and_is_refused() {
             proposal_cost,
             proposal_expiration,
             proposal_participation_threshold,
+            general_subnet_application_cost,
         )
         .expect("failed to create proposal");
 

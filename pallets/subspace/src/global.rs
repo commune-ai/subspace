@@ -33,6 +33,8 @@ impl<T: Config> Pallet<T> {
                                                        * blocks */
             proposal_participation_threshold: Self::get_proposal_participation_threshold(), /* denominated
                                                                                             in percent of the overall network stake */
+            // s0
+            general_subnet_application_cost: Self::get_general_subnet_application_cost(),
         }
     }
 
@@ -116,6 +118,11 @@ impl<T: Config> Pallet<T> {
 
         // Proposal checks
         ensure!(params.proposal_cost > 0, Error::<T>::InvalidProposalCost);
+
+        ensure!(
+            params.general_subnet_application_cost > 0,
+            Error::<T>::InvalidGeneralSubnetApplicationCost
+        );
 
         ensure!(
             params.proposal_expiration % 100 == 0, // for computational reasons
@@ -248,6 +255,10 @@ impl<T: Config> Pallet<T> {
 
     pub fn get_proposal_participation_threshold() -> Percent {
         ProposalParticipationThreshold::<T>::get()
+    }
+
+    pub fn get_general_subnet_application_cost() -> u64 {
+        GeneralSubnetApplicationCost::<T>::get()
     }
 
     pub fn get_max_registrations_per_block() -> u16 {

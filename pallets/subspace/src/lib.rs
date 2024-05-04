@@ -331,6 +331,8 @@ pub mod pallet {
         pub proposal_cost: u64,
         pub proposal_expiration: u32,
         pub proposal_participation_threshold: Percent,
+        // s0 governance
+        pub general_subnet_application_cost: u64,
 
         // founder share
         pub floor_founder_share: u8,
@@ -890,6 +892,7 @@ pub mod pallet {
         InvalidIncentiveRatio,
 
         InvalidProposalCost,
+        InvalidGeneralSubnetApplicationCost,
         InvalidProposalExpiration,
         InvalidProposalParticipationThreshold,
         InsufficientStake,
@@ -1012,6 +1015,15 @@ pub mod pallet {
     #[pallet::storage]
     pub(super) type ProposalParticipationThreshold<T: Config> =
         StorageValue<_, Percent, ValueQuery, DefaultProposalParticipationThreshold<T>>;
+
+    #[pallet::type_value]
+    pub fn DefaultGeneralSubnetApplicationCost<T: Config>() -> u64 {
+        1_000_000_000 // 1_000 $COMAI
+    }
+
+    #[pallet::storage]
+    pub type GeneralSubnetApplicationCost<T: Config> =
+        StorageValue<_, u64, ValueQuery, DefaultGeneralSubnetApplicationCost<T>>;
 
     #[pallet::storage]
     pub type Proposals<T: Config> = StorageMap<_, Identity, u64, Proposal<T>>;
@@ -1247,6 +1259,7 @@ pub mod pallet {
             proposal_participation_threshold: Percent, /*  minimum stake of the overall network
                                        * stake,
                                        *  in order for proposal to get executed */
+            general_subnet_application_cost: u64,
         ) -> DispatchResult {
             let mut params = Self::global_params();
             params.burn_rate = burn_rate;
@@ -1271,6 +1284,7 @@ pub mod pallet {
             params.proposal_cost = proposal_cost;
             params.proposal_expiration = proposal_expiration;
             params.proposal_participation_threshold = proposal_participation_threshold;
+            params.general_subnet_application_cost = general_subnet_application_cost;
             Self::do_add_global_proposal(origin, params)
         }
 
