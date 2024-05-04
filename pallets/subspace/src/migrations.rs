@@ -449,6 +449,7 @@ pub mod v6 {
             for (subnet_id, value) in FounderShare::<T>::iter() {
                 FounderShare::<T>::insert(subnet_id, value.max(FloorFounderShare::get() as u16));
             }
+            log::info!("All founder share set to minimum floor founder share");
 
             MinBurn::<T>::set(10_000_000_000);
             log::info!("MinBurn set to 10 (10_000_000_000)");
