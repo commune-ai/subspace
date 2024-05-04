@@ -446,6 +446,10 @@ pub mod v6 {
             TargetRegistrationsPerInterval::<T>::set(5);
             log::info!("TargetRegistrationsPerInterval set to 5");
 
+            for (subnet_id, value) in FounderShare::<T>::iter() {
+                FounderShare::<T>::insert(subnet_id, value.max(FloorFounderShare::get() as u16));
+            }
+
             MinBurn::<T>::set(10_000_000_000);
             log::info!("MinBurn set to 10 (10_000_000_000)");
 
