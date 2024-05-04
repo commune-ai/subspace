@@ -8,11 +8,15 @@
 include!(concat!(env!("OUT_DIR"), "/wasm_binary.rs"));
 
 use codec::{Decode, Encode};
+use pallet_aura::MinimumPeriodTimesTwo;
 use pallet_grandpa::{
     fg_primitives, AuthorityId as GrandpaId, AuthorityList as GrandpaAuthorityList,
 };
 
-use frame_support::pallet_prelude::Get;
+use frame_support::{
+    genesis_builder_helper::{build_config, create_default_config},
+    pallet_prelude::Get,
+};
 
 use smallvec::smallvec;
 use sp_api::impl_runtime_apis;
@@ -131,6 +135,7 @@ pub type Migrations = (
     pallet_subspace::migrations::v5::MigrateToV5<Runtime>,
     pallet_subspace::migrations::v6::MigrateToV6<Runtime>,
 );
+
 // To learn more about runtime versioning, see:
 // https://docs.substrate.io/main-docs/build/upgrade#runtime-versioning
 #[sp_version::runtime_version]
@@ -242,6 +247,13 @@ impl frame_system::Config for Runtime {
     type MaxConsumers = frame_support::traits::ConstU32<16>;
     /// The index type for storing how many extrinsics an account has signed.
     type Nonce = u32;
+
+    type RuntimeTask = ();
+    type SingleBlockMigrations = Migrations;
+    type MultiBlockMigrator = ();
+    type PreInherents = ();
+    type PostInherents = ();
+    type PostTransactions = ();
 }
 
 impl pallet_insecure_randomness_collective_flip::Config for Runtime {}
@@ -251,6 +263,8 @@ impl pallet_aura::Config for Runtime {
     type DisabledValidators = ();
     type MaxAuthorities = ConstU32<128>;
     type AllowMultipleBlocksPerSlot = ConstBool<false>;
+
+    type SlotDuration = MinimumPeriodTimesTwo<Runtime>;
 }
 
 impl pallet_grandpa::Config for Runtime {
@@ -262,6 +276,8 @@ impl pallet_grandpa::Config for Runtime {
     type MaxAuthorities = ConstU32<128>;
     type MaxSetIdSessionEntries = ConstU64<0>;
     type EquivocationReportSystem = ();
+
+    type MaxNominators = ConstU32<200>;
 }
 
 impl pallet_timestamp::Config for Runtime {
@@ -289,9 +305,10 @@ impl pallet_balances::Config for Runtime {
     type FreezeIdentifier = ();
     type MaxFreezes = ();
     type RuntimeHoldReason = ();
-    type MaxHolds = ();
 
     type WeightInfo = pallet_balances::weights::SubstrateWeight<Runtime>;
+
+    type RuntimeFreezeReason = ();
 }
 
 pub struct LinearWeightToFee<C>(sp_std::marker::PhantomData<C>);
@@ -385,7 +402,8 @@ impl<F: FindAuthor<u32>> FindAuthor<H160> for FindAuthorTruncated<F> {
         I: 'a + IntoIterator<Item = (ConsensusEngineId, &'a [u8])>,
     {
         if let Some(author_index) = F::find_author(digests) {
-            let authority_id = Aura::authorities()[author_index as usize].clone();
+            let authority_id =
+                pallet_aura::Authorities::<Runtime>::get()[author_index as usize].clone();
             return Some(H160::from_slice(&authority_id.to_raw_vec()[4..24]));
         }
         None
@@ -423,6 +441,7 @@ impl pallet_evm::Config for Runtime {
     type GasLimitPovSizeRatio = GasLimitPovSizeRatio;
     type Timestamp = Timestamp;
     type WeightInfo = pallet_evm::weights::SubstrateWeight<Self>;
+    type SuicideQuickClearLimit = ConstU32<0>;
 }
 
 parameter_types! {
@@ -543,7 +562,6 @@ pub type Executive = frame_executive::Executive<
     frame_system::ChainContext<Runtime>,
     Runtime,
     AllPalletsWithSystem,
-    Migrations,
 >;
 
 impl fp_self_contained::SelfContainedCall for RuntimeCall {
@@ -630,7 +648,7 @@ impl_runtime_apis! {
             Executive::execute_block(block);
         }
 
-        fn initialize_block(header: &<Block as BlockT>::Header) {
+        fn initialize_block(header: &<Block as BlockT>::Header) -> sp_runtime::ExtrinsicInclusionMode {
             Executive::initialize_block(header)
         }
     }
@@ -692,7 +710,7 @@ impl_runtime_apis! {
         }
 
         fn authorities() -> Vec<AuraId> {
-            Aura::authorities().into_inner()
+            pallet_aura::Authorities::<Runtime>::get().into_inner()
         }
     }
 
@@ -1121,7 +1139,15 @@ impl_runtime_apis! {
         }
     }
 
+    impl sp_genesis_builder::GenesisBuilder<Block> for Runtime {
+        fn create_default_config() -> Vec<u8> {
+            create_default_config::<RuntimeGenesisConfig>()
+        }
 
+        fn build_config(config: Vec<u8>) -> sp_genesis_builder::Result {
+            build_config::<RuntimeGenesisConfig>(config)
+        }
+    }
 }
 
 #[cfg(test)]

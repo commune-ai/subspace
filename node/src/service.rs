@@ -45,7 +45,7 @@ pub fn new_partial(
         FullClient,
         FullBackend,
         FullSelectChain,
-        sc_consensus::DefaultImportQueue<Block, FullClient>,
+        sc_consensus::DefaultImportQueue<Block>,
         sc_transaction_pool::FullPool<Block, FullClient>,
         (
             sc_consensus_grandpa::GrandpaBlockImport<
@@ -97,6 +97,7 @@ pub fn new_partial(
 
     let (grandpa_block_import, grandpa_link) = sc_consensus_grandpa::block_import(
         client.clone(),
+        512,
         &client,
         select_chain.clone(),
         telemetry.as_ref().map(|x| x.handle()),
@@ -158,9 +159,9 @@ pub fn new_full(config: Configuration) -> Result<TaskManager, ServiceError> {
         &client.block_hash(0).ok().flatten().expect("Genesis block exists; qed"),
         &config.chain_spec,
     );
-    net_config.add_notification_protocol(sc_consensus_grandpa::grandpa_peers_set_config(
-        grandpa_protocol_name.clone(),
-    ));
+    let (non_default_config, notification_service) =
+        sc_consensus_grandpa::grandpa_peers_set_config(grandpa_protocol_name.clone());
+    net_config.add_notification_protocol(non_default_config);
 
     let warp_sync = Arc::new(sc_consensus_grandpa::warp_proof::NetworkProvider::new(
         backend.clone(),
@@ -178,6 +179,7 @@ pub fn new_full(config: Configuration) -> Result<TaskManager, ServiceError> {
             import_queue,
             block_announce_validator_builder: None,
             warp_sync_params: Some(WarpSyncParams::WithProvider(warp_sync)),
+            block_relay: None,
         })?;
 
     if config.offchain_worker.enabled {
@@ -297,7 +299,7 @@ pub fn new_full(config: Configuration) -> Result<TaskManager, ServiceError> {
         let grandpa_config = sc_consensus_grandpa::Config {
             // FIXME #1578 make this available through chainspec
             gossip_duration: Duration::from_millis(333),
-            justification_period: 512,
+            justification_generation_period: 512,
             name: Some(name),
             observer_enabled: false,
             keystore,
@@ -322,6 +324,7 @@ pub fn new_full(config: Configuration) -> Result<TaskManager, ServiceError> {
             shared_voter_state: SharedVoterState::empty(),
             telemetry: telemetry.as_ref().map(|x| x.handle()),
             offchain_tx_pool_factory: OffchainTransactionPoolFactory::new(transaction_pool),
+            notification_service,
         };
 
         // the GRANDPA voter task is considered infallible, i.e.

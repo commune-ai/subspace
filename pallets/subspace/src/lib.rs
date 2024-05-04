@@ -72,15 +72,16 @@ pub mod pallet {
     const STORAGE_VERSION: StorageVersion = StorageVersion::new(6);
 
     #[pallet::pallet]
-    #[pallet::generate_store(pub(super) trait Store)]
+    // #[pallet::generate_store(pub(super) trait Store)]
     #[pallet::storage_version(STORAGE_VERSION)]
     #[pallet::without_storage_info]
     pub struct Pallet<T>(_);
 
     // Configure the pallet by specifying the parameters and types on which it depends.
-    #[pallet::config]
+    #[pallet::config(with_default)]
     pub trait Config: frame_system::Config {
         // Because this pallet emits events, it depends on the runtime's definition of an event.
+        #[pallet::no_default_bounds]
         type RuntimeEvent: From<Event<Self>> + IsType<<Self as frame_system::Config>::RuntimeEvent>;
 
         // --- Currency type that will be used to place deposits on modules
@@ -110,7 +111,7 @@ pub mod pallet {
 
     #[pallet::type_value]
     pub fn DefaultMinBurn<T: Config>() -> u64 {
-        4_000_000_000 // 4 $COMAI
+        10_000_000_000 // 4 $COMAI
     }
     #[pallet::storage] // --- MinBurn
     pub type MinBurn<T> = StorageValue<_, u64, ValueQuery, DefaultMinBurn<T>>;
@@ -298,7 +299,7 @@ pub mod pallet {
         pub controller: T::AccountId,
     }
 
-    #[derive(Decode, Encode, PartialEq, Eq, Clone, TypeInfo)]
+    #[derive(Decode, Encode, PartialEq, Eq, Clone, TypeInfo, frame_support::DebugNoBound)]
     #[scale_info(skip_type_params(T))]
     pub struct GlobalParams<T: Config> {
         pub burn_rate: u16,
@@ -336,43 +337,6 @@ pub mod pallet {
 
         // founder share
         pub floor_founder_share: u8,
-    }
-
-    impl<T: Config> core::fmt::Debug for GlobalParams<T>
-    where
-        T::AccountId: core::fmt::Debug,
-    {
-        fn fmt(&self, f: &mut core::fmt::Formatter) -> core::fmt::Result {
-            f.debug_struct("GlobalParams")
-                .field("burn_rate", &self.burn_rate)
-                .field("max_name_length", &self.max_name_length)
-                .field("max_allowed_subnets", &self.max_allowed_subnets)
-                .field("max_allowed_modules", &self.max_allowed_modules)
-                .field(
-                    "max_registrations_per_block",
-                    &self.max_registrations_per_block,
-                )
-                .field("max_allowed_weights", &self.max_allowed_weights)
-                .field("min_burn", &self.min_burn)
-                .field("max_burn", &self.max_burn)
-                .field("min_stake", &self.min_stake)
-                .field("floor_delegation_fee", &self.floor_delegation_fee)
-                .field("min_weight_stake", &self.min_weight_stake)
-                .field("subnet_stake_threshold", &self.subnet_stake_threshold)
-                .field(
-                    "target_registrations_per_interval",
-                    &self.target_registrations_per_interval,
-                )
-                .field(
-                    "target_registrations_interval",
-                    &self.target_registrations_interval,
-                )
-                .field("adjustment_alpha", &self.adjustment_alpha)
-                .field("unit_emission", &self.unit_emission)
-                .field("curator", &self.curator)
-                .field("floor_founder_share", &self.floor_founder_share)
-                .finish()
-        }
     }
 
     pub struct DefaultSubnetParams<T: Config>(sp_std::marker::PhantomData<((), T)>);
@@ -1486,6 +1450,7 @@ where
         Pallet::<T>::get_priority_set_weights(who, netuid)
     }
 
+    #[must_use]
     pub fn u64_to_balance(
         input: u64,
     ) -> Option<
@@ -1533,27 +1498,6 @@ where
                     ..Default::default()
                 })
             }
-            Some(Call::add_stake { .. }) => Ok(ValidTransaction {
-                priority: Self::get_priority_vanilla(who),
-                ..Default::default()
-            }),
-            Some(Call::remove_stake { .. }) => Ok(ValidTransaction {
-                priority: Self::get_priority_vanilla(who),
-                ..Default::default()
-            }),
-            Some(Call::update_subnet { .. }) => Ok(ValidTransaction {
-                priority: Self::get_priority_vanilla(who),
-                ..Default::default()
-            }),
-            Some(Call::add_profit_shares { .. }) => Ok(ValidTransaction {
-                priority: Self::get_priority_vanilla(who),
-                ..Default::default()
-            }),
-
-            Some(Call::register { .. }) => Ok(ValidTransaction {
-                priority: Self::get_priority_vanilla(who),
-                ..Default::default()
-            }),
             _ => Ok(ValidTransaction {
                 priority: Self::get_priority_vanilla(who),
                 ..Default::default()

@@ -70,8 +70,8 @@ impl pallet_balances::Config for Test {
     type ReserveIdentifier = ();
     type RuntimeHoldReason = ();
     type FreezeIdentifier = ();
-    type MaxHolds = frame_support::traits::ConstU32<16>;
     type MaxFreezes = frame_support::traits::ConstU32<16>;
+    type RuntimeFreezeReason = ();
 }
 
 impl system::Config for Test {
@@ -98,6 +98,13 @@ impl system::Config for Test {
     type SS58Prefix = SS58Prefix;
     type OnSetCode = ();
     type MaxConsumers = frame_support::traits::ConstU32<16>;
+
+    type RuntimeTask = ();
+    type SingleBlockMigrations = ();
+    type MultiBlockMigrator = ();
+    type PreInherents = ();
+    type PostInherents = ();
+    type PostTransactions = ();
 }
 
 impl pallet_subspace::Config for Test {

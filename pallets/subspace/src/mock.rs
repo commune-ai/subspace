@@ -58,8 +58,8 @@ impl pallet_balances::Config for Test {
     type ReserveIdentifier = ();
     type RuntimeHoldReason = ();
     type FreezeIdentifier = ();
-    type MaxHolds = frame_support::traits::ConstU32<16>;
     type MaxFreezes = frame_support::traits::ConstU32<16>;
+    type RuntimeFreezeReason = ();
 }
 
 impl system::Config for Test {
@@ -86,17 +86,17 @@ impl system::Config for Test {
     type SS58Prefix = SS58Prefix;
     type OnSetCode = ();
     type MaxConsumers = frame_support::traits::ConstU32<16>;
+
+    type RuntimeTask = ();
+    type SingleBlockMigrations = ();
+    type MultiBlockMigrator = ();
+    type PreInherents = ();
+    type PostInherents = ();
+    type PostTransactions = ();
 }
 
 impl pallet_subspace::Config for Test {
     type RuntimeEvent = RuntimeEvent;
     type Currency = Balances;
     type WeightInfo = ();
-}
-
-// Build genesis storage according to the mock runtime.
-#[allow(dead_code)]
-pub fn new_test_ext() -> sp_io::TestExternalities {
-    sp_tracing::try_init_simple();
-    <frame_system::GenesisConfig<Test>>::default().build_storage().unwrap().into()
 }

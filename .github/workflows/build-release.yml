@@ -1,0 +1,19 @@
+name: Build and push Docker image
+
+on:
+  release: 
+    types: [created, published]
+
+jobs:
+  build-n-push:
+    permissions: write-all
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      
+
+      - name: Build WASM runtimes
+        run: cargo build --package node-subspace-runtime --release
+
+      

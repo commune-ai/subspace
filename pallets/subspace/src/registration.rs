@@ -228,9 +228,7 @@ impl<T: Config> Pallet<T> {
         let immunity_period: u64 = Self::get_immunity_period(netuid) as u64;
 
         // Get all the UIDs and their registration blocks from the storage
-        let mut uids: Vec<(u16, u64)> = RegistrationBlock::<T>::iter_prefix(netuid)
-            .map(|(uid, block)| (uid, block))
-            .collect();
+        let mut uids: Vec<_> = RegistrationBlock::<T>::iter_prefix(netuid).collect();
 
         // Sort the UIDs based on their registration block in ascending order
         uids.sort_by_key(|a| a.1);
