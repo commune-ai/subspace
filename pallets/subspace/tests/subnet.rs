@@ -3,7 +3,9 @@ mod mock;
 use frame_support::{assert_err, assert_ok};
 use log::info;
 use mock::*;
-use pallet_subspace::{Dividends, Error, MaximumSetWeightCallsPerEpoch, SubnetNames, Tempo, N};
+use pallet_subspace::{
+    Dividends, Error, FounderShare, MaximumSetWeightCallsPerEpoch, SubnetNames, Tempo, N,
+};
 use sp_core::U256;
 use sp_runtime::Percent;
 use sp_std::vec;
@@ -358,6 +360,7 @@ fn test_emission_distribution_novote() {
             U256::from(0),
             stake_general
         ));
+        FounderShare::<Test>::set(netuid_general, 0);
 
         // then register the yuma subnet
         assert_ok!(register_module(netuid_yuma, U256::from(1), stake_yuma));
@@ -449,6 +452,7 @@ fn test_yuma_self_vote() {
             U256::from(0),
             stake_general
         ));
+        FounderShare::<Test>::set(netuid_general, 0);
         assert_ok!(register_module(
             netuid_yuma,
             validator_key,

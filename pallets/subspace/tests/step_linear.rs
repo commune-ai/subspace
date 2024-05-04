@@ -3,7 +3,7 @@ mod mock;
 use frame_support::assert_ok;
 use log::info;
 use mock::*;
-use pallet_subspace::{MaxAllowedWeights, MinAllowedWeights, Tempo};
+use pallet_subspace::{GlobalDaoTreasury, MaxAllowedWeights, MinAllowedWeights, Tempo};
 use sp_core::U256;
 
 fn update_params(netuid: u16, tempo: u16, max_weights: u16, min_weights: u16) {
@@ -860,7 +860,7 @@ fn test_founder_share() {
             let stake_from_vector = SubspaceModule::get_stake_to_vector(netuid, &keys[i]);
             info!("{:?}", stake_from_vector);
         }
-        update_params!(netuid => { founder_share: 50 });
+        update_params!(netuid => { founder_share: 12 });
         let founder_share = SubspaceModule::get_founder_share(netuid);
         let founder_ratio: f64 = founder_share as f64 / 100.0;
 
@@ -873,8 +873,8 @@ fn test_founder_share() {
         let threshold = SubspaceModule::get_subnet_stake_threshold();
         let total_emission = SubspaceModule::calculate_network_emission(netuid, threshold)
             * subnet_params.tempo as u64;
-        let expected_emission = total_emission;
-        let expected_founder_share = (expected_emission as f64 * founder_ratio) as u64;
+        let expected_founder_share = (total_emission as f64 * founder_ratio) as u64;
+        let expected_emission = total_emission - expected_founder_share;
         let emissions = SubspaceModule::get_emissions(netuid);
         let dividends = SubspaceModule::get_dividends(netuid);
         let incentives = SubspaceModule::get_incentives(netuid);
@@ -883,13 +883,10 @@ fn test_founder_share() {
 
         info!("total_dividends: {total_dividends:?}");
         info!("total_incentives: {total_incentives:?}");
-        let expected_emission_after_founder_share = expected_emission - expected_founder_share;
         let founder_dividend_emission = ((dividends[0] as f64 / total_dividends as f64)
-            * (expected_emission_after_founder_share / 2) as f64)
-            as u64;
+            * (expected_emission / 2) as f64) as u64;
         let founder_incentive_emission = ((incentives[0] as f64 / total_incentives as f64)
-            * (expected_emission_after_founder_share / 2) as f64)
-            as u64;
+            * (expected_emission / 2) as f64) as u64;
         let founder_emission = founder_incentive_emission + founder_dividend_emission;
 
         info!("emissions: {emissions:?}");
@@ -898,38 +895,22 @@ fn test_founder_share() {
         info!("founder_emission FAM: {founder_emission:?}");
         let calcualted_total_emission = emissions.iter().sum::<u64>();
 
-        let calculated_founder_share = SubspaceModule::get_stake_for_key(netuid, &founder_key)
-            - founder_stake_before
-            - founder_emission;
-        let delta: u64 = 100000;
+        let key_stake = SubspaceModule::get_stake_for_key(netuid, &founder_key);
+        let founder_total_stake = founder_stake_before + founder_emission;
+        assert_eq!(
+            key_stake - (key_stake % 1000),
+            founder_total_stake - (founder_total_stake % 1000)
+        );
+        assert_eq!(
+            GlobalDaoTreasury::<Test>::get(),
+            expected_founder_share - 1 /* Account for rounding errors */
+        );
 
         info!("expected_emission: {expected_emission:?}");
-        info!("total_emission: {total_emission:?}");
-        assert!(
-            expected_emission > calcualted_total_emission - delta,
-            "expected_emission: {} != calcualted_total_emission: {}",
-            expected_emission,
-            calcualted_total_emission
-        );
-        assert!(
-            expected_emission < calcualted_total_emission + delta,
-            "expected_emission: {} != calcualted_total_emission: {}",
-            expected_emission,
-            calcualted_total_emission
-        );
-
-        info!("expected_founder_share: {:?}", expected_founder_share);
-        assert!(
-            expected_founder_share > calculated_founder_share - delta,
-            "expected_founder_share: {} != calculated_founder_share: {}",
-            expected_founder_share,
-            calculated_founder_share
-        );
-        assert!(
-            expected_founder_share < calculated_founder_share + delta,
-            "expected_founder_share: {} != calculated_founder_share: {}",
-            expected_founder_share,
-            calculated_founder_share
+        info!("total_emission: {founder_emission:?}");
+        assert_eq!(
+            expected_emission - (expected_emission % 100000),
+            calcualted_total_emission - (calcualted_total_emission % 100000)
         );
     });
 }
