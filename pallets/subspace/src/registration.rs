@@ -222,26 +222,27 @@ impl<T: Config> Pallet<T> {
     pub fn get_lowest_uid(netuid: u16, ignore_immunity: bool) -> u16 {
         // immunity ignoring is used if the deregistration is forced by global (network) module
         // limit immunity period is considered if the deregistration is forced by subnet
-        // module limit
-        let n: u16 = Self::get_subnet_n(netuid);
-
         let mut min_score: u64 = u64::MAX;
         let mut lowest_priority_uid: u16 = 0;
-        let _prune_uids: Vec<u16> = Vec::new();
         let current_block = Self::get_current_block_number();
         let immunity_period: u64 = Self::get_immunity_period(netuid) as u64;
 
-        for module_uid_i in 0..n {
+        // Get all the UIDs and their registration blocks from the storage
+        let mut uids: Vec<(u16, u64)> = RegistrationBlock::<T>::iter_prefix(netuid)
+            .map(|(uid, block)| (uid, block))
+            .collect();
+
+        // Sort the UIDs based on their registration block in ascending order
+        uids.sort_by_key(|a| a.1);
+
+        for (module_uid_i, block_at_registration) in uids {
             let pruning_score: u64 = Self::get_pruning_score_for_uid(netuid, module_uid_i);
 
             // Find min pruning score.
-
             if min_score > pruning_score {
-                let block_at_registration: u64 =
-                    Self::get_module_registration_block(netuid, module_uid_i);
                 let module_age: u64 = current_block.saturating_sub(block_at_registration);
 
-                // only allow modules that have greater than immunity period
+                // Only allow modules that have greater than immunity period
                 // or if we are ignoring immunity period
                 if module_age > immunity_period || ignore_immunity {
                     lowest_priority_uid = module_uid_i;
