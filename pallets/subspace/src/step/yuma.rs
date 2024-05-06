@@ -205,11 +205,15 @@ impl<T: Config> YumaCalc<T> {
         let mut emissions: EmissionMap<T> = Default::default();
         let mut emitted = 0;
 
-        for (module_key, mut server_emission, mut validator_emission) in result {
-            if module_key.0 == self.founder_key.0 {
-                server_emission = server_emission.saturating_add(self.founder_emission);
-            }
+        if self.founder_emission > 0 {
+            Pallet::<T>::add_balance_to_account(
+                &self.founder_key.0,
+                Pallet::<T>::u64_to_balance(self.founder_emission).unwrap_or_default(),
+            );
+            emitted += self.founder_emission;
+        }
 
+        for (module_key, server_emission, mut validator_emission) in result {
             let mut increase_stake = |account_key: &AccountKey<T>, amount: u64| {
                 Pallet::<T>::increase_stake(self.netuid, &account_key.0, &module_key.0, amount);
                 *emissions
