@@ -305,7 +305,6 @@ macro_rules! update_params {
             $($f: $v),+,
             ..SubspaceModule::subnet_params($netuid)
         };
-        dbg!(&params);
         ::pallet_subspace::subnet::SubnetChangeset::<Test>::update($netuid, params).unwrap().apply($netuid).unwrap();
     }};
     ($netuid:expr => $params:expr) => {{

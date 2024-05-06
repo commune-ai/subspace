@@ -24,7 +24,9 @@ impl<T: Config> Pallet<T> {
         // Query the target amount of registrations
         let target_registrations_per_interval = Self::get_target_registrations_per_interval();
 
-        let subnet_stake_threshold: Percent = SubnetStakeThreshold::<T>::get();
+        let total_stake = Self::total_stake() as u128;
+        let subnet_stake_threshold = SubnetStakeThreshold::<T>::get();
+
         for (netuid, tempo) in Tempo::<T>::iter() {
             let registration_this_interval = Self::get_registrations_this_interval(netuid);
 
@@ -53,7 +55,6 @@ impl<T: Config> Pallet<T> {
 
             let has_enough_stake_for_yuma = || {
                 let subnet_stake = Self::get_total_subnet_stake(netuid) as u128;
-                let total_stake = Self::total_stake() as u128;
 
                 // simplify this to just checking if there are pending emission
                 if total_stake == 0 {
@@ -235,18 +236,14 @@ failed to run yuma consensus algorithm: {err:?}, skipping this block. \
 
         let burn_amount_per_epoch: u64 = Self::get_burn_per_epoch(netuid);
 
-        let founder_uid = Self::get_uid_for_key(netuid, founder_key);
-        if netuid == 0 && founder_emission > 0 {
-            // Update global treasure
-            GlobalDaoTreasury::<T>::mutate(|global_treasure| {
-                *global_treasure = global_treasure.saturating_add(founder_emission);
-            });
-        } else {
+        if netuid != 0 {
+            let founder_uid = Self::get_uid_for_key(netuid, founder_key);
             incentive_emission[founder_uid as usize] =
                 incentive_emission[founder_uid as usize].saturating_add(founder_emission);
         }
 
         let mut emission: Vec<u64> = vec![0; n];
+        let mut emitted = 0u64;
 
         for (module_uid, module_key) in uid_key_tuples.iter() {
             let mut owner_emission_incentive: u64 = incentive_emission[*module_uid as usize];
@@ -294,6 +291,7 @@ failed to run yuma consensus algorithm: {err:?}, skipping this block. \
                     let to_module: u64 = delegation_fee.mul_floor(dividends_from_delegate);
                     let to_delegate: u64 = dividends_from_delegate.saturating_sub(to_module);
                     Self::increase_stake(netuid, delegate_key, module_key, to_delegate);
+                    emitted = emitted.saturating_add(to_delegate);
                     owner_dividends_emission = owner_dividends_emission.saturating_sub(to_delegate);
                 }
             }
@@ -311,11 +309,56 @@ failed to run yuma consensus algorithm: {err:?}, skipping this block. \
                             module_key,
                             *profit_share_emission,
                         );
+                        emitted = emitted.saturating_add(*profit_share_emission);
                     }
                 } else {
                     Self::increase_stake(netuid, module_key, module_key, owner_emission);
+                    emitted = emitted.saturating_add(owner_emission);
                 }
             }
+        }
+
+        let total_stake = Self::total_stake() as u128;
+        let total_yuma_stake = total_stake - Self::get_total_subnet_stake(0) as u128;
+        let subnet_stake_threshold = SubnetStakeThreshold::<T>::get();
+
+        if netuid == 0 && founder_emission > 0 {
+            let mut founder_emission = founder_emission;
+
+            let distribution = DaoTreasuryDistribution::<T>::get();
+            if !distribution.is_zero() && total_yuma_stake > 0 {
+                let to_distribute = distribution.mul_floor(founder_emission);
+                founder_emission = founder_emission.saturating_sub(to_distribute);
+
+                let stakes: BTreeMap<_, _> = TotalStake::<T>::iter()
+                    .filter(|(n, _)| *n != 0)
+                    .filter(|(_, s)| {
+                        let total_stake_percentage =
+                            Percent::from_parts(((*s as u128 * 100) / total_stake) as u8);
+                        total_stake_percentage >= subnet_stake_threshold
+                    })
+                    .collect();
+                let total_yuma_stake = stakes.values().copied().sum::<u64>() as u128;
+
+                for (netuid, founder_key) in Founder::<T>::iter().filter(|(n, _)| *n != 0) {
+                    let Some(subnet_stake) = stakes.get(&netuid) else {
+                        continue;
+                    };
+                    let yuma_stake_percentage = Percent::from_parts(
+                        ((*subnet_stake as u128 * 100) / total_yuma_stake) as u8,
+                    );
+                    let founder_distribution = yuma_stake_percentage.mul_floor(to_distribute);
+                    Self::add_balance_to_account(
+                        &founder_key,
+                        Self::u64_to_balance(founder_distribution).unwrap_or_default(),
+                    );
+                }
+            }
+
+            // Update global treasure
+            GlobalDaoTreasury::<T>::mutate(|global_treasure| {
+                *global_treasure = global_treasure.saturating_add(founder_emission);
+            });
         }
 
         emission

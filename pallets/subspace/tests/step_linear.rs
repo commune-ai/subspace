@@ -3,8 +3,12 @@ mod mock;
 use frame_support::assert_ok;
 use log::info;
 use mock::*;
-use pallet_subspace::{GlobalDaoTreasury, MaxAllowedWeights, MinAllowedWeights, Tempo};
+use pallet_subspace::{
+    DaoTreasuryDistribution, GlobalDaoTreasury, MaxAllowedWeights, MinAllowedWeights, MinBurn,
+    SubnetStakeThreshold, Tempo,
+};
 use sp_core::U256;
+use sp_runtime::Percent;
 
 fn update_params(netuid: u16, tempo: u16, max_weights: u16, min_weights: u16) {
     Tempo::<Test>::insert(netuid, tempo);
@@ -881,18 +885,12 @@ fn test_founder_share() {
         let total_dividends: u64 = dividends.iter().sum::<u16>() as u64;
         let total_incentives: u64 = incentives.iter().sum::<u16>() as u64;
 
-        info!("total_dividends: {total_dividends:?}");
-        info!("total_incentives: {total_incentives:?}");
         let founder_dividend_emission = ((dividends[0] as f64 / total_dividends as f64)
             * (expected_emission / 2) as f64) as u64;
         let founder_incentive_emission = ((incentives[0] as f64 / total_incentives as f64)
             * (expected_emission / 2) as f64) as u64;
         let founder_emission = founder_incentive_emission + founder_dividend_emission;
 
-        info!("emissions: {emissions:?}");
-        info!("dividends: {dividends:?}");
-        info!("incentives: {incentives:?}");
-        info!("founder_emission FAM: {founder_emission:?}");
         let calcualted_total_emission = emissions.iter().sum::<u64>();
 
         let key_stake = SubspaceModule::get_stake_for_key(netuid, &founder_key);
@@ -906,8 +904,6 @@ fn test_founder_share() {
             expected_founder_share - 1 /* Account for rounding errors */
         );
 
-        info!("expected_emission: {expected_emission:?}");
-        info!("total_emission: {founder_emission:?}");
         assert_eq!(
             expected_emission - (expected_emission % 100000),
             calcualted_total_emission - (calcualted_total_emission % 100000)
@@ -989,10 +985,48 @@ fn test_dynamic_burn() {
 }
 
 #[test]
-fn foo() {
-    use substrate_fixed::types::*;
-    let subnet_stake = I64F64::from_num(10);
-    let total_stake = I64F64::from_num(100);
-    let threshold = 9;
-    dbg!(threshold <= dbg!(dbg!(subnet_stake / total_stake) * 100));
+fn test_dao_treasury_distribution_for_subnet_owners() {
+    new_test_ext().execute_with(|| {
+        const STAKE: u64 = to_nano(1000);
+
+        let general = (0, U256::from(0), STAKE * 10);
+        let yuma_1 = (1, U256::from(1), STAKE * 4);
+        let yuma_2 = (2, U256::from(2), STAKE * 6);
+        let yuma_3 = (3, U256::from(3), STAKE);
+
+        MinBurn::<Test>::set(0);
+
+        assert_ok!(register_module(general.0, general.1, general.2));
+        assert_ok!(register_module(yuma_1.0, yuma_1.1, yuma_1.2));
+        assert_ok!(register_module(yuma_2.0, yuma_2.1, yuma_2.2));
+        assert_ok!(register_module(yuma_3.0, yuma_3.1, yuma_3.2));
+
+        update_params!(general.0 => { founder_share: 50, tempo: 100 });
+        update_params!(yuma_1.0 => { tempo: 200 });
+        update_params!(yuma_2.0 => { tempo: 200 });
+        SubnetStakeThreshold::<Test>::set(Percent::from_percent(15));
+        DaoTreasuryDistribution::<Test>::set(Percent::from_percent(50));
+        let founder_ratio = 2;
+        let treasury_distribution = 2;
+
+        let threshold = SubspaceModule::get_subnet_stake_threshold();
+        let total_emission = SubspaceModule::calculate_network_emission(general.0, threshold) * 100;
+
+        step_epoch(general.0);
+
+        let expected_founder_share = total_emission / founder_ratio;
+        let expected_distribution @ expected_treasury =
+            (expected_founder_share / treasury_distribution) as f64;
+
+        assert_eq!(GlobalDaoTreasury::<Test>::get(), expected_treasury as u64);
+        let total_yuma_stake = (yuma_1.2 + yuma_2.2) as f64;
+        assert_eq!(
+            SubspaceModule::get_balance_u64(&yuma_1.1) - 1,
+            (expected_distribution * (yuma_1.2 as f64 / total_yuma_stake)) as u64
+        );
+        assert_eq!(
+            SubspaceModule::get_balance_u64(&yuma_2.1) - 1,
+            (expected_distribution * (yuma_2.2 as f64 / total_yuma_stake)) as u64
+        );
+    });
 }

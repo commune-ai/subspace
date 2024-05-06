@@ -352,9 +352,6 @@ fn test_emission_distribution_novote() {
         let expected_stake_change_below = 0;
         let change_tolerance = to_nano(22) as i64; // we tolerate 22 token difference (due to rounding)
 
-        dbg!(expected_stake_change_general);
-        dbg!(expected_stake_change_yuma);
-        dbg!(expected_stake_change_below);
         // first register the general subnet
         assert_ok!(register_module(
             netuid_general,
@@ -373,6 +370,10 @@ fn test_emission_distribution_novote() {
             stake_below_threshold
         ));
 
+        FounderShare::<Test>::set(0, 0);
+        FounderShare::<Test>::set(1, 0);
+        FounderShare::<Test>::set(2, 0);
+
         step_block(blocks_in_day);
 
         let general_netuid_stake =
@@ -387,10 +388,6 @@ fn test_emission_distribution_novote() {
         let below_threshold_netuid_stake =
             (below_threshold_netuid_stake as f64 / 100.0).round() * 100.0;
 
-        dbg!(general_netuid_stake);
-        dbg!(yuma_netuid_stake);
-        dbg!(below_threshold_netuid_stake);
-
         let start_stake = stake_general + stake_yuma + stake_below_threshold;
         let end_day_stake = to_nano(
             (general_netuid_stake + yuma_netuid_stake + below_threshold_netuid_stake) as u64,
@@ -400,8 +397,6 @@ fn test_emission_distribution_novote() {
 
         // Check the expected difference for the general subnet
         let general_stake_change = to_nano(general_netuid_stake as u64) - stake_general;
-        dbg!(general_stake_change);
-        dbg!(expected_stake_change_general);
         assert!(
             (general_stake_change as i64 - expected_stake_change_general as i64).abs()
                 <= change_tolerance
@@ -496,6 +491,10 @@ fn test_yuma_self_vote() {
 
         // Calculate the expected daily change in total stake
         let expected_stake_change = to_nano(250_000);
+
+        FounderShare::<Test>::set(0, 0);
+        FounderShare::<Test>::set(1, 0);
+        FounderShare::<Test>::set(2, 0);
 
         step_block(blocks_in_day);
 
