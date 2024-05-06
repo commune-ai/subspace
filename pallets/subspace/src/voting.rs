@@ -194,7 +194,7 @@ impl<T: Config> Pallet<T> {
     ) -> DispatchResult {
         // Check if the proposer has enough balance
         // re use the same value as for proposals
-        let application_cost = ProposalCost::<T>::get();
+        let application_cost = GeneralSubnetApplicationCost::<T>::get();
 
         ensure!(
             Self::has_enough_balance(&key, application_cost),
