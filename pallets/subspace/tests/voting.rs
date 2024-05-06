@@ -2,12 +2,12 @@ mod mock;
 
 use std::{array::from_fn, collections::BTreeSet};
 
-use frame_support::assert_ok;
+use frame_support::{assert_err, assert_ok};
 use mock::*;
 use pallet_subspace::{
     voting::{ProposalData, ProposalStatus, VoteMode},
-    FloorFounderShare, GlobalParams, MinBurn, ProposalCost, ProposalExpiration, Proposals,
-    SubnetParams, Tempo, VoteModeSubnet,
+    Error, FloorFounderShare, GlobalDaoTreasury, GlobalParams, MinBurn, ProposalCost,
+    ProposalExpiration, Proposals, SubnetParams, Tempo, VoteModeSubnet,
 };
 use sp_core::U256;
 
@@ -424,5 +424,25 @@ fn unregister_vote_from_pending_proposal() {
         SubspaceModule::unvote_proposal(get_origin(key), 0).unwrap();
         let proposal = Proposals::<Test>::get(0).expect("proposal was not created");
         assert_eq!(proposal.votes_for, BTreeSet::from([]));
+    });
+}
+
+#[test]
+fn fails_if_insufficient_dao_treasury_fund() {
+    new_test_ext().execute_with(|| {
+        const COST: u64 = to_nano(10);
+        MinBurn::<Test>::set(0);
+        ProposalCost::<Test>::set(COST);
+        GlobalDaoTreasury::<Test>::set(10);
+
+        let key = U256::from(0);
+        assert_ok!(register_module(0, key, 1_000_000_000));
+        add_balance(key, COST);
+
+        let origin = get_origin(key);
+        assert_err!(
+            SubspaceModule::add_transfer_dao_treasury_proposal(origin, vec![0], 11, key),
+            Error::<Test>::InsufficientDaoTreasuryFunds
+        )
     });
 }

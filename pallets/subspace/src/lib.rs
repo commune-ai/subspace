@@ -921,6 +921,7 @@ pub mod pallet {
         ArithmeticError,
 
         MaximumSetWeightsPerEpochReached,
+        InsufficientDaoTreasuryFunds,
     }
 
     // ==================
@@ -1367,6 +1368,16 @@ pub mod pallet {
             data: Vec<u8>,
         ) -> DispatchResult {
             Self::do_add_custom_subnet_proposal(origin, netuid, data)
+        }
+
+        #[pallet::weight((Weight::zero(), DispatchClass::Normal, Pays::No))]
+        pub fn add_transfer_dao_treasury_proposal(
+            origin: OriginFor<T>,
+            data: Vec<u8>,
+            value: u64,
+            dest: T::AccountId,
+        ) -> DispatchResult {
+            Self::do_add_transfer_dao_treasury_proposal(origin, data, value, dest)
         }
 
         #[pallet::weight((Weight::zero(), DispatchClass::Normal, Pays::No))]
