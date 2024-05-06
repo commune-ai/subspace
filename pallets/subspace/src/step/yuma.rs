@@ -43,7 +43,7 @@ impl<T: Config> YumaCalc<T> {
 
         let founder_key = Pallet::<T>::get_founder(netuid);
         let (to_be_emitted, founder_emission) =
-            Pallet::<T>::calculate_founder_emission(netuid, to_be_emitted, &founder_key);
+            Pallet::<T>::calculate_founder_emission(netuid, to_be_emitted);
 
         Self {
             module_count: Pallet::<T>::get_subnet_n(netuid),

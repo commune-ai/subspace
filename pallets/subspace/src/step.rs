@@ -112,7 +112,7 @@ failed to run yuma consensus algorithm: {err:?}, skipping this block. \
         // FOUNDER DIVIDENDS
         let founder_key = Self::get_founder(netuid);
         let (token_emission, founder_emission) =
-            Self::calculate_founder_emission(netuid, token_emission, &founder_key);
+            Self::calculate_founder_emission(netuid, token_emission);
 
         // STAKE
         let uid_key_tuples: Vec<(u16, T::AccountId)> = Self::get_uid_key_tuples(netuid);
@@ -572,16 +572,7 @@ failed to run yuma consensus algorithm: {err:?}, skipping this block. \
         weights
     }
 
-    fn calculate_founder_emission(
-        netuid: u16,
-        mut token_emission: u64,
-        founder_key: &T::AccountId,
-    ) -> (u64, u64) {
-        let is_founder_registered = Self::key_registered(netuid, founder_key);
-        if !is_founder_registered {
-            return (token_emission, 0);
-        }
-
+    fn calculate_founder_emission(netuid: u16, mut token_emission: u64) -> (u64, u64) {
         let founder_share: u16 = Self::get_founder_share(netuid);
         if founder_share == 0u16 {
             return (token_emission, 0);
