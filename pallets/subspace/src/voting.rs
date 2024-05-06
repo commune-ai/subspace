@@ -1,6 +1,6 @@
 use super::*;
 use frame_support::{pallet_prelude::DispatchResult, storage::with_storage_layer};
-use sp_runtime::{Percent, SaturatedConversion};
+use sp_runtime::{DispatchError, Percent, SaturatedConversion};
 
 #[derive(Clone, Debug, TypeInfo, Decode, Encode)]
 #[scale_info(skip_type_params(T))]
@@ -106,6 +106,11 @@ pub enum ProposalData<T: Config> {
         data: Vec<u8>,
     },
     Expired,
+    TransferDaoTreasury {
+        data: Vec<u8>,
+        value: u64,
+        dest: T::AccountId,
+    },
 }
 
 impl<T: Config> ProposalData<T> {
@@ -288,6 +293,25 @@ impl<T: Config> Pallet<T> {
         sp_std::str::from_utf8(&data).map_err(|_| Error::<T>::InvalidProposalCustomData)?;
 
         let proposal_data = ProposalData::SubnetCustom { netuid, data };
+        Self::add_proposal(key, proposal_data)
+    }
+
+    pub fn do_add_transfer_dao_treasury_proposal(
+        origin: T::RuntimeOrigin,
+        data: Vec<u8>,
+        value: u64,
+        dest: T::AccountId,
+    ) -> DispatchResult {
+        let key = ensure_signed(origin)?;
+        ensure!(!data.is_empty(), Error::<T>::ProposalCustomDataTooSmall);
+        ensure!(data.len() <= 256, Error::<T>::ProposalCustomDataTooLarge);
+        ensure!(
+            GlobalDaoTreasury::<T>::get() >= value,
+            Error::<T>::InsufficientDaoTreasuryFunds
+        );
+        sp_std::str::from_utf8(&data).map_err(|_| Error::<T>::InvalidProposalCustomData)?;
+
+        let proposal_data = ProposalData::TransferDaoTreasury { data, value, dest };
         Self::add_proposal(key, proposal_data)
     }
 
@@ -474,6 +498,21 @@ impl<T: Config> Pallet<T> {
 
                 // Emit the SubnetParamsUpdated event
                 Self::deposit_event(Event::SubnetParamsUpdated(*netuid));
+            }
+            ProposalData::TransferDaoTreasury {
+                data: _,
+                value,
+                dest,
+            } => {
+                GlobalDaoTreasury::<T>::try_mutate::<(), DispatchError, _>(|treasury| {
+                    *treasury =
+                        treasury.checked_sub(*value).ok_or(Error::<T>::BalanceCouldNotBeRemoved)?;
+                    Ok(())
+                })?;
+
+                let amount = Self::u64_to_balance(*value)
+                    .ok_or_else(|| Error::<T>::CouldNotConvertToBalance)?;
+                Self::add_balance_to_account(dest, amount);
             }
             ProposalData::Expired => {
                 unreachable!("Expired data is illegal at this point")
