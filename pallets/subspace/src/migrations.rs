@@ -435,7 +435,7 @@ pub mod v6 {
                 return Weight::zero();
             }
 
-            log::info!("Migrating v6");
+            log::info!("Migrating to v6");
 
             MaxAllowedWeightsGlobal::<T>::set(1024);
             log::info!("Global MaxAllowedWeights set to 1024");
@@ -444,9 +444,9 @@ pub mod v6 {
             FounderShare::<T>::set(0, 12);
             log::info!("FounderShare of Subnet 0 set to 12");
 
-            // Target of registrations per day, per subnet, is set to 135
-            TargetRegistrationsPerInterval::<T>::set(5);
-            log::info!("TargetRegistrationsPerInterval set to 5");
+            // Target of registrations per day, per subnet, is set to 100
+            TargetRegistrationsPerInterval::<T>::set(4);
+            log::info!("TargetRegistrationsPerInterval set to 4");
 
             let floor_founder_share = FloorFounderShare::<T>::get() as u16;
             for (subnet_id, value) in FounderShare::<T>::iter() {
@@ -454,8 +454,8 @@ pub mod v6 {
             }
             log::info!("All founder share set to minimum floor founder share");
 
-            TargetRegistrationsInterval::<T>::set(400);
-            log::info!("TargetRegistrationsInterval set to 400");
+            TargetRegistrationsInterval::<T>::set(432);
+            log::info!("TargetRegistrationsInterval set to 432");
 
             let min_burn = 10_000_000_000;
             MinBurn::<T>::set(min_burn);

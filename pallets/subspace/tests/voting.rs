@@ -345,6 +345,7 @@ fn creates_subnet_params_proposal_correctly_and_is_approved() {
             trust_ratio,
             maximum_set_weight_calls_per_epoch,
             vote_mode,
+            bonds_ma,
         } = params.clone();
 
         SubspaceModule::add_subnet_proposal(
@@ -365,6 +366,7 @@ fn creates_subnet_params_proposal_correctly_and_is_approved() {
             trust_ratio,
             maximum_set_weight_calls_per_epoch,
             vote_mode,
+            bonds_ma,
         )
         .expect("failed to create proposal");
 
