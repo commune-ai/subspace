@@ -541,7 +541,7 @@ pub mod pallet {
 
     #[pallet::type_value]
     pub fn DefaultDaoTreasuryDistribution<T: Config>() -> Percent {
-        Percent::from_percent(50u8)
+        Percent::from_percent(5u8)
     }
 
     #[pallet::storage]
