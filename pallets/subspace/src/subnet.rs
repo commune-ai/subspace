@@ -274,6 +274,7 @@ impl<T: Config> Pallet<T> {
             incentive_ratio: IncentiveRatio::<T>::get(netuid),
             maximum_set_weight_calls_per_epoch: MaximumSetWeightCallsPerEpoch::<T>::get(netuid),
             vote_mode: VoteModeSubnet::<T>::get(netuid),
+            bonds_ma: BondsMovingAverage::<T>::get(netuid),
         }
     }
 

@@ -393,6 +393,7 @@ pub mod pallet {
                 founder: DefaultFounder::<T>::get(),
                 vote_mode: DefaultVoteMode::<T>::get(),
                 maximum_set_weight_calls_per_epoch: 0,
+                bonds_ma: DefaultBondsMovingAverage::<T>::get(),
             }
         }
     }
@@ -424,6 +425,8 @@ pub mod pallet {
         pub trust_ratio: u16,
         pub maximum_set_weight_calls_per_epoch: u16,
         pub vote_mode: VoteMode,
+        // consensus
+        pub bonds_ma: u64,
     }
 
     #[pallet::type_value]
@@ -1196,6 +1199,7 @@ pub mod pallet {
             trust_ratio: u16,
             maximum_set_weight_calls_per_epoch: u16,
             vote_mode: VoteMode,
+            bonds_ma: u64,
         ) -> DispatchResult {
             let params = SubnetParams {
                 founder,
@@ -1213,6 +1217,7 @@ pub mod pallet {
                 trust_ratio,
                 maximum_set_weight_calls_per_epoch,
                 vote_mode,
+                bonds_ma,
             };
 
             let changeset = SubnetChangeset::update(netuid, params)?;
@@ -1299,6 +1304,7 @@ pub mod pallet {
             trust_ratio: u16,    // missing comment
             maximum_set_weight_calls_per_epoch: u16,
             vote_mode: VoteMode, // missing comment
+            bonds_ma: u64,
         ) -> DispatchResult {
             let mut params = Self::subnet_params(netuid);
             params.founder = founder;
@@ -1316,6 +1322,7 @@ pub mod pallet {
             params.trust_ratio = trust_ratio;
             params.maximum_set_weight_calls_per_epoch = maximum_set_weight_calls_per_epoch;
             params.vote_mode = vote_mode;
+            params.bonds_ma = bonds_ma;
             Self::do_add_subnet_proposal(origin, netuid, params)
         }
 

@@ -234,6 +234,7 @@ fn test_set_max_allowed_uids_shrinking() {
             params.trust_ratio,
             params.maximum_set_weight_calls_per_epoch,
             params.vote_mode,
+            params.bonds_ma,
         );
         let global_params = SubspaceModule::global_params();
         info!("global params {:?}", global_params);
@@ -812,6 +813,7 @@ fn test_update_same_name() {
             params.trust_ratio,
             params.maximum_set_weight_calls_per_epoch,
             params.vote_mode,
+            params.bonds_ma,
         );
 
         dbg!(SubnetNames::<Test>::get(netuid));
