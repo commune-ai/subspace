@@ -1,6 +1,6 @@
 [package]
 name = "node-subspace"
-version = "1.7.0"
+version = "1.7.1"
 description = "A fresh FRAME-based Substrate node, ready for hacking."
 authors = ["Substrate DevHub <https://github.com/substrate-developer-hub>"]
 homepage = "https://substrate.io/"
