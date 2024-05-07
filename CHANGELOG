@@ -1,5 +1,11 @@
 # Changelog
 
+## Version 1.7.2
+
+Spec version: `112`
+
+- Fix total active subnet stake calculation.
+
 ## Version 1.7.1
 
 Spec version: `111`
