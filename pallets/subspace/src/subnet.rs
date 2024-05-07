@@ -476,8 +476,7 @@ impl<T: Config> Pallet<T> {
         let subnet_stake_threshold_i64f64 =
             I64F64::from_num(subnet_stake_threshold.deconstruct()) / I64F64::from_num(100);
         // Iterate over all subnets
-        // TODO: iter through `N` instead
-        for netuid in 0..TotalSubnets::<T>::get() {
+        for netuid in N::<T>::iter_keys() {
             let subnet_stake: I64F64 = I64F64::from_num(Self::get_total_subnet_stake(netuid));
             if subnet_stake == 0 {
                 continue;
