@@ -382,7 +382,7 @@ impl<T: Config> Pallet<T> {
                 .map(|x| x * unit_emission)
                 .collect();
         for (i, having_stake) in halving_total_stake_checkpoints.iter().enumerate() {
-            let halving_factor = 2u64.pow((i) as u32);
+            let halving_factor: u64 = 2u64.pow((i) as u32);
             if total_stake < *having_stake {
                 emission_per_block /= halving_factor;
                 break;
@@ -393,6 +393,7 @@ impl<T: Config> Pallet<T> {
     }
 
     #[cfg(debug_assertions)]
+    // TODO: ger rid of this fn
     pub fn get_total_subnet_balance(netuid: u16) -> u64 {
         let keys = Self::get_keys(netuid);
         return keys.iter().map(|x| Self::get_balance_u64(x)).sum();
@@ -422,16 +423,25 @@ impl<T: Config> Pallet<T> {
         let subnet_stake: I64F64 = I64F64::from_num(Self::get_total_subnet_stake(netuid));
         let total_stake: I64F64 = Self::adjust_total_stake(subnet_stake_threshold);
 
+        log::trace!(
+            "calculating rewards for netuid {netuid} with stake {subnet_stake:?},
+        total stake {total_stake:?},
+        threshold {subnet_stake_threshold:?}"
+        );
+
         let subnet_ratio = if total_stake > I64F64::from_num(0) {
             subnet_stake / total_stake
         } else {
             I64F64::from_num(0)
         };
 
+        log::trace!("subnet ratio: {subnet_ratio:?}");
+
         // Convert subnet_stake_threshold from % to I64F64
         let subnet_stake_threshold_i64f64 =
             I64F64::from_num(subnet_stake_threshold.deconstruct()) / I64F64::from_num(100);
 
+        log::trace!("subnet_stake_threshold_i64f64: {subnet_stake_threshold_i64f64:?}");
         // Check if subnet_ratio meets the subnet_stake_threshold,
         // or netuid is not the general subnet
         if subnet_ratio < subnet_stake_threshold_i64f64 && netuid != 0 {
@@ -442,17 +452,22 @@ impl<T: Config> Pallet<T> {
         }
 
         let total_emission_per_block: u64 = Self::get_total_emission_per_block();
+
+        log::trace!("total_emission_per_block: {total_emission_per_block}");
         let token_emission: u64 =
             (subnet_ratio * I64F64::from_num(total_emission_per_block)).to_num::<u64>();
 
+        log::trace!("token_emission: {token_emission}");
         SubnetEmission::<T>::insert(netuid, token_emission);
 
         token_emission
     }
 
     // This is the total stake of the network without subnets that can not get emission
+    // TODO: could be optimized
     pub fn adjust_total_stake(subnet_stake_threshold: Percent) -> I64F64 {
         let total_global_stake = I64F64::from_num(Self::total_stake());
+        log::trace!("total_global_stake: {total_global_stake}");
         if total_global_stake == 0 {
             return I64F64::from_num(0);
         }
@@ -460,15 +475,16 @@ impl<T: Config> Pallet<T> {
         let mut total_stake = I64F64::from_num(0);
         let subnet_stake_threshold_i64f64 =
             I64F64::from_num(subnet_stake_threshold.deconstruct()) / I64F64::from_num(100);
-
         // Iterate over all subnets
+        // TODO: iter through `N` instead
         for netuid in 0..TotalSubnets::<T>::get() {
             let subnet_stake: I64F64 = I64F64::from_num(Self::get_total_subnet_stake(netuid));
             if subnet_stake == 0 {
                 continue;
             }
-
+            log::trace!("subnet_stake: {subnet_stake}");
             let subnet_ratio = subnet_stake / total_global_stake;
+            log::trace!("subnet_ratio: {subnet_ratio}");
             // Check if subnet_ratio meets the subnet_stake_threshold,
             // or the netuid is the general subnet
             if subnet_ratio >= subnet_stake_threshold_i64f64 || netuid == 0 {
@@ -509,7 +525,7 @@ impl<T: Config> Pallet<T> {
     }
     // Initializes a new subnetwork under netuid with parameters.
     pub fn subnet_name_exists(name: Vec<u8>) -> bool {
-        for (_netuid, _name) in <SubnetNames<T> as IterableStorageMap<u16, Vec<u8>>>::iter() {
+        for (_, _name) in <SubnetNames<T> as IterableStorageMap<u16, Vec<u8>>>::iter() {
             if _name == name {
                 return true;
             }
