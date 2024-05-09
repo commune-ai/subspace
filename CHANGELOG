@@ -1,5 +1,11 @@
 # Changelog
 
+## Version 1.7.3
+
+Spec version: `113`
+
+- Fix s0 whitelist application cost
+
 ## Version 1.7.2
 
 Spec version: `112`
