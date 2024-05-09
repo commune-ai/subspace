@@ -130,6 +130,7 @@ pub type Migrations = (
     pallet_subspace::migrations::v4::MigrateToV4<Runtime>,
     pallet_subspace::migrations::v5::MigrateToV5<Runtime>,
     pallet_subspace::migrations::v6::MigrateToV6<Runtime>,
+    pallet_subspace::migrations::v7::MigrateToV7<Runtime>,
 );
 // To learn more about runtime versioning, see:
 // https://docs.substrate.io/main-docs/build/upgrade#runtime-versioning
@@ -143,7 +144,7 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
     //   `spec_version`, and `authoring_version` are the same between Wasm and native.
     // This value is set to 100 to notify Polkadot-JS App (https://polkadot.js.org/apps) to use
     //   the compatible custom types.
-    spec_version: 112,
+    spec_version: 113,
     impl_version: 1,
     apis: RUNTIME_API_VERSIONS,
     transaction_version: 1,

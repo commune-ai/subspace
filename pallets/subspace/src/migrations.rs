@@ -478,3 +478,28 @@ pub mod v6 {
         }
     }
 }
+
+pub mod v7 {
+    use super::*;
+
+    pub struct MigrateToV7<T>(sp_std::marker::PhantomData<T>);
+
+    impl<T: Config> OnRuntimeUpgrade for MigrateToV7<T> {
+        fn on_runtime_upgrade() -> Weight {
+            let on_chain_version = StorageVersion::get::<Pallet<T>>();
+
+            if on_chain_version != 6 {
+                log::info!("Storage v7 already updated");
+                return Weight::zero();
+            }
+
+            // Update the delegation fee to the minimum value
+            GeneralSubnetApplicationCost::<T>::set(1_000_000_000_000);
+
+            StorageVersion::new(7).put::<Pallet<T>>();
+            log::info!("Migrated GeneralSubnetApplicationCost to v7");
+
+            T::DbWeight::get().writes(1)
+        }
+    }
+}

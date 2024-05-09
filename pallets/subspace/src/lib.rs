@@ -69,7 +69,7 @@ pub mod pallet {
     use sp_arithmetic::per_things::Percent;
     pub use sp_std::{vec, vec::Vec};
 
-    const STORAGE_VERSION: StorageVersion = StorageVersion::new(6);
+    const STORAGE_VERSION: StorageVersion = StorageVersion::new(7);
 
     #[pallet::pallet]
     #[pallet::generate_store(pub(super) trait Store)]
@@ -1034,7 +1034,7 @@ pub mod pallet {
 
     #[pallet::type_value]
     pub fn DefaultGeneralSubnetApplicationCost<T: Config>() -> u64 {
-        1_000_000_000 // 1_000 $COMAI
+        1_000_000_000_000 // 1_000 $COMAI
     }
 
     #[pallet::storage]
