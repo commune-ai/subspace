@@ -685,9 +685,6 @@ impl_runtime_apis! {
     }
 
     impl subspace_runtime_api::SubspaceRuntimeApi<Block> for Runtime {
-        fn get_burn_rate() -> u16 {
-            SubspaceModule::get_burn_rate()
-        }
 
         fn get_module_info(key: AccountId, netuid: u16) -> ModuleInfo {
             let stats = SubspaceModule::get_module_stats(netuid, &key);

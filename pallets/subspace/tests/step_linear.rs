@@ -5,7 +5,7 @@ use log::info;
 use mock::*;
 use pallet_subspace::{
     DaoTreasuryDistribution, GlobalDaoTreasury, MaxAllowedWeights, MinAllowedWeights, MinBurn,
-    SubnetStakeThreshold, Tempo,
+    SubnetStakeThreshold, Tempo, Trust,
 };
 use sp_core::U256;
 use sp_runtime::Percent;
@@ -104,12 +104,12 @@ fn test_dividends_same_stake() {
         set_weights(netuid, keys[0], weight_uids.clone(), weight_values.clone());
         set_weights(netuid, keys[1], weight_uids.clone(), weight_values.clone());
 
-        let stakes_before: Vec<u64> = SubspaceModule::get_stakes(netuid);
+        let stakes_before: Vec<u64> = get_stakes(netuid);
         step_epoch(netuid);
         let incentives: Vec<u16> = SubspaceModule::get_incentives(netuid);
         let dividends: Vec<u16> = SubspaceModule::get_dividends(netuid);
         let emissions: Vec<u64> = SubspaceModule::get_emissions(netuid);
-        let stakes: Vec<u64> = SubspaceModule::get_stakes(netuid);
+        let stakes: Vec<u64> = get_stakes(netuid);
 
         // evaluate votees
         assert!(incentives[2] > 0);
@@ -198,12 +198,12 @@ fn test_dividends_diff_stake() {
         set_weights(netuid, keys[0], weight_uids.clone(), weight_values.clone());
         set_weights(netuid, keys[1], weight_uids.clone(), weight_values.clone());
 
-        let stakes_before: Vec<u64> = SubspaceModule::get_stakes(netuid);
+        let stakes_before: Vec<u64> = get_stakes(netuid);
         step_epoch(netuid);
         let incentives: Vec<u16> = SubspaceModule::get_incentives(netuid);
         let dividends: Vec<u16> = SubspaceModule::get_dividends(netuid);
         let emissions: Vec<u64> = SubspaceModule::get_emissions(netuid);
-        let stakes: Vec<u64> = SubspaceModule::get_stakes(netuid);
+        let stakes: Vec<u64> = get_stakes(netuid);
 
         // evaluate votees
         assert!(incentives[2] > 0);
@@ -361,7 +361,7 @@ fn test_lowest_priority_mechanism() {
         let incentives: Vec<u16> = SubspaceModule::get_incentives(netuid);
         let dividends: Vec<u16> = SubspaceModule::get_dividends(netuid);
         let emissions: Vec<u64> = SubspaceModule::get_emissions(netuid);
-        let _stakes: Vec<u64> = SubspaceModule::get_stakes(netuid);
+        let _stakes: Vec<u64> = get_stakes(netuid);
 
         assert!(emissions[prune_uid as usize] == 0);
         assert!(incentives[prune_uid as usize] == 0);
@@ -602,7 +602,7 @@ fn test_trust() {
         set_weights(netuid, keys[9], weight_uids.clone(), weight_values.clone());
         step_block(params.tempo);
 
-        let trust: Vec<u16> = SubspaceModule::get_trust(netuid);
+        let trust: Vec<u16> = Trust::<Test>::get(netuid);
         let emission: Vec<u64> = SubspaceModule::get_emissions(netuid);
 
         // evaluate votees
@@ -617,235 +617,6 @@ fn test_trust() {
         // assert!(trust[2] as u32 < 2*(trust[1] as u32)   );
     });
 }
-
-// TODO:
-// #[test]
-// fn simulation_final_boss() {
-// 	new_test_ext().execute_with(|| {
-// 		// CONSSTANTS
-// 		let netuid: u16 = 0;
-// 		let n: u16 = 1000;
-// 		let blocks_per_epoch_list: u64 = 1;
-// 		let stake_per_module: u64 = 100_000_000_000_000;
-// 		let tempo: u16 = 10;
-// 		let num_blocks: u64 = 10;
-// 		let min_stake: u64 = (0.20 as f64 * stake_per_module as f64) as u64;
-
-// 		// SETUP ADD MODULES
-
-// 		for i in 0..n {
-// 			let key: U256 = U256::from(i);
-// 			register_module(netuid, key, stake_per_module);
-// 		}
-
-// 		// set params
-// 		SubspaceModule::set_tempo(netuid, tempo);
-// 		SubspaceModule::set_max_allowed_weights(netuid, n);
-// 		SubspaceModule::set_min_allowed_weights(netuid, 1);
-// 		SubspaceModule::set_max_allowed_uids(netuid, n);
-
-// 		let mut keys: Vec<U256> = SubspaceModule::get_keys(netuid);
-
-// 		for i in 0..n {
-// 			let key: U256 = U256::from(i);
-// 			let mut weight_uids: Vec<u16> = (0..n).collect();
-// 			weight_uids.shuffle(&mut thread_rng());
-
-// 			// shuffle the stakers
-// 			let stake_ratio: u16 = thread_rng().gen_range(0..n) as u16;
-// 			keys.shuffle(&mut thread_rng());
-// 			let mut staker_keys: Vec<U256> = keys.clone()[0..stake_ratio as usize].to_vec();
-
-// 			for mut staker_key in staker_keys.iter() {
-// 				let staker_stake: u64 = SubspaceModule::get_self_stake(netuid, staker_key);
-// 				let stake_balance: u64 = SubspaceModule::get_balance_u64(staker_key);
-
-// 				if staker_stake < min_stake {
-// 					continue
-// 				}
-// 				let stake_amount: u64 = thread_rng().gen_range(1..staker_stake) as u64;
-// 				let origin = get_origin(*staker_key);
-// 				SubspaceModule::remove_stake(origin.clone(), netuid, *staker_key, stake_amount)
-// 					.unwrap();
-// 				let stake_balance: u64 = SubspaceModule::get_balance_u64(staker_key);
-// 				SubspaceModule::add_stake(origin, netuid, key, stake_amount).unwrap();
-// 			}
-// 		}
-// 		// do a list of ones for weights
-
-// 		let keys: Vec<U256> = SubspaceModule::get_keys(netuid);
-// 		let mut expected_total_stake: u64 = SubspaceModule::get_total_subnet_stake(netuid);
-// 		let mut expected_total_balance: u64 = SubspaceModule::get_total_subnet_balance(netuid);
-
-// 		let mut calculated_total_stake: u64 =
-// 			keys.iter().map(|x| SubspaceModule::get_stake(netuid, x)).sum();
-// 		assert!(
-// 			expected_total_stake == calculated_total_stake,
-// 			"expected_total_stake: {} != calculated_total_stake: {}",
-// 			expected_total_stake,
-// 			calculated_total_stake
-// 		);
-
-// 		for i in 0..num_blocks {
-// 			let mut weight_uids: Vec<u16> = (0..n).collect();
-// 			weight_uids.shuffle(&mut thread_rng());
-// 			// do a list of ones for weights
-// 			// normal distribution
-
-// 			for i in 0..n {
-// 				let mut rng = thread_rng();
-// 				let mut weight_values: Vec<u16> =
-// 					weight_uids.iter().map(|x| rng.gen_range(0..100) as u16).collect();
-// 				weight_values.shuffle(&mut thread_rng());
-// 				let key_stake: u64 = SubspaceModule::get_stake(netuid, &keys[i as usize]);
-// 				if key_stake == 0 {
-// 					continue
-// 				}
-
-// 				set_weights(netuid, keys[i as usize], weight_uids.clone(), weight_values.clone());
-// 			}
-
-// 			// TEST THE SPLIT OF EMISSIONS
-
-// 			let test_key = keys.choose(&mut thread_rng()).unwrap();
-// 			let test_uid = SubspaceModule::get_uid_for_key(netuid, test_key);
-// 			let test_key_stake_before: u64 = SubspaceModule::get_stake(netuid, test_key);
-// 			let test_key_stake_from_vector_before: Vec<(U256, u64)> =
-// 				SubspaceModule::get_stake_from_vector(netuid, test_key);
-
-// 			// step block
-// 			step_block(tempo);
-
-// 			let emissions: Vec<u64> = SubspaceModule::get_emissions(netuid);
-// 			let total_emission: u64 = emissions.iter().sum();
-// 			expected_total_balance = expected_total_balance + total_emission;
-
-// 			let test_key_stake: u64 = SubspaceModule::get_stake(netuid, test_key);
-// 			let test_key_stake_from_vector: Vec<(U256, u64)> =
-// 				SubspaceModule::get_stake_from_vector(netuid, test_key);
-// 			let test_key_stake_from_vector_sum: u64 =
-// 				test_key_stake_from_vector.iter().map(|x| x.1).sum();
-// 			assert!(
-// 				test_key_stake == test_key_stake_from_vector_sum,
-// 				"test_key_stake: {} != test_key_stake_from_vector_sum: {}",
-// 				test_key_stake,
-// 				test_key_stake_from_vector_sum
-// 			);
-
-// 			let test_key_stake_difference: u64 = test_key_stake - test_key_stake_before;
-// 			let test_key_emission = emissions[test_uid as usize];
-
-// 			if test_key_emission > 0 {
-// 				let errror_delta: u64 = (test_key_emission as f64 * 0.001) as u64;
-// 				assert!(
-// 					test_key_stake_difference > test_key_emission - errror_delta ||
-// 						test_key_stake_difference < test_key_emission + errror_delta,
-// 					"test_key_stake_difference: {} != test_key_emission: {}",
-// 					test_key_stake_difference,
-// 					test_key_emission
-// 				);
-
-// 				for (i, (stake_key, stake_amount)) in test_key_stake_from_vector.iter().enumerate()
-// 				{
-// 					let stake_ratio: f64 = *stake_amount as f64 / test_key_stake as f64;
-// 					let expected_emission: u64 = (test_key_emission as f64 * stake_ratio) as u64;
-// 					let errror_delta: u64 = (*stake_amount as f64 * 0.001) as u64;
-// 					let test_key_difference: u64 =
-// 						stake_amount - test_key_stake_from_vector_before[i].1;
-
-// 					info!("test_key_difference: {}", test_key_difference);
-// 					info!("test_key_difference: {}", expected_emission);
-
-// 					assert!(
-// 						test_key_difference < expected_emission + errror_delta ||
-// 							test_key_difference > expected_emission - errror_delta,
-// 						"test_key_difference: {} != expected_emission: {}",
-// 						test_key_difference,
-// 						expected_emission
-// 					);
-// 				}
-// 			}
-
-// 			// check stake key
-
-// 			let lowest_priority_uid: u16 = SubspaceModule::get_lowest_uid(netuid);
-// 			let lowest_priority_key: U256 =
-// 				SubspaceModule::get_key_for_uid(netuid, lowest_priority_uid);
-// 			let mut lowest_priority_stake: u64 =
-// 				SubspaceModule::get_stake(netuid, &lowest_priority_key);
-// 			let mut lowest_priority_balance: u64 =
-// 				SubspaceModule::get_balance_u64(&lowest_priority_key);
-
-// 			assert!(
-// 				lowest_priority_balance == 1,
-// 				"lowest_priority_balance: {} != 0",
-// 				lowest_priority_balance
-// 			);
-// 			assert!(SubspaceModule::key_registered(netuid, &lowest_priority_key));
-// 			info!("lowest_priority_key: {:?}", lowest_priority_key);
-// 			info!("lowest_priority_stake: {:?}", lowest_priority_stake);
-// 			info!("lowest_priority_balance: {:?}", lowest_priority_balance);
-// 			let lowest_prioirty_self_stake: u64 =
-// 				SubspaceModule::get_self_stake(netuid, &lowest_priority_key);
-
-// 			let new_key: U256 = U256::from(n + i as u16 + 1);
-// 			register_module(netuid, new_key, stake_per_module);
-// 			info!("n: {:?}", n);
-// 			info!("get_subnet_n: {:?}", SubspaceModule::get_subnet_n(netuid));
-// 			info!("max_allowed: {:?}", SubspaceModule::get_max_allowed_uids(netuid));
-
-// 			assert!(SubspaceModule::get_subnet_n(netuid) == n);
-
-// 			assert!(!SubspaceModule::key_registered(netuid, &lowest_priority_key));
-
-// 			info!("lowest_priority_key: {:?}", lowest_priority_key);
-// 			info!("lowest_priority_stake: {:?}", lowest_priority_stake);
-// 			info!("lowest_priority_balance: {:?}", lowest_priority_balance);
-// 			let emissions: Vec<u64> = SubspaceModule::get_emissions(netuid);
-// 			let total_emission: u64 = emissions.iter().sum();
-
-// 			info!("subnet total_emission: {:?}", total_emission);
-// 			info!("expected_total_stake: {:?}", expected_total_stake);
-
-// 			assert!(!SubspaceModule::key_registered(netuid, &lowest_priority_key));
-
-// 			expected_total_stake =
-// 				(expected_total_stake + total_emission + stake_per_module) - lowest_priority_stake;
-
-// 			// CHECK THE LOWEST PRIORITY MECHANIS
-// 			lowest_priority_balance = SubspaceModule::get_balance_u64(&lowest_priority_key);
-// 			assert!(
-// 				lowest_priority_balance == lowest_prioirty_self_stake + 1,
-// 				"lowest_priority_balance: {} != lowest_priority_stake: {}",
-// 				lowest_priority_balance,
-// 				lowest_priority_stake
-// 			);
-// 			lowest_priority_stake = SubspaceModule::get_stake(netuid, &lowest_priority_key);
-// 			assert!(lowest_priority_stake == 0);
-// 			assert!(SubspaceModule::get_stake(netuid, &new_key) == stake_per_module);
-// 			let emissions: Vec<u64> = SubspaceModule::get_emissions(netuid);
-
-// 			let sumed_emission: u64 = emissions.iter().sum();
-// 			let expected_emission: u64 = SubspaceModule::calculate_network_emission(netuid) as u64;
-
-// 			let delta: u64 = 10_000_000;
-// 			assert!(
-// 				sumed_emission > expected_emission - delta ||
-// 					sumed_emission < expected_emission + delta
-// 			);
-
-// 			let total_stake = SubspaceModule::get_total_subnet_stake(netuid);
-// 			assert!(
-// 				total_stake > expected_total_stake - delta ||
-// 					total_stake < expected_total_stake + delta,
-// 				"total_stake: {} != expected_total_stake: {}",
-// 				total_stake,
-// 				expected_total_stake
-// 			);
-// 			let actual_total_balance: u64 = SubspaceModule::get_total_subnet_balance(netuid);
-// 		}
-// 	});
-// }
 
 #[test]
 fn test_founder_share() {

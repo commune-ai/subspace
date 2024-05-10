@@ -246,10 +246,7 @@ fn test_delegate_stake() {
                 ));
                 let uid = SubspaceModule::get_uid_for_key(netuid, key);
                 // SubspaceModule::add_stake(get_origin(*key), netuid, amount_staked);
-                assert_eq!(
-                    SubspaceModule::get_stake_for_uid(netuid, uid),
-                    amount_staked + 10
-                );
+                assert_eq!(get_stake_for_uid(netuid, uid), amount_staked + 10);
                 assert_eq!(SubspaceModule::get_balance(&delegate_key), 1);
                 assert_eq!(
                     SubspaceModule::get_stake_to_vector(netuid, &delegate_key).len(),
@@ -266,7 +263,7 @@ fn test_delegate_stake() {
                     SubspaceModule::get_balance(&delegate_key),
                     amount_staked + 1
                 );
-                assert_eq!(SubspaceModule::get_stake_for_uid(netuid, uid), 10);
+                assert_eq!(get_stake_for_uid(netuid, uid), 10);
                 assert_eq!(
                     SubspaceModule::get_stake_to_vector(netuid, &delegate_key).len(),
                     0
@@ -279,10 +276,7 @@ fn test_delegate_stake() {
                     *key,
                     amount_staked
                 ));
-                assert_eq!(
-                    SubspaceModule::get_stake_for_uid(netuid, uid),
-                    amount_staked + 10
-                );
+                assert_eq!(get_stake_for_uid(netuid, uid), amount_staked + 10);
                 assert_eq!(SubspaceModule::get_balance(&delegate_key), 1);
                 assert_eq!(
                     SubspaceModule::get_stake_to_vector(netuid, &delegate_key).len(),
@@ -290,7 +284,7 @@ fn test_delegate_stake() {
                 );
 
                 // AT THE END WE SHOULD HAVE THE SAME TOTAL STAKE
-                subnet_stake += SubspaceModule::get_stake_for_uid(netuid, uid);
+                subnet_stake += get_stake_for_uid(netuid, uid);
             }
             assert_eq!(SubspaceModule::get_total_subnet_stake(netuid), subnet_stake);
             total_stake += subnet_stake;

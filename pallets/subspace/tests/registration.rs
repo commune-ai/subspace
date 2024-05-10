@@ -9,7 +9,8 @@ use sp_core::U256;
 use log::info;
 use pallet_subspace::{
     voting::ApplicationStatus, CuratorApplications, Emission, Error, MaxAllowedModules,
-    MaxAllowedUids, MinStake, RemovedSubnets, Stake, SubnetNames, TotalSubnets, N,
+    MaxAllowedUids, MinStake, RegistrationsPerBlock, RemovedSubnets, Stake, SubnetNames,
+    TotalSubnets, N,
 };
 use sp_runtime::{DispatchResult, Percent};
 
@@ -34,25 +35,25 @@ fn test_min_stake() {
         MinStake::<Test>::set(netuid, min_stake);
         SubspaceModule::set_max_registrations_per_block(max_registrations_per_block);
         step_block(1);
-        assert_eq!(SubspaceModule::get_registrations_this_block(), 0);
+        assert_eq!(RegistrationsPerBlock::<Test>::get(), 0);
 
         let n = U256::from(reg_this_block);
         let keys_list: Vec<U256> = (1..n.as_u64())
             .map(U256::from)
             .collect();
 
-        let min_stake_to_register = SubspaceModule::get_min_stake(netuid);
+        let min_stake_to_register = MinStake::<Test>::get(netuid);
 
         for key in keys_list {
             let _ = register_module(netuid, key, min_stake_to_register);
             info!("registered module with key: {key:?} and min_stake_to_register: {min_stake_to_register:?}");
         }
-        let registrations_this_block = SubspaceModule::get_registrations_this_block();
+        let registrations_this_block = RegistrationsPerBlock::<Test>::get();
         info!("registrations_this_block: {registrations_this_block:?}");
         assert_eq!(registrations_this_block, max_registrations_per_block);
 
         step_block(1);
-        assert_eq!(SubspaceModule::get_registrations_this_block(), 0);
+        assert_eq!(RegistrationsPerBlock::<Test>::get(), 0);
     });
 }
 
@@ -65,17 +66,18 @@ fn test_max_registration() {
         // make sure that the results won´t get affected by burn
         SubspaceModule::set_min_burn(0);
 
-        assert_eq!(SubspaceModule::get_registrations_this_block(), 0);
+        assert_eq!(RegistrationsPerBlock::<Test>::get(), 0);
+
         SubspaceModule::set_max_registrations_per_block(1000);
         for i in 1..(max_registrations_per_block * rounds) {
             let key = U256::from(i);
             assert_ok!(register_module(netuid, U256::from(i), to_nano(100)));
-            let registrations_this_block = SubspaceModule::get_registrations_this_block();
+            let registrations_this_block = RegistrationsPerBlock::<Test>::get();
             assert_eq!(registrations_this_block, i);
             assert!(SubspaceModule::is_registered(netuid, &key));
         }
         step_block(1);
-        assert_eq!(SubspaceModule::get_registrations_this_block(), 0);
+        assert_eq!(RegistrationsPerBlock::<Test>::get(), 0);
     });
 }
 
@@ -128,7 +130,7 @@ fn test_registration_ok() {
         assert_eq!(neuro_uid, module_uid);
 
         // Check if the balance of this hotkey account for this subnetwork == 0
-        assert_eq!(SubspaceModule::get_stake_for_uid(netuid, module_uid), 1);
+        assert_eq!(get_stake_for_uid(netuid, module_uid), 1);
     });
 }
 
@@ -177,7 +179,7 @@ fn test_registration_with_stake() {
                 panic!("Failed to register module with key: {key:?} and stake: {stake_value:?}",)
             });
             info!("balance: {:?}", SubspaceModule::get_balance_u64(&key));
-            assert_eq!(SubspaceModule::get_stake_for_uid(netuid, uid), stake_value);
+            assert_eq!(get_stake_for_uid(netuid, uid), stake_value);
         }
     });
 }

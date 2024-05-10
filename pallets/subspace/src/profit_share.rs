@@ -66,9 +66,4 @@ impl<T: Config> Pallet<T> {
             })
             .collect()
     }
-
-    #[cfg(debug_assertions)]
-    pub fn get_profit_shares(key: T::AccountId) -> Vec<(T::AccountId, u16)> {
-        ProfitShares::<T>::get(&key)
-    }
 }
