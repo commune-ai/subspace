@@ -1,4 +1,7 @@
-use node_subspace_runtime::{AccountId, RuntimeGenesisConfig, WASM_BINARY};
+use node_subspace_runtime::{
+    AccountId, AuraConfig, BalancesConfig, GrandpaConfig, RuntimeGenesisConfig,
+    SubspaceModuleConfig, SudoConfig, SystemConfig, WASM_BINARY,
+};
 use sc_service::ChainType;
 use serde::Deserialize;
 use sp_consensus_aura::sr25519::AuthorityId as AuraId;
