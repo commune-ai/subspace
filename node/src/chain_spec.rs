@@ -1,5 +1,5 @@
 use node_subspace_runtime::{
-    AccountId, AuraConfig, BalancesConfig, GrandpaConfig, Precompiles, RuntimeGenesisConfig,
+    AccountId, AuraConfig, BalancesConfig, GrandpaConfig, RuntimeGenesisConfig,
     SubspaceModuleConfig, SudoConfig, SystemConfig, WASM_BINARY,
 };
 use sc_service::ChainType;
