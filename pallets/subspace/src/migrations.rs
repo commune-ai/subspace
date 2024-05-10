@@ -293,10 +293,8 @@ pub mod v3 {
 
             // -- GENERAL SUBNET PARAMS --
 
-            // Due to the incoming incentives refactoring, `max_stake` value
             // is no longer needed to be limited on the general subnet 0
             let general_netuid = 0;
-            MaxStake::<T>::insert(general_netuid, u64::MAX);
             log::info!("Min stake migrated");
 
             // Due to the incoming subnet 0 whitelist, `min_allowed_weights`,
@@ -373,7 +371,6 @@ pub mod v4 {
                 return Weight::zero();
             }
 
-            MinStakeGlobal::<T>::set(0);
             TrustRatio::<T>::set(0, 5);
 
             StorageVersion::new(4).put::<Pallet<T>>();

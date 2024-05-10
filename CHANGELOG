@@ -1,5 +1,11 @@
 # Changelog
 
+[Unreleased]
+
+- Deleted, or moved useless code and values of:
+  - Burn rate
+  - Min Stake
+
 ## Version 1.7.3
 
 Spec version: `113`

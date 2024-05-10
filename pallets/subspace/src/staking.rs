@@ -299,14 +299,6 @@ impl<T: Config> Pallet<T> {
         Stake::<T>::get(netuid, key)
     }
 
-    #[cfg(debug_assertions)]
-    pub fn get_stakes(netuid: u16) -> Vec<u64> {
-        Self::get_uid_key_tuples(netuid)
-            .into_iter()
-            .map(|(_, key)| Self::get_stake(netuid, &key))
-            .collect()
-    }
-
     // Returns the delegation fee of a module
     pub fn get_delegation_fee(netuid: u16, module_key: &T::AccountId) -> Percent {
         let min_deleg_fee_global = Self::get_floor_delegation_fee();
@@ -322,16 +314,6 @@ impl<T: Config> Pallet<T> {
         amount: u64,
     ) -> bool {
         amount > 0 && Self::get_stake_to_module(netuid, key, module_key) >= amount
-    }
-
-    #[cfg(debug_assertions)]
-    pub fn get_self_stake(netuid: u16, key: &T::AccountId) -> u64 {
-        Self::get_stake_to_module(netuid, key, key)
-    }
-
-    #[cfg(debug_assertions)]
-    pub fn get_stake_to_total(netuid: u16, key: &T::AccountId) -> u64 {
-        Self::get_stake_to_vector(netuid, key).into_values().sum()
     }
 
     pub fn get_stake_to_module(netuid: u16, key: &T::AccountId, module_key: &T::AccountId) -> u64 {

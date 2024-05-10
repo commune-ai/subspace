@@ -36,7 +36,6 @@ fn creates_global_params_proposal_correctly_and_expires() {
         };
 
         let GlobalParams {
-            burn_rate,
             max_name_length,
             min_name_length,
             max_allowed_subnets,
@@ -45,7 +44,6 @@ fn creates_global_params_proposal_correctly_and_expires() {
             max_allowed_weights,
             min_burn,
             max_burn,
-            min_stake,
             floor_delegation_fee,
             floor_founder_share,
             min_weight_stake,
@@ -63,7 +61,6 @@ fn creates_global_params_proposal_correctly_and_expires() {
 
         SubspaceModule::add_global_proposal(
             get_origin(key),
-            burn_rate,
             max_name_length,
             min_name_length,
             max_allowed_subnets,
@@ -72,7 +69,6 @@ fn creates_global_params_proposal_correctly_and_expires() {
             max_allowed_weights,
             max_burn,
             min_burn,
-            min_stake,
             floor_delegation_fee,
             floor_founder_share,
             min_weight_stake,
@@ -139,7 +135,6 @@ fn creates_global_params_proposal_correctly_and_is_approved() {
         };
 
         let GlobalParams {
-            burn_rate,
             max_name_length,
             min_name_length,
             max_allowed_subnets,
@@ -148,7 +143,6 @@ fn creates_global_params_proposal_correctly_and_is_approved() {
             max_allowed_weights,
             min_burn,
             max_burn,
-            min_stake,
             floor_delegation_fee,
             floor_founder_share,
             min_weight_stake,
@@ -166,7 +160,6 @@ fn creates_global_params_proposal_correctly_and_is_approved() {
 
         SubspaceModule::add_global_proposal(
             get_origin(keys[0]),
-            burn_rate,
             max_name_length,
             min_name_length,
             max_allowed_subnets,
@@ -175,7 +168,6 @@ fn creates_global_params_proposal_correctly_and_is_approved() {
             max_allowed_weights,
             max_burn,
             min_burn,
-            min_stake,
             floor_delegation_fee,
             floor_founder_share,
             min_weight_stake,
@@ -236,7 +228,6 @@ fn creates_global_params_proposal_correctly_and_is_refused() {
         let original = SubspaceModule::global_params();
         let GlobalParams {
             floor_founder_share,
-            burn_rate,
             max_name_length,
             min_name_length,
             max_allowed_subnets,
@@ -245,7 +236,6 @@ fn creates_global_params_proposal_correctly_and_is_refused() {
             max_allowed_weights,
             min_burn,
             max_burn,
-            min_stake,
             floor_delegation_fee,
             min_weight_stake,
             target_registrations_per_interval,
@@ -265,7 +255,6 @@ fn creates_global_params_proposal_correctly_and_is_refused() {
 
         SubspaceModule::add_global_proposal(
             get_origin(keys[0]),
-            burn_rate,
             max_name_length,
             min_name_length,
             max_allowed_subnets,
@@ -274,7 +263,6 @@ fn creates_global_params_proposal_correctly_and_is_refused() {
             max_allowed_weights,
             max_burn,
             min_burn,
-            min_stake,
             floor_delegation_fee,
             floor_founder_share,
             min_weight_stake,
@@ -344,7 +332,6 @@ fn creates_subnet_params_proposal_correctly_and_is_approved() {
             max_allowed_uids,
             max_allowed_weights,
             min_allowed_weights,
-            max_stake,
             min_stake,
             max_weight_age,
             tempo,
@@ -365,7 +352,6 @@ fn creates_subnet_params_proposal_correctly_and_is_approved() {
             max_allowed_uids,
             max_allowed_weights,
             min_allowed_weights,
-            max_stake,
             min_stake,
             max_weight_age,
             tempo,

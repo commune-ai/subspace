@@ -32,7 +32,7 @@ use std::{fs::File, path::PathBuf};
 
 /// (name, tempo, immunity_period, min_allowed_weights, max_allowed_weights,
 /// max_allowed_uids, founder)
-pub type JSONSubnet = (String, u16, u16, u16, u16, u16, u16, u64, String);
+pub type JSONSubnet = (String, u16, u16, u16, u16, u16, u64, String);
 
 /// (key, name, address, stake, weights)
 pub type JSONModule = (String, String, String, Vec<(u16, u16)>);
@@ -44,7 +44,6 @@ pub type JSONStakeTo = (String, Vec<(String, u64)>);
 /// max_allowed_uids, founder)
 pub type Subnet = (
     Vec<u8>,
-    u16,
     u16,
     u16,
     u16,
@@ -112,7 +111,6 @@ pub fn generate_config(network: String) -> Result<ChainSpec, String> {
             min_allowed_weights,
             max_allowed_weights,
             max_allowed_uids,
-            burn_rate,
             min_stake,
             founder,
         ) = subnet;
@@ -124,7 +122,6 @@ pub fn generate_config(network: String) -> Result<ChainSpec, String> {
             min_allowed_weights,
             max_allowed_weights,
             max_allowed_uids,
-            burn_rate,
             min_stake,
             sp_runtime::AccountId32::from(sr25519::Public::from_ss58check(&founder).unwrap()),
         ));
@@ -226,7 +223,7 @@ pub fn testnet_config() -> Result<ChainSpec, String> {
 
 type ModuleData = (AccountId, Vec<u8>, Vec<u8>, Vec<(u16, u16)>);
 type Modules = Vec<Vec<ModuleData>>;
-type SubnetData = (Vec<u8>, u16, u16, u16, u16, u16, u16, u64, AccountId);
+type SubnetData = (Vec<u8>, u16, u16, u16, u16, u16, u64, AccountId);
 type Subnets = Vec<SubnetData>;
 type StakeToData = (AccountId, Vec<(AccountId, u64)>);
 type StakeToVec = Vec<Vec<StakeToData>>;
@@ -251,7 +248,6 @@ fn network_genesis(
         },
         balances: BalancesConfig {
             // Configure endowed accounts with initial balance of 1 << 60.
-            //balances: balances.iter().cloned().map(|k| k).collect(),
             balances: balances.to_vec(),
         },
         aura: AuraConfig {

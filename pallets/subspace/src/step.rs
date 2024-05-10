@@ -28,7 +28,7 @@ impl<T: Config> Pallet<T> {
         let subnet_stake_threshold = SubnetStakeThreshold::<T>::get();
 
         for (netuid, tempo) in Tempo::<T>::iter() {
-            let registration_this_interval = Self::get_registrations_this_interval(netuid);
+            let registration_this_interval = RegistrationsThisInterval::<T>::get(netuid);
 
             Self::adjust_registration(
                 netuid,
@@ -118,14 +118,11 @@ failed to run yuma consensus algorithm: {err:?}, skipping this block. \
         let uid_key_tuples: Vec<(u16, T::AccountId)> = Self::get_uid_key_tuples(netuid);
         let total_stake_u64: u64 = Self::get_total_subnet_stake(netuid).max(1);
 
-        let max_stake = subnet_params.max_stake;
-
         let stake_u64: Vec<u64> = uid_key_tuples
             .iter()
-            .map(|(_, key)| Self::get_stake_for_key(netuid, key).min(max_stake))
+            .map(|(_, key)| Self::get_stake_for_key(netuid, key))
             .collect();
 
-        // Clip it to the max stake
         let stake_f64: Vec<I64F64> = stake_u64
             .iter()
             .map(|x| I64F64::from_num(*x) / I64F64::from_num(total_stake_u64))
@@ -234,8 +231,6 @@ failed to run yuma consensus algorithm: {err:?}, skipping this block. \
         let dividends_emission: Vec<u64> =
             dividends_emission_float.iter().map(|e| e.to_num::<u64>()).collect();
 
-        let burn_amount_per_epoch: u64 = Self::get_burn_per_epoch(netuid);
-
         if netuid != 0 {
             let founder_uid = Self::get_uid_for_key(netuid, founder_key);
             incentive_emission[founder_uid as usize] =
@@ -246,30 +241,8 @@ failed to run yuma consensus algorithm: {err:?}, skipping this block. \
         let mut emitted = 0u64;
 
         for (module_uid, module_key) in uid_key_tuples.iter() {
-            let mut owner_emission_incentive: u64 = incentive_emission[*module_uid as usize];
+            let owner_emission_incentive: u64 = incentive_emission[*module_uid as usize];
             let mut owner_dividends_emission: u64 = dividends_emission[*module_uid as usize];
-            let owner_emission: u64 = owner_emission_incentive + owner_dividends_emission;
-
-            if burn_amount_per_epoch > owner_emission {
-                let burn_into_stake: u64 = burn_amount_per_epoch.saturating_sub(owner_emission);
-
-                if burn_into_stake > 0 {
-                    Self::decrease_stake(netuid, module_key, module_key, burn_into_stake);
-                }
-
-                continue;
-            }
-
-            if burn_amount_per_epoch > owner_emission_incentive {
-                owner_emission_incentive = 0;
-                let left_burn_amount_per_epoch =
-                    burn_amount_per_epoch.saturating_sub(owner_emission_incentive);
-                owner_dividends_emission =
-                    owner_dividends_emission.saturating_sub(left_burn_amount_per_epoch);
-            } else {
-                owner_emission_incentive =
-                    owner_emission_incentive.saturating_sub(burn_amount_per_epoch);
-            }
 
             emission[*module_uid as usize] = owner_emission_incentive + owner_dividends_emission;
 
@@ -637,38 +610,6 @@ failed to run yuma consensus algorithm: {err:?}, skipping this block. \
         ownership_vector
     }
 
-    #[cfg(debug_assertions)]
-    pub fn get_ownership_ratios_emission(
-        netuid: u16,
-        module_key: &T::AccountId,
-        emission: u64,
-    ) -> Vec<(T::AccountId, u64)> {
-        let ownership_vector: Vec<(T::AccountId, I64F64)> =
-            Self::get_ownership_ratios(netuid, module_key);
-        let mut emission_vector: Vec<(T::AccountId, u64)> = Vec::new();
-
-        for (k, v) in ownership_vector {
-            let emission_for_delegate = (v * I64F64::from_num(emission)).to_num::<u64>();
-            emission_vector.push((k, emission_for_delegate));
-        }
-
-        emission_vector
-    }
-
-    pub fn get_burn_per_epoch(netuid: u16) -> u64 {
-        let n = Self::get_subnet_n(netuid);
-        let token_emission: u64 = PendingEmission::<T>::get(netuid);
-        let burn_rate: u16 = Self::get_burn_rate().min(100);
-        let mut burn_amount_per_epoch: u64 = 0;
-        // get the float and convert to u64token_emission
-        if burn_rate > 0 {
-            let burn_rate_float: I64F64 = (I64F64::from_num(burn_rate) / I64F64::from_num(100))
-                * (I64F64::from_num(token_emission) / I64F64::from_num(n));
-            burn_amount_per_epoch = burn_rate_float.to_num::<u64>();
-        }
-        burn_amount_per_epoch
-    }
-
     pub fn adjust_registration(
         netuid: u16,
         block_number: u64,
@@ -688,7 +629,7 @@ failed to run yuma consensus algorithm: {err:?}, skipping this block. \
             Self::set_burn(netuid, adjusted_burn);
 
             // reset the registrations
-            Self::set_registrations_this_interval(netuid, 0);
+            RegistrationsThisInterval::<T>::insert(netuid, 0);
         }
     }
 
