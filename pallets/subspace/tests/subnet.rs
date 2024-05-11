@@ -715,7 +715,7 @@ fn test_active_stake() {
         for i in 0..max_subnets {
             assert_eq!(N::<Test>::get(i), 1);
         }
-        assert_eq!(SubspaceModule::is_registered(9, &U256::from(10)), true);
+        assert!(SubspaceModule::is_registered(9, &U256::from(10)));
 
         // register another module on the newly re-registered subnet 9,
         // and set weights on it from the key 11
@@ -731,7 +731,7 @@ fn test_active_stake() {
         let uids = [1].to_vec();
         let weights = [1].to_vec();
 
-        let _ = set_weights(9, U256::from(10), uids, weights);
+        set_weights(9, U256::from(10), uids, weights);
 
         step_block(100);
 
@@ -740,7 +740,7 @@ fn test_active_stake() {
         assert_ok!(register_module(10, U256::from(12), new_module_stake));
 
         step_block(1);
-        assert_eq!(SubspaceModule::is_registered(9, &U256::from(12)), true);
+        assert!(SubspaceModule::is_registered(9, &U256::from(12)));
         // check if the module is registered
         assert_eq!(N::<Test>::get(9), 3);
 
@@ -748,7 +748,7 @@ fn test_active_stake() {
         let uids = [0, 1].to_vec();
         let weights = [1, 1].to_vec();
 
-        let _ = set_weights(9, U256::from(12), uids, weights);
+        set_weights(9, U256::from(12), uids, weights);
 
         let n = 10;
         let stake_per_n = to_nano(20_000_000);
