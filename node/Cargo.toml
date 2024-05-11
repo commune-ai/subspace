@@ -1,7 +1,7 @@
 [package]
 name = "node-subspace"
 version = "1.7.5"
-description = "A fresh FRAME-based Substrate node, ready for hacking."
+description = "The node implementation for Commune's subspace chain."
 authors = ["Substrate DevHub <https://github.com/substrate-developer-hub>"]
 homepage = "https://communeai.org/"
 edition = "2021"

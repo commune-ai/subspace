@@ -361,7 +361,7 @@ pub fn get_stakes(netuid: u16) -> Vec<u64> {
 #[allow(dead_code)]
 pub fn get_total_subnet_balance(netuid: u16) -> u64 {
     let keys = SubspaceModule::get_keys(netuid);
-    keys.iter().map(|x| SubspaceModule::get_balance_u64(x)).sum()
+    keys.iter().map(SubspaceModule::get_balance_u64).sum()
 }
 
 #[allow(dead_code)]

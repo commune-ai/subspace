@@ -112,6 +112,7 @@ pub type Migrations = (
     pallet_grandpa::migrations::MigrateV4ToV5<Runtime>,
     pallet_subspace::migrations::v10::MigrateToV10<Runtime>,
 );
+
 // To learn more about runtime versioning, see:
 // https://docs.substrate.io/main-docs/build/upgrade#runtime-versioning
 #[sp_version::runtime_version]
@@ -457,7 +458,6 @@ pub type Executive = frame_executive::Executive<
     frame_system::ChainContext<Runtime>,
     Runtime,
     AllPalletsWithSystem,
-    Migrations,
 >;
 
 impl fp_self_contained::SelfContainedCall for RuntimeCall {
