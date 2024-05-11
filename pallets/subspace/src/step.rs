@@ -10,7 +10,8 @@ pub mod yuma;
 impl<T: Config> Pallet<T> {
     pub fn block_step() {
         let block_number: u64 = Self::get_current_block_number();
-        log::debug!("block_step for block: {block_number:?}");
+        log::debug!("stepping block {block_number:?}");
+
         RegistrationsPerBlock::<T>::mutate(|val: &mut u16| *val = 0);
 
         // Execute proposals if any should be executed, this is done every 100 blocks.
@@ -26,6 +27,8 @@ impl<T: Config> Pallet<T> {
 
         let total_stake = Self::total_stake() as u128;
         let subnet_stake_threshold = SubnetStakeThreshold::<T>::get();
+
+        log::debug!("ticking subnets, total stake: {total_stake}, stake threshold: {subnet_stake_threshold}");
 
         for (netuid, tempo) in Tempo::<T>::iter() {
             let registration_this_interval = RegistrationsThisInterval::<T>::get(netuid);
@@ -44,11 +47,13 @@ impl<T: Config> Pallet<T> {
                 *queued += new_queued_emission;
                 *queued
             });
-            log::debug!("netuid {netuid} total pending emission: {emission_to_drain} (+{new_queued_emission:?}) ");
+            log::trace!("subnet {netuid} total pending emission: {emission_to_drain}, increased {new_queued_emission}");
 
             if Self::blocks_until_next_epoch(netuid, tempo, block_number) > 0 {
                 continue;
             }
+
+            log::trace!("running epoch for subnet {netuid}");
 
             // Clearing `set_weight` rate limiter values.
             let _ = SetWeightCallsPerEpoch::<T>::clear_prefix(netuid, u32::MAX, None);
