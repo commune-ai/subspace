@@ -9,10 +9,11 @@ use node_subspace_runtime::{Block, EXISTENTIAL_DEPOSIT};
 use sc_cli::SubstrateCli;
 use sc_service::PartialComponents;
 use sp_keyring::Sr25519Keyring;
+use sp_runtime::traits::BlakeTwo256;
 
 impl SubstrateCli for Cli {
     fn impl_name() -> String {
-        "Substrate Node".into()
+        "Commune Subspace Node".into()
     }
 
     fn impl_version() -> String {
@@ -28,7 +29,7 @@ impl SubstrateCli for Cli {
     }
 
     fn support_url() -> String {
-        "support.anonymous.an".into()
+        "https://communeai.org/".into()
     }
 
     fn copyright_start_year() -> i32 {
@@ -37,12 +38,19 @@ impl SubstrateCli for Cli {
 
     fn load_spec(&self, id: &str) -> Result<Box<dyn sc_service::ChainSpec>, String> {
         Ok(match id {
-            "test" => Box::new(chain_spec::testnet_config()?),
-            "main" => Box::new(chain_spec::mainnet_config()?),
-            "dev" => Box::new(chain_spec::mainnet_config()?),
-            path => Box::new(chain_spec::ChainSpec::from_json_file(
-                std::path::PathBuf::from(path),
+            "local" => Box::new(chain_spec::generate_config("./specs/local.json")?),
+            "dev" => Box::new(chain_spec::generate_config("./specs/dev.json")?),
+            "main" => Box::new(chain_spec::ChainSpec::from_json_bytes(
+                include_bytes!("../chain-specs/main.json").as_ref(),
             )?),
+            path => Box::new(
+                chain_spec::ChainSpec::from_json_file(std::path::PathBuf::from(path)).or_else(
+                    |_| {
+                        eprintln!("failed to load {path} as a chain spec file, using as patch...");
+                        chain_spec::generate_config(path)
+                    },
+                )?,
+            ),
         })
     }
 }
@@ -141,7 +149,7 @@ pub fn run() -> sc_cli::Result<()> {
                             );
                         }
 
-                        cmd.run::<Block, SubstrateHostFunctions>(config)
+                        cmd.run::<BlakeTwo256, SubstrateHostFunctions>(config)
                     }
                     BenchmarkCmd::Block(cmd) => {
                         let PartialComponents { client, .. } = service::new_partial(&config)?;

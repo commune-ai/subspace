@@ -571,15 +571,15 @@ impl<T: Config> Pallet<T> {
 
         SubnetNames::<T>::remove(netuid);
         MaxWeightAge::<T>::remove(netuid);
-        Name::<T>::clear_prefix(netuid, u32::max_value(), None);
-        Address::<T>::clear_prefix(netuid, u32::max_value(), None);
-        Metadata::<T>::clear_prefix(netuid, u32::max_value(), None);
-        Uids::<T>::clear_prefix(netuid, u32::max_value(), None);
-        Keys::<T>::clear_prefix(netuid, u32::max_value(), None);
-        DelegationFee::<T>::clear_prefix(netuid, u32::max_value(), None);
+        Name::<T>::clear_prefix(netuid, u32::MAX, None);
+        Address::<T>::clear_prefix(netuid, u32::MAX, None);
+        Metadata::<T>::clear_prefix(netuid, u32::MAX, None);
+        Uids::<T>::clear_prefix(netuid, u32::MAX, None);
+        Keys::<T>::clear_prefix(netuid, u32::MAX, None);
+        DelegationFee::<T>::clear_prefix(netuid, u32::MAX, None);
 
         // Remove consnesus vectors
-        Weights::<T>::clear_prefix(netuid, u32::max_value(), None);
+        Weights::<T>::clear_prefix(netuid, u32::MAX, None);
 
         Active::<T>::remove(netuid);
         Consensus::<T>::remove(netuid);
@@ -593,7 +593,7 @@ impl<T: Config> Pallet<T> {
         ValidatorPermits::<T>::remove(netuid);
         ValidatorTrust::<T>::remove(netuid);
 
-        RegistrationBlock::<T>::clear_prefix(netuid, u32::max_value(), None);
+        RegistrationBlock::<T>::clear_prefix(netuid, u32::MAX, None);
 
         // --- 2. Erase subnet parameters.
         Founder::<T>::remove(netuid);
@@ -622,8 +622,7 @@ impl<T: Config> Pallet<T> {
         netuid
     }
 
-    // Returns the number of filled slots on a network.
-    ///
+    /// Returns the number of filled slots on a network.
     pub fn get_subnet_n(netuid: u16) -> u16 {
         N::<T>::get(netuid)
     }

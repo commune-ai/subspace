@@ -69,7 +69,7 @@ fn test_add_profit_share() {
         info!("miner stake after: {miner_stake:?}");
         info!("voter stake after: {voter_stake:?}");
 
-        let profit_share_emissions = SubspaceModule::get_profit_shares(miner_key);
+        let profit_share_emissions = ProfitShares::<Test>::get(miner_key);
         info!("profit share emissions: {profit_share_emissions:?}");
 
         // check the profit sharers
