@@ -292,9 +292,9 @@ impl<T: Config> Pallet<T> {
         let total_stake: I64F64 = Self::adjust_total_stake(subnet_stake_threshold);
 
         log::trace!(
-            "calculating rewards for netuid {netuid} with stake {subnet_stake:?},
-        total stake {total_stake:?},
-        threshold {subnet_stake_threshold:?}"
+            "calculating subnet emission {netuid} with stake {subnet_stake}, \
+total stake {total_stake}, \
+threshold {subnet_stake_threshold}"
         );
 
         let subnet_ratio = if total_stake > I64F64::from_num(0) {
@@ -303,29 +303,25 @@ impl<T: Config> Pallet<T> {
             I64F64::from_num(0)
         };
 
-        log::trace!("subnet ratio: {subnet_ratio:?}");
-
         // Convert subnet_stake_threshold from % to I64F64
         let subnet_stake_threshold_i64f64 =
             I64F64::from_num(subnet_stake_threshold.deconstruct()) / I64F64::from_num(100);
 
-        log::trace!("subnet_stake_threshold_i64f64: {subnet_stake_threshold_i64f64:?}");
         // Check if subnet_ratio meets the subnet_stake_threshold,
         // or netuid is not the general subnet
         if subnet_ratio < subnet_stake_threshold_i64f64 && netuid != 0 {
             // Return early if the threshold is not met,
             // this prevents emission gapping, of subnets that don't meet emission threshold
             Self::deactivate_subnet(netuid);
+            log::trace!("subnet {netuid} is not eligible for yuma consensus");
             return 0;
         }
 
         let total_emission_per_block: u64 = Self::get_total_emission_per_block();
 
-        log::trace!("total_emission_per_block: {total_emission_per_block}");
         let token_emission: u64 =
             (subnet_ratio * I64F64::from_num(total_emission_per_block)).to_num::<u64>();
 
-        log::trace!("token_emission: {token_emission}");
         SubnetEmission::<T>::insert(netuid, token_emission);
 
         token_emission
@@ -335,7 +331,6 @@ impl<T: Config> Pallet<T> {
     // TODO: could be optimized
     pub fn adjust_total_stake(subnet_stake_threshold: Percent) -> I64F64 {
         let total_global_stake = I64F64::from_num(Self::total_stake());
-        log::trace!("total_global_stake: {total_global_stake}");
         if total_global_stake == 0 {
             return I64F64::from_num(0);
         }
@@ -349,9 +344,7 @@ impl<T: Config> Pallet<T> {
             if subnet_stake == 0 {
                 continue;
             }
-            log::trace!("subnet_stake: {subnet_stake}");
             let subnet_ratio = subnet_stake / total_global_stake;
-            log::trace!("subnet_ratio: {subnet_ratio}");
             // Check if subnet_ratio meets the subnet_stake_threshold,
             // or the netuid is the general subnet
             if subnet_ratio >= subnet_stake_threshold_i64f64 || netuid == 0 {
