@@ -28,7 +28,7 @@ impl<T: Config> Pallet<T> {
         let total_stake = Self::total_stake() as u128;
         let subnet_stake_threshold = SubnetStakeThreshold::<T>::get();
 
-        log::debug!("ticking subnets, total stake: {total_stake}, stake threshold: {subnet_stake_threshold}");
+        log::debug!("ticking subnets, total stake: {total_stake}, stake threshold: {subnet_stake_threshold:?}");
 
         for (netuid, tempo) in Tempo::<T>::iter() {
             let registration_this_interval = RegistrationsThisInterval::<T>::get(netuid);
