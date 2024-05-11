@@ -294,7 +294,7 @@ impl<T: Config> Pallet<T> {
         log::trace!(
             "calculating subnet emission {netuid} with stake {subnet_stake}, \
 total stake {total_stake}, \
-threshold {subnet_stake_threshold}"
+threshold {subnet_stake_threshold:?}"
         );
 
         let subnet_ratio = if total_stake > I64F64::from_num(0) {
