@@ -140,7 +140,7 @@ pub fn weighted_median_col_sparse(
 pub fn weighted_median(
     stake: &Vec<I32F32>,
     score: &Vec<I32F32>,
-    partition_idx: &Vec<usize>,
+    partition_idx: &[usize],
     minority: I32F32,
     partition_lo: I32F32,
     partition_hi: I32F32,
@@ -173,7 +173,7 @@ pub fn weighted_median(
     }
     if (partition_lo + lo_stake <= minority) && (minority < partition_hi - hi_stake) {
         return pivot;
-    } else if (minority < partition_lo + lo_stake) && (lower.len() > 0) {
+    } else if (minority < partition_lo + lo_stake) && !lower.is_empty() {
         return weighted_median(
             stake,
             score,
@@ -182,7 +182,7 @@ pub fn weighted_median(
             partition_lo,
             partition_lo + lo_stake,
         );
-    } else if (partition_hi - hi_stake <= minority) && (upper.len() > 0) {
+    } else if (partition_hi - hi_stake <= minority) && !upper.is_empty() {
         return weighted_median(
             stake,
             score,
@@ -196,7 +196,7 @@ pub fn weighted_median(
 }
 
 // Sum across each row (dim=0) of a sparse matrix.
-pub fn row_sum_sparse(sparse_matrix: &Vec<Vec<(u16, I32F32)>>) -> Vec<I32F32> {
+pub fn row_sum_sparse(sparse_matrix: &[Vec<(u16, I32F32)>]) -> Vec<I32F32> {
     let rows = sparse_matrix.len();
     let mut result: Vec<I32F32> = vec![I32F32::from_num(0); rows];
     for (i, sparse_row) in sparse_matrix.iter().enumerate() {
@@ -209,8 +209,8 @@ pub fn row_sum_sparse(sparse_matrix: &Vec<Vec<(u16, I32F32)>>) -> Vec<I32F32> {
 
 // Return sparse matrix with values above column threshold set to threshold value.
 pub fn col_clip_sparse(
-    sparse_matrix: &Vec<Vec<(u16, I32F32)>>,
-    col_threshold: &Vec<I32F32>,
+    sparse_matrix: &[Vec<(u16, I32F32)>],
+    col_threshold: &[I32F32],
 ) -> Vec<Vec<(u16, I32F32)>> {
     let mut result: Vec<Vec<(u16, I32F32)>> = vec![vec![]; sparse_matrix.len()];
     for (i, sparse_row) in sparse_matrix.iter().enumerate() {
@@ -241,7 +241,7 @@ pub fn mask_rows_sparse(
     let mut result: Vec<Vec<(u16, I32F32)>> = vec![vec![]; n];
     for (i, sparse_row) in sparse_matrix.iter().enumerate() {
         if !mask[i] {
-            result[i] = sparse_row.clone();
+            result[i].clone_from(sparse_row);
         }
     }
 
@@ -289,8 +289,8 @@ pub fn inplace_normalize_64(x: &mut [I64F64]) {
         return;
     }
 
-    for i in 0..x.len() {
-        x[i] = x[i] / x_sum;
+    for x in x {
+        *x /= x_sum;
     }
 }
 
@@ -323,7 +323,7 @@ pub fn inplace_col_normalize_sparse(sparse_matrix: &mut [Vec<(u16, I32F32)>], co
 
     for sparse_row in sparse_matrix {
         for (j, value) in sparse_row {
-            if col_sum[*j as usize] == I32F32::from_num(0.0 as f32) {
+            if col_sum[*j as usize] == I32F32::from_num(0.) {
                 continue;
             }
 
@@ -346,12 +346,12 @@ pub fn row_hadamard_sparse(
 }
 
 pub fn inplace_normalize_using_sum(x: &mut [I32F32], x_sum: I32F32) {
-    if x_sum == I32F32::from_num(0.0 as f32) {
+    if x_sum == I32F32::from_num(0.) {
         return;
     }
 
-    for i in 0..x.len() {
-        x[i] = x[i] / x_sum;
+    for x in x {
+        *x /= x_sum;
     }
 }
 
@@ -451,7 +451,7 @@ pub fn inplace_col_max_upscale_sparse(sparse_matrix: &mut [Vec<(u16, I32F32)>], 
     }
     for sparse_row in sparse_matrix.iter_mut() {
         for (j, value) in sparse_row.iter_mut() {
-            if col_max[*j as usize] == I32F32::from_num(0.0 as f32) {
+            if col_max[*j as usize] == I32F32::from_num(0.) {
                 continue;
             }
             *value /= col_max[*j as usize];

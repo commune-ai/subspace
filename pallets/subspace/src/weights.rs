@@ -115,7 +115,7 @@ impl<T: Config> Pallet<T> {
         }
         weights
             .into_iter()
-            .map(|x| ((x as u64 * u16::max_value() as u64) / sum) as u16)
+            .map(|x| ((x as u64 * u16::MAX as u64) / sum) as u16)
             .collect()
     }
 }

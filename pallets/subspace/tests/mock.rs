@@ -67,8 +67,8 @@ impl pallet_balances::Config for Test {
     type ReserveIdentifier = ();
     type RuntimeHoldReason = ();
     type FreezeIdentifier = ();
-    type MaxHolds = frame_support::traits::ConstU32<16>;
     type MaxFreezes = frame_support::traits::ConstU32<16>;
+    type RuntimeFreezeReason = ();
 }
 
 impl system::Config for Test {
@@ -95,6 +95,13 @@ impl system::Config for Test {
     type SS58Prefix = SS58Prefix;
     type OnSetCode = ();
     type MaxConsumers = frame_support::traits::ConstU32<16>;
+
+    type RuntimeTask = ();
+    type SingleBlockMigrations = ();
+    type MultiBlockMigrator = ();
+    type PreInherents = ();
+    type PostInherents = ();
+    type PostTransactions = ();
 }
 
 impl pallet_subspace::Config for Test {
@@ -274,7 +281,7 @@ pub fn get_stakes(netuid: u16) -> Vec<u64> {
 #[allow(dead_code)]
 pub fn get_total_subnet_balance(netuid: u16) -> u64 {
     let keys = SubspaceModule::get_keys(netuid);
-    keys.iter().map(|x| SubspaceModule::get_balance_u64(x)).sum()
+    keys.iter().map(SubspaceModule::get_balance_u64).sum()
 }
 
 #[allow(dead_code)]

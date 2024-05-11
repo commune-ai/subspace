@@ -7,19 +7,18 @@
 #[cfg(feature = "std")]
 include!(concat!(env!("OUT_DIR"), "/wasm_binary.rs"));
 
+use frame_support::{
+    genesis_builder_helper::{build_config, create_default_config},
+    pallet_prelude::Get,
+};
+use pallet_aura::MinimumPeriodTimesTwo;
 use pallet_grandpa::{
     fg_primitives, AuthorityId as GrandpaId, AuthorityList as GrandpaAuthorityList,
 };
-
-use frame_support::pallet_prelude::Get;
-
 use smallvec::smallvec;
 use sp_api::impl_runtime_apis;
 use sp_consensus_aura::sr25519::AuthorityId as AuraId;
-use sp_core::{
-    crypto::{ByteArray, KeyTypeId},
-    OpaqueMetadata, H160, U256,
-};
+use sp_core::{crypto::KeyTypeId, OpaqueMetadata, H160, U256};
 use sp_runtime::{
     create_runtime_str, generic, impl_opaque_keys,
     traits::{
@@ -27,15 +26,14 @@ use sp_runtime::{
         One, PostDispatchInfoOf, Verify,
     },
     transaction_validity::{TransactionSource, TransactionValidity, TransactionValidityError},
-    ApplyExtrinsicResult, ConsensusEngineId, MultiSignature,
+    ApplyExtrinsicResult, MultiSignature,
 };
-
-use sp_std::{marker::PhantomData, prelude::*};
+use sp_std::prelude::*;
+use sp_version::RuntimeVersion;
 use subspace_runtime_api::{ModuleInfo, ModuleParams, ModuleStats};
 
 #[cfg(feature = "std")]
 use sp_version::NativeVersion;
-use sp_version::RuntimeVersion;
 
 // A few exports that help ease life for downstream crates.
 pub use frame_support::{
@@ -111,6 +109,7 @@ pub mod opaque {
 }
 
 pub type Migrations = (pallet_subspace::migrations::v9::MigrateToV9<Runtime>,);
+
 // To learn more about runtime versioning, see:
 // https://docs.substrate.io/main-docs/build/upgrade#runtime-versioning
 #[sp_version::runtime_version]
@@ -222,6 +221,13 @@ impl frame_system::Config for Runtime {
     type MaxConsumers = frame_support::traits::ConstU32<16>;
     /// The index type for storing how many extrinsics an account has signed.
     type Nonce = u32;
+
+    type RuntimeTask = ();
+    type SingleBlockMigrations = Migrations;
+    type MultiBlockMigrator = ();
+    type PreInherents = ();
+    type PostInherents = ();
+    type PostTransactions = ();
 }
 
 impl pallet_insecure_randomness_collective_flip::Config for Runtime {}
@@ -231,6 +237,8 @@ impl pallet_aura::Config for Runtime {
     type DisabledValidators = ();
     type MaxAuthorities = ConstU32<128>;
     type AllowMultipleBlocksPerSlot = ConstBool<false>;
+
+    type SlotDuration = MinimumPeriodTimesTwo<Runtime>;
 }
 
 impl pallet_grandpa::Config for Runtime {
@@ -242,6 +250,8 @@ impl pallet_grandpa::Config for Runtime {
     type MaxAuthorities = ConstU32<128>;
     type MaxSetIdSessionEntries = ConstU64<0>;
     type EquivocationReportSystem = ();
+
+    type MaxNominators = ConstU32<200>;
 }
 
 impl pallet_timestamp::Config for Runtime {
@@ -269,9 +279,10 @@ impl pallet_balances::Config for Runtime {
     type FreezeIdentifier = ();
     type MaxFreezes = ();
     type RuntimeHoldReason = ();
-    type MaxHolds = ();
 
     type WeightInfo = pallet_balances::weights::SubstrateWeight<Runtime>;
+
+    type RuntimeFreezeReason = ();
 }
 
 pub struct LinearWeightToFee<C>(sp_std::marker::PhantomData<C>);
@@ -347,28 +358,12 @@ impl pallet_subspace::Config for Runtime {
     type WeightInfo = pallet_subspace::autogen_weights::SubstrateWeight<Runtime>;
 }
 
-// EVM Support
-
 pub const WEIGHT_MILLISECS_PER_BLOCK: u64 = 2000;
 pub const MAXIMUM_BLOCK_WEIGHT: Weight = Weight::from_parts(
     WEIGHT_MILLISECS_PER_BLOCK * WEIGHT_REF_TIME_PER_MILLIS,
     u64::MAX,
 );
 pub const MAXIMUM_BLOCK_LENGTH: u32 = 5 * 1024 * 1024;
-
-pub struct FindAuthorTruncated<F>(PhantomData<F>);
-impl<F: FindAuthor<u32>> FindAuthor<H160> for FindAuthorTruncated<F> {
-    fn find_author<'a, I>(digests: I) -> Option<H160>
-    where
-        I: 'a + IntoIterator<Item = (ConsensusEngineId, &'a [u8])>,
-    {
-        if let Some(author_index) = F::find_author(digests) {
-            let authority_id = Aura::authorities()[author_index as usize].clone();
-            return Some(H160::from_slice(&authority_id.to_raw_vec()[4..24]));
-        }
-        None
-    }
-}
 
 const BLOCK_GAS_LIMIT: u64 = 75_000_000;
 const MAX_POV_SIZE: u64 = 5 * 1024 * 1024;
@@ -460,7 +455,6 @@ pub type Executive = frame_executive::Executive<
     frame_system::ChainContext<Runtime>,
     Runtime,
     AllPalletsWithSystem,
-    Migrations,
 >;
 
 impl fp_self_contained::SelfContainedCall for RuntimeCall {
@@ -526,7 +520,7 @@ impl_runtime_apis! {
             Executive::execute_block(block);
         }
 
-        fn initialize_block(header: &<Block as BlockT>::Header) {
+        fn initialize_block(header: &<Block as BlockT>::Header) -> sp_runtime::ExtrinsicInclusionMode {
             Executive::initialize_block(header)
         }
     }
@@ -588,7 +582,7 @@ impl_runtime_apis! {
         }
 
         fn authorities() -> Vec<AuraId> {
-            Aura::authorities().into_inner()
+            pallet_aura::Authorities::<Runtime>::get().into_inner()
         }
     }
 
@@ -775,7 +769,15 @@ impl_runtime_apis! {
         }
     }
 
+    impl sp_genesis_builder::GenesisBuilder<Block> for Runtime {
+        fn create_default_config() -> Vec<u8> {
+            create_default_config::<RuntimeGenesisConfig>()
+        }
 
+        fn build_config(config: Vec<u8>) -> sp_genesis_builder::Result {
+            build_config::<RuntimeGenesisConfig>(config)
+        }
+    }
 }
 
 #[cfg(test)]

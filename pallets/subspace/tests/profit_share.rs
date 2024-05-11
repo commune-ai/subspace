@@ -34,7 +34,7 @@ fn test_add_profit_share() {
         );
         assert_ok!(result);
 
-        let profit_shares = ProfitShares::<Test>::get(&miner_key);
+        let profit_shares = ProfitShares::<Test>::get(miner_key);
         assert_eq!(profit_shares.len(), shares.len(), "profit shares not added");
         info!("founder profit shares: {profit_shares:?}");
         let result =
@@ -70,7 +70,7 @@ fn test_add_profit_share() {
         info!("miner stake after: {miner_stake:?}");
         info!("voter stake after: {voter_stake:?}");
 
-        let profit_share_emissions = ProfitShares::<Test>::get(&miner_key);
+        let profit_share_emissions = ProfitShares::<Test>::get(miner_key);
         info!("profit share emissions: {profit_share_emissions:?}");
 
         // check the profit sharers

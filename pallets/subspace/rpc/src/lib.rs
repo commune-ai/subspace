@@ -1,7 +1,7 @@
 use jsonrpsee::{
-    core::{Error as JsonRpseeError, RpcResult},
+    core::{ClientError as JsonRpseeError, RpcResult},
     proc_macros::rpc,
-    types::error::{CallError, ErrorObject},
+    types::error::ErrorObject,
 };
 use sp_api::ProvideRuntimeApi;
 use sp_blockchain::HeaderBackend;
@@ -16,7 +16,7 @@ pub use subspace_runtime_api::SubspaceRuntimeApi;
 type Signature = MultiSignature;
 type AccountId = <<Signature as Verify>::Signer as IdentifyAccount>::AccountId;
 
-#[derive(serde::Deserialize, serde::Serialize)]
+#[derive(Clone, serde::Deserialize, serde::Serialize)]
 pub struct Custom {
     code: u32,
 }
@@ -70,10 +70,9 @@ const RUNTIME_ERROR: i32 = 1;
 
 /// Converts a runtime trap into an RPC error.
 fn runtime_error_into_rpc_err(err: impl std::fmt::Debug) -> JsonRpseeError {
-    CallError::Custom(ErrorObject::owned(
+    JsonRpseeError::Call(ErrorObject::owned(
         RUNTIME_ERROR,
         "Runtime error",
         Some(format!("{:?}", err)),
     ))
-    .into()
 }

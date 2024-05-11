@@ -275,11 +275,11 @@ mod ops {
         }
 
         if let Some(name) = &node.name {
-            cmd.args(["--name", &name]);
+            cmd.args(["--name", name]);
         }
 
         if let Some(node_key) = &node.key {
-            cmd.args(["--node-key", &node_key]);
+            cmd.args(["--node-key", node_key]);
         }
 
         cmd

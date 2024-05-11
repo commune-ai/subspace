@@ -35,7 +35,6 @@ scale-info.workspace = true
 frame-benchmarking = { workspace = true, optional = true }
 frame-support.workspace = true
 frame-system.workspace = true
-sp-io.workspace = true
 serde.workspace = true
 serde-tuple-vec-map.workspace = true
 serde_bytes.workspace = true
@@ -49,6 +48,7 @@ ndarray.workspace = true
 
 [dev-dependencies]
 pallet-balances = { workspace = true, features = ["std"] }
+sp-io.workspace = true
 sp-version.workspace = true
 # Substrate
 sp-tracing.workspace = true
