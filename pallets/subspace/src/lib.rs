@@ -656,6 +656,9 @@ pub mod pallet {
         target_registrations_intervalSet(u16), // --- Event created when we set target registrations
         RegistrationBurnChanged(u64),
 
+        // faucet
+        Faucet(T::AccountId, BalanceOf<T>), // (id, balance_to_add)
+
         //voting
         ProposalCreated(u64),                        // id of the proposal
         ApplicationCreated(u64),                     // id of the application
@@ -777,6 +780,13 @@ pub mod pallet {
         InvalidMinBurn,
         InvalidMaxBurn,
         InvalidTargetRegistrationsPerInterval,
+
+        // Faucet
+        FaucetDisabled, // --- Thrown when the faucet is disabled.
+        InvalidDifficulty,
+        InvalidWorkBlock,
+        InvalidSeal,
+        InvalidBalance,
 
         // Modules
         /// The module name is too long.
@@ -1291,6 +1301,20 @@ pub mod pallet {
         #[pallet::weight((Weight::zero(), DispatchClass::Normal, Pays::No))]
         pub fn unvote_proposal(origin: OriginFor<T>, proposal_id: u64) -> DispatchResult {
             Self::do_unregister_vote(origin, proposal_id)
+        }
+
+        #[pallet::weight((Weight::zero(), DispatchClass::Normal, Pays::No))]
+        pub fn faucet(
+            origin: OriginFor<T>,
+            block_number: u64,
+            nonce: u64,
+            work: Vec<u8>,
+        ) -> DispatchResult {
+            if cfg!(testnet) {
+                Self::do_faucet(origin, block_number, nonce, work)
+            } else {
+                Err(Error::<T>::FaucetDisabled.into())
+            }
         }
     }
 
