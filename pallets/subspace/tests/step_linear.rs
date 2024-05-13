@@ -4,8 +4,8 @@ use frame_support::assert_ok;
 use log::info;
 use mock::*;
 use pallet_subspace::{
-    DaoTreasuryDistribution, GlobalDaoTreasury, MaxAllowedWeights, MinAllowedWeights, MinBurn,
-    SubnetStakeThreshold, Tempo, Trust,
+    global::BurnConfiguration, BurnConfig, DaoTreasuryDistribution, GlobalDaoTreasury,
+    MaxAllowedWeights, MinAllowedWeights, SubnetStakeThreshold, Tempo, Trust,
 };
 use sp_core::U256;
 use sp_runtime::Percent;
@@ -46,7 +46,7 @@ fn test_stale_weights() {
     new_test_ext().execute_with(|| {
         let netuid: u16 = 0;
         // make sure that the results won´t get affected by burn
-        SubspaceModule::set_min_burn(0);
+        zero_min_burn();
 
         register_n_modules(0, 10, 1000);
         let _subnet_params = SubspaceModule::subnet_params(netuid);
@@ -61,7 +61,7 @@ fn test_no_weights() {
         let netuid: u16 = 0;
 
         // make sure that the results won´t get affected by burn
-        SubspaceModule::set_min_burn(0);
+        zero_min_burn();
 
         register_n_modules(0, 10, 1000);
         Tempo::<Test>::insert(netuid, 1);
@@ -88,7 +88,7 @@ fn test_dividends_same_stake() {
         let stake_per_module: u64 = 10_000;
 
         // make sure that the results won´t get affected by burn
-        SubspaceModule::set_min_burn(0);
+        zero_min_burn();
 
         // SETUP NETWORK
         register_n_modules(netuid, n, stake_per_module);
@@ -175,7 +175,7 @@ fn test_dividends_diff_stake() {
         let tempo: u16 = 100;
 
         // make sure that the results won´t get affected by burn
-        SubspaceModule::set_min_burn(0);
+        zero_min_burn();
 
         // SETUP NETWORK
         for i in 0..n {
@@ -257,7 +257,7 @@ fn test_pruning() {
         let tempo: u16 = 100;
 
         // make sure that the results won´t get affected by burn
-        SubspaceModule::set_min_burn(0);
+        zero_min_burn();
         SubspaceModule::set_max_registrations_per_block(1000);
 
         // SETUP NETWORK
@@ -325,7 +325,7 @@ fn test_lowest_priority_mechanism() {
         let tempo: u16 = 100;
 
         // make sure that the results won´t get affected by burn
-        SubspaceModule::set_min_burn(0);
+        zero_min_burn();
         SubspaceModule::set_max_registrations_per_block(1000);
         // SETUP NETWORK
         register_n_modules(netuid, n, stake_per_module);
@@ -514,7 +514,7 @@ fn test_incentives() {
         let stake_per_module: u64 = 10_000;
 
         // make sure that the results won´t get affected by burn
-        SubspaceModule::set_min_burn(0);
+        zero_min_burn();
 
         // SETUP NETWORK
         register_n_modules(netuid, n, stake_per_module);
@@ -576,7 +576,7 @@ fn test_trust() {
         let _blocks_per_epoch_list: u64 = 1;
         let stake_per_module: u64 = 10_000;
         // make sure that the results won´t get affected by burn
-        SubspaceModule::set_min_burn(0);
+        zero_min_burn();
 
         // SETUP NETWORK
         register_n_modules(netuid, n, stake_per_module);
@@ -688,7 +688,7 @@ fn test_dynamic_burn() {
         let initial_stake: u64 = 1000;
 
         // make sure that the results won´t get affected by burn
-        SubspaceModule::set_min_burn(0);
+        zero_min_burn();
 
         // Create the subnet
         let subnet_key = U256::from(2050);
@@ -699,17 +699,21 @@ fn test_dynamic_burn() {
         // - adjustment alpha = 0
         // - min_burn = 2 $COMAI
         // - max_burn = 250 $COMAI
-        let mut params = SubspaceModule::global_params();
-        params.min_burn = to_nano(2);
-        params.max_burn = to_nano(250);
-        params.adjustment_alpha = 0;
-        SubspaceModule::set_global_params(params);
+        let mut burn_config = BurnConfiguration::<Test>::default();
+        burn_config.min_burn = to_nano(2);
+        burn_config.max_burn = to_nano(250);
+        burn_config.adjustment_alpha = 0;
+        burn_config.adjustment_interval = 200;
+        burn_config.expected_registrations = 100;
+        assert_ok!(burn_config.apply());
+
+        let BurnConfiguration { min_burn, .. } = BurnConfig::<Test>::get();
 
         // update the burn to the minimum
         step_block(200);
 
         assert!(
-            SubspaceModule::get_burn(netuid) == SubspaceModule::get_min_burn(),
+            SubspaceModule::get_burn(netuid) == min_burn,
             "current burn: {:?}",
             SubspaceModule::get_burn(netuid)
         );
@@ -762,7 +766,7 @@ fn test_dao_treasury_distribution_for_subnet_owners() {
         let yuma_2 = (2, U256::from(2), STAKE * 6);
         let yuma_3 = (3, U256::from(3), STAKE);
 
-        MinBurn::<Test>::set(0);
+        zero_min_burn();
 
         assert_ok!(register_module(general.0, general.1, general.2));
         assert_ok!(register_module(yuma_1.0, yuma_1.1, yuma_1.2));

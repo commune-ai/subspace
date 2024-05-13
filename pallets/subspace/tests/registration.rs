@@ -26,7 +26,7 @@ fn test_min_stake() {
         let max_registrations_per_block = 10;
         let reg_this_block: u16 = 100;
         // make sure that the results won´t get affected by burn
-        SubspaceModule::set_min_burn(0);
+        zero_min_burn();
         let mut network: Vec<u8> = "test".as_bytes().to_vec();
         let address: Vec<u8> = "0.0.0.0:30333".as_bytes().to_vec();
         network.extend(netuid.to_string().as_bytes().to_vec());
@@ -64,7 +64,7 @@ fn test_max_registration() {
         let rounds = 3;
         let max_registrations_per_block = 100;
         // make sure that the results won´t get affected by burn
-        SubspaceModule::set_min_burn(0);
+        zero_min_burn();
 
         assert_eq!(RegistrationsPerBlock::<Test>::get(), 0);
 
@@ -90,7 +90,7 @@ fn test_delegate_register() {
         let module_keys: Vec<U256> = (0..n).map(U256::from).collect();
         let stake_amount: u64 = 10_000_000_000;
         // make sure that the results won´t get affected by burn
-        SubspaceModule::set_min_burn(0);
+        zero_min_burn();
 
         SubspaceModule::add_balance_to_account(&key, stake_amount * n as u64);
         for module_key in module_keys {
@@ -112,7 +112,7 @@ fn test_registration_ok() {
         let netuid: u16 = 0;
         let key: U256 = U256::from(1);
         // make sure that the results won´t get affected by burn
-        SubspaceModule::set_min_burn(0);
+        zero_min_burn();
 
         // make sure there is some balance
         add_balance(key, 2);
@@ -141,7 +141,7 @@ fn test_many_registrations() {
         let stake = 10;
         let n = 100;
         // make sure that the results won´t get affected by burn
-        SubspaceModule::set_min_burn(0);
+        zero_min_burn();
 
         SubspaceModule::set_max_registrations_per_block(n);
         for i in 0..n {
@@ -164,7 +164,7 @@ fn test_registration_with_stake() {
         let stake_vector: Vec<u64> = [100000, 1000000, 10000000].to_vec();
 
         // make sure that the results won´t get affected by burn
-        SubspaceModule::set_min_burn(0);
+        zero_min_burn();
 
         for (i, stake) in stake_vector.iter().enumerate() {
             let uid: u16 = i as u16;
@@ -191,7 +191,7 @@ fn register_same_key_twice() {
         let stake = 10;
         let key = U256::from(1);
         // make sure that the results won´t get affected by burn
-        SubspaceModule::set_min_burn(0);
+        zero_min_burn();
 
         assert_ok!(register_module(netuid, key, stake));
         assert_err!(
@@ -293,7 +293,7 @@ fn test_validation_cases(f: impl Fn(&[u8], &[u8]) -> DispatchResult) {
 fn validates_module_on_registration() {
     new_test_ext().execute_with(|| {
         // make sure that the results won´t get affected by burn
-        SubspaceModule::set_min_burn(0);
+        zero_min_burn();
         test_validation_cases(|name, addr| register_custom(0, 0.into(), name, addr));
 
         assert_err!(
@@ -310,7 +310,7 @@ fn validates_module_on_update() {
         let key_0: U256 = 0.into();
         let origin_0 = get_origin(0.into());
         // make sure that the results won´t get affected by burn
-        SubspaceModule::set_min_burn(0);
+        zero_min_burn();
 
         assert_ok!(register_custom(subnet, key_0, b"test", b"0.0.0.0:1"));
 
@@ -416,7 +416,7 @@ fn test_register_invalid_name() {
         let stake = to_nano(1);
 
         // make registrations free
-        SubspaceModule::set_min_burn(0);
+        zero_min_burn();
 
         // set min name lenght
         SubspaceModule::set_global_min_name_length(2);
@@ -515,7 +515,7 @@ fn test_register_invalid_subnet_name() {
         let module_name = b"test".to_vec();
 
         // Make registrations free
-        SubspaceModule::set_min_burn(0);
+        zero_min_burn();
 
         // Set min name length
         SubspaceModule::set_global_min_name_length(2);
@@ -678,7 +678,7 @@ fn test_invalid_curator() {
 #[test]
 fn new_subnet_reutilized_removed_netuid_if_total_is_bigger_than_removed() {
     new_test_ext().execute_with(|| {
-        SubspaceModule::set_min_burn(0);
+        zero_min_burn();
 
         TotalSubnets::<Test>::set(10);
         SubnetGaps::<Test>::set(BTreeSet::from([5]));
@@ -693,7 +693,7 @@ fn new_subnet_reutilized_removed_netuid_if_total_is_bigger_than_removed() {
 #[test]
 fn new_subnet_does_not_reute_removed_netuid_if_total_is_smaller_than_removed() {
     new_test_ext().execute_with(|| {
-        SubspaceModule::set_min_burn(0);
+        zero_min_burn();
 
         TotalSubnets::<Test>::set(3);
         SubnetGaps::<Test>::set(BTreeSet::from([7]));
@@ -714,7 +714,7 @@ fn new_subnets_on_removed_uids_register_modules_to_the_correct_netuids() {
     }
 
     new_test_ext().execute_with(|| {
-        SubspaceModule::set_min_burn(0);
+        zero_min_burn();
         SubspaceModule::set_global_max_allowed_subnets(3);
 
         assert_ok!(register_module(0, 0.into(), to_nano(10)));

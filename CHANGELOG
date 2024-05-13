@@ -11,9 +11,18 @@
 
 Fixing migration
 
+Spec version: `114`
+
 - Deleted, or moved useless code and values of:
   - Burn rate
   - Min Stake
+- The following storage values were deleted and are now accessible through `BurnConfig`:
+  - `MinBurn`
+  - `MaxBurn`
+  - `AdjustmentAlpha`
+  - `TargetRegistrationsInterval`
+  - `TargetRegistrationsPerInterval`
+- The storage value `RemovedSubnets` is now called `SubnetGaps`
 
 ## Version 1.7.4
 

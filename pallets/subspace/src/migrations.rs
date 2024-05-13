@@ -142,3 +142,79 @@ pub mod v10 {
         }
     }
 }
+
+pub mod v8 {
+    use self::{
+        global::BurnConfiguration,
+        old_storage::{
+            AdjustmentAlpha, MaxBurn, MinBurn, TargetRegistrationsInterval,
+            TargetRegistrationsPerInterval,
+        },
+    };
+
+    use super::*;
+
+    pub mod old_storage {
+        use super::*;
+        use frame_support::{pallet_prelude::ValueQuery, storage_alias};
+
+        #[storage_alias]
+        pub type MinBurn<T: Config> = StorageValue<Pallet<T>, u64, ValueQuery>;
+
+        #[storage_alias]
+        pub type MaxBurn<T: Config> = StorageValue<Pallet<T>, u64, ValueQuery>;
+
+        #[storage_alias]
+        pub type AdjustmentAlpha<T: Config> = StorageValue<Pallet<T>, u64, ValueQuery>;
+
+        #[storage_alias]
+        pub type TargetRegistrationsInterval<T: Config> = StorageValue<Pallet<T>, u16, ValueQuery>;
+
+        #[storage_alias]
+        pub type TargetRegistrationsPerInterval<T: Config> =
+            StorageValue<Pallet<T>, u16, ValueQuery>;
+    }
+
+    pub struct MigrateToV8<T>(sp_std::marker::PhantomData<T>);
+
+    impl<T: Config> OnRuntimeUpgrade for MigrateToV8<T> {
+        fn on_runtime_upgrade() -> Weight {
+            let on_chain_version = StorageVersion::get::<Pallet<T>>();
+
+            if on_chain_version != 7 {
+                log::info!("Storage v8 already updated");
+                return Weight::zero();
+            }
+
+            let mut gaps = BTreeSet::new();
+            let netuids: BTreeSet<_> = N::<T>::iter_keys().collect();
+            for netuid in 0..netuids.last().copied().unwrap_or_default() {
+                if !netuids.contains(&netuid) {
+                    gaps.insert(netuid);
+                }
+            }
+
+            log::info!("Existing subnets:        {netuids:?}");
+            log::info!("Updated subnets gaps: {gaps:?}");
+            SubnetGaps::<T>::set(gaps);
+
+            let burn_config = BurnConfiguration::<T> {
+                min_burn: MinBurn::<T>::get(),
+                max_burn: MaxBurn::<T>::get(),
+                adjustment_alpha: AdjustmentAlpha::<T>::get(),
+                adjustment_interval: TargetRegistrationsInterval::<T>::get(),
+                expected_registrations: TargetRegistrationsPerInterval::<T>::get(),
+                _pd: PhantomData,
+            };
+
+            if let Err(err) = burn_config.apply() {
+                log::error!("error migrating burn configurations: {err:?}")
+            } else {
+                log::info!("Migrated burn-related params to BurnConfig in v8");
+            }
+
+            StorageVersion::new(8).put::<Pallet<T>>();
+            T::DbWeight::get().writes(1)
+        }
+    }
+}

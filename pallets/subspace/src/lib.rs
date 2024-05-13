@@ -34,7 +34,7 @@ pub use step::yuma;
 // =========================
 //	==== Pallet Imports =====
 // =========================
-mod global;
+pub mod global;
 mod math;
 pub mod module;
 mod profit_share;
@@ -62,6 +62,7 @@ pub mod pallet {
     use frame_support::{pallet_prelude::*, traits::Currency, Identity};
     use frame_system::pallet_prelude::*;
 
+    use global::BurnConfiguration;
     use module::ModuleChangeset;
     use sp_arithmetic::per_things::Percent;
     pub use sp_std::{vec, vec::Vec};
@@ -95,6 +96,10 @@ pub mod pallet {
     // ============================
     // ==== Global Variables ====
     // ============================
+
+    #[pallet::storage]
+    pub type BurnConfig<T: Config> = StorageValue<_, BurnConfiguration<T>, ValueQuery>;
+
     #[pallet::type_value]
     pub fn DefaultUnitEmission<T: Config>() -> u64 {
         23148148148
@@ -103,27 +108,9 @@ pub mod pallet {
     pub(super) type UnitEmission<T> = StorageValue<_, u64, ValueQuery, DefaultUnitEmission<T>>;
 
     #[pallet::type_value]
-    pub fn DefaultMinBurn<T: Config>() -> u64 {
-        4_000_000_000 // 4 $COMAI
-    }
-    #[pallet::storage] // --- MinBurn
-    pub type MinBurn<T> = StorageValue<_, u64, ValueQuery, DefaultMinBurn<T>>;
-
-    #[pallet::type_value]
-    pub fn DefaultMaxBurn<T: Config>() -> u64 {
-        250_000_000_000 // 250 $COMAI
-    }
-
-    #[pallet::type_value]
     pub fn DefaultAdjustmentAlpha<T: Config>() -> u64 {
         u64::MAX / 2
     }
-
-    #[pallet::storage] // --- adjusment alpha
-    pub type AdjustmentAlpha<T> = StorageValue<_, u64, ValueQuery, DefaultAdjustmentAlpha<T>>;
-
-    #[pallet::storage] // --- MaxBurn
-    pub type MaxBurn<T> = StorageValue<_, u64, ValueQuery, DefaultMaxBurn<T>>;
 
     #[pallet::type_value]
     pub fn DefaultSubnetStakeThreshold<T: Config>() -> Percent {
@@ -285,19 +272,15 @@ pub mod pallet {
         pub max_allowed_weights: u16,         // max number of weights per module
 
         // mins
-        pub min_burn: u64,                 // min burn required
-        pub max_burn: u64,                 // max burn allowed
         pub floor_delegation_fee: Percent, // min delegation fee
         pub min_weight_stake: u64,         // min weight stake required
 
-        // other
-        pub adjustment_alpha: u64, // adjustment alpha
-        pub unit_emission: u64,    // emission per block
+        pub unit_emission: u64, // emission per block
         pub curator: T::AccountId,
 
         pub subnet_stake_threshold: Percent,
 
-        // porposals
+        // proposals
         pub proposal_cost: u64,
         pub proposal_expiration: u32,
         pub proposal_participation_threshold: Percent,
@@ -306,6 +289,8 @@ pub mod pallet {
 
         // founder share
         pub floor_founder_share: u8,
+
+        pub burn_config: BurnConfiguration<T>,
     }
 
     pub struct DefaultSubnetParams<T: Config>(sp_std::marker::PhantomData<((), T)>);
@@ -1229,12 +1214,9 @@ pub mod pallet {
             params.max_allowed_modules = max_allowed_modules;
             params.max_registrations_per_block = max_registrations_per_block;
             params.max_allowed_weights = max_allowed_weights;
-            params.max_burn = max_burn;
-            params.min_burn = min_burn;
             params.floor_delegation_fee = floor_delegation_fee;
             params.floor_founder_share = floor_founder_share;
             params.min_weight_stake = min_weight_stake;
-            params.adjustment_alpha = adjustment_alpha;
             params.unit_emission = unit_emission;
             params.curator = curator;
             params.subnet_stake_threshold = subnet_stake_threshold;
@@ -1242,6 +1224,13 @@ pub mod pallet {
             params.proposal_expiration = proposal_expiration;
             params.proposal_participation_threshold = proposal_participation_threshold;
             params.general_subnet_application_cost = general_subnet_application_cost;
+
+            params.burn_config.min_burn = min_burn;
+            params.burn_config.max_burn = max_burn;
+            params.burn_config.adjustment_alpha = adjustment_alpha;
+            params.burn_config.adjustment_interval = target_registrations_interval;
+            params.burn_config.expected_registrations = target_registrations_per_interval;
+
             Self::do_add_global_proposal(origin, params)
         }
 

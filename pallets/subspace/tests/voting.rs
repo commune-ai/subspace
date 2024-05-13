@@ -5,8 +5,9 @@ use std::{array::from_fn, collections::BTreeSet};
 use frame_support::{assert_err, assert_ok};
 use mock::*;
 use pallet_subspace::{
+    global::BurnConfiguration,
     voting::{ProposalData, ProposalStatus, VoteMode},
-    Error, FloorFounderShare, GlobalDaoTreasury, GlobalParams, MinBurn, ProposalCost,
+    BurnConfig, Error, FloorFounderShare, GlobalDaoTreasury, GlobalParams, ProposalCost,
     ProposalExpiration, Proposals, SubnetParams, Tempo, VoteModeSubnet,
 };
 use sp_core::U256;
@@ -16,7 +17,7 @@ fn creates_global_params_proposal_correctly_and_expires() {
     new_test_ext().execute_with(|| {
         const COST: u64 = to_nano(10);
 
-        MinBurn::<Test>::set(0);
+        zero_min_burn();
         FloorFounderShare::<Test>::set(0);
 
         ProposalCost::<Test>::set(COST);
@@ -29,11 +30,20 @@ fn creates_global_params_proposal_correctly_and_expires() {
         assert_ok!(register_module(0, U256::from(1), 1_000_000_000));
         assert_ok!(register_module(0, U256::from(2), 1_000_000_100));
 
+        let mut burn_config = BurnConfiguration::<Test>::default();
+        burn_config.min_burn = 100_000_000;
+        assert_ok!(burn_config.apply());
+
         let original = SubspaceModule::global_params();
-        let params = GlobalParams {
-            min_burn: 100_000_000,
-            ..original.clone()
-        };
+
+        let BurnConfiguration {
+            min_burn,
+            max_burn,
+            adjustment_alpha,
+            adjustment_interval,
+            expected_registrations,
+            ..
+        } = BurnConfig::<Test>::get();
 
         let GlobalParams {
             max_name_length,
@@ -42,12 +52,9 @@ fn creates_global_params_proposal_correctly_and_expires() {
             max_allowed_modules,
             max_registrations_per_block,
             max_allowed_weights,
-            min_burn,
-            max_burn,
             floor_delegation_fee,
             floor_founder_share,
             min_weight_stake,
-            adjustment_alpha,
             unit_emission,
             curator,
             subnet_stake_threshold,
@@ -55,7 +62,8 @@ fn creates_global_params_proposal_correctly_and_expires() {
             proposal_expiration,
             proposal_participation_threshold,
             general_subnet_application_cost,
-        } = params.clone();
+            ..
+        } = original.clone();
 
         SubspaceModule::add_global_proposal(
             get_origin(key),
@@ -70,6 +78,8 @@ fn creates_global_params_proposal_correctly_and_expires() {
             floor_delegation_fee,
             floor_founder_share,
             min_weight_stake,
+            expected_registrations,
+            adjustment_interval,
             adjustment_alpha,
             unit_emission,
             curator,
@@ -89,7 +99,7 @@ fn creates_global_params_proposal_correctly_and_expires() {
         assert_eq!(proposal.expiration_block, 200);
         assert_eq!(
             proposal.data,
-            ProposalData::<Test>::GlobalParams(params.clone())
+            ProposalData::<Test>::GlobalParams(original.clone())
         );
         assert_eq!(proposal.status, ProposalStatus::Pending);
         assert_eq!(proposal.votes_for, Default::default());
@@ -112,7 +122,7 @@ fn creates_global_params_proposal_correctly_and_is_approved() {
     new_test_ext().execute_with(|| {
         const COST: u64 = to_nano(10);
 
-        MinBurn::<Test>::set(0);
+        zero_min_burn();
 
         let keys: [_; 3] = from_fn(U256::from);
         let stakes = [1_000_000_000, 1_000_000_000, 1_000_000_000];
@@ -125,10 +135,20 @@ fn creates_global_params_proposal_correctly_and_is_approved() {
         ProposalCost::<Test>::set(COST);
         ProposalExpiration::<Test>::set(200);
 
-        let params = GlobalParams {
-            min_burn: 100_000_000,
-            ..SubspaceModule::global_params()
-        };
+        let mut burn_config = BurnConfiguration::<Test>::default();
+        burn_config.min_burn = 100_000_000;
+        assert_ok!(burn_config.apply());
+
+        let BurnConfiguration {
+            min_burn,
+            max_burn,
+            adjustment_alpha,
+            adjustment_interval,
+            expected_registrations,
+            ..
+        } = BurnConfig::<Test>::get();
+
+        let params = SubspaceModule::global_params();
 
         let GlobalParams {
             max_name_length,
@@ -137,12 +157,9 @@ fn creates_global_params_proposal_correctly_and_is_approved() {
             max_allowed_modules,
             max_registrations_per_block,
             max_allowed_weights,
-            min_burn,
-            max_burn,
             floor_delegation_fee,
             floor_founder_share,
             min_weight_stake,
-            adjustment_alpha,
             unit_emission,
             curator,
             subnet_stake_threshold,
@@ -150,6 +167,7 @@ fn creates_global_params_proposal_correctly_and_is_approved() {
             proposal_expiration,
             proposal_participation_threshold,
             general_subnet_application_cost,
+            ..
         } = params.clone();
 
         SubspaceModule::add_global_proposal(
@@ -165,6 +183,8 @@ fn creates_global_params_proposal_correctly_and_is_approved() {
             floor_delegation_fee,
             floor_founder_share,
             min_weight_stake,
+            expected_registrations,
+            adjustment_interval,
             adjustment_alpha,
             unit_emission,
             curator,
@@ -204,7 +224,7 @@ fn creates_global_params_proposal_correctly_and_is_refused() {
     new_test_ext().execute_with(|| {
         const COST: u64 = to_nano(10);
 
-        MinBurn::<Test>::set(0);
+        zero_min_burn();
 
         let keys: [_; 3] = from_fn(U256::from);
         let stakes = [1_000_000_000, 1_000_000_000, 1_000_000_000];
@@ -217,6 +237,10 @@ fn creates_global_params_proposal_correctly_and_is_refused() {
         ProposalCost::<Test>::set(COST);
         ProposalExpiration::<Test>::set(200);
 
+        let mut burn_config = BurnConfiguration::<Test>::default();
+        burn_config.min_burn = 100_000_000;
+        assert_ok!(burn_config.apply());
+
         let original = SubspaceModule::global_params();
         let GlobalParams {
             floor_founder_share,
@@ -226,11 +250,8 @@ fn creates_global_params_proposal_correctly_and_is_refused() {
             max_allowed_modules,
             max_registrations_per_block,
             max_allowed_weights,
-            min_burn,
-            max_burn,
             floor_delegation_fee,
             min_weight_stake,
-            adjustment_alpha,
             unit_emission,
             curator,
             subnet_stake_threshold,
@@ -238,10 +259,17 @@ fn creates_global_params_proposal_correctly_and_is_refused() {
             proposal_expiration,
             proposal_participation_threshold,
             general_subnet_application_cost,
-        } = GlobalParams {
-            min_burn: 100_000_000,
-            ..original.clone()
-        };
+            ..
+        } = GlobalParams { ..original.clone() };
+
+        let BurnConfiguration {
+            min_burn,
+            max_burn,
+            adjustment_alpha,
+            adjustment_interval,
+            expected_registrations,
+            ..
+        } = BurnConfig::<Test>::get();
 
         SubspaceModule::add_global_proposal(
             get_origin(keys[0]),
@@ -256,6 +284,8 @@ fn creates_global_params_proposal_correctly_and_is_refused() {
             floor_delegation_fee,
             floor_founder_share,
             min_weight_stake,
+            expected_registrations,
+            adjustment_interval,
             adjustment_alpha,
             unit_emission,
             curator,
@@ -292,7 +322,7 @@ fn creates_subnet_params_proposal_correctly_and_is_approved() {
     new_test_ext().execute_with(|| {
         const COST: u64 = to_nano(10);
 
-        MinBurn::<Test>::set(0);
+        zero_min_burn();
 
         let keys: [_; 3] = from_fn(U256::from);
         let stakes = [1_000_000_000, 1_000_000_000, 1_000_000_000];
@@ -302,7 +332,6 @@ fn creates_subnet_params_proposal_correctly_and_is_approved() {
         }
         add_balance(keys[0], COST);
 
-        ProposalCost::<Test>::set(COST);
         ProposalExpiration::<Test>::set(200);
         VoteModeSubnet::<Test>::set(0, VoteMode::Vote);
 
@@ -386,7 +415,7 @@ fn unregister_vote_from_pending_proposal() {
     new_test_ext().execute_with(|| {
         const COST: u64 = to_nano(10);
 
-        MinBurn::<Test>::set(0);
+        zero_min_burn();
 
         let key = U256::from(0);
         assert_ok!(register_module(0, key, 1_000_000_000));
@@ -411,7 +440,7 @@ fn unregister_vote_from_pending_proposal() {
 fn fails_if_insufficient_dao_treasury_fund() {
     new_test_ext().execute_with(|| {
         const COST: u64 = to_nano(10);
-        MinBurn::<Test>::set(0);
+        zero_min_burn();
         ProposalCost::<Test>::set(COST);
         GlobalDaoTreasury::<Test>::set(10);
 
