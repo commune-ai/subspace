@@ -2,11 +2,13 @@ use crate::{module::ModuleChangeset, subnet::SubnetChangeset};
 
 use super::*;
 
-use frame_support::pallet_prelude::DispatchResult;
+use frame_support::{pallet_prelude::DispatchResult, LOG_TARGET};
 use frame_system::ensure_signed;
 
-use sp_core::Get;
+use sp_core::{keccak_256, sha2_256, Get, H256, U256};
+use sp_runtime::MultiAddress;
 use sp_std::vec::Vec;
+use system::pallet_prelude::BlockNumberFor;
 
 impl<T: Config> Pallet<T> {
     pub fn do_add_to_whitelist(
@@ -265,6 +267,124 @@ impl<T: Config> Pallet<T> {
             }
         }
         lowest_priority_uid
+    }
+
+    pub fn do_faucet(
+        origin: T::RuntimeOrigin,
+        block_number: u64,
+        nonce: u64,
+        work: Vec<u8>,
+    ) -> DispatchResult {
+        // --- 1. Check that the caller has signed the transaction.
+        let key = ensure_signed(origin)?;
+        log::info!(
+            "do faucet with key: {key:?} and block number: {block_number} and nonce: {nonce}"
+        );
+
+        // --- 2. Ensure the passed block number is valid, not in the future or too old.
+        // Work must have been done within 3 blocks (stops long range attacks).
+        let current_block_number: u64 = Self::get_current_block_number();
+        ensure!(
+            block_number <= current_block_number,
+            Error::<T>::InvalidWorkBlock
+        );
+        ensure!(
+            current_block_number - block_number < 3,
+            Error::<T>::InvalidWorkBlock
+        );
+
+        // --- 3. Ensure the supplied work passes the difficulty.
+        let difficulty: U256 = U256::from(1_000_000); // Base faucet difficulty.
+        let work_hash: H256 = H256::from_slice(&work);
+        ensure!(
+            Self::hash_meets_difficulty(&work_hash, difficulty),
+            Error::<T>::InvalidDifficulty
+        ); // Check that the work meets difficulty.
+
+        // --- 4. Check Work is the product of the nonce, the block number, and hotkey. Add this as
+        // used work.
+        let seal: H256 = Self::create_seal_hash(block_number, nonce, &key);
+        ensure!(seal == work_hash, Error::<T>::InvalidSeal);
+
+        // --- 5. Add Balance via faucet.
+        let balance_to_add = 100_000_000_000u64.try_into().ok().unwrap();
+        Self::add_balance_to_account(&key, balance_to_add);
+
+        // --- 6. Deposit successful event.
+        log::info!("faucet done successfully with key: {key:?} and amount: {balance_to_add:?})",);
+        Self::deposit_event(Event::Faucet(key, balance_to_add));
+
+        // --- 7. Ok and done.
+        Ok(())
+    }
+
+    #[allow(clippy::indexing_slicing)]
+    pub fn hash_block_and_key(block_hash_bytes: &[u8; 32], hotkey: &T::AccountId) -> H256 {
+        // Get the public key from the account id.
+        let key_pubkey: MultiAddress<T::AccountId, ()> = MultiAddress::Id(hotkey.clone());
+        let binding = key_pubkey.encode();
+        // Skip extra 0th byte.
+        let key_bytes: &[u8] = binding[1..].as_ref();
+        let mut full_bytes = [0u8; 64];
+        let (first_half, second_half) = full_bytes.split_at_mut(32);
+        first_half.copy_from_slice(block_hash_bytes);
+        // Safe because Substrate guarantees that all AccountId types are at least 32 bytes
+        second_half.copy_from_slice(&key_bytes[..32]);
+        let keccak_256_seal_hash_vec: [u8; 32] = keccak_256(&full_bytes[..]);
+
+        H256::from_slice(&keccak_256_seal_hash_vec)
+    }
+
+    pub fn create_seal_hash(block_number_u64: u64, nonce_u64: u64, hotkey: &T::AccountId) -> H256 {
+        let nonce = nonce_u64.to_le_bytes();
+        let block_hash_at_number: H256 = Self::get_block_hash_from_u64(block_number_u64);
+        let block_hash_bytes: &[u8; 32] = block_hash_at_number.as_fixed_bytes();
+        let binding = Self::hash_block_and_key(block_hash_bytes, hotkey);
+        let block_and_hotkey_hash_bytes: &[u8; 32] = binding.as_fixed_bytes();
+
+        let mut full_bytes = [0u8; 40];
+        let (first_chunk, second_chunk) = full_bytes.split_at_mut(8);
+        first_chunk.copy_from_slice(&nonce);
+        second_chunk.copy_from_slice(block_and_hotkey_hash_bytes);
+        let sha256_seal_hash_vec: [u8; 32] = sha2_256(&full_bytes[..]);
+        let keccak_256_seal_hash_vec: [u8; 32] = keccak_256(&sha256_seal_hash_vec);
+        let seal_hash: H256 = H256::from_slice(&keccak_256_seal_hash_vec);
+
+        log::trace!("hotkey:{hotkey:?} \nblock_number: {block_number_u64:?}, \nnonce_u64: {nonce_u64:?}, \nblock_hash: {block_hash_at_number:?}, \nfull_bytes: {full_bytes:?}, \nsha256_seal_hash_vec: {sha256_seal_hash_vec:?},  \nkeccak_256_seal_hash_vec: {keccak_256_seal_hash_vec:?}, \nseal_hash: {seal_hash:?}",);
+
+        seal_hash
+    }
+
+    pub fn get_block_hash_from_u64(block_number: u64) -> H256 {
+        let block_number: BlockNumberFor<T> = block_number.try_into().unwrap_or_else(|_| {
+            panic!("Block number {block_number} is too large to be converted to BlockNumberFor<T>")
+        });
+        let block_hash_at_number = system::Pallet::<T>::block_hash(block_number);
+        let vec_hash: Vec<u8> = block_hash_at_number.as_ref().to_vec();
+        let real_hash: H256 = H256::from_slice(&vec_hash);
+
+        log::trace!(
+            target: LOG_TARGET,
+            "block_number: vec_hash: {vec_hash:?}, real_hash: {real_hash:?}",
+        );
+
+        real_hash
+    }
+
+    // Determine whether the given hash satisfies the given difficulty.
+    // The test is done by multiplying the two together. If the product
+    // overflows the bounds of U256, then the product (and thus the hash)
+    // was too high.
+    pub fn hash_meets_difficulty(hash: &H256, difficulty: U256) -> bool {
+        let bytes: &[u8] = hash.as_bytes();
+        let num_hash: U256 = U256::from(bytes);
+        let (value, overflowed) = num_hash.overflowing_mul(difficulty);
+
+        log::trace!(
+            target: LOG_TARGET,
+            "Difficulty: hash: {hash:?}, hash_bytes: {bytes:?}, hash_as_num: {num_hash:?}, difficulty: {difficulty:?}, value: {value:?} overflowed: {overflowed:?}",
+        );
+        !overflowed
     }
 
     pub fn add_subnet_from_registration(
