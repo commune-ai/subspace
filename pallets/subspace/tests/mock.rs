@@ -5,7 +5,7 @@ use frame_support::{
     traits::{Everything, Hooks},
 };
 use frame_system as system;
-use pallet_subspace::{Address, Name};
+use pallet_subspace::{Address, BurnConfig, Name};
 use sp_core::{H256, U256};
 use sp_runtime::{
     traits::{BlakeTwo256, IdentityLookup},
@@ -380,6 +380,11 @@ pub fn round_first_five(num: u64) -> u64 {
     } else {
         (first_five / 10) * place_value * 10
     }
+}
+
+#[allow(dead_code)]
+pub fn zero_min_burn() {
+    BurnConfig::<Test>::mutate(|cfg| cfg.min_burn = 0);
 }
 
 #[macro_export]

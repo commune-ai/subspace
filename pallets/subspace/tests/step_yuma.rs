@@ -46,7 +46,7 @@ const ONE: u64 = to_nano(1);
 fn test_1_graph() {
     new_test_ext().execute_with(|| {
         SubspaceModule::set_unit_emission(23148148148);
-        SubspaceModule::set_min_burn(0);
+        zero_min_burn();
         FloorFounderShare::<Test>::put(0);
 
         // Register general subnet
@@ -117,7 +117,7 @@ fn test_10_graph() {
 
     new_test_ext().execute_with(|| {
         SubspaceModule::set_unit_emission(23148148148);
-        SubspaceModule::set_min_burn(0);
+        zero_min_burn();
         FloorFounderShare::<Test>::put(0);
         SubspaceModule::set_max_registrations_per_block(1000);
         // Register general subnet
@@ -284,7 +284,7 @@ fn test_emission_exploit() {
         let stake_amount: u64 = to_nano(1_000);
 
         // Make sure registration cost is not affected
-        SubspaceModule::set_min_burn(0);
+        zero_min_burn();
 
         assert_ok!(register_module(netuid, key, stake_amount));
 
@@ -383,7 +383,7 @@ fn test_tempo_compound() {
         let stake_amount: u64 = to_nano(1_000);
 
         // Make sure registration cost is not affected
-        SubspaceModule::set_min_burn(0);
+        zero_min_burn();
 
         assert_ok!(register_module(netuid, key, stake_amount));
 

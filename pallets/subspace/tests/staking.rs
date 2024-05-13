@@ -19,7 +19,7 @@ fn test_stake() {
         let mut total_stake: u64 = 0;
         let mut subnet_stake: u64 = 0;
         // make sure that the results won´t get affected by burn
-        SubspaceModule::set_min_burn(0);
+        zero_min_burn();
         SubspaceModule::set_max_registrations_per_block(1000);
 
         for netuid in netuids {
@@ -95,7 +95,7 @@ fn test_multiple_stake() {
         let num_staked_modules: u16 = 10;
         let total_stake: u64 = stake_amount * num_staked_modules as u64;
         // make sure that the results won´t get affected by burn
-        SubspaceModule::set_min_burn(0);
+        zero_min_burn();
 
         register_n_modules(netuid, n, 10);
         let controler_key = U256::from(n + 1);
@@ -166,7 +166,7 @@ fn test_transfer_stake() {
         let n: u16 = 10;
         let stake_amount: u64 = 10_000_000_000;
         let netuid: u16 = 0;
-        SubspaceModule::set_min_burn(0);
+        zero_min_burn();
 
         register_n_modules(netuid, n, stake_amount);
 
@@ -209,7 +209,7 @@ fn test_delegate_stake() {
         let mut total_stake: u64 = 0;
         let mut subnet_stake: u64 = 0;
         // make sure that the results won´t get affected by burn
-        SubspaceModule::set_min_burn(0);
+        zero_min_burn();
         SubspaceModule::set_max_registrations_per_block(1000);
 
         for i in netuids.iter() {
@@ -306,7 +306,7 @@ fn test_ownership_ratio() {
         let num_modules: u16 = 10;
         let stake_per_module: u64 = 1_000_000_000;
         // make sure that the results won´t get affected by burn
-        SubspaceModule::set_min_burn(0);
+        zero_min_burn();
 
         register_n_modules(netuid, num_modules, 10);
 
@@ -371,7 +371,7 @@ fn test_min_stake() {
         let num_modules: u16 = 10;
         let min_stake: u64 = 10_000_000_000;
         // make sure that the results won´t get affected by burn
-        SubspaceModule::set_min_burn(0);
+        zero_min_burn();
 
         register_n_modules(netuid, num_modules, min_stake);
         let keys = SubspaceModule::get_keys(netuid);
@@ -396,7 +396,7 @@ fn test_stake_zero() {
         let stake_amount: u64 = to_nano(1_000);
 
         // Make sure registration cost is not affected
-        SubspaceModule::set_min_burn(0);
+        zero_min_burn();
 
         assert_ok!(register_module(netuid, key, stake_amount));
 
@@ -419,7 +419,7 @@ fn test_unstake_zero() {
         let stake_amount: u64 = to_nano(1_000);
 
         // Make sure registration cost is not affected
-        SubspaceModule::set_min_burn(0);
+        zero_min_burn();
 
         assert_ok!(register_module(netuid, key, stake_amount));
 

@@ -2,6 +2,7 @@ mod mock;
 use frame_support::assert_ok;
 
 use mock::*;
+use pallet_subspace::global::BurnConfiguration;
 use sp_core::U256;
 
 // test subnet specific burn
@@ -9,17 +10,22 @@ use sp_core::U256;
 fn test_local_subnet_burn() {
     new_test_ext().execute_with(|| {
         let min_burn = to_nano(10);
-        // set the min_burn to 10 $COMAI
-        SubspaceModule::set_min_burn(min_burn);
-
         let max_burn = to_nano(1000);
+
+        let mut burn_config = BurnConfiguration::<Test>::default();
+
+        // set the min_burn to 10 $COMAI
+        burn_config.min_burn = min_burn;
+
         // Adjust max burn to allow for the burn to move
-        SubspaceModule::set_max_burn(max_burn);
+        burn_config.max_burn = max_burn;
 
         // Adjust max registrations per block to a high number.
         // We will be doing "registration raid"
-        SubspaceModule::set_target_registrations_interval(200);
-        SubspaceModule::set_target_registrations_per_interval(25);
+        burn_config.adjustment_interval = 200;
+        burn_config.expected_registrations = 25;
+
+        assert_ok!(burn_config.apply());
 
         SubspaceModule::set_max_registrations_per_block(5);
 
