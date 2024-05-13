@@ -15,7 +15,7 @@ fn test_add_profit_share() {
         let miner_key = U256::from(0);
         let voter_key = U256::from(1);
         // make sure that the results won´t get affected by burn
-        SubspaceModule::set_min_burn(0);
+        zero_min_burn();
         FloorFounderShare::<Test>::put(0);
 
         register_module(netuid, miner_key, 1_000_000_000).expect("register miner module failed");

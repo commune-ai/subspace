@@ -21,7 +21,7 @@ fn test_add_subnets() {
         let num_subnets: u16 = n;
 
         // make sure that the results won´t get affected by burn
-        SubspaceModule::set_min_burn(0);
+        zero_min_burn();
         SubspaceModule::set_max_registrations_per_block(1000);
 
         for i in 0..num_subnets {
@@ -87,7 +87,7 @@ fn test_emission_ratio() {
         let _n: u16 = 10;
 
         // make sure that the results won´t get affected by burn
-        SubspaceModule::set_min_burn(0);
+        zero_min_burn();
 
         for i in 0..netuids.len() {
             let _key = U256::from(netuids[i]);
@@ -131,7 +131,7 @@ fn test_set_max_allowed_uids_growing() {
         let rounds = 10;
 
         // make sure that the results won´t get affected by burn
-        SubspaceModule::set_min_burn(0);
+        zero_min_burn();
 
         assert_ok!(register_module(netuid, U256::from(0), stake));
         SubspaceModule::set_max_registrations_per_block(max_uids + extra_uids * rounds);
@@ -184,7 +184,7 @@ fn test_set_max_allowed_uids_shrinking() {
         let extra_uids: u16 = 20;
 
         // make sure that the results won´t get affected by burn
-        SubspaceModule::set_min_burn(0);
+        zero_min_burn();
 
         let mut n = SubspaceModule::get_subnet_n(netuid);
         info!("registering module {}", n);
@@ -274,7 +274,7 @@ fn test_set_max_allowed_modules() {
         let max_allowed_modules: u16 = 100;
 
         // make sure that the results won´t get affected by burn
-        SubspaceModule::set_min_burn(0);
+        zero_min_burn();
         SubspaceModule::set_max_registrations_per_block(1000);
         SubspaceModule::set_max_allowed_modules(max_allowed_modules);
         // set max_total modules
@@ -299,7 +299,7 @@ fn test_deregister_subnet_when_overflows_max_allowed_subnets() {
         params.max_allowed_subnets = 3;
         SubspaceModule::set_global_params(params.clone());
         // make sure that the results won´t get affected by burn
-        SubspaceModule::set_min_burn(0);
+        zero_min_burn();
 
         assert_eq!(params.max_allowed_subnets, 3);
 
@@ -338,7 +338,7 @@ fn test_emission_distribution_novote() {
 
         // making sure the unit emission are set correctly
         SubspaceModule::set_unit_emission(23148148148);
-        SubspaceModule::set_min_burn(0);
+        zero_min_burn();
         SubspaceModule::set_subnet_stake_threshold(Percent::from_percent(10));
         let blocks_in_day: u16 = 10_800;
         // this is aprox. the stake we expect at the end of the day with the above unit emission
@@ -440,7 +440,7 @@ fn test_yuma_self_vote() {
 
         // making sure the unit emission are set correctly
         SubspaceModule::set_unit_emission(23148148148);
-        SubspaceModule::set_min_burn(0);
+        zero_min_burn();
 
         assert_ok!(register_module(
             netuid_general,
@@ -541,7 +541,7 @@ fn test_emission_activation() {
 
         // Set the stake threshold and minimum burn
         SubspaceModule::set_subnet_stake_threshold(Percent::from_percent(5));
-        SubspaceModule::set_min_burn(0);
+        zero_min_burn();
 
         // Register the subnets
         for (i, (name, stake, _)) in subnet_stakes.iter().enumerate() {

@@ -4,7 +4,7 @@ use frame_support::{
     pallet_prelude::DispatchResult, storage::IterableStorageMap, IterableStorageDoubleMap,
 };
 
-use self::voting::VoteMode;
+use self::{global::BurnConfiguration, voting::VoteMode};
 use sp_arithmetic::per_things::Percent;
 use sp_runtime::DispatchError;
 use sp_std::vec::Vec;
@@ -373,7 +373,7 @@ threshold {subnet_stake_threshold:?}"
 
         // Insert the minimum burn to the netuid,
         // to prevent free registrations the first target registration interval.
-        let min_burn = Self::get_min_burn();
+        let BurnConfiguration { min_burn, .. } = BurnConfig::<T>::get();
         Burn::<T>::insert(netuid, min_burn);
 
         SubnetGaps::<T>::mutate(|subnets| subnets.remove(&netuid));
