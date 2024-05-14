@@ -307,7 +307,7 @@ impl<T: Config> Pallet<T> {
         ensure!(seal == work_hash, Error::<T>::InvalidSeal);
 
         // --- 5. Add Balance via faucet.
-        let balance_to_add = 100_000_000_000u64.try_into().ok().unwrap();
+        let balance_to_add = 10_000_000_000_000u64.try_into().ok().unwrap();
         Self::add_balance_to_account(&key, balance_to_add);
 
         // --- 6. Deposit successful event.
