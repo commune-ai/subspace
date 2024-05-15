@@ -60,7 +60,7 @@ fn localnet_run(mut r: flags::Run) {
 
     let chain_path = r
         .chain_spec
-        .unwrap_or_else(|| std::env::current_dir().unwrap().join("spec.json"));
+        .unwrap_or_else(|| std::env::current_dir().unwrap().join("specs/local.json"));
     if !chain_path.exists() {
         panic!("Missing spec.json file. Define it with --chain-spec path/to/spec.json");
     }
