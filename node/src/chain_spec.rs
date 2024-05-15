@@ -50,25 +50,23 @@ pub type Module = (sp_runtime::AccountId32, Vec<u8>, Vec<u8>, Vec<(u16, u16)>);
 /// (module_key, amount)
 pub type StakeTo = (sp_runtime::AccountId32, Vec<(sp_runtime::AccountId32, u64)>);
 
-// Configure storage from nakamoto data
+/// A struct containing the patch values for the default chain spec.
 #[derive(Deserialize, Debug)]
-struct SubspaceJSONState {
+struct ChainSpecPatch {
+    #[serde(default)]
     balances: std::collections::HashMap<String, u64>,
-    // subnet -> Subnet
+
+    #[serde(default)]
     subnets: Vec<JSONSubnet>,
 
-    // subnet -> module -> Module
+    #[serde(default)]
     modules: Vec<Vec<JSONModule>>,
 
-    // subnet -> key -> StakeTo
+    #[serde(default)]
     stake_to: Vec<Vec<JSONStakeTo>>,
 
-    // block at sync
+    #[serde(default)]
     block: u32,
-
-    // version
-    #[allow(unused)]
-    version: u32,
 }
 
 fn account_id_from_str(s: &str) -> sp_runtime::AccountId32 {
@@ -78,7 +76,7 @@ fn account_id_from_str(s: &str) -> sp_runtime::AccountId32 {
 pub fn generate_config(path: &str) -> Result<ChainSpec, String> {
     let file = File::open(path).map_err(|e| format!(r#"Error opening spec file "{path}": {e}"#))?;
 
-    let state: SubspaceJSONState =
+    let state: ChainSpecPatch =
         serde_json::from_reader(&file).map_err(|e| format!("Error parsing spec file: {e}"))?;
 
     let mut subnets: Vec<Subnet> = Vec::new();
