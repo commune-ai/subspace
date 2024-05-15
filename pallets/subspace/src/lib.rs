@@ -260,7 +260,9 @@ pub mod pallet {
         pub controller: T::AccountId,
     }
 
-    #[derive(Decode, Encode, PartialEq, Eq, Clone, TypeInfo, frame_support::DebugNoBound)]
+    #[derive(
+        Decode, Encode, PartialEq, Eq, Clone, TypeInfo, frame_support::DebugNoBound, MaxEncodedLen,
+    )]
     #[scale_info(skip_type_params(T))]
     pub struct GlobalParams<T: Config> {
         // max
@@ -298,7 +300,7 @@ pub mod pallet {
     impl<T: Config> DefaultSubnetParams<T> {
         pub fn get() -> SubnetParams<T> {
             SubnetParams {
-                name: vec![],
+                name: BoundedVec::default(),
                 tempo: DefaultTempo::<T>::get(),
                 immunity_period: DefaultImmunityPeriod::<T>::get(),
                 min_allowed_weights: DefaultMinAllowedWeights::<T>::get(),
@@ -325,7 +327,9 @@ pub mod pallet {
     // ==== Subnet PARAMS ====
     // =========================
 
-    #[derive(Decode, Encode, PartialEq, Eq, Clone, Debug, TypeInfo)]
+    #[derive(
+        Decode, Encode, PartialEq, Eq, Clone, frame_support::DebugNoBound, TypeInfo, MaxEncodedLen,
+    )]
     #[scale_info(skip_type_params(T))]
     pub struct SubnetParams<T: Config> {
         // --- parameters
@@ -340,7 +344,7 @@ pub mod pallet {
         pub min_allowed_weights: u16, // min number of weights allowed to be registered in this
         pub max_weight_age: u64,      // max age of a weight
         pub min_stake: u64,           // min stake required
-        pub name: Vec<u8>,
+        pub name: BoundedVec<u8, ConstU32<256>>,
         pub tempo: u16, // how many blocks to wait before rewarding models
         pub trust_ratio: u16,
         pub maximum_set_weight_calls_per_epoch: u16,
@@ -516,7 +520,7 @@ pub mod pallet {
     pub type SubnetEmission<T> = StorageMap<_, Identity, u16, u64, ValueQuery>;
 
     #[pallet::storage] // --- MAP ( netuid ) --> subnetwork_n (Number of UIDs in the network).
-    pub type N<T: Config> = StorageMap<_, Identity, u16, u16, ValueQuery>;
+    pub type N<T> = StorageMap<_, Identity, u16, u16, ValueQuery>;
 
     #[pallet::storage] // --- MAP ( netuid ) --> pending_emission
     pub type PendingEmission<T> = StorageMap<_, Identity, u16, u64, ValueQuery>;
@@ -647,7 +651,7 @@ pub mod pallet {
     pub type LegitWhitelist<T: Config> = StorageMap<_, Identity, T::AccountId, u8, ValueQuery>;
 
     #[pallet::event]
-    #[pallet::generate_deposit(pub(super) fn deposit_event)]
+    #[pallet::generate_deposit(pub fn deposit_event)]
     pub enum Event<T: Config> {
         NetworkAdded(u16, Vec<u8>), // --- Event created when a new network is added.
         NetworkRemoved(u16),        // --- Event created when a network is removed.
@@ -902,7 +906,7 @@ pub mod pallet {
                 // --- Set subnet parameters
 
                 let params: SubnetParams<T> = SubnetParams {
-                    name: subnet.0.clone(),
+                    name: subnet.0.clone().try_into().expect("subnet name is too long"),
                     tempo: subnet.1,
                     immunity_period: subnet.2,
                     min_allowed_weights: subnet.3,
@@ -1155,7 +1159,7 @@ pub mod pallet {
             min_allowed_weights: u16,
             max_weight_age: u64,
             min_stake: u64,
-            name: Vec<u8>,
+            name: BoundedVec<u8, ConstU32<256>>,
             tempo: u16,
             trust_ratio: u16,
             maximum_set_weight_calls_per_epoch: u16,
@@ -1238,8 +1242,6 @@ pub mod pallet {
             params.burn_config.min_burn = min_burn;
             params.burn_config.max_burn = max_burn;
             params.burn_config.adjustment_alpha = adjustment_alpha;
-            params.burn_config.adjustment_interval = target_registrations_interval;
-            params.burn_config.expected_registrations = target_registrations_per_interval;
 
             Self::do_add_global_proposal(origin, params)
         }
@@ -1247,24 +1249,25 @@ pub mod pallet {
         #[pallet::weight((Weight::zero(), DispatchClass::Normal, Pays::No))]
         pub fn add_subnet_proposal(
             origin: OriginFor<T>,
-            netuid: u16,           // subnet id
-            founder: T::AccountId, // parameters
-            name: Vec<u8>,         // parameters
-            founder_share: u16,    // out of 100
-            immunity_period: u16,  // immunity period
-            incentive_ratio: u16,  // out of 100
-            max_allowed_uids: u16, /* max number of weights allowed to be registered in this
-                                    * subnet */
+            netuid: u16,
+            founder: T::AccountId,
+            name: BoundedVec<u8, ConstU32<256>>,
+            founder_share: u16, // out of 100
+            immunity_period: u16,
+            incentive_ratio: u16, // out of 100
+            max_allowed_uids: u16, /* max number of weights allowed to be
+                                   * registered in this
+                                   * subnet */
             max_allowed_weights: u16, /* max number of weights allowed to be registered in this
                                        * subnet */
             min_allowed_weights: u16, /* min number of weights allowed to be registered in this
                                        * subnet */
-            min_stake: u64,      // min stake required
-            max_weight_age: u64, // max age of a weight
-            tempo: u16,          // how many blocks to wait before rewarding models
-            trust_ratio: u16,    // missing comment
+            min_stake: u64,
+            max_weight_age: u64,
+            tempo: u16, // how many blocks to wait before rewarding models
+            trust_ratio: u16,
             maximum_set_weight_calls_per_epoch: u16,
-            vote_mode: VoteMode, // missing comment
+            vote_mode: VoteMode,
             bonds_ma: u64,
             target_registrations_interval: u16,
             target_registrations_per_interval: u16,

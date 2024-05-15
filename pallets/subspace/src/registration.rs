@@ -111,7 +111,7 @@ impl<T: Config> Pallet<T> {
             // Create subnet if it does not exist.
             None => {
                 let params = SubnetParams {
-                    name: network_name,
+                    name: network_name.try_into().map_err(|_| Error::<T>::SubnetNameTooLong)?,
                     founder: key.clone(),
                     ..DefaultSubnetParams::<T>::get()
                 };

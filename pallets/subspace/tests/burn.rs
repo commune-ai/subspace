@@ -14,17 +14,15 @@ fn test_local_subnet_burn() {
         let min_burn = to_nano(10);
         let max_burn = to_nano(1000);
 
-        let mut burn_config = BurnConfiguration::<Test>::default();
+        let burn_config = BurnConfiguration {
+            min_burn,
+            max_burn,
+            adjustment_interval: 200,
+            expected_registrations: 25,
+            ..BurnConfiguration::<Test>::default()
+        };
 
-        // set the min_burn to 10 $COMAI
-        burn_config.min_burn = min_burn;
-
-        // Adjust max burn to allow for the burn to move
-        burn_config.max_burn = max_burn;
-
-        // Adjust max registrations per block to a high number.
-        // We will be doing "registration raid"
-        burn_config.adjustment_interval = 200;
+        assert_ok!(burn_config.apply());
 
         SubspaceModule::set_max_registrations_per_block(5);
 
