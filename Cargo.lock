@@ -4867,6 +4867,7 @@ dependencies = [
  "pallet-aura",
  "pallet-balances",
  "pallet-base-fee",
+ "pallet-governance",
  "pallet-grandpa",
  "pallet-insecure-randomness-collective-flip",
  "pallet-multisig",
@@ -5155,6 +5156,20 @@ dependencies = [
  "scale-info",
  "sp-core",
  "sp-runtime",
+]
+
+[[package]]
+name = "pallet-governance"
+version = "1.0.0"
+dependencies = [
+ "bty",
+ "frame-support",
+ "frame-system",
+ "log",
+ "pallet-subspace",
+ "parity-scale-codec",
+ "scale-info",
+ "sp-std 14.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=release-polkadot-v1.10.1)",
 ]
 
 [[package]]

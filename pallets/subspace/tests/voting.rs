@@ -30,8 +30,10 @@ fn creates_global_params_proposal_correctly_and_expires() {
         assert_ok!(register_module(0, U256::from(1), 1_000_000_000));
         assert_ok!(register_module(0, U256::from(2), 1_000_000_100));
 
-        let mut burn_config = BurnConfiguration::<Test>::default();
-        burn_config.min_burn = 100_000_000;
+        let burn_config = BurnConfiguration {
+            min_burn: 100_000_000,
+            ..BurnConfiguration::<Test>::default()
+        };
         assert_ok!(burn_config.apply());
 
         let original = SubspaceModule::global_params();
@@ -135,8 +137,10 @@ fn creates_global_params_proposal_correctly_and_is_approved() {
         ProposalCost::<Test>::set(COST);
         ProposalExpiration::<Test>::set(200);
 
-        let mut burn_config = BurnConfiguration::<Test>::default();
-        burn_config.min_burn = 100_000_000;
+        let burn_config = BurnConfiguration {
+            min_burn: 100_000_000,
+            ..BurnConfiguration::<Test>::default()
+        };
         assert_ok!(burn_config.apply());
 
         let BurnConfiguration {
@@ -237,8 +241,10 @@ fn creates_global_params_proposal_correctly_and_is_refused() {
         ProposalCost::<Test>::set(COST);
         ProposalExpiration::<Test>::set(200);
 
-        let mut burn_config = BurnConfiguration::<Test>::default();
-        burn_config.min_burn = 100_000_000;
+        let burn_config = BurnConfiguration {
+            min_burn: 100_000_000,
+            ..BurnConfiguration::<Test>::default()
+        };
         assert_ok!(burn_config.apply());
 
         let original = SubspaceModule::global_params();

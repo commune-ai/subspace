@@ -118,6 +118,7 @@ pub type Migrations = (
     pallet_subspace::migrations::v7::MigrateToV7<Runtime>,
     pallet_grandpa::migrations::MigrateV4ToV5<Runtime>,
     pallet_subspace::migrations::v8::MigrateToV8<Runtime>,
+    pallet_governance::migrations::InitialMigration<Runtime>,
 );
 
 // To learn more about runtime versioning, see:
@@ -368,6 +369,12 @@ impl pallet_subspace::Config for Runtime {
     type WeightInfo = pallet_subspace::autogen_weights::SubstrateWeight<Runtime>;
 }
 
+impl pallet_governance::Config for Runtime {
+    type RuntimeEvent = RuntimeEvent;
+    type Currency = Balances;
+    type DefaultProposalCost = ConstU64<10_000_000_000_000>;
+}
+
 pub const WEIGHT_MILLISECS_PER_BLOCK: u64 = 2000;
 pub const MAXIMUM_BLOCK_WEIGHT: Weight = Weight::from_parts(
     WEIGHT_MILLISECS_PER_BLOCK * WEIGHT_REF_TIME_PER_MILLIS,
@@ -423,6 +430,7 @@ construct_runtime!(
         Multisig: pallet_multisig,
         Utility: pallet_utility,
         SubspaceModule: pallet_subspace,
+        GovernanceModule: pallet_governance,
 
         // EVM Support
         BaseFee: pallet_base_fee,

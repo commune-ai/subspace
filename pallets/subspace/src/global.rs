@@ -1,12 +1,14 @@
 use super::*;
-use frame_support::pallet_prelude::DispatchResult;
+use frame_support::pallet_prelude::{DispatchResult, MaxEncodedLen};
 use sp_arithmetic::per_things::Percent;
 use sp_core::Get;
 use sp_runtime::DispatchError;
 
-#[derive(Clone, TypeInfo, Decode, Encode, PartialEq, Eq, frame_support::DebugNoBound)]
+#[derive(
+    Clone, TypeInfo, Decode, Encode, PartialEq, Eq, frame_support::DebugNoBound, MaxEncodedLen,
+)]
 #[scale_info(skip_type_params(T))]
-pub struct BurnConfiguration<T: Config> {
+pub struct BurnConfiguration<T> {
     /// min burn the adjustment algorithm can set
     pub min_burn: u64,
     /// max burn the adjustment algorithm can set
