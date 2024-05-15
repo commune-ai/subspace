@@ -699,12 +699,14 @@ fn test_dynamic_burn() {
         // - adjustment alpha = 0
         // - min_burn = 2 $COMAI
         // - max_burn = 250 $COMAI
-        let mut burn_config = BurnConfiguration::<Test>::default();
-        burn_config.min_burn = to_nano(2);
-        burn_config.max_burn = to_nano(250);
-        burn_config.adjustment_alpha = 0;
-        burn_config.adjustment_interval = 200;
-        burn_config.expected_registrations = 100;
+        let burn_config = BurnConfiguration {
+            min_burn: to_nano(2),
+            max_burn: to_nano(250),
+            adjustment_alpha: 0,
+            adjustment_interval: 200,
+            expected_registrations: 100,
+            ..BurnConfiguration::<Test>::default()
+        };
         assert_ok!(burn_config.apply());
 
         let BurnConfiguration { min_burn, .. } = BurnConfig::<Test>::get();

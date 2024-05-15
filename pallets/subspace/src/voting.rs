@@ -1,4 +1,5 @@
 use super::*;
+use codec::MaxEncodedLen;
 use frame_support::{pallet_prelude::DispatchResult, storage::with_storage_layer};
 use sp_runtime::{DispatchError, Percent, SaturatedConversion};
 
@@ -86,7 +87,7 @@ pub enum ApplicationStatus {
     Refused,
 }
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq, TypeInfo, Decode, Encode)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, TypeInfo, Decode, Encode, MaxEncodedLen)]
 pub enum VoteMode {
     Authority = 0,
     Vote = 1,
@@ -538,6 +539,19 @@ impl<T: Config> Pallet<T> {
             Some(specific_netuid) => TotalStake::<T>::get(specific_netuid),
             None => Self::total_stake(),
         };
+        (stake.saturated_into::<u128>() * threshold.deconstruct() as u128 / 100) as u64
+    }
+
+    /// Returns how much stake is needed to execute a proposal
+    pub fn get_minimal_stake_to_execute_with_percentage(
+        threshold: Percent,
+        netuid: Option<u16>,
+    ) -> u64 {
+        let stake = match netuid {
+            Some(specific_netuid) => TotalStake::<T>::get(specific_netuid),
+            None => Self::total_stake(),
+        };
+
         (stake.saturated_into::<u128>() * threshold.deconstruct() as u128 / 100) as u64
     }
 }

@@ -6,7 +6,7 @@ use frame_support::{
 
 use self::{global::BurnConfiguration, voting::VoteMode};
 use sp_arithmetic::per_things::Percent;
-use sp_runtime::DispatchError;
+use sp_runtime::{BoundedVec, DispatchError};
 use sp_std::vec::Vec;
 use substrate_fixed::types::I64F64;
 
@@ -29,8 +29,7 @@ impl<T: Config> SubnetChangeset<T> {
     pub fn apply(self, netuid: u16) -> Result<(), sp_runtime::DispatchError> {
         Self::validate_params(Some(netuid), &self.params)?;
 
-        // TODO: implement check that all params are inserted
-        SubnetNames::<T>::insert(netuid, &self.params.name);
+        SubnetNames::<T>::insert(netuid, self.params.name.into_inner());
         Founder::<T>::insert(netuid, &self.params.founder);
         FounderShare::<T>::insert(netuid, self.params.founder_share);
         Tempo::<T>::insert(netuid, self.params.tempo);
@@ -183,7 +182,7 @@ impl<T: Config> Pallet<T> {
             max_weight_age: MaxWeightAge::<T>::get(netuid),
             min_allowed_weights: MinAllowedWeights::<T>::get(netuid),
             min_stake: MinStake::<T>::get(netuid),
-            name: SubnetNames::<T>::get(netuid),
+            name: BoundedVec::truncate_from(SubnetNames::<T>::get(netuid)),
             trust_ratio: TrustRatio::<T>::get(netuid),
             incentive_ratio: IncentiveRatio::<T>::get(netuid),
             maximum_set_weight_calls_per_epoch: MaximumSetWeightCallsPerEpoch::<T>::get(netuid),
@@ -379,7 +378,7 @@ threshold {subnet_stake_threshold:?}"
         SubnetGaps::<T>::mutate(|subnets| subnets.remove(&netuid));
 
         // --- 6. Emit the new network event.
-        Self::deposit_event(Event::NetworkAdded(netuid, name));
+        Self::deposit_event(Event::NetworkAdded(netuid, name.into_inner()));
 
         Ok(netuid)
     }

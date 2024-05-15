@@ -19,13 +19,6 @@ impl<T: Config> Pallet<T> {
             Self::resolve_proposals(block_number);
         }
 
-        // -- Adjust registrations parameters --
-        let BurnConfiguration {
-            adjustment_interval: target_registrations_interval,
-            expected_registrations: target_registrations_per_interval,
-            ..
-        } = BurnConfig::<T>::get();
-
         let total_stake = Self::total_stake() as u128;
         let subnet_stake_threshold = SubnetStakeThreshold::<T>::get();
 
