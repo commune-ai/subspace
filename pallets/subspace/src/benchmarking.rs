@@ -4,6 +4,7 @@ use crate::{Pallet as SubspaceMod, *};
 use frame_benchmarking::{account, benchmarks};
 use frame_system::RawOrigin;
 pub use pallet::*;
+use sp_arithmetic::per_things::Percent;
 use sp_std::vec::Vec;
 
 fn register_mock<T: Config>(
@@ -32,6 +33,19 @@ fn register_mock<T: Config>(
     Ok(())
 }
 
+fn submit_dao_application<T: Config>() -> Result<(), &'static str> {
+    // First add the application
+    let caller: T::AccountId = account("Alice", 0, 1);
+    let application_key: T::AccountId = account("Bob", 0, 2);
+    SubspaceMod::<T>::add_balance_to_account(
+        &caller,
+        SubspaceMod::<T>::u64_to_balance(1_000_000_000_000_000).unwrap(),
+    );
+    let data = "test".as_bytes().to_vec();
+    SubspaceMod::<T>::add_dao_application(RawOrigin::Signed(caller).into(), application_key, data)?;
+    Ok(())
+}
+
 const REMOVE_WHEN_STAKING: u64 = 500;
 
 benchmarks! {
@@ -41,7 +55,6 @@ benchmarks! {
 
     // 0
     set_weights {
-        log::info!("Running set_weights benchmark");
         let netuid = 0;
         let module_key: T::AccountId = account("ModuleKey", 0, 2);
         let module_key2: T::AccountId = account("ModuleKey2", 0, 3);
@@ -58,7 +71,6 @@ benchmarks! {
 
     // 1
     add_stake {
-        log::info!("Running add_stake benchmark");
         let key: T::AccountId = account("Alice", 0, 1);
         let netuid = 0;
         let module_key: T::AccountId = account("ModuleKey", 0, 2);
@@ -72,7 +84,6 @@ benchmarks! {
 
     // 2
     remove_stake {
-        log::info!("Running remove_stake benchmark");
         let caller: T::AccountId = account("Alice", 0, 1);
         let netuid = 0;
         let module_key: T::AccountId = account("ModuleKey", 0, 2);
@@ -92,7 +103,6 @@ benchmarks! {
 
     // 3
     add_stake_multiple {
-        log::info!("Running add_stake_multiple benchmark");
         let caller: T::AccountId = account("Alice", 0, 1);
         let netuid = 0;
         let module_key1: T::AccountId = account("ModuleKey1", 0, 2);
@@ -112,7 +122,6 @@ benchmarks! {
 
     // 4
     remove_stake_multiple {
-        log::info!("Running remove_stake_multiple benchmark");
         let caller: T::AccountId = account("Alice", 0, 1);
         let netuid = 0;
         let module_key1: T::AccountId = account("ModuleKey1", 0, 2);
@@ -137,7 +146,6 @@ benchmarks! {
 
     // 5
     transfer_stake {
-        log::info!("Running transfer_stake benchmark");
         let caller: T::AccountId = account("Alice", 0, 1);
         let netuid = 0;
         let module_key: T::AccountId = account("ModuleKey", 0, 2);
@@ -155,7 +163,6 @@ benchmarks! {
 
     // 6
     transfer_multiple {
-        log::info!("Running transfer_multiple benchmark");
         let caller: T::AccountId = account("Alice", 0, 1);
         let dest1: T::AccountId = account("Dest1", 0, 2);
         let dest2: T::AccountId = account("Dest2", 0, 3);
@@ -176,7 +183,6 @@ benchmarks! {
 
     // 7
     register {
-        log::info!("Running register benchmark");
         let key: T::AccountId = account("Alice", 0, 1);
         let module_key: T::AccountId = account("ModuleKey", 0, 2);
         let stake = 100000000000000u64;
@@ -188,7 +194,6 @@ benchmarks! {
 
     // 8
     deregister {
-        log::info!("Running deregister benchmark");
         let caller: T::AccountId = account("Alice", 0, 1);
         let netuid = 0;
         let stake = 100000000000000u64;
@@ -199,13 +204,114 @@ benchmarks! {
     // Updating
     // ---------------------------------
 
+    // 9
+    update_module {
+        let caller: T::AccountId = account("Alice", 0, 1);
+        let netuid = 0;
+        let stake = 100000000000000u64;
+        register_mock::<T>(caller.clone(), caller.clone(), stake, "test".as_bytes().to_vec())?;
+        let name = "updated_name".as_bytes().to_vec();
+        let address = "updated_address".as_bytes().to_vec();
+        let delegation_fee = Some(Percent::from_percent(5));
+        let metadata = Some("updated_metadata".as_bytes().to_vec());
+    }: update_module(RawOrigin::Signed(caller), netuid, name, address, delegation_fee, metadata)
+
+
+    // 10
+    update_subnet {
+        // Register a new subnet
+        let caller: T::AccountId = account("Alice", 0, 1);
+        let netuid = 0;
+        let stake = 100000000000000u64;
+        register_mock::<T>(caller.clone(), caller.clone(), stake, "test".as_bytes().to_vec())?;
+
+        // Get the parameters of the subnet
+        let params = SubspaceMod::<T>::subnet_params(netuid);
+        let name = params.name;
+        let founder = params.founder;
+        let founder_share = params.founder_share;
+        let immunity_period = params.immunity_period;
+        let incentive_ratio = params.incentive_ratio;
+        let max_allowed_uids = params.max_allowed_uids;
+        let max_allowed_weights = params.max_allowed_weights;
+        let min_allowed_weights = params.min_allowed_weights;
+        let max_weight_age = params.max_weight_age;
+        let min_stake = params.min_stake;
+        let tempo = params.tempo;
+        let trust_ratio = params.trust_ratio;
+        let maximum_set_weight_calls_per_epoch = params.maximum_set_weight_calls_per_epoch;
+        let vote_mode = params.vote_mode;
+        let bonds_ma = params.bonds_ma;
+    }: update_subnet(
+        RawOrigin::Signed(caller),
+        netuid,
+        founder,
+        founder_share,
+        immunity_period,
+        incentive_ratio,
+        max_allowed_uids,
+        max_allowed_weights,
+        min_allowed_weights,
+        max_weight_age,
+        min_stake,
+        name.clone(),
+        tempo,
+        trust_ratio,
+        maximum_set_weight_calls_per_epoch,
+        vote_mode,
+        bonds_ma
+    )
+
     // ---------------------------------
     // Subnet 0 DAO
     // ---------------------------------
 
+    // 11
+    add_dao_application {
+        let caller: T::AccountId = account("Alice", 0, 1);
+        let application_key: T::AccountId = account("Bob", 0, 2);
+        SubspaceMod::<T>::add_balance_to_account(&caller, SubspaceMod::<T>::u64_to_balance(1_000_000_000_000_000).unwrap());
+        let data = "test".as_bytes().to_vec();
+    }: add_dao_application(RawOrigin::Signed(caller), application_key, data)
+
+    // 12
+    refuse_dao_application {
+        // First add the application
+        submit_dao_application::<T>()?;
+        let caller: T::AccountId = account("Alice", 0, 1);
+        Curator::<T>::set(caller.clone());
+    }: refuse_dao_application(RawOrigin::Signed(caller), 0)
+
+    // 13
+    add_to_whitelist {
+        // First add the application
+        submit_dao_application::<T>()?;
+        let caller: T::AccountId = account("Alice", 0, 1);
+        let application_key: T::AccountId = account("Bob", 0, 2);
+        Curator::<T>::set(caller.clone());
+    }: add_to_whitelist(RawOrigin::Signed(caller), application_key, 1)
+
+    // 14
+    remove_from_whitelist {
+        // First add the application
+        submit_dao_application::<T>()?;
+        let caller: T::AccountId = account("Alice", 0, 1);
+        let application_key: T::AccountId = account("Bob", 0, 2);
+        Curator::<T>::set(caller.clone());
+        // Now add it to whitelist
+        SubspaceMod::<T>::add_to_whitelist(RawOrigin::Signed(caller.clone()).into(), application_key.clone(), 1)?;
+    }: remove_from_whitelist(RawOrigin::Signed(caller), application_key)
+
     // ---------------------------------
     // Adding proposals
     // ---------------------------------
+
+    // 15
+    add_global_proposal {
+        let caller: T::AccountId = account("Alice", 0, 1);
+        // Add alice funds to submit the proposal
+        add_balance_to_account::<T>(&caller, 10_000)?;
+    }
 
     // ---------------------------------
     // Voting / Unvoting proposals

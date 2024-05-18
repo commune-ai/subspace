@@ -33,7 +33,7 @@ use sp_std::marker::PhantomData;
 // ---------------------------------
 
 #[cfg(feature = "runtime-benchmarks")]
-mod benchmarks;
+mod benchmarking;
 
 // ---------------------------------
 // Pallet Imports
@@ -1156,7 +1156,7 @@ pub mod pallet {
         // ---------------------------------
 
         #[pallet::call_index(9)]
-        #[pallet::weight((Weight::zero(), DispatchClass::Normal, Pays::No))]
+        #[pallet::weight((T::WeightInfo::deregister(), DispatchClass::Normal, Pays::No))]
         pub fn update_module(
             origin: OriginFor<T>,
             netuid: u16,
@@ -1238,13 +1238,13 @@ pub mod pallet {
             Self::do_add_dao_application(origin, application_key, data)
         }
 
-        #[pallet::call_index(13)]
+        #[pallet::call_index(12)]
         #[pallet::weight((Weight::zero(), DispatchClass::Normal, Pays::No))]
         pub fn refuse_dao_application(origin: OriginFor<T>, id: u64) -> DispatchResult {
             Self::do_refuse_dao_application(origin, id)
         }
 
-        #[pallet::call_index(14)]
+        #[pallet::call_index(13)]
         #[pallet::weight((Weight::zero(), DispatchClass::Normal, Pays::No))]
         pub fn add_to_whitelist(
             origin: OriginFor<T>,
@@ -1254,7 +1254,7 @@ pub mod pallet {
             Self::do_add_to_whitelist(origin, module_key, recommended_weight)
         }
 
-        #[pallet::call_index(15)]
+        #[pallet::call_index(14)]
         #[pallet::weight((Weight::zero(), DispatchClass::Normal, Pays::No))]
         pub fn remove_from_whitelist(
             origin: OriginFor<T>,
@@ -1267,7 +1267,7 @@ pub mod pallet {
         // Adding proposals
         // ---------------------------------
 
-        #[pallet::call_index(16)]
+        #[pallet::call_index(15)]
         #[pallet::weight((Weight::zero(), DispatchClass::Normal, Pays::No))]
         pub fn add_global_proposal(
             origin: OriginFor<T>,
@@ -1319,7 +1319,7 @@ pub mod pallet {
             Self::do_add_global_proposal(origin, params)
         }
 
-        #[pallet::call_index(17)]
+        #[pallet::call_index(16)]
         #[pallet::weight((Weight::zero(), DispatchClass::Normal, Pays::No))]
         pub fn add_subnet_proposal(
             origin: OriginFor<T>,
@@ -1369,13 +1369,13 @@ pub mod pallet {
             Self::do_add_subnet_proposal(origin, netuid, params)
         }
 
-        #[pallet::call_index(18)]
+        #[pallet::call_index(17)]
         #[pallet::weight((Weight::zero(), DispatchClass::Normal, Pays::No))]
         pub fn add_custom_proposal(origin: OriginFor<T>, data: Vec<u8>) -> DispatchResult {
             Self::do_add_custom_proposal(origin, data)
         }
 
-        #[pallet::call_index(19)]
+        #[pallet::call_index(18)]
         #[pallet::weight((Weight::zero(), DispatchClass::Normal, Pays::No))]
         pub fn add_custom_subnet_proposal(
             origin: OriginFor<T>,
@@ -1385,7 +1385,7 @@ pub mod pallet {
             Self::do_add_custom_subnet_proposal(origin, netuid, data)
         }
 
-        #[pallet::call_index(20)]
+        #[pallet::call_index(19)]
         #[pallet::weight((Weight::zero(), DispatchClass::Normal, Pays::No))]
         pub fn add_transfer_dao_treasury_proposal(
             origin: OriginFor<T>,
@@ -1400,7 +1400,7 @@ pub mod pallet {
         // Voting / Unvoting proposals
         // ---------------------------------
 
-        #[pallet::call_index(21)]
+        #[pallet::call_index(20)]
         #[pallet::weight((Weight::zero(), DispatchClass::Normal, Pays::No))]
         pub fn vote_proposal(
             origin: OriginFor<T>,
@@ -1410,7 +1410,7 @@ pub mod pallet {
             Self::do_vote_proposal(origin, proposal_id, agree)
         }
 
-        #[pallet::call_index(22)]
+        #[pallet::call_index(21)]
         #[pallet::weight((Weight::zero(), DispatchClass::Normal, Pays::No))]
         pub fn unvote_proposal(origin: OriginFor<T>, proposal_id: u64) -> DispatchResult {
             Self::do_unregister_vote(origin, proposal_id)
@@ -1420,7 +1420,7 @@ pub mod pallet {
         // Profit sharing
         // ---------------------------------
 
-        #[pallet::call_index(23)]
+        #[pallet::call_index(22)]
         #[pallet::weight((Weight::zero(), DispatchClass::Normal, Pays::No))]
         pub fn add_profit_shares(
             origin: OriginFor<T>,
@@ -1434,7 +1434,7 @@ pub mod pallet {
         // Testnet
         // ---------------------------------
 
-        #[pallet::call_index(24)]
+        #[pallet::call_index(23)]
         #[pallet::weight((Weight::from_parts(85_000_000, 0)
         .saturating_add(T::DbWeight::get().reads(16))
         .saturating_add(T::DbWeight::get().writes(28)), DispatchClass::Operational, Pays::No))]
