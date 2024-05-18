@@ -6,6 +6,7 @@ resolver = "2"
 panic = "unwind"
 
 [workspace.dependencies]
+# External dependencies
 bty = { version = "0.2.0", default-features = false }
 clap = "4.4.6"
 futures = "0.3.21"
@@ -13,6 +14,7 @@ jsonrpsee = "0.22.2"
 lazy_static = "1.4.0"
 log = { version = "0.4.21", default-features = false }
 ndarray = { version = "0.15.0", default-features = false }
+parity-util-mem = "0.11.0"
 rand = "0.8"
 scale-info = { version = "2.10.0", default-features = false, features = [
     "derive",
@@ -29,11 +31,18 @@ serde_with = { version = "3.1.1", default-features = false, features = [
 ] }
 serde-tuple-vec-map = { version = "1.0.1", default-features = false }
 smallvec = "1.6.1"
+substrate-fixed = { git = 'https://github.com/encointer/substrate-fixed.git', tag = "v0.5.9" }
 tokio = "1.17.0"
 
+# Parity Scale Codec
 codec = { version = "3.6.1", package = "parity-scale-codec", default-features = false, features = [
     "derive",
 ] }
+parity-scale-codec = { version = "3.6.5", features = [
+    "derive",
+], default-features = false }
+
+# Frontier dependencies
 fp-account = { git = "https://github.com/paritytech/frontier", default-features = false, features = [
     "serde",
 ] }
@@ -44,6 +53,9 @@ fp-rpc = { git = "https://github.com/paritytech/frontier", default-features = fa
 fp-self-contained = { git = "https://github.com/paritytech/frontier", default-features = false, features = [
     "serde",
 ] }
+pallet-base-fee = { git = "https://github.com/paritytech/frontier", default-features = false }
+
+# Substrate dependencies
 frame-benchmarking = { git = "https://github.com/paritytech/polkadot-sdk", branch = "release-polkadot-v1.10.1", default-features = false }
 frame-benchmarking-cli = { git = "https://github.com/paritytech/polkadot-sdk", branch = "release-polkadot-v1.10.1" }
 frame-executive = { git = "https://github.com/paritytech/polkadot-sdk", branch = "release-polkadot-v1.10.1", default-features = false }
@@ -54,7 +66,6 @@ frame-system-rpc-runtime-api = { git = "https://github.com/paritytech/polkadot-s
 frame-try-runtime = { git = "https://github.com/paritytech/polkadot-sdk", branch = "release-polkadot-v1.10.1", default-features = false }
 pallet-aura = { git = "https://github.com/paritytech/polkadot-sdk", branch = "release-polkadot-v1.10.1", default-features = false }
 pallet-balances = { git = "https://github.com/paritytech/polkadot-sdk", branch = "release-polkadot-v1.10.1", default-features = false }
-pallet-base-fee = { git = "https://github.com/paritytech/frontier", default-features = false }
 pallet-grandpa = { git = "https://github.com/paritytech/polkadot-sdk", branch = "release-polkadot-v1.10.1", default-features = false }
 pallet-insecure-randomness-collective-flip = { git = "https://github.com/paritytech/polkadot-sdk", branch = "release-polkadot-v1.10.1", default-features = false }
 pallet-multisig = { git = "https://github.com/paritytech/polkadot-sdk", branch = "release-polkadot-v1.10.1", default-features = false }
@@ -64,10 +75,6 @@ pallet-transaction-payment = { git = "https://github.com/paritytech/polkadot-sdk
 pallet-transaction-payment-rpc = { git = "https://github.com/paritytech/polkadot-sdk", branch = "release-polkadot-v1.10.1" }
 pallet-transaction-payment-rpc-runtime-api = { git = "https://github.com/paritytech/polkadot-sdk", branch = "release-polkadot-v1.10.1", default-features = false }
 pallet-utility = { git = "https://github.com/paritytech/polkadot-sdk", branch = "release-polkadot-v1.10.1", default-features = false }
-parity-scale-codec = { version = "3.6.5", features = [
-    "derive",
-], default-features = false }
-parity-util-mem = "0.11.0"
 sc-basic-authorship = { git = "https://github.com/paritytech/polkadot-sdk", branch = "release-polkadot-v1.10.1" }
 sc-cli = { git = "https://github.com/paritytech/polkadot-sdk", branch = "release-polkadot-v1.10.1" }
 sc-client-api = { git = "https://github.com/paritytech/polkadot-sdk", branch = "release-polkadot-v1.10.1" }
@@ -106,6 +113,5 @@ sp-tracing = { git = "https://github.com/paritytech/polkadot-sdk", branch = "rel
 sp-transaction-pool = { git = "https://github.com/paritytech/polkadot-sdk", branch = "release-polkadot-v1.10.1", default-features = false }
 sp-version = { git = "https://github.com/paritytech/polkadot-sdk", branch = "release-polkadot-v1.10.1", default-features = false }
 substrate-build-script-utils = { git = "https://github.com/paritytech/polkadot-sdk", branch = "release-polkadot-v1.10.1" }
-substrate-fixed = { git = 'https://github.com/encointer/substrate-fixed.git', tag = "v0.5.9" }
 substrate-frame-rpc-system = { git = "https://github.com/paritytech/polkadot-sdk", branch = "release-polkadot-v1.10.1" }
 substrate-wasm-builder = { git = "https://github.com/paritytech/polkadot-sdk", branch = "release-polkadot-v1.10.1" }

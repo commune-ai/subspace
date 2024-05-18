@@ -20,7 +20,7 @@ impl<T: Config> Pallet<T> {
         let key = ensure_signed(origin)?;
 
         // --- 2. Ensure that the key is the curator multisig.
-        ensure!(Self::get_curator() == key, Error::<T>::NotCurator);
+        ensure!(Curator::<T>::get() == key, Error::<T>::NotCurator);
 
         // --- 2.1 Make sure the key application was submitted
         let application_exists = CuratorApplications::<T>::iter()
@@ -60,7 +60,7 @@ impl<T: Config> Pallet<T> {
         let key = ensure_signed(origin)?;
 
         // --- 2. Ensure that the key is the curator multisig.
-        ensure!(Self::get_curator() == key, Error::<T>::NotCurator);
+        ensure!(Curator::<T>::get() == key, Error::<T>::NotCurator);
 
         // --- 3. Ensure that the module_key is in the whitelist.
         ensure!(
@@ -392,7 +392,7 @@ impl<T: Config> Pallet<T> {
         changeset: SubnetChangeset<T>,
     ) -> Result<u16, sp_runtime::DispatchError> {
         let num_subnets: u16 = Self::num_subnets();
-        let max_subnets: u16 = Self::get_global_max_allowed_subnets();
+        let max_subnets: u16 = MaxAllowedSubnets::<T>::get();
 
         // if we have not reached the max number of subnets, then we can start a new one
         let target_subnet = if num_subnets >= max_subnets {
@@ -423,8 +423,7 @@ impl<T: Config> Pallet<T> {
             } else {
                 None
             }
-        } else if Self::global_n_modules() >= Self::get_max_allowed_modules() {
-            // Get the least staked network (subnet) and its least staked module.
+        } else if Self::global_n_modules() >= MaxAllowedModules::<T>::get() {
             let (subnet_uid, _) = Self::least_staked_netuid();
             let module_uid = Self::get_lowest_uid(subnet_uid, true).unwrap_or(0);
 

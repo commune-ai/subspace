@@ -84,3 +84,4 @@ runtime-benchmarks = [
 # Enable features that allow the runtime to be tried and debugged. Name might be subject to change
 # in the near future.
 try-runtime = ["node-subspace-runtime/try-runtime"]
+testnet-faucet = []

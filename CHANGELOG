@@ -13,9 +13,12 @@ Fixing migration
 
 Spec version: `114`
 
+- Moving Dao Treasury to a normal chain account
+  - The `GlobalDaoTreasury` will get deleted in the next release,
+  currently used only for migration.
 - Deleted, or moved useless code and values of:
-  - Burn rate
-  - Min Stake
+  - Burn rate (global parameter)
+  - Min Stake (global parameter)
 - The following storage values were deleted and are now accessible through `BurnConfig`:
   - `MinBurn`
   - `MaxBurn`

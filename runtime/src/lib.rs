@@ -50,7 +50,7 @@ pub use frame_support::{
         IdentityFee, Weight, WeightToFeeCoefficient, WeightToFeeCoefficients,
         WeightToFeePolynomial,
     },
-    StorageValue,
+    PalletId, StorageValue,
 };
 pub use frame_system::Call as SystemCall;
 pub use pallet_balances::Call as BalancesCall;
@@ -337,6 +337,7 @@ parameter_types! {
     // Additional storage item size of 32 bytes.
     pub const DepositFactor: Balance = (0) as Balance * 2_000 * 10_000 + (32 as Balance) * 100 * 10_000;
     pub const MaxSignatories: u32 = 100;
+    pub const SubspacePalletId: PalletId = PalletId(*b"py/subsp");
 }
 
 impl pallet_multisig::Config for Runtime {
@@ -360,6 +361,7 @@ impl pallet_subspace::Config for Runtime {
     type RuntimeEvent = RuntimeEvent;
     type Currency = Balances;
     type WeightInfo = pallet_subspace::autogen_weights::SubstrateWeight<Runtime>;
+    type PalletId = SubspacePalletId;
 }
 
 impl pallet_governance::Config for Runtime {
