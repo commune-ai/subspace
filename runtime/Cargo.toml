@@ -4,8 +4,6 @@ version = "1.7.5"
 description = "A Substrate node for commune-ai"
 authors = [
 	"Sal Vivona <https://github.com/salvivona>",
-	"Oliver <https://github.com/cuteolaf>",
-	"Kazu <https://github.com/ndkazu>",
 ]
 homepage = "https://substrate.io/"
 edition = "2021"

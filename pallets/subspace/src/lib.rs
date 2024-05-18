@@ -19,7 +19,7 @@ use frame_support::{
 };
 
 use codec::{Decode, Encode};
-use frame_support::sp_runtime::transaction_validity::ValidTransaction;
+use frame_support::{pallet_prelude::Weight, sp_runtime::transaction_validity::ValidTransaction};
 use sp_runtime::{
     traits::{
         AccountIdConversion, DispatchInfoOf, Dispatchable, PostDispatchInfoOf, SignedExtension,
@@ -35,12 +35,6 @@ use sp_std::marker::PhantomData;
 #[cfg(feature = "runtime-benchmarks")]
 mod benchmarks;
 
-pub mod autogen_weights;
-pub use autogen_weights::WeightInfo;
-
-#[cfg(debug_assertions)]
-pub use step::yuma;
-
 // ---------------------------------
 // Pallet Imports
 // ---------------------------------
@@ -54,8 +48,11 @@ mod staking;
 mod step;
 pub mod subnet;
 pub mod voting;
-mod weights;
+pub mod wei; // Weight benchmarks
+mod weights; // Commune consensus weights
 
+#[cfg(debug_assertions)]
+pub use step::yuma;
 // TODO: better error handling in whole file
 
 #[frame_support::pallet]
@@ -68,6 +65,7 @@ pub mod pallet {
     )]
 
     use self::voting::{CuratorApplication, Proposal, VoteMode};
+    pub use crate::wei::WeightInfo;
 
     use super::*;
     use frame_support::{pallet_prelude::*, traits::Currency, Identity};
@@ -98,7 +96,7 @@ pub mod pallet {
         // --- Currency type that will be used to place deposits on modules
         type Currency: Currency<Self::AccountId> + Send + Sync;
 
-        /// Type representing the weight of this pallet
+        // The weight information of this pallet.
         type WeightInfo: WeightInfo;
     }
 
@@ -1041,7 +1039,7 @@ pub mod pallet {
         // ---------------------------------
 
         #[pallet::call_index(0)]
-        #[pallet::weight((Weight::zero(), DispatchClass::Normal, Pays::No))]
+        #[pallet::weight((T::WeightInfo::set_weights(), DispatchClass::Normal, Pays::No))]
         pub fn set_weights(
             origin: OriginFor<T>,
             netuid: u16,
@@ -1056,7 +1054,7 @@ pub mod pallet {
         // ---------------------------------
 
         #[pallet::call_index(1)]
-        #[pallet::weight((Weight::zero(), DispatchClass::Normal, Pays::No))]
+        #[pallet::weight((T::WeightInfo::add_stake(), DispatchClass::Normal, Pays::No))]
         pub fn add_stake(
             origin: OriginFor<T>,
             netuid: u16,
@@ -1067,7 +1065,7 @@ pub mod pallet {
         }
 
         #[pallet::call_index(2)]
-        #[pallet::weight((Weight::zero(), DispatchClass::Normal, Pays::No))]
+        #[pallet::weight((T::WeightInfo::remove_stake(), DispatchClass::Normal, Pays::No))]
         pub fn remove_stake(
             origin: OriginFor<T>,
             netuid: u16,
@@ -1082,7 +1080,7 @@ pub mod pallet {
         // ---------------------------------
 
         #[pallet::call_index(3)]
-        #[pallet::weight((Weight::zero(), DispatchClass::Normal, Pays::No))]
+        #[pallet::weight((T::WeightInfo::add_stake_multiple(), DispatchClass::Normal, Pays::No))]
         pub fn add_stake_multiple(
             origin: OriginFor<T>,
             netuid: u16,
@@ -1093,7 +1091,7 @@ pub mod pallet {
         }
 
         #[pallet::call_index(4)]
-        #[pallet::weight((Weight::zero(), DispatchClass::Normal, Pays::No))]
+        #[pallet::weight((T::WeightInfo::remove_stake_multiple(), DispatchClass::Normal, Pays::No))]
         pub fn remove_stake_multiple(
             origin: OriginFor<T>,
             netuid: u16,
@@ -1108,7 +1106,7 @@ pub mod pallet {
         // ---------------------------------
 
         #[pallet::call_index(5)]
-        #[pallet::weight((Weight::zero(), DispatchClass::Normal, Pays::No))]
+        #[pallet::weight((T::WeightInfo::transfer_stake(), DispatchClass::Normal, Pays::No))]
         pub fn transfer_stake(
             origin: OriginFor<T>,         // --- The account that is calling this function.
             netuid: u16,                  // --- The network id.
@@ -1120,7 +1118,7 @@ pub mod pallet {
         }
 
         #[pallet::call_index(6)]
-        #[pallet::weight((Weight::zero(), DispatchClass::Normal, Pays::No))]
+        #[pallet::weight((T::WeightInfo::transfer_multiple(), DispatchClass::Normal, Pays::No))]
         pub fn transfer_multiple(
             origin: OriginFor<T>, // --- The account that is calling this function.
             destinations: Vec<T::AccountId>, // --- The module key.
@@ -1134,7 +1132,7 @@ pub mod pallet {
         // ---------------------------------
 
         #[pallet::call_index(7)]
-        #[pallet::weight((Weight::zero(), DispatchClass::Normal, Pays::No))]
+        #[pallet::weight((T::WeightInfo::register(), DispatchClass::Normal, Pays::No))]
         pub fn register(
             origin: OriginFor<T>,
             network: Vec<u8>,
@@ -1148,7 +1146,7 @@ pub mod pallet {
         }
 
         #[pallet::call_index(8)]
-        #[pallet::weight((Weight::zero(), DispatchClass::Normal, Pays::No))]
+        #[pallet::weight((T::WeightInfo::deregister(), DispatchClass::Normal, Pays::No))]
         pub fn deregister(origin: OriginFor<T>, netuid: u16) -> DispatchResult {
             Self::do_deregister(origin, netuid)
         }

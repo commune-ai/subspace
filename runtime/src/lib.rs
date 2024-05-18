@@ -360,7 +360,7 @@ impl pallet_utility::Config for Runtime {
 impl pallet_subspace::Config for Runtime {
     type RuntimeEvent = RuntimeEvent;
     type Currency = Balances;
-    type WeightInfo = pallet_subspace::autogen_weights::SubstrateWeight<Runtime>;
+    type WeightInfo = pallet_subspace::wei::SubstrateWeight<Runtime>;
     type PalletId = SubspacePalletId;
 }
 
@@ -746,9 +746,9 @@ impl_runtime_apis! {
 
             use frame_system_benchmarking::Pallet as SystemBench;
             use baseline::Pallet as BaselineBench;
+            impl baseline::Config for Runtime {}
 
             impl frame_system_benchmarking::Config for Runtime {}
-            impl baseline::Config for Runtime {}
 
             use frame_support::traits::WhitelistedStorageKeys;
             let whitelist: Vec<TrackedStorageKey> = AllPalletsWithSystem::whitelisted_storage_keys();

@@ -61,7 +61,7 @@ impl<T: Config> Pallet<T> {
             let has_enough_stake_for_yuma = || {
                 let subnet_stake = Self::get_total_subnet_stake(netuid) as u128;
 
-                // simplify this to just checking if there are pending emission
+                // TODO: simplify this to just checking if there are pending emission
                 if total_stake == 0 {
                     false
                 } else {
