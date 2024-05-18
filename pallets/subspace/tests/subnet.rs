@@ -4,7 +4,8 @@ use frame_support::{assert_err, assert_ok};
 use log::info;
 use mock::*;
 use pallet_subspace::{
-    Dividends, Error, FounderShare, MaximumSetWeightCallsPerEpoch, SubnetNames, Tempo, N,
+    Dividends, Error, FounderShare, MaxAllowedSubnets, MaximumSetWeightCallsPerEpoch, SubnetNames,
+    SubnetStakeThreshold, Tempo, N,
 };
 use sp_core::U256;
 use sp_runtime::Percent;
@@ -15,7 +16,7 @@ fn test_add_subnets() {
     new_test_ext().execute_with(|| {
         let _tempo: u16 = 13;
         let stake_per_module: u64 = 1_000_000_000;
-        let max_allowed_subnets: u16 = SubspaceModule::get_global_max_allowed_subnets();
+        let max_allowed_subnets: u16 = MaxAllowedSubnets::<Test>::get();
         let mut expected_subnets = 0;
         let n = 20;
         let num_subnets: u16 = n;
@@ -93,7 +94,7 @@ fn test_emission_ratio() {
             let _key = U256::from(netuids[i]);
             let netuid = netuids[i];
             register_n_modules(netuid, 1, stake_per_module);
-            let threshold = SubspaceModule::get_subnet_stake_threshold();
+            let threshold = SubnetStakeThreshold::<Test>::get();
             let subnet_emission: u64 =
                 SubspaceModule::calculate_network_emission(netuid, threshold);
             emissions_per_subnet.push(subnet_emission);

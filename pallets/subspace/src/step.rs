@@ -85,15 +85,12 @@ failed to run yuma consensus algorithm: {err:?}, skipping this block. \
 {emission_to_drain} tokens will be emitted on the next epoch.\
 "
                     );
-
                     Err("yuma failed")
                 });
-
                 if res.is_err() {
                     return;
                 }
             }
-
             PendingEmission::<T>::insert(netuid, 0);
         }
     }
@@ -335,9 +332,10 @@ failed to run yuma consensus algorithm: {err:?}, skipping this block. \
             }
 
             // Update global treasure
-            GlobalDaoTreasury::<T>::mutate(|global_treasure| {
-                *global_treasure = global_treasure.saturating_add(founder_emission);
-            });
+            Self::add_balance_to_account(
+                &DaoTreasuryAddress::<T>::get(),
+                Self::u64_to_balance(founder_emission).unwrap_or_default(),
+            );
         }
 
         emission

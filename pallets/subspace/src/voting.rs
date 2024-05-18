@@ -1,7 +1,7 @@
 use super::*;
 use codec::MaxEncodedLen;
 use frame_support::{pallet_prelude::DispatchResult, storage::with_storage_layer};
-use sp_runtime::{DispatchError, Percent, SaturatedConversion};
+use sp_runtime::{Percent, SaturatedConversion};
 
 #[derive(Clone, Debug, TypeInfo, Decode, Encode)]
 #[scale_info(skip_type_params(T))]
@@ -240,7 +240,7 @@ impl<T: Config> Pallet<T> {
         let key = ensure_signed(origin)?;
 
         // --- 2. Ensure that the key is the curator multisig.
-        ensure!(Self::get_curator() == key, Error::<T>::NotCurator);
+        ensure!(Curator::<T>::get() == key, Error::<T>::NotCurator);
 
         let mut application =
             CuratorApplications::<T>::get(application_id).ok_or(Error::<T>::ApplicationNotFound)?;
@@ -307,7 +307,7 @@ impl<T: Config> Pallet<T> {
         ensure!(!data.is_empty(), Error::<T>::ProposalCustomDataTooSmall);
         ensure!(data.len() <= 256, Error::<T>::ProposalCustomDataTooLarge);
         ensure!(
-            GlobalDaoTreasury::<T>::get() >= value,
+            Self::has_enough_balance(&DaoTreasuryAddress::<T>::get(), value),
             Error::<T>::InsufficientDaoTreasuryFunds
         );
         sp_std::str::from_utf8(&data).map_err(|_| Error::<T>::InvalidProposalCustomData)?;
@@ -423,7 +423,7 @@ impl<T: Config> Pallet<T> {
         for proposal in Proposals::<T>::iter_values() {
             let proposal_id = proposal.id;
 
-            if !matches!(proposal.status, ProposalStatus::Pending) {
+            if proposal.status != ProposalStatus::Pending {
                 continue;
             }
 
@@ -505,15 +505,8 @@ impl<T: Config> Pallet<T> {
                 value,
                 dest,
             } => {
-                GlobalDaoTreasury::<T>::try_mutate::<(), DispatchError, _>(|treasury| {
-                    *treasury =
-                        treasury.checked_sub(*value).ok_or(Error::<T>::BalanceCouldNotBeRemoved)?;
-                    Ok(())
-                })?;
-
-                let amount =
-                    Self::u64_to_balance(*value).ok_or(Error::<T>::CouldNotConvertToBalance)?;
-                Self::add_balance_to_account(dest, amount);
+                // ! Make sure transfer balance is using safe transfer (keep alive)
+                Self::transfer_balance_to_account(&DaoTreasuryAddress::<T>::get(), dest, *value)?;
             }
             ProposalData::Expired => {
                 unreachable!("Expired data is illegal at this point")
@@ -533,7 +526,7 @@ impl<T: Config> Pallet<T> {
 
     /// Returns how much stake is needed to execute a proposal
     pub fn get_minimal_stake_to_execute(netuid: Option<u16>) -> u64 {
-        let threshold: Percent = Self::get_proposal_participation_threshold();
+        let threshold: Percent = ProposalParticipationThreshold::<T>::get();
 
         let stake = match netuid {
             Some(specific_netuid) => TotalStake::<T>::get(specific_netuid),

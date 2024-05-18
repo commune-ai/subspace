@@ -2,19 +2,13 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 
 pub mod migrations;
-
 use frame_support::{
-    dispatch::DispatchResult,
-    ensure,
-    sp_runtime::{DispatchError, Percent},
-    storage::with_storage_layer,
-    traits::ConstU32,
-    BoundedBTreeSet, BoundedVec, DebugNoBound,
+    dispatch::DispatchResult, ensure, sp_runtime::Percent, storage::with_storage_layer,
+    traits::ConstU32, BoundedBTreeSet, BoundedVec, DebugNoBound,
 };
+pub use pallet::*;
 use parity_scale_codec::{Decode, Encode, MaxEncodedLen};
 use scale_info::TypeInfo;
-
-pub use pallet::*;
 
 type SubnetId = u16;
 type ProposalId = u64;
@@ -278,7 +272,7 @@ fn tick_proposal<T: Config>(block_number: u64, proposal: Proposal<T>) -> Dispatc
 
 fn execute_proposal<T: Config>(proposal: Proposal<T>) -> DispatchResult {
     use pallet_subspace::{
-        subnet::SubnetChangeset, Error as SubspaceError, Event as SubspaceEvent, GlobalDaoTreasury,
+        subnet::SubnetChangeset, DaoTreasuryAddress, Event as SubspaceEvent,
         Pallet as SubspacePallet,
     };
 
@@ -297,16 +291,12 @@ fn execute_proposal<T: Config>(proposal: Proposal<T>) -> DispatchResult {
             SubspacePallet::<T>::deposit_event(SubspaceEvent::SubnetParamsUpdated(*subnet_id));
         }
         ProposalData::TransferDaoTreasury { account, amount } => {
-            GlobalDaoTreasury::<T>::try_mutate::<(), DispatchError, _>(|treasury| {
-                *treasury = treasury
-                    .checked_sub(*amount)
-                    .ok_or(SubspaceError::<T>::BalanceCouldNotBeRemoved)?;
-                Ok(())
-            })?;
-
-            let amount = SubspacePallet::<T>::u64_to_balance(*amount)
-                .ok_or(SubspaceError::<T>::CouldNotConvertToBalance)?;
-            SubspacePallet::<T>::add_balance_to_account(account, amount);
+            SubspacePallet::<T>::transfer_balance_to_account(
+                // ! Make sure transfer balance is using safe transfer (keep alive)
+                &DaoTreasuryAddress::<T>::get(),
+                account,
+                *amount,
+            )?;
         }
     }
 

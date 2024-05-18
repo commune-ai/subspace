@@ -91,7 +91,7 @@ impl ModuleChangeset {
         }
 
         if let Some(fee) = self.delegation_fee {
-            let floor = Pallet::<T>::get_floor_delegation_fee();
+            let floor = FloorDelegationFee::<T>::get();
             ensure!(fee >= floor, Error::<T>::InvalidMinDelegationFee);
 
             DelegationFee::<T>::insert(netuid, &key, fee);
