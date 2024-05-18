@@ -7,7 +7,7 @@ use mock::*;
 use pallet_subspace::{
     global::BurnConfiguration,
     voting::{ProposalData, ProposalStatus, VoteMode},
-    BurnConfig, Error, FloorFounderShare, GlobalDaoTreasury, GlobalParams, ProposalCost,
+    BurnConfig, DaoTreasuryAddress, Error, FloorFounderShare, GlobalParams, ProposalCost,
     ProposalExpiration, Proposals, SubnetParams, Tempo, VoteModeSubnet,
 };
 use sp_core::U256;
@@ -448,7 +448,7 @@ fn fails_if_insufficient_dao_treasury_fund() {
         const COST: u64 = to_nano(10);
         zero_min_burn();
         ProposalCost::<Test>::set(COST);
-        GlobalDaoTreasury::<Test>::set(10);
+        SubspaceModule::add_balance_to_account(&DaoTreasuryAddress::<Test>::get(), 10);
 
         let key = U256::from(0);
         assert_ok!(register_module(0, key, 1_000_000_000));

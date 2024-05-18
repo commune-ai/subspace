@@ -2,7 +2,8 @@
 
 use frame_support::{
     assert_ok, parameter_types,
-    traits::{Everything, Hooks},
+    traits::{Everything, Get, Hooks},
+    PalletId,
 };
 use frame_system as system;
 use pallet_subspace::{Address, BurnConfig, MaxRegistrationsPerInterval, Name};
@@ -104,10 +105,21 @@ impl system::Config for Test {
     type PostTransactions = ();
 }
 
+pub const PALLET_ID: PalletId = PalletId(*b"py/subsp");
+
+pub struct SubspacePalletId;
+
+impl Get<PalletId> for SubspacePalletId {
+    fn get() -> PalletId {
+        PALLET_ID
+    }
+}
+
 impl pallet_subspace::Config for Test {
     type RuntimeEvent = RuntimeEvent;
     type Currency = Balances;
     type WeightInfo = ();
+    type PalletId = SubspacePalletId;
 }
 
 #[allow(dead_code)]

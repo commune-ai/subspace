@@ -116,7 +116,7 @@ impl<T: Config> SubnetChangeset<T> {
         );
 
         ensure!(
-            params.max_allowed_weights <= Pallet::<T>::get_max_allowed_weights_global(),
+            params.max_allowed_weights <= MaxAllowedWeightsGlobal::<T>::get(),
             Error::<T>::InvalidMaxAllowedWeights
         );
 
@@ -210,7 +210,7 @@ impl<T: Config> Pallet<T> {
     pub fn least_staked_netuid() -> (u16, u64) {
         TotalStake::<T>::iter().min_by_key(|(_, stake)| *stake).unwrap_or_else(|| {
             let stake = u64::MAX;
-            let netuid = Self::get_global_max_allowed_subnets() - 1;
+            let netuid = MaxAllowedSubnets::<T>::get() - 1;
             (netuid, stake)
         })
     }
@@ -484,7 +484,6 @@ threshold {subnet_stake_threshold:?}"
     }
 
     // Returns true if the uid is set on the network.
-    //
     pub fn is_uid_exist_on_network(netuid: u16, uid: u16) -> bool {
         Keys::<T>::contains_key(netuid, uid)
     }
@@ -504,13 +503,11 @@ threshold {subnet_stake_threshold:?}"
     }
 
     // Returs the key under the network uid as a Result. Ok if the uid is taken.
-    //
     pub fn get_key_for_uid(netuid: u16, module_uid: u16) -> Option<T::AccountId> {
         Keys::<T>::try_get(netuid, module_uid).ok()
     }
 
     // Returns the uid of the key in the network as a Result. Ok if the key has a slot.
-    //
     pub fn get_uid_for_key(netuid: u16, key: &T::AccountId) -> u16 {
         Uids::<T>::get(netuid, key).unwrap_or(0)
     }
@@ -585,9 +582,6 @@ threshold {subnet_stake_threshold:?}"
         LastUpdate::<T>::get(netuid).get(uid as usize).copied().unwrap_or_default()
     }
 
-    pub fn get_global_max_allowed_subnets() -> u16 {
-        MaxAllowedSubnets::<T>::get()
-    }
     pub fn set_global_max_allowed_subnets(max_allowed_subnets: u16) {
         MaxAllowedSubnets::<T>::put(max_allowed_subnets)
     }
@@ -623,10 +617,6 @@ threshold {subnet_stake_threshold:?}"
 
     pub fn get_max_allowed_uids(netuid: u16) -> u16 {
         MaxAllowedUids::<T>::get(netuid)
-    }
-
-    pub fn get_max_allowed_modules() -> u16 {
-        MaxAllowedModules::<T>::get()
     }
 
     pub fn set_max_allowed_modules(max_allowed_modules: u16) {

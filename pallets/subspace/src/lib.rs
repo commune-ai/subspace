@@ -15,12 +15,15 @@ use frame_support::{
     dispatch::{DispatchInfo, PostDispatchInfo},
     ensure,
     traits::{tokens::WithdrawReasons, Currency, ExistenceRequirement, IsSubType},
+    PalletId,
 };
 
 use codec::{Decode, Encode};
 use frame_support::sp_runtime::transaction_validity::ValidTransaction;
 use sp_runtime::{
-    traits::{DispatchInfoOf, Dispatchable, PostDispatchInfoOf, SignedExtension},
+    traits::{
+        AccountIdConversion, DispatchInfoOf, Dispatchable, PostDispatchInfoOf, SignedExtension,
+    },
     transaction_validity::{TransactionValidity, TransactionValidityError},
 };
 use sp_std::marker::PhantomData;
@@ -77,6 +80,9 @@ pub mod pallet {
     // Configure the pallet by specifying the parameters and types on which it depends.
     #[pallet::config(with_default)]
     pub trait Config: frame_system::Config {
+        /// This pallet's ID, used for generating the treasury account ID.
+        #[pallet::constant]
+        type PalletId: Get<PalletId>;
         // Because this pallet emits events, it depends on the runtime's definition of an event.
         #[pallet::no_default_bounds]
         type RuntimeEvent: From<Event<Self>> + IsType<<Self as frame_system::Config>::RuntimeEvent>;
@@ -174,8 +180,7 @@ pub mod pallet {
         32
     }
     #[pallet::storage] // --- ITEM ( max_name_length )
-    pub(super) type MaxNameLength<T: Config> =
-        StorageValue<_, u16, ValueQuery, DefaultMaxNameLength<T>>;
+    pub type MaxNameLength<T: Config> = StorageValue<_, u16, ValueQuery, DefaultMaxNameLength<T>>;
 
     #[pallet::type_value]
     pub fn DefaultMinNameLength<T: Config>() -> u16 {
@@ -183,15 +188,14 @@ pub mod pallet {
     }
 
     #[pallet::storage]
-    pub(super) type MinNameLength<T: Config> =
-        StorageValue<_, u16, ValueQuery, DefaultMinNameLength<T>>;
+    pub type MinNameLength<T: Config> = StorageValue<_, u16, ValueQuery, DefaultMinNameLength<T>>;
 
     #[pallet::type_value]
     pub fn DefaultMaxAllowedSubnets<T: Config>() -> u16 {
         256
     }
     #[pallet::storage] // --- ITEM ( max_allowed_subnets )
-    pub(super) type MaxAllowedSubnets<T: Config> =
+    pub type MaxAllowedSubnets<T: Config> =
         StorageValue<_, u16, ValueQuery, DefaultMaxAllowedSubnets<T>>;
 
     #[pallet::storage]
@@ -311,7 +315,7 @@ pub mod pallet {
                 founder_share: FloorFounderShare::<T>::get() as u16,
                 incentive_ratio: DefaultIncentiveRatio::<T>::get(),
                 min_stake: 0,
-                founder: DefaultFounder::<T>::get(),
+                founder: DefaultKey::<T>::get(),
                 vote_mode: DefaultVoteMode::<T>::get(),
                 maximum_set_weight_calls_per_epoch: 0,
                 bonds_ma: DefaultBondsMovingAverage::<T>::get(),
@@ -434,13 +438,9 @@ pub mod pallet {
     pub type MaxAllowedWeights<T> =
         StorageMap<_, Identity, u16, u16, ValueQuery, DefaultMaxAllowedWeights<T>>;
 
-    #[pallet::type_value]
-    pub fn DefaultFounder<T: Config>() -> T::AccountId {
-        T::AccountId::decode(&mut sp_runtime::traits::TrailingZeroInput::zeroes()).unwrap()
-    }
     #[pallet::storage] // --- DMAP ( key, netuid ) --> bool
     pub type Founder<T: Config> =
-        StorageMap<_, Identity, u16, T::AccountId, ValueQuery, DefaultFounder<T>>;
+        StorageMap<_, Identity, u16, T::AccountId, ValueQuery, DefaultKey<T>>;
 
     #[pallet::storage] // --- DMAP ( key, netuid ) --> bool
     pub type FounderShare<T: Config> =
@@ -473,17 +473,18 @@ pub mod pallet {
     // ==== Voting  ====
     // =======================================
 
-    #[pallet::type_value]
-    pub fn DefaultCurator<T: Config>() -> T::AccountId {
-        T::AccountId::decode(&mut sp_runtime::traits::TrailingZeroInput::zeroes()).unwrap()
-    }
-
     #[pallet::storage]
     pub type FloorFounderShare<T: Config> =
         StorageValue<_, u8, ValueQuery, DefaultFloorFounderShare<T>>;
 
+    #[pallet::type_value] // This has to be different than DefaultKey, so we are not conflicting in tests.
+    pub fn DefaultDaoTreasuryAddress<T: Config>() -> T::AccountId {
+        T::PalletId::get().into_account_truncating()
+    }
+
     #[pallet::storage]
-    pub type GlobalDaoTreasury<T: Config> = StorageValue<_, u64, ValueQuery>;
+    pub type DaoTreasuryAddress<T: Config> =
+        StorageValue<_, T::AccountId, ValueQuery, DefaultDaoTreasuryAddress<T>>;
 
     #[pallet::type_value]
     pub fn DefaultDaoTreasuryDistribution<T: Config>() -> Percent {
@@ -501,7 +502,7 @@ pub mod pallet {
     }
 
     #[pallet::storage]
-    pub type Curator<T: Config> = StorageValue<_, T::AccountId, ValueQuery, DefaultCurator<T>>;
+    pub type Curator<T: Config> = StorageValue<_, T::AccountId, ValueQuery, DefaultKey<T>>;
 
     // VOTING MODE
     #[pallet::type_value]
@@ -1348,14 +1349,16 @@ pub mod pallet {
             Self::do_unregister_vote(origin, proposal_id)
         }
 
-        #[pallet::weight((Weight::zero(), DispatchClass::Normal, Pays::No))]
+        #[pallet::weight((Weight::from_parts(85_000_000, 0)
+        .saturating_add(T::DbWeight::get().reads(16))
+        .saturating_add(T::DbWeight::get().writes(28)), DispatchClass::Operational, Pays::No))]
         pub fn faucet(
             origin: OriginFor<T>,
             block_number: u64,
             nonce: u64,
             work: Vec<u8>,
         ) -> DispatchResult {
-            if cfg!(testnet) {
+            if cfg!(feature = "testnet-faucet") {
                 Self::do_faucet(origin, block_number, nonce, work)
             } else {
                 Err(Error::<T>::FaucetDisabled.into())

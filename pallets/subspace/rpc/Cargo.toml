@@ -33,3 +33,4 @@ std = [
   "subspace-runtime-api/std",
   "pallet-subspace/std",
 ]
+testnet-faucet = []

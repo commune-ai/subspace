@@ -8,9 +8,9 @@ use sp_core::U256;
 
 use log::info;
 use pallet_subspace::{
-    voting::ApplicationStatus, CuratorApplications, Emission, Error, MaxAllowedModules,
-    MaxAllowedUids, MinStake, RegistrationsPerBlock, Stake, SubnetGaps, SubnetNames, TotalSubnets,
-    N,
+    voting::ApplicationStatus, CuratorApplications, Emission, Error, GeneralSubnetApplicationCost,
+    MaxAllowedModules, MaxAllowedUids, MaxNameLength, MinNameLength, MinStake, ProposalCost,
+    RegistrationsPerBlock, Stake, SubnetGaps, SubnetNames, TotalSubnets, N,
 };
 use sp_runtime::{DispatchResult, Percent};
 
@@ -210,7 +210,7 @@ fn test_whitelist() {
         params.curator = key;
         SubspaceModule::set_global_params(params);
 
-        let proposal_cost = SubspaceModule::get_general_subnet_application_cost();
+        let proposal_cost = GeneralSubnetApplicationCost::<Test>::get();
         let data = "test".as_bytes().to_vec();
 
         add_balance(key, proposal_cost + 1);
@@ -422,8 +422,8 @@ fn test_register_invalid_name() {
         SubspaceModule::set_global_min_name_length(2);
 
         // Get the minimum and maximum name lengths from the configuration
-        let min_name_length = SubspaceModule::get_global_min_name_length();
-        let max_name_length = SubspaceModule::get_global_max_name_length();
+        let min_name_length = MinNameLength::<Test>::get();
+        let max_name_length = MaxNameLength::<Test>::get();
 
         // Try registering with an empty name (invalid)
         let empty_name = Vec::new();
@@ -521,8 +521,8 @@ fn test_register_invalid_subnet_name() {
         SubspaceModule::set_global_min_name_length(2);
 
         // Get the minimum and maximum name lengths from the configuration
-        let min_name_length = SubspaceModule::get_global_min_name_length();
-        let max_name_length = SubspaceModule::get_global_max_name_length();
+        let min_name_length = MinNameLength::<Test>::get();
+        let max_name_length = MaxNameLength::<Test>::get();
 
         let register_one = U256::from(0);
         let empty_name = Vec::new();
@@ -629,7 +629,7 @@ fn test_remove_from_whitelist() {
         let module_key = U256::from(1);
         SubspaceModule::set_curator(whitelist_key);
 
-        let proposal_cost = SubspaceModule::get_proposal_cost();
+        let proposal_cost = ProposalCost::<Test>::get();
         let data = "test".as_bytes().to_vec();
 
         // apply

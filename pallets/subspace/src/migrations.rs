@@ -147,11 +147,10 @@ pub mod v8 {
     use self::{
         global::BurnConfiguration,
         old_storage::{
-            AdjustmentAlpha, MaxBurn, MinBurn, TargetRegistrationsInterval,
+            AdjustmentAlpha, GlobalDaoTreasury, MaxBurn, MinBurn, TargetRegistrationsInterval,
             TargetRegistrationsPerInterval,
         },
     };
-
     use super::*;
 
     pub mod old_storage {
@@ -173,6 +172,9 @@ pub mod v8 {
         #[storage_alias]
         pub type TargetRegistrationsPerInterval<T: Config> =
             StorageValue<Pallet<T>, u16, ValueQuery>;
+
+        #[storage_alias]
+        pub type GlobalDaoTreasury<T: Config> = StorageValue<Pallet<T>, u64, ValueQuery>;
     }
 
     pub struct MigrateToV8<T>(sp_std::marker::PhantomData<T>);
@@ -194,7 +196,7 @@ pub mod v8 {
                 }
             }
 
-            log::info!("Existing subnets:        {netuids:?}");
+            log::info!("Existing subnets: {netuids:?}");
             log::info!("Updated subnets gaps: {gaps:?}");
             SubnetGaps::<T>::set(gaps);
 
@@ -212,6 +214,19 @@ pub mod v8 {
             } else {
                 log::info!("Migrated burn-related params to BurnConfig in v8");
             }
+
+            let old_treasury_balance = GlobalDaoTreasury::<T>::get();
+            let treasury_account = DaoTreasuryAddress::<T>::get();
+            log::info!("Treasury balance: {old_treasury_balance}");
+            Pallet::<T>::add_balance_to_account(
+                &treasury_account,
+                Pallet::<T>::u64_to_balance(old_treasury_balance).unwrap_or_default(),
+            );
+            GlobalDaoTreasury::<T>::set(0);
+
+            let account_balance = Pallet::<T>::get_balance_u64(&treasury_account);
+            log::info!("Treasury transferred, treasury account now has {account_balance}");
+            log::info!("Treasury account: {treasury_account:?}");
 
             StorageVersion::new(8).put::<Pallet<T>>();
             T::DbWeight::get().writes(1)

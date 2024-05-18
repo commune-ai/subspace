@@ -63,30 +63,31 @@ impl<T: Config> Pallet<T> {
     pub fn global_params() -> GlobalParams<T> {
         GlobalParams {
             // network
-            max_name_length: Self::get_global_max_name_length(),
-            min_name_length: Self::get_global_min_name_length(),
-            max_allowed_subnets: Self::get_global_max_allowed_subnets(),
-            max_allowed_modules: Self::get_max_allowed_modules(),
+            max_name_length: MaxNameLength::<T>::get(),
+            min_name_length: MinNameLength::<T>::get(),
+            max_allowed_subnets: MaxAllowedSubnets::<T>::get(),
+            max_allowed_modules: MaxAllowedModules::<T>::get(),
             unit_emission: UnitEmission::<T>::get(),
-            curator: Self::get_curator(),
+            curator: Curator::<T>::get(),
             floor_founder_share: FloorFounderShare::<T>::get(),
-            floor_delegation_fee: Self::get_floor_delegation_fee(),
-            // burn & registrations
-            max_registrations_per_block: Self::get_max_registrations_per_block(),
-            // weights
-            max_allowed_weights: Self::get_max_allowed_weights_global(),
-            subnet_stake_threshold: Self::get_subnet_stake_threshold(),
-            min_weight_stake: Self::get_min_weight_stake(),
-            // proposals
-            proposal_cost: Self::get_proposal_cost(), // denominated in $COMAI
-            proposal_expiration: Self::get_proposal_expiration(), /* denominated in the number of
-                                                       * blocks */
-            proposal_participation_threshold: Self::get_proposal_participation_threshold(), /* denominated
-                                                                                            in percent of the overall network stake */
-            // s0
-            general_subnet_application_cost: Self::get_general_subnet_application_cost(),
+            floor_delegation_fee: FloorDelegationFee::<T>::get(),
 
+            // burn & registrations
+            max_registrations_per_block: MaxRegistrationsPerBlock::<T>::get(),
             burn_config: BurnConfig::<T>::get(),
+
+            // weights
+            max_allowed_weights: MaxAllowedWeightsGlobal::<T>::get(),
+            subnet_stake_threshold: SubnetStakeThreshold::<T>::get(),
+            min_weight_stake: MinWeightStake::<T>::get(),
+            // proposals
+            proposal_cost: ProposalCost::<T>::get(), // denominated in $COMAI
+            proposal_expiration: ProposalExpiration::<T>::get(), /* denominated in the number of
+                                                      * blocks */
+            proposal_participation_threshold: ProposalParticipationThreshold::<T>::get(), /* denominated
+                                                                                          in percent of the overall network stake */
+            // s0 config
+            general_subnet_application_cost: GeneralSubnetApplicationCost::<T>::get(),
         }
     }
 
@@ -157,6 +158,7 @@ impl<T: Config> Pallet<T> {
             params.proposal_expiration % 100 == 0,
             Error::<T>::InvalidProposalExpiration
         );
+
         ensure!(
             params.proposal_participation_threshold.deconstruct() <= 100,
             Error::<T>::InvalidProposalParticipationThreshold
@@ -196,39 +198,24 @@ impl<T: Config> Pallet<T> {
         params.burn_config.apply().expect("invalid burn configuration");
     }
 
-    pub fn get_curator() -> T::AccountId {
-        Curator::<T>::get()
-    }
-
     pub fn set_curator(curator: T::AccountId) {
         Curator::<T>::put(curator)
     }
 
-    pub fn get_min_weight_stake() -> u64 {
-        MinWeightStake::<T>::get()
-    }
     pub fn set_min_weight_stake(min_weight_stake: u64) {
         MinWeightStake::<T>::put(min_weight_stake)
-    }
-
-    pub fn get_max_allowed_weights_global() -> u16 {
-        MaxAllowedWeightsGlobal::<T>::get()
-    }
-
-    pub fn get_subnet_stake_threshold() -> Percent {
-        SubnetStakeThreshold::<T>::get()
     }
 
     pub fn set_subnet_stake_threshold(stake_threshold: Percent) {
         SubnetStakeThreshold::<T>::put(stake_threshold)
     }
 
-    pub fn set_max_allowed_weights_global(max_allowed_weights: u16) {
-        MaxAllowedWeightsGlobal::<T>::put(max_allowed_weights)
+    pub fn set_max_registrations_per_block(max_registrations_per_block: u16) {
+        MaxRegistrationsPerBlock::<T>::set(max_registrations_per_block);
     }
 
-    pub fn get_floor_delegation_fee() -> Percent {
-        FloorDelegationFee::<T>::get()
+    pub fn set_max_allowed_weights_global(max_allowed_weights: u16) {
+        MaxAllowedWeightsGlobal::<T>::put(max_allowed_weights)
     }
 
     pub fn set_floor_delegation_fee(delegation_fee: Percent) {
@@ -236,11 +223,6 @@ impl<T: Config> Pallet<T> {
     }
 
     // Proposals
-
-    pub fn get_proposal_cost() -> u64 {
-        ProposalCost::<T>::get()
-    }
-
     pub fn set_proposal_cost(proposal_cost: u64) {
         ProposalCost::<T>::put(proposal_cost);
     }
@@ -249,40 +231,12 @@ impl<T: Config> Pallet<T> {
         ProposalExpiration::<T>::put(proposal_expiration);
     }
 
-    pub fn get_proposal_expiration() -> u32 {
-        ProposalExpiration::<T>::get()
-    }
-
     pub fn set_proposal_participation_threshold(proposal_participation_threshold: Percent) {
         ProposalParticipationThreshold::<T>::put(proposal_participation_threshold);
     }
 
-    pub fn get_proposal_participation_threshold() -> Percent {
-        ProposalParticipationThreshold::<T>::get()
-    }
-
-    pub fn get_general_subnet_application_cost() -> u64 {
-        GeneralSubnetApplicationCost::<T>::get()
-    }
-
-    pub fn get_max_registrations_per_block() -> u16 {
-        MaxRegistrationsPerBlock::<T>::get()
-    }
-
-    pub fn set_max_registrations_per_block(max_registrations_per_block: u16) {
-        MaxRegistrationsPerBlock::<T>::set(max_registrations_per_block);
-    }
-
-    pub fn get_global_max_name_length() -> u16 {
-        MaxNameLength::<T>::get()
-    }
-
     pub fn set_global_max_name_length(max_name_length: u16) {
         MaxNameLength::<T>::put(max_name_length)
-    }
-
-    pub fn get_global_min_name_length() -> u16 {
-        MinNameLength::<T>::get()
     }
 
     pub fn set_global_min_name_length(min_name_length: u16) {
@@ -291,11 +245,7 @@ impl<T: Config> Pallet<T> {
 
     // returns the amount of total modules on the network
     pub fn global_n_modules() -> u16 {
-        let mut global_n: u16 = 0;
-        for netuid in Self::netuids() {
-            global_n += N::<T>::get(netuid);
-        }
-        global_n
+        Self::netuids().into_iter().map(N::<T>::get).sum()
     }
 
     // Whitelist management
