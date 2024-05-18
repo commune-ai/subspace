@@ -28,15 +28,23 @@ use sp_runtime::{
 };
 use sp_std::marker::PhantomData;
 
+// ---------------------------------
+//	Benchmark Imports
+// ---------------------------------
+
+#[cfg(feature = "runtime-benchmarks")]
+mod benchmarks;
+
 pub mod autogen_weights;
 pub use autogen_weights::WeightInfo;
 
 #[cfg(debug_assertions)]
 pub use step::yuma;
 
-// =========================
-//	==== Pallet Imports =====
-// =========================
+// ---------------------------------
+// Pallet Imports
+// ---------------------------------
+
 pub mod global;
 mod math;
 pub mod module;
@@ -99,9 +107,9 @@ pub mod pallet {
 
     pub type AccountIdOf<T> = <T as frame_system::Config>::AccountId;
 
-    // ============================
-    // ==== Global Variables ====
-    // ============================
+    // ---------------------------------
+    // Global Variables
+    // ---------------------------------
 
     #[pallet::storage]
     pub type BurnConfig<T: Config> = StorageValue<_, BurnConfiguration<T>, ValueQuery>;
@@ -299,6 +307,10 @@ pub mod pallet {
         pub burn_config: BurnConfiguration<T>,
     }
 
+    // ---------------------------------
+    // Subnet PARAMS
+    // ---------------------------------
+
     pub struct DefaultSubnetParams<T: Config>(sp_std::marker::PhantomData<((), T)>);
 
     impl<T: Config> DefaultSubnetParams<T> {
@@ -326,10 +338,6 @@ pub mod pallet {
             }
         }
     }
-
-    // =========================
-    // ==== Subnet PARAMS ====
-    // =========================
 
     #[derive(
         Decode, Encode, PartialEq, Eq, Clone, frame_support::DebugNoBound, TypeInfo, MaxEncodedLen,
@@ -469,9 +477,14 @@ pub mod pallet {
     #[pallet::storage] // --- MAP ( netuid ) --> epoch
     pub type TrustRatio<T> = StorageMap<_, Identity, u16, u16, ValueQuery>;
 
-    // =======================================
-    // ==== Voting  ====
-    // =======================================
+    // ---------------------------------
+    // Voting
+    // ---------------------------------
+
+    #[pallet::type_value]
+    pub fn DefaultCurator<T: Config>() -> T::AccountId {
+        T::AccountId::decode(&mut sp_runtime::traits::TrailingZeroInput::zeroes()).unwrap()
+    }
 
     #[pallet::storage]
     pub type FloorFounderShare<T: Config> =
@@ -495,7 +508,6 @@ pub mod pallet {
     pub type DaoTreasuryDistribution<T: Config> =
         StorageValue<_, Percent, ValueQuery, DefaultDaoTreasuryDistribution<T>>;
 
-    // VOTING MODE
     #[pallet::type_value]
     pub fn DefaultFloorFounderShare<T: Config>() -> u8 {
         8
@@ -504,7 +516,6 @@ pub mod pallet {
     #[pallet::storage]
     pub type Curator<T: Config> = StorageValue<_, T::AccountId, ValueQuery, DefaultKey<T>>;
 
-    // VOTING MODE
     #[pallet::type_value]
     pub fn DefaultVoteMode<T: Config>() -> VoteMode {
         VoteMode::Authority
@@ -529,9 +540,9 @@ pub mod pallet {
     #[pallet::storage] // --- MAP ( network_name ) --> netuid
     pub type SubnetNames<T: Config> = StorageMap<_, Identity, u16, Vec<u8>, ValueQuery>;
 
-    // =======================================
-    // ==== Module Variables  ====
-    // =======================================
+    // ---------------------------------
+    // Module Variables
+    // ---------------------------------
 
     #[pallet::storage] // --- DMAP ( netuid, module_key ) --> uid
     pub type Uids<T: Config> =
@@ -573,14 +584,13 @@ pub mod pallet {
         DefaultDelegationFee<T>,
     >;
 
-    // STATE OF THE MODULE
     #[pallet::storage] // --- DMAP ( netuid, uid ) --> block number that the module is registered
     pub type RegistrationBlock<T: Config> =
         StorageDoubleMap<_, Identity, u16, Identity, u16, u64, ValueQuery>;
 
-    // =======================================
-    // ==== Module Staking Variables  ====
-    // =======================================
+    // ---------------------------------
+    //  Module Staking Variables
+    /// ---------------------------------
 
     #[pallet::storage] // --- DMAP ( netuid, module_key ) --> stake | Returns the stake under a module.
     pub type Stake<T: Config> =
@@ -629,9 +639,10 @@ pub mod pallet {
     pub type ProfitShareUnit<T: Config> =
         StorageValue<_, u16, ValueQuery, DefaultProfitShareUnit<T>>;
 
-    // =======================================
-    // ==== Module Consensus Variables  ====
-    // =======================================
+    // ---------------------------------
+    // Module Consensus Variables
+    // ---------------------------------
+
     #[pallet::storage] // --- MAP ( netuid ) --> incentive
     pub type Incentive<T: Config> = StorageMap<_, Identity, u16, Vec<u16>, ValueQuery>;
     #[pallet::storage] // --- MAP ( netuid ) --> trust
@@ -650,6 +661,10 @@ pub mod pallet {
     // whitelist for the base subnet (netuid 0)
     #[pallet::storage]
     pub type LegitWhitelist<T: Config> = StorageMap<_, Identity, T::AccountId, u8, ValueQuery>;
+
+    // ---------------------------------
+    // Event Variables
+    // ---------------------------------
 
     #[pallet::event]
     #[pallet::generate_deposit(pub fn deposit_event)]
@@ -709,6 +724,10 @@ pub mod pallet {
         CustomProposalAccepted(u64), // (id)
         SubnetProposalAccepted(u64, u16), // (id, netuid)
     }
+
+    // ---------------------------------
+    // Error Variables
+    // ---------------------------------
 
     // Errors inform users that something went wrong.
     #[pallet::error]
@@ -878,9 +897,9 @@ pub mod pallet {
         InsufficientDaoTreasuryFunds,
     }
 
-    // ==================
-    // ==== Genesis =====
-    // ==================
+    // ---------------------------------
+    // Genesis
+    // ---------------------------------
 
     #[derive(frame_support::DefaultNoBound)]
     #[pallet::genesis_config]
@@ -945,9 +964,9 @@ pub mod pallet {
         }
     }
 
-    // ==================
-    // ==== Proposals ===
-    // ==================
+    // ---------------------------------
+    // Proposals
+    // ---------------------------------
 
     // Global Parameters of proposals
 
@@ -992,9 +1011,9 @@ pub mod pallet {
     #[pallet::storage]
     pub type CuratorApplications<T: Config> = StorageMap<_, Identity, u64, CuratorApplication<T>>;
 
-    // ================
-    // ==== Hooks =====
-    // ================
+    // ---------------------------------
+    // Hooks
+    // ---------------------------------
 
     #[pallet::hooks]
     impl<T: Config> Hooks<BlockNumberFor<T>> for Pallet<T> {
@@ -1010,8 +1029,18 @@ pub mod pallet {
     // Dispatchable functions allow users to interact with the pallet and invoke state changes.
     // These functions materialize as "extrinsics", which are often compared to transactions.
     // Dispatchable functions must be annotated with a weight and must return a DispatchResult.
+
+    // ---------------------------------
+    // Extrinsics
+    // ---------------------------------
+
     #[pallet::call]
     impl<T: Config> Pallet<T> {
+        // ---------------------------------
+        // Consensus operations
+        // ---------------------------------
+
+        #[pallet::call_index(0)]
         #[pallet::weight((Weight::zero(), DispatchClass::Normal, Pays::No))]
         pub fn set_weights(
             origin: OriginFor<T>,
@@ -1022,6 +1051,11 @@ pub mod pallet {
             Self::do_set_weights(origin, netuid, uids, weights)
         }
 
+        // ---------------------------------
+        // Stake operations
+        // ---------------------------------
+
+        #[pallet::call_index(1)]
         #[pallet::weight((Weight::zero(), DispatchClass::Normal, Pays::No))]
         pub fn add_stake(
             origin: OriginFor<T>,
@@ -1029,20 +1063,10 @@ pub mod pallet {
             module_key: T::AccountId,
             amount: u64,
         ) -> DispatchResult {
-            // do not allow zero stakes
             Self::do_add_stake(origin, netuid, module_key, amount)
         }
 
-        #[pallet::weight((Weight::zero(), DispatchClass::Normal, Pays::No))]
-        pub fn add_stake_multiple(
-            origin: OriginFor<T>,
-            netuid: u16,
-            module_keys: Vec<T::AccountId>,
-            amounts: Vec<u64>,
-        ) -> DispatchResult {
-            Self::do_add_stake_multiple(origin, netuid, module_keys, amounts)
-        }
-
+        #[pallet::call_index(2)]
         #[pallet::weight((Weight::zero(), DispatchClass::Normal, Pays::No))]
         pub fn remove_stake(
             origin: OriginFor<T>,
@@ -1053,6 +1077,22 @@ pub mod pallet {
             Self::do_remove_stake(origin, netuid, module_key, amount)
         }
 
+        // ---------------------------------
+        // Bulk stake operations
+        // ---------------------------------
+
+        #[pallet::call_index(3)]
+        #[pallet::weight((Weight::zero(), DispatchClass::Normal, Pays::No))]
+        pub fn add_stake_multiple(
+            origin: OriginFor<T>,
+            netuid: u16,
+            module_keys: Vec<T::AccountId>,
+            amounts: Vec<u64>,
+        ) -> DispatchResult {
+            Self::do_add_stake_multiple(origin, netuid, module_keys, amounts)
+        }
+
+        #[pallet::call_index(4)]
         #[pallet::weight((Weight::zero(), DispatchClass::Normal, Pays::No))]
         pub fn remove_stake_multiple(
             origin: OriginFor<T>,
@@ -1063,6 +1103,11 @@ pub mod pallet {
             Self::do_remove_stake_multiple(origin, netuid, module_keys, amounts)
         }
 
+        // ---------------------------------
+        // Transfers
+        // ---------------------------------
+
+        #[pallet::call_index(5)]
         #[pallet::weight((Weight::zero(), DispatchClass::Normal, Pays::No))]
         pub fn transfer_stake(
             origin: OriginFor<T>,         // --- The account that is calling this function.
@@ -1074,6 +1119,7 @@ pub mod pallet {
             Self::do_transfer_stake(origin, netuid, module_key, new_module_key, amount)
         }
 
+        #[pallet::call_index(6)]
         #[pallet::weight((Weight::zero(), DispatchClass::Normal, Pays::No))]
         pub fn transfer_multiple(
             origin: OriginFor<T>, // --- The account that is calling this function.
@@ -1083,6 +1129,35 @@ pub mod pallet {
             Self::do_transfer_multiple(origin, destinations, amounts)
         }
 
+        // ---------------------------------
+        // Registereing / Deregistering
+        // ---------------------------------
+
+        #[pallet::call_index(7)]
+        #[pallet::weight((Weight::zero(), DispatchClass::Normal, Pays::No))]
+        pub fn register(
+            origin: OriginFor<T>,
+            network: Vec<u8>,
+            name: Vec<u8>,
+            address: Vec<u8>,
+            stake: u64,
+            module_key: T::AccountId,
+            metadata: Option<Vec<u8>>,
+        ) -> DispatchResult {
+            Self::do_register(origin, network, name, address, stake, module_key, metadata)
+        }
+
+        #[pallet::call_index(8)]
+        #[pallet::weight((Weight::zero(), DispatchClass::Normal, Pays::No))]
+        pub fn deregister(origin: OriginFor<T>, netuid: u16) -> DispatchResult {
+            Self::do_deregister(origin, netuid)
+        }
+
+        // ---------------------------------
+        // Updating
+        // ---------------------------------
+
+        #[pallet::call_index(9)]
         #[pallet::weight((Weight::zero(), DispatchClass::Normal, Pays::No))]
         pub fn update_module(
             origin: OriginFor<T>,
@@ -1102,55 +1177,11 @@ pub mod pallet {
             Self::do_update_module(origin, netuid, changeset)
         }
 
-        #[pallet::weight((Weight::zero(), DispatchClass::Normal, Pays::No))]
-        pub fn register(
-            origin: OriginFor<T>,
-            network: Vec<u8>,
-            name: Vec<u8>,
-            address: Vec<u8>,
-            stake: u64,
-            module_key: T::AccountId,
-            metadata: Option<Vec<u8>>,
-        ) -> DispatchResult {
-            Self::do_register(origin, network, name, address, stake, module_key, metadata)
-        }
-
-        #[pallet::weight((Weight::zero(), DispatchClass::Normal, Pays::No))]
-        pub fn deregister(origin: OriginFor<T>, netuid: u16) -> DispatchResult {
-            Self::do_deregister(origin, netuid)
-        }
-
-        #[pallet::weight((Weight::zero(), DispatchClass::Normal, Pays::No))]
-        pub fn add_profit_shares(
-            origin: OriginFor<T>,
-            keys: Vec<T::AccountId>,
-            shares: Vec<u16>,
-        ) -> DispatchResult {
-            Self::do_add_profit_shares(origin, keys, shares)
-        }
-
-        #[pallet::weight((Weight::zero(), DispatchClass::Normal, Pays::No))]
-        pub fn add_to_whitelist(
-            origin: OriginFor<T>,
-            module_key: T::AccountId,
-            recommended_weight: u8,
-        ) -> DispatchResult {
-            Self::do_add_to_whitelist(origin, module_key, recommended_weight)
-        }
-
-        #[pallet::weight((Weight::zero(), DispatchClass::Normal, Pays::No))]
-        pub fn remove_from_whitelist(
-            origin: OriginFor<T>,
-            module_key: T::AccountId,
-        ) -> DispatchResult {
-            Self::do_remove_from_whitelist(origin, module_key)
-        }
-
+        #[pallet::call_index(10)]
         #[pallet::weight((Weight::zero(), DispatchClass::Normal, Pays::No))]
         pub fn update_subnet(
             origin: OriginFor<T>,
             netuid: u16,
-            // params
             founder: T::AccountId,
             founder_share: u16,
             immunity_period: u16,
@@ -1195,7 +1226,50 @@ pub mod pallet {
             Self::do_update_subnet(origin, netuid, changeset)
         }
 
-        // Proposal Calls
+        // ---------------------------------
+        // Subnet 0 DAO
+        // ---------------------------------
+
+        #[pallet::call_index(11)]
+        #[pallet::weight((Weight::zero(), DispatchClass::Normal, Pays::No))]
+        pub fn add_dao_application(
+            origin: OriginFor<T>,
+            application_key: T::AccountId,
+            data: Vec<u8>,
+        ) -> DispatchResult {
+            Self::do_add_dao_application(origin, application_key, data)
+        }
+
+        #[pallet::call_index(13)]
+        #[pallet::weight((Weight::zero(), DispatchClass::Normal, Pays::No))]
+        pub fn refuse_dao_application(origin: OriginFor<T>, id: u64) -> DispatchResult {
+            Self::do_refuse_dao_application(origin, id)
+        }
+
+        #[pallet::call_index(14)]
+        #[pallet::weight((Weight::zero(), DispatchClass::Normal, Pays::No))]
+        pub fn add_to_whitelist(
+            origin: OriginFor<T>,
+            module_key: T::AccountId,
+            recommended_weight: u8,
+        ) -> DispatchResult {
+            Self::do_add_to_whitelist(origin, module_key, recommended_weight)
+        }
+
+        #[pallet::call_index(15)]
+        #[pallet::weight((Weight::zero(), DispatchClass::Normal, Pays::No))]
+        pub fn remove_from_whitelist(
+            origin: OriginFor<T>,
+            module_key: T::AccountId,
+        ) -> DispatchResult {
+            Self::do_remove_from_whitelist(origin, module_key)
+        }
+
+        // ---------------------------------
+        // Adding proposals
+        // ---------------------------------
+
+        #[pallet::call_index(16)]
         #[pallet::weight((Weight::zero(), DispatchClass::Normal, Pays::No))]
         pub fn add_global_proposal(
             origin: OriginFor<T>,
@@ -1247,6 +1321,7 @@ pub mod pallet {
             Self::do_add_global_proposal(origin, params)
         }
 
+        #[pallet::call_index(17)]
         #[pallet::weight((Weight::zero(), DispatchClass::Normal, Pays::No))]
         pub fn add_subnet_proposal(
             origin: OriginFor<T>,
@@ -1296,26 +1371,13 @@ pub mod pallet {
             Self::do_add_subnet_proposal(origin, netuid, params)
         }
 
+        #[pallet::call_index(18)]
         #[pallet::weight((Weight::zero(), DispatchClass::Normal, Pays::No))]
         pub fn add_custom_proposal(origin: OriginFor<T>, data: Vec<u8>) -> DispatchResult {
             Self::do_add_custom_proposal(origin, data)
         }
 
-        // Subnet 0 DAO
-        #[pallet::weight((Weight::zero(), DispatchClass::Normal, Pays::No))]
-        pub fn add_dao_application(
-            origin: OriginFor<T>,
-            application_key: T::AccountId,
-            data: Vec<u8>,
-        ) -> DispatchResult {
-            Self::do_add_dao_application(origin, application_key, data)
-        }
-
-        #[pallet::weight((Weight::zero(), DispatchClass::Normal, Pays::No))]
-        pub fn refuse_dao_application(origin: OriginFor<T>, id: u64) -> DispatchResult {
-            Self::do_refuse_dao_application(origin, id)
-        }
-
+        #[pallet::call_index(19)]
         #[pallet::weight((Weight::zero(), DispatchClass::Normal, Pays::No))]
         pub fn add_custom_subnet_proposal(
             origin: OriginFor<T>,
@@ -1325,6 +1387,7 @@ pub mod pallet {
             Self::do_add_custom_subnet_proposal(origin, netuid, data)
         }
 
+        #[pallet::call_index(20)]
         #[pallet::weight((Weight::zero(), DispatchClass::Normal, Pays::No))]
         pub fn add_transfer_dao_treasury_proposal(
             origin: OriginFor<T>,
@@ -1335,6 +1398,11 @@ pub mod pallet {
             Self::do_add_transfer_dao_treasury_proposal(origin, data, value, dest)
         }
 
+        // ---------------------------------
+        // Voting / Unvoting proposals
+        // ---------------------------------
+
+        #[pallet::call_index(21)]
         #[pallet::weight((Weight::zero(), DispatchClass::Normal, Pays::No))]
         pub fn vote_proposal(
             origin: OriginFor<T>,
@@ -1344,11 +1412,31 @@ pub mod pallet {
             Self::do_vote_proposal(origin, proposal_id, agree)
         }
 
+        #[pallet::call_index(22)]
         #[pallet::weight((Weight::zero(), DispatchClass::Normal, Pays::No))]
         pub fn unvote_proposal(origin: OriginFor<T>, proposal_id: u64) -> DispatchResult {
             Self::do_unregister_vote(origin, proposal_id)
         }
 
+        // ---------------------------------
+        // Profit sharing
+        // ---------------------------------
+
+        #[pallet::call_index(23)]
+        #[pallet::weight((Weight::zero(), DispatchClass::Normal, Pays::No))]
+        pub fn add_profit_shares(
+            origin: OriginFor<T>,
+            keys: Vec<T::AccountId>,
+            shares: Vec<u16>,
+        ) -> DispatchResult {
+            Self::do_add_profit_shares(origin, keys, shares)
+        }
+
+        // ---------------------------------
+        // Testnet
+        // ---------------------------------
+
+        #[pallet::call_index(24)]
         #[pallet::weight((Weight::from_parts(85_000_000, 0)
         .saturating_add(T::DbWeight::get().reads(16))
         .saturating_add(T::DbWeight::get().writes(28)), DispatchClass::Operational, Pays::No))]
@@ -1385,10 +1473,6 @@ pub mod pallet {
             0
         }
     }
-
-    /************************************************************
-        CallType definition
-    ************************************************************/
 }
 
 #[derive(Debug, PartialEq, Default)]
@@ -1444,7 +1528,6 @@ where
 
     pub fn get_priority_set_weights(who: &T::AccountId, netuid: u16) -> u64 {
         // Return the non vanilla priority for a set weights call.
-
         Pallet::<T>::get_priority_set_weights(who, netuid)
     }
 

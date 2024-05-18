@@ -552,9 +552,10 @@ threshold {subnet_stake_threshold:?}"
         Founder::<T>::get(netuid)
     }
 
-    // ========================
-    // ==== Global Getters ====
-    // ========================
+    // ---------------------------------
+    // Global Getters
+    // ---------------------------------
+
     pub fn get_current_block_number() -> u64 {
         TryInto::try_into(<frame_system::Pallet<T>>::block_number())
             .ok()
@@ -585,9 +586,10 @@ threshold {subnet_stake_threshold:?}"
     pub fn set_global_max_allowed_subnets(max_allowed_subnets: u16) {
         MaxAllowedSubnets::<T>::put(max_allowed_subnets)
     }
-    // ============================
-    // ==== Subnetwork Getters ====
-    // ============================
+
+    // ---------------------------------
+    // Subnetwork Getters
+    // ---------------------------------
 
     pub fn get_module_registration_block(netuid: u16, uid: u16) -> u64 {
         RegistrationBlock::<T>::get(netuid, uid)
