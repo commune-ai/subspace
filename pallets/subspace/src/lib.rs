@@ -48,8 +48,8 @@ mod staking;
 mod step;
 pub mod subnet;
 pub mod voting;
-pub mod wei; // Weight benchmarks
-mod weights; // Commune consensus weights
+pub mod weights; // Weight benchmarks
+mod set_weights; // Commune consensus weights
 
 #[cfg(debug_assertions)]
 pub use step::yuma;
@@ -65,7 +65,7 @@ pub mod pallet {
     )]
 
     use self::voting::{CuratorApplication, Proposal, VoteMode};
-    pub use crate::wei::WeightInfo;
+    pub use crate::weights::WeightInfo;
 
     use super::*;
     use frame_support::{pallet_prelude::*, traits::Currency, Identity};
@@ -1176,7 +1176,7 @@ pub mod pallet {
         }
 
         #[pallet::call_index(10)]
-        #[pallet::weight((Weight::zero(), DispatchClass::Normal, Pays::No))]
+        #[pallet::weight((T::WeightInfo::update_subnet(), DispatchClass::Normal, Pays::No))]
         pub fn update_subnet(
             origin: OriginFor<T>,
             netuid: u16,
@@ -1229,7 +1229,7 @@ pub mod pallet {
         // ---------------------------------
 
         #[pallet::call_index(11)]
-        #[pallet::weight((Weight::zero(), DispatchClass::Normal, Pays::No))]
+        #[pallet::weight((T::WeightInfo::add_dao_application(), DispatchClass::Normal, Pays::No))]
         pub fn add_dao_application(
             origin: OriginFor<T>,
             application_key: T::AccountId,
@@ -1239,13 +1239,13 @@ pub mod pallet {
         }
 
         #[pallet::call_index(12)]
-        #[pallet::weight((Weight::zero(), DispatchClass::Normal, Pays::No))]
+        #[pallet::weight((T::WeightInfo::refuse_dao_application(), DispatchClass::Normal, Pays::No))]
         pub fn refuse_dao_application(origin: OriginFor<T>, id: u64) -> DispatchResult {
             Self::do_refuse_dao_application(origin, id)
         }
 
         #[pallet::call_index(13)]
-        #[pallet::weight((Weight::zero(), DispatchClass::Normal, Pays::No))]
+        #[pallet::weight((T::WeightInfo::add_to_whitelist(), DispatchClass::Normal, Pays::No))]
         pub fn add_to_whitelist(
             origin: OriginFor<T>,
             module_key: T::AccountId,
@@ -1255,7 +1255,7 @@ pub mod pallet {
         }
 
         #[pallet::call_index(14)]
-        #[pallet::weight((Weight::zero(), DispatchClass::Normal, Pays::No))]
+        #[pallet::weight((T::WeightInfo::remove_from_whitelist(), DispatchClass::Normal, Pays::No))]
         pub fn remove_from_whitelist(
             origin: OriginFor<T>,
             module_key: T::AccountId,
@@ -1268,7 +1268,7 @@ pub mod pallet {
         // ---------------------------------
 
         #[pallet::call_index(15)]
-        #[pallet::weight((Weight::zero(), DispatchClass::Normal, Pays::No))]
+        #[pallet::weight((T::WeightInfo::add_global_proposal(), DispatchClass::Normal, Pays::No))]
         pub fn add_global_proposal(
             origin: OriginFor<T>,
             max_name_length: u16,             // max length of a network name
@@ -1320,7 +1320,7 @@ pub mod pallet {
         }
 
         #[pallet::call_index(16)]
-        #[pallet::weight((Weight::zero(), DispatchClass::Normal, Pays::No))]
+        #[pallet::weight((T::WeightInfo::add_subnet_proposal(), DispatchClass::Normal, Pays::No))]
         pub fn add_subnet_proposal(
             origin: OriginFor<T>,
             netuid: u16,
@@ -1370,13 +1370,13 @@ pub mod pallet {
         }
 
         #[pallet::call_index(17)]
-        #[pallet::weight((Weight::zero(), DispatchClass::Normal, Pays::No))]
+        #[pallet::weight((T::WeightInfo::add_custom_proposal(), DispatchClass::Normal, Pays::No))]
         pub fn add_custom_proposal(origin: OriginFor<T>, data: Vec<u8>) -> DispatchResult {
             Self::do_add_custom_proposal(origin, data)
         }
 
         #[pallet::call_index(18)]
-        #[pallet::weight((Weight::zero(), DispatchClass::Normal, Pays::No))]
+        #[pallet::weight((T::WeightInfo::add_custom_subnet_proposal(), DispatchClass::Normal, Pays::No))]
         pub fn add_custom_subnet_proposal(
             origin: OriginFor<T>,
             netuid: u16,
@@ -1386,7 +1386,7 @@ pub mod pallet {
         }
 
         #[pallet::call_index(19)]
-        #[pallet::weight((Weight::zero(), DispatchClass::Normal, Pays::No))]
+        #[pallet::weight((T::WeightInfo::add_transfer_dao_treasury_proposal(), DispatchClass::Normal, Pays::No))]
         pub fn add_transfer_dao_treasury_proposal(
             origin: OriginFor<T>,
             data: Vec<u8>,
@@ -1401,7 +1401,7 @@ pub mod pallet {
         // ---------------------------------
 
         #[pallet::call_index(20)]
-        #[pallet::weight((Weight::zero(), DispatchClass::Normal, Pays::No))]
+        #[pallet::weight((T::WeightInfo::vote_proposal(), DispatchClass::Normal, Pays::No))]
         pub fn vote_proposal(
             origin: OriginFor<T>,
             proposal_id: u64,
@@ -1411,7 +1411,7 @@ pub mod pallet {
         }
 
         #[pallet::call_index(21)]
-        #[pallet::weight((Weight::zero(), DispatchClass::Normal, Pays::No))]
+        #[pallet::weight((T::WeightInfo::unvote_proposal(), DispatchClass::Normal, Pays::No))]
         pub fn unvote_proposal(origin: OriginFor<T>, proposal_id: u64) -> DispatchResult {
             Self::do_unregister_vote(origin, proposal_id)
         }
@@ -1421,7 +1421,7 @@ pub mod pallet {
         // ---------------------------------
 
         #[pallet::call_index(22)]
-        #[pallet::weight((Weight::zero(), DispatchClass::Normal, Pays::No))]
+        #[pallet::weight((T::WeightInfo::add_profit_shares(), DispatchClass::Normal, Pays::No))]
         pub fn add_profit_shares(
             origin: OriginFor<T>,
             keys: Vec<T::AccountId>,
