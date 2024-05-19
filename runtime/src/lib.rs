@@ -747,7 +747,7 @@ impl_runtime_apis! {
             use frame_system_benchmarking::Pallet as SystemBench;
             #[allow(non_local_definitions)]
             impl frame_system_benchmarking::Config for Runtime {}
-            
+
             use baseline::Pallet as BaselineBench;
             #[allow(non_local_definitions)]
             impl baseline::Config for Runtime {}
