@@ -74,7 +74,7 @@ impl<T: Config> Pallet<T> {
         let stake: u64 = Self::get_stake_for_key(netuid, &key);
 
         // --- 11. Check if the stake per weight is greater than the required minimum stake.
-        let min_stake_per_weight: u64 = Self::get_min_weight_stake();
+        let min_stake_per_weight: u64 = MinWeightStake::<T>::get();
         let min_stake_for_weights: u64 = min_stake_per_weight * uids.len() as u64;
         ensure!(
             stake >= min_stake_for_weights,

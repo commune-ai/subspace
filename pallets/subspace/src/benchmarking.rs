@@ -399,8 +399,12 @@ benchmarks! {
         let caller: T::AccountId = account("Alice", 0, 1);
         // Add alice fund to submit the proposal
         SubspaceMod::<T>::add_balance_to_account(&caller, SubspaceMod::<T>::u64_to_balance(1_000_000_000_000_000).unwrap());
+        let amount = 1000;
+        // Add the amount to treasury funds
+        let treasury_address: T::AccountId = DaoTreasuryAddress::<T>::get();
+        SubspaceMod::<T>::add_balance_to_account(&treasury_address, SubspaceMod::<T>::u64_to_balance(amount).unwrap());
+
         let data = "test".as_bytes().to_vec();
-        let amount = 0;
         let destinations: T::AccountId = account("Bob", 0, 2);
     }: add_transfer_dao_treasury_proposal(RawOrigin::Signed(caller), data, amount, destinations)
 
