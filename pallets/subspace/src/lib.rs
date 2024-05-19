@@ -44,12 +44,12 @@ mod math;
 pub mod module;
 mod profit_share;
 mod registration;
+mod set_weights;
 mod staking;
 mod step;
 pub mod subnet;
 pub mod voting;
-pub mod weights; // Weight benchmarks
-mod set_weights; // Commune consensus weights
+pub mod weights; // Weight benchmarks // Commune consensus weights
 
 #[cfg(debug_assertions)]
 pub use step::yuma;
