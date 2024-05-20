@@ -367,8 +367,8 @@ impl pallet_utility::Config for Runtime {
 impl pallet_subspace::Config for Runtime {
     type RuntimeEvent = RuntimeEvent;
     type Currency = Balances;
-    type WeightInfo = pallet_subspace::autogen_weights::SubstrateWeight<Runtime>;
     type PalletId = SubspacePalletId;
+    type WeightInfo = pallet_subspace::weights::SubstrateWeight<Runtime>;
 }
 
 impl pallet_governance::Config for Runtime {
@@ -752,9 +752,11 @@ impl_runtime_apis! {
             use sp_storage::TrackedStorageKey;
 
             use frame_system_benchmarking::Pallet as SystemBench;
-            use baseline::Pallet as BaselineBench;
-
+            #[allow(non_local_definitions)]
             impl frame_system_benchmarking::Config for Runtime {}
+
+            use baseline::Pallet as BaselineBench;
+            #[allow(non_local_definitions)]
             impl baseline::Config for Runtime {}
 
             use frame_support::traits::WhitelistedStorageKeys;
