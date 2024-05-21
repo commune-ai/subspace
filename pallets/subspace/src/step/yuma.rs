@@ -5,8 +5,8 @@ use substrate_fixed::types::{I32F32, I64F64, I96F32};
 
 use crate::{
     math::*, vec, Active, Bonds, BondsMovingAverage, Config, Consensus, Dividends, Emission,
-    Incentive, Kappa, Keys, MaxAllowedValidators, MaxWeightAge, Pallet, PruningScores, Rank, Stake,
-    Trust, Uids, ValidatorPermits, ValidatorTrust, Weights,
+    Founder, Incentive, Kappa, Keys, LastUpdate, MaxAllowedValidators, MaxWeightAge, Pallet,
+    PruningScores, Rank, Stake, Trust, Uids, ValidatorPermits, ValidatorTrust, Weights, N,
 };
 use frame_support::ensure;
 use sp_std::vec::Vec;
@@ -42,12 +42,12 @@ impl<T: Config> YumaCalc<T> {
         let validator_permits = ValidatorPermits::<T>::get(netuid);
         let validator_forbids = validator_permits.iter().map(|&b| !b).collect();
 
-        let founder_key = Pallet::<T>::get_founder(netuid);
+        let founder_key = Founder::<T>::get(netuid);
         let (to_be_emitted, founder_emission) =
             Pallet::<T>::calculate_founder_emission(netuid, to_be_emitted);
 
         Self {
-            module_count: Pallet::<T>::get_subnet_n(netuid),
+            module_count: N::<T>::get(netuid),
             netuid,
             kappa: Pallet::<T>::get_float_kappa(),
 
@@ -57,7 +57,7 @@ impl<T: Config> YumaCalc<T> {
 
             current_block: Pallet::<T>::get_current_block_number(),
             activity_cutoff: MaxWeightAge::<T>::get(netuid),
-            last_update: Pallet::<T>::get_last_update(netuid),
+            last_update: LastUpdate::<T>::get(netuid),
             block_at_registration: Pallet::<T>::get_block_at_registration(netuid),
 
             validator_forbids,
@@ -663,7 +663,7 @@ impl<T: Config> Pallet<T> {
     }
 
     fn get_weights_sparse(netuid: u16) -> Option<Vec<Vec<(u16, I32F32)>>> {
-        let n = Self::get_subnet_n(netuid) as usize;
+        let n = N::<T>::get(netuid) as usize;
         let mut weights: Vec<Vec<(u16, I32F32)>> = vec![vec![]; n];
         for (uid_i, weights_i) in
             Weights::<T>::iter_prefix(netuid).filter(|(uid, _)| *uid < n as u16)
@@ -676,7 +676,7 @@ impl<T: Config> Pallet<T> {
     }
 
     fn get_bonds_sparse(netuid: u16) -> Option<Vec<Vec<(u16, I32F32)>>> {
-        let n: usize = Self::get_subnet_n(netuid) as usize;
+        let n: usize = N::<T>::get(netuid) as usize;
         let mut bonds: Vec<Vec<(u16, I32F32)>> = vec![vec![]; n];
         for (uid_i, bonds_i) in Bonds::<T>::iter_prefix(netuid).filter(|(uid, _)| *uid < n as u16) {
             for (uid_j, bonds_ij) in bonds_i.into_iter().filter(|(uid, _)| *uid < n as u16) {

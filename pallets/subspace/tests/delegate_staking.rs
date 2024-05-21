@@ -3,7 +3,7 @@ mod mock;
 use frame_support::assert_ok;
 use log::info;
 use mock::*;
-use pallet_subspace::Tempo;
+use pallet_subspace::{Dividends, Emission, Incentive, Tempo};
 use sp_core::U256;
 use substrate_fixed::types::I64F64;
 
@@ -116,9 +116,9 @@ fn test_ownership_ratio() {
 
         step_epoch(netuid);
 
-        let dividends = SubspaceModule::get_dividends(netuid);
-        let incentives = SubspaceModule::get_incentives(netuid);
-        let emissions = SubspaceModule::get_emissions(netuid);
+        let dividends = Dividends::<Test>::get(netuid);
+        let incentives = Incentive::<Test>::get(netuid);
+        let emissions = Emission::<Test>::get(netuid);
 
         info!("dividends: {dividends:?}");
         info!("incentives: {incentives:?}");

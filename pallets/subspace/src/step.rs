@@ -103,7 +103,7 @@ failed to run yuma consensus algorithm: {err:?}, skipping this block. \
         let subnet_params = Self::subnet_params(netuid);
 
         // get the amount of modules
-        let n: u16 = Self::get_subnet_n(netuid);
+        let n: u16 = N::<T>::get(netuid);
         let current_block: u64 = Self::get_current_block_number();
 
         // if there are no modules, then return
@@ -112,7 +112,7 @@ failed to run yuma consensus algorithm: {err:?}, skipping this block. \
         }
 
         // FOUNDER DIVIDENDS
-        let founder_key = Self::get_founder(netuid);
+        let founder_key = Founder::<T>::get(netuid);
         let (token_emission, founder_emission) =
             Self::calculate_founder_emission(netuid, token_emission);
 
@@ -120,10 +120,8 @@ failed to run yuma consensus algorithm: {err:?}, skipping this block. \
         let uid_key_tuples: Vec<(u16, T::AccountId)> = Self::get_uid_key_tuples(netuid);
         let total_stake_u64: u64 = Self::get_total_subnet_stake(netuid).max(1);
 
-        let stake_u64: Vec<u64> = uid_key_tuples
-            .iter()
-            .map(|(_, key)| Self::get_stake_for_key(netuid, key))
-            .collect();
+        let stake_u64: Vec<u64> =
+            uid_key_tuples.iter().map(|(_, key)| Stake::<T>::get(netuid, key)).collect();
 
         let stake_f64: Vec<I64F64> = stake_u64
             .iter()
@@ -153,7 +151,7 @@ failed to run yuma consensus algorithm: {err:?}, skipping this block. \
 
         // TRUST
         // trust that acts as a multiplier for the incentive
-        let trust_ratio: u16 = Self::get_trust_ratio(netuid);
+        let trust_ratio: u16 = TrustRatio::<T>::get(netuid);
         if trust_ratio > 0 {
             let trust_share: I32F32 = I32F32::from_num(trust_ratio) / I32F32::from_num(100);
             let incentive_share: I32F32 = I32F32::from_num(1.0).saturating_sub(trust_share);
@@ -204,7 +202,7 @@ failed to run yuma consensus algorithm: {err:?}, skipping this block. \
         netuid: u16,
     ) -> (Vec<I64F64>, Vec<I64F64>) {
         let incentive_ratio: I64F64 =
-            I64F64::from_num(Self::get_incentive_ratio(netuid) as u64) / I64F64::from_num(100);
+            I64F64::from_num(IncentiveRatio::<T>::get(netuid) as u64) / I64F64::from_num(100);
         let dividend_ratio: I64F64 = I64F64::from_num(1.0) - incentive_ratio;
 
         let incentive_emission_float: Vec<I64F64> = incentive
@@ -511,7 +509,7 @@ failed to run yuma consensus algorithm: {err:?}, skipping this block. \
         stake_f64: &[I64F64],
         total_stake_u64: u64,
     ) -> Vec<Vec<(u16, I32F32)>> {
-        let last_update_vector = Self::get_last_update(netuid);
+        let last_update_vector = LastUpdate::<T>::get(netuid);
         let min_weight_stake_f64 = I64F64::from_num(global_params.min_weight_stake);
         let mut weights: Vec<Vec<(u16, u16)>> = vec![vec![]; n as usize];
 
@@ -549,7 +547,7 @@ failed to run yuma consensus algorithm: {err:?}, skipping this block. \
     }
 
     fn calculate_founder_emission(netuid: u16, mut token_emission: u64) -> (u64, u64) {
-        let founder_share: u16 = Self::get_founder_share(netuid);
+        let founder_share: u16 = FounderShare::<T>::get(netuid).min(100);
         if founder_share == 0u16 {
             return (token_emission, 0);
         }
@@ -564,14 +562,14 @@ failed to run yuma consensus algorithm: {err:?}, skipping this block. \
     }
 
     pub fn get_block_at_registration(netuid: u16) -> Vec<u64> {
-        let n = Self::get_subnet_n(netuid) as usize;
+        let n = N::<T>::get(netuid) as usize;
         let mut block_at_registration: Vec<u64> = vec![0; n];
 
         for (module_uid, block) in block_at_registration.iter_mut().enumerate() {
             let module_uid = module_uid as u16;
 
             if Keys::<T>::contains_key(netuid, module_uid) {
-                *block = Self::get_module_registration_block(netuid, module_uid);
+                *block = RegistrationBlock::<T>::get(netuid, module_uid);
             }
         }
 
@@ -625,7 +623,7 @@ failed to run yuma consensus algorithm: {err:?}, skipping this block. \
         }
 
         if block_number % target_registrations_interval as u64 == 0 {
-            let current_burn = Self::get_burn(netuid);
+            let current_burn = Burn::<T>::get(netuid);
 
             let adjusted_burn = Self::adjust_burn(
                 current_burn,
@@ -633,7 +631,7 @@ failed to run yuma consensus algorithm: {err:?}, skipping this block. \
                 target_registrations_per_interval,
             );
 
-            Self::set_burn(netuid, adjusted_burn);
+            Burn::<T>::insert(netuid, adjusted_burn);
 
             // reset the registrations
             RegistrationsThisInterval::<T>::insert(netuid, 0);

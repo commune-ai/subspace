@@ -3,7 +3,7 @@ mod mock;
 use frame_support::assert_ok;
 use log::info;
 use mock::*;
-use pallet_subspace::{FloorFounderShare, ProfitShares};
+use pallet_subspace::{FloorFounderShare, ProfitShares, Stake};
 use sp_core::U256;
 use sp_std::vec;
 
@@ -48,8 +48,8 @@ fn test_add_profit_share() {
         assert_eq!(miner_emission, voter_emission, "emission not equal");
         assert!(miner_emission == 0, "emission not equal");
         assert!(voter_emission == 0, "emission not equal");
-        let miner_stake = SubspaceModule::get_stake_for_key(netuid, &miner_key);
-        let voter_stake = SubspaceModule::get_stake_for_key(netuid, &voter_key);
+        let miner_stake = Stake::<Test>::get(netuid, miner_key);
+        let voter_stake = Stake::<Test>::get(netuid, voter_key);
         info!("miner stake before: {miner_stake:?}");
         info!("voter stake before: {voter_stake:?}");
         step_epoch(netuid);
@@ -65,8 +65,8 @@ fn test_add_profit_share() {
         let voter_balance = SubspaceModule::get_balance_u64(&voter_key);
         info!("miner balance: {miner_balance:?}");
         info!("voter balance: {voter_balance:?}");
-        let miner_stake = SubspaceModule::get_stake_for_key(netuid, &miner_key);
-        let voter_stake = SubspaceModule::get_stake_for_key(netuid, &voter_key);
+        let miner_stake = Stake::<Test>::get(netuid, miner_key);
+        let voter_stake = Stake::<Test>::get(netuid, voter_key);
         info!("miner stake after: {miner_stake:?}");
         info!("voter stake after: {voter_stake:?}");
 

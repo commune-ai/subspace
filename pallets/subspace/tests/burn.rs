@@ -3,7 +3,8 @@ use frame_support::assert_ok;
 
 use mock::*;
 use pallet_subspace::{
-    global::BurnConfiguration, TargetRegistrationsInterval, TargetRegistrationsPerInterval,
+    global::BurnConfiguration, Burn, MaxRegistrationsPerBlock, TargetRegistrationsInterval,
+    TargetRegistrationsPerInterval,
 };
 use sp_core::U256;
 
@@ -56,9 +57,9 @@ fn test_local_subnet_burn() {
         // this means avg.  0.166.. per block
         // burn has incrased by 90% > up
 
-        let subnet_zero_burn = SubspaceModule::get_burn(0);
+        let subnet_zero_burn = Burn::<Test>::get(0);
         assert_eq!(subnet_zero_burn, min_burn);
-        let subnet_one_burn = SubspaceModule::get_burn(1);
+        let subnet_one_burn = Burn::<Test>::get(1);
         assert!(min_burn < subnet_one_burn && subnet_one_burn < max_burn);
     });
 }
