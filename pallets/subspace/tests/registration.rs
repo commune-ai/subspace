@@ -8,9 +8,10 @@ use sp_core::U256;
 
 use log::info;
 use pallet_subspace::{
-    voting::ApplicationStatus, CuratorApplications, Emission, Error, GeneralSubnetApplicationCost,
-    MaxAllowedModules, MaxAllowedUids, MaxNameLength, MinNameLength, MinStake, ProposalCost,
-    RegistrationsPerBlock, Stake, SubnetGaps, SubnetNames, TotalSubnets, N,
+    voting::ApplicationStatus, Curator, CuratorApplications, Emission, Error, FloorDelegationFee,
+    GeneralSubnetApplicationCost, MaxAllowedModules, MaxAllowedUids, MaxNameLength,
+    MaxRegistrationsPerBlock, MinNameLength, MinStake, ProposalCost, RegistrationsPerBlock, Stake,
+    SubnetGaps, SubnetNames, TotalSubnets, N,
 };
 use sp_runtime::{DispatchResult, Percent};
 
@@ -33,7 +34,7 @@ fn test_min_stake() {
         let name = "module".as_bytes().to_vec();
         assert_noop!(SubspaceModule::do_register(get_origin(U256::from(0)), network, name, address, 0, U256::from(0), None), Error::<Test>::NotEnoughBalanceToRegister);
         MinStake::<Test>::set(netuid, min_stake);
-        SubspaceModule::set_max_registrations_per_block(max_registrations_per_block);
+        MaxRegistrationsPerBlock::<Test>::set(max_registrations_per_block);
         step_block(1);
         assert_eq!(RegistrationsPerBlock::<Test>::get(), 0);
 
@@ -68,7 +69,7 @@ fn test_max_registration() {
 
         assert_eq!(RegistrationsPerBlock::<Test>::get(), 0);
 
-        SubspaceModule::set_max_registrations_per_block(1000);
+        MaxRegistrationsPerBlock::<Test>::set(1000);
         for i in 1..(max_registrations_per_block * rounds) {
             let key = U256::from(i);
             assert_ok!(register_module(netuid, U256::from(i), to_nano(100)));
@@ -143,7 +144,7 @@ fn test_many_registrations() {
         // make sure that the results won´t get affected by burn
         zero_min_burn();
 
-        SubspaceModule::set_max_registrations_per_block(n);
+        MaxRegistrationsPerBlock::<Test>::set(n);
         for i in 0..n {
             register_module(netuid, U256::from(i), stake).unwrap_or_else(|_| {
                 panic!("Failed to register module with key: {i:?} and stake: {stake:?}",)
@@ -263,7 +264,7 @@ fn register_custom(netuid: u16, key: U256, name: &[u8], addr: &[u8]) -> Dispatch
     let origin = get_origin(key);
     let is_new_subnet: bool = !SubspaceModule::if_subnet_exist(netuid);
     if is_new_subnet {
-        SubspaceModule::set_max_registrations_per_block(1000)
+        MaxRegistrationsPerBlock::<Test>::set(1000)
     }
 
     // make sure there is some balance
@@ -351,7 +352,7 @@ fn validates_module_on_update() {
         assert_eq!(params.name, b"test3");
         assert_eq!(params.address, b"0.0.0.0:3");
 
-        SubspaceModule::set_floor_delegation_fee(Percent::from_percent(10));
+        FloorDelegationFee::<Test>::set(Percent::from_percent(10));
         assert_err!(
             update_module(b"test3", b"0.0.0.0:3"),
             Error::<Test>::InvalidMinDelegationFee
@@ -419,7 +420,7 @@ fn test_register_invalid_name() {
         zero_min_burn();
 
         // set min name lenght
-        SubspaceModule::set_global_min_name_length(2);
+        MinNameLength::<Test>::set(2);
 
         // Get the minimum and maximum name lengths from the configuration
         let min_name_length = MinNameLength::<Test>::get();
@@ -518,7 +519,7 @@ fn test_register_invalid_subnet_name() {
         zero_min_burn();
 
         // Set min name length
-        SubspaceModule::set_global_min_name_length(2);
+        MinNameLength::<Test>::set(2);
 
         // Get the minimum and maximum name lengths from the configuration
         let min_name_length = MinNameLength::<Test>::get();
@@ -627,7 +628,7 @@ fn test_remove_from_whitelist() {
     new_test_ext().execute_with(|| {
         let whitelist_key = U256::from(0);
         let module_key = U256::from(1);
-        SubspaceModule::set_curator(whitelist_key);
+        Curator::<Test>::set(whitelist_key);
 
         let proposal_cost = ProposalCost::<Test>::get();
         let data = "test".as_bytes().to_vec();
@@ -664,7 +665,7 @@ fn test_invalid_curator() {
         let whitelist_key = U256::from(0);
         let invalid_key = U256::from(1);
         let module_key = U256::from(2);
-        SubspaceModule::set_curator(whitelist_key);
+        Curator::<Test>::set(whitelist_key);
 
         // Try to add to whitelist with an invalid curator key
         assert_noop!(

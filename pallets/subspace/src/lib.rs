@@ -285,23 +285,20 @@ pub mod pallet {
 
         // mins
         pub floor_delegation_fee: Percent, // min delegation fee
+        pub floor_founder_share: u8,       // min founder share
         pub min_weight_stake: u64,         // min weight stake required
-
-        pub unit_emission: u64, // emission per block
-        pub curator: T::AccountId,
-
-        pub subnet_stake_threshold: Percent,
 
         // proposals
         pub proposal_cost: u64,
         pub proposal_expiration: u32,
         pub proposal_participation_threshold: Percent,
-        // s0 governance
+
+        // S0 governance
+        pub curator: T::AccountId,
         pub general_subnet_application_cost: u64,
 
-        // founder share
-        pub floor_founder_share: u8,
-
+        // Other
+        pub subnet_stake_threshold: Percent,
         pub burn_config: BurnConfiguration<T>,
     }
 
@@ -1283,7 +1280,6 @@ pub mod pallet {
             floor_founder_share: u8,          // min founder share
             min_weight_stake: u64,            // min weight stake required
             adjustment_alpha: u64,            // adjustment alpha
-            unit_emission: u64,               // emission per block
             curator: T::AccountId,            // subnet 0 dao multisig
             subnet_stake_threshold: Percent,  // stake needed to start subnet emission
             proposal_cost: u64,               /*amount of $COMAI to create a proposal
@@ -1304,7 +1300,6 @@ pub mod pallet {
             params.floor_delegation_fee = floor_delegation_fee;
             params.floor_founder_share = floor_founder_share;
             params.min_weight_stake = min_weight_stake;
-            params.unit_emission = unit_emission;
             params.curator = curator;
             params.subnet_stake_threshold = subnet_stake_threshold;
             params.proposal_cost = proposal_cost;

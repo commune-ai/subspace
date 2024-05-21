@@ -40,7 +40,7 @@ impl<T: Config> Pallet<T> {
         );
 
         // --- 4. Insert the module_key into the whitelist.
-        Self::insert_to_whitelist(module_key.clone(), recommended_weight);
+        LegitWhitelist::<T>::insert(module_key.clone(), recommended_weight);
 
         // execute the application
         Self::execute_application(&module_key).unwrap();
@@ -69,7 +69,7 @@ impl<T: Config> Pallet<T> {
         );
 
         // --- 4. Remove the module_key from the whitelist.
-        Self::rm_from_whitelist(&module_key);
+        LegitWhitelist::<T>::remove(&module_key);
 
         // -- deposit event
         Self::deposit_event(Event::WhitelistModuleRemoved(module_key));
@@ -221,8 +221,10 @@ impl<T: Config> Pallet<T> {
         stake_amount >= (min_stake + min_burn)
     }
 
-    // Deregistration Logic
-    // ====================
+    // Whitelist management
+    pub fn is_in_legit_whitelist(account_id: &T::AccountId) -> bool {
+        LegitWhitelist::<T>::contains_key(account_id)
+    }
 
     // Determine which peer to prune from the network by finding the element with the lowest pruning
     // score out of immunity period. If all modules are in immunity period return None.
@@ -408,6 +410,10 @@ impl<T: Config> Pallet<T> {
         Self::add_subnet(changeset, target_subnet)
     }
 
+    // returns the amount of total modules on the network
+    pub fn global_n_modules() -> u16 {
+        Self::netuids().into_iter().map(N::<T>::get).sum()
+    }
     /// This function checks whether there are still available module slots on the network. If the
     /// subnet is filled, deregister the least staked module on it, or if the max allowed modules on
     /// the network is reached, deregisters the least staked module on the least staked netuid.

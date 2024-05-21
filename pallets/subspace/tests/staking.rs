@@ -3,7 +3,7 @@ mod mock;
 use frame_support::{assert_noop, assert_ok};
 use log::info;
 use mock::*;
-use pallet_subspace::Error;
+use pallet_subspace::{Error, MaxRegistrationsPerBlock};
 use sp_core::U256;
 use substrate_fixed::types::I64F64;
 
@@ -20,7 +20,7 @@ fn test_stake() {
         let mut subnet_stake: u64 = 0;
         // make sure that the results won´t get affected by burn
         zero_min_burn();
-        SubspaceModule::set_max_registrations_per_block(1000);
+        MaxRegistrationsPerBlock::<Test>::set(1000);
 
         for netuid in netuids {
             info!("NETUID: {}", netuid);
@@ -210,7 +210,7 @@ fn test_delegate_stake() {
         let mut subnet_stake: u64 = 0;
         // make sure that the results won´t get affected by burn
         zero_min_burn();
-        SubspaceModule::set_max_registrations_per_block(1000);
+        MaxRegistrationsPerBlock::<Test>::set(1000);
 
         for i in netuids.iter() {
             let netuid = *i;
