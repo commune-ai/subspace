@@ -117,7 +117,7 @@ pub mod pallet {
         23148148148
     }
     #[pallet::storage] // --- ITEM ( unit_emission )
-    pub(super) type UnitEmission<T> = StorageValue<_, u64, ValueQuery, DefaultUnitEmission<T>>;
+    pub type UnitEmission<T> = StorageValue<_, u64, ValueQuery, DefaultUnitEmission<T>>;
 
     #[pallet::type_value]
     pub fn DefaultAdjustmentAlpha<T: Config>() -> u64 {

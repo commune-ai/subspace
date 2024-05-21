@@ -6,7 +6,10 @@ use frame_support::{
     PalletId,
 };
 use frame_system as system;
-use pallet_subspace::{Address, BurnConfig, MaxRegistrationsPerBlock, Name};
+use pallet_subspace::{
+    Address, BurnConfig, Dividends, Emission, Incentive, LastUpdate, MaxRegistrationsPerBlock,
+    Name, Stake, Tempo, N,
+};
 use sp_core::{H256, U256};
 use sp_runtime::{
     traits::{BlakeTwo256, IdentityLookup},
@@ -146,7 +149,7 @@ pub(crate) fn step_block(n: u16) {
 
 #[allow(dead_code)]
 pub(crate) fn step_epoch(netuid: u16) {
-    let tempo: u16 = SubspaceModule::get_tempo(netuid);
+    let tempo: u16 = Tempo::<Test>::get(netuid);
     step_block(tempo);
 }
 
@@ -216,15 +219,15 @@ pub fn register_module(netuid: u16, key: U256, stake: u64) -> DispatchResult {
 
 #[allow(dead_code)]
 pub fn check_subnet_storage(netuid: u16) -> bool {
-    let n = SubspaceModule::get_subnet_n(netuid);
+    let n = N::<Test>::get(netuid);
     let uids = SubspaceModule::get_uids(netuid);
     let keys = SubspaceModule::get_keys(netuid);
     let names = SubspaceModule::get_names(netuid);
     let addresses = SubspaceModule::get_addresses(netuid);
-    let emissions = SubspaceModule::get_emissions(netuid);
-    let incentives = SubspaceModule::get_incentives(netuid);
-    let dividends = SubspaceModule::get_dividends(netuid);
-    let last_update = SubspaceModule::get_last_update(netuid);
+    let emissions = Emission::<Test>::get(netuid);
+    let incentives = Incentive::<Test>::get(netuid);
+    let dividends = Dividends::<Test>::get(netuid);
+    let last_update = LastUpdate::<Test>::get(netuid);
 
     if (n as usize) != uids.len() {
         return false;
@@ -271,7 +274,7 @@ pub fn get_stake_for_uid(netuid: u16, module_uid: u16) -> u64 {
     let Some(key) = SubspaceModule::get_key_for_uid(netuid, module_uid) else {
         return 0;
     };
-    SubspaceModule::get_stake_for_key(netuid, &key)
+    Stake::<Test>::get(netuid, key)
 }
 
 #[allow(dead_code)]

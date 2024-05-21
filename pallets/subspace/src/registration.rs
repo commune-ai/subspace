@@ -131,7 +131,7 @@ impl<T: Config> Pallet<T> {
 
         // --- 5. Ensure the caller has enough stake to register.
         let min_stake: u64 = MinStake::<T>::get(netuid);
-        let current_burn: u64 = Self::get_burn(netuid);
+        let current_burn: u64 = Burn::<T>::get(netuid);
         // also ensures that in the case current_burn is present, the stake is enough
         // as burn, will be decreased from the stake on the module
         ensure!(
@@ -232,7 +232,7 @@ impl<T: Config> Pallet<T> {
         let mut min_score: u64 = u64::MAX;
         let mut lowest_priority_uid: u16 = 0;
         let current_block = Self::get_current_block_number();
-        let immunity_period: u64 = Self::get_immunity_period(netuid) as u64;
+        let immunity_period: u64 = ImmunityPeriod::<T>::get(netuid) as u64;
 
         // Get all the UIDs and their registration blocks from the storage
         let mut uids: Vec<_> = RegistrationBlock::<T>::iter_prefix(netuid).collect();
@@ -384,12 +384,12 @@ impl<T: Config> Pallet<T> {
         stake: u64,
         changeset: SubnetChangeset<T>,
     ) -> Result<u16, sp_runtime::DispatchError> {
-        let num_subnets: u16 = Self::num_subnets();
+        let num_subnets: u16 = TotalSubnets::<T>::get();
         let max_subnets: u16 = MaxAllowedSubnets::<T>::get();
 
         // if we have not reached the max number of subnets, then we can start a new one
         let target_subnet = if num_subnets >= max_subnets {
-            let (min_stake_netuid, min_stake) = Self::least_staked_netuid();
+            let (min_stake_netuid, min_stake) = Self::get_least_staked_netuid();
             // if the stake is greater than the least staked network, then we can start a new one
             ensure!(stake > min_stake, Error::<T>::NotEnoughStakeToStartNetwork);
             Self::remove_subnet(min_stake_netuid);
@@ -409,13 +409,13 @@ impl<T: Config> Pallet<T> {
     /// subnet is filled, deregister the least staked module on it, or if the max allowed modules on
     /// the network is reached, deregisters the least staked module on the least staked netuid.
     pub fn reserve_module_slot(netuid: u16) {
-        if Self::get_subnet_n(netuid) >= Self::get_max_allowed_uids(netuid) {
+        if N::<T>::get(netuid) >= MaxAllowedUids::<T>::get(netuid) {
             // If we reach the max allowed modules for this subnet,
             // then we replace the lowest priority node in the current subnet
             Self::remove_module(netuid, Self::get_lowest_uid(netuid, false));
         } else if Self::global_n_modules() >= MaxAllowedModules::<T>::get() {
             // Get the least staked network (subnet) and its least staked module.
-            let (subnet_uid, _) = Self::least_staked_netuid();
+            let (subnet_uid, _) = Self::get_least_staked_netuid();
             let module_uid = Self::get_lowest_uid(subnet_uid, true);
 
             // Deregister the lowest priority node in the least staked network

@@ -55,13 +55,14 @@ impl<T: Config> Pallet<T> {
 
         // --- 7. Ensure that the passed uids are valid for the network.
         ensure!(
-            uids.iter().all(|&uid| Self::is_uid_exist_on_network(netuid, uid)),
+            uids.iter().all(|&uid| Self::uid_exist_on_network(netuid, uid)),
             Error::<T>::InvalidUid
         );
 
         // --- 8. Check the allowed length of uids.
         let min_allowed_length: usize = Self::get_min_allowed_weights(netuid) as usize;
-        let max_allowed_length: usize = Self::get_max_allowed_weights(netuid) as usize;
+        let max_allowed_length: usize =
+            MaxAllowedWeights::<T>::get(netuid).min(N::<T>::get(netuid)) as usize;
         ensure!(
             uids.len() >= min_allowed_length && uids.len() <= max_allowed_length,
             Error::<T>::InvalidUidsLength
@@ -71,7 +72,7 @@ impl<T: Config> Pallet<T> {
         ensure!(!uids.contains(&uid), Error::<T>::NoSelfWeight);
 
         // --- 10. Get the stake for the key.
-        let stake: u64 = Self::get_stake_for_key(netuid, &key);
+        let stake: u64 = Stake::<T>::get(netuid, &key);
 
         // --- 11. Check if the stake per weight is greater than the required minimum stake.
         let min_stake_per_weight: u64 = MinWeightStake::<T>::get();
@@ -105,6 +106,11 @@ impl<T: Config> Pallet<T> {
         Self::deposit_event(Event::WeightsSet(netuid, uid));
 
         Ok(())
+    }
+
+    // Returns true if the uid is set on the network.
+    pub fn uid_exist_on_network(netuid: u16, uid: u16) -> bool {
+        Keys::<T>::contains_key(netuid, uid)
     }
 
     // Implace normalizes the passed positive integer weights so that they sum to u16 max value.

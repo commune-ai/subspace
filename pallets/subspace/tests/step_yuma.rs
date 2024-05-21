@@ -2,7 +2,7 @@ use crate::mock::*;
 use frame_support::assert_ok;
 use pallet_subspace::{
     yuma::{AccountKey, EmissionMap, ModuleKey, YumaCalc},
-    FloorFounderShare, MaxRegistrationsPerBlock,
+    Emission, FloorFounderShare, MaxRegistrationsPerBlock, Stake, UnitEmission, N,
 };
 use sp_core::U256;
 use std::collections::BTreeMap;
@@ -45,7 +45,7 @@ const ONE: u64 = to_nano(1);
 #[test]
 fn test_1_graph() {
     new_test_ext().execute_with(|| {
-        SubspaceModule::set_unit_emission(23148148148);
+        UnitEmission::<Test>::put(23148148148);
         zero_min_burn();
         FloorFounderShare::<Test>::put(0);
 
@@ -64,7 +64,7 @@ fn test_1_graph() {
         });
 
         assert_ok!(register_module(netuid, key + 1, 1));
-        assert_eq!(SubspaceModule::get_subnet_n(netuid), 2);
+        assert_eq!(N::<Test>::get(netuid), 2);
 
         run_to_block(1); // run to next block to ensure weights are set on nodes after their registration block
 
@@ -108,15 +108,15 @@ fn test_10_graph() {
             key,
             uid,
             stake_amount,
-            SubspaceModule::get_subnet_n(netuid),
+            N::<Test>::get(netuid),
         );
 
         assert_ok!(register_module(netuid, key, stake_amount));
-        assert_eq!(SubspaceModule::get_subnet_n(netuid) - 1, uid);
+        assert_eq!(N::<Test>::get(netuid) - 1, uid);
     }
 
     new_test_ext().execute_with(|| {
-        SubspaceModule::set_unit_emission(23148148148);
+        UnitEmission::<Test>::put(23148148148);
         zero_min_burn();
         FloorFounderShare::<Test>::put(0);
         MaxRegistrationsPerBlock::<Test>::set(1000);
@@ -140,7 +140,7 @@ fn test_10_graph() {
         });
 
         assert_ok!(register_module(netuid, U256::from(n + 1), 1));
-        assert_eq!(SubspaceModule::get_subnet_n(netuid), 11);
+        assert_eq!(N::<Test>::get(netuid), 11);
 
         run_to_block(1); // run to next block to ensure weights are set on nodes after their registration block
 
@@ -264,7 +264,7 @@ fn yuma_weights_older_than_max_age_are_discarded() {
 
         // But make sure there are emissions
 
-        let subnet_emission_sum = SubspaceModule::get_emissions(yuma_netuid).iter().sum::<u64>();
+        let subnet_emission_sum = Emission::<Test>::get(yuma_netuid).iter().sum::<u64>();
         assert!(subnet_emission_sum > 0);
     });
 }
@@ -303,7 +303,7 @@ fn test_emission_exploit() {
         // step first 40 blocks from the registration
         step_block(40);
 
-        let stake_accumulated = SubspaceModule::get_stake_for_key(yuma_netuid, &yuma_badactor_key);
+        let stake_accumulated = Stake::<Test>::get(yuma_netuid, yuma_badactor_key);
         // User will now unstake and register another subnet.
         assert_ok!(SubspaceModule::do_remove_stake(
             get_origin(yuma_badactor_key),
@@ -340,8 +340,7 @@ fn test_emission_exploit() {
         step_block(58);
 
         // remove the stake again
-        let stake_accumulated_two =
-            SubspaceModule::get_stake_for_key(new_netuid, &yuma_badactor_key);
+        let stake_accumulated_two = Stake::<Test>::get(new_netuid, yuma_badactor_key);
         assert_ok!(SubspaceModule::do_remove_stake(
             get_origin(yuma_badactor_key),
             new_netuid,
@@ -364,7 +363,7 @@ fn test_emission_exploit() {
         step_block(101);
 
         // get the stake of honest actor
-        let hones_stake = SubspaceModule::get_stake_for_key(3, &honest_actor_key);
+        let hones_stake = Stake::<Test>::get(3, honest_actor_key);
         dbg!(hones_stake);
         dbg!(badactor_balance_after);
 
@@ -407,8 +406,8 @@ fn test_tempo_compound() {
         // we will now step, SLOW_TEMPO -> 1000 blocks
         step_block(SLOW_TEMPO);
 
-        let fast = SubspaceModule::get_stake_for_key(f_netuid, &f_key);
-        let slow = SubspaceModule::get_stake_for_key(s_netuid, &s_key);
+        let fast = Stake::<Test>::get(f_netuid, f_key);
+        let slow = Stake::<Test>::get(s_netuid, s_key);
 
         // faster tempo should have quicker compound rate
         assert!(fast > slow);
