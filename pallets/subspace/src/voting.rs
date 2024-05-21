@@ -1,6 +1,6 @@
 use super::*;
-use codec::MaxEncodedLen;
 use frame_support::{pallet_prelude::DispatchResult, storage::with_storage_layer};
+use parity_scale_codec::MaxEncodedLen;
 use sp_runtime::{Percent, SaturatedConversion};
 
 #[derive(Clone, Debug, TypeInfo, Decode, Encode)]

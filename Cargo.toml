@@ -1,5 +1,12 @@
 [workspace]
-members = ["node", "pallets/subspace", "pallets/governance", "runtime", "xtask"]
+members = [
+    "node",
+    "pallets/subspace",
+    "pallets/governance",
+    "pallets/governance/api",
+    "runtime",
+    "xtask",
+]
 resolver = "2"
 
 [profile.release]
@@ -35,18 +42,12 @@ substrate-fixed = { git = 'https://github.com/encointer/substrate-fixed.git', ta
 tokio = "1.17.0"
 
 # Parity Scale Codec
-codec = { version = "3.6.1", package = "parity-scale-codec", default-features = false, features = [
-    "derive",
-] }
 parity-scale-codec = { version = "3.6.5", features = [
     "derive",
 ], default-features = false }
 
 # Frontier dependencies
 fp-account = { git = "https://github.com/paritytech/frontier", default-features = false, features = [
-    "serde",
-] }
-fp-evm = { git = "https://github.com/paritytech/frontier", default-features = false, features = [
     "serde",
 ] }
 fp-rpc = { git = "https://github.com/paritytech/frontier", default-features = false }

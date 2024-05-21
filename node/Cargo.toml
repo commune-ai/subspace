@@ -59,8 +59,6 @@ sc-basic-authorship.workspace = true
 substrate-frame-rpc-system.workspace = true
 pallet-transaction-payment-rpc.workspace = true
 
-fp-evm.workspace = true
-
 # These dependencies are used for runtime benchmarking
 frame-benchmarking.workspace = true
 frame-benchmarking-cli.workspace = true
