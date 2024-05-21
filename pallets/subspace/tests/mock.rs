@@ -6,7 +6,9 @@ use frame_support::{
     PalletId,
 };
 use frame_system as system;
-use pallet_subspace::{Address, BurnConfig, MaxRegistrationsPerInterval, Name};
+use pallet_subspace::{
+    Address, BurnConfig, MaxRegistrationsPerBlock, MaxRegistrationsPerInterval, Name,
+};
 use sp_core::{H256, U256};
 use sp_runtime::{
     traits::{BlakeTwo256, IdentityLookup},
@@ -396,7 +398,7 @@ pub fn delegate_register_module(
     let origin = get_origin(key);
     let is_new_subnet: bool = !SubspaceModule::if_subnet_exist(netuid);
     if is_new_subnet {
-        SubspaceModule::set_max_registrations_per_block(1000)
+        MaxRegistrationsPerBlock::<Test>::set(1000)
     }
 
     let balance = SubspaceModule::get_balance(&key);

@@ -24,7 +24,7 @@ fn test_local_subnet_burn() {
 
         assert_ok!(burn_config.apply());
 
-        SubspaceModule::set_max_registrations_per_block(5);
+        MaxRegistrationsPerBlock::<Test>::set(5);
 
         // register the general subnet
         assert_ok!(register_module(0, U256::from(0), to_nano(20)));
@@ -37,7 +37,7 @@ fn test_local_subnet_burn() {
         let n = 300;
         let initial_stake: u64 = to_nano(500);
 
-        SubspaceModule::set_max_registrations_per_block(1000);
+        MaxRegistrationsPerBlock::<Test>::set(1000);
         // this will perform 300 registrations and step in between
         for i in 1..n {
             // this registers five in block

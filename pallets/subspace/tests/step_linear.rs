@@ -5,7 +5,8 @@ use log::info;
 use mock::*;
 use pallet_subspace::{
     global::BurnConfiguration, BurnConfig, DaoTreasuryAddress, DaoTreasuryDistribution,
-    MaxAllowedWeights, MinAllowedWeights, SubnetStakeThreshold, Tempo, Trust,
+    MaxAllowedWeights, MaxRegistrationsPerBlock, MinAllowedWeights, SubnetStakeThreshold, Tempo,
+    Trust,
 };
 use sp_core::U256;
 use sp_runtime::Percent;
@@ -258,7 +259,7 @@ fn test_pruning() {
 
         // make sure that the results won´t get affected by burn
         zero_min_burn();
-        SubspaceModule::set_max_registrations_per_block(1000);
+        MaxRegistrationsPerBlock::<Test>::set(1000);
 
         // SETUP NETWORK
         register_n_modules(netuid, n, stake_per_module);
@@ -326,7 +327,8 @@ fn test_lowest_priority_mechanism() {
 
         // make sure that the results won´t get affected by burn
         zero_min_burn();
-        SubspaceModule::set_max_registrations_per_block(1000);
+        MaxRegistrationsPerBlock::<Test>::set(1000);
+
         // SETUP NETWORK
         register_n_modules(netuid, n, stake_per_module);
 
@@ -628,7 +630,7 @@ fn test_founder_share() {
         let stakes: Vec<u64> = (0..n).map(|_x| initial_stake * 1_000_000_000).collect();
 
         let founder_key = keys[0];
-        SubspaceModule::set_max_registrations_per_block(1000);
+        MaxRegistrationsPerBlock::<Test>::set(1000);
         for i in 0..n {
             assert_ok!(register_module(netuid, keys[i], stakes[i]));
             let stake_from_vector = SubspaceModule::get_stake_to_vector(netuid, &keys[i]);
@@ -739,7 +741,7 @@ fn test_dynamic_burn() {
             SubspaceModule::get_burn(netuid)
         );
 
-        SubspaceModule::set_max_registrations_per_block(1000);
+        MaxRegistrationsPerBlock::<Test>::set(1000);
         // Register only 50 of the target
         let amount: usize = 50;
         for (i, &stake) in stakes.iter().enumerate().take(amount) {

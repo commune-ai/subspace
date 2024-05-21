@@ -4,8 +4,8 @@ use frame_support::{assert_err, assert_ok};
 use log::info;
 use mock::*;
 use pallet_subspace::{
-    Dividends, Error, FounderShare, MaxAllowedSubnets, MaximumSetWeightCallsPerEpoch, SubnetNames,
-    SubnetStakeThreshold, Tempo, N,
+    Dividends, Error, FounderShare, MaxAllowedSubnets, MaxRegistrationsPerBlock,
+    MaximumSetWeightCallsPerEpoch, SubnetNames, SubnetStakeThreshold, Tempo, N,
 };
 use sp_core::U256;
 use sp_runtime::Percent;
@@ -23,7 +23,7 @@ fn test_add_subnets() {
 
         // make sure that the results won´t get affected by burn
         zero_min_burn();
-        SubspaceModule::set_max_registrations_per_block(1000);
+        MaxRegistrationsPerBlock::<Test>::set(1000);
 
         for i in 0..num_subnets {
             assert_ok!(register_module(i, U256::from(i), stake_per_module));
@@ -135,7 +135,7 @@ fn test_set_max_allowed_uids_growing() {
         zero_min_burn();
 
         assert_ok!(register_module(netuid, U256::from(0), stake));
-        SubspaceModule::set_max_registrations_per_block(max_uids + extra_uids * rounds);
+        MaxRegistrationsPerBlock::<Test>::set(max_uids + extra_uids * rounds);
         for i in 1..max_uids {
             assert_ok!(register_module(netuid, U256::from(i), stake));
             assert_eq!(SubspaceModule::get_subnet_n(netuid), i + 1);
@@ -193,7 +193,7 @@ fn test_set_max_allowed_uids_shrinking() {
         update_params!(netuid => {
             max_allowed_uids: max_uids + extra_uids
         });
-        SubspaceModule::set_max_registrations_per_block(max_uids + extra_uids);
+        MaxRegistrationsPerBlock::<Test>::set(max_uids + extra_uids);
 
         for i in 1..(max_uids + extra_uids) {
             let result = register_module(netuid, U256::from(i), stake);
@@ -276,7 +276,7 @@ fn test_set_max_allowed_modules() {
 
         // make sure that the results won´t get affected by burn
         zero_min_burn();
-        SubspaceModule::set_max_registrations_per_block(1000);
+        MaxRegistrationsPerBlock::<Test>::set(1000);
         SubspaceModule::set_max_allowed_modules(max_allowed_modules);
         // set max_total modules
         for i in 1..(2 * max_allowed_modules) {
@@ -340,7 +340,7 @@ fn test_emission_distribution_novote() {
         // making sure the unit emission are set correctly
         SubspaceModule::set_unit_emission(23148148148);
         zero_min_burn();
-        SubspaceModule::set_subnet_stake_threshold(Percent::from_percent(10));
+        SubnetStakeThreshold::<Test>::set(Percent::from_percent(10));
         let blocks_in_day: u16 = 10_800;
         // this is aprox. the stake we expect at the end of the day with the above unit emission
         let expected_stake_change = to_nano(250_000);
@@ -541,7 +541,7 @@ fn test_emission_activation() {
         ];
 
         // Set the stake threshold and minimum burn
-        SubspaceModule::set_subnet_stake_threshold(Percent::from_percent(5));
+        SubnetStakeThreshold::<Test>::set(Percent::from_percent(5));
         zero_min_burn();
 
         // Register the subnets
@@ -578,7 +578,7 @@ fn test_parasite_subnet_registrations() {
     new_test_ext().execute_with(|| {
         let expected_module_amount: u16 = 5;
         SubspaceModule::set_max_allowed_modules(expected_module_amount);
-        SubspaceModule::set_max_registrations_per_block(1000);
+        MaxRegistrationsPerBlock::<Test>::set(1000);
 
         let main_subnet_netuid: u16 = 0;
         let main_subnet_stake = to_nano(500_000);
@@ -683,7 +683,7 @@ fn test_subnet_replacing() {
 #[test]
 fn test_active_stake() {
     new_test_ext().execute_with(|| {
-        SubspaceModule::set_subnet_stake_threshold(Percent::from_percent(5));
+        SubnetStakeThreshold::<Test>::set(Percent::from_percent(5));
         let max_subnets = 10;
         SubspaceModule::set_global_max_allowed_subnets(max_subnets);
 

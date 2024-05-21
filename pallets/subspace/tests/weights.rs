@@ -1,7 +1,7 @@
 mod mock;
 use frame_support::{assert_err, assert_ok};
 
-use pallet_subspace::{Error, FloorFounderShare};
+use pallet_subspace::{Error, FloorFounderShare, MaxRegistrationsPerBlock};
 use sp_core::U256;
 use sp_runtime::DispatchError;
 
@@ -40,7 +40,7 @@ fn test_weights_err_has_duplicate_ids() {
         let netuid: u16 = 0;
         // make sure that the results won´t get affected by burn
         zero_min_burn();
-        SubspaceModule::set_max_registrations_per_block(100);
+        MaxRegistrationsPerBlock::<Test>::set(100);
 
         assert_ok!(register_module(netuid, key_account_id, 10));
         update_params!(netuid => { max_allowed_uids: 100 });
@@ -109,7 +109,7 @@ fn test_set_weight_not_enough_values() {
     new_test_ext().execute_with(|| {
         let netuid: u16 = 0;
         let n = 100;
-        SubspaceModule::set_max_registrations_per_block(n);
+        MaxRegistrationsPerBlock::<Test>::set(n);
         let account_id = U256::from(0);
         // make sure that the results won´t get affected by burn
         zero_min_burn();
@@ -163,7 +163,7 @@ fn test_set_max_allowed_uids() {
     new_test_ext().execute_with(|| {
         let netuid: u16 = 0;
         let n = 100;
-        SubspaceModule::set_max_registrations_per_block(n);
+        MaxRegistrationsPerBlock::<Test>::set(n);
         let account_id = U256::from(0);
         // make sure that the results won´t get affected by burn
         zero_min_burn();
@@ -223,7 +223,7 @@ fn test_min_weight_stake() {
         let mut global_params = SubspaceModule::global_params();
         global_params.min_weight_stake = to_nano(20);
         SubspaceModule::set_global_params(global_params);
-        SubspaceModule::set_max_registrations_per_block(1000);
+        MaxRegistrationsPerBlock::<Test>::set(1000);
 
         let netuid: u16 = 0;
         let module_count: u16 = 16;
@@ -266,7 +266,7 @@ fn test_weight_age() {
         const TEMPO: u64 = 100;
         const PASSIVE_VOTER: u16 = 0;
         const ACTIVE_VOTER: u16 = 1;
-        SubspaceModule::set_max_registrations_per_block(1000);
+        MaxRegistrationsPerBlock::<Test>::set(1000);
         FloorFounderShare::<Test>::put(0);
         // Register modules
         (0..MODULE_COUNT).for_each(|i| {
