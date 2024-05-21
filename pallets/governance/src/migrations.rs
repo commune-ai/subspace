@@ -5,9 +5,11 @@ use frame_support::{
     traits::{OnRuntimeUpgrade, StorageVersion, UncheckedOnRuntimeUpgrade},
     BoundedVec,
 };
+use pallet_subspace::voting::VoteMode;
 
 use crate::{
-    Config, GlobalProposalCost, Pallet, Proposal, ProposalData, ProposalStatus, Proposals,
+    proposal::{ProposalData, ProposalStatus},
+    Config, GovernanceConfiguration, Pallet, Proposal, Proposals,
 };
 
 #[derive(Default)]
@@ -22,7 +24,22 @@ impl<T: Config + pallet_subspace::Config> OnRuntimeUpgrade for InitialMigration<
         log::info!("Initializing governance storage, importing proposals...");
 
         let old_proposal_cost = pallet_subspace::ProposalCost::<T>::get();
-        GlobalProposalCost::<T>::set(old_proposal_cost);
+        let old_expiration = pallet_subspace::ProposalExpiration::<T>::get();
+
+        let governance_configuration = GovernanceConfiguration::<T> {
+            proposal_cost: old_proposal_cost,
+            expiration: old_expiration,
+            vote_mode: VoteMode::Vote,
+            _pd: PhantomData,
+        };
+
+        if let Err(err) = governance_configuration.apply_global() {
+            log::warn!(
+                "could not migrate the old values to the new global GovernanceConfig: {err:?}"
+            );
+        }
+
+        // GlobalProposalCost::<T>::set(old_proposal_cost);
 
         for (id, proposal) in pallet_subspace::Proposals::<T>::iter() {
             let metadata = match &proposal.data {
