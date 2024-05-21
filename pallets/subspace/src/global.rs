@@ -1,6 +1,5 @@
 use super::*;
 use frame_support::pallet_prelude::{DispatchResult, MaxEncodedLen};
-use sp_arithmetic::per_things::Percent;
 use sp_core::Get;
 use sp_runtime::DispatchError;
 
@@ -67,7 +66,6 @@ impl<T: Config> Pallet<T> {
             min_name_length: MinNameLength::<T>::get(),
             max_allowed_subnets: MaxAllowedSubnets::<T>::get(),
             max_allowed_modules: MaxAllowedModules::<T>::get(),
-            unit_emission: UnitEmission::<T>::get(),
             curator: Curator::<T>::get(),
             floor_founder_share: FloorFounderShare::<T>::get(),
             floor_delegation_fee: FloorDelegationFee::<T>::get(),
@@ -89,6 +87,37 @@ impl<T: Config> Pallet<T> {
             // s0 config
             general_subnet_application_cost: GeneralSubnetApplicationCost::<T>::get(),
         }
+    }
+
+    pub fn set_global_params(params: GlobalParams<T>) {
+        // Check if the params are valid
+        Self::check_global_params(&params).expect("global params are invalid");
+
+        // Network
+        MaxNameLength::<T>::put(params.max_name_length);
+        MaxAllowedSubnets::<T>::put(params.max_allowed_subnets);
+        MaxAllowedModules::<T>::put(params.max_allowed_modules);
+        FloorDelegationFee::<T>::put(params.floor_delegation_fee);
+
+        // burn & registrations
+        MaxRegistrationsPerBlock::<T>::set(params.max_registrations_per_block);
+        MinWeightStake::<T>::put(params.min_weight_stake);
+        SubnetStakeThreshold::<T>::put(params.subnet_stake_threshold);
+        FloorDelegationFee::<T>::put(params.floor_delegation_fee);
+        Curator::<T>::put(params.curator);
+        FloorFounderShare::<T>::put(params.floor_founder_share);
+
+        // weights
+        MaxAllowedWeightsGlobal::<T>::put(params.max_allowed_weights);
+        MinWeightStake::<T>::put(params.min_weight_stake);
+
+        // proposals
+        ProposalCost::<T>::put(params.proposal_cost);
+        ProposalExpiration::<T>::put(params.proposal_expiration);
+        ProposalParticipationThreshold::<T>::put(params.proposal_participation_threshold);
+
+        // burn
+        params.burn_config.apply().expect("invalid burn configuration");
     }
 
     pub fn check_global_params(params: &GlobalParams<T>) -> DispatchResult {
@@ -137,11 +166,6 @@ impl<T: Config> Pallet<T> {
         );
 
         ensure!(
-            params.unit_emission <= old_params.unit_emission,
-            Error::<T>::InvalidUnitEmission
-        );
-
-        ensure!(
             params.max_allowed_weights > 0,
             Error::<T>::InvalidMaxAllowedWeights
         );
@@ -165,99 +189,5 @@ impl<T: Config> Pallet<T> {
         );
 
         Ok(())
-    }
-
-    pub fn set_global_params(params: GlobalParams<T>) {
-        // Check if the params are valid
-        Self::check_global_params(&params).expect("global params are invalid");
-
-        // Network
-        Self::set_global_max_name_length(params.max_name_length);
-        Self::set_global_max_allowed_subnets(params.max_allowed_subnets);
-        Self::set_max_allowed_modules(params.max_allowed_modules);
-        Self::set_unit_emission(params.unit_emission);
-        Self::set_floor_delegation_fee(params.floor_delegation_fee);
-        // burn & registrations
-        Self::set_max_registrations_per_block(params.max_registrations_per_block);
-        Self::set_min_weight_stake(params.min_weight_stake);
-        Self::set_subnet_stake_threshold(params.subnet_stake_threshold);
-        Self::set_floor_delegation_fee(params.floor_delegation_fee);
-        Self::set_curator(params.curator);
-        FloorFounderShare::<T>::put(params.floor_founder_share);
-
-        // weights
-        Self::set_max_allowed_weights_global(params.max_allowed_weights);
-        Self::set_min_weight_stake(params.min_weight_stake);
-
-        // proposals
-        Self::set_proposal_cost(params.proposal_cost);
-        Self::set_proposal_expiration(params.proposal_expiration);
-        Self::set_proposal_participation_threshold(params.proposal_participation_threshold);
-
-        // burn
-        params.burn_config.apply().expect("invalid burn configuration");
-    }
-
-    pub fn set_curator(curator: T::AccountId) {
-        Curator::<T>::put(curator)
-    }
-
-    pub fn set_min_weight_stake(min_weight_stake: u64) {
-        MinWeightStake::<T>::put(min_weight_stake)
-    }
-
-    pub fn set_subnet_stake_threshold(stake_threshold: Percent) {
-        SubnetStakeThreshold::<T>::put(stake_threshold)
-    }
-
-    pub fn set_max_registrations_per_block(max_registrations_per_block: u16) {
-        MaxRegistrationsPerBlock::<T>::set(max_registrations_per_block);
-    }
-
-    pub fn set_max_allowed_weights_global(max_allowed_weights: u16) {
-        MaxAllowedWeightsGlobal::<T>::put(max_allowed_weights)
-    }
-
-    pub fn set_floor_delegation_fee(delegation_fee: Percent) {
-        FloorDelegationFee::<T>::put(delegation_fee)
-    }
-
-    // Proposals
-    pub fn set_proposal_cost(proposal_cost: u64) {
-        ProposalCost::<T>::put(proposal_cost);
-    }
-
-    pub fn set_proposal_expiration(proposal_expiration: u32) {
-        ProposalExpiration::<T>::put(proposal_expiration);
-    }
-
-    pub fn set_proposal_participation_threshold(proposal_participation_threshold: Percent) {
-        ProposalParticipationThreshold::<T>::put(proposal_participation_threshold);
-    }
-
-    pub fn set_global_max_name_length(max_name_length: u16) {
-        MaxNameLength::<T>::put(max_name_length)
-    }
-
-    pub fn set_global_min_name_length(min_name_length: u16) {
-        MinNameLength::<T>::put(min_name_length)
-    }
-
-    // returns the amount of total modules on the network
-    pub fn global_n_modules() -> u16 {
-        Self::netuids().into_iter().map(N::<T>::get).sum()
-    }
-
-    // Whitelist management
-    pub fn is_in_legit_whitelist(account_id: &T::AccountId) -> bool {
-        LegitWhitelist::<T>::contains_key(account_id)
-    }
-
-    pub fn insert_to_whitelist(module_key: T::AccountId, recommended_weight: u8) {
-        LegitWhitelist::<T>::insert(module_key, recommended_weight);
-    }
-
-    pub fn rm_from_whitelist(module_key: &T::AccountId) {
-        LegitWhitelist::<T>::remove(module_key);
     }
 }
