@@ -148,7 +148,7 @@ impl<T: Config> Pallet<T> {
         changeset: ModuleChangeset,
     ) -> Result<u16, sp_runtime::DispatchError> {
         // 1. Get the next uid. This is always equal to subnetwork_n.
-        let uid: u16 = Self::get_subnet_n(netuid);
+        let uid: u16 = N::<T>::get(netuid);
         let block_number = Self::get_current_block_number();
 
         log::debug!("append_module( netuid: {netuid:?} | uid: {key:?} | new_key: {uid:?})");
@@ -186,7 +186,7 @@ impl<T: Config> Pallet<T> {
     /// Replace the module under this uid.
     pub fn remove_module(netuid: u16, uid: u16) {
         // 1. Get the old key under this position.
-        let n = Self::get_subnet_n(netuid);
+        let n = N::<T>::get(netuid);
         if n == 0 {
             // No modules in the network.
             return;
@@ -326,7 +326,7 @@ impl<T: Config> Pallet<T> {
             .collect();
         let stake_from: BTreeMap<T::AccountId, u64> = StakeFrom::<T>::get(netuid, key);
 
-        let registration_block = Self::get_registration_block_for_uid(netuid, uid);
+        let registration_block = RegistrationBlock::<T>::get(netuid, uid);
 
         ModuleStats {
             stake_from,

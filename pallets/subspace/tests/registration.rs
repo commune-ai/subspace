@@ -9,9 +9,9 @@ use sp_core::U256;
 use log::info;
 use pallet_subspace::{
     voting::ApplicationStatus, Curator, CuratorApplications, Emission, Error, FloorDelegationFee,
-    GeneralSubnetApplicationCost, MaxAllowedModules, MaxAllowedUids, MaxNameLength,
-    MaxRegistrationsPerBlock, MinNameLength, MinStake, ProposalCost, RegistrationsPerBlock, Stake,
-    SubnetGaps, SubnetNames, TotalSubnets, N,
+    GeneralSubnetApplicationCost, MaxAllowedModules, MaxAllowedSubnets, MaxAllowedUids,
+    MaxNameLength, MaxRegistrationsPerBlock, MinNameLength, MinStake, ProposalCost,
+    RegistrationsPerBlock, Stake, SubnetGaps, SubnetNames, TotalSubnets, N,
 };
 use sp_runtime::{DispatchResult, Percent};
 
@@ -121,7 +121,7 @@ fn test_registration_ok() {
             .unwrap_or_else(|_| panic!("register module failed for key {key:?}"));
 
         // Check if module has added to the specified network(netuid)
-        assert_eq!(SubspaceModule::get_subnet_n(netuid), 1);
+        assert_eq!(N::<Test>::get(netuid), 1);
 
         // Check if the module has added to the Keys
         let module_uid = SubspaceModule::get_uid_for_key(netuid, &key);
@@ -149,11 +149,7 @@ fn test_many_registrations() {
             register_module(netuid, U256::from(i), stake).unwrap_or_else(|_| {
                 panic!("Failed to register module with key: {i:?} and stake: {stake:?}",)
             });
-            assert_eq!(
-                SubspaceModule::get_subnet_n(netuid),
-                i + 1,
-                "Failed at i={i}",
-            );
+            assert_eq!(N::<Test>::get(netuid), i + 1, "Failed at i={i}",);
         }
     });
 }
@@ -352,7 +348,7 @@ fn validates_module_on_update() {
         assert_eq!(params.name, b"test3");
         assert_eq!(params.address, b"0.0.0.0:3");
 
-        FloorDelegationFee::<Test>::set(Percent::from_percent(10));
+        FloorDelegationFee::<Test>::put(Percent::from_percent(10));
         assert_err!(
             update_module(b"test3", b"0.0.0.0:3"),
             Error::<Test>::InvalidMinDelegationFee
@@ -420,7 +416,7 @@ fn test_register_invalid_name() {
         zero_min_burn();
 
         // set min name lenght
-        MinNameLength::<Test>::set(2);
+        MinNameLength::<Test>::put(2);
 
         // Get the minimum and maximum name lengths from the configuration
         let min_name_length = MinNameLength::<Test>::get();
@@ -519,7 +515,7 @@ fn test_register_invalid_subnet_name() {
         zero_min_burn();
 
         // Set min name length
-        MinNameLength::<Test>::set(2);
+        MinNameLength::<Test>::put(2);
 
         // Get the minimum and maximum name lengths from the configuration
         let min_name_length = MinNameLength::<Test>::get();
@@ -628,7 +624,7 @@ fn test_remove_from_whitelist() {
     new_test_ext().execute_with(|| {
         let whitelist_key = U256::from(0);
         let module_key = U256::from(1);
-        Curator::<Test>::set(whitelist_key);
+        Curator::<Test>::put(whitelist_key);
 
         let proposal_cost = ProposalCost::<Test>::get();
         let data = "test".as_bytes().to_vec();
@@ -665,7 +661,7 @@ fn test_invalid_curator() {
         let whitelist_key = U256::from(0);
         let invalid_key = U256::from(1);
         let module_key = U256::from(2);
-        Curator::<Test>::set(whitelist_key);
+        Curator::<Test>::put(whitelist_key);
 
         // Try to add to whitelist with an invalid curator key
         assert_noop!(
@@ -716,7 +712,7 @@ fn new_subnets_on_removed_uids_register_modules_to_the_correct_netuids() {
 
     new_test_ext().execute_with(|| {
         zero_min_burn();
-        SubspaceModule::set_global_max_allowed_subnets(3);
+        MaxAllowedSubnets::<Test>::put(3);
 
         assert_ok!(register_module(0, 0.into(), to_nano(10)));
         assert_ok!(register_module(1, 1.into(), to_nano(5)));

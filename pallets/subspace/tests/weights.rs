@@ -1,7 +1,7 @@
 mod mock;
 use frame_support::{assert_err, assert_ok};
 
-use pallet_subspace::{Error, FloorFounderShare, MaxRegistrationsPerBlock};
+use pallet_subspace::{Error, FloorFounderShare, MaxRegistrationsPerBlock, N};
 use sp_core::U256;
 use sp_runtime::DispatchError;
 
@@ -57,7 +57,7 @@ fn test_weights_err_has_duplicate_ids() {
         assert_ok!(register_module(netuid, U256::from(3), 10000000));
         SubspaceModule::get_uid_for_key(netuid, &U256::from(3));
 
-        assert_eq!(SubspaceModule::get_subnet_n(netuid), 4);
+        assert_eq!(N::<Test>::get(netuid), 4);
 
         let weights_keys: Vec<u16> = vec![1, 1, 1]; // Contains duplicates
         let weight_values: Vec<u16> = vec![1, 2, 3];

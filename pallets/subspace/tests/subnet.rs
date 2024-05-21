@@ -4,8 +4,9 @@ use frame_support::{assert_err, assert_ok};
 use log::info;
 use mock::*;
 use pallet_subspace::{
-    Dividends, Error, FounderShare, MaxAllowedSubnets, MaxRegistrationsPerBlock,
-    MaximumSetWeightCallsPerEpoch, SubnetNames, SubnetStakeThreshold, Tempo, N,
+    Dividends, Error, FounderShare, MaxAllowedModules, MaxAllowedSubnets, MaxAllowedUids,
+    MaxRegistrationsPerBlock, MaximumSetWeightCallsPerEpoch, SubnetNames, SubnetStakeThreshold,
+    Tempo, TotalSubnets, UnitEmission, N,
 };
 use sp_core::U256;
 use sp_runtime::Percent;
@@ -29,7 +30,7 @@ fn test_add_subnets() {
             assert_ok!(register_module(i, U256::from(i), stake_per_module));
             for j in 0..n {
                 if j != i {
-                    let n = SubspaceModule::get_subnet_n(i);
+                    let n = N::<Test>::get(i);
                     info!("registering module i:{} j:{} n:{}", i, j, n);
                     assert_ok!(register_module(i, U256::from(j), stake_per_module));
                 }
@@ -38,10 +39,10 @@ fn test_add_subnets() {
             if expected_subnets > max_allowed_subnets {
                 expected_subnets = max_allowed_subnets;
             } else {
-                assert_eq!(SubspaceModule::get_subnet_n(i), n);
+                assert_eq!(N::<Test>::get(i), n);
             }
             assert_eq!(
-                SubspaceModule::num_subnets(),
+                TotalSubnets::<Test>::get(),
                 expected_subnets,
                 "number of subnets is not equal to expected subnets"
             );
@@ -61,7 +62,7 @@ fn test_add_subnets() {
             assert_eq!(keys.len() as u16, n);
             assert!(check_subnet_storage(netuid));
             SubspaceModule::remove_subnet(netuid);
-            assert_eq!(SubspaceModule::get_subnet_n(netuid), 0);
+            assert_eq!(N::<Test>::get(netuid), 0);
             assert!(check_subnet_storage(netuid));
 
             let total_tokens_after: u64 = keys.iter().map(SubspaceModule::get_balance_u64).sum();
@@ -70,7 +71,7 @@ fn test_add_subnets() {
             assert_eq!(total_tokens_after, total_tokens_before);
             expected_subnets = expected_subnets.saturating_sub(1);
             assert_eq!(
-                SubspaceModule::num_subnets(),
+                TotalSubnets::<Test>::get(),
                 expected_subnets,
                 "number of subnets is not equal to expected subnets"
             );
@@ -138,18 +139,18 @@ fn test_set_max_allowed_uids_growing() {
         MaxRegistrationsPerBlock::<Test>::set(max_uids + extra_uids * rounds);
         for i in 1..max_uids {
             assert_ok!(register_module(netuid, U256::from(i), stake));
-            assert_eq!(SubspaceModule::get_subnet_n(netuid), i + 1);
+            assert_eq!(N::<Test>::get(netuid), i + 1);
         }
-        let mut n: u16 = SubspaceModule::get_subnet_n(netuid);
+        let mut n: u16 = N::<Test>::get(netuid);
         let old_n: u16 = n;
         let mut _uids: Vec<u16>;
-        assert_eq!(SubspaceModule::get_subnet_n(netuid), max_uids);
+        assert_eq!(N::<Test>::get(netuid), max_uids);
         for r in 1..rounds {
             // set max allowed uids to max_uids + extra_uids
             update_params!(netuid => {
                 max_allowed_uids: max_uids + extra_uids * (r - 1)
             });
-            max_uids = SubspaceModule::get_max_allowed_uids(netuid);
+            max_uids = MaxAllowedUids::<Test>::get(netuid);
             let new_n = old_n + extra_uids * (r - 1);
             // print the pruned uids
             for uid in old_n + extra_uids * (r - 1)..old_n + extra_uids * r {
@@ -158,7 +159,7 @@ fn test_set_max_allowed_uids_growing() {
 
             // set max allowed uids to max_uids
 
-            n = SubspaceModule::get_subnet_n(netuid);
+            n = N::<Test>::get(netuid);
             assert_eq!(n, new_n);
 
             let uids = SubspaceModule::get_uids(netuid);
@@ -187,7 +188,7 @@ fn test_set_max_allowed_uids_shrinking() {
         // make sure that the results won´t get affected by burn
         zero_min_burn();
 
-        let mut n = SubspaceModule::get_subnet_n(netuid);
+        let mut n = N::<Test>::get(netuid);
         info!("registering module {}", n);
         assert_ok!(register_module(netuid, U256::from(0), stake));
         update_params!(netuid => {
@@ -198,7 +199,7 @@ fn test_set_max_allowed_uids_shrinking() {
         for i in 1..(max_uids + extra_uids) {
             let result = register_module(netuid, U256::from(i), stake);
             result.unwrap();
-            n = SubspaceModule::get_subnet_n(netuid);
+            n = N::<Test>::get(netuid);
         }
 
         assert_eq!(n, max_uids + extra_uids);
@@ -242,7 +243,7 @@ fn test_set_max_allowed_uids_shrinking() {
         info!("subnet params {:?}", SubspaceModule::subnet_params(netuid));
         assert_ok!(result);
         let params = SubspaceModule::subnet_params(netuid);
-        let n = SubspaceModule::get_subnet_n(netuid);
+        let n = N::<Test>::get(netuid);
         assert_eq!(
             params.max_allowed_uids, max_uids,
             "max allowed uids is not equal to expected max allowed uids"
@@ -277,11 +278,11 @@ fn test_set_max_allowed_modules() {
         // make sure that the results won´t get affected by burn
         zero_min_burn();
         MaxRegistrationsPerBlock::<Test>::set(1000);
-        SubspaceModule::set_max_allowed_modules(max_allowed_modules);
+        MaxAllowedModules::<Test>::put(max_allowed_modules);
         // set max_total modules
         for i in 1..(2 * max_allowed_modules) {
             assert_ok!(register_module(netuid, U256::from(i), stake));
-            let n = SubspaceModule::get_subnet_n(netuid);
+            let n = N::<Test>::get(netuid);
             assert!(
                 n <= max_allowed_modules,
                 "subnet_n {:?} is not less than max_allowed_modules {:?}",
@@ -320,7 +321,7 @@ fn test_deregister_subnet_when_overflows_max_allowed_subnets() {
         assert_eq!(SubspaceModule::get_total_subnet_stake(1), stakes[1]);
         assert_eq!(SubspaceModule::get_total_subnet_stake(2), stakes[2]);
         assert_eq!(SubspaceModule::get_total_subnet_stake(0), stakes[3]);
-        assert_eq!(SubspaceModule::num_subnets(), 3);
+        assert_eq!(TotalSubnets::<Test>::get(), 3);
     });
 }
 
@@ -338,9 +339,9 @@ fn test_emission_distribution_novote() {
         let stake_below_threshold: u64 = to_nano(50_000);
 
         // making sure the unit emission are set correctly
-        SubspaceModule::set_unit_emission(23148148148);
+        UnitEmission::<Test>::put(23148148148);
         zero_min_burn();
-        SubnetStakeThreshold::<Test>::set(Percent::from_percent(10));
+        SubnetStakeThreshold::<Test>::put(Percent::from_percent(10));
         let blocks_in_day: u16 = 10_800;
         // this is aprox. the stake we expect at the end of the day with the above unit emission
         let expected_stake_change = to_nano(250_000);
@@ -440,7 +441,7 @@ fn test_yuma_self_vote() {
         let miner_self_key = U256::from(4);
 
         // making sure the unit emission are set correctly
-        SubspaceModule::set_unit_emission(23148148148);
+        UnitEmission::<Test>::put(23148148148);
         zero_min_burn();
 
         assert_ok!(register_module(
@@ -541,7 +542,7 @@ fn test_emission_activation() {
         ];
 
         // Set the stake threshold and minimum burn
-        SubnetStakeThreshold::<Test>::set(Percent::from_percent(5));
+        SubnetStakeThreshold::<Test>::put(Percent::from_percent(5));
         zero_min_burn();
 
         // Register the subnets
@@ -577,7 +578,7 @@ fn test_emission_activation() {
 fn test_parasite_subnet_registrations() {
     new_test_ext().execute_with(|| {
         let expected_module_amount: u16 = 5;
-        SubspaceModule::set_max_allowed_modules(expected_module_amount);
+        MaxAllowedModules::<Test>::put(expected_module_amount);
         MaxRegistrationsPerBlock::<Test>::set(1000);
 
         let main_subnet_netuid: u16 = 0;
@@ -621,11 +622,11 @@ fn test_parasite_subnet_registrations() {
         }
 
         // Check if the honest subnet has 2 modules.
-        let main_subnet_module_amount = SubspaceModule::get_subnet_n(main_subnet_netuid);
+        let main_subnet_module_amount = N::<Test>::get(main_subnet_netuid);
         assert_eq!(main_subnet_module_amount, 2);
 
         // Check if the parasite subnet has 3 modules
-        let parasite_subnet_module_amount = SubspaceModule::get_subnet_n(parasite_netuid);
+        let parasite_subnet_module_amount = N::<Test>::get(parasite_netuid);
         assert_eq!(parasite_subnet_module_amount, 3);
     });
 }
@@ -639,7 +640,7 @@ fn test_subnet_replacing() {
         // Defines the maximum number of modules, that can be registered,
         // on all subnets at once.
         let expected_subnet_amount: u16 = 3;
-        SubspaceModule::set_max_allowed_modules(expected_subnet_amount);
+        MaxAllowedModules::<Test>::put(expected_subnet_amount);
 
         let subnets = [
             (U256::from(0), to_nano(100_000)),
@@ -655,7 +656,7 @@ fn test_subnet_replacing() {
             assert_ok!(register_module(i as u16, *subnet_key, *subnet_stake));
         }
 
-        let subnet_amount = SubspaceModule::num_subnets();
+        let subnet_amount = TotalSubnets::<Test>::get();
         assert_eq!(subnet_amount, expected_subnet_amount);
 
         // Register module on the subnet one (netuid 0), this means that subnet
@@ -663,13 +664,13 @@ fn test_subnet_replacing() {
         assert_ok!(register_module(0, random_keys[0], to_nano(1_000)));
         assert_ok!(register_module(4, random_keys[1], to_nano(150_000)));
 
-        let subnet_amount = SubspaceModule::num_subnets();
+        let subnet_amount = TotalSubnets::<Test>::get();
         assert_eq!(subnet_amount, expected_subnet_amount - 1);
 
         // netuid 1 replaced by subnet four
         assert_ok!(register_module(3, subnets[3].0, subnets[3].1));
 
-        let subnet_amount = SubspaceModule::num_subnets();
+        let subnet_amount = TotalSubnets::<Test>::get();
         let total_module_amount = SubspaceModule::global_n_modules();
         assert_eq!(subnet_amount, expected_subnet_amount);
         assert_eq!(total_module_amount, expected_subnet_amount);
@@ -683,9 +684,9 @@ fn test_subnet_replacing() {
 #[test]
 fn test_active_stake() {
     new_test_ext().execute_with(|| {
-        SubnetStakeThreshold::<Test>::set(Percent::from_percent(5));
+        SubnetStakeThreshold::<Test>::put(Percent::from_percent(5));
         let max_subnets = 10;
-        SubspaceModule::set_global_max_allowed_subnets(max_subnets);
+        MaxAllowedSubnets::<Test>::put(max_subnets);
 
         let general_subnet_stake = to_nano(65_000_000);
         let general_subnet_key = U256::from(0);
