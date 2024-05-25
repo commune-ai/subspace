@@ -5,10 +5,7 @@
 [![Build Status](https://img.shields.io/travis/com/paritytech/substrate/master?label=stable)](https://travis-ci.com/paritytech/substrate)
 [![Coverage Status](https://img.shields.io/codecov/c/gh/paritytech/substrate?label=coverage)](https://codecov.io/gh/paritytech/substrate)
 
-Subspace is a FRAME-based [Substrate](https://substrate.io/) blockchain node
-that provides the foundation for [Commune's](https://www.communeai.org/)
-network. It serves as the trusted base layer responsible for consensus, module
-advertising, and peer discovery.
+Subspace is Commune's AI blockchain node, providing the trusted base layer for consensus. It is built using the FRAME framework on the Substrate development platform.
 
 ## Table of Contents
 
@@ -31,7 +28,7 @@ functionality and security needed for Commune's platform:
 
 1. Implements Commune's consensus mechanism
 2. Advertises cluster modules and their IP addresses
-3. Enables peer discovery for nodes to connect with each other
+3. Enables peer discovery for nodes to connect
 
 ## System Requirements
 
