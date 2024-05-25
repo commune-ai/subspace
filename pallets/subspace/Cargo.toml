@@ -1,6 +1,6 @@
 [package]
 name = "pallet-subspace"
-version = "1.7.2"
+version = "1.7.3"
 description = "FRAME pallet for runtime logic of Subspace Blockchain."
 authors = ["Commune Nucleus Team"]
 homepage = "https://commune.com"
@@ -23,6 +23,7 @@ std = [
 	"sp-std/std",
 ]
 runtime-benchmarks = ["frame-benchmarking/runtime-benchmarks"]
+testnet-faucet = []
 try-runtime = ["frame-support/try-runtime"]
 
 [dependencies]
@@ -35,7 +36,6 @@ scale-info.workspace = true
 frame-benchmarking = { workspace = true, optional = true }
 frame-support.workspace = true
 frame-system.workspace = true
-sp-io.workspace = true
 serde.workspace = true
 serde-tuple-vec-map.workspace = true
 serde_bytes.workspace = true
@@ -49,6 +49,7 @@ ndarray.workspace = true
 
 [dev-dependencies]
 pallet-balances = { workspace = true, features = ["std"] }
+sp-io.workspace = true
 sp-version.workspace = true
 # Substrate
 sp-tracing.workspace = true

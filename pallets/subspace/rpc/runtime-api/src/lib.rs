@@ -42,7 +42,6 @@ pub struct ModuleInfo {
 
 sp_api::decl_runtime_apis! {
     pub trait SubspaceRuntimeApi {
-        fn get_burn_rate() -> u16;
         fn get_module_info(key: AccountId, netuid: u16) -> ModuleInfo;
     }
 }

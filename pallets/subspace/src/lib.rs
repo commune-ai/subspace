@@ -15,39 +15,44 @@ use frame_support::{
     dispatch::{DispatchInfo, PostDispatchInfo},
     ensure,
     traits::{tokens::WithdrawReasons, Currency, ExistenceRequirement, IsSubType},
+    PalletId,
 };
 
 use codec::{Decode, Encode};
-use frame_support::sp_runtime::transaction_validity::ValidTransaction;
+use frame_support::{pallet_prelude::Weight, sp_runtime::transaction_validity::ValidTransaction};
 use sp_runtime::{
-    traits::{DispatchInfoOf, Dispatchable, PostDispatchInfoOf, SignedExtension},
+    traits::{
+        AccountIdConversion, DispatchInfoOf, Dispatchable, PostDispatchInfoOf, SignedExtension,
+    },
     transaction_validity::{TransactionValidity, TransactionValidityError},
 };
 use sp_std::marker::PhantomData;
 
-pub mod autogen_weights;
-pub use autogen_weights::WeightInfo;
+// ---------------------------------
+//	Benchmark Imports
+// ---------------------------------
 
-#[cfg(test)]
-mod mock;
+#[cfg(feature = "runtime-benchmarks")]
+mod benchmarking;
 
-#[cfg(debug_assertions)]
-pub use step::yuma;
+// ---------------------------------
+// Pallet Imports
+// ---------------------------------
 
-// =========================
-//	==== Pallet Imports =====
-// =========================
-mod global;
+pub mod global;
 mod math;
 pub mod module;
 mod profit_share;
 mod registration;
+mod set_weights;
 mod staking;
 mod step;
 pub mod subnet;
 pub mod voting;
-mod weights;
+pub mod weights; // Weight benchmarks // Commune consensus weights
 
+#[cfg(debug_assertions)]
+pub use step::yuma;
 // TODO: better error handling in whole file
 
 #[frame_support::pallet]
@@ -60,33 +65,38 @@ pub mod pallet {
     )]
 
     use self::voting::{CuratorApplication, Proposal, VoteMode};
+    pub use crate::weights::WeightInfo;
 
     use super::*;
     use frame_support::{pallet_prelude::*, traits::Currency, Identity};
     use frame_system::pallet_prelude::*;
 
+    use global::BurnConfiguration;
     use module::ModuleChangeset;
     use sp_arithmetic::per_things::Percent;
     pub use sp_std::{vec, vec::Vec};
 
-    const STORAGE_VERSION: StorageVersion = StorageVersion::new(6);
+    const STORAGE_VERSION: StorageVersion = StorageVersion::new(8);
 
     #[pallet::pallet]
-    #[pallet::generate_store(pub(super) trait Store)]
     #[pallet::storage_version(STORAGE_VERSION)]
     #[pallet::without_storage_info]
     pub struct Pallet<T>(_);
 
     // Configure the pallet by specifying the parameters and types on which it depends.
-    #[pallet::config]
+    #[pallet::config(with_default)]
     pub trait Config: frame_system::Config {
+        /// This pallet's ID, used for generating the treasury account ID.
+        #[pallet::constant]
+        type PalletId: Get<PalletId>;
         // Because this pallet emits events, it depends on the runtime's definition of an event.
+        #[pallet::no_default_bounds]
         type RuntimeEvent: From<Event<Self>> + IsType<<Self as frame_system::Config>::RuntimeEvent>;
 
         // --- Currency type that will be used to place deposits on modules
         type Currency: Currency<Self::AccountId> + Send + Sync;
 
-        /// Type representing the weight of this pallet
+        // The weight information of this pallet.
         type WeightInfo: WeightInfo;
     }
 
@@ -95,41 +105,24 @@ pub mod pallet {
 
     pub type AccountIdOf<T> = <T as frame_system::Config>::AccountId;
 
-    // ============================
-    // ==== Global Variables ====
-    // ============================
+    // ---------------------------------
+    // Global Variables
+    // ---------------------------------
+
+    #[pallet::storage]
+    pub type BurnConfig<T: Config> = StorageValue<_, BurnConfiguration<T>, ValueQuery>;
+
     #[pallet::type_value]
     pub fn DefaultUnitEmission<T: Config>() -> u64 {
         23148148148
     }
     #[pallet::storage] // --- ITEM ( unit_emission )
-    pub(super) type UnitEmission<T> = StorageValue<_, u64, ValueQuery, DefaultUnitEmission<T>>;
-
-    #[pallet::storage] // --- MAP ( netuid ) --> min_allowed_weights
-    pub type BurnRate<T> = StorageValue<_, u16, ValueQuery>;
-
-    #[pallet::type_value]
-    pub fn DefaultMinBurn<T: Config>() -> u64 {
-        4_000_000_000 // 4 $COMAI
-    }
-    #[pallet::storage] // --- MinBurn
-    pub type MinBurn<T> = StorageValue<_, u64, ValueQuery, DefaultMinBurn<T>>;
-
-    #[pallet::type_value]
-    pub fn DefaultMaxBurn<T: Config>() -> u64 {
-        250_000_000_000 // 250 $COMAI
-    }
+    pub type UnitEmission<T> = StorageValue<_, u64, ValueQuery, DefaultUnitEmission<T>>;
 
     #[pallet::type_value]
     pub fn DefaultAdjustmentAlpha<T: Config>() -> u64 {
         u64::MAX / 2
     }
-
-    #[pallet::storage] // --- adjusment alpha
-    pub type AdjustmentAlpha<T> = StorageValue<_, u64, ValueQuery, DefaultAdjustmentAlpha<T>>;
-
-    #[pallet::storage] // --- MaxBurn
-    pub type MaxBurn<T> = StorageValue<_, u64, ValueQuery, DefaultMaxBurn<T>>;
 
     #[pallet::type_value]
     pub fn DefaultSubnetStakeThreshold<T: Config>() -> Percent {
@@ -193,8 +186,7 @@ pub mod pallet {
         32
     }
     #[pallet::storage] // --- ITEM ( max_name_length )
-    pub(super) type MaxNameLength<T: Config> =
-        StorageValue<_, u16, ValueQuery, DefaultMaxNameLength<T>>;
+    pub type MaxNameLength<T: Config> = StorageValue<_, u16, ValueQuery, DefaultMaxNameLength<T>>;
 
     #[pallet::type_value]
     pub fn DefaultMinNameLength<T: Config>() -> u16 {
@@ -202,15 +194,14 @@ pub mod pallet {
     }
 
     #[pallet::storage]
-    pub(super) type MinNameLength<T: Config> =
-        StorageValue<_, u16, ValueQuery, DefaultMinNameLength<T>>;
+    pub type MinNameLength<T: Config> = StorageValue<_, u16, ValueQuery, DefaultMinNameLength<T>>;
 
     #[pallet::type_value]
     pub fn DefaultMaxAllowedSubnets<T: Config>() -> u16 {
         256
     }
     #[pallet::storage] // --- ITEM ( max_allowed_subnets )
-    pub(super) type MaxAllowedSubnets<T: Config> =
+    pub type MaxAllowedSubnets<T: Config> =
         StorageValue<_, u16, ValueQuery, DefaultMaxAllowedSubnets<T>>;
 
     #[pallet::storage]
@@ -240,25 +231,6 @@ pub mod pallet {
     #[pallet::storage] // --- ITEM( global_max_registrations_per_block )
     pub type MaxRegistrationsPerBlock<T> =
         StorageValue<_, u16, ValueQuery, DefaultMaxRegistrationsPerBlock<T>>;
-
-    #[pallet::type_value]
-    pub fn DefaultTargetRegistrationsPerInterval<T: Config>() -> u16 {
-        DefaultTargetRegistrationsInterval::<T>::get() / 2
-    }
-    #[pallet::storage] // --- ITEM( global_target_registrations_interval )
-    pub type TargetRegistrationsPerInterval<T> =
-        StorageValue<_, u16, ValueQuery, DefaultTargetRegistrationsPerInterval<T>>;
-
-    #[pallet::type_value] // --- ITEM( global_target_registrations_interval ) Measured in the number of blocks
-    pub fn DefaultTargetRegistrationsInterval<T: Config>() -> u16 {
-        DefaultTempo::<T>::get() * 2 // 2 times the epoch
-    }
-    #[pallet::storage] // --- ITEM( global_target_registrations_interval )
-    pub type TargetRegistrationsInterval<T> =
-        StorageValue<_, u16, ValueQuery, DefaultTargetRegistrationsInterval<T>>;
-
-    #[pallet::storage] // --- MAP ( netuid ) --> min_allowed_weights
-    pub type MinStakeGlobal<T> = StorageValue<_, u64, ValueQuery>;
 
     #[pallet::type_value]
     pub fn DefaultMinDelegationFeeGlobal<T: Config>() -> Percent {
@@ -298,10 +270,11 @@ pub mod pallet {
         pub controller: T::AccountId,
     }
 
-    #[derive(Decode, Encode, PartialEq, Eq, Clone, TypeInfo)]
+    #[derive(
+        Decode, Encode, PartialEq, Eq, Clone, TypeInfo, frame_support::DebugNoBound, MaxEncodedLen,
+    )]
     #[scale_info(skip_type_params(T))]
     pub struct GlobalParams<T: Config> {
-        pub burn_rate: u16,
         // max
         pub max_name_length: u16,             // max length of a network name
         pub min_name_length: u16,             // min length of a network name
@@ -311,88 +284,45 @@ pub mod pallet {
         pub max_allowed_weights: u16,         // max number of weights per module
 
         // mins
-        pub min_burn: u64,                 // min burn required
-        pub max_burn: u64,                 // max burn allowed
-        pub min_stake: u64,                // min stake required
         pub floor_delegation_fee: Percent, // min delegation fee
+        pub floor_founder_share: u8,       // min founder share
         pub min_weight_stake: u64,         // min weight stake required
 
-        // other
-        pub target_registrations_per_interval: u16, // desired number of registrations per interval
-        pub target_registrations_interval: u16,     /* the number of blocks that defines the
-                                                     * registration interval */
-        pub adjustment_alpha: u64, // adjustment alpha
-        pub unit_emission: u64,    // emission per block
-        pub curator: T::AccountId,
-
-        pub subnet_stake_threshold: Percent,
-
-        // porposals
+        // proposals
         pub proposal_cost: u64,
         pub proposal_expiration: u32,
         pub proposal_participation_threshold: Percent,
-        // s0 governance
+
+        // S0 governance
+        pub curator: T::AccountId,
         pub general_subnet_application_cost: u64,
 
-        // founder share
-        pub floor_founder_share: u8,
+        // Other
+        pub subnet_stake_threshold: Percent,
+        pub burn_config: BurnConfiguration<T>,
     }
 
-    impl<T: Config> core::fmt::Debug for GlobalParams<T>
-    where
-        T::AccountId: core::fmt::Debug,
-    {
-        fn fmt(&self, f: &mut core::fmt::Formatter) -> core::fmt::Result {
-            f.debug_struct("GlobalParams")
-                .field("burn_rate", &self.burn_rate)
-                .field("max_name_length", &self.max_name_length)
-                .field("max_allowed_subnets", &self.max_allowed_subnets)
-                .field("max_allowed_modules", &self.max_allowed_modules)
-                .field(
-                    "max_registrations_per_block",
-                    &self.max_registrations_per_block,
-                )
-                .field("max_allowed_weights", &self.max_allowed_weights)
-                .field("min_burn", &self.min_burn)
-                .field("max_burn", &self.max_burn)
-                .field("min_stake", &self.min_stake)
-                .field("floor_delegation_fee", &self.floor_delegation_fee)
-                .field("min_weight_stake", &self.min_weight_stake)
-                .field("subnet_stake_threshold", &self.subnet_stake_threshold)
-                .field(
-                    "target_registrations_per_interval",
-                    &self.target_registrations_per_interval,
-                )
-                .field(
-                    "target_registrations_interval",
-                    &self.target_registrations_interval,
-                )
-                .field("adjustment_alpha", &self.adjustment_alpha)
-                .field("unit_emission", &self.unit_emission)
-                .field("curator", &self.curator)
-                .field("floor_founder_share", &self.floor_founder_share)
-                .finish()
-        }
-    }
+    // ---------------------------------
+    // Subnet PARAMS
+    // ---------------------------------
 
     pub struct DefaultSubnetParams<T: Config>(sp_std::marker::PhantomData<((), T)>);
 
     impl<T: Config> DefaultSubnetParams<T> {
         pub fn get() -> SubnetParams<T> {
             SubnetParams {
-                name: vec![],
+                name: BoundedVec::default(),
                 tempo: DefaultTempo::<T>::get(),
                 immunity_period: DefaultImmunityPeriod::<T>::get(),
                 min_allowed_weights: DefaultMinAllowedWeights::<T>::get(),
                 max_allowed_weights: DefaultMaxAllowedWeights::<T>::get(),
                 max_allowed_uids: DefaultMaxAllowedUids::<T>::get(),
                 max_weight_age: DefaultMaxWeightAge::<T>::get(),
-                max_stake: DefaultMaxStake::<T>::get(),
                 trust_ratio: GetDefault::get(),
                 founder_share: FloorFounderShare::<T>::get() as u16,
                 incentive_ratio: DefaultIncentiveRatio::<T>::get(),
-                min_stake: MinStakeGlobal::<T>::get(),
-                founder: DefaultFounder::<T>::get(),
+                min_stake: 0,
+                founder: DefaultKey::<T>::get(),
                 vote_mode: DefaultVoteMode::<T>::get(),
                 maximum_set_weight_calls_per_epoch: 0,
                 bonds_ma: DefaultBondsMovingAverage::<T>::get(),
@@ -400,11 +330,9 @@ pub mod pallet {
         }
     }
 
-    // =========================
-    // ==== Subnet PARAMS ====
-    // =========================
-
-    #[derive(Decode, Encode, PartialEq, Eq, Clone, Debug, TypeInfo)]
+    #[derive(
+        Decode, Encode, PartialEq, Eq, Clone, frame_support::DebugNoBound, TypeInfo, MaxEncodedLen,
+    )]
     #[scale_info(skip_type_params(T))]
     pub struct SubnetParams<T: Config> {
         // --- parameters
@@ -419,10 +347,9 @@ pub mod pallet {
                                        * pub max_allowed_uids: u16, // max number of uids
                                        * allowed to be registered in this subnet */
         pub min_allowed_weights: u16, // min number of weights allowed to be registered in this
-        pub max_stake: u64,           // max stake allowed
         pub max_weight_age: u64,      // max age of a weight
         pub min_stake: u64,           // min stake required
-        pub name: Vec<u8>,
+        pub name: BoundedVec<u8, ConstU32<256>>,
         pub tempo: u16, // how many blocks to wait before rewarding models
         pub trust_ratio: u16,
         pub maximum_set_weight_calls_per_epoch: u16,
@@ -457,20 +384,13 @@ pub mod pallet {
 
     #[pallet::type_value]
     pub fn DefaultSelfVote<T: Config>() -> bool {
-        true
+        false
     }
     #[pallet::storage] // --- MAP ( netuid ) --> min_allowed_weights
     pub type SelfVote<T> = StorageMap<_, Identity, u16, bool, ValueQuery, DefaultSelfVote<T>>;
 
     #[pallet::storage] // --- MAP ( netuid ) --> min_allowed_weights
     pub type MinStake<T> = StorageMap<_, Identity, u16, u64, ValueQuery>;
-
-    #[pallet::type_value]
-    pub fn DefaultMaxStake<T: Config>() -> u64 {
-        u64::MAX
-    }
-    #[pallet::storage] // --- MAP ( netuid ) --> min_allowed_weights
-    pub type MaxStake<T> = StorageMap<_, Identity, u16, u64, ValueQuery, DefaultMaxStake<T>>;
 
     #[pallet::type_value]
     pub fn DefaultMaxWeightAge<T: Config>() -> u64 {
@@ -488,13 +408,9 @@ pub mod pallet {
     pub type MaxAllowedWeights<T> =
         StorageMap<_, Identity, u16, u16, ValueQuery, DefaultMaxAllowedWeights<T>>;
 
-    #[pallet::type_value]
-    pub fn DefaultFounder<T: Config>() -> T::AccountId {
-        T::AccountId::decode(&mut sp_runtime::traits::TrailingZeroInput::zeroes()).unwrap()
-    }
     #[pallet::storage] // --- DMAP ( key, netuid ) --> bool
     pub type Founder<T: Config> =
-        StorageMap<_, Identity, u16, T::AccountId, ValueQuery, DefaultFounder<T>>;
+        StorageMap<_, Identity, u16, T::AccountId, ValueQuery, DefaultKey<T>>;
 
     #[pallet::storage] // --- DMAP ( key, netuid ) --> bool
     pub type FounderShare<T: Config> =
@@ -523,9 +439,9 @@ pub mod pallet {
     #[pallet::storage] // --- MAP ( netuid ) --> epoch
     pub type TrustRatio<T> = StorageMap<_, Identity, u16, u16, ValueQuery>;
 
-    // =======================================
-    // ==== Voting  ====
-    // =======================================
+    // ---------------------------------
+    // Voting
+    // ---------------------------------
 
     #[pallet::type_value]
     pub fn DefaultCurator<T: Config>() -> T::AccountId {
@@ -536,8 +452,14 @@ pub mod pallet {
     pub type FloorFounderShare<T: Config> =
         StorageValue<_, u8, ValueQuery, DefaultFloorFounderShare<T>>;
 
+    #[pallet::type_value] // This has to be different than DefaultKey, so we are not conflicting in tests.
+    pub fn DefaultDaoTreasuryAddress<T: Config>() -> T::AccountId {
+        T::PalletId::get().into_account_truncating()
+    }
+
     #[pallet::storage]
-    pub type GlobalDaoTreasury<T: Config> = StorageValue<_, u64, ValueQuery>;
+    pub type DaoTreasuryAddress<T: Config> =
+        StorageValue<_, T::AccountId, ValueQuery, DefaultDaoTreasuryAddress<T>>;
 
     #[pallet::type_value]
     pub fn DefaultDaoTreasuryDistribution<T: Config>() -> Percent {
@@ -548,16 +470,14 @@ pub mod pallet {
     pub type DaoTreasuryDistribution<T: Config> =
         StorageValue<_, Percent, ValueQuery, DefaultDaoTreasuryDistribution<T>>;
 
-    // VOTING MODE
     #[pallet::type_value]
     pub fn DefaultFloorFounderShare<T: Config>() -> u8 {
         8
     }
 
     #[pallet::storage]
-    pub type Curator<T: Config> = StorageValue<_, T::AccountId, ValueQuery, DefaultCurator<T>>;
+    pub type Curator<T: Config> = StorageValue<_, T::AccountId, ValueQuery, DefaultKey<T>>;
 
-    // VOTING MODE
     #[pallet::type_value]
     pub fn DefaultVoteMode<T: Config>() -> VoteMode {
         VoteMode::Authority
@@ -567,17 +487,6 @@ pub mod pallet {
     pub type VoteModeSubnet<T> =
         StorageMap<_, Identity, u16, VoteMode, ValueQuery, DefaultVoteMode<T>>;
 
-    #[derive(Decode, Encode, PartialEq, Eq, Clone, Debug, TypeInfo)]
-    pub struct SubnetInfo<T: Config> {
-        // --- parameters
-        pub params: SubnetParams<T>,
-        pub netuid: u16, // --- unique id of the network
-        pub n: u16,
-        pub stake: u64,
-        pub emission: u64,
-        pub founder: T::AccountId,
-    }
-
     #[pallet::storage] // --- ITEM( tota_number_of_existing_networks )
     pub type TotalSubnets<T> = StorageValue<_, u16, ValueQuery>;
 
@@ -585,7 +494,7 @@ pub mod pallet {
     pub type SubnetEmission<T> = StorageMap<_, Identity, u16, u64, ValueQuery>;
 
     #[pallet::storage] // --- MAP ( netuid ) --> subnetwork_n (Number of UIDs in the network).
-    pub type N<T: Config> = StorageMap<_, Identity, u16, u16, ValueQuery>;
+    pub type N<T> = StorageMap<_, Identity, u16, u16, ValueQuery>;
 
     #[pallet::storage] // --- MAP ( netuid ) --> pending_emission
     pub type PendingEmission<T> = StorageMap<_, Identity, u16, u64, ValueQuery>;
@@ -593,9 +502,9 @@ pub mod pallet {
     #[pallet::storage] // --- MAP ( network_name ) --> netuid
     pub type SubnetNames<T: Config> = StorageMap<_, Identity, u16, Vec<u8>, ValueQuery>;
 
-    // =======================================
-    // ==== Module Variables  ====
-    // =======================================
+    // ---------------------------------
+    // Module Variables
+    // ---------------------------------
 
     #[pallet::storage] // --- DMAP ( netuid, module_key ) --> uid
     pub type Uids<T: Config> =
@@ -637,14 +546,13 @@ pub mod pallet {
         DefaultDelegationFee<T>,
     >;
 
-    // STATE OF THE MODULE
     #[pallet::storage] // --- DMAP ( netuid, uid ) --> block number that the module is registered
     pub type RegistrationBlock<T: Config> =
         StorageDoubleMap<_, Identity, u16, Identity, u16, u64, ValueQuery>;
 
-    // =======================================
-    // ==== Module Staking Variables  ====
-    // =======================================
+    // ---------------------------------
+    //  Module Staking Variables
+    /// ---------------------------------
 
     #[pallet::storage] // --- DMAP ( netuid, module_key ) --> stake | Returns the stake under a module.
     pub type Stake<T: Config> =
@@ -674,7 +582,7 @@ pub mod pallet {
     >;
 
     #[pallet::storage] // --- MAP( netuid ) --> lowest_subnet
-    pub type RemovedSubnets<T> = StorageValue<_, BTreeSet<u16>, ValueQuery>;
+    pub type SubnetGaps<T> = StorageValue<_, BTreeSet<u16>, ValueQuery>;
 
     // TOTAL STAKE PER SUBNET
     #[pallet::storage] // --- MAP ( netuid ) --> subnet_total_stake
@@ -693,9 +601,10 @@ pub mod pallet {
     pub type ProfitShareUnit<T: Config> =
         StorageValue<_, u16, ValueQuery, DefaultProfitShareUnit<T>>;
 
-    // =======================================
-    // ==== Module Consensus Variables  ====
-    // =======================================
+    // ---------------------------------
+    // Module Consensus Variables
+    // ---------------------------------
+
     #[pallet::storage] // --- MAP ( netuid ) --> incentive
     pub type Incentive<T: Config> = StorageMap<_, Identity, u16, Vec<u16>, ValueQuery>;
     #[pallet::storage] // --- MAP ( netuid ) --> trust
@@ -715,8 +624,12 @@ pub mod pallet {
     #[pallet::storage]
     pub type LegitWhitelist<T: Config> = StorageMap<_, Identity, T::AccountId, u8, ValueQuery>;
 
+    // ---------------------------------
+    // Event Variables
+    // ---------------------------------
+
     #[pallet::event]
-    #[pallet::generate_deposit(pub(super) fn deposit_event)]
+    #[pallet::generate_deposit(pub fn deposit_event)]
     pub enum Event<T: Config> {
         NetworkAdded(u16, Vec<u8>), // --- Event created when a new network is added.
         NetworkRemoved(u16),        // --- Event created when a network is removed.
@@ -758,6 +671,9 @@ pub mod pallet {
         target_registrations_intervalSet(u16), // --- Event created when we set target registrations
         RegistrationBurnChanged(u64),
 
+        // faucet
+        Faucet(T::AccountId, BalanceOf<T>), // (id, balance_to_add)
+
         //voting
         ProposalCreated(u64),                        // id of the proposal
         ApplicationCreated(u64),                     // id of the application
@@ -771,6 +687,10 @@ pub mod pallet {
         CustomProposalAccepted(u64), // (id)
         SubnetProposalAccepted(u64, u16), // (id, netuid)
     }
+
+    // ---------------------------------
+    // Error Variables
+    // ---------------------------------
 
     // Errors inform users that something went wrong.
     #[pallet::error]
@@ -876,10 +796,16 @@ pub mod pallet {
         InvalidTargetRegistrationsInterval,
         InvalidVoteThreshold,
         InvalidUnitEmission,
-        InvalidBurnRate,
         InvalidMinBurn,
         InvalidMaxBurn,
         InvalidTargetRegistrationsPerInterval,
+
+        // Faucet
+        FaucetDisabled, // --- Thrown when the faucet is disabled.
+        InvalidDifficulty,
+        InvalidWorkBlock,
+        InvalidSeal,
+        InvalidBalance,
 
         // Modules
         /// The module name is too long.
@@ -926,16 +852,15 @@ pub mod pallet {
         // Other
         InvalidMaxWeightAge,
         InvalidRecommendedWeight,
-        InvalidMaxStake,
         ArithmeticError,
 
         MaximumSetWeightsPerEpochReached,
         InsufficientDaoTreasuryFunds,
     }
 
-    // ==================
-    // ==== Genesis =====
-    // ==================
+    // ---------------------------------
+    // Genesis
+    // ---------------------------------
 
     #[derive(frame_support::DefaultNoBound)]
     #[pallet::genesis_config]
@@ -944,7 +869,7 @@ pub mod pallet {
         pub modules: Vec<Vec<(T::AccountId, Vec<u8>, Vec<u8>, Vec<(u16, u16)>)>>,
         // name, tempo, immunity_period, min_allowed_weight, max_allowed_weight, max_allowed_uids,
         // immunity_ratio, founder
-        pub subnets: Vec<(Vec<u8>, u16, u16, u16, u16, u16, u16, u64, T::AccountId)>,
+        pub subnets: Vec<(Vec<u8>, u16, u16, u16, u16, u16, u64, T::AccountId)>,
 
         pub stake_to: Vec<Vec<(T::AccountId, Vec<(T::AccountId, u64)>)>>,
 
@@ -962,14 +887,14 @@ pub mod pallet {
                 // --- Set subnet parameters
 
                 let params: SubnetParams<T> = SubnetParams {
-                    name: subnet.0.clone(),
+                    name: subnet.0.clone().try_into().expect("subnet name is too long"),
                     tempo: subnet.1,
                     immunity_period: subnet.2,
                     min_allowed_weights: subnet.3,
                     max_allowed_weights: subnet.4,
                     max_allowed_uids: subnet.5,
-                    min_stake: subnet.7,
-                    founder: subnet.8.clone(),
+                    min_stake: subnet.6,
+                    founder: subnet.7.clone(),
                     ..DefaultSubnetParams::<T>::get()
                 };
 
@@ -1000,9 +925,9 @@ pub mod pallet {
         }
     }
 
-    // ==================
-    // ==== Proposals ===
-    // ==================
+    // ---------------------------------
+    // Proposals
+    // ---------------------------------
 
     // Global Parameters of proposals
 
@@ -1034,7 +959,7 @@ pub mod pallet {
 
     #[pallet::type_value]
     pub fn DefaultGeneralSubnetApplicationCost<T: Config>() -> u64 {
-        1_000_000_000 // 1_000 $COMAI
+        1_000_000_000_000 // 1_000 $COMAI
     }
 
     #[pallet::storage]
@@ -1047,9 +972,9 @@ pub mod pallet {
     #[pallet::storage]
     pub type CuratorApplications<T: Config> = StorageMap<_, Identity, u64, CuratorApplication<T>>;
 
-    // ================
-    // ==== Hooks =====
-    // ================
+    // ---------------------------------
+    // Hooks
+    // ---------------------------------
 
     #[pallet::hooks]
     impl<T: Config> Hooks<BlockNumberFor<T>> for Pallet<T> {
@@ -1065,9 +990,19 @@ pub mod pallet {
     // Dispatchable functions allow users to interact with the pallet and invoke state changes.
     // These functions materialize as "extrinsics", which are often compared to transactions.
     // Dispatchable functions must be annotated with a weight and must return a DispatchResult.
+
+    // ---------------------------------
+    // Extrinsics
+    // ---------------------------------
+
     #[pallet::call]
     impl<T: Config> Pallet<T> {
-        #[pallet::weight((Weight::zero(), DispatchClass::Normal, Pays::No))]
+        // ---------------------------------
+        // Consensus operations
+        // ---------------------------------
+
+        #[pallet::call_index(0)]
+        #[pallet::weight((T::WeightInfo::set_weights(), DispatchClass::Normal, Pays::No))]
         pub fn set_weights(
             origin: OriginFor<T>,
             netuid: u16,
@@ -1077,28 +1012,23 @@ pub mod pallet {
             Self::do_set_weights(origin, netuid, uids, weights)
         }
 
-        #[pallet::weight((Weight::zero(), DispatchClass::Normal, Pays::No))]
+        // ---------------------------------
+        // Stake operations
+        // ---------------------------------
+
+        #[pallet::call_index(1)]
+        #[pallet::weight((T::WeightInfo::add_stake(), DispatchClass::Normal, Pays::No))]
         pub fn add_stake(
             origin: OriginFor<T>,
             netuid: u16,
             module_key: T::AccountId,
             amount: u64,
         ) -> DispatchResult {
-            // do not allow zero stakes
             Self::do_add_stake(origin, netuid, module_key, amount)
         }
 
-        #[pallet::weight((Weight::zero(), DispatchClass::Normal, Pays::No))]
-        pub fn add_stake_multiple(
-            origin: OriginFor<T>,
-            netuid: u16,
-            module_keys: Vec<T::AccountId>,
-            amounts: Vec<u64>,
-        ) -> DispatchResult {
-            Self::do_add_stake_multiple(origin, netuid, module_keys, amounts)
-        }
-
-        #[pallet::weight((Weight::zero(), DispatchClass::Normal, Pays::No))]
+        #[pallet::call_index(2)]
+        #[pallet::weight((T::WeightInfo::remove_stake(), DispatchClass::Normal, Pays::No))]
         pub fn remove_stake(
             origin: OriginFor<T>,
             netuid: u16,
@@ -1108,7 +1038,23 @@ pub mod pallet {
             Self::do_remove_stake(origin, netuid, module_key, amount)
         }
 
-        #[pallet::weight((Weight::zero(), DispatchClass::Normal, Pays::No))]
+        // ---------------------------------
+        // Bulk stake operations
+        // ---------------------------------
+
+        #[pallet::call_index(3)]
+        #[pallet::weight((T::WeightInfo::add_stake_multiple(), DispatchClass::Normal, Pays::No))]
+        pub fn add_stake_multiple(
+            origin: OriginFor<T>,
+            netuid: u16,
+            module_keys: Vec<T::AccountId>,
+            amounts: Vec<u64>,
+        ) -> DispatchResult {
+            Self::do_add_stake_multiple(origin, netuid, module_keys, amounts)
+        }
+
+        #[pallet::call_index(4)]
+        #[pallet::weight((T::WeightInfo::remove_stake_multiple(), DispatchClass::Normal, Pays::No))]
         pub fn remove_stake_multiple(
             origin: OriginFor<T>,
             netuid: u16,
@@ -1118,7 +1064,12 @@ pub mod pallet {
             Self::do_remove_stake_multiple(origin, netuid, module_keys, amounts)
         }
 
-        #[pallet::weight((Weight::zero(), DispatchClass::Normal, Pays::No))]
+        // ---------------------------------
+        // Transfers
+        // ---------------------------------
+
+        #[pallet::call_index(5)]
+        #[pallet::weight((T::WeightInfo::transfer_stake(), DispatchClass::Normal, Pays::No))]
         pub fn transfer_stake(
             origin: OriginFor<T>,         // --- The account that is calling this function.
             netuid: u16,                  // --- The network id.
@@ -1129,7 +1080,8 @@ pub mod pallet {
             Self::do_transfer_stake(origin, netuid, module_key, new_module_key, amount)
         }
 
-        #[pallet::weight((Weight::zero(), DispatchClass::Normal, Pays::No))]
+        #[pallet::call_index(6)]
+        #[pallet::weight((T::WeightInfo::transfer_multiple(), DispatchClass::Normal, Pays::No))]
         pub fn transfer_multiple(
             origin: OriginFor<T>, // --- The account that is calling this function.
             destinations: Vec<T::AccountId>, // --- The module key.
@@ -1138,7 +1090,36 @@ pub mod pallet {
             Self::do_transfer_multiple(origin, destinations, amounts)
         }
 
-        #[pallet::weight((Weight::zero(), DispatchClass::Normal, Pays::No))]
+        // ---------------------------------
+        // Registereing / Deregistering
+        // ---------------------------------
+
+        #[pallet::call_index(7)]
+        #[pallet::weight((T::WeightInfo::register(), DispatchClass::Normal, Pays::No))]
+        pub fn register(
+            origin: OriginFor<T>,
+            network: Vec<u8>,
+            name: Vec<u8>,
+            address: Vec<u8>,
+            stake: u64,
+            module_key: T::AccountId,
+            metadata: Option<Vec<u8>>,
+        ) -> DispatchResult {
+            Self::do_register(origin, network, name, address, stake, module_key, metadata)
+        }
+
+        #[pallet::call_index(8)]
+        #[pallet::weight((T::WeightInfo::deregister(), DispatchClass::Normal, Pays::No))]
+        pub fn deregister(origin: OriginFor<T>, netuid: u16) -> DispatchResult {
+            Self::do_deregister(origin, netuid)
+        }
+
+        // ---------------------------------
+        // Updating
+        // ---------------------------------
+
+        #[pallet::call_index(9)]
+        #[pallet::weight((T::WeightInfo::deregister(), DispatchClass::Normal, Pays::No))]
         pub fn update_module(
             origin: OriginFor<T>,
             netuid: u16,
@@ -1157,66 +1138,21 @@ pub mod pallet {
             Self::do_update_module(origin, netuid, changeset)
         }
 
-        #[pallet::weight((Weight::zero(), DispatchClass::Normal, Pays::No))]
-        pub fn register(
-            origin: OriginFor<T>,
-            network: Vec<u8>,
-            name: Vec<u8>,
-            address: Vec<u8>,
-            stake: u64,
-            module_key: T::AccountId,
-            metadata: Option<Vec<u8>>,
-        ) -> DispatchResult {
-            Self::do_register(origin, network, name, address, stake, module_key, metadata)
-        }
-
-        #[pallet::weight((Weight::zero(), DispatchClass::Normal, Pays::No))]
-        pub fn deregister(origin: OriginFor<T>, netuid: u16) -> DispatchResult {
-            Self::do_deregister(origin, netuid)
-        }
-
-        #[pallet::weight((Weight::zero(), DispatchClass::Normal, Pays::No))]
-        pub fn add_profit_shares(
-            origin: OriginFor<T>,
-            keys: Vec<T::AccountId>,
-            shares: Vec<u16>,
-        ) -> DispatchResult {
-            Self::do_add_profit_shares(origin, keys, shares)
-        }
-
-        #[pallet::weight((Weight::zero(), DispatchClass::Normal, Pays::No))]
-        pub fn add_to_whitelist(
-            origin: OriginFor<T>,
-            module_key: T::AccountId,
-            recommended_weight: u8,
-        ) -> DispatchResult {
-            Self::do_add_to_whitelist(origin, module_key, recommended_weight)
-        }
-
-        #[pallet::weight((Weight::zero(), DispatchClass::Normal, Pays::No))]
-        pub fn remove_from_whitelist(
-            origin: OriginFor<T>,
-            module_key: T::AccountId,
-        ) -> DispatchResult {
-            Self::do_remove_from_whitelist(origin, module_key)
-        }
-
-        #[pallet::weight((Weight::zero(), DispatchClass::Normal, Pays::No))]
+        #[pallet::call_index(10)]
+        #[pallet::weight((T::WeightInfo::update_subnet(), DispatchClass::Normal, Pays::No))]
         pub fn update_subnet(
             origin: OriginFor<T>,
             netuid: u16,
-            // params
             founder: T::AccountId,
             founder_share: u16,
             immunity_period: u16,
             incentive_ratio: u16,
             max_allowed_uids: u16,
             max_allowed_weights: u16,
-            max_stake: u64,
             min_allowed_weights: u16,
             max_weight_age: u64,
             min_stake: u64,
-            name: Vec<u8>,
+            name: BoundedVec<u8, ConstU32<256>>,
             tempo: u16,
             trust_ratio: u16,
             maximum_set_weight_calls_per_epoch: u16,
@@ -1230,7 +1166,6 @@ pub mod pallet {
                 incentive_ratio,
                 max_allowed_uids,
                 max_allowed_weights,
-                max_stake,
                 min_allowed_weights,
                 max_weight_age,
                 min_stake,
@@ -1246,11 +1181,53 @@ pub mod pallet {
             Self::do_update_subnet(origin, netuid, changeset)
         }
 
-        // Proposal Calls
-        #[pallet::weight((Weight::zero(), DispatchClass::Normal, Pays::No))]
+        // ---------------------------------
+        // Subnet 0 DAO
+        // ---------------------------------
+
+        #[pallet::call_index(11)]
+        #[pallet::weight((T::WeightInfo::add_dao_application(), DispatchClass::Normal, Pays::No))]
+        pub fn add_dao_application(
+            origin: OriginFor<T>,
+            application_key: T::AccountId,
+            data: Vec<u8>,
+        ) -> DispatchResult {
+            Self::do_add_dao_application(origin, application_key, data)
+        }
+
+        #[pallet::call_index(12)]
+        #[pallet::weight((T::WeightInfo::refuse_dao_application(), DispatchClass::Normal, Pays::No))]
+        pub fn refuse_dao_application(origin: OriginFor<T>, id: u64) -> DispatchResult {
+            Self::do_refuse_dao_application(origin, id)
+        }
+
+        #[pallet::call_index(13)]
+        #[pallet::weight((T::WeightInfo::add_to_whitelist(), DispatchClass::Normal, Pays::No))]
+        pub fn add_to_whitelist(
+            origin: OriginFor<T>,
+            module_key: T::AccountId,
+            recommended_weight: u8,
+        ) -> DispatchResult {
+            Self::do_add_to_whitelist(origin, module_key, recommended_weight)
+        }
+
+        #[pallet::call_index(14)]
+        #[pallet::weight((T::WeightInfo::remove_from_whitelist(), DispatchClass::Normal, Pays::No))]
+        pub fn remove_from_whitelist(
+            origin: OriginFor<T>,
+            module_key: T::AccountId,
+        ) -> DispatchResult {
+            Self::do_remove_from_whitelist(origin, module_key)
+        }
+
+        // ---------------------------------
+        // Adding proposals
+        // ---------------------------------
+
+        #[pallet::call_index(15)]
+        #[pallet::weight((T::WeightInfo::add_global_proposal(), DispatchClass::Normal, Pays::No))]
         pub fn add_global_proposal(
             origin: OriginFor<T>,
-            burn_rate: u16,                   // max
             max_name_length: u16,             // max length of a network name
             min_name_length: u16,             // min length of a network name
             max_allowed_subnets: u16,         // max number of subnets allowed
@@ -1259,7 +1236,6 @@ pub mod pallet {
             max_allowed_weights: u16,         // max number of weights per module
             max_burn: u64,                    // max burn allowed to register
             min_burn: u64,                    // min burn required to register
-            min_stake: u64,                   // min stake required
             floor_delegation_fee: Percent,    // min delegation fee
             floor_founder_share: u8,          // min founder share
             min_weight_stake: u64,            // min weight stake required
@@ -1268,7 +1244,6 @@ pub mod pallet {
             target_registrations_interval: u16, /* the number of blocks that defines the
                                                  * registration interval */
             adjustment_alpha: u64,           // adjustment alpha
-            unit_emission: u64,              // emission per block
             curator: T::AccountId,           // subnet 0 dao multisig
             subnet_stake_threshold: Percent, // stake needed to start subnet emission
             proposal_cost: u64,              /*amount of $COMAI to create a proposal
@@ -1280,54 +1255,54 @@ pub mod pallet {
             general_subnet_application_cost: u64,
         ) -> DispatchResult {
             let mut params = Self::global_params();
-            params.burn_rate = burn_rate;
             params.max_name_length = max_name_length;
             params.min_name_length = min_name_length;
             params.max_allowed_subnets = max_allowed_subnets;
             params.max_allowed_modules = max_allowed_modules;
             params.max_registrations_per_block = max_registrations_per_block;
             params.max_allowed_weights = max_allowed_weights;
-            params.max_burn = max_burn;
-            params.min_burn = min_burn;
-            params.min_stake = min_stake;
             params.floor_delegation_fee = floor_delegation_fee;
             params.floor_founder_share = floor_founder_share;
             params.min_weight_stake = min_weight_stake;
-            params.target_registrations_per_interval = target_registrations_per_interval;
-            params.target_registrations_interval = target_registrations_interval;
-            params.adjustment_alpha = adjustment_alpha;
-            params.unit_emission = unit_emission;
             params.curator = curator;
             params.subnet_stake_threshold = subnet_stake_threshold;
             params.proposal_cost = proposal_cost;
             params.proposal_expiration = proposal_expiration;
             params.proposal_participation_threshold = proposal_participation_threshold;
             params.general_subnet_application_cost = general_subnet_application_cost;
+
+            params.burn_config.min_burn = min_burn;
+            params.burn_config.max_burn = max_burn;
+            params.burn_config.adjustment_alpha = adjustment_alpha;
+            params.burn_config.adjustment_interval = target_registrations_interval;
+            params.burn_config.expected_registrations = target_registrations_per_interval;
+
             Self::do_add_global_proposal(origin, params)
         }
 
-        #[pallet::weight((Weight::zero(), DispatchClass::Normal, Pays::No))]
+        #[pallet::call_index(16)]
+        #[pallet::weight((T::WeightInfo::add_subnet_proposal(), DispatchClass::Normal, Pays::No))]
         pub fn add_subnet_proposal(
             origin: OriginFor<T>,
-            netuid: u16,           // subnet id
-            founder: T::AccountId, // parameters
-            name: Vec<u8>,         // parameters
-            founder_share: u16,    // out of 100
-            immunity_period: u16,  // immunity period
-            incentive_ratio: u16,  // out of 100
-            max_allowed_uids: u16, /* max number of weights allowed to be registered in this
-                                    * subnet */
+            netuid: u16,
+            founder: T::AccountId,
+            name: BoundedVec<u8, ConstU32<256>>,
+            founder_share: u16, // out of 100
+            immunity_period: u16,
+            incentive_ratio: u16, // out of 100
+            max_allowed_uids: u16, /* max number of weights allowed to be
+                                   * registered in this
+                                   * subnet */
             max_allowed_weights: u16, /* max number of weights allowed to be registered in this
                                        * subnet */
             min_allowed_weights: u16, /* min number of weights allowed to be registered in this
                                        * subnet */
-            max_stake: u64,      // max stake allowed
-            min_stake: u64,      // min stake required
-            max_weight_age: u64, // max age of a weight
-            tempo: u16,          // how many blocks to wait before rewarding models
-            trust_ratio: u16,    // missing comment
+            min_stake: u64,
+            max_weight_age: u64,
+            tempo: u16, // how many blocks to wait before rewarding models
+            trust_ratio: u16,
             maximum_set_weight_calls_per_epoch: u16,
-            vote_mode: VoteMode, // missing comment
+            vote_mode: VoteMode,
             bonds_ma: u64,
         ) -> DispatchResult {
             let mut params = Self::subnet_params(netuid);
@@ -1339,7 +1314,6 @@ pub mod pallet {
             params.max_allowed_uids = max_allowed_uids;
             params.max_allowed_weights = max_allowed_weights;
             params.min_allowed_weights = min_allowed_weights;
-            params.max_stake = max_stake;
             params.min_stake = min_stake;
             params.max_weight_age = max_weight_age;
             params.tempo = tempo;
@@ -1350,27 +1324,14 @@ pub mod pallet {
             Self::do_add_subnet_proposal(origin, netuid, params)
         }
 
-        #[pallet::weight((Weight::zero(), DispatchClass::Normal, Pays::No))]
+        #[pallet::call_index(17)]
+        #[pallet::weight((T::WeightInfo::add_custom_proposal(), DispatchClass::Normal, Pays::No))]
         pub fn add_custom_proposal(origin: OriginFor<T>, data: Vec<u8>) -> DispatchResult {
             Self::do_add_custom_proposal(origin, data)
         }
 
-        // Subnet 0 DAO
-        #[pallet::weight((Weight::zero(), DispatchClass::Normal, Pays::No))]
-        pub fn add_dao_application(
-            origin: OriginFor<T>,
-            application_key: T::AccountId,
-            data: Vec<u8>,
-        ) -> DispatchResult {
-            Self::do_add_dao_application(origin, application_key, data)
-        }
-
-        #[pallet::weight((Weight::zero(), DispatchClass::Normal, Pays::No))]
-        pub fn refuse_dao_application(origin: OriginFor<T>, id: u64) -> DispatchResult {
-            Self::do_refuse_dao_application(origin, id)
-        }
-
-        #[pallet::weight((Weight::zero(), DispatchClass::Normal, Pays::No))]
+        #[pallet::call_index(18)]
+        #[pallet::weight((T::WeightInfo::add_custom_subnet_proposal(), DispatchClass::Normal, Pays::No))]
         pub fn add_custom_subnet_proposal(
             origin: OriginFor<T>,
             netuid: u16,
@@ -1379,7 +1340,8 @@ pub mod pallet {
             Self::do_add_custom_subnet_proposal(origin, netuid, data)
         }
 
-        #[pallet::weight((Weight::zero(), DispatchClass::Normal, Pays::No))]
+        #[pallet::call_index(19)]
+        #[pallet::weight((T::WeightInfo::add_transfer_dao_treasury_proposal(), DispatchClass::Normal, Pays::No))]
         pub fn add_transfer_dao_treasury_proposal(
             origin: OriginFor<T>,
             data: Vec<u8>,
@@ -1389,7 +1351,12 @@ pub mod pallet {
             Self::do_add_transfer_dao_treasury_proposal(origin, data, value, dest)
         }
 
-        #[pallet::weight((Weight::zero(), DispatchClass::Normal, Pays::No))]
+        // ---------------------------------
+        // Voting / Unvoting proposals
+        // ---------------------------------
+
+        #[pallet::call_index(20)]
+        #[pallet::weight((T::WeightInfo::vote_proposal(), DispatchClass::Normal, Pays::No))]
         pub fn vote_proposal(
             origin: OriginFor<T>,
             proposal_id: u64,
@@ -1398,9 +1365,45 @@ pub mod pallet {
             Self::do_vote_proposal(origin, proposal_id, agree)
         }
 
-        #[pallet::weight((Weight::zero(), DispatchClass::Normal, Pays::No))]
+        #[pallet::call_index(21)]
+        #[pallet::weight((T::WeightInfo::unvote_proposal(), DispatchClass::Normal, Pays::No))]
         pub fn unvote_proposal(origin: OriginFor<T>, proposal_id: u64) -> DispatchResult {
             Self::do_unregister_vote(origin, proposal_id)
+        }
+
+        // ---------------------------------
+        // Profit sharing
+        // ---------------------------------
+
+        #[pallet::call_index(22)]
+        #[pallet::weight((T::WeightInfo::add_profit_shares(), DispatchClass::Normal, Pays::No))]
+        pub fn add_profit_shares(
+            origin: OriginFor<T>,
+            keys: Vec<T::AccountId>,
+            shares: Vec<u16>,
+        ) -> DispatchResult {
+            Self::do_add_profit_shares(origin, keys, shares)
+        }
+
+        // ---------------------------------
+        // Testnet
+        // ---------------------------------
+
+        #[pallet::call_index(23)]
+        #[pallet::weight((Weight::from_parts(85_000_000, 0)
+        .saturating_add(T::DbWeight::get().reads(16))
+        .saturating_add(T::DbWeight::get().writes(28)), DispatchClass::Operational, Pays::No))]
+        pub fn faucet(
+            origin: OriginFor<T>,
+            block_number: u64,
+            nonce: u64,
+            work: Vec<u8>,
+        ) -> DispatchResult {
+            if cfg!(feature = "testnet-faucet") {
+                Self::do_faucet(origin, block_number, nonce, work)
+            } else {
+                Err(Error::<T>::FaucetDisabled.into())
+            }
         }
     }
 
@@ -1423,10 +1426,6 @@ pub mod pallet {
             0
         }
     }
-
-    /************************************************************
-        CallType definition
-    ************************************************************/
 }
 
 #[derive(Debug, PartialEq, Default)]
@@ -1482,10 +1481,10 @@ where
 
     pub fn get_priority_set_weights(who: &T::AccountId, netuid: u16) -> u64 {
         // Return the non vanilla priority for a set weights call.
-
         Pallet::<T>::get_priority_set_weights(who, netuid)
     }
 
+    #[must_use]
     pub fn u64_to_balance(
         input: u64,
     ) -> Option<
@@ -1533,27 +1532,6 @@ where
                     ..Default::default()
                 })
             }
-            Some(Call::add_stake { .. }) => Ok(ValidTransaction {
-                priority: Self::get_priority_vanilla(who),
-                ..Default::default()
-            }),
-            Some(Call::remove_stake { .. }) => Ok(ValidTransaction {
-                priority: Self::get_priority_vanilla(who),
-                ..Default::default()
-            }),
-            Some(Call::update_subnet { .. }) => Ok(ValidTransaction {
-                priority: Self::get_priority_vanilla(who),
-                ..Default::default()
-            }),
-            Some(Call::add_profit_shares { .. }) => Ok(ValidTransaction {
-                priority: Self::get_priority_vanilla(who),
-                ..Default::default()
-            }),
-
-            Some(Call::register { .. }) => Ok(ValidTransaction {
-                priority: Self::get_priority_vanilla(who),
-                ..Default::default()
-            }),
             _ => Ok(ValidTransaction {
                 priority: Self::get_priority_vanilla(who),
                 ..Default::default()

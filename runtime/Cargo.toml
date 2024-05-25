@@ -1,11 +1,9 @@
 [package]
 name = "node-subspace-runtime"
-version = "1.7.2"
+version = "1.7.3"
 description = "A Substrate node for commune-ai"
 authors = [
 	"Sal Vivona <https://github.com/salvivona>",
-	"Oliver <https://github.com/cuteolaf>",
-	"Kazu <https://github.com/ndkazu>",
 ]
 homepage = "https://substrate.io/"
 edition = "2021"
@@ -18,7 +16,9 @@ targets = ["x86_64-unknown-linux-gnu"]
 
 [dependencies]
 pallet-subspace = { path = "../pallets/subspace", default-features = false }
+pallet-governance = { path = "../pallets/governance", default-features = false }
 
+log.workspace = true
 smallvec.workspace = true
 codec.workspace = true
 scale-info.workspace = true
@@ -41,6 +41,7 @@ sp-api.workspace = true
 sp-block-builder.workspace = true
 sp-consensus-aura.workspace = true
 sp-core.workspace = true
+sp-genesis-builder.workspace = true
 sp-inherents.workspace = true
 sp-offchain.workspace = true
 sp-runtime.workspace = true
@@ -68,12 +69,6 @@ fp-self-contained.workspace = true
 
 # Frontier FRAME
 pallet-base-fee.workspace = true
-pallet-ethereum.workspace = true
-pallet-evm.workspace = true
-pallet-evm-chain-id.workspace = true
-pallet-evm-precompile-modexp.workspace = true
-pallet-evm-precompile-sha3fips.workspace = true
-pallet-evm-precompile-simple.workspace = true
 
 subspace-runtime-api = { path = "../pallets/subspace/rpc/runtime-api", default-features = false }
 [build-dependencies]
@@ -81,6 +76,7 @@ substrate-wasm-builder = { workspace = true, optional = true }
 
 [features]
 default = ["std"]
+testnet-faucet =  ["pallet-subspace/testnet-faucet"]
 std = [
 	"frame-try-runtime?/std",
 	"frame-system-benchmarking?/std",
@@ -93,6 +89,7 @@ std = [
 	"frame-system/std",
 	"frame-try-runtime/std",
 	"pallet-subspace/std",
+	"pallet-governance/std",
 	"pallet-aura/std",
 	"pallet-balances/std",
 	"pallet-grandpa/std",
@@ -107,6 +104,7 @@ std = [
 	"sp-block-builder/std",
 	"sp-consensus-aura/std",
 	"sp-core/std",
+	"sp-genesis-builder/std",
 	"sp-inherents/std",
 	"sp-offchain/std",
 	"sp-runtime/std",
@@ -124,12 +122,6 @@ std = [
 	# Frontier FRAME
 	"pallet-base-fee/std",
 	# "pallet-dynamic-fee/std",
-	"pallet-ethereum/std",
-	"pallet-evm/std",
-	"pallet-evm-chain-id/std",
-	"pallet-evm-precompile-modexp/std",
-	"pallet-evm-precompile-sha3fips/std",
-	"pallet-evm-precompile-simple/std",
 	"subspace-runtime-api/std",
 	# "pallet-hotfix-sufficients/std",
 ]
@@ -144,8 +136,6 @@ runtime-benchmarks = [
 	"pallet-utility/runtime-benchmarks",
 	"sp-runtime/runtime-benchmarks",
 	"pallet-subspace/runtime-benchmarks",
-	"pallet-ethereum/runtime-benchmarks",
-	"pallet-evm/runtime-benchmarks",
 ]
 try-runtime = [
 	"fp-self-contained/try-runtime",
@@ -156,12 +146,10 @@ try-runtime = [
 	"pallet-aura/try-runtime",
 	"pallet-balances/try-runtime",
 	"pallet-base-fee/try-runtime",
-	"pallet-ethereum/try-runtime",
-	"pallet-evm-chain-id/try-runtime",
-	"pallet-evm/try-runtime",
 	"pallet-grandpa/try-runtime",
 	"pallet-insecure-randomness-collective-flip/try-runtime",
 	"pallet-multisig/try-runtime",
+	"pallet-governance/try-runtime",
 	"pallet-subspace/try-runtime",
 	"pallet-sudo/try-runtime",
 	"pallet-timestamp/try-runtime",

@@ -1,5 +1,29 @@
 # Changelog
 
+[Unreleased]
+
+Spec version: `114`
+
+- Moving Dao Treasury to a normal chain account
+  - The `GlobalDaoTreasury` will get deleted in the next release,
+  currently used only for migration.
+- Deleted, or moved useless code and values of:
+  - Burn rate (global parameter)
+  - Min Stake (global parameter)
+- The following storage values were deleted and are now accessible through `BurnConfig`:
+  - `MinBurn`
+  - `MaxBurn`
+  - `AdjustmentAlpha`
+  - `TargetRegistrationsInterval`
+  - `TargetRegistrationsPerInterval`
+- The storage value `RemovedSubnets` is now called `SubnetGaps`
+
+## Version 1.7.3
+
+Spec version: `113`
+
+- Fix s0 whitelist application cost
+
 ## Version 1.7.2
 
 Spec version: `112`

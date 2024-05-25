@@ -184,7 +184,7 @@ impl<T: Config> Pallet<T> {
         // -- 5. Check before values
         let stake_before_add: u64 = Self::get_stake_to_module(netuid, &key, &module_key.clone());
         let balance_before_add: u64 = Self::get_balance_u64(&key);
-        let module_stake_before_add: u64 = Self::get_stake_for_key(netuid, &module_key);
+        let module_stake_before_add: u64 = Stake::<T>::get(netuid, &module_key);
 
         // --- 6. We remove the balance from the key.
         Self::remove_balance_from_account(&key, removed_balance_as_currency.unwrap())?;
@@ -195,7 +195,7 @@ impl<T: Config> Pallet<T> {
         // -- 8. Check after values
         let stake_after_add: u64 = Self::get_stake_to_module(netuid, &key, &module_key.clone());
         let balance_after_add: u64 = Self::get_balance_u64(&key);
-        let module_stake_after_add = Self::get_stake_for_key(netuid, &module_key);
+        let module_stake_after_add = Stake::<T>::get(netuid, &module_key);
 
         // -- 9. Make sure everything went as expected.
         // Otherwise these ensurers will revert the storage changes.
@@ -250,7 +250,7 @@ impl<T: Config> Pallet<T> {
         // -- 5. Check before values
         let stake_before_remove: u64 = Self::get_stake_to_module(netuid, &key, &module_key.clone());
         let balance_before_remove: u64 = Self::get_balance_u64(&key);
-        let module_stake_before_remove: u64 = Self::get_stake_for_key(netuid, &module_key);
+        let module_stake_before_remove: u64 = Stake::<T>::get(netuid, &module_key);
 
         // --- 6. We remove the balance from the key.
         Self::decrease_stake(netuid, &key, &module_key, amount);
@@ -261,7 +261,7 @@ impl<T: Config> Pallet<T> {
         // --- 8. Check after values
         let stake_after_remove: u64 = Self::get_stake_to_module(netuid, &key, &module_key.clone());
         let balance_after_remove: u64 = Self::get_balance_u64(&key);
-        let module_stake_after_remove = Self::get_stake_for_key(netuid, &module_key);
+        let module_stake_after_remove = Stake::<T>::get(netuid, &module_key);
 
         // -- 9. Make sure everything went as expected.
         // Otherwise these ensurers will revert the storage changes.
@@ -299,17 +299,9 @@ impl<T: Config> Pallet<T> {
         Stake::<T>::get(netuid, key)
     }
 
-    #[cfg(debug_assertions)]
-    pub fn get_stakes(netuid: u16) -> Vec<u64> {
-        Self::get_uid_key_tuples(netuid)
-            .into_iter()
-            .map(|(_, key)| Self::get_stake(netuid, &key))
-            .collect()
-    }
-
     // Returns the delegation fee of a module
     pub fn get_delegation_fee(netuid: u16, module_key: &T::AccountId) -> Percent {
-        let min_deleg_fee_global = Self::get_floor_delegation_fee();
+        let min_deleg_fee_global = FloorDelegationFee::<T>::get();
         let delegation_fee = DelegationFee::<T>::get(netuid, module_key);
 
         delegation_fee.max(min_deleg_fee_global)
@@ -322,16 +314,6 @@ impl<T: Config> Pallet<T> {
         amount: u64,
     ) -> bool {
         amount > 0 && Self::get_stake_to_module(netuid, key, module_key) >= amount
-    }
-
-    #[cfg(debug_assertions)]
-    pub fn get_self_stake(netuid: u16, key: &T::AccountId) -> u64 {
-        Self::get_stake_to_module(netuid, key, key)
-    }
-
-    #[cfg(debug_assertions)]
-    pub fn get_stake_to_total(netuid: u16, key: &T::AccountId) -> u64 {
-        Self::get_stake_to_vector(netuid, key).into_values().sum()
     }
 
     pub fn get_stake_to_module(netuid: u16, key: &T::AccountId, module_key: &T::AccountId) -> u64 {
