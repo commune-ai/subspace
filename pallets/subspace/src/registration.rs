@@ -122,7 +122,7 @@ impl<T: Config> Pallet<T> {
         // registrations per interval.
         ensure!(
             RegistrationsThisInterval::<T>::get(netuid)
-                < MaxRegistrationsPerInterval::<T>::get(netuid),
+                <= MaxRegistrationsPerInterval::<T>::get(netuid),
             Error::<T>::TooManyRegistrationsPerInterval
         );
 
