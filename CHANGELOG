@@ -1,5 +1,18 @@
 # Changelog
 
+## Version 1.7.4
+
+Spec version `114`
+
+- Moved global parameters, of:
+    - `target_registration_interval`
+    - `target_registration_per_interval`
+    To subnet owner control
+- Decreased `MaxRegistrationPerBlock` from `5`-> `3`
+- Introduced a new SubnetParam `MaxRegistrationsPerInterval`, 
+which defines how many registraions per `target_registration_interval` can happen,
+above are rate limited.
+
 ## Version 1.7.3
 
 Spec version: `113`
