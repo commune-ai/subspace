@@ -49,8 +49,6 @@ fn creates_global_params_proposal_correctly_and_expires() {
             floor_delegation_fee,
             floor_founder_share,
             min_weight_stake,
-            target_registrations_per_interval,
-            target_registrations_interval,
             adjustment_alpha,
             unit_emission,
             curator,
@@ -76,8 +74,6 @@ fn creates_global_params_proposal_correctly_and_expires() {
             floor_delegation_fee,
             floor_founder_share,
             min_weight_stake,
-            target_registrations_per_interval,
-            target_registrations_interval,
             adjustment_alpha,
             unit_emission,
             curator,
@@ -152,8 +148,6 @@ fn creates_global_params_proposal_correctly_and_is_approved() {
             floor_delegation_fee,
             floor_founder_share,
             min_weight_stake,
-            target_registrations_per_interval,
-            target_registrations_interval,
             adjustment_alpha,
             unit_emission,
             curator,
@@ -179,8 +173,6 @@ fn creates_global_params_proposal_correctly_and_is_approved() {
             floor_delegation_fee,
             floor_founder_share,
             min_weight_stake,
-            target_registrations_per_interval,
-            target_registrations_interval,
             adjustment_alpha,
             unit_emission,
             curator,
@@ -248,8 +240,6 @@ fn creates_global_params_proposal_correctly_and_is_refused() {
             min_stake,
             floor_delegation_fee,
             min_weight_stake,
-            target_registrations_per_interval,
-            target_registrations_interval,
             adjustment_alpha,
             unit_emission,
             curator,
@@ -278,8 +268,6 @@ fn creates_global_params_proposal_correctly_and_is_refused() {
             floor_delegation_fee,
             floor_founder_share,
             min_weight_stake,
-            target_registrations_per_interval,
-            target_registrations_interval,
             adjustment_alpha,
             unit_emission,
             curator,
@@ -352,6 +340,9 @@ fn creates_subnet_params_proposal_correctly_and_is_approved() {
             maximum_set_weight_calls_per_epoch,
             vote_mode,
             bonds_ma,
+            target_registrations_interval,
+            target_registrations_per_interval,
+            max_registrations_per_interval,
         } = params.clone();
 
         SubspaceModule::add_subnet_proposal(
@@ -373,6 +364,9 @@ fn creates_subnet_params_proposal_correctly_and_is_approved() {
             maximum_set_weight_calls_per_epoch,
             vote_mode,
             bonds_ma,
+            target_registrations_interval,
+            target_registrations_per_interval,
+            max_registrations_per_interval,
         )
         .expect("failed to create proposal");
 

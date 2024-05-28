@@ -2,6 +2,7 @@ mod mock;
 use frame_support::assert_ok;
 
 use mock::*;
+use pallet_subspace::{TargetRegistrationsInterval, TargetRegistrationsPerInterval};
 use sp_core::U256;
 
 #[test]
@@ -78,22 +79,22 @@ fn test_burn() {
 fn test_local_subnet_burn() {
     new_test_ext().execute_with(|| {
         let min_burn = to_nano(10);
+        let target_reg_interval = 200;
+        let target_reg_per_interval = 25;
         // set the min_burn to 10 $COMAI
         SubspaceModule::set_min_burn(min_burn);
 
         let max_burn = to_nano(1000);
         // Adjust max burn to allow for the burn to move
         SubspaceModule::set_max_burn(max_burn);
-
-        // Adjust max registrations per block to a high number.
-        // We will be doing "registration raid"
-        SubspaceModule::set_target_registrations_interval(200);
-        SubspaceModule::set_target_registrations_per_interval(25);
-
         SubspaceModule::set_max_registrations_per_block(5);
 
         // register the general subnet
         assert_ok!(register_module(0, U256::from(0), to_nano(20)));
+        // Adjust max registrations per block to a high number.
+        // We will be doing "registration raid"
+        TargetRegistrationsInterval::<Test>::insert(0, target_reg_interval); // for the netuid 0
+        TargetRegistrationsPerInterval::<Test>::insert(0, target_reg_per_interval); // for the netuid 0
 
         // register 500 modules on yuma subnet
         let netuid = 1;
@@ -108,6 +109,8 @@ fn test_local_subnet_burn() {
             if i % 5 == 0 {
                 // after that we step 30 blocks
                 // meaning that the average registration per block is 0.166..
+                TargetRegistrationsInterval::<Test>::insert(netuid, target_reg_interval); // for the netuid 0
+                TargetRegistrationsPerInterval::<Test>::insert(netuid, target_reg_per_interval); // fo
                 step_block(30);
             }
         }
