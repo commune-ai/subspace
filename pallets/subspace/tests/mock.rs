@@ -5,6 +5,7 @@ use frame_support::{
     traits::{Everything, Hooks},
 };
 use frame_system as system;
+use pallet_subspace::MaxRegistrationsPerInterval;
 use sp_core::{H256, U256};
 use sp_runtime::{
     traits::{BlakeTwo256, IdentityLookup},
@@ -195,7 +196,9 @@ pub fn register_module(netuid: u16, key: U256, stake: u64) -> DispatchResult {
 
     add_balance(key, stake + 1);
 
-    SubspaceModule::register(origin, network, name, address, stake, key, None)
+    let result = SubspaceModule::register(origin, network, name, address, stake, key, None);
+    MaxRegistrationsPerInterval::<Test>::set(netuid, 1000);
+    result
 }
 
 #[allow(dead_code)]

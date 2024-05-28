@@ -1,7 +1,7 @@
 mod mock;
 use frame_support::{assert_err, assert_ok};
 
-use pallet_subspace::{Error, FloorFounderShare, MaxRegistrationsPerInterval};
+use pallet_subspace::{Error, FloorFounderShare};
 use sp_core::U256;
 use sp_runtime::DispatchError;
 
@@ -109,7 +109,6 @@ fn test_set_weight_not_enough_values() {
     new_test_ext().execute_with(|| {
         let netuid: u16 = 0;
         let n = 100;
-        MaxRegistrationsPerInterval::<Test>::insert(netuid, 9999);
         SubspaceModule::set_max_registrations_per_block(n);
         let account_id = U256::from(0);
         // make sure that the results won´t get affected by burn
@@ -164,7 +163,6 @@ fn test_set_max_allowed_uids() {
     new_test_ext().execute_with(|| {
         let netuid: u16 = 0;
         let n = 100;
-        MaxRegistrationsPerInterval::<Test>::insert(netuid, 9999);
         SubspaceModule::set_max_registrations_per_block(n);
         let account_id = U256::from(0);
         // make sure that the results won´t get affected by burn
@@ -270,7 +268,6 @@ fn test_weight_age() {
         const ACTIVE_VOTER: u16 = 1;
         SubspaceModule::set_max_registrations_per_block(1000);
         FloorFounderShare::<Test>::put(0);
-        MaxRegistrationsPerInterval::<Test>::insert(NETUID, 1000);
         // Register modules
         (0..MODULE_COUNT).for_each(|i| {
             assert_ok!(register_module(NETUID, U256::from(i), to_nano(10)));

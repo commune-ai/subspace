@@ -4,7 +4,7 @@ use frame_support::assert_ok;
 use log::info;
 use mock::*;
 use pallet_subspace::{
-    DaoTreasuryDistribution, GlobalDaoTreasury, MaxAllowedWeights, MaxRegistrationsPerInterval,
+    DaoTreasuryDistribution, GlobalDaoTreasury, MaxAllowedWeights,
     MinAllowedWeights, MinBurn, SubnetStakeThreshold, Tempo,
 };
 use sp_core::U256;
@@ -256,7 +256,6 @@ fn test_pruning() {
         let stake_per_module: u64 = 10_000;
         let tempo: u16 = 100;
 
-        MaxRegistrationsPerInterval::<Test>::insert(netuid, 1000);
         // make sure that the results won´t get affected by burn
         SubspaceModule::set_min_burn(0);
         SubspaceModule::set_max_registrations_per_block(1000);
@@ -328,7 +327,6 @@ fn test_lowest_priority_mechanism() {
         // make sure that the results won´t get affected by burn
         SubspaceModule::set_min_burn(0);
         SubspaceModule::set_max_registrations_per_block(1000);
-        MaxRegistrationsPerInterval::<Test>::insert(netuid, 1000);
         // SETUP NETWORK
         register_n_modules(netuid, n, stake_per_module);
 
@@ -924,7 +922,6 @@ fn test_dynamic_burn() {
         // Create the subnet
         let subnet_key = U256::from(2050);
         assert_ok!(register_module(netuid, subnet_key, initial_stake));
-        MaxRegistrationsPerInterval::<Test>::set(netuid, 1000);
         // Using the default GlobalParameters:
         // - registration target interval = 2 * tempo (200 blocks)
         // - registration target for interval = registration_target_interval / 2

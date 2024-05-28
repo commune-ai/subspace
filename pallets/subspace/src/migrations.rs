@@ -24,22 +24,30 @@ pub fn ss58_to_account_id<T: Config>(
     Ok(T::AccountId::decode(&mut &account_id_vec[..]).unwrap())
 }
 
-pub mod v8 {
+pub mod v9 {
     use super::*;
 
-    pub struct MigrateToV8<T>(sp_std::marker::PhantomData<T>);
+    pub struct MigrateToV9<T>(sp_std::marker::PhantomData<T>);
 
-    impl<T: Config> OnRuntimeUpgrade for MigrateToV8<T> {
+    impl<T: Config> OnRuntimeUpgrade for MigrateToV9<T> {
         fn on_runtime_upgrade() -> Weight {
             let on_chain_version = StorageVersion::get::<Pallet<T>>();
 
-            if on_chain_version != 7 {
-                log::info!("Storage v8 already updated");
+            if on_chain_version != 8 {
+                log::info!("Storage v9 already updated");
                 return Weight::zero();
             }
 
+            // Clear the old registration storages
+            // ====================================
+
+            let _ = TargetRegistrationsInterval::<T>::clear(u32::MAX, None);
+            let _ = TargetRegistrationsPerInterval::<T>::clear(u32::MAX, None);
+            let _ = MaxRegistrationsPerInterval::<T>::clear(u32::MAX, None);
+
             let new_registration_interval = 142;
             let new_target_registrations_per_interval = 4;
+            let max_registration_per_interval = 42;
 
             for netuid in N::<T>::iter_keys() {
                 TargetRegistrationsInterval::<T>::insert(netuid, new_registration_interval);
@@ -47,14 +55,27 @@ pub mod v8 {
                     netuid,
                     new_target_registrations_per_interval,
                 );
+                MaxRegistrationsPerInterval::<T>::insert(netuid, max_registration_per_interval);
             }
             log::info!("Migrated Registration Intervals to V8");
 
-            MaxRegistrationsPerBlock::<T>::put(3);
-            log::info!("Migrated Registration Intervals to V8");
+            log::info!(
+                "Target registration per interval are {:?}",
+                TargetRegistrationsPerInterval::<T>::iter().collect::<Vec<_>>()
+            );
 
-            StorageVersion::new(8).put::<Pallet<T>>();
-            log::info!("Migrated Registration Intervals to V8");
+            log::info!(
+                "Target registration interval are {:?}",
+                TargetRegistrationsInterval::<T>::iter().collect::<Vec<_>>()
+            );
+
+            log::info!(
+                "Max registration per interval are {:?}",
+                MaxRegistrationsPerInterval::<T>::iter().collect::<Vec<_>>()
+            );
+
+            StorageVersion::new(9).put::<Pallet<T>>();
+            log::info!("Migrated Registration Intervals to V9");
 
             T::DbWeight::get().writes(1)
         }
