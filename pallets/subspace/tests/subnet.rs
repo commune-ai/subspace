@@ -4,7 +4,8 @@ use frame_support::{assert_err, assert_ok};
 use log::info;
 use mock::*;
 use pallet_subspace::{
-    Dividends, Error, FounderShare, MaximumSetWeightCallsPerEpoch, SubnetNames, Tempo, N,
+    Dividends, Error, FounderShare, ImmunityEmissionThreshold, MaximumSetWeightCallsPerEpoch,
+    SubnetNames, Tempo, N,
 };
 use sp_core::U256;
 use sp_runtime::Percent;
@@ -134,6 +135,7 @@ fn test_set_max_allowed_uids_growing() {
         SubspaceModule::set_min_burn(0);
 
         assert_ok!(register_module(netuid, U256::from(0), stake));
+        ImmunityEmissionThreshold::<Test>::set(0, 0);
         SubspaceModule::set_max_registrations_per_block(max_uids + extra_uids * rounds);
         for i in 1..max_uids {
             assert_ok!(register_module(netuid, U256::from(i), stake));
@@ -235,6 +237,9 @@ fn test_set_max_allowed_uids_shrinking() {
             params.maximum_set_weight_calls_per_epoch,
             params.vote_mode,
             params.bonds_ma,
+            params.target_registrations_interval,
+            params.target_registrations_per_interval,
+            params.immunity_emission_threshold,
         );
         let global_params = SubspaceModule::global_params();
         info!("global params {:?}", global_params);
@@ -813,6 +818,9 @@ fn test_update_same_name() {
             params.maximum_set_weight_calls_per_epoch,
             params.vote_mode,
             params.bonds_ma,
+            params.target_registrations_interval,
+            params.target_registrations_per_interval,
+            params.immunity_emission_threshold,
         );
 
         dbg!(SubnetNames::<Test>::get(netuid));

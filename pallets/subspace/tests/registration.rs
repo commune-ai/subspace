@@ -8,8 +8,9 @@ use sp_core::U256;
 
 use log::info;
 use pallet_subspace::{
-    voting::ApplicationStatus, CuratorApplications, Emission, Error, MaxAllowedModules,
-    MaxAllowedUids, MinStake, RemovedSubnets, Stake, SubnetNames, TotalSubnets, N,
+    voting::ApplicationStatus, CuratorApplications, Emission, Error, ImmunityEmissionThreshold,
+    MaxAllowedModules, MaxAllowedUids, MinStake, RemovedSubnets, Stake, SubnetNames, TotalSubnets,
+    N,
 };
 use sp_runtime::{DispatchResult, Percent};
 
@@ -362,9 +363,10 @@ fn validates_module_on_update() {
 fn deregister_within_subnet_when_limit_is_reached() {
     new_test_ext().execute_with(|| {
         MaxAllowedModules::<Test>::set(3);
-
         assert_ok!(register_module(0, 0.into(), to_nano(10_000)));
         assert_ok!(register_module(1, 1.into(), to_nano(5_000)));
+        ImmunityEmissionThreshold::<Test>::set(0, 0);
+        ImmunityEmissionThreshold::<Test>::set(1, 0);
 
         assert_eq!(Stake::<Test>::get(0, U256::from(0)), to_nano(9_996));
         assert_eq!(Stake::<Test>::get(1, U256::from(1)), to_nano(4_996));

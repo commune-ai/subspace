@@ -16,8 +16,6 @@ impl<T: Config> Pallet<T> {
             floor_delegation_fee: Self::get_floor_delegation_fee(),
             // burn & registrations
             max_registrations_per_block: Self::get_max_registrations_per_block(),
-            target_registrations_per_interval: Self::get_target_registrations_per_interval(),
-            target_registrations_interval: Self::get_target_registrations_interval(),
             burn_rate: Self::get_burn_rate(),
             min_burn: Self::get_min_burn(),
             max_burn: Self::get_max_burn(),
@@ -84,11 +82,6 @@ impl<T: Config> Pallet<T> {
         );
 
         ensure!(
-            params.target_registrations_interval > 0,
-            Error::<T>::InvalidTargetRegistrationsInterval
-        );
-
-        ensure!(
             params.unit_emission <= old_params.unit_emission,
             Error::<T>::InvalidUnitEmission
         );
@@ -104,11 +97,6 @@ impl<T: Config> Pallet<T> {
         ensure!(
             params.max_burn > params.min_burn,
             Error::<T>::InvalidMaxBurn
-        );
-
-        ensure!(
-            params.target_registrations_per_interval > 0,
-            Error::<T>::InvalidTargetRegistrationsPerInterval
         );
 
         ensure!(
@@ -148,8 +136,6 @@ impl<T: Config> Pallet<T> {
         Self::set_floor_delegation_fee(params.floor_delegation_fee);
         // burn & registrations
         Self::set_max_registrations_per_block(params.max_registrations_per_block);
-        Self::set_target_registrations_per_interval(params.target_registrations_per_interval);
-        Self::set_target_registrations_interval(params.target_registrations_interval);
         Self::set_burn_rate(params.burn_rate);
         Self::set_min_burn(params.min_burn);
         Self::set_max_burn(params.max_burn);
@@ -177,14 +163,6 @@ impl<T: Config> Pallet<T> {
 
     pub fn set_curator(curator: T::AccountId) {
         Curator::<T>::put(curator)
-    }
-
-    pub fn get_target_registrations_per_interval() -> u16 {
-        TargetRegistrationsPerInterval::<T>::get()
-    }
-
-    pub fn set_target_registrations_per_interval(target_interval: u16) {
-        TargetRegistrationsPerInterval::<T>::put(target_interval)
     }
 
     pub fn get_min_weight_stake() -> u64 {
@@ -267,14 +245,6 @@ impl<T: Config> Pallet<T> {
 
     pub fn set_max_registrations_per_block(max_registrations_per_block: u16) {
         MaxRegistrationsPerBlock::<T>::set(max_registrations_per_block);
-    }
-
-    pub fn get_target_registrations_interval() -> u16 {
-        TargetRegistrationsInterval::<T>::get()
-    }
-
-    pub fn set_target_registrations_interval(target_registrations_interval: u16) {
-        TargetRegistrationsInterval::<T>::set(target_registrations_interval);
     }
 
     pub fn get_global_max_name_length() -> u16 {

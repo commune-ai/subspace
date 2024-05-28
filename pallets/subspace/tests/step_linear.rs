@@ -290,7 +290,7 @@ fn test_pruning() {
 
         step_block(tempo);
 
-        let lowest_priority_uid: u16 = SubspaceModule::get_lowest_uid(netuid, false);
+        let lowest_priority_uid: u16 = SubspaceModule::get_lowest_uid(netuid, false).unwrap_or(0);
         assert!(lowest_priority_uid == prune_uid);
 
         let new_key: U256 = U256::from(n + 1);
@@ -368,7 +368,7 @@ fn test_lowest_priority_mechanism() {
         assert!(incentives[prune_uid as usize] == 0);
         assert!(dividends[prune_uid as usize] == 0);
 
-        let lowest_priority_uid: u16 = SubspaceModule::get_lowest_uid(netuid, false);
+        let lowest_priority_uid: u16 = SubspaceModule::get_lowest_uid(netuid, false).unwrap_or(0);
         info!("lowest_priority_uid: {lowest_priority_uid}");
         info!("prune_uid: {prune_uid}");
         info!("emissions: {emissions:?}");
@@ -933,8 +933,6 @@ fn test_dynamic_burn() {
         params.min_burn = to_nano(2);
         params.max_burn = to_nano(250);
         params.adjustment_alpha = 0;
-        params.target_registrations_interval = 200;
-        params.target_registrations_per_interval = 100;
         SubspaceModule::set_global_params(params);
 
         // update the burn to the minimum

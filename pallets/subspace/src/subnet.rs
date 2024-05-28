@@ -89,11 +89,6 @@ impl<T: Config> SubnetChangeset<T> {
         ensure!(params.trust_ratio <= 100, Error::<T>::InvalidTrustRatio);
 
         ensure!(
-            params.immunity_period > 0,
-            Error::<T>::InvalidImmunityPeriod
-        );
-
-        ensure!(
             params.max_allowed_uids > 0,
             Error::<T>::InvalidMaxAllowedUids
         );
@@ -108,6 +103,11 @@ impl<T: Config> SubnetChangeset<T> {
         ensure!(
             params.incentive_ratio <= 100,
             Error::<T>::InvalidIncentiveRatio
+        );
+
+        ensure!(
+            params.immunity_emission_threshold < 100,
+            Error::<T>::InvalidImmunityEmissionThreshold
         );
 
         ensure!(
@@ -233,11 +233,6 @@ impl<T: Config> Pallet<T> {
         ensure!(params.trust_ratio <= 100, Error::<T>::InvalidTrustRatio);
 
         ensure!(
-            params.immunity_period > 0,
-            Error::<T>::InvalidImmunityPeriod
-        );
-
-        ensure!(
             params.max_allowed_uids > 0,
             Error::<T>::InvalidMaxAllowedUids
         );
@@ -275,6 +270,9 @@ impl<T: Config> Pallet<T> {
             maximum_set_weight_calls_per_epoch: MaximumSetWeightCallsPerEpoch::<T>::get(netuid),
             vote_mode: VoteModeSubnet::<T>::get(netuid),
             bonds_ma: BondsMovingAverage::<T>::get(netuid),
+            target_registrations_interval: TargetRegistrationsInterval::<T>::get(netuid),
+            target_registrations_per_interval: TargetRegistrationsPerInterval::<T>::get(netuid),
+            immunity_emission_threshold: ImmunityEmissionThreshold::<T>::get(netuid),
         }
     }
 
