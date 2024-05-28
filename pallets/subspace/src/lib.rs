@@ -20,7 +20,7 @@ use frame_support::{
 use codec::{Decode, Encode};
 use frame_support::sp_runtime::transaction_validity::ValidTransaction;
 use sp_runtime::{
-    traits::{ConstU16, DispatchInfoOf, Dispatchable, PostDispatchInfoOf, SignedExtension},
+    traits::{DispatchInfoOf, Dispatchable, PostDispatchInfoOf, SignedExtension},
     transaction_validity::{TransactionValidity, TransactionValidityError},
 };
 use sp_std::marker::PhantomData;
@@ -69,7 +69,7 @@ pub mod pallet {
     use sp_arithmetic::per_things::Percent;
     pub use sp_std::{vec, vec::Vec};
 
-    const STORAGE_VERSION: StorageVersion = StorageVersion::new(8);
+    const STORAGE_VERSION: StorageVersion = StorageVersion::new(9);
 
     #[pallet::pallet]
     #[pallet::generate_store(pub(super) trait Store)]
@@ -464,9 +464,14 @@ pub mod pallet {
     #[pallet::storage] // --- MAP ( netuid ) --> trarget_registrations_interval
     pub type TargetRegistrationsInterval<T> =
         StorageMap<_, Identity, u16, u16, ValueQuery, DefaultTargetRegistrationsInterval<T>>;
+
+    #[pallet::type_value]
+    pub fn DefaultMaxRegistrationsPerInterval<T: Config>() -> u16 {
+        42
+    }
     #[pallet::storage] // --- MAP ( netuid ) --> trarget_registrations_interval
     pub type MaxRegistrationsPerInterval<T> =
-        StorageMap<_, Identity, u16, u16, ValueQuery, ConstU16<42>>;
+        StorageMap<_, Identity, u16, u16, ValueQuery, DefaultMaxRegistrationsPerInterval<T>>;
 
     #[pallet::type_value]
     pub fn DefaultMaxStake<T: Config>() -> u64 {

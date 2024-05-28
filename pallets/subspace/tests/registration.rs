@@ -9,7 +9,7 @@ use sp_core::U256;
 use log::info;
 use pallet_subspace::{
     voting::ApplicationStatus, CuratorApplications, Emission, Error, MaxAllowedModules,
-    MaxAllowedUids, MaxRegistrationsPerInterval, MinStake, RemovedSubnets, Stake, SubnetNames,
+    MaxAllowedUids, MinStake, RemovedSubnets, Stake, SubnetNames,
     TotalSubnets, N,
 };
 use sp_runtime::{DispatchResult, Percent};
@@ -65,7 +65,6 @@ fn test_max_registration() {
         let max_registrations_per_block = 100;
         // make sure that the results won´t get affected by burn
         SubspaceModule::set_min_burn(0);
-        MaxRegistrationsPerInterval::<Test>::set(netuid, 1000);
 
         assert_eq!(SubspaceModule::get_registrations_this_block(), 0);
         SubspaceModule::set_max_registrations_per_block(1000);
@@ -144,7 +143,6 @@ fn test_many_registrations() {
         SubspaceModule::set_min_burn(0);
 
         SubspaceModule::set_max_registrations_per_block(n);
-        MaxRegistrationsPerInterval::<Test>::set(netuid, 1000);
         for i in 0..n {
             register_module(netuid, U256::from(i), stake).unwrap_or_else(|_| {
                 panic!("Failed to register module with key: {i:?} and stake: {stake:?}",)
