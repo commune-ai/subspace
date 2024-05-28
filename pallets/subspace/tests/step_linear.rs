@@ -4,8 +4,8 @@ use frame_support::assert_ok;
 use log::info;
 use mock::*;
 use pallet_subspace::{
-    DaoTreasuryDistribution, GlobalDaoTreasury, MaxAllowedWeights, MinAllowedWeights, MinBurn,
-    SubnetStakeThreshold, Tempo,
+    DaoTreasuryDistribution, GlobalDaoTreasury, MaxAllowedWeights, MaxRegistrationsPerInterval,
+    MinAllowedWeights, MinBurn, SubnetStakeThreshold, Tempo,
 };
 use sp_core::U256;
 use sp_runtime::Percent;
@@ -256,6 +256,7 @@ fn test_pruning() {
         let stake_per_module: u64 = 10_000;
         let tempo: u16 = 100;
 
+        MaxRegistrationsPerInterval::<Test>::insert(netuid, 1000);
         // make sure that the results won´t get affected by burn
         SubspaceModule::set_min_burn(0);
         SubspaceModule::set_max_registrations_per_block(1000);
@@ -290,7 +291,7 @@ fn test_pruning() {
 
         step_block(tempo);
 
-        let lowest_priority_uid: u16 = SubspaceModule::get_lowest_uid(netuid, false);
+        let lowest_priority_uid: u16 = SubspaceModule::get_lowest_uid(netuid, false).unwrap_or(0);
         assert!(lowest_priority_uid == prune_uid);
 
         let new_key: U256 = U256::from(n + 1);
@@ -327,7 +328,7 @@ fn test_lowest_priority_mechanism() {
         // make sure that the results won´t get affected by burn
         SubspaceModule::set_min_burn(0);
         SubspaceModule::set_max_registrations_per_block(1000);
-
+        MaxRegistrationsPerInterval::<Test>::insert(netuid, 1000);
         // SETUP NETWORK
         register_n_modules(netuid, n, stake_per_module);
 
@@ -368,7 +369,7 @@ fn test_lowest_priority_mechanism() {
         assert!(incentives[prune_uid as usize] == 0);
         assert!(dividends[prune_uid as usize] == 0);
 
-        let lowest_priority_uid: u16 = SubspaceModule::get_lowest_uid(netuid, false);
+        let lowest_priority_uid: u16 = SubspaceModule::get_lowest_uid(netuid, false).unwrap_or(0);
         info!("lowest_priority_uid: {lowest_priority_uid}");
         info!("prune_uid: {prune_uid}");
         info!("emissions: {emissions:?}");
@@ -923,6 +924,7 @@ fn test_dynamic_burn() {
         // Create the subnet
         let subnet_key = U256::from(2050);
         assert_ok!(register_module(netuid, subnet_key, initial_stake));
+        MaxRegistrationsPerInterval::<Test>::set(netuid, 1000);
         // Using the default GlobalParameters:
         // - registration target interval = 2 * tempo (200 blocks)
         // - registration target for interval = registration_target_interval / 2
@@ -933,8 +935,6 @@ fn test_dynamic_burn() {
         params.min_burn = to_nano(2);
         params.max_burn = to_nano(250);
         params.adjustment_alpha = 0;
-        params.target_registrations_interval = 200;
-        params.target_registrations_per_interval = 100;
         SubspaceModule::set_global_params(params);
 
         // update the burn to the minimum

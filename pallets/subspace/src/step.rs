@@ -19,15 +19,17 @@ impl<T: Config> Pallet<T> {
         }
 
         // -- Adjust registrations parameters --
-        // Query the target interval
-        let target_registrations_interval = Self::get_target_registrations_interval();
-        // Query the target amount of registrations
-        let target_registrations_per_interval = Self::get_target_registrations_per_interval();
 
         let total_stake = Self::total_stake() as u128;
         let subnet_stake_threshold = SubnetStakeThreshold::<T>::get();
 
         for (netuid, tempo) in Tempo::<T>::iter() {
+            // Query the target interval
+            let target_registrations_interval = TargetRegistrationsInterval::<T>::get(netuid);
+            // Query the target amount of registrations
+            let target_registrations_per_interval =
+                TargetRegistrationsPerInterval::<T>::get(netuid);
+
             let registration_this_interval = Self::get_registrations_this_interval(netuid);
 
             Self::adjust_registration(

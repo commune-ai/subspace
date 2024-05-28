@@ -20,7 +20,7 @@ use frame_support::{
 use codec::{Decode, Encode};
 use frame_support::sp_runtime::transaction_validity::ValidTransaction;
 use sp_runtime::{
-    traits::{DispatchInfoOf, Dispatchable, PostDispatchInfoOf, SignedExtension},
+    traits::{ConstU16, DispatchInfoOf, Dispatchable, PostDispatchInfoOf, SignedExtension},
     transaction_validity::{TransactionValidity, TransactionValidityError},
 };
 use sp_std::marker::PhantomData;
@@ -69,7 +69,7 @@ pub mod pallet {
     use sp_arithmetic::per_things::Percent;
     pub use sp_std::{vec, vec::Vec};
 
-    const STORAGE_VERSION: StorageVersion = StorageVersion::new(7);
+    const STORAGE_VERSION: StorageVersion = StorageVersion::new(8);
 
     #[pallet::pallet]
     #[pallet::generate_store(pub(super) trait Store)]
@@ -241,22 +241,6 @@ pub mod pallet {
     pub type MaxRegistrationsPerBlock<T> =
         StorageValue<_, u16, ValueQuery, DefaultMaxRegistrationsPerBlock<T>>;
 
-    #[pallet::type_value]
-    pub fn DefaultTargetRegistrationsPerInterval<T: Config>() -> u16 {
-        DefaultTargetRegistrationsInterval::<T>::get() / 2
-    }
-    #[pallet::storage] // --- ITEM( global_target_registrations_interval )
-    pub type TargetRegistrationsPerInterval<T> =
-        StorageValue<_, u16, ValueQuery, DefaultTargetRegistrationsPerInterval<T>>;
-
-    #[pallet::type_value] // --- ITEM( global_target_registrations_interval ) Measured in the number of blocks
-    pub fn DefaultTargetRegistrationsInterval<T: Config>() -> u16 {
-        DefaultTempo::<T>::get() * 2 // 2 times the epoch
-    }
-    #[pallet::storage] // --- ITEM( global_target_registrations_interval )
-    pub type TargetRegistrationsInterval<T> =
-        StorageValue<_, u16, ValueQuery, DefaultTargetRegistrationsInterval<T>>;
-
     #[pallet::storage] // --- MAP ( netuid ) --> min_allowed_weights
     pub type MinStakeGlobal<T> = StorageValue<_, u64, ValueQuery>;
 
@@ -318,9 +302,6 @@ pub mod pallet {
         pub min_weight_stake: u64,         // min weight stake required
 
         // other
-        pub target_registrations_per_interval: u16, // desired number of registrations per interval
-        pub target_registrations_interval: u16,     /* the number of blocks that defines the
-                                                     * registration interval */
         pub adjustment_alpha: u64, // adjustment alpha
         pub unit_emission: u64,    // emission per block
         pub curator: T::AccountId,
@@ -359,14 +340,6 @@ pub mod pallet {
                 .field("floor_delegation_fee", &self.floor_delegation_fee)
                 .field("min_weight_stake", &self.min_weight_stake)
                 .field("subnet_stake_threshold", &self.subnet_stake_threshold)
-                .field(
-                    "target_registrations_per_interval",
-                    &self.target_registrations_per_interval,
-                )
-                .field(
-                    "target_registrations_interval",
-                    &self.target_registrations_interval,
-                )
                 .field("adjustment_alpha", &self.adjustment_alpha)
                 .field("unit_emission", &self.unit_emission)
                 .field("curator", &self.curator)
@@ -396,6 +369,10 @@ pub mod pallet {
                 vote_mode: DefaultVoteMode::<T>::get(),
                 maximum_set_weight_calls_per_epoch: 0,
                 bonds_ma: DefaultBondsMovingAverage::<T>::get(),
+                target_registrations_interval: DefaultTargetRegistrationsInterval::<T>::get(),
+                target_registrations_per_interval: DefaultTargetRegistrationsPerInterval::<T>::get(
+                ),
+                max_registrations_per_interval: 42,
             }
         }
     }
@@ -429,6 +406,10 @@ pub mod pallet {
         pub vote_mode: VoteMode,
         // consensus
         pub bonds_ma: u64,
+        // registrations
+        pub target_registrations_interval: u16,
+        pub target_registrations_per_interval: u16,
+        pub max_registrations_per_interval: u16,
     }
 
     #[pallet::type_value]
@@ -441,7 +422,7 @@ pub mod pallet {
 
     #[pallet::type_value]
     pub fn DefaultImmunityPeriod<T: Config>() -> u16 {
-        40
+        0
     }
     #[pallet::storage] // --- MAP ( netuid ) --> immunity_period
     pub type ImmunityPeriod<T> =
@@ -464,6 +445,28 @@ pub mod pallet {
 
     #[pallet::storage] // --- MAP ( netuid ) --> min_allowed_weights
     pub type MinStake<T> = StorageMap<_, Identity, u16, u64, ValueQuery>;
+
+    // Registration parameters
+    // =======================
+
+    #[pallet::type_value]
+    pub fn DefaultTargetRegistrationsPerInterval<T: Config>() -> u16 {
+        DefaultTargetRegistrationsInterval::<T>::get() / 2
+    }
+    #[pallet::storage] // MAP ( netuid ) --> trarget_registrations_per_interval
+    pub type TargetRegistrationsPerInterval<T> =
+        StorageMap<_, Identity, u16, u16, ValueQuery, DefaultTargetRegistrationsPerInterval<T>>;
+
+    #[pallet::type_value]
+    pub fn DefaultTargetRegistrationsInterval<T: Config>() -> u16 {
+        DefaultTempo::<T>::get() * 2 // 2 times the epoch
+    }
+    #[pallet::storage] // --- MAP ( netuid ) --> trarget_registrations_interval
+    pub type TargetRegistrationsInterval<T> =
+        StorageMap<_, Identity, u16, u16, ValueQuery, DefaultTargetRegistrationsInterval<T>>;
+    #[pallet::storage] // --- MAP ( netuid ) --> trarget_registrations_interval
+    pub type MaxRegistrationsPerInterval<T> =
+        StorageMap<_, Identity, u16, u16, ValueQuery, ConstU16<42>>;
 
     #[pallet::type_value]
     pub fn DefaultMaxStake<T: Config>() -> u64 {
@@ -755,7 +758,6 @@ pub mod pallet {
         MaxAllowedSubnetsSet(u16), // --- Event created when setting the maximum allowed subnets
         MaxAllowedModulesSet(u16), // --- Event created when setting the maximum allowed modules
         MaxRegistrationsPerBlockSet(u16), // --- Event created when we set max registrations
-        target_registrations_intervalSet(u16), // --- Event created when we set target registrations
         RegistrationBurnChanged(u64),
 
         //voting
@@ -776,7 +778,7 @@ pub mod pallet {
     #[pallet::error]
     pub enum Error<T> {
         NetworkDoesNotExist, // --- Thrown when the network does not exist.
-        TooFewVotesForNewProposal,
+        NetworkIsImmuned,
         NetworkExist, // --- Thrown when the network already exist.
         InvalidIpType, /* ---- Thrown when the user tries to serve an module which
                        * is not of type	4 (IPv4) or 6 (IPv6). */
@@ -802,6 +804,9 @@ pub mod pallet {
                                   * chain with fewer elements than are allowed. */
         TooManyRegistrationsPerBlock, /* ---- Thrown when registrations this block exceeds
                                        * allowed number. */
+        TooManyRegistrationsPerInterval, /* ---- Thrown when registrations this interval
+                                          * exceeds
+                                          * allowed number. */
         AlreadyRegistered, /* ---- Thrown when the caller requests registering a module which
                             * already exists in the active set. */
         MaxAllowedUIdsNotAllowed, // ---  Thrown if the vaule is invalid for MaxAllowedUids
@@ -902,7 +907,6 @@ pub mod pallet {
         InvalidProposalData,
         AlreadyVoted,
         InvalidVoteMode,
-        InvalidImmunityPeriod,
         InvalidFounderShare,
         InvalidIncentiveRatio,
 
@@ -1222,6 +1226,9 @@ pub mod pallet {
             maximum_set_weight_calls_per_epoch: u16,
             vote_mode: VoteMode,
             bonds_ma: u64,
+            target_registrations_interval: u16,
+            target_registrations_per_interval: u16,
+            max_registrations_per_interval: u16,
         ) -> DispatchResult {
             let params = SubnetParams {
                 founder,
@@ -1240,6 +1247,9 @@ pub mod pallet {
                 maximum_set_weight_calls_per_epoch,
                 vote_mode,
                 bonds_ma,
+                target_registrations_interval,
+                target_registrations_per_interval,
+                max_registrations_per_interval,
             };
 
             let changeset = SubnetChangeset::update(netuid, params)?;
@@ -1263,16 +1273,12 @@ pub mod pallet {
             floor_delegation_fee: Percent,    // min delegation fee
             floor_founder_share: u8,          // min founder share
             min_weight_stake: u64,            // min weight stake required
-            target_registrations_per_interval: u16, /* desired number of registrations per
-                                               * interval */
-            target_registrations_interval: u16, /* the number of blocks that defines the
-                                                 * registration interval */
-            adjustment_alpha: u64,           // adjustment alpha
-            unit_emission: u64,              // emission per block
-            curator: T::AccountId,           // subnet 0 dao multisig
-            subnet_stake_threshold: Percent, // stake needed to start subnet emission
-            proposal_cost: u64,              /*amount of $COMAI to create a proposal
-                                              * returned if proposal gets accepted */
+            adjustment_alpha: u64,            // adjustment alpha
+            unit_emission: u64,               // emission per block
+            curator: T::AccountId,            // subnet 0 dao multisig
+            subnet_stake_threshold: Percent,  // stake needed to start subnet emission
+            proposal_cost: u64,               /*amount of $COMAI to create a proposal
+                                               * returned if proposal gets accepted */
             proposal_expiration: u32, // the block number, proposal expires at
             proposal_participation_threshold: Percent, /*  minimum stake of the overall network
                                        * stake,
@@ -1293,8 +1299,6 @@ pub mod pallet {
             params.floor_delegation_fee = floor_delegation_fee;
             params.floor_founder_share = floor_founder_share;
             params.min_weight_stake = min_weight_stake;
-            params.target_registrations_per_interval = target_registrations_per_interval;
-            params.target_registrations_interval = target_registrations_interval;
             params.adjustment_alpha = adjustment_alpha;
             params.unit_emission = unit_emission;
             params.curator = curator;
@@ -1329,6 +1333,9 @@ pub mod pallet {
             maximum_set_weight_calls_per_epoch: u16,
             vote_mode: VoteMode, // missing comment
             bonds_ma: u64,
+            target_registrations_interval: u16,
+            target_registrations_per_interval: u16,
+            max_registrations_per_interval: u16,
         ) -> DispatchResult {
             let mut params = Self::subnet_params(netuid);
             params.founder = founder;
@@ -1347,6 +1354,9 @@ pub mod pallet {
             params.maximum_set_weight_calls_per_epoch = maximum_set_weight_calls_per_epoch;
             params.vote_mode = vote_mode;
             params.bonds_ma = bonds_ma;
+            params.target_registrations_interval = target_registrations_interval;
+            params.target_registrations_per_interval = target_registrations_per_interval;
+            params.max_registrations_per_interval = max_registrations_per_interval;
             Self::do_add_subnet_proposal(origin, netuid, params)
         }
 
