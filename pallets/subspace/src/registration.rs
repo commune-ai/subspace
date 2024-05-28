@@ -239,9 +239,7 @@ impl<T: Config> Pallet<T> {
         let immunity_period: u64 = Self::get_immunity_period(netuid) as u64;
 
         // Get all the UIDs and their registration blocks from the storage
-        let mut uids: Vec<(u16, u64)> = RegistrationBlock::<T>::iter_prefix(netuid)
-            .map(|(uid, block)| (uid, block))
-            .collect();
+        let mut uids: Vec<(u16, u64)> = RegistrationBlock::<T>::iter_prefix(netuid).collect();
 
         // Sort the UIDs based on their registration block in ascending order
         // This will make sure we evaluate old miners first.
@@ -294,8 +292,6 @@ impl<T: Config> Pallet<T> {
     /// subnet is filled, deregister the least staked module on it, or if the max allowed modules on
     /// the network is reached, deregisters the least staked module on the least staked netuid.
 
-    // Return an option, if all modules are in immunity, you can not register, that means
-    // if everything is in immunity throw an error, NetworkIsImmuned
     pub fn reserve_module_slot(netuid: u16) -> Option<()> {
         if Self::get_subnet_n(netuid) >= Self::get_max_allowed_uids(netuid) {
             // If we reach the max allowed modules for this subnet,

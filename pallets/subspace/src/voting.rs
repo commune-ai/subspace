@@ -510,8 +510,8 @@ impl<T: Config> Pallet<T> {
                     Ok(())
                 })?;
 
-                let amount = Self::u64_to_balance(*value)
-                    .ok_or_else(|| Error::<T>::CouldNotConvertToBalance)?;
+                let amount =
+                    Self::u64_to_balance(*value).ok_or(Error::<T>::CouldNotConvertToBalance)?;
                 Self::add_balance_to_account(dest, amount);
             }
             ProposalData::Expired => {
