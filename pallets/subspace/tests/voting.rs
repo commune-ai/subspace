@@ -342,7 +342,7 @@ fn creates_subnet_params_proposal_correctly_and_is_approved() {
             bonds_ma,
             target_registrations_interval,
             target_registrations_per_interval,
-            immunity_emission_threshold,
+            max_registrations_per_interval,
         } = params.clone();
 
         SubspaceModule::add_subnet_proposal(
@@ -366,7 +366,7 @@ fn creates_subnet_params_proposal_correctly_and_is_approved() {
             bonds_ma,
             target_registrations_interval,
             target_registrations_per_interval,
-            immunity_emission_threshold,
+            max_registrations_per_interval,
         )
         .expect("failed to create proposal");
 

@@ -38,7 +38,7 @@ pub mod v8 {
                 return Weight::zero();
             }
 
-            let new_registration_interval = 216;
+            let new_registration_interval = 142;
             let new_target_registrations_per_interval = 4;
 
             for netuid in N::<T>::iter_keys() {
@@ -48,9 +48,13 @@ pub mod v8 {
                     new_target_registrations_per_interval,
                 );
             }
+            log::info!("Migrated Registration Intervals to V8");
+
+            MaxRegistrationsPerBlock::<T>::put(3);
+            log::info!("Migrated Registration Intervals to V8");
 
             StorageVersion::new(8).put::<Pallet<T>>();
-            log::info!("Migrated GeneralSubnetApplicationCost to v7");
+            log::info!("Migrated Registration Intervals to V8");
 
             T::DbWeight::get().writes(1)
         }

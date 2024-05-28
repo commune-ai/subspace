@@ -106,11 +106,6 @@ impl<T: Config> SubnetChangeset<T> {
         );
 
         ensure!(
-            params.immunity_emission_threshold < 100,
-            Error::<T>::InvalidImmunityEmissionThreshold
-        );
-
-        ensure!(
             params.max_allowed_weights <= Pallet::<T>::get_max_allowed_weights_global(),
             Error::<T>::InvalidMaxAllowedWeights
         );
@@ -272,7 +267,7 @@ impl<T: Config> Pallet<T> {
             bonds_ma: BondsMovingAverage::<T>::get(netuid),
             target_registrations_interval: TargetRegistrationsInterval::<T>::get(netuid),
             target_registrations_per_interval: TargetRegistrationsPerInterval::<T>::get(netuid),
-            immunity_emission_threshold: ImmunityEmissionThreshold::<T>::get(netuid),
+            max_registrations_per_interval: MaxRegistrationsPerInterval::<T>::get(netuid),
         }
     }
 
@@ -281,7 +276,6 @@ impl<T: Config> Pallet<T> {
     }
 
     // stake
-
     #[cfg(debug_assertions)]
     pub fn get_min_stake(netuid: u16) -> u64 {
         MinStake::<T>::get(netuid)

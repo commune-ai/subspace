@@ -87,6 +87,7 @@ impl<T: Config> Pallet<T> {
     ) -> DispatchResult {
         // --- 1. Check that the caller has signed the transaction.
         let key = ensure_signed(origin.clone())?;
+
         // --- 2. Ensure, that we are not exceeding the max allowed
         // registrations per block.
         ensure!(
@@ -116,6 +117,14 @@ impl<T: Config> Pallet<T> {
                 Self::add_subnet_from_registration(stake, changeset)?
             }
         };
+
+        // 4.1 Ensure, that we are not exceeding the max allowed
+        // registrations per interval.
+        ensure!(
+            RegistrationsThisInterval::<T>::get(netuid)
+                < MaxRegistrationsPerInterval::<T>::get(netuid),
+            Error::<T>::TooManyRegistrationsPerInterval
+        );
 
         // TODO: later, once legit whitelist has been filled up, turn on the code below.
         // We also have to declear a migration, of modules on netuid 0 that are not whitelisted.
@@ -175,7 +184,6 @@ impl<T: Config> Pallet<T> {
         RegistrationsThisInterval::<T>::mutate(netuid, |registrations| {
             *registrations = registrations.saturating_add(1);
         });
-
         // --- Deposit successful event.
         Self::deposit_event(Event::ModuleRegistered(netuid, uid, module_key));
 
@@ -240,24 +248,8 @@ impl<T: Config> Pallet<T> {
         uids.sort_by_key(|a| a.1);
 
         let emission_vec: Vec<u64> = Emission::<T>::get(netuid);
-        // All modules that have >= 10% of the total emission are immune to pruning.
-        // This is mostly important in **LOCAL STAKE MODEL**.
-        // As deregistering such modules would effectivelly stop the emission flow to that subnet.
-        let emission_vec_sum: u64 = emission_vec.iter().sum();
-        // For example, if ImmunityEmissionThreshold is 10, thne every module has >= emission of the
-        // subnet is immuned to pruning.
-        let immunity_threshold = emission_vec_sum
-            .checked_div(ImmunityEmissionThreshold::<T>::get(netuid) as u64)
-            .unwrap_or(u64::MAX); // If division fails, we don't utilize the immunity.
-
         for (module_uid_i, block_at_registration) in uids {
             let pruning_score: u64 = *emission_vec.get(module_uid_i as usize).unwrap_or(&0);
-
-            // This tells us that if the module has >= 10% of the total emission,
-            // then it is immune to pruning. (Assuming the ignore_immunity is false)
-            if pruning_score >= immunity_threshold && !ignore_immunity {
-                continue;
-            }
 
             // Find min pruning score.
             if min_score > pruning_score {
@@ -302,10 +294,8 @@ impl<T: Config> Pallet<T> {
     /// subnet is filled, deregister the least staked module on it, or if the max allowed modules on
     /// the network is reached, deregisters the least staked module on the least staked netuid.
 
-    // TODO:
     // Return an option, if all modules are in immunity, you can not register, that means
     // if everything is in immunity throw an error, NetworkIsImmuned
-
     pub fn reserve_module_slot(netuid: u16) -> Option<()> {
         if Self::get_subnet_n(netuid) >= Self::get_max_allowed_uids(netuid) {
             // If we reach the max allowed modules for this subnet,

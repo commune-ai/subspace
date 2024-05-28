@@ -8,9 +8,9 @@ use sp_core::U256;
 
 use log::info;
 use pallet_subspace::{
-    voting::ApplicationStatus, CuratorApplications, Emission, Error, ImmunityEmissionThreshold,
-    MaxAllowedModules, MaxAllowedUids, MinStake, RemovedSubnets, Stake, SubnetNames, TotalSubnets,
-    N,
+    voting::ApplicationStatus, CuratorApplications, Emission, Error, MaxAllowedModules,
+    MaxAllowedUids, MaxRegistrationsPerInterval, MinStake, RemovedSubnets, Stake, SubnetNames,
+    TotalSubnets, N,
 };
 use sp_runtime::{DispatchResult, Percent};
 
@@ -65,9 +65,9 @@ fn test_max_registration() {
         let max_registrations_per_block = 100;
         // make sure that the results won´t get affected by burn
         SubspaceModule::set_min_burn(0);
+        MaxRegistrationsPerInterval::<Test>::set(netuid, 1000);
 
         assert_eq!(SubspaceModule::get_registrations_this_block(), 0);
-
         SubspaceModule::set_max_registrations_per_block(1000);
         for i in 1..(max_registrations_per_block * rounds) {
             let key = U256::from(i);
@@ -144,6 +144,7 @@ fn test_many_registrations() {
         SubspaceModule::set_min_burn(0);
 
         SubspaceModule::set_max_registrations_per_block(n);
+        MaxRegistrationsPerInterval::<Test>::set(netuid, 1000);
         for i in 0..n {
             register_module(netuid, U256::from(i), stake).unwrap_or_else(|_| {
                 panic!("Failed to register module with key: {i:?} and stake: {stake:?}",)
@@ -365,8 +366,6 @@ fn deregister_within_subnet_when_limit_is_reached() {
         MaxAllowedModules::<Test>::set(3);
         assert_ok!(register_module(0, 0.into(), to_nano(10_000)));
         assert_ok!(register_module(1, 1.into(), to_nano(5_000)));
-        ImmunityEmissionThreshold::<Test>::set(0, 0);
-        ImmunityEmissionThreshold::<Test>::set(1, 0);
 
         assert_eq!(Stake::<Test>::get(0, U256::from(0)), to_nano(9_996));
         assert_eq!(Stake::<Test>::get(1, U256::from(1)), to_nano(4_996));

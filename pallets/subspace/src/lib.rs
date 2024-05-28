@@ -372,7 +372,7 @@ pub mod pallet {
                 target_registrations_interval: DefaultTargetRegistrationsInterval::<T>::get(),
                 target_registrations_per_interval: DefaultTargetRegistrationsPerInterval::<T>::get(
                 ),
-                immunity_emission_threshold: 0,
+                max_registrations_per_interval: 42,
             }
         }
     }
@@ -409,7 +409,7 @@ pub mod pallet {
         // registrations
         pub target_registrations_interval: u16,
         pub target_registrations_per_interval: u16,
-        pub immunity_emission_threshold: u16,
+        pub max_registrations_per_interval: u16,
     }
 
     #[pallet::type_value]
@@ -427,10 +427,6 @@ pub mod pallet {
     #[pallet::storage] // --- MAP ( netuid ) --> immunity_period
     pub type ImmunityPeriod<T> =
         StorageMap<_, Identity, u16, u16, ValueQuery, DefaultImmunityPeriod<T>>;
-
-    #[pallet::storage] // --- MAP ( netuid ) --> immunity_period
-    pub type ImmunityEmissionThreshold<T> =
-        StorageMap<_, Identity, u16, u16, ValueQuery, ConstU16<10>>;
 
     #[pallet::type_value]
     pub fn DefaultMinAllowedWeights<T: Config>() -> u16 {
@@ -468,6 +464,9 @@ pub mod pallet {
     #[pallet::storage] // --- MAP ( netuid ) --> trarget_registrations_interval
     pub type TargetRegistrationsInterval<T> =
         StorageMap<_, Identity, u16, u16, ValueQuery, DefaultTargetRegistrationsInterval<T>>;
+    #[pallet::storage] // --- MAP ( netuid ) --> trarget_registrations_interval
+    pub type MaxRegistrationsPerInterval<T> =
+        StorageMap<_, Identity, u16, u16, ValueQuery, ConstU16<42>>;
 
     #[pallet::type_value]
     pub fn DefaultMaxStake<T: Config>() -> u64 {
@@ -805,6 +804,9 @@ pub mod pallet {
                                   * chain with fewer elements than are allowed. */
         TooManyRegistrationsPerBlock, /* ---- Thrown when registrations this block exceeds
                                        * allowed number. */
+        TooManyRegistrationsPerInterval, /* ---- Thrown when registrations this interval
+                                          * exceeds
+                                          * allowed number. */
         AlreadyRegistered, /* ---- Thrown when the caller requests registering a module which
                             * already exists in the active set. */
         MaxAllowedUIdsNotAllowed, // ---  Thrown if the vaule is invalid for MaxAllowedUids
@@ -933,7 +935,6 @@ pub mod pallet {
 
         MaximumSetWeightsPerEpochReached,
         InsufficientDaoTreasuryFunds,
-        InvalidImmunityEmissionThreshold,
     }
 
     // ==================
@@ -1227,7 +1228,7 @@ pub mod pallet {
             bonds_ma: u64,
             target_registrations_interval: u16,
             target_registrations_per_interval: u16,
-            immunity_emission_threshold: u16,
+            max_registrations_per_interval: u16,
         ) -> DispatchResult {
             let params = SubnetParams {
                 founder,
@@ -1248,7 +1249,7 @@ pub mod pallet {
                 bonds_ma,
                 target_registrations_interval,
                 target_registrations_per_interval,
-                immunity_emission_threshold,
+                max_registrations_per_interval,
             };
 
             let changeset = SubnetChangeset::update(netuid, params)?;
@@ -1334,7 +1335,7 @@ pub mod pallet {
             bonds_ma: u64,
             target_registrations_interval: u16,
             target_registrations_per_interval: u16,
-            immunity_emission_threshold: u16,
+            max_registrations_per_interval: u16,
         ) -> DispatchResult {
             let mut params = Self::subnet_params(netuid);
             params.founder = founder;
@@ -1355,7 +1356,7 @@ pub mod pallet {
             params.bonds_ma = bonds_ma;
             params.target_registrations_interval = target_registrations_interval;
             params.target_registrations_per_interval = target_registrations_per_interval;
-            params.immunity_emission_threshold = immunity_emission_threshold;
+            params.max_registrations_per_interval = max_registrations_per_interval;
             Self::do_add_subnet_proposal(origin, netuid, params)
         }
 
