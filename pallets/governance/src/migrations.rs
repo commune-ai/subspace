@@ -5,10 +5,11 @@ use frame_support::{
     traits::{OnRuntimeUpgrade, StorageVersion, UncheckedOnRuntimeUpgrade},
     BoundedVec,
 };
+use sp_std::collections::btree_set::BTreeSet;
 
 use crate::{
     proposal::{ProposalData, ProposalStatus},
-    Config, DelegatedVotingPower, GovernanceConfiguration, Pallet, Proposal, Proposals,
+    Config, DelegatingVotingPower, GovernanceConfiguration, Pallet, Proposal, Proposals,
 };
 
 #[derive(Default)]
@@ -107,13 +108,11 @@ impl<T: Config + pallet_subspace::Config> OnRuntimeUpgrade for InitialMigration<
 
         log::info!("Imported {} proposals", Proposals::<T>::iter().count());
 
-        for (subnet_id, staked, stakes) in pallet_subspace::StakeFrom::<T>::iter() {
-            DelegatedVotingPower::<T>::mutate(&staked, subnet_id, |delegators| {
-                for staker in stakes.into_keys().filter(|staker| staker != &staked) {
-                    let _ = delegators.try_insert(staker.clone());
-                }
-            });
+        let mut delegating = BTreeSet::new();
+        for (_, staker, _) in pallet_subspace::StakeTo::<T>::iter() {
+            delegating.insert(staker);
         }
+        DelegatingVotingPower::<T>::set(delegating.try_into().unwrap_or_default());
 
         frame_support::weights::Weight::zero()
     }

@@ -13,7 +13,7 @@ use pallet_subspace::{
 use sp_core::{H256, U256};
 use sp_runtime::{
     traits::{BlakeTwo256, IdentityLookup},
-    BuildStorage, DispatchError, DispatchResult,
+    BuildStorage, DispatchResult,
 };
 
 use log::info;
@@ -119,21 +119,13 @@ impl Get<PalletId> for SubspacePalletId {
 }
 
 impl pallet_governance_api::GovernanceApi<<Test as frame_system::Config>::AccountId> for Test {
-    fn set_delegated_voting_power(
-        _subnet_id: u16,
-        _staked: <Test as frame_system::Config>::AccountId,
-        _staker: <Test as frame_system::Config>::AccountId,
-    ) -> Result<(), DispatchError> {
+    fn is_delegating_voting_power(_delegator: &AccountId) -> bool {
+        false
+    }
+
+    fn update_delegating_voting_power(_delegator: &AccountId, _delegating: bool) -> DispatchResult {
         Ok(())
     }
-    fn remove_delegated_voting_power(
-        _subnet_id: u16,
-        _staked: <Test as frame_system::Config>::AccountId,
-        _staker: <Test as frame_system::Config>::AccountId,
-    ) {
-    }
-    fn deregister_delegated_voting_power_on_module(_subnet_id: u16, _staked: AccountId) {}
-    fn deregister_delegated_voting_power_on_subnet(_subnet_id: u16) {}
 }
 
 impl pallet_subspace::Config for Test {
@@ -193,12 +185,12 @@ pub fn add_balance(key: U256, balance: u64) {
 
 #[allow(dead_code)]
 pub fn increase_stake(netuid: u16, key: U256, stake: u64) {
-    SubspaceModule::increase_stake(netuid, &key, &key, stake, false);
+    SubspaceModule::increase_stake(netuid, &key, &key, stake);
 }
 
 #[allow(dead_code)]
 pub fn delegate_stake(netuid: u16, key: U256, module_key: U256, stake: u64) {
-    SubspaceModule::increase_stake(netuid, &key, &module_key, stake, false);
+    SubspaceModule::increase_stake(netuid, &key, &module_key, stake);
 }
 
 #[allow(dead_code)]
@@ -387,7 +379,7 @@ pub fn remove_stake(netuid: u16, key: U256, amount: u64) {
 #[allow(dead_code)]
 pub fn add_stake(netuid: u16, key: U256, amount: u64) {
     let origin = get_origin(key);
-    let result = SubspaceModule::add_stake(origin, netuid, key, amount, Some(false));
+    let result = SubspaceModule::add_stake(origin, netuid, key, amount);
 
     assert_ok!(result);
 }

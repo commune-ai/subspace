@@ -1,5 +1,5 @@
 use crate::{
-    Config, DelegatedVotingPower, Error, Event, GovernanceConfig, GovernanceConfiguration, Pallet,
+    Config, DelegatingVotingPower, Error, Event, GovernanceConfig, GovernanceConfiguration, Pallet,
     Percent, Proposals, SubnetGovernanceConfig, SubnetId, UnrewardedProposals,
 };
 use frame_support::{
@@ -13,7 +13,7 @@ use pallet_subspace::{
 };
 use parity_scale_codec::{Decode, Encode, MaxEncodedLen};
 use scale_info::TypeInfo;
-use sp_std::{collections::btree_map::BTreeMap, vec::Vec};
+use sp_std::{collections::btree_set::BTreeSet, vec::Vec};
 use substrate_fixed::types::I92F36;
 
 pub type ProposalId = u64;
@@ -346,24 +346,7 @@ impl<T: Config> Pallet<T> {
 }
 
 pub fn tick_proposals<T: Config>(block_number: u64) {
-    let delegating = DelegatedVotingPower::<T>::iter().fold(
-        BTreeMap::<_, u64>::new(),
-        |mut acc, (delegated, subnet_id, delegators)| {
-            for delegator in delegators {
-                let Ok(stakes) = pallet_subspace::StakeTo::<T>::try_get(subnet_id, &delegator)
-                else {
-                    continue;
-                };
-
-                if let Some(stake) = stakes.get(&delegated) {
-                    let key = acc.entry((delegator.clone(), subnet_id)).or_default();
-                    *key = key.saturating_add(*stake);
-                }
-            }
-
-            acc
-        },
-    );
+    let delegating = DelegatingVotingPower::<T>::get().into_inner();
 
     for (id, proposal) in Proposals::<T>::iter().filter(|(_, p)| p.is_active()) {
         let res = with_storage_layer(|| tick_proposal(&delegating, block_number, proposal));
@@ -374,7 +357,7 @@ pub fn tick_proposals<T: Config>(block_number: u64) {
 }
 
 fn tick_proposal<T: Config>(
-    delegating: &BTreeMap<(T::AccountId, u16), u64>,
+    delegating: &BTreeSet<T::AccountId>,
     block_number: u64,
     proposal: Proposal<T>,
 ) -> DispatchResult {
@@ -478,48 +461,31 @@ pub fn tick_proposal_rewards<T: Config>(block_number: u64) {
 }
 
 fn calc_stake<T: Config>(
-    delegating: &BTreeMap<(T::AccountId, u16), u64>,
+    delegating: &BTreeSet<T::AccountId>,
     voter: &T::AccountId,
     subnet_id: Option<SubnetId>,
 ) -> u64 {
-    if let Some(subnet_id) = subnet_id {
-        let own_stake: u64 =
-            pallet_subspace::StakeTo::<T>::get(subnet_id, voter).into_values().sum();
-        let voter_delegated_stake =
-            delegating.get(&(voter.clone(), subnet_id)).copied().unwrap_or_default();
-        let own_stake = own_stake.saturating_sub(voter_delegated_stake);
-        let delegated_stake = DelegatedVotingPower::<T>::get(voter, subnet_id)
-            .iter()
-            .map(|delegator| PalletSubspace::<T>::get_stake_to_module(subnet_id, delegator, voter))
-            .sum::<u64>();
-        own_stake + delegated_stake
+    let own_stake = if delegating.contains(voter) {
+        0
     } else {
-        let mut own_stake: u64 = 0;
-        let mut delegated_stake: u64 = 0;
+        PalletSubspace::<T>::get_account_stake(voter, subnet_id)
+    };
 
-        for subnet_id in pallet_subspace::N::<T>::iter_keys() {
-            let stake: u64 = pallet_subspace::StakeTo::<T>::try_get(subnet_id, voter)
-                .map(|v| v.into_values().sum())
-                .unwrap_or_default();
-            let voter_delegated_stake =
-                delegating.get(&(voter.clone(), subnet_id)).copied().unwrap_or_default();
-            own_stake = own_stake.saturating_add(stake.saturating_sub(voter_delegated_stake));
+    let calculate_delegated = |subnet_id: u16| -> u64 {
+        PalletSubspace::<T>::get_stake_from_vector(subnet_id, voter)
+            .into_iter()
+            .filter(|(staker, _)| delegating.contains(staker))
+            .map(|(_, stake)| stake)
+            .sum()
+    };
 
-            delegated_stake = delegated_stake.saturating_add(
-                DelegatedVotingPower::<T>::get(voter, subnet_id)
-                    .iter()
-                    .filter_map(|delegator| {
-                        pallet_subspace::StakeTo::<T>::try_get(subnet_id, delegator)
-                            .ok()?
-                            .get(voter)
-                            .copied()
-                    })
-                    .sum::<u64>(),
-            );
-        }
+    let delegated_stake = if let Some(subnet_id) = subnet_id {
+        calculate_delegated(subnet_id)
+    } else {
+        pallet_subspace::N::<T>::iter_keys().map(calculate_delegated).sum()
+    };
 
-        own_stake + delegated_stake
-    }
+    own_stake + delegated_stake
 }
 
 pub fn execute_proposal_rewards<T: crate::Config>(

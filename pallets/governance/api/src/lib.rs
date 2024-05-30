@@ -1,17 +1,13 @@
 #![no_std]
 
-use sp_runtime::DispatchError;
+use sp_runtime::DispatchResult;
 
 pub trait GovernanceApi<AccountId> {
-    fn set_delegated_voting_power(
-        subnet_id: u16,
-        staked: AccountId,
-        staker: AccountId,
-    ) -> Result<(), DispatchError>;
+    /// Returns whether this account is delegating their voting power to the modules it has stakes
+    /// on.
+    fn is_delegating_voting_power(delegator: &AccountId) -> bool;
 
-    fn remove_delegated_voting_power(subnet_id: u16, staked: AccountId, staker: AccountId);
-
-    fn deregister_delegated_voting_power_on_module(subnet_id: u16, staked: AccountId);
-
-    fn deregister_delegated_voting_power_on_subnet(subnet_id: u16);
+    /// Defines whether this account will delegate their voting power or not. This decision is
+    /// global.
+    fn update_delegating_voting_power(delegator: &AccountId, delegating: bool) -> DispatchResult;
 }
