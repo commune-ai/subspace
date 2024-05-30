@@ -14,11 +14,12 @@ use frame_support::{
 use frame_system::pallet_prelude::OriginFor;
 use pallet_subspace::voting::VoteMode;
 use parity_scale_codec::{Decode, Encode, MaxEncodedLen};
-use proposal::{Proposal, ProposalId};
+use proposal::{Proposal, ProposalId, UnrewardedProposal};
 use scale_info::TypeInfo;
 use sp_std::vec::Vec;
 
 pub use pallet::*;
+use substrate_fixed::types::I92F36;
 
 type SubnetId = u16;
 type Nanos = u64;
@@ -63,6 +64,8 @@ pub mod pallet {
                 proposal::tick_proposals::<T>(block_number);
             }
 
+            proposal::tick_proposal_rewards::<T>(block_number);
+
             Weight::zero()
         }
     }
@@ -100,6 +103,10 @@ pub mod pallet {
         BoundedBTreeSet<T::AccountId, ConstU32<{ u32::MAX }>>,
         ValueQuery,
     >;
+
+    #[pallet::storage]
+    pub type UnrewardedProposals<T: Config> =
+        StorageMap<_, Identity, ProposalId, UnrewardedProposal<T>>; // TODO: make it return an option
 
     #[pallet::call]
     impl<T: Config> Pallet<T> {
@@ -297,6 +304,9 @@ pub struct GovernanceConfiguration<T: Config> {
     pub proposal_cost: Nanos,
     pub expiration: u32,
     pub vote_mode: VoteMode,
+    pub proposal_reward_treasury_allocation: I92F36,
+    pub max_proposal_reward_treasury_allocation: u64,
+    pub proposal_reward_interval: u64,
     pub _pd: PhantomData<T>,
 }
 
@@ -304,8 +314,11 @@ impl<T: Config> Default for GovernanceConfiguration<T> {
     fn default() -> Self {
         Self {
             proposal_cost: 10_000_000_000_000,
-            expiration: 130000,
+            expiration: 130_000,
             vote_mode: VoteMode::Vote,
+            proposal_reward_treasury_allocation: I92F36::from_num(10),
+            max_proposal_reward_treasury_allocation: 10_000,
+            proposal_reward_interval: 75_600,
             _pd: PhantomData,
         }
     }
