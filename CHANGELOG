@@ -22,10 +22,26 @@ Spec version: `114`
 - The following storage values were deleted and are now accessible through `BurnConfig`:
   - `MinBurn`
   - `MaxBurn`
-  - `AdjustmentAlpha`
-  - `TargetRegistrationsInterval`
-  - `TargetRegistrationsPerInterval`
 - The storage value `RemovedSubnets` is now called `SubnetGaps`
+- Moved Adjustment Alpha parameter under the `SubnetParams` so that subnet owners,
+can adjust this value at runtime.
+
+## Version 1.7.5
+
+Fixing migration
+
+## Version 1.7.4
+
+Spec version `114`
+
+- Moved global parameters, of:
+  - `target_registration_interval`
+  - `target_registration_per_interval`
+    To subnet owner control
+- Decreased `MaxRegistrationPerBlock` from `5`-> `3`
+- Introduced a new SubnetParam `MaxRegistrationsPerInterval`,
+which defines how many registraions per `target_registration_interval` can happen,
+above are rate limited.
 
 ## Version 1.7.4
 

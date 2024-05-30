@@ -4,9 +4,10 @@ use frame_support::assert_ok;
 use log::info;
 use mock::*;
 use pallet_subspace::{
-    global::BurnConfiguration, Burn, BurnConfig, DaoTreasuryAddress, DaoTreasuryDistribution,
-    Dividends, Emission, FounderShare, Incentive, MaxAllowedModules, MaxAllowedWeights,
-    MaxRegistrationsPerBlock, MinAllowedWeights, Stake, SubnetStakeThreshold, Tempo, Trust, N,
+    global::BurnConfiguration, AdjustmentAlpha, Burn, BurnConfig, DaoTreasuryAddress,
+    DaoTreasuryDistribution, Dividends, Emission, FounderShare, Incentive, MaxAllowedModules,
+    MaxAllowedWeights, MaxRegistrationsPerBlock, MinAllowedWeights, Stake, SubnetStakeThreshold,
+    TargetRegistrationsInterval, TargetRegistrationsPerInterval, Tempo, Trust, N,
 };
 use sp_core::U256;
 use sp_runtime::Percent;
@@ -704,9 +705,6 @@ fn test_dynamic_burn() {
         let burn_config = BurnConfiguration {
             min_burn: to_nano(2),
             max_burn: to_nano(250),
-            adjustment_alpha: 0,
-            adjustment_interval: 200,
-            expected_registrations: 100,
             ..BurnConfiguration::<Test>::default()
         };
         assert_ok!(burn_config.apply());
@@ -729,6 +727,9 @@ fn test_dynamic_burn() {
         for (i, stake) in stakes.iter().enumerate() {
             let key = U256::from(i);
             assert_ok!(register_module(netuid, key, *stake));
+            AdjustmentAlpha::<Test>::set(netuid, 0);
+            TargetRegistrationsInterval::<Test>::set(netuid, 200);
+            TargetRegistrationsPerInterval::<Test>::set(netuid, 100);
             if (i + 1) % registrations_per_block == 0 {
                 step_block(1);
             }

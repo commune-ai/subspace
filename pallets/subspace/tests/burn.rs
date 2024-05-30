@@ -3,8 +3,8 @@ use frame_support::assert_ok;
 
 use mock::*;
 use pallet_subspace::{
-    global::BurnConfiguration, Burn, MaxRegistrationsPerBlock, TargetRegistrationsInterval,
-    TargetRegistrationsPerInterval,
+    global::BurnConfiguration, AdjustmentAlpha, Burn, MaxRegistrationsPerBlock,
+    TargetRegistrationsInterval, TargetRegistrationsPerInterval,
 };
 use sp_core::U256;
 
@@ -18,20 +18,23 @@ fn test_local_subnet_burn() {
         let burn_config = BurnConfiguration {
             min_burn,
             max_burn,
-            adjustment_interval: 200,
-            expected_registrations: 25,
             ..BurnConfiguration::<Test>::default()
         };
 
         assert_ok!(burn_config.apply());
 
         MaxRegistrationsPerBlock::<Test>::set(5);
+        let target_reg_interval = 200;
+        let target_reg_per_interval = 25;
 
         // register the general subnet
         assert_ok!(register_module(0, U256::from(0), to_nano(20)));
+        AdjustmentAlpha::<Test>::insert(0, 200);
+        TargetRegistrationsPerInterval::<Test>::insert(0, 25);
         // Adjust max registrations per block to a high number.
         // We will be doing "registration raid"
         TargetRegistrationsInterval::<Test>::insert(0, target_reg_interval); // for the netuid 0
+        TargetRegistrationsPerInterval::<Test>::insert(0, target_reg_per_interval); // for the netuid 0
 
         // register 500 modules on yuma subnet
         let netuid = 1;
