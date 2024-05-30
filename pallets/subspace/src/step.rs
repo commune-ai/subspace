@@ -25,13 +25,10 @@ impl<T: Config> Pallet<T> {
         log::debug!("ticking subnets, total stake: {total_stake}, stake threshold: {subnet_stake_threshold:?}");
 
         for (netuid, tempo) in Tempo::<T>::iter() {
-            // Query the target interval
+            let registration_this_interval = RegistrationsThisInterval::<T>::get(netuid);
             let target_registrations_interval = TargetRegistrationsInterval::<T>::get(netuid);
-            // Query the target amount of registrations
             let target_registrations_per_interval =
                 TargetRegistrationsPerInterval::<T>::get(netuid);
-
-            let registration_this_interval = RegistrationsThisInterval::<T>::get(netuid);
 
             Self::adjust_registration(
                 netuid,
@@ -626,6 +623,7 @@ failed to run yuma consensus algorithm: {err:?}, skipping this block. \
             let current_burn = Burn::<T>::get(netuid);
 
             let adjusted_burn = Self::adjust_burn(
+                netuid,
                 current_burn,
                 registrations_this_interval,
                 target_registrations_per_interval,
@@ -639,6 +637,7 @@ failed to run yuma consensus algorithm: {err:?}, skipping this block. \
     }
 
     pub fn adjust_burn(
+        netuid: u16,
         current_burn: u64,
         registrations_this_interval: u16,
         target_registrations_per_interval: u16,
@@ -648,11 +647,9 @@ failed to run yuma consensus algorithm: {err:?}, skipping this block. \
             / I110F18::from_num(
                 target_registrations_per_interval + target_registrations_per_interval,
             );
+        let adjustment_alpha = AdjustmentAlpha::<T>::get(netuid);
         let BurnConfiguration {
-            min_burn,
-            max_burn,
-            adjustment_alpha,
-            ..
+            min_burn, max_burn, ..
         } = BurnConfig::<T>::get();
         let alpha: I110F18 = I110F18::from_num(adjustment_alpha) / I110F18::from_num(u64::MAX);
         let next_value: I110F18 = alpha * I110F18::from_num(current_burn)

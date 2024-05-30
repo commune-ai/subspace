@@ -1,8 +1,10 @@
 use super::*;
 use frame_support::pallet_prelude::{DispatchResult, MaxEncodedLen};
-use sp_core::Get;
 use sp_runtime::DispatchError;
 
+// TODO:
+// This will eventually become a subnet parameter (once we have global stake)
+// So it will hold truly all burn adjustments.
 #[derive(
     Clone, TypeInfo, Decode, Encode, PartialEq, Eq, frame_support::DebugNoBound, MaxEncodedLen,
 )]
@@ -12,14 +14,6 @@ pub struct BurnConfiguration<T> {
     pub min_burn: u64,
     /// max burn the adjustment algorithm can set
     pub max_burn: u64,
-    /// the steepness with which the burn curve will increase
-    /// every interval
-    pub adjustment_alpha: u64,
-    /// interval in blocks for the burn to be adjusted
-    pub adjustment_interval: u16,
-    /// the number of registrations expected per interval, if
-    /// below, burn gets decreased, it is increased otherwise
-    pub expected_registrations: u16,
     pub _pd: PhantomData<T>,
 }
 
@@ -28,9 +22,6 @@ impl<T: Config> Default for BurnConfiguration<T> {
         Self {
             min_burn: 4_000_000_000,
             max_burn: 250_000_000_000,
-            adjustment_alpha: u64::MAX / 2,
-            adjustment_interval: DefaultTempo::<T>::get() * 2,
-            expected_registrations: DefaultTempo::<T>::get(),
             _pd: PhantomData,
         }
     }
@@ -39,18 +30,7 @@ impl<T: Config> Default for BurnConfiguration<T> {
 impl<T: Config> BurnConfiguration<T> {
     pub fn apply(self) -> Result<(), DispatchError> {
         ensure!(self.min_burn >= 100_000_000, Error::<T>::InvalidMinBurn);
-
         ensure!(self.max_burn > self.min_burn, Error::<T>::InvalidMaxBurn);
-
-        ensure!(
-            self.expected_registrations > 0,
-            Error::<T>::InvalidTargetRegistrationsPerInterval
-        );
-
-        ensure!(
-            self.adjustment_interval > 0,
-            Error::<T>::InvalidTargetRegistrationsInterval
-        );
 
         BurnConfig::<T>::set(self);
 
@@ -69,11 +49,9 @@ impl<T: Config> Pallet<T> {
             curator: Curator::<T>::get(),
             floor_founder_share: FloorFounderShare::<T>::get(),
             floor_delegation_fee: FloorDelegationFee::<T>::get(),
-
             // burn & registrations
             max_registrations_per_block: MaxRegistrationsPerBlock::<T>::get(),
             burn_config: BurnConfig::<T>::get(),
-
             // weights
             max_allowed_weights: MaxAllowedWeightsGlobal::<T>::get(),
             subnet_stake_threshold: SubnetStakeThreshold::<T>::get(),

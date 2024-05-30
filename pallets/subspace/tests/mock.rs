@@ -8,7 +8,7 @@ use frame_support::{
 use frame_system as system;
 use pallet_subspace::{
     Address, BurnConfig, Dividends, Emission, Incentive, LastUpdate, MaxRegistrationsPerBlock,
-    Name, Stake, Tempo, N,
+    MaxRegistrationsPerInterval, Name, Stake, Tempo, N,
 };
 use sp_core::{H256, U256};
 use sp_runtime::{
@@ -217,86 +217,6 @@ pub fn register_module(netuid: u16, key: U256, stake: u64) -> DispatchResult {
     let result = SubspaceModule::register(origin, network, name, address, stake, key, None);
     MaxRegistrationsPerInterval::<Test>::set(netuid, 1000);
     result
-}
-
-#[allow(dead_code)]
-pub fn check_subnet_storage(netuid: u16) -> bool {
-    let n = SubspaceModule::get_subnet_n(netuid);
-    let uids = SubspaceModule::get_uids(netuid);
-    let keys = SubspaceModule::get_keys(netuid);
-    let names = SubspaceModule::get_names(netuid);
-    let addresses = SubspaceModule::get_addresses(netuid);
-    let emissions = SubspaceModule::get_emissions(netuid);
-    let incentives = SubspaceModule::get_incentives(netuid);
-    let dividends = SubspaceModule::get_dividends(netuid);
-    let last_update = SubspaceModule::get_last_update(netuid);
-
-    if (n as usize) != uids.len() {
-        return false;
-    }
-    if (n as usize) != keys.len() {
-        return false;
-    }
-    if (n as usize) != names.len() {
-        return false;
-    }
-    if (n as usize) != addresses.len() {
-        return false;
-    }
-    if (n as usize) != emissions.len() {
-        return false;
-    }
-    if (n as usize) != incentives.len() {
-        return false;
-    }
-    if (n as usize) != dividends.len() {
-        return false;
-    }
-    if (n as usize) != last_update.len() {
-        return false;
-    }
-
-    // length of addresss
-    let name_vector: Vec<Vec<u8>> = Name::<Test>::iter_prefix_values(netuid).collect();
-    if (n as usize) != name_vector.len() {
-        return false;
-    }
-
-    // length of addresss
-    let address_vector: Vec<Vec<u8>> = Address::<Test>::iter_prefix_values(netuid).collect();
-    if (n as usize) != address_vector.len() {
-        return false;
-    }
-
-    true
-}
-
-#[allow(dead_code)]
-pub fn get_stake_for_uid(netuid: u16, module_uid: u16) -> u64 {
-    let Some(key) = SubspaceModule::get_key_for_uid(netuid, module_uid) else {
-        return 0;
-    };
-    SubspaceModule::get_stake_for_key(netuid, &key)
-}
-
-#[allow(dead_code)]
-pub fn get_emission_for_key(netuid: u16, key: &AccountId) -> u64 {
-    let uid = SubspaceModule::get_uid_for_key(netuid, key);
-    SubspaceModule::get_emission_for_uid(netuid, uid)
-}
-
-#[allow(dead_code)]
-pub fn get_stakes(netuid: u16) -> Vec<u64> {
-    SubspaceModule::get_uid_key_tuples(netuid)
-        .into_iter()
-        .map(|(_, key)| SubspaceModule::get_stake(netuid, &key))
-        .collect()
-}
-
-#[allow(dead_code)]
-pub fn get_total_subnet_balance(netuid: u16) -> u64 {
-    let keys = SubspaceModule::get_keys(netuid);
-    keys.iter().map(SubspaceModule::get_balance_u64).sum()
 }
 
 #[allow(dead_code)]

@@ -39,12 +39,7 @@ fn creates_global_params_proposal_correctly_and_expires() {
         let original = SubspaceModule::global_params();
 
         let BurnConfiguration {
-            min_burn,
-            max_burn,
-            adjustment_alpha,
-            adjustment_interval,
-            expected_registrations,
-            ..
+            min_burn, max_burn, ..
         } = BurnConfig::<Test>::get();
 
         let GlobalParams {
@@ -79,9 +74,6 @@ fn creates_global_params_proposal_correctly_and_expires() {
             floor_delegation_fee,
             floor_founder_share,
             min_weight_stake,
-            expected_registrations,
-            adjustment_interval,
-            adjustment_alpha,
             curator,
             subnet_stake_threshold,
             proposal_cost,
@@ -142,12 +134,7 @@ fn creates_global_params_proposal_correctly_and_is_approved() {
         assert_ok!(burn_config.apply());
 
         let BurnConfiguration {
-            min_burn,
-            max_burn,
-            adjustment_alpha,
-            adjustment_interval,
-            expected_registrations,
-            ..
+            min_burn, max_burn, ..
         } = BurnConfig::<Test>::get();
 
         let params = SubspaceModule::global_params();
@@ -184,9 +171,6 @@ fn creates_global_params_proposal_correctly_and_is_approved() {
             floor_delegation_fee,
             floor_founder_share,
             min_weight_stake,
-            expected_registrations,
-            adjustment_interval,
-            adjustment_alpha,
             curator,
             subnet_stake_threshold,
             proposal_cost,
@@ -264,12 +248,7 @@ fn creates_global_params_proposal_correctly_and_is_refused() {
         } = GlobalParams { ..original.clone() };
 
         let BurnConfiguration {
-            min_burn,
-            max_burn,
-            adjustment_alpha,
-            adjustment_interval,
-            expected_registrations,
-            ..
+            min_burn, max_burn, ..
         } = BurnConfig::<Test>::get();
 
         SubspaceModule::add_global_proposal(
@@ -285,9 +264,6 @@ fn creates_global_params_proposal_correctly_and_is_refused() {
             floor_delegation_fee,
             floor_founder_share,
             min_weight_stake,
-            expected_registrations,
-            adjustment_interval,
-            adjustment_alpha,
             curator,
             subnet_stake_threshold,
             proposal_cost,
@@ -359,6 +335,7 @@ fn creates_subnet_params_proposal_correctly_and_is_approved() {
             target_registrations_interval,
             target_registrations_per_interval,
             max_registrations_per_interval,
+            adjustment_alpha,
         } = params.clone();
 
         SubspaceModule::add_subnet_proposal(
@@ -382,6 +359,7 @@ fn creates_subnet_params_proposal_correctly_and_is_approved() {
             target_registrations_interval,
             target_registrations_per_interval,
             max_registrations_per_interval,
+            adjustment_alpha,
         )
         .expect("failed to create proposal");
 

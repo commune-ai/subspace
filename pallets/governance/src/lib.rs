@@ -95,9 +95,6 @@ pub mod pallet {
             floor_delegation_fee: Percent,
             floor_founder_share: u8,
             min_weight_stake: u64,
-            target_registrations_per_interval: u16,
-            target_registrations_interval: u16,
-            adjustment_alpha: u64,
             curator: T::AccountId,
             subnet_stake_threshold: Percent,
             proposal_cost: u64,
@@ -124,9 +121,6 @@ pub mod pallet {
 
             params.burn_config.min_burn = min_burn;
             params.burn_config.max_burn = max_burn;
-            params.burn_config.adjustment_alpha = adjustment_alpha;
-            params.burn_config.adjustment_interval = target_registrations_interval;
-            params.burn_config.expected_registrations = target_registrations_per_interval;
 
             Self::do_add_global_proposal(origin, data, params)
         }

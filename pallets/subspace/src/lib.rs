@@ -120,11 +120,6 @@ pub mod pallet {
     pub type UnitEmission<T> = StorageValue<_, u64, ValueQuery, DefaultUnitEmission<T>>;
 
     #[pallet::type_value]
-    pub fn DefaultAdjustmentAlpha<T: Config>() -> u64 {
-        u64::MAX / 2
-    }
-
-    #[pallet::type_value]
     pub fn DefaultSubnetStakeThreshold<T: Config>() -> Percent {
         Percent::from_percent(5)
     }
@@ -330,6 +325,7 @@ pub mod pallet {
                 target_registrations_per_interval: DefaultTargetRegistrationsPerInterval::<T>::get(
                 ),
                 max_registrations_per_interval: 42,
+                adjustment_alpha: DefaultAdjustmentAlpha::<T>::get(),
             }
         }
     }
@@ -362,6 +358,7 @@ pub mod pallet {
         pub target_registrations_interval: u16,
         pub target_registrations_per_interval: u16,
         pub max_registrations_per_interval: u16,
+        pub adjustment_alpha: u64,
     }
 
     #[pallet::type_value]
@@ -387,13 +384,6 @@ pub mod pallet {
     #[pallet::storage] // --- MAP ( netuid ) --> min_allowed_weights
     pub type MinAllowedWeights<T> =
         StorageMap<_, Identity, u16, u16, ValueQuery, DefaultMinAllowedWeights<T>>;
-
-    #[pallet::type_value]
-    pub fn DefaultSelfVote<T: Config>() -> bool {
-        false
-    }
-    #[pallet::storage] // --- MAP ( netuid ) --> min_allowed_weights
-    pub type SelfVote<T> = StorageMap<_, Identity, u16, bool, ValueQuery, DefaultSelfVote<T>>;
 
     #[pallet::storage] // --- MAP ( netuid ) --> min_allowed_weights
     pub type MinStake<T> = StorageMap<_, Identity, u16, u64, ValueQuery>;
@@ -424,6 +414,14 @@ pub mod pallet {
     #[pallet::storage] // --- MAP ( netuid ) --> trarget_registrations_interval
     pub type MaxRegistrationsPerInterval<T> =
         StorageMap<_, Identity, u16, u16, ValueQuery, DefaultMaxRegistrationsPerInterval<T>>;
+
+    #[pallet::type_value]
+    pub fn DefaultAdjustmentAlpha<T: Config>() -> u64 {
+        u64::MAX / 2
+    }
+    #[pallet::storage] // --- MAP ( netuid ) --> adjustment_alpha
+    pub type AdjustmentAlpha<T> =
+        StorageMap<_, Identity, u16, u64, ValueQuery, DefaultAdjustmentAlpha<T>>;
 
     #[pallet::type_value]
     pub fn DefaultMaxWeightAge<T: Config>() -> u64 {
@@ -886,7 +884,6 @@ pub mod pallet {
         // Other
         InvalidMaxWeightAge,
         InvalidRecommendedWeight,
-        ArithmeticError,
 
         MaximumSetWeightsPerEpochReached,
         InsufficientDaoTreasuryFunds,
@@ -1195,6 +1192,7 @@ pub mod pallet {
             target_registrations_interval: u16,
             target_registrations_per_interval: u16,
             max_registrations_per_interval: u16,
+            adjustment_alpha: u64,
         ) -> DispatchResult {
             let params = SubnetParams {
                 founder,
@@ -1215,6 +1213,7 @@ pub mod pallet {
                 target_registrations_interval,
                 target_registrations_per_interval,
                 max_registrations_per_interval,
+                adjustment_alpha,
             };
 
             let changeset = SubnetChangeset::update(netuid, params)?;
@@ -1279,7 +1278,6 @@ pub mod pallet {
             floor_delegation_fee: Percent,    // min delegation fee
             floor_founder_share: u8,          // min founder share
             min_weight_stake: u64,            // min weight stake required
-            adjustment_alpha: u64,            // adjustment alpha
             curator: T::AccountId,            // subnet 0 dao multisig
             subnet_stake_threshold: Percent,  // stake needed to start subnet emission
             proposal_cost: u64,               /*amount of $COMAI to create a proposal
@@ -1309,7 +1307,6 @@ pub mod pallet {
 
             params.burn_config.min_burn = min_burn;
             params.burn_config.max_burn = max_burn;
-            params.burn_config.adjustment_alpha = adjustment_alpha;
 
             Self::do_add_global_proposal(origin, params)
         }
@@ -1341,6 +1338,7 @@ pub mod pallet {
             target_registrations_interval: u16,
             target_registrations_per_interval: u16,
             max_registrations_per_interval: u16,
+            adjustment_alpha: u64,
         ) -> DispatchResult {
             let mut params = Self::subnet_params(netuid);
             params.founder = founder;
@@ -1361,6 +1359,7 @@ pub mod pallet {
             params.target_registrations_interval = target_registrations_interval;
             params.target_registrations_per_interval = target_registrations_per_interval;
             params.max_registrations_per_interval = max_registrations_per_interval;
+            params.adjustment_alpha = adjustment_alpha;
             Self::do_add_subnet_proposal(origin, netuid, params)
         }
 
