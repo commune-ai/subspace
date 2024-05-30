@@ -9,8 +9,7 @@ use sp_core::U256;
 use log::info;
 use pallet_subspace::{
     voting::ApplicationStatus, CuratorApplications, Emission, Error, MaxAllowedModules,
-    MaxAllowedUids, MinStake, RemovedSubnets, Stake, SubnetNames,
-    TotalSubnets, N,
+    MaxAllowedUids, MinStake, RemovedSubnets, Stake, SubnetNames, TotalSubnets, N,
 };
 use sp_runtime::{DispatchResult, Percent};
 

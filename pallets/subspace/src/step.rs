@@ -86,7 +86,7 @@ failed to run yuma consensus algorithm: {err:?}, skipping this block. \
                 });
 
                 if res.is_err() {
-                    return;
+                    continue;
                 }
             }
 

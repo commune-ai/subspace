@@ -4,8 +4,7 @@ use frame_support::{assert_err, assert_ok};
 use log::info;
 use mock::*;
 use pallet_subspace::{
-    Dividends, Error, FounderShare, MaximumSetWeightCallsPerEpoch,
-    SubnetNames, Tempo, N,
+    Dividends, Error, FounderShare, MaximumSetWeightCallsPerEpoch, SubnetNames, Tempo, N,
 };
 use sp_core::U256;
 use sp_runtime::Percent;
