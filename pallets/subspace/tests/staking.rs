@@ -62,7 +62,8 @@ fn test_stake() {
                     get_origin(*key),
                     netuid,
                     *key,
-                    amount_staked
+                    amount_staked,
+                    Some(false)
                 ));
                 assert_eq!(SubspaceModule::get_stake(netuid, key), amount_staked);
                 assert_eq!(SubspaceModule::get_balance(key), 1);
@@ -120,6 +121,7 @@ fn test_multiple_stake() {
             netuid,
             keys.clone(),
             stake_amounts.clone(),
+            Some(false)
         ));
 
         let total_actual_stake: u64 =
@@ -177,7 +179,8 @@ fn test_transfer_stake() {
             netuid,
             keys[0],
             keys[1],
-            stake_amount
+            stake_amount,
+            Some(false)
         ));
 
         let key0_stake = SubspaceModule::get_stake(netuid, &keys[0]);
@@ -190,7 +193,8 @@ fn test_transfer_stake() {
             netuid,
             keys[1],
             keys[0],
-            stake_amount
+            stake_amount,
+            Some(false)
         ));
 
         let key0_stake = SubspaceModule::get_stake(netuid, &keys[0]);
@@ -242,7 +246,8 @@ fn test_delegate_stake() {
                     get_origin(delegate_key),
                     netuid,
                     *key,
-                    amount_staked
+                    amount_staked,
+                    Some(false)
                 ));
                 let uid = SubspaceModule::get_uid_for_key(netuid, key);
                 // SubspaceModule::add_stake(get_origin(*key), netuid, amount_staked);
@@ -274,7 +279,8 @@ fn test_delegate_stake() {
                     get_origin(delegate_key),
                     netuid,
                     *key,
-                    amount_staked
+                    amount_staked,
+                    Some(false)
                 ));
                 assert_eq!(get_stake_for_uid(netuid, uid), amount_staked + 10);
                 assert_eq!(SubspaceModule::get_balance(&delegate_key), 1);
@@ -329,7 +335,8 @@ fn test_ownership_ratio() {
                     get_origin(*d),
                     netuid,
                     *k,
-                    stake_per_module
+                    stake_per_module,
+                    Some(false)
                 ));
                 let stake_from_vector = SubspaceModule::get_stake_from_vector(netuid, k);
                 assert_eq!(
@@ -404,7 +411,7 @@ fn test_stake_zero() {
         let key_two = U256::from(1);
 
         assert_noop!(
-            SubspaceModule::do_add_stake(get_origin(key_two), netuid, key, 0),
+            SubspaceModule::do_add_stake(get_origin(key_two), netuid, key, 0, false),
             Error::<Test>::NotEnoughBalanceToStake
         );
     });

@@ -18,8 +18,8 @@ use frame_support::{
     PalletId,
 };
 
-use codec::{Decode, Encode};
 use frame_support::{pallet_prelude::Weight, sp_runtime::transaction_validity::ValidTransaction};
+use parity_scale_codec::{Decode, Encode};
 use sp_runtime::{
     traits::{
         AccountIdConversion, DispatchInfoOf, Dispatchable, PostDispatchInfoOf, SignedExtension,
@@ -85,18 +85,22 @@ pub mod pallet {
 
     // Configure the pallet by specifying the parameters and types on which it depends.
     #[pallet::config(with_default)]
-    pub trait Config: frame_system::Config {
+    pub trait Config:
+        frame_system::Config
+        + pallet_governance_api::GovernanceApi<<Self as frame_system::Config>::AccountId>
+    {
         /// This pallet's ID, used for generating the treasury account ID.
         #[pallet::constant]
         type PalletId: Get<PalletId>;
-        // Because this pallet emits events, it depends on the runtime's definition of an event.
+
+        /// Because this pallet emits events, it depends on the runtime's definition of an event.
         #[pallet::no_default_bounds]
         type RuntimeEvent: From<Event<Self>> + IsType<<Self as frame_system::Config>::RuntimeEvent>;
 
-        // --- Currency type that will be used to place deposits on modules
+        /// Currency type that will be used to place deposits on modules.
         type Currency: Currency<Self::AccountId> + Send + Sync;
 
-        // The weight information of this pallet.
+        /// The weight information of this pallet.
         type WeightInfo: WeightInfo;
     }
 
@@ -949,7 +953,13 @@ pub mod pallet {
 
                 for (key, stake_to) in self.stake_to[netuid as usize].iter() {
                     for (module_key, stake_amount) in stake_to {
-                        self::Pallet::<T>::increase_stake(netuid, key, module_key, *stake_amount);
+                        self::Pallet::<T>::increase_stake(
+                            netuid,
+                            key,
+                            module_key,
+                            *stake_amount,
+                            true,
+                        );
                     }
                 }
             }
@@ -1054,8 +1064,15 @@ pub mod pallet {
             netuid: u16,
             module_key: T::AccountId,
             amount: u64,
+            delegate_voting_power: Option<bool>,
         ) -> DispatchResult {
-            Self::do_add_stake(origin, netuid, module_key, amount)
+            Self::do_add_stake(
+                origin,
+                netuid,
+                module_key,
+                amount,
+                delegate_voting_power.unwrap_or_default(),
+            )
         }
 
         #[pallet::call_index(2)]
@@ -1080,8 +1097,15 @@ pub mod pallet {
             netuid: u16,
             module_keys: Vec<T::AccountId>,
             amounts: Vec<u64>,
+            delegate_voting_power: Option<bool>,
         ) -> DispatchResult {
-            Self::do_add_stake_multiple(origin, netuid, module_keys, amounts)
+            Self::do_add_stake_multiple(
+                origin,
+                netuid,
+                module_keys,
+                amounts,
+                delegate_voting_power.unwrap_or_default(),
+            )
         }
 
         #[pallet::call_index(4)]
@@ -1107,8 +1131,16 @@ pub mod pallet {
             module_key: T::AccountId,     // --- The module key.
             new_module_key: T::AccountId, // --- The new module key.
             amount: u64,                  // --- The amount of stake to transfer.
+            delegate_voting_power: Option<bool>,
         ) -> DispatchResult {
-            Self::do_transfer_stake(origin, netuid, module_key, new_module_key, amount)
+            Self::do_transfer_stake(
+                origin,
+                netuid,
+                module_key,
+                new_module_key,
+                amount,
+                delegate_voting_power.unwrap_or_default(),
+            )
         }
 
         #[pallet::call_index(6)]

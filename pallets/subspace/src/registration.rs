@@ -167,7 +167,7 @@ impl<T: Config> Pallet<T> {
 
         // --- 9. Add the stake to the module, now that it is registered on the network.
         // allow to register with zero stake
-        Self::do_add_stake(origin, netuid, module_key.clone(), stake)?;
+        Self::do_add_stake(origin, netuid, module_key.clone(), stake, true)?;
 
         // constant -> current_burn logic
         if current_burn > 0 {

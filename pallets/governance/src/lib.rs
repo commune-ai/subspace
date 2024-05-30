@@ -29,7 +29,7 @@ pub mod pallet {
 
     use frame_support::{
         pallet_prelude::{ValueQuery, *},
-        traits::Currency,
+        traits::{Currency, StorageInstance},
     };
     use frame_system::pallet_prelude::BlockNumberFor;
 
@@ -67,6 +67,14 @@ pub mod pallet {
         }
     }
 
+    impl<T: Config> StorageInstance for Pallet<T> {
+        const STORAGE_PREFIX: &'static str = "Governance";
+
+        fn pallet_prefix() -> &'static str {
+            "Governance"
+        }
+    }
+
     #[pallet::storage]
     pub type GovernanceConfig<T: Config> = StorageValue<_, GovernanceConfiguration<T>, ValueQuery>;
 
@@ -74,8 +82,24 @@ pub mod pallet {
     pub type SubnetGovernanceConfig<T: Config> =
         StorageMap<_, Identity, SubnetId, GovernanceConfiguration<T>, ValueQuery>;
 
+    /// A map of all proposals, indexed by their IDs.
     #[pallet::storage]
     pub type Proposals<T: Config> = StorageMap<_, Identity, ProposalId, Proposal<T>>;
+
+    /// A map relating all modules and the stakers that are currently delegating their voting power.
+    ///
+    /// Indexed by the **staked** module and the subnet the stake is allocated to, the value is a
+    /// set of all modules that are delegating their voting power on that subnet.
+    #[pallet::storage]
+    pub type DelegatedVotingPower<T: Config> = StorageDoubleMap<
+        _,
+        Identity,
+        T::AccountId,
+        Identity,
+        SubnetId,
+        BoundedBTreeSet<T::AccountId, ConstU32<{ u32::MAX }>>,
+        ValueQuery,
+    >;
 
     #[pallet::call]
     impl<T: Config> Pallet<T> {
@@ -220,6 +244,7 @@ pub mod pallet {
         ProposalExpired(ProposalId),
 
         ProposalVoted(u64, T::AccountId, bool),
+
         ProposalVoteUnregistered(u64, T::AccountId),
     }
 
@@ -241,6 +266,8 @@ pub mod pallet {
         ProposalDataTooSmall,
         /// Proposal data is bigger than 256 characters
         ProposalDataTooLarge,
+        /// The staked module is already delegating for 2 ^ 32 keys.
+        ModuleDelegatingForMaxStakers,
         /// Proposal with given id doesn't exist
         ProposalNotFound,
         /// Proposal was either accepted, refused or expired and cannot accept votes
@@ -296,5 +323,40 @@ impl<T: Config> GovernanceConfiguration<T> {
     pub fn apply_subnet(self, subnet_id: SubnetId) -> Result<(), DispatchError> {
         SubnetGovernanceConfig::<T>::set(subnet_id, self);
         Ok(())
+    }
+}
+
+impl<T: Config> Pallet<T> {
+    pub fn set_delegated_voting_power(
+        subnet_id: u16,
+        staked: T::AccountId,
+        staker: T::AccountId,
+    ) -> Result<(), DispatchError> {
+        if staked == staker {
+            return Ok(());
+        }
+
+        DelegatedVotingPower::<T>::mutate(staked, subnet_id, |stakers| stakers.try_insert(staker))
+            .map_err(|_| Error::<T>::ModuleDelegatingForMaxStakers.into())
+            .map(|_| ())
+    }
+
+    pub fn remove_delegated_voting_power(
+        subnet_id: u16,
+        staked: T::AccountId,
+        staker: T::AccountId,
+    ) {
+        DelegatedVotingPower::<T>::mutate(staked, subnet_id, |stakers| stakers.remove(&staker));
+    }
+
+    pub fn deregister_delegated_voting_power_on_module(subnet_id: u16, staked: T::AccountId) {
+        DelegatedVotingPower::<T>::remove(staked, subnet_id);
+    }
+
+    pub fn deregister_delegated_voting_power_on_subnet(subnet_id: u16) {
+        let subnet_modules: sp_std::vec::Vec<_> = DelegatedVotingPower::<T>::iter_keys()
+            .filter(|(_, subnet)| *subnet == subnet_id)
+            .collect();
+        subnet_modules.iter().for_each(|(a, b)| DelegatedVotingPower::<T>::remove(a, b));
     }
 }

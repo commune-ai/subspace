@@ -207,25 +207,34 @@ impl<T: Config> YumaCalc<T> {
         result: Vec<(ModuleKey<T>, u64, u64)>,
     ) -> Result<EmissionMap<T>, YumaError> {
         let mut emissions: EmissionMap<T> = Default::default();
-        let mut emitted = 0;
+        let mut emitted: u64 = 0;
 
         if self.founder_emission > 0 {
             Pallet::<T>::add_balance_to_account(
                 &self.founder_key.0,
                 Pallet::<T>::u64_to_balance(self.founder_emission).unwrap_or_default(),
             );
-            emitted += self.founder_emission;
+            emitted = emitted.saturating_add(self.founder_emission);
         }
 
         for (module_key, server_emission, mut validator_emission) in result {
             let mut increase_stake = |account_key: &AccountKey<T>, amount: u64| {
-                Pallet::<T>::increase_stake(self.netuid, &account_key.0, &module_key.0, amount);
-                *emissions
+                Pallet::<T>::increase_stake(
+                    self.netuid,
+                    &account_key.0,
+                    &module_key.0,
+                    amount,
+                    false,
+                );
+
+                let stake = emissions
                     .entry(module_key.clone())
                     .or_default()
                     .entry(account_key.clone())
-                    .or_default() += amount;
-                emitted += amount;
+                    .or_default();
+                *stake = stake.saturating_add(amount);
+
+                emitted = emitted.saturating_add(amount);
             };
 
             if validator_emission > 0 {

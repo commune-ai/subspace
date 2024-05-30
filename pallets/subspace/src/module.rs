@@ -178,7 +178,7 @@ impl<T: Config> Pallet<T> {
         N::<T>::mutate(netuid, |n| *n += 1);
 
         // increase the stake of the new key
-        Self::increase_stake(netuid, key, key, 0);
+        Self::increase_stake(netuid, key, key, 0, true);
 
         Ok(uid)
     }
