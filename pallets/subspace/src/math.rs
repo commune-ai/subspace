@@ -253,19 +253,19 @@ pub fn vec_mask_sparse_matrix(
     first_vector: &[u64],
     second_vector: &[u64],
     mask_fn: impl Fn(u64, u64) -> bool,
-) -> Vec<Vec<(u16, I32F32)>> {
+) -> Option<Vec<Vec<(u16, I32F32)>>> {
     let n: usize = sparse_matrix.len();
     let mut result: Vec<Vec<(u16, I32F32)>> = vec![vec![]; n];
 
     for (i, sparse_row) in sparse_matrix.iter().enumerate() {
         for (j, value) in sparse_row.iter() {
-            if !mask_fn(first_vector[i], second_vector[*j as usize]) {
+            if !mask_fn(*first_vector.get(i)?, *second_vector.get(*j as usize)?) {
                 result[i].push((*j, *value));
             }
         }
     }
 
-    result
+    Some(result)
 }
 
 pub fn inplace_mask_vector(mask: &[bool], vector: &mut [I32F32]) {
