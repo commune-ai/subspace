@@ -953,13 +953,7 @@ pub mod pallet {
 
                 for (key, stake_to) in self.stake_to[netuid as usize].iter() {
                     for (module_key, stake_amount) in stake_to {
-                        self::Pallet::<T>::increase_stake(
-                            netuid,
-                            key,
-                            module_key,
-                            *stake_amount,
-                            true,
-                        );
+                        self::Pallet::<T>::increase_stake(netuid, key, module_key, *stake_amount);
                     }
                 }
             }
@@ -1064,15 +1058,8 @@ pub mod pallet {
             netuid: u16,
             module_key: T::AccountId,
             amount: u64,
-            delegate_voting_power: Option<bool>,
         ) -> DispatchResult {
-            Self::do_add_stake(
-                origin,
-                netuid,
-                module_key,
-                amount,
-                delegate_voting_power.unwrap_or_default(),
-            )
+            Self::do_add_stake(origin, netuid, module_key, amount)
         }
 
         #[pallet::call_index(2)]
@@ -1097,15 +1084,8 @@ pub mod pallet {
             netuid: u16,
             module_keys: Vec<T::AccountId>,
             amounts: Vec<u64>,
-            delegate_voting_power: Option<bool>,
         ) -> DispatchResult {
-            Self::do_add_stake_multiple(
-                origin,
-                netuid,
-                module_keys,
-                amounts,
-                delegate_voting_power.unwrap_or_default(),
-            )
+            Self::do_add_stake_multiple(origin, netuid, module_keys, amounts)
         }
 
         #[pallet::call_index(4)]
@@ -1131,16 +1111,8 @@ pub mod pallet {
             module_key: T::AccountId,     // --- The module key.
             new_module_key: T::AccountId, // --- The new module key.
             amount: u64,                  // --- The amount of stake to transfer.
-            delegate_voting_power: Option<bool>,
         ) -> DispatchResult {
-            Self::do_transfer_stake(
-                origin,
-                netuid,
-                module_key,
-                new_module_key,
-                amount,
-                delegate_voting_power.unwrap_or_default(),
-            )
+            Self::do_transfer_stake(origin, netuid, module_key, new_module_key, amount)
         }
 
         #[pallet::call_index(6)]

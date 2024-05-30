@@ -219,13 +219,7 @@ impl<T: Config> YumaCalc<T> {
 
         for (module_key, server_emission, mut validator_emission) in result {
             let mut increase_stake = |account_key: &AccountKey<T>, amount: u64| {
-                Pallet::<T>::increase_stake(
-                    self.netuid,
-                    &account_key.0,
-                    &module_key.0,
-                    amount,
-                    false,
-                );
+                Pallet::<T>::increase_stake(self.netuid, &account_key.0, &module_key.0, amount);
 
                 let stake = emissions
                     .entry(module_key.clone())

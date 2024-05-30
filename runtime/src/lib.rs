@@ -26,7 +26,7 @@ use sp_runtime::{
         One, PostDispatchInfoOf, Verify,
     },
     transaction_validity::{TransactionSource, TransactionValidity, TransactionValidityError},
-    ApplyExtrinsicResult, DispatchError, MultiSignature,
+    ApplyExtrinsicResult, DispatchResult, MultiSignature,
 };
 use sp_std::prelude::*;
 use sp_version::RuntimeVersion;
@@ -796,28 +796,12 @@ impl_runtime_apis! {
 impl pallet_governance_api::GovernanceApi<<Runtime as frame_system::Config>::AccountId>
     for Runtime
 {
-    fn set_delegated_voting_power(
-        subnet_id: u16,
-        staked: <Runtime as frame_system::Config>::AccountId,
-        staker: <Runtime as frame_system::Config>::AccountId,
-    ) -> Result<(), DispatchError> {
-        GovernanceModule::set_delegated_voting_power(subnet_id, staked, staker)
+    fn is_delegating_voting_power(delegator: &AccountId) -> bool {
+        GovernanceModule::is_delegating_voting_power(delegator)
     }
 
-    fn remove_delegated_voting_power(
-        subnet_id: u16,
-        staked: <Runtime as frame_system::Config>::AccountId,
-        staker: <Runtime as frame_system::Config>::AccountId,
-    ) {
-        GovernanceModule::remove_delegated_voting_power(subnet_id, staked, staker);
-    }
-
-    fn deregister_delegated_voting_power_on_module(subnet_id: u16, staked: AccountId) {
-        GovernanceModule::deregister_delegated_voting_power_on_module(subnet_id, staked);
-    }
-
-    fn deregister_delegated_voting_power_on_subnet(subnet_id: u16) {
-        GovernanceModule::deregister_delegated_voting_power_on_subnet(subnet_id);
+    fn update_delegating_voting_power(delegator: &AccountId, delegating: bool) -> DispatchResult {
+        GovernanceModule::update_delegating_voting_power(delegator, delegating)
     }
 }
 

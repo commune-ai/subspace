@@ -47,7 +47,6 @@ fn test_ownership_ratio() {
                 netuid,
                 voter_key,
                 stake_per_module,
-                Some(false)
             ));
             let stake_from_vector = SubspaceModule::get_stake_from_vector(netuid, &voter_key);
             assert_eq!(

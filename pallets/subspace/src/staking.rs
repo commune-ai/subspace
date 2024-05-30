@@ -11,7 +11,6 @@ impl<T: Config> Pallet<T> {
         netuid: u16,
         module_keys: Vec<T::AccountId>,
         amounts: Vec<u64>,
-        delegate_voting_power: bool,
     ) -> dispatch::DispatchResult {
         // --- 1. We check that the transaction is signed by the caller and retrieve the
         let key = ensure_signed(origin.clone())?;
@@ -40,13 +39,7 @@ impl<T: Config> Pallet<T> {
         // --- 4. Add stake to each module
         for (m_key, amount) in module_keys.iter().zip(amounts.iter()) {
             // do not allow zero amounts in add_stake
-            Self::do_add_stake(
-                origin.clone(),
-                netuid,
-                m_key.clone(),
-                *amount,
-                delegate_voting_power,
-            )?;
+            Self::do_add_stake(origin.clone(), netuid, m_key.clone(), *amount)?;
         }
 
         // --- 5. Done and ok
@@ -128,7 +121,6 @@ impl<T: Config> Pallet<T> {
         module_key: T::AccountId,
         new_module_key: T::AccountId,
         amount: u64,
-        delegate_voting_power: bool,
     ) -> dispatch::DispatchResult {
         // --- 1. We check that the transaction is signed by the caller and retrieve the
         let key = ensure_signed(origin.clone())?;
@@ -154,13 +146,7 @@ impl<T: Config> Pallet<T> {
         // --- 4. Remove stake from the source module and add it to the destination module
         Self::do_remove_stake(origin.clone(), netuid, module_key.clone(), amount)?;
         // don't allow zero stakes
-        Self::do_add_stake(
-            origin.clone(),
-            netuid,
-            new_module_key,
-            amount,
-            delegate_voting_power,
-        )?;
+        Self::do_add_stake(origin.clone(), netuid, new_module_key, amount)?;
 
         // --- 5. Done and ok
         Ok(())
@@ -171,7 +157,6 @@ impl<T: Config> Pallet<T> {
         netuid: u16,
         module_key: T::AccountId,
         amount: u64,
-        delegate_voting_power: bool,
     ) -> dispatch::DispatchResult {
         // --- 1. We check that the transaction is signed by the caller and retrieve the
         // T::AccountId key information.
@@ -205,7 +190,7 @@ impl<T: Config> Pallet<T> {
         Self::remove_balance_from_account(&key, removed_balance_as_currency.unwrap())?;
 
         // --- 7. We add the stake to the module.
-        Self::increase_stake(netuid, &key, &module_key, amount, delegate_voting_power);
+        Self::increase_stake(netuid, &key, &module_key, amount);
 
         // -- 8. Check after values
         let stake_after_add: u64 = Self::get_stake_to_module(netuid, &key, &module_key.clone());
@@ -379,7 +364,6 @@ impl<T: Config> Pallet<T> {
         staker: &T::AccountId,
         staked: &T::AccountId,
         amount: u64,
-        delegate_voting_power: bool,
     ) -> bool {
         StakeFrom::<T>::mutate(netuid, staked, |stake_from| {
             stake_from
@@ -402,44 +386,26 @@ impl<T: Config> Pallet<T> {
             *total_stake = total_stake.saturating_add(amount)
         });
 
-        if delegate_voting_power {
-            if let Err(err) = T::set_delegated_voting_power(netuid, staked.clone(), staker.clone())
-            {
-                log::warn!(
-                    "failed to set delegated voting power for {staker:?} on module {staked:?}: {err:?}"
-                );
-            }
-        }
-
         true
     }
 
-    pub fn decrease_stake(
-        netuid: u16,
-        staker: &T::AccountId,
-        staked: &T::AccountId,
-        amount: u64,
-    ) -> bool {
-        let removed_all_from = StakeFrom::<T>::mutate(netuid, staked, |stake_from| {
+    pub fn decrease_stake(netuid: u16, staker: &T::AccountId, staked: &T::AccountId, amount: u64) {
+        StakeFrom::<T>::mutate(netuid, staked, |stake_from| {
             if let Some(stake) = stake_from.get_mut(staker) {
                 *stake = stake.saturating_sub(amount);
                 if *stake == 0 {
                     stake_from.remove(staker);
-                    return true;
                 }
             }
-            false
         });
 
-        let removed_all_to = StakeTo::<T>::mutate(netuid, staker, |stake_to| {
+        StakeTo::<T>::mutate(netuid, staker, |stake_to| {
             if let Some(stake) = stake_to.get_mut(staked) {
                 *stake = stake.saturating_sub(amount);
                 if *stake == 0 {
                     stake_to.remove(staked);
-                    return true;
                 }
             }
-            false
         });
 
         Stake::<T>::mutate(netuid, staked, |stake| {
@@ -448,12 +414,6 @@ impl<T: Config> Pallet<T> {
         TotalStake::<T>::mutate(netuid, |total_stake| {
             *total_stake = total_stake.saturating_sub(amount)
         });
-
-        if removed_all_from || removed_all_to {
-            T::remove_delegated_voting_power(netuid, staked.clone(), staker.clone());
-        }
-
-        true
     }
 
     // Decreases the stake by the amount while decreasing other counters.
@@ -469,8 +429,6 @@ impl<T: Config> Pallet<T> {
 
         StakeFrom::<T>::remove(netuid, staked);
         Stake::<T>::remove(netuid, staked);
-
-        T::deregister_delegated_voting_power_on_module(netuid, staked.clone());
     }
 
     pub fn add_balance_to_account(key: &T::AccountId, amount: BalanceOf<T>) {

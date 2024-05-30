@@ -8,6 +8,7 @@ pub mod voting;
 use core::marker::PhantomData;
 
 use frame_support::{
+    dispatch::DispatchResult,
     ensure,
     sp_runtime::{DispatchError, Percent},
 };
@@ -94,15 +95,8 @@ pub mod pallet {
     /// Indexed by the **staked** module and the subnet the stake is allocated to, the value is a
     /// set of all modules that are delegating their voting power on that subnet.
     #[pallet::storage]
-    pub type DelegatedVotingPower<T: Config> = StorageDoubleMap<
-        _,
-        Identity,
-        T::AccountId,
-        Identity,
-        SubnetId,
-        BoundedBTreeSet<T::AccountId, ConstU32<{ u32::MAX }>>,
-        ValueQuery,
-    >;
+    pub type DelegatingVotingPower<T: Config> =
+        StorageValue<_, BoundedBTreeSet<T::AccountId, ConstU32<{ u32::MAX }>>, ValueQuery>;
 
     #[pallet::storage]
     pub type UnrewardedProposals<T: Config> =
@@ -263,36 +257,38 @@ pub mod pallet {
         InvalidProposalFinalizationParameters,
         /// Invalid parameters were provided to the voting process.
         InvalidProposalVotingParameters,
-        /// Negative proposal cost when setting global or subnet governance configuration
+        /// Negative proposal cost when setting global or subnet governance configuration.
         InvalidProposalCost,
-        /// Negative expiration when setting global or subnet governance configuration
+        /// Negative expiration when setting global or subnet governance configuration.
         InvalidExpiration,
-        /// Key doesn't have enough tokens to create a proposal
+        /// Key doesn't have enough tokens to create a proposal.
         NotEnoughBalanceToPropose,
-        /// Proposal data is empty
+        /// Proposal data is empty.
         ProposalDataTooSmall,
-        /// Proposal data is bigger than 256 characters
+        /// Proposal data is bigger than 256 characters.
         ProposalDataTooLarge,
         /// The staked module is already delegating for 2 ^ 32 keys.
         ModuleDelegatingForMaxStakers,
-        /// Proposal with given id doesn't exist
+        /// Proposal with given id doesn't exist.
         ProposalNotFound,
-        /// Proposal was either accepted, refused or expired and cannot accept votes
+        /// Proposal was either accepted, refused or expired and cannot accept votes.
         ProposalClosed,
-        /// Proposal data isn't composed by valid UTF-8 characters
+        /// Proposal data isn't composed by valid UTF-8 characters.
         InvalidProposalData,
-        /// Invalid value given when transforming a u64 into T::Currency
+        /// Invalid value given when transforming a u64 into T::Currency.
         InvalidCurrencyConversionValue,
-        /// Dao Treasury doesn't have enough funds to be transferred
+        /// Dao Treasury doesn't have enough funds to be transferred.
         InsufficientDaoTreasuryFunds,
-        /// Subnet is on Authority Mode
+        /// Subnet is on Authority Mode.
         NotVoteMode,
-        /// Key has already voted on given Proposal
+        /// Key has already voted on given Proposal.
         AlreadyVoted,
-        /// Key hasn't voted on given Proposal
+        /// Key hasn't voted on given Proposal.
         NotVoted,
-        /// Key doesn't have enough stake to vote
+        /// Key doesn't have enough stake to vote.
         InsufficientStake,
+        /// An internal error occurred, probably relating to the size of the bounded sets.
+        InternalError,
     }
 }
 
@@ -340,36 +336,24 @@ impl<T: Config> GovernanceConfiguration<T> {
 }
 
 impl<T: Config> Pallet<T> {
-    pub fn set_delegated_voting_power(
-        subnet_id: u16,
-        staked: T::AccountId,
-        staker: T::AccountId,
-    ) -> Result<(), DispatchError> {
-        if staked == staker {
-            return Ok(());
-        }
-
-        DelegatedVotingPower::<T>::mutate(staked, subnet_id, |stakers| stakers.try_insert(staker))
-            .map_err(|_| Error::<T>::ModuleDelegatingForMaxStakers.into())
-            .map(|_| ())
+    pub fn is_delegating_voting_power(delegator: &T::AccountId) -> bool {
+        DelegatingVotingPower::<T>::get().contains(delegator)
     }
 
-    pub fn remove_delegated_voting_power(
-        subnet_id: u16,
-        staked: T::AccountId,
-        staker: T::AccountId,
-    ) {
-        DelegatedVotingPower::<T>::mutate(staked, subnet_id, |stakers| stakers.remove(&staker));
-    }
-
-    pub fn deregister_delegated_voting_power_on_module(subnet_id: u16, staked: T::AccountId) {
-        DelegatedVotingPower::<T>::remove(staked, subnet_id);
-    }
-
-    pub fn deregister_delegated_voting_power_on_subnet(subnet_id: u16) {
-        let subnet_modules: sp_std::vec::Vec<_> = DelegatedVotingPower::<T>::iter_keys()
-            .filter(|(_, subnet)| *subnet == subnet_id)
-            .collect();
-        subnet_modules.iter().for_each(|(a, b)| DelegatedVotingPower::<T>::remove(a, b));
+    pub fn update_delegating_voting_power(
+        delegator: &T::AccountId,
+        delegating: bool,
+    ) -> DispatchResult {
+        DelegatingVotingPower::<T>::mutate(|delegators| {
+            if delegating {
+                delegators
+                    .try_insert(delegator.clone())
+                    .map(|_| ())
+                    .map_err(|_| Error::<T>::InternalError.into())
+            } else {
+                delegators.remove(delegator);
+                Ok(())
+            }
+        })
     }
 }
