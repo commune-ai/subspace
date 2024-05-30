@@ -1,6 +1,6 @@
 use crate::{
-    Config, Error, Event, GovernanceConfig, GovernanceConfiguration, Pallet, Percent, Proposals,
-    SubnetId,
+    Config, DelegatedVotingPower, Error, Event, GovernanceConfig, GovernanceConfiguration, Pallet,
+    Percent, Proposals, SubnetId,
 };
 use frame_support::{
     dispatch::DispatchResult, ensure, storage::with_storage_layer, traits::ConstU32,
@@ -8,12 +8,12 @@ use frame_support::{
 };
 use frame_system::ensure_signed;
 use pallet_subspace::{
-    subnet::SubnetChangeset, voting::VoteMode, DaoTreasuryAddress, GlobalParams,
-    Pallet as PalletSubspace, SubnetParams, VoteModeSubnet,
+    subnet::SubnetChangeset, voting::VoteMode, DaoTreasuryAddress, Event as SubspaceEvent,
+    GlobalParams, Pallet as PalletSubspace, SubnetParams, VoteModeSubnet,
 };
 use parity_scale_codec::{Decode, Encode, MaxEncodedLen};
 use scale_info::TypeInfo;
-use sp_std::vec::Vec;
+use sp_std::{collections::btree_map::BTreeMap, vec::Vec};
 
 pub type ProposalId = u64;
 
@@ -60,7 +60,43 @@ impl<T: Config> Proposal<T> {
         Proposals::<T>::insert(self.id, &self);
         Pallet::<T>::deposit_event(Event::ProposalAccepted(self.id));
 
-        execute_proposal(self)?;
+        self.execute_proposal()?;
+
+        Ok(())
+    }
+
+    fn execute_proposal(self) -> DispatchResult {
+        PalletSubspace::<T>::add_balance_to_account(
+            &self.proposer,
+            PalletSubspace::<T>::u64_to_balance(self.proposal_cost).unwrap(),
+        );
+
+        match self.data {
+            ProposalData::GlobalCustom | ProposalData::SubnetCustom { .. } => {
+                // No specific action needed for custom proposals
+                // The owners will handle the off-chain logic
+            }
+            ProposalData::GlobalParams(params) => {
+                PalletSubspace::<T>::set_global_params(params.clone());
+                PalletSubspace::<T>::deposit_event(SubspaceEvent::GlobalParamsUpdated(params));
+            }
+            ProposalData::SubnetParams { subnet_id, params } => {
+                let changeset = SubnetChangeset::<T>::update(subnet_id, params)?;
+                changeset.apply(subnet_id)?;
+                PalletSubspace::<T>::deposit_event(SubspaceEvent::SubnetParamsUpdated(subnet_id));
+            }
+            ProposalData::TransferDaoTreasury { account, amount } => {
+                PalletSubspace::<T>::remove_balance_from_account(
+                    &DaoTreasuryAddress::<T>::get(),
+                    PalletSubspace::<T>::u64_to_balance(amount)
+                        .ok_or(Error::<T>::InvalidCurrencyConversionValue)?,
+                )?;
+
+                let amount = PalletSubspace::<T>::u64_to_balance(amount)
+                    .ok_or(Error::<T>::InvalidCurrencyConversionValue)?;
+                PalletSubspace::<T>::add_balance_to_account(&account, amount);
+            }
+        }
 
         Ok(())
     }
@@ -173,14 +209,12 @@ impl<T: Config> Pallet<T> {
             Error::<T>::NotEnoughBalanceToPropose
         );
 
-        let removed_balance_as_currency = PalletSubspace::<T>::u64_to_balance(proposal_cost);
-        ensure!(
-            removed_balance_as_currency.is_some(),
-            Error::<T>::InvalidCurrencyConversionValue
-        );
+        let Some(removed_balance_as_currency) = PalletSubspace::<T>::u64_to_balance(proposal_cost)
+        else {
+            return Err(Error::<T>::InvalidCurrencyConversionValue.into());
+        };
 
         let proposal_id = Self::get_next_proposal_id();
-
         let current_block = PalletSubspace::<T>::get_current_block_number();
         let expiration_block = current_block + expiration as u64;
 
@@ -205,10 +239,8 @@ impl<T: Config> Pallet<T> {
             metadata,
         };
 
-        PalletSubspace::<T>::remove_balance_from_account(
-            &key,
-            removed_balance_as_currency.unwrap(),
-        )?;
+        // Burn the proposal cost from the proposer's balance
+        PalletSubspace::<T>::remove_balance_from_account(&key, removed_balance_as_currency)?;
 
         Proposals::<T>::insert(proposal_id, proposal);
 
@@ -301,17 +333,38 @@ impl<T: Config> Pallet<T> {
 }
 
 pub fn tick_proposals<T: Config>(block_number: u64) {
+    let delegating = DelegatedVotingPower::<T>::iter().fold(
+        BTreeMap::<_, u64>::new(),
+        |mut acc, (delegated, subnet_id, delegators)| {
+            for delegator in delegators {
+                let Ok(stakes) = pallet_subspace::StakeTo::<T>::try_get(subnet_id, &delegator)
+                else {
+                    continue;
+                };
+
+                if let Some(stake) = stakes.get(&delegated) {
+                    let key = acc.entry((delegator.clone(), subnet_id)).or_default();
+                    *key = key.saturating_add(*stake);
+                }
+            }
+
+            acc
+        },
+    );
+
     for (id, proposal) in Proposals::<T>::iter().filter(|(_, p)| p.is_active()) {
-        let res = with_storage_layer(|| tick_proposal(block_number, proposal));
+        let res = with_storage_layer(|| tick_proposal(&delegating, block_number, proposal));
         if let Err(err) = res {
             log::error!("failed to tick proposal {id}: {err:?}, skipping...");
         }
     }
 }
 
-pub fn tick_proposal<T: Config>(block_number: u64, proposal: Proposal<T>) -> DispatchResult {
-    use pallet_subspace::Pallet as SubspacePallet;
-
+fn tick_proposal<T: Config>(
+    delegating: &BTreeMap<(T::AccountId, u16), u64>,
+    block_number: u64,
+    proposal: Proposal<T>,
+) -> DispatchResult {
     let subnet_id = proposal.subnet_id();
 
     let ProposalStatus::Open {
@@ -322,18 +375,14 @@ pub fn tick_proposal<T: Config>(block_number: u64, proposal: Proposal<T>) -> Dis
         return Err(Error::<T>::ProposalIsFinished.into());
     };
 
-    let votes_for: u64 = votes_for
-        .iter()
-        .map(|id| SubspacePallet::<T>::get_account_stake(id, subnet_id))
-        .sum();
-    let votes_against: u64 = votes_against
-        .iter()
-        .map(|id| SubspacePallet::<T>::get_account_stake(id, subnet_id))
-        .sum();
+    let votes_for: u64 =
+        votes_for.iter().map(|id| calc_stake::<T>(delegating, id, subnet_id)).sum();
+    let votes_against: u64 =
+        votes_against.iter().map(|id| calc_stake::<T>(delegating, id, subnet_id)).sum();
 
     let total_stake = votes_for + votes_against;
     let minimal_stake_to_execute =
-        SubspacePallet::<T>::get_minimal_stake_to_execute_with_percentage(
+        PalletSubspace::<T>::get_minimal_stake_to_execute_with_percentage(
             proposal.data.required_stake(),
             subnet_id,
         );
@@ -351,43 +400,48 @@ pub fn tick_proposal<T: Config>(block_number: u64, proposal: Proposal<T>) -> Dis
     }
 }
 
-pub fn execute_proposal<T: Config>(proposal: Proposal<T>) -> DispatchResult {
-    use pallet_subspace::{
-        subnet::SubnetChangeset, Error as SubspaceError, Event as SubspaceEvent,
-        Pallet as SubspacePallet,
-    };
+fn calc_stake<T: Config>(
+    delegating: &BTreeMap<(T::AccountId, u16), u64>,
+    voter: &T::AccountId,
+    subnet_id: Option<SubnetId>,
+) -> u64 {
+    if let Some(subnet_id) = subnet_id {
+        let own_stake: u64 =
+            pallet_subspace::StakeTo::<T>::get(subnet_id, voter).into_values().sum();
+        let voter_delegated_stake =
+            delegating.get(&(voter.clone(), subnet_id)).copied().unwrap_or_default();
+        let own_stake = own_stake.saturating_sub(voter_delegated_stake);
 
-    match &proposal.data {
-        ProposalData::GlobalCustom | ProposalData::SubnetCustom { .. } => {
-            // No specific action needed for custom proposals
-            // The owners will handle the off-chain logic
-        }
-        ProposalData::GlobalParams(params) => {
-            SubspacePallet::<T>::set_global_params(params.clone());
-            SubspacePallet::<T>::deposit_event(SubspaceEvent::GlobalParamsUpdated(params.clone()));
-        }
-        ProposalData::SubnetParams { subnet_id, params } => {
-            let changeset = SubnetChangeset::<T>::update(*subnet_id, params.clone())?;
-            changeset.apply(*subnet_id)?;
-            SubspacePallet::<T>::deposit_event(SubspaceEvent::SubnetParamsUpdated(*subnet_id));
-        }
-        ProposalData::TransferDaoTreasury { account, amount } => {
-            PalletSubspace::<T>::remove_balance_from_account(
-                &DaoTreasuryAddress::<T>::get(),
-                PalletSubspace::<T>::u64_to_balance(*amount)
-                    .ok_or(Error::<T>::InvalidCurrencyConversionValue)?,
-            )?;
+        let delegated_stake = DelegatedVotingPower::<T>::get(voter, subnet_id)
+            .iter()
+            .map(|delegator| PalletSubspace::<T>::get_stake_to_module(subnet_id, delegator, voter))
+            .sum::<u64>();
+        own_stake + delegated_stake
+    } else {
+        let mut own_stake: u64 = 0;
+        let mut delegated_stake: u64 = 0;
 
-            let amount = SubspacePallet::<T>::u64_to_balance(*amount)
-                .ok_or(SubspaceError::<T>::CouldNotConvertToBalance)?;
-            SubspacePallet::<T>::add_balance_to_account(account, amount);
+        for subnet_id in pallet_subspace::N::<T>::iter_keys() {
+            let stake: u64 = pallet_subspace::StakeTo::<T>::try_get(subnet_id, voter)
+                .map(|v| v.into_values().sum())
+                .unwrap_or_default();
+            let voter_delegated_stake =
+                delegating.get(&(voter.clone(), subnet_id)).copied().unwrap_or_default();
+            own_stake = own_stake.saturating_add(stake.saturating_sub(voter_delegated_stake));
+
+            delegated_stake = delegated_stake.saturating_add(
+                DelegatedVotingPower::<T>::get(voter, subnet_id)
+                    .iter()
+                    .filter_map(|delegator| {
+                        pallet_subspace::StakeTo::<T>::try_get(subnet_id, delegator)
+                            .ok()?
+                            .get(voter)
+                            .copied()
+                    })
+                    .sum::<u64>(),
+            );
         }
+
+        own_stake + delegated_stake
     }
-
-    SubspacePallet::<T>::add_balance_to_account(
-        &proposal.proposer,
-        SubspacePallet::<T>::u64_to_balance(proposal.proposal_cost).unwrap(),
-    );
-
-    Ok(())
 }

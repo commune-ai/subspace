@@ -4804,7 +4804,6 @@ name = "node-subspace"
 version = "1.7.5"
 dependencies = [
  "clap",
- "fp-evm",
  "frame-benchmarking",
  "frame-benchmarking-cli",
  "frame-system",
@@ -4853,7 +4852,6 @@ name = "node-subspace-runtime"
 version = "1.7.5"
 dependencies = [
  "fp-account",
- "fp-evm",
  "fp-rpc",
  "fp-self-contained",
  "frame-benchmarking",
@@ -4868,6 +4866,7 @@ dependencies = [
  "pallet-balances",
  "pallet-base-fee",
  "pallet-governance",
+ "pallet-governance-api",
  "pallet-grandpa",
  "pallet-insecure-randomness-collective-flip",
  "pallet-multisig",
@@ -5173,6 +5172,13 @@ dependencies = [
 ]
 
 [[package]]
+name = "pallet-governance-api"
+version = "1.0.0"
+dependencies = [
+ "sp-runtime",
+]
+
+[[package]]
 name = "pallet-grandpa"
 version = "28.0.0"
 source = "git+https://github.com/paritytech/polkadot-sdk?branch=release-polkadot-v1.10.1#8eb1f5592d15c7c748fbe21c2ea951d3bfe890e2"
@@ -5258,6 +5264,7 @@ dependencies = [
  "log",
  "ndarray",
  "pallet-balances",
+ "pallet-governance-api",
  "pallet-transaction-payment",
  "parity-scale-codec",
  "parity-util-mem",

@@ -260,7 +260,7 @@ failed to run yuma consensus algorithm: {err:?}, skipping this block. \
                             .to_num::<u64>();
                     let to_module: u64 = delegation_fee.mul_floor(dividends_from_delegate);
                     let to_delegate: u64 = dividends_from_delegate.saturating_sub(to_module);
-                    Self::increase_stake(netuid, delegate_key, module_key, to_delegate);
+                    Self::increase_stake(netuid, delegate_key, module_key, to_delegate, false);
                     emitted = emitted.saturating_add(to_delegate);
                     owner_dividends_emission = owner_dividends_emission.saturating_sub(to_delegate);
                 }
@@ -278,11 +278,12 @@ failed to run yuma consensus algorithm: {err:?}, skipping this block. \
                             profit_share_key,
                             module_key,
                             *profit_share_emission,
+                            false,
                         );
                         emitted = emitted.saturating_add(*profit_share_emission);
                     }
                 } else {
-                    Self::increase_stake(netuid, module_key, module_key, owner_emission);
+                    Self::increase_stake(netuid, module_key, module_key, owner_emission, false);
                     emitted = emitted.saturating_add(owner_emission);
                 }
             }
@@ -670,8 +671,7 @@ failed to run yuma consensus algorithm: {err:?}, skipping this block. \
             Some(specific_netuid) => {
                 StakeTo::<T>::get(specific_netuid, account_id).into_values().sum()
             }
-            None => N::<T>::iter()
-                .map(|(netuid, _)| netuid)
+            None => N::<T>::iter_keys()
                 .filter_map(|netuid| StakeTo::<T>::try_get(netuid, account_id).ok())
                 .flat_map(|entries| entries.into_values())
                 .sum(),

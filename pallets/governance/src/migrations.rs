@@ -9,7 +9,7 @@ use pallet_subspace::voting::VoteMode;
 
 use crate::{
     proposal::{ProposalData, ProposalStatus},
-    Config, GovernanceConfiguration, Pallet, Proposal, Proposals,
+    Config, DelegatedVotingPower, GovernanceConfiguration, Pallet, Proposal, Proposals,
 };
 
 #[derive(Default)]
@@ -38,8 +38,6 @@ impl<T: Config + pallet_subspace::Config> OnRuntimeUpgrade for InitialMigration<
                 "could not migrate the old values to the new global GovernanceConfig: {err:?}"
             );
         }
-
-        // GlobalProposalCost::<T>::set(old_proposal_cost);
 
         for (id, proposal) in pallet_subspace::Proposals::<T>::iter() {
             let metadata = match &proposal.data {
@@ -110,6 +108,14 @@ impl<T: Config + pallet_subspace::Config> OnRuntimeUpgrade for InitialMigration<
         }
 
         log::info!("Imported {} proposals", Proposals::<T>::iter().count());
+
+        for (subnet_id, staked, stakes) in pallet_subspace::StakeFrom::<T>::iter() {
+            DelegatedVotingPower::<T>::mutate(&staked, subnet_id, |delegators| {
+                for staker in stakes.into_keys().filter(|staker| staker != &staked) {
+                    let _ = delegators.try_insert(staker.clone());
+                }
+            });
+        }
 
         frame_support::weights::Weight::zero()
     }

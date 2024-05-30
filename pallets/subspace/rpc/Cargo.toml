@@ -16,7 +16,7 @@ serde.workspace = true
 serde_json.workspace = true
 
 # Substrate packages
-codec.workspace = true
+parity-scale-codec.workspace = true
 sp-api.workspace = true
 sp-blockchain.workspace = true
 sp-runtime.workspace = true

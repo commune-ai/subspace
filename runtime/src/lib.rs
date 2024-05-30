@@ -26,7 +26,7 @@ use sp_runtime::{
         One, PostDispatchInfoOf, Verify,
     },
     transaction_validity::{TransactionSource, TransactionValidity, TransactionValidityError},
-    ApplyExtrinsicResult, MultiSignature,
+    ApplyExtrinsicResult, DispatchError, MultiSignature,
 };
 use sp_std::prelude::*;
 use sp_version::RuntimeVersion;
@@ -126,7 +126,7 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
     //   `spec_version`, and `authoring_version` are the same between Wasm and native.
     // This value is set to 100 to notify Polkadot-JS App (https://polkadot.js.org/apps) to use
     //   the compatible custom types.
-    spec_version: 116,
+    spec_version: 117,
     impl_version: 1,
     apis: RUNTIME_API_VERSIONS,
     transaction_version: 1,
@@ -693,7 +693,6 @@ impl_runtime_apis! {
     }
 
     impl subspace_runtime_api::SubspaceRuntimeApi<Block> for Runtime {
-
         fn get_module_info(key: AccountId, netuid: u16) -> ModuleInfo {
             let stats = SubspaceModule::get_module_stats(netuid, &key);
             let params = SubspaceModule::module_params(netuid, &key);
@@ -717,7 +716,6 @@ impl_runtime_apis! {
             }
         }
     }
-
 
     #[cfg(feature = "runtime-benchmarks")]
     impl frame_benchmarking::Benchmark<Block> for Runtime {
@@ -793,6 +791,34 @@ impl_runtime_apis! {
         fn build_config(config: Vec<u8>) -> sp_genesis_builder::Result {
             build_config::<RuntimeGenesisConfig>(config)
         }
+    }
+}
+
+impl pallet_governance_api::GovernanceApi<<Runtime as frame_system::Config>::AccountId>
+    for Runtime
+{
+    fn set_delegated_voting_power(
+        subnet_id: u16,
+        staked: <Runtime as frame_system::Config>::AccountId,
+        staker: <Runtime as frame_system::Config>::AccountId,
+    ) -> Result<(), DispatchError> {
+        GovernanceModule::set_delegated_voting_power(subnet_id, staked, staker)
+    }
+
+    fn remove_delegated_voting_power(
+        subnet_id: u16,
+        staked: <Runtime as frame_system::Config>::AccountId,
+        staker: <Runtime as frame_system::Config>::AccountId,
+    ) {
+        GovernanceModule::remove_delegated_voting_power(subnet_id, staked, staker);
+    }
+
+    fn deregister_delegated_voting_power_on_module(subnet_id: u16, staked: AccountId) {
+        GovernanceModule::deregister_delegated_voting_power_on_module(subnet_id, staked);
+    }
+
+    fn deregister_delegated_voting_power_on_subnet(subnet_id: u16) {
+        GovernanceModule::deregister_delegated_voting_power_on_subnet(subnet_id);
     }
 }
 
