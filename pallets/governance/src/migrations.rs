@@ -5,7 +5,6 @@ use frame_support::{
     traits::{OnRuntimeUpgrade, StorageVersion, UncheckedOnRuntimeUpgrade},
     BoundedVec,
 };
-use pallet_subspace::voting::VoteMode;
 
 use crate::{
     proposal::{ProposalData, ProposalStatus},
@@ -29,8 +28,7 @@ impl<T: Config + pallet_subspace::Config> OnRuntimeUpgrade for InitialMigration<
         let governance_configuration = GovernanceConfiguration::<T> {
             proposal_cost: old_proposal_cost,
             expiration: old_expiration,
-            vote_mode: VoteMode::Vote,
-            _pd: PhantomData,
+            ..Default::default()
         };
 
         if let Err(err) = governance_configuration.apply_global() {

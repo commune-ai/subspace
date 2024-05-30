@@ -5169,6 +5169,7 @@ dependencies = [
  "parity-scale-codec",
  "scale-info",
  "sp-std 14.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=release-polkadot-v1.10.1)",
+ "substrate-fixed",
 ]
 
 [[package]]

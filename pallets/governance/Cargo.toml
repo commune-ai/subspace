@@ -35,6 +35,8 @@ frame-system.workspace = true
 
 sp-std.workspace = true
 
+substrate-fixed.workspace = true
+
 parity-scale-codec = { workspace = true, default-features = false, features = [
     "derive",
 ] }
