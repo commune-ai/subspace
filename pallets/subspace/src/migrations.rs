@@ -81,3 +81,64 @@ pub mod v9 {
         }
     }
 }
+pub mod v10 {
+    use super::*;
+
+    pub struct MigrateToV10<T>(sp_std::marker::PhantomData<T>);
+
+    impl<T: Config> OnRuntimeUpgrade for MigrateToV10<T> {
+        fn on_runtime_upgrade() -> Weight {
+            let on_chain_version = StorageVersion::get::<Pallet<T>>();
+
+            if on_chain_version != 9 {
+                log::info!("Storage v10 already updated");
+                return Weight::zero();
+            }
+
+            // Allow more scaling in max_allowed_modules
+            MaxAllowedModules::<T>::put(20_000);
+            log::info!("Migrated MaxAllowedModules to V10");
+
+            let subnet_0_netuid = 0;
+            // Due to the size of the migration, we don't scale below 7k modules
+            // Additial modules will be removed by the next migration
+            let max_allowed_uids = 7_000; // Current 8k +
+                                          // Register modules on s0 that
+
+            let mut total_modules = N::<T>::get(subnet_0_netuid);
+            while total_modules > max_allowed_uids {
+                let lowest_uid = Pallet::<T>::get_lowest_uid(subnet_0_netuid, false);
+                if let Some(uid) = lowest_uid {
+                    Pallet::<T>::remove_module(subnet_0_netuid, uid);
+                    total_modules -= 1;
+                } else {
+                    break;
+                }
+            }
+            MaxAllowedUids::<T>::insert(subnet_0_netuid, max_allowed_uids);
+            log::info!("Migrated Modules on subnet 0 to V10");
+
+            log::info!(
+                "Module amount on subnet 0 is {:?}",
+                N::<T>::get(subnet_0_netuid)
+            );
+
+            StorageVersion::new(10).put::<Pallet<T>>();
+            log::info!("Migrated Registration Intervals to V9");
+
+            let mut gaps = BTreeSet::new();
+            let netuids: BTreeSet<_> = N::<T>::iter_keys().collect();
+            for netuid in 0..netuids.last().copied().unwrap_or_default() {
+                if !netuids.contains(&netuid) {
+                    gaps.insert(netuid);
+                }
+            }
+
+            log::info!("Existing subnets: {netuids:?}");
+            log::info!("Updated subnets gaps: {gaps:?}");
+            SubnetGaps::<T>::set(gaps);
+
+            T::DbWeight::get().writes(1)
+        }
+    }
+}

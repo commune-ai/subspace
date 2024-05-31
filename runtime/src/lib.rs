@@ -108,8 +108,10 @@ pub mod opaque {
     }
 }
 
-pub type Migrations = (pallet_subspace::migrations::v9::MigrateToV9<Runtime>,);
-
+pub type Migrations = (
+    pallet_grandpa::migrations::MigrateV4ToV5<Runtime>,
+    pallet_subspace::migrations::v10::MigrateToV10<Runtime>,
+);
 // To learn more about runtime versioning, see:
 // https://docs.substrate.io/main-docs/build/upgrade#runtime-versioning
 #[sp_version::runtime_version]
@@ -122,7 +124,7 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
     //   `spec_version`, and `authoring_version` are the same between Wasm and native.
     // This value is set to 100 to notify Polkadot-JS App (https://polkadot.js.org/apps) to use
     //   the compatible custom types.
-    spec_version: 115,
+    spec_version: 116,
     impl_version: 1,
     apis: RUNTIME_API_VERSIONS,
     transaction_version: 1,
@@ -223,7 +225,7 @@ impl frame_system::Config for Runtime {
     type Nonce = u32;
 
     type RuntimeTask = ();
-    type SingleBlockMigrations = Migrations;
+    type SingleBlockMigrations = ();
     type MultiBlockMigrator = ();
     type PreInherents = ();
     type PostInherents = ();
@@ -455,6 +457,7 @@ pub type Executive = frame_executive::Executive<
     frame_system::ChainContext<Runtime>,
     Runtime,
     AllPalletsWithSystem,
+    Migrations,
 >;
 
 impl fp_self_contained::SelfContainedCall for RuntimeCall {
