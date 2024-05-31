@@ -1,6 +1,6 @@
 use node_subspace_runtime::{
-    AccountId, AuraConfig, BalancesConfig, GrandpaConfig, RuntimeGenesisConfig,
-    SubspaceModuleConfig, SudoConfig, SystemConfig, WASM_BINARY,
+    AccountId,  RuntimeGenesisConfig,
+WASM_BINARY,
 };
 use sc_service::ChainType;
 use serde::Deserialize;
@@ -98,7 +98,8 @@ pub fn generate_config(path: &str) -> Result<ChainSpec, String> {
             subnet.4,
             subnet.5,
             subnet.6,
-            account_id_from_str(&subnet.7),
+            subnet.7,
+            account_id_from_str(&subnet.8),
         ));
 
         let subnet_module = state.modules[netuid]
