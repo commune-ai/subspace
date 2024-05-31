@@ -294,7 +294,7 @@ impl<T: Config> YumaCalc<T> {
 
     fn compute_weights(&self) -> Option<WeightsVal> {
         // Access network weights row unnormalized.
-        let mut weights = Pallet::<T>::get_weights_sparse(self.netuid);
+        let mut weights = Pallet::<T>::get_weights_sparse(self.netuid)?;
         log::trace!("  original weights: {weights:?}");
 
         if self.max_allowed_validators.is_some() {
@@ -430,7 +430,7 @@ impl<T: Config> YumaCalc<T> {
         incentives: &IncentivesVal,
     ) -> Option<BondsAndDividends> {
         // Access network bonds.
-        let mut bonds = Pallet::<T>::get_bonds_sparse(self.netuid);
+        let mut bonds = Pallet::<T>::get_bonds_sparse(self.netuid)?;
         log::trace!("  original bonds: {bonds:?}");
 
         // // Save to debug storage
@@ -662,33 +662,28 @@ impl<T: Config> Pallet<T> {
         I32F32::from_num(Kappa::<T>::get()) / I32F32::from_num(u16::MAX)
     }
 
-    fn get_weights_sparse(netuid: u16) -> Vec<Vec<(u16, I32F32)>> {
+    fn get_weights_sparse(netuid: u16) -> Option<Vec<Vec<(u16, I32F32)>>> {
         let n = Self::get_subnet_n(netuid) as usize;
         let mut weights: Vec<Vec<(u16, I32F32)>> = vec![vec![]; n];
-        for (uid_i, weights_i) in Weights::<T>::iter_prefix(netuid) {
-            if uid_i >= n as u16 {
-                continue;
-            }
-
-            for (uid_j, weight_ij) in weights_i.iter() {
-                if *uid_j >= n as u16 {
-                    continue;
-                }
-                weights[uid_i as usize].push((*uid_j, I32F32::from_num(*weight_ij)));
+        for (uid_i, weights_i) in
+            Weights::<T>::iter_prefix(netuid).filter(|(uid, _)| *uid < n as u16)
+        {
+            for (uid_j, weight_ij) in weights_i.into_iter().filter(|(uid, _)| *uid < n as u16) {
+                weights.get_mut(uid_i as usize)?.push((uid_j, I32F32::from_num(weight_ij)));
             }
         }
-        weights
+        Some(weights)
     }
 
-    fn get_bonds_sparse(netuid: u16) -> Vec<Vec<(u16, I32F32)>> {
+    fn get_bonds_sparse(netuid: u16) -> Option<Vec<Vec<(u16, I32F32)>>> {
         let n: usize = Self::get_subnet_n(netuid) as usize;
         let mut bonds: Vec<Vec<(u16, I32F32)>> = vec![vec![]; n];
         for (uid_i, bonds_i) in Bonds::<T>::iter_prefix(netuid).filter(|(uid, _)| *uid < n as u16) {
-            for (uid_j, bonds_ij) in bonds_i {
-                bonds[uid_i as usize].push((uid_j, I32F32::from_num(bonds_ij)));
+            for (uid_j, bonds_ij) in bonds_i.into_iter().filter(|(uid, _)| *uid < n as u16) {
+                bonds.get_mut(uid_i as usize)?.push((uid_j, I32F32::from_num(bonds_ij)));
             }
         }
-        bonds
+        Some(bonds)
     }
 }
 
