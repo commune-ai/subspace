@@ -48,7 +48,7 @@ fn test_add_subnets() {
 
         for netuid in 0..num_subnets {
             let total_stake = SubspaceModule::get_total_subnet_stake(netuid);
-            let total_balance = SubspaceModule::get_total_subnet_balance(netuid);
+            let total_balance = get_total_subnet_balance(netuid);
             let total_tokens_before = total_stake + total_balance;
 
             let keys = SubspaceModule::get_keys(netuid);
@@ -58,10 +58,10 @@ fn test_add_subnets() {
             info!("total tokens before {total_tokens_before}");
 
             assert_eq!(keys.len() as u16, n);
-            assert!(SubspaceModule::check_subnet_storage(netuid));
+            assert!(check_subnet_storage(netuid));
             SubspaceModule::remove_subnet(netuid);
             assert_eq!(SubspaceModule::get_subnet_n(netuid), 0);
-            assert!(SubspaceModule::check_subnet_storage(netuid));
+            assert!(check_subnet_storage(netuid));
 
             let total_tokens_after: u64 = keys.iter().map(SubspaceModule::get_balance_u64).sum();
             info!("total tokens after {}", total_tokens_after);
@@ -211,8 +211,6 @@ fn test_set_max_allowed_uids_shrinking() {
         info!("expected stake {expected_stake}");
         assert_eq!(total_stake, expected_stake);
 
-        let _subnet = SubspaceModule::subnet_info(netuid);
-
         let mut params = SubspaceModule::subnet_params(netuid).clone();
         params.max_allowed_uids = max_uids;
         params.name = "test2".as_bytes().to_vec();
@@ -225,7 +223,6 @@ fn test_set_max_allowed_uids_shrinking() {
             params.incentive_ratio,
             params.max_allowed_uids,
             params.max_allowed_weights,
-            params.max_stake,
             params.min_allowed_weights,
             params.max_weight_age,
             params.min_stake,
@@ -254,7 +251,7 @@ fn test_set_max_allowed_uids_shrinking() {
             "min allowed weights is not equal to expected min allowed weights"
         );
 
-        let stake_vector: Vec<u64> = SubspaceModule::get_stakes(netuid);
+        let stake_vector: Vec<u64> = get_stakes(netuid);
         let calc_stake: u64 = stake_vector.iter().sum();
 
         info!("calculated  stake {}", calc_stake);
@@ -720,7 +717,7 @@ fn test_active_stake() {
         for i in 0..max_subnets {
             assert_eq!(N::<Test>::get(i), 1);
         }
-        assert_eq!(SubspaceModule::is_registered(9, &U256::from(10)), true);
+        assert!(SubspaceModule::is_registered(9, &U256::from(10)));
 
         // register another module on the newly re-registered subnet 9,
         // and set weights on it from the key 11
@@ -736,7 +733,7 @@ fn test_active_stake() {
         let uids = [1].to_vec();
         let weights = [1].to_vec();
 
-        let _ = set_weights(9, U256::from(10), uids, weights);
+        set_weights(9, U256::from(10), uids, weights);
 
         step_block(100);
 
@@ -745,7 +742,7 @@ fn test_active_stake() {
         assert_ok!(register_module(10, U256::from(12), new_module_stake));
 
         step_block(1);
-        assert_eq!(SubspaceModule::is_registered(9, &U256::from(12)), true);
+        assert!(SubspaceModule::is_registered(9, &U256::from(12)));
         // check if the module is registered
         assert_eq!(N::<Test>::get(9), 3);
 
@@ -753,7 +750,7 @@ fn test_active_stake() {
         let uids = [0, 1].to_vec();
         let weights = [1, 1].to_vec();
 
-        let _ = set_weights(9, U256::from(12), uids, weights);
+        set_weights(9, U256::from(12), uids, weights);
 
         let n = 10;
         let stake_per_n = to_nano(20_000_000);
@@ -805,7 +802,6 @@ fn test_update_same_name() {
             params.incentive_ratio,
             params.max_allowed_uids,
             params.max_allowed_weights,
-            params.max_stake,
             params.min_allowed_weights,
             params.max_weight_age,
             params.min_stake,

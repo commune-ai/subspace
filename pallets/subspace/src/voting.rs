@@ -341,7 +341,7 @@ impl<T: Config> Pallet<T> {
         let vote_mode = VoteModeSubnet::<T>::get(netuid);
         ensure!(vote_mode == VoteMode::Vote, Error::<T>::NotVoteMode);
 
-        Self::check_subnet_params(&params)?;
+        SubnetChangeset::<T>::update(netuid, params.clone())?;
         let proposal_data = ProposalData::SubnetParams { netuid, params };
         Self::add_proposal(key, proposal_data)
     }
