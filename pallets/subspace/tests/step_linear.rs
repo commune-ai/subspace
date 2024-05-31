@@ -4,8 +4,8 @@ use frame_support::assert_ok;
 use log::info;
 use mock::*;
 use pallet_subspace::{
-    DaoTreasuryDistribution, GlobalDaoTreasury, MaxAllowedWeights,
-    MinAllowedWeights, MinBurn, SubnetStakeThreshold, Tempo,
+    DaoTreasuryDistribution, GlobalDaoTreasury, MaxAllowedWeights, MinAllowedWeights, MinBurn,
+    SubnetStakeThreshold, Tempo,
 };
 use sp_core::U256;
 use sp_runtime::Percent;

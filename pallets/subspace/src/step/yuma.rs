@@ -88,7 +88,8 @@ impl<T: Config> YumaCalc<T> {
             })
             .unzip();
 
-        let mut weights = self.compute_weights();
+        let mut weights =
+            self.compute_weights().ok_or(YumaError::Other("weights storage is broken"))?;
         log::trace!("final weights: {weights:?}");
 
         let stake = self.compute_stake()?;
@@ -119,7 +120,9 @@ impl<T: Config> YumaCalc<T> {
         let BondsAndDividends {
             ema_bonds,
             dividends,
-        } = self.compute_bonds_and_dividends(&weights, &active_stake, &incentives);
+        } = self
+            .compute_bonds_and_dividends(&weights, &active_stake, &incentives)
+            .ok_or(YumaError::Other("bonds storage is broken"))?;
 
         let Emissions {
             pruning_scores,
@@ -288,7 +291,7 @@ impl<T: Config> YumaCalc<T> {
         Ok(emissions)
     }
 
-    fn compute_weights(&self) -> WeightsVal {
+    fn compute_weights(&self) -> Option<WeightsVal> {
         // Access network weights row unnormalized.
         let mut weights = Pallet::<T>::get_weights_sparse(self.netuid);
         log::trace!("  original weights: {weights:?}");
@@ -309,14 +312,14 @@ impl<T: Config> YumaCalc<T> {
             &self.last_update,
             &self.block_at_registration,
             |updated, registered| updated <= registered,
-        );
+        )?;
         log::trace!("  no deregistered modules weights: {weights:?}");
 
         // Normalize remaining weights.
         inplace_row_normalize_sparse(&mut weights);
         log::trace!("  normalized weights: {weights:?}");
 
-        WeightsVal::unchecked_from_inner(weights)
+        Some(WeightsVal::unchecked_from_inner(weights))
     }
 
     fn compute_stake(&self) -> Result<StakeVal, &'static str> {
@@ -424,7 +427,7 @@ impl<T: Config> YumaCalc<T> {
         weights: &WeightsVal,
         active_stake: &ActiveStake,
         incentives: &IncentivesVal,
-    ) -> BondsAndDividends {
+    ) -> Option<BondsAndDividends> {
         // Access network bonds.
         let mut bonds = Pallet::<T>::get_bonds_sparse(self.netuid);
         log::trace!("  original bonds: {bonds:?}");
@@ -439,7 +442,7 @@ impl<T: Config> YumaCalc<T> {
             &self.last_update,
             &self.block_at_registration,
             |updated, registered| updated <= registered,
-        );
+        )?;
         log::trace!("  no deregistered modules bonds: {bonds:?}");
 
         // Normalize remaining bonds: sum_i b_ij = 1.
@@ -478,10 +481,10 @@ impl<T: Config> YumaCalc<T> {
         inplace_col_max_upscale_sparse(&mut ema_bonds, self.module_count);
         log::trace!("  upscaled ema bonds: {ema_bonds:?}");
 
-        BondsAndDividends {
+        Some(BondsAndDividends {
             ema_bonds,
             dividends: DividendsVal::unchecked_from_inner(dividends),
-        }
+        })
     }
 
     fn compute_emissions<'a>(
@@ -679,7 +682,7 @@ impl<T: Config> Pallet<T> {
     fn get_bonds_sparse(netuid: u16) -> Vec<Vec<(u16, I32F32)>> {
         let n: usize = Self::get_subnet_n(netuid) as usize;
         let mut bonds: Vec<Vec<(u16, I32F32)>> = vec![vec![]; n];
-        for (uid_i, bonds_i) in Bonds::<T>::iter_prefix(netuid) {
+        for (uid_i, bonds_i) in Bonds::<T>::iter_prefix(netuid).filter(|(uid, _)| *uid < n as u16) {
             for (uid_j, bonds_ij) in bonds_i {
                 bonds[uid_i as usize].push((uid_j, I32F32::from_num(bonds_ij)));
             }
