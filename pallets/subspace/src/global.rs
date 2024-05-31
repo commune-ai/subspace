@@ -10,17 +10,15 @@ impl<T: Config> Pallet<T> {
             min_name_length: Self::get_global_min_name_length(),
             max_allowed_subnets: Self::get_global_max_allowed_subnets(),
             max_allowed_modules: Self::get_max_allowed_modules(),
-            unit_emission: Self::get_unit_emission(),
+            unit_emission: UnitEmission::<T>::get(),
             curator: Self::get_curator(),
             floor_founder_share: FloorFounderShare::<T>::get(),
             floor_delegation_fee: Self::get_floor_delegation_fee(),
             // burn & registrations
             max_registrations_per_block: Self::get_max_registrations_per_block(),
-            burn_rate: Self::get_burn_rate(),
             min_burn: Self::get_min_burn(),
             max_burn: Self::get_max_burn(),
             adjustment_alpha: Self::get_adjustment_alpha(),
-            min_stake: Self::get_min_stake_global(),
             // weights
             max_allowed_weights: Self::get_max_allowed_weights_global(),
             subnet_stake_threshold: Self::get_subnet_stake_threshold(),
@@ -86,10 +84,7 @@ impl<T: Config> Pallet<T> {
             Error::<T>::InvalidUnitEmission
         );
 
-        // Make sure that the burn rate is below 100%
-        ensure!(params.burn_rate <= 100, Error::<T>::InvalidBurnRate);
-
-        // Make sure that the burn rate is at least 0.1 $ COMAI, it can't be
+        // Make sure that the burn is at least 0.1 $ COMAI, it can't be
         // zero, because the whole dynamic burn system would get broken.
         ensure!(params.min_burn >= 100_000_000, Error::<T>::InvalidMinBurn);
 
@@ -113,7 +108,7 @@ impl<T: Config> Pallet<T> {
         );
 
         ensure!(
-            params.proposal_expiration % 100 == 0, // for computational reasons
+            params.proposal_expiration % 100 == 0,
             Error::<T>::InvalidProposalExpiration
         );
         ensure!(
@@ -136,13 +131,11 @@ impl<T: Config> Pallet<T> {
         Self::set_floor_delegation_fee(params.floor_delegation_fee);
         // burn & registrations
         Self::set_max_registrations_per_block(params.max_registrations_per_block);
-        Self::set_burn_rate(params.burn_rate);
         Self::set_min_burn(params.min_burn);
         Self::set_max_burn(params.max_burn);
         Self::set_min_weight_stake(params.min_weight_stake);
         Self::set_subnet_stake_threshold(params.subnet_stake_threshold);
         Self::set_adjustment_alpha(params.adjustment_alpha);
-        Self::set_min_stake_global(params.min_stake);
         Self::set_floor_delegation_fee(params.floor_delegation_fee);
         Self::set_curator(params.curator);
         FloorFounderShare::<T>::put(params.floor_founder_share);
@@ -188,26 +181,12 @@ impl<T: Config> Pallet<T> {
         MaxAllowedWeightsGlobal::<T>::put(max_allowed_weights)
     }
 
-    pub fn get_min_stake_global() -> u64 {
-        MinStakeGlobal::<T>::get()
-    }
-    pub fn set_min_stake_global(min_stake: u64) {
-        MinStakeGlobal::<T>::put(min_stake)
-    }
-
     pub fn get_floor_delegation_fee() -> Percent {
         FloorDelegationFee::<T>::get()
     }
 
     pub fn set_floor_delegation_fee(delegation_fee: Percent) {
         FloorDelegationFee::<T>::put(delegation_fee)
-    }
-
-    pub fn get_burn_rate() -> u16 {
-        BurnRate::<T>::get()
-    }
-    pub fn set_burn_rate(burn_rate: u16) {
-        BurnRate::<T>::put(burn_rate.min(100));
     }
 
     // Proposals

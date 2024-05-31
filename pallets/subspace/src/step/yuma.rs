@@ -8,7 +8,8 @@ use crate::{
     Incentive, Kappa, Keys, MaxAllowedValidators, MaxWeightAge, Pallet, PruningScores, Rank, Stake,
     Trust, Uids, ValidatorPermits, ValidatorTrust, Weights,
 };
-use frame_support::{dispatch::Vec, ensure};
+use frame_support::ensure;
+use sp_std::vec::Vec;
 
 pub type EmissionMap<T> = BTreeMap<ModuleKey<T>, BTreeMap<AccountKey<T>, u64>>;
 
@@ -692,6 +693,7 @@ impl<T: Config> Pallet<T> {
 }
 
 #[derive(Debug)]
+#[allow(dead_code)]
 pub enum YumaError {
     EmittedMoreThanExpected { emitted: u64, expected: u64 },
     HasEmissionRemaining { emitted: u64 },

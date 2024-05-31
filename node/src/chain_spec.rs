@@ -1,14 +1,10 @@
-use node_subspace_runtime::{
-    AccountId, AuraConfig, BalancesConfig, GrandpaConfig, Precompiles, RuntimeGenesisConfig,
-    SubspaceModuleConfig, SudoConfig, SystemConfig, WASM_BINARY,
-};
+use node_subspace_runtime::{AccountId, RuntimeGenesisConfig, WASM_BINARY};
 use sc_service::ChainType;
+use serde::Deserialize;
 use sp_consensus_aura::sr25519::AuthorityId as AuraId;
 use sp_consensus_grandpa::AuthorityId as GrandpaId;
 use sp_core::{crypto::Ss58Codec, sr25519, Pair, Public};
-
-// The URL for the telemetry server.
-// const STAGING_TELEMETRY_URL: &str = "wss://telemetry.polkadot.io/submit/";
+use std::fs::File;
 
 // Specialized `ChainSpec`. This is a specialization of the general Substrate ChainSpec type.
 pub type ChainSpec = sc_service::GenericChainSpec<RuntimeGenesisConfig>;
@@ -25,14 +21,9 @@ pub fn authority_keys_from_seed(s: &str) -> (AuraId, GrandpaId) {
     (get_from_seed::<AuraId>(s), get_from_seed::<GrandpaId>(s))
 }
 
-// Includes for nakamoto genesis
-use serde::Deserialize;
-use serde_json as json;
-use std::{fs::File, path::PathBuf};
-
 /// (name, tempo, immunity_period, min_allowed_weights, max_allowed_weights,
 /// max_allowed_uids, founder)
-pub type JSONSubnet = (String, u16, u16, u16, u16, u16, u16, u64, String);
+pub type JSONSubnet = (String, u16, u16, u16, u16, u16, u64, String);
 
 /// (key, name, address, stake, weights)
 pub type JSONModule = (String, String, String, Vec<(u16, u16)>);
@@ -44,7 +35,6 @@ pub type JSONStakeTo = (String, Vec<(String, u64)>);
 /// max_allowed_uids, founder)
 pub type Subnet = (
     Vec<u8>,
-    u16,
     u16,
     u16,
     u16,
@@ -81,93 +71,67 @@ struct SubspaceJSONState {
     version: u32,
 }
 
-pub fn generate_config(network: String) -> Result<ChainSpec, String> {
-    let path: PathBuf = std::path::PathBuf::from(format!("./snapshots/{}.json", network));
-    let wasm_binary = WASM_BINARY.ok_or_else(|| "Development wasm not available".to_string())?;
+fn account_id_from_str(s: &str) -> sp_runtime::AccountId32 {
+    sr25519::Public::from_ss58check(s).expect("invalid account string").into()
+}
 
-    // We mmap the file into memory first, as this is *a lot* faster than using
-    // `serde_json::from_reader`. See https://github.com/serde-rs/json/issues/160
-    let file = File::open(&path)
-        .map_err(|e| format!("Error opening genesis file `{}`: {}", path.display(), e))?;
-
-    // SAFETY: `mmap` is fundamentally unsafe since technically the file can change
-    //         underneath us while it is mapped; in practice it's unlikely to be a problem
-    let bytes = unsafe {
-        memmap2::Mmap::map(&file)
-            .map_err(|e| format!("Error mmaping genesis file `{}`: {}", path.display(), e))?
-    };
+pub fn generate_config(path: &str) -> Result<ChainSpec, String> {
+    let file = File::open(path).map_err(|e| format!(r#"Error opening spec file "{path}": {e}"#))?;
 
     let state: SubspaceJSONState =
-        json::from_slice(&bytes).map_err(|e| format!("Error parsing genesis file: {}", e))?;
+        serde_json::from_reader(&file).map_err(|e| format!("Error parsing spec file: {e}"))?;
 
     let mut subnets: Vec<Subnet> = Vec::new();
     let mut modules: Vec<Vec<Module>> = Vec::new();
     let mut stake_to: Vec<Vec<StakeTo>> = Vec::new();
 
     for (netuid, subnet) in state.subnets.into_iter().enumerate() {
-        let (
-            name,
-            tempo,
-            immunity_period,
-            min_allowed_weights,
-            max_allowed_weights,
-            max_allowed_uids,
-            burn_rate,
-            min_stake,
-            founder,
-        ) = subnet;
-
         subnets.push((
-            name.as_bytes().to_vec(),
-            tempo,
-            immunity_period,
-            min_allowed_weights,
-            max_allowed_weights,
-            max_allowed_uids,
-            burn_rate,
-            min_stake,
-            sp_runtime::AccountId32::from(sr25519::Public::from_ss58check(&founder).unwrap()),
+            subnet.0.as_bytes().to_vec(),
+            subnet.1,
+            subnet.2,
+            subnet.3,
+            subnet.4,
+            subnet.5,
+            subnet.6,
+            account_id_from_str(&subnet.7),
         ));
 
-        // Add  modules
-        modules.push(Vec::new());
-        for module in state.modules[netuid].iter() {
-            modules[netuid].push((
-                sp_runtime::AccountId32::from(
-                    // module_key
-                    sr25519::Public::from_ss58check(&module.0).unwrap(),
-                ),
-                module.1.as_bytes().to_vec(),                     // name
-                module.2.as_bytes().to_vec(),                     // address
-                module.3.iter().map(|(a, b)| (*a, *b)).collect(), // weights: Convert to tuples
-            ));
-        }
-        stake_to.push(Vec::new());
-        for (key_str, key_stake_to) in state.stake_to[netuid].iter() {
-            stake_to[netuid].push((
-                sp_runtime::AccountId32::from(sr25519::Public::from_ss58check(key_str).unwrap()),
-                key_stake_to
+        let subnet_module = state.modules[netuid]
+            .iter()
+            .map(|(key, name, addr, weights)| {
+                (
+                    account_id_from_str(key),
+                    name.as_bytes().to_vec(),
+                    addr.as_bytes().to_vec(),
+                    weights.iter().map(|(a, b)| (*a, *b)).collect(),
+                )
+            })
+            .collect();
+        modules.push(subnet_module);
+
+        let subnet_stake_to = state.stake_to[netuid]
+            .iter()
+            .map(|(key, key_stake_to)| {
+                let key = account_id_from_str(key);
+                let key_stake_to = key_stake_to
                     .iter()
                     .map(|(a, b)| {
-                        (
-                            sp_runtime::AccountId32::from(
-                                sr25519::Public::from_ss58check(a).unwrap(),
-                            ),
-                            *b,
-                        )
+                        let key = account_id_from_str(a);
+                        (key, *b)
                     })
-                    .collect(),
-            ));
-        }
+                    .collect();
+                (key, key_stake_to)
+            })
+            .collect();
+        stake_to.push(subnet_stake_to);
     }
 
-    let mut processed_balances: Vec<(sp_runtime::AccountId32, u64)> = Vec::new();
-    for (key_str, amount) in state.balances.iter() {
-        let key = sr25519::Public::from_ss58check(key_str).unwrap();
-        let key_account = sp_runtime::AccountId32::from(key);
-
-        processed_balances.push((key_account, *amount));
-    }
+    let processed_balances: Vec<_> = state
+        .balances
+        .into_iter()
+        .map(|(key, amount)| (account_id_from_str(&key), amount))
+        .collect();
 
     // Give front-ends necessary data to present to users
     let mut properties = sc_service::Properties::new();
@@ -175,125 +139,67 @@ pub fn generate_config(network: String) -> Result<ChainSpec, String> {
     properties.insert("tokenDecimals".into(), 9.into());
     properties.insert("ss58Format".into(), 13116.into());
 
-    Ok(ChainSpec::from_genesis(
-        // Name
-        "commune",
-        // ID
-        "commune",
-        ChainType::Development,
-        move || {
-            network_genesis(
-                wasm_binary,
-                // Initial PoA authorities (Validators)
-                // aura | grandpa
-                vec![
-                    // Keys for debug
-                    authority_keys_from_seed("Alice"),
-                    authority_keys_from_seed("Bob"),
-                ],
-                // Sudo account, this is multisig of 5
-                Ss58Codec::from_ss58check("5FXymAnjbb7p57pNyfdLb6YCdzm73ZhVq6oFF1AdCEPEg8Uw")
-                    .unwrap(),
-                // Pre-funded a
-                processed_balances.clone(), // balances
-                modules.clone(),            // modules,
-                subnets.clone(),            // subnets,
-                stake_to.clone(),           // stake_to,
-                state.block,
-            )
-        },
-        // Bootnodes
-        vec![],
-        // Telemetry
-        None,
-        // Protocol ID
-        Some("commune"),
-        None,
-        // Properties
-        Some(properties),
-        // Extensions
-        None,
-    ))
-}
+    let patch = genesis_patch(
+        &[
+            authority_keys_from_seed("Alice"),
+            authority_keys_from_seed("Bob"),
+        ],
+        account_id_from_str("5FXymAnjbb7p57pNyfdLb6YCdzm73ZhVq6oFF1AdCEPEg8Uw"),
+        processed_balances,
+        modules,
+        subnets,
+        stake_to,
+        state.block,
+    );
 
-pub fn mainnet_config() -> Result<ChainSpec, String> {
-    generate_config("main".to_string())
-}
+    let wasm_binary = WASM_BINARY.ok_or_else(|| "WASM binary not available".to_string())?;
 
-pub fn testnet_config() -> Result<ChainSpec, String> {
-    generate_config("test".to_string())
+    Ok(ChainSpec::builder(wasm_binary, None)
+        .with_name("commune")
+        .with_id("commune")
+        .with_protocol_id("commune")
+        .with_properties(properties)
+        .with_chain_type(ChainType::Development)
+        .with_genesis_config_patch(patch)
+        .build())
 }
 
 type ModuleData = (AccountId, Vec<u8>, Vec<u8>, Vec<(u16, u16)>);
 type Modules = Vec<Vec<ModuleData>>;
-type SubnetData = (Vec<u8>, u16, u16, u16, u16, u16, u16, u64, AccountId);
+type SubnetData = (Vec<u8>, u16, u16, u16, u16, u16, u64, AccountId);
 type Subnets = Vec<SubnetData>;
 type StakeToData = (AccountId, Vec<(AccountId, u64)>);
 type StakeToVec = Vec<Vec<StakeToData>>;
 
 // Configure initial storage state for FRAME modules.
 #[allow(clippy::too_many_arguments)]
-fn network_genesis(
-    wasm_binary: &[u8],
-    initial_authorities: Vec<(AuraId, GrandpaId)>,
+fn genesis_patch(
+    initial_authorities: &[(AuraId, GrandpaId)],
     root_key: AccountId,
     balances: Vec<(AccountId, u64)>,
     modules: Modules,
     subnets: Subnets,
     stake_to: StakeToVec,
     block: u32,
-) -> RuntimeGenesisConfig {
-    use node_subspace_runtime::EVMConfig;
-
-    RuntimeGenesisConfig {
-        system: SystemConfig {
-            // Add Wasm runtime to storage.
-            code: wasm_binary.to_vec(),
-            ..Default::default()
+) -> serde_json::Value {
+    serde_json::json!({
+        "balances": {
+            "balances": balances,
         },
-        balances: BalancesConfig {
-            // Configure endowed accounts with initial balance of 1 << 60.
-            //balances: balances.iter().cloned().map(|k| k).collect(),
-            balances: balances.to_vec(),
+        "aura": {
+            "authorities": initial_authorities.iter().map(|x| (x.0.clone())).collect::<Vec<_>>(),
         },
-        aura: AuraConfig {
-            authorities: initial_authorities.iter().map(|x| (x.0.clone())).collect(),
+        "grandpa": {
+            "authorities": initial_authorities.iter().map(|x| (x.1.clone(), 1)).collect::<Vec<_>>(),
         },
-        grandpa: GrandpaConfig {
-            authorities: initial_authorities.iter().map(|x| (x.1.clone(), 1)).collect(),
-            ..Default::default()
+        "sudo": {
+            "key": Some(root_key),
         },
-        sudo: SudoConfig {
-            // Assign network admin rights.
-            key: Some(root_key),
+        "subspaceModule": {
+            "modules": modules,
+            "subnets": subnets,
+            "block": block,
+            "stakeTo": stake_to,
         },
-        transaction_payment: Default::default(),
-        subspace_module: SubspaceModuleConfig {
-            // Add names to storage.
-            modules,
-            subnets,
-            block,
-            stake_to,
-        },
-        // EVM Compatibility
-        evm_chain_id: Default::default(),
-        evm: EVMConfig {
-            accounts: Precompiles::used_addresses()
-                .map(|addr| {
-                    (
-                        addr,
-                        fp_evm::GenesisAccount {
-                            balance: Default::default(),
-                            code: Default::default(),
-                            nonce: Default::default(),
-                            storage: Default::default(),
-                        },
-                    )
-                })
-                .collect(),
-            _marker: Default::default(),
-        },
-        ethereum: Default::default(),
-        base_fee: Default::default(),
-    }
+    })
 }
