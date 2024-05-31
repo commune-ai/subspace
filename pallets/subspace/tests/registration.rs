@@ -9,8 +9,8 @@ use sp_core::U256;
 use log::info;
 use pallet_subspace::{
     voting::ApplicationStatus, CuratorApplications, Emission, Error, MaxAllowedModules,
-    MaxAllowedUids, MinStake, RegistrationsPerBlock, RemovedSubnets, Stake, SubnetNames,
-    TotalSubnets, N,
+    MaxAllowedUids, MinStake, RegistrationsPerBlock, Stake, SubnetGaps, SubnetNames, TotalSubnets,
+    N,
 };
 use sp_runtime::{DispatchResult, Percent};
 
@@ -681,12 +681,12 @@ fn new_subnet_reutilized_removed_netuid_if_total_is_bigger_than_removed() {
         SubspaceModule::set_min_burn(0);
 
         TotalSubnets::<Test>::set(10);
-        RemovedSubnets::<Test>::set(BTreeSet::from([5]));
+        SubnetGaps::<Test>::set(BTreeSet::from([5]));
         assert_ok!(register_module(0, 0.into(), to_nano(1)));
 
         let subnets: Vec<_> = N::<Test>::iter().collect();
         assert_eq!(subnets, vec![(5, 1)]);
-        assert_eq!(RemovedSubnets::<Test>::get(), BTreeSet::from([]));
+        assert_eq!(SubnetGaps::<Test>::get(), BTreeSet::from([]));
     });
 }
 
@@ -696,12 +696,12 @@ fn new_subnet_does_not_reute_removed_netuid_if_total_is_smaller_than_removed() {
         SubspaceModule::set_min_burn(0);
 
         TotalSubnets::<Test>::set(3);
-        RemovedSubnets::<Test>::set(BTreeSet::from([7]));
+        SubnetGaps::<Test>::set(BTreeSet::from([7]));
         assert_ok!(register_module(0, 0.into(), to_nano(1)));
 
         let subnets: Vec<_> = N::<Test>::iter().collect();
         assert_eq!(subnets, vec![(7, 1)]);
-        assert_eq!(RemovedSubnets::<Test>::get(), BTreeSet::from([]));
+        assert_eq!(SubnetGaps::<Test>::get(), BTreeSet::from([]));
     });
 }
 
