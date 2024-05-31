@@ -5,7 +5,7 @@ use frame_support::{
     traits::{Everything, Hooks},
 };
 use frame_system as system;
-use pallet_subspace::{MaxRegistrationsPerInterval,Address, Name};
+use pallet_subspace::{Address, MaxRegistrationsPerInterval, Name};
 use sp_core::{H256, U256};
 use sp_runtime::{
     traits::{BlakeTwo256, IdentityLookup},
