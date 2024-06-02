@@ -33,7 +33,7 @@ pub mod pallet {
         pallet_prelude::{ValueQuery, *},
         traits::{Currency, StorageInstance},
     };
-    use frame_system::pallet_prelude::BlockNumberFor;
+    use frame_system::pallet_prelude::{ensure_signed, BlockNumberFor};
 
     use crate::*;
 
@@ -232,6 +232,20 @@ pub mod pallet {
         #[pallet::weight((Weight::zero(), DispatchClass::Normal, Pays::No))]
         pub fn remove_vote_proposal(origin: OriginFor<T>, proposal_id: u64) -> DispatchResult {
             Self::do_remove_vote_proposal(origin, proposal_id)
+        }
+
+        #[pallet::call_index(7)]
+        #[pallet::weight((Weight::zero(), DispatchClass::Normal, Pays::No))]
+        pub fn enable_vote_power_delegation(origin: OriginFor<T>) -> DispatchResult {
+            let key = ensure_signed(origin)?;
+            Self::update_delegating_voting_power(&key, true)
+        }
+
+        #[pallet::call_index(8)]
+        #[pallet::weight((Weight::zero(), DispatchClass::Normal, Pays::No))]
+        pub fn disable_vote_power_delegation(origin: OriginFor<T>) -> DispatchResult {
+            let key = ensure_signed(origin)?;
+            Self::update_delegating_voting_power(&key, false)
         }
     }
 
