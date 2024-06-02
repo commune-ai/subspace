@@ -24,7 +24,7 @@ pub fn ss58_to_account_id<T: Config>(
     Ok(T::AccountId::decode(&mut &account_id_vec[..]).unwrap())
 }
 
-pub mod v10 {
+pub mod v11 {
     use self::{
         global::BurnConfiguration,
         old_storage::{GlobalDaoTreasury, MaxBurn, MinBurn},
@@ -48,35 +48,24 @@ pub mod v10 {
         pub type GlobalDaoTreasury<T: Config> = StorageValue<Pallet<T>, u64, ValueQuery>;
     }
 
-    pub struct MigrateToV10<T>(sp_std::marker::PhantomData<T>);
+    pub struct MigrateToV11<T>(sp_std::marker::PhantomData<T>);
 
-    impl<T: Config> OnRuntimeUpgrade for MigrateToV10<T> {
+    impl<T: Config> OnRuntimeUpgrade for MigrateToV11<T> {
         fn on_runtime_upgrade() -> Weight {
             let on_chain_version = StorageVersion::get::<Pallet<T>>();
 
-            if on_chain_version != 9 {
-                log::info!("Storage v10 already updated");
+            if on_chain_version != 10 {
+                log::info!("Storage v11 already updated");
                 return Weight::zero();
             }
 
             let current_adjustment_alpha = old_storage::AdjustmentAlpha::<T>::get();
             // Nuke the old adjustement alpha storage
-            old_storage::AdjustmentAlpha::<T>::kill();
-            log::info!("Migrating adjustment alpha to v10");
-
-            let mut gaps = BTreeSet::new();
-            let netuids: BTreeSet<_> = N::<T>::iter_keys().collect();
-            for netuid in 0..netuids.last().copied().unwrap_or_default() {
-                // Migrate the adjustment alpha to the new storage
+            for netuid in N::<T>::iter_keys() {
                 AdjustmentAlpha::<T>::insert(netuid, current_adjustment_alpha);
-                if !netuids.contains(&netuid) {
-                    gaps.insert(netuid);
-                }
             }
-
-            log::info!("Existing subnets: {netuids:?}");
-            log::info!("Updated subnets gaps: {gaps:?}");
-            SubnetGaps::<T>::set(gaps);
+            old_storage::AdjustmentAlpha::<T>::kill();
+            log::info!("Migrating adjustment alpha to v11");
 
             let burn_config = BurnConfiguration::<T> {
                 min_burn: MinBurn::<T>::get(),
@@ -87,7 +76,7 @@ pub mod v10 {
             if let Err(err) = burn_config.apply() {
                 log::error!("error migrating burn configurations: {err:?}")
             } else {
-                log::info!("Migrated burn-related params to BurnConfig in v10");
+                log::info!("Migrated burn-related params to BurnConfig in v11");
             }
 
             let old_treasury_balance = GlobalDaoTreasury::<T>::get();
@@ -103,7 +92,7 @@ pub mod v10 {
             log::info!("Treasury transferred, treasury account now has {account_balance}");
             log::info!("Treasury account: {treasury_account:?}");
 
-            StorageVersion::new(10).put::<Pallet<T>>();
+            StorageVersion::new(11).put::<Pallet<T>>();
             T::DbWeight::get().writes(1)
         }
     }
