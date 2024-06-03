@@ -483,6 +483,11 @@ pub mod pallet {
         T::AccountId::decode(&mut sp_runtime::traits::TrailingZeroInput::zeroes()).unwrap()
     }
 
+    #[pallet::type_value]
+    pub fn DefaultFloorFounderShare<T: Config>() -> u8 {
+        8
+    }
+
     #[pallet::storage]
     pub type FloorFounderShare<T: Config> =
         StorageValue<_, u8, ValueQuery, DefaultFloorFounderShare<T>>;
@@ -504,11 +509,6 @@ pub mod pallet {
     #[pallet::storage]
     pub type DaoTreasuryDistribution<T: Config> =
         StorageValue<_, Percent, ValueQuery, DefaultDaoTreasuryDistribution<T>>;
-
-    #[pallet::type_value]
-    pub fn DefaultFloorFounderShare<T: Config>() -> u8 {
-        8
-    }
 
     #[pallet::storage]
     pub type Curator<T: Config> = StorageValue<_, T::AccountId, ValueQuery, DefaultKey<T>>;

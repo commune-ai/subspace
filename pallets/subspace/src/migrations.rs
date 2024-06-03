@@ -117,6 +117,8 @@ pub mod v11 {
             let founder_shares: Vec<_> =
                 FounderShare::<T>::iter().map(|(_, share)| share).collect();
 
+            FloorFounderShare::<T>::put(new_founder_share as u8);
+
             log::info!(
                 "Migrated founder share to v11, it now looks like {:?}",
                 founder_shares
