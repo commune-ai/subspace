@@ -14,11 +14,6 @@ impl<T: Config> Pallet<T> {
 
         RegistrationsPerBlock::<T>::mutate(|val: &mut u16| *val = 0);
 
-        // Execute proposals if any should be executed, this is done every 100 blocks.
-        if block_number % 100 == 0 {
-            Self::resolve_proposals(block_number);
-        }
-
         let total_stake = Self::total_stake() as u128;
         let subnet_stake_threshold = SubnetStakeThreshold::<T>::get();
 

@@ -3,13 +3,17 @@ use crate::{
     Pallet, Percent, Proposals, SubnetGovernanceConfig, SubnetId, UnrewardedProposals,
 };
 use frame_support::{
-    dispatch::DispatchResult, ensure, sp_runtime::DispatchError, storage::with_storage_layer,
-    traits::ConstU32, BoundedBTreeMap, BoundedBTreeSet, BoundedVec, DebugNoBound,
+    dispatch::DispatchResult,
+    ensure,
+    sp_runtime::{DispatchError, SaturatedConversion},
+    storage::with_storage_layer,
+    traits::ConstU32,
+    BoundedBTreeMap, BoundedBTreeSet, BoundedVec, DebugNoBound,
 };
 use frame_system::ensure_signed;
 use pallet_subspace::{
     subnet::SubnetChangeset, voting::VoteMode, DaoTreasuryAddress, Event as SubspaceEvent,
-    GlobalParams, Pallet as PalletSubspace, SubnetParams, VoteModeSubnet,
+    GlobalParams, Pallet as PalletSubspace, SubnetParams, TotalStake, VoteModeSubnet,
 };
 use parity_scale_codec::{Decode, Encode, MaxEncodedLen};
 use scale_info::TypeInfo;
@@ -356,6 +360,18 @@ pub fn tick_proposals<T: Config>(block_number: u64) {
     }
 }
 
+pub fn get_minimal_stake_to_execute_with_percentage<T: Config>(
+    threshold: Percent,
+    netuid: Option<u16>,
+) -> u64 {
+    let stake = match netuid {
+        Some(specific_netuid) => TotalStake::<T>::get(specific_netuid),
+        None => PalletSubspace::<T>::total_stake(),
+    };
+
+    (stake.saturated_into::<u128>() * threshold.deconstruct() as u128 / 100) as u64
+}
+
 fn tick_proposal<T: Config>(
     delegating: &BTreeSet<T::AccountId>,
     block_number: u64,
@@ -392,11 +408,10 @@ fn tick_proposal<T: Config>(
     let stake_against_sum: u64 = votes_for.iter().map(|(_, stake)| stake).sum();
 
     let total_stake = stake_for_sum + stake_against_sum;
-    let minimal_stake_to_execute =
-        PalletSubspace::<T>::get_minimal_stake_to_execute_with_percentage(
-            proposal.data.required_stake(),
-            subnet_id,
-        );
+    let minimal_stake_to_execute = get_minimal_stake_to_execute_with_percentage::<T>(
+        proposal.data.required_stake(),
+        subnet_id,
+    );
 
     let mut reward_votes_for = BoundedBTreeMap::new();
     for (key, value) in votes_for {
