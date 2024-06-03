@@ -103,6 +103,8 @@ pub mod pallet {
     pub type UnrewardedProposals<T: Config> =
         StorageMap<_, Identity, ProposalId, UnrewardedProposal<T>>; // TODO: make it return an option
 
+    // TODO:
+    // Add benchmarks for the pallet
     #[pallet::call]
     impl<T: Config> Pallet<T> {
         #[pallet::call_index(0)]
@@ -219,8 +221,13 @@ pub mod pallet {
             Self::do_add_transfer_dao_treasury_proposal(origin, data, value, dest)
         }
 
+        // Once benchmarked, provide more accurate weight info.
+        // This has to pay fee, so very low stake keys don't spam the voting system.
         #[pallet::call_index(5)]
-        #[pallet::weight((Weight::zero(), DispatchClass::Normal, Pays::No))]
+        #[pallet::weight(Weight::from_parts(22_732_000, 6825)
+        .saturating_add(T::DbWeight::get().reads(4_u64))
+        .saturating_add(T::DbWeight::get().writes(1_u64))
+        )]
         pub fn vote_proposal(
             origin: OriginFor<T>,
             proposal_id: u64,
