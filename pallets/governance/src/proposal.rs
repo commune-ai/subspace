@@ -1,6 +1,6 @@
 use crate::{
-    Config, DelegatingVotingPower, Error, Event, GovernanceConfig, GovernanceConfiguration, Pallet,
-    Percent, Proposals, SubnetGovernanceConfig, SubnetId, UnrewardedProposals,
+    Config, DelegatingVotingPower, Error, Event, GlobalGovernanceConfig, GovernanceConfiguration,
+    Pallet, Percent, Proposals, SubnetGovernanceConfig, SubnetId, UnrewardedProposals,
 };
 use frame_support::{
     dispatch::DispatchResult, ensure, sp_runtime::DispatchError, storage::with_storage_layer,
@@ -210,9 +210,9 @@ impl<T: Config> Pallet<T> {
     ) -> DispatchResult {
         let GovernanceConfiguration {
             proposal_cost,
-            expiration,
+            proposal_expiration,
             ..
-        } = GovernanceConfig::<T>::get();
+        } = GlobalGovernanceConfig::<T>::get();
 
         ensure!(
             pallet_subspace::Pallet::<T>::has_enough_balance(&key, proposal_cost),
@@ -226,7 +226,7 @@ impl<T: Config> Pallet<T> {
 
         let proposal_id = Self::get_next_proposal_id();
         let current_block = PalletSubspace::<T>::get_current_block_number();
-        let expiration_block = current_block + expiration as u64;
+        let expiration_block = current_block + proposal_expiration as u64;
 
         // TODO: extract rounding function
         let expiration_block = if expiration_block % 100 == 0 {
@@ -453,7 +453,7 @@ pub fn tick_proposal_rewards<T: Config>(block_number: u64) {
         pallet_subspace::N::<T>::iter_keys()
             .map(|subnet_id| (Some(subnet_id), SubnetGovernanceConfig::<T>::get(subnet_id)))
             .collect();
-    to_tick.push((None, GovernanceConfig::<T>::get()));
+    to_tick.push((None, GlobalGovernanceConfig::<T>::get()));
 
     to_tick.into_iter().for_each(|(subnet_id, governance_config)| {
         execute_proposal_rewards(block_number, subnet_id, governance_config);
