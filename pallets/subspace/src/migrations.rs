@@ -92,6 +92,36 @@ pub mod v11 {
             log::info!("Treasury transferred, treasury account now has {account_balance}");
             log::info!("Treasury account: {treasury_account:?}");
 
+            /*
+                        Subnet floor founder share raise
+            Initially the DAO agreed to set the floor founder share to 8% because only one subnet had been launched, which is prepared to be ready right after the incentives v1 update. For fairness, the fee was set low.
+
+            Now more and more subnets are starting to operate and gain traction, and its time to raise it to an appropriate level of 16%.
+
+            The subnet 0 founder share has to be raised proportionally to 20% to maintain intended effects.
+                         */
+
+            let new_founder_share: u16 = 16;
+            let new_founder_share_general_subnet: u16 = 20;
+            let general_subnet_netuid: u16 = 0;
+
+            FounderShare::<T>::iter().for_each(|(netuid, share)| {
+                if netuid == general_subnet_netuid {
+                    FounderShare::<T>::insert(netuid, new_founder_share_general_subnet);
+                    log::info!("Migrated general subnet founder share to v11");
+                } else if share < new_founder_share {
+                    FounderShare::<T>::insert(netuid, new_founder_share);
+                }
+            });
+
+            let founder_shares: Vec<_> =
+                FounderShare::<T>::iter().map(|(_, share)| share).collect();
+
+            log::info!(
+                "Migrated founder share to v11, it now looks like {:?}",
+                founder_shares
+            );
+
             StorageVersion::new(11).put::<Pallet<T>>();
             T::DbWeight::get().writes(1)
         }

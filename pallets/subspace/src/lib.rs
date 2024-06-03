@@ -447,7 +447,7 @@ pub mod pallet {
     pub type Founder<T: Config> =
         StorageMap<_, Identity, u16, T::AccountId, ValueQuery, DefaultKey<T>>;
 
-    #[pallet::storage] // --- DMAP ( key, netuid ) --> bool
+    #[pallet::storage] // --- DMAP ( key, proportion )
     pub type FounderShare<T: Config> =
         StorageMap<_, Identity, u16, u16, ValueQuery, DefaultFounderShare<T>>;
 
