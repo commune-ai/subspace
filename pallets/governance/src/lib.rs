@@ -301,6 +301,9 @@ pub mod pallet {
         NotVoted,
         /// Key doesn't have enough stake to vote.
         InsufficientStake,
+        /// The voter is delegating its voting power to their staked modules. Disable voting power
+        /// delegation.
+        VoterIsDelegatingVotingPower,
         /// An internal error occurred, probably relating to the size of the bounded sets.
         InternalError,
     }
