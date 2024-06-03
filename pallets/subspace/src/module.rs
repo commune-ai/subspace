@@ -3,7 +3,6 @@ use super::*;
 use frame_support::pallet_prelude::{Decode, DispatchResult, Encode};
 use sp_arithmetic::per_things::Percent;
 use sp_std::collections::btree_map::BTreeMap;
-
 pub struct SubnetDistributionParameters;
 
 #[derive(Decode, Encode, PartialEq, Eq, Clone, Debug)]
@@ -102,9 +101,10 @@ impl ModuleChangeset {
             ensure!(metadata.len() <= 59, Error::<T>::ModuleMetadataTooLong);
             core::str::from_utf8(&metadata).map_err(|_| Error::<T>::InvalidModuleMetadata)?;
 
-            Metadata::<T>::insert(netuid, key, metadata);
+            Metadata::<T>::insert(netuid, &key, metadata);
         }
 
+        Pallet::<T>::deposit_event(Event::ModuleUpdated(netuid, key));
         Ok(())
     }
 }

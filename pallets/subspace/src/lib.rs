@@ -684,26 +684,8 @@ pub mod pallet {
                                              * added to the whitelist. */
         WhitelistModuleRemoved(T::AccountId), /* --- Event created when a module account has
                                                * been removed from the whitelist. */
-        BulkModulesRegistered(u16, u16), /* --- Event created when multiple uids have been
-                                          * concurrently registered. */
-        BulkBalancesSet(u16, u16),
-        MaxAllowedUidsSet(u16, u16), /* --- Event created when max allowed uids has been set
-                                      * for a subnetwor. */
-        MinAllowedWeightSet(u16, u16), /* --- Event created when minimun allowed weight is set
-                                        * for a subnet. */
-        ImmunityPeriodSet(u16, u16), /* --- Event created when immunity period is set for a
-                                      * subnet. */
-        ModuleUpdated(u16, T::AccountId), /* --- Event created when the module server
+        ModuleUpdated(u16, T::AccountId), /* --- Event created when the module got updated
                                            * information is added to the network. */
-        DelegateAdded(T::AccountId, T::AccountId, u16), /* --- Event created to signal a key
-                                                         * has become a delegate. */
-        UnitEmissionSet(u64), // --- Event created when setting the unit emission
-        MaxNameLengthSet(u16), // --- Event created when setting the maximum network name length
-        MinNameLenghtSet(u16), // --- Event created when setting the minimum network name length
-        MaxAllowedSubnetsSet(u16), // --- Event created when setting the maximum allowed subnets
-        MaxAllowedModulesSet(u16), // --- Event created when setting the maximum allowed modules
-        MaxRegistrationsPerBlockSet(u16), // --- Event created when we set max registrations
-        RegistrationBurnChanged(u64),
 
         // faucet
         Faucet(T::AccountId, BalanceOf<T>), // (id, balance_to_add)
@@ -731,9 +713,6 @@ pub mod pallet {
     pub enum Error<T> {
         NetworkDoesNotExist, // --- Thrown when the network does not exist.
         NetworkIsImmuned,
-        NetworkExist, // --- Thrown when the network already exist.
-        InvalidIpType, /* ---- Thrown when the user tries to serve an module which
-                       * is not of type	4 (IPv4) or 6 (IPv6). */
         NotRegistered, // module which does not exist in the active set.
         NotEnoughStakeToWithdraw, /* ---- Thrown when the caller requests removing more stake
                         * then there exists in the staking account. See: fn
@@ -741,9 +720,6 @@ pub mod pallet {
         NotEnoughBalanceToStake, /*  ---- Thrown when the caller requests adding more stake
                                   * than there exists in the cold key account. See: fn
                                   * add_stake */
-        BalanceWithdrawalError, /* ---- Thrown when the caller tries to add stake, but for some
-                                 * reason the requested amount could not be withdrawn from the
-                                 * coldkey account */
         WeightVecNotEqualSize, /* ---- Thrown when the caller attempts to set the weight keys
                                 * and values but these vectors have different size. */
         DuplicateUids, /* ---- Thrown when the caller attempts to set weights with duplicate
@@ -752,8 +728,6 @@ pub mod pallet {
                      * that does not exist in the metagraph. */
         InvalidUidsLength, /* ---- Thrown when the caller attempts to set weights with a
                             * different number of uids than allowed. */
-        NotSettingEnoughWeights, /* ---- Thrown when the dispatch attempts to set weights on
-                                  * chain with fewer elements than are allowed. */
         TooManyRegistrationsPerBlock, /* ---- Thrown when registrations this block exceeds
                                        * allowed number. */
         TooManyRegistrationsPerInterval, /* ---- Thrown when registrations this interval
@@ -761,27 +735,15 @@ pub mod pallet {
                                           * allowed number. */
         AlreadyRegistered, /* ---- Thrown when the caller requests registering a module which
                             * already exists in the active set. */
-        MaxAllowedUIdsNotAllowed, // ---  Thrown if the vaule is invalid for MaxAllowedUids
         CouldNotConvertToBalance, /* ---- Thrown when the dispatch attempts to convert between
                                    * a u64 and T::balance but the call fails. */
-        StakeAlreadyAdded, /* --- Thrown when the caller requests adding stake for a key to the
-                            * total stake which already added */
-        StorageValueOutOfRange, /* --- Thrown when the caller attempts to set a storage value
-                                 * outside of its allowed range. */
-        TempoHasNotSet, // --- Thrown when epoch has not set
-        InvalidTempo,   // --- Thrown when epoch is not valid
+        InvalidTempo, // --- Thrown when epoch is not valid
         SettingWeightsTooFast, /* --- Thrown if the key attempts to set weights twice withing
-                         * net_epoch/2 blocks. */
-        BalanceSetError, // --- Thrown when an error occurs setting a balance
-        MaxAllowedUidsExceeded, /* --- Thrown when number of accounts going to be registered
-                          * exceed MaxAllowedUids for the network. */
-        TooManyUids, /* ---- Thrown when the caller attempts to set weights with more uids than
-                      * are allowed. */
+                       * net_epoch/2 blocks. */
         InvalidMaxAllowedUids, /* --- Thrown when the user tries to set max allowed uids to a
                                 * value less than the current number of registered uids. */
         NetuidDoesNotExist,
         SubnetNameAlreadyExists,
-        MissingSubnetName,
         SubnetNameTooShort,
         SubnetNameTooLong,
         InvalidSubnetName,
@@ -800,7 +762,6 @@ pub mod pallet {
         InvalidShares,
         ProfitSharesNotAdded,
         NotFounder,
-        NameAlreadyRegistered,
         NotEnoughStakeToSetWeights,
         NotEnoughStakeToStartNetwork,
         NotEnoughStakePerWeight,
@@ -830,19 +791,14 @@ pub mod pallet {
         InvalidMaxAllowedSubnets,
         InvalidMaxAllowedModules,
         InvalidMaxRegistrationsPerBlock,
-        InvalidTargetRegistrationsInterval,
-        InvalidVoteThreshold,
-        InvalidUnitEmission,
         InvalidMinBurn,
         InvalidMaxBurn,
-        InvalidTargetRegistrationsPerInterval,
 
         // Faucet
         FaucetDisabled, // --- Thrown when the faucet is disabled.
         InvalidDifficulty,
         InvalidWorkBlock,
         InvalidSeal,
-        InvalidBalance,
 
         // Modules
         /// The module name is too long.
@@ -854,20 +810,16 @@ pub mod pallet {
         ModuleAddressTooLong,
         /// The module address is invalid.
         InvalidModuleAddress,
-        /// The module name does not exist in the subnet.
-        ModuleNameDoesNotExist,
         /// A module with this name already exists in the subnet.
         ModuleNameAlreadyExists,
-        /// A module with this name already exists in the subnet.
+
         // VOTING
         ProposalNotFound,
         InvalidProposalStatus,
-        InvalidProposalData,
         AlreadyVoted,
         InvalidVoteMode,
         InvalidFounderShare,
         InvalidIncentiveRatio,
-
         InvalidProposalCost,
         InvalidGeneralSubnetApplicationCost,
         InvalidProposalExpiration,
@@ -877,6 +829,7 @@ pub mod pallet {
         InvalidProposalCustomData,
         ProposalCustomDataTooSmall,
         ProposalCustomDataTooLarge,
+
         // DAO / Governance
         ApplicationTooSmall,
         ApplicationTooLarge,
@@ -884,11 +837,10 @@ pub mod pallet {
         InvalidApplication,
         NotEnoughBalanceToPropose,
         NotEnoughtBalnceToApply,
+        InvalidRecommendedWeight,
 
         // Other
         InvalidMaxWeightAge,
-        InvalidRecommendedWeight,
-
         MaximumSetWeightsPerEpochReached,
         InsufficientDaoTreasuryFunds,
     }
@@ -1264,157 +1216,6 @@ pub mod pallet {
         }
 
         // ---------------------------------
-        // Adding proposals
-        // ---------------------------------
-
-        #[pallet::call_index(15)]
-        #[pallet::weight((T::WeightInfo::add_global_proposal(), DispatchClass::Normal, Pays::No))]
-        pub fn add_global_proposal(
-            origin: OriginFor<T>,
-            max_name_length: u16,             // max length of a network name
-            min_name_length: u16,             // min length of a network name
-            max_allowed_subnets: u16,         // max number of subnets allowed
-            max_allowed_modules: u16,         // max number of modules allowed per subnet
-            max_registrations_per_block: u16, // max number of registrations per block
-            max_allowed_weights: u16,         // max number of weights per module
-            max_burn: u64,                    // max burn allowed to register
-            min_burn: u64,                    // min burn required to register
-            floor_delegation_fee: Percent,    // min delegation fee
-            floor_founder_share: u8,          // min founder share
-            min_weight_stake: u64,            // min weight stake required
-            curator: T::AccountId,            // subnet 0 dao multisig
-            subnet_stake_threshold: Percent,  // stake needed to start subnet emission
-            proposal_cost: u64,               /*amount of $COMAI to create a proposal
-                                               * returned if proposal gets accepted */
-            proposal_expiration: u32, // the block number, proposal expires at
-            proposal_participation_threshold: Percent, /*  minimum stake of the overall network
-                                       * stake,
-                                       *  in order for proposal to get executed */
-            general_subnet_application_cost: u64,
-        ) -> DispatchResult {
-            let mut params = Self::global_params();
-            params.max_name_length = max_name_length;
-            params.min_name_length = min_name_length;
-            params.max_allowed_subnets = max_allowed_subnets;
-            params.max_allowed_modules = max_allowed_modules;
-            params.max_registrations_per_block = max_registrations_per_block;
-            params.max_allowed_weights = max_allowed_weights;
-            params.floor_delegation_fee = floor_delegation_fee;
-            params.floor_founder_share = floor_founder_share;
-            params.min_weight_stake = min_weight_stake;
-            params.curator = curator;
-            params.subnet_stake_threshold = subnet_stake_threshold;
-            params.proposal_cost = proposal_cost;
-            params.proposal_expiration = proposal_expiration;
-            params.proposal_participation_threshold = proposal_participation_threshold;
-            params.general_subnet_application_cost = general_subnet_application_cost;
-
-            params.burn_config.min_burn = min_burn;
-            params.burn_config.max_burn = max_burn;
-
-            Self::do_add_global_proposal(origin, params)
-        }
-
-        #[pallet::call_index(16)]
-        #[pallet::weight((T::WeightInfo::add_subnet_proposal(), DispatchClass::Normal, Pays::No))]
-        pub fn add_subnet_proposal(
-            origin: OriginFor<T>,
-            netuid: u16,
-            founder: T::AccountId,
-            name: BoundedVec<u8, ConstU32<256>>,
-            founder_share: u16, // out of 100
-            immunity_period: u16,
-            incentive_ratio: u16, // out of 100
-            max_allowed_uids: u16, /* max number of weights allowed to be
-                                   * registered in this
-                                   * subnet */
-            max_allowed_weights: u16, /* max number of weights allowed to be registered in this
-                                       * subnet */
-            min_allowed_weights: u16, /* min number of weights allowed to be registered in this
-                                       * subnet */
-            min_stake: u64,
-            max_weight_age: u64,
-            tempo: u16, // how many blocks to wait before rewarding models
-            trust_ratio: u16,
-            maximum_set_weight_calls_per_epoch: u16,
-            vote_mode: VoteMode,
-            bonds_ma: u64,
-            target_registrations_interval: u16,
-            target_registrations_per_interval: u16,
-            max_registrations_per_interval: u16,
-            adjustment_alpha: u64,
-        ) -> DispatchResult {
-            let mut params = Self::subnet_params(netuid);
-            params.founder = founder;
-            params.name = name;
-            params.founder_share = founder_share;
-            params.immunity_period = immunity_period;
-            params.incentive_ratio = incentive_ratio;
-            params.max_allowed_uids = max_allowed_uids;
-            params.max_allowed_weights = max_allowed_weights;
-            params.min_allowed_weights = min_allowed_weights;
-            params.min_stake = min_stake;
-            params.max_weight_age = max_weight_age;
-            params.tempo = tempo;
-            params.trust_ratio = trust_ratio;
-            params.maximum_set_weight_calls_per_epoch = maximum_set_weight_calls_per_epoch;
-            params.vote_mode = vote_mode;
-            params.bonds_ma = bonds_ma;
-            params.target_registrations_interval = target_registrations_interval;
-            params.target_registrations_per_interval = target_registrations_per_interval;
-            params.max_registrations_per_interval = max_registrations_per_interval;
-            params.adjustment_alpha = adjustment_alpha;
-            Self::do_add_subnet_proposal(origin, netuid, params)
-        }
-
-        #[pallet::call_index(17)]
-        #[pallet::weight((T::WeightInfo::add_custom_proposal(), DispatchClass::Normal, Pays::No))]
-        pub fn add_custom_proposal(origin: OriginFor<T>, data: Vec<u8>) -> DispatchResult {
-            Self::do_add_custom_proposal(origin, data)
-        }
-
-        #[pallet::call_index(18)]
-        #[pallet::weight((T::WeightInfo::add_custom_subnet_proposal(), DispatchClass::Normal, Pays::No))]
-        pub fn add_custom_subnet_proposal(
-            origin: OriginFor<T>,
-            netuid: u16,
-            data: Vec<u8>,
-        ) -> DispatchResult {
-            Self::do_add_custom_subnet_proposal(origin, netuid, data)
-        }
-
-        #[pallet::call_index(19)]
-        #[pallet::weight((T::WeightInfo::add_transfer_dao_treasury_proposal(), DispatchClass::Normal, Pays::No))]
-        pub fn add_transfer_dao_treasury_proposal(
-            origin: OriginFor<T>,
-            data: Vec<u8>,
-            value: u64,
-            dest: T::AccountId,
-        ) -> DispatchResult {
-            Self::do_add_transfer_dao_treasury_proposal(origin, data, value, dest)
-        }
-
-        // ---------------------------------
-        // Voting / Unvoting proposals
-        // ---------------------------------
-
-        #[pallet::call_index(20)]
-        #[pallet::weight((T::WeightInfo::vote_proposal(), DispatchClass::Normal, Pays::No))]
-        pub fn vote_proposal(
-            origin: OriginFor<T>,
-            proposal_id: u64,
-            agree: bool,
-        ) -> DispatchResult {
-            Self::do_vote_proposal(origin, proposal_id, agree)
-        }
-
-        #[pallet::call_index(21)]
-        #[pallet::weight((T::WeightInfo::unvote_proposal(), DispatchClass::Normal, Pays::No))]
-        pub fn unvote_proposal(origin: OriginFor<T>, proposal_id: u64) -> DispatchResult {
-            Self::do_unregister_vote(origin, proposal_id)
-        }
-
-        // ---------------------------------
         // Profit sharing
         // ---------------------------------
 
@@ -1484,7 +1285,7 @@ pub enum CallType {
     AddDelegate,
     Register,
     AddNetwork,
-    Serve,
+    Update,
     #[default]
     Other,
 }
@@ -1600,7 +1401,7 @@ where
             Some(Call::transfer_multiple { .. }) => Ok((CallType::TransferMultiple, 0, who)),
             Some(Call::set_weights { .. }) => Ok((CallType::SetWeights, 0, who)),
             Some(Call::register { .. }) => Ok((CallType::Register, 0, who)),
-            Some(Call::update_module { .. }) => Ok((CallType::Serve, 0, who)),
+            Some(Call::update_module { .. }) => Ok((CallType::Update, 0, who)),
             _ => Ok((CallType::Other, 0, who)),
         }
     }
