@@ -34,6 +34,15 @@ impl<T: Config> Pallet<T> {
 
         ensure!(voter_stake > 0, Error::<T>::InsufficientStake);
 
+        let has_stake_from = || {
+            pallet_subspace::StakeFrom::<T>::iter()
+                .any(|(_, k, stakes)| k == key && !stakes.is_empty())
+        };
+
+        if DelegatingVotingPower::<T>::get().contains(&key) && !has_stake_from() {
+            return Err(Error::<T>::VoterIsDelegatingVotingPower.into());
+        }
+
         if agree {
             votes_for
                 .try_insert(key.clone())
