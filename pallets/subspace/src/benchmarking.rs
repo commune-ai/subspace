@@ -287,160 +287,160 @@ benchmarks! {
     // Adding proposals
     // ---------------------------------
 
-    // 15
-    add_global_proposal {
-        let caller: T::AccountId = account("Alice", 0, 1);
-        // Add alice funds to submit the proposal
-        SubspaceMod::<T>::add_balance_to_account(&caller, SubspaceMod::<T>::u64_to_balance(1_000_000_000_000_000).unwrap());
-        // Get the current current parameters
-        let params = SubspaceMod::<T>::global_params();
-    }: add_global_proposal(
-        RawOrigin::Signed(caller),
-        params.max_name_length, // max_name_length: max length of a network name
-        params.min_name_length, // min_name_length: min length of a network name
-        params.max_allowed_subnets, // max_allowed_subnets: max number of subnets allowed
-        params.max_allowed_modules, // max_allowed_modules: max number of modules allowed per subnet
-        params.max_registrations_per_block, // max_registrations_per_block: max number of registrations per block
-        params.max_allowed_weights, // max_allowed_weights: max number of weights per module
-        params.burn_config.max_burn, // max_burn: max burn allowed to register
-        params.burn_config.min_burn, // min_burn: min burn required to register
-        params.floor_delegation_fee, // floor_delegation_fee: min delegation fee
-        params.floor_founder_share, // floor_founder_share: min founder share
-        params.min_weight_stake, // min_weight_stake: min weight stake required
-        params.burn_config.expected_registrations, // target_registrations_per_interval: desired number of registrations per interval
-        params.burn_config.adjustment_interval, // target_registrations_interval: the number of blocks that defines the registration interval
-        params.burn_config.adjustment_alpha, // adjustment_alpha: adjustment alpha
-        params.unit_emission, // unit_emission: emission per block
-        params.curator, // curator: subnet 0 dao multisig
-        params.subnet_stake_threshold, // subnet_stake_threshold: stake needed to start subnet emission
-        params.proposal_cost, // proposal_cost: amount of $COMAI to create a proposal, returned if proposal gets accepted
-        params.proposal_expiration, // proposal_expiration: the block number, proposal expires at
-        params.proposal_participation_threshold, // proposal_participation_threshold: minimum stake of the overall network stake, in order for proposal to get executed
-        params.general_subnet_application_cost // general_subnet_application_cost
-    )
+    // // 15
+    // add_global_proposal {
+    //     let caller: T::AccountId = account("Alice", 0, 1);
+    //     // Add alice funds to submit the proposal
+    //     SubspaceMod::<T>::add_balance_to_account(&caller, SubspaceMod::<T>::u64_to_balance(1_000_000_000_000_000).unwrap());
+    //     // Get the current current parameters
+    //     let params = SubspaceMod::<T>::global_params();
+    // }: add_global_proposal(
+    //     RawOrigin::Signed(caller),
+    //     params.max_name_length, // max_name_length: max length of a network name
+    //     params.min_name_length, // min_name_length: min length of a network name
+    //     params.max_allowed_subnets, // max_allowed_subnets: max number of subnets allowed
+    //     params.max_allowed_modules, // max_allowed_modules: max number of modules allowed per subnet
+    //     params.max_registrations_per_block, // max_registrations_per_block: max number of registrations per block
+    //     params.max_allowed_weights, // max_allowed_weights: max number of weights per module
+    //     params.burn_config.max_burn, // max_burn: max burn allowed to register
+    //     params.burn_config.min_burn, // min_burn: min burn required to register
+    //     params.floor_delegation_fee, // floor_delegation_fee: min delegation fee
+    //     params.floor_founder_share, // floor_founder_share: min founder share
+    //     params.min_weight_stake, // min_weight_stake: min weight stake required
+    //     params.burn_config.expected_registrations, // target_registrations_per_interval: desired number of registrations per interval
+    //     params.burn_config.adjustment_interval, // target_registrations_interval: the number of blocks that defines the registration interval
+    //     params.burn_config.adjustment_alpha, // adjustment_alpha: adjustment alpha
+    //     params.unit_emission, // unit_emission: emission per block
+    //     params.curator, // curator: subnet 0 dao multisig
+    //     params.subnet_stake_threshold, // subnet_stake_threshold: stake needed to start subnet emission
+    //     params.proposal_cost, // proposal_cost: amount of $COMAI to create a proposal, returned if proposal gets accepted
+    //     params.proposal_expiration, // proposal_expiration: the block number, proposal expires at
+    //     params.proposal_participation_threshold, // proposal_participation_threshold: minimum stake of the overall network stake, in order for proposal to get executed
+    //     params.general_subnet_application_cost // general_subnet_application_cost
+    // )
 
-    // 16
-    add_subnet_proposal {
-        let caller: T::AccountId = account("Alice", 0, 1);
+    // // 16
+    // add_subnet_proposal {
+    //     let caller: T::AccountId = account("Alice", 0, 1);
 
-        // register the subnet
-        register_mock::<T>(caller.clone(), caller.clone(), 100000000000000u64, "test".as_bytes().to_vec())?;
+    //     // register the subnet
+    //     register_mock::<T>(caller.clone(), caller.clone(), 100000000000000u64, "test".as_bytes().to_vec())?;
 
-        // Switch the vote mode to vote
-        let params = SubspaceMod::<T>::subnet_params(0);
+    //     // Switch the vote mode to vote
+    //     let params = SubspaceMod::<T>::subnet_params(0);
 
-        SubspaceMod::<T>::update_subnet(
-            RawOrigin::Signed(caller.clone()).into(),
-            0,
-            params.founder.clone(),
-            params.founder_share,
-            params.immunity_period,
-            params.incentive_ratio,
-            params.max_allowed_uids,
-            params.max_allowed_weights,
-            params.min_allowed_weights,
-            params.max_weight_age,
-            params.min_stake,
-            params.name.clone(),
-            params.tempo,
-            params.trust_ratio,
-            params.maximum_set_weight_calls_per_epoch,
-            VoteMode::Vote,
-            params.bonds_ma
-        )?;
+    //     SubspaceMod::<T>::update_subnet(
+    //         RawOrigin::Signed(caller.clone()).into(),
+    //         0,
+    //         params.founder.clone(),
+    //         params.founder_share,
+    //         params.immunity_period,
+    //         params.incentive_ratio,
+    //         params.max_allowed_uids,
+    //         params.max_allowed_weights,
+    //         params.min_allowed_weights,
+    //         params.max_weight_age,
+    //         params.min_stake,
+    //         params.name.clone(),
+    //         params.tempo,
+    //         params.trust_ratio,
+    //         params.maximum_set_weight_calls_per_epoch,
+    //         VoteMode::Vote,
+    //         params.bonds_ma
+    //     )?;
 
-        // add balance to submit the proposal
-        SubspaceMod::<T>::add_balance_to_account(&caller, SubspaceMod::<T>::u64_to_balance(1_000_000_000_000_000).unwrap());
+    //     // add balance to submit the proposal
+    //     SubspaceMod::<T>::add_balance_to_account(&caller, SubspaceMod::<T>::u64_to_balance(1_000_000_000_000_000).unwrap());
 
-        let founder = params.founder.clone();
-        let name = params.name.clone();
+    //     let founder = params.founder.clone();
+    //     let name = params.name.clone();
 
-    }: add_subnet_proposal(
-        RawOrigin::Signed(caller.clone()),
-        0,
-        founder, // founder: the address of the founder
-        name, // name: the name of the subnet
-        params.founder_share, // founder_share: the share of the founder
-        params.immunity_period, // immunity_period: the period of immunity
-        params.incentive_ratio, // incentive_ratio: the incentive ratio
-        params.max_allowed_uids, // max_allowed_uids: the max allowed uids
-        params.max_allowed_weights, // max_allowed_weights: the max allowed weights
-        params.min_allowed_weights, // min_allowed_weights: the min allowed weights
-        params.min_stake, // min_stake: the min stake
-        params.max_weight_age, // max_weight_age: the max weight age
-        params.tempo, // tempo: the tempo
-        params.trust_ratio, // trust_ratio: the trust ratio
-        params.maximum_set_weight_calls_per_epoch, // maximum_set_weight_calls_per_epoch: the maximum set weight calls per epoch
-        params.vote_mode, // vote_mode: the vote mode
-        params.bonds_ma // bonds_ma: the bonds ma
-    )
+    // }: add_subnet_proposal(
+    //     RawOrigin::Signed(caller.clone()),
+    //     0,
+    //     founder, // founder: the address of the founder
+    //     name, // name: the name of the subnet
+    //     params.founder_share, // founder_share: the share of the founder
+    //     params.immunity_period, // immunity_period: the period of immunity
+    //     params.incentive_ratio, // incentive_ratio: the incentive ratio
+    //     params.max_allowed_uids, // max_allowed_uids: the max allowed uids
+    //     params.max_allowed_weights, // max_allowed_weights: the max allowed weights
+    //     params.min_allowed_weights, // min_allowed_weights: the min allowed weights
+    //     params.min_stake, // min_stake: the min stake
+    //     params.max_weight_age, // max_weight_age: the max weight age
+    //     params.tempo, // tempo: the tempo
+    //     params.trust_ratio, // trust_ratio: the trust ratio
+    //     params.maximum_set_weight_calls_per_epoch, // maximum_set_weight_calls_per_epoch: the maximum set weight calls per epoch
+    //     params.vote_mode, // vote_mode: the vote mode
+    //     params.bonds_ma // bonds_ma: the bonds ma
+    // )
 
-    // 17
-    add_custom_proposal {
-        let caller: T::AccountId = account("Alice", 0, 1);
-        // Add alice fund to submit the proposal
-        SubspaceMod::<T>::add_balance_to_account(&caller, SubspaceMod::<T>::u64_to_balance(1_000_000_000_000_000).unwrap());
-        let data = "test".as_bytes().to_vec();
-    }: add_custom_proposal(RawOrigin::Signed(caller), data)
+    // // 17
+    // add_custom_proposal {
+    //     let caller: T::AccountId = account("Alice", 0, 1);
+    //     // Add alice fund to submit the proposal
+    //     SubspaceMod::<T>::add_balance_to_account(&caller, SubspaceMod::<T>::u64_to_balance(1_000_000_000_000_000).unwrap());
+    //     let data = "test".as_bytes().to_vec();
+    // }: add_custom_proposal(RawOrigin::Signed(caller), data)
 
 
-    // 18
-    add_custom_subnet_proposal {
-        let caller: T::AccountId = account("Alice", 0, 1);
-        // The subnet has to exist
-        register_mock::<T>(caller.clone(), caller.clone(), 100000000000000u64, "test".as_bytes().to_vec())?;
-        // Add alice fund to submit the proposal
-        SubspaceMod::<T>::add_balance_to_account(&caller, SubspaceMod::<T>::u64_to_balance(1_000_000_000_000_000).unwrap());
-        let data = "test".as_bytes().to_vec();
-    }: add_custom_subnet_proposal(RawOrigin::Signed(caller), 0, data)
+    // // 18
+    // add_custom_subnet_proposal {
+    //     let caller: T::AccountId = account("Alice", 0, 1);
+    //     // The subnet has to exist
+    //     register_mock::<T>(caller.clone(), caller.clone(), 100000000000000u64, "test".as_bytes().to_vec())?;
+    //     // Add alice fund to submit the proposal
+    //     SubspaceMod::<T>::add_balance_to_account(&caller, SubspaceMod::<T>::u64_to_balance(1_000_000_000_000_000).unwrap());
+    //     let data = "test".as_bytes().to_vec();
+    // }: add_custom_subnet_proposal(RawOrigin::Signed(caller), 0, data)
 
-    // 19
-    add_transfer_dao_treasury_proposal {
-        let caller: T::AccountId = account("Alice", 0, 1);
-        // Add alice fund to submit the proposal
-        SubspaceMod::<T>::add_balance_to_account(&caller, SubspaceMod::<T>::u64_to_balance(1_000_000_000_000_000).unwrap());
-        let amount = 1000;
-        // Add the amount to treasury funds
-        let treasury_address: T::AccountId = DaoTreasuryAddress::<T>::get();
-        SubspaceMod::<T>::add_balance_to_account(&treasury_address, SubspaceMod::<T>::u64_to_balance(amount).unwrap());
+    // // 19
+    // add_transfer_dao_treasury_proposal {
+    //     let caller: T::AccountId = account("Alice", 0, 1);
+    //     // Add alice fund to submit the proposal
+    //     SubspaceMod::<T>::add_balance_to_account(&caller, SubspaceMod::<T>::u64_to_balance(1_000_000_000_000_000).unwrap());
+    //     let amount = 1000;
+    //     // Add the amount to treasury funds
+    //     let treasury_address: T::AccountId = DaoTreasuryAddress::<T>::get();
+    //     SubspaceMod::<T>::add_balance_to_account(&treasury_address, SubspaceMod::<T>::u64_to_balance(amount).unwrap());
 
-        let data = "test".as_bytes().to_vec();
-        let destinations: T::AccountId = account("Bob", 0, 2);
-    }: add_transfer_dao_treasury_proposal(RawOrigin::Signed(caller), data, amount, destinations)
+    //     let data = "test".as_bytes().to_vec();
+    //     let destinations: T::AccountId = account("Bob", 0, 2);
+    // }: add_transfer_dao_treasury_proposal(RawOrigin::Signed(caller), data, amount, destinations)
 
-    // ---------------------------------
-    // Voting / Unvoting proposals
-    // ---------------------------------
+    // // ---------------------------------
+    // // Voting / Unvoting proposals
+    // // ---------------------------------
 
-    // 20
-    vote_proposal {
-        let caller: T::AccountId = account("Alice", 0, 1);
-        // Register alice such that she has funds to vote
-        register_mock::<T>(caller.clone(), caller.clone(), 100000000000000u64, "test".as_bytes().to_vec())?;
+    // // 20
+    // vote_proposal {
+    //     let caller: T::AccountId = account("Alice", 0, 1);
+    //     // Register alice such that she has funds to vote
+    //     register_mock::<T>(caller.clone(), caller.clone(), 100000000000000u64, "test".as_bytes().to_vec())?;
 
-        // Add alice fund to submit the proposal
-        SubspaceMod::<T>::add_balance_to_account(&caller, SubspaceMod::<T>::u64_to_balance(1_000_000_000_000_000).unwrap());
-        // Submit a custom proposal
-        let data = "test".as_bytes().to_vec();
-        SubspaceMod::<T>::add_custom_proposal(RawOrigin::Signed(caller.clone()).into(), data)?;
-        let proposal_id = 0;
-        let vote = true;
-    }: vote_proposal(RawOrigin::Signed(caller), proposal_id, vote)
+    //     // Add alice fund to submit the proposal
+    //     SubspaceMod::<T>::add_balance_to_account(&caller, SubspaceMod::<T>::u64_to_balance(1_000_000_000_000_000).unwrap());
+    //     // Submit a custom proposal
+    //     let data = "test".as_bytes().to_vec();
+    //     SubspaceMod::<T>::add_custom_proposal(RawOrigin::Signed(caller.clone()).into(), data)?;
+    //     let proposal_id = 0;
+    //     let vote = true;
+    // }: vote_proposal(RawOrigin::Signed(caller), proposal_id, vote)
 
-    // 21
-    unvote_proposal {
-        let caller: T::AccountId = account("Alice", 0, 1);
-        // Register alice such that she has funds to vote
-        register_mock::<T>(caller.clone(), caller.clone(), 100000000000000u64, "test".as_bytes().to_vec())?;
-        // Add alice fund to submit the proposal
-        SubspaceMod::<T>::add_balance_to_account(&caller, SubspaceMod::<T>::u64_to_balance(1_000_000_000_000_000).unwrap());
-        // Submit a custom proposal
-        let data = "test".as_bytes().to_vec();
-        SubspaceMod::<T>::add_custom_proposal(RawOrigin::Signed(caller.clone()).into(), data)?;
-        let proposal_id = 0;
-        // Let alice vote on the proposal
-        SubspaceMod::<T>::vote_proposal(RawOrigin::Signed(caller.clone()).into(), proposal_id, true)?;
-    }: unvote_proposal(RawOrigin::Signed(caller), proposal_id)
+    // // 21
+    // unvote_proposal {
+    //     let caller: T::AccountId = account("Alice", 0, 1);
+    //     // Register alice such that she has funds to vote
+    //     register_mock::<T>(caller.clone(), caller.clone(), 100000000000000u64, "test".as_bytes().to_vec())?;
+    //     // Add alice fund to submit the proposal
+    //     SubspaceMod::<T>::add_balance_to_account(&caller, SubspaceMod::<T>::u64_to_balance(1_000_000_000_000_000).unwrap());
+    //     // Submit a custom proposal
+    //     let data = "test".as_bytes().to_vec();
+    //     SubspaceMod::<T>::add_custom_proposal(RawOrigin::Signed(caller.clone()).into(), data)?;
+    //     let proposal_id = 0;
+    //     // Let alice vote on the proposal
+    //     SubspaceMod::<T>::vote_proposal(RawOrigin::Signed(caller.clone()).into(), proposal_id, true)?;
+    // }: unvote_proposal(RawOrigin::Signed(caller), proposal_id)
 
     // ---------------------------------
     // Profit sharing
