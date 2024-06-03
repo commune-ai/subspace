@@ -80,7 +80,8 @@ pub mod pallet {
     }
 
     #[pallet::storage]
-    pub type GovernanceConfig<T: Config> = StorageValue<_, GovernanceConfiguration<T>, ValueQuery>;
+    pub type GlobalGovernanceConfig<T: Config> =
+        StorageValue<_, GovernanceConfiguration<T>, ValueQuery>;
 
     #[pallet::storage]
     pub type SubnetGovernanceConfig<T: Config> =
@@ -274,7 +275,7 @@ pub mod pallet {
         /// Negative proposal cost when setting global or subnet governance configuration.
         InvalidProposalCost,
         /// Negative expiration when setting global or subnet governance configuration.
-        InvalidExpiration,
+        InvalidProposalExpiration,
         /// Key doesn't have enough tokens to create a proposal.
         NotEnoughBalanceToPropose,
         /// Proposal data is empty.
@@ -315,7 +316,7 @@ pub mod pallet {
 #[scale_info(skip_type_params(T))]
 pub struct GovernanceConfiguration<T: Config> {
     pub proposal_cost: Nanos,
-    pub expiration: u32,
+    pub proposal_expiration: u32,
     pub vote_mode: VoteMode,
     pub proposal_reward_treasury_allocation: I92F36,
     pub max_proposal_reward_treasury_allocation: u64,
@@ -327,7 +328,7 @@ impl<T: Config> Default for GovernanceConfiguration<T> {
     fn default() -> Self {
         Self {
             proposal_cost: 10_000_000_000_000,
-            expiration: 130_000,
+            proposal_expiration: 130_000,
             vote_mode: VoteMode::Vote,
             proposal_reward_treasury_allocation: I92F36::from_num(10),
             max_proposal_reward_treasury_allocation: 10_000,
@@ -340,9 +341,12 @@ impl<T: Config> Default for GovernanceConfiguration<T> {
 impl<T: Config> GovernanceConfiguration<T> {
     pub fn apply_global(self) -> Result<(), DispatchError> {
         ensure!(self.proposal_cost > 0, Error::<T>::InvalidProposalCost);
-        ensure!(self.expiration > 0, Error::<T>::InvalidProposalCost);
+        ensure!(
+            self.proposal_expiration > 0,
+            Error::<T>::InvalidProposalExpiration
+        );
 
-        GovernanceConfig::<T>::set(self);
+        GlobalGovernanceConfig::<T>::set(self);
         Ok(())
     }
 

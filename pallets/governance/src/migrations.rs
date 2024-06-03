@@ -28,7 +28,7 @@ impl<T: Config + pallet_subspace::Config> OnRuntimeUpgrade for InitialMigration<
 
         let governance_configuration = GovernanceConfiguration::<T> {
             proposal_cost: old_proposal_cost,
-            expiration: old_expiration,
+            proposal_expiration: old_expiration,
             ..Default::default()
         };
 
