@@ -1219,7 +1219,7 @@ pub mod pallet {
         // Profit sharing
         // ---------------------------------
 
-        #[pallet::call_index(22)]
+        #[pallet::call_index(15)]
         #[pallet::weight((T::WeightInfo::add_profit_shares(), DispatchClass::Normal, Pays::No))]
         pub fn add_profit_shares(
             origin: OriginFor<T>,
@@ -1233,7 +1233,7 @@ pub mod pallet {
         // Testnet
         // ---------------------------------
 
-        #[pallet::call_index(23)]
+        #[pallet::call_index(16)]
         #[pallet::weight((Weight::from_parts(85_000_000, 0)
         .saturating_add(T::DbWeight::get().reads(16))
         .saturating_add(T::DbWeight::get().writes(28)), DispatchClass::Operational, Pays::No))]
