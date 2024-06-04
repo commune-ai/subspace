@@ -3,11 +3,12 @@ mod mock;
 use frame_support::assert_ok;
 use log::info;
 use mock::*;
+use pallet_governance_api::GovernanceApi;
 use pallet_subspace::{
-    global::BurnConfiguration, AdjustmentAlpha, Burn, BurnConfig, DaoTreasuryAddress,
-    DaoTreasuryDistribution, Dividends, Emission, FounderShare, Incentive, MaxAllowedModules,
-    MaxAllowedWeights, MaxRegistrationsPerBlock, MinAllowedWeights, Stake, SubnetStakeThreshold,
-    TargetRegistrationsInterval, TargetRegistrationsPerInterval, Tempo, Trust, N,
+    global::BurnConfiguration, AdjustmentAlpha, Burn, BurnConfig, Dividends, Emission,
+    FounderShare, Incentive, MaxAllowedModules, MaxAllowedWeights, MaxRegistrationsPerBlock,
+    MinAllowedWeights, Stake, SubnetStakeThreshold, TargetRegistrationsInterval,
+    TargetRegistrationsPerInterval, Tempo, Trust, N,
 };
 use sp_core::U256;
 use sp_runtime::Percent;
@@ -673,7 +674,7 @@ fn test_founder_share() {
             founder_total_stake - (founder_total_stake % 1000)
         );
         assert_eq!(
-            SubspaceModule::get_balance(&DaoTreasuryAddress::<Test>::get()),
+            SubspaceModule::get_balance(&Test::get_dao_treasury_address()),
             expected_founder_share - 1 /* Account for rounding errors */
         );
 
@@ -782,7 +783,6 @@ fn test_dao_treasury_distribution_for_subnet_owners() {
         update_params!(yuma_1.0 => { tempo: 200 });
         update_params!(yuma_2.0 => { tempo: 200 });
         SubnetStakeThreshold::<Test>::set(Percent::from_percent(15));
-        DaoTreasuryDistribution::<Test>::set(Percent::from_percent(50));
         let founder_ratio = 2;
         let treasury_distribution = 2;
 
@@ -796,7 +796,7 @@ fn test_dao_treasury_distribution_for_subnet_owners() {
             (expected_founder_share / treasury_distribution) as f64;
 
         assert_eq!(
-            SubspaceModule::get_balance(&DaoTreasuryAddress::<Test>::get()),
+            SubspaceModule::get_balance(&Test::get_dao_treasury_address()),
             expected_treasury as u64
         );
         let total_yuma_stake = (yuma_1.2 + yuma_2.2) as f64;

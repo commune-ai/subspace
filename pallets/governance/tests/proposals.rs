@@ -1,5 +1,5 @@
 use mock::*;
-use pallet_subspace::{subnet::SubnetChangeset, DaoTreasuryAddress, GlobalParams, SubnetParams};
+use pallet_subspace::{subnet::SubnetChangeset, GlobalParams, SubnetParams};
 
 mod mock;
 
@@ -150,14 +150,12 @@ fn global_custom_proposal_is_accepted_correctly() {
         register(FOR, 0, 0, to_nano(10));
         register(AGAINST, 0, 1, to_nano(5));
 
-        config(1, 300);
+        config(1, 100);
 
         assert_ok!(Governance::do_add_global_custom_proposal(
             origin,
             vec![b'0'; 64]
         ));
-
-        step_block(100);
 
         vote(FOR, 0, true);
         vote(AGAINST, 0, false);
@@ -167,7 +165,7 @@ fn global_custom_proposal_is_accepted_correctly() {
         assert_eq!(
             Proposals::<Test>::get(0).unwrap().status,
             ProposalStatus::Accepted {
-                block: 200,
+                block: 100,
                 stake_for: 10_000_000_000,
                 stake_against: 5_000_000_000,
             }
@@ -188,15 +186,13 @@ fn subnet_custom_proposal_is_accepted_correctly() {
         register(AGAINST, 0, 1, to_nano(5));
         register(AGAINST, 1, 0, to_nano(10));
 
-        config(1, 300);
+        config(1, 100);
 
         assert_ok!(Governance::do_add_subnet_custom_proposal(
             origin,
             0,
             vec![b'0'; 64]
         ));
-
-        step_block(100);
 
         vote(FOR, 0, true);
         vote(AGAINST, 0, false);
@@ -206,7 +202,7 @@ fn subnet_custom_proposal_is_accepted_correctly() {
         assert_eq!(
             Proposals::<Test>::get(0).unwrap().status,
             ProposalStatus::Accepted {
-                block: 200,
+                block: 100,
                 stake_for: 10_000_000_000,
                 stake_against: 5_000_000_000,
             }
@@ -226,14 +222,12 @@ fn global_proposal_is_refused_correctly() {
         register(FOR, 0, 0, to_nano(5));
         register(AGAINST, 0, 1, to_nano(10));
 
-        config(1, 300);
+        config(1, 100);
 
         assert_ok!(Governance::do_add_global_custom_proposal(
             origin,
             vec![b'0'; 64]
         ));
-
-        step_block(100);
 
         vote(FOR, 0, true);
         vote(AGAINST, 0, false);
@@ -243,7 +237,7 @@ fn global_proposal_is_refused_correctly() {
         assert_eq!(
             Proposals::<Test>::get(0).unwrap().status,
             ProposalStatus::Refused {
-                block: 200,
+                block: 100,
                 stake_for: 5_000_000_000,
                 stake_against: 10_000_000_000,
             }
@@ -258,7 +252,7 @@ fn global_params_proposal_accepted() {
         zero_min_burn();
 
         register(KEY, 0, 0, to_nano(10));
-        config(1, 200);
+        config(1, 100);
 
         let GlobalParams {
             max_name_length,
@@ -315,7 +309,7 @@ fn subnet_params_proposal_accepted() {
         zero_min_burn();
 
         register(KEY, 0, 0, to_nano(10));
-        config(1, 200);
+        config(1, 100);
 
         SubnetChangeset::update(
             0,
@@ -408,14 +402,12 @@ fn global_proposals_counts_delegated_stake() {
         stake(AGAINST_DELEGATED, 0, 1, to_nano(3));
         delegate(AGAINST_DELEGATED);
 
-        config(1, 300);
+        config(1, 100);
 
         assert_ok!(Governance::do_add_global_custom_proposal(
             origin,
             vec![b'0'; 64]
         ));
-
-        step_block(100);
 
         vote(FOR, 0, true);
         vote(AGAINST, 0, false);
@@ -425,7 +417,7 @@ fn global_proposals_counts_delegated_stake() {
         assert_eq!(
             Proposals::<Test>::get(0).unwrap().status,
             ProposalStatus::Accepted {
-                block: 200,
+                block: 100,
                 stake_for: 15_000_000_000,
                 stake_against: 13_000_000_000,
             }
@@ -461,15 +453,13 @@ fn subnet_proposals_counts_delegated_stake() {
         stake(AGAINST_DELEGATED_WRONG, 1, 1, to_nano(3));
         delegate(AGAINST_DELEGATED_WRONG);
 
-        config(1, 300);
+        config(1, 100);
 
         assert_ok!(Governance::do_add_subnet_custom_proposal(
             origin,
             0,
             vec![b'0'; 64]
         ));
-
-        step_block(100);
 
         vote(FOR, 0, true);
         vote(AGAINST, 0, false);
@@ -479,7 +469,7 @@ fn subnet_proposals_counts_delegated_stake() {
         assert_eq!(
             Proposals::<Test>::get(0).unwrap().status,
             ProposalStatus::Accepted {
-                block: 200,
+                block: 100,
                 stake_for: 15_000_000_000,
                 stake_against: 13_000_000_000,
             }
@@ -894,7 +884,7 @@ fn creates_treasury_transfer_proposal_and_transfers() {
         add_balance(DaoTreasuryAddress::<Test>::get(), to_nano(10));
         add_balance(0, to_nano(3));
         register(0, 0, 0, to_nano(1));
-        config(to_nano(1), 200);
+        config(to_nano(1), 100);
 
         Governance::add_transfer_dao_treasury_proposal(origin, vec![b'0'; 64], to_nano(5), 0)
             .expect("proposal should be created");

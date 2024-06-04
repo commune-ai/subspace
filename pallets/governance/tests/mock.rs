@@ -11,7 +11,7 @@ use frame_support::{
     PalletId,
 };
 use pallet_subspace::BurnConfig;
-use sp_runtime::BuildStorage;
+use sp_runtime::{BuildStorage, Percent};
 
 pub use frame_support::{assert_err, assert_ok};
 pub use pallet_governance::*;
@@ -100,12 +100,21 @@ impl pallet_subspace::Config for Test {
 }
 
 impl pallet_governance::Config for Test {
+    type PalletId = SubspacePalletId;
     type RuntimeEvent = RuntimeEvent;
     type Currency = Balances;
     type DefaultProposalCost = DefaultProposalCost;
 }
 
 impl GovernanceApi<<Test as frame_system::Config>::AccountId> for Test {
+    fn get_dao_treasury_address() -> AccountId {
+        pallet_governance::DaoTreasuryAddress::<Test>::get()
+    }
+
+    fn get_dao_treasury_distribution() -> Percent {
+        pallet_governance::DaoTreasuryDistribution::<Test>::get()
+    }
+
     fn is_delegating_voting_power(_delegator: &AccountId) -> bool {
         false
     }

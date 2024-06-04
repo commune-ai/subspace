@@ -3,7 +3,7 @@
 use frame_support::DebugNoBound;
 use parity_scale_codec::{Decode, Encode, MaxEncodedLen};
 use scale_info::TypeInfo;
-use sp_runtime::DispatchResult;
+use sp_runtime::{DispatchResult, Percent};
 use substrate_fixed::types::I92F36;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, TypeInfo, Decode, Encode, MaxEncodedLen)]
@@ -38,18 +38,16 @@ impl Default for GovernanceConfiguration {
 }
 
 pub trait GovernanceApi<AccountId> {
-    /// Returns whether this account is delegating their voting power to the modules it has stakes
-    /// on.
-    fn is_delegating_voting_power(delegator: &AccountId) -> bool;
+    /// Gets the account address for the DAO treasury.
+    fn get_dao_treasury_address() -> AccountId;
 
-    /// Defines whether this account will delegate their voting power or not. This decision is
-    /// global.
-    fn update_delegating_voting_power(delegator: &AccountId, delegating: bool) -> DispatchResult;
+    /// Gets the percentage of the treasury to be distributed in a step.
+    fn get_dao_treasury_distribution() -> Percent;
 
-    /// Get global governance configuration.
+    /// Gets global governance configuration.
     fn get_global_governance_configuration() -> GovernanceConfiguration;
 
-    /// Get the governance configuration for a given subnet.
+    /// Gets the governance configuration for a given subnet.
     fn get_subnet_governance_configuration(subnet_id: u16) -> GovernanceConfiguration;
 
     /// Updates the governance configuration of the global network if in authority mode.
@@ -62,6 +60,14 @@ pub trait GovernanceApi<AccountId> {
         subnet_id: u16,
         governance_config: GovernanceConfiguration,
     ) -> DispatchResult;
+
+    /// Returns whether this account is delegating their voting power to the modules it has stakes
+    /// on.
+    fn is_delegating_voting_power(delegator: &AccountId) -> bool;
+
+    /// Defines whether this account will delegate their voting power or not. This decision is
+    /// global.
+    fn update_delegating_voting_power(delegator: &AccountId, delegating: bool) -> DispatchResult;
 
     /// Handles the deregistration of a subnet.
     fn handle_subnet_removal(subnet_id: u16);

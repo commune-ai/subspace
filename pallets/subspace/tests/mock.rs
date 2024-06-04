@@ -14,7 +14,7 @@ use pallet_subspace::{
 use sp_core::{H256, U256};
 use sp_runtime::{
     traits::{BlakeTwo256, IdentityLookup},
-    BuildStorage, DispatchResult,
+    BuildStorage, DispatchResult, Percent,
 };
 
 use log::info;
@@ -118,6 +118,14 @@ impl pallet_subspace::Config for Test {
 }
 
 impl GovernanceApi<<Test as frame_system::Config>::AccountId> for Test {
+    fn get_dao_treasury_address() -> AccountId {
+        AccountId::default()
+    }
+
+    fn get_dao_treasury_distribution() -> Percent {
+        Percent::from_parts(0)
+    }
+
     fn is_delegating_voting_power(_delegator: &AccountId) -> bool {
         false
     }

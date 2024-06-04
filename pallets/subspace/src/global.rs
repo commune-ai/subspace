@@ -1,6 +1,5 @@
 use super::*;
 use frame_support::pallet_prelude::{DispatchResult, MaxEncodedLen};
-use pallet_governance_api::GovernanceApi;
 use sp_runtime::DispatchError;
 
 // TODO:
@@ -87,10 +86,8 @@ impl<T: Config> Pallet<T> {
         MaxAllowedWeightsGlobal::<T>::put(params.max_allowed_weights);
         MinWeightStake::<T>::put(params.min_weight_stake);
 
-        <T as GovernanceApi<T::AccountId>>::update_global_governance_configuration(
-            params.governance_config,
-        )
-        .expect("invalid governance configuration");
+        T::update_global_governance_configuration(params.governance_config)
+            .expect("invalid governance configuration");
 
         // burn
         params.burn_config.apply().expect("invalid burn configuration");

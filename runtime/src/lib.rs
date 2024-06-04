@@ -27,7 +27,7 @@ use sp_runtime::{
         One, PostDispatchInfoOf, Verify,
     },
     transaction_validity::{TransactionSource, TransactionValidity, TransactionValidityError},
-    ApplyExtrinsicResult, DispatchResult, MultiSignature,
+    ApplyExtrinsicResult, DispatchResult, MultiSignature, Percent,
 };
 use sp_std::prelude::*;
 use sp_version::RuntimeVersion;
@@ -365,6 +365,7 @@ impl pallet_subspace::Config for Runtime {
 }
 
 impl pallet_governance::Config for Runtime {
+    type PalletId = SubspacePalletId;
     type RuntimeEvent = RuntimeEvent;
     type Currency = Balances;
     type DefaultProposalCost = ConstU64<10_000_000_000_000>;
@@ -797,6 +798,14 @@ impl_runtime_apis! {
 impl pallet_governance_api::GovernanceApi<<Runtime as frame_system::Config>::AccountId>
     for Runtime
 {
+    fn get_dao_treasury_address() -> AccountId {
+        pallet_governance::DaoTreasuryAddress::<Runtime>::get()
+    }
+
+    fn get_dao_treasury_distribution() -> Percent {
+        pallet_governance::DaoTreasuryDistribution::<Runtime>::get()
+    }
+
     fn is_delegating_voting_power(delegator: &AccountId) -> bool {
         GovernanceModule::is_delegating_voting_power(delegator)
     }
