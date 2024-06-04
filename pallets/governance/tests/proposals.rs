@@ -1,7 +1,5 @@
 use mock::*;
-use pallet_governance::{proposal::ProposalStatus, GlobalGovernanceConfig, Proposals};
-use pallet_governance_api::GovernanceConfiguration;
-use pallet_subspace::{DaoTreasuryAddress, GlobalParams};
+use pallet_subspace::{subnet::SubnetChangeset, DaoTreasuryAddress, GlobalParams, SubnetParams};
 
 mod mock;
 
@@ -22,15 +20,15 @@ fn vote(account: u32, proposal_id: u64, agree: bool) {
     ));
 }
 
-fn register(account: u32, module: u32, stake: u64) {
+fn register(account: u32, subnet_id: u16, module: u32, stake: u64) {
     if get_balance(account) <= stake {
         add_balance(account, stake + to_nano(1));
     }
 
     assert_ok!(Subspace::do_register(
         get_origin(account),
-        format!("subnet-{account}-{module}").as_bytes().to_vec(),
-        format!("module-{account}-{module}").as_bytes().to_vec(),
+        format!("subnet-{subnet_id}").as_bytes().to_vec(),
+        format!("module-{module}").as_bytes().to_vec(),
         format!("address-{account}-{module}").as_bytes().to_vec(),
         stake,
         module,
@@ -86,7 +84,7 @@ fn global_proposal_validates_parameters() {
                 governance_config,
             } = global_params;
 
-            Governance::add_global_proposal(
+            Governance::add_global_params_proposal(
                 get_origin(KEY),
                 vec![b'0'; 64],
                 max_name_length,
@@ -122,7 +120,7 @@ fn global_proposal_validates_parameters() {
 }
 
 #[test]
-fn proposal_is_accepted_correctly() {
+fn global_custom_proposal_is_accepted_correctly() {
     new_test_ext().execute_with(|| {
         const FOR: u32 = 0;
         const AGAINST: u32 = 1;
@@ -130,13 +128,57 @@ fn proposal_is_accepted_correctly() {
         zero_min_burn();
         let origin = get_origin(0);
 
-        register(FOR, 0, to_nano(10));
-        register(AGAINST, 0, to_nano(5));
+        register(FOR, 0, 0, to_nano(10));
+        register(AGAINST, 0, 1, to_nano(5));
 
         config(1, 300);
 
         assert_ok!(Governance::do_add_global_custom_proposal(
             origin,
+            vec![b'0'; 64]
+        ));
+
+        step_block(100);
+
+        vote(FOR, 0, true);
+        vote(AGAINST, 0, false);
+
+        step_block(100);
+
+        assert!(matches!(
+            Proposals::<Test>::get(0).unwrap().status,
+            ProposalStatus::Accepted {
+                block: 200,
+                stake_for: 10_000_000_000,
+                stake_against: 5_000_000_000,
+            }
+        ));
+    });
+}
+
+#[test]
+fn subnet_custom_proposal_is_accepted_correctly() {
+    new_test_ext().execute_with(|| {
+        const FOR: u32 = 0;
+        const AGAINST: u32 = 1;
+
+        zero_min_burn();
+        let origin = get_origin(0);
+
+        dbg!(Subspace::global_params());
+        dbg!(Subspace::subnet_params(0));
+
+        register(FOR, 0, 0, to_nano(10));
+        dbg!(pallet_subspace::N::<Test>::get(0));
+        register(AGAINST, 0, 1, to_nano(5));
+        dbg!(pallet_subspace::N::<Test>::get(0));
+        register(AGAINST, 1, 0, to_nano(10));
+
+        config(1, 300);
+
+        assert_ok!(Governance::do_add_subnet_custom_proposal(
+            origin,
+            0,
             vec![b'0'; 64]
         ));
 
@@ -167,8 +209,8 @@ fn proposal_is_refused_correctly() {
         zero_min_burn();
         let origin = get_origin(0);
 
-        register(FOR, 0, to_nano(5));
-        register(AGAINST, 0, to_nano(10));
+        register(FOR, 0, 0, to_nano(5));
+        register(AGAINST, 0, 1, to_nano(10));
 
         config(1, 300);
 
@@ -201,7 +243,7 @@ fn global_params_proposal_accepted() {
         const KEY: u32 = 0;
         zero_min_burn();
 
-        register(KEY, 0, to_nano(10));
+        register(KEY, 0, 0, to_nano(10));
         config(1, 200);
 
         let GlobalParams {
@@ -223,7 +265,7 @@ fn global_params_proposal_accepted() {
 
         governance_config.proposal_cost = 69_420;
 
-        Governance::add_global_proposal(
+        Governance::add_global_params_proposal(
             get_origin(KEY),
             vec![b'0'; 64],
             max_name_length,
@@ -249,6 +291,86 @@ fn global_params_proposal_accepted() {
         step_block(100);
 
         assert_eq!(GlobalGovernanceConfig::<Test>::get().proposal_cost, 69_420);
+    });
+}
+
+#[test]
+fn subnet_params_proposal_accepted() {
+    new_test_ext().execute_with(|| {
+        const KEY: u32 = 0;
+        zero_min_burn();
+
+        register(KEY, 0, 0, to_nano(10));
+        config(1, 200);
+
+        SubnetChangeset::update(
+            0,
+            SubnetParams {
+                governance_config: Default::default(),
+                ..Subspace::subnet_params(0)
+            },
+        )
+        .unwrap()
+        .apply(0)
+        .unwrap();
+
+        let SubnetParams {
+            founder,
+            founder_share,
+            immunity_period,
+            incentive_ratio,
+            max_allowed_uids,
+            max_allowed_weights,
+            min_allowed_weights,
+            max_weight_age,
+            min_stake,
+            name,
+            tempo,
+            trust_ratio,
+            maximum_set_weight_calls_per_epoch,
+            bonds_ma,
+            target_registrations_interval,
+            target_registrations_per_interval,
+            max_registrations_per_interval,
+            adjustment_alpha,
+            mut governance_config,
+        } = Subspace::subnet_params(0);
+
+        governance_config.vote_mode = VoteMode::Authority;
+
+        Governance::add_subnet_params_proposal(
+            get_origin(KEY),
+            0,
+            vec![b'0'; 64],
+            founder,
+            name,
+            founder_share,
+            immunity_period,
+            incentive_ratio,
+            max_allowed_uids,
+            max_allowed_weights,
+            min_allowed_weights,
+            min_stake,
+            max_weight_age,
+            tempo,
+            trust_ratio,
+            maximum_set_weight_calls_per_epoch,
+            governance_config.vote_mode,
+            bonds_ma,
+            target_registrations_interval,
+            target_registrations_per_interval,
+            max_registrations_per_interval,
+            adjustment_alpha,
+        )
+        .unwrap();
+
+        vote(KEY, 0, true);
+        step_block(100);
+
+        assert_eq!(
+            SubnetGovernanceConfig::<Test>::get(0).vote_mode,
+            VoteMode::Authority
+        );
     });
 }
 
@@ -286,7 +408,7 @@ fn global_params_proposal_accepted() {
 //         } = original.clone();
 //         max_name_length /= 2;
 
-//         Governance::add_global_proposal(
+//         Governance::add_global_params_proposal(
 //             get_origin(KEY),
 //             vec![b'0'; 64],
 //             max_name_length,
@@ -386,7 +508,7 @@ fn global_params_proposal_accepted() {
 //             ..
 //         } = params.clone();
 
-//         SubspaceModule::add_global_proposal(
+//         SubspaceModule::add_global_params_proposal(
 //             get_origin(keys[0]),
 //             max_name_length,
 //             min_name_length,
@@ -479,7 +601,7 @@ fn global_params_proposal_accepted() {
 //             min_burn, max_burn, ..
 //         } = BurnConfig::<Test>::get();
 
-//         SubspaceModule::add_global_proposal(
+//         SubspaceModule::add_global_params_proposal(
 //             get_origin(keys[0]),
 //             max_name_length,
 //             min_name_length,
@@ -566,7 +688,7 @@ fn global_params_proposal_accepted() {
 //             adjustment_alpha,
 //         } = params.clone();
 
-//         SubspaceModule::add_subnet_proposal(
+//         SubspaceModule::add_subnet_params_proposal(
 //             get_origin(keys[0]),
 //             0, // netuid
 //             founder,
@@ -629,7 +751,7 @@ fn global_params_proposal_accepted() {
 
 //         ProposalCost::<Test>::set(COST);
 
-//         SubspaceModule::add_custom_proposal(get_origin(key), b"test".to_vec())
+//         SubspaceModule::add_global_custom_proposal(get_origin(key), b"test".to_vec())
 //             .expect("failed to create proposal");
 
 //         SubspaceModule::vote_proposal(get_origin(key), 0, true).unwrap();
@@ -658,7 +780,7 @@ fn creates_treasury_transfer_proposal_and_transfers() {
 
         add_balance(DaoTreasuryAddress::<Test>::get(), to_nano(10));
         add_balance(0, to_nano(3));
-        register(0, 0, to_nano(1));
+        register(0, 0, 0, to_nano(1));
         config(to_nano(1), 200);
 
         Governance::add_transfer_dao_treasury_proposal(origin, vec![b'0'; 64], to_nano(5), 0)

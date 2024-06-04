@@ -270,7 +270,7 @@ impl<T: Config> Pallet<T> {
 
     pub fn do_add_subnet_custom_proposal(
         origin: T::RuntimeOrigin,
-        netuid: u16,
+        subnet_id: u16,
         data: Vec<u8>,
     ) -> DispatchResult {
         let key = ensure_signed(origin)?;
@@ -278,7 +278,7 @@ impl<T: Config> Pallet<T> {
         ensure!(data.len() <= 256, Error::<T>::ProposalDataTooLarge);
         sp_std::str::from_utf8(&data).map_err(|_| Error::<T>::InvalidProposalData)?;
 
-        let proposal_data = ProposalData::SubnetCustom { subnet_id: netuid };
+        let proposal_data = ProposalData::SubnetCustom { subnet_id };
         Self::add_proposal(key, BoundedVec::truncate_from(data), proposal_data)
     }
 
@@ -326,7 +326,7 @@ impl<T: Config> Pallet<T> {
 
     pub fn do_add_subnet_params_proposal(
         origin: T::RuntimeOrigin,
-        netuid: u16,
+        subnet_id: u16,
         data: Vec<u8>,
         mut params: SubnetParams<T>,
     ) -> DispatchResult {
@@ -334,7 +334,7 @@ impl<T: Config> Pallet<T> {
 
         ensure!(
             matches!(
-                SubnetGovernanceConfig::<T>::get(netuid).vote_mode,
+                SubnetGovernanceConfig::<T>::get(subnet_id).vote_mode,
                 VoteMode::Vote
             ),
             Error::<T>::NotVoteMode
@@ -344,12 +344,9 @@ impl<T: Config> Pallet<T> {
         ensure!(data.len() <= 256, Error::<T>::ProposalDataTooLarge);
 
         params.governance_config = Self::validate(params.governance_config)?;
-        SubnetChangeset::<T>::update(netuid, params.clone())?;
+        SubnetChangeset::<T>::update(subnet_id, params.clone())?;
 
-        let proposal_data = ProposalData::SubnetParams {
-            subnet_id: netuid,
-            params,
-        };
+        let proposal_data = ProposalData::SubnetParams { subnet_id, params };
         Self::add_proposal(key, BoundedVec::truncate_from(data), proposal_data)
     }
 }
@@ -367,10 +364,10 @@ pub fn tick_proposals<T: Config>(block_number: u64) {
 
 pub fn get_minimal_stake_to_execute_with_percentage<T: Config>(
     threshold: Percent,
-    netuid: Option<u16>,
+    subnet_id: Option<u16>,
 ) -> u64 {
-    let stake = match netuid {
-        Some(specific_netuid) => TotalStake::<T>::get(specific_netuid),
+    let stake = match subnet_id {
+        Some(specific_subnet_id) => TotalStake::<T>::get(specific_subnet_id),
         None => PalletSubspace::<T>::total_stake(),
     };
 
