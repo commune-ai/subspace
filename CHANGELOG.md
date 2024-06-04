@@ -27,6 +27,12 @@ add_global_custom_proposal
 add_subnet_custom_proposal
 ```
 
+The proposals struct keys are now
+
+```py
+['id', 'proposer', 'expiration_block', 'data', 'status', 'metadata', 'proposal_cost', 'creation_block']
+```
+
 - Parameter proposals now require at least 40% of the network's or subnet's stake to execute.
 - Custom proposals remain at 50%.
 - Proposals are resolved at the time of their expiration, not after reaching enough participation.
