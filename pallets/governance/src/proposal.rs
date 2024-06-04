@@ -354,7 +354,10 @@ impl<T: Config> Pallet<T> {
 pub fn tick_proposals<T: Config>(block_number: u64) {
     let delegating = DelegatingVotingPower::<T>::get().into_inner();
 
-    for (id, proposal) in Proposals::<T>::iter().filter(|(_, p)| p.is_active()) {
+    let proposals =
+        Proposals::<T>::iter().filter(|(_, p)| p.is_active() && block_number >= p.expiration_block);
+
+    for (id, proposal) in proposals {
         let res = with_storage_layer(|| tick_proposal(&delegating, block_number, proposal));
         if let Err(err) = res {
             log::error!("failed to tick proposal {id}: {err:?}, skipping...");
@@ -428,40 +431,24 @@ fn tick_proposal<T: Config>(
             .expect("this probably wont exceed u32::MAX");
     }
 
+    UnrewardedProposals::<T>::insert(
+        proposal.id,
+        UnrewardedProposal::<T> {
+            subnet_id: proposal.subnet_id(),
+            block: block_number,
+            votes_for: reward_votes_for,
+            votes_against: reward_votes_against,
+        },
+    );
+
     if total_stake >= minimal_stake_to_execute {
-        UnrewardedProposals::<T>::insert(
-            proposal.id,
-            UnrewardedProposal::<T> {
-                subnet_id: proposal.subnet_id(),
-                block: block_number,
-                votes_for: reward_votes_for,
-                votes_against: reward_votes_against,
-            },
-        );
-
         if stake_against_sum > stake_for_sum {
-            proposal.refuse(block_number, stake_for_sum, stake_against_sum)?;
+            proposal.refuse(block_number, stake_for_sum, stake_against_sum)
         } else {
-            proposal.accept(block_number, stake_for_sum, stake_against_sum)?;
+            proposal.accept(block_number, stake_for_sum, stake_against_sum)
         }
-
-        Ok(())
-    } else if block_number >= proposal.expiration_block {
-        UnrewardedProposals::<T>::insert(
-            proposal.id,
-            UnrewardedProposal::<T> {
-                subnet_id: proposal.subnet_id(),
-                block: block_number,
-                votes_for: reward_votes_for,
-                votes_against: reward_votes_against,
-            },
-        );
-
-        proposal.expire(block_number)?;
-
-        Ok(())
     } else {
-        Ok(())
+        proposal.expire(block_number)
     }
 }
 
