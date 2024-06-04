@@ -156,6 +156,26 @@ impl GovernanceApi<<Test as frame_system::Config>::AccountId> for Test {
     }
 
     fn handle_subnet_removal(_subnet_id: u16) {}
+
+    fn execute_application(_user_id: &AccountId) -> DispatchResult {
+        Ok(())
+    }
+
+    fn get_general_subnet_application_cost() -> u64 {
+        0
+    }
+
+    fn curator_application_exists(_module_key: &<Test as frame_system::Config>::AccountId) -> bool {
+        false
+    }
+
+    fn get_curator() -> <Test as frame_system::Config>::AccountId {
+        AccountId::default()
+    }
+
+    fn set_curator(_key: &<Test as frame_system::Config>::AccountId) {}
+
+    fn set_general_subnet_application_cost(_amount: u64) {}
 }
 
 #[allow(dead_code)]

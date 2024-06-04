@@ -99,6 +99,7 @@ impl<T: Config + pallet_subspace::Config> OnRuntimeUpgrade for InitialMigration<
         log::info!("set delegated voting power for {}", delegating.len());
         DelegatingVotingPower::<T>::set(delegating.try_into().unwrap_or_default());
 
+        log::info!("Importing treasury balance...");
         let treasury_account = DaoTreasuryAddress::<T>::get();
         let old_treasury_balance = old::GlobalDaoTreasury::<T>::get();
 
@@ -110,12 +111,68 @@ impl<T: Config + pallet_subspace::Config> OnRuntimeUpgrade for InitialMigration<
                 &treasury_account,
                 PalletSubspace::<T>::u64_to_balance(old_treasury_balance).unwrap_or_default(),
             );
+        }
 
-            let account_balance = PalletSubspace::<T>::get_balance_u64(&treasury_account);
-            log::info!(
-                "Treasury transferred to account ({treasury_account:?}), tokens: {account_balance}"
+        let account_balance = PalletSubspace::<T>::get_balance_u64(&treasury_account);
+        log::info!(
+            "Treasury transferred to account ({treasury_account:?}), tokens: {account_balance}"
+        );
+
+        log::info!("Migrating curator...");
+        let curator = old::Curator::<T>::get();
+        match curator {
+            Some(curator) => {
+                log::info!("current curator: {curator:?}");
+                Curator::<T>::set(curator);
+            }
+            None => {
+                log::error!("no curator found");
+            }
+        }
+
+        log::info!("Migrating whitelist...");
+        for (id, account) in old::LegitWhitelist::<T>::iter() {
+            LegitWhitelist::<T>::insert(id, account);
+        }
+
+        log::info!("LegitWhitelist:");
+        for (key, value) in LegitWhitelist::<T>::iter() {
+            log::info!("{key:?} -> {value}");
+        }
+        log::info!(" ");
+
+        log::info!("Migrating general subnet application cost...");
+        let cost = old::GeneralSubnetApplicationCost::<T>::get();
+        GeneralSubnetApplicationCost::<T>::set(cost);
+        log::info!(
+            "GeneralSubnetApplicationCost -> {}",
+            GeneralSubnetApplicationCost::<T>::get()
+        );
+
+        log::info!("Migrating curator applications...");
+        for (id, application) in old::CuratorApplications::<T>::iter() {
+            CuratorApplications::<T>::insert(
+                id,
+                dao::CuratorApplication {
+                    id,
+                    user_id: application.user_id,
+                    paying_for: application.paying_for,
+                    data: BoundedVec::truncate_from(application.data),
+                    status: match application.status {
+                        old::ApplicationStatus::Pending => dao::ApplicationStatus::Pending,
+                        old::ApplicationStatus::Accepted => dao::ApplicationStatus::Accepted,
+                        old::ApplicationStatus::Refused => dao::ApplicationStatus::Refused,
+                    },
+                    application_cost: application.application_cost,
+                },
             );
         }
+
+        log::info!("CuratorApplications:");
+        for (key, value) in CuratorApplications::<T>::iter() {
+            log::info!("{key} -> {value:?}");
+        }
+        log::info!(" ");
 
         frame_support::weights::Weight::zero()
     }

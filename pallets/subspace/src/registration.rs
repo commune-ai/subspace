@@ -11,73 +11,6 @@ use sp_std::vec::Vec;
 use system::pallet_prelude::BlockNumberFor;
 
 impl<T: Config> Pallet<T> {
-    pub fn do_add_to_whitelist(
-        origin: T::RuntimeOrigin,
-        module_key: T::AccountId,
-        recommended_weight: u8,
-    ) -> DispatchResult {
-        // --- 1. Check that the caller has signed the transaction.
-        let key = ensure_signed(origin)?;
-
-        // --- 2. Ensure that the key is the curator multisig.
-        ensure!(Curator::<T>::get() == key, Error::<T>::NotCurator);
-
-        // --- 2.1 Make sure the key application was submitted
-        let application_exists = CuratorApplications::<T>::iter()
-            .any(|(_, application)| application.user_id == module_key);
-
-        ensure!(application_exists, Error::<T>::ApplicationNotFound);
-
-        // --- 3. Ensure that the module_key is not already in the whitelist.
-        ensure!(
-            !Self::is_in_legit_whitelist(&module_key),
-            Error::<T>::AlreadyWhitelisted
-        );
-
-        ensure!(
-            recommended_weight <= 100 && recommended_weight > 0,
-            Error::<T>::InvalidRecommendedWeight
-        );
-
-        // --- 4. Insert the module_key into the whitelist.
-        LegitWhitelist::<T>::insert(module_key.clone(), recommended_weight);
-
-        // execute the application
-        Self::execute_application(&module_key).unwrap();
-
-        // -- deposit event
-        Self::deposit_event(Event::WhitelistModuleAdded(module_key));
-
-        // --- 5. Ok and done.
-        Ok(())
-    }
-
-    pub fn do_remove_from_whitelist(
-        origin: T::RuntimeOrigin,
-        module_key: T::AccountId,
-    ) -> DispatchResult {
-        // --- 1. Check that the caller has signed the transaction.
-        let key = ensure_signed(origin)?;
-
-        // --- 2. Ensure that the key is the curator multisig.
-        ensure!(Curator::<T>::get() == key, Error::<T>::NotCurator);
-
-        // --- 3. Ensure that the module_key is in the whitelist.
-        ensure!(
-            Self::is_in_legit_whitelist(&module_key),
-            Error::<T>::NotWhitelisted
-        );
-
-        // --- 4. Remove the module_key from the whitelist.
-        LegitWhitelist::<T>::remove(&module_key);
-
-        // -- deposit event
-        Self::deposit_event(Event::WhitelistModuleRemoved(module_key));
-
-        // --- 5. Ok and done.
-        Ok(())
-    }
-
     pub fn do_register(
         origin: T::RuntimeOrigin,
         network_name: Vec<u8>,
@@ -219,11 +152,6 @@ impl<T: Config> Pallet<T> {
     /// Whether the netuid has enough stake to cover the minimal stake and min burn
     pub fn enough_stake_to_register(min_stake: u64, min_burn: u64, stake_amount: u64) -> bool {
         stake_amount >= (min_stake + min_burn)
-    }
-
-    // Whitelist management
-    pub fn is_in_legit_whitelist(account_id: &T::AccountId) -> bool {
-        LegitWhitelist::<T>::contains_key(account_id)
     }
 
     // Determine which peer to prune from the network by finding the element with the lowest pruning

@@ -1,6 +1,7 @@
 //! The Governance pallet.
 #![cfg_attr(not(feature = "std"), no_std)]
 
+pub mod dao;
 pub mod migrations;
 pub mod proposal;
 pub mod voting;
@@ -23,15 +24,15 @@ type SubnetId = u16;
 pub mod pallet {
     #![allow(clippy::too_many_arguments)]
 
+    use crate::{dao::CuratorApplication, *};
     use frame_support::{
         pallet_prelude::{ValueQuery, *},
         traits::{Currency, StorageInstance},
         PalletId,
     };
     use frame_system::pallet_prelude::{ensure_signed, BlockNumberFor};
+    use pallet_subspace::DefaultKey;
     use sp_runtime::traits::AccountIdConversion;
-
-    use crate::*;
 
     const STORAGE_VERSION: StorageVersion = StorageVersion::new(0);
 
@@ -76,6 +77,10 @@ pub mod pallet {
         }
     }
 
+    // ---------------------------------
+    // Proposals
+    // ---------------------------------
+
     #[pallet::storage]
     pub type GlobalGovernanceConfig<T: Config> =
         StorageValue<_, GovernanceConfiguration, ValueQuery>;
@@ -117,6 +122,28 @@ pub mod pallet {
     #[pallet::storage]
     pub type DaoTreasuryDistribution<T: Config> =
         StorageValue<_, Percent, ValueQuery, DefaultDaoTreasuryDistribution<T>>;
+    // ---------------------------------
+    // Dao
+    // ---------------------------------
+
+    #[pallet::type_value]
+    pub fn DefaultGeneralSubnetApplicationCost<T: Config>() -> u64 {
+        1_000_000_000_000 // 1_000 $COMAI
+    }
+
+    #[pallet::storage]
+    pub type GeneralSubnetApplicationCost<T: Config> =
+        StorageValue<_, u64, ValueQuery, DefaultGeneralSubnetApplicationCost<T>>;
+
+    #[pallet::storage]
+    pub type CuratorApplications<T: Config> = StorageMap<_, Identity, u64, CuratorApplication<T>>;
+
+    // whitelist for the base subnet (netuid 0)
+    #[pallet::storage]
+    pub type LegitWhitelist<T: Config> = StorageMap<_, Identity, T::AccountId, u8, ValueQuery>;
+
+    #[pallet::storage]
+    pub type Curator<T: Config> = StorageValue<_, T::AccountId, ValueQuery, DefaultKey<T>>;
 
     // TODO:
     // Add benchmarks for the pallet
@@ -277,6 +304,47 @@ pub mod pallet {
             let key = ensure_signed(origin)?;
             Self::update_delegating_voting_power(&key, false)
         }
+
+        // ---------------------------------
+        // Subnet 0 DAO
+        // ---------------------------------
+
+        // TODO:
+        // add the benchmarks later
+        #[pallet::call_index(9)]
+        #[pallet::weight((Weight::zero(), DispatchClass::Normal, Pays::No))]
+        pub fn add_dao_application(
+            origin: OriginFor<T>,
+            application_key: T::AccountId,
+            data: Vec<u8>,
+        ) -> DispatchResult {
+            Self::do_add_dao_application(origin, application_key, data)
+        }
+
+        #[pallet::call_index(10)]
+        #[pallet::weight((Weight::zero(), DispatchClass::Normal, Pays::No))]
+        pub fn refuse_dao_application(origin: OriginFor<T>, id: u64) -> DispatchResult {
+            Self::do_refuse_dao_application(origin, id)
+        }
+
+        #[pallet::call_index(11)]
+        #[pallet::weight((Weight::zero(), DispatchClass::Normal, Pays::No))]
+        pub fn add_to_whitelist(
+            origin: OriginFor<T>,
+            module_key: T::AccountId,
+            recommended_weight: u8,
+        ) -> DispatchResult {
+            Self::do_add_to_whitelist(origin, module_key, recommended_weight)
+        }
+
+        #[pallet::call_index(12)]
+        #[pallet::weight((Weight::zero(), DispatchClass::Normal, Pays::No))]
+        pub fn remove_from_whitelist(
+            origin: OriginFor<T>,
+            module_key: T::AccountId,
+        ) -> DispatchResult {
+            Self::do_remove_from_whitelist(origin, module_key)
+        }
     }
 
     #[pallet::event]
@@ -289,8 +357,13 @@ pub mod pallet {
         ProposalExpired(ProposalId),
 
         ProposalVoted(u64, T::AccountId, bool),
-
         ProposalVoteUnregistered(u64, T::AccountId),
+
+        WhitelistModuleAdded(T::AccountId), /* --- Event created when a module account has been
+                                             * added to the whitelist. */
+        WhitelistModuleRemoved(T::AccountId), /* --- Event created when a module account has
+                                               * been removed from the whitelist. */
+        ApplicationCreated(u64),
     }
 
     #[pallet::error]
@@ -338,6 +411,22 @@ pub mod pallet {
         VoteModeIsNotAuthority,
         /// An internal error occurred, probably relating to the size of the bounded sets.
         InternalError,
+
+        // DAO / Governance
+        ApplicationTooSmall,
+        ApplicationTooLarge,
+        ApplicationNotPending,
+        InvalidApplication,
+        NotEnoughtBalnceToApply,
+        InvalidRecommendedWeight,
+        NotCurator, /* --- Thrown when the user tries to set the curator and is not the
+                     * curator */
+        ApplicationNotFound,
+        AlreadyWhitelisted, /* --- Thrown when the user tries to whitelist an account that is
+                             * already whitelisted. */
+        NotWhitelisted, /* --- Thrown when the user tries to remove an account from the
+                         * whitelist that is not whitelisted. */
+        CouldNotConvertToBalance,
     }
 }
 

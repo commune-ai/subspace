@@ -9,4 +9,5 @@
   "search.exclude": {
     "**/autogen_weights.rs": true
   },
+  "workbench.iconTheme": "material-icon-theme",
 }
