@@ -6,6 +6,7 @@ use frame_support::{
     PalletId,
 };
 use frame_system as system;
+use pallet_governance_api::*;
 use pallet_subspace::{
     Address, BurnConfig, Dividends, Emission, Incentive, LastUpdate, MaxRegistrationsPerBlock,
     MaxRegistrationsPerInterval, Name, Stake, Tempo, N,
@@ -118,7 +119,7 @@ impl Get<PalletId> for SubspacePalletId {
     }
 }
 
-impl pallet_governance_api::GovernanceApi<<Test as frame_system::Config>::AccountId> for Test {
+impl GovernanceApi<<Test as frame_system::Config>::AccountId> for Test {
     fn is_delegating_voting_power(_delegator: &AccountId) -> bool {
         false
     }
@@ -126,6 +127,29 @@ impl pallet_governance_api::GovernanceApi<<Test as frame_system::Config>::Accoun
     fn update_delegating_voting_power(_delegator: &AccountId, _delegating: bool) -> DispatchResult {
         Ok(())
     }
+
+    fn get_global_governance_configuration() -> GovernanceConfiguration {
+        Default::default()
+    }
+
+    fn get_subnet_governance_configuration(_subnet_id: u16) -> GovernanceConfiguration {
+        Default::default()
+    }
+
+    fn update_global_governance_configuration(
+        _governance_config: GovernanceConfiguration,
+    ) -> DispatchResult {
+        Ok(())
+    }
+
+    fn update_subnet_governance_configuration(
+        _subnet_id: u16,
+        _governance_config: GovernanceConfiguration,
+    ) -> DispatchResult {
+        Ok(())
+    }
+
+    fn handle_subnet_removal(_subnet_id: u16) {}
 }
 
 impl pallet_subspace::Config for Test {

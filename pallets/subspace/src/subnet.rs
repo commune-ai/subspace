@@ -3,8 +3,9 @@ use super::*;
 use frame_support::{
     pallet_prelude::DispatchResult, storage::IterableStorageMap, IterableStorageDoubleMap,
 };
+use pallet_governance_api::GovernanceApi;
 
-use self::{global::BurnConfiguration, voting::VoteMode};
+use self::global::BurnConfiguration;
 use sp_arithmetic::per_things::Percent;
 use sp_runtime::{BoundedVec, DispatchError};
 use sp_std::vec::Vec;
@@ -30,7 +31,7 @@ impl<T: Config> SubnetChangeset<T> {
         Ok(Self { params })
     }
 
-    pub fn apply(self, netuid: u16) -> Result<(), sp_runtime::DispatchError> {
+    pub fn apply(self, netuid: u16) -> DispatchResult {
         Self::validate_params(Some(netuid), &self.params)?;
 
         // TODO: add a check, to see all values of `SubnetParams` are actually being inserted.
@@ -46,7 +47,6 @@ impl<T: Config> SubnetChangeset<T> {
         MinStake::<T>::insert(netuid, self.params.min_stake);
         TrustRatio::<T>::insert(netuid, self.params.trust_ratio);
         IncentiveRatio::<T>::insert(netuid, self.params.incentive_ratio);
-        VoteModeSubnet::<T>::insert(netuid, self.params.vote_mode);
         BondsMovingAverage::<T>::insert(netuid, self.params.bonds_ma);
         TargetRegistrationsInterval::<T>::insert(netuid, self.params.target_registrations_interval);
         TargetRegistrationsPerInterval::<T>::insert(
@@ -67,6 +67,11 @@ impl<T: Config> SubnetChangeset<T> {
                 self.params.maximum_set_weight_calls_per_epoch,
             );
         }
+
+        <T as GovernanceApi<T::AccountId>>::update_subnet_governance_configuration(
+            netuid,
+            self.params.governance_config,
+        )?;
 
         Pallet::<T>::deposit_event(Event::SubnetParamsUpdated(netuid));
 
@@ -160,12 +165,12 @@ impl<T: Config> Pallet<T> {
             trust_ratio: TrustRatio::<T>::get(netuid),
             incentive_ratio: IncentiveRatio::<T>::get(netuid),
             maximum_set_weight_calls_per_epoch: MaximumSetWeightCallsPerEpoch::<T>::get(netuid),
-            vote_mode: VoteModeSubnet::<T>::get(netuid),
             bonds_ma: BondsMovingAverage::<T>::get(netuid),
             target_registrations_interval: TargetRegistrationsInterval::<T>::get(netuid),
             target_registrations_per_interval: TargetRegistrationsPerInterval::<T>::get(netuid),
             max_registrations_per_interval: MaxRegistrationsPerInterval::<T>::get(netuid),
             adjustment_alpha: AdjustmentAlpha::<T>::get(netuid),
+            governance_config: T::get_subnet_governance_configuration(netuid),
         }
     }
 
@@ -262,12 +267,13 @@ impl<T: Config> Pallet<T> {
         TrustRatio::<T>::remove(netuid);
         IncentiveRatio::<T>::remove(netuid);
         MaximumSetWeightCallsPerEpoch::<T>::remove(netuid);
-        VoteModeSubnet::<T>::remove(netuid);
         BondsMovingAverage::<T>::remove(netuid);
         TargetRegistrationsInterval::<T>::remove(netuid);
         TargetRegistrationsPerInterval::<T>::remove(netuid);
         MaxRegistrationsPerInterval::<T>::remove(netuid);
         AdjustmentAlpha::<T>::remove(netuid);
+
+        <T as GovernanceApi<T::AccountId>>::handle_subnet_removal(netuid);
 
         // --- 4 Adjust the total number of subnets. and remove the subnet from the list of subnets.
         // =========================================================================================
@@ -302,13 +308,6 @@ impl<T: Config> Pallet<T> {
 
         // --2. Ensury Authority - only the founder can update the network on authority mode.
         ensure!(Founder::<T>::get(netuid) == key, Error::<T>::NotFounder);
-
-        // --3. Ensure that the subnet is not in a `Vote` mode.
-        // Update by founder can be executed only in `Authority` mode.
-        ensure!(
-            VoteModeSubnet::<T>::get(netuid) == VoteMode::Authority,
-            Error::<T>::InvalidVoteMode
-        );
 
         // -4. Apply the changeset.
         changeset.apply(netuid)?;

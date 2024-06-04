@@ -5165,6 +5165,7 @@ dependencies = [
  "frame-support",
  "frame-system",
  "log",
+ "pallet-governance-api",
  "pallet-subspace",
  "parity-scale-codec",
  "scale-info",
@@ -5176,7 +5177,11 @@ dependencies = [
 name = "pallet-governance-api"
 version = "1.0.0"
 dependencies = [
+ "frame-support",
+ "parity-scale-codec",
+ "scale-info",
  "sp-runtime",
+ "substrate-fixed",
 ]
 
 [[package]]

@@ -64,16 +64,16 @@ pub mod pallet {
         clippy::type_complexity
     )]
 
-    use self::voting::{CuratorApplication, Proposal, VoteMode};
-    pub use crate::weights::WeightInfo;
-
     use super::*;
     use frame_support::{pallet_prelude::*, traits::Currency, Identity};
     use frame_system::pallet_prelude::*;
-
     use global::BurnConfiguration;
     use module::ModuleChangeset;
+    use pallet_governance_api::{GovernanceConfiguration, VoteMode};
     use sp_arithmetic::per_things::Percent;
+    use voting::CuratorApplication;
+
+    pub use crate::weights::WeightInfo;
     pub use sp_std::{vec, vec::Vec};
 
     const STORAGE_VERSION: StorageVersion = StorageVersion::new(11);
@@ -287,11 +287,6 @@ pub mod pallet {
         pub floor_founder_share: u8,       // min founder share
         pub min_weight_stake: u64,         // min weight stake required
 
-        // proposals
-        pub proposal_cost: u64,
-        pub proposal_expiration: u32,
-        pub proposal_participation_threshold: Percent,
-
         // S0 governance
         pub curator: T::AccountId,
         pub general_subnet_application_cost: u64,
@@ -299,6 +294,7 @@ pub mod pallet {
         // Other
         pub subnet_stake_threshold: Percent,
         pub burn_config: BurnConfiguration<T>,
+        pub governance_config: GovernanceConfiguration,
     }
 
     // ---------------------------------
@@ -322,7 +318,6 @@ pub mod pallet {
                 incentive_ratio: DefaultIncentiveRatio::<T>::get(),
                 min_stake: 0,
                 founder: DefaultKey::<T>::get(),
-                vote_mode: DefaultVoteMode::<T>::get(),
                 maximum_set_weight_calls_per_epoch: 0,
                 bonds_ma: DefaultBondsMovingAverage::<T>::get(),
                 target_registrations_interval: DefaultTargetRegistrationsInterval::<T>::get(),
@@ -330,6 +325,7 @@ pub mod pallet {
                 ),
                 max_registrations_per_interval: 42,
                 adjustment_alpha: DefaultAdjustmentAlpha::<T>::get(),
+                governance_config: Default::default(),
             }
         }
     }
@@ -355,7 +351,6 @@ pub mod pallet {
         pub tempo: u16, // how many blocks to wait before rewarding models
         pub trust_ratio: u16,
         pub maximum_set_weight_calls_per_epoch: u16,
-        pub vote_mode: VoteMode,
         // consensus
         pub bonds_ma: u64,
         // registrations
@@ -363,6 +358,8 @@ pub mod pallet {
         pub target_registrations_per_interval: u16,
         pub max_registrations_per_interval: u16,
         pub adjustment_alpha: u64,
+
+        pub governance_config: GovernanceConfiguration,
     }
 
     #[pallet::type_value]
@@ -512,15 +509,6 @@ pub mod pallet {
 
     #[pallet::storage]
     pub type Curator<T: Config> = StorageValue<_, T::AccountId, ValueQuery, DefaultKey<T>>;
-
-    #[pallet::type_value]
-    pub fn DefaultVoteMode<T: Config>() -> VoteMode {
-        VoteMode::Authority
-    }
-
-    #[pallet::storage] // --- MAP ( netuid ) --> epoch
-    pub type VoteModeSubnet<T> =
-        StorageMap<_, Identity, u16, VoteMode, ValueQuery, DefaultVoteMode<T>>;
 
     #[pallet::storage] // --- ITEM( tota_number_of_existing_networks )
     pub type TotalSubnets<T> = StorageValue<_, u16, ValueQuery>;
@@ -916,34 +904,6 @@ pub mod pallet {
     // Proposals
     // ---------------------------------
 
-    // Global Parameters of proposals
-
-    #[pallet::type_value]
-    pub fn DefaultProposalCost<T: Config>() -> u64 {
-        10_000_000_000_000 // 10_000 $COMAI, the value is returned if the proosal passes
-    }
-
-    #[pallet::storage]
-    pub type ProposalCost<T: Config> = StorageValue<_, u64, ValueQuery, DefaultProposalCost<T>>;
-
-    #[pallet::type_value]
-    pub fn DefaultProposalExpiration<T: Config>() -> u32 {
-        130000 // Aprox 12 days
-    }
-
-    #[pallet::storage]
-    pub type ProposalExpiration<T: Config> =
-        StorageValue<_, u32, ValueQuery, DefaultProposalExpiration<T>>;
-
-    #[pallet::type_value]
-    pub fn DefaultProposalParticipationThreshold<T: Config>() -> Percent {
-        Percent::from_percent(50)
-    }
-
-    #[pallet::storage]
-    pub(super) type ProposalParticipationThreshold<T: Config> =
-        StorageValue<_, Percent, ValueQuery, DefaultProposalParticipationThreshold<T>>;
-
     #[pallet::type_value]
     pub fn DefaultGeneralSubnetApplicationCost<T: Config>() -> u64 {
         1_000_000_000_000 // 1_000 $COMAI
@@ -952,9 +912,6 @@ pub mod pallet {
     #[pallet::storage]
     pub type GeneralSubnetApplicationCost<T: Config> =
         StorageValue<_, u64, ValueQuery, DefaultGeneralSubnetApplicationCost<T>>;
-
-    #[pallet::storage]
-    pub type Proposals<T: Config> = StorageMap<_, Identity, u64, Proposal<T>>;
 
     #[pallet::storage]
     pub type CuratorApplications<T: Config> = StorageMap<_, Identity, u64, CuratorApplication<T>>;
@@ -1164,12 +1121,15 @@ pub mod pallet {
                 tempo,
                 trust_ratio,
                 maximum_set_weight_calls_per_epoch,
-                vote_mode,
                 bonds_ma,
                 target_registrations_interval,
                 target_registrations_per_interval,
                 max_registrations_per_interval,
                 adjustment_alpha,
+                governance_config: GovernanceConfiguration {
+                    vote_mode,
+                    ..T::get_subnet_governance_configuration(netuid)
+                },
             };
 
             let changeset = SubnetChangeset::update(netuid, params)?;

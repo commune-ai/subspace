@@ -1,5 +1,6 @@
 use super::*;
 use frame_support::pallet_prelude::{DispatchResult, MaxEncodedLen};
+use pallet_governance_api::GovernanceApi;
 use sp_runtime::DispatchError;
 
 // TODO:
@@ -56,14 +57,11 @@ impl<T: Config> Pallet<T> {
             max_allowed_weights: MaxAllowedWeightsGlobal::<T>::get(),
             subnet_stake_threshold: SubnetStakeThreshold::<T>::get(),
             min_weight_stake: MinWeightStake::<T>::get(),
-            // proposals
-            proposal_cost: ProposalCost::<T>::get(), // denominated in $COMAI
-            proposal_expiration: ProposalExpiration::<T>::get(), /* denominated in the number of
-                                                      * blocks */
-            proposal_participation_threshold: ProposalParticipationThreshold::<T>::get(), /* denominated
-                                                                                          in percent of the overall network stake */
+
             // s0 config
             general_subnet_application_cost: GeneralSubnetApplicationCost::<T>::get(),
+
+            governance_config: T::get_global_governance_configuration(),
         }
     }
 
@@ -89,10 +87,10 @@ impl<T: Config> Pallet<T> {
         MaxAllowedWeightsGlobal::<T>::put(params.max_allowed_weights);
         MinWeightStake::<T>::put(params.min_weight_stake);
 
-        // proposals
-        ProposalCost::<T>::put(params.proposal_cost);
-        ProposalExpiration::<T>::put(params.proposal_expiration);
-        ProposalParticipationThreshold::<T>::put(params.proposal_participation_threshold);
+        <T as GovernanceApi<T::AccountId>>::update_global_governance_configuration(
+            params.governance_config,
+        )
+        .expect("invalid governance configuration");
 
         // burn
         params.burn_config.apply().expect("invalid burn configuration");
@@ -148,22 +146,9 @@ impl<T: Config> Pallet<T> {
             Error::<T>::InvalidMaxAllowedWeights
         );
 
-        // Proposal checks
-        ensure!(params.proposal_cost > 0, Error::<T>::InvalidProposalCost);
-
         ensure!(
             params.general_subnet_application_cost > 0,
             Error::<T>::InvalidGeneralSubnetApplicationCost
-        );
-
-        ensure!(
-            params.proposal_expiration % 100 == 0,
-            Error::<T>::InvalidProposalExpiration
-        );
-
-        ensure!(
-            params.proposal_participation_threshold.deconstruct() <= 100,
-            Error::<T>::InvalidProposalParticipationThreshold
         );
 
         Ok(())

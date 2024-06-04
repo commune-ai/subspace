@@ -4,14 +4,15 @@ use std::collections::BTreeSet;
 
 use frame_support::{assert_err, assert_noop, assert_ok};
 use mock::*;
+use pallet_governance_api::GovernanceApi;
 use sp_core::U256;
 
 use log::info;
 use pallet_subspace::{
     voting::ApplicationStatus, Curator, CuratorApplications, Emission, Error, FloorDelegationFee,
     GeneralSubnetApplicationCost, MaxAllowedModules, MaxAllowedSubnets, MaxAllowedUids,
-    MaxNameLength, MaxRegistrationsPerBlock, MinNameLength, MinStake, ProposalCost,
-    RegistrationsPerBlock, Stake, SubnetGaps, SubnetNames, TotalSubnets, N,
+    MaxNameLength, MaxRegistrationsPerBlock, MinNameLength, MinStake, RegistrationsPerBlock, Stake,
+    SubnetGaps, SubnetNames, TotalSubnets, N,
 };
 use sp_runtime::{DispatchResult, Percent};
 
@@ -219,8 +220,6 @@ fn test_whitelist() {
         ));
 
         let balance_after = SubspaceModule::get_balance_u64(&key);
-
-        dbg!(balance_before, balance_after);
         assert_eq!(balance_after, balance_before - proposal_cost);
 
         // Assert that the proposal is initially in the Pending status
@@ -624,7 +623,7 @@ fn test_remove_from_whitelist() {
         let module_key = U256::from(1);
         Curator::<Test>::put(whitelist_key);
 
-        let proposal_cost = ProposalCost::<Test>::get();
+        let proposal_cost = Test::get_global_governance_configuration().proposal_cost;
         let data = "test".as_bytes().to_vec();
 
         // apply
