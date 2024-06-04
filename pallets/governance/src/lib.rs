@@ -322,21 +322,6 @@ impl<T: Config> Pallet<T> {
         );
         Ok(config)
     }
-
-    fn apply_global_governance_configuration(config: GovernanceConfiguration) -> DispatchResult {
-        let config = Self::validate(config)?;
-        GlobalGovernanceConfig::<T>::set(config);
-        Ok(())
-    }
-
-    fn apply_subnet_governance_configuration(
-        subnet_id: SubnetId,
-        config: GovernanceConfiguration,
-    ) -> DispatchResult {
-        let config = Self::validate(config)?;
-        SubnetGovernanceConfig::<T>::set(subnet_id, config);
-        Ok(())
-    }
 }
 
 impl<T: Config> Pallet<T> {
@@ -364,14 +349,8 @@ impl<T: Config> Pallet<T> {
     pub fn update_global_governance_configuration(
         config: GovernanceConfiguration,
     ) -> DispatchResult {
-        ensure!(
-            matches!(
-                GlobalGovernanceConfig::<T>::get().vote_mode,
-                VoteMode::Authority
-            ),
-            Error::<T>::VoteModeIsNotAuthority
-        );
-        Self::apply_global_governance_configuration(config)?;
+        let config = Self::validate(config)?;
+        GlobalGovernanceConfig::<T>::set(config);
         Ok(())
     }
 
@@ -379,14 +358,8 @@ impl<T: Config> Pallet<T> {
         subnet_id: u16,
         config: GovernanceConfiguration,
     ) -> DispatchResult {
-        ensure!(
-            matches!(
-                SubnetGovernanceConfig::<T>::get(subnet_id).vote_mode,
-                VoteMode::Authority
-            ),
-            Error::<T>::VoteModeIsNotAuthority
-        );
-        Self::apply_subnet_governance_configuration(subnet_id, config)?;
+        let config = Self::validate(config)?;
+        SubnetGovernanceConfig::<T>::set(subnet_id, config);
         Ok(())
     }
 

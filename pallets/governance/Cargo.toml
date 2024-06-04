@@ -46,3 +46,8 @@ scale-info = { workspace = true, default-features = false, features = [
 ] }
 
 [dev-dependencies]
+pallet-balances = { workspace = true, features = ["std"] }
+pallet-governance-api = { path = "./api", default-features = false }
+sp-io.workspace = true
+sp-runtime.workspace = true
+sp-tracing.workspace = true
