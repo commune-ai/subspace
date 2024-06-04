@@ -5,8 +5,8 @@ use log::info;
 use mock::*;
 use pallet_subspace::{
     Dividends, Error, FounderShare, MaxAllowedModules, MaxAllowedSubnets, MaxAllowedUids,
-    MaxRegistrationsPerBlock, MaximumSetWeightCallsPerEpoch, SubnetNames, SubnetStakeThreshold,
-    Tempo, TotalSubnets, UnitEmission, N,
+    MaxRegistrationsPerBlock, MaximumSetWeightCallsPerEpoch, SubnetStakeThreshold, Tempo,
+    TotalSubnets, UnitEmission, N,
 };
 use sp_core::U256;
 use sp_runtime::Percent;
@@ -232,7 +232,7 @@ fn test_set_max_allowed_uids_shrinking() {
             params.tempo,
             params.trust_ratio,
             params.maximum_set_weight_calls_per_epoch,
-            params.vote_mode,
+            params.governance_config.vote_mode,
             params.bonds_ma,
             params.target_registrations_interval,
             params.target_registrations_per_interval,
@@ -764,7 +764,6 @@ fn test_active_stake() {
         assert_eq!(N::<Test>::get(9), 3 + n);
         step_block(100);
 
-        dbg!(Dividends::<Test>::get(9));
         let uid_zero_dividends = SubspaceModule::get_dividends_for_uid(9, 0);
         let uid_two_dividends = SubspaceModule::get_dividends_for_uid(9, 2);
         let total_dividends_sum = Dividends::<Test>::get(9).iter().sum::<u16>();
@@ -790,7 +789,6 @@ fn test_update_same_name() {
 
         assert_eq!(N::<Test>::get(0), 1);
 
-        dbg!(SubnetNames::<Test>::get(netuid));
         let mut params = SubspaceModule::subnet_params(netuid);
         let new_tempo = 30;
         params.tempo = new_tempo;
@@ -810,16 +808,15 @@ fn test_update_same_name() {
             params.tempo,
             params.trust_ratio,
             params.maximum_set_weight_calls_per_epoch,
-            params.vote_mode,
+            params.governance_config.vote_mode,
             params.bonds_ma,
             params.target_registrations_interval,
             params.target_registrations_per_interval,
             params.max_registrations_per_interval,
             params.adjustment_alpha,
         );
-
-        dbg!(SubnetNames::<Test>::get(netuid));
         assert_ok!(result);
+
         let new_params = SubspaceModule::subnet_params(netuid);
         assert_eq!(new_params.tempo, new_tempo);
     });

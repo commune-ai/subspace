@@ -1,4 +1,4 @@
-use super::{proposal::ProposalStatus, *};
+use crate::{proposal::ProposalStatus, *};
 use frame_support::pallet_prelude::DispatchResult;
 use frame_system::ensure_signed;
 use pallet_subspace::Pallet as PalletSubspace;

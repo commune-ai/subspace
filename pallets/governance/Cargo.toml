@@ -28,6 +28,7 @@ try-runtime = ["frame-support/try-runtime"]
 bty.workspace = true
 log.workspace = true
 
+pallet-governance-api = { path = "../governance/api", default-features = false }
 pallet-subspace = { path = "../subspace", default-features = false }
 
 frame-support.workspace = true

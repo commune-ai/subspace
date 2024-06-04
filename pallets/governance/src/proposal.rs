@@ -1,7 +1,4 @@
-use crate::{
-    Config, DelegatingVotingPower, Error, Event, GlobalGovernanceConfig, GovernanceConfiguration,
-    Pallet, Percent, Proposals, SubnetGovernanceConfig, SubnetId, UnrewardedProposals,
-};
+use crate::*;
 use frame_support::{
     dispatch::DispatchResult,
     ensure,
@@ -12,8 +9,8 @@ use frame_support::{
 };
 use frame_system::ensure_signed;
 use pallet_subspace::{
-    subnet::SubnetChangeset, voting::VoteMode, DaoTreasuryAddress, Event as SubspaceEvent,
-    GlobalParams, Pallet as PalletSubspace, SubnetParams, TotalStake, VoteModeSubnet,
+    subnet::SubnetChangeset, DaoTreasuryAddress, Event as SubspaceEvent, GlobalParams,
+    Pallet as PalletSubspace, SubnetParams, TotalStake,
 };
 use parity_scale_codec::{Decode, Encode, MaxEncodedLen};
 use scale_info::TypeInfo;
@@ -262,7 +259,10 @@ impl<T: Config> Pallet<T> {
         Ok(())
     }
 
-    pub fn do_add_custom_proposal(origin: T::RuntimeOrigin, data: Vec<u8>) -> DispatchResult {
+    pub fn do_add_global_custom_proposal(
+        origin: T::RuntimeOrigin,
+        data: Vec<u8>,
+    ) -> DispatchResult {
         let key = ensure_signed(origin)?;
         ensure!(!data.is_empty(), Error::<T>::ProposalDataTooSmall);
         ensure!(data.len() <= 256, Error::<T>::ProposalDataTooLarge);
@@ -272,7 +272,7 @@ impl<T: Config> Pallet<T> {
         Self::add_proposal(key, BoundedVec::truncate_from(data), proposal_data)
     }
 
-    pub fn do_add_custom_subnet_proposal(
+    pub fn do_add_subnet_custom_proposal(
         origin: T::RuntimeOrigin,
         netuid: u16,
         data: Vec<u8>,
@@ -311,7 +311,7 @@ impl<T: Config> Pallet<T> {
         Self::add_proposal(key, BoundedVec::truncate_from(data), proposal_data)
     }
 
-    pub fn do_add_global_proposal(
+    pub fn do_add_global_params_proposal(
         origin: T::RuntimeOrigin,
         data: Vec<u8>,
         params: GlobalParams<T>,
@@ -326,7 +326,7 @@ impl<T: Config> Pallet<T> {
         Self::add_proposal(key, BoundedVec::truncate_from(data), proposal_data)
     }
 
-    pub fn do_add_subnet_proposal(
+    pub fn do_add_subnet_params_proposal(
         origin: T::RuntimeOrigin,
         netuid: u16,
         data: Vec<u8>,
@@ -334,8 +334,13 @@ impl<T: Config> Pallet<T> {
     ) -> DispatchResult {
         let key = ensure_signed(origin)?;
 
-        let vote_mode = VoteModeSubnet::<T>::get(netuid);
-        ensure!(vote_mode == VoteMode::Vote, Error::<T>::NotVoteMode);
+        ensure!(
+            matches!(
+                SubnetGovernanceConfig::<T>::get(netuid).vote_mode,
+                VoteMode::Vote
+            ),
+            Error::<T>::NotVoteMode
+        );
 
         ensure!(!data.is_empty(), Error::<T>::ProposalDataTooSmall);
         ensure!(data.len() <= 256, Error::<T>::ProposalDataTooLarge);
@@ -464,14 +469,14 @@ fn tick_proposal<T: Config>(
 }
 
 pub fn tick_proposal_rewards<T: Config>(block_number: u64) {
-    let mut to_tick: Vec<(Option<u16>, GovernanceConfiguration<T>)> =
+    let mut to_tick: Vec<(Option<u16>, GovernanceConfiguration)> =
         pallet_subspace::N::<T>::iter_keys()
             .map(|subnet_id| (Some(subnet_id), SubnetGovernanceConfig::<T>::get(subnet_id)))
             .collect();
     to_tick.push((None, GlobalGovernanceConfig::<T>::get()));
 
     to_tick.into_iter().for_each(|(subnet_id, governance_config)| {
-        execute_proposal_rewards(block_number, subnet_id, governance_config);
+        execute_proposal_rewards::<T>(block_number, subnet_id, governance_config);
     });
 }
 
@@ -503,10 +508,10 @@ fn calc_stake<T: Config>(
     own_stake + delegated_stake
 }
 
-pub fn execute_proposal_rewards<T: crate::Config>(
+pub fn execute_proposal_rewards<T: Config>(
     block_number: u64,
     subnet_id: Option<u16>,
-    governance_config: GovernanceConfiguration<T>,
+    governance_config: GovernanceConfiguration,
 ) {
     if block_number % governance_config.proposal_reward_interval != 0 {
         return;
@@ -534,7 +539,7 @@ pub fn execute_proposal_rewards<T: crate::Config>(
             account_stakes.try_insert(acc_id, curr_stake + stake).expect("infallible");
         }
 
-        match get_reward_allocation(&governance_config, n) {
+        match get_reward_allocation::<T>(&governance_config, n) {
             Ok(allocation) => {
                 total_allocation += allocation;
             }
@@ -552,7 +557,7 @@ pub fn execute_proposal_rewards<T: crate::Config>(
 }
 
 fn get_reward_allocation<T: crate::Config>(
-    governance_config: &GovernanceConfiguration<T>,
+    governance_config: &GovernanceConfiguration,
     n: u16,
 ) -> Result<I92F36, DispatchError> {
     let treasury_address = DaoTreasuryAddress::<T>::get();

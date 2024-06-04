@@ -364,9 +364,6 @@ fn test_emission_exploit() {
 
         // get the stake of honest actor
         let hones_stake = Stake::<Test>::get(3, honest_actor_key);
-        dbg!(hones_stake);
-        dbg!(badactor_balance_after);
-
         assert!(hones_stake > badactor_balance_after);
     });
 }

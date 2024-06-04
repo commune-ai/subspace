@@ -9,7 +9,7 @@ use sp_std::collections::btree_set::BTreeSet;
 
 use crate::{
     proposal::{ProposalData, ProposalStatus},
-    Config, DelegatingVotingPower, GovernanceConfiguration, Pallet, Proposal, Proposals,
+    *,
 };
 
 #[derive(Default)]
@@ -17,58 +17,41 @@ pub struct InitialMigration<T>(PhantomData<T>);
 
 impl<T: Config + pallet_subspace::Config> OnRuntimeUpgrade for InitialMigration<T> {
     fn on_runtime_upgrade() -> frame_support::weights::Weight {
+        use pallet_subspace::migrations::v11::old_storage as old;
+
         if StorageVersion::get::<Pallet<T>>() != 0 {
             return frame_support::weights::Weight::zero();
         }
 
         log::info!("Initializing governance storage, importing proposals...");
 
-        let old_proposal_cost = pallet_subspace::ProposalCost::<T>::get();
-        let old_expiration = pallet_subspace::ProposalExpiration::<T>::get();
-
-        let governance_configuration = GovernanceConfiguration::<T> {
-            proposal_cost: old_proposal_cost,
-            proposal_expiration: old_expiration,
-            ..Default::default()
-        };
-
-        if let Err(err) = governance_configuration.apply_global() {
-            log::warn!(
-                "could not migrate the old values to the new global GovernanceConfig: {err:?}"
-            );
-        }
-
-        for (id, proposal) in pallet_subspace::Proposals::<T>::iter() {
+        for (id, proposal) in old::Proposals::<T>::iter() {
             let metadata = match &proposal.data {
-                pallet_subspace::voting::ProposalData::Custom(data)
-                | pallet_subspace::voting::ProposalData::SubnetCustom { data, .. }
-                | pallet_subspace::voting::ProposalData::TransferDaoTreasury { data, .. } => {
+                old::ProposalData::Custom(data)
+                | old::ProposalData::SubnetCustom { data, .. }
+                | old::ProposalData::TransferDaoTreasury { data, .. } => {
                     BoundedVec::truncate_from(data.clone())
                 }
                 _ => Default::default(),
             };
 
             let data = match proposal.data {
-                pallet_subspace::voting::ProposalData::Custom(_) => ProposalData::GlobalCustom,
-                pallet_subspace::voting::ProposalData::GlobalParams(params) => {
-                    ProposalData::GlobalParams(params)
-                }
-                pallet_subspace::voting::ProposalData::SubnetParams { netuid, params } => {
-                    ProposalData::SubnetParams {
-                        subnet_id: netuid,
-                        params,
-                    }
-                }
-                pallet_subspace::voting::ProposalData::SubnetCustom { netuid, .. } => {
+                old::ProposalData::Custom(_) => ProposalData::GlobalCustom,
+                old::ProposalData::GlobalParams(params) => ProposalData::GlobalParams(params),
+                old::ProposalData::SubnetParams { netuid, params } => ProposalData::SubnetParams {
+                    subnet_id: netuid,
+                    params,
+                },
+                old::ProposalData::SubnetCustom { netuid, .. } => {
                     ProposalData::SubnetCustom { subnet_id: netuid }
                 }
-                pallet_subspace::voting::ProposalData::TransferDaoTreasury {
-                    value, dest, ..
-                } => ProposalData::TransferDaoTreasury {
-                    account: dest,
-                    amount: value,
-                },
-                pallet_subspace::voting::ProposalData::Expired => {
+                old::ProposalData::TransferDaoTreasury { value, dest, .. } => {
+                    ProposalData::TransferDaoTreasury {
+                        account: dest,
+                        amount: value,
+                    }
+                }
+                old::ProposalData::Expired => {
                     log::trace!("proposal {id} is expired, defaulting to GlobalCustom data");
                     ProposalData::GlobalCustom
                 }
@@ -81,21 +64,21 @@ impl<T: Config + pallet_subspace::Config> OnRuntimeUpgrade for InitialMigration<
                 data,
                 metadata,
                 status: match proposal.status {
-                    pallet_subspace::voting::ProposalStatus::Pending => ProposalStatus::Open {
+                    old::ProposalStatus::Pending => ProposalStatus::Open {
                         votes_for: proposal.votes_for.try_into().unwrap_or_default(),
                         votes_against: proposal.votes_against.try_into().unwrap_or_default(),
                     },
-                    pallet_subspace::voting::ProposalStatus::Accepted => ProposalStatus::Accepted {
+                    old::ProposalStatus::Accepted => ProposalStatus::Accepted {
                         block: proposal.finalization_block.unwrap_or_default(),
                         stake_for: 0,
                         stake_against: 0,
                     },
-                    pallet_subspace::voting::ProposalStatus::Refused => ProposalStatus::Refused {
+                    old::ProposalStatus::Refused => ProposalStatus::Refused {
                         block: proposal.finalization_block.unwrap_or_default(),
                         stake_for: 0,
                         stake_against: 0,
                     },
-                    pallet_subspace::voting::ProposalStatus::Expired => ProposalStatus::Expired,
+                    old::ProposalStatus::Expired => ProposalStatus::Expired,
                 },
                 proposal_cost: proposal.proposal_cost,
                 creation_block: proposal.creation_block,

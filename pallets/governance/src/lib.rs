@@ -5,25 +5,19 @@ pub mod migrations;
 pub mod proposal;
 pub mod voting;
 
-use core::marker::PhantomData;
-
 use frame_support::{
     dispatch::DispatchResult,
     ensure,
     sp_runtime::{DispatchError, Percent},
 };
 use frame_system::pallet_prelude::OriginFor;
-use pallet_subspace::voting::VoteMode;
-use parity_scale_codec::{Decode, Encode, MaxEncodedLen};
+use pallet_governance_api::{GovernanceConfiguration, VoteMode};
 use proposal::{Proposal, ProposalId, UnrewardedProposal};
-use scale_info::TypeInfo;
 use sp_std::vec::Vec;
 
 pub use pallet::*;
-use substrate_fixed::types::I92F36;
 
 type SubnetId = u16;
-type Nanos = u64;
 
 #[frame_support::pallet]
 pub mod pallet {
@@ -81,11 +75,11 @@ pub mod pallet {
 
     #[pallet::storage]
     pub type GlobalGovernanceConfig<T: Config> =
-        StorageValue<_, GovernanceConfiguration<T>, ValueQuery>;
+        StorageValue<_, GovernanceConfiguration, ValueQuery>;
 
     #[pallet::storage]
     pub type SubnetGovernanceConfig<T: Config> =
-        StorageMap<_, Identity, SubnetId, GovernanceConfiguration<T>, ValueQuery>;
+        StorageMap<_, Identity, SubnetId, GovernanceConfiguration, ValueQuery>;
 
     /// A map of all proposals, indexed by their IDs.
     #[pallet::storage]
@@ -127,7 +121,6 @@ pub mod pallet {
             subnet_stake_threshold: Percent,
             proposal_cost: u64,
             proposal_expiration: u32,
-            proposal_participation_threshold: Percent,
             general_subnet_application_cost: u64,
         ) -> DispatchResult {
             let mut params = pallet_subspace::Pallet::<T>::global_params();
@@ -142,15 +135,14 @@ pub mod pallet {
             params.min_weight_stake = min_weight_stake;
             params.curator = curator;
             params.subnet_stake_threshold = subnet_stake_threshold;
-            params.proposal_cost = proposal_cost;
-            params.proposal_expiration = proposal_expiration;
-            params.proposal_participation_threshold = proposal_participation_threshold;
+            params.governance_config.proposal_cost = proposal_cost;
+            params.governance_config.proposal_expiration = proposal_expiration;
             params.general_subnet_application_cost = general_subnet_application_cost;
 
             params.burn_config.min_burn = min_burn;
             params.burn_config.max_burn = max_burn;
 
-            Self::do_add_global_proposal(origin, data, params)
+            Self::do_add_global_params_proposal(origin, data, params)
         }
 
         #[pallet::call_index(1)]
@@ -189,15 +181,15 @@ pub mod pallet {
             params.tempo = tempo;
             params.trust_ratio = trust_ratio;
             params.maximum_set_weight_calls_per_epoch = maximum_set_weight_calls_per_epoch;
-            params.vote_mode = vote_mode;
+            params.governance_config.vote_mode = vote_mode;
             params.bonds_ma = bonds_ma;
-            Self::do_add_subnet_proposal(origin, subnet_id, data, params)
+            Self::do_add_subnet_params_proposal(origin, subnet_id, data, params)
         }
 
         #[pallet::call_index(2)]
         #[pallet::weight((Weight::zero(), DispatchClass::Normal, Pays::No))]
         pub fn add_custom_proposal(origin: OriginFor<T>, data: Vec<u8>) -> DispatchResult {
-            Self::do_add_custom_proposal(origin, data)
+            Self::do_add_global_custom_proposal(origin, data)
         }
 
         #[pallet::call_index(3)]
@@ -207,7 +199,7 @@ pub mod pallet {
             netuid: u16,
             data: Vec<u8>,
         ) -> DispatchResult {
-            Self::do_add_custom_subnet_proposal(origin, netuid, data)
+            Self::do_add_subnet_custom_proposal(origin, netuid, data)
         }
 
         #[pallet::call_index(4)]
@@ -312,53 +304,37 @@ pub mod pallet {
         /// The voter is delegating its voting power to their staked modules. Disable voting power
         /// delegation.
         VoterIsDelegatingVotingPower,
+        /// The network vote mode must be authority for changes to be imposed.
+        VoteModeIsNotAuthority,
         /// An internal error occurred, probably relating to the size of the bounded sets.
         InternalError,
     }
 }
 
-#[derive(
-    Clone, TypeInfo, Decode, Encode, PartialEq, Eq, frame_support::DebugNoBound, MaxEncodedLen,
-)]
-#[scale_info(skip_type_params(T))]
-pub struct GovernanceConfiguration<T: Config> {
-    pub proposal_cost: Nanos,
-    pub proposal_expiration: u32,
-    pub vote_mode: VoteMode,
-    pub proposal_reward_treasury_allocation: I92F36,
-    pub max_proposal_reward_treasury_allocation: u64,
-    pub proposal_reward_interval: u64,
-    pub _pd: PhantomData<T>,
-}
-
-impl<T: Config> Default for GovernanceConfiguration<T> {
-    fn default() -> Self {
-        Self {
-            proposal_cost: 10_000_000_000_000,
-            proposal_expiration: 130_000,
-            vote_mode: VoteMode::Vote,
-            proposal_reward_treasury_allocation: I92F36::from_num(10),
-            max_proposal_reward_treasury_allocation: 10_000,
-            proposal_reward_interval: 75_600,
-            _pd: PhantomData,
-        }
-    }
-}
-
-impl<T: Config> GovernanceConfiguration<T> {
-    pub fn apply_global(self) -> Result<(), DispatchError> {
-        ensure!(self.proposal_cost > 0, Error::<T>::InvalidProposalCost);
+impl<T: Config> Pallet<T> {
+    pub fn validate(
+        config: GovernanceConfiguration,
+    ) -> Result<GovernanceConfiguration, DispatchError> {
+        ensure!(config.proposal_cost > 0, Error::<T>::InvalidProposalCost);
         ensure!(
-            self.proposal_expiration > 0,
+            config.proposal_expiration > 0,
             Error::<T>::InvalidProposalExpiration
         );
+        Ok(config)
+    }
 
-        GlobalGovernanceConfig::<T>::set(self);
+    fn apply_global_governance_configuration(config: GovernanceConfiguration) -> DispatchResult {
+        let config = Self::validate(config)?;
+        GlobalGovernanceConfig::<T>::set(config);
         Ok(())
     }
 
-    pub fn apply_subnet(self, subnet_id: SubnetId) -> Result<(), DispatchError> {
-        SubnetGovernanceConfig::<T>::set(subnet_id, self);
+    fn apply_subnet_governance_configuration(
+        subnet_id: SubnetId,
+        config: GovernanceConfiguration,
+    ) -> DispatchResult {
+        let config = Self::validate(config)?;
+        SubnetGovernanceConfig::<T>::set(subnet_id, config);
         Ok(())
     }
 }
@@ -383,5 +359,38 @@ impl<T: Config> Pallet<T> {
                 Ok(())
             }
         })
+    }
+
+    pub fn update_global_governance_configuration(
+        config: GovernanceConfiguration,
+    ) -> DispatchResult {
+        ensure!(
+            matches!(
+                GlobalGovernanceConfig::<T>::get().vote_mode,
+                VoteMode::Authority
+            ),
+            Error::<T>::VoteModeIsNotAuthority
+        );
+        Self::apply_global_governance_configuration(config)?;
+        Ok(())
+    }
+
+    pub fn update_subnet_governance_configuration(
+        subnet_id: u16,
+        config: GovernanceConfiguration,
+    ) -> DispatchResult {
+        ensure!(
+            matches!(
+                SubnetGovernanceConfig::<T>::get(subnet_id).vote_mode,
+                VoteMode::Authority
+            ),
+            Error::<T>::VoteModeIsNotAuthority
+        );
+        Self::apply_subnet_governance_configuration(subnet_id, config)?;
+        Ok(())
+    }
+
+    pub fn handle_subnet_removal(subnet_id: u16) {
+        SubnetGovernanceConfig::<T>::remove(subnet_id);
     }
 }

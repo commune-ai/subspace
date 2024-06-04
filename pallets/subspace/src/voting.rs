@@ -1,42 +1,5 @@
 use super::*;
 use frame_support::pallet_prelude::DispatchResult;
-use parity_scale_codec::MaxEncodedLen;
-
-#[derive(Clone, Debug, TypeInfo, Decode, Encode)]
-#[scale_info(skip_type_params(T))]
-pub struct Proposal<T: Config> {
-    pub id: u64,
-    pub proposer: T::AccountId,
-    pub expiration_block: u64,
-    pub data: ProposalData<T>,
-    pub status: ProposalStatus,
-    pub votes_for: BTreeSet<T::AccountId>, // account addresses
-    pub votes_against: BTreeSet<T::AccountId>, // account addresses
-    pub proposal_cost: u64,
-    pub creation_block: u64,
-    pub finalization_block: Option<u64>,
-}
-
-#[derive(Clone, Debug, PartialEq, Eq, TypeInfo, Decode, Encode)]
-#[scale_info(skip_type_params(T))]
-pub enum ProposalData<T: Config> {
-    Custom(Vec<u8>),
-    GlobalParams(GlobalParams<T>),
-    SubnetParams {
-        netuid: u16,
-        params: SubnetParams<T>,
-    },
-    SubnetCustom {
-        netuid: u16,
-        data: Vec<u8>,
-    },
-    Expired,
-    TransferDaoTreasury {
-        data: Vec<u8>,
-        value: u64,
-        dest: T::AccountId,
-    },
-}
 
 #[derive(Clone, Debug, TypeInfo, Decode, Encode)]
 #[scale_info(skip_type_params(T))]
@@ -50,26 +13,11 @@ pub struct CuratorApplication<T: Config> {
 }
 
 #[derive(Clone, Debug, Default, PartialEq, Eq, TypeInfo, Decode, Encode)]
-pub enum ProposalStatus {
-    #[default]
-    Pending,
-    Accepted,
-    Refused,
-    Expired,
-}
-
-#[derive(Clone, Debug, Default, PartialEq, Eq, TypeInfo, Decode, Encode)]
 pub enum ApplicationStatus {
     #[default]
     Pending,
     Accepted,
     Refused,
-}
-
-#[derive(Clone, Copy, Debug, PartialEq, Eq, TypeInfo, Decode, Encode, MaxEncodedLen)]
-pub enum VoteMode {
-    Authority = 0,
-    Vote = 1,
 }
 
 impl<T: Config> Pallet<T> {
