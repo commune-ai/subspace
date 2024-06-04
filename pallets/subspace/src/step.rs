@@ -624,7 +624,11 @@ failed to run yuma consensus algorithm: {err:?}, skipping this block. \
         target_registrations_interval: u16,
         target_registrations_per_interval: u16,
     ) {
-        if block_number % u64::from(target_registrations_interval) == 0 {
+        if target_registrations_interval == 0 {
+            return;
+        }
+
+        if block_number % target_registrations_interval as u64 == 0 {
             let current_burn = Self::get_burn(netuid);
 
             let adjusted_burn = Self::adjust_burn(
