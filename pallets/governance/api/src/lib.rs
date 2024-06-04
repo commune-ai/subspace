@@ -28,8 +28,10 @@ impl Default for GovernanceConfiguration {
             proposal_cost: 10_000_000_000_000,
             proposal_expiration: 130_000,
             vote_mode: VoteMode::Vote,
-            proposal_reward_treasury_allocation: I92F36::from_num(10),
-            max_proposal_reward_treasury_allocation: 10_000,
+            // Maximum allocate 3% of the treasury.
+            proposal_reward_treasury_allocation: I92F36::from_num(3),
+            // Maximum reward allocation 10K.
+            max_proposal_reward_treasury_allocation: 10_000_000_000_000,
             proposal_reward_interval: 75_600,
         }
     }
