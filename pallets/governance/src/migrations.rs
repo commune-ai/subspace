@@ -99,18 +99,23 @@ impl<T: Config + pallet_subspace::Config> OnRuntimeUpgrade for InitialMigration<
         log::info!("set delegated voting power for {}", delegating.len());
         DelegatingVotingPower::<T>::set(delegating.try_into().unwrap_or_default());
 
-        let old_treasury_balance = old::GlobalDaoTreasury::<T>::get();
         let treasury_account = DaoTreasuryAddress::<T>::get();
-        log::info!("Treasury balance: {old_treasury_balance}");
-        PalletSubspace::<T>::add_balance_to_account(
-            &treasury_account,
-            PalletSubspace::<T>::u64_to_balance(old_treasury_balance).unwrap_or_default(),
-        );
+        let old_treasury_balance = old::GlobalDaoTreasury::<T>::get();
 
-        let account_balance = PalletSubspace::<T>::get_balance_u64(&treasury_account);
-        log::info!(
-            "Treasury transferred to account ({treasury_account:?}), tokens: {account_balance}"
-        );
+        let treasury_account_balance = PalletSubspace::<T>::get_balance_u64(&treasury_account);
+        if treasury_account_balance != old_treasury_balance {
+            log::info!("Treasury balance: {old_treasury_balance}");
+
+            PalletSubspace::<T>::add_balance_to_account(
+                &treasury_account,
+                PalletSubspace::<T>::u64_to_balance(old_treasury_balance).unwrap_or_default(),
+            );
+
+            let account_balance = PalletSubspace::<T>::get_balance_u64(&treasury_account);
+            log::info!(
+                "Treasury transferred to account ({treasury_account:?}), tokens: {account_balance}"
+            );
+        }
 
         frame_support::weights::Weight::zero()
     }
