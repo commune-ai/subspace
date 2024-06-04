@@ -36,6 +36,25 @@ fn register(account: u32, subnet_id: u16, module: u32, stake: u64) {
     ));
 }
 
+fn delegate(account: u32) {
+    assert_ok!(Governance::enable_vote_power_delegation(get_origin(
+        account
+    )));
+}
+
+fn stake(account: u32, subnet: u16, module: u32, stake: u64) {
+    if get_balance(account) <= stake {
+        add_balance(account, stake + to_nano(1));
+    }
+
+    assert_ok!(Subspace::do_add_stake(
+        get_origin(account),
+        subnet,
+        module,
+        stake
+    ));
+}
+
 #[test]
 fn global_governance_config_validates_parameters_correctly() {
     new_test_ext().execute_with(|| {
@@ -145,14 +164,14 @@ fn global_custom_proposal_is_accepted_correctly() {
 
         step_block(100);
 
-        assert!(matches!(
+        assert_eq!(
             Proposals::<Test>::get(0).unwrap().status,
             ProposalStatus::Accepted {
                 block: 200,
                 stake_for: 10_000_000_000,
                 stake_against: 5_000_000_000,
             }
-        ));
+        );
     });
 }
 
@@ -165,13 +184,8 @@ fn subnet_custom_proposal_is_accepted_correctly() {
         zero_min_burn();
         let origin = get_origin(0);
 
-        dbg!(Subspace::global_params());
-        dbg!(Subspace::subnet_params(0));
-
         register(FOR, 0, 0, to_nano(10));
-        dbg!(pallet_subspace::N::<Test>::get(0));
         register(AGAINST, 0, 1, to_nano(5));
-        dbg!(pallet_subspace::N::<Test>::get(0));
         register(AGAINST, 1, 0, to_nano(10));
 
         config(1, 300);
@@ -189,19 +203,19 @@ fn subnet_custom_proposal_is_accepted_correctly() {
 
         step_block(100);
 
-        assert!(matches!(
+        assert_eq!(
             Proposals::<Test>::get(0).unwrap().status,
             ProposalStatus::Accepted {
                 block: 200,
                 stake_for: 10_000_000_000,
                 stake_against: 5_000_000_000,
             }
-        ));
+        );
     });
 }
 
 #[test]
-fn proposal_is_refused_correctly() {
+fn global_proposal_is_refused_correctly() {
     new_test_ext().execute_with(|| {
         const FOR: u32 = 0;
         const AGAINST: u32 = 1;
@@ -226,14 +240,14 @@ fn proposal_is_refused_correctly() {
 
         step_block(100);
 
-        assert!(matches!(
-            dbg!(Proposals::<Test>::get(0).unwrap().status),
+        assert_eq!(
+            Proposals::<Test>::get(0).unwrap().status,
             ProposalStatus::Refused {
                 block: 200,
                 stake_for: 5_000_000_000,
                 stake_against: 10_000_000_000,
             }
-        ));
+        );
     });
 }
 
@@ -370,6 +384,105 @@ fn subnet_params_proposal_accepted() {
         assert_eq!(
             SubnetGovernanceConfig::<Test>::get(0).vote_mode,
             VoteMode::Authority
+        );
+    });
+}
+
+#[test]
+fn global_proposals_counts_delegated_stake() {
+    new_test_ext().execute_with(|| {
+        const FOR: u32 = 0;
+        const AGAINST: u32 = 1;
+        const FOR_DELEGATED: u32 = 2;
+        const AGAINST_DELEGATED: u32 = 3;
+
+        zero_min_burn();
+        let origin = get_origin(0);
+
+        register(FOR, 0, 0, to_nano(5));
+        delegate(FOR);
+        register(AGAINST, 0, 1, to_nano(10));
+
+        stake(FOR_DELEGATED, 0, 0, to_nano(10));
+        delegate(FOR_DELEGATED);
+        stake(AGAINST_DELEGATED, 0, 1, to_nano(3));
+        delegate(AGAINST_DELEGATED);
+
+        config(1, 300);
+
+        assert_ok!(Governance::do_add_global_custom_proposal(
+            origin,
+            vec![b'0'; 64]
+        ));
+
+        step_block(100);
+
+        vote(FOR, 0, true);
+        vote(AGAINST, 0, false);
+
+        step_block(100);
+
+        assert_eq!(
+            Proposals::<Test>::get(0).unwrap().status,
+            ProposalStatus::Accepted {
+                block: 200,
+                stake_for: 15_000_000_000,
+                stake_against: 13_000_000_000,
+            }
+        );
+    });
+}
+
+#[test]
+fn subnet_proposals_counts_delegated_stake() {
+    new_test_ext().execute_with(|| {
+        const FOR: u32 = 0;
+        const AGAINST: u32 = 1;
+        const FOR_DELEGATED: u32 = 2;
+        const AGAINST_DELEGATED: u32 = 3;
+        const FOR_DELEGATED_WRONG: u32 = 4;
+        const AGAINST_DELEGATED_WRONG: u32 = 5;
+
+        zero_min_burn();
+        let origin = get_origin(0);
+
+        register(FOR, 0, 0, to_nano(5));
+        register(FOR, 1, 0, to_nano(5));
+        register(AGAINST, 0, 1, to_nano(10));
+        register(AGAINST, 1, 1, to_nano(10));
+
+        stake(FOR_DELEGATED, 0, 0, to_nano(10));
+        delegate(FOR_DELEGATED);
+        stake(AGAINST_DELEGATED, 0, 1, to_nano(3));
+        delegate(AGAINST_DELEGATED);
+
+        stake(FOR_DELEGATED_WRONG, 1, 0, to_nano(10));
+        delegate(FOR_DELEGATED_WRONG);
+        stake(AGAINST_DELEGATED_WRONG, 1, 1, to_nano(3));
+        delegate(AGAINST_DELEGATED_WRONG);
+
+        config(1, 300);
+
+        assert_ok!(Governance::do_add_subnet_custom_proposal(
+            origin,
+            0,
+            vec![b'0'; 64]
+        ));
+
+        step_block(100);
+
+        vote(FOR, 0, true);
+        vote(AGAINST, 0, false);
+
+        step_block(100);
+
+        assert_eq!(
+            Proposals::<Test>::get(0).unwrap().status,
+            ProposalStatus::Accepted {
+                block: 200,
+                stake_for: 15_000_000_000,
+                stake_against: 13_000_000_000,
+            }
         );
     });
 }

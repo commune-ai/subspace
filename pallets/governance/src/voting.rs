@@ -30,7 +30,7 @@ impl<T: Config> Pallet<T> {
             Error::<T>::AlreadyVoted
         );
 
-        let voter_stake = dbg!(PalletSubspace::<T>::get_account_stake(&key, subnet_id));
+        let voter_stake = PalletSubspace::<T>::get_account_stake(&key, subnet_id);
 
         ensure!(voter_stake > 0, Error::<T>::InsufficientStake);
 
