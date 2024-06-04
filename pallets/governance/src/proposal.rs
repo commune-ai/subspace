@@ -492,6 +492,8 @@ fn calc_stake<T: Config>(
     own_stake + delegated_stake
 }
 
+// TODO:
+// check
 pub fn execute_proposal_rewards<T: Config>(
     block_number: u64,
     subnet_id: Option<u16>,
@@ -540,7 +542,7 @@ pub fn execute_proposal_rewards<T: Config>(
     distribute_proposal_rewards::<T>(account_stakes, total_allocation);
 }
 
-fn get_reward_allocation<T: crate::Config>(
+pub fn get_reward_allocation<T: crate::Config>(
     governance_config: &GovernanceConfiguration,
     n: u16,
 ) -> Result<I92F36, DispatchError> {

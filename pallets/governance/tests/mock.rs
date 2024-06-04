@@ -145,6 +145,26 @@ impl GovernanceApi<<Test as frame_system::Config>::AccountId> for Test {
     }
 
     fn handle_subnet_removal(_subnet_id: u16) {}
+
+    fn execute_application(user_id: &AccountId) -> DispatchResult {
+        Governance::execute_application(user_id)
+    }
+
+    fn get_general_subnet_application_cost() -> u64 {
+        1
+    }
+
+    fn curator_application_exists(module_key: &AccountId) -> bool {
+        Governance::curator_application_exists(module_key)
+    }
+
+    fn get_curator() -> <Test as frame_system::Config>::AccountId {
+        Default::default()
+    }
+
+    fn set_curator(_key: &<Test as frame_system::Config>::AccountId) {}
+
+    fn set_general_subnet_application_cost(_amount: u64) {}
 }
 
 // Build genesis storage according to the mock runtime.
@@ -189,4 +209,56 @@ pub fn get_balance(key: AccountId) -> Balance {
 
 pub fn zero_min_burn() {
     BurnConfig::<Test>::mutate(|cfg| cfg.min_burn = 0);
+}
+
+pub fn config(proposal_cost: u64, proposal_expiration: u32) {
+    GlobalGovernanceConfig::<Test>::set(GovernanceConfiguration {
+        proposal_cost,
+        proposal_expiration,
+        vote_mode: pallet_governance_api::VoteMode::Vote,
+        ..Default::default()
+    });
+}
+
+pub fn vote(account: u32, proposal_id: u64, agree: bool) {
+    assert_ok!(Governance::do_vote_proposal(
+        get_origin(account),
+        proposal_id,
+        agree
+    ));
+}
+
+pub fn register(account: u32, subnet_id: u16, module: u32, stake: u64) {
+    if get_balance(account) <= stake {
+        add_balance(account, stake + to_nano(1));
+    }
+
+    assert_ok!(Subspace::do_register(
+        get_origin(account),
+        format!("subnet-{subnet_id}").as_bytes().to_vec(),
+        format!("module-{module}").as_bytes().to_vec(),
+        format!("address-{account}-{module}").as_bytes().to_vec(),
+        stake,
+        module,
+        None,
+    ));
+}
+
+pub fn delegate(account: u32) {
+    assert_ok!(Governance::enable_vote_power_delegation(get_origin(
+        account
+    )));
+}
+
+pub fn stake(account: u32, subnet: u16, module: u32, stake: u64) {
+    if get_balance(account) <= stake {
+        add_balance(account, stake + to_nano(1));
+    }
+
+    assert_ok!(Subspace::do_add_stake(
+        get_origin(account),
+        subnet,
+        module,
+        stake
+    ));
 }

@@ -28,8 +28,8 @@ impl Default for GovernanceConfiguration {
             proposal_cost: 10_000_000_000_000,
             proposal_expiration: 130_000,
             vote_mode: VoteMode::Vote,
-            // Maximum allocate 3% of the treasury.
-            proposal_reward_treasury_allocation: I92F36::from_num(3),
+            // Maximum allocate 2% of the treasury.
+            proposal_reward_treasury_allocation: I92F36::from_num(2),
             // Maximum reward allocation 10K.
             max_proposal_reward_treasury_allocation: 10_000_000_000_000,
             proposal_reward_interval: 75_600,
@@ -71,4 +71,19 @@ pub trait GovernanceApi<AccountId> {
 
     /// Handles the deregistration of a subnet.
     fn handle_subnet_removal(subnet_id: u16);
+
+    /// Executes the application in DAO.
+    fn execute_application(user_id: &AccountId) -> DispatchResult;
+
+    /// Returns the cost of an application in general subnet.
+    fn get_general_subnet_application_cost() -> u64;
+
+    /// Returns bool indicating whether the application on SN0 exists.
+    fn curator_application_exists(module_key: &AccountId) -> bool;
+
+    fn get_curator() -> AccountId;
+
+    fn set_curator(key: &AccountId);
+
+    fn set_general_subnet_application_cost(amount: u64);
 }

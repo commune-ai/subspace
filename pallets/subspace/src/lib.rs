@@ -46,7 +46,6 @@ mod set_weights;
 mod staking;
 mod step;
 pub mod subnet;
-pub mod voting;
 pub mod weights; // Weight benchmarks // Commune consensus weights
 
 #[cfg(debug_assertions)]
@@ -63,15 +62,13 @@ pub mod pallet {
     )]
 
     use super::*;
+    pub use crate::weights::WeightInfo;
     use frame_support::{pallet_prelude::*, traits::Currency, Identity};
     use frame_system::pallet_prelude::*;
     use global::BurnConfiguration;
     use module::ModuleChangeset;
     use pallet_governance_api::{GovernanceConfiguration, VoteMode};
     use sp_arithmetic::per_things::Percent;
-    use voting::CuratorApplication;
-
-    pub use crate::weights::WeightInfo;
     pub use sp_std::{vec, vec::Vec};
 
     const STORAGE_VERSION: StorageVersion = StorageVersion::new(11);
@@ -490,9 +487,6 @@ pub mod pallet {
     pub type FloorFounderShare<T: Config> =
         StorageValue<_, u8, ValueQuery, DefaultFloorFounderShare<T>>;
 
-    #[pallet::storage]
-    pub type Curator<T: Config> = StorageValue<_, T::AccountId, ValueQuery, DefaultKey<T>>;
-
     #[pallet::storage] // --- ITEM( tota_number_of_existing_networks )
     pub type TotalSubnets<T> = StorageValue<_, u16, ValueQuery>;
 
@@ -626,10 +620,6 @@ pub mod pallet {
     pub type Weights<T: Config> =
         StorageDoubleMap<_, Identity, u16, Identity, u16, Vec<(u16, u16)>, ValueQuery>;
 
-    // whitelist for the base subnet (netuid 0)
-    #[pallet::storage]
-    pub type LegitWhitelist<T: Config> = StorageMap<_, Identity, T::AccountId, u8, ValueQuery>;
-
     // ---------------------------------
     // Event Variables
     // ---------------------------------
@@ -651,10 +641,6 @@ pub mod pallet {
                                                    * account has been registered to the chain. */
         ModuleDeregistered(u16, u16, T::AccountId), /* --- Event created when a module account
                                                      * has been deregistered from the chain. */
-        WhitelistModuleAdded(T::AccountId), /* --- Event created when a module account has been
-                                             * added to the whitelist. */
-        WhitelistModuleRemoved(T::AccountId), /* --- Event created when a module account has
-                                               * been removed from the whitelist. */
         ModuleUpdated(u16, T::AccountId), /* --- Event created when the module got updated
                                            * information is added to the network. */
 
@@ -662,13 +648,11 @@ pub mod pallet {
         Faucet(T::AccountId, BalanceOf<T>), // (id, balance_to_add)
 
         //voting
-        ProposalCreated(u64),                        // id of the proposal
-        ApplicationCreated(u64),                     // id of the application
-        ProposalVoted(u64, T::AccountId, bool),      // (id, voter, vote)
+        ProposalVoted(u64, T::AccountId, bool), // (id, voter, vote)
         ProposalVoteUnregistered(u64, T::AccountId), // (id, voter)
-        GlobalParamsUpdated(GlobalParams<T>),        /* --- Event created when global
-                                                      * parameters are
-                                                      * updated */
+        GlobalParamsUpdated(GlobalParams<T>),   /* --- Event created when global
+                                                 * parameters are
+                                                 * updated */
         SubnetParamsUpdated(u16), // --- Event created when subnet parameters are updated
         GlobalProposalAccepted(u64), // (id)
         CustomProposalAccepted(u64), // (id)
@@ -723,13 +707,6 @@ pub mod pallet {
         KeyAlreadyRegistered,
         EmptyKeys,
         TooManyKeys,
-        NotCurator, /* --- Thrown when the user tries to set the curator and is not the
-                     * curator */
-        ApplicationNotFound,
-        AlreadyWhitelisted, /* --- Thrown when the user tries to whitelist an account that is
-                             * already whitelisted. */
-        NotWhitelisted, /* --- Thrown when the user tries to remove an account from the
-                         * whitelist that is not whitelisted. */
         InvalidShares,
         ProfitSharesNotAdded,
         NotFounder,
@@ -800,15 +777,6 @@ pub mod pallet {
         InvalidProposalCustomData,
         ProposalCustomDataTooSmall,
         ProposalCustomDataTooLarge,
-
-        // DAO / Governance
-        ApplicationTooSmall,
-        ApplicationTooLarge,
-        ApplicationNotPending,
-        InvalidApplication,
-        NotEnoughBalanceToPropose,
-        NotEnoughtBalnceToApply,
-        InvalidRecommendedWeight,
 
         // Other
         InvalidMaxWeightAge,
@@ -882,22 +850,6 @@ pub mod pallet {
             }
         }
     }
-
-    // ---------------------------------
-    // Proposals
-    // ---------------------------------
-
-    #[pallet::type_value]
-    pub fn DefaultGeneralSubnetApplicationCost<T: Config>() -> u64 {
-        1_000_000_000_000 // 1_000 $COMAI
-    }
-
-    #[pallet::storage]
-    pub type GeneralSubnetApplicationCost<T: Config> =
-        StorageValue<_, u64, ValueQuery, DefaultGeneralSubnetApplicationCost<T>>;
-
-    #[pallet::storage]
-    pub type CuratorApplications<T: Config> = StorageMap<_, Identity, u64, CuratorApplication<T>>;
 
     // ---------------------------------
     // Hooks
@@ -1117,45 +1069,6 @@ pub mod pallet {
 
             let changeset = SubnetChangeset::update(netuid, params)?;
             Self::do_update_subnet(origin, netuid, changeset)
-        }
-
-        // ---------------------------------
-        // Subnet 0 DAO
-        // ---------------------------------
-
-        #[pallet::call_index(11)]
-        #[pallet::weight((T::WeightInfo::add_dao_application(), DispatchClass::Normal, Pays::No))]
-        pub fn add_dao_application(
-            origin: OriginFor<T>,
-            application_key: T::AccountId,
-            data: Vec<u8>,
-        ) -> DispatchResult {
-            Self::do_add_dao_application(origin, application_key, data)
-        }
-
-        #[pallet::call_index(12)]
-        #[pallet::weight((T::WeightInfo::refuse_dao_application(), DispatchClass::Normal, Pays::No))]
-        pub fn refuse_dao_application(origin: OriginFor<T>, id: u64) -> DispatchResult {
-            Self::do_refuse_dao_application(origin, id)
-        }
-
-        #[pallet::call_index(13)]
-        #[pallet::weight((T::WeightInfo::add_to_whitelist(), DispatchClass::Normal, Pays::No))]
-        pub fn add_to_whitelist(
-            origin: OriginFor<T>,
-            module_key: T::AccountId,
-            recommended_weight: u8,
-        ) -> DispatchResult {
-            Self::do_add_to_whitelist(origin, module_key, recommended_weight)
-        }
-
-        #[pallet::call_index(14)]
-        #[pallet::weight((T::WeightInfo::remove_from_whitelist(), DispatchClass::Normal, Pays::No))]
-        pub fn remove_from_whitelist(
-            origin: OriginFor<T>,
-            module_key: T::AccountId,
-        ) -> DispatchResult {
-            Self::do_remove_from_whitelist(origin, module_key)
         }
 
         // ---------------------------------

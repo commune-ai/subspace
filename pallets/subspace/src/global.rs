@@ -46,7 +46,7 @@ impl<T: Config> Pallet<T> {
             min_name_length: MinNameLength::<T>::get(),
             max_allowed_subnets: MaxAllowedSubnets::<T>::get(),
             max_allowed_modules: MaxAllowedModules::<T>::get(),
-            curator: Curator::<T>::get(),
+            curator: T::get_curator(),
             floor_founder_share: FloorFounderShare::<T>::get(),
             floor_delegation_fee: FloorDelegationFee::<T>::get(),
             // burn & registrations
@@ -58,7 +58,7 @@ impl<T: Config> Pallet<T> {
             min_weight_stake: MinWeightStake::<T>::get(),
 
             // s0 config
-            general_subnet_application_cost: GeneralSubnetApplicationCost::<T>::get(),
+            general_subnet_application_cost: T::get_general_subnet_application_cost(),
 
             governance_config: T::get_global_governance_configuration(),
         }
@@ -79,7 +79,10 @@ impl<T: Config> Pallet<T> {
         MinWeightStake::<T>::put(params.min_weight_stake);
         SubnetStakeThreshold::<T>::put(params.subnet_stake_threshold);
         FloorDelegationFee::<T>::put(params.floor_delegation_fee);
-        Curator::<T>::put(params.curator);
+
+        // TODO: update curator
+        T::set_curator(&params.curator);
+
         FloorFounderShare::<T>::put(params.floor_founder_share);
 
         // weights
@@ -91,6 +94,9 @@ impl<T: Config> Pallet<T> {
 
         // burn
         params.burn_config.apply().expect("invalid burn configuration");
+
+        // Update the general subnet application cost
+        T::set_general_subnet_application_cost(params.general_subnet_application_cost);
     }
 
     pub fn check_global_params(params: &GlobalParams<T>) -> DispatchResult {

@@ -36,6 +36,8 @@ pub mod v11 {
         use frame_support::{pallet_prelude::ValueQuery, storage_alias, Identity};
         use pallet_governance_api::VoteMode;
 
+        type AccountId<T> = <T as frame_system::Config>::AccountId;
+
         #[storage_alias]
         pub type MinBurn<T: Config> = StorageValue<Pallet<T>, u64, ValueQuery>;
 
@@ -50,6 +52,40 @@ pub mod v11 {
 
         #[storage_alias]
         pub type Proposals<T: Config> = StorageMap<Pallet<T>, Identity, u64, Proposal<T>>;
+
+        // SN0 DAO
+        #[storage_alias]
+        pub type Curator<T: Config> = StorageValue<Pallet<T>, AccountIdOf<T>>;
+
+        #[storage_alias]
+        pub type LegitWhitelist<T: Config> =
+            StorageMap<Pallet<T>, Identity, AccountId<T>, u8, ValueQuery>;
+
+        #[storage_alias]
+        pub type GeneralSubnetApplicationCost<T: Config> = StorageValue<Pallet<T>, u64, ValueQuery>;
+
+        #[storage_alias]
+        pub type CuratorApplications<T: Config> =
+            StorageMap<Pallet<T>, Identity, u64, CuratorApplication<T>>;
+
+        #[derive(Clone, Debug, TypeInfo, Decode, Encode)]
+        #[scale_info(skip_type_params(T))]
+        pub struct CuratorApplication<T: Config> {
+            pub id: u64,
+            pub user_id: T::AccountId,
+            pub paying_for: T::AccountId,
+            pub data: Vec<u8>,
+            pub status: ApplicationStatus,
+            pub application_cost: u64,
+        }
+
+        #[derive(Clone, Debug, Default, PartialEq, Eq, TypeInfo, Decode, Encode)]
+        pub enum ApplicationStatus {
+            #[default]
+            Pending,
+            Accepted,
+            Refused,
+        }
 
         #[derive(Clone, Debug, TypeInfo, Decode, Encode)]
         #[scale_info(skip_type_params(T))]
