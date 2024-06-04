@@ -1,3 +1,5 @@
+#![allow(dead_code, unused_imports)]
+
 use frame_support::{
     dispatch::DispatchResult,
     parameter_types,
