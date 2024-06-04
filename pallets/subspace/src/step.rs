@@ -290,7 +290,7 @@ failed to run yuma consensus algorithm: {err:?}, skipping this block. \
         if netuid == 0 && founder_emission > 0 {
             let mut founder_emission = founder_emission;
 
-            let distribution = DaoTreasuryDistribution::<T>::get();
+            let distribution = T::get_dao_treasury_distribution();
             if !distribution.is_zero() && total_yuma_stake > 0 {
                 let to_distribute = distribution.mul_floor(founder_emission);
                 founder_emission = founder_emission.saturating_sub(to_distribute);
@@ -322,7 +322,7 @@ failed to run yuma consensus algorithm: {err:?}, skipping this block. \
 
             // Update global treasure
             Self::add_balance_to_account(
-                &DaoTreasuryAddress::<T>::get(),
+                &T::get_dao_treasury_address(),
                 Self::u64_to_balance(founder_emission).unwrap_or_default(),
             );
         }

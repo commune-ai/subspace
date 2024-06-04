@@ -21,9 +21,7 @@ use frame_support::{
 use frame_support::{pallet_prelude::Weight, sp_runtime::transaction_validity::ValidTransaction};
 use parity_scale_codec::{Decode, Encode};
 use sp_runtime::{
-    traits::{
-        AccountIdConversion, DispatchInfoOf, Dispatchable, PostDispatchInfoOf, SignedExtension,
-    },
+    traits::{DispatchInfoOf, Dispatchable, PostDispatchInfoOf, SignedExtension},
     transaction_validity::{TransactionValidity, TransactionValidityError},
 };
 use sp_std::marker::PhantomData;
@@ -491,24 +489,6 @@ pub mod pallet {
     #[pallet::storage]
     pub type FloorFounderShare<T: Config> =
         StorageValue<_, u8, ValueQuery, DefaultFloorFounderShare<T>>;
-
-    #[pallet::type_value] // This has to be different than DefaultKey, so we are not conflicting in tests.
-    pub fn DefaultDaoTreasuryAddress<T: Config>() -> T::AccountId {
-        T::PalletId::get().into_account_truncating()
-    }
-
-    #[pallet::storage]
-    pub type DaoTreasuryAddress<T: Config> =
-        StorageValue<_, T::AccountId, ValueQuery, DefaultDaoTreasuryAddress<T>>;
-
-    #[pallet::type_value]
-    pub fn DefaultDaoTreasuryDistribution<T: Config>() -> Percent {
-        Percent::from_percent(5u8)
-    }
-
-    #[pallet::storage]
-    pub type DaoTreasuryDistribution<T: Config> =
-        StorageValue<_, Percent, ValueQuery, DefaultDaoTreasuryDistribution<T>>;
 
     #[pallet::storage]
     pub type Curator<T: Config> = StorageValue<_, T::AccountId, ValueQuery, DefaultKey<T>>;

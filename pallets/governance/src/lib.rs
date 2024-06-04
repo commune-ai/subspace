@@ -26,8 +26,10 @@ pub mod pallet {
     use frame_support::{
         pallet_prelude::{ValueQuery, *},
         traits::{Currency, StorageInstance},
+        PalletId,
     };
     use frame_system::pallet_prelude::{ensure_signed, BlockNumberFor};
+    use sp_runtime::traits::AccountIdConversion;
 
     use crate::*;
 
@@ -39,6 +41,10 @@ pub mod pallet {
 
     #[pallet::config(with_default)]
     pub trait Config: frame_system::Config + pallet_subspace::Config {
+        /// This pallet's ID, used for generating the treasury account ID.
+        #[pallet::constant]
+        type PalletId: Get<PalletId>;
+
         /// The events emitted on proposal changes.
         #[pallet::no_default_bounds]
         type RuntimeEvent: From<Event<Self>> + IsType<<Self as frame_system::Config>::RuntimeEvent>;
@@ -93,6 +99,24 @@ pub mod pallet {
     #[pallet::storage]
     pub type UnrewardedProposals<T: Config> =
         StorageMap<_, Identity, ProposalId, UnrewardedProposal<T>>; // TODO: make it return an option
+
+    #[pallet::type_value] // This has to be different than DefaultKey, so we are not conflicting in tests.
+    pub fn DefaultDaoTreasuryAddress<T: Config>() -> T::AccountId {
+        <T as Config>::PalletId::get().into_account_truncating()
+    }
+
+    #[pallet::storage]
+    pub type DaoTreasuryAddress<T: Config> =
+        StorageValue<_, T::AccountId, ValueQuery, DefaultDaoTreasuryAddress<T>>;
+
+    #[pallet::type_value]
+    pub fn DefaultDaoTreasuryDistribution<T: Config>() -> Percent {
+        Percent::from_percent(5u8)
+    }
+
+    #[pallet::storage]
+    pub type DaoTreasuryDistribution<T: Config> =
+        StorageValue<_, Percent, ValueQuery, DefaultDaoTreasuryDistribution<T>>;
 
     // TODO:
     // Add benchmarks for the pallet

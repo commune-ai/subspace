@@ -3,7 +3,6 @@ use super::*;
 use frame_support::{
     pallet_prelude::DispatchResult, storage::IterableStorageMap, IterableStorageDoubleMap,
 };
-use pallet_governance_api::GovernanceApi;
 
 use self::global::BurnConfiguration;
 use sp_arithmetic::per_things::Percent;
@@ -67,10 +66,7 @@ impl<T: Config> SubnetChangeset<T> {
             );
         }
 
-        <T as GovernanceApi<T::AccountId>>::update_subnet_governance_configuration(
-            netuid,
-            self.params.governance_config,
-        )?;
+        T::update_subnet_governance_configuration(netuid, self.params.governance_config)?;
 
         Pallet::<T>::deposit_event(Event::SubnetParamsUpdated(netuid));
 
@@ -272,7 +268,7 @@ impl<T: Config> Pallet<T> {
         MaxRegistrationsPerInterval::<T>::remove(netuid);
         AdjustmentAlpha::<T>::remove(netuid);
 
-        <T as GovernanceApi<T::AccountId>>::handle_subnet_removal(netuid);
+        T::handle_subnet_removal(netuid);
 
         // --- 4 Adjust the total number of subnets. and remove the subnet from the list of subnets.
         // =========================================================================================

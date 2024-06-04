@@ -27,7 +27,7 @@ pub fn ss58_to_account_id<T: Config>(
 pub mod v11 {
     use self::{
         global::BurnConfiguration,
-        old_storage::{GlobalDaoTreasury, MaxBurn, MinBurn},
+        old_storage::{MaxBurn, MinBurn},
     };
     use super::*;
 
@@ -136,19 +136,6 @@ pub mod v11 {
             } else {
                 log::info!("Migrated burn-related params to BurnConfig in v11");
             }
-
-            let old_treasury_balance = GlobalDaoTreasury::<T>::get();
-            let treasury_account = DaoTreasuryAddress::<T>::get();
-            log::info!("Treasury balance: {old_treasury_balance}");
-            Pallet::<T>::add_balance_to_account(
-                &treasury_account,
-                Pallet::<T>::u64_to_balance(old_treasury_balance).unwrap_or_default(),
-            );
-            GlobalDaoTreasury::<T>::set(0);
-
-            let account_balance = Pallet::<T>::get_balance_u64(&treasury_account);
-            log::info!("Treasury transferred, treasury account now has {account_balance}");
-            log::info!("Treasury account: {treasury_account:?}");
 
             /*
                         Subnet floor founder share raise

@@ -34,6 +34,7 @@ pallet-subspace = { path = "../subspace", default-features = false }
 frame-support.workspace = true
 frame-system.workspace = true
 
+sp-runtime.workspace = true
 sp-std.workspace = true
 
 substrate-fixed.workspace = true
@@ -49,5 +50,4 @@ scale-info = { workspace = true, default-features = false, features = [
 pallet-balances = { workspace = true, features = ["std"] }
 pallet-governance-api = { path = "./api", default-features = false }
 sp-io.workspace = true
-sp-runtime.workspace = true
 sp-tracing.workspace = true
