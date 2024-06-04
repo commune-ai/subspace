@@ -7,7 +7,7 @@ use frame_system::{self as system, ensure_signed};
 pub use pallet::*;
 use scale_info::TypeInfo;
 use sp_std::collections::{btree_map::BTreeMap, btree_set::BTreeSet};
-// export the migrations here
+
 pub mod migrations;
 
 use frame_support::{

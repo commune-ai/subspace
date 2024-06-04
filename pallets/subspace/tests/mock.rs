@@ -2,7 +2,7 @@
 
 use frame_support::{
     assert_ok, parameter_types,
-    traits::{Everything, Get, Hooks},
+    traits::{Everything, Hooks},
     PalletId,
 };
 use frame_system as system;
@@ -39,11 +39,6 @@ pub type BalanceCall = pallet_balances::Call<Test>;
 #[allow(dead_code)]
 pub type TestRuntimeCall = frame_system::Call<Test>;
 
-parameter_types! {
-    pub const BlockHashCount: u64 = 250;
-    pub const SS58Prefix: u8 = 42;
-}
-
 #[allow(dead_code)]
 pub type AccountId = U256;
 
@@ -55,6 +50,8 @@ pub type Balance = u64;
 pub type BlockNumber = u64;
 
 parameter_types! {
+    pub const SS58Prefix: u8 = 42;
+    pub const BlockHashCount: u64 = 250;
     pub const ExistentialDeposit: Balance = 1;
     pub const MaxLocks: u32 = 50;
     pub const MaxReserves: u32 = 50;
@@ -109,14 +106,15 @@ impl system::Config for Test {
     type PostTransactions = ();
 }
 
-pub const PALLET_ID: PalletId = PalletId(*b"py/subsp");
+parameter_types! {
+    pub const SubspacePalletId: PalletId = PalletId(*b"py/subsp");
+}
 
-pub struct SubspacePalletId;
-
-impl Get<PalletId> for SubspacePalletId {
-    fn get() -> PalletId {
-        PALLET_ID
-    }
+impl pallet_subspace::Config for Test {
+    type RuntimeEvent = RuntimeEvent;
+    type Currency = Balances;
+    type WeightInfo = ();
+    type PalletId = SubspacePalletId;
 }
 
 impl GovernanceApi<<Test as frame_system::Config>::AccountId> for Test {
@@ -150,13 +148,6 @@ impl GovernanceApi<<Test as frame_system::Config>::AccountId> for Test {
     }
 
     fn handle_subnet_removal(_subnet_id: u16) {}
-}
-
-impl pallet_subspace::Config for Test {
-    type RuntimeEvent = RuntimeEvent;
-    type Currency = Balances;
-    type WeightInfo = ();
-    type PalletId = SubspacePalletId;
 }
 
 #[allow(dead_code)]

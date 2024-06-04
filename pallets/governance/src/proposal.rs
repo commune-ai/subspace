@@ -50,13 +50,13 @@ impl<T: Config> Proposal<T> {
     }
 
     /// Marks a proposal as accepted and overrides the storage value.
-    pub fn accept(mut self, block_number: u64) -> DispatchResult {
+    pub fn accept(mut self, block: u64, stake_for: u64, stake_against: u64) -> DispatchResult {
         ensure!(self.is_active(), Error::<T>::ProposalIsFinished);
 
         self.status = ProposalStatus::Accepted {
-            block: block_number,
-            stake_for: 0,
-            stake_against: 0,
+            block,
+            stake_for,
+            stake_against,
         };
 
         Proposals::<T>::insert(self.id, &self);
@@ -88,15 +88,11 @@ impl<T: Config> Proposal<T> {
                 PalletSubspace::<T>::deposit_event(SubspaceEvent::SubnetParamsUpdated(subnet_id));
             }
             ProposalData::TransferDaoTreasury { account, amount } => {
-                PalletSubspace::<T>::remove_balance_from_account(
+                PalletSubspace::<T>::transfer_balance_to_account(
                     &DaoTreasuryAddress::<T>::get(),
-                    PalletSubspace::<T>::u64_to_balance(amount)
-                        .ok_or(Error::<T>::InvalidCurrencyConversionValue)?,
+                    &account,
+                    amount,
                 )?;
-
-                let amount = PalletSubspace::<T>::u64_to_balance(amount)
-                    .ok_or(Error::<T>::InvalidCurrencyConversionValue)?;
-                PalletSubspace::<T>::add_balance_to_account(&account, amount);
             }
         }
 
@@ -104,13 +100,13 @@ impl<T: Config> Proposal<T> {
     }
 
     /// Marks a proposal as refused and overrides the storage value.
-    pub fn refuse(mut self, block_number: u64) -> DispatchResult {
+    pub fn refuse(mut self, block: u64, stake_for: u64, stake_against: u64) -> DispatchResult {
         ensure!(self.is_active(), Error::<T>::ProposalIsFinished);
 
         self.status = ProposalStatus::Refused {
-            block: block_number,
-            stake_for: 0,
-            stake_against: 0,
+            block,
+            stake_for,
+            stake_against,
         };
 
         Proposals::<T>::insert(self.id, &self);
@@ -314,12 +310,14 @@ impl<T: Config> Pallet<T> {
     pub fn do_add_global_params_proposal(
         origin: T::RuntimeOrigin,
         data: Vec<u8>,
-        params: GlobalParams<T>,
+        mut params: GlobalParams<T>,
     ) -> DispatchResult {
         let key = ensure_signed(origin)?;
 
         ensure!(!data.is_empty(), Error::<T>::ProposalDataTooSmall);
         ensure!(data.len() <= 256, Error::<T>::ProposalDataTooLarge);
+
+        params.governance_config = Self::validate(params.governance_config)?;
         pallet_subspace::Pallet::check_global_params(&params)?;
 
         let proposal_data = ProposalData::GlobalParams(params);
@@ -330,7 +328,7 @@ impl<T: Config> Pallet<T> {
         origin: T::RuntimeOrigin,
         netuid: u16,
         data: Vec<u8>,
-        params: SubnetParams<T>,
+        mut params: SubnetParams<T>,
     ) -> DispatchResult {
         let key = ensure_signed(origin)?;
 
@@ -345,7 +343,9 @@ impl<T: Config> Pallet<T> {
         ensure!(!data.is_empty(), Error::<T>::ProposalDataTooSmall);
         ensure!(data.len() <= 256, Error::<T>::ProposalDataTooLarge);
 
+        params.governance_config = Self::validate(params.governance_config)?;
         SubnetChangeset::<T>::update(netuid, params.clone())?;
+
         let proposal_data = ProposalData::SubnetParams {
             subnet_id: netuid,
             params,
@@ -410,7 +410,7 @@ fn tick_proposal<T: Config>(
         .collect();
 
     let stake_for_sum: u64 = votes_for.iter().map(|(_, stake)| stake).sum();
-    let stake_against_sum: u64 = votes_for.iter().map(|(_, stake)| stake).sum();
+    let stake_against_sum: u64 = votes_against.iter().map(|(_, stake)| stake).sum();
 
     let total_stake = stake_for_sum + stake_against_sum;
     let minimal_stake_to_execute = get_minimal_stake_to_execute_with_percentage::<T>(
@@ -443,9 +443,9 @@ fn tick_proposal<T: Config>(
         );
 
         if stake_against_sum > stake_for_sum {
-            proposal.refuse(block_number)?;
+            proposal.refuse(block_number, stake_for_sum, stake_against_sum)?;
         } else {
-            proposal.accept(block_number)?;
+            proposal.accept(block_number, stake_for_sum, stake_against_sum)?;
         }
 
         Ok(())
