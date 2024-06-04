@@ -10,11 +10,11 @@ use frame_support::{
     traits::{Currency, Everything, OnFinalize, OnInitialize},
     PalletId,
 };
-use pallet_governance_api::*;
 use pallet_subspace::BurnConfig;
 use sp_runtime::BuildStorage;
 
 pub use frame_support::{assert_err, assert_ok};
+pub use pallet_governance::*;
 
 type AccountId = u32;
 type Balance = u64;
@@ -129,10 +129,10 @@ impl GovernanceApi<<Test as frame_system::Config>::AccountId> for Test {
     }
 
     fn update_subnet_governance_configuration(
-        _subnet_id: u16,
-        _governance_config: GovernanceConfiguration,
+        subnet_id: u16,
+        governance_config: GovernanceConfiguration,
     ) -> DispatchResult {
-        Ok(())
+        Governance::update_subnet_governance_configuration(subnet_id, governance_config)
     }
 
     fn handle_subnet_removal(_subnet_id: u16) {}

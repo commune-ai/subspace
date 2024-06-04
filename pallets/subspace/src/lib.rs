@@ -325,7 +325,10 @@ pub mod pallet {
                 ),
                 max_registrations_per_interval: 42,
                 adjustment_alpha: DefaultAdjustmentAlpha::<T>::get(),
-                governance_config: Default::default(),
+                governance_config: GovernanceConfiguration {
+                    vote_mode: VoteMode::Authority,
+                    ..Default::default()
+                },
             }
         }
     }

@@ -11,11 +11,11 @@ use frame_support::{
     sp_runtime::{DispatchError, Percent},
 };
 use frame_system::pallet_prelude::OriginFor;
-use pallet_governance_api::{GovernanceConfiguration, VoteMode};
-use proposal::{Proposal, ProposalId, UnrewardedProposal};
 use sp_std::vec::Vec;
 
 pub use pallet::*;
+pub use pallet_governance_api::*;
+pub use proposal::*;
 
 type SubnetId = u16;
 
@@ -103,7 +103,7 @@ pub mod pallet {
     impl<T: Config> Pallet<T> {
         #[pallet::call_index(0)]
         #[pallet::weight((Weight::zero(), DispatchClass::Normal, Pays::No))]
-        pub fn add_global_proposal(
+        pub fn add_global_params_proposal(
             origin: OriginFor<T>,
             data: Vec<u8>,
             max_name_length: u16,
@@ -147,7 +147,7 @@ pub mod pallet {
 
         #[pallet::call_index(1)]
         #[pallet::weight((Weight::zero(), DispatchClass::Normal, Pays::No))]
-        pub fn add_subnet_proposal(
+        pub fn add_subnet_params_proposal(
             origin: OriginFor<T>,
             subnet_id: u16,
             data: Vec<u8>,
@@ -166,6 +166,10 @@ pub mod pallet {
             maximum_set_weight_calls_per_epoch: u16,
             vote_mode: VoteMode,
             bonds_ma: u64,
+            target_registrations_interval: u16,
+            target_registrations_per_interval: u16,
+            max_registrations_per_interval: u16,
+            adjustment_alpha: u64,
         ) -> DispatchResult {
             let mut params = pallet_subspace::Pallet::subnet_params(subnet_id);
             params.founder = founder;
@@ -183,23 +187,28 @@ pub mod pallet {
             params.maximum_set_weight_calls_per_epoch = maximum_set_weight_calls_per_epoch;
             params.governance_config.vote_mode = vote_mode;
             params.bonds_ma = bonds_ma;
+            params.target_registrations_interval = target_registrations_interval;
+            params.target_registrations_per_interval = target_registrations_per_interval;
+            params.max_registrations_per_interval = max_registrations_per_interval;
+            params.adjustment_alpha = adjustment_alpha;
+
             Self::do_add_subnet_params_proposal(origin, subnet_id, data, params)
         }
 
         #[pallet::call_index(2)]
         #[pallet::weight((Weight::zero(), DispatchClass::Normal, Pays::No))]
-        pub fn add_custom_proposal(origin: OriginFor<T>, data: Vec<u8>) -> DispatchResult {
+        pub fn add_global_custom_proposal(origin: OriginFor<T>, data: Vec<u8>) -> DispatchResult {
             Self::do_add_global_custom_proposal(origin, data)
         }
 
         #[pallet::call_index(3)]
         #[pallet::weight((Weight::zero(), DispatchClass::Normal, Pays::No))]
-        pub fn add_custom_subnet_proposal(
+        pub fn add_subnet_custom_proposal(
             origin: OriginFor<T>,
-            netuid: u16,
+            subnet_id: u16,
             data: Vec<u8>,
         ) -> DispatchResult {
-            Self::do_add_subnet_custom_proposal(origin, netuid, data)
+            Self::do_add_subnet_custom_proposal(origin, subnet_id, data)
         }
 
         #[pallet::call_index(4)]

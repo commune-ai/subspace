@@ -34,7 +34,6 @@ impl<T: Config> SubnetChangeset<T> {
     pub fn apply(self, netuid: u16) -> DispatchResult {
         Self::validate_params(Some(netuid), &self.params)?;
 
-        // TODO: add a check, to see all values of `SubnetParams` are actually being inserted.
         SubnetNames::<T>::insert(netuid, self.params.name.into_inner());
         Founder::<T>::insert(netuid, &self.params.founder);
         FounderShare::<T>::insert(netuid, self.params.founder_share);
