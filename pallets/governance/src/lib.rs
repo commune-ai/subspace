@@ -55,10 +55,7 @@ pub mod pallet {
             let block_number: u64 =
                 block_number.try_into().ok().expect("blockchain won't pass 2 ^ 64 blocks");
 
-            if block_number % 100 == 0 {
-                proposal::tick_proposals::<T>(block_number);
-            }
-
+            proposal::tick_proposals::<T>(block_number);
             proposal::tick_proposal_rewards::<T>(block_number);
 
             Weight::zero()
