@@ -15,7 +15,7 @@ use sp_std::vec::Vec;
 
 pub use pallet::*;
 pub use pallet_governance_api::*;
-pub use proposal::*;
+pub use proposal::{Proposal, ProposalData, ProposalId, ProposalStatus, UnrewardedProposal};
 
 type SubnetId = u16;
 
