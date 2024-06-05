@@ -204,7 +204,62 @@ pub mod v11 {
                 "Migrated founder share to v11, it now looks like {:?}",
                 founder_shares
             );
+            
 
+            // Update all relevant registration parameters.
+            // == Target Registrations Per Interval ==
+
+            let target_registration_per_interval_min = 1;
+            for (netuid, target_registrations_interval) in
+                TargetRegistrationsPerInterval::<T>::iter()
+            {
+                if target_registrations_interval < target_registration_per_interval_min {
+                    log::info!(
+                        "Migrating target registrations per interval to v11 for netuid {:?}: Old value: {}, New value: {}",
+                        netuid, target_registrations_interval, target_registration_per_interval_min
+                    );
+                    TargetRegistrationsPerInterval::<T>::insert(
+                        netuid,
+                        target_registration_per_interval_min,
+                    );
+                }
+            }
+
+            // == Target Registrations Interval ==
+
+            let target_registrations_interval_min = 10;
+            for (netuid, target_registrations_interval) in TargetRegistrationsInterval::<T>::iter()
+            {
+                if target_registrations_interval < target_registrations_interval_min {
+                    log::info!(
+                        "Migrating target registrations interval to v11 for netuid {:?}: Old value: {}, New value: {}",
+                        netuid, target_registrations_interval, target_registrations_interval_min
+                    );
+                    TargetRegistrationsInterval::<T>::insert(
+                        netuid,
+                        target_registrations_interval_min,
+                    );
+                }
+            }
+
+            // == Max Registrations Per Interval ==
+
+            let max_registrations_per_interval_min = 5;
+            for (netuid, max_registrations_per_interval) in MaxRegistrationsPerInterval::<T>::iter()
+            {
+                if max_registrations_per_interval < max_registrations_per_interval_min {
+                    log::info!(
+                        "Migrating max registrations to v11 for netuid {:?}: Old value: {}, New value: {}",
+                        netuid, max_registrations_per_interval, max_registrations_per_interval_min
+                    );
+                    MaxRegistrationsPerInterval::<T>::insert(
+                        netuid,
+                        max_registrations_per_interval_min,
+                    );
+                }
+            }
+
+            log::info!("======Migrated target registrations to v11======");
             StorageVersion::new(11).put::<Pallet<T>>();
             T::DbWeight::get().writes(1)
         }

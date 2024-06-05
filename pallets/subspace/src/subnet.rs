@@ -126,6 +126,27 @@ impl<T: Config> SubnetChangeset<T> {
             Error::<T>::InvalidMaxAllowedWeights
         );
 
+        // match registration parameters
+        ensure!(
+            params.target_registrations_interval >= 10,
+            Error::<T>::InvalidTargetRegistrationsInterval
+        );
+
+        ensure!(
+            params.target_registrations_per_interval >= 1,
+            Error::<T>::InvalidTargetRegistrationsPerInterval
+        );
+
+        ensure!(
+            params.max_registrations_per_interval >= 5,
+            Error::<T>::InvalidMaxRegistrationsPerInterval
+        );
+
+        ensure!(
+            params.adjustment_alpha > 0,
+            Error::<T>::InvalidAdjustmentAlpha
+        );
+
         match Pallet::<T>::get_netuid_for_name(&params.name) {
             Some(id) if netuid.is_some_and(|netuid| netuid == id) => { /* subnet kept same name */ }
             Some(_) => return Err(Error::<T>::SubnetNameAlreadyExists.into()),
