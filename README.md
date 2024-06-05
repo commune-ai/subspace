@@ -142,3 +142,4 @@ project, ask questions and meet other contributors.
 Special thanks to the teams at [Parity Technologies](https://www.parity.io/) and
 [Web3 Foundation](https://web3.foundation/) for their work on Substrate and
 FRAME.
+
