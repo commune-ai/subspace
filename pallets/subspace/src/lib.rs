@@ -508,7 +508,7 @@ pub mod pallet {
 
     #[pallet::storage] // --- DMAP ( netuid, module_key ) --> uid
     pub type Uids<T: Config> =
-        StorageDoubleMap<_, Identity, u16, Blake2_128Concat, T::AccountId, u16, OptionQuery>;
+        StorageDoubleMap<_, Identity, u16, Blake2_128Concat, T::AccountId, u16>;
 
     #[pallet::type_value]
     pub fn DefaultKey<T: Config>() -> T::AccountId {
@@ -829,22 +829,33 @@ pub mod pallet {
                     SubnetChangeset::new(params).expect("genesis subnets are valid");
                 let _ = self::Pallet::<T>::add_subnet(changeset, Some(netuid))
                     .expect("Failed to register genesis subnet");
-                for (uid_usize, (key, name, address, weights)) in
-                    self.modules[subnet_idx].iter().enumerate()
-                {
-                    let changeset = ModuleChangeset::new(name.clone(), address.clone(), fee, None);
-                    self::Pallet::<T>::append_module(netuid, key, changeset)
-                        .expect("genesis modules are valid");
-                    Weights::<T>::insert(netuid, uid_usize as u16, weights);
+
+                if let Some(modules) = self.modules.get(subnet_idx) {
+                    for (uid_usize, (key, name, address, weights)) in modules.iter().enumerate() {
+                        let changeset =
+                            ModuleChangeset::new(name.clone(), address.clone(), fee, None);
+                        self::Pallet::<T>::append_module(netuid, key, changeset)
+                            .expect("genesis modules are valid");
+                        Weights::<T>::insert(netuid, uid_usize as u16, weights);
+                    }
                 }
             }
             // Now we can add the stake to the network
-            for (subnet_idx, _subnet) in self.subnets.iter().enumerate() {
-                let netuid: u16 = subnet_idx as u16;
 
-                for (key, stake_to) in self.stake_to[netuid as usize].iter() {
+            let subnet_stakes = self
+                .subnets
+                .iter()
+                .enumerate()
+                .filter_map(|(subnet_id, _)| Some((subnet_id, self.stake_to.get(subnet_id)?)));
+            for (subnet_id, stakes) in subnet_stakes {
+                for (key, stake_to) in stakes {
                     for (module_key, stake_amount) in stake_to {
-                        self::Pallet::<T>::increase_stake(netuid, key, module_key, *stake_amount);
+                        Pallet::<T>::increase_stake(
+                            subnet_id as u16,
+                            key,
+                            module_key,
+                            *stake_amount,
+                        );
                     }
                 }
             }
@@ -1111,12 +1122,12 @@ pub mod pallet {
     impl<T: Config> Pallet<T> {
         // --- Returns the transaction priority for setting weights.
         pub fn get_priority_set_weights(key: &T::AccountId, netuid: u16) -> u64 {
-            if Uids::<T>::contains_key(netuid, key) {
-                let uid: u16 = Self::get_uid_for_key(netuid, &key.clone());
-                let current_block_number: u64 = Self::get_current_block_number();
-                return current_block_number - Self::get_last_update_for_uid(netuid, uid);
+            if let Some(uid) = Uids::<T>::get(netuid, key) {
+                let last_update = Self::get_last_update_for_uid(netuid, uid);
+                Self::get_current_block_number().saturating_add(last_update)
+            } else {
+                0
             }
-            0
         }
         // --- Returns the transaction priority for setting weights.
         pub fn get_priority_stake(key: &T::AccountId, netuid: u16) -> u64 {
@@ -1172,11 +1183,11 @@ where
         // Return high priority so that every extrinsic except set_weights function will
         // have a higher priority than the set_weights call
         // get the current block number
-        let current_block_number: u64 = Pallet::<T>::get_current_block_number();
+        let current_block_number = Pallet::<T>::get_current_block_number();
         let balance = Pallet::<T>::get_balance_u64(who);
 
         // this is the current block number minus the last update block number
-        current_block_number + balance
+        current_block_number.saturating_add(balance)
     }
 
     pub fn get_priority_set_weights(who: &T::AccountId, netuid: u16) -> u64 {

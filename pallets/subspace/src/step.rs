@@ -36,7 +36,7 @@ impl<T: Config> Pallet<T> {
             let new_queued_emission: u64 =
                 Self::calculate_network_emission(netuid, subnet_stake_threshold);
             let emission_to_drain = PendingEmission::<T>::mutate(netuid, |queued: &mut u64| {
-                *queued += new_queued_emission;
+                *queued = queued.saturating_add(new_queued_emission);
                 *queued
             });
             log::trace!("subnet {netuid} total pending emission: {emission_to_drain}, increased {new_queued_emission}");
@@ -236,7 +236,9 @@ failed to run yuma consensus algorithm: {err:?}, skipping this block. \
             let owner_emission_incentive: u64 = incentive_emission[*module_uid as usize];
             let mut owner_dividends_emission: u64 = dividends_emission[*module_uid as usize];
 
-            emission[*module_uid as usize] = owner_emission_incentive + owner_dividends_emission;
+            if let Some(emi) = emission.get_mut(*module_uid as usize) {
+                *emi = owner_emission_incentive.saturating_add(owner_dividends_emission);
+            }
 
             if owner_dividends_emission > 0 {
                 let ownership_vector: Vec<(T::AccountId, I64F64)> =
@@ -519,9 +521,13 @@ failed to run yuma consensus algorithm: {err:?}, skipping this block. \
                 uid_i,
             );
 
-            weights[uid_i as usize] = valid_weights;
+            let Some(weights) = weights.get_mut(uid_i as usize) else {
+                continue;
+            }
+            *weights = valid_weights;
+            
             if weight_changed {
-                <Weights<T>>::insert(netuid, uid_i, weights[uid_i as usize].clone());
+                Weights::<T>::insert(netuid, uid_i, weights.clone());
             }
         }
 

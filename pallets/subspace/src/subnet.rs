@@ -399,7 +399,7 @@ impl<T: Config> Pallet<T> {
             // or the netuid is the general subnet
             if subnet_ratio >= subnet_stake_threshold_i64f64 || netuid == 0 {
                 // Add subnet_stake to total_stake if it meets the threshold
-                total_stake += subnet_stake;
+                total_stake = total_stake.saturating_add(subnet_stake);
             }
         }
 
@@ -452,11 +452,11 @@ impl<T: Config> Pallet<T> {
     }
 
     pub fn set_last_update_for_uid(netuid: u16, uid: u16, last_update: u64) {
-        let mut updated_last_update_vec = LastUpdate::<T>::get(netuid);
-        if (uid as usize) < updated_last_update_vec.len() {
-            updated_last_update_vec[uid as usize] = last_update;
-            LastUpdate::<T>::insert(netuid, updated_last_update_vec);
-        }
+        LastUpdate::<T>::mutate(netuid, |vec| {
+            if let Some(idx) = vec.get_mut(uid as usize) {
+                *idx = last_update;
+            }
+        });
     }
 
     // ---------------------------------
@@ -465,7 +465,7 @@ impl<T: Config> Pallet<T> {
     pub fn get_least_staked_netuid() -> (u16, u64) {
         TotalStake::<T>::iter()
             .min_by_key(|(_, stake)| *stake)
-            .unwrap_or_else(|| (MaxAllowedSubnets::<T>::get() - 1, u64::MAX))
+            .unwrap_or_else(|| (MaxAllowedSubnets::<T>::get().saturating_sub(1), u64::MAX))
     }
 
     pub fn get_min_allowed_weights(netuid: u16) -> u16 {
