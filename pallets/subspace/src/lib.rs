@@ -782,6 +782,11 @@ pub mod pallet {
         InvalidMaxWeightAge,
         MaximumSetWeightsPerEpochReached,
         InsufficientDaoTreasuryFunds,
+        // Registrations
+        InvalidTargetRegistrationsPerInterval,
+        InvalidMaxRegistrationsPerInterval,
+        InvalidAdjustmentAlpha,
+        InvalidTargetRegistrationsInterval,
     }
 
     // ---------------------------------
