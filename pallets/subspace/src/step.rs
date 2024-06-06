@@ -293,6 +293,7 @@ failed to run yuma consensus algorithm: {err:?}, skipping this block. \
             let mut founder_emission = founder_emission;
 
             let distribution = T::get_dao_treasury_distribution();
+
             if !distribution.is_zero() && total_yuma_stake > 0 {
                 let to_distribute = distribution.mul_floor(founder_emission);
                 founder_emission = founder_emission.saturating_sub(to_distribute);
@@ -523,9 +524,9 @@ failed to run yuma consensus algorithm: {err:?}, skipping this block. \
 
             let Some(weights) = weights.get_mut(uid_i as usize) else {
                 continue;
-            }
+            };
             *weights = valid_weights;
-            
+
             if weight_changed {
                 Weights::<T>::insert(netuid, uid_i, weights.clone());
             }

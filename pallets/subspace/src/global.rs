@@ -64,9 +64,9 @@ impl<T: Config> Pallet<T> {
         }
     }
 
-    pub fn set_global_params(params: GlobalParams<T>) {
+    pub fn set_global_params(params: GlobalParams<T>) -> DispatchResult {
         // Check if the params are valid
-        Self::check_global_params(&params).expect("global params are invalid");
+        Self::check_global_params(&params)?;
 
         // Network
         MaxNameLength::<T>::put(params.max_name_length);
@@ -93,10 +93,12 @@ impl<T: Config> Pallet<T> {
             .expect("invalid governance configuration");
 
         // burn
-        params.burn_config.apply().expect("invalid burn configuration");
+        params.burn_config.apply()?;
 
         // Update the general subnet application cost
         T::set_general_subnet_application_cost(params.general_subnet_application_cost);
+
+        Ok(())
     }
 
     pub fn check_global_params(params: &GlobalParams<T>) -> DispatchResult {
