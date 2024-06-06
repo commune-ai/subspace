@@ -170,9 +170,19 @@ impl<T: Config + pallet_subspace::Config> OnRuntimeUpgrade for InitialMigration<
 
         log::info!("CuratorApplications:");
         for (key, value) in CuratorApplications::<T>::iter() {
-            log::info!("{key} -> {value:?}");
+            log::info!("  {key} -> {value:?}");
         }
-        log::info!(" ");
+
+        for subnet_id in pallet_subspace::N::<T>::iter_keys() {
+            SubnetGovernanceConfig::<T>::set(
+                subnet_id,
+                GovernanceConfiguration {
+                    vote_mode: old::VoteModeSubnet::<T>::get(subnet_id)
+                        .unwrap_or(VoteMode::Authority),
+                    ..Default::default()
+                },
+            )
+        }
 
         frame_support::weights::Weight::zero()
     }
