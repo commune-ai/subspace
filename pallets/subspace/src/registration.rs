@@ -11,6 +11,8 @@ use sp_std::vec::Vec;
 use system::pallet_prelude::BlockNumberFor;
 
 impl<T: Config> Pallet<T> {
+    // Used on extrinsics, can panic
+    #[allow(clippy::arithmetic_side_effects)]
     pub fn do_register(
         origin: T::RuntimeOrigin,
         network_name: Vec<u8>,
@@ -150,6 +152,7 @@ impl<T: Config> Pallet<T> {
     }
 
     /// Whether the netuid has enough stake to cover the minimal stake and min burn
+    #[allow(clippy::arithmetic_side_effects)]
     pub fn enough_stake_to_register(min_stake: u64, min_burn: u64, stake_amount: u64) -> bool {
         stake_amount >= (min_stake + min_burn)
     }
@@ -199,6 +202,8 @@ impl<T: Config> Pallet<T> {
         lowest_priority_uid
     }
 
+    // Make sure this can never panic
+    #[allow(clippy::arithmetic_side_effects)]
     pub fn do_faucet(
         origin: T::RuntimeOrigin,
         block_number: u64,

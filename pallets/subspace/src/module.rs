@@ -175,7 +175,7 @@ impl<T: Config> Pallet<T> {
         ValidatorTrust::<T>::append(netuid, 0);
 
         // 5. Increase the number of modules in the network.
-        N::<T>::mutate(netuid, |n| *n += 1);
+        N::<T>::mutate(netuid, |n| *n = n.saturating_add(1));
 
         // increase the stake of the new key
         Self::increase_stake(netuid, key, key, 0);
@@ -184,6 +184,8 @@ impl<T: Config> Pallet<T> {
     }
 
     /// Replace the module under this uid.
+    /// TODO: fix later the indexing
+    #[allow(clippy::indexing_slicing)]
     pub fn remove_module(netuid: u16, uid: u16) {
         // 1. Get the old key under this position.
         let n = N::<T>::get(netuid);
@@ -191,8 +193,9 @@ impl<T: Config> Pallet<T> {
             // No modules in the network.
             return;
         }
+
         let module_key: T::AccountId = Keys::<T>::get(netuid, uid);
-        let replace_uid = n - 1;
+        let replace_uid = n.saturating_sub(1);
         let replace_key: T::AccountId = Keys::<T>::get(netuid, replace_uid);
 
         log::debug!(
@@ -302,7 +305,7 @@ impl<T: Config> Pallet<T> {
 
         // 3. Remove the network if it is empty.
         let module_count = N::<T>::mutate(netuid, |v| {
-            *v -= 1;
+            *v = v.saturating_sub(1);
             *v
         }); // Decrease the number of modules in the network.
 

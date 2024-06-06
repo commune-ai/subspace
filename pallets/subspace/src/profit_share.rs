@@ -24,7 +24,13 @@ impl<T: Config> Pallet<T> {
 
         let normalized_shares: Vec<u16> = shares
             .iter()
-            .map(|&share| (share as u64 * u16::MAX as u64 / total_shares as u64) as u16)
+            .map(|&share| {
+                (share as u64)
+                    .checked_mul(u16::MAX as u64)
+                    .unwrap_or(0)
+                    .checked_div(total_shares as u64)
+                    .unwrap_or(0) as u16
+            })
             .collect();
 
         let total_normalized_shares: u16 = normalized_shares.iter().sum();
@@ -32,10 +38,15 @@ impl<T: Config> Pallet<T> {
         // Ensure the profit shares add up to the unit
         let mut adjusted_shares = normalized_shares;
         if total_normalized_shares < u16::MAX {
-            let diff = u16::MAX - total_normalized_shares;
+            let diff = u16::MAX.saturating_sub(total_normalized_shares);
             for i in 0..diff {
-                let idx = (i % adjusted_shares.len() as u16) as usize;
-                adjusted_shares[idx] += 1;
+                let Some(idx) = i.checked_rem(adjusted_shares.len() as u16) else {
+                    continue;
+                };
+
+                if let Some(share) = adjusted_shares.get_mut(idx as usize) {
+                    *share = share.saturating_add(1);
+                }
             }
         }
 
@@ -61,7 +72,11 @@ impl<T: Config> Pallet<T> {
         profit_shares
             .into_iter()
             .map(|(share_key, share_ratio)| {
-                let share_emission = emission * share_ratio as u64 / u16::MAX as u64;
+                let share_emission = emission
+                    .checked_mul(share_ratio as u64)
+                    .unwrap_or(0)
+                    .checked_div(u16::MAX as u64)
+                    .unwrap_or(0);
                 (share_key, share_emission)
             })
             .collect()

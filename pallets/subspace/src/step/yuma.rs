@@ -170,13 +170,20 @@ impl<T: Config> YumaCalc<T> {
 
         for i in 0..self.module_count as usize {
             // Set bonds only if uid retains validator permit, otherwise clear bonds.
-            if new_permits[i] {
-                let new_bonds_row: Vec<(u16, u16)> = ema_bonds[i]
-                    .iter()
-                    .map(|(j, value)| (*j, fixed_proportion_to_u16(*value)))
-                    .collect();
+            if *new_permits.get(i).unwrap_or(&false) {
+                let new_bonds_row: Vec<(u16, u16)> = ema_bonds
+                    .get(i)
+                    .map(|bonds_row| {
+                        bonds_row
+                            .iter()
+                            .map(|(j, value)| (*j, fixed_proportion_to_u16(*value)))
+                            .collect()
+                    })
+                    .unwrap_or_default();
                 Bonds::<T>::insert(self.netuid, i as u16, new_bonds_row);
-            } else if self.max_allowed_validators.is_none() || self.validator_permits[i] {
+            } else if self.max_allowed_validators.is_none()
+                || *self.validator_permits.get(i).unwrap_or(&false)
+            {
                 // Only overwrite the intersection.
                 let new_empty_bonds_row: Vec<(u16, u16)> = vec![];
                 Bonds::<T>::insert(self.netuid, i as u16, new_empty_bonds_row);
@@ -188,8 +195,8 @@ impl<T: Config> YumaCalc<T> {
         for (uid_i, module_key) in Keys::<T>::iter_prefix(self.netuid) {
             result.push((
                 ModuleKey(module_key),
-                server_emissions[uid_i as usize],
-                validator_emissions[uid_i as usize],
+                *server_emissions.get(uid_i as usize).unwrap_or(&0),
+                *validator_emissions.get(uid_i as usize).unwrap_or(&0),
             ));
         }
 
@@ -242,8 +249,10 @@ impl<T: Config> YumaCalc<T> {
                         continue;
                     }
 
-                    let dividends_from_delegate: u64 =
-                        (total_validator_emission * delegate_ratio).to_num::<u64>();
+                    let dividends_from_delegate: u64 = total_validator_emission
+                        .checked_mul(delegate_ratio)
+                        .unwrap_or(I64F64::from_num(0))
+                        .to_num::<u64>();
 
                     let to_module: u64 = delegation_fee.mul_floor(dividends_from_delegate);
                     let to_delegate: u64 = dividends_from_delegate.saturating_sub(to_module);
@@ -256,7 +265,7 @@ impl<T: Config> YumaCalc<T> {
                 }
             }
 
-            let mut remaining_emission = server_emission + validator_emission;
+            let mut remaining_emission = server_emission.saturating_add(validator_emission);
             if remaining_emission > 0 {
                 let profit_share_emissions =
                     Pallet::<T>::get_profit_share_emissions(&module_key.0, remaining_emission);
@@ -283,10 +292,10 @@ impl<T: Config> YumaCalc<T> {
         }
 
         ensure!(
-            emitted <= self.founder_emission + self.to_be_emitted,
+            emitted <= self.founder_emission.saturating_add(self.to_be_emitted),
             YumaError::EmittedMoreThanExpected {
                 emitted,
-                expected: self.founder_emission + self.to_be_emitted
+                expected: self.founder_emission.saturating_add(self.to_be_emitted)
             }
         );
 
@@ -463,9 +472,10 @@ impl<T: Config> YumaCalc<T> {
 
         // Compute bonds moving average.
         let bonds_moving_average = I64F64::from_num(BondsMovingAverage::<T>::get(self.netuid))
-            / I64F64::from_num(1_000_000);
+            .checked_div(I64F64::from_num(1_000_000))
+            .unwrap_or(I64F64::from_num(0));
         log::trace!("  bonds moving average: {bonds_moving_average}");
-        let alpha = I32F32::from_num(1) - I32F32::from_num(bonds_moving_average);
+        let alpha = I32F32::from_num(1).saturating_sub(I32F32::from_num(bonds_moving_average));
         let mut ema_bonds = mat_ema_sparse(&bonds_delta, &bonds, alpha);
         log::trace!("  original ema bonds: {ema_bonds:?}");
 
@@ -506,7 +516,7 @@ impl<T: Config> YumaCalc<T> {
             .as_ref()
             .iter()
             .zip(dividends.as_ref().iter())
-            .map(|(ii, di)| ii + di)
+            .map(|(ii, di)| ii.saturating_add(*di))
             .collect();
         log::trace!("  original combined emissions: {combined_emission:?}");
         let emission_sum: I32F32 = combined_emission.iter().sum();
@@ -551,14 +561,18 @@ impl<T: Config> YumaCalc<T> {
 
         let miner_emissions: Vec<u64> = normalized_miner_emission
             .iter()
-            .map(|&se| I96F32::from_num(se) * to_be_emitted)
+            .map(|&se| {
+                I96F32::from_num(se).checked_mul(to_be_emitted).unwrap_or(I96F32::from_num(0))
+            })
             .map(I96F32::to_num)
             .collect();
         log::trace!("  miners emissions: {miner_emissions:?}");
 
         let validator_emissions: Vec<u64> = normalized_validator_emission
             .iter()
-            .map(|&ve| I96F32::from_num(ve) * to_be_emitted)
+            .map(|&ve| {
+                I96F32::from_num(ve).checked_mul(to_be_emitted).unwrap_or(I96F32::from_num(0))
+            })
             .map(I96F32::to_num)
             .collect();
         log::trace!("  validator_emissions: {validator_emissions:?}");
@@ -566,7 +580,9 @@ impl<T: Config> YumaCalc<T> {
         // Only used to track emission in storage.
         let combined_emissions: Vec<u64> = normalized_combined_emission
             .iter()
-            .map(|&ce| I96F32::from_num(ce) * to_be_emitted)
+            .map(|&ce| {
+                I96F32::from_num(ce).checked_mul(to_be_emitted).unwrap_or(I96F32::from_num(0))
+            })
             .map(I96F32::to_num)
             .collect();
         log::trace!("  combined_emissions: {combined_emissions:?}");
@@ -662,7 +678,9 @@ struct Emissions {
 
 impl<T: Config> Pallet<T> {
     pub fn get_float_kappa() -> I32F32 {
-        I32F32::from_num(Kappa::<T>::get()) / I32F32::from_num(u16::MAX)
+        I32F32::from_num(Kappa::<T>::get())
+            .checked_div(I32F32::from_num(u16::MAX))
+            .unwrap_or(I32F32::from_num(0))
     }
 
     fn get_weights_sparse(netuid: u16) -> Option<Vec<Vec<(u16, I32F32)>>> {

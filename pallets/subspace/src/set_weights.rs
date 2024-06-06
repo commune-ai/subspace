@@ -7,6 +7,9 @@ impl<T: Config> Pallet<T> {
         items.iter().any(|item| !seen.insert(item))
     }
 
+    // Outside of the on_initalize hook, it's ok for this code to panic.
+    #[allow(clippy::indexing_slicing)]
+    #[allow(clippy::arithmetic_side_effects)]
     pub fn do_set_weights(
         origin: T::RuntimeOrigin,
         netuid: u16,
@@ -114,6 +117,7 @@ impl<T: Config> Pallet<T> {
     }
 
     // Implace normalizes the passed positive integer weights so that they sum to u16 max value.
+    #[allow(clippy::arithmetic_side_effects)]
     pub fn normalize_weights(weights: Vec<u16>) -> Vec<u16> {
         let sum: u64 = weights.iter().map(|&x| x as u64).sum();
         if sum == 0 {

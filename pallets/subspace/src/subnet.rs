@@ -6,7 +6,7 @@ use frame_support::{
 
 use self::global::BurnConfiguration;
 use sp_arithmetic::per_things::Percent;
-use sp_runtime::{BoundedVec, DispatchError};
+use sp_runtime::{traits::CheckedMul, BoundedVec, DispatchError};
 use sp_std::vec::Vec;
 use substrate_fixed::types::I64F64;
 
@@ -205,7 +205,7 @@ impl<T: Config> Pallet<T> {
 
         let name = changeset.params.name.clone();
         changeset.apply(netuid)?;
-        TotalSubnets::<T>::mutate(|n| *n += 1);
+        TotalSubnets::<T>::mutate(|n| *n = n.saturating_add(1));
         N::<T>::insert(netuid, 0);
         SubnetEmission::<T>::insert(netuid, 0);
 
@@ -295,7 +295,7 @@ impl<T: Config> Pallet<T> {
         // =========================================================================================
 
         N::<T>::remove(netuid);
-        TotalSubnets::<T>::mutate(|val| *val -= 1);
+        TotalSubnets::<T>::mutate(|val| *val = val.saturating_sub(1));
         SubnetGaps::<T>::mutate(|subnets| subnets.insert(netuid));
 
         // --- 5. Emit the event.
@@ -347,14 +347,15 @@ impl<T: Config> Pallet<T> {
         );
 
         let subnet_ratio = if total_stake > I64F64::from_num(0) {
-            subnet_stake / total_stake
+            subnet_stake.checked_div(total_stake).unwrap_or(I64F64::from_num(0))
         } else {
             I64F64::from_num(0)
         };
 
         // Convert subnet_stake_threshold from % to I64F64
-        let subnet_stake_threshold_i64f64 =
-            I64F64::from_num(subnet_stake_threshold.deconstruct()) / I64F64::from_num(100);
+        let subnet_stake_threshold_i64f64 = I64F64::from_num(subnet_stake_threshold.deconstruct())
+            .checked_div(I64F64::from_num(100))
+            .unwrap_or(I64F64::from_num(0));
 
         // Check if subnet_ratio meets the subnet_stake_threshold,
         // or netuid is not the general subnet
@@ -368,8 +369,9 @@ impl<T: Config> Pallet<T> {
 
         let total_emission_per_block: u64 = Self::get_total_emission_per_block();
 
-        let token_emission: u64 =
-            (subnet_ratio * I64F64::from_num(total_emission_per_block)).to_num::<u64>();
+        let token_emission: u64 = (I64F64::from_num(subnet_ratio)
+            .saturating_mul(I64F64::from_num(total_emission_per_block)))
+        .to_num::<u64>();
 
         SubnetEmission::<T>::insert(netuid, token_emission);
 
@@ -381,16 +383,16 @@ impl<T: Config> Pallet<T> {
     pub fn get_total_emission_per_block() -> u64 {
         let total_stake: u64 = Self::total_stake();
         let unit_emission: u64 = UnitEmission::<T>::get();
-        let mut emission_per_block: u64 = unit_emission; // assuming 8 second block times
+        let emission_per_block: u64 = unit_emission; // assuming 8 second block times
         let halving_total_stake_checkpoints: Vec<u64> =
             [10_000_000, 20_000_000, 30_000_000, 40_000_000]
                 .iter()
-                .map(|x| x * unit_emission)
+                .map(|x| x.checked_mul(&unit_emission).unwrap_or(0))
                 .collect();
         for (i, having_stake) in halving_total_stake_checkpoints.iter().enumerate() {
             let halving_factor: u64 = 2u64.pow((i) as u32);
             if total_stake < *having_stake {
-                emission_per_block /= halving_factor;
+                emission_per_block.checked_div(halving_factor).unwrap_or(0);
                 break;
             }
         }
@@ -407,17 +409,22 @@ impl<T: Config> Pallet<T> {
         }
 
         let mut total_stake = I64F64::from_num(0);
-        let subnet_stake_threshold_i64f64 =
-            I64F64::from_num(subnet_stake_threshold.deconstruct()) / I64F64::from_num(100);
+        let subnet_stake_threshold_i64f64 = I64F64::from_num(subnet_stake_threshold.deconstruct())
+            .checked_div(I64F64::from_num(100))
+            .unwrap_or(I64F64::from_num(0));
+
         // Iterate over all subnets
         for netuid in N::<T>::iter_keys() {
             let subnet_stake: I64F64 = I64F64::from_num(Self::get_total_subnet_stake(netuid));
             if subnet_stake == 0 {
                 continue;
             }
-            let subnet_ratio = subnet_stake / total_global_stake;
+            let subnet_ratio =
+                subnet_stake.checked_div(total_global_stake).unwrap_or(I64F64::from_num(0));
+
             // Check if subnet_ratio meets the subnet_stake_threshold,
             // or the netuid is the general subnet
+
             if subnet_ratio >= subnet_stake_threshold_i64f64 || netuid == 0 {
                 // Add subnet_stake to total_stake if it meets the threshold
                 total_stake = total_stake.saturating_add(subnet_stake);
@@ -455,16 +462,16 @@ impl<T: Config> Pallet<T> {
         let n: u16 = N::<T>::get(netuid);
         if max_allowed_uids < n {
             // limit it at 256 at a time
-            let mut remainder_n: u16 = n - max_allowed_uids;
+            let mut remainder_n: u16 = n.saturating_sub(max_allowed_uids);
             let max_remainder = 256;
             if remainder_n > max_remainder {
                 // remove the modules in small amounts, as this can be a heavy load on the chain
                 remainder_n = max_remainder;
-                max_allowed_uids = n - remainder_n;
+                max_allowed_uids = n.saturating_sub(remainder_n);
             }
             // remove the modules by adding the to the deregister queue
             for i in 0..remainder_n {
-                let next_uid: u16 = n - 1 - i;
+                let next_uid: u16 = n.saturating_sub(1).saturating_sub(i);
                 Self::remove_module(netuid, next_uid);
             }
         }

@@ -204,7 +204,6 @@ pub mod v11 {
                 "Migrated founder share to v11, it now looks like {:?}",
                 founder_shares
             );
-            
 
             // Update all relevant registration parameters.
             // == Target Registrations Per Interval ==

@@ -27,7 +27,7 @@ pub enum ApplicationStatus {
 impl<T: Config> Pallet<T> {
     fn get_next_application_id() -> u64 {
         match CuratorApplications::<T>::iter_keys().max() {
-            Some(id) => id + 1,
+            Some(id) => id.saturating_add(1),
             None => 0,
         }
     }
