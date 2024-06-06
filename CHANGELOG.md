@@ -79,7 +79,9 @@ All of the core functions in the on-initialize hook should now be written in muc
 
 #### Subnet & Global Params
 
-Adjustement alpha is moving from global parameteres to subnet parameters.
+- Adjustement alpha is moving from global parameteres to subnet parameters.
+- Moving the `MinBurn` and `MaxBurn` storage values to a single storage value, that can be queried at `BurnConfig`.
+- Moving `VoteModeSubne` mode to a GovernanceModule and StorageMap `SubnetGovernanceConfig`.
 
 #### Migrating Subnet Owner Fee
 
