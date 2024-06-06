@@ -376,6 +376,7 @@ impl<T: Config> Pallet<T> {
 
     // Returns the total amount of stake in the staking table.
     // TODO: refactor the halving logic, can be completelly optimized.
+    // This will change in the global stake update
     pub fn get_total_emission_per_block() -> u64 {
         let total_stake: u64 = Self::total_stake();
         let unit_emission: u64 = UnitEmission::<T>::get();
