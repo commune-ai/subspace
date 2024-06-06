@@ -73,6 +73,14 @@ pub fn enable_vote_power_delegation(origin: OriginFor<T>) -> DispatchResult {
 
 Note that if you delegate voting power to a validator, the validator will be the one receiving the voting rewards, not you as a delegator.
 
+#### Chain Safety
+
+All of the core functions in the on-initialize hook should now be written in much robust way, to avoid possible panics.
+
+#### Subnet & Global Params
+
+Adjustement alpha is moving from global parameteres to subnet parameters.
+
 #### Migrating Subnet Owner Fee
 
 The subnet owner fee **floor** is now 16%, with subnet 0 taking 20% (of the subnet emission allocated to the treasury) to motivate subnet staking.
