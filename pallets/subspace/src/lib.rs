@@ -761,27 +761,14 @@ pub mod pallet {
         /// A module with this name already exists in the subnet.
         ModuleNameAlreadyExists,
 
-        // VOTING
-        ProposalNotFound,
-        InvalidProposalStatus,
-        AlreadyVoted,
-        InvalidVoteMode,
         InvalidFounderShare,
         InvalidIncentiveRatio,
-        InvalidProposalCost,
         InvalidGeneralSubnetApplicationCost,
         InvalidProposalExpiration,
-        InvalidProposalParticipationThreshold,
-        InsufficientStake,
-        VoteNotFound,
-        InvalidProposalCustomData,
-        ProposalCustomDataTooSmall,
-        ProposalCustomDataTooLarge,
 
         // Other
         InvalidMaxWeightAge,
         MaximumSetWeightsPerEpochReached,
-        InsufficientDaoTreasuryFunds,
         // Registrations
         InvalidTargetRegistrationsPerInterval,
         InvalidMaxRegistrationsPerInterval,
