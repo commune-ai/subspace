@@ -302,23 +302,8 @@ failed to run yuma consensus algorithm: {err:?}, skipping this block. \
             let owner_emission: u64 =
                 owner_emission_incentive.saturating_add(owner_dividends_emission);
             if owner_emission > 0 {
-                let profit_share_emissions: Vec<(T::AccountId, u64)> =
-                    Self::get_profit_share_emissions(module_key, owner_emission);
-
-                if !profit_share_emissions.is_empty() {
-                    for (profit_share_key, profit_share_emission) in profit_share_emissions.iter() {
-                        Self::increase_stake(
-                            netuid,
-                            profit_share_key,
-                            module_key,
-                            *profit_share_emission,
-                        );
-                        emitted = emitted.saturating_add(*profit_share_emission);
-                    }
-                } else {
-                    Self::increase_stake(netuid, module_key, module_key, owner_emission);
-                    emitted = emitted.saturating_add(owner_emission);
-                }
+                Self::increase_stake(netuid, module_key, module_key, owner_emission);
+                emitted = emitted.saturating_add(owner_emission);
             }
         }
 

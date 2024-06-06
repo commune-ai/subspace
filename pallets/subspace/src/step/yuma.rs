@@ -265,30 +265,10 @@ impl<T: Config> YumaCalc<T> {
                 }
             }
 
-            let mut remaining_emission = server_emission.saturating_add(validator_emission);
+            let remaining_emission = server_emission.saturating_add(validator_emission);
             if remaining_emission > 0 {
-                let profit_share_emissions =
-                    Pallet::<T>::get_profit_share_emissions(&module_key.0, remaining_emission);
-
-                if !profit_share_emissions.is_empty() {
-                    for (profit_share_key, profit_share_emission) in profit_share_emissions {
-                        increase_stake(&AccountKey(profit_share_key), profit_share_emission);
-
-                        remaining_emission = remaining_emission
-                            .checked_sub(profit_share_emission)
-                            .ok_or("more remaining emissions were done than expected")?;
-                    }
-                } else {
-                    increase_stake(&AccountKey(module_key.0.clone()), remaining_emission);
-
-                    remaining_emission = 0;
-                }
+                increase_stake(&AccountKey(module_key.0.clone()), remaining_emission);
             }
-
-            ensure!(
-                remaining_emission == 0,
-                YumaError::HasEmissionRemaining { emitted }
-            );
         }
 
         ensure!(

@@ -443,21 +443,6 @@ benchmarks! {
     // }: unvote_proposal(RawOrigin::Signed(caller), proposal_id)
 
     // ---------------------------------
-    // Profit sharing
-    // ---------------------------------
-
-    // 22
-    add_profit_shares {
-        let caller: T::AccountId = account("Alice", 0, 1);
-        // Register caller
-        register_mock::<T>(caller.clone(), caller.clone(), 100000000000000u64, "test".as_bytes().to_vec())?;
-        let bob = account("Bob", 0, 2);
-        let cecilia = account("Cecilia", 0, 3);
-        let shares: Vec<u16> = vec![50, 50];
-        let keys = vec![bob, cecilia];
-    }: add_profit_shares(RawOrigin::Signed(caller), keys, shares)
-
-    // ---------------------------------
     // Testnet
     // ---------------------------------
 

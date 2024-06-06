@@ -57,7 +57,6 @@ pub trait WeightInfo {
 	fn add_transfer_dao_treasury_proposal() -> Weight;
 	fn vote_proposal() -> Weight;
 	fn unvote_proposal() -> Weight;
-	fn add_profit_shares() -> Weight;
 }
 
 /// Weights for `pallet_subspace` using the Substrate node and recommended hardware.
@@ -791,21 +790,6 @@ impl<T: frame_system::Config> WeightInfo for SubstrateWeight<T> {
 			.saturating_add(T::DbWeight::get().reads(1_u64))
 			.saturating_add(T::DbWeight::get().writes(1_u64))
 	}
-	/// Storage: `SubspaceModule::N` (r:2 w:0)
-	/// Proof: `SubspaceModule::N` (`max_values`: None, `max_size`: None, mode: `Measured`)
-	/// Storage: `SubspaceModule::Uids` (r:1 w:0)
-	/// Proof: `SubspaceModule::Uids` (`max_values`: None, `max_size`: None, mode: `Measured`)
-	/// Storage: `SubspaceModule::ProfitShares` (r:0 w:1)
-	/// Proof: `SubspaceModule::ProfitShares` (`max_values`: None, `max_size`: None, mode: `Measured`)
-	fn add_profit_shares() -> Weight {
-		// Proof Size summary in bytes:
-		//  Measured:  `652`
-		//  Estimated: `6592`
-		// Minimum execution time: 17_002_000 picoseconds.
-		Weight::from_parts(17_563_000, 6592)
-			.saturating_add(T::DbWeight::get().reads(3_u64))
-			.saturating_add(T::DbWeight::get().writes(1_u64))
-	}
 }
 
 // For backwards compatibility and tests.
@@ -1536,21 +1520,6 @@ impl WeightInfo for () {
 		// Minimum execution time: 12_123_000 picoseconds.
 		Weight::from_parts(12_493_000, 4178)
 			.saturating_add(RocksDbWeight::get().reads(1_u64))
-			.saturating_add(RocksDbWeight::get().writes(1_u64))
-	}
-	/// Storage: `SubspaceModule::N` (r:2 w:0)
-	/// Proof: `SubspaceModule::N` (`max_values`: None, `max_size`: None, mode: `Measured`)
-	/// Storage: `SubspaceModule::Uids` (r:1 w:0)
-	/// Proof: `SubspaceModule::Uids` (`max_values`: None, `max_size`: None, mode: `Measured`)
-	/// Storage: `SubspaceModule::ProfitShares` (r:0 w:1)
-	/// Proof: `SubspaceModule::ProfitShares` (`max_values`: None, `max_size`: None, mode: `Measured`)
-	fn add_profit_shares() -> Weight {
-		// Proof Size summary in bytes:
-		//  Measured:  `652`
-		//  Estimated: `6592`
-		// Minimum execution time: 17_002_000 picoseconds.
-		Weight::from_parts(17_563_000, 6592)
-			.saturating_add(RocksDbWeight::get().reads(3_u64))
 			.saturating_add(RocksDbWeight::get().writes(1_u64))
 	}
 }
