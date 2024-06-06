@@ -40,7 +40,6 @@ mod benchmarking;
 pub mod global;
 mod math;
 pub mod module;
-mod profit_share;
 mod registration;
 mod set_weights;
 mod staking;
@@ -588,19 +587,6 @@ pub mod pallet {
     #[pallet::storage] // --- MAP ( netuid ) --> subnet_total_stake
     pub type TotalStake<T> = StorageMap<_, Identity, u16, u64, ValueQuery>;
 
-    // PROFIT SHARE VARIABLES
-    #[pallet::storage] // --- DMAP ( netuid, account_id ) --> Vec<(module_key, stake )> | Returns the list of the
-    pub type ProfitShares<T: Config> =
-        StorageMap<_, Identity, T::AccountId, Vec<(T::AccountId, u16)>, ValueQuery>;
-
-    #[pallet::type_value]
-    pub fn DefaultProfitShareUnit<T: Config>() -> u16 {
-        u16::MAX
-    }
-    #[pallet::storage] // --- DMAP ( netuid, account_id ) --> Vec<(module_key, stake )> | Returns the list of the
-    pub type ProfitShareUnit<T: Config> =
-        StorageValue<_, u16, ValueQuery, DefaultProfitShareUnit<T>>;
-
     // ---------------------------------
     // Module Consensus Variables
     // ---------------------------------
@@ -708,7 +694,6 @@ pub mod pallet {
         EmptyKeys,
         TooManyKeys,
         InvalidShares,
-        ProfitSharesNotAdded,
         NotFounder,
         NotEnoughStakeToSetWeights,
         NotEnoughStakeToStartNetwork,
@@ -1072,20 +1057,6 @@ pub mod pallet {
 
             let changeset = SubnetChangeset::update(netuid, params)?;
             Self::do_update_subnet(origin, netuid, changeset)
-        }
-
-        // ---------------------------------
-        // Profit sharing
-        // ---------------------------------
-
-        #[pallet::call_index(15)]
-        #[pallet::weight((T::WeightInfo::add_profit_shares(), DispatchClass::Normal, Pays::No))]
-        pub fn add_profit_shares(
-            origin: OriginFor<T>,
-            keys: Vec<T::AccountId>,
-            shares: Vec<u16>,
-        ) -> DispatchResult {
-            Self::do_add_profit_shares(origin, keys, shares)
         }
 
         // ---------------------------------
