@@ -221,7 +221,7 @@ fn test_min_weight_stake() {
     new_test_ext().execute_with(|| {
         let mut global_params = SubspaceModule::global_params();
         global_params.min_weight_stake = to_nano(20);
-        SubspaceModule::set_global_params(global_params);
+        assert_ok!(SubspaceModule::set_global_params(global_params));
         MaxRegistrationsPerBlock::<Test>::set(1000);
 
         let netuid: u16 = 0;

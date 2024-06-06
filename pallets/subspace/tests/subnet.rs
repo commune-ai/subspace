@@ -299,7 +299,7 @@ fn test_deregister_subnet_when_overflows_max_allowed_subnets() {
         let extra = 1;
         let mut params = SubspaceModule::global_params();
         params.max_allowed_subnets = 3;
-        SubspaceModule::set_global_params(params.clone());
+        assert_ok!(SubspaceModule::set_global_params(params.clone()));
         // make sure that the results won´t get affected by burn
         zero_min_burn();
 

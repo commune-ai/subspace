@@ -79,7 +79,7 @@ impl<T: Config> Proposal<T> {
                 // The owners will handle the off-chain logic
             }
             ProposalData::GlobalParams(params) => {
-                PalletSubspace::<T>::set_global_params(params.clone());
+                PalletSubspace::<T>::set_global_params(params.clone())?;
                 PalletSubspace::<T>::deposit_event(SubspaceEvent::GlobalParamsUpdated(params));
             }
             ProposalData::SubnetParams { subnet_id, params } => {
