@@ -195,7 +195,7 @@ pub struct UnrewardedProposal<T: Config> {
 impl<T: Config> Pallet<T> {
     fn get_next_proposal_id() -> u64 {
         match Proposals::<T>::iter_keys().max() {
-            Some(id) => id + 1,
+            Some(id) => id.saturating_add(1),
             None => 0,
         }
     }
@@ -223,13 +223,15 @@ impl<T: Config> Pallet<T> {
 
         let proposal_id = Self::get_next_proposal_id();
         let current_block = PalletSubspace::<T>::get_current_block_number();
-        let expiration_block = current_block + proposal_expiration as u64;
+        let expiration_block = current_block.saturating_add(proposal_expiration as u64);
 
         // TODO: extract rounding function
         let expiration_block = if expiration_block % 100 == 0 {
             expiration_block
         } else {
-            expiration_block + 100 - (expiration_block % 100)
+            expiration_block
+                .saturating_add(100)
+                .saturating_sub(expiration_block.checked_rem(100).unwrap_or(0))
         };
 
         let proposal = Proposal {
@@ -374,7 +376,12 @@ pub fn get_minimal_stake_to_execute_with_percentage<T: Config>(
         None => PalletSubspace::<T>::total_stake(),
     };
 
-    (stake.saturated_into::<u128>() * threshold.deconstruct() as u128 / 100) as u64
+    stake
+        .saturated_into::<u128>()
+        .checked_mul(threshold.deconstruct() as u128)
+        .unwrap_or(0)
+        .checked_div(100)
+        .unwrap_or(0) as u64
 }
 
 fn tick_proposal<T: Config>(
@@ -412,7 +419,7 @@ fn tick_proposal<T: Config>(
     let stake_for_sum: u64 = votes_for.iter().map(|(_, stake)| stake).sum();
     let stake_against_sum: u64 = votes_against.iter().map(|(_, stake)| stake).sum();
 
-    let total_stake = stake_for_sum + stake_against_sum;
+    let total_stake = stake_for_sum.saturating_add(stake_against_sum);
     let minimal_stake_to_execute = get_minimal_stake_to_execute_with_percentage::<T>(
         proposal.data.required_stake(),
         subnet_id,
@@ -453,10 +460,9 @@ fn tick_proposal<T: Config>(
 }
 
 pub fn tick_proposal_rewards<T: Config>(block_number: u64) {
-    let mut to_tick: Vec<(Option<u16>, GovernanceConfiguration)> =
-        pallet_subspace::N::<T>::iter_keys()
-            .map(|subnet_id| (Some(subnet_id), SubnetGovernanceConfig::<T>::get(subnet_id)))
-            .collect();
+    let mut to_tick: Vec<_> = pallet_subspace::N::<T>::iter_keys()
+        .map(|subnet_id| (Some(subnet_id), SubnetGovernanceConfig::<T>::get(subnet_id)))
+        .collect();
     to_tick.push((None, GlobalGovernanceConfig::<T>::get()));
 
     to_tick.into_iter().for_each(|(subnet_id, governance_config)| {
@@ -489,7 +495,7 @@ fn calc_stake<T: Config>(
         pallet_subspace::N::<T>::iter_keys().map(calculate_delegated).sum()
     };
 
-    own_stake + delegated_stake
+    own_stake.saturating_add(delegated_stake)
 }
 
 // TODO:
@@ -499,7 +505,8 @@ pub fn execute_proposal_rewards<T: Config>(
     subnet_id: Option<u16>,
     governance_config: GovernanceConfiguration,
 ) {
-    if block_number % governance_config.proposal_reward_interval != 0 {
+    #[allow(clippy::arithmetic_side_effects)]
+    if block_number % governance_config.proposal_reward_interval.max(1) != 0 {
         return;
     }
 
@@ -512,7 +519,9 @@ pub fn execute_proposal_rewards<T: Config>(
             continue;
         }
 
-        if unrewarded_proposal.block < block_number - governance_config.proposal_reward_interval {
+        if unrewarded_proposal.block
+            < block_number.saturating_sub(governance_config.proposal_reward_interval)
+        {
             continue;
         }
 
@@ -522,12 +531,14 @@ pub fn execute_proposal_rewards<T: Config>(
             .chain(unrewarded_proposal.votes_against.into_iter())
         {
             let curr_stake = *account_stakes.get(&acc_id).unwrap_or(&0u64);
-            account_stakes.try_insert(acc_id, curr_stake + stake).expect("infallible");
+            account_stakes
+                .try_insert(acc_id, curr_stake.saturating_add(stake))
+                .expect("infallible");
         }
 
         match get_reward_allocation::<T>(&governance_config, n) {
             Ok(allocation) => {
-                total_allocation += allocation;
+                total_allocation = total_allocation.saturating_add(allocation);
             }
             Err(err) => {
                 log::error!("could not get reward allocation for proposal {proposal_id}: {err:?}");
@@ -536,7 +547,7 @@ pub fn execute_proposal_rewards<T: Config>(
         }
 
         UnrewardedProposals::<T>::remove(proposal_id);
-        n += 1;
+        n = n.saturating_add(1);
     }
 
     distribute_proposal_rewards::<T>(account_stakes, total_allocation);
@@ -556,7 +567,10 @@ pub fn get_reward_allocation<T: crate::Config>(
     let max_allocation =
         I92F36::from_num(governance_config.max_proposal_reward_treasury_allocation);
 
-    let mut allocation = (treasury_balance / allocation_percentage).min(max_allocation);
+    let mut allocation = treasury_balance
+        .checked_div(allocation_percentage)
+        .unwrap_or_default()
+        .min(max_allocation);
     if n > 0 {
         let mut base = I92F36::from_num(1.5);
         let mut result = I92F36::from_num(1);
@@ -564,13 +578,13 @@ pub fn get_reward_allocation<T: crate::Config>(
 
         while remaining > 0 {
             if remaining % 2 == 1 {
-                result *= base;
+                result = result.checked_mul(base).unwrap_or(result);
             }
-            base = base * base;
+            base = base.checked_mul(base).unwrap_or_default();
             remaining /= 2;
         }
 
-        allocation /= result;
+        allocation = allocation.checked_div(result).unwrap_or(allocation);
     }
 
     pallet_subspace::Pallet::<T>::remove_balance_from_account(
@@ -597,9 +611,9 @@ fn distribute_proposal_rewards<T: crate::Config>(
     let total_stake = I92F36::from_num(total_stake);
 
     for (acc_id, stake) in account_sqrt_stakes.into_iter() {
-        let percentage = I92F36::from_num(stake) / total_stake;
+        let percentage = I92F36::from_num(stake).checked_div(total_stake).unwrap_or_default();
 
-        let reward: u64 = (total_allocation * percentage).to_num();
+        let reward: u64 = total_allocation.checked_mul(percentage).unwrap_or_default().to_num();
         let reward = match pallet_subspace::Pallet::<T>::u64_to_balance(reward) {
             Some(balance) => balance,
             None => {

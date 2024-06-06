@@ -400,7 +400,7 @@ pub mod pallet {
 
     #[pallet::type_value]
     pub fn DefaultTargetRegistrationsInterval<T: Config>() -> u16 {
-        DefaultTempo::<T>::get() * 2 // 2 times the epoch
+        200
     }
     #[pallet::storage] // --- MAP ( netuid ) --> trarget_registrations_interval
     pub type TargetRegistrationsInterval<T> =
