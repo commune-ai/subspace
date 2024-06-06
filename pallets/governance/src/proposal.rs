@@ -498,15 +498,15 @@ fn calc_stake<T: Config>(
     own_stake.saturating_add(delegated_stake)
 }
 
-// TODO:
-// check
 pub fn execute_proposal_rewards<T: Config>(
     block_number: u64,
     subnet_id: Option<u16>,
     governance_config: GovernanceConfiguration,
 ) {
-    #[allow(clippy::arithmetic_side_effects)]
-    if block_number % governance_config.proposal_reward_interval.max(1) != 0 {
+    let reached_interval = block_number
+        .checked_rem(governance_config.proposal_reward_interval)
+        .is_some_and(|r| r == 0);
+    if !reached_interval {
         return;
     }
 

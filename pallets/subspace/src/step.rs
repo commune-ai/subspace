@@ -654,13 +654,12 @@ failed to run yuma consensus algorithm: {err:?}, skipping this block. \
         block_at_registration
     }
 
-    #[allow(clippy::arithmetic_side_effects)]
     pub fn blocks_until_next_epoch(netuid: u16, tempo: u16, block_number: u64) -> u64 {
-        // in this case network never runs
-        if tempo == 0 {
-            return 1000;
-        }
-        (block_number + netuid as u64) % (tempo.max(1) as u64)
+        // Return 1000 on fail to prevent rewards from being distributed
+        block_number
+            .saturating_add(netuid as u64)
+            .checked_rem(tempo as u64)
+            .unwrap_or(1000)
     }
 
     pub fn get_ownership_ratios(
@@ -704,27 +703,26 @@ failed to run yuma consensus algorithm: {err:?}, skipping this block. \
         target_registrations_interval: u16,
         target_registrations_per_interval: u16,
     ) {
-        if target_registrations_interval == 0 {
+        let reached_interval = block_number
+            .checked_rem(target_registrations_interval as u64)
+            .is_some_and(|r| r == 0);
+        if !reached_interval {
             return;
-        }
+        };
 
-        let interval = target_registrations_interval.max(1) as u64;
-        #[allow(clippy::arithmetic_side_effects)]
-        if block_number % interval == 0 {
-            let current_burn = Burn::<T>::get(netuid);
+        let current_burn = Burn::<T>::get(netuid);
 
-            let adjusted_burn = Self::adjust_burn(
-                netuid,
-                current_burn,
-                registrations_this_interval,
-                target_registrations_per_interval,
-            );
+        let adjusted_burn = Self::adjust_burn(
+            netuid,
+            current_burn,
+            registrations_this_interval,
+            target_registrations_per_interval,
+        );
 
-            Burn::<T>::insert(netuid, adjusted_burn);
+        Burn::<T>::insert(netuid, adjusted_burn);
 
-            // reset the registrations
-            RegistrationsThisInterval::<T>::insert(netuid, 0);
-        }
+        // reset the registrations
+        RegistrationsThisInterval::<T>::insert(netuid, 0);
     }
 
     pub fn adjust_burn(

@@ -1,3 +1,5 @@
+use core::num::NonZeroU64;
+
 use super::*;
 
 impl<T: Config> Pallet<T> {
@@ -8,8 +10,7 @@ impl<T: Config> Pallet<T> {
     }
 
     // Outside of the on_initalize hook, it's ok for this code to panic.
-    #[allow(clippy::indexing_slicing)]
-    #[allow(clippy::arithmetic_side_effects)]
+    #[allow(clippy::arithmetic_side_effects, clippy::indexing_slicing)]
     pub fn do_set_weights(
         origin: T::RuntimeOrigin,
         netuid: u16,
@@ -116,13 +117,13 @@ impl<T: Config> Pallet<T> {
         Keys::<T>::contains_key(netuid, uid)
     }
 
-    // Implace normalizes the passed positive integer weights so that they sum to u16 max value.
+    /// normalizes the passed positive integer weights so that they sum to u16 max value inplace.
     #[allow(clippy::arithmetic_side_effects)]
     pub fn normalize_weights(weights: Vec<u16>) -> Vec<u16> {
-        let sum: u64 = weights.iter().map(|&x| x as u64).sum();
-        if sum == 0 {
+        let Some(sum) = NonZeroU64::new(weights.iter().map(|&x| x as u64).sum()) else {
             return weights;
-        }
+        };
+
         weights
             .into_iter()
             .map(|x| ((x as u64 * u16::MAX as u64) / sum) as u16)
