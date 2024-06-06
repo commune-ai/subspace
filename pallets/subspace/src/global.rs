@@ -156,6 +156,11 @@ impl<T: Config> Pallet<T> {
             Error::<T>::InvalidGeneralSubnetApplicationCost
         );
 
+        ensure!(
+            params.governance_config.proposal_expiration > 100,
+            Error::<T>::InvalidProposalExpiration
+        );
+
         Ok(())
     }
 }
