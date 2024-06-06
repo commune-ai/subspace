@@ -228,10 +228,6 @@ impl<T: Config> Pallet<T> {
     // actually being deleted, from subnet_params struct,
     // and other storage items, in consensus vectors etc..
     pub fn remove_subnet(netuid: u16) -> u16 {
-        // TODO: handle errors
-        // TODO: add check all subnet params are actually being deleted
-        #![allow(unused_must_use)]
-
         // --- 0. Ensure the network to be removed exists.
         if !Self::if_subnet_exist(netuid) {
             return 0;
@@ -243,17 +239,17 @@ impl<T: Config> Pallet<T> {
         // ====================================
 
         SubnetNames::<T>::remove(netuid);
-        Name::<T>::clear_prefix(netuid, u32::MAX, None);
-        Address::<T>::clear_prefix(netuid, u32::MAX, None);
-        Metadata::<T>::clear_prefix(netuid, u32::MAX, None);
-        Uids::<T>::clear_prefix(netuid, u32::MAX, None);
-        Keys::<T>::clear_prefix(netuid, u32::MAX, None);
-        DelegationFee::<T>::clear_prefix(netuid, u32::MAX, None);
+        let _ = Name::<T>::clear_prefix(netuid, u32::MAX, None);
+        let _ = Address::<T>::clear_prefix(netuid, u32::MAX, None);
+        let _ = Metadata::<T>::clear_prefix(netuid, u32::MAX, None);
+        let _ = Uids::<T>::clear_prefix(netuid, u32::MAX, None);
+        let _ = Keys::<T>::clear_prefix(netuid, u32::MAX, None);
+        let _ = DelegationFee::<T>::clear_prefix(netuid, u32::MAX, None);
 
         // --- 2. Remove consnesus vectors
         // ===============================
 
-        Weights::<T>::clear_prefix(netuid, u32::MAX, None);
+        let _ = Weights::<T>::clear_prefix(netuid, u32::MAX, None);
         Active::<T>::remove(netuid);
         Consensus::<T>::remove(netuid);
         Dividends::<T>::remove(netuid);
@@ -265,7 +261,7 @@ impl<T: Config> Pallet<T> {
         Trust::<T>::remove(netuid);
         ValidatorPermits::<T>::remove(netuid);
         ValidatorTrust::<T>::remove(netuid);
-        RegistrationBlock::<T>::clear_prefix(netuid, u32::MAX, None);
+        let _ = RegistrationBlock::<T>::clear_prefix(netuid, u32::MAX, None);
         SubnetEmission::<T>::remove(netuid);
 
         // --- 3. Erase subnet parameters.

@@ -152,9 +152,8 @@ impl<T: Config> Pallet<T> {
     }
 
     /// Whether the netuid has enough stake to cover the minimal stake and min burn
-    #[allow(clippy::arithmetic_side_effects)]
     pub fn enough_stake_to_register(min_stake: u64, min_burn: u64, stake_amount: u64) -> bool {
-        stake_amount >= (min_stake + min_burn)
+        stake_amount >= min_stake.saturating_add(min_burn)
     }
 
     // Determine which peer to prune from the network by finding the element with the lowest pruning
@@ -254,9 +253,9 @@ impl<T: Config> Pallet<T> {
     }
 
     #[allow(clippy::indexing_slicing)]
-    pub fn hash_block_and_key(block_hash_bytes: &[u8; 32], hotkey: &T::AccountId) -> H256 {
+    pub fn hash_block_and_key(block_hash_bytes: &[u8; 32], key: &T::AccountId) -> H256 {
         // Get the public key from the account id.
-        let key_pubkey: MultiAddress<T::AccountId, ()> = MultiAddress::Id(hotkey.clone());
+        let key_pubkey: MultiAddress<_, ()> = MultiAddress::Id(key.clone());
         let binding = key_pubkey.encode();
         // Skip extra 0th byte.
         let key_bytes: &[u8] = binding[1..].as_ref();
