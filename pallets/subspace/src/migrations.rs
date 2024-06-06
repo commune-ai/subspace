@@ -155,10 +155,10 @@ pub mod v11 {
 
             let current_adjustment_alpha = old_storage::AdjustmentAlpha::<T>::get();
             // Nuke the old adjustement alpha storage
+            old_storage::AdjustmentAlpha::<T>::kill();
             for netuid in N::<T>::iter_keys() {
                 AdjustmentAlpha::<T>::insert(netuid, current_adjustment_alpha);
             }
-            old_storage::AdjustmentAlpha::<T>::kill();
             log::info!("Migrating adjustment alpha to v11");
 
             let burn_config = BurnConfiguration::<T> {
@@ -243,7 +243,7 @@ pub mod v11 {
 
             // == Max Registrations Per Interval ==
 
-            let max_registrations_per_interval_min = 5;
+            let max_registrations_per_interval_min = 1;
             for (netuid, max_registrations_per_interval) in MaxRegistrationsPerInterval::<T>::iter()
             {
                 if max_registrations_per_interval < max_registrations_per_interval_min {

@@ -138,7 +138,7 @@ impl<T: Config> SubnetChangeset<T> {
         );
 
         ensure!(
-            params.max_registrations_per_interval >= 5,
+            params.max_registrations_per_interval >= 1,
             Error::<T>::InvalidMaxRegistrationsPerInterval
         );
 

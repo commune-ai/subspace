@@ -179,10 +179,22 @@ impl<T: Config + pallet_subspace::Config> OnRuntimeUpgrade for InitialMigration<
                 GovernanceConfiguration {
                     vote_mode: old::VoteModeSubnet::<T>::get(subnet_id)
                         .unwrap_or(VoteMode::Authority),
+                    proposal_cost: old::ProposalCost::<T>::get().unwrap_or(10000000000000),
+                    proposal_expiration: old::ProposalExpiration::<T>::get().unwrap_or(13_000),
                     ..Default::default()
                 },
             )
         }
+
+        log::info!("Migrated subnet governance config");
+
+        GlobalGovernanceConfig::<T>::set(GovernanceConfiguration {
+            proposal_cost: old::ProposalCost::<T>::get().unwrap_or(10000000000000),
+            proposal_expiration: old::ProposalExpiration::<T>::get().unwrap_or(13_000),
+            ..Default::default()
+        });
+
+        log::info!("Migrated global governance config");
 
         frame_support::weights::Weight::zero()
     }
