@@ -1063,7 +1063,7 @@ pub mod pallet {
         // Testnet
         // ---------------------------------
 
-        #[pallet::call_index(16)]
+        #[pallet::call_index(11)]
         #[pallet::weight((Weight::from_parts(85_000_000, 0)
         .saturating_add(T::DbWeight::get().reads(16))
         .saturating_add(T::DbWeight::get().writes(28)), DispatchClass::Operational, Pays::No))]
