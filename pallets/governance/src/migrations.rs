@@ -5,7 +5,6 @@ use frame_support::{
     traits::{OnRuntimeUpgrade, StorageVersion, UncheckedOnRuntimeUpgrade},
     BoundedVec,
 };
-use sp_std::collections::btree_set::BTreeSet;
 
 use crate::{
     proposal::{ProposalData, ProposalStatus},
@@ -91,13 +90,6 @@ impl<T: Config + pallet_subspace::Config> OnRuntimeUpgrade for InitialMigration<
             log::debug!("migrated proposal {id}");
         }
         log::info!("Imported {} proposals", Proposals::<T>::iter().count());
-
-        let mut delegating = BTreeSet::new();
-        for (_, staker, _) in pallet_subspace::StakeTo::<T>::iter() {
-            delegating.insert(staker);
-        }
-        log::info!("set delegated voting power for {}", delegating.len());
-        DelegatingVotingPower::<T>::set(delegating.try_into().unwrap_or_default());
 
         log::info!("Importing treasury balance...");
         let treasury_account = DaoTreasuryAddress::<T>::get();

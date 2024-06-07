@@ -98,7 +98,7 @@ pub mod pallet {
     /// Indexed by the **staked** module and the subnet the stake is allocated to, the value is a
     /// set of all modules that are delegating their voting power on that subnet.
     #[pallet::storage]
-    pub type DelegatingVotingPower<T: Config> =
+    pub type NotDelegatingVotingPower<T: Config> =
         StorageValue<_, BoundedBTreeSet<T::AccountId, ConstU32<{ u32::MAX }>>, ValueQuery>;
 
     #[pallet::storage]
@@ -445,15 +445,15 @@ impl<T: Config> Pallet<T> {
 
 impl<T: Config> Pallet<T> {
     pub fn is_delegating_voting_power(delegator: &T::AccountId) -> bool {
-        DelegatingVotingPower::<T>::get().contains(delegator)
+        !NotDelegatingVotingPower::<T>::get().contains(delegator)
     }
 
     pub fn update_delegating_voting_power(
         delegator: &T::AccountId,
         delegating: bool,
     ) -> DispatchResult {
-        DelegatingVotingPower::<T>::mutate(|delegators| {
-            if delegating {
+        NotDelegatingVotingPower::<T>::mutate(|delegators| {
+            if !delegating {
                 delegators
                     .try_insert(delegator.clone())
                     .map(|_| ())
