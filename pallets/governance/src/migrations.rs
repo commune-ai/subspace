@@ -91,6 +91,18 @@ impl<T: Config + pallet_subspace::Config> OnRuntimeUpgrade for InitialMigration<
         }
         log::info!("Imported {} proposals", Proposals::<T>::iter().count());
 
+        // Print out the proposals
+        for (id, proposal) in Proposals::<T>::iter() {
+            log::info!(
+                "Proposal {{
+            id: {},
+            proposal: {:?}
+        }}",
+                id,
+                proposal
+            );
+        }
+
         log::info!("Importing treasury balance...");
         let treasury_account = DaoTreasuryAddress::<T>::get();
         let old_treasury_balance = old::GlobalDaoTreasury::<T>::get();
