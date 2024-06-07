@@ -515,7 +515,7 @@ pub mod pallet {
         T::AccountId::decode(&mut sp_runtime::traits::TrailingZeroInput::zeroes()).unwrap()
     }
     #[pallet::storage] // --- DMAP ( netuid, uid ) --> module_key
-    pub(super) type Keys<T: Config> =
+    pub type Keys<T: Config> =
         StorageDoubleMap<_, Identity, u16, Identity, u16, T::AccountId, ValueQuery, DefaultKey<T>>;
 
     #[pallet::storage] // --- DMAP ( netuid, uid ) --> module_name
@@ -535,7 +535,7 @@ pub mod pallet {
         Percent::from_percent(20u8)
     }
     #[pallet::storage] // -- DMAP(netuid, module_key) -> delegation_fee
-    pub(super) type DelegationFee<T: Config> = StorageDoubleMap<
+    pub type DelegationFee<T: Config> = StorageDoubleMap<
         _,
         Identity,
         u16,

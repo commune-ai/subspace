@@ -4,13 +4,76 @@ use frame_support::{assert_err, assert_ok};
 use log::info;
 use mock::*;
 use pallet_subspace::{
-    Dividends, Error, FounderShare, MaxAllowedModules, MaxAllowedSubnets, MaxAllowedUids,
-    MaxRegistrationsPerBlock, MaximumSetWeightCallsPerEpoch, SubnetStakeThreshold, Tempo,
-    TotalSubnets, UnitEmission, N,
+    Active, Address, AdjustmentAlpha, BondsMovingAverage, Consensus, DelegationFee, Dividends,
+    Emission, Error, Founder, FounderShare, ImmunityPeriod, Incentive, Keys, LastUpdate,
+    MaxAllowedModules, MaxAllowedSubnets, MaxAllowedUids, MaxAllowedWeights,
+    MaxRegistrationsPerBlock, MaxRegistrationsPerInterval, MaxWeightAge,
+    MaximumSetWeightCallsPerEpoch, MinStake, Name, PruningScores, Rank, RegistrationBlock,
+    SubnetEmission, SubnetGaps, SubnetNames, SubnetStakeThreshold, TargetRegistrationsInterval,
+    TargetRegistrationsPerInterval, Tempo, TotalSubnets, Trust, TrustRatio, Uids, UnitEmission,
+    ValidatorPermits, ValidatorTrust, Weights, N,
 };
 use sp_core::U256;
 use sp_runtime::Percent;
 use sp_std::vec;
+
+#[test]
+fn test_remove_subnet_integrity() {
+    new_test_ext().execute_with(|| {
+        let n = 1;
+
+        // make sure that the results won´t get affected by burn
+        zero_min_burn();
+        MaxRegistrationsPerBlock::<Test>::set(1000);
+
+        assert_ok!(register_module(0, U256::from(0), 1_000_000_000));
+
+        SubspaceModule::remove_subnet(0);
+
+        assert_eq!(SubnetNames::<Test>::get(n), Vec::<u8>::new());
+        assert_eq!(Name::<Test>::iter_prefix(n).collect::<Vec<_>>(), vec![]);
+        assert_eq!(Address::<Test>::iter_prefix(n).collect::<Vec<_>>(), vec![]);
+        assert_eq!(Uids::<Test>::iter_prefix(n).collect::<Vec<_>>(), vec![]);
+        assert_eq!(Keys::<Test>::iter_prefix(n).collect::<Vec<_>>(), vec![]);
+        assert_eq!(
+            DelegationFee::<Test>::iter_prefix(n).collect::<Vec<_>>(),
+            vec![]
+        );
+        assert_eq!(Weights::<Test>::iter_prefix(n).collect::<Vec<_>>(), vec![]);
+        assert_eq!(Active::<Test>::get(n), Vec::<bool>::new());
+        assert_eq!(Consensus::<Test>::get(n), Vec::<u16>::new());
+        assert_eq!(Emission::<Test>::get(n), Vec::<u64>::new());
+        assert_eq!(Incentive::<Test>::get(n), Vec::<u16>::new());
+        assert_eq!(LastUpdate::<Test>::get(n), Vec::<u64>::new());
+        assert_eq!(PruningScores::<Test>::get(n), Vec::<u16>::new());
+        assert_eq!(Rank::<Test>::get(n), Vec::<u16>::new());
+        assert_eq!(Trust::<Test>::get(n), Vec::<u16>::new());
+        assert_eq!(ValidatorPermits::<Test>::get(n), Vec::<bool>::new());
+        assert_eq!(ValidatorTrust::<Test>::get(n), Vec::<u16>::new());
+        assert_eq!(
+            RegistrationBlock::<Test>::iter_prefix(n).collect::<Vec<_>>(),
+            vec![]
+        );
+        assert_eq!(SubnetEmission::<Test>::get(n), 0);
+        assert_eq!(Founder::<Test>::get(n), U256::from(0));
+        assert_eq!(FounderShare::<Test>::get(n), 8);
+        assert_eq!(Tempo::<Test>::get(n), 100);
+        assert_eq!(ImmunityPeriod::<Test>::get(n), 0);
+        assert_eq!(MaxWeightAge::<Test>::get(n), 3600);
+        assert_eq!(MaxAllowedWeights::<Test>::get(n), 420);
+        assert_eq!(MinStake::<Test>::get(n), 0);
+        assert_eq!(TrustRatio::<Test>::get(n), 0);
+        assert_eq!(MaximumSetWeightCallsPerEpoch::<Test>::get(n), 0);
+        assert_eq!(BondsMovingAverage::<Test>::get(n), 900000);
+        assert_eq!(TargetRegistrationsInterval::<Test>::get(n), 200);
+        assert_eq!(TargetRegistrationsPerInterval::<Test>::get(n), 100);
+        assert_eq!(MaxRegistrationsPerInterval::<Test>::get(n), 42);
+        assert_eq!(AdjustmentAlpha::<Test>::get(n), 9223372036854775807);
+        assert_eq!(N::<Test>::get(n), 0);
+        assert_eq!(TotalSubnets::<Test>::get(), 0);
+        assert!(SubnetGaps::<Test>::get().contains(&0));
+    });
+}
 
 #[test]
 fn test_add_subnets() {
