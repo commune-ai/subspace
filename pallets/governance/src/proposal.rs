@@ -354,13 +354,13 @@ impl<T: Config> Pallet<T> {
 }
 
 pub fn tick_proposals<T: Config>(block_number: u64) {
-    let delegating = DelegatingVotingPower::<T>::get().into_inner();
+    let not_delegating = NotDelegatingVotingPower::<T>::get().into_inner();
 
     let proposals =
         Proposals::<T>::iter().filter(|(_, p)| p.is_active() && block_number >= p.expiration_block);
 
     for (id, proposal) in proposals {
-        let res = with_storage_layer(|| tick_proposal(&delegating, block_number, proposal));
+        let res = with_storage_layer(|| tick_proposal(&not_delegating, block_number, proposal));
         if let Err(err) = res {
             log::error!("failed to tick proposal {id}: {err:?}, skipping...");
         }
@@ -385,7 +385,7 @@ pub fn get_minimal_stake_to_execute_with_percentage<T: Config>(
 }
 
 fn tick_proposal<T: Config>(
-    delegating: &BTreeSet<T::AccountId>,
+    not_delegating: &BTreeSet<T::AccountId>,
     block_number: u64,
     proposal: Proposal<T>,
 ) -> DispatchResult {
@@ -403,7 +403,7 @@ fn tick_proposal<T: Config>(
         .iter()
         .cloned()
         .map(|id| {
-            let stake = calc_stake::<T>(delegating, &id, subnet_id);
+            let stake = calc_stake::<T>(not_delegating, &id, subnet_id);
             (id, stake)
         })
         .collect();
@@ -411,7 +411,7 @@ fn tick_proposal<T: Config>(
         .iter()
         .cloned()
         .map(|id| {
-            let stake = calc_stake::<T>(delegating, &id, subnet_id);
+            let stake = calc_stake::<T>(not_delegating, &id, subnet_id);
             (id, stake)
         })
         .collect();
@@ -471,11 +471,11 @@ pub fn tick_proposal_rewards<T: Config>(block_number: u64) {
 }
 
 fn calc_stake<T: Config>(
-    delegating: &BTreeSet<T::AccountId>,
+    not_delegating: &BTreeSet<T::AccountId>,
     voter: &T::AccountId,
     subnet_id: Option<SubnetId>,
 ) -> u64 {
-    let own_stake = if delegating.contains(voter) {
+    let own_stake = if !not_delegating.contains(voter) {
         0
     } else {
         PalletSubspace::<T>::get_account_stake(voter, subnet_id)
@@ -484,7 +484,7 @@ fn calc_stake<T: Config>(
     let calculate_delegated = |subnet_id: u16| -> u64 {
         PalletSubspace::<T>::get_stake_from_vector(subnet_id, voter)
             .into_iter()
-            .filter(|(staker, _)| delegating.contains(staker))
+            .filter(|(staker, _)| !not_delegating.contains(staker))
             .map(|(_, stake)| stake)
             .sum()
     };

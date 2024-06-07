@@ -39,7 +39,7 @@ impl<T: Config> Pallet<T> {
                 .any(|(_, k, stakes)| k == key && !stakes.is_empty())
         };
 
-        if DelegatingVotingPower::<T>::get().contains(&key) && !has_stake_from() {
+        if !NotDelegatingVotingPower::<T>::get().contains(&key) && !has_stake_from() {
             return Err(Error::<T>::VoterIsDelegatingVotingPower.into());
         }
 
