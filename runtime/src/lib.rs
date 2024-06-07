@@ -111,8 +111,8 @@ pub mod opaque {
 }
 
 pub type Migrations = (
-    pallet_subspace::migrations::v11::MigrateToV11<Runtime>,
     pallet_governance::migrations::InitialMigration<Runtime>,
+    pallet_subspace::migrations::v11::MigrateToV11<Runtime>,
 );
 
 // To learn more about runtime versioning, see:
@@ -369,7 +369,6 @@ impl pallet_governance::Config for Runtime {
     type PalletId = SubspacePalletId;
     type RuntimeEvent = RuntimeEvent;
     type Currency = Balances;
-    type DefaultProposalCost = ConstU64<10_000_000_000_000>;
 }
 
 pub const WEIGHT_MILLISECS_PER_BLOCK: u64 = 2000;

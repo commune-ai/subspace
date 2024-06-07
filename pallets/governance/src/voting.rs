@@ -20,6 +20,7 @@ impl<T: Config> Pallet<T> {
         let ProposalStatus::Open {
             votes_for,
             votes_against,
+            ..
         } = &mut proposal.status
         else {
             return Err(Error::<T>::ProposalClosed.into());
@@ -69,6 +70,7 @@ impl<T: Config> Pallet<T> {
         let ProposalStatus::Open {
             votes_for,
             votes_against,
+            ..
         } = &mut proposal.status
         else {
             return Err(Error::<T>::ProposalClosed.into());

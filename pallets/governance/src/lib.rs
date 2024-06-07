@@ -52,8 +52,6 @@ pub mod pallet {
 
         /// Currency type that will be used to place deposits on modules
         type Currency: Currency<Self::AccountId> + Send + Sync;
-
-        type DefaultProposalCost: Get<u64>;
     }
 
     #[pallet::hooks]
@@ -85,15 +83,30 @@ pub mod pallet {
     pub type GlobalGovernanceConfig<T: Config> =
         StorageValue<_, GovernanceConfiguration, ValueQuery>;
 
+    #[pallet::type_value]
+    pub fn DefaultSubnetGovernanceConfig<T: Config>() -> GovernanceConfiguration {
+        GovernanceConfiguration {
+            vote_mode: VoteMode::Authority,
+            ..Default::default()
+        }
+    }
+
     #[pallet::storage]
-    pub type SubnetGovernanceConfig<T: Config> =
-        StorageMap<_, Identity, SubnetId, GovernanceConfiguration, ValueQuery>;
+    pub type SubnetGovernanceConfig<T: Config> = StorageMap<
+        _,
+        Identity,
+        SubnetId,
+        GovernanceConfiguration,
+        ValueQuery,
+        DefaultSubnetGovernanceConfig<T>,
+    >;
 
     /// A map of all proposals, indexed by their IDs.
     #[pallet::storage]
     pub type Proposals<T: Config> = StorageMap<_, Identity, ProposalId, Proposal<T>>;
 
-    /// A map relating all modules and the stakers that are currently delegating their voting power.
+    /// A map relating all modules and the stakers that are currently **NOT** delegating their
+    /// voting power.
     ///
     /// Indexed by the **staked** module and the subnet the stake is allocated to, the value is a
     /// set of all modules that are delegating their voting power on that subnet.
@@ -103,7 +116,7 @@ pub mod pallet {
 
     #[pallet::storage]
     pub type UnrewardedProposals<T: Config> =
-        StorageMap<_, Identity, ProposalId, UnrewardedProposal<T>>; // TODO: make it return an option
+        StorageMap<_, Identity, ProposalId, UnrewardedProposal<T>>;
 
     #[pallet::type_value] // This has to be different than DefaultKey, so we are not conflicting in tests.
     pub fn DefaultDaoTreasuryAddress<T: Config>() -> T::AccountId {
@@ -122,6 +135,7 @@ pub mod pallet {
     #[pallet::storage]
     pub type DaoTreasuryDistribution<T: Config> =
         StorageValue<_, Percent, ValueQuery, DefaultDaoTreasuryDistribution<T>>;
+
     // ---------------------------------
     // Dao
     // ---------------------------------
@@ -145,7 +159,6 @@ pub mod pallet {
     #[pallet::storage]
     pub type Curator<T: Config> = StorageValue<_, T::AccountId, ValueQuery, DefaultKey<T>>;
 
-    // TODO:
     // Add benchmarks for the pallet
     #[pallet::call]
     impl<T: Config> Pallet<T> {
