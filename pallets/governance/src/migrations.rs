@@ -68,6 +68,8 @@ impl<T: Config + pallet_subspace::Config> OnRuntimeUpgrade for InitialMigration<
                     old::ProposalStatus::Pending => ProposalStatus::Open {
                         votes_for: proposal.votes_for.try_into().unwrap_or_default(),
                         votes_against: proposal.votes_against.try_into().unwrap_or_default(),
+                        stake_for: 0,
+                        stake_against: 0,
                     },
                     old::ProposalStatus::Accepted => ProposalStatus::Accepted {
                         block: proposal.finalization_block.unwrap_or_default(),
@@ -91,16 +93,8 @@ impl<T: Config + pallet_subspace::Config> OnRuntimeUpgrade for InitialMigration<
         }
         log::info!("Imported {} proposals", Proposals::<T>::iter().count());
 
-        // Print out the proposals
         for (id, proposal) in Proposals::<T>::iter() {
-            log::info!(
-                "Proposal {{
-            id: {},
-            proposal: {:?}
-        }}",
-                id,
-                proposal
-            );
+            log::info!("{id} -> {proposal:#?}");
         }
 
         log::info!("Importing treasury balance...");

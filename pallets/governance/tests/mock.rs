@@ -89,7 +89,6 @@ impl frame_system::Config for Test {
 
 parameter_types! {
     pub const SubspacePalletId: PalletId = PalletId(*b"py/subsp");
-    pub const DefaultProposalCost: u64 = 10_000_000_000_000;
 }
 
 impl pallet_subspace::Config for Test {
@@ -103,7 +102,6 @@ impl pallet_governance::Config for Test {
     type PalletId = SubspacePalletId;
     type RuntimeEvent = RuntimeEvent;
     type Currency = Balances;
-    type DefaultProposalCost = DefaultProposalCost;
 }
 
 impl GovernanceApi<<Test as frame_system::Config>::AccountId> for Test {

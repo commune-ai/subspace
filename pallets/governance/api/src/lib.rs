@@ -4,7 +4,6 @@ use frame_support::DebugNoBound;
 use parity_scale_codec::{Decode, Encode, MaxEncodedLen};
 use scale_info::TypeInfo;
 use sp_runtime::{DispatchResult, Percent};
-use substrate_fixed::types::I92F36;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, TypeInfo, Decode, Encode, MaxEncodedLen)]
 pub enum VoteMode {
@@ -17,7 +16,7 @@ pub struct GovernanceConfiguration {
     pub proposal_cost: u64,
     pub proposal_expiration: u32,
     pub vote_mode: VoteMode,
-    pub proposal_reward_treasury_allocation: I92F36,
+    pub proposal_reward_treasury_allocation: Percent,
     pub max_proposal_reward_treasury_allocation: u64,
     pub proposal_reward_interval: u64,
 }
@@ -29,7 +28,7 @@ impl Default for GovernanceConfiguration {
             proposal_expiration: 130_000,
             vote_mode: VoteMode::Vote,
             // Maximum allocate 2% of the treasury.
-            proposal_reward_treasury_allocation: I92F36::from_num(2),
+            proposal_reward_treasury_allocation: Percent::from_percent(2),
             // Maximum reward allocation 10K.
             max_proposal_reward_treasury_allocation: 10_000_000_000_000,
             proposal_reward_interval: 75_600,

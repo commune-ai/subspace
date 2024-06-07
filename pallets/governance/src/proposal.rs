@@ -138,6 +138,8 @@ pub enum ProposalStatus<T: Config> {
     Open {
         votes_for: BoundedBTreeSet<T::AccountId, ConstU32<{ u32::MAX }>>,
         votes_against: BoundedBTreeSet<T::AccountId, ConstU32<{ u32::MAX }>>,
+        stake_for: u64,
+        stake_against: u64,
     },
     Accepted {
         block: u64,
@@ -242,6 +244,8 @@ impl<T: Config> Pallet<T> {
             status: ProposalStatus::Open {
                 votes_for: BoundedBTreeSet::new(),
                 votes_against: BoundedBTreeSet::new(),
+                stake_for: 0,
+                stake_against: 0,
             },
             proposal_cost,
             creation_block: current_block,
@@ -356,8 +360,11 @@ impl<T: Config> Pallet<T> {
 pub fn tick_proposals<T: Config>(block_number: u64) {
     let not_delegating = NotDelegatingVotingPower::<T>::get().into_inner();
 
-    let proposals =
-        Proposals::<T>::iter().filter(|(_, p)| p.is_active() && block_number >= p.expiration_block);
+    let proposals = Proposals::<T>::iter().filter(|(_, p)| p.is_active());
+
+    if block_number % 100 != 0 {
+        return;
+    }
 
     for (id, proposal) in proposals {
         let res = with_storage_layer(|| tick_proposal(&not_delegating, block_number, proposal));
@@ -387,13 +394,14 @@ pub fn get_minimal_stake_to_execute_with_percentage<T: Config>(
 fn tick_proposal<T: Config>(
     not_delegating: &BTreeSet<T::AccountId>,
     block_number: u64,
-    proposal: Proposal<T>,
+    mut proposal: Proposal<T>,
 ) -> DispatchResult {
     let subnet_id = proposal.subnet_id();
 
     let ProposalStatus::Open {
         votes_for,
         votes_against,
+        ..
     } = &proposal.status
     else {
         return Err(Error::<T>::ProposalIsFinished.into());
@@ -418,6 +426,20 @@ fn tick_proposal<T: Config>(
 
     let stake_for_sum: u64 = votes_for.iter().map(|(_, stake)| stake).sum();
     let stake_against_sum: u64 = votes_against.iter().map(|(_, stake)| stake).sum();
+
+    if block_number < proposal.expiration_block {
+        if let ProposalStatus::Open {
+            stake_for,
+            stake_against,
+            ..
+        } = &mut proposal.status
+        {
+            *stake_for = stake_for_sum;
+            *stake_against = stake_against_sum;
+        }
+        Proposals::<T>::set(proposal.id, Some(proposal));
+        return Ok(());
+    }
 
     let total_stake = stake_for_sum.saturating_add(stake_against_sum);
     let minimal_stake_to_execute = get_minimal_stake_to_execute_with_percentage::<T>(
@@ -563,7 +585,8 @@ pub fn get_reward_allocation<T: crate::Config>(
         treasury_balance,
     ));
 
-    let allocation_percentage = governance_config.proposal_reward_treasury_allocation;
+    let allocation_percentage =
+        I92F36::from_num(governance_config.proposal_reward_treasury_allocation.deconstruct());
     let max_allocation =
         I92F36::from_num(governance_config.max_proposal_reward_treasury_allocation);
 
