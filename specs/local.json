@@ -1,55 +1,10 @@
 {
-  "genesis": {
-    "runtimeGenesis": {
-      "config":{
-        "system": {},
-        "aura": {
-          "authorities": [
-            "5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY",
-            "5FHneW46xGXgs5mUiveU4sbTyGBzmstUspZC92UhjJM694ty"
-          ]
-        },
-        "grandpa": {
-          "authorities": [
-            [
-              "5FA9nQDVg267DEd8m1ZypXLBnvN7SFxYwV7ndqSYGiN9TTpu",
-              1
-            ],
-            [
-              "5GoNkf6WdbxCFnPdAnYYQyCjAKPJgLNxXwPjwTh6DGg6gN3E",
-              1
-            ]
-          ]
-        },
-        "balances": {
-          "balances": [
-            [
-              "5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY",
-              1000000000000
-            ],
-            [
-              "5FHneW46xGXgs5mUiveU4sbTyGBzmstUspZC92UhjJM694ty",
-              1000000000000
-            ]
-          ]
-        },
-        "transactionPayment": {
-          "multiplier": "1000000000000000000"
-        },
-        "sudo": {
-          "key": "5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY"
-        },
-        "subspaceModule": {
-          "modules": [],
-          "subnets": [],
-          "stakeTo": [],
-          "block": 0
-        },
-        "baseFee": {
-          "baseFeePerGas": "0x3b9aca00",
-          "elasticity": 125000
-        }
-      }
-    }
-  }
+  "balances": {
+    "5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY": 1000000000000,
+    "5FHneW46xGXgs5mUiveU4sbTyGBzmstUspZC92UhjJM694ty": 1000000000000
+  },
+  "modules": [],
+  "subnets": [],
+  "stakeTo": [],
+  "block": 0
 }

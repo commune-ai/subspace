@@ -2,11 +2,7 @@
 name = "node-subspace-runtime"
 version = "1.7.5"
 description = "A Substrate node for commune-ai"
-authors = [
-	"Sal Vivona <https://github.com/salvivona>",
-	"Oliver <https://github.com/cuteolaf>",
-	"Kazu <https://github.com/ndkazu>",
-]
+authors = ["Sal Vivona <https://github.com/salvivona>"]
 homepage = "https://substrate.io/"
 edition = "2021"
 license = "Unlicense"
@@ -18,10 +14,11 @@ targets = ["x86_64-unknown-linux-gnu"]
 
 [dependencies]
 pallet-subspace = { path = "../pallets/subspace", default-features = false }
+pallet-governance = { path = "../pallets/governance", default-features = false }
 
 log.workspace = true
 smallvec.workspace = true
-codec.workspace = true
+parity-scale-codec.workspace = true
 scale-info.workspace = true
 serde_json.workspace = true
 
@@ -64,7 +61,6 @@ frame-system-benchmarking = { workspace = true, optional = true }
 
 # Frontier
 fp-account.workspace = true
-fp-evm.workspace = true
 fp-rpc.workspace = true
 fp-self-contained.workspace = true
 
@@ -72,16 +68,18 @@ fp-self-contained.workspace = true
 pallet-base-fee.workspace = true
 
 subspace-runtime-api = { path = "../pallets/subspace/rpc/runtime-api", default-features = false }
+pallet-governance-api = { path = "../pallets/governance/api", default-features = false }
 [build-dependencies]
 substrate-wasm-builder = { workspace = true, optional = true }
 
 [features]
 default = ["std"]
+testnet-faucet = ["pallet-subspace/testnet-faucet"]
 std = [
 	"frame-try-runtime?/std",
 	"frame-system-benchmarking?/std",
 	"frame-benchmarking/std",
-	"codec/std",
+	"parity-scale-codec/std",
 	"scale-info/std",
 	"frame-executive/std",
 	"frame-support/std",
@@ -89,6 +87,7 @@ std = [
 	"frame-system/std",
 	"frame-try-runtime/std",
 	"pallet-subspace/std",
+	"pallet-governance/std",
 	"pallet-aura/std",
 	"pallet-balances/std",
 	"pallet-grandpa/std",
@@ -112,17 +111,11 @@ std = [
 	"sp-transaction-pool/std",
 	"sp-version/std",
 	"substrate-wasm-builder",
-	# EVM
-	# Frontier
 	"fp-account/std",
-	"fp-evm/std",
 	"fp-rpc/std",
 	"fp-self-contained/std",
-	# Frontier FRAME
 	"pallet-base-fee/std",
-	# "pallet-dynamic-fee/std",
 	"subspace-runtime-api/std",
-	# "pallet-hotfix-sufficients/std",
 ]
 runtime-benchmarks = [
 	"frame-benchmarking/runtime-benchmarks",
@@ -148,6 +141,7 @@ try-runtime = [
 	"pallet-grandpa/try-runtime",
 	"pallet-insecure-randomness-collective-flip/try-runtime",
 	"pallet-multisig/try-runtime",
+	"pallet-governance/try-runtime",
 	"pallet-subspace/try-runtime",
 	"pallet-sudo/try-runtime",
 	"pallet-timestamp/try-runtime",

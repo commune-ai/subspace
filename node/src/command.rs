@@ -1,5 +1,6 @@
+use crate::benchmarking::{inherent_benchmark_data, RemarkBuilder, TransferKeepAliveBuilder};
+
 use crate::{
-    benchmarking::{inherent_benchmark_data, RemarkBuilder, TransferKeepAliveBuilder},
     chain_spec,
     cli::{Cli, Subcommand},
     service,
@@ -8,6 +9,7 @@ use frame_benchmarking_cli::{BenchmarkCmd, ExtrinsicFactory, SUBSTRATE_REFERENCE
 use node_subspace_runtime::{Block, EXISTENTIAL_DEPOSIT};
 use sc_cli::SubstrateCli;
 use sc_service::PartialComponents;
+
 use sp_keyring::Sr25519Keyring;
 use sp_runtime::traits::BlakeTwo256;
 
@@ -57,7 +59,13 @@ impl SubstrateCli for Cli {
 
 // Parse and run command line arguments
 pub fn run() -> sc_cli::Result<()> {
-    let cli = Cli::from_args();
+    let mut cli = Cli::from_args();
+    cli.run.shared_params.detailed_log_output = true;
+    cli.run.shared_params.log.extend([
+        "info".to_string(),
+        "pallet_subspace=debug".to_string(),
+        "pallet_governance=debug".to_string(),
+    ]);
 
     match &cli.subcommand {
         Some(Subcommand::Key(cmd)) => cmd.run(&cli),

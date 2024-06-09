@@ -3,7 +3,7 @@ mod mock;
 use frame_support::{assert_noop, assert_ok};
 use log::info;
 use mock::*;
-use pallet_subspace::Error;
+use pallet_subspace::{Error, MaxRegistrationsPerBlock};
 use sp_core::U256;
 use substrate_fixed::types::I64F64;
 
@@ -19,8 +19,8 @@ fn test_stake() {
         let mut total_stake: u64 = 0;
         let mut subnet_stake: u64 = 0;
         // make sure that the results won´t get affected by burn
-        SubspaceModule::set_min_burn(0);
-        SubspaceModule::set_max_registrations_per_block(1000);
+        zero_min_burn();
+        MaxRegistrationsPerBlock::<Test>::set(1000);
 
         for netuid in netuids {
             info!("NETUID: {}", netuid);
@@ -62,7 +62,7 @@ fn test_stake() {
                     get_origin(*key),
                     netuid,
                     *key,
-                    amount_staked
+                    amount_staked,
                 ));
                 assert_eq!(SubspaceModule::get_stake(netuid, key), amount_staked);
                 assert_eq!(SubspaceModule::get_balance(key), 1);
@@ -95,7 +95,7 @@ fn test_multiple_stake() {
         let num_staked_modules: u16 = 10;
         let total_stake: u64 = stake_amount * num_staked_modules as u64;
         // make sure that the results won´t get affected by burn
-        SubspaceModule::set_min_burn(0);
+        zero_min_burn();
 
         register_n_modules(netuid, n, 10);
         let controler_key = U256::from(n + 1);
@@ -166,7 +166,7 @@ fn test_transfer_stake() {
         let n: u16 = 10;
         let stake_amount: u64 = 10_000_000_000;
         let netuid: u16 = 0;
-        SubspaceModule::set_min_burn(0);
+        zero_min_burn();
 
         register_n_modules(netuid, n, stake_amount);
 
@@ -177,7 +177,7 @@ fn test_transfer_stake() {
             netuid,
             keys[0],
             keys[1],
-            stake_amount
+            stake_amount,
         ));
 
         let key0_stake = SubspaceModule::get_stake(netuid, &keys[0]);
@@ -190,7 +190,7 @@ fn test_transfer_stake() {
             netuid,
             keys[1],
             keys[0],
-            stake_amount
+            stake_amount,
         ));
 
         let key0_stake = SubspaceModule::get_stake(netuid, &keys[0]);
@@ -209,8 +209,8 @@ fn test_delegate_stake() {
         let mut total_stake: u64 = 0;
         let mut subnet_stake: u64 = 0;
         // make sure that the results won´t get affected by burn
-        SubspaceModule::set_min_burn(0);
-        SubspaceModule::set_max_registrations_per_block(1000);
+        zero_min_burn();
+        MaxRegistrationsPerBlock::<Test>::set(1000);
 
         for i in netuids.iter() {
             let netuid = *i;
@@ -242,7 +242,7 @@ fn test_delegate_stake() {
                     get_origin(delegate_key),
                     netuid,
                     *key,
-                    amount_staked
+                    amount_staked,
                 ));
                 let uid = SubspaceModule::get_uid_for_key(netuid, key);
                 // SubspaceModule::add_stake(get_origin(*key), netuid, amount_staked);
@@ -274,7 +274,7 @@ fn test_delegate_stake() {
                     get_origin(delegate_key),
                     netuid,
                     *key,
-                    amount_staked
+                    amount_staked,
                 ));
                 assert_eq!(get_stake_for_uid(netuid, uid), amount_staked + 10);
                 assert_eq!(SubspaceModule::get_balance(&delegate_key), 1);
@@ -306,7 +306,7 @@ fn test_ownership_ratio() {
         let num_modules: u16 = 10;
         let stake_per_module: u64 = 1_000_000_000;
         // make sure that the results won´t get affected by burn
-        SubspaceModule::set_min_burn(0);
+        zero_min_burn();
 
         register_n_modules(netuid, num_modules, 10);
 
@@ -329,7 +329,7 @@ fn test_ownership_ratio() {
                     get_origin(*d),
                     netuid,
                     *k,
-                    stake_per_module
+                    stake_per_module,
                 ));
                 let stake_from_vector = SubspaceModule::get_stake_from_vector(netuid, k);
                 assert_eq!(
@@ -371,7 +371,7 @@ fn test_min_stake() {
         let num_modules: u16 = 10;
         let min_stake: u64 = 10_000_000_000;
         // make sure that the results won´t get affected by burn
-        SubspaceModule::set_min_burn(0);
+        zero_min_burn();
 
         register_n_modules(netuid, num_modules, min_stake);
         let keys = SubspaceModule::get_keys(netuid);
@@ -396,7 +396,7 @@ fn test_stake_zero() {
         let stake_amount: u64 = to_nano(1_000);
 
         // Make sure registration cost is not affected
-        SubspaceModule::set_min_burn(0);
+        zero_min_burn();
 
         assert_ok!(register_module(netuid, key, stake_amount));
 
@@ -404,7 +404,7 @@ fn test_stake_zero() {
         let key_two = U256::from(1);
 
         assert_noop!(
-            SubspaceModule::do_add_stake(get_origin(key_two), netuid, key, 0),
+            SubspaceModule::do_add_stake(get_origin(key_two), netuid, key, 0,),
             Error::<Test>::NotEnoughBalanceToStake
         );
     });
@@ -419,7 +419,7 @@ fn test_unstake_zero() {
         let stake_amount: u64 = to_nano(1_000);
 
         // Make sure registration cost is not affected
-        SubspaceModule::set_min_burn(0);
+        zero_min_burn();
 
         assert_ok!(register_module(netuid, key, stake_amount));
 

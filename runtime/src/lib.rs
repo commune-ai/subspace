@@ -12,6 +12,8 @@ use frame_support::{
     pallet_prelude::Get,
 };
 use pallet_aura::MinimumPeriodTimesTwo;
+use pallet_governance::{Curator, GeneralSubnetApplicationCost};
+use pallet_governance_api::GovernanceConfiguration;
 use pallet_grandpa::{
     fg_primitives, AuthorityId as GrandpaId, AuthorityList as GrandpaAuthorityList,
 };
@@ -26,7 +28,7 @@ use sp_runtime::{
         One, PostDispatchInfoOf, Verify,
     },
     transaction_validity::{TransactionSource, TransactionValidity, TransactionValidityError},
-    ApplyExtrinsicResult, MultiSignature,
+    ApplyExtrinsicResult, DispatchResult, MultiSignature, Percent,
 };
 use sp_std::prelude::*;
 use sp_version::RuntimeVersion;
@@ -50,7 +52,7 @@ pub use frame_support::{
         IdentityFee, Weight, WeightToFeeCoefficient, WeightToFeeCoefficients,
         WeightToFeePolynomial,
     },
-    StorageValue,
+    PalletId, StorageValue,
 };
 pub use frame_system::Call as SystemCall;
 pub use pallet_balances::Call as BalancesCall;
@@ -109,9 +111,10 @@ pub mod opaque {
 }
 
 pub type Migrations = (
-    pallet_grandpa::migrations::MigrateV4ToV5<Runtime>,
-    pallet_subspace::migrations::v10::MigrateToV10<Runtime>,
+    pallet_governance::migrations::InitialMigration<Runtime>,
+    pallet_subspace::migrations::v11::MigrateToV11<Runtime>,
 );
+
 // To learn more about runtime versioning, see:
 // https://docs.substrate.io/main-docs/build/upgrade#runtime-versioning
 #[sp_version::runtime_version]
@@ -124,7 +127,7 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
     //   `spec_version`, and `authoring_version` are the same between Wasm and native.
     // This value is set to 100 to notify Polkadot-JS App (https://polkadot.js.org/apps) to use
     //   the compatible custom types.
-    spec_version: 116,
+    spec_version: 117,
     impl_version: 1,
     apis: RUNTIME_API_VERSIONS,
     transaction_version: 1,
@@ -335,6 +338,7 @@ parameter_types! {
     // Additional storage item size of 32 bytes.
     pub const DepositFactor: Balance = (0) as Balance * 2_000 * 10_000 + (32 as Balance) * 100 * 10_000;
     pub const MaxSignatories: u32 = 100;
+    pub const SubspacePalletId: PalletId = PalletId(*b"py/subsp");
 }
 
 impl pallet_multisig::Config for Runtime {
@@ -357,7 +361,14 @@ impl pallet_utility::Config for Runtime {
 impl pallet_subspace::Config for Runtime {
     type RuntimeEvent = RuntimeEvent;
     type Currency = Balances;
-    type WeightInfo = pallet_subspace::autogen_weights::SubstrateWeight<Runtime>;
+    type PalletId = SubspacePalletId;
+    type WeightInfo = pallet_subspace::weights::SubstrateWeight<Runtime>;
+}
+
+impl pallet_governance::Config for Runtime {
+    type PalletId = SubspacePalletId;
+    type RuntimeEvent = RuntimeEvent;
+    type Currency = Balances;
 }
 
 pub const WEIGHT_MILLISECS_PER_BLOCK: u64 = 2000;
@@ -415,6 +426,7 @@ construct_runtime!(
         Multisig: pallet_multisig,
         Utility: pallet_utility,
         SubspaceModule: pallet_subspace,
+        GovernanceModule: pallet_governance,
 
         // EVM Support
         BaseFee: pallet_base_fee,
@@ -682,7 +694,6 @@ impl_runtime_apis! {
     }
 
     impl subspace_runtime_api::SubspaceRuntimeApi<Block> for Runtime {
-
         fn get_module_info(key: AccountId, netuid: u16) -> ModuleInfo {
             let stats = SubspaceModule::get_module_stats(netuid, &key);
             let params = SubspaceModule::module_params(netuid, &key);
@@ -706,7 +717,6 @@ impl_runtime_apis! {
             }
         }
     }
-
 
     #[cfg(feature = "runtime-benchmarks")]
     impl frame_benchmarking::Benchmark<Block> for Runtime {
@@ -734,9 +744,11 @@ impl_runtime_apis! {
             use sp_storage::TrackedStorageKey;
 
             use frame_system_benchmarking::Pallet as SystemBench;
-            use baseline::Pallet as BaselineBench;
-
+            #[allow(non_local_definitions)]
             impl frame_system_benchmarking::Config for Runtime {}
+
+            use baseline::Pallet as BaselineBench;
+            #[allow(non_local_definitions)]
             impl baseline::Config for Runtime {}
 
             use frame_support::traits::WhitelistedStorageKeys;
@@ -780,6 +792,75 @@ impl_runtime_apis! {
         fn build_config(config: Vec<u8>) -> sp_genesis_builder::Result {
             build_config::<RuntimeGenesisConfig>(config)
         }
+    }
+}
+
+impl pallet_governance_api::GovernanceApi<<Runtime as frame_system::Config>::AccountId>
+    for Runtime
+{
+    fn get_dao_treasury_address() -> AccountId {
+        pallet_governance::DaoTreasuryAddress::<Runtime>::get()
+    }
+
+    fn get_dao_treasury_distribution() -> Percent {
+        pallet_governance::DaoTreasuryDistribution::<Runtime>::get()
+    }
+
+    fn is_delegating_voting_power(delegator: &AccountId) -> bool {
+        GovernanceModule::is_delegating_voting_power(delegator)
+    }
+
+    fn update_delegating_voting_power(delegator: &AccountId, delegating: bool) -> DispatchResult {
+        GovernanceModule::update_delegating_voting_power(delegator, delegating)
+    }
+
+    fn get_global_governance_configuration() -> GovernanceConfiguration {
+        pallet_governance::GlobalGovernanceConfig::<Runtime>::get()
+    }
+
+    fn get_subnet_governance_configuration(subnet_id: u16) -> GovernanceConfiguration {
+        pallet_governance::SubnetGovernanceConfig::<Runtime>::get(subnet_id)
+    }
+
+    fn update_global_governance_configuration(
+        governance_config: GovernanceConfiguration,
+    ) -> DispatchResult {
+        GovernanceModule::update_global_governance_configuration(governance_config)
+    }
+
+    fn update_subnet_governance_configuration(
+        subnet_id: u16,
+        governance_config: GovernanceConfiguration,
+    ) -> DispatchResult {
+        GovernanceModule::update_subnet_governance_configuration(subnet_id, governance_config)
+    }
+
+    fn handle_subnet_removal(subnet_id: u16) {
+        GovernanceModule::handle_subnet_removal(subnet_id);
+    }
+
+    fn execute_application(user_id: &AccountId) -> DispatchResult {
+        GovernanceModule::execute_application(user_id)
+    }
+
+    fn get_general_subnet_application_cost() -> u64 {
+        GeneralSubnetApplicationCost::<Runtime>::get()
+    }
+
+    fn curator_application_exists(module_key: &AccountId) -> bool {
+        GovernanceModule::curator_application_exists(module_key)
+    }
+
+    fn get_curator() -> AccountId {
+        Curator::<Runtime>::get()
+    }
+
+    fn set_curator(curator: &AccountId) {
+        Curator::<Runtime>::put(curator)
+    }
+
+    fn set_general_subnet_application_cost(amount: u64) {
+        GeneralSubnetApplicationCost::<Runtime>::put(amount)
     }
 }
 

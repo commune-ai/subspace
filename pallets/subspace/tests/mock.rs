@@ -3,13 +3,18 @@
 use frame_support::{
     assert_ok, parameter_types,
     traits::{Everything, Hooks},
+    PalletId,
 };
 use frame_system as system;
-use pallet_subspace::{Address, MaxRegistrationsPerInterval, Name};
+use pallet_governance_api::*;
+use pallet_subspace::{
+    Address, BurnConfig, Dividends, Emission, Incentive, LastUpdate, MaxRegistrationsPerBlock,
+    MaxRegistrationsPerInterval, Name, Stake, Tempo, N,
+};
 use sp_core::{H256, U256};
 use sp_runtime::{
-    traits::{BlakeTwo256, IdentityLookup},
-    BuildStorage, DispatchResult,
+    traits::{AccountIdConversion, BlakeTwo256, IdentityLookup},
+    BuildStorage, DispatchResult, Percent,
 };
 
 use log::info;
@@ -34,11 +39,6 @@ pub type BalanceCall = pallet_balances::Call<Test>;
 #[allow(dead_code)]
 pub type TestRuntimeCall = frame_system::Call<Test>;
 
-parameter_types! {
-    pub const BlockHashCount: u64 = 250;
-    pub const SS58Prefix: u8 = 42;
-}
-
 #[allow(dead_code)]
 pub type AccountId = U256;
 
@@ -50,6 +50,8 @@ pub type Balance = u64;
 pub type BlockNumber = u64;
 
 parameter_types! {
+    pub const SS58Prefix: u8 = 42;
+    pub const BlockHashCount: u64 = 250;
     pub const ExistentialDeposit: Balance = 1;
     pub const MaxLocks: u32 = 50;
     pub const MaxReserves: u32 = 50;
@@ -104,10 +106,76 @@ impl system::Config for Test {
     type PostTransactions = ();
 }
 
+parameter_types! {
+    pub const SubspacePalletId: PalletId = PalletId(*b"py/subsp");
+}
+
 impl pallet_subspace::Config for Test {
     type RuntimeEvent = RuntimeEvent;
     type Currency = Balances;
     type WeightInfo = ();
+    type PalletId = SubspacePalletId;
+}
+
+impl GovernanceApi<<Test as frame_system::Config>::AccountId> for Test {
+    fn get_dao_treasury_address() -> AccountId {
+        SubspacePalletId::get().into_account_truncating()
+    }
+
+    fn get_dao_treasury_distribution() -> Percent {
+        Percent::from_percent(50u8)
+    }
+
+    fn is_delegating_voting_power(_delegator: &AccountId) -> bool {
+        false
+    }
+
+    fn update_delegating_voting_power(_delegator: &AccountId, _delegating: bool) -> DispatchResult {
+        Ok(())
+    }
+
+    fn get_global_governance_configuration() -> GovernanceConfiguration {
+        Default::default()
+    }
+
+    fn get_subnet_governance_configuration(_subnet_id: u16) -> GovernanceConfiguration {
+        Default::default()
+    }
+
+    fn update_global_governance_configuration(
+        _governance_config: GovernanceConfiguration,
+    ) -> DispatchResult {
+        Ok(())
+    }
+
+    fn update_subnet_governance_configuration(
+        _subnet_id: u16,
+        _governance_config: GovernanceConfiguration,
+    ) -> DispatchResult {
+        Ok(())
+    }
+
+    fn handle_subnet_removal(_subnet_id: u16) {}
+
+    fn execute_application(_user_id: &AccountId) -> DispatchResult {
+        Ok(())
+    }
+
+    fn get_general_subnet_application_cost() -> u64 {
+        to_nano(1_000)
+    }
+
+    fn curator_application_exists(_module_key: &<Test as frame_system::Config>::AccountId) -> bool {
+        false
+    }
+
+    fn get_curator() -> <Test as frame_system::Config>::AccountId {
+        AccountId::default()
+    }
+
+    fn set_curator(_key: &<Test as frame_system::Config>::AccountId) {}
+
+    fn set_general_subnet_application_cost(_amount: u64) {}
 }
 
 #[allow(dead_code)]
@@ -134,7 +202,7 @@ pub(crate) fn step_block(n: u16) {
 
 #[allow(dead_code)]
 pub(crate) fn step_epoch(netuid: u16) {
-    let tempo: u16 = SubspaceModule::get_tempo(netuid);
+    let tempo: u16 = Tempo::<Test>::get(netuid);
     step_block(tempo);
 }
 
@@ -206,15 +274,15 @@ pub fn register_module(netuid: u16, key: U256, stake: u64) -> DispatchResult {
 
 #[allow(dead_code)]
 pub fn check_subnet_storage(netuid: u16) -> bool {
-    let n = SubspaceModule::get_subnet_n(netuid);
+    let n = N::<Test>::get(netuid);
     let uids = SubspaceModule::get_uids(netuid);
     let keys = SubspaceModule::get_keys(netuid);
     let names = SubspaceModule::get_names(netuid);
     let addresses = SubspaceModule::get_addresses(netuid);
-    let emissions = SubspaceModule::get_emissions(netuid);
-    let incentives = SubspaceModule::get_incentives(netuid);
-    let dividends = SubspaceModule::get_dividends(netuid);
-    let last_update = SubspaceModule::get_last_update(netuid);
+    let emissions = Emission::<Test>::get(netuid);
+    let incentives = Incentive::<Test>::get(netuid);
+    let dividends = Dividends::<Test>::get(netuid);
+    let last_update = LastUpdate::<Test>::get(netuid);
 
     if (n as usize) != uids.len() {
         return false;
@@ -261,7 +329,7 @@ pub fn get_stake_for_uid(netuid: u16, module_uid: u16) -> u64 {
     let Some(key) = SubspaceModule::get_key_for_uid(netuid, module_uid) else {
         return 0;
     };
-    SubspaceModule::get_stake_for_key(netuid, &key)
+    Stake::<Test>::get(netuid, key)
 }
 
 #[allow(dead_code)]
@@ -304,7 +372,7 @@ pub fn delegate_register_module(
     let origin = get_origin(key);
     let is_new_subnet: bool = !SubspaceModule::if_subnet_exist(netuid);
     if is_new_subnet {
-        SubspaceModule::set_max_registrations_per_block(1000)
+        MaxRegistrationsPerBlock::<Test>::set(1000)
     }
 
     let balance = SubspaceModule::get_balance(&key);
@@ -382,6 +450,11 @@ pub fn round_first_five(num: u64) -> u64 {
     } else {
         (first_five / 10) * place_value * 10
     }
+}
+
+#[allow(dead_code)]
+pub fn zero_min_burn() {
+    BurnConfig::<Test>::mutate(|cfg| cfg.min_burn = 0);
 }
 
 #[macro_export]

@@ -1,624 +1,451 @@
-use super::*;
+#![cfg(feature = "runtime-benchmarks")]
 
-use crate::Pallet;
-use frame_benchmarking::v2::*;
+use crate::{voting::VoteMode, Pallet as SubspaceMod, *};
+use frame_benchmarking::{account, benchmarks};
 use frame_system::RawOrigin;
+pub use pallet::*;
+use sp_arithmetic::per_things::Percent;
+use sp_std::vec::Vec;
 
-const SEED: u32 = 1;
-const BALANCE: u64 = 1_000_000_000_000_000_000;
-const MIN_STAKE: u64 = 1_00_000_000_000;
-
-fn set_user_balance<T: Config>(user: &T::AccountId) {
-    T::Currency::deposit_creating(user, <Pallet<T>>::u64_to_balance(BALANCE).unwrap());
-}
-
-fn default_register_helper<T: Config>() -> (Vec<u8>, Vec<u8>, Vec<u8>, T::AccountId, u16) {
-    let network: Vec<u8> = b"network".to_vec();
-    let name: Vec<u8> = b"name".to_vec();
-    let address: Vec<u8> = b"address".to_vec();
-    let module_key: T::AccountId = account("key", 0, SEED);
-
-    let netuid = register_helper::<T>(
-        network.clone(),
-        name.clone(),
-        address.clone(),
-        module_key.clone(),
-    );
-
-    (network, name, address, module_key, netuid)
-}
-
-fn register_helper<T: Config>(
-    network: Vec<u8>,
-    name: Vec<u8>,
-    address: Vec<u8>,
+fn register_mock<T: Config>(
+    key: T::AccountId,
     module_key: T::AccountId,
-) -> u16 {
-    set_user_balance::<T>(&module_key);
-
-    <Pallet<T>>::register(
-        RawOrigin::Signed(module_key.clone()).into(),
-        network.clone(),
-        name.clone(),
-        address.clone(),
-        MIN_STAKE,
-        module_key.clone(),
-    );
-
-    let netuid = <Pallet<T>>::get_netuid_for_name(network.clone()).unwrap_or(u16::MAX);
-
-    netuid
-}
-
-fn add_stake_helper<T: Config>(
-    network: Vec<u8>,
+    stake: u64,
     name: Vec<u8>,
-    address: Vec<u8>,
-    module_key: T::AccountId,
-    amount: u64,
-) -> u16 {
-    let netuid = register_helper::<T>(network, name.clone(), address.clone(), module_key.clone());
-
-    <Pallet<T>>::add_stake(
-        RawOrigin::Signed(module_key.clone()).into(),
-        netuid,
+) -> Result<(), &'static str> {
+    let address = "test".as_bytes().to_vec();
+    let network = "testnet".as_bytes().to_vec();
+    BurnConfig::<T>::mutate(|cfg| cfg.min_burn = 0);
+    SubspaceMod::<T>::add_balance_to_account(
+        &key,
+        SubspaceMod::<T>::u64_to_balance(stake + 2000).unwrap(),
+    );
+    let metadata = Some("metadata".as_bytes().to_vec());
+    SubspaceMod::<T>::register(
+        RawOrigin::Signed(key).into(),
+        network,
+        name,
+        address,
+        stake.into(),
         module_key,
-        amount,
-    );
-
-    netuid
+        metadata,
+    )?;
+    Ok(())
 }
 
-fn add_stake_multiple_helper<T: Config>(
-    caller: T::AccountId,
-) -> (u16, Vec<T::AccountId>, Vec<u64>) {
-    let network: Vec<u8> = b"network".to_vec();
-    let address: Vec<u8> = b"address".to_vec();
+fn submit_dao_application<T: Config>() -> Result<(), &'static str> {
+    // First add the application
+    let caller: T::AccountId = account("Alice", 0, 1);
+    let application_key: T::AccountId = account("Bob", 0, 2);
+    SubspaceMod::<T>::add_balance_to_account(
+        &caller,
+        SubspaceMod::<T>::u64_to_balance(1_000_000_000_000_000).unwrap(),
+    );
+    let data = "test".as_bytes().to_vec();
+    SubspaceMod::<T>::add_dao_application(RawOrigin::Signed(caller).into(), application_key, data)?;
+    Ok(())
+}
 
-    let module_keys: Vec<T::AccountId> = (0..10).map(|i| account("key", i, SEED)).collect();
-    let amounts: Vec<u64> = (0..10).map(|i| i + MIN_STAKE).collect();
+const REMOVE_WHEN_STAKING: u64 = 500;
 
-    let mut netuid: u16 = 0;
+benchmarks! {
+    // ---------------------------------
+    // Consensus operations
+    // ---------------------------------
 
-    for (index, module_key) in module_keys.iter().enumerate() {
-        let mut name: Vec<u8> = b"name".to_vec();
-        name.extend(vec![index as u8]);
+    // 0
+    set_weights {
+        let netuid = 0;
+        let module_key: T::AccountId = account("ModuleKey", 0, 2);
+        let module_key2: T::AccountId = account("ModuleKey2", 0, 3);
+        let stake = 100000000000000u64;
+        register_mock::<T>(module_key.clone(), module_key.clone(), stake, "test".as_bytes().to_vec())?;
+        register_mock::<T>(module_key2.clone(), module_key2.clone(), stake, "test1".as_bytes().to_vec())?;
+        let uids = vec![0];
+        let weights = vec![10];
+    }: set_weights(RawOrigin::Signed(module_key2), netuid, uids, weights)
 
-        netuid = register_helper::<T>(network.clone(), name, address.clone(), module_key.clone());
-    }
+    // ---------------------------------
+    // Stake operations
+    // ---------------------------------
 
-    set_user_balance::<T>(&caller);
+    // 1
+    add_stake {
+        let key: T::AccountId = account("Alice", 0, 1);
+        let netuid = 0;
+        let module_key: T::AccountId = account("ModuleKey", 0, 2);
+        let stake = 100000000000000u64;
+        SubspaceMod::<T>::add_balance_to_account(
+            &key,
+            SubspaceMod::<T>::u64_to_balance(stake + 2000).unwrap(),
+        );
+        register_mock::<T>(module_key.clone(), module_key.clone(), stake.clone(), "test".as_bytes().to_vec())?;
+    }: add_stake(RawOrigin::Signed(key), netuid, module_key, stake)
 
-    <Pallet<T>>::add_stake_multiple(
-        RawOrigin::Signed(caller).into(),
+    // 2
+    remove_stake {
+        let caller: T::AccountId = account("Alice", 0, 1);
+        let netuid = 0;
+        let module_key: T::AccountId = account("ModuleKey", 0, 2);
+        let stake = 100000000000000u64;
+        register_mock::<T>(module_key.clone(), module_key.clone(), stake, "test".as_bytes().to_vec())?;
+        let amount = 100000;
+        SubspaceMod::<T>::add_balance_to_account(
+            &caller,
+            SubspaceMod::<T>::u64_to_balance(amount).unwrap(),
+        );
+        SubspaceMod::<T>::add_stake(RawOrigin::Signed(caller.clone()).into(), netuid, module_key.clone(), amount - REMOVE_WHEN_STAKING)?;
+    }: remove_stake(RawOrigin::Signed(caller), netuid, module_key, amount - REMOVE_WHEN_STAKING)
+
+    // ---------------------------------
+    // Bulk stake operations
+    // ---------------------------------
+
+    // 3
+    add_stake_multiple {
+        let caller: T::AccountId = account("Alice", 0, 1);
+        let netuid = 0;
+        let module_key1: T::AccountId = account("ModuleKey1", 0, 2);
+        let module_key2: T::AccountId = account("ModuleKey2", 0, 3);
+        let stake = 100000000000000u64;
+        register_mock::<T>(module_key1.clone(), module_key1.clone(), stake, "test".as_bytes().to_vec())?;
+        register_mock::<T>(module_key2.clone(), module_key2.clone(), stake, "test1".as_bytes().to_vec())?;
+        let module_keys = vec![module_key1, module_key2];
+        let mut amounts = vec![10000, 20000];
+        SubspaceMod::<T>::add_balance_to_account(
+            &caller,
+            SubspaceMod::<T>::u64_to_balance(amounts.iter().sum::<u64>()).unwrap(),
+        );
+        // remove REMOVE_WHEN_STAKING from all amounts
+        amounts.iter_mut().for_each(|x| *x -= REMOVE_WHEN_STAKING);
+    }: add_stake_multiple(RawOrigin::Signed(caller), netuid, module_keys, amounts)
+
+    // 4
+    remove_stake_multiple {
+        let caller: T::AccountId = account("Alice", 0, 1);
+        let netuid = 0;
+        let module_key1: T::AccountId = account("ModuleKey1", 0, 2);
+        let module_key2: T::AccountId = account("ModuleKey2", 0, 3);
+        let stake = 100000000000000u64;
+        register_mock::<T>(module_key1.clone(), module_key1.clone(), stake, "test".as_bytes().to_vec())?;
+        register_mock::<T>(module_key2.clone(), module_key2.clone(), stake, "test1".as_bytes().to_vec())?;
+        let module_keys = vec![module_key1.clone(), module_key2.clone()];
+        let mut amounts = vec![1000, 2000];
+        SubspaceMod::<T>::add_balance_to_account(
+            &caller,
+            SubspaceMod::<T>::u64_to_balance(amounts.iter().sum::<u64>()).unwrap(),
+        );
+        // remove REMOVE_WHEN_STAKING from all amounts
+        amounts.iter_mut().for_each(|x| *x -= REMOVE_WHEN_STAKING);
+        SubspaceMod::<T>::add_stake_multiple(RawOrigin::Signed(caller.clone()).into(), netuid, module_keys.clone(), amounts.clone())?;
+    }: remove_stake_multiple(RawOrigin::Signed(caller), netuid, module_keys, amounts)
+
+    // ---------------------------------
+    // Transfers
+    // ---------------------------------
+
+    // 5
+    transfer_stake {
+        let caller: T::AccountId = account("Alice", 0, 1);
+        let netuid = 0;
+        let module_key: T::AccountId = account("ModuleKey", 0, 2);
+        let new_module_key: T::AccountId = account("NewModuleKey", 0, 3);
+        let stake = 100000000000000u64;
+        register_mock::<T>(module_key.clone(), module_key.clone(), stake, "test".as_bytes().to_vec())?;
+        register_mock::<T>(new_module_key.clone(), new_module_key.clone(), stake, "test1".as_bytes().to_vec())?;
+        let amount = 10000;
+        SubspaceMod::<T>::add_balance_to_account(
+            &caller,
+            SubspaceMod::<T>::u64_to_balance(amount).unwrap(),
+        );
+        SubspaceMod::<T>::add_stake(RawOrigin::Signed(caller.clone()).into(), netuid, module_key.clone(), amount - REMOVE_WHEN_STAKING)?;
+    }: transfer_stake(RawOrigin::Signed(caller), netuid, module_key, new_module_key, amount - REMOVE_WHEN_STAKING)
+
+    // 6
+    transfer_multiple {
+        let caller: T::AccountId = account("Alice", 0, 1);
+        let dest1: T::AccountId = account("Dest1", 0, 2);
+        let dest2: T::AccountId = account("Dest2", 0, 3);
+        let destinations = vec![dest1.clone(), dest2.clone()];
+        let mut amounts = vec![10000, 20000];
+        SubspaceMod::<T>::add_balance_to_account(
+            &caller,
+            SubspaceMod::<T>::u64_to_balance(amounts.iter().sum()).unwrap(),
+        );
+        // Reduce by REMOVE_WHEN_STAKING
+        amounts.iter_mut().for_each(|x| *x -= REMOVE_WHEN_STAKING);
+
+    }: transfer_multiple(RawOrigin::Signed(caller), destinations, amounts)
+
+    // ---------------------------------
+    // Registereing / Deregistering
+    // ---------------------------------
+
+    // 7
+    register {
+        let key: T::AccountId = account("Alice", 0, 1);
+        let module_key: T::AccountId = account("ModuleKey", 0, 2);
+        let stake = 100000000000000u64;
+        SubspaceMod::<T>::add_balance_to_account(
+            &key,
+            SubspaceMod::<T>::u64_to_balance(stake + 2000).unwrap(),
+        );
+    }: register(RawOrigin::Signed(key.clone()), "test".as_bytes().to_vec(), "test".as_bytes().to_vec(), "test".as_bytes().to_vec(), stake.into(), module_key.clone(), Some("metadata".as_bytes().to_vec()))
+
+    // 8
+    deregister {
+        let caller: T::AccountId = account("Alice", 0, 1);
+        let netuid = 0;
+        let stake = 100000000000000u64;
+        register_mock::<T>(caller.clone(), caller.clone(), stake, "test".as_bytes().to_vec())?;
+    }: deregister(RawOrigin::Signed(caller), netuid)
+
+    // ---------------------------------
+    // Updating
+    // ---------------------------------
+
+    // 9
+    update_module {
+        let caller: T::AccountId = account("Alice", 0, 1);
+        let netuid = 0;
+        let stake = 100000000000000u64;
+        register_mock::<T>(caller.clone(), caller.clone(), stake, "test".as_bytes().to_vec())?;
+        let name = "updated_name".as_bytes().to_vec();
+        let address = "updated_address".as_bytes().to_vec();
+        let delegation_fee = Some(Percent::from_percent(5));
+        let metadata = Some("updated_metadata".as_bytes().to_vec());
+    }: update_module(RawOrigin::Signed(caller), netuid, name, address, delegation_fee, metadata)
+
+
+    // 10
+    update_subnet {
+        let caller: T::AccountId = account("Alice", 0, 1);
+        let netuid = 0;
+        let stake = 100000000000000u64;
+        register_mock::<T>(caller.clone(), caller.clone(), stake, "test".as_bytes().to_vec())?;
+        let params = SubspaceMod::<T>::subnet_params(netuid);
+        }: update_subnet(
+        RawOrigin::Signed(caller),
         netuid,
-        module_keys.clone(),
-        amounts.clone(),
-    );
-
-    (netuid, module_keys, amounts)
-}
-
-#[benchmarks]
-mod benchmarks {
-    use super::*;
-
-    #[benchmark]
-    fn register() -> Result<(), BenchmarkError> {
-        let network: Vec<u8> = b"network".to_vec();
-        let name: Vec<u8> = b"name".to_vec();
-        let address: Vec<u8> = b"address".to_vec();
-        let module_key: T::AccountId = account("key", 0, SEED);
-
-        set_user_balance::<T>(&module_key);
-
-        #[extrinsic_call]
-        register(
-            RawOrigin::Signed(module_key.clone()),
-            network.clone(),
-            name,
-            address,
-            MIN_STAKE,
-            module_key.clone(),
-        );
-
-        let netuid = <Pallet<T>>::get_netuid_for_name(network).unwrap_or(u16::MAX);
-
-        assert!(
-            <Pallet<T>>::is_registered(netuid, &module_key),
-            "Register failed"
-        );
-
-        Ok(())
-    }
-
-    #[benchmark]
-    fn set_weights() -> Result<(), BenchmarkError> {
-        let network: Vec<u8> = b"network".to_vec();
-        let name: Vec<u8> = b"name".to_vec();
-        let address: Vec<u8> = b"address".to_vec();
-        let caller: T::AccountId = account("key", 0, SEED);
-
-        add_stake_helper::<T>(
-            network.clone(),
-            name.clone(),
-            address.clone(),
-            caller.clone(),
-            MIN_STAKE,
-        );
-
-        let (netuid, _, _) = add_stake_multiple_helper::<T>(caller.clone());
-
-        let uids = <Pallet<T>>::get_uids(netuid);
-
-        #[extrinsic_call]
-        set_weights(
-            RawOrigin::Signed(caller.clone()),
-            netuid,
-            uids.clone(),
-            vec![1u16; uids.len()],
-        );
-
-        Ok(())
-    }
-
-    #[benchmark]
-    fn add_stake() -> Result<(), BenchmarkError> {
-        let (network, name, address, module_key, netuid) = default_register_helper::<T>();
-
-        #[extrinsic_call]
-        add_stake(
-            RawOrigin::Signed(module_key.clone()),
-            netuid,
-            module_key.clone(),
-            MIN_STAKE,
-        );
-
-        Ok(())
-    }
-
-    #[benchmark]
-    fn add_stake_multiple() -> Result<(), BenchmarkError> {
-        let caller: T::AccountId = account("caller", 0, SEED);
-
-        let network: Vec<u8> = b"network".to_vec();
-        let address: Vec<u8> = b"address".to_vec();
-
-        let module_keys: Vec<T::AccountId> = (0..10).map(|i| account("key", i, SEED)).collect();
-        let amounts: Vec<u64> = (0..10).map(|i| i + MIN_STAKE).collect();
-
-        let mut netuid: u16 = 0;
-
-        for (index, module_key) in module_keys.iter().enumerate() {
-            let mut name: Vec<u8> = b"name".to_vec();
-            name.extend(vec![index as u8]);
-
-            netuid =
-                register_helper::<T>(network.clone(), name, address.clone(), module_key.clone());
-        }
-
-        set_user_balance::<T>(&caller);
-
-        #[extrinsic_call]
-        add_stake_multiple(RawOrigin::Signed(caller), netuid, module_keys, amounts);
-
-        Ok(())
-    }
-
-    #[benchmark]
-    fn transfer_stake() -> Result<(), BenchmarkError> {
-        let (_, _, _, new_module_key, _) = default_register_helper::<T>();
-
-        let network: Vec<u8> = b"network".to_vec();
-        let old_name: Vec<u8> = b"old_name".to_vec();
-        let old_address: Vec<u8> = b"old_address".to_vec();
-        let old_module_key: T::AccountId = account("old_key", 0, SEED);
-
-        let netuid = add_stake_helper::<T>(
-            network.clone(),
-            old_name.clone(),
-            old_address.clone(),
-            old_module_key.clone(),
-            MIN_STAKE,
-        );
-
-        #[extrinsic_call]
-        transfer_stake(
-            RawOrigin::Signed(old_module_key.clone()),
-            netuid,
-            old_module_key.clone(),
-            new_module_key.clone(),
-            MIN_STAKE,
-        );
-
-        Ok(())
-    }
-
-    #[benchmark]
-    fn transfer_multiple() -> Result<(), BenchmarkError> {
-        let network: Vec<u8> = b"network".to_vec();
-        let name: Vec<u8> = b"name".to_vec();
-        let address: Vec<u8> = b"address".to_vec();
-        let module_key: T::AccountId = account("key", 0, SEED);
-
-        let netuid = add_stake_helper::<T>(
-            network.clone(),
-            name.clone(),
-            address.clone(),
-            module_key.clone(),
-            MIN_STAKE,
-        );
-
-        let new_module_keys: Vec<T::AccountId> =
-            (0..10).map(|i| account("new_key", i, SEED)).collect();
-        let amounts: Vec<u64> = (0..10).map(|i| i + MIN_STAKE).collect();
-
-        for (index, new_module_key) in new_module_keys.iter().enumerate() {
-            let mut new_name: Vec<u8> = b"name".to_vec();
-            new_name.extend(vec![index as u8]);
-
-            register_helper::<T>(
-                network.clone(),
-                new_name,
-                address.clone(),
-                new_module_key.clone(),
-            );
-        }
-
-        #[extrinsic_call]
-        transfer_multiple(
-            RawOrigin::Signed(module_key.clone()),
-            new_module_keys,
-            amounts,
-        );
-
-        Ok(())
-    }
-
-    #[benchmark]
-    fn remove_stake() -> Result<(), BenchmarkError> {
-        let network: Vec<u8> = b"network".to_vec();
-        let name: Vec<u8> = b"name".to_vec();
-        let address: Vec<u8> = b"address".to_vec();
-        let module_key: T::AccountId = account("key", 0, SEED);
-
-        let netuid = add_stake_helper::<T>(
-            network.clone(),
-            name.clone(),
-            address.clone(),
-            module_key.clone(),
-            MIN_STAKE,
-        );
-
-        #[extrinsic_call]
-        remove_stake(
-            RawOrigin::Signed(module_key.clone()),
-            netuid,
-            module_key.clone(),
-            MIN_STAKE,
-        );
-
-        Ok(())
-    }
-
-    #[benchmark]
-    fn remove_stake_multiple() -> Result<(), BenchmarkError> {
-        let caller: T::AccountId = account("caller", 0, SEED);
-
-        let (netuid, module_keys, amounts) = add_stake_multiple_helper::<T>(caller.clone());
-
-        #[extrinsic_call]
-        remove_stake_multiple(
-            RawOrigin::Signed(caller.clone()),
-            netuid,
-            module_keys,
-            amounts,
-        );
-
-        Ok(())
-    }
-
-    #[benchmark]
-    fn update_subnet() -> Result<(), BenchmarkError> {
-        let (network, name, address, module_key, netuid) = default_register_helper::<T>();
-
-        let subnet_params = <Pallet<T>>::subnet_params(netuid);
-        let tempo = 5;
-        let min_stake = 0;
-
-        #[extrinsic_call]
-        update_subnet(
-            RawOrigin::Signed(module_key.clone()),
-            netuid,
-            subnet_params.name.clone(),
-            tempo,
-            subnet_params.immunity_period,
-            subnet_params.min_allowed_weights,
-            subnet_params.max_allowed_weights,
-            subnet_params.max_allowed_uids,
-            min_stake,
-            subnet_params.founder,
-        );
-
-        Ok(())
-    }
-
-    #[benchmark]
-    fn update_module() -> Result<(), BenchmarkError> {
-        let (network, name, address, module_key, netuid) = default_register_helper::<T>();
-
-        let mut new_name = name.clone();
-        new_name.extend(vec![1u8]);
-
-        #[extrinsic_call]
-        update_module(
-            RawOrigin::Signed(module_key.clone()),
-            netuid,
-            new_name,
-            address,
-            Option::None,
-        );
-
-        Ok(())
-    }
-
-    #[benchmark]
-    fn add_global_update() -> Result<(), BenchmarkError> {
-        #[extrinsic_call]
-        add_global_update(RawOrigin::Root, 1, 1, 1, 1, 1, 1);
-
-        Ok(())
-    }
-
-    #[benchmark]
-    fn vote_global_update() -> Result<(), BenchmarkError> {
-        <Pallet<T>>::add_global_update(RawOrigin::Root.into(), 1, 1, 1, 1, 1, 1);
-
-        let network: Vec<u8> = b"network".to_vec();
-        let name: Vec<u8> = b"name".to_vec();
-        let address: Vec<u8> = b"address".to_vec();
-        let caller: T::AccountId = account("key", 0, SEED);
-
-        add_stake_helper::<T>(
-            network.clone(),
-            name.clone(),
-            address.clone(),
-            caller.clone(),
-            MIN_STAKE,
-        );
-
-        #[extrinsic_call]
-        vote_global_update(RawOrigin::Signed(caller.clone()), 1);
-
-        Ok(())
-    }
-
-    #[benchmark]
-    fn accept_global_update() -> Result<(), BenchmarkError> {
-        <Pallet<T>>::add_global_update(RawOrigin::Root.into(), 1, 1, 1, 1, 1, 1);
-
-        let network: Vec<u8> = b"network".to_vec();
-        let name: Vec<u8> = b"name".to_vec();
-        let address: Vec<u8> = b"address".to_vec();
-        let caller: T::AccountId = account("key", 0, SEED);
-
-        add_stake_helper::<T>(
-            network.clone(),
-            name.clone(),
-            address.clone(),
-            caller.clone(),
-            MIN_STAKE,
-        );
-
-        <Pallet<T>>::vote_global_update(RawOrigin::Signed(caller.clone()).into(), 1);
-
-        #[extrinsic_call]
-        accept_global_update(RawOrigin::Signed(caller.clone()), 1);
-
-        Ok(())
-    }
-
-    #[benchmark]
-    fn add_subnet_update() -> Result<(), BenchmarkError> {
-        let network: Vec<u8> = b"network".to_vec();
-        let name: Vec<u8> = b"name".to_vec();
-        let address: Vec<u8> = b"address".to_vec();
-        let caller: T::AccountId = account("key", 0, SEED);
-
-        add_stake_helper::<T>(
-            network.clone(),
-            name.clone(),
-            address.clone(),
-            caller.clone(),
-            MIN_STAKE,
-        );
-
-        let netuid = <Pallet<T>>::get_netuid_for_name(network.clone()).unwrap_or(u16::MAX);
-
-        #[extrinsic_call]
-        add_subnet_update(RawOrigin::Root, netuid, name, 1, 1, 1, 1, 1, 1, 1, 1, 1);
-
-        Ok(())
-    }
-
-    #[benchmark]
-    fn vote_subnet_update() -> Result<(), BenchmarkError> {
-        let network: Vec<u8> = b"network".to_vec();
-        let name: Vec<u8> = b"name".to_vec();
-        let address: Vec<u8> = b"address".to_vec();
-        let caller: T::AccountId = account("key", 0, SEED);
-
-        add_stake_helper::<T>(
-            network.clone(),
-            name.clone(),
-            address.clone(),
-            caller.clone(),
-            MIN_STAKE,
-        );
-
-        let netuid = <Pallet<T>>::get_netuid_for_name(network.clone()).unwrap_or(u16::MAX);
-
-        <Pallet<T>>::add_subnet_update(
-            RawOrigin::Root.into(),
-            netuid,
-            name,
-            1,
-            1,
-            1,
-            1,
-            1,
-            1,
-            1,
-            1,
-            1,
-        );
-
-        #[extrinsic_call]
-        vote_subnet_update(RawOrigin::Signed(caller.clone()), 1);
-
-        Ok(())
-    }
-
-    #[benchmark]
-    fn accept_subnet_update() -> Result<(), BenchmarkError> {
-        let network: Vec<u8> = b"network".to_vec();
-        let name: Vec<u8> = b"name".to_vec();
-        let address: Vec<u8> = b"address".to_vec();
-        let caller: T::AccountId = account("key", 0, SEED);
-
-        add_stake_helper::<T>(
-            network.clone(),
-            name.clone(),
-            address.clone(),
-            caller.clone(),
-            MIN_STAKE,
-        );
-
-        let netuid = <Pallet<T>>::get_netuid_for_name(network.clone()).unwrap_or(u16::MAX);
-
-        <Pallet<T>>::add_subnet_update(
-            RawOrigin::Root.into(),
-            netuid,
-            name,
-            1,
-            1,
-            1,
-            1,
-            1,
-            1,
-            1,
-            1,
-            1,
-        );
-
-        <Pallet<T>>::vote_subnet_update(RawOrigin::Signed(caller.clone()).into(), 1);
-
-        #[extrinsic_call]
-        accept_subnet_update(RawOrigin::Signed(caller.clone()), 1);
-
-        Ok(())
-    }
-
-    impl_benchmark_test_suite!(Pallet, crate::mock::new_test_ext(), crate::mock::Test);
-}
-
-mod mock {
-    use frame_support::{parameter_types, traits::Everything};
-    use frame_system as system;
-
-    use sp_core::{H256, U256};
-    use sp_runtime::traits::{BlakeTwo256, IdentityLookup};
-
-    type Block = frame_system::mocking::MockBlock<Test>;
-
-    // Configure a mock runtime to test the pallet.
-    frame_support::construct_runtime!(
-        pub enum Test {
-            System: frame_system,
-            Balances: pallet_balances,
-            SubspaceModule: pallet_subspace,
-        }
-    );
-
-    #[allow(dead_code)]
-    pub type SubspaceCall = pallet_subspace::Call<Test>;
-
-    #[allow(dead_code)]
-    pub type BalanceCall = pallet_balances::Call<Test>;
-
-    #[allow(dead_code)]
-    pub type TestRuntimeCall = frame_system::Call<Test>;
-
-    parameter_types! {
-        pub const BlockHashCount: u64 = 250;
-        pub const SS58Prefix: u8 = 42;
-    }
-
-    #[allow(dead_code)]
-    pub type AccountId = U256;
-
-    // Balance of an account.
-    #[allow(dead_code)]
-    pub type Balance = u64;
-
-    parameter_types! {
-        pub const ExistentialDeposit: Balance = 1;
-        pub const MaxLocks: u32 = 50;
-        pub const MaxReserves: u32 = 50;
-    }
-
-    impl pallet_balances::Config for Test {
-        type Balance = Balance;
-        type RuntimeEvent = RuntimeEvent;
-        type DustRemoval = ();
-        type ExistentialDeposit = ExistentialDeposit;
-        type AccountStore = System;
-        type MaxLocks = MaxLocks;
-        type WeightInfo = ();
-        type MaxReserves = MaxReserves;
-        type ReserveIdentifier = ();
-        type RuntimeHoldReason = ();
-        type FreezeIdentifier = ();
-        type MaxFreezes = frame_support::traits::ConstU32<16>;
-        type RuntimeFreezeReason = ();
-    }
-
-    impl system::Config for Test {
-        type BaseCallFilter = Everything;
-        type Block = Block;
-        type BlockWeights = ();
-        type BlockLength = ();
-        type DbWeight = ();
-        type RuntimeOrigin = RuntimeOrigin;
-        type RuntimeCall = RuntimeCall;
-        type Nonce = u32;
-        type Hash = H256;
-        type Hashing = BlakeTwo256;
-        type AccountId = U256;
-        type Lookup = IdentityLookup<Self::AccountId>;
-        type RuntimeEvent = RuntimeEvent;
-        type BlockHashCount = BlockHashCount;
-        type Version = ();
-        type PalletInfo = PalletInfo;
-        type AccountData = pallet_balances::AccountData<Balance>;
-        type OnNewAccount = ();
-        type OnKilledAccount = ();
-        type SystemWeightInfo = ();
-        type SS58Prefix = SS58Prefix;
-        type OnSetCode = ();
-        type MaxConsumers = frame_support::traits::ConstU32<16>;
-
-        type RuntimeTask = ();
-        type SingleBlockMigrations = ();
-        type MultiBlockMigrator = ();
-        type PreInherents = ();
-        type PostInherents = ();
-        type PostTransactions = ();
-    }
-
-    impl pallet_subspace::Config for Test {
-        type RuntimeEvent = RuntimeEvent;
-        type Currency = Balances;
-        type WeightInfo = ();
-    }
+        params.founder,
+        params.founder_share,
+        params.immunity_period,
+        params.incentive_ratio,
+        params.max_allowed_uids,
+        params.max_allowed_weights,
+        params.min_allowed_weights,
+        params.max_weight_age,
+        params.min_stake,
+        params.name.clone(),
+        params.tempo,
+        params.trust_ratio,
+        params.maximum_set_weight_calls_per_epoch,
+        params.vote_mode,
+        params.bonds_ma
+    )
+    // ---------------------------------
+    // Subnet 0 DAO
+    // ---------------------------------
+
+    // 11
+    add_dao_application {
+        let caller: T::AccountId = account("Alice", 0, 1);
+        let application_key: T::AccountId = account("Bob", 0, 2);
+        SubspaceMod::<T>::add_balance_to_account(&caller, SubspaceMod::<T>::u64_to_balance(1_000_000_000_000_000).unwrap());
+        let data = "test".as_bytes().to_vec();
+    }: add_dao_application(RawOrigin::Signed(caller), application_key, data)
+
+    // 12
+    refuse_dao_application {
+        // First add the application
+        submit_dao_application::<T>()?;
+        let caller: T::AccountId = account("Alice", 0, 1);
+        Curator::<T>::set(caller.clone());
+    }: refuse_dao_application(RawOrigin::Signed(caller), 0)
+
+    // 13
+    add_to_whitelist {
+        // First add the application
+        submit_dao_application::<T>()?;
+        let caller: T::AccountId = account("Alice", 0, 1);
+        let application_key: T::AccountId = account("Bob", 0, 2);
+        Curator::<T>::set(caller.clone());
+    }: add_to_whitelist(RawOrigin::Signed(caller), application_key, 1)
+
+    // 14
+    remove_from_whitelist {
+        // First add the application
+        submit_dao_application::<T>()?;
+        let caller: T::AccountId = account("Alice", 0, 1);
+        let application_key: T::AccountId = account("Bob", 0, 2);
+        Curator::<T>::set(caller.clone());
+        // Now add it to whitelist
+        SubspaceMod::<T>::add_to_whitelist(RawOrigin::Signed(caller.clone()).into(), application_key.clone(), 1)?;
+    }: remove_from_whitelist(RawOrigin::Signed(caller), application_key)
+
+    // ---------------------------------
+    // Adding proposals
+    // ---------------------------------
+
+    // // 15
+    // add_global_proposal {
+    //     let caller: T::AccountId = account("Alice", 0, 1);
+    //     // Add alice funds to submit the proposal
+    //     SubspaceMod::<T>::add_balance_to_account(&caller, SubspaceMod::<T>::u64_to_balance(1_000_000_000_000_000).unwrap());
+    //     // Get the current current parameters
+    //     let params = SubspaceMod::<T>::global_params();
+    // }: add_global_proposal(
+    //     RawOrigin::Signed(caller),
+    //     params.max_name_length, // max_name_length: max length of a network name
+    //     params.min_name_length, // min_name_length: min length of a network name
+    //     params.max_allowed_subnets, // max_allowed_subnets: max number of subnets allowed
+    //     params.max_allowed_modules, // max_allowed_modules: max number of modules allowed per subnet
+    //     params.max_registrations_per_block, // max_registrations_per_block: max number of registrations per block
+    //     params.max_allowed_weights, // max_allowed_weights: max number of weights per module
+    //     params.burn_config.max_burn, // max_burn: max burn allowed to register
+    //     params.burn_config.min_burn, // min_burn: min burn required to register
+    //     params.floor_delegation_fee, // floor_delegation_fee: min delegation fee
+    //     params.floor_founder_share, // floor_founder_share: min founder share
+    //     params.min_weight_stake, // min_weight_stake: min weight stake required
+    //     params.burn_config.expected_registrations, // target_registrations_per_interval: desired number of registrations per interval
+    //     params.burn_config.adjustment_interval, // target_registrations_interval: the number of blocks that defines the registration interval
+    //     params.burn_config.adjustment_alpha, // adjustment_alpha: adjustment alpha
+    //     params.unit_emission, // unit_emission: emission per block
+    //     params.curator, // curator: subnet 0 dao multisig
+    //     params.subnet_stake_threshold, // subnet_stake_threshold: stake needed to start subnet emission
+    //     params.proposal_cost, // proposal_cost: amount of $COMAI to create a proposal, returned if proposal gets accepted
+    //     params.proposal_expiration, // proposal_expiration: the block number, proposal expires at
+    //     params.proposal_participation_threshold, // proposal_participation_threshold: minimum stake of the overall network stake, in order for proposal to get executed
+    //     params.general_subnet_application_cost // general_subnet_application_cost
+    // )
+
+    // // 16
+    // add_subnet_proposal {
+    //     let caller: T::AccountId = account("Alice", 0, 1);
+
+    //     // register the subnet
+    //     register_mock::<T>(caller.clone(), caller.clone(), 100000000000000u64, "test".as_bytes().to_vec())?;
+
+    //     // Switch the vote mode to vote
+    //     let params = SubspaceMod::<T>::subnet_params(0);
+
+    //     SubspaceMod::<T>::update_subnet(
+    //         RawOrigin::Signed(caller.clone()).into(),
+    //         0,
+    //         params.founder.clone(),
+    //         params.founder_share,
+    //         params.immunity_period,
+    //         params.incentive_ratio,
+    //         params.max_allowed_uids,
+    //         params.max_allowed_weights,
+    //         params.min_allowed_weights,
+    //         params.max_weight_age,
+    //         params.min_stake,
+    //         params.name.clone(),
+    //         params.tempo,
+    //         params.trust_ratio,
+    //         params.maximum_set_weight_calls_per_epoch,
+    //         VoteMode::Vote,
+    //         params.bonds_ma
+    //     )?;
+
+    //     // add balance to submit the proposal
+    //     SubspaceMod::<T>::add_balance_to_account(&caller, SubspaceMod::<T>::u64_to_balance(1_000_000_000_000_000).unwrap());
+
+    //     let founder = params.founder.clone();
+    //     let name = params.name.clone();
+
+    // }: add_subnet_proposal(
+    //     RawOrigin::Signed(caller.clone()),
+    //     0,
+    //     founder, // founder: the address of the founder
+    //     name, // name: the name of the subnet
+    //     params.founder_share, // founder_share: the share of the founder
+    //     params.immunity_period, // immunity_period: the period of immunity
+    //     params.incentive_ratio, // incentive_ratio: the incentive ratio
+    //     params.max_allowed_uids, // max_allowed_uids: the max allowed uids
+    //     params.max_allowed_weights, // max_allowed_weights: the max allowed weights
+    //     params.min_allowed_weights, // min_allowed_weights: the min allowed weights
+    //     params.min_stake, // min_stake: the min stake
+    //     params.max_weight_age, // max_weight_age: the max weight age
+    //     params.tempo, // tempo: the tempo
+    //     params.trust_ratio, // trust_ratio: the trust ratio
+    //     params.maximum_set_weight_calls_per_epoch, // maximum_set_weight_calls_per_epoch: the maximum set weight calls per epoch
+    //     params.vote_mode, // vote_mode: the vote mode
+    //     params.bonds_ma // bonds_ma: the bonds ma
+    // )
+
+    // // 17
+    // add_custom_proposal {
+    //     let caller: T::AccountId = account("Alice", 0, 1);
+    //     // Add alice fund to submit the proposal
+    //     SubspaceMod::<T>::add_balance_to_account(&caller, SubspaceMod::<T>::u64_to_balance(1_000_000_000_000_000).unwrap());
+    //     let data = "test".as_bytes().to_vec();
+    // }: add_custom_proposal(RawOrigin::Signed(caller), data)
+
+
+    // // 18
+    // add_custom_subnet_proposal {
+    //     let caller: T::AccountId = account("Alice", 0, 1);
+    //     // The subnet has to exist
+    //     register_mock::<T>(caller.clone(), caller.clone(), 100000000000000u64, "test".as_bytes().to_vec())?;
+    //     // Add alice fund to submit the proposal
+    //     SubspaceMod::<T>::add_balance_to_account(&caller, SubspaceMod::<T>::u64_to_balance(1_000_000_000_000_000).unwrap());
+    //     let data = "test".as_bytes().to_vec();
+    // }: add_custom_subnet_proposal(RawOrigin::Signed(caller), 0, data)
+
+    // // 19
+    // add_transfer_dao_treasury_proposal {
+    //     let caller: T::AccountId = account("Alice", 0, 1);
+    //     // Add alice fund to submit the proposal
+    //     SubspaceMod::<T>::add_balance_to_account(&caller, SubspaceMod::<T>::u64_to_balance(1_000_000_000_000_000).unwrap());
+    //     let amount = 1000;
+    //     // Add the amount to treasury funds
+    //     let treasury_address: T::AccountId = DaoTreasuryAddress::<T>::get();
+    //     SubspaceMod::<T>::add_balance_to_account(&treasury_address, SubspaceMod::<T>::u64_to_balance(amount).unwrap());
+
+    //     let data = "test".as_bytes().to_vec();
+    //     let destinations: T::AccountId = account("Bob", 0, 2);
+    // }: add_transfer_dao_treasury_proposal(RawOrigin::Signed(caller), data, amount, destinations)
+
+    // // ---------------------------------
+    // // Voting / Unvoting proposals
+    // // ---------------------------------
+
+    // // 20
+    // vote_proposal {
+    //     let caller: T::AccountId = account("Alice", 0, 1);
+    //     // Register alice such that she has funds to vote
+    //     register_mock::<T>(caller.clone(), caller.clone(), 100000000000000u64, "test".as_bytes().to_vec())?;
+
+    //     // Add alice fund to submit the proposal
+    //     SubspaceMod::<T>::add_balance_to_account(&caller, SubspaceMod::<T>::u64_to_balance(1_000_000_000_000_000).unwrap());
+    //     // Submit a custom proposal
+    //     let data = "test".as_bytes().to_vec();
+    //     SubspaceMod::<T>::add_custom_proposal(RawOrigin::Signed(caller.clone()).into(), data)?;
+    //     let proposal_id = 0;
+    //     let vote = true;
+    // }: vote_proposal(RawOrigin::Signed(caller), proposal_id, vote)
+
+    // // 21
+    // unvote_proposal {
+    //     let caller: T::AccountId = account("Alice", 0, 1);
+    //     // Register alice such that she has funds to vote
+    //     register_mock::<T>(caller.clone(), caller.clone(), 100000000000000u64, "test".as_bytes().to_vec())?;
+    //     // Add alice fund to submit the proposal
+    //     SubspaceMod::<T>::add_balance_to_account(&caller, SubspaceMod::<T>::u64_to_balance(1_000_000_000_000_000).unwrap());
+    //     // Submit a custom proposal
+    //     let data = "test".as_bytes().to_vec();
+    //     SubspaceMod::<T>::add_custom_proposal(RawOrigin::Signed(caller.clone()).into(), data)?;
+    //     let proposal_id = 0;
+    //     // Let alice vote on the proposal
+    //     SubspaceMod::<T>::vote_proposal(RawOrigin::Signed(caller.clone()).into(), proposal_id, true)?;
+    // }: unvote_proposal(RawOrigin::Signed(caller), proposal_id)
+
+    // ---------------------------------
+    // Testnet
+    // ---------------------------------
+
+    // 23
+    // TODO: Add testnet benchmarks later
 }
