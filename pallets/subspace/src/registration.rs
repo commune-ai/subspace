@@ -2,80 +2,17 @@ use crate::{module::ModuleChangeset, subnet::SubnetChangeset};
 
 use super::*;
 
-use frame_support::pallet_prelude::DispatchResult;
+use frame_support::{pallet_prelude::DispatchResult, LOG_TARGET};
 use frame_system::ensure_signed;
 
-use sp_core::Get;
+use sp_core::{keccak_256, sha2_256, Get, H256, U256};
+use sp_runtime::MultiAddress;
 use sp_std::vec::Vec;
+use system::pallet_prelude::BlockNumberFor;
 
 impl<T: Config> Pallet<T> {
-    pub fn do_add_to_whitelist(
-        origin: T::RuntimeOrigin,
-        module_key: T::AccountId,
-        recommended_weight: u8,
-    ) -> DispatchResult {
-        // --- 1. Check that the caller has signed the transaction.
-        let key = ensure_signed(origin)?;
-
-        // --- 2. Ensure that the key is the curator multisig.
-        ensure!(Self::get_curator() == key, Error::<T>::NotCurator);
-
-        // --- 2.1 Make sure the key application was submitted
-        let application_exists = CuratorApplications::<T>::iter()
-            .any(|(_, application)| application.user_id == module_key);
-
-        ensure!(application_exists, Error::<T>::ApplicationNotFound);
-
-        // --- 3. Ensure that the module_key is not already in the whitelist.
-        ensure!(
-            !Self::is_in_legit_whitelist(&module_key),
-            Error::<T>::AlreadyWhitelisted
-        );
-
-        ensure!(
-            recommended_weight <= 100 && recommended_weight > 0,
-            Error::<T>::InvalidRecommendedWeight
-        );
-
-        // --- 4. Insert the module_key into the whitelist.
-        Self::insert_to_whitelist(module_key.clone(), recommended_weight);
-
-        // execute the application
-        Self::execute_application(&module_key).unwrap();
-
-        // -- deposit event
-        Self::deposit_event(Event::WhitelistModuleAdded(module_key));
-
-        // --- 5. Ok and done.
-        Ok(())
-    }
-
-    pub fn do_remove_from_whitelist(
-        origin: T::RuntimeOrigin,
-        module_key: T::AccountId,
-    ) -> DispatchResult {
-        // --- 1. Check that the caller has signed the transaction.
-        let key = ensure_signed(origin)?;
-
-        // --- 2. Ensure that the key is the curator multisig.
-        ensure!(Self::get_curator() == key, Error::<T>::NotCurator);
-
-        // --- 3. Ensure that the module_key is in the whitelist.
-        ensure!(
-            Self::is_in_legit_whitelist(&module_key),
-            Error::<T>::NotWhitelisted
-        );
-
-        // --- 4. Remove the module_key from the whitelist.
-        Self::rm_from_whitelist(&module_key);
-
-        // -- deposit event
-        Self::deposit_event(Event::WhitelistModuleRemoved(module_key));
-
-        // --- 5. Ok and done.
-        Ok(())
-    }
-
+    // Used on extrinsics, can panic
+    #[allow(clippy::arithmetic_side_effects)]
     pub fn do_register(
         origin: T::RuntimeOrigin,
         network_name: Vec<u8>,
@@ -109,7 +46,7 @@ impl<T: Config> Pallet<T> {
             // Create subnet if it does not exist.
             None => {
                 let params = SubnetParams {
-                    name: network_name,
+                    name: network_name.try_into().map_err(|_| Error::<T>::SubnetNameTooLong)?,
                     founder: key.clone(),
                     ..DefaultSubnetParams::<T>::get()
                 };
@@ -138,7 +75,7 @@ impl<T: Config> Pallet<T> {
 
         // --- 5. Ensure the caller has enough stake to register.
         let min_stake: u64 = MinStake::<T>::get(netuid);
-        let current_burn: u64 = Self::get_burn(netuid);
+        let current_burn: u64 = Burn::<T>::get(netuid);
         // also ensures that in the case current_burn is present, the stake is enough
         // as burn, will be decreased from the stake on the module
         ensure!(
@@ -216,11 +153,8 @@ impl<T: Config> Pallet<T> {
 
     /// Whether the netuid has enough stake to cover the minimal stake and min burn
     pub fn enough_stake_to_register(min_stake: u64, min_burn: u64, stake_amount: u64) -> bool {
-        stake_amount >= (min_stake + min_burn)
+        stake_amount >= min_stake.saturating_add(min_burn)
     }
-
-    // Deregistration Logic
-    // ====================
 
     // Determine which peer to prune from the network by finding the element with the lowest pruning
     // score out of immunity period. If all modules are in immunity period return None.
@@ -236,7 +170,7 @@ impl<T: Config> Pallet<T> {
         let mut lowest_priority_uid: Option<u16> = None;
 
         let current_block = Self::get_current_block_number();
-        let immunity_period: u64 = Self::get_immunity_period(netuid) as u64;
+        let immunity_period: u64 = ImmunityPeriod::<T>::get(netuid) as u64;
 
         // Get all the UIDs and their registration blocks from the storage
         let mut uids: Vec<_> = RegistrationBlock::<T>::iter_prefix(netuid).collect();
@@ -267,16 +201,136 @@ impl<T: Config> Pallet<T> {
         lowest_priority_uid
     }
 
+    // Make sure this can never panic
+    #[allow(clippy::arithmetic_side_effects)]
+    pub fn do_faucet(
+        origin: T::RuntimeOrigin,
+        block_number: u64,
+        nonce: u64,
+        work: Vec<u8>,
+    ) -> DispatchResult {
+        // --- 1. Check that the caller has signed the transaction.
+        let key = ensure_signed(origin)?;
+        log::info!(
+            "do faucet with key: {key:?} and block number: {block_number} and nonce: {nonce}"
+        );
+
+        // --- 2. Ensure the passed block number is valid, not in the future or too old.
+        // Work must have been done within 3 blocks (stops long range attacks).
+        let current_block_number: u64 = Self::get_current_block_number();
+        ensure!(
+            block_number <= current_block_number,
+            Error::<T>::InvalidWorkBlock
+        );
+        ensure!(
+            current_block_number - block_number < 3,
+            Error::<T>::InvalidWorkBlock
+        );
+
+        // --- 3. Ensure the supplied work passes the difficulty.
+        let difficulty: U256 = U256::from(1_000_000); // Base faucet difficulty.
+        let work_hash: H256 = H256::from_slice(&work);
+        ensure!(
+            Self::hash_meets_difficulty(&work_hash, difficulty),
+            Error::<T>::InvalidDifficulty
+        ); // Check that the work meets difficulty.
+
+        // --- 4. Check Work is the product of the nonce, the block number, and hotkey. Add this as
+        // used work.
+        let seal: H256 = Self::create_seal_hash(block_number, nonce, &key);
+        ensure!(seal == work_hash, Error::<T>::InvalidSeal);
+
+        // --- 5. Add Balance via faucet.
+        let balance_to_add = 10_000_000_000_000u64.try_into().ok().unwrap();
+        Self::add_balance_to_account(&key, balance_to_add);
+
+        // --- 6. Deposit successful event.
+        log::info!("faucet done successfully with key: {key:?} and amount: {balance_to_add:?})",);
+        Self::deposit_event(Event::Faucet(key, balance_to_add));
+
+        // --- 7. Ok and done.
+        Ok(())
+    }
+
+    #[allow(clippy::indexing_slicing)]
+    pub fn hash_block_and_key(block_hash_bytes: &[u8; 32], key: &T::AccountId) -> H256 {
+        // Get the public key from the account id.
+        let key_pubkey: MultiAddress<_, ()> = MultiAddress::Id(key.clone());
+        let binding = key_pubkey.encode();
+        // Skip extra 0th byte.
+        let key_bytes: &[u8] = binding[1..].as_ref();
+        let mut full_bytes = [0u8; 64];
+        let (first_half, second_half) = full_bytes.split_at_mut(32);
+        first_half.copy_from_slice(block_hash_bytes);
+        // Safe because Substrate guarantees that all AccountId types are at least 32 bytes
+        second_half.copy_from_slice(&key_bytes[..32]);
+        let keccak_256_seal_hash_vec: [u8; 32] = keccak_256(&full_bytes[..]);
+
+        H256::from_slice(&keccak_256_seal_hash_vec)
+    }
+
+    pub fn create_seal_hash(block_number_u64: u64, nonce_u64: u64, hotkey: &T::AccountId) -> H256 {
+        let nonce = nonce_u64.to_le_bytes();
+        let block_hash_at_number: H256 = Self::get_block_hash_from_u64(block_number_u64);
+        let block_hash_bytes: &[u8; 32] = block_hash_at_number.as_fixed_bytes();
+        let binding = Self::hash_block_and_key(block_hash_bytes, hotkey);
+        let block_and_hotkey_hash_bytes: &[u8; 32] = binding.as_fixed_bytes();
+
+        let mut full_bytes = [0u8; 40];
+        let (first_chunk, second_chunk) = full_bytes.split_at_mut(8);
+        first_chunk.copy_from_slice(&nonce);
+        second_chunk.copy_from_slice(block_and_hotkey_hash_bytes);
+        let sha256_seal_hash_vec: [u8; 32] = sha2_256(&full_bytes[..]);
+        let keccak_256_seal_hash_vec: [u8; 32] = keccak_256(&sha256_seal_hash_vec);
+        let seal_hash: H256 = H256::from_slice(&keccak_256_seal_hash_vec);
+
+        log::trace!("hotkey:{hotkey:?} \nblock_number: {block_number_u64:?}, \nnonce_u64: {nonce_u64:?}, \nblock_hash: {block_hash_at_number:?}, \nfull_bytes: {full_bytes:?}, \nsha256_seal_hash_vec: {sha256_seal_hash_vec:?},  \nkeccak_256_seal_hash_vec: {keccak_256_seal_hash_vec:?}, \nseal_hash: {seal_hash:?}",);
+
+        seal_hash
+    }
+
+    pub fn get_block_hash_from_u64(block_number: u64) -> H256 {
+        let block_number: BlockNumberFor<T> = block_number.try_into().unwrap_or_else(|_| {
+            panic!("Block number {block_number} is too large to be converted to BlockNumberFor<T>")
+        });
+        let block_hash_at_number = system::Pallet::<T>::block_hash(block_number);
+        let vec_hash: Vec<u8> = block_hash_at_number.as_ref().to_vec();
+        let real_hash: H256 = H256::from_slice(&vec_hash);
+
+        log::trace!(
+            target: LOG_TARGET,
+            "block_number: vec_hash: {vec_hash:?}, real_hash: {real_hash:?}",
+        );
+
+        real_hash
+    }
+
+    // Determine whether the given hash satisfies the given difficulty.
+    // The test is done by multiplying the two together. If the product
+    // overflows the bounds of U256, then the product (and thus the hash)
+    // was too high.
+    pub fn hash_meets_difficulty(hash: &H256, difficulty: U256) -> bool {
+        let bytes: &[u8] = hash.as_bytes();
+        let num_hash: U256 = U256::from(bytes);
+        let (value, overflowed) = num_hash.overflowing_mul(difficulty);
+
+        log::trace!(
+            target: LOG_TARGET,
+            "Difficulty: hash: {hash:?}, hash_bytes: {bytes:?}, hash_as_num: {num_hash:?}, difficulty: {difficulty:?}, value: {value:?} overflowed: {overflowed:?}",
+        );
+        !overflowed
+    }
+
     pub fn add_subnet_from_registration(
         stake: u64,
         changeset: SubnetChangeset<T>,
     ) -> Result<u16, sp_runtime::DispatchError> {
-        let num_subnets: u16 = Self::num_subnets();
-        let max_subnets: u16 = Self::get_global_max_allowed_subnets();
+        let num_subnets: u16 = TotalSubnets::<T>::get();
+        let max_subnets: u16 = MaxAllowedSubnets::<T>::get();
 
         // if we have not reached the max number of subnets, then we can start a new one
         let target_subnet = if num_subnets >= max_subnets {
-            let (min_stake_netuid, min_stake) = Self::least_staked_netuid();
+            let (min_stake_netuid, min_stake) = Self::get_least_staked_netuid();
             // if the stake is greater than the least staked network, then we can start a new one
             ensure!(stake > min_stake, Error::<T>::NotEnoughStakeToStartNetwork);
             Self::remove_subnet(min_stake_netuid);
@@ -288,12 +342,16 @@ impl<T: Config> Pallet<T> {
         Self::add_subnet(changeset, target_subnet)
     }
 
+    // returns the amount of total modules on the network
+    pub fn global_n_modules() -> u16 {
+        Self::netuids().into_iter().map(N::<T>::get).sum()
+    }
+
     /// This function checks whether there are still available module slots on the network. If the
     /// subnet is filled, deregister the least staked module on it, or if the max allowed modules on
     /// the network is reached, deregisters the least staked module on the least staked netuid.
-
     pub fn reserve_module_slot(netuid: u16) -> Option<()> {
-        if Self::get_subnet_n(netuid) >= Self::get_max_allowed_uids(netuid) {
+        if N::<T>::get(netuid) >= MaxAllowedUids::<T>::get(netuid) {
             // If we reach the max allowed modules for this subnet,
             // then we replace the lowest priority node in the current subnet
             let lowest_uid = Self::get_lowest_uid(netuid, false);
@@ -303,9 +361,8 @@ impl<T: Config> Pallet<T> {
             } else {
                 None
             }
-        } else if Self::global_n_modules() >= Self::get_max_allowed_modules() {
-            // Get the least staked network (subnet) and its least staked module.
-            let (subnet_uid, _) = Self::least_staked_netuid();
+        } else if Self::global_n_modules() >= MaxAllowedModules::<T>::get() {
+            let (subnet_uid, _) = Self::get_least_staked_netuid();
             let module_uid = Self::get_lowest_uid(subnet_uid, true).unwrap_or(0);
 
             // Deregister the lowest priority node in the least staked network

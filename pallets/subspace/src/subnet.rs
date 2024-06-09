@@ -4,11 +4,15 @@ use frame_support::{
     pallet_prelude::DispatchResult, storage::IterableStorageMap, IterableStorageDoubleMap,
 };
 
-use self::voting::VoteMode;
+use self::global::BurnConfiguration;
 use sp_arithmetic::per_things::Percent;
-use sp_runtime::DispatchError;
+use sp_runtime::{traits::CheckedMul, BoundedVec, DispatchError};
 use sp_std::vec::Vec;
 use substrate_fixed::types::I64F64;
+
+// ---------------------------------
+// Subnet Parameters
+// ---------------------------------
 
 #[derive(Debug)]
 pub struct SubnetChangeset<T: Config> {
@@ -26,11 +30,10 @@ impl<T: Config> SubnetChangeset<T> {
         Ok(Self { params })
     }
 
-    pub fn apply(self, netuid: u16) -> Result<(), sp_runtime::DispatchError> {
+    pub fn apply(self, netuid: u16) -> DispatchResult {
         Self::validate_params(Some(netuid), &self.params)?;
 
-        // TODO: implement check that all params are inserted
-        SubnetNames::<T>::insert(netuid, &self.params.name);
+        SubnetNames::<T>::insert(netuid, self.params.name.into_inner());
         Founder::<T>::insert(netuid, &self.params.founder);
         FounderShare::<T>::insert(netuid, self.params.founder_share);
         Tempo::<T>::insert(netuid, self.params.tempo);
@@ -42,7 +45,6 @@ impl<T: Config> SubnetChangeset<T> {
         MinStake::<T>::insert(netuid, self.params.min_stake);
         TrustRatio::<T>::insert(netuid, self.params.trust_ratio);
         IncentiveRatio::<T>::insert(netuid, self.params.incentive_ratio);
-        VoteModeSubnet::<T>::insert(netuid, self.params.vote_mode);
         BondsMovingAverage::<T>::insert(netuid, self.params.bonds_ma);
         TargetRegistrationsInterval::<T>::insert(netuid, self.params.target_registrations_interval);
         TargetRegistrationsPerInterval::<T>::insert(
@@ -54,6 +56,7 @@ impl<T: Config> SubnetChangeset<T> {
             self.params.max_registrations_per_interval,
         );
 
+        AdjustmentAlpha::<T>::insert(netuid, self.params.adjustment_alpha);
         if self.params.maximum_set_weight_calls_per_epoch == 0 {
             MaximumSetWeightCallsPerEpoch::<T>::remove(netuid);
         } else {
@@ -62,6 +65,8 @@ impl<T: Config> SubnetChangeset<T> {
                 self.params.maximum_set_weight_calls_per_epoch,
             );
         }
+
+        T::update_subnet_governance_configuration(netuid, self.params.governance_config)?;
 
         Pallet::<T>::deposit_event(Event::SubnetParamsUpdated(netuid));
 
@@ -117,8 +122,29 @@ impl<T: Config> SubnetChangeset<T> {
         );
 
         ensure!(
-            params.max_allowed_weights <= Pallet::<T>::get_max_allowed_weights_global(),
+            params.max_allowed_weights <= MaxAllowedWeightsGlobal::<T>::get(),
             Error::<T>::InvalidMaxAllowedWeights
+        );
+
+        // match registration parameters
+        ensure!(
+            params.target_registrations_interval >= 10,
+            Error::<T>::InvalidTargetRegistrationsInterval
+        );
+
+        ensure!(
+            params.target_registrations_per_interval >= 1,
+            Error::<T>::InvalidTargetRegistrationsPerInterval
+        );
+
+        ensure!(
+            params.max_registrations_per_interval >= 1,
+            Error::<T>::InvalidMaxRegistrationsPerInterval
+        );
+
+        ensure!(
+            params.adjustment_alpha > 0,
+            Error::<T>::InvalidAdjustmentAlpha
         );
 
         match Pallet::<T>::get_netuid_for_name(&params.name) {
@@ -140,38 +166,6 @@ impl<T: Config> SubnetChangeset<T> {
 }
 
 impl<T: Config> Pallet<T> {
-    pub fn do_update_subnet(
-        origin: T::RuntimeOrigin,
-        netuid: u16,
-        changeset: SubnetChangeset<T>,
-    ) -> DispatchResult {
-        let key = ensure_signed(origin)?;
-
-        // only the founder can update the network on authority mode
-        ensure!(
-            Self::is_subnet_founder(netuid, &key),
-            Error::<T>::NotFounder
-        );
-
-        // Ensure that the subnet is not in a `Vote` mode.
-        // Update by founder can be executed only in `Authority` mode.
-        ensure!(
-            VoteModeSubnet::<T>::get(netuid) == VoteMode::Authority,
-            Error::<T>::InvalidVoteMode
-        );
-
-        ensure!(
-            Self::if_subnet_netuid_exists(netuid),
-            Error::<T>::NetuidDoesNotExist
-        );
-
-        // apply the changeset
-        changeset.apply(netuid)?;
-
-        // --- 16. Ok and done.
-        Ok(())
-    }
-
     pub fn subnet_params(netuid: u16) -> SubnetParams<T> {
         SubnetParams {
             founder: Founder::<T>::get(netuid),
@@ -183,83 +177,219 @@ impl<T: Config> Pallet<T> {
             max_weight_age: MaxWeightAge::<T>::get(netuid),
             min_allowed_weights: MinAllowedWeights::<T>::get(netuid),
             min_stake: MinStake::<T>::get(netuid),
-            name: SubnetNames::<T>::get(netuid),
+            name: BoundedVec::truncate_from(SubnetNames::<T>::get(netuid)),
             trust_ratio: TrustRatio::<T>::get(netuid),
             incentive_ratio: IncentiveRatio::<T>::get(netuid),
             maximum_set_weight_calls_per_epoch: MaximumSetWeightCallsPerEpoch::<T>::get(netuid),
-            vote_mode: VoteModeSubnet::<T>::get(netuid),
             bonds_ma: BondsMovingAverage::<T>::get(netuid),
             target_registrations_interval: TargetRegistrationsInterval::<T>::get(netuid),
             target_registrations_per_interval: TargetRegistrationsPerInterval::<T>::get(netuid),
             max_registrations_per_interval: MaxRegistrationsPerInterval::<T>::get(netuid),
+            adjustment_alpha: AdjustmentAlpha::<T>::get(netuid),
+            governance_config: T::get_subnet_governance_configuration(netuid),
         }
     }
 
-    pub fn if_subnet_exist(netuid: u16) -> bool {
-        N::<T>::contains_key(netuid)
+    // ---------------------------------
+    // Adding Subnets
+    // ---------------------------------
+
+    pub fn add_subnet(
+        changeset: SubnetChangeset<T>,
+        netuid: Option<u16>,
+    ) -> Result<u16, DispatchError> {
+        let netuid = netuid.unwrap_or_else(|| match SubnetGaps::<T>::get().first().copied() {
+            Some(removed) => removed,
+            None => TotalSubnets::<T>::get(),
+        });
+
+        let name = changeset.params.name.clone();
+        changeset.apply(netuid)?;
+        TotalSubnets::<T>::mutate(|n| *n = n.saturating_add(1));
+        N::<T>::insert(netuid, 0);
+        SubnetEmission::<T>::insert(netuid, 0);
+
+        // Insert the minimum burn to the netuid,
+        // to prevent free registrations the first target registration interval.
+        let BurnConfiguration { min_burn, .. } = BurnConfig::<T>::get();
+        Burn::<T>::insert(netuid, min_burn);
+
+        SubnetGaps::<T>::mutate(|subnets| subnets.remove(&netuid));
+
+        // --- 6. Emit the new network event.
+        Self::deposit_event(Event::NetworkAdded(netuid, name.into_inner()));
+
+        Ok(netuid)
     }
 
-    pub fn get_burn(netuid: u16) -> u64 {
-        Burn::<T>::get(netuid)
-    }
-
-    pub fn set_burn(netuid: u16, burn: u64) {
-        Burn::<T>::insert(netuid, burn);
-    }
-
-    // get the least staked network
-    pub fn least_staked_netuid() -> (u16, u64) {
-        TotalStake::<T>::iter().min_by_key(|(_, stake)| *stake).unwrap_or_else(|| {
-            let stake = u64::MAX;
-            let netuid = Self::get_global_max_allowed_subnets() - 1;
-            (netuid, stake)
-        })
-    }
-
-    fn set_max_allowed_uids(netuid: u16, mut max_allowed_uids: u16) {
-        let n: u16 = Self::get_subnet_n(netuid);
-        if max_allowed_uids < n {
-            // limit it at 256 at a time
-            let mut remainder_n: u16 = n - max_allowed_uids;
-            let max_remainder = 256;
-            if remainder_n > max_remainder {
-                // remove the modules in small amounts, as this can be a heavy load on the chain
-                remainder_n = max_remainder;
-                max_allowed_uids = n - remainder_n;
-            }
-            // remove the modules by adding the to the deregister queue
-            for i in 0..remainder_n {
-                let next_uid: u16 = n - 1 - i;
-                Self::remove_module(netuid, next_uid);
-            }
+    // Removing subnets
+    // ---------------------------------
+    // TODO: improve safety, to check if all storages are,
+    // actually being deleted, from subnet_params struct,
+    // and other storage items, in consensus vectors etc..
+    pub fn remove_subnet(netuid: u16) -> u16 {
+        // --- 0. Ensure the network to be removed exists.
+        if !Self::if_subnet_exist(netuid) {
+            return 0;
         }
 
-        MaxAllowedUids::<T>::insert(netuid, max_allowed_uids);
+        Self::remove_netuid_stake_storage(netuid);
+
+        // --- 1. Erase all subnet module data.
+        // ====================================
+
+        SubnetNames::<T>::remove(netuid);
+        let _ = Name::<T>::clear_prefix(netuid, u32::MAX, None);
+        let _ = Address::<T>::clear_prefix(netuid, u32::MAX, None);
+        let _ = Metadata::<T>::clear_prefix(netuid, u32::MAX, None);
+        let _ = Uids::<T>::clear_prefix(netuid, u32::MAX, None);
+        let _ = Keys::<T>::clear_prefix(netuid, u32::MAX, None);
+        let _ = DelegationFee::<T>::clear_prefix(netuid, u32::MAX, None);
+
+        // --- 2. Remove consnesus vectors
+        // ===============================
+
+        let _ = Weights::<T>::clear_prefix(netuid, u32::MAX, None);
+        Active::<T>::remove(netuid);
+        Consensus::<T>::remove(netuid);
+        Dividends::<T>::remove(netuid);
+        Emission::<T>::remove(netuid);
+        Incentive::<T>::remove(netuid);
+        LastUpdate::<T>::remove(netuid);
+        PruningScores::<T>::remove(netuid);
+        Rank::<T>::remove(netuid);
+        Trust::<T>::remove(netuid);
+        ValidatorPermits::<T>::remove(netuid);
+        ValidatorTrust::<T>::remove(netuid);
+        let _ = RegistrationBlock::<T>::clear_prefix(netuid, u32::MAX, None);
+        SubnetEmission::<T>::remove(netuid);
+
+        // --- 3. Erase subnet parameters.
+        // ===============================
+
+        Founder::<T>::remove(netuid);
+        FounderShare::<T>::remove(netuid);
+        Tempo::<T>::remove(netuid);
+        ImmunityPeriod::<T>::remove(netuid);
+        MaxAllowedWeights::<T>::remove(netuid);
+        MaxAllowedUids::<T>::remove(netuid);
+        MaxWeightAge::<T>::remove(netuid);
+        MinAllowedWeights::<T>::remove(netuid);
+        MinStake::<T>::remove(netuid);
+        TrustRatio::<T>::remove(netuid);
+        IncentiveRatio::<T>::remove(netuid);
+        MaximumSetWeightCallsPerEpoch::<T>::remove(netuid);
+        BondsMovingAverage::<T>::remove(netuid);
+        TargetRegistrationsInterval::<T>::remove(netuid);
+        TargetRegistrationsPerInterval::<T>::remove(netuid);
+        MaxRegistrationsPerInterval::<T>::remove(netuid);
+        AdjustmentAlpha::<T>::remove(netuid);
+
+        T::handle_subnet_removal(netuid);
+
+        // --- 4 Adjust the total number of subnets. and remove the subnet from the list of subnets.
+        // =========================================================================================
+
+        N::<T>::remove(netuid);
+        TotalSubnets::<T>::mutate(|val| *val = val.saturating_sub(1));
+        SubnetGaps::<T>::mutate(|subnets| subnets.insert(netuid));
+
+        // --- 5. Emit the event.
+        // ======================
+
+        Self::deposit_event(Event::NetworkRemoved(netuid));
+
+        netuid
+    }
+    // ---------------------------------
+    // Updating Subnets
+    // ---------------------------------
+
+    pub fn do_update_subnet(
+        origin: T::RuntimeOrigin,
+        netuid: u16,
+        changeset: SubnetChangeset<T>,
+    ) -> DispatchResult {
+        let key = ensure_signed(origin)?;
+
+        // -- 1. Make sure the netuid exists
+        ensure!(
+            SubnetNames::<T>::contains_key(netuid),
+            Error::<T>::NetuidDoesNotExist
+        );
+
+        // --2. Ensury Authority - only the founder can update the network on authority mode.
+        ensure!(Founder::<T>::get(netuid) == key, Error::<T>::NotFounder);
+
+        // -4. Apply the changeset.
+        changeset.apply(netuid)?;
+
+        // --- 5. Ok and done.
+        Ok(())
     }
 
-    pub fn is_subnet_founder(netuid: u16, key: &T::AccountId) -> bool {
-        Founder::<T>::get(netuid) == *key
-    }
+    // ---------------------------------
+    // Subnet Emission
+    // ---------------------------------
 
-    pub fn set_unit_emission(unit_emission: u64) {
-        UnitEmission::<T>::put(unit_emission)
+    pub fn calculate_network_emission(netuid: u16, subnet_stake_threshold: Percent) -> u64 {
+        let subnet_stake: I64F64 = I64F64::from_num(Self::get_total_subnet_stake(netuid));
+        let total_stake: I64F64 = Self::adjust_total_stake(subnet_stake_threshold);
+
+        log::trace!(
+            "calculating subnet emission {netuid} with stake {subnet_stake}, \
+        total stake {total_stake}, \
+        threshold {subnet_stake_threshold:?}"
+        );
+
+        let subnet_ratio = if total_stake > I64F64::from_num(0) {
+            subnet_stake.checked_div(total_stake).unwrap_or(I64F64::from_num(0))
+        } else {
+            I64F64::from_num(0)
+        };
+
+        // Convert subnet_stake_threshold from % to I64F64
+        let subnet_stake_threshold_i64f64 = I64F64::from_num(subnet_stake_threshold.deconstruct())
+            .checked_div(I64F64::from_num(100))
+            .unwrap_or(I64F64::from_num(0));
+
+        // Check if subnet_ratio meets the subnet_stake_threshold,
+        // or netuid is not the general subnet
+        if subnet_ratio < subnet_stake_threshold_i64f64 && netuid != 0 {
+            // Return early if the threshold is not met,
+            // this prevents emission gapping, of subnets that don't meet emission threshold
+            Self::deactivate_subnet(netuid);
+            log::trace!("subnet {netuid} is not eligible for yuma consensus");
+            return 0;
+        }
+
+        let total_emission_per_block: u64 = Self::get_total_emission_per_block();
+
+        let token_emission: u64 = (I64F64::from_num(subnet_ratio)
+            .saturating_mul(I64F64::from_num(total_emission_per_block)))
+        .to_num::<u64>();
+
+        SubnetEmission::<T>::insert(netuid, token_emission);
+
+        token_emission
     }
 
     // Returns the total amount of stake in the staking table.
-    // TODO: refactor the halving logic, it's not correct.
+    // TODO: refactor the halving logic, can be completelly optimized.
+    // This will change in the global stake update
     pub fn get_total_emission_per_block() -> u64 {
         let total_stake: u64 = Self::total_stake();
         let unit_emission: u64 = UnitEmission::<T>::get();
-        let mut emission_per_block: u64 = unit_emission; // assuming 8 second block times
+        let emission_per_block: u64 = unit_emission; // assuming 8 second block times
         let halving_total_stake_checkpoints: Vec<u64> =
             [10_000_000, 20_000_000, 30_000_000, 40_000_000]
                 .iter()
-                .map(|x| x * unit_emission)
+                .map(|x| x.checked_mul(&unit_emission).unwrap_or(0))
                 .collect();
         for (i, having_stake) in halving_total_stake_checkpoints.iter().enumerate() {
             let halving_factor: u64 = 2u64.pow((i) as u32);
             if total_stake < *having_stake {
-                emission_per_block /= halving_factor;
+                emission_per_block.checked_div(halving_factor).unwrap_or(0);
                 break;
             }
         }
@@ -267,10 +397,44 @@ impl<T: Config> Pallet<T> {
         emission_per_block
     }
 
+    // This is the total stake of the network without subnets that can not get emission
+    // TODO: could be optimized
+    pub fn adjust_total_stake(subnet_stake_threshold: Percent) -> I64F64 {
+        let total_global_stake = I64F64::from_num(Self::total_stake());
+        if total_global_stake == 0 {
+            return I64F64::from_num(0);
+        }
+
+        let mut total_stake = I64F64::from_num(0);
+        let subnet_stake_threshold_i64f64 = I64F64::from_num(subnet_stake_threshold.deconstruct())
+            .checked_div(I64F64::from_num(100))
+            .unwrap_or(I64F64::from_num(0));
+
+        // Iterate over all subnets
+        for netuid in N::<T>::iter_keys() {
+            let subnet_stake: I64F64 = I64F64::from_num(Self::get_total_subnet_stake(netuid));
+            if subnet_stake == 0 {
+                continue;
+            }
+            let subnet_ratio =
+                subnet_stake.checked_div(total_global_stake).unwrap_or(I64F64::from_num(0));
+
+            // Check if subnet_ratio meets the subnet_stake_threshold,
+            // or the netuid is the general subnet
+
+            if subnet_ratio >= subnet_stake_threshold_i64f64 || netuid == 0 {
+                // Add subnet_stake to total_stake if it meets the threshold
+                total_stake = total_stake.saturating_add(subnet_stake);
+            }
+        }
+
+        total_stake
+    }
+
     /// Empties out all:
     /// emission, dividends, incentives, trust on the specific netuid.
     fn deactivate_subnet(netuid: u16) {
-        let module_count = Self::get_subnet_n(netuid) as usize;
+        let module_count = N::<T>::get(netuid) as usize;
         let zeroed = vec![0; module_count];
 
         SubnetEmission::<T>::insert(netuid, 0);
@@ -287,246 +451,135 @@ impl<T: Config> Pallet<T> {
         ValidatorTrust::<T>::insert(netuid, &zeroed);
     }
 
-    pub fn calculate_network_emission(netuid: u16, subnet_stake_threshold: Percent) -> u64 {
-        let subnet_stake: I64F64 = I64F64::from_num(Self::get_total_subnet_stake(netuid));
-        let total_stake: I64F64 = Self::adjust_total_stake(subnet_stake_threshold);
+    // ---------------------------------
+    // Setters
+    // ---------------------------------
 
-        log::trace!(
-            "calculating subnet emission {netuid} with stake {subnet_stake}, \
-total stake {total_stake}, \
-threshold {subnet_stake_threshold:?}"
-        );
-
-        let subnet_ratio = if total_stake > I64F64::from_num(0) {
-            subnet_stake / total_stake
-        } else {
-            I64F64::from_num(0)
-        };
-
-        // Convert subnet_stake_threshold from % to I64F64
-        let subnet_stake_threshold_i64f64 =
-            I64F64::from_num(subnet_stake_threshold.deconstruct()) / I64F64::from_num(100);
-
-        // Check if subnet_ratio meets the subnet_stake_threshold,
-        // or netuid is not the general subnet
-        if subnet_ratio < subnet_stake_threshold_i64f64 && netuid != 0 {
-            // Return early if the threshold is not met,
-            // this prevents emission gapping, of subnets that don't meet emission threshold
-            Self::deactivate_subnet(netuid);
-            log::trace!("subnet {netuid} is not eligible for yuma consensus");
-            return 0;
-        }
-
-        let total_emission_per_block: u64 = Self::get_total_emission_per_block();
-
-        let token_emission: u64 =
-            (subnet_ratio * I64F64::from_num(total_emission_per_block)).to_num::<u64>();
-
-        SubnetEmission::<T>::insert(netuid, token_emission);
-
-        token_emission
-    }
-
-    // This is the total stake of the network without subnets that can not get emission
-    // TODO: could be optimized
-    pub fn adjust_total_stake(subnet_stake_threshold: Percent) -> I64F64 {
-        let total_global_stake = I64F64::from_num(Self::total_stake());
-        if total_global_stake == 0 {
-            return I64F64::from_num(0);
-        }
-
-        let mut total_stake = I64F64::from_num(0);
-        let subnet_stake_threshold_i64f64 =
-            I64F64::from_num(subnet_stake_threshold.deconstruct()) / I64F64::from_num(100);
-        // Iterate over all subnets
-        for netuid in N::<T>::iter_keys() {
-            let subnet_stake: I64F64 = I64F64::from_num(Self::get_total_subnet_stake(netuid));
-            if subnet_stake == 0 {
-                continue;
+    fn set_max_allowed_uids(netuid: u16, mut max_allowed_uids: u16) {
+        let n: u16 = N::<T>::get(netuid);
+        if max_allowed_uids < n {
+            // limit it at 256 at a time
+            let mut remainder_n: u16 = n.saturating_sub(max_allowed_uids);
+            let max_remainder = 256;
+            if remainder_n > max_remainder {
+                // remove the modules in small amounts, as this can be a heavy load on the chain
+                remainder_n = max_remainder;
+                max_allowed_uids = n.saturating_sub(remainder_n);
             }
-            let subnet_ratio = subnet_stake / total_global_stake;
-            // Check if subnet_ratio meets the subnet_stake_threshold,
-            // or the netuid is the general subnet
-            if subnet_ratio >= subnet_stake_threshold_i64f64 || netuid == 0 {
-                // Add subnet_stake to total_stake if it meets the threshold
-                total_stake += subnet_stake;
+            // remove the modules by adding the to the deregister queue
+            for i in 0..remainder_n {
+                let next_uid: u16 = n.saturating_sub(1).saturating_sub(i);
+                Self::remove_module(netuid, next_uid);
             }
         }
 
-        total_stake
+        MaxAllowedUids::<T>::insert(netuid, max_allowed_uids);
     }
 
-    pub fn add_subnet(
-        changeset: SubnetChangeset<T>,
-        netuid: Option<u16>,
-    ) -> Result<u16, DispatchError> {
-        let netuid = netuid.unwrap_or_else(|| match SubnetGaps::<T>::get().first().copied() {
-            Some(removed) => removed,
-            None => TotalSubnets::<T>::get(),
+    pub fn set_last_update_for_uid(netuid: u16, uid: u16, last_update: u64) {
+        LastUpdate::<T>::mutate(netuid, |vec| {
+            if let Some(idx) = vec.get_mut(uid as usize) {
+                *idx = last_update;
+            }
         });
-
-        let name = changeset.params.name.clone();
-        changeset.apply(netuid)?;
-        TotalSubnets::<T>::mutate(|n| *n += 1);
-        N::<T>::insert(netuid, 0);
-        SubnetEmission::<T>::insert(netuid, 0);
-
-        // Insert the minimum burn to the netuid,
-        // to prevent free registrations the first target registration interval.
-        let min_burn = Self::get_min_burn();
-        Burn::<T>::insert(netuid, min_burn);
-
-        SubnetGaps::<T>::mutate(|subnets| subnets.remove(&netuid));
-
-        // --- 6. Emit the new network event.
-        Self::deposit_event(Event::NetworkAdded(netuid, name));
-
-        Ok(netuid)
-    }
-    // Initializes a new subnetwork under netuid with parameters.
-    pub fn subnet_name_exists(name: Vec<u8>) -> bool {
-        for (_, _name) in <SubnetNames<T> as IterableStorageMap<u16, Vec<u8>>>::iter() {
-            if _name == name {
-                return true;
-            }
-        }
-        false
     }
 
-    pub fn if_subnet_netuid_exists(netuid: u16) -> bool {
-        SubnetNames::<T>::contains_key(netuid)
+    // ---------------------------------
+    // Getters
+    // ---------------------------------
+    pub fn get_least_staked_netuid() -> (u16, u64) {
+        TotalStake::<T>::iter()
+            .min_by_key(|(_, stake)| *stake)
+            .unwrap_or_else(|| (MaxAllowedSubnets::<T>::get().saturating_sub(1), u64::MAX))
     }
 
-    pub fn does_subnet_name_exist(name: &[u8]) -> bool {
-        SubnetNames::<T>::iter().any(|(_, n)| n == name)
+    pub fn get_min_allowed_weights(netuid: u16) -> u16 {
+        let min_allowed_weights = MinAllowedWeights::<T>::get(netuid);
+        min_allowed_weights.min(N::<T>::get(netuid))
+    }
+
+    pub fn get_uids(netuid: u16) -> Vec<u16> {
+        (0..N::<T>::get(netuid)).collect()
+    }
+
+    pub fn get_keys(netuid: u16) -> Vec<T::AccountId> {
+        Self::get_uids(netuid)
+            .into_iter()
+            .map(|uid| Self::get_key_for_uid(netuid, uid).unwrap())
+            .collect()
+    }
+
+    pub fn get_uid_key_tuples(netuid: u16) -> Vec<(u16, T::AccountId)> {
+        (0..N::<T>::get(netuid))
+            .map(|uid| (uid, Self::get_key_for_uid(netuid, uid).unwrap()))
+            .collect()
+    }
+
+    pub fn get_names(netuid: u16) -> Vec<Vec<u8>> {
+        <Name<T> as IterableStorageDoubleMap<u16, u16, Vec<u8>>>::iter_prefix(netuid)
+            .map(|(_, name)| name)
+            .collect()
+    }
+
+    pub fn get_addresses(netuid: u16) -> Vec<T::AccountId> {
+        <Uids<T> as IterableStorageDoubleMap<u16, T::AccountId, u16>>::iter_prefix(netuid)
+            .map(|(key, _)| key)
+            .collect()
     }
 
     pub fn get_netuid_for_name(name: &[u8]) -> Option<u16> {
         SubnetNames::<T>::iter().find(|(_, n)| n == name).map(|(id, _)| id)
     }
-
-    pub fn remove_netuid_stake_strorage(netuid: u16) {
-        // --- 1. Erase network stake, and remove network from list of networks.
-        for key in Stake::<T>::iter_key_prefix(netuid) {
-            Self::remove_stake_from_storage(netuid, &key);
-        }
-
-        // --- 4. Remove all stake.
-        Stake::<T>::remove_prefix(netuid, None);
-        TotalStake::<T>::remove(netuid);
+    // Returs the key under the network uid as a Result. Ok if the uid is taken.
+    pub fn get_key_for_uid(netuid: u16, module_uid: u16) -> Option<T::AccountId> {
+        Keys::<T>::try_get(netuid, module_uid).ok()
+    }
+    // Returns the uid of the key in the network as a Result. Ok if the key has a slot.
+    pub fn get_uid_for_key(netuid: u16, key: &T::AccountId) -> u16 {
+        Uids::<T>::get(netuid, key).unwrap_or(0)
     }
 
-    pub fn remove_subnet(netuid: u16) -> u16 {
-        // TODO: handle errors
-        #![allow(unused_must_use)]
-
-        // --- 2. Ensure the network to be removed exists.
-        if !Self::if_subnet_exist(netuid) {
-            return 0;
-        }
-
-        Self::remove_netuid_stake_strorage(netuid);
-
-        SubnetNames::<T>::remove(netuid);
-        MaxWeightAge::<T>::remove(netuid);
-        Name::<T>::clear_prefix(netuid, u32::MAX, None);
-        Address::<T>::clear_prefix(netuid, u32::MAX, None);
-        Metadata::<T>::clear_prefix(netuid, u32::MAX, None);
-        Uids::<T>::clear_prefix(netuid, u32::MAX, None);
-        Keys::<T>::clear_prefix(netuid, u32::MAX, None);
-        DelegationFee::<T>::clear_prefix(netuid, u32::MAX, None);
-
-        // Remove consnesus vectors
-        Weights::<T>::clear_prefix(netuid, u32::MAX, None);
-
-        Active::<T>::remove(netuid);
-        Consensus::<T>::remove(netuid);
-        Dividends::<T>::remove(netuid);
-        Emission::<T>::remove(netuid);
-        Incentive::<T>::remove(netuid);
-        LastUpdate::<T>::remove(netuid);
-        PruningScores::<T>::remove(netuid);
-        Rank::<T>::remove(netuid);
-        Trust::<T>::remove(netuid);
-        ValidatorPermits::<T>::remove(netuid);
-        ValidatorTrust::<T>::remove(netuid);
-
-        RegistrationBlock::<T>::clear_prefix(netuid, u32::MAX, None);
-
-        // --- 2. Erase subnet parameters.
-        Founder::<T>::remove(netuid);
-        FounderShare::<T>::remove(netuid);
-        ImmunityPeriod::<T>::remove(netuid);
-        IncentiveRatio::<T>::remove(netuid);
-        MaxAllowedUids::<T>::remove(netuid);
-        MaxAllowedWeights::<T>::remove(netuid);
-        MinAllowedWeights::<T>::remove(netuid);
-        MinStake::<T>::remove(netuid);
-        SelfVote::<T>::remove(netuid);
-        SubnetEmission::<T>::remove(netuid);
-        Tempo::<T>::remove(netuid);
-        TrustRatio::<T>::remove(netuid);
-        VoteModeSubnet::<T>::remove(netuid);
-
-        // Adjust the total number of subnets. and remove the subnet from the list of subnets.
-        N::<T>::remove(netuid);
-        TotalSubnets::<T>::mutate(|val| *val -= 1);
-        SubnetGaps::<T>::mutate(|subnets| subnets.insert(netuid));
-
-        // --- 4. Emit the event.
-        Self::deposit_event(Event::NetworkRemoved(netuid));
-
-        netuid
+    pub fn get_current_block_number() -> u64 {
+        TryInto::try_into(<frame_system::Pallet<T>>::block_number())
+            .ok()
+            .expect("blockchain will not exceed 2^64 blocks; QED.")
     }
 
-    /// Returns the number of filled slots on a network.
-    pub fn get_subnet_n(netuid: u16) -> u16 {
-        N::<T>::get(netuid)
+    pub fn get_emission_for_uid(netuid: u16, uid: u16) -> u64 {
+        Emission::<T>::get(netuid).get(uid as usize).copied().unwrap_or_default()
     }
 
-    // Returns true if the uid is set on the network.
-    //
-    pub fn is_uid_exist_on_network(netuid: u16, uid: u16) -> bool {
-        Keys::<T>::contains_key(netuid, uid)
+    pub fn get_incentive_for_uid(netuid: u16, uid: u16) -> u16 {
+        Incentive::<T>::get(netuid).get(uid as usize).copied().unwrap_or_default()
+    }
+
+    pub fn get_dividends_for_uid(netuid: u16, uid: u16) -> u16 {
+        Dividends::<T>::get(netuid).get(uid as usize).copied().unwrap_or_default()
+    }
+
+    pub fn get_last_update_for_uid(netuid: u16, uid: u16) -> u64 {
+        LastUpdate::<T>::get(netuid).get(uid as usize).copied().unwrap_or_default()
+    }
+
+    // ---------------------------------
+    // Utility
+    // ---------------------------------
+
+    pub fn is_key_registered_on_any_network(key: &T::AccountId) -> bool {
+        Self::netuids().iter().any(|&netuid| Uids::<T>::contains_key(netuid, key))
+    }
+
+    pub fn is_registered(netuid: u16, key: &T::AccountId) -> bool {
+        Uids::<T>::contains_key(netuid, key)
+    }
+
+    pub fn if_subnet_exist(netuid: u16) -> bool {
+        N::<T>::contains_key(netuid)
     }
 
     pub fn key_registered(netuid: u16, key: &T::AccountId) -> bool {
         Uids::<T>::contains_key(netuid, key)
             || Keys::<T>::iter_prefix_values(netuid).any(|k| &k == key)
-    }
-
-    pub fn is_key_registered_on_any_network(key: &T::AccountId) -> bool {
-        for netuid in Self::netuids() {
-            if Uids::<T>::contains_key(netuid, key) {
-                return true;
-            }
-        }
-        false
-    }
-
-    // Returs the key under the network uid as a Result. Ok if the uid is taken.
-    //
-    pub fn get_key_for_uid(netuid: u16, module_uid: u16) -> Option<T::AccountId> {
-        Keys::<T>::try_get(netuid, module_uid).ok()
-    }
-
-    // Returns the uid of the key in the network as a Result. Ok if the key has a slot.
-    //
-    pub fn get_uid_for_key(netuid: u16, key: &T::AccountId) -> u16 {
-        Uids::<T>::get(netuid, key).unwrap_or(0)
-    }
-
-    pub fn get_trust_ratio(netuid: u16) -> u16 {
-        TrustRatio::<T>::get(netuid)
-    }
-
-    pub fn get_stake_for_key(netuid: u16, key: &T::AccountId) -> u64 {
-        Stake::<T>::get(netuid, key)
-    }
-
-    // Return the total number of subnetworks available on the chain.
-    pub fn num_subnets() -> u16 {
-        TotalSubnets::<T>::get()
     }
 
     pub fn netuids() -> Vec<u16> {
@@ -535,161 +588,13 @@ threshold {subnet_stake_threshold:?}"
             .collect()
     }
 
-    pub fn get_tempo(netuid: u16) -> u16 {
-        Tempo::<T>::get(netuid)
-    }
+    pub fn remove_netuid_stake_storage(netuid: u16) {
+        // --- 1. Erase network stake, and remove network from list of networks.
+        Stake::<T>::iter_key_prefix(netuid)
+            .for_each(|key| Self::remove_stake_from_storage(netuid, &key));
 
-    // FOUNDER SHARE (MAX IS 100)
-    pub fn get_founder_share(netuid: u16) -> u16 {
-        FounderShare::<T>::get(netuid).min(100)
-    }
-
-    pub fn get_registration_block_for_uid(netuid: u16, uid: u16) -> u64 {
-        RegistrationBlock::<T>::get(netuid, uid)
-    }
-
-    pub fn get_incentive_ratio(netuid: u16) -> u16 {
-        IncentiveRatio::<T>::get(netuid).min(100)
-    }
-
-    pub fn get_founder(netuid: u16) -> T::AccountId {
-        Founder::<T>::get(netuid)
-    }
-
-    // ========================
-    // ==== Global Getters ====
-    // ========================
-    pub fn get_current_block_number() -> u64 {
-        TryInto::try_into(<frame_system::Pallet<T>>::block_number())
-            .ok()
-            .expect("blockchain will not exceed 2^64 blocks; QED.")
-    }
-
-    pub fn set_last_update_for_uid(netuid: u16, uid: u16, last_update: u64) {
-        let mut updated_last_update_vec = Self::get_last_update(netuid);
-        if (uid as usize) < updated_last_update_vec.len() {
-            updated_last_update_vec[uid as usize] = last_update;
-            LastUpdate::<T>::insert(netuid, updated_last_update_vec);
-        }
-    }
-
-    pub fn get_emission_for_uid(netuid: u16, uid: u16) -> u64 {
-        Emission::<T>::get(netuid).get(uid as usize).copied().unwrap_or_default()
-    }
-    pub fn get_incentive_for_uid(netuid: u16, uid: u16) -> u16 {
-        Incentive::<T>::get(netuid).get(uid as usize).copied().unwrap_or_default()
-    }
-    pub fn get_dividends_for_uid(netuid: u16, uid: u16) -> u16 {
-        Dividends::<T>::get(netuid).get(uid as usize).copied().unwrap_or_default()
-    }
-    pub fn get_last_update_for_uid(netuid: u16, uid: u16) -> u64 {
-        LastUpdate::<T>::get(netuid).get(uid as usize).copied().unwrap_or_default()
-    }
-
-    pub fn get_global_max_allowed_subnets() -> u16 {
-        MaxAllowedSubnets::<T>::get()
-    }
-    pub fn set_global_max_allowed_subnets(max_allowed_subnets: u16) {
-        MaxAllowedSubnets::<T>::put(max_allowed_subnets)
-    }
-    // ============================
-    // ==== Subnetwork Getters ====
-    // ============================
-
-    pub fn get_module_registration_block(netuid: u16, uid: u16) -> u64 {
-        RegistrationBlock::<T>::get(netuid, uid)
-    }
-
-    pub fn get_immunity_period(netuid: u16) -> u16 {
-        ImmunityPeriod::<T>::get(netuid)
-    }
-
-    pub fn get_min_allowed_weights(netuid: u16) -> u16 {
-        let min_allowed_weights = MinAllowedWeights::<T>::get(netuid);
-        let n = Self::get_subnet_n(netuid);
-        // if n < min_allowed_weights, then return n
-        if n < min_allowed_weights {
-            n
-        } else {
-            min_allowed_weights
-        }
-    }
-
-    pub fn get_max_allowed_weights(netuid: u16) -> u16 {
-        let max_allowed_weights = MaxAllowedWeights::<T>::get(netuid);
-        let n = Self::get_subnet_n(netuid);
-        // if n < min_allowed_weights, then return n
-        max_allowed_weights.min(n)
-    }
-
-    pub fn get_max_allowed_uids(netuid: u16) -> u16 {
-        MaxAllowedUids::<T>::get(netuid)
-    }
-
-    pub fn get_max_allowed_modules() -> u16 {
-        MaxAllowedModules::<T>::get()
-    }
-
-    pub fn set_max_allowed_modules(max_allowed_modules: u16) {
-        MaxAllowedModules::<T>::put(max_allowed_modules)
-    }
-
-    pub fn get_uids(netuid: u16) -> Vec<u16> {
-        let n = Self::get_subnet_n(netuid);
-        (0..n).collect()
-    }
-    pub fn get_keys(netuid: u16) -> Vec<T::AccountId> {
-        let uids: Vec<u16> = Self::get_uids(netuid);
-        let keys: Vec<T::AccountId> =
-            uids.iter().map(|uid| Self::get_key_for_uid(netuid, *uid).unwrap()).collect();
-        keys
-    }
-
-    pub fn get_uid_key_tuples(netuid: u16) -> Vec<(u16, T::AccountId)> {
-        let n = Self::get_subnet_n(netuid);
-        let mut uid_key_tuples = Vec::<(u16, T::AccountId)>::new();
-        for uid in 0..n {
-            let key = Self::get_key_for_uid(netuid, uid).unwrap();
-            uid_key_tuples.push((uid, key));
-        }
-        uid_key_tuples
-    }
-
-    pub fn get_names(netuid: u16) -> Vec<Vec<u8>> {
-        let mut names = Vec::<Vec<u8>>::new();
-        for (_uid, name) in
-            <Name<T> as IterableStorageDoubleMap<u16, u16, Vec<u8>>>::iter_prefix(netuid)
-        {
-            names.push(name);
-        }
-        names
-    }
-
-    pub fn get_addresses(netuid: u16) -> Vec<T::AccountId> {
-        let mut addresses = Vec::<T::AccountId>::new();
-        for (key, _uid) in
-            <Uids<T> as IterableStorageDoubleMap<u16, T::AccountId, u16>>::iter_prefix(netuid)
-        {
-            addresses.push(key);
-        }
-        addresses
-    }
-
-    pub fn get_emissions(netuid: u16) -> Vec<u64> {
-        Emission::<T>::get(netuid)
-    }
-    pub fn get_incentives(netuid: u16) -> Vec<u16> {
-        Incentive::<T>::get(netuid)
-    }
-
-    pub fn get_dividends(netuid: u16) -> Vec<u16> {
-        Dividends::<T>::get(netuid)
-    }
-    pub fn get_last_update(netuid: u16) -> Vec<u64> {
-        LastUpdate::<T>::get(netuid)
-    }
-
-    pub fn is_registered(netuid: u16, key: &T::AccountId) -> bool {
-        Uids::<T>::contains_key(netuid, key)
+        // --- 4. Remove all stake.
+        Stake::<T>::remove_prefix(netuid, None);
+        TotalStake::<T>::remove(netuid);
     }
 }

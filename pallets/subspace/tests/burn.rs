@@ -2,7 +2,10 @@ mod mock;
 use frame_support::assert_ok;
 
 use mock::*;
-use pallet_subspace::{TargetRegistrationsInterval, TargetRegistrationsPerInterval};
+use pallet_subspace::{
+    global::BurnConfiguration, AdjustmentAlpha, Burn, MaxRegistrationsPerBlock,
+    TargetRegistrationsInterval, TargetRegistrationsPerInterval,
+};
 use sp_core::U256;
 
 // test subnet specific burn
@@ -10,18 +13,24 @@ use sp_core::U256;
 fn test_local_subnet_burn() {
     new_test_ext().execute_with(|| {
         let min_burn = to_nano(10);
+        let max_burn = to_nano(1000);
+
+        let burn_config = BurnConfiguration {
+            min_burn,
+            max_burn,
+            ..BurnConfiguration::<Test>::default()
+        };
+
+        assert_ok!(burn_config.apply());
+
+        MaxRegistrationsPerBlock::<Test>::set(5);
         let target_reg_interval = 200;
         let target_reg_per_interval = 25;
-        // set the min_burn to 10 $COMAI
-        SubspaceModule::set_min_burn(min_burn);
-
-        let max_burn = to_nano(1000);
-        // Adjust max burn to allow for the burn to move
-        SubspaceModule::set_max_burn(max_burn);
-        SubspaceModule::set_max_registrations_per_block(5);
 
         // register the general subnet
         assert_ok!(register_module(0, U256::from(0), to_nano(20)));
+        AdjustmentAlpha::<Test>::insert(0, 200);
+        TargetRegistrationsPerInterval::<Test>::insert(0, 25);
         // Adjust max registrations per block to a high number.
         // We will be doing "registration raid"
         TargetRegistrationsInterval::<Test>::insert(0, target_reg_interval); // for the netuid 0
@@ -32,7 +41,7 @@ fn test_local_subnet_burn() {
         let n = 300;
         let initial_stake: u64 = to_nano(500);
 
-        SubspaceModule::set_max_registrations_per_block(1000);
+        MaxRegistrationsPerBlock::<Test>::set(1000);
         // this will perform 300 registrations and step in between
         for i in 1..n {
             // this registers five in block
@@ -51,9 +60,9 @@ fn test_local_subnet_burn() {
         // this means avg.  0.166.. per block
         // burn has incrased by 90% > up
 
-        let subnet_zero_burn = SubspaceModule::get_burn(0);
+        let subnet_zero_burn = Burn::<Test>::get(0);
         assert_eq!(subnet_zero_burn, min_burn);
-        let subnet_one_burn = SubspaceModule::get_burn(1);
+        let subnet_one_burn = Burn::<Test>::get(1);
         assert!(min_burn < subnet_one_burn && subnet_one_burn < max_burn);
     });
 }

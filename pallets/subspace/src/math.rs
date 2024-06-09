@@ -1,6 +1,4 @@
-#![allow(warnings)]
-
-use core::convert::identity;
+#![allow(clippy::arithmetic_side_effects, clippy::indexing_slicing)]
 
 use sp_std::{vec, vec::Vec};
 use substrate_fixed::types::{I32F32, I64F64};

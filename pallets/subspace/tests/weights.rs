@@ -1,7 +1,6 @@
 mod mock;
 use frame_support::{assert_err, assert_ok};
-
-use pallet_subspace::{Error, FloorFounderShare};
+use pallet_subspace::{Error, FloorFounderShare, MaxRegistrationsPerBlock, N};
 use sp_core::U256;
 use sp_runtime::DispatchError;
 
@@ -18,7 +17,7 @@ fn test_weights_err_weights_vec_not_equal_size() {
         let netuid: u16 = 0;
         let key_account_id = U256::from(55);
         // make sure that the results won´t get affected by burn
-        SubspaceModule::set_min_burn(0);
+        zero_min_burn();
         assert_ok!(register_module(netuid, key_account_id, 1_000_000_000));
         let weights_keys: Vec<u16> = vec![1, 2, 3, 4, 5, 6];
         let weight_values: Vec<u16> = vec![1, 2, 3, 4, 5]; // Uneven sizes
@@ -39,8 +38,8 @@ fn test_weights_err_has_duplicate_ids() {
         let key_account_id = U256::from(666);
         let netuid: u16 = 0;
         // make sure that the results won´t get affected by burn
-        SubspaceModule::set_min_burn(0);
-        SubspaceModule::set_max_registrations_per_block(100);
+        zero_min_burn();
+        MaxRegistrationsPerBlock::<Test>::set(100);
 
         assert_ok!(register_module(netuid, key_account_id, 10));
         update_params!(netuid => { max_allowed_uids: 100 });
@@ -57,7 +56,7 @@ fn test_weights_err_has_duplicate_ids() {
         assert_ok!(register_module(netuid, U256::from(3), 10000000));
         SubspaceModule::get_uid_for_key(netuid, &U256::from(3));
 
-        assert_eq!(SubspaceModule::get_subnet_n(netuid), 4);
+        assert_eq!(N::<Test>::get(netuid), 4);
 
         let weights_keys: Vec<u16> = vec![1, 1, 1]; // Contains duplicates
         let weight_values: Vec<u16> = vec![1, 2, 3];
@@ -89,7 +88,7 @@ fn test_set_weights_err_invalid_uid() {
         let key_account_id = U256::from(55);
         let netuid: u16 = 0;
         // make sure that the results won´t get affected by burn
-        SubspaceModule::set_min_burn(0);
+        zero_min_burn();
         assert_ok!(register_module(netuid, key_account_id, 1_000_000_000));
         let weight_keys: Vec<u16> = vec![9999]; // Does not exist
         let weight_values: Vec<u16> = vec![88]; // random value
@@ -109,10 +108,10 @@ fn test_set_weight_not_enough_values() {
     new_test_ext().execute_with(|| {
         let netuid: u16 = 0;
         let n = 100;
-        SubspaceModule::set_max_registrations_per_block(n);
+        MaxRegistrationsPerBlock::<Test>::set(n);
         let account_id = U256::from(0);
         // make sure that the results won´t get affected by burn
-        SubspaceModule::set_min_burn(0);
+        zero_min_burn();
         assert_ok!(register_module(netuid, account_id, 1_000_000_000));
 
         for i in 1..n {
@@ -163,10 +162,10 @@ fn test_set_max_allowed_uids() {
     new_test_ext().execute_with(|| {
         let netuid: u16 = 0;
         let n = 100;
-        SubspaceModule::set_max_registrations_per_block(n);
+        MaxRegistrationsPerBlock::<Test>::set(n);
         let account_id = U256::from(0);
         // make sure that the results won´t get affected by burn
-        SubspaceModule::set_min_burn(0);
+        zero_min_burn();
         assert_ok!(register_module(netuid, account_id, 1_000_000_000));
         for i in 1..n {
             assert_ok!(register_module(netuid, U256::from(i), 1_000_000_000));
@@ -222,8 +221,8 @@ fn test_min_weight_stake() {
     new_test_ext().execute_with(|| {
         let mut global_params = SubspaceModule::global_params();
         global_params.min_weight_stake = to_nano(20);
-        SubspaceModule::set_global_params(global_params);
-        SubspaceModule::set_max_registrations_per_block(1000);
+        assert_ok!(SubspaceModule::set_global_params(global_params));
+        MaxRegistrationsPerBlock::<Test>::set(1000);
 
         let netuid: u16 = 0;
         let module_count: u16 = 16;
@@ -266,7 +265,7 @@ fn test_weight_age() {
         const TEMPO: u64 = 100;
         const PASSIVE_VOTER: u16 = 0;
         const ACTIVE_VOTER: u16 = 1;
-        SubspaceModule::set_max_registrations_per_block(1000);
+        MaxRegistrationsPerBlock::<Test>::set(1000);
         FloorFounderShare::<Test>::put(0);
         // Register modules
         (0..MODULE_COUNT).for_each(|i| {

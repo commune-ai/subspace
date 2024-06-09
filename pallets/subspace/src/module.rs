@@ -3,7 +3,6 @@ use super::*;
 use frame_support::pallet_prelude::{Decode, DispatchResult, Encode};
 use sp_arithmetic::per_things::Percent;
 use sp_std::collections::btree_map::BTreeMap;
-
 pub struct SubnetDistributionParameters;
 
 #[derive(Decode, Encode, PartialEq, Eq, Clone, Debug)]
@@ -91,7 +90,7 @@ impl ModuleChangeset {
         }
 
         if let Some(fee) = self.delegation_fee {
-            let floor = Pallet::<T>::get_floor_delegation_fee();
+            let floor = FloorDelegationFee::<T>::get();
             ensure!(fee >= floor, Error::<T>::InvalidMinDelegationFee);
 
             DelegationFee::<T>::insert(netuid, &key, fee);
@@ -102,9 +101,10 @@ impl ModuleChangeset {
             ensure!(metadata.len() <= 59, Error::<T>::ModuleMetadataTooLong);
             core::str::from_utf8(&metadata).map_err(|_| Error::<T>::InvalidModuleMetadata)?;
 
-            Metadata::<T>::insert(netuid, key, metadata);
+            Metadata::<T>::insert(netuid, &key, metadata);
         }
 
+        Pallet::<T>::deposit_event(Event::ModuleUpdated(netuid, key));
         Ok(())
     }
 }
@@ -148,7 +148,7 @@ impl<T: Config> Pallet<T> {
         changeset: ModuleChangeset,
     ) -> Result<u16, sp_runtime::DispatchError> {
         // 1. Get the next uid. This is always equal to subnetwork_n.
-        let uid: u16 = Self::get_subnet_n(netuid);
+        let uid: u16 = N::<T>::get(netuid);
         let block_number = Self::get_current_block_number();
 
         log::debug!("append_module( netuid: {netuid:?} | uid: {key:?} | new_key: {uid:?})");
@@ -175,7 +175,7 @@ impl<T: Config> Pallet<T> {
         ValidatorTrust::<T>::append(netuid, 0);
 
         // 5. Increase the number of modules in the network.
-        N::<T>::mutate(netuid, |n| *n += 1);
+        N::<T>::mutate(netuid, |n| *n = n.saturating_add(1));
 
         // increase the stake of the new key
         Self::increase_stake(netuid, key, key, 0);
@@ -184,15 +184,18 @@ impl<T: Config> Pallet<T> {
     }
 
     /// Replace the module under this uid.
+    /// TODO: fix later the indexing
+    #[allow(clippy::indexing_slicing)]
     pub fn remove_module(netuid: u16, uid: u16) {
         // 1. Get the old key under this position.
-        let n = Self::get_subnet_n(netuid);
+        let n = N::<T>::get(netuid);
         if n == 0 {
             // No modules in the network.
             return;
         }
+
         let module_key: T::AccountId = Keys::<T>::get(netuid, uid);
-        let replace_uid = n - 1;
+        let replace_uid = n.saturating_sub(1);
         let replace_key: T::AccountId = Keys::<T>::get(netuid, replace_uid);
 
         log::debug!(
@@ -302,7 +305,7 @@ impl<T: Config> Pallet<T> {
 
         // 3. Remove the network if it is empty.
         let module_count = N::<T>::mutate(netuid, |v| {
-            *v -= 1;
+            *v = v.saturating_sub(1);
             *v
         }); // Decrease the number of modules in the network.
 
@@ -326,7 +329,7 @@ impl<T: Config> Pallet<T> {
             .collect();
         let stake_from: BTreeMap<T::AccountId, u64> = StakeFrom::<T>::get(netuid, key);
 
-        let registration_block = Self::get_registration_block_for_uid(netuid, uid);
+        let registration_block = RegistrationBlock::<T>::get(netuid, uid);
 
         ModuleStats {
             stake_from,

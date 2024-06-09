@@ -8,9 +8,9 @@ use sp_core::U256;
 
 use log::info;
 use pallet_subspace::{
-    voting::ApplicationStatus, CuratorApplications, Emission, Error, MaxAllowedModules,
-    MaxAllowedUids, MinStake, RegistrationsPerBlock, Stake, SubnetGaps, SubnetNames, TotalSubnets,
-    N,
+    Emission, Error, FloorDelegationFee, MaxAllowedModules, MaxAllowedSubnets, MaxAllowedUids,
+    MaxNameLength, MaxRegistrationsPerBlock, MinNameLength, MinStake, RegistrationsPerBlock, Stake,
+    SubnetGaps, SubnetNames, TotalSubnets, N,
 };
 use sp_runtime::{DispatchResult, Percent};
 
@@ -26,14 +26,14 @@ fn test_min_stake() {
         let max_registrations_per_block = 10;
         let reg_this_block: u16 = 100;
         // make sure that the results won´t get affected by burn
-        SubspaceModule::set_min_burn(0);
+        zero_min_burn();
         let mut network: Vec<u8> = "test".as_bytes().to_vec();
         let address: Vec<u8> = "0.0.0.0:30333".as_bytes().to_vec();
         network.extend(netuid.to_string().as_bytes().to_vec());
         let name = "module".as_bytes().to_vec();
         assert_noop!(SubspaceModule::do_register(get_origin(U256::from(0)), network, name, address, 0, U256::from(0), None), Error::<Test>::NotEnoughBalanceToRegister);
         MinStake::<Test>::set(netuid, min_stake);
-        SubspaceModule::set_max_registrations_per_block(max_registrations_per_block);
+        MaxRegistrationsPerBlock::<Test>::set(max_registrations_per_block);
         step_block(1);
         assert_eq!(RegistrationsPerBlock::<Test>::get(), 0);
 
@@ -64,11 +64,9 @@ fn test_max_registration() {
         let rounds = 3;
         let max_registrations_per_block = 100;
         // make sure that the results won´t get affected by burn
-        SubspaceModule::set_min_burn(0);
-
+        zero_min_burn();
         assert_eq!(RegistrationsPerBlock::<Test>::get(), 0);
-
-        SubspaceModule::set_max_registrations_per_block(1000);
+        MaxRegistrationsPerBlock::<Test>::set(1000);
         for i in 1..(max_registrations_per_block * rounds) {
             let key = U256::from(i);
             assert_ok!(register_module(netuid, U256::from(i), to_nano(100)));
@@ -90,7 +88,7 @@ fn test_delegate_register() {
         let module_keys: Vec<U256> = (0..n).map(U256::from).collect();
         let stake_amount: u64 = 10_000_000_000;
         // make sure that the results won´t get affected by burn
-        SubspaceModule::set_min_burn(0);
+        zero_min_burn();
 
         SubspaceModule::add_balance_to_account(&key, stake_amount * n as u64);
         for module_key in module_keys {
@@ -112,7 +110,7 @@ fn test_registration_ok() {
         let netuid: u16 = 0;
         let key: U256 = U256::from(1);
         // make sure that the results won´t get affected by burn
-        SubspaceModule::set_min_burn(0);
+        zero_min_burn();
 
         // make sure there is some balance
         add_balance(key, 2);
@@ -120,7 +118,7 @@ fn test_registration_ok() {
             .unwrap_or_else(|_| panic!("register module failed for key {key:?}"));
 
         // Check if module has added to the specified network(netuid)
-        assert_eq!(SubspaceModule::get_subnet_n(netuid), 1);
+        assert_eq!(N::<Test>::get(netuid), 1);
 
         // Check if the module has added to the Keys
         let module_uid = SubspaceModule::get_uid_for_key(netuid, &key);
@@ -141,18 +139,14 @@ fn test_many_registrations() {
         let stake = 10;
         let n = 100;
         // make sure that the results won´t get affected by burn
-        SubspaceModule::set_min_burn(0);
+        zero_min_burn();
 
-        SubspaceModule::set_max_registrations_per_block(n);
+        MaxRegistrationsPerBlock::<Test>::set(n);
         for i in 0..n {
             register_module(netuid, U256::from(i), stake).unwrap_or_else(|_| {
                 panic!("Failed to register module with key: {i:?} and stake: {stake:?}",)
             });
-            assert_eq!(
-                SubspaceModule::get_subnet_n(netuid),
-                i + 1,
-                "Failed at i={i}",
-            );
+            assert_eq!(N::<Test>::get(netuid), i + 1, "Failed at i={i}",);
         }
     });
 }
@@ -164,7 +158,7 @@ fn test_registration_with_stake() {
         let stake_vector: Vec<u64> = [100000, 1000000, 10000000].to_vec();
 
         // make sure that the results won´t get affected by burn
-        SubspaceModule::set_min_burn(0);
+        zero_min_burn();
 
         for (i, stake) in stake_vector.iter().enumerate() {
             let uid: u16 = i as u16;
@@ -191,7 +185,7 @@ fn register_same_key_twice() {
         let stake = 10;
         let key = U256::from(1);
         // make sure that the results won´t get affected by burn
-        SubspaceModule::set_min_burn(0);
+        zero_min_burn();
 
         assert_ok!(register_module(netuid, key, stake));
         assert_err!(
@@ -201,69 +195,13 @@ fn register_same_key_twice() {
     });
 }
 
-#[test]
-fn test_whitelist() {
-    new_test_ext().execute_with(|| {
-        let key = U256::from(0);
-        let adding_key = U256::from(1);
-        let mut params = SubspaceModule::global_params();
-        params.curator = key;
-        SubspaceModule::set_global_params(params);
-
-        let proposal_cost = SubspaceModule::get_general_subnet_application_cost();
-        let data = "test".as_bytes().to_vec();
-
-        add_balance(key, proposal_cost + 1);
-        // first submit an application
-        let balance_before = SubspaceModule::get_balance_u64(&key);
-
-        assert_ok!(SubspaceModule::add_dao_application(
-            get_origin(key),
-            adding_key,
-            data.clone(),
-        ));
-
-        let balance_after = SubspaceModule::get_balance_u64(&key);
-
-        dbg!(balance_before, balance_after);
-        assert_eq!(balance_after, balance_before - proposal_cost);
-
-        // Assert that the proposal is initially in the Pending status
-        for (_, value) in CuratorApplications::<Test>::iter() {
-            assert_eq!(value.status, ApplicationStatus::Pending);
-            assert_eq!(value.user_id, adding_key);
-            assert_eq!(value.data, data);
-        }
-
-        // add key to whitelist
-        assert_ok!(SubspaceModule::add_to_whitelist(
-            get_origin(key),
-            adding_key,
-            1,
-        ));
-
-        let balance_after_accept = SubspaceModule::get_balance_u64(&key);
-
-        assert_eq!(balance_after_accept, balance_before);
-
-        // Assert that the proposal is now in the Accepted status
-        for (_, value) in CuratorApplications::<Test>::iter() {
-            assert_eq!(value.status, ApplicationStatus::Accepted);
-            assert_eq!(value.user_id, adding_key);
-            assert_eq!(value.data, data);
-        }
-
-        assert!(SubspaceModule::is_in_legit_whitelist(&adding_key));
-    });
-}
-
 fn register_custom(netuid: u16, key: U256, name: &[u8], addr: &[u8]) -> DispatchResult {
     let network: Vec<u8> = format!("test{netuid}").as_bytes().to_vec();
 
     let origin = get_origin(key);
     let is_new_subnet: bool = !SubspaceModule::if_subnet_exist(netuid);
     if is_new_subnet {
-        SubspaceModule::set_max_registrations_per_block(1000)
+        MaxRegistrationsPerBlock::<Test>::set(1000)
     }
 
     // make sure there is some balance
@@ -293,7 +231,7 @@ fn test_validation_cases(f: impl Fn(&[u8], &[u8]) -> DispatchResult) {
 fn validates_module_on_registration() {
     new_test_ext().execute_with(|| {
         // make sure that the results won´t get affected by burn
-        SubspaceModule::set_min_burn(0);
+        zero_min_burn();
         test_validation_cases(|name, addr| register_custom(0, 0.into(), name, addr));
 
         assert_err!(
@@ -310,7 +248,7 @@ fn validates_module_on_update() {
         let key_0: U256 = 0.into();
         let origin_0 = get_origin(0.into());
         // make sure that the results won´t get affected by burn
-        SubspaceModule::set_min_burn(0);
+        zero_min_burn();
 
         assert_ok!(register_custom(subnet, key_0, b"test", b"0.0.0.0:1"));
 
@@ -351,7 +289,7 @@ fn validates_module_on_update() {
         assert_eq!(params.name, b"test3");
         assert_eq!(params.address, b"0.0.0.0:3");
 
-        SubspaceModule::set_floor_delegation_fee(Percent::from_percent(10));
+        FloorDelegationFee::<Test>::put(Percent::from_percent(10));
         assert_err!(
             update_module(b"test3", b"0.0.0.0:3"),
             Error::<Test>::InvalidMinDelegationFee
@@ -416,14 +354,14 @@ fn test_register_invalid_name() {
         let stake = to_nano(1);
 
         // make registrations free
-        SubspaceModule::set_min_burn(0);
+        zero_min_burn();
 
         // set min name lenght
-        SubspaceModule::set_global_min_name_length(2);
+        MinNameLength::<Test>::put(2);
 
         // Get the minimum and maximum name lengths from the configuration
-        let min_name_length = SubspaceModule::get_global_min_name_length();
-        let max_name_length = SubspaceModule::get_global_max_name_length();
+        let min_name_length = MinNameLength::<Test>::get();
+        let max_name_length = MaxNameLength::<Test>::get();
 
         // Try registering with an empty name (invalid)
         let empty_name = Vec::new();
@@ -515,14 +453,14 @@ fn test_register_invalid_subnet_name() {
         let module_name = b"test".to_vec();
 
         // Make registrations free
-        SubspaceModule::set_min_burn(0);
+        zero_min_burn();
 
         // Set min name length
-        SubspaceModule::set_global_min_name_length(2);
+        MinNameLength::<Test>::put(2);
 
         // Get the minimum and maximum name lengths from the configuration
-        let min_name_length = SubspaceModule::get_global_min_name_length();
-        let max_name_length = SubspaceModule::get_global_max_name_length();
+        let min_name_length = MinNameLength::<Test>::get();
+        let max_name_length = MaxNameLength::<Test>::get();
 
         let register_one = U256::from(0);
         let empty_name = Vec::new();
@@ -622,63 +560,11 @@ fn test_register_invalid_subnet_name() {
 }
 
 // Subnet 0 Whitelist
-#[test]
-fn test_remove_from_whitelist() {
-    new_test_ext().execute_with(|| {
-        let whitelist_key = U256::from(0);
-        let module_key = U256::from(1);
-        SubspaceModule::set_curator(whitelist_key);
-
-        let proposal_cost = SubspaceModule::get_proposal_cost();
-        let data = "test".as_bytes().to_vec();
-
-        // apply
-        add_balance(whitelist_key, proposal_cost + 1);
-        // first submit an application
-        assert_ok!(SubspaceModule::add_dao_application(
-            get_origin(whitelist_key),
-            module_key,
-            data.clone(),
-        ));
-
-        // Add the module_key to the whitelist
-        assert_ok!(SubspaceModule::add_to_whitelist(
-            get_origin(whitelist_key),
-            module_key,
-            1
-        ));
-        assert!(SubspaceModule::is_in_legit_whitelist(&module_key));
-
-        // Remove the module_key from the whitelist
-        assert_ok!(SubspaceModule::remove_from_whitelist(
-            get_origin(whitelist_key),
-            module_key
-        ));
-        assert!(!SubspaceModule::is_in_legit_whitelist(&module_key));
-    });
-}
-
-#[test]
-fn test_invalid_curator() {
-    new_test_ext().execute_with(|| {
-        let whitelist_key = U256::from(0);
-        let invalid_key = U256::from(1);
-        let module_key = U256::from(2);
-        SubspaceModule::set_curator(whitelist_key);
-
-        // Try to add to whitelist with an invalid curator key
-        assert_noop!(
-            SubspaceModule::add_to_whitelist(get_origin(invalid_key), module_key, 1),
-            Error::<Test>::NotCurator
-        );
-        assert!(!SubspaceModule::is_in_legit_whitelist(&module_key));
-    });
-}
 
 #[test]
 fn new_subnet_reutilized_removed_netuid_if_total_is_bigger_than_removed() {
     new_test_ext().execute_with(|| {
-        SubspaceModule::set_min_burn(0);
+        zero_min_burn();
 
         TotalSubnets::<Test>::set(10);
         SubnetGaps::<Test>::set(BTreeSet::from([5]));
@@ -693,7 +579,7 @@ fn new_subnet_reutilized_removed_netuid_if_total_is_bigger_than_removed() {
 #[test]
 fn new_subnet_does_not_reute_removed_netuid_if_total_is_smaller_than_removed() {
     new_test_ext().execute_with(|| {
-        SubspaceModule::set_min_burn(0);
+        zero_min_burn();
 
         TotalSubnets::<Test>::set(3);
         SubnetGaps::<Test>::set(BTreeSet::from([7]));
@@ -714,8 +600,8 @@ fn new_subnets_on_removed_uids_register_modules_to_the_correct_netuids() {
     }
 
     new_test_ext().execute_with(|| {
-        SubspaceModule::set_min_burn(0);
-        SubspaceModule::set_global_max_allowed_subnets(3);
+        zero_min_burn();
+        MaxAllowedSubnets::<Test>::put(3);
 
         assert_ok!(register_module(0, 0.into(), to_nano(10)));
         assert_ok!(register_module(1, 1.into(), to_nano(5)));

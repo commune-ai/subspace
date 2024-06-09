@@ -184,7 +184,7 @@ impl<T: Config> Pallet<T> {
         // -- 5. Check before values
         let stake_before_add: u64 = Self::get_stake_to_module(netuid, &key, &module_key.clone());
         let balance_before_add: u64 = Self::get_balance_u64(&key);
-        let module_stake_before_add: u64 = Self::get_stake_for_key(netuid, &module_key);
+        let module_stake_before_add: u64 = Stake::<T>::get(netuid, &module_key);
 
         // --- 6. We remove the balance from the key.
         Self::remove_balance_from_account(&key, removed_balance_as_currency.unwrap())?;
@@ -195,7 +195,7 @@ impl<T: Config> Pallet<T> {
         // -- 8. Check after values
         let stake_after_add: u64 = Self::get_stake_to_module(netuid, &key, &module_key.clone());
         let balance_after_add: u64 = Self::get_balance_u64(&key);
-        let module_stake_after_add = Self::get_stake_for_key(netuid, &module_key);
+        let module_stake_after_add = Stake::<T>::get(netuid, &module_key);
 
         // -- 9. Make sure everything went as expected.
         // Otherwise these ensurers will revert the storage changes.
@@ -250,7 +250,7 @@ impl<T: Config> Pallet<T> {
         // -- 5. Check before values
         let stake_before_remove: u64 = Self::get_stake_to_module(netuid, &key, &module_key.clone());
         let balance_before_remove: u64 = Self::get_balance_u64(&key);
-        let module_stake_before_remove: u64 = Self::get_stake_for_key(netuid, &module_key);
+        let module_stake_before_remove: u64 = Stake::<T>::get(netuid, &module_key);
 
         // --- 6. We remove the balance from the key.
         Self::decrease_stake(netuid, &key, &module_key, amount);
@@ -261,7 +261,7 @@ impl<T: Config> Pallet<T> {
         // --- 8. Check after values
         let stake_after_remove: u64 = Self::get_stake_to_module(netuid, &key, &module_key.clone());
         let balance_after_remove: u64 = Self::get_balance_u64(&key);
-        let module_stake_after_remove = Self::get_stake_for_key(netuid, &module_key);
+        let module_stake_after_remove = Stake::<T>::get(netuid, &module_key);
 
         // -- 9. Make sure everything went as expected.
         // Otherwise these ensurers will revert the storage changes.
@@ -301,7 +301,7 @@ impl<T: Config> Pallet<T> {
 
     // Returns the delegation fee of a module
     pub fn get_delegation_fee(netuid: u16, module_key: &T::AccountId) -> Percent {
-        let min_deleg_fee_global = Self::get_floor_delegation_fee();
+        let min_deleg_fee_global = FloorDelegationFee::<T>::get();
         let delegation_fee = DelegationFee::<T>::get(netuid, module_key);
 
         delegation_fee.max(min_deleg_fee_global)
@@ -361,31 +361,25 @@ impl<T: Config> Pallet<T> {
 
     pub fn increase_stake(
         netuid: u16,
-        key: &T::AccountId,
-        module_key: &T::AccountId,
+        staker: &T::AccountId,
+        staked: &T::AccountId,
         amount: u64,
     ) -> bool {
-        let mut stake_from_vector = Self::get_stake_from_vector(netuid, module_key);
-        let found_key_in_vector = stake_from_vector.iter_mut().find(|(k, _)| *k == key);
-        if let Some((_, v)) = found_key_in_vector {
-            *v = v.saturating_add(amount);
-        } else {
-            stake_from_vector.insert(key.clone(), amount);
-        }
+        StakeFrom::<T>::mutate(netuid, staked, |stake_from| {
+            stake_from
+                .entry(staker.clone())
+                .and_modify(|v| *v = v.saturating_add(amount))
+                .or_insert(amount);
+        });
 
-        // reset the stake to vector, as we have updated the stake_to_vector
-        let mut stake_to_vector = Self::get_stake_to_vector(netuid, key);
-        let found_key_in_vector = stake_to_vector.iter_mut().find(|(k, _)| *k == module_key);
-        if let Some((_, v)) = found_key_in_vector {
-            *v = v.saturating_add(amount);
-        } else {
-            stake_to_vector.insert(module_key.clone(), amount);
-        }
+        StakeTo::<T>::mutate(netuid, staker, |stake_to| {
+            stake_to
+                .entry(staked.clone())
+                .and_modify(|v| *v = v.saturating_add(amount))
+                .or_insert(amount);
+        });
 
-        Self::set_stake_to_vector(netuid, key, stake_to_vector);
-        Self::set_stake_from_vector(netuid, module_key, stake_from_vector);
-
-        Stake::<T>::mutate(netuid, module_key, |stake| {
+        Stake::<T>::mutate(netuid, staked, |stake| {
             *stake = stake.saturating_add(amount)
         });
         TotalStake::<T>::mutate(netuid, |total_stake| {
@@ -395,59 +389,46 @@ impl<T: Config> Pallet<T> {
         true
     }
 
-    pub fn decrease_stake(
-        netuid: u16,
-        key: &T::AccountId,
-        module_key: &T::AccountId,
-        amount: u64,
-    ) -> bool {
-        // FROM DELEGATE STAKE
-        let mut stake_from_vector = Self::get_stake_from_vector(netuid, module_key);
-        for (k, v) in stake_from_vector.iter_mut() {
-            if k == key {
-                let remaining_stake = v.saturating_sub(amount);
-                *v = remaining_stake;
-                break;
+    pub fn decrease_stake(netuid: u16, staker: &T::AccountId, staked: &T::AccountId, amount: u64) {
+        StakeFrom::<T>::mutate(netuid, staked, |stake_from| {
+            if let Some(stake) = stake_from.get_mut(staker) {
+                *stake = stake.saturating_sub(amount);
+                if *stake == 0 {
+                    stake_from.remove(staker);
+                }
             }
-        }
-        stake_from_vector.retain(|_, v| *v != 0);
-        Self::set_stake_from_vector(netuid, module_key, stake_from_vector);
+        });
 
-        let mut stake_to_vector = Self::get_stake_to_vector(netuid, key);
-        // TO STAKE
-        for (k, v) in stake_to_vector.iter_mut() {
-            if k == module_key {
-                let remaining_stake = v.saturating_sub(amount);
-                *v = remaining_stake;
-                break;
+        StakeTo::<T>::mutate(netuid, staker, |stake_to| {
+            if let Some(stake) = stake_to.get_mut(staked) {
+                *stake = stake.saturating_sub(amount);
+                if *stake == 0 {
+                    stake_to.remove(staked);
+                }
             }
-        }
-        stake_to_vector.retain(|_, v| *v != 0);
-        Self::set_stake_to_vector(netuid, key, stake_to_vector);
+        });
 
-        // --- 8. We add the balancer to the key. If the above fails we will not credit this key.
-        Stake::<T>::mutate(netuid, module_key, |stake| {
+        Stake::<T>::mutate(netuid, staked, |stake| {
             *stake = stake.saturating_sub(amount)
         });
         TotalStake::<T>::mutate(netuid, |total_stake| {
             *total_stake = total_stake.saturating_sub(amount)
         });
-        true
     }
 
     // Decreases the stake by the amount while decreasing other counters.
-    pub fn remove_stake_from_storage(netuid: u16, module_key: &T::AccountId) {
-        let stake_from_vector = Self::get_stake_from_vector(netuid, module_key);
-        for (delegate_key, delegate_stake_amount) in stake_from_vector.iter() {
-            Self::decrease_stake(netuid, delegate_key, module_key, *delegate_stake_amount);
+    pub fn remove_stake_from_storage(netuid: u16, staked: &T::AccountId) {
+        let stake_from_vector = Self::get_stake_from_vector(netuid, staked);
+        for (staker, delegate_stake_amount) in stake_from_vector.iter() {
+            Self::decrease_stake(netuid, staker, staked, *delegate_stake_amount);
             Self::add_balance_to_account(
-                delegate_key,
+                staker,
                 Self::u64_to_balance(*delegate_stake_amount).unwrap(),
             );
         }
 
-        StakeFrom::<T>::remove(netuid, module_key);
-        Stake::<T>::remove(netuid, module_key);
+        StakeFrom::<T>::remove(netuid, staked);
+        Stake::<T>::remove(netuid, staked);
     }
 
     pub fn add_balance_to_account(key: &T::AccountId, amount: BalanceOf<T>) {

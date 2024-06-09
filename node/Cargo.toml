@@ -1,7 +1,7 @@
 [package]
 name = "node-subspace"
 version = "1.7.5"
-description = "A fresh FRAME-based Substrate node, ready for hacking."
+description = "The node implementation for Commune's subspace chain."
 authors = ["Substrate DevHub <https://github.com/substrate-developer-hub>"]
 homepage = "https://communeai.org/"
 edition = "2021"
@@ -59,8 +59,6 @@ sc-basic-authorship.workspace = true
 substrate-frame-rpc-system.workspace = true
 pallet-transaction-payment-rpc.workspace = true
 
-fp-evm.workspace = true
-
 # These dependencies are used for runtime benchmarking
 frame-benchmarking.workspace = true
 frame-benchmarking-cli.workspace = true
@@ -84,3 +82,4 @@ runtime-benchmarks = [
 # Enable features that allow the runtime to be tried and debugged. Name might be subject to change
 # in the near future.
 try-runtime = ["node-subspace-runtime/try-runtime"]
+testnet-faucet = []
