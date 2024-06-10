@@ -369,6 +369,7 @@ impl pallet_governance::Config for Runtime {
     type PalletId = SubspacePalletId;
     type RuntimeEvent = RuntimeEvent;
     type Currency = Balances;
+    type WeightInfo = pallet_governance::weights::SubstrateWeight<Runtime>;
 }
 
 pub const WEIGHT_MILLISECS_PER_BLOCK: u64 = 2000;
@@ -520,6 +521,7 @@ mod benches {
         [frame_system, SystemBench::<Runtime>]
         [pallet_balances, Balances]
         [pallet_subspace, SubspaceModule]
+        [pallet_governance, GovernanceModule]
         [pallet_timestamp, Timestamp]
         [pallet_utility, Utility]
     );

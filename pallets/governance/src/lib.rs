@@ -1,10 +1,14 @@
 //! The Governance pallet.
 #![cfg_attr(not(feature = "std"), no_std)]
 
+#[cfg(feature = "runtime-benchmarks")]
+mod benchmarking;
+
 pub mod dao;
 pub mod migrations;
 pub mod proposal;
 pub mod voting;
+pub mod weights; // Weight benchmarks
 
 use frame_support::{
     dispatch::DispatchResult,
@@ -24,6 +28,7 @@ type SubnetId = u16;
 pub mod pallet {
     #![allow(clippy::too_many_arguments)]
 
+    pub use crate::weights::WeightInfo;
     use crate::{dao::CuratorApplication, *};
     use frame_support::{
         pallet_prelude::{ValueQuery, *},
@@ -52,6 +57,9 @@ pub mod pallet {
 
         /// Currency type that will be used to place deposits on modules
         type Currency: Currency<Self::AccountId> + Send + Sync;
+
+        /// The weight information of this pallet.
+        type WeightInfo: WeightInfo;
     }
 
     #[pallet::hooks]
@@ -118,6 +126,10 @@ pub mod pallet {
     pub type UnrewardedProposals<T: Config> =
         StorageMap<_, Identity, ProposalId, UnrewardedProposal<T>>;
 
+    // ---------------------------------
+    // Treasury
+    // ---------------------------------
+
     #[pallet::type_value] // This has to be different than DefaultKey, so we are not conflicting in tests.
     pub fn DefaultDaoTreasuryAddress<T: Config>() -> T::AccountId {
         <T as Config>::PalletId::get().into_account_truncating()
@@ -159,11 +171,18 @@ pub mod pallet {
     #[pallet::storage]
     pub type Curator<T: Config> = StorageValue<_, T::AccountId, ValueQuery, DefaultKey<T>>;
 
-    // Add benchmarks for the pallet
+    // ---------------------------------
+    // Extrinsics
+    // ---------------------------------
+
     #[pallet::call]
     impl<T: Config> Pallet<T> {
+        //---------------------------------
+        // Adding proposals
+        //---------------------------------
+
         #[pallet::call_index(0)]
-        #[pallet::weight((Weight::zero(), DispatchClass::Normal, Pays::No))]
+        #[pallet::weight((<T as pallet::Config>::WeightInfo::add_global_params_proposal(), DispatchClass::Normal, Pays::No))]
         pub fn add_global_params_proposal(
             origin: OriginFor<T>,
             data: Vec<u8>,
@@ -207,7 +226,7 @@ pub mod pallet {
         }
 
         #[pallet::call_index(1)]
-        #[pallet::weight((Weight::zero(), DispatchClass::Normal, Pays::No))]
+        #[pallet::weight((<T as pallet::Config>::WeightInfo::add_subnet_params_proposal(), DispatchClass::Normal, Pays::No))]
         pub fn add_subnet_params_proposal(
             origin: OriginFor<T>,
             subnet_id: u16,
@@ -257,13 +276,13 @@ pub mod pallet {
         }
 
         #[pallet::call_index(2)]
-        #[pallet::weight((Weight::zero(), DispatchClass::Normal, Pays::No))]
+        #[pallet::weight((<T as pallet::Config>::WeightInfo::add_global_custom_proposal(), DispatchClass::Normal, Pays::No))]
         pub fn add_global_custom_proposal(origin: OriginFor<T>, data: Vec<u8>) -> DispatchResult {
             Self::do_add_global_custom_proposal(origin, data)
         }
 
         #[pallet::call_index(3)]
-        #[pallet::weight((Weight::zero(), DispatchClass::Normal, Pays::No))]
+        #[pallet::weight((<T as pallet::Config>::WeightInfo::add_subnet_custom_proposal(), DispatchClass::Normal, Pays::No))]
         pub fn add_subnet_custom_proposal(
             origin: OriginFor<T>,
             subnet_id: u16,
@@ -273,7 +292,7 @@ pub mod pallet {
         }
 
         #[pallet::call_index(4)]
-        #[pallet::weight((Weight::zero(), DispatchClass::Normal, Pays::No))]
+        #[pallet::weight((<T as pallet::Config>::WeightInfo::add_transfer_dao_treasury_proposal(), DispatchClass::Normal, Pays::No))]
         pub fn add_transfer_dao_treasury_proposal(
             origin: OriginFor<T>,
             data: Vec<u8>,
@@ -283,13 +302,13 @@ pub mod pallet {
             Self::do_add_transfer_dao_treasury_proposal(origin, data, value, dest)
         }
 
-        // Once benchmarked, provide more accurate weight info.
+        // ---------------------------------
+        // Voting / Unvoting proposals
+        // ---------------------------------
+
         // This has to pay fee, so very low stake keys don't spam the voting system.
         #[pallet::call_index(5)]
-        #[pallet::weight(Weight::from_parts(22_732_000, 6825)
-        .saturating_add(T::DbWeight::get().reads(4_u64))
-        .saturating_add(T::DbWeight::get().writes(1_u64))
-        )]
+        #[pallet::weight((<T as pallet::Config>::WeightInfo::vote_proposal(), DispatchClass::Normal, Pays::Yes))]
         pub fn vote_proposal(
             origin: OriginFor<T>,
             proposal_id: u64,
@@ -299,20 +318,20 @@ pub mod pallet {
         }
 
         #[pallet::call_index(6)]
-        #[pallet::weight((Weight::zero(), DispatchClass::Normal, Pays::No))]
+        #[pallet::weight((<T as pallet::Config>::WeightInfo::remove_vote_proposal(), DispatchClass::Normal, Pays::No))]
         pub fn remove_vote_proposal(origin: OriginFor<T>, proposal_id: u64) -> DispatchResult {
             Self::do_remove_vote_proposal(origin, proposal_id)
         }
 
         #[pallet::call_index(7)]
-        #[pallet::weight((Weight::zero(), DispatchClass::Normal, Pays::No))]
+        #[pallet::weight((<T as pallet::Config>::WeightInfo::enable_vote_power_delegation(), DispatchClass::Normal, Pays::No))]
         pub fn enable_vote_power_delegation(origin: OriginFor<T>) -> DispatchResult {
             let key = ensure_signed(origin)?;
             Self::update_delegating_voting_power(&key, true)
         }
 
         #[pallet::call_index(8)]
-        #[pallet::weight((Weight::zero(), DispatchClass::Normal, Pays::No))]
+        #[pallet::weight((<T as pallet::Config>::WeightInfo::disable_vote_power_delegation(), DispatchClass::Normal, Pays::No))]
         pub fn disable_vote_power_delegation(origin: OriginFor<T>) -> DispatchResult {
             let key = ensure_signed(origin)?;
             Self::update_delegating_voting_power(&key, false)
@@ -322,10 +341,8 @@ pub mod pallet {
         // Subnet 0 DAO
         // ---------------------------------
 
-        // TODO:
-        // add the benchmarks later
         #[pallet::call_index(9)]
-        #[pallet::weight((Weight::zero(), DispatchClass::Normal, Pays::No))]
+        #[pallet::weight((<T as pallet::Config>::WeightInfo::add_dao_application(), DispatchClass::Normal, Pays::No))]
         pub fn add_dao_application(
             origin: OriginFor<T>,
             application_key: T::AccountId,
@@ -335,13 +352,13 @@ pub mod pallet {
         }
 
         #[pallet::call_index(10)]
-        #[pallet::weight((Weight::zero(), DispatchClass::Normal, Pays::No))]
+        #[pallet::weight((<T as pallet::Config>::WeightInfo::refuse_dao_application(), DispatchClass::Normal, Pays::No))]
         pub fn refuse_dao_application(origin: OriginFor<T>, id: u64) -> DispatchResult {
             Self::do_refuse_dao_application(origin, id)
         }
 
         #[pallet::call_index(11)]
-        #[pallet::weight((Weight::zero(), DispatchClass::Normal, Pays::No))]
+        #[pallet::weight((<T as pallet::Config>::WeightInfo::add_to_whitelist(), DispatchClass::Normal, Pays::No))]
         pub fn add_to_whitelist(
             origin: OriginFor<T>,
             module_key: T::AccountId,
@@ -351,7 +368,7 @@ pub mod pallet {
         }
 
         #[pallet::call_index(12)]
-        #[pallet::weight((Weight::zero(), DispatchClass::Normal, Pays::No))]
+        #[pallet::weight((<T as pallet::Config>::WeightInfo::remove_from_whitelist(), DispatchClass::Normal, Pays::No))]
         pub fn remove_from_whitelist(
             origin: OriginFor<T>,
             module_key: T::AccountId,
@@ -359,6 +376,10 @@ pub mod pallet {
             Self::do_remove_from_whitelist(origin, module_key)
         }
     }
+
+    // ---------------------------------
+    // Events
+    // ---------------------------------
 
     #[pallet::event]
     #[pallet::generate_deposit(pub(crate) fn deposit_event)]
@@ -378,6 +399,10 @@ pub mod pallet {
                                                * been removed from the whitelist. */
         ApplicationCreated(u64),
     }
+
+    // ---------------------------------
+    // Errors
+    // ---------------------------------
 
     #[pallet::error]
     pub enum Error<T> {
@@ -442,6 +467,10 @@ pub mod pallet {
         CouldNotConvertToBalance,
     }
 }
+
+// ---------------------------------
+// Pallet Implementation
+// ---------------------------------
 
 impl<T: Config> Pallet<T> {
     pub fn validate(

@@ -23,12 +23,14 @@ default = ["std"]
 std = [
     "frame-support/std",
     "frame-system/std",
+    "frame-benchmarking/std",
     "parity-scale-codec/std",
     "pallet-subspace/std",
     "scale-info/std",
     "sp-std/std",
 ]
 try-runtime = ["frame-support/try-runtime"]
+runtime-benchmarks = ["frame-benchmarking/runtime-benchmarks"]
 
 [dependencies]
 bty.workspace = true
@@ -51,6 +53,9 @@ parity-scale-codec = { workspace = true, default-features = false, features = [
 scale-info = { workspace = true, default-features = false, features = [
     "derive",
 ] }
+
+frame-benchmarking = { workspace = true, optional = true }
+
 
 [dev-dependencies]
 pallet-balances = { workspace = true, features = ["std"] }

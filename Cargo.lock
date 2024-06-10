@@ -5162,6 +5162,7 @@ name = "pallet-governance"
 version = "1.0.0"
 dependencies = [
  "bty",
+ "frame-benchmarking",
  "frame-support",
  "frame-system",
  "log",
