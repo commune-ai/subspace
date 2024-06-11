@@ -4,6 +4,7 @@ members = [
     "pallets/subspace",
     "pallets/governance",
     "pallets/governance/api",
+    "pallets/faucet",
     "runtime",
     "xtask",
 ]

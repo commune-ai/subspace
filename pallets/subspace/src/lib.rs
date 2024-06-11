@@ -534,19 +534,11 @@ pub mod pallet {
         ModuleUpdated(u16, T::AccountId), /* --- Event created when the module got updated
                                            * information is added to the network. */
 
-        // faucet
-        Faucet(T::AccountId, BalanceOf<T>), // (id, balance_to_add)
-
-        //voting
-        ProposalVoted(u64, T::AccountId, bool), // (id, voter, vote)
-        ProposalVoteUnregistered(u64, T::AccountId), // (id, voter)
-        GlobalParamsUpdated(GlobalParams<T>),   /* --- Event created when global
-                                                 * parameters are
-                                                 * updated */
+        // Parameter Updates
+        GlobalParamsUpdated(GlobalParams<T>), /* --- Event created when global
+                                               * parameters are
+                                               * updated */
         SubnetParamsUpdated(u16), // --- Event created when subnet parameters are updated
-        GlobalProposalAccepted(u64), // (id)
-        CustomProposalAccepted(u64), // (id)
-        SubnetProposalAccepted(u64, u16), // (id, netuid)
     }
 
     // ---------------------------------
@@ -630,12 +622,6 @@ pub mod pallet {
         InvalidMaxRegistrationsPerBlock,
         InvalidMinBurn,
         InvalidMaxBurn,
-
-        // Faucet
-        FaucetDisabled, // --- Thrown when the faucet is disabled.
-        InvalidDifficulty,
-        InvalidWorkBlock,
-        InvalidSeal,
 
         // Modules
         /// The module name is too long.
@@ -961,27 +947,6 @@ pub mod pallet {
 
             let changeset = SubnetChangeset::update(netuid, params)?;
             Self::do_update_subnet(origin, netuid, changeset)
-        }
-
-        // ---------------------------------
-        // Testnet
-        // ---------------------------------
-
-        #[pallet::call_index(11)]
-        #[pallet::weight((Weight::from_parts(85_000_000, 0)
-        .saturating_add(T::DbWeight::get().reads(16))
-        .saturating_add(T::DbWeight::get().writes(28)), DispatchClass::Operational, Pays::No))]
-        pub fn faucet(
-            origin: OriginFor<T>,
-            block_number: u64,
-            nonce: u64,
-            work: Vec<u8>,
-        ) -> DispatchResult {
-            if cfg!(feature = "testnet-faucet") {
-                Self::do_faucet(origin, block_number, nonce, work)
-            } else {
-                Err(Error::<T>::FaucetDisabled.into())
-            }
         }
     }
 

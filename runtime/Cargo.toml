@@ -15,6 +15,7 @@ targets = ["x86_64-unknown-linux-gnu"]
 [dependencies]
 pallet-subspace = { path = "../pallets/subspace", default-features = false }
 pallet-governance = { path = "../pallets/governance", default-features = false }
+pallet-faucet = { path = "../pallets/faucet", default-features = false }
 
 log.workspace = true
 smallvec.workspace = true
@@ -88,6 +89,7 @@ std = [
 	"frame-try-runtime/std",
 	"pallet-subspace/std",
 	"pallet-governance/std",
+	"pallet-faucet/std",
 	"pallet-aura/std",
 	"pallet-balances/std",
 	"pallet-grandpa/std",
@@ -143,6 +145,7 @@ try-runtime = [
 	"pallet-insecure-randomness-collective-flip/try-runtime",
 	"pallet-multisig/try-runtime",
 	"pallet-governance/try-runtime",
+	"pallet-faucet/try-runtime",
 	"pallet-subspace/try-runtime",
 	"pallet-sudo/try-runtime",
 	"pallet-timestamp/try-runtime",
