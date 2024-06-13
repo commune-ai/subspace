@@ -110,10 +110,7 @@ pub mod opaque {
     }
 }
 
-pub type Migrations = (
-    pallet_governance::migrations::InitialMigration<Runtime>,
-    pallet_subspace::migrations::v11::MigrateToV11<Runtime>,
-);
+pub type Migrations = (pallet_subspace::migrations::v11::MigrateToV11<Runtime>,);
 
 // To learn more about runtime versioning, see:
 // https://docs.substrate.io/main-docs/build/upgrade#runtime-versioning
@@ -267,8 +264,12 @@ impl pallet_timestamp::Config for Runtime {
     type WeightInfo = pallet_timestamp::weights::SubstrateWeight<Runtime>;
 }
 
-// Existential deposit.
+// Existential Deposit
+#[cfg(not(feature = "testnet-faucet"))]
 pub const EXISTENTIAL_DEPOSIT: u64 = 500;
+
+#[cfg(feature = "testnet-faucet")]
+pub const EXISTENTIAL_DEPOSIT: u64 = 0;
 
 impl pallet_balances::Config for Runtime {
     type MaxLocks = ConstU32<50>;
@@ -369,6 +370,12 @@ impl pallet_governance::Config for Runtime {
     type PalletId = SubspacePalletId;
     type RuntimeEvent = RuntimeEvent;
     type Currency = Balances;
+    type WeightInfo = pallet_governance::weights::SubstrateWeight<Runtime>;
+}
+
+impl pallet_faucet::Config for Runtime {
+    type RuntimeEvent = RuntimeEvent;
+    type Currency = Balances;
 }
 
 pub const WEIGHT_MILLISECS_PER_BLOCK: u64 = 2000;
@@ -427,6 +434,7 @@ construct_runtime!(
         Utility: pallet_utility,
         SubspaceModule: pallet_subspace,
         GovernanceModule: pallet_governance,
+        FaucetModule: pallet_faucet,
 
         // EVM Support
         BaseFee: pallet_base_fee,
@@ -520,6 +528,7 @@ mod benches {
         [frame_system, SystemBench::<Runtime>]
         [pallet_balances, Balances]
         [pallet_subspace, SubspaceModule]
+        [pallet_governance, GovernanceModule]
         [pallet_timestamp, Timestamp]
         [pallet_utility, Utility]
     );

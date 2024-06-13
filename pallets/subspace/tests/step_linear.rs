@@ -513,8 +513,6 @@ fn test_incentives() {
         // CONSSTANTS
         let netuid: u16 = 0;
         let n: u16 = 10;
-        let _n_list: Vec<u16> = vec![10, 50, 100, 1000];
-        let _blocks_per_epoch_list: u64 = 1;
         let stake_per_module: u64 = 10_000;
 
         // make sure that the results won´t get affected by burn

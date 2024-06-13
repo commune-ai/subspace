@@ -102,6 +102,7 @@ impl pallet_governance::Config for Test {
     type PalletId = SubspacePalletId;
     type RuntimeEvent = RuntimeEvent;
     type Currency = Balances;
+    type WeightInfo = ();
 }
 
 impl GovernanceApi<<Test as frame_system::Config>::AccountId> for Test {

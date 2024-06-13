@@ -29,8 +29,8 @@ std = [
 	"sp-std/std",
 ]
 runtime-benchmarks = ["frame-benchmarking/runtime-benchmarks"]
-testnet-faucet = []
 try-runtime = ["frame-support/try-runtime"]
+testnet-faucet = []
 
 [dependencies]
 bty.workspace = true
