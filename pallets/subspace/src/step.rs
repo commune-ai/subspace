@@ -1,15 +1,37 @@
 use super::*;
 use crate::{global::BurnConfiguration, math::*};
-use frame_support::storage::with_storage_layer;
+use frame_support::{storage::with_storage_layer, weights::RuntimeDbWeight};
 use sp_arithmetic::per_things::Percent;
+use sp_core::Get;
 use sp_std::vec;
 use substrate_fixed::types::{I110F18, I32F32, I64F64};
 
 pub mod yuma;
 
+struct WeightCounter<T: Config> {
+    weight: Weight,
+    db_weight: RuntimeDbWeight,
+    _pd: PhantomData<T>,
+}
+
+impl<T: Config> WeightCounter<T> {
+    fn reads_writes(&mut self, reads: u64, writes: u64) {
+        self.weight = self.weight.saturating_add(self.db_weight.reads_writes(reads, writes));
+    }
+}
+
+impl<T: Config> Default for WeightCounter<T> {
+    fn default() -> Self {
+        Self {
+            weight: Weight::zero(),
+            db_weight: T::DbWeight::get(),
+            _pd: Default::default(),
+        }
+    }
+}
+
 impl<T: Config> Pallet<T> {
-    pub fn block_step() {
-        let block_number: u64 = Self::get_current_block_number();
+    pub fn block_step(block_number: u64) -> Weight {
         log::debug!("stepping block {block_number:?}");
 
         RegistrationsPerBlock::<T>::mutate(|val: &mut u16| *val = 0);
@@ -17,77 +39,105 @@ impl<T: Config> Pallet<T> {
         let total_stake = Self::total_stake() as u128;
         let subnet_stake_threshold = SubnetStakeThreshold::<T>::get();
 
+        let mut weight = WeightCounter::<T>::default();
+        weight.reads_writes(4, 1);
+
         log::debug!("ticking subnets, total stake: {total_stake}, stake threshold: {subnet_stake_threshold:?}");
 
         for (netuid, tempo) in Tempo::<T>::iter() {
-            let registration_this_interval = RegistrationsThisInterval::<T>::get(netuid);
-            let target_registrations_interval = TargetRegistrationsInterval::<T>::get(netuid);
-            let target_registrations_per_interval =
-                TargetRegistrationsPerInterval::<T>::get(netuid);
-
-            Self::adjust_registration(
+            Self::subnet_step(
                 netuid,
+                &mut weight,
                 block_number,
-                registration_this_interval,
-                target_registrations_interval,
-                target_registrations_per_interval,
+                subnet_stake_threshold,
+                tempo,
+                total_stake,
             );
-
-            let new_queued_emission: u64 =
-                Self::calculate_network_emission(netuid, subnet_stake_threshold);
-            let emission_to_drain = PendingEmission::<T>::mutate(netuid, |queued: &mut u64| {
-                *queued = queued.saturating_add(new_queued_emission);
-                *queued
-            });
-            log::trace!("subnet {netuid} total pending emission: {emission_to_drain}, increased {new_queued_emission}");
-
-            if Self::blocks_until_next_epoch(netuid, tempo, block_number) > 0 {
-                continue;
-            }
-
-            log::trace!("running epoch for subnet {netuid}");
-
-            // Clearing `set_weight` rate limiter values.
-            let _ = SetWeightCallsPerEpoch::<T>::clear_prefix(netuid, u32::MAX, None);
-
-            let has_enough_stake_for_yuma = || {
-                let subnet_stake = Self::get_total_subnet_stake(netuid) as u128;
-
-                // TODO: simplify this to just checking if there are pending emission
-                if total_stake == 0 {
-                    false
-                } else {
-                    let subnet_stake_percent = subnet_stake
-                        .checked_mul(100)
-                        .and_then(|x| x.checked_div(total_stake))
-                        .unwrap_or(0);
-
-                    subnet_stake_threshold <= Percent::from_parts(subnet_stake_percent as u8)
-                }
-            };
-
-            if netuid == 0 {
-                Self::linear_epoch(netuid, emission_to_drain)
-            } else if has_enough_stake_for_yuma() {
-                let res = with_storage_layer(|| {
-                    let Err(err) = yuma::YumaCalc::<T>::new(netuid, emission_to_drain).run() else {
-                        return Ok(());
-                    };
-
-                    log::error!(
-                        "\
-failed to run yuma consensus algorithm: {err:?}, skipping this block. \
-{emission_to_drain} tokens will be emitted on the next epoch.\
-"
-                    );
-                    Err("yuma failed")
-                });
-                if res.is_err() {
-                    continue;
-                }
-            }
-            PendingEmission::<T>::insert(netuid, 0);
         }
+
+        weight.weight
+    }
+
+    fn subnet_step(
+        netuid: u16,
+        weight: &mut WeightCounter<T>,
+        block_number: u64,
+        subnet_stake_threshold: Percent,
+        tempo: u16,
+        total_stake: u128,
+    ) {
+        let registration_this_interval = RegistrationsThisInterval::<T>::get(netuid);
+        let target_registrations_interval = TargetRegistrationsInterval::<T>::get(netuid);
+        let target_registrations_per_interval = TargetRegistrationsPerInterval::<T>::get(netuid);
+        weight.reads_writes(3, 0);
+
+        Self::adjust_registration(
+            netuid,
+            block_number,
+            registration_this_interval,
+            target_registrations_interval,
+            target_registrations_per_interval,
+            weight,
+        );
+
+        let new_queued_emission: u64 =
+            Self::calculate_network_emission(netuid, subnet_stake_threshold);
+        let emission_to_drain = PendingEmission::<T>::mutate(netuid, |queued: &mut u64| {
+            *queued = queued.saturating_add(new_queued_emission);
+            *queued
+        });
+        weight.reads_writes(1, 1);
+        log::trace!("subnet {netuid} total pending emission: {emission_to_drain}, increased {new_queued_emission}");
+
+        if Self::blocks_until_next_epoch(netuid, tempo, block_number) > 0 {
+            return;
+        }
+        log::trace!("running epoch for subnet {netuid}");
+
+        let _ = SetWeightCallsPerEpoch::<T>::clear_prefix(netuid, u32::MAX, None);
+        weight.reads_writes(0, 1);
+
+        let has_enough_stake_for_yuma = || {
+            let subnet_stake = Self::get_total_subnet_stake(netuid) as u128;
+
+            if total_stake == 0 {
+                false
+            } else {
+                let subnet_stake_percent = subnet_stake
+                    .checked_mul(100)
+                    .and_then(|x| x.checked_div(total_stake))
+                    .unwrap_or(0);
+
+                subnet_stake_threshold <= Percent::from_parts(subnet_stake_percent as u8)
+            }
+        };
+
+        if netuid == 0 {
+            weight.reads_writes(50, 100);
+            Self::linear_epoch(netuid, emission_to_drain)
+        } else if has_enough_stake_for_yuma() {
+            weight.reads_writes(55, 100);
+            let res = with_storage_layer(|| {
+                let Err(err) = yuma::YumaCalc::<T>::new(netuid, emission_to_drain).run() else {
+                    return Ok(());
+                };
+
+                log::error!(
+                    "failed to run yuma consensus algorithm: {err:?}, skipping this block. \
+{emission_to_drain} tokens will be emitted on the next epoch."
+                );
+
+                Err("yuma failed")
+            });
+
+            if res.is_err() {
+                return;
+            }
+        }
+
+        PendingEmission::<T>::insert(netuid, 0);
+
+        weight.reads_writes(0, 1);
     }
 
     /// This function acts as the main function of the entire blockchain reward distribution.
@@ -150,7 +200,6 @@ failed to run yuma consensus algorithm: {err:?}, skipping this block. \
             Self::compute_incentive(&weights, &stake, &uid_key_tuples, n);
 
         // TRUST
-        // trust that acts as a multiplier for the incentive
         let trust_ratio: u16 = TrustRatio::<T>::get(netuid);
         if trust_ratio > 0 {
             let trust_share: I32F32 = I32F32::from_num(trust_ratio)
@@ -681,12 +730,13 @@ failed to run yuma consensus algorithm: {err:?}, skipping this block. \
         ownership_vector
     }
 
-    pub fn adjust_registration(
+    fn adjust_registration(
         netuid: u16,
         block_number: u64,
         registrations_this_interval: u16,
         target_registrations_interval: u16,
         target_registrations_per_interval: u16,
+        weight: &mut WeightCounter<T>,
     ) {
         let reached_interval = block_number
             .checked_rem(target_registrations_interval as u64)
@@ -708,9 +758,11 @@ failed to run yuma consensus algorithm: {err:?}, skipping this block. \
 
         // reset the registrations
         RegistrationsThisInterval::<T>::insert(netuid, 0);
+
+        weight.reads_writes(3, 2);
     }
 
-    pub fn adjust_burn(
+    fn adjust_burn(
         netuid: u16,
         current_burn: u64,
         registrations_this_interval: u16,
@@ -762,5 +814,58 @@ failed to run yuma consensus algorithm: {err:?}, skipping this block. \
                 .flat_map(|entries| entries.into_values())
                 .sum(),
         }
+    }
+
+    pub(crate) fn deregister_not_whitelisted_modules(mut remaining: Weight) -> Weight {
+        use crate::weights::WeightInfo;
+
+        const MAX_MODULES: usize = 5;
+
+        let db_weight = T::DbWeight::get();
+
+        let mut weight = db_weight.reads(2);
+
+        let find_id_weight = db_weight.reads(1);
+        let deregister_weight = crate::weights::SubstrateWeight::<T>::deregister();
+
+        if !remaining
+            .all_gte(weight.saturating_add(find_id_weight).saturating_add(deregister_weight))
+        {
+            log::info!("not enough weight remaining: {remaining:?}");
+            return Weight::zero();
+        }
+
+        let s0_keys: BTreeSet<_> = Keys::<T>::iter_prefix_values(0).collect();
+        let whitelisted = T::whitelisted_keys();
+
+        let not_whitelisted = s0_keys.difference(&whitelisted);
+
+        remaining = remaining.saturating_sub(weight);
+
+        for not_whitelisted in not_whitelisted.take(MAX_MODULES) {
+            log::info!("deregistering module {not_whitelisted:?}");
+
+            // we'll need at least to read outbound lane state, kill a message and update lane state
+            if !remaining.all_gte(find_id_weight.saturating_add(deregister_weight)) {
+                log::info!("not enough weight remaining: {remaining:?}");
+                break;
+            }
+
+            let uid = Uids::<T>::get(0, not_whitelisted);
+            weight = weight.saturating_add(find_id_weight);
+            remaining = remaining.saturating_sub(find_id_weight);
+
+            if let Some(uid) = uid {
+                let Err(err) = with_storage_layer(|| Self::remove_module(0, uid)) else {
+                    weight = weight.saturating_add(deregister_weight);
+                    remaining = remaining.saturating_sub(deregister_weight);
+                    continue;
+                };
+
+                log::error!("failed to deregister module {uid} due to: {err:?}");
+            }
+        }
+
+        weight
     }
 }

@@ -184,14 +184,12 @@ impl<T: Config> Pallet<T> {
     }
 
     /// Replace the module under this uid.
-    /// TODO: fix later the indexing
-    #[allow(clippy::indexing_slicing)]
-    pub fn remove_module(netuid: u16, uid: u16) {
+    pub fn remove_module(netuid: u16, uid: u16) -> DispatchResult {
         // 1. Get the old key under this position.
         let n = N::<T>::get(netuid);
         if n == 0 {
             // No modules in the network.
-            return;
+            return Ok(());
         }
 
         let module_key: T::AccountId = Keys::<T>::get(netuid, uid);
@@ -225,18 +223,28 @@ impl<T: Config> Pallet<T> {
         let mut validator_permit = ValidatorPermits::<T>::get(netuid);
         let mut validator_trust = ValidatorTrust::<T>::get(netuid);
 
-        // swap consensus vectors
-        active[uid as usize] = active[replace_uid as usize];
-        consensus[uid as usize] = consensus[replace_uid as usize];
-        dividends[uid as usize] = dividends[replace_uid as usize];
-        emission[uid as usize] = emission[replace_uid as usize];
-        incentive[uid as usize] = incentive[replace_uid as usize];
-        last_update[uid as usize] = last_update[replace_uid as usize];
-        pruning_scores[uid as usize] = pruning_scores[replace_uid as usize];
-        rank[uid as usize] = rank[replace_uid as usize];
-        trust[uid as usize] = trust[replace_uid as usize];
-        validator_permit[uid as usize] = validator_permit[replace_uid as usize];
-        validator_trust[uid as usize] = validator_trust[replace_uid as usize];
+        macro_rules! update_vectors {
+            ($a:expr) => {
+                *($a.get_mut(uid as usize)
+                    .ok_or(concat!("failed to access uid for array ", stringify!($a)))?) =
+                    $a.get(replace_uid as usize).copied().ok_or(concat!(
+                        "failed to access replace_uid for array ",
+                        stringify!($a)
+                    ))?;
+            };
+        }
+
+        update_vectors![active];
+        update_vectors![consensus];
+        update_vectors![dividends];
+        update_vectors![emission];
+        update_vectors![incentive];
+        update_vectors![last_update];
+        update_vectors![pruning_scores];
+        update_vectors![rank];
+        update_vectors![trust];
+        update_vectors![validator_permit];
+        update_vectors![validator_trust];
 
         // pop the last element (which is now a duplicate)
         active.pop();
@@ -313,6 +321,8 @@ impl<T: Config> Pallet<T> {
         if module_count == 0 {
             Self::remove_subnet(netuid);
         }
+
+        Ok(())
     }
 
     pub fn get_module_stats(netuid: u16, key: &T::AccountId) -> ModuleStats<T> {

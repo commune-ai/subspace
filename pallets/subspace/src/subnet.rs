@@ -33,13 +33,14 @@ impl<T: Config> SubnetChangeset<T> {
     pub fn apply(self, netuid: u16) -> DispatchResult {
         Self::validate_params(Some(netuid), &self.params)?;
 
+        Pallet::<T>::set_max_allowed_uids(netuid, self.params.max_allowed_uids)?;
+
         SubnetNames::<T>::insert(netuid, self.params.name.into_inner());
         Founder::<T>::insert(netuid, &self.params.founder);
         FounderShare::<T>::insert(netuid, self.params.founder_share);
         Tempo::<T>::insert(netuid, self.params.tempo);
         ImmunityPeriod::<T>::insert(netuid, self.params.immunity_period);
         MaxAllowedWeights::<T>::insert(netuid, self.params.max_allowed_weights);
-        Pallet::<T>::set_max_allowed_uids(netuid, self.params.max_allowed_uids);
         MaxWeightAge::<T>::insert(netuid, self.params.max_weight_age);
         MinAllowedWeights::<T>::insert(netuid, self.params.min_allowed_weights);
         MinStake::<T>::insert(netuid, self.params.min_stake);
@@ -455,7 +456,7 @@ impl<T: Config> Pallet<T> {
     // Setters
     // ---------------------------------
 
-    fn set_max_allowed_uids(netuid: u16, mut max_allowed_uids: u16) {
+    fn set_max_allowed_uids(netuid: u16, mut max_allowed_uids: u16) -> DispatchResult {
         let n: u16 = N::<T>::get(netuid);
         if max_allowed_uids < n {
             // limit it at 256 at a time
@@ -468,12 +469,14 @@ impl<T: Config> Pallet<T> {
             }
             // remove the modules by adding the to the deregister queue
             for i in 0..remainder_n {
-                let next_uid: u16 = n.saturating_sub(1).saturating_sub(i);
-                Self::remove_module(netuid, next_uid);
+                let next_uid = n.saturating_sub(1).saturating_sub(i);
+                Self::remove_module(netuid, next_uid)?;
             }
         }
 
         MaxAllowedUids::<T>::insert(netuid, max_allowed_uids);
+
+        Ok(())
     }
 
     pub fn set_last_update_for_uid(netuid: u16, uid: u16, last_update: u64) {

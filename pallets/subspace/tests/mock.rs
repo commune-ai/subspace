@@ -1,5 +1,7 @@
 #![allow(non_camel_case_types)]
 
+use std::collections::BTreeSet;
+
 use frame_support::{
     assert_ok, parameter_types,
     traits::{Everything, Hooks},
@@ -167,6 +169,10 @@ impl GovernanceApi<<Test as frame_system::Config>::AccountId> for Test {
 
     fn curator_application_exists(_module_key: &<Test as frame_system::Config>::AccountId) -> bool {
         false
+    }
+
+    fn whitelisted_keys() -> BTreeSet<AccountId> {
+        Default::default()
     }
 
     fn get_curator() -> <Test as frame_system::Config>::AccountId {

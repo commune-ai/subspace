@@ -12,7 +12,7 @@ use frame_support::{
     pallet_prelude::Get,
 };
 use pallet_aura::MinimumPeriodTimesTwo;
-use pallet_governance::{Curator, GeneralSubnetApplicationCost};
+use pallet_governance::{Curator, GeneralSubnetApplicationCost, LegitWhitelist};
 use pallet_governance_api::GovernanceConfiguration;
 use pallet_grandpa::{
     fg_primitives, AuthorityId as GrandpaId, AuthorityList as GrandpaAuthorityList,
@@ -30,7 +30,7 @@ use sp_runtime::{
     transaction_validity::{TransactionSource, TransactionValidity, TransactionValidityError},
     ApplyExtrinsicResult, DispatchResult, MultiSignature, Percent,
 };
-use sp_std::prelude::*;
+use sp_std::{collections::btree_set::BTreeSet, prelude::*};
 use sp_version::RuntimeVersion;
 use subspace_runtime_api::{ModuleInfo, ModuleParams, ModuleStats};
 
@@ -858,6 +858,10 @@ impl pallet_governance_api::GovernanceApi<<Runtime as frame_system::Config>::Acc
 
     fn curator_application_exists(module_key: &AccountId) -> bool {
         GovernanceModule::curator_application_exists(module_key)
+    }
+
+    fn whitelisted_keys() -> BTreeSet<AccountId> {
+        LegitWhitelist::<Runtime>::iter_keys().collect()
     }
 
     fn get_curator() -> AccountId {

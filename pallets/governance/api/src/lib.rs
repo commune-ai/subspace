@@ -2,7 +2,7 @@
 
 use frame_support::DebugNoBound;
 use parity_scale_codec::{Decode, Encode, MaxEncodedLen};
-use scale_info::TypeInfo;
+use scale_info::{prelude::collections::BTreeSet, TypeInfo};
 use sp_runtime::{DispatchResult, Percent};
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, TypeInfo, Decode, Encode, MaxEncodedLen)]
@@ -79,6 +79,8 @@ pub trait GovernanceApi<AccountId> {
 
     /// Returns bool indicating whether the application on SN0 exists.
     fn curator_application_exists(module_key: &AccountId) -> bool;
+
+    fn whitelisted_keys() -> BTreeSet<AccountId>;
 
     fn get_curator() -> AccountId;
 

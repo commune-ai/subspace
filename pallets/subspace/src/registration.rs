@@ -87,8 +87,7 @@ impl<T: Config> Pallet<T> {
 
         // --- 7. Check if we are exceeding the max allowed modules per network.
         // If we do deregister slot.
-        let reserved_slot = Self::reserve_module_slot(netuid);
-        ensure!(reserved_slot.is_some(), Error::<T>::NetworkIsImmuned);
+        Self::reserve_module_slot(netuid)?;
 
         let fee = DefaultDelegationFee::<T>::get();
         // --- 8. Register the module and changeset.
@@ -135,7 +134,7 @@ impl<T: Config> Pallet<T> {
 
         let uid: u16 = Self::get_uid_for_key(netuid, &key);
 
-        Self::remove_module(netuid, uid);
+        Self::remove_module(netuid, uid)?;
         ensure!(
             !Self::key_registered(netuid, &key),
             Error::<T>::StillRegistered
@@ -226,16 +225,15 @@ impl<T: Config> Pallet<T> {
     /// This function checks whether there are still available module slots on the network. If the
     /// subnet is filled, deregister the least staked module on it, or if the max allowed modules on
     /// the network is reached, deregisters the least staked module on the least staked netuid.
-    pub fn reserve_module_slot(netuid: u16) -> Option<()> {
+    pub fn reserve_module_slot(netuid: u16) -> DispatchResult {
         if N::<T>::get(netuid) >= MaxAllowedUids::<T>::get(netuid) {
             // If we reach the max allowed modules for this subnet,
             // then we replace the lowest priority node in the current subnet
             let lowest_uid = Self::get_lowest_uid(netuid, false);
             if let Some(uid) = lowest_uid {
-                Self::remove_module(netuid, uid);
-                Some(())
+                Self::remove_module(netuid, uid)
             } else {
-                None
+                Err(Error::<T>::NetworkIsImmuned.into())
             }
         } else if Self::global_n_modules() >= MaxAllowedModules::<T>::get() {
             let (subnet_uid, _) = Self::get_least_staked_netuid();
@@ -245,10 +243,9 @@ impl<T: Config> Pallet<T> {
             // in this case we should ignore the immunity period,
             // Because if the lowest subnet has unreasonably high immunity period,
             // it could lead to exploitation of the network.
-            Self::remove_module(subnet_uid, module_uid);
-            Some(())
+            Self::remove_module(subnet_uid, module_uid)
         } else {
-            Some(())
+            Ok(())
         }
     }
 }

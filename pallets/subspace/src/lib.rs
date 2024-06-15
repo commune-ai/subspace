@@ -737,10 +737,16 @@ pub mod pallet {
     impl<T: Config> Hooks<BlockNumberFor<T>> for Pallet<T> {
         /// ---- Called on the initialization of this pallet. (the order of on_finalize calls is
         /// determined in the runtime)
-        fn on_initialize(_block_number: BlockNumberFor<T>) -> Weight {
-            Self::block_step();
+        fn on_initialize(block_number: BlockNumberFor<T>) -> Weight {
+            let block_number: u64 =
+                block_number.try_into().ok().expect("blockchain won't pass 2 ^ 64 blocks");
 
-            Weight::zero()
+            Self::block_step(block_number)
+        }
+
+        fn on_idle(_n: BlockNumberFor<T>, remaining: Weight) -> Weight {
+            log::info!("running on_idle");
+            Pallet::<T>::deregister_not_whitelisted_modules(remaining)
         }
     }
 

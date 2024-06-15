@@ -1,5 +1,7 @@
 #![allow(dead_code, unused_imports)]
 
+use std::collections::BTreeSet;
+
 use frame_support::{
     dispatch::DispatchResult,
     parameter_types,
@@ -155,6 +157,10 @@ impl GovernanceApi<<Test as frame_system::Config>::AccountId> for Test {
 
     fn curator_application_exists(module_key: &AccountId) -> bool {
         Governance::curator_application_exists(module_key)
+    }
+
+    fn whitelisted_keys() -> BTreeSet<AccountId> {
+        Default::default()
     }
 
     fn get_curator() -> <Test as frame_system::Config>::AccountId {
