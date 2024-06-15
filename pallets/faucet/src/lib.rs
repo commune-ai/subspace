@@ -204,8 +204,10 @@ impl<T: Config> Pallet<T> {
         Ok(())
     }
 
-    #[allow(clippy::indexing_slicing)]
-    pub fn hash_block_and_key(block_hash_bytes: &[u8; 32], key: &T::AccountId) -> H256 {
+    pub fn hash_block_and_key(
+        block_hash_bytes: &[u8; 32],
+        key: &T::AccountId,
+    ) -> Result<H256, sp_runtime::DispatchError> {
         // Get the public key from the account id.
         let key_pubkey: MultiAddress<_, ()> = MultiAddress::Id(key.clone());
         let binding = key_pubkey.encode();
@@ -218,7 +220,7 @@ impl<T: Config> Pallet<T> {
         second_half.copy_from_slice(&key_bytes[..32]);
         let keccak_256_seal_hash_vec: [u8; 32] = keccak_256(&full_bytes[..]);
 
-        H256::from_slice(&keccak_256_seal_hash_vec)
+        Ok(H256::from_slice(&keccak_256_seal_hash_vec))
     }
 
     pub fn create_seal_hash(block_number_u64: u64, nonce_u64: u64, hotkey: &T::AccountId) -> H256 {

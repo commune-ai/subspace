@@ -649,6 +649,9 @@ pub mod pallet {
         InvalidMaxRegistrationsPerInterval,
         InvalidAdjustmentAlpha,
         InvalidTargetRegistrationsInterval,
+
+        // Extrinsic panicked
+        ExtrinsicPanicked,
     }
 
     // ---------------------------------
@@ -741,7 +744,7 @@ pub mod pallet {
             let block_number: u64 =
                 block_number.try_into().ok().expect("blockchain won't pass 2 ^ 64 blocks");
 
-            Self::block_step(block_number)
+            Self::block_step(block_number).unwrap()
         }
 
         fn on_idle(_n: BlockNumberFor<T>, remaining: Weight) -> Weight {

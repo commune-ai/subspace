@@ -31,7 +31,7 @@ impl<T: Config> Default for WeightCounter<T> {
 }
 
 impl<T: Config> Pallet<T> {
-    pub fn block_step(block_number: u64) -> Weight {
+    pub fn block_step(block_number: u64) -> Result<Weight, sp_runtime::DispatchError> {
         log::debug!("stepping block {block_number:?}");
 
         RegistrationsPerBlock::<T>::mutate(|val: &mut u16| *val = 0);
@@ -52,10 +52,10 @@ impl<T: Config> Pallet<T> {
                 subnet_stake_threshold,
                 tempo,
                 total_stake,
-            );
+            )?;
         }
 
-        weight.weight
+        Ok(weight.weight)
     }
 
     fn subnet_step(
@@ -65,7 +65,7 @@ impl<T: Config> Pallet<T> {
         subnet_stake_threshold: Percent,
         tempo: u16,
         total_stake: u128,
-    ) {
+    ) -> Result<(), sp_runtime::DispatchError> {
         let registration_this_interval = RegistrationsThisInterval::<T>::get(netuid);
         let target_registrations_interval = TargetRegistrationsInterval::<T>::get(netuid);
         let target_registrations_per_interval = TargetRegistrationsPerInterval::<T>::get(netuid);
@@ -90,7 +90,7 @@ impl<T: Config> Pallet<T> {
         log::trace!("subnet {netuid} total pending emission: {emission_to_drain}, increased {new_queued_emission}");
 
         if Self::blocks_until_next_epoch(netuid, tempo, block_number) > 0 {
-            return;
+            return Ok(());
         }
         log::trace!("running epoch for subnet {netuid}");
 
@@ -114,7 +114,7 @@ impl<T: Config> Pallet<T> {
 
         if netuid == 0 {
             weight.reads_writes(50, 100);
-            Self::linear_epoch(netuid, emission_to_drain)
+            Self::linear_epoch(netuid, emission_to_drain)?;
         } else if has_enough_stake_for_yuma() {
             weight.reads_writes(55, 100);
             let res = with_storage_layer(|| {
@@ -131,19 +131,21 @@ impl<T: Config> Pallet<T> {
             });
 
             if res.is_err() {
-                return;
+                return Ok(());
             }
         }
 
         PendingEmission::<T>::insert(netuid, 0);
 
         weight.reads_writes(0, 1);
+
+        Ok(())
     }
 
     /// This function acts as the main function of the entire blockchain reward distribution.
     /// It calculates the dividends, the incentive, the weights, the bonds,
     /// the trust and the emission for the epoch.
-    pub fn linear_epoch(netuid: u16, token_emission: u64) {
+    pub fn linear_epoch(netuid: u16, token_emission: u64) -> Result<(), sp_runtime::DispatchError> {
         // get the network parameters
         let global_params = Self::global_params();
         let subnet_params = Self::subnet_params(netuid);
@@ -154,7 +156,7 @@ impl<T: Config> Pallet<T> {
 
         // if there are no modules, then return
         if n == 0 {
-            return;
+            return Ok(());
         }
 
         // FOUNDER DIVIDENDS
@@ -192,7 +194,7 @@ impl<T: Config> Pallet<T> {
             current_block,
             &stake_f64,
             total_stake_u64,
-        );
+        )?;
 
         // INCENTIVE
         // see if this shit needs to be mut
@@ -231,11 +233,11 @@ impl<T: Config> Pallet<T> {
         Incentive::<T>::insert(netuid, cloned_incentive);
 
         //  BONDS
-        let bonds: Vec<Vec<(u16, I32F32)>> = Self::compute_bonds_delta(&weights, &stake);
+        let bonds: Vec<Vec<(u16, I32F32)>> = Self::compute_bonds_delta(&weights, &stake)?;
 
         // DIVIDENDS
         let (fixed_dividends, dividends) =
-            Self::compute_dividends(&bonds, &incentive, &uid_key_tuples);
+            Self::compute_dividends(&bonds, &incentive, &uid_key_tuples)?;
         Dividends::<T>::insert(netuid, fixed_dividends);
 
         // EMISSION
@@ -248,6 +250,8 @@ impl<T: Config> Pallet<T> {
             &founder_key,
             &uid_key_tuples,
         );
+
+        Ok(())
     }
 
     fn calculate_emission_ratios(
@@ -387,9 +391,12 @@ impl<T: Config> Pallet<T> {
                     let Some(subnet_stake) = stakes.get(&netuid) else {
                         continue;
                     };
-                    #[allow(clippy::arithmetic_side_effects)]
                     let yuma_stake_percentage = Percent::from_parts(
-                        (((*subnet_stake as u128 * 100) / total_yuma_stake.max(1)) as u8).min(100),
+                        (*subnet_stake as u128)
+                            .checked_mul(100)
+                            .unwrap_or(0)
+                            .checked_div(total_yuma_stake)
+                            .unwrap_or(0) as u8,
                     );
                     let founder_distribution = yuma_stake_percentage.mul_floor(to_distribute);
                     Self::add_balance_to_account(
@@ -434,25 +441,35 @@ impl<T: Config> Pallet<T> {
     }
 
     // TODO: disable this later, this function has proven to be correct
-    #[allow(clippy::indexing_slicing)]
-    #[allow(clippy::arithmetic_side_effects)]
     fn compute_dividends(
         bonds: &[Vec<(u16, I32F32)>],
         incentive: &[I32F32],
         uid_key_tuples: &[(u16, T::AccountId)],
-    ) -> (Vec<u16>, Vec<I32F32>) {
+    ) -> Result<(Vec<u16>, Vec<I32F32>), sp_runtime::DispatchError> {
         let n = incentive.len();
         let mut dividends: Vec<I32F32> = vec![I32F32::from_num(0.0); n];
 
         for (i, sparse_row) in bonds.iter().enumerate() {
             for (j, value) in sparse_row.iter() {
-                dividends[i] += incentive[*j as usize] * *value;
+                let dividends_i = match dividends.get(i) {
+                    Some(value) => *value,
+                    None => Err(Error::<T>::ExtrinsicPanicked)?,
+                };
+                let incentive_i = match dividends.get(i) {
+                    Some(value) => *value,
+                    None => Err(Error::<T>::ExtrinsicPanicked)?,
+                };
+
+                dividends.insert(
+                    *j as usize,
+                    dividends_i.saturating_add(value.saturating_mul(incentive_i)),
+                );
             }
         }
 
         if dividends.iter().all(|&x| x == I32F32::from_num(0.0)) {
             for (uid_i, _) in uid_key_tuples.iter() {
-                dividends[*uid_i as usize] = I32F32::from_num(1.0);
+                dividends.insert(*uid_i as usize, I32F32::from_num(1.0));
             }
         }
 
@@ -461,38 +478,39 @@ impl<T: Config> Pallet<T> {
         let fixed_dividends: Vec<u16> =
             dividends.iter().map(|xi| fixed_proportion_to_u16(*xi)).collect();
 
-        (fixed_dividends, dividends)
+        Ok((fixed_dividends, dividends))
     }
 
     // Disable this later, this function has proven to be correct
-    #[allow(clippy::arithmetic_side_effects)]
-    #[allow(clippy::indexing_slicing)]
     fn compute_bonds_delta(
         weights: &[Vec<(u16, I32F32)>],
         stake: &[I32F32],
-    ) -> Vec<Vec<(u16, I32F32)>> {
+    ) -> Result<Vec<Vec<(u16, I32F32)>>, sp_runtime::DispatchError> {
         let n = weights.len();
         let mut bonds: Vec<Vec<(u16, I32F32)>> = weights.to_vec();
         let mut col_sum: Vec<I32F32> = vec![I32F32::from_num(0.0); n];
 
         for (i, sparse_row) in bonds.iter_mut().enumerate() {
             for (j, value) in sparse_row.iter_mut() {
-                *value *= stake[i];
-                col_sum[*j as usize] += *value;
+                *value = match stake.get(i) {
+                    Some(v) => *v,
+                    None => Err(Error::<T>::ExtrinsicPanicked)?,
+                };
+                col_sum.insert(*j as usize, *value);
             }
         }
 
         for sparse_row in bonds.iter_mut() {
             for (j, value) in sparse_row.iter_mut() {
-                if col_sum.get(*j as usize).unwrap_or(&I32F32::from_num(0.0))
-                    > &I32F32::from_num(0.0)
-                {
-                    *value /= col_sum.get(*j as usize).unwrap_or(&I32F32::from_num(0.0));
+                let zero = I32F32::from_num(0.0);
+                let i = col_sum.get(*j as usize).unwrap_or(&zero);
+                if i > &I32F32::from_num(0.0) {
+                    *value = value.saturating_div(*i);
                 }
             }
         }
 
-        bonds
+        Ok(bonds)
     }
 
     fn compute_trust(
@@ -558,7 +576,6 @@ impl<T: Config> Pallet<T> {
             .unwrap_or(0)
     }
 
-    #[allow(clippy::too_many_arguments)]
     fn check_weight_validity(
         weight_age: u64,
         subnet_params: &SubnetParams<T>,
@@ -568,18 +585,18 @@ impl<T: Config> Pallet<T> {
         min_weight_stake_f64: I64F64,
         n: u16,
         uid_i: u16,
-    ) -> (bool, Vec<(u16, u16)>) {
+    ) -> Result<(bool, Vec<(u16, u16)>), sp_runtime::DispatchError> {
         let mut valid_weights = Vec::new();
 
         if weight_age > subnet_params.max_weight_age
             || weights_i.len() < subnet_params.min_allowed_weights as usize
         {
-            return (true, valid_weights);
+            return Ok((true, valid_weights));
         }
 
         for (pos, (uid_j, weight_ij)) in weights_i.iter().enumerate() {
             if (pos as u16) > subnet_params.max_allowed_weights || *uid_j >= n {
-                return (true, valid_weights);
+                return Ok((true, valid_weights));
             }
 
             let weight_f64 = I64F64::from_num(*weight_ij)
@@ -596,11 +613,11 @@ impl<T: Config> Pallet<T> {
             if weight_stake > min_weight_stake_f64 {
                 valid_weights.push((*uid_j, *weight_ij));
             } else {
-                return (true, valid_weights);
+                return Ok((true, valid_weights));
             }
         }
 
-        (false, valid_weights)
+        Ok((false, valid_weights))
     }
 
     fn process_weights(
@@ -611,7 +628,7 @@ impl<T: Config> Pallet<T> {
         current_block: u64,
         stake_f64: &[I64F64],
         total_stake_u64: u64,
-    ) -> Vec<Vec<(u16, I32F32)>> {
+    ) -> Result<Vec<Vec<(u16, I32F32)>>, sp_runtime::DispatchError> {
         let last_update_vector = LastUpdate::<T>::get(netuid);
         let min_weight_stake_f64 = I64F64::from_num(global_params.min_weight_stake);
         let mut weights: Vec<Vec<(u16, u16)>> = vec![vec![]; n as usize];
@@ -628,7 +645,7 @@ impl<T: Config> Pallet<T> {
                 min_weight_stake_f64,
                 n,
                 uid_i,
-            );
+            )?;
 
             let Some(weights) = weights.get_mut(uid_i as usize) else {
                 continue;
@@ -650,7 +667,7 @@ impl<T: Config> Pallet<T> {
         weights = mask_diag_sparse(&weights);
         inplace_row_normalize_sparse(&mut weights);
 
-        weights
+        Ok(weights)
     }
 
     fn calculate_founder_emission(netuid: u16, mut token_emission: u64) -> (u64, u64) {
