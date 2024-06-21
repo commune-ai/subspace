@@ -3,6 +3,9 @@ name: Build and push Docker image
 on:
   push:
     branches: [main]
+    tags:
+      - '*'
+
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -39,4 +42,6 @@ jobs:
             SCCACHE_ENDPOINT=${{ vars.SCCACHE_ENDPOINT }}
             SCCACHE_REGION=auto
           push: true
-          tags: ghcr.io/agicommies/subspace:${{ steps.commit.outputs.short }}
+          tags: |
+            ghcr.io/agicommies/subspace:${{ steps.commit.outputs.short }}
+            ghcr.io/agicommies/subspace:${{ github.ref_name }}
