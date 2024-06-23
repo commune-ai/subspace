@@ -193,6 +193,8 @@ pub mod pallet {
             proposal_cost: u64,
             proposal_expiration: u32,
             general_subnet_application_cost: u64,
+            kappa: u16,
+            rho: u16,
         ) -> DispatchResult {
             let mut params = pallet_subspace::Pallet::<T>::global_params();
             params.max_name_length = max_name_length;
@@ -208,10 +210,10 @@ pub mod pallet {
             params.governance_config.proposal_cost = proposal_cost;
             params.governance_config.proposal_expiration = proposal_expiration;
             params.general_subnet_application_cost = general_subnet_application_cost;
-
             params.burn_config.min_burn = min_burn;
             params.burn_config.max_burn = max_burn;
-
+            params.kappa = kappa;
+            params.rho = rho;
             Self::do_add_global_params_proposal(origin, data, params)
         }
 

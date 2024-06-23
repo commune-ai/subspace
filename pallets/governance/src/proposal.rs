@@ -195,8 +195,6 @@ pub struct UnrewardedProposal<T: Config> {
 }
 
 impl<T: Config> Pallet<T> {
-
-    
     fn get_next_proposal_id() -> u64 {
         match Proposals::<T>::iter_keys().max() {
             Some(id) => id.saturating_add(1),

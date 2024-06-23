@@ -9,6 +9,7 @@ members = [
     "pallets/subnet_emission",
     "runtime",
     "xtask",
+    "tests",
 ]
 resolver = "2"
 
