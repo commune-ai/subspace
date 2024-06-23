@@ -1,4 +1,5 @@
 //! The Governance pallet.
+#![allow(non_camel_case_types, non_snake_case)]
 #![cfg_attr(not(feature = "std"), no_std)]
 
 #[cfg(feature = "runtime-benchmarks")]
@@ -139,15 +140,6 @@ pub mod pallet {
     pub type DaoTreasuryAddress<T: Config> =
         StorageValue<_, T::AccountId, ValueQuery, DefaultDaoTreasuryAddress<T>>;
 
-    #[pallet::type_value]
-    pub fn DefaultDaoTreasuryDistribution<T: Config>() -> Percent {
-        Percent::from_percent(5u8)
-    }
-
-    #[pallet::storage]
-    pub type DaoTreasuryDistribution<T: Config> =
-        StorageValue<_, Percent, ValueQuery, DefaultDaoTreasuryDistribution<T>>;
-
     // ---------------------------------
     // Dao
     // ---------------------------------
@@ -198,7 +190,6 @@ pub mod pallet {
             floor_founder_share: u8,
             min_weight_stake: u64,
             curator: T::AccountId,
-            subnet_stake_threshold: Percent,
             proposal_cost: u64,
             proposal_expiration: u32,
             general_subnet_application_cost: u64,
@@ -214,7 +205,6 @@ pub mod pallet {
             params.floor_founder_share = floor_founder_share;
             params.min_weight_stake = min_weight_stake;
             params.curator = curator;
-            params.subnet_stake_threshold = subnet_stake_threshold;
             params.governance_config.proposal_cost = proposal_cost;
             params.governance_config.proposal_expiration = proposal_expiration;
             params.general_subnet_application_cost = general_subnet_application_cost;

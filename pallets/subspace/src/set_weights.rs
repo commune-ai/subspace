@@ -1,6 +1,6 @@
-use core::num::NonZeroU64;
-
 use super::*;
+use core::num::NonZeroU64;
+use frame_support::pallet_prelude::DispatchResult;
 
 impl<T: Config> Pallet<T> {
     // Returns true if the items contain duplicates.
@@ -54,6 +54,8 @@ impl<T: Config> Pallet<T> {
         // --- 5. Get the module uid of associated key on network netuid.
         let uid: u16 = Self::get_uid_for_key(netuid, &key);
 
+        Self::check_rootnet_daily_limit(netuid, uid)?;
+
         // --- 6. Ensure the passed uids contain no duplicates.
         ensure!(!Self::contains_duplicates(&uids), Error::<T>::DuplicateUids);
 
@@ -76,7 +78,7 @@ impl<T: Config> Pallet<T> {
         ensure!(!uids.contains(&uid), Error::<T>::NoSelfWeight);
 
         // --- 10. Get the stake for the key.
-        let stake: u64 = Stake::<T>::get(netuid, &key);
+        let stake: u64 = Stake::<T>::get(&key);
 
         // --- 11. Check if the stake per weight is greater than the required minimum stake.
         let min_stake_per_weight: u64 = MinWeightStake::<T>::get();
@@ -109,6 +111,21 @@ impl<T: Config> Pallet<T> {
         // --- 17. Emit the tracking event.
         Self::deposit_event(Event::WeightsSet(netuid, uid));
 
+        Ok(())
+    }
+
+    // -------------
+    // Util
+    // -------------
+
+    fn check_rootnet_daily_limit(netuid: u16, module_id: u16) -> DispatchResult {
+        if netuid == ROOTNET_ID {
+            if RootNetWeightCalls::<T>::get(&module_id).is_some() {
+                return Err(Error::<T>::MaxWeightCalls.into());
+            }
+
+            RootNetWeightCalls::<T>::set(module_id, Some(()));
+        }
         Ok(())
     }
 

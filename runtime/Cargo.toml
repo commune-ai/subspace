@@ -16,6 +16,7 @@ targets = ["x86_64-unknown-linux-gnu"]
 pallet-subspace = { path = "../pallets/subspace", default-features = false }
 pallet-governance = { path = "../pallets/governance", default-features = false }
 pallet-faucet = { path = "../pallets/faucet", default-features = false }
+pallet-subnet-emission = { path = "../pallets/subnet_emission", default-features = false }
 
 log.workspace = true
 smallvec.workspace = true
@@ -70,6 +71,7 @@ pallet-base-fee.workspace = true
 
 subspace-runtime-api = { path = "../pallets/subspace/rpc/runtime-api", default-features = false }
 pallet-governance-api = { path = "../pallets/governance/api", default-features = false }
+pallet-subnet-emission-api = { path = "../pallets/subnet_emission/api", default-features = false }
 [build-dependencies]
 substrate-wasm-builder = { workspace = true, optional = true }
 

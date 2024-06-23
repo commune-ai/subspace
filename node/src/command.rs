@@ -65,6 +65,7 @@ pub fn run() -> sc_cli::Result<()> {
         "info".to_string(),
         "pallet_subspace=debug".to_string(),
         "pallet_governance=debug".to_string(),
+        "pallet_subnet_emission=debug".to_string(),
     ]);
 
     match &cli.subcommand {

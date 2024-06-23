@@ -40,9 +40,6 @@ pub trait GovernanceApi<AccountId> {
     /// Gets the account address for the DAO treasury.
     fn get_dao_treasury_address() -> AccountId;
 
-    /// Gets the percentage of the treasury to be distributed in a step.
-    fn get_dao_treasury_distribution() -> Percent;
-
     /// Gets global governance configuration.
     fn get_global_governance_configuration() -> GovernanceConfiguration;
 

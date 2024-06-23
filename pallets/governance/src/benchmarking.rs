@@ -84,7 +84,6 @@ benchmarks! {
             params.floor_founder_share,            // floor_founder_share: min founder share
             params.min_weight_stake,               // min_weight_stake: min weight stake required
             params.curator,                            // curator: subnet 0 dao multisig
-            params.subnet_stake_threshold,             // subnet_stake_threshold: stake needed to start subnet emission
             params.governance_config.proposal_cost,                      // proposal_cost: amount of $COMAI to create a proposal, returned if proposal gets accepted
             params.governance_config.proposal_expiration,                // proposal_expiration: the block number, proposal expires at
             params.general_subnet_application_cost     // general_subnet_application_cost

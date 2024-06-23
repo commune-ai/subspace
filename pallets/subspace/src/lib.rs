@@ -6,7 +6,7 @@ use crate::subnet::SubnetChangeset;
 use frame_system::{self as system, ensure_signed};
 pub use pallet::*;
 use scale_info::TypeInfo;
-use sp_std::collections::{btree_map::BTreeMap, btree_set::BTreeSet};
+use sp_std::collections::btree_set::BTreeSet;
 pub mod migrations;
 
 use frame_support::{
@@ -40,18 +40,14 @@ mod benchmarking;
 // ---------------------------------
 
 pub mod global;
-mod math;
+pub mod math;
 pub mod module;
 mod registration;
+pub mod rpc;
 mod set_weights;
 mod staking;
-mod step;
 pub mod subnet;
 pub mod weights;
-
-#[cfg(debug_assertions)]
-pub use step::yuma;
-// TODO: better error handling in whole file
 
 #[frame_support::pallet]
 pub mod pallet {
@@ -66,7 +62,7 @@ pub mod pallet {
     pub use crate::weights::WeightInfo;
     use frame_support::{pallet_prelude::*, traits::Currency, Identity};
     use frame_system::pallet_prelude::*;
-    use global::BurnConfiguration;
+    use global::{BurnConfiguration, SubnetBurnConfiguration};
     use module::ModuleChangeset;
     use pallet_governance_api::{GovernanceConfiguration, VoteMode};
     use sp_arithmetic::per_things::Percent;
@@ -85,6 +81,7 @@ pub mod pallet {
     pub trait Config:
         frame_system::Config
         + pallet_governance_api::GovernanceApi<<Self as frame_system::Config>::AccountId>
+        + pallet_subnet_emission_api::SubnetEmissionApi
     {
         /// This pallet's ID, used for generating the treasury account ID.
         #[pallet::constant]
@@ -109,6 +106,16 @@ pub mod pallet {
     // ---------------------------------
     // Global Variables
     // ---------------------------------
+
+    // Rootnet
+    // =======
+    pub const ROOTNET_ID: u16 = 0;
+
+    #[pallet::storage]
+    pub type Rho<T> = StorageValue<_, u16, ValueQuery, ConstU16<10>>;
+
+    #[pallet::storage]
+    pub type RootNetWeightCalls<T: Config> = StorageMap<_, Identity, u16, ()>;
 
     #[pallet::storage]
     pub type BurnConfig<T: Config> = StorageValue<_, BurnConfiguration<T>, ValueQuery>;
@@ -218,9 +225,11 @@ pub mod pallet {
         pub general_subnet_application_cost: u64,
 
         // Other
-        pub subnet_stake_threshold: Percent,
         pub burn_config: BurnConfiguration<T>,
         pub governance_config: GovernanceConfiguration,
+
+        pub kappa: u16,
+        pub rho: u16,
     }
 
     // ---------------------------------
@@ -244,53 +253,24 @@ pub mod pallet {
     #[pallet::storage] // --- MAP ( netuid ) --> adjustment_alpha
     pub type AdjustmentAlpha<T> =
         StorageMap<_, Identity, u16, u64, ValueQuery, ConstU64<{ u64::MAX / 2 }>>;
-    // ---------------------------------
-    // Emission
-    // ---------------------------------
-
-    #[pallet::storage] // --- MAP( netuid ) --> subnet_emission
-    pub type SubnetEmission<T> = StorageMap<_, Identity, u16, u64, ValueQuery>;
-
-    #[pallet::storage] // --- MAP ( netuid ) --> pending_emission
-    pub type PendingEmission<T> = StorageMap<_, Identity, u16, u64, ValueQuery>;
-
-    #[pallet::storage] // --- ITEM ( unit_emission )
-    pub type UnitEmission<T> = StorageValue<_, u64, ValueQuery, ConstU64<23148148148>>;
 
     // ---------------------------------
     //  Module Staking Variables
     /// ---------------------------------
 
-    #[pallet::storage] // --- DMAP ( netuid, module_key ) --> stake | Returns the stake under a module.
-    pub type Stake<T: Config> =
-        StorageDoubleMap<_, Identity, u16, Identity, T::AccountId, u64, ValueQuery>;
+    #[pallet::storage]
+    pub type Stake<T: Config> = StorageMap<_, Identity, T::AccountId, u64, ValueQuery>;
 
-    #[pallet::storage] // --- DMAP ( netuid, module_key ) --> Vec<(delegater, stake )> | Returns the list of delegates
-                       // and their staked amount under a module
-    pub type StakeFrom<T: Config> = StorageDoubleMap<
-        _,
-        Identity,
-        u16,
-        Identity,
-        T::AccountId,
-        BTreeMap<T::AccountId, u64>,
-        ValueQuery,
-    >;
+    #[pallet::storage]
+    pub type StakeFrom<T: Config> =
+        StorageDoubleMap<_, Identity, T::AccountId, Identity, T::AccountId, u64, ValueQuery>;
 
-    #[pallet::storage] // --- DMAP ( netuid, account_id ) --> Vec<(module_key, stake )> | Returns the list of the
-    pub type StakeTo<T: Config> = StorageDoubleMap<
-        _,
-        Identity,
-        u16,
-        Identity,
-        T::AccountId,
-        BTreeMap<T::AccountId, u64>,
-        ValueQuery,
-    >;
+    #[pallet::storage]
+    pub type StakeTo<T: Config> =
+        StorageDoubleMap<_, Identity, T::AccountId, Identity, T::AccountId, u64, ValueQuery>;
 
-    // TOTAL STAKE PER SUBNET
-    #[pallet::storage] // --- MAP ( netuid ) --> subnet_total_stake
-    pub type TotalStake<T> = StorageMap<_, Identity, u16, u64, ValueQuery>;
+    #[pallet::storage]
+    pub type TotalStake<T> = StorageValue<_, u64, ValueQuery>;
 
     // ---------------------------------
     // Subnets
@@ -319,14 +299,23 @@ pub mod pallet {
     pub type IncentiveRatio<T: Config> =
         StorageMap<_, Identity, u16, u16, ValueQuery, ConstU16<50>>;
 
+    // ---------------------------------
+    // Subnet registration parameters
+    // ---------------------------------
+
+    #[pallet::storage]
+    pub type SubnetBurnConfig<T: Config> = StorageValue<_, SubnetBurnConfiguration<T>, ValueQuery>;
+
+    #[pallet::storage]
+    pub type SubnetRegistrationsThisInterval<T: Config> = StorageValue<_, u16, ValueQuery>;
+
     #[pallet::type_value]
-    pub fn DefaultSubnetStakeThreshold<T: Config>() -> Percent {
-        Percent::from_percent(5)
+    pub fn DefaultSubnetBurn<T: Config>() -> u64 {
+        SubnetBurnConfig::<T>::get().min_burn
     }
 
     #[pallet::storage]
-    pub type SubnetStakeThreshold<T> =
-        StorageValue<_, Percent, ValueQuery, DefaultSubnetStakeThreshold<T>>;
+    pub type SubnetBurn<T: Config> = StorageValue<_, u64, ValueQuery, DefaultSubnetBurn<T>>;
 
     // ---------------------------------
     // Subnet PARAMS
@@ -550,6 +539,7 @@ pub mod pallet {
     pub enum Error<T> {
         NetworkDoesNotExist, // --- Thrown when the network does not exist.
         NetworkIsImmuned,
+        NotEnoughBalanceToRegisterSubnet,
         NotRegistered, // module which does not exist in the active set.
         NotEnoughStakeToWithdraw, /* ---- Thrown when the caller requests removing more stake
                         * then there exists in the staking account. See: fn
@@ -611,7 +601,6 @@ pub mod pallet {
         InvalidMaxAllowedWeights,
         InvalidMinStake,
         InvalidMinDelegationFee,
-        InvalidSubnetStakeThreshold,
         InvalidModuleMetadata,
         ModuleMetadataTooLong,
 
@@ -644,6 +633,8 @@ pub mod pallet {
         // Other
         InvalidMaxWeightAge,
         MaximumSetWeightsPerEpochReached,
+        ArithmeticError,
+        MaxWeightCalls,
         // Registrations
         InvalidTargetRegistrationsPerInterval,
         InvalidMaxRegistrationsPerInterval,
@@ -712,7 +703,7 @@ pub mod pallet {
                     );
 
                     for (staker, stake) in module.stake_from.iter().flatten() {
-                        Pallet::<T>::increase_stake(netuid, staker, &module.key, *stake);
+                        Pallet::<T>::increase_stake(staker, &module.key, *stake);
                     }
                 }
             }
@@ -731,7 +722,10 @@ pub mod pallet {
             let block_number: u64 =
                 block_number.try_into().ok().expect("blockchain won't pass 2 ^ 64 blocks");
 
-            Self::block_step(block_number)
+            // Adjust costs to reflect the demand
+            Self::adjust_registration_parameters(block_number);
+            // TODO: fix later
+            Weight::default()
         }
 
         fn on_idle(_n: BlockNumberFor<T>, _remaining: Weight) -> Weight {
@@ -774,22 +768,20 @@ pub mod pallet {
         #[pallet::weight((T::WeightInfo::add_stake(), DispatchClass::Normal, Pays::No))]
         pub fn add_stake(
             origin: OriginFor<T>,
-            netuid: u16,
             module_key: T::AccountId,
             amount: u64,
         ) -> DispatchResult {
-            Self::do_add_stake(origin, netuid, module_key, amount)
+            Self::do_add_stake(origin, module_key, amount)
         }
 
         #[pallet::call_index(2)]
         #[pallet::weight((T::WeightInfo::remove_stake(), DispatchClass::Normal, Pays::No))]
         pub fn remove_stake(
             origin: OriginFor<T>,
-            netuid: u16,
             module_key: T::AccountId,
             amount: u64,
         ) -> DispatchResult {
-            Self::do_remove_stake(origin, netuid, module_key, amount)
+            Self::do_remove_stake(origin, module_key, amount)
         }
 
         // ---------------------------------
@@ -800,22 +792,20 @@ pub mod pallet {
         #[pallet::weight((T::WeightInfo::add_stake_multiple(), DispatchClass::Normal, Pays::No))]
         pub fn add_stake_multiple(
             origin: OriginFor<T>,
-            netuid: u16,
             module_keys: Vec<T::AccountId>,
             amounts: Vec<u64>,
         ) -> DispatchResult {
-            Self::do_add_stake_multiple(origin, netuid, module_keys, amounts)
+            Self::do_add_stake_multiple(origin, module_keys, amounts)
         }
 
         #[pallet::call_index(4)]
         #[pallet::weight((T::WeightInfo::remove_stake_multiple(), DispatchClass::Normal, Pays::No))]
         pub fn remove_stake_multiple(
             origin: OriginFor<T>,
-            netuid: u16,
             module_keys: Vec<T::AccountId>,
             amounts: Vec<u64>,
         ) -> DispatchResult {
-            Self::do_remove_stake_multiple(origin, netuid, module_keys, amounts)
+            Self::do_remove_stake_multiple(origin, module_keys, amounts)
         }
 
         // ---------------------------------
@@ -826,12 +816,11 @@ pub mod pallet {
         #[pallet::weight((T::WeightInfo::transfer_stake(), DispatchClass::Normal, Pays::No))]
         pub fn transfer_stake(
             origin: OriginFor<T>,         // --- The account that is calling this function.
-            netuid: u16,                  // --- The network id.
             module_key: T::AccountId,     // --- The module key.
             new_module_key: T::AccountId, // --- The new module key.
             amount: u64,                  // --- The amount of stake to transfer.
         ) -> DispatchResult {
-            Self::do_transfer_stake(origin, netuid, module_key, new_module_key, amount)
+            Self::do_transfer_stake(origin, module_key, new_module_key, amount)
         }
 
         #[pallet::call_index(6)]
@@ -883,7 +872,10 @@ pub mod pallet {
             metadata: Option<Vec<u8>>,
         ) -> DispatchResult {
             let key = ensure_signed(origin.clone())?;
-            ensure!(Self::is_registered(netuid, &key), Error::<T>::NotRegistered);
+            ensure!(
+                Self::is_registered(Some(netuid), &key),
+                Error::<T>::NotRegistered
+            );
 
             let params = Self::module_params(netuid, &key);
 
@@ -961,7 +953,7 @@ pub mod pallet {
         // --- Returns the transaction priority for setting weights.
         pub fn get_priority_stake(key: &T::AccountId, netuid: u16) -> u64 {
             if Uids::<T>::contains_key(netuid, key) {
-                return Self::get_stake(netuid, key);
+                return Stake::<T>::get(key);
             }
             0
         }

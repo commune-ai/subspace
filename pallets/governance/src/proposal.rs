@@ -9,7 +9,7 @@ use frame_support::{
 };
 use frame_system::ensure_signed;
 use pallet_subspace::{
-    subnet::SubnetChangeset, Event as SubspaceEvent, GlobalParams, Pallet as PalletSubspace,
+    subnet::SubnetChangeset, Event as SubspaceEvent, GlobalParams, Pallet as PalletSubspace, Stake,
     SubnetParams, TotalStake,
 };
 use parity_scale_codec::{Decode, Encode, MaxEncodedLen};
@@ -195,6 +195,8 @@ pub struct UnrewardedProposal<T: Config> {
 }
 
 impl<T: Config> Pallet<T> {
+
+    
     fn get_next_proposal_id() -> u64 {
         match Proposals::<T>::iter_keys().max() {
             Some(id) => id.saturating_add(1),
@@ -379,8 +381,8 @@ pub fn get_minimal_stake_to_execute_with_percentage<T: Config>(
     subnet_id: Option<u16>,
 ) -> u64 {
     let stake = match subnet_id {
-        Some(specific_subnet_id) => TotalStake::<T>::get(specific_subnet_id),
-        None => PalletSubspace::<T>::total_stake(),
+        Some(specific_subnet_id) => PalletSubspace::<T>::get_total_subnet_stake(specific_subnet_id),
+        None => TotalStake::<T>::get(),
     };
 
     stake
@@ -411,7 +413,7 @@ fn tick_proposal<T: Config>(
         .iter()
         .cloned()
         .map(|id| {
-            let stake = calc_stake::<T>(not_delegating, &id, subnet_id);
+            let stake = calc_stake::<T>(not_delegating, &id);
             (id, stake)
         })
         .collect();
@@ -419,7 +421,7 @@ fn tick_proposal<T: Config>(
         .iter()
         .cloned()
         .map(|id| {
-            let stake = calc_stake::<T>(not_delegating, &id, subnet_id);
+            let stake = calc_stake::<T>(not_delegating, &id);
             (id, stake)
         })
         .collect();
@@ -492,30 +494,22 @@ pub fn tick_proposal_rewards<T: Config>(block_number: u64) {
     });
 }
 
-fn calc_stake<T: Config>(
-    not_delegating: &BTreeSet<T::AccountId>,
-    voter: &T::AccountId,
-    subnet_id: Option<SubnetId>,
-) -> u64 {
+fn calc_stake<T: Config>(not_delegating: &BTreeSet<T::AccountId>, voter: &T::AccountId) -> u64 {
     let own_stake = if !not_delegating.contains(voter) {
         0
     } else {
-        PalletSubspace::<T>::get_account_stake(voter, subnet_id)
+        Stake::<T>::get(voter)
     };
 
-    let calculate_delegated = |subnet_id: u16| -> u64 {
-        PalletSubspace::<T>::get_stake_from_vector(subnet_id, voter)
+    let calculate_delegated = || -> u64 {
+        PalletSubspace::<T>::get_stake_from_vector(voter)
             .into_iter()
             .filter(|(staker, _)| !not_delegating.contains(staker))
             .map(|(_, stake)| stake)
             .sum()
     };
 
-    let delegated_stake = if let Some(subnet_id) = subnet_id {
-        calculate_delegated(subnet_id)
-    } else {
-        pallet_subspace::N::<T>::iter_keys().map(calculate_delegated).sum()
-    };
+    let delegated_stake = calculate_delegated();
 
     own_stake.saturating_add(delegated_stake)
 }

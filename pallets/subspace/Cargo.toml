@@ -55,6 +55,7 @@ ndarray.workspace = true
 
 pallet-subspace-genesis-config.path = "./genesis-config"
 pallet-governance-api = { path = "../governance/api", default-features = false }
+pallet-subnet-emission-api = { path = "../subnet_emission/api", default-features = false }
 
 [dev-dependencies]
 pallet-balances = { workspace = true, features = ["std"] }

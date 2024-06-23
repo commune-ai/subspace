@@ -124,10 +124,6 @@ impl GovernanceApi<<Test as frame_system::Config>::AccountId> for Test {
         SubspacePalletId::get().into_account_truncating()
     }
 
-    fn get_dao_treasury_distribution() -> Percent {
-        Percent::from_percent(50u8)
-    }
-
     fn is_delegating_voting_power(_delegator: &AccountId) -> bool {
         false
     }

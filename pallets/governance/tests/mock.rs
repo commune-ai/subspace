@@ -112,10 +112,6 @@ impl GovernanceApi<<Test as frame_system::Config>::AccountId> for Test {
         pallet_governance::DaoTreasuryAddress::<Test>::get()
     }
 
-    fn get_dao_treasury_distribution() -> Percent {
-        pallet_governance::DaoTreasuryDistribution::<Test>::get()
-    }
-
     fn is_delegating_voting_power(_delegator: &AccountId) -> bool {
         false
     }

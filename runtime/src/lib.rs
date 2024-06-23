@@ -28,7 +28,7 @@ use sp_runtime::{
         One, PostDispatchInfoOf, Verify,
     },
     transaction_validity::{TransactionSource, TransactionValidity, TransactionValidityError},
-    ApplyExtrinsicResult, DispatchResult, MultiSignature, Percent,
+    ApplyExtrinsicResult, DispatchResult, MultiSignature,
 };
 use sp_std::{collections::btree_set::BTreeSet, prelude::*};
 use sp_version::RuntimeVersion;
@@ -124,7 +124,7 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
     //   `spec_version`, and `authoring_version` are the same between Wasm and native.
     // This value is set to 100 to notify Polkadot-JS App (https://polkadot.js.org/apps) to use
     //   the compatible custom types.
-    spec_version: 117,
+    spec_version: 118,
     impl_version: 1,
     apis: RUNTIME_API_VERSIONS,
     transaction_version: 1,
@@ -378,6 +378,15 @@ impl pallet_faucet::Config for Runtime {
     type Currency = Balances;
 }
 
+// Includes emission logic for the runtime
+impl pallet_subnet_emission::Config for Runtime {
+    type RuntimeEvent = RuntimeEvent;
+    type Currency = Balances;
+    type Decimals = ConstU8<9>; // The runtime has 9 token decimals
+    type HalvingInterval = ConstU64<250_000_000>;
+    type MaxSupply = ConstU64<1_000_000_000>;
+}
+
 pub const WEIGHT_MILLISECS_PER_BLOCK: u64 = 2000;
 pub const MAXIMUM_BLOCK_WEIGHT: Weight = Weight::from_parts(
     WEIGHT_MILLISECS_PER_BLOCK * WEIGHT_REF_TIME_PER_MILLIS,
@@ -435,6 +444,7 @@ construct_runtime!(
         SubspaceModule: pallet_subspace,
         GovernanceModule: pallet_governance,
         FaucetModule: pallet_faucet,
+        SubnetEmissionModule: pallet_subnet_emission,
 
         // EVM Support
         BaseFee: pallet_base_fee,
@@ -804,15 +814,25 @@ impl_runtime_apis! {
     }
 }
 
+impl pallet_subnet_emission_api::SubnetEmissionApi for Runtime {
+    fn get_lowest_emission_netuid() -> Option<u16> {
+        SubnetEmissionModule::get_lowest_emission_netuid()
+    }
+
+    fn remove_subnet_emission_storage(netuid: u16) {
+        SubnetEmissionModule::remove_subnet_emission_storage(netuid)
+    }
+
+    fn set_subnet_emission_storage(netuid: u16, emission: u64) {
+        SubnetEmissionModule::set_subnet_emission_storage(netuid, emission)
+    }
+}
+
 impl pallet_governance_api::GovernanceApi<<Runtime as frame_system::Config>::AccountId>
     for Runtime
 {
     fn get_dao_treasury_address() -> AccountId {
         pallet_governance::DaoTreasuryAddress::<Runtime>::get()
-    }
-
-    fn get_dao_treasury_distribution() -> Percent {
-        pallet_governance::DaoTreasuryDistribution::<Runtime>::get()
     }
 
     fn is_delegating_voting_power(delegator: &AccountId) -> bool {

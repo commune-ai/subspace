@@ -1,10 +1,11 @@
-use crate::{module::ModuleChangeset, subnet::SubnetChangeset};
-
 use super::*;
+use crate::{module::ModuleChangeset, subnet::SubnetChangeset};
+use frame_support::storage::with_storage_layer;
 
 use frame_support::pallet_prelude::DispatchResult;
 use frame_system::ensure_signed;
 use sp_core::Get;
+use substrate_fixed::types::I110F18;
 
 impl<T: Config> Pallet<T> {
     // Used on extrinsics, can panic
@@ -47,7 +48,15 @@ impl<T: Config> Pallet<T> {
                     ..DefaultSubnetParams::<T>::get()
                 };
                 let changeset = SubnetChangeset::new(params)?;
-                Self::add_subnet_from_registration(stake, changeset)?
+                let burn = SubnetBurn::<T>::get();
+
+                Self::remove_balance_from_account(
+                    &key,
+                    Self::u64_to_balance(burn).ok_or(Error::<T>::CouldNotConvertToBalance)?,
+                )
+                .map_err(|_| Error::<T>::NotEnoughBalanceToRegisterSubnet)?;
+
+                Self::add_subnet_from_registration(changeset)?
             }
         };
 
@@ -89,6 +98,9 @@ impl<T: Config> Pallet<T> {
         // If we do deregister slot.
         Self::reserve_module_slot(netuid)?;
 
+        // Account for root validator register requirements
+        Self::check_rootnet_registration_requirements(netuid, stake, current_burn)?;
+
         let fee = DefaultDelegationFee::<T>::get();
         // --- 8. Register the module and changeset.
         let module_changeset = ModuleChangeset::new(name, address, fee, metadata);
@@ -97,12 +109,12 @@ impl<T: Config> Pallet<T> {
 
         // --- 9. Add the stake to the module, now that it is registered on the network.
         // allow to register with zero stake
-        Self::do_add_stake(origin, netuid, module_key.clone(), stake)?;
+        Self::do_add_stake(origin, module_key.clone(), stake)?;
 
         // constant -> current_burn logic
         if current_burn > 0 {
             // if min burn is present, decrease the stake by the min burn
-            Self::decrease_stake(netuid, &key, &module_key, current_burn);
+            Self::decrease_stake(&key, &module_key, current_burn);
         }
 
         // Make sure that the registration went through.
@@ -197,7 +209,6 @@ impl<T: Config> Pallet<T> {
     }
 
     pub fn add_subnet_from_registration(
-        stake: u64,
         changeset: SubnetChangeset<T>,
     ) -> Result<u16, sp_runtime::DispatchError> {
         let num_subnets: u16 = TotalSubnets::<T>::get();
@@ -205,11 +216,14 @@ impl<T: Config> Pallet<T> {
 
         // if we have not reached the max number of subnets, then we can start a new one
         let target_subnet = if num_subnets >= max_subnets {
-            let (min_stake_netuid, min_stake) = Self::get_least_staked_netuid();
+            let lowest_emission_netuid = T::get_lowest_emission_netuid();
+            let netuid = lowest_emission_netuid.ok_or(sp_runtime::DispatchError::Other(
+                "No valid netuid to deregister",
+            ))?;
+
             // if the stake is greater than the least staked network, then we can start a new one
-            ensure!(stake > min_stake, Error::<T>::NotEnoughStakeToStartNetwork);
-            Self::remove_subnet(min_stake_netuid);
-            Some(min_stake_netuid)
+            Self::remove_subnet(netuid);
+            Some(netuid)
         } else {
             None
         };
@@ -227,25 +241,280 @@ impl<T: Config> Pallet<T> {
     /// the network is reached, deregisters the least staked module on the least staked netuid.
     pub fn reserve_module_slot(netuid: u16) -> DispatchResult {
         if N::<T>::get(netuid) >= MaxAllowedUids::<T>::get(netuid) {
-            // If we reach the max allowed modules for this subnet,
-            // then we replace the lowest priority node in the current subnet
-            let lowest_uid = Self::get_lowest_uid(netuid, false);
-            if let Some(uid) = lowest_uid {
-                Self::remove_module(netuid, uid)
-            } else {
-                Err(Error::<T>::NetworkIsImmuned.into())
-            }
+            // Subnet is full, replace lowest priority node
+            Self::replace_lowest_priority_node(netuid, false)
         } else if Self::global_n_modules() >= MaxAllowedModules::<T>::get() {
-            let (subnet_uid, _) = Self::get_least_staked_netuid();
-            let module_uid = Self::get_lowest_uid(subnet_uid, true).unwrap_or(0);
-
-            // Deregister the lowest priority node in the least staked network
-            // in this case we should ignore the immunity period,
-            // Because if the lowest subnet has unreasonably high immunity period,
-            // it could lead to exploitation of the network.
-            Self::remove_module(subnet_uid, module_uid)
+            // Global limit reached, remove from lowest emission subnet
+            Self::remove_from_lowest_emission_subnet()
         } else {
             Ok(())
         }
+    }
+
+    fn replace_lowest_priority_node(netuid: u16, ignore_immunity: bool) -> DispatchResult {
+        if let Some(uid) = Self::get_lowest_uid(netuid, ignore_immunity) {
+            Self::remove_module(netuid, uid)
+        } else {
+            Err(Error::<T>::NetworkIsImmuned.into())
+        }
+    }
+
+    fn remove_from_lowest_emission_subnet() -> DispatchResult {
+        if let Some(subnet_id) = T::get_lowest_emission_netuid() {
+            if let Some(module_uid) = Self::get_lowest_uid(subnet_id, true) {
+                Self::remove_module(subnet_id, module_uid)
+            } else {
+                Err(Error::<T>::NetworkIsImmuned.into())
+            }
+        } else {
+            Err(Error::<T>::NetworkIsImmuned.into())
+        }
+    }
+
+    // --------------------------
+    // Rootnet utils
+    // --------------------------
+
+    fn check_rootnet_registration_requirements(
+        netuid: u16,
+        stake: u64,
+        current_burn: u64,
+    ) -> DispatchResult {
+        if netuid == ROOTNET_ID
+            && Self::get_validator_count(ROOTNET_ID)
+                >= MaxAllowedValidators::<T>::get(ROOTNET_ID).unwrap_or(u16::MAX) as usize
+        {
+            let permits = ValidatorPermits::<T>::get(ROOTNET_ID);
+            let (lower_stake_validator, lower_stake) = Keys::<T>::iter_prefix(ROOTNET_ID)
+                .into_iter()
+                .filter(|(uid, _)| permits.get(*uid as usize).is_some_and(|b| *b))
+                .map(|(_, key)| (key.clone(), Stake::<T>::get(key)))
+                .min_by_key(|(_, stake)| *stake)
+                .ok_or_else(|| Error::<T>::ArithmeticError)?; //unreachable
+
+            ensure!(
+                stake >= lower_stake + current_burn,
+                Error::<T>::NotEnoughStakeToRegister
+            );
+
+            let lower_stake_validator_uid =
+                Self::get_uid_for_key(ROOTNET_ID, &lower_stake_validator);
+
+            Self::remove_module(ROOTNET_ID, lower_stake_validator_uid);
+        }
+        Ok(())
+    }
+
+    fn add_rootnet_validator(netuid: u16, module_uid: u16) -> DispatchResult {
+        if netuid == ROOTNET_ID {
+            let mut validator_permits = ValidatorPermits::<T>::get(ROOTNET_ID);
+            if validator_permits.len() <= module_uid as usize {
+                return Err(Error::<T>::NotRegistered.into());
+            }
+
+            validator_permits[module_uid as usize] = true;
+            ValidatorPermits::<T>::set(ROOTNET_ID, validator_permits);
+        }
+
+        Ok(())
+    }
+
+    fn get_validator_count(netuid: u16) -> usize {
+        ValidatorPermits::<T>::get(netuid).into_iter().filter(|b| *b).count()
+    }
+
+    pub fn clear_rootnet_daily_weight_calls(block: u64) {
+        if block.checked_rem(10_800).is_some_and(|r| r == 0) {
+            let _ = RootNetWeightCalls::<T>::clear(u32::MAX, None);
+        }
+    }
+
+    // --------------------------
+    // Registration Burn
+    // --------------------------
+
+    // This code is running under the `on_initialize` hook
+    pub fn adjust_registration_parameters(block_number: u64) {
+        // For subnet prices
+        let subnet_config = SubnetBurnConfig::<T>::get();
+        let subnet_burn = SubnetBurn::<T>::get();
+        Self::adjust_burn_parameters(
+            block_number,
+            subnet_config.adjustment_interval,
+            SubnetRegistrationsThisInterval::<T>::get(),
+            subnet_config.expected_registrations,
+            subnet_config.adjustment_alpha,
+            subnet_config.min_burn,
+            subnet_config.max_burn,
+            subnet_burn,
+            |adjusted_burn| {
+                SubnetBurn::<T>::set(adjusted_burn);
+                SubnetRegistrationsThisInterval::<T>::set(0);
+            },
+        );
+
+        // For subnet modules
+        RegistrationsPerBlock::<T>::mutate(|val| *val = 0);
+
+        for (netuid, _) in Tempo::<T>::iter() {
+            let module_config = BurnConfig::<T>::get();
+            let module_burn = Burn::<T>::get(netuid);
+            Self::adjust_burn_parameters(
+                block_number,
+                TargetRegistrationsInterval::<T>::get(netuid),
+                RegistrationsThisInterval::<T>::get(netuid),
+                TargetRegistrationsPerInterval::<T>::get(netuid),
+                AdjustmentAlpha::<T>::get(netuid),
+                module_config.min_burn,
+                module_config.max_burn,
+                module_burn,
+                |adjusted_burn| {
+                    Burn::<T>::insert(netuid, adjusted_burn);
+                    RegistrationsThisInterval::<T>::insert(netuid, 0);
+                },
+            );
+        }
+    }
+
+    fn adjust_burn_parameters<F>(
+        block_number: u64,
+        adjustment_interval: u16,
+        registrations_this_interval: u16,
+        target_registrations: u16,
+        alpha: u64,
+        min_burn: u64,
+        max_burn: u64,
+        current_burn: u64,
+        update_fn: F,
+    ) where
+        F: FnOnce(u64),
+    {
+        let reached_interval =
+            block_number.checked_rem(u64::from(adjustment_interval)).is_some_and(|r| r == 0);
+
+        if !reached_interval {
+            return;
+        }
+
+        let adjusted_burn = Self::adjust_burn(
+            current_burn,
+            registrations_this_interval,
+            target_registrations,
+            alpha,
+            min_burn,
+            max_burn,
+        );
+
+        update_fn(adjusted_burn);
+    }
+
+    fn adjust_burn(
+        current_burn: u64,
+        registrations_this_interval: u16,
+        target_registrations_per_interval: u16,
+        adjustment_alpha: u64,
+        min_burn: u64,
+        max_burn: u64,
+    ) -> u64 {
+        let updated_burn: I110F18 = I110F18::from_num(current_burn)
+            .checked_mul(I110F18::from_num(
+                registrations_this_interval.saturating_add(target_registrations_per_interval),
+            ))
+            .unwrap_or_default()
+            .checked_div(I110F18::from_num(
+                target_registrations_per_interval.saturating_add(target_registrations_per_interval),
+            ))
+            .unwrap_or_default();
+        let alpha: I110F18 = I110F18::from_num(adjustment_alpha)
+            .checked_div(I110F18::from_num(u64::MAX))
+            .unwrap_or_else(|| I110F18::from_num(0));
+        let next_value: I110F18 = alpha
+            .checked_mul(I110F18::from_num(current_burn))
+            .unwrap_or_else(|| I110F18::from_num(0))
+            .saturating_add(
+                I110F18::from_num(1.0)
+                    .saturating_sub(alpha)
+                    .checked_mul(updated_burn)
+                    .unwrap_or_else(|| I110F18::from_num(0)),
+            );
+        if next_value >= I110F18::from_num(max_burn) {
+            max_burn
+        } else if next_value <= I110F18::from_num(min_burn) {
+            min_burn
+        } else {
+            next_value.to_num::<u64>()
+        }
+    }
+
+    pub fn get_block_at_registration(netuid: u16) -> Vec<u64> {
+        let n = N::<T>::get(netuid) as usize;
+        let mut block_at_registration: Vec<u64> = vec![0; n];
+
+        for (module_uid, block) in block_at_registration.iter_mut().enumerate() {
+            let module_uid = module_uid as u16;
+
+            if Keys::<T>::contains_key(netuid, module_uid) {
+                *block = RegistrationBlock::<T>::get(netuid, module_uid);
+            }
+        }
+
+        block_at_registration
+    }
+
+    // --------------------
+    // Subnet 0 Utils
+    // --------------------
+
+    pub(crate) fn deregister_not_whitelisted_modules(mut remaining: Weight) -> Weight {
+        use crate::weights::WeightInfo;
+
+        const MAX_MODULES: usize = 5;
+
+        let db_weight = T::DbWeight::get();
+
+        let mut weight = db_weight.reads(2);
+
+        let find_id_weight = db_weight.reads(1);
+        let deregister_weight = crate::weights::SubstrateWeight::<T>::deregister();
+
+        if !remaining
+            .all_gte(weight.saturating_add(find_id_weight).saturating_add(deregister_weight))
+        {
+            log::info!("not enough weight remaining: {remaining:?}");
+            return Weight::zero();
+        }
+
+        let s0_keys: BTreeSet<_> = Keys::<T>::iter_prefix_values(0).collect();
+        let whitelisted = T::whitelisted_keys();
+
+        let not_whitelisted = s0_keys.difference(&whitelisted);
+
+        remaining = remaining.saturating_sub(weight);
+
+        for not_whitelisted in not_whitelisted.take(MAX_MODULES) {
+            log::info!("deregistering module {not_whitelisted:?}");
+
+            // we'll need at least to read outbound lane state, kill a message and update lane state
+            if !remaining.all_gte(find_id_weight.saturating_add(deregister_weight)) {
+                log::info!("not enough weight remaining: {remaining:?}");
+                break;
+            }
+
+            let uid = Uids::<T>::get(0, not_whitelisted);
+            weight = weight.saturating_add(find_id_weight);
+            remaining = remaining.saturating_sub(find_id_weight);
+
+            if let Some(uid) = uid {
+                let Err(err) = with_storage_layer(|| Self::remove_module(0, uid)) else {
+                    weight = weight.saturating_add(deregister_weight);
+                    remaining = remaining.saturating_sub(deregister_weight);
+                    continue;
+                };
+
+                log::error!("failed to deregister module {uid} due to: {err:?}");
+            }
+        }
+
+        weight
     }
 }

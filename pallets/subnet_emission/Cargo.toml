@@ -1,0 +1,60 @@
+[package]
+name = "pallet-subnet-emission"
+version = "1.0.0"
+description = "FRAME pallet for runtime logic of Subspace Blockchain."
+authors = ["Commune Nucleus Team"]
+homepage = "https://commune.com"
+edition = "2021"
+license = "Unlicense"
+publish = false
+repository = "https://github.com/commune-ai/subspace"
+
+[package.metadata.docs.rs]
+targets = ["x86_64-unknown-linux-gnu"]
+
+[lints.clippy]
+arithmetic_side_effects = "deny"
+indexing_slicing = "deny"
+panicking_unwrap = "deny"
+out_of_bounds_indexing = "deny"
+
+[features]
+default = ["std"]
+std = [
+    "pallet-balances/std",
+    "frame-support/std",
+    "frame-system/std",
+    "parity-scale-codec/std",
+    "pallet-subspace/std",
+    "scale-info/std",
+]
+try-runtime = ["frame-support/try-runtime"]
+
+[dependencies]
+pallet-balances.workspace = true
+sp-tracing.workspace = true
+sp-io.workspace = true
+sp-core.workspace = true
+sp-runtime.workspace = true
+sp-arithmetic.workspace = true
+bty.workspace = true
+log.workspace = true
+
+pallet-subspace = { path = "../subspace", default-features = false }
+pallet-governance-api = { path = "../governance/api", default-features = false }
+
+frame-support.workspace = true
+frame-system.workspace = true
+
+sp-std.workspace = true
+
+substrate-fixed.workspace = true
+
+parity-scale-codec = { workspace = true, default-features = false, features = [
+    "derive",
+] }
+scale-info = { workspace = true, default-features = false, features = [
+    "derive",
+] }
+
+[dev-dependencies]
