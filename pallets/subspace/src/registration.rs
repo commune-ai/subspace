@@ -123,6 +123,9 @@ impl<T: Config> Pallet<T> {
             Error::<T>::NotRegistered
         );
 
+        // Add validator permit if rootnet
+        Self::add_rootnet_validator(netuid, uid)?;
+
         // --- 10. Increment the number of registrations.
         RegistrationsPerBlock::<T>::mutate(|val: &mut u16| *val += 1);
         RegistrationsThisInterval::<T>::mutate(netuid, |registrations| {
@@ -300,7 +303,7 @@ impl<T: Config> Pallet<T> {
             let lower_stake_validator_uid =
                 Self::get_uid_for_key(ROOTNET_ID, &lower_stake_validator);
 
-            Self::remove_module(ROOTNET_ID, lower_stake_validator_uid);
+            Self::remove_module(ROOTNET_ID, lower_stake_validator_uid)?
         }
         Ok(())
     }

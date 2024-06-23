@@ -5,15 +5,12 @@ use frame_support::storage::with_storage_layer;
 use pallet_subspace::{SetWeightCallsPerEpoch, Tempo};
 
 // Handles the whole emission distribution of the blockchain
-
-// TODO: make sure that the proposals are ticked correctly
 impl<T: Config> Pallet<T> {
     pub fn process_emission_distribution(block_number: u64, emission_per_block: u64) {
         log::debug!("stepping block {block_number:?}");
 
         // Calculate subnet emission
         let subnets_emission_distribution = Self::get_subnet_pricing(emission_per_block);
-        // dbg!(subnets_emission_distribution.clone());
 
         for (netuid, tempo) in Tempo::<T>::iter() {
             let new_queued_emission = subnets_emission_distribution.get(&netuid).unwrap_or(&0);

@@ -7,7 +7,6 @@ use pallet_subspace::{
     Pallet as PalletSubspace, PruningScores, Rank, Stake, Trust, Uids, ValidatorPermits,
     ValidatorTrust, Vec, Weights, N,
 };
-use sp_core::Get;
 use sp_std::vec;
 use substrate_fixed::types::{I32F32, I64F64, I96F32};
 

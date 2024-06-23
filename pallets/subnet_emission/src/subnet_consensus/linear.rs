@@ -5,7 +5,7 @@ use frame_support::{pallet_prelude::Weight, weights::RuntimeDbWeight};
 // Rename the pallet to pallet subspace
 use pallet_subspace::{
     math::*, Config, Dividends, Emission, Founder, GlobalParams, Incentive, IncentiveRatio,
-    LastUpdate, MaxWeightAge, Pallet, Stake, SubnetParams, Trust, TrustRatio, Vec, Weights, N,
+    LastUpdate, Pallet as PalletSubspace, Stake, SubnetParams, Trust, TrustRatio, Vec, Weights, N,
 };
 use sp_core::Get;
 use sp_std::vec;
@@ -53,9 +53,9 @@ impl<T: Config> LinearEpoch<T> {
     pub fn new(netuid: u16, to_be_emitted: u64) -> Self {
         let founder_key = Founder::<T>::get(netuid);
         let (to_be_emitted, founder_emission) =
-            Pallet::<T>::calculate_founder_emission(netuid, to_be_emitted);
-        let global_params = Pallet::<T>::global_params();
-        let subnet_params = Pallet::<T>::subnet_params(netuid);
+            PalletSubspace::<T>::calculate_founder_emission(netuid, to_be_emitted);
+        let global_params = PalletSubspace::<T>::global_params();
+        let subnet_params = PalletSubspace::<T>::subnet_params(netuid);
 
         Self {
             module_count: N::<T>::get(netuid),
@@ -65,7 +65,7 @@ impl<T: Config> LinearEpoch<T> {
             founder_emission,
             to_be_emitted,
 
-            current_block: Pallet::<T>::get_current_block_number(),
+            current_block: PalletSubspace::<T>::get_current_block_number(),
             last_update: LastUpdate::<T>::get(netuid),
 
             global_params,
@@ -84,8 +84,9 @@ impl<T: Config> LinearEpoch<T> {
         }
 
         // STAKE
-        let uid_key_tuples: Vec<(u16, T::AccountId)> = Pallet::<T>::get_uid_key_tuples(self.netuid);
-        let total_stake_u64: u64 = Pallet::<T>::get_total_subnet_stake(self.netuid).max(1);
+        let uid_key_tuples: Vec<(u16, T::AccountId)> =
+            PalletSubspace::<T>::get_uid_key_tuples(self.netuid);
+        let total_stake_u64: u64 = PalletSubspace::<T>::get_total_subnet_stake(self.netuid).max(1);
 
         let stake_u64: Vec<u64> =
             uid_key_tuples.iter().map(|(_, key)| Stake::<T>::get(key)).collect();
@@ -231,7 +232,7 @@ impl<T: Config> LinearEpoch<T> {
             dividends_emission_float.iter().map(|e| e.to_num::<u64>()).collect();
 
         if netuid != 0 {
-            let founder_uid = Pallet::<T>::get_uid_for_key(netuid, founder_key);
+            let founder_uid = PalletSubspace::<T>::get_uid_for_key(netuid, founder_key);
             if let Some(founder_incentive) = incentive_emission.get_mut(founder_uid as usize) {
                 *founder_incentive = founder_incentive.saturating_add(founder_emission);
             }
@@ -251,9 +252,9 @@ impl<T: Config> LinearEpoch<T> {
 
             if owner_dividends_emission > 0 {
                 let ownership_vector: Vec<(T::AccountId, I64F64)> =
-                    Pallet::<T>::get_ownership_ratios(netuid, module_key);
+                    PalletSubspace::<T>::get_ownership_ratios(netuid, module_key);
 
-                let delegation_fee = Pallet::<T>::get_delegation_fee(netuid, module_key);
+                let delegation_fee = PalletSubspace::<T>::get_delegation_fee(netuid, module_key);
 
                 let total_owner_dividends_emission: u64 = owner_dividends_emission;
                 for (delegate_key, delegate_ratio) in ownership_vector.iter() {
@@ -268,7 +269,7 @@ impl<T: Config> LinearEpoch<T> {
                             .unwrap_or(0);
                     let to_module: u64 = delegation_fee.mul_floor(dividends_from_delegate);
                     let to_delegate: u64 = dividends_from_delegate.saturating_sub(to_module);
-                    Pallet::<T>::increase_stake(delegate_key, module_key, to_delegate);
+                    PalletSubspace::<T>::increase_stake(delegate_key, module_key, to_delegate);
                     emitted = emitted.saturating_add(to_delegate);
                     owner_dividends_emission = owner_dividends_emission.saturating_sub(to_delegate);
                 }
@@ -277,16 +278,16 @@ impl<T: Config> LinearEpoch<T> {
             let owner_emission: u64 =
                 owner_emission_incentive.saturating_add(owner_dividends_emission);
             if owner_emission > 0 {
-                Pallet::<T>::increase_stake(module_key, module_key, owner_emission);
+                PalletSubspace::<T>::increase_stake(module_key, module_key, owner_emission);
                 emitted = emitted.saturating_add(owner_emission);
             }
         }
 
         if netuid == 0 && founder_emission > 0 {
             // Update global treasure
-            Pallet::<T>::add_balance_to_account(
+            PalletSubspace::<T>::add_balance_to_account(
                 &T::get_dao_treasury_address(),
-                Pallet::<T>::u64_to_balance(founder_emission).unwrap_or_default(),
+                PalletSubspace::<T>::u64_to_balance(founder_emission).unwrap_or_default(),
             );
         }
 
