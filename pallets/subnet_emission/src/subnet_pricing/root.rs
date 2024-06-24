@@ -6,6 +6,7 @@
 use core::marker::PhantomData;
 
 use frame_system::Config;
+use substrate_fixed::transcendental::exp;
 
 use sp_std::{vec, vec::Vec};
 
@@ -62,10 +63,12 @@ impl<T: Config + pallet_subspace::Config> RootPricing<T> {
         let mut trust = vec![I64F64::from_num(0); total_networks];
         let mut total_stake: I64F64 = I64F64::from_num(0);
         for (weights, key_stake) in weights.iter().zip(stake_i64) {
-            total_stake += key_stake;
+            total_stake = total_stake.checked_add(key_stake).ok_or_else(|| {
+                sp_runtime::DispatchError::Other("Overflow occurred during stake addition")
+            })?;
             for (weight, trust_score) in weights.iter().zip(&mut trust) {
                 if *weight > 0 {
-                    *trust_score += key_stake;
+                    *trust_score = trust_score.checked_add(key_stake).unwrap_or(*trust_score);
                 }
             }
         }
@@ -83,30 +86,38 @@ impl<T: Config + pallet_subspace::Config> RootPricing<T> {
         let one = I64F64::from_num(1);
         let mut consensus = vec![I64F64::from_num(0); total_networks];
         for (trust_score, consensus_i) in trust.iter_mut().zip(&mut consensus) {
-            let float_kappa =
-                I32F32::from_num(pallet_subspace::Kappa::<T>::get()) / I32F32::from_num(u16::MAX);
-            let shifted_trust = *trust_score - I64F64::from_num(float_kappa);
-            let temperatured_trust =
-                shifted_trust * I64F64::from_num(pallet_subspace::Rho::<T>::get());
-            let exponentiated_trust: I64F64 =
-                substrate_fixed::transcendental::exp(-temperatured_trust)
-                    .expect("temperatured_trust is on range( -rho * kappa, rho ( 1 - kappa ) )");
+            let float_kappa = I32F32::from_num(pallet_subspace::Kappa::<T>::get())
+                .checked_div(I32F32::from_num(u16::MAX))
+                .unwrap_or_else(|| I32F32::from_num(0));
 
-            *consensus_i = one / (one + exponentiated_trust);
+            let shifted_trust = trust_score
+                .checked_sub(I64F64::from_num(float_kappa))
+                .unwrap_or_else(|| I64F64::from_num(0));
+            let temperatured_trust = shifted_trust
+                .checked_mul(I64F64::from_num(pallet_subspace::Rho::<T>::get()))
+                .unwrap_or(I64F64::from_num(0));
+            let neg_trust = temperatured_trust
+                .checked_neg()
+                .ok_or(sp_runtime::DispatchError::Other("Negation failed"))?;
+
+            let exponentiated_trust: I64F64 = exp(neg_trust).map_err(|_| {
+                sp_runtime::DispatchError::Other("Failed to calculate exponentiated trust")
+            })?;
+            *consensus_i = one.checked_div(one.saturating_add(exponentiated_trust)).unwrap_or(one);
         }
 
         let mut weighted_emission = vec![I64F64::from_num(0); total_networks];
         for ((emission, consensus_i), rank) in
             weighted_emission.iter_mut().zip(&consensus).zip(&ranks)
         {
-            *emission = *consensus_i * (*rank);
+            *emission = consensus_i.saturating_mul(*rank);
         }
         pallet_subspace::math::inplace_normalize_64(&mut weighted_emission);
 
-        let emission_as_tao: Vec<I64F64> =
-            weighted_emission.iter().map(|v: &I64F64| *v * emission).collect();
+        let emission_as_com: Vec<I64F64> =
+            weighted_emission.iter().map(|v: &I64F64| v.saturating_mul(emission)).collect();
 
-        let emission_u64: Vec<u64> = pallet_subspace::math::vec_fixed64_to_u64(emission_as_tao);
+        let emission_u64: Vec<u64> = pallet_subspace::math::vec_fixed64_to_u64(emission_as_com);
 
         let mut priced_subnets = PricedSubnets::new();
         emission_u64.into_iter().enumerate().for_each(|(index, emission)| {

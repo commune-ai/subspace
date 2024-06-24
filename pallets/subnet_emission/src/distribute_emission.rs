@@ -14,9 +14,8 @@ impl<T: Config> Pallet<T> {
 
         for (netuid, tempo) in Tempo::<T>::iter() {
             let new_queued_emission = subnets_emission_distribution.get(&netuid).unwrap_or(&0);
-            // dbg!(new_queued_emission);
             let emission_to_drain = PendingEmission::<T>::mutate(netuid, |queued: &mut u64| {
-                *queued += new_queued_emission;
+                *queued = queued.saturating_add(*new_queued_emission);
                 *queued
             });
             log::trace!("subnet {netuid} total pending emission: {emission_to_drain}, increased {new_queued_emission}");
@@ -75,7 +74,9 @@ impl<T: Config> Pallet<T> {
         if tempo == 0 {
             return 1000;
         }
-        (block_number + netuid as u64) % (tempo as u64)
+        (block_number.saturating_add(u64::from(netuid)))
+            .checked_rem(u64::from(tempo))
+            .unwrap_or(1000)
     }
 
     // ---------------------------------

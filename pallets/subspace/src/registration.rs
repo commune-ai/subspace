@@ -289,14 +289,13 @@ impl<T: Config> Pallet<T> {
         {
             let permits = ValidatorPermits::<T>::get(ROOTNET_ID);
             let (lower_stake_validator, lower_stake) = Keys::<T>::iter_prefix(ROOTNET_ID)
-                .into_iter()
                 .filter(|(uid, _)| permits.get(*uid as usize).is_some_and(|b| *b))
                 .map(|(_, key)| (key.clone(), Stake::<T>::get(key)))
                 .min_by_key(|(_, stake)| *stake)
-                .ok_or_else(|| Error::<T>::ArithmeticError)?; //unreachable
+                .ok_or(Error::<T>::ArithmeticError)?;
 
             ensure!(
-                stake >= lower_stake + current_burn,
+                stake >= lower_stake.saturating_add(current_burn),
                 Error::<T>::NotEnoughStakeToRegister
             );
 
@@ -315,8 +314,10 @@ impl<T: Config> Pallet<T> {
                 return Err(Error::<T>::NotRegistered.into());
             }
 
-            validator_permits[module_uid as usize] = true;
-            ValidatorPermits::<T>::set(ROOTNET_ID, validator_permits);
+            if let Some(permit) = validator_permits.get_mut(module_uid as usize) {
+                *permit = true;
+                ValidatorPermits::<T>::set(ROOTNET_ID, validator_permits);
+            }
         }
 
         Ok(())

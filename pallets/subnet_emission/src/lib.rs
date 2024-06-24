@@ -142,7 +142,7 @@ pub mod pallet {
     {
             let total_free_balance = Self::get_total_free_balance();
             let total_staked_balance = TotalStake::<T>::get();
-            total_free_balance.try_into().unwrap_or(0) + total_staked_balance
+            total_free_balance.try_into().unwrap_or(0).saturating_add(total_staked_balance)
         }
 
         // Halving Logic / Emission distributed per block
@@ -162,14 +162,14 @@ pub mod pallet {
                 .checked_mul(10_u64.pow(decimals))
                 .expect("halving_interval overflow");
 
-            // dbg!(max_supply, total_issuance, halving_interval, unit_emission, decimals);
             let max_supply =
                 max_supply.checked_mul(10_u64.pow(decimals)).expect("max_supply overflow");
 
             if total_issuance >= max_supply {
                 0
             } else {
-                let halving_count = total_issuance / halving_interval;
+                let halving_count =
+                    total_issuance.checked_div(halving_interval).expect("Division failed");
                 unit_emission >> halving_count
             }
         }

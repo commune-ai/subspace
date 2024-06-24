@@ -120,7 +120,7 @@ impl<T: Config> Pallet<T> {
 
     fn check_rootnet_daily_limit(netuid: u16, module_id: u16) -> DispatchResult {
         if netuid == ROOTNET_ID {
-            if RootNetWeightCalls::<T>::get(&module_id).is_some() {
+            if RootNetWeightCalls::<T>::get(module_id).is_some() {
                 return Err(Error::<T>::MaxWeightCalls.into());
             }
 
