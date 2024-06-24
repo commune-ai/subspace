@@ -169,8 +169,7 @@ pub mod pallet {
 
     #[pallet::storage]
     // --- MAP (netuid) --> registrations_this_interval
-    pub(super) type RegistrationsThisInterval<T: Config> =
-        StorageMap<_, Identity, u16, u16, ValueQuery>;
+    pub type RegistrationsThisInterval<T: Config> = StorageMap<_, Identity, u16, u16, ValueQuery>;
 
     #[pallet::storage]
     // --- MAP (netuid) --> burn

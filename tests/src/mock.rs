@@ -10,7 +10,7 @@ use pallet_governance::GlobalGovernanceConfig;
 use pallet_governance_api::*;
 use pallet_subnet_emission_api::SubnetEmissionApi;
 use scale_info::prelude::collections::BTreeSet;
-use sp_core::{H256, U256};
+use sp_core::H256;
 use std::cell::RefCell;
 
 use pallet_subspace::{
@@ -45,8 +45,7 @@ parameter_types! {
     pub const SS58Prefix: u8 = 42;
 }
 
-#[allow(dead_code)]
-pub type AccountId = U256;
+pub type AccountId = u32;
 
 // Balance of an account.
 pub type Balance = u64;
@@ -185,7 +184,7 @@ impl system::Config for Test {
     type Block = Block;
     type BlockWeights = ();
     type BlockLength = ();
-    type AccountId = U256;
+    type AccountId = AccountId;
     type RuntimeCall = RuntimeCall;
     type Nonce = u32;
     type Hash = H256;
@@ -296,7 +295,6 @@ pub fn get_stakes(netuid: u16) -> Vec<u64> {
         .collect()
 }
 
-
 pub fn stake(account: u32, module: u32, stake: u64) {
     if get_balance(account.into()) <= stake {
         add_balance(account.into(), stake + to_nano(1));
@@ -309,12 +307,10 @@ pub fn stake(account: u32, module: u32, stake: u64) {
     ));
 }
 
-#[allow(dead_code)]
-pub fn increase_stake(key: U256, stake: u64) {
+pub fn increase_stake(key: AccountId, stake: u64) {
     SubspaceMod::increase_stake(&key, &key, stake);
 }
 
-#[allow(dead_code)]
 pub fn set_total_issuance(total_issuance: u64) {
     let key = DefaultKey::<Test>::get();
     // Reset the issuance (completelly nuke the key's balance)
@@ -323,14 +319,12 @@ pub fn set_total_issuance(total_issuance: u64) {
     SubspaceMod::add_balance_to_account(&key, total_issuance);
 }
 
-#[allow(dead_code)]
 pub fn new_test_ext() -> sp_io::TestExternalities {
     sp_tracing::try_init_simple();
     frame_system::GenesisConfig::<Test>::default().build_storage().unwrap().into()
 }
 
-#[allow(dead_code)]
-pub fn get_origin(key: U256) -> RuntimeOrigin {
+pub fn get_origin(key: AccountId) -> RuntimeOrigin {
     <<Test as frame_system::Config>::RuntimeOrigin>::signed(key)
 }
 
@@ -373,7 +367,7 @@ pub(crate) fn step_epoch(netuid: u16) {
 }
 
 #[allow(dead_code)]
-pub fn set_weights(netuid: u16, key: U256, uids: Vec<u16>, values: Vec<u16>) {
+pub fn set_weights(netuid: u16, key: AccountId, uids: Vec<u16>, values: Vec<u16>) {
     SubspaceMod::set_weights(get_origin(key), netuid, uids.clone(), values.clone()).unwrap();
 }
 
@@ -394,28 +388,23 @@ pub fn get_emission_for_key(netuid: u16, key: &AccountId) -> u64 {
 #[allow(dead_code)]
 pub fn delegate_register_module(
     netuid: u16,
-    key: U256,
-    module_key: U256,
+    key: AccountId,
+    module_key: AccountId,
     stake: u64,
 ) -> DispatchResult {
     // can i format the test in rus
 
-    let mut network: Vec<u8> = "test".as_bytes().to_vec();
-    network.extend(netuid.to_string().as_bytes().to_vec());
-
-    let mut name: Vec<u8> = "module".as_bytes().to_vec();
-    name.extend(module_key.to_string().as_bytes().to_vec());
-
-    let address: Vec<u8> = "0.0.0.0:30333".as_bytes().to_vec();
-
     let origin = get_origin(key);
-    let is_new_subnet: bool = !SubspaceMod::if_subnet_exist(netuid);
+    let network = format!("test{netuid}").as_bytes().to_vec();
+    let name = format!("module{module_key}").as_bytes().to_vec();
+    let address = "0.0.0.0:30333".as_bytes().to_vec();
+
+    let is_new_subnet = !SubspaceMod::if_subnet_exist(netuid);
     if is_new_subnet {
         MaxRegistrationsPerBlock::<Test>::set(1000)
     }
 
     let balance = SubspaceMod::get_balance(&key);
-
     if stake >= balance {
         SubspaceMod::add_balance_to_account(&key, stake + 1);
     }
@@ -490,26 +479,20 @@ pub fn check_subnet_storage(netuid: u16) -> bool {
 #[allow(dead_code)]
 pub fn register_n_modules(netuid: u16, n: u16, stake: u64) {
     for i in 0..n {
-        register_module(netuid, U256::from(i), stake).unwrap_or_else(|_| {
-            panic!("register module failed for netuid: {netuid:?} key: {i:?} stake: {stake:?}")
+        register_module(netuid, i as u32, stake).unwrap_or_else(|_| {
+            panic!("register module failed for netuid: {netuid} key: {i} stake: {stake}")
         })
     }
 }
 
 #[allow(dead_code)]
-pub fn register_module(netuid: u16, key: U256, stake: u64) -> DispatchResult {
-    let mut network: Vec<u8> = "test".as_bytes().to_vec();
-    network.extend(netuid.to_string().as_bytes().to_vec());
-
-    let mut name: Vec<u8> = "module".as_bytes().to_vec();
-    name.extend(key.to_string().as_bytes().to_vec());
-
-    let address: Vec<u8> = "0.0.0.0:30333".as_bytes().to_vec();
-
+pub fn register_module(netuid: u16, key: AccountId, stake: u64) -> DispatchResult {
     let origin = get_origin(key);
+    let network = format!("test{netuid}").as_bytes().to_vec();
+    let name = format!("module{key}").as_bytes().to_vec();
+    let address = "0.0.0.0:30333".as_bytes().to_vec();
 
     SubspaceMod::add_balance_to_account(&key, stake + SubnetBurn::<Test>::get() + 1);
-
     SubspaceMod::register(origin, network, name, address, stake, key, None)
 }
 

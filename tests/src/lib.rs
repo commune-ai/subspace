@@ -5,11 +5,13 @@
 // ! We try to preserve a simple clean architecture.
 // ! To avoid redundancy and repetetion in mock modules, as well as circular dependencies.
 
-#[cfg(test)]
-pub mod governance;
+// #[cfg(test)]
+// pub mod governance;
 #[cfg(test)]
 pub mod mock;
+// #[cfg(test)]
+// pub mod subnet_emission;
+// #[cfg(test)]
+// pub mod subspace;
 #[cfg(test)]
-pub mod subnet_emission;
-#[cfg(test)]
-pub mod subspace;
+pub mod subspace2;

@@ -1,86 +1,15 @@
 use crate::mock::*;
 use frame_support::{assert_err, assert_noop, assert_ok};
 use log::info;
-use pallet_governance_api::GovernanceConfiguration;
 use pallet_subspace::{
-    global::BurnConfiguration, Active, Address, AdjustmentAlpha, BondsMovingAverage, Burn,
-    Consensus, DelegationFee, Dividends, Emission, Error, FloorDelegationFee, FloorFounderShare,
-    Founder, FounderShare, ImmunityPeriod, Incentive, IncentiveRatio, Keys, LastUpdate,
-    MaxAllowedModules, MaxAllowedSubnets, MaxAllowedUids, MaxAllowedWeights, MaxNameLength,
-    MaxRegistrationsPerBlock, MaxRegistrationsPerInterval, MaxWeightAge,
-    MaximumSetWeightCallsPerEpoch, MinNameLength, MinStake, Name, PruningScores, Rank,
-    RegistrationBlock, RegistrationsPerBlock, Stake, SubnetEmission, SubnetGaps, SubnetNames,
-    TargetRegistrationsInterval, TargetRegistrationsPerInterval, Tempo, TotalSubnets, Trust,
-    TrustRatio, Uids, UnitEmission, ValidatorPermits, ValidatorTrust, Weights, N,
+    global::{BurnConfiguration, SubnetBurnConfiguration},
+    *,
 };
-use sp_core::{bounded_vec, U256};
+use sp_core::U256;
 use sp_runtime::{DispatchError, DispatchResult, Percent};
 use sp_std::vec;
 use std::collections::BTreeSet;
 use substrate_fixed::types::I64F64;
-
-// -----------
-// Burn
-// ------------
-
-// test subnet specific burn
-#[test]
-fn test_local_subnet_burn() {
-    new_test_ext().execute_with(|| {
-        let min_burn = to_nano(10);
-        let max_burn = to_nano(1000);
-
-        let burn_config = BurnConfiguration {
-            min_burn,
-            max_burn,
-            ..BurnConfiguration::<Test>::default()
-        };
-
-        assert_ok!(burn_config.apply());
-
-        MaxRegistrationsPerBlock::<Test>::set(5);
-        let target_reg_interval = 200;
-        let target_reg_per_interval = 25;
-
-        // register the general subnet
-        assert_ok!(register_module(0, U256::from(0), to_nano(20)));
-        AdjustmentAlpha::<Test>::insert(0, 200);
-        TargetRegistrationsPerInterval::<Test>::insert(0, 25);
-        // Adjust max registrations per block to a high number.
-        // We will be doing "registration raid"
-        TargetRegistrationsInterval::<Test>::insert(0, target_reg_interval); // for the netuid 0
-        TargetRegistrationsPerInterval::<Test>::insert(0, target_reg_per_interval); // for the netuid 0
-
-        // register 500 modules on yuma subnet
-        let netuid = 1;
-        let n = 300;
-        let initial_stake: u64 = to_nano(500);
-
-        MaxRegistrationsPerBlock::<Test>::set(1000);
-        // this will perform 300 registrations and step in between
-        for i in 1..n {
-            // this registers five in block
-            assert_ok!(register_module(netuid, U256::from(i), initial_stake));
-            if i % 5 == 0 {
-                // after that we step 30 blocks
-                // meaning that the average registration per block is 0.166..
-                TargetRegistrationsInterval::<Test>::insert(netuid, target_reg_interval); // for the netuid 0
-                TargetRegistrationsPerInterval::<Test>::insert(netuid, target_reg_per_interval); // fo
-                step_block(30);
-            }
-        }
-
-        // We are at block 1,8 k now.
-        // We performed 300 registrations
-        // this means avg.  0.166.. per block
-        // burn has incrased by 90% > up
-
-        let subnet_zero_burn = Burn::<Test>::get(0);
-        assert_eq!(subnet_zero_burn, min_burn);
-        let subnet_one_burn = Burn::<Test>::get(1);
-        assert!(min_burn < subnet_one_burn && subnet_one_burn < max_burn);
-    });
-}
 
 // ------------------
 // Delegate Staking
@@ -115,17 +44,16 @@ fn test_ownership_ratio() {
             add_balance(*d, stake_per_module + 1);
         }
 
-        let pre_delegate_stake_from_vector = SubspaceMod::get_stake_from_vector(netuid, &voter_key);
+        let pre_delegate_stake_from_vector = SubspaceMod::get_stake_from_vector(&voter_key);
         assert_eq!(pre_delegate_stake_from_vector.len(), 1); // +1 for the module itself, +1 for the delegate key on
 
         for (i, d) in delegate_keys.iter().enumerate() {
             assert_ok!(SubspaceMod::add_stake(
                 get_origin(*d),
-                netuid,
                 voter_key,
                 stake_per_module,
             ));
-            let stake_from_vector = SubspaceMod::get_stake_from_vector(netuid, &voter_key);
+            let stake_from_vector = SubspaceMod::get_stake_from_vector(&voter_key);
             assert_eq!(
                 stake_from_vector.len(),
                 pre_delegate_stake_from_vector.len() + i + 1
@@ -142,13 +70,13 @@ fn test_ownership_ratio() {
             .sum::<u64>();
         let total_stake = keys
             .iter()
-            .map(|k| SubspaceMod::get_stake_to_module(netuid, k, k))
+            .map(|k| SubspaceMod::get_stake_to_module(k, k))
             .collect::<Vec<u64>>()
             .iter()
             .sum::<u64>();
         let total_delegate_stake = delegate_keys
             .iter()
-            .map(|k| SubspaceMod::get_stake_to_module(netuid, k, &voter_key))
+            .map(|k| SubspaceMod::get_stake_to_module(k, &voter_key))
             .collect::<Vec<u64>>()
             .iter()
             .sum::<u64>();
@@ -184,13 +112,13 @@ fn test_ownership_ratio() {
             .sum::<u64>();
         let total_stake = keys
             .iter()
-            .map(|k| SubspaceMod::get_stake_to_module(netuid, k, k))
+            .map(|k| SubspaceMod::get_stake_to_module(k, k))
             .collect::<Vec<u64>>()
             .iter()
             .sum::<u64>();
         let total_delegate_stake = delegate_keys
             .iter()
-            .map(|k| SubspaceMod::get_stake_to_module(netuid, k, &voter_key))
+            .map(|k| SubspaceMod::get_stake_to_module(k, &voter_key))
             .collect::<Vec<u64>>()
             .iter()
             .sum::<u64>();
@@ -206,7 +134,7 @@ fn test_ownership_ratio() {
 
         assert_eq!(total_new_tokens, total_emissions);
 
-        let stake_from_vector = SubspaceMod::get_stake_from_vector(netuid, &voter_key);
+        let stake_from_vector = SubspaceMod::get_stake_from_vector(&voter_key);
         let _stake: u64 = SubspaceMod::get_stake(netuid, &voter_key);
         let _sumed_stake: u64 = stake_from_vector.iter().fold(0, |acc, (_a, x)| acc + x);
         let _total_stake: u64 = SubspaceMod::get_total_subnet_stake(netuid);
@@ -217,67 +145,6 @@ fn test_ownership_ratio() {
 // ------------------
 // Registrations
 // ------------------
-
-#[test]
-fn test_min_stake() {
-    new_test_ext().execute_with(|| {
-        let netuid: u16 = 0;
-        let min_stake = 100_000_000;
-        let max_registrations_per_block = 10;
-        let reg_this_block: u16 = 100;
-        // make sure that the results won´t get affected by burn
-        zero_min_burn();
-        let mut network: Vec<u8> = "test".as_bytes().to_vec();
-        let address: Vec<u8> = "0.0.0.0:30333".as_bytes().to_vec();
-        network.extend(netuid.to_string().as_bytes().to_vec());
-        let name = "module".as_bytes().to_vec();
-        assert_noop!(SubspaceMod::do_register(get_origin(U256::from(0)), network, name, address, 0, U256::from(0), None), Error::<Test>::NotEnoughBalanceToRegister);
-        MinStake::<Test>::set(netuid, min_stake);
-        MaxRegistrationsPerBlock::<Test>::set(max_registrations_per_block);
-        step_block(1);
-        assert_eq!(RegistrationsPerBlock::<Test>::get(), 0);
-
-        let n = U256::from(reg_this_block);
-        let keys_list: Vec<U256> = (1..n.as_u64())
-            .map(U256::from)
-            .collect();
-
-        let min_stake_to_register = MinStake::<Test>::get(netuid);
-
-        for key in keys_list {
-            let _ = register_module(netuid, key, min_stake_to_register);
-            info!("registered module with key: {key:?} and min_stake_to_register: {min_stake_to_register:?}");
-        }
-        let registrations_this_block = RegistrationsPerBlock::<Test>::get();
-        info!("registrations_this_block: {registrations_this_block:?}");
-        assert_eq!(registrations_this_block, max_registrations_per_block);
-
-        step_block(1);
-        assert_eq!(RegistrationsPerBlock::<Test>::get(), 0);
-    });
-}
-
-#[test]
-fn test_max_registration() {
-    new_test_ext().execute_with(|| {
-        let netuid: u16 = 0;
-        let rounds = 3;
-        let max_registrations_per_block = 100;
-        // make sure that the results won´t get affected by burn
-        zero_min_burn();
-        assert_eq!(RegistrationsPerBlock::<Test>::get(), 0);
-        MaxRegistrationsPerBlock::<Test>::set(1000);
-        for i in 1..(max_registrations_per_block * rounds) {
-            let key = U256::from(i);
-            assert_ok!(register_module(netuid, U256::from(i), to_nano(100)));
-            let registrations_this_block = RegistrationsPerBlock::<Test>::get();
-            assert_eq!(registrations_this_block, i);
-            assert!(SubspaceMod::is_registered(netuid, &key));
-        }
-        step_block(1);
-        assert_eq!(RegistrationsPerBlock::<Test>::get(), 0);
-    });
-}
 
 #[test]
 fn test_delegate_register() {
@@ -295,58 +162,11 @@ fn test_delegate_register() {
             delegate_register_module(netuid, key, module_key, stake_amount)
                 .expect("delegate register module failed");
             let key_balance = SubspaceMod::get_balance_u64(&key);
-            let stake_to_module = SubspaceMod::get_stake_to_module(netuid, &key, &module_key);
+            let stake_to_module = SubspaceMod::get_stake_to_module(&key, &module_key);
             info!("key_balance: {key_balance:?}");
-            let stake_to_vector = SubspaceMod::get_stake_to_vector(netuid, &key);
+            let stake_to_vector = SubspaceMod::get_stake_to_vector(&key);
             info!("stake_to_vector: {stake_to_vector:?}");
             assert_eq!(stake_to_module, stake_amount);
-        }
-    });
-}
-
-#[test]
-fn test_registration_ok() {
-    new_test_ext().execute_with(|| {
-        let netuid: u16 = 0;
-        let key: U256 = U256::from(1);
-        // make sure that the results won´t get affected by burn
-        zero_min_burn();
-
-        // make sure there is some balance
-        add_balance(key, 2);
-        register_module(netuid, key, 1)
-            .unwrap_or_else(|_| panic!("register module failed for key {key:?}"));
-
-        // Check if module has added to the specified network(netuid)
-        assert_eq!(N::<Test>::get(netuid), 1);
-
-        // Check if the module has added to the Keys
-        let module_uid = SubspaceMod::get_uid_for_key(netuid, &key);
-        assert_eq!(SubspaceMod::get_uid_for_key(netuid, &key), 0);
-        // Check if module has added to Uids
-        let neuro_uid = SubspaceMod::get_uid_for_key(netuid, &key);
-        assert_eq!(neuro_uid, module_uid);
-
-        // Check if the balance of this hotkey account for this subnetwork == 0
-        assert_eq!(get_stake_for_uid(netuid, module_uid), 1);
-    });
-}
-
-#[test]
-fn test_many_registrations() {
-    new_test_ext().execute_with(|| {
-        let netuid = 0;
-        let stake = 10;
-        let n = 100;
-        // make sure that the results won´t get affected by burn
-        zero_min_burn();
-
-        MaxRegistrationsPerBlock::<Test>::set(n);
-        for i in 0..n {
-            register_module(netuid, U256::from(i), stake).unwrap_or_else(|_| {
-                panic!("Failed to register module with key: {i:?} and stake: {stake:?}",)
-            });
-            assert_eq!(N::<Test>::get(netuid), i + 1, "Failed at i={i}",);
         }
     });
 }
@@ -375,125 +195,6 @@ fn test_registration_with_stake() {
             info!("balance: {:?}", SubspaceMod::get_balance_u64(&key));
             assert_eq!(get_stake_for_uid(netuid, uid), stake_value);
         }
-    });
-}
-
-#[test]
-fn register_same_key_twice() {
-    new_test_ext().execute_with(|| {
-        let netuid = 0;
-        let stake = 10;
-        let key = U256::from(1);
-        // make sure that the results won´t get affected by burn
-        zero_min_burn();
-
-        assert_ok!(register_module(netuid, key, stake));
-        assert_err!(
-            register_module(netuid, key, stake),
-            Error::<Test>::KeyAlreadyRegistered
-        );
-    });
-}
-
-fn register_custom(netuid: u16, key: U256, name: &[u8], addr: &[u8]) -> DispatchResult {
-    let network: Vec<u8> = format!("test{netuid}").as_bytes().to_vec();
-
-    let origin = get_origin(key);
-    let is_new_subnet: bool = !SubspaceMod::if_subnet_exist(netuid);
-    if is_new_subnet {
-        MaxRegistrationsPerBlock::<Test>::set(1000)
-    }
-
-    // make sure there is some balance
-    add_balance(key, 2);
-    SubspaceMod::register(origin, network, name.to_vec(), addr.to_vec(), 1, key, None)
-}
-
-fn test_validation_cases(f: impl Fn(&[u8], &[u8]) -> DispatchResult) {
-    assert_err!(f(b"", b""), Error::<Test>::InvalidModuleName);
-    assert_err!(
-        f("o".repeat(100).as_bytes(), b""),
-        Error::<Test>::ModuleNameTooLong
-    );
-    assert_err!(f(b"\xc3\x28", b""), Error::<Test>::InvalidModuleName);
-
-    assert_err!(f(b"test", b""), Error::<Test>::InvalidModuleAddress);
-    assert_err!(
-        f(b"test", "o".repeat(100).as_bytes()),
-        Error::<Test>::ModuleAddressTooLong
-    );
-    assert_err!(f(b"test", b"\xc3\x28"), Error::<Test>::InvalidModuleAddress);
-
-    assert_ok!(f(b"test", b"abc"));
-}
-
-#[test]
-fn validates_module_on_registration() {
-    new_test_ext().execute_with(|| {
-        // make sure that the results won´t get affected by burn
-        zero_min_burn();
-        test_validation_cases(|name, addr| register_custom(0, 0.into(), name, addr));
-
-        assert_err!(
-            register_custom(0, 1.into(), b"test", b"0.0.0.0:1"),
-            Error::<Test>::ModuleNameAlreadyExists
-        );
-    });
-}
-
-#[test]
-fn validates_module_on_update() {
-    new_test_ext().execute_with(|| {
-        let subnet = 0;
-        let key_0: U256 = 0.into();
-        let origin_0 = get_origin(0.into());
-        // make sure that the results won´t get affected by burn
-        zero_min_burn();
-
-        assert_ok!(register_custom(subnet, key_0, b"test", b"0.0.0.0:1"));
-
-        test_validation_cases(|name, addr| {
-            SubspaceMod::update_module(
-                origin_0.clone(),
-                subnet,
-                name.to_vec(),
-                addr.to_vec(),
-                None,
-                None,
-            )
-        });
-
-        let key_1: U256 = 1.into();
-        let origin_1 = get_origin(key_1);
-        assert_ok!(register_custom(0, key_1, b"test2", b"0.0.0.0:2"));
-
-        let update_module = |name: &[u8], addr: &[u8]| {
-            SubspaceMod::update_module(
-                origin_1.clone(),
-                subnet,
-                name.to_vec(),
-                addr.to_vec(),
-                Some(Percent::from_percent(5)),
-                None,
-            )
-        };
-
-        assert_err!(
-            update_module(b"test", b""),
-            Error::<Test>::ModuleNameAlreadyExists
-        );
-        assert_ok!(update_module(b"test2", b"0.0.0.0:2"));
-        assert_ok!(update_module(b"test3", b"0.0.0.0:3"));
-
-        let params = SubspaceMod::module_params(0, &key_1);
-        assert_eq!(params.name, b"test3");
-        assert_eq!(params.address, b"0.0.0.0:3");
-
-        FloorDelegationFee::<Test>::put(Percent::from_percent(10));
-        assert_err!(
-            update_module(b"test3", b"0.0.0.0:3"),
-            Error::<Test>::InvalidMinDelegationFee
-        );
     });
 }
 
@@ -542,106 +243,6 @@ fn deregister_globally_when_global_limit_is_reached() {
 
         assert_eq!(Emission::<Test>::get(0).len(), 2);
         assert_eq!(Emission::<Test>::get(1).len(), 0);
-    });
-}
-
-// Names
-#[test]
-fn test_register_invalid_name() {
-    new_test_ext().execute_with(|| {
-        let network_name = b"testnet".to_vec();
-        let address = b"0x1234567890".to_vec();
-        let stake = to_nano(1);
-
-        // make registrations free
-        zero_min_burn();
-
-        // set min name lenght
-        MinNameLength::<Test>::put(2);
-
-        // Get the minimum and maximum name lengths from the configuration
-        let min_name_length = MinNameLength::<Test>::get();
-        let max_name_length = MaxNameLength::<Test>::get();
-
-        // Try registering with an empty name (invalid)
-        let empty_name = Vec::new();
-        let register_one = U256::from(0);
-        add_balance(register_one, stake + 1);
-
-        assert_noop!(
-            SubspaceMod::register(
-                get_origin(register_one),
-                network_name.clone(),
-                empty_name,
-                address.clone(),
-                stake,
-                register_one,
-                None,
-            ),
-            Error::<Test>::InvalidModuleName
-        );
-
-        // Try registering with a name that is too short (invalid)
-        let register_two = U256::from(1);
-        let short_name = b"a".to_vec();
-        add_balance(register_two, stake + 1);
-        assert_noop!(
-            SubspaceMod::register(
-                get_origin(register_two),
-                network_name.clone(),
-                short_name,
-                address.clone(),
-                stake,
-                register_two,
-                None,
-            ),
-            Error::<Test>::ModuleNameTooShort
-        );
-
-        // Try registering with a name that is exactly the minimum length (valid)
-        let register_three = U256::from(2);
-        let min_length_name = vec![b'a'; min_name_length as usize];
-        add_balance(register_three, stake + 1);
-        assert_ok!(SubspaceMod::register(
-            get_origin(register_three),
-            network_name.clone(),
-            min_length_name,
-            address.clone(),
-            stake,
-            register_three,
-            None,
-        ));
-
-        // Try registering with a name that is exactly the maximum length (valid)
-        let max_length_name = vec![b'a'; max_name_length as usize];
-        let register_four = U256::from(3);
-        add_balance(register_four, stake + 1);
-        assert_ok!(SubspaceMod::register(
-            get_origin(register_four),
-            network_name.clone(),
-            max_length_name,
-            address.clone(),
-            stake,
-            register_four,
-            None,
-        ));
-
-        // Try registering with a name that is too long (invalid)
-        let long_name = vec![b'a'; (max_name_length + 1) as usize];
-        let register_five = U256::from(4);
-        add_balance(register_five, stake + 1);
-        assert_noop!(
-            SubspaceMod::register(
-                get_origin(register_five),
-                network_name,
-                long_name,
-                address,
-                stake,
-                register_five,
-                None,
-            ),
-            Error::<Test>::ModuleNameTooLong
-        );
     });
 }
 
@@ -2454,7 +2055,7 @@ fn test_min_weight_stake() {
             Error::<Test>::NotEnoughStakePerWeight
         );
 
-        increase_stake(netuid, U256::from(voter_idx), to_nano(400));
+        increase_stake(U256::from(voter_idx), to_nano(400));
 
         assert_ok!(SubspaceMod::set_weights(
             get_origin(U256::from(voter_idx)),
@@ -2502,16 +2103,13 @@ fn test_weight_age() {
             weights.clone(),
         ));
 
-        let passive_stake_before =
-            SubspaceMod::get_total_stake_to( &U256::from(PASSIVE_VOTER));
-        let active_stake_before =
-            SubspaceMod::get_total_stake_to( &U256::from(ACTIVE_VOTER));
+        let passive_stake_before = SubspaceMod::get_total_stake_to(&U256::from(PASSIVE_VOTER));
+        let active_stake_before = SubspaceMod::get_total_stake_to(&U256::from(ACTIVE_VOTER));
 
         step_block((TEMPO as u16) * 2);
 
-        let passive_stake_after =
-            SubspaceMod::get_total_stake_to( &U256::from(PASSIVE_VOTER));
-        let active_stake_after = SubspaceMod::get_total_stake_to( &U256::from(ACTIVE_VOTER));
+        let passive_stake_after = SubspaceMod::get_total_stake_to(&U256::from(PASSIVE_VOTER));
+        let active_stake_after = SubspaceMod::get_total_stake_to(&U256::from(ACTIVE_VOTER));
 
         assert!(
             passive_stake_before < passive_stake_after || active_stake_before < active_stake_after,
@@ -2528,10 +2126,8 @@ fn test_weight_age() {
 
         step_block((TEMPO as u16) * 2);
 
-        let passive_stake_after_v2 =
-            SubspaceMod::get_total_stake_to( &U256::from(PASSIVE_VOTER));
-        let active_stake_after_v2 =
-            SubspaceMod::get_total_stake_to( &U256::from(ACTIVE_VOTER));
+        let passive_stake_after_v2 = SubspaceMod::get_total_stake_to(&U256::from(PASSIVE_VOTER));
+        let active_stake_after_v2 = SubspaceMod::get_total_stake_to(&U256::from(ACTIVE_VOTER));
 
         assert_eq!(
             passive_stake_after, passive_stake_after_v2,
