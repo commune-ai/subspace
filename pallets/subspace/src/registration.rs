@@ -472,7 +472,8 @@ impl<T: Config> Pallet<T> {
     // --------------------
 
     // TODO:
-    // add a flag to enable this, this falg will be on false when the global stake launches, afterwards we do it
+    // add a flag to enable this, this falg will be on false when the global stake launches,
+    // afterwards we do it
     pub(crate) fn deregister_not_whitelisted_modules(mut remaining: Weight) -> Weight {
         use crate::weights::WeightInfo;
 

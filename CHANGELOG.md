@@ -7,6 +7,9 @@ spec_version `118`
 This branch starts off of the commit hash `95e5d26b550839c24fd367090e02abaa37df3d32`.
 diff [here](https://github.com/agicommies/subspace-network/compare/db8a19b1d2155d3ecda4172aaf72cdeea1feda2b...agicommies:subspace-network:feat/global-stake)
 
+- Fixing the validator / miner ratio distribution, this means that subnet owners can from the global stake update
+decide whether validators or miners will be getting more rewards. Parameter names still staying the same `incentive_ratio`
+
 TODO:
 
 ## Version 1.7.8

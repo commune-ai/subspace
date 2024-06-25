@@ -3,7 +3,7 @@ use core::marker::PhantomData;
 use frame_support::{ensure, pallet_prelude::Weight, weights::RuntimeDbWeight};
 use pallet_subspace::{
     math::*, Active, Bonds, BondsMovingAverage, Config, Consensus, Dividends, Emission, Founder,
-    Incentive, Kappa, Keys, LastUpdate, MaxAllowedValidators, MaxWeightAge,
+    Incentive, IncentiveRatio, Kappa, Keys, LastUpdate, MaxAllowedValidators, MaxWeightAge,
     Pallet as PalletSubspace, PruningScores, Rank, Stake, Trust, Uids, ValidatorPermits,
     ValidatorTrust, Vec, Weights, N,
 };
@@ -14,9 +14,13 @@ use sp_std::{borrow::Cow, collections::btree_map::BTreeMap};
 
 pub type EmissionMap<T> = BTreeMap<ModuleKey<T>, BTreeMap<AccountKey<T>, u64>>;
 
+// TODO:
+// make incentive ratio work
 pub struct YumaEpoch<T: Config> {
     /// The amount of modules on the subnet
     module_count: u16,
+    // The distribution proportion between the miners and validators.
+    incentive_ratio: u16,
     /// The UID of the subnet
     netuid: u16,
     /// Consensus majority ratio, e.g. 51%.
@@ -49,6 +53,7 @@ impl<T: Config> YumaEpoch<T> {
 
         Self {
             module_count: N::<T>::get(netuid),
+            incentive_ratio: IncentiveRatio::<T>::get(netuid),
             netuid,
             kappa: Pallet::<T>::get_float_kappa(),
 
