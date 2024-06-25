@@ -22,6 +22,7 @@ pub mod old_storage {
     pub type PendingEmission<T: Config> = StorageMap<Pallet<T>, Identity, u16, u64, ValueQuery>;
 }
 
+// TODO:
 impl<T: Config + pallet_subspace::Config> OnRuntimeUpgrade for InitialMigration<T> {
     fn on_runtime_upgrade() -> frame_support::weights::Weight {
         if StorageVersion::get::<Pallet<T>>() != 0 {

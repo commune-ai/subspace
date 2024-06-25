@@ -8,6 +8,8 @@ use sp_core::Get;
 use substrate_fixed::types::I110F18;
 
 impl<T: Config> Pallet<T> {
+    // TODO:
+    // make registration cost for rootnet (s0) to 0
     // Used on extrinsics, can panic
     #[allow(clippy::arithmetic_side_effects)]
     pub fn do_register(
@@ -469,6 +471,8 @@ impl<T: Config> Pallet<T> {
     // Subnet 0 Utils
     // --------------------
 
+    // TODO:
+    // add a flag to enable this, this falg will be on false when the global stake launches, afterwards we do it
     pub(crate) fn deregister_not_whitelisted_modules(mut remaining: Weight) -> Weight {
         use crate::weights::WeightInfo;
 
