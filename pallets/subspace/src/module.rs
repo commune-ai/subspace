@@ -171,7 +171,11 @@ impl<T: Config> Pallet<T> {
     }
 
     /// Replace the module under this uid.
-    pub fn remove_module(netuid: u16, uid: u16) -> DispatchResult {
+    pub fn remove_module(
+        netuid: u16,
+        uid: u16,
+        deregister_subnet_if_empty: bool,
+    ) -> DispatchResult {
         // 1. Get the old key under this position.
         let n = N::<T>::get(netuid);
         if n == 0 {
@@ -305,7 +309,7 @@ impl<T: Config> Pallet<T> {
         }); // Decrease the number of modules in the network.
 
         // remove the network if it is empty
-        if module_count == 0 {
+        if deregister_subnet_if_empty && module_count == 0 {
             Self::remove_subnet(netuid);
         }
 

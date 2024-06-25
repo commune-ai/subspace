@@ -1,7 +1,7 @@
 #![allow(non_camel_case_types)]
 
 use frame_support::{
-    assert_ok, parameter_types,
+    parameter_types,
     traits::{Currency, Everything, Get, Hooks},
     PalletId,
 };
@@ -19,7 +19,7 @@ use pallet_subspace::{
 };
 use sp_runtime::{
     traits::{AccountIdConversion, BlakeTwo256, IdentityLookup},
-    BuildStorage, DispatchResult,
+    BuildStorage, DispatchError, DispatchResult,
 };
 
 type Block = frame_system::mocking::MockBlock<Test>;
@@ -140,12 +140,16 @@ impl GovernanceApi<<Test as frame_system::Config>::AccountId> for Test {
 
 impl SubnetEmissionApi for Test {
     fn get_lowest_emission_netuid() -> Option<u16> {
-        None
+        pallet_subnet_emission::Pallet::<Test>::get_lowest_emission_netuid()
     }
 
-    fn remove_subnet_emission_storage(_netuid: u16) {}
+    fn remove_subnet_emission_storage(subnet_id: u16) {
+        pallet_subnet_emission::Pallet::<Test>::remove_subnet_emission_storage(subnet_id)
+    }
 
-    fn set_subnet_emission_storage(_netuid: u16, _emission: u64) {}
+    fn set_subnet_emission_storage(subnet_id: u16, emission: u64) {
+        pallet_subnet_emission::Pallet::<Test>::set_subnet_emission_storage(subnet_id, emission)
+    }
 }
 
 impl pallet_subnet_emission::Config for Test {
@@ -385,7 +389,6 @@ pub fn get_emission_for_key(netuid: u16, key: &AccountId) -> u64 {
     SubspaceMod::get_emission_for_uid(netuid, uid)
 }
 
-#[allow(dead_code)]
 pub fn delegate_register_module(
     netuid: u16,
     key: AccountId,
@@ -419,7 +422,7 @@ pub fn delegate_register_module(
         None,
     );
 
-    log::info!("Register ok module: network: {name:?}, module_key: {module_key:?} key: {key:?}",);
+    log::info!("Register ok module: network: {name:?}, module_key: {module_key} key: {key}");
 
     result
 }
@@ -481,19 +484,22 @@ pub fn register_n_modules(netuid: u16, n: u16, stake: u64) {
     for i in 0..n {
         register_module(netuid, i as u32, stake).unwrap_or_else(|_| {
             panic!("register module failed for netuid: {netuid} key: {i} stake: {stake}")
-        })
+        });
     }
 }
 
 #[allow(dead_code)]
-pub fn register_module(netuid: u16, key: AccountId, stake: u64) -> DispatchResult {
+pub fn register_module(netuid: u16, key: AccountId, stake: u64) -> Result<u16, DispatchError> {
     let origin = get_origin(key);
     let network = format!("test{netuid}").as_bytes().to_vec();
     let name = format!("module{key}").as_bytes().to_vec();
     let address = "0.0.0.0:30333".as_bytes().to_vec();
 
     SubspaceMod::add_balance_to_account(&key, stake + SubnetBurn::<Test>::get() + 1);
-    SubspaceMod::register(origin, network, name, address, stake, key, None)
+    SubspaceMod::register(origin, network.clone(), name, address, stake, key, None)?;
+
+    let netuid = SubspaceMod::get_netuid_for_name(&network).ok_or("netuid is missing")?;
+    pallet_subspace::Uids::<Test>::get(netuid, key).ok_or("uid is missing".into())
 }
 
 pub fn get_balance(key: AccountId) -> Balance {
@@ -551,7 +557,6 @@ pub fn zero_min_burn() {
     SubnetBurnConfig::<Test>::mutate(|cfg| cfg.min_burn = 0);
 }
 
-#[macro_export]
 macro_rules! update_params {
     ($netuid:expr => {$($f:ident:$v:expr),+}) => {{
         let params = ::pallet_subspace::SubnetParams {
@@ -564,3 +569,18 @@ macro_rules! update_params {
         ::pallet_subspace::subnet::SubnetChangeset::<Test>::update($netuid, $params).unwrap().apply($netuid).unwrap();
     }};
 }
+
+macro_rules! assert_ok {
+    ( $x:expr $(,)? ) => {
+        match $x {
+            Ok(v) => v,
+            is => panic!("Expected Ok(_). Got {is:#?}"),
+        }
+    };
+    ( $x:expr, $y:expr $(,)? ) => {
+        assert_eq!($x, Ok($y));
+    };
+}
+
+pub(crate) use assert_ok;
+pub(crate) use update_params;

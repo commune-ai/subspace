@@ -348,7 +348,7 @@ impl<T: Config> Pallet<T> {
             // remove the modules by adding the to the deregister queue
             for i in 0..remainder_n {
                 let next_uid = n.saturating_sub(1).saturating_sub(i);
-                Self::remove_module(netuid, next_uid)?;
+                Self::remove_module(netuid, next_uid, true)?;
             }
         }
 

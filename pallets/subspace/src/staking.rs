@@ -305,33 +305,40 @@ impl<T: Config> Pallet<T> {
             .unwrap_or(0)
     }
 
-    pub fn get_stake_to_vector(key: &T::AccountId) -> BTreeMap<T::AccountId, u64> {
-        StakeTo::<T>::iter_prefix(key).collect()
+    pub fn get_stake_to_vector(staker: &T::AccountId) -> BTreeMap<T::AccountId, u64> {
+        StakeTo::<T>::iter_prefix(staker).collect()
     }
 
-    pub fn set_stake_to_vector(key: &T::AccountId, stake_to_vector: BTreeMap<T::AccountId, u64>) {
-        StakeTo::<T>::remove_prefix(key, None);
+    pub fn set_stake_to_vector(
+        staker: &T::AccountId,
+        stake_to_vector: BTreeMap<T::AccountId, u64>,
+    ) {
+        StakeTo::<T>::remove_prefix(staker, None);
         for (k, v) in stake_to_vector.iter() {
-            StakeTo::<T>::insert(key, k, v);
+            StakeTo::<T>::insert(staker, k, v);
         }
     }
 
     pub fn set_stake_from_vector(
-        module_key: &T::AccountId,
+        staked: &T::AccountId,
         stake_from_vector: BTreeMap<T::AccountId, u64>,
     ) {
-        StakeFrom::<T>::remove_prefix(module_key, None);
+        StakeFrom::<T>::remove_prefix(staked, None);
         for (k, v) in stake_from_vector.iter() {
-            StakeFrom::<T>::insert(module_key, k, v);
+            StakeFrom::<T>::insert(staked, k, v);
         }
     }
 
-    pub fn get_stake_from_vector(module_key: &T::AccountId) -> BTreeMap<T::AccountId, u64> {
-        StakeFrom::<T>::iter_prefix(module_key).collect::<BTreeMap<_, _>>()
+    pub fn get_stake_from_vector(staked: &T::AccountId) -> BTreeMap<T::AccountId, u64> {
+        StakeFrom::<T>::iter_prefix(staked).collect::<BTreeMap<_, _>>()
     }
 
-    pub fn get_total_stake_to(key: &T::AccountId) -> u64 {
-        Self::get_stake_to_vector(key).into_values().sum()
+    pub fn get_total_stake_to(staker: &T::AccountId) -> u64 {
+        Self::get_stake_to_vector(staker).into_values().sum()
+    }
+
+    pub fn get_total_stake_from(staked: &T::AccountId) -> u64 {
+        Self::get_stake_from_vector(staked).into_values().sum()
     }
 
     pub fn increase_stake(staker: &T::AccountId, staked: &T::AccountId, amount: u64) -> bool {
@@ -350,19 +357,21 @@ impl<T: Config> Pallet<T> {
     }
 
     pub fn decrease_stake(staker: &T::AccountId, staked: &T::AccountId, amount: u64) {
-        StakeFrom::<T>::mutate(staked, staker, |stake| {
+        let stake_from = StakeFrom::<T>::mutate(staked, staker, |stake| {
             *stake = stake.saturating_sub(amount);
-            if *stake == 0 {
-                StakeFrom::<T>::remove(staked, staker);
-            }
+            *stake
         });
+        if stake_from == 0 {
+            StakeFrom::<T>::remove(staked, staker);
+        }
 
-        StakeTo::<T>::mutate(staker, staked, |stake| {
+        let stake_to = StakeTo::<T>::mutate(staker, staked, |stake| {
             *stake = stake.saturating_sub(amount);
-            if *stake == 0 {
-                StakeTo::<T>::remove(staker, staked);
-            }
+            *stake
         });
+        if stake_to == 0 {
+            StakeTo::<T>::remove(staker, staked);
+        }
 
         Stake::<T>::mutate(staked, |stake| *stake = stake.saturating_sub(amount));
         TotalStake::<T>::mutate(|total_stake| *total_stake = total_stake.saturating_sub(amount));

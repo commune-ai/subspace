@@ -149,7 +149,7 @@ impl<T: Config> Pallet<T> {
 
         let uid: u16 = Self::get_uid_for_key(netuid, &key);
 
-        Self::remove_module(netuid, uid)?;
+        Self::remove_module(netuid, uid, true)?;
         ensure!(
             !Self::key_registered(netuid, &key),
             Error::<T>::StillRegistered
@@ -256,7 +256,7 @@ impl<T: Config> Pallet<T> {
 
     fn replace_lowest_priority_node(netuid: u16, ignore_immunity: bool) -> DispatchResult {
         if let Some(uid) = Self::get_lowest_uid(netuid, ignore_immunity) {
-            Self::remove_module(netuid, uid)
+            Self::remove_module(netuid, uid, false)
         } else {
             Err(Error::<T>::NetworkIsImmuned.into())
         }
@@ -265,7 +265,7 @@ impl<T: Config> Pallet<T> {
     fn remove_from_lowest_emission_subnet() -> DispatchResult {
         if let Some(subnet_id) = T::get_lowest_emission_netuid() {
             if let Some(module_uid) = Self::get_lowest_uid(subnet_id, true) {
-                Self::remove_module(subnet_id, module_uid)
+                Self::remove_module(subnet_id, module_uid, true)
             } else {
                 Err(Error::<T>::NetworkIsImmuned.into())
             }
@@ -302,7 +302,7 @@ impl<T: Config> Pallet<T> {
             let lower_stake_validator_uid =
                 Self::get_uid_for_key(ROOTNET_ID, &lower_stake_validator);
 
-            Self::remove_module(ROOTNET_ID, lower_stake_validator_uid)?
+            Self::remove_module(ROOTNET_ID, lower_stake_validator_uid, true)?
         }
         Ok(())
     }
@@ -509,7 +509,7 @@ impl<T: Config> Pallet<T> {
             remaining = remaining.saturating_sub(find_id_weight);
 
             if let Some(uid) = uid {
-                let Err(err) = with_storage_layer(|| Self::remove_module(0, uid)) else {
+                let Err(err) = with_storage_layer(|| Self::remove_module(0, uid, true)) else {
                     weight = weight.saturating_add(deregister_weight);
                     remaining = remaining.saturating_sub(deregister_weight);
                     continue;
