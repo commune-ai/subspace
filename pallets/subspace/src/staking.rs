@@ -333,10 +333,6 @@ impl<T: Config> Pallet<T> {
         StakeFrom::<T>::iter_prefix(staked).collect::<BTreeMap<_, _>>()
     }
 
-    pub fn get_total_stake_to(staker: &T::AccountId) -> u64 {
-        Self::get_stake_to_vector(staker).into_values().sum()
-    }
-
     pub fn get_total_stake_from(staked: &T::AccountId) -> u64 {
         Self::get_stake_from_vector(staked).into_values().sum()
     }

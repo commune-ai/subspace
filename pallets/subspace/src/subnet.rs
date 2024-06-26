@@ -180,7 +180,8 @@ impl<T: Config> Pallet<T> {
             name: BoundedVec::truncate_from(SubnetNames::<T>::get(netuid)),
             trust_ratio: TrustRatio::<T>::get(netuid),
             incentive_ratio: IncentiveRatio::<T>::get(netuid),
-            maximum_set_weight_calls_per_epoch: MaximumSetWeightCallsPerEpoch::<T>::get(netuid),
+            maximum_set_weight_calls_per_epoch: MaximumSetWeightCallsPerEpoch::<T>::get(netuid)
+                .unwrap_or_default(),
             bonds_ma: BondsMovingAverage::<T>::get(netuid),
             target_registrations_interval: TargetRegistrationsInterval::<T>::get(netuid),
             target_registrations_per_interval: TargetRegistrationsPerInterval::<T>::get(netuid),

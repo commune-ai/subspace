@@ -194,8 +194,7 @@ pub mod pallet {
     pub type MaxAllowedWeightsGlobal<T> = StorageValue<_, u16, ValueQuery, ConstU16<512>>;
 
     #[pallet::storage]
-    pub type MaximumSetWeightCallsPerEpoch<T: Config> =
-        StorageMap<_, Identity, u16, u16, ValueQuery>;
+    pub type MaximumSetWeightCallsPerEpoch<T: Config> = StorageMap<_, Identity, u16, u16>;
 
     #[pallet::storage]
     pub type SetWeightCallsPerEpoch<T: Config> =

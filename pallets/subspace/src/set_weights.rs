@@ -39,7 +39,7 @@ impl<T: Config> Pallet<T> {
         );
 
         let max_set_weights = MaximumSetWeightCallsPerEpoch::<T>::get(netuid);
-        if max_set_weights != 0 {
+        if let Some(max_set_weights) = max_set_weights {
             let set_weight_uses = SetWeightCallsPerEpoch::<T>::mutate(netuid, &key, |value| {
                 *value = value.saturating_add(1);
                 *value

@@ -98,20 +98,20 @@ impl GovernanceApi<<Test as frame_system::Config>::AccountId> for Test {
         Default::default()
     }
 
-    fn update_global_governance_configuration(
-        _governance_config: GovernanceConfiguration,
-    ) -> DispatchResult {
-        Ok(())
+    fn update_global_governance_configuration(config: GovernanceConfiguration) -> DispatchResult {
+        pallet_governance::Pallet::<Test>::update_global_governance_configuration(config)
     }
 
     fn update_subnet_governance_configuration(
-        _subnet_id: u16,
-        _governance_config: GovernanceConfiguration,
+        subnet_id: u16,
+        config: GovernanceConfiguration,
     ) -> DispatchResult {
-        Ok(())
+        pallet_governance::Pallet::<Test>::update_subnet_governance_configuration(subnet_id, config)
     }
 
-    fn handle_subnet_removal(_subnet_id: u16) {}
+    fn handle_subnet_removal(subnet_id: u16) {
+        pallet_governance::Pallet::<Test>::handle_subnet_removal(subnet_id)
+    }
 
     fn execute_application(_user_id: &AccountId) -> DispatchResult {
         Ok(())

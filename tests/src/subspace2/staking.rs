@@ -1,5 +1,5 @@
 use crate::mock::*;
-use frame_support::{assert_err, assert_noop, dispatch::DispatchResult};
+use frame_support::{assert_err, assert_noop};
 use pallet_subspace::*;
 
 #[test]
@@ -12,8 +12,6 @@ fn adds_stake_and_removes_to_module_and_calculates_total_stake() {
         let amount_staked_vector: Vec<_> = netuids.iter().map(|_| to_nano(10)).collect();
         let mut total_stake = 0;
 
-        MaxRegistrationsPerBlock::<Test>::set(1000);
-
         for netuid in netuids {
             let amount_staked = amount_staked_vector[netuid as usize];
             let key_vector: Vec<_> =
@@ -24,7 +22,7 @@ fn adds_stake_and_removes_to_module_and_calculates_total_stake() {
             for key in key_vector.iter() {
                 assert_ok!(register_module(netuid, *key, amount_staked));
 
-                assert_eq!(SubspaceMod::get_total_stake_to(key), amount_staked);
+                assert_eq!(Stake::<Test>::get(key), amount_staked);
                 assert_eq!(SubspaceMod::get_balance(key), 1);
 
                 assert_ok!(SubspaceMod::remove_stake(
@@ -33,17 +31,17 @@ fn adds_stake_and_removes_to_module_and_calculates_total_stake() {
                     amount_staked
                 ));
                 assert_eq!(SubspaceMod::get_balance(key), amount_staked + 1);
-                assert_eq!(SubspaceMod::get_total_stake_to(key), 0);
+                assert_eq!(Stake::<Test>::get(key), 0);
 
                 assert_ok!(SubspaceMod::add_stake(
                     get_origin(*key),
                     *key,
                     amount_staked,
                 ));
-                assert_eq!(SubspaceMod::get_total_stake_to(key), amount_staked);
+                assert_eq!(Stake::<Test>::get(key), amount_staked);
                 assert_eq!(SubspaceMod::get_balance(key), 1);
 
-                subnet_stake += SubspaceMod::get_total_stake_to(key);
+                subnet_stake += Stake::<Test>::get(key);
             }
 
             total_stake += subnet_stake;
@@ -110,5 +108,66 @@ fn fails_to_withdraw_zero_stake() {
             SubspaceMod::do_remove_stake(get_origin(1), key, 1),
             Error::<Test>::NotEnoughStakeToWithdraw
         );
+    });
+}
+
+#[test]
+fn adds_and_removes_stakes_for_a_delegated_module() {
+    new_test_ext().execute_with(|| {
+        zero_min_burn();
+
+        let key = 2;
+        add_balance(key, 6);
+
+        let module_key = 0u32;
+        assert_ok!(register_module(0, module_key, 1));
+
+        assert_ok!(SubspaceMod::add_stake(get_origin(key), module_key, 5));
+        assert_eq!(SubspaceMod::get_balance_u64(&key), 1);
+        assert_eq!(
+            *SubspaceMod::get_stake_from_vector(&module_key).get(&key).unwrap(),
+            5
+        );
+
+        assert_ok!(SubspaceMod::remove_stake(get_origin(key), module_key, 5,));
+        assert_eq!(SubspaceMod::get_balance_u64(&key), 6);
+        assert!(!SubspaceMod::get_stake_from_vector(&module_key).contains_key(&key));
+    });
+}
+
+#[test]
+fn adds_and_removes_multiple_stakes_for_different_modules() {
+    new_test_ext().execute_with(|| {
+        zero_min_burn();
+
+        let key = 2;
+        add_balance(key, 11);
+
+        let keys = [0u32, 1];
+        register_n_modules(0, keys.len() as u16, 1);
+
+        assert_ok!(SubspaceMod::add_stake_multiple(
+            get_origin(key),
+            keys.to_vec(),
+            vec![5, 5],
+        ));
+        assert_eq!(SubspaceMod::get_balance_u64(&key), 1);
+        assert_eq!(
+            *SubspaceMod::get_stake_from_vector(&keys[0]).get(&key).unwrap(),
+            5
+        );
+        assert_eq!(
+            *SubspaceMod::get_stake_from_vector(&keys[1]).get(&key).unwrap(),
+            5
+        );
+
+        assert_ok!(SubspaceMod::remove_stake_multiple(
+            get_origin(key),
+            keys.to_vec(),
+            vec![5, 5],
+        ));
+        assert_eq!(SubspaceMod::get_balance_u64(&key), 11);
+        assert!(!SubspaceMod::get_stake_from_vector(&keys[0]).contains_key(&key));
+        assert!(!SubspaceMod::get_stake_from_vector(&keys[1]).contains_key(&key));
     });
 }
