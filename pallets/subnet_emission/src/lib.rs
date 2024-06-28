@@ -16,6 +16,7 @@ pub mod subnet_pricing {
 
 pub mod subnet_consensus {
     pub mod linear;
+    pub mod treasury;
     pub mod yuma;
 }
 
@@ -118,6 +119,7 @@ pub mod pallet {
     pub enum EmissionError {
         EmittedMoreThanExpected { emitted: u64, expected: u64 },
         HasEmissionRemaining { emitted: u64 },
+        BalanceConversionFailed,
         Other(&'static str),
     }
 
@@ -179,6 +181,7 @@ pub mod pallet {
 
         // Returns emisison for every network
         // TODO
+        // later
         // change this to also have the governacne processes, of picking the right subnet pricing
         #[must_use]
         pub fn get_subnet_pricing(token_emission: u64) -> PricedSubnets {

@@ -224,10 +224,12 @@ impl<T: Config> YumaEpoch<T> {
         let mut emitted: u64 = 0;
 
         if self.founder_emission > 0 {
-            PalletSubspace::<T>::add_balance_to_account(
-                &self.founder_key.0,
-                PalletSubspace::<T>::u64_to_balance(self.founder_emission).unwrap_or_default(),
-            );
+            match PalletSubspace::<T>::u64_to_balance(self.founder_emission) {
+                Some(balance) => {
+                    PalletSubspace::<T>::add_balance_to_account(&self.founder_key.0, balance);
+                }
+                None => return Err(EmissionError::BalanceConversionFailed),
+            }
             emitted = emitted.saturating_add(self.founder_emission);
         }
 
