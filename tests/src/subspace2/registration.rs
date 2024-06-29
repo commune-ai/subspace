@@ -166,6 +166,7 @@ fn registers_module_delegating_stake() {
 #[test]
 fn deregister_within_subnet_when_limit_is_reached() {
     new_test_ext().execute_with(|| {
+        max_subnet_registrations_per_interval(2);
         MaxAllowedModules::<Test>::set(3);
         assert_ok!(register_module(0, 0, to_nano(10_000)));
         assert_ok!(register_module(1, 1, to_nano(5_000)));
@@ -190,6 +191,7 @@ fn deregister_within_subnet_when_limit_is_reached() {
 fn deregister_globally_when_global_limit_is_reached() {
     new_test_ext().execute_with(|| {
         zero_min_burn();
+        max_subnet_registrations_per_interval(3);
 
         let register_module = |netuid, id, emission| {
             let uid = assert_ok!(register_module(netuid, id, to_nano(1)));
@@ -337,6 +339,7 @@ mod subnet_validation {
     fn subnet_registration_validates_subnet_names() {
         new_test_ext().execute_with(|| {
             zero_min_burn();
+            max_subnet_registrations_per_interval(5);
 
             let address = b"0.0.0.0".to_vec();
             let stake = to_nano(1);
@@ -432,6 +435,7 @@ fn new_subnets_on_removed_uids_register_modules_to_the_correct_netuids() {
 
     new_test_ext().execute_with(|| {
         zero_min_burn();
+        max_subnet_registrations_per_interval(6);
 
         let subnet_id =
             |netuid| SubspaceMod::get_netuid_for_name(format!("test{netuid}").as_bytes()).unwrap();

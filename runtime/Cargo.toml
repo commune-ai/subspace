@@ -147,6 +147,7 @@ try-runtime = [
 	"pallet-insecure-randomness-collective-flip/try-runtime",
 	"pallet-multisig/try-runtime",
 	"pallet-governance/try-runtime",
+	"pallet-subnet-emission/try-runtime",
 	"pallet-faucet/try-runtime",
 	"pallet-subspace/try-runtime",
 	"pallet-sudo/try-runtime",

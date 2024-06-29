@@ -40,7 +40,7 @@ pub mod pallet {
     use pallet_subspace::DefaultKey;
     use sp_runtime::traits::AccountIdConversion;
 
-    const STORAGE_VERSION: StorageVersion = StorageVersion::new(0);
+    const STORAGE_VERSION: StorageVersion = StorageVersion::new(1);
 
     #[pallet::pallet]
     #[pallet::storage_version(STORAGE_VERSION)]

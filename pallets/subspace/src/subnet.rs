@@ -307,6 +307,7 @@ impl<T: Config> Pallet<T> {
 
         netuid
     }
+
     // ---------------------------------
     // Updating Subnets
     // ---------------------------------
@@ -522,5 +523,17 @@ impl<T: Config> Pallet<T> {
         <N<T> as IterableStorageMap<u16, u16>>::iter()
             .map(|(netuid, _)| netuid)
             .collect()
+    }
+
+    pub fn remove_subnet_dangling_keys(netuid: u16) {
+        let netuid_keys: BTreeSet<AccountIdOf<T>> =
+            Uids::<T>::iter_prefix(netuid).map(|(key, _)| key).collect();
+        let global_keys: BTreeSet<AccountIdOf<T>> = Uids::<T>::iter()
+            .filter(|(n, _, _)| n != &netuid)
+            .map(|(_, key, _)| key)
+            .collect();
+        for dangling in netuid_keys.difference(&global_keys) {
+            Self::remove_stake_from_storage(&dangling);
+        }
     }
 }

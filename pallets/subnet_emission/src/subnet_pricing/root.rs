@@ -63,9 +63,9 @@ impl<T: Config + pallet_subspace::Config> RootPricing<T> {
         let mut trust = vec![I64F64::from_num(0); total_networks];
         let mut total_stake: I64F64 = I64F64::from_num(0);
         for (weights, key_stake) in weights.iter().zip(stake_i64) {
-            total_stake = total_stake.checked_add(key_stake).ok_or_else(|| {
-                sp_runtime::DispatchError::Other("Overflow occurred during stake addition")
-            })?;
+            total_stake = total_stake.checked_add(key_stake).ok_or(
+                sp_runtime::DispatchError::Other("Overflow occurred during stake addition"),
+            )?;
             for (weight, trust_score) in weights.iter().zip(&mut trust) {
                 if *weight > 0 {
                     *trust_score = trust_score.checked_add(key_stake).unwrap_or(*trust_score);

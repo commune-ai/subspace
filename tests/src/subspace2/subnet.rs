@@ -11,6 +11,8 @@ fn adds_and_removes_subnets() {
         zero_min_burn();
 
         let iterations = 5u16;
+        max_subnet_registrations_per_interval(iterations + 1);
+
         MaxRegistrationsPerBlock::<Test>::set(iterations * iterations);
 
         for i in 0..iterations {

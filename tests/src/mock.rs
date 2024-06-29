@@ -557,6 +557,11 @@ pub fn zero_min_burn() {
     SubnetBurnConfig::<Test>::mutate(|cfg| cfg.min_burn = 0);
 }
 
+#[allow(dead_code)]
+pub fn max_subnet_registrations_per_interval(max: u16) {
+    SubnetBurnConfig::<Test>::mutate(|cfg| cfg.max_registrations = max);
+}
+
 macro_rules! update_params {
     ($netuid:expr => {$($f:ident:$v:expr),+}) => {{
         let params = ::pallet_subspace::SubnetParams {

@@ -20,6 +20,9 @@ pub mod old_storage {
 
     #[storage_alias]
     pub type PendingEmission<T: Config> = StorageMap<Pallet<T>, Identity, u16, u64, ValueQuery>;
+
+    #[storage_alias]
+    pub type SubnetEmission<T: Config> = StorageMap<Pallet<T>, Identity, u16, u64, ValueQuery>;
 }
 
 // TODO:
@@ -44,6 +47,16 @@ impl<T: Config + pallet_subspace::Config> OnRuntimeUpgrade for InitialMigration<
 
         log::info!(
             "Migrated PendingEmission: {:?}",
+            crate::PendingEmission::<T>::iter().collect::<Vec<_>>()
+        );
+
+        let old_subnet_emission = old_storage::SubnetEmission::<T>::iter().collect::<Vec<_>>();
+        for (subnet_id, emission) in old_subnet_emission {
+            crate::SubnetEmission::<T>::insert(subnet_id, emission);
+        }
+
+        log::info!(
+            "Migrated SubnetEmission: {:?}",
             crate::PendingEmission::<T>::iter().collect::<Vec<_>>()
         );
 

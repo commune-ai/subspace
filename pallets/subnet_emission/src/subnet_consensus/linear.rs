@@ -488,6 +488,7 @@ impl<T: Config> LinearEpoch<T> {
         (false, valid_weights)
     }
 
+    #[allow(clippy::too_many_arguments)]
     fn process_weights(
         netuid: u16,
         n: u16,

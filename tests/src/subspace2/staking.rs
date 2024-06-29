@@ -9,6 +9,8 @@ fn adds_stake_and_removes_to_module_and_calculates_total_stake() {
 
         let max_uids = 2;
         let netuids = [0, 1];
+        max_subnet_registrations_per_interval(netuids.len() as u16);
+
         let amount_staked_vector: Vec<_> = netuids.iter().map(|_| to_nano(10)).collect();
         let mut total_stake = 0;
 
