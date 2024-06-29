@@ -1,6 +1,6 @@
 use crate::{EmissionError, Pallet};
 use core::marker::PhantomData;
-use frame_support::ensure;
+use frame_support::{ensure, DebugNoBound};
 use pallet_subspace::{
     math::*, Active, Bonds, BondsMovingAverage, Config, Consensus, Dividends, Emission, Founder,
     Incentive, IncentiveRatio, Kappa, Keys, LastUpdate, MaxAllowedValidators, MaxWeightAge,
@@ -14,8 +14,7 @@ use sp_std::{borrow::Cow, collections::btree_map::BTreeMap};
 
 pub type EmissionMap<T> = BTreeMap<ModuleKey<T>, BTreeMap<AccountKey<T>, u64>>;
 
-// TODO:
-// make incentive ratio work
+#[derive(DebugNoBound)]
 pub struct YumaEpoch<T: Config> {
     /// The amount of modules on the subnet
     module_count: u16,
@@ -83,6 +82,7 @@ impl<T: Config> YumaEpoch<T> {
             self.to_be_emitted,
             self.founder_emission
         );
+        log::trace!("yuma for netuid {} parameters: {self:?}", self.netuid);
 
         let (inactive, active): (Vec<_>, Vec<_>) = self
             .last_update
@@ -549,10 +549,21 @@ impl<T: Config> YumaEpoch<T> {
         let to_be_emitted = I96F32::from_num(self.to_be_emitted);
         log::trace!("  to be emitted: {to_be_emitted}");
 
+        let incentive_ratio = I96F32::from_num(self.incentive_ratio)
+            .checked_div(I96F32::from_num(100))
+            .unwrap_or(I96F32::from_num(0.5));
+        log::trace!("  incentive ratio: {incentive_ratio}");
+        let dividend_ratio = I96F32::from_num(1.0).saturating_sub(incentive_ratio);
+        log::trace!("  dividend ratio: {dividend_ratio}");
+
         let miner_emissions: Vec<u64> = normalized_miner_emission
             .iter()
             .map(|&se| {
-                I96F32::from_num(se).checked_mul(to_be_emitted).unwrap_or(I96F32::from_num(0))
+                I96F32::from_num(se)
+                    .checked_mul(to_be_emitted)
+                    .unwrap_or_default()
+                    .checked_mul(incentive_ratio)
+                    .unwrap_or_default()
             })
             .map(I96F32::to_num)
             .collect();
@@ -561,7 +572,11 @@ impl<T: Config> YumaEpoch<T> {
         let validator_emissions: Vec<u64> = normalized_validator_emission
             .iter()
             .map(|&ve| {
-                I96F32::from_num(ve).checked_mul(to_be_emitted).unwrap_or(I96F32::from_num(0))
+                I96F32::from_num(ve)
+                    .checked_mul(to_be_emitted)
+                    .unwrap_or_default()
+                    .checked_mul(dividend_ratio)
+                    .unwrap_or_default()
             })
             .map(I96F32::to_num)
             .collect();
