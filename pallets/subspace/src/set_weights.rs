@@ -38,7 +38,8 @@ impl<T: Config> Pallet<T> {
             Error::<T>::NotRegistered
         );
 
-        let max_set_weights = MaximumSetWeightCallsPerEpoch::<T>::get(netuid);
+        let max_set_weights =
+            MaximumSetWeightCallsPerEpoch::<T>::get(netuid).filter(|max| *max > 0);
         if let Some(max_set_weights) = max_set_weights {
             let set_weight_uses = SetWeightCallsPerEpoch::<T>::mutate(netuid, &key, |value| {
                 *value = value.saturating_add(1);
@@ -121,7 +122,7 @@ impl<T: Config> Pallet<T> {
     fn check_rootnet_daily_limit(netuid: u16, module_id: u16) -> DispatchResult {
         if netuid == ROOTNET_ID {
             if RootNetWeightCalls::<T>::get(module_id).is_some() {
-                return Err(Error::<T>::MaxWeightCalls.into());
+                return Err(Error::<T>::MaxRootnetWeightCallsPerInterval.into());
             }
 
             RootNetWeightCalls::<T>::set(module_id, Some(()));

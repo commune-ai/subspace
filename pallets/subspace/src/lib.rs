@@ -635,7 +635,7 @@ pub mod pallet {
         InvalidMaxWeightAge,
         MaximumSetWeightsPerEpochReached,
         ArithmeticError,
-        MaxWeightCalls,
+        MaxRootnetWeightCallsPerInterval,
         // Registrations
         InvalidTargetRegistrationsPerInterval,
         InvalidMaxRegistrationsPerInterval,
@@ -725,6 +725,9 @@ pub mod pallet {
 
             // Adjust costs to reflect the demand
             Self::adjust_registration_parameters(block_number);
+            // Clears the root net weights daily quota
+            Self::clear_rootnet_daily_weight_calls(block_number);
+
             // TODO: fix later
             Weight::default()
         }

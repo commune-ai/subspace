@@ -860,45 +860,6 @@ fn test_active_stake() {
     });
 }
 
-#[test]
-fn test_set_weight_rate_limiting() {
-    new_test_ext().execute_with(|| {
-        let netuid: u16 = 0;
-        let key = U256::from(0);
-        let stake = to_nano(100_000);
-
-        assert_ok!(register_module(netuid, key, stake));
-        assert_ok!(register_module(netuid, 1.into(), stake));
-
-        Tempo::<Test>::set(netuid, 5);
-
-        MaximumSetWeightCallsPerEpoch::<Test>::set(netuid, 1);
-
-        let set_weights = || SubspaceMod::set_weights(get_origin(key), netuid, vec![1], vec![10]);
-
-        assert_ok!(set_weights());
-        assert_err!(
-            set_weights(),
-            Error::<Test>::MaximumSetWeightsPerEpochReached
-        );
-
-        step_block(5);
-
-        assert_ok!(set_weights());
-        assert_err!(
-            set_weights(),
-            Error::<Test>::MaximumSetWeightsPerEpochReached
-        );
-
-        MaximumSetWeightCallsPerEpoch::<Test>::set(netuid, 0);
-
-        assert_ok!(set_weights());
-        assert_ok!(set_weights());
-        assert_ok!(set_weights());
-        assert_ok!(set_weights());
-    });
-}
-
 // ----------------
 // Weights
 // ----------------

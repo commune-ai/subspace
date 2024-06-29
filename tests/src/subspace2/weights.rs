@@ -78,3 +78,71 @@ fn set_weights_only_accepts_existing_keys() {
         assert_err!(result, Error::<Test>::InvalidUid);
     });
 }
+
+#[test]
+fn set_weights_call_respects_rate_limit() {
+    new_test_ext().execute_with(|| {
+        zero_min_burn();
+        max_subnet_registrations_per_interval(2);
+
+        assert_ok!(register_module(0, 0, 1));
+        assert_ok!(register_module(1, 0, 1));
+        assert_ok!(register_module(1, 1, 1));
+
+        Tempo::<Test>::set(1, 5);
+
+        MaximumSetWeightCallsPerEpoch::<Test>::set(1, Some(1));
+
+        let set_weights = || SubspaceMod::set_weights(get_origin(0), 1, vec![1], vec![10]);
+
+        assert_ok!(set_weights());
+        assert_err!(
+            set_weights(),
+            Error::<Test>::MaximumSetWeightsPerEpochReached
+        );
+
+        step_block(5);
+
+        eprintln!("foo");
+
+        assert_ok!(set_weights());
+        assert_err!(
+            set_weights(),
+            Error::<Test>::MaximumSetWeightsPerEpochReached
+        );
+
+        MaximumSetWeightCallsPerEpoch::<Test>::set(1, None);
+        assert_ok!(set_weights());
+        assert_ok!(set_weights());
+
+        MaximumSetWeightCallsPerEpoch::<Test>::set(1, Some(0));
+        assert_ok!(set_weights());
+        assert_ok!(set_weights());
+    });
+}
+
+#[test]
+fn set_weights_call_respects_rootnet_weight_limit() {
+    new_test_ext().execute_with(|| {
+        zero_min_burn();
+
+        assert_ok!(register_module(0, 0, 1));
+        assert_ok!(register_module(0, 1, 1));
+
+        let set_weights = || SubspaceMod::set_weights(get_origin(0), 0, vec![1], vec![10]);
+
+        assert_ok!(set_weights());
+        assert_err!(
+            set_weights(),
+            Error::<Test>::MaxRootnetWeightCallsPerInterval
+        );
+
+        step_block(10_800);
+
+        assert_ok!(set_weights());
+        assert_err!(
+            set_weights(),
+            Error::<Test>::MaxRootnetWeightCallsPerInterval
+        );
+    });
+}
