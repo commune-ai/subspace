@@ -499,7 +499,12 @@ pub fn register_module(netuid: u16, key: AccountId, stake: u64) -> Result<u16, D
     SubspaceMod::register(origin, network.clone(), name, address, stake, key, None)?;
 
     let netuid = SubspaceMod::get_netuid_for_name(&network).ok_or("netuid is missing")?;
-    pallet_subspace::Uids::<Test>::get(netuid, key).ok_or("uid is missing".into())
+    let uid = pallet_subspace::Uids::<Test>::get(netuid, key).ok_or("uid is missing")?;
+
+    Emission::<Test>::mutate(netuid, |v| v[uid as usize] = stake);
+    pallet_subnet_emission::SubnetEmission::<Test>::mutate(netuid, |s| *s += stake);
+
+    Ok(uid)
 }
 
 pub fn get_balance(key: AccountId) -> Balance {

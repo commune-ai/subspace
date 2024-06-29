@@ -53,26 +53,22 @@ pub mod pallet {
                 return InvalidTransaction::Call.into();
             };
 
-            if cfg!(feature = "testnet-faucet") {
-                let key = T::Lookup::lookup(key.clone())?;
+            let key = T::Lookup::lookup(key.clone())?;
 
-                let key_balance = PalletSubspace::<T>::get_balance_u64(&key);
-                let key_stake: u64 = N::<T>::iter().map(|_| Stake::<T>::get(&key)).sum();
-                let total_worth = key_balance.saturating_add(key_stake);
-                if total_worth >= 50_000_000_000_000 {
-                    // if it's larger than 50k don't allow more funds
-                    return InvalidTransaction::Custom(0).into();
-                }
-
-                ValidTransaction::with_tag_prefix("RunFaucet")
-                    .priority(0) // Faucet, so low priority
-                    .longevity(5) // 5 blocks longevity to prevent too much spam
-                    .and_provides(key)
-                    .propagate(true)
-                    .build()
-            } else {
-                InvalidTransaction::Custom(1).into()
+            let key_balance = PalletSubspace::<T>::get_balance_u64(&key);
+            let key_stake: u64 = N::<T>::iter().map(|_| Stake::<T>::get(&key)).sum();
+            let total_worth = key_balance.saturating_add(key_stake);
+            if total_worth >= 50_000_000_000_000 {
+                // if it's larger than 50k don't allow more funds
+                return InvalidTransaction::Custom(0).into();
             }
+
+            ValidTransaction::with_tag_prefix("RunFaucet")
+                .priority(0) // Faucet, so low priority
+                .longevity(5) // 5 blocks longevity to prevent too much spam
+                .and_provides(key)
+                .propagate(true)
+                .build()
         }
 
         fn pre_dispatch(_: &Self::Call) -> Result<(), TransactionValidityError> {
@@ -104,11 +100,7 @@ pub mod pallet {
             work: Vec<u8>,
             key: AccountIdLookupOf<T>,
         ) -> DispatchResult {
-            if cfg!(feature = "testnet-faucet") {
-                Self::do_faucet(origin, block_number, nonce, work, key)
-            } else {
-                Err(Error::<T>::FaucetDisabled.into())
-            }
+            Self::do_faucet(origin, block_number, nonce, work, key)
         }
     }
 
@@ -129,8 +121,6 @@ pub mod pallet {
 
     #[pallet::error]
     pub enum Error<T> {
-        // Faucet
-        FaucetDisabled, // --- Thrown when the faucet is disabled.
         InvalidWorkBlock,
         InvalidDifficulty,
         InvalidSeal,

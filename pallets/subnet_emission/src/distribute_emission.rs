@@ -266,6 +266,7 @@ impl<T: Config> Pallet<T> {
     /// or None if there are no subnets.
     pub fn get_lowest_emission_netuid() -> Option<u16> {
         SubnetEmission::<T>::iter()
+            .filter(|(netuid, _)| pallet_subspace::N::<T>::get(netuid) > 0)
             .min_by_key(|(_, emission)| *emission)
             .map(|(netuid, _)| netuid)
     }

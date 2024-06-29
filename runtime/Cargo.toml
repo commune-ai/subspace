@@ -15,7 +15,7 @@ targets = ["x86_64-unknown-linux-gnu"]
 [dependencies]
 pallet-subspace = { path = "../pallets/subspace", default-features = false }
 pallet-governance = { path = "../pallets/governance", default-features = false }
-pallet-faucet = { path = "../pallets/faucet", default-features = false }
+pallet-faucet = { path = "../pallets/faucet", optional = true, default-features = false }
 pallet-subnet-emission = { path = "../pallets/subnet_emission", default-features = false }
 
 log.workspace = true
@@ -77,7 +77,7 @@ substrate-wasm-builder = { workspace = true, optional = true }
 
 [features]
 default = ["std"]
-testnet-faucet = ["pallet-faucet/testnet-faucet"]
+testnet-faucet = ["pallet-faucet"]
 std = [
 	"frame-try-runtime?/std",
 	"frame-system-benchmarking?/std",

@@ -35,30 +35,6 @@ fn adds_and_removes_subnets() {
             register_module(iterations + 1, 0, 1),
             Error::<Test>::TooManyRegistrationsPerBlock
         );
-
-        // for netuid in 0..num_subnets {
-        //     let total_stake = SubspaceMod::get_total_subnet_stake(netuid);
-        //     let total_balance = get_total_subnet_balance(netuid);
-        //     let total_tokens_before = total_stake + total_balance;
-
-        //     let keys = SubspaceMod::get_keys(netuid);
-
-        //     assert_eq!(keys.len() as u16, n);
-        //     assert!(check_subnet_storage(netuid));
-        //     SubspaceMod::remove_subnet(netuid);
-        //     assert_eq!(N::<Test>::get(netuid), 0);
-        //     assert!(check_subnet_storage(netuid));
-
-        //     let total_tokens_after: u64 = keys.iter().map(SubspaceMod::get_balance_u64).sum();
-
-        //     assert_eq!(total_tokens_after, total_tokens_before);
-        //     expected_subnets = expected_subnets.saturating_sub(1);
-        //     assert_eq!(
-        //         TotalSubnets::<Test>::get(),
-        //         expected_subnets,
-        //         "number of subnets is not equal to expected subnets"
-        //     );
-        // }
     });
 }
 
@@ -239,5 +215,98 @@ fn removes_subnet_from_storage() {
         params!(not_exists);
         assert_eq!(TotalSubnets::<Test>::get(), 0);
         assert!(SubnetGaps::<Test>::get().contains(&0));
+    });
+}
+
+#[test]
+fn update_subnet_verifies_names_uniquiness_integrity() {
+    new_test_ext().execute_with(|| {
+        zero_min_burn();
+        max_subnet_registrations_per_interval(2);
+
+        let update_params = |key, netuid, params: SubnetParams<Test>| {
+            SubspaceMod::update_subnet(
+                get_origin(key),
+                netuid,
+                params.founder,
+                params.founder_share,
+                params.immunity_period,
+                params.incentive_ratio,
+                params.max_allowed_uids,
+                params.max_allowed_weights,
+                params.min_allowed_weights,
+                params.max_weight_age,
+                params.min_stake,
+                params.name,
+                params.tempo,
+                params.trust_ratio,
+                params.maximum_set_weight_calls_per_epoch,
+                params.governance_config.vote_mode,
+                params.bonds_ma,
+                params.target_registrations_interval,
+                params.target_registrations_per_interval,
+                params.max_registrations_per_interval,
+                params.adjustment_alpha,
+            )
+        };
+
+        assert_ok!(register_module(0, 0, 1));
+        assert_ok!(register_module(1, 1, 1));
+
+        assert_ok!(update_params(0, 0, SubspaceMod::subnet_params(0)));
+        assert_err!(
+            update_params(0, 0, SubspaceMod::subnet_params(1)),
+            Error::<Test>::SubnetNameAlreadyExists
+        );
+    });
+}
+
+#[test]
+fn subnet_is_replaced_on_reaching_max_allowed_subnets() {
+    new_test_ext().execute_with(|| {
+        zero_min_burn();
+        max_subnet_registrations_per_interval(6);
+
+        // Defines the maximum number of modules, that can be registered,
+        // on all subnets at once.
+        let expected_subnet_amount: u16 = 3;
+        MaxAllowedModules::<Test>::put(expected_subnet_amount);
+
+        let subnets = [
+            (0, to_nano(100_000)),
+            (1, to_nano(5_000)),
+            (2, to_nano(4_000)),
+            (3, to_nano(1_100)),
+        ];
+
+        let random_keys = [4, 5];
+
+        // Register all subnets
+        for (i, (subnet_key, subnet_stake)) in subnets.iter().enumerate() {
+            assert_ok!(register_module(i as u16, *subnet_key, *subnet_stake));
+        }
+
+        let subnet_amount = TotalSubnets::<Test>::get();
+        assert_eq!(subnet_amount, expected_subnet_amount);
+
+        // Register module on the subnet one (netuid 0), this means that subnet
+        // subnet two (netuid 1) will be deregistered, as we reached global module limit.
+        assert_ok!(register_module(0, random_keys[0], to_nano(1_000)));
+        assert_ok!(register_module(4, random_keys[1], to_nano(150_000)));
+
+        let subnet_amount = TotalSubnets::<Test>::get();
+        assert_eq!(subnet_amount, expected_subnet_amount - 1);
+
+        // netuid 1 replaced by subnet four
+        assert_ok!(register_module(3, subnets[3].0, subnets[3].1));
+
+        let subnet_amount = TotalSubnets::<Test>::get();
+        let total_module_amount = SubspaceMod::global_n_modules();
+        assert_eq!(subnet_amount, expected_subnet_amount);
+        assert_eq!(total_module_amount, expected_subnet_amount);
+
+        let netuids = SubspaceMod::netuids();
+        let max_netuid = netuids.iter().max().unwrap();
+        assert_eq!(*max_netuid, 2);
     });
 }

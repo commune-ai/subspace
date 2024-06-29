@@ -376,6 +376,7 @@ impl pallet_governance::Config for Runtime {
     type WeightInfo = pallet_governance::weights::SubstrateWeight<Runtime>;
 }
 
+#[cfg(feature = "testnet-faucet")]
 impl pallet_faucet::Config for Runtime {
     type RuntimeEvent = RuntimeEvent;
     type Currency = Balances;
@@ -446,8 +447,10 @@ construct_runtime!(
         Utility: pallet_utility,
         SubspaceModule: pallet_subspace,
         GovernanceModule: pallet_governance,
-        FaucetModule: pallet_faucet,
         SubnetEmissionModule: pallet_subnet_emission,
+
+        #[cfg(feature = "testnet-faucet")]
+        FaucetModule: pallet_faucet,
 
         // EVM Support
         BaseFee: pallet_base_fee,

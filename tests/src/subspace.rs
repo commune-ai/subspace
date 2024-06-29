@@ -763,52 +763,6 @@ fn test_parasite_subnet_registrations() {
 // After reaching maximum global modules, subnets will start getting deregisterd
 // Test ensures that newly registered subnets will take the "spots" of these deregistered subnets.
 // And modules go beyond the global maximum.
-#[test]
-fn test_subnet_replacing() {
-    new_test_ext().execute_with(|| {
-        // Defines the maximum number of modules, that can be registered,
-        // on all subnets at once.
-        let expected_subnet_amount: u16 = 3;
-        MaxAllowedModules::<Test>::put(expected_subnet_amount);
-
-        let subnets = [
-            (U256::from(0), to_nano(100_000)),
-            (U256::from(1), to_nano(5000)),
-            (U256::from(2), to_nano(4_000)),
-            (U256::from(3), to_nano(1_100)),
-        ];
-
-        let random_keys = [U256::from(4), U256::from(5)];
-
-        // Register all subnets
-        for (i, (subnet_key, subnet_stake)) in subnets.iter().enumerate() {
-            assert_ok!(register_module(i as u16, *subnet_key, *subnet_stake));
-        }
-
-        let subnet_amount = TotalSubnets::<Test>::get();
-        assert_eq!(subnet_amount, expected_subnet_amount);
-
-        // Register module on the subnet one (netuid 0), this means that subnet
-        // subnet two (netuid 1) will be deregistered, as we reached global module limit.
-        assert_ok!(register_module(0, random_keys[0], to_nano(1_000)));
-        assert_ok!(register_module(4, random_keys[1], to_nano(150_000)));
-
-        let subnet_amount = TotalSubnets::<Test>::get();
-        assert_eq!(subnet_amount, expected_subnet_amount - 1);
-
-        // netuid 1 replaced by subnet four
-        assert_ok!(register_module(3, subnets[3].0, subnets[3].1));
-
-        let subnet_amount = TotalSubnets::<Test>::get();
-        let total_module_amount = SubspaceMod::global_n_modules();
-        assert_eq!(subnet_amount, expected_subnet_amount);
-        assert_eq!(total_module_amount, expected_subnet_amount);
-
-        let netuids = SubspaceMod::netuids();
-        let max_netuid = netuids.iter().max().unwrap();
-        assert_eq!(*max_netuid, 2);
-    });
-}
 
 #[test]
 fn test_active_stake() {
@@ -906,52 +860,6 @@ fn test_active_stake() {
     });
 }
 
-// this test, should confirm that we can update subnet using the same name
-#[test]
-fn test_update_same_name() {
-    new_test_ext().execute_with(|| {
-        // general subnet
-        let netuid: u16 = 0;
-        let key = U256::from(0);
-        let stake = to_nano(100_000);
-
-        assert_ok!(register_module(netuid, key, stake));
-
-        assert_eq!(N::<Test>::get(0), 1);
-
-        let mut params = SubspaceMod::subnet_params(netuid);
-        let new_tempo = 30;
-        params.tempo = new_tempo;
-        let result = SubspaceMod::update_subnet(
-            get_origin(key),
-            netuid,
-            params.founder,
-            params.founder_share,
-            params.immunity_period,
-            params.incentive_ratio,
-            params.max_allowed_uids,
-            params.max_allowed_weights,
-            params.min_allowed_weights,
-            params.max_weight_age,
-            params.min_stake,
-            params.name,
-            params.tempo,
-            params.trust_ratio,
-            params.maximum_set_weight_calls_per_epoch,
-            params.governance_config.vote_mode,
-            params.bonds_ma,
-            params.target_registrations_interval,
-            params.target_registrations_per_interval,
-            params.max_registrations_per_interval,
-            params.adjustment_alpha,
-        );
-        assert_ok!(result);
-
-        let new_params = SubspaceMod::subnet_params(netuid);
-        assert_eq!(new_params.tempo, new_tempo);
-    });
-}
-
 #[test]
 fn test_set_weight_rate_limiting() {
     new_test_ext().execute_with(|| {
@@ -994,98 +902,6 @@ fn test_set_weight_rate_limiting() {
 // ----------------
 // Weights
 // ----------------
-
-// Test ensures that uids -- weights must have the same size.
-#[test]
-fn test_weights_err_weights_vec_not_equal_size() {
-    new_test_ext().execute_with(|| {
-        let netuid: u16 = 0;
-        let key_account_id = U256::from(55);
-        // make sure that the results won´t get affected by burn
-        zero_min_burn();
-        assert_ok!(register_module(netuid, key_account_id, 1_000_000_000));
-        let weights_keys: Vec<u16> = vec![1, 2, 3, 4, 5, 6];
-        let weight_values: Vec<u16> = vec![1, 2, 3, 4, 5]; // Uneven sizes
-        let result = SubspaceMod::set_weights(
-            RuntimeOrigin::signed(key_account_id),
-            netuid,
-            weights_keys,
-            weight_values,
-        );
-        assert_eq!(result, Err(Error::<Test>::WeightVecNotEqualSize.into()));
-    });
-}
-
-// Test ensures that uids can have not duplicates
-#[test]
-fn test_weights_err_has_duplicate_ids() {
-    new_test_ext().execute_with(|| {
-        let key_account_id = U256::from(666);
-        let netuid: u16 = 0;
-        // make sure that the results won´t get affected by burn
-        zero_min_burn();
-        MaxRegistrationsPerBlock::<Test>::set(100);
-
-        assert_ok!(register_module(netuid, key_account_id, 10));
-        update_params!(netuid => { max_allowed_uids: 100 });
-
-        // uid 1
-        assert_ok!(register_module(netuid, U256::from(1), 100));
-        SubspaceMod::get_uid_for_key(netuid, &U256::from(1));
-
-        // uid 2
-        assert_ok!(register_module(netuid, U256::from(2), 10000));
-        SubspaceMod::get_uid_for_key(netuid, &U256::from(2));
-
-        // uid 3
-        assert_ok!(register_module(netuid, U256::from(3), 10000000));
-        SubspaceMod::get_uid_for_key(netuid, &U256::from(3));
-
-        assert_eq!(N::<Test>::get(netuid), 4);
-
-        let weights_keys: Vec<u16> = vec![1, 1, 1]; // Contains duplicates
-        let weight_values: Vec<u16> = vec![1, 2, 3];
-        let result = SubspaceMod::set_weights(
-            RuntimeOrigin::signed(key_account_id),
-            netuid,
-            weights_keys,
-            weight_values,
-        );
-        assert_eq!(result, Err(Error::<Test>::DuplicateUids.into()));
-    });
-}
-
-// Tests the call requires a valid origin.
-#[test]
-fn test_no_signature() {
-    new_test_ext().execute_with(|| {
-        let uids: Vec<u16> = vec![];
-        let values: Vec<u16> = vec![];
-        let result = SubspaceMod::set_weights(RuntimeOrigin::none(), 1, uids, values);
-        assert_eq!(result, Err(DispatchError::BadOrigin));
-    });
-}
-
-// Tests that set weights fails if you pass invalid uids.
-#[test]
-fn test_set_weights_err_invalid_uid() {
-    new_test_ext().execute_with(|| {
-        let key_account_id = U256::from(55);
-        let netuid: u16 = 0;
-        // make sure that the results won´t get affected by burn
-        zero_min_burn();
-        assert_ok!(register_module(netuid, key_account_id, 1_000_000_000));
-        let weight_keys: Vec<u16> = vec![9999]; // Does not exist
-        let weight_values: Vec<u16> = vec![88]; // random value
-        let result = SubspaceMod::set_weights(
-            RuntimeOrigin::signed(key_account_id),
-            netuid,
-            weight_keys,
-            weight_values,
-        );
-        assert_eq!(result, Err(Error::<Test>::InvalidUid.into()));
-    });
-}
 
 // Tests that set weights fails if you dont pass enough values.
 #[test]

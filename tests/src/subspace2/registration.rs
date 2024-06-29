@@ -193,11 +193,6 @@ fn deregister_globally_when_global_limit_is_reached() {
         zero_min_burn();
         max_subnet_registrations_per_interval(3);
 
-        let register_module = |netuid, id, emission| {
-            let uid = assert_ok!(register_module(netuid, id, to_nano(1)));
-            Emission::<Test>::mutate(netuid, |v| v[uid as usize] = emission);
-            pallet_subnet_emission::SubnetEmission::<Test>::mutate(netuid, |s| *s += emission);
-        };
         let get_emission = |netuid, id| {
             let id = Uids::<Test>::get(netuid, id).unwrap_or(u16::MAX);
             Emission::<Test>::get(netuid).get(id as usize).copied().unwrap_or_default()
@@ -205,8 +200,8 @@ fn deregister_globally_when_global_limit_is_reached() {
 
         MaxAllowedModules::<Test>::set(2);
 
-        register_module(0, 0, to_nano(10));
-        register_module(1, 1, to_nano(5));
+        assert_ok!(register_module(0, 0, to_nano(10)));
+        assert_ok!(register_module(1, 1, to_nano(5)));
 
         assert_eq!(get_emission(0, 0), to_nano(10));
         assert_eq!(get_emission(1, 1), to_nano(5));
@@ -214,7 +209,7 @@ fn deregister_globally_when_global_limit_is_reached() {
         MaxAllowedUids::<Test>::set(0, 2);
         MaxAllowedUids::<Test>::set(1, 1);
 
-        register_module(0, 2, to_nano(15));
+        assert_ok!(register_module(0, 2, to_nano(15)));
 
         assert_eq!(get_emission(0, 0), to_nano(10));
         assert_eq!(get_emission(0, 2), to_nano(15));
@@ -437,16 +432,9 @@ fn new_subnets_on_removed_uids_register_modules_to_the_correct_netuids() {
         zero_min_burn();
         max_subnet_registrations_per_interval(6);
 
-        let subnet_id =
-            |netuid| SubspaceMod::get_netuid_for_name(format!("test{netuid}").as_bytes()).unwrap();
-        let register_module = |netuid, id, emission| {
-            let uid = assert_ok!(register_module(netuid, id, to_nano(1)));
-            let netuid = subnet_id(netuid);
-            Emission::<Test>::mutate(netuid, |v| v[uid as usize] = emission);
-            pallet_subnet_emission::SubnetEmission::<Test>::mutate(netuid, |s| *s += emission);
-        };
         let add_emission = |netuid, id, emission| {
-            let netuid = subnet_id(netuid);
+            let netuid =
+                SubspaceMod::get_netuid_for_name(format!("test{netuid}").as_bytes()).unwrap();
             Emission::<Test>::mutate(netuid, |v| {
                 v[Uids::<Test>::get(netuid, id).unwrap() as usize] = emission
             });
@@ -455,21 +443,21 @@ fn new_subnets_on_removed_uids_register_modules_to_the_correct_netuids() {
 
         MaxAllowedSubnets::<Test>::put(3);
 
-        register_module(0, 0, to_nano(10));
-        register_module(1, 1, to_nano(5));
-        register_module(2, 2, to_nano(1));
+        assert_ok!(register_module(0, 0, to_nano(10)));
+        assert_ok!(register_module(1, 1, to_nano(5)));
+        assert_ok!(register_module(2, 2, to_nano(1)));
         assert_subnets(&[(0, "test0"), (1, "test1"), (2, "test2")]);
 
-        register_module(3, 3, to_nano(15));
+        assert_ok!(register_module(3, 3, to_nano(15)));
         assert_subnets(&[(0, "test0"), (1, "test1"), (2, "test3")]);
 
-        register_module(4, 4, to_nano(20));
+        assert_ok!(register_module(4, 4, to_nano(20)));
         assert_subnets(&[(0, "test0"), (1, "test4"), (2, "test3")]);
 
         add_balance(0, to_nano(50));
         add_emission(0, 0, to_nano(10));
 
-        register_module(5, 5, to_nano(17));
+        assert_ok!(register_module(5, 5, to_nano(17)));
         assert_subnets(&[(0, "test0"), (1, "test4"), (2, "test5")]);
 
         assert_eq!(N::<Test>::get(0), 1);
