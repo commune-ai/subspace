@@ -533,7 +533,7 @@ impl<T: Config> Pallet<T> {
             .map(|(_, key, _)| key)
             .collect();
         for dangling in netuid_keys.difference(&global_keys) {
-            Self::remove_stake_from_storage(&dangling);
+            Self::remove_stake_from_storage(dangling);
         }
     }
 }
