@@ -511,7 +511,7 @@ fn rewards_wont_exceed_treasury() {
 }
 
 #[test]
-fn test_whitelist() {
+fn whitelist_executes_application_correctly() {
     new_test_ext().execute_with(|| {
         let key = 0;
         let adding_key = 1;
@@ -569,7 +569,7 @@ fn test_whitelist() {
 // ----------------
 
 #[test]
-fn test_remove_from_whitelist() {
+fn user_is_removed_from_whitelist() {
     new_test_ext().execute_with(|| {
         let whitelist_key = 0;
         let module_key = 1;
@@ -605,7 +605,7 @@ fn test_remove_from_whitelist() {
 }
 
 #[test]
-fn test_invalid_curator() {
+fn whitelist_curator_must_be_a_valid_key() {
     new_test_ext().execute_with(|| {
         let whitelist_key = 0;
         let invalid_key = 1;
