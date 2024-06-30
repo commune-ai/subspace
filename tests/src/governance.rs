@@ -10,8 +10,23 @@ use pallet_governance::{
 };
 use pallet_governance_api::GovernanceConfiguration;
 use pallet_subspace::{subnet::SubnetChangeset, GlobalParams, SubnetParams};
-use sp_core::U256;
 use substrate_fixed::{types::extra::U32, FixedI128};
+
+fn register(account: u32, subnet_id: u16, module: u32, stake: u64) {
+    if get_balance(account.into()) <= stake {
+        add_balance(account.into(), stake + to_nano(1));
+    }
+
+    assert_ok!(SubspaceMod::do_register(
+        get_origin(account.into()),
+        format!("subnet-{subnet_id}").as_bytes().to_vec(),
+        format!("module-{module}").as_bytes().to_vec(),
+        format!("address-{account}-{module}").as_bytes().to_vec(),
+        stake,
+        module.into(),
+        None,
+    ));
+}
 
 #[test]
 fn global_governance_config_validates_parameters_correctly() {
@@ -106,7 +121,7 @@ fn global_custom_proposal_is_accepted_correctly() {
         const AGAINST: u32 = 1;
 
         zero_min_burn();
-        let key: U256 = 0.into();
+        let key = 0;
         let origin = get_origin(key);
 
         register(FOR, 0, 0, to_nano(10));
@@ -138,11 +153,13 @@ fn global_custom_proposal_is_accepted_correctly() {
 #[test]
 fn subnet_custom_proposal_is_accepted_correctly() {
     new_test_ext().execute_with(|| {
+        zero_min_burn();
+        max_subnet_registrations_per_interval(2);
+
         const FOR: u32 = 0;
         const AGAINST: u32 = 1;
 
-        zero_min_burn();
-        let origin = get_origin(0.into());
+        let origin = get_origin(0);
 
         register(FOR, 0, 0, to_nano(10));
         register(AGAINST, 0, 1, to_nano(5));
@@ -165,7 +182,7 @@ fn subnet_custom_proposal_is_accepted_correctly() {
             Proposals::<Test>::get(0).unwrap().status,
             ProposalStatus::Accepted {
                 block: 100,
-                stake_for: 10_000_000_000,
+                stake_for: 20_000_000_000,
                 stake_against: 5_000_000_000,
             }
         );
@@ -179,7 +196,7 @@ fn global_proposal_is_refused_correctly() {
         const AGAINST: u32 = 1;
 
         zero_min_burn();
-        let origin = get_origin(0.into());
+        let origin = get_origin(0);
 
         register(FOR, 0, 0, to_nano(5));
         register(AGAINST, 0, 1, to_nano(10));
@@ -355,7 +372,7 @@ fn global_proposals_counts_delegated_stake() {
         const AGAINST_DELEGATED: u32 = 3;
 
         zero_min_burn();
-        let origin = get_origin(0.into());
+        let origin = get_origin(0);
 
         register(FOR, 0, 0, to_nano(5));
         delegate(FOR);
@@ -392,6 +409,9 @@ fn global_proposals_counts_delegated_stake() {
 #[test]
 fn subnet_proposals_counts_delegated_stake() {
     new_test_ext().execute_with(|| {
+        zero_min_burn();
+        max_subnet_registrations_per_interval(2);
+
         const FOR: u32 = 0;
         const AGAINST: u32 = 1;
         const FOR_DELEGATED: u32 = 2;
@@ -399,8 +419,7 @@ fn subnet_proposals_counts_delegated_stake() {
         const FOR_DELEGATED_WRONG: u32 = 4;
         const AGAINST_DELEGATED_WRONG: u32 = 5;
 
-        zero_min_burn();
-        let origin = get_origin(0.into());
+        let origin = get_origin(0);
 
         register(FOR, 0, 0, to_nano(5));
         register(FOR, 1, 0, to_nano(5));
@@ -434,8 +453,8 @@ fn subnet_proposals_counts_delegated_stake() {
             Proposals::<Test>::get(0).unwrap().status,
             ProposalStatus::Accepted {
                 block: 100,
-                stake_for: 15_000_000_000,
-                stake_against: 13_000_000_000,
+                stake_for: 30_000_000_000,
+                stake_against: 26_000_000_000,
             }
         );
     });
@@ -446,33 +465,28 @@ fn creates_treasury_transfer_proposal_and_transfers() {
     new_test_ext().execute_with(|| {
         zero_min_burn();
 
-        let origin = get_origin(0.into());
+        let origin = get_origin(0);
         GovernanceMod::add_transfer_dao_treasury_proposal(
             origin.clone(),
             vec![b'0'; 64],
             to_nano(5),
-            0.into(),
+            0,
         )
         .expect_err("proposal should not be created when treasury does not have enough money");
 
         add_balance(DaoTreasuryAddress::<Test>::get(), to_nano(10));
-        add_balance(0.into(), to_nano(3));
+        add_balance(0, to_nano(3));
         register(0, 0, 0, to_nano(1));
         config(to_nano(1), 100);
 
-        GovernanceMod::add_transfer_dao_treasury_proposal(
-            origin,
-            vec![b'0'; 64],
-            to_nano(5),
-            0.into(),
-        )
-        .expect("proposal should be created");
+        GovernanceMod::add_transfer_dao_treasury_proposal(origin, vec![b'0'; 64], to_nano(5), 0)
+            .expect("proposal should be created");
         vote(0, 0, true);
 
         step_block(100);
 
         assert_eq!(get_balance(DaoTreasuryAddress::<Test>::get()), to_nano(5));
-        assert_eq!(get_balance(0.into()), to_nano(7));
+        assert_eq!(get_balance(0), to_nano(7));
     });
 }
 
@@ -502,51 +516,51 @@ fn test_whitelist() {
         let key = 0;
         let adding_key = 1;
         let mut params = SubspaceMod::global_params();
-        params.curator = key.into();
+        params.curator = key;
         assert_ok!(SubspaceMod::set_global_params(params));
 
         let proposal_cost = GeneralSubnetApplicationCost::<Test>::get();
         let data = "test".as_bytes().to_vec();
 
-        add_balance(key.into(), proposal_cost + 1);
+        add_balance(key, proposal_cost + 1);
         // first submit an application
-        let balance_before = SubspaceMod::get_balance_u64(&key.into());
+        let balance_before = SubspaceMod::get_balance_u64(&key);
 
         assert_ok!(GovernanceMod::add_dao_application(
-            get_origin(key.into()),
-            adding_key.into(),
+            get_origin(key),
+            adding_key,
             data.clone(),
         ));
 
-        let balance_after = SubspaceMod::get_balance_u64(&key.into());
+        let balance_after = SubspaceMod::get_balance_u64(&key);
         assert_eq!(balance_after, balance_before - proposal_cost);
 
         // Assert that the proposal is initially in the Pending status
         for (_, value) in CuratorApplications::<Test>::iter() {
             assert_eq!(value.status, ApplicationStatus::Pending);
-            assert_eq!(value.user_id, adding_key.into());
+            assert_eq!(value.user_id, adding_key);
             assert_eq!(value.data, data);
         }
 
         // add key to whitelist
         assert_ok!(GovernanceMod::add_to_whitelist(
-            get_origin(key.into()),
-            adding_key.into(),
+            get_origin(key),
+            adding_key,
             1,
         ));
 
-        let balance_after_accept = SubspaceMod::get_balance_u64(&key.into());
+        let balance_after_accept = SubspaceMod::get_balance_u64(&key);
 
         assert_eq!(balance_after_accept, balance_before);
 
         // Assert that the proposal is now in the Accepted status
         for (_, value) in CuratorApplications::<Test>::iter() {
             assert_eq!(value.status, ApplicationStatus::Accepted);
-            assert_eq!(value.user_id, adding_key.into());
+            assert_eq!(value.user_id, adding_key);
             assert_eq!(value.data, data);
         }
 
-        assert!(GovernanceMod::is_in_legit_whitelist(&adding_key.into()));
+        assert!(GovernanceMod::is_in_legit_whitelist(&adding_key));
     });
 }
 
@@ -557,8 +571,8 @@ fn test_whitelist() {
 #[test]
 fn test_remove_from_whitelist() {
     new_test_ext().execute_with(|| {
-        let whitelist_key = U256::from(0);
-        let module_key = U256::from(1);
+        let whitelist_key = 0;
+        let module_key = 1;
         Curator::<Test>::put(whitelist_key);
 
         let proposal_cost = Test::get_global_governance_configuration().proposal_cost;
@@ -593,9 +607,9 @@ fn test_remove_from_whitelist() {
 #[test]
 fn test_invalid_curator() {
     new_test_ext().execute_with(|| {
-        let whitelist_key = U256::from(0);
-        let invalid_key = U256::from(1);
-        let module_key = U256::from(2);
+        let whitelist_key = 0;
+        let invalid_key = 1;
+        let module_key = 2;
         Curator::<Test>::put(whitelist_key);
 
         // Try to add to whitelist with an invalid curator key

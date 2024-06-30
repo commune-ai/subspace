@@ -113,16 +113,16 @@ impl GovernanceApi<<Test as frame_system::Config>::AccountId> for Test {
         pallet_governance::Pallet::<Test>::handle_subnet_removal(subnet_id)
     }
 
-    fn execute_application(_user_id: &AccountId) -> DispatchResult {
-        Ok(())
+    fn execute_application(user_id: &AccountId) -> DispatchResult {
+        pallet_governance::Pallet::<Test>::execute_application(user_id)
     }
 
     fn get_general_subnet_application_cost() -> u64 {
         to_nano(1_000)
     }
 
-    fn curator_application_exists(_module_key: &<Test as frame_system::Config>::AccountId) -> bool {
-        false
+    fn curator_application_exists(module_key: &<Test as frame_system::Config>::AccountId) -> bool {
+        pallet_governance::Pallet::<Test>::curator_application_exists(module_key)
     }
 
     fn whitelisted_keys() -> BTreeSet<AccountId> {
@@ -516,22 +516,6 @@ pub fn vote(account: u32, proposal_id: u64, agree: bool) {
         get_origin(account.into()),
         proposal_id,
         agree
-    ));
-}
-
-pub fn register(account: u32, subnet_id: u16, module: u32, stake: u64) {
-    if get_balance(account.into()) <= stake {
-        add_balance(account.into(), stake + to_nano(1));
-    }
-
-    assert_ok!(SubspaceMod::do_register(
-        get_origin(account.into()),
-        format!("subnet-{subnet_id}").as_bytes().to_vec(),
-        format!("module-{module}").as_bytes().to_vec(),
-        format!("address-{account}-{module}").as_bytes().to_vec(),
-        stake,
-        module.into(),
-        None,
     ));
 }
 
