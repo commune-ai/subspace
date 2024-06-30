@@ -9,9 +9,7 @@
 pub mod governance;
 #[cfg(test)]
 pub mod mock;
-// #[cfg(test)]
-// pub mod subnet_emission;
-// #[cfg(test)]
-// pub mod subspace;
 #[cfg(test)]
-pub mod subspace2;
+pub mod subnet_emission;
+#[cfg(test)]
+pub mod subspace;

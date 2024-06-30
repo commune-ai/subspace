@@ -2,24 +2,23 @@
 // Step linear
 // -----------
 
+use std::collections::BTreeMap;
+
 use crate::mock::*;
 
 use frame_support::assert_ok;
 use log::info;
-use pallet_subnet_emission::UnitEmission;
-use pallet_subspace::{
-    global::BurnConfiguration, AdjustmentAlpha, Burn, BurnConfig, Dividends, Emission,
-    FloorFounderShare, Incentive, MaxAllowedWeights, MaxRegistrationsPerBlock,
-    MinAllowedWeights, Stake, TargetRegistrationsInterval, TargetRegistrationsPerInterval, Tempo,
-    Trust, N,
+use pallet_subnet_emission::{
+    subnet_consensus::yuma::{AccountKey, EmissionMap, ModuleKey, YumaEpoch},
+    UnitEmission,
 };
-use sp_core::U256;
+use pallet_subspace::*;
 
-fn update_params(netuid: u16, tempo: u16, max_weights: u16, min_weights: u16) {
-    Tempo::<Test>::insert(netuid, tempo);
-    MaxAllowedWeights::<Test>::insert(netuid, max_weights);
-    MinAllowedWeights::<Test>::insert(netuid, min_weights);
-}
+// fn update_params(netuid: u16, tempo: u16, max_weights: u16, min_weights: u16) {
+//     Tempo::<Test>::insert(netuid, tempo);
+//     MaxAllowedWeights::<Test>::insert(netuid, max_weights);
+//     MinAllowedWeights::<Test>::insert(netuid, min_weights);
+// }
 
 // TODO:
 // get back to life
@@ -108,8 +107,9 @@ fn test_no_weights() {
 //         assert!(incentives[2] > 0);
 //         assert_eq!(dividends[2], dividends[3]);
 //         let delta: u64 = 100;
-//         assert!((incentives[2] as u64) > (weight_values[0] as u64 * incentives[3] as u64) - delta);
-//         assert!((incentives[2] as u64) < (weight_values[0] as u64 * incentives[3] as u64) + delta);
+//         assert!((incentives[2] as u64) > (weight_values[0] as u64 * incentives[3] as u64) -
+// delta);         assert!((incentives[2] as u64) < (weight_values[0] as u64 * incentives[3] as u64)
+// + delta);
 
 //         assert!(emissions[2] > (weight_values[0] as u64 * emissions[3]) - delta);
 //         assert!(emissions[2] < (weight_values[0] as u64 * emissions[3]) + delta);
@@ -178,7 +178,7 @@ fn test_no_weights() {
 //             if i == 0 {
 //                 stake = 2 * stake_per_module
 //             }
-//             let key: U256 = U256::from(i);
+//             let key: U256 = i;
 //             assert_ok!(register_module(netuid, key, stake));
 //         }
 //         update_params(netuid, tempo, n, 0);
@@ -204,8 +204,9 @@ fn test_no_weights() {
 //         assert!(incentives[2] > 0);
 //         assert_eq!(dividends[2], dividends[3]);
 //         let delta: u64 = 100;
-//         assert!((incentives[2] as u64) > (weight_values[0] as u64 * incentives[3] as u64) - delta);
-//         assert!((incentives[2] as u64) < (weight_values[0] as u64 * incentives[3] as u64) + delta);
+//         assert!((incentives[2] as u64) > (weight_values[0] as u64 * incentives[3] as u64) -
+// delta);         assert!((incentives[2] as u64) < (weight_values[0] as u64 * incentives[3] as u64)
+// + delta);
 
 //         assert!(emissions[2] > (weight_values[0] as u64 * emissions[3]) - delta);
 //         assert!(emissions[2] < (weight_values[0] as u64 * emissions[3]) + delta);
@@ -440,7 +441,7 @@ fn test_no_weights() {
 // 				info!("i: {}", i);
 // 				info!("keys: {:?}", SubspaceMod::get_keys(netuid));
 // 				info!("uids: {:?}", SubspaceMod::get_uids(netuid));
-// 				let key: U256 = U256::from(i);
+// 				let key: U256 = i;
 // 				info!(
 // 					"Before Registered: {:?} -> {:?}",
 // 					key,
@@ -477,24 +478,27 @@ fn test_no_weights() {
 // }
 
 #[test]
-fn test_blocks_until_epoch() {
+fn calculates_blocks_until_epoch() {
     new_test_ext().execute_with(|| {
+        use pallet_subnet_emission::blocks_until_next_epoch;
+
         // Check tempo = 0 block = * netuid = *
-        assert_eq!(SubnetEmissionMod::blocks_until_next_epoch(0, 0, 0), 1000);
+        assert_eq!(blocks_until_next_epoch(0, 0, 0), 1000);
 
         // Check tempo = 1 block = * netuid = *
-        assert_eq!(SubnetEmissionMod::blocks_until_next_epoch(0, 1, 0), 0);
-        assert_eq!(SubnetEmissionMod::blocks_until_next_epoch(1, 1, 0), 0);
-        assert_eq!(SubnetEmissionMod::blocks_until_next_epoch(0, 1, 1), 0);
-        assert_eq!(SubnetEmissionMod::blocks_until_next_epoch(1, 2, 1), 0);
-        assert_eq!(SubnetEmissionMod::blocks_until_next_epoch(0, 4, 3), 3);
-        assert_eq!(SubnetEmissionMod::blocks_until_next_epoch(10, 5, 2), 2);
+        assert_eq!(blocks_until_next_epoch(0, 1, 0), 0);
+        assert_eq!(blocks_until_next_epoch(1, 1, 0), 0);
+        assert_eq!(blocks_until_next_epoch(0, 1, 1), 0);
+        assert_eq!(blocks_until_next_epoch(1, 2, 1), 0);
+        assert_eq!(blocks_until_next_epoch(0, 4, 3), 3);
+        assert_eq!(blocks_until_next_epoch(10, 5, 2), 2);
+
         // Check general case.
         for netuid in 0..30_u16 {
             for block in 0..30_u64 {
                 for tempo in 1..30_u16 {
                     assert_eq!(
-                        SubnetEmissionMod::blocks_until_next_epoch(netuid, tempo, block),
+                        blocks_until_next_epoch(netuid, tempo, block),
                         (block + netuid as u64) % (tempo as u64)
                     );
                 }
@@ -681,83 +685,6 @@ fn test_trust() {
 //     });
 // }
 
-#[test]
-fn test_dynamic_burn() {
-    new_test_ext().execute_with(|| {
-        let netuid = 0;
-        let initial_stake: u64 = 1000;
-
-        // make sure that the results won´t get affected by burn
-        zero_min_burn();
-
-        // Create the subnet
-        let subnet_key = U256::from(2050);
-        assert_ok!(register_module(netuid, subnet_key, initial_stake));
-        // Using the default GlobalParameters:
-        // - registration target interval = 2 * tempo (200 blocks)
-        // - registration target for interval = registration_target_interval / 2
-        // - adjustment alpha = 0
-        // - min_burn = 2 $COMAI
-        // - max_burn = 250 $COMAI
-        let burn_config = BurnConfiguration {
-            min_burn: to_nano(2),
-            max_burn: to_nano(250),
-            ..BurnConfiguration::<Test>::default()
-        };
-        assert_ok!(burn_config.apply());
-
-        let BurnConfiguration { min_burn, .. } = BurnConfig::<Test>::get();
-
-        // update the burn to the minimum
-        step_block(200);
-
-        assert!(
-            Burn::<Test>::get(netuid) == min_burn,
-            "current burn: {:?}",
-            Burn::<Test>::get(netuid)
-        );
-
-        // Register the first 1000 modules, this is 10x the registration target
-        let registrations_per_block = 5;
-        let n: usize = 1000;
-        let stakes: Vec<u64> = (0..n).map(|_| initial_stake * 1_000_000_000).collect();
-        for (i, stake) in stakes.iter().enumerate() {
-            let key = U256::from(i);
-            assert_ok!(register_module(netuid, key, *stake));
-            AdjustmentAlpha::<Test>::set(netuid, 0);
-            TargetRegistrationsInterval::<Test>::set(netuid, 200);
-            TargetRegistrationsPerInterval::<Test>::set(netuid, 100);
-            if (i + 1) % registrations_per_block == 0 {
-                step_block(1);
-            }
-        }
-
-        // Burn is now at 11 instead of 2
-        assert!(
-            Burn::<Test>::get(netuid) == to_nano(11),
-            "current burn {:?}",
-            Burn::<Test>::get(netuid)
-        );
-
-        MaxRegistrationsPerBlock::<Test>::set(1000);
-        // Register only 50 of the target
-        let amount: usize = 50;
-        for (i, &stake) in stakes.iter().enumerate().take(amount) {
-            let key = U256::from(n + i);
-            assert_ok!(register_module(netuid, key, stake));
-        }
-
-        step_block(200);
-
-        // Make sure the burn correctly decreased based on demand
-        assert!(
-            Burn::<Test>::get(netuid) == 8250000000,
-            "current burn: {:?}",
-            Burn::<Test>::get(netuid)
-        );
-    });
-}
-
 // ------------
 // Step Yuma
 // ------------
@@ -798,16 +725,18 @@ const ONE: u64 = to_nano(1);
 #[test]
 fn test_1_graph() {
     new_test_ext().execute_with(|| {
-        UnitEmission::<Test>::put(23148148148);
         zero_min_burn();
+        max_subnet_registrations_per_interval(2);
+
+        UnitEmission::<Test>::put(23148148148);
         FloorFounderShare::<Test>::put(0);
 
         // Register general subnet
-        assert_ok!(register_module(0, 10.into(), 1));
+        assert_ok!(register_module(0, 10, 1));
 
         log::info!("test_1_graph:");
         let netuid: u16 = 1;
-        let key = U256::from(0);
+        let key = 0;
         let uid: u16 = 0;
         let stake_amount: u64 = to_nano(100);
 
@@ -822,7 +751,7 @@ fn test_1_graph() {
         run_to_block(1); // run to next block to ensure weights are set on nodes after their registration block
 
         assert_ok!(SubspaceMod::set_weights(
-            RuntimeOrigin::signed(U256::from(1)),
+            RuntimeOrigin::signed(1),
             netuid,
             vec![uid],
             vec![u16::MAX],
@@ -838,10 +767,7 @@ fn test_1_graph() {
 
         let new_stake_amount = stake_amount + ONE;
 
-        assert_eq!(
-            SubspaceMod::get_total_stake_to(&key),
-            new_stake_amount - offset
-        );
+        assert_eq!(Stake::<Test>::get(&key), new_stake_amount - offset);
         assert_eq!(utils::get_rank_for_uid(netuid, uid), 0);
         assert_eq!(utils::get_trust_for_uid(netuid, uid), 0);
         assert_eq!(utils::get_consensus_for_uid(netuid, uid), 0);
@@ -854,7 +780,7 @@ fn test_1_graph() {
 #[test]
 fn test_10_graph() {
     /// Function for adding a nodes to the graph.
-    fn add_node(netuid: u16, key: U256, uid: u16, stake_amount: u64) {
+    fn add_node(netuid: u16, key: AccountId, uid: u16, stake_amount: u64) {
         log::info!(
             "+Add net:{:?} hotkey:{:?} uid:{:?} stake_amount: {:?} subn: {:?}",
             netuid,
@@ -874,32 +800,32 @@ fn test_10_graph() {
         FloorFounderShare::<Test>::put(0);
         MaxRegistrationsPerBlock::<Test>::set(1000);
         // Register general subnet
-        assert_ok!(register_module(0, 10_000.into(), 1));
+        assert_ok!(register_module(0, 10_000, 1));
 
         log::info!("test_10_graph");
 
         // Build the graph with 10 items
         // each with 1 stake and self weights.
-        let n: usize = 10;
+        let n = 10;
         let netuid: u16 = 1;
         let stake_amount_per_node = ONE;
 
         for i in 0..n {
-            add_node(netuid, U256::from(i), i as u16, stake_amount_per_node)
+            add_node(netuid, i, i as u16, stake_amount_per_node)
         }
 
         update_params!(netuid => {
             max_allowed_uids: n as u16 + 1
         });
 
-        assert_ok!(register_module(netuid, U256::from(n + 1), 1));
+        assert_ok!(register_module(netuid, n + 1, 1));
         assert_eq!(N::<Test>::get(netuid), 11);
 
         run_to_block(1); // run to next block to ensure weights are set on nodes after their registration block
 
         for i in 0..n {
             assert_ok!(SubspaceMod::set_weights(
-                RuntimeOrigin::signed(U256::from(n + 1)),
+                get_origin(n + 1),
                 netuid,
                 vec![i as u16],
                 vec![u16::MAX],
@@ -913,7 +839,7 @@ fn test_10_graph() {
         let emission_per_node = ONE / n as u64;
         for i in 0..n as u16 {
             assert_eq!(
-                from_nano(SubspaceMod::get_total_stake_to(&(U256::from(i)))),
+                from_nano(Stake::<Test>::get(i as u32)),
                 from_nano(to_nano(1) + emission_per_node)
             );
 
@@ -938,19 +864,21 @@ fn test_10_graph() {
 #[test]
 fn yuma_weights_older_than_max_age_are_discarded() {
     new_test_ext().execute_with(|| {
+        max_subnet_registrations_per_interval(2);
+
         const MAX_WEIGHT_AGE: u64 = 300;
         const SUBNET_TEMPO: u16 = 100;
         // Register the general subnet.
         let netuid: u16 = 0;
-        let key = U256::from(0);
+        let key = 0;
         let stake_amount: u64 = to_nano(1_000);
 
         assert_ok!(register_module(netuid, key, stake_amount));
 
         // Register the yuma subnet.
         let yuma_netuid: u16 = 1;
-        let yuma_validator_key = U256::from(1);
-        let yuma_miner_key = U256::from(2);
+        let yuma_validator_key = 1;
+        let yuma_miner_key = 2;
         let yuma_vali_amount: u64 = to_nano(10_000);
         let yuma_miner_amount = to_nano(1_000);
 
@@ -1033,7 +961,7 @@ fn test_emission_exploit() {
         const SUBNET_TEMPO: u16 = 25;
         // Register the general subnet.
         let netuid: u16 = 0;
-        let key = U256::from(0);
+        let key = 0;
         let stake_amount: u64 = to_nano(1_000);
 
         // Make sure registration cost is not affected
@@ -1043,7 +971,7 @@ fn test_emission_exploit() {
 
         // Register the yuma subnet.
         let yuma_netuid: u16 = 1;
-        let yuma_badactor_key = U256::from(1);
+        let yuma_badactor_key = 1;
         let yuma_badactor_amount: u64 = to_nano(10_000);
 
         assert_ok!(register_module(
@@ -1056,11 +984,10 @@ fn test_emission_exploit() {
         // step first 40 blocks from the registration
         step_block(40);
 
-        let stake_accumulated = Stake::<Test>::get(yuma_netuid, yuma_badactor_key);
+        let stake_accumulated = Stake::<Test>::get(yuma_badactor_key as u32);
         // User will now unstake and register another subnet.
         assert_ok!(SubspaceMod::do_remove_stake(
             get_origin(yuma_badactor_key),
-            yuma_netuid,
             yuma_badactor_key,
             stake_accumulated - 1
         ));
@@ -1093,10 +1020,9 @@ fn test_emission_exploit() {
         step_block(58);
 
         // remove the stake again
-        let stake_accumulated_two = Stake::<Test>::get(new_netuid, yuma_badactor_key);
+        let stake_accumulated_two = Stake::<Test>::get(yuma_badactor_key);
         assert_ok!(SubspaceMod::do_remove_stake(
             get_origin(yuma_badactor_key),
-            new_netuid,
             yuma_badactor_key,
             stake_accumulated_two - 2
         ));
@@ -1105,7 +1031,7 @@ fn test_emission_exploit() {
 
         let new_netuid = 3;
         // Now an honest actor will come, the goal is for him to accumulate more
-        let honest_actor_key = U256::from(3);
+        let honest_actor_key = 3;
         assert_ok!(register_module(
             new_netuid,
             honest_actor_key,
@@ -1116,7 +1042,7 @@ fn test_emission_exploit() {
         step_block(101);
 
         // get the stake of honest actor
-        let hones_stake = Stake::<Test>::get(3, honest_actor_key);
+        let hones_stake = Stake::<Test>::get(honest_actor_key);
         assert!(hones_stake > badactor_balance_after);
     });
 }
@@ -1124,22 +1050,22 @@ fn test_emission_exploit() {
 #[test]
 fn test_tempo_compound() {
     new_test_ext().execute_with(|| {
+        zero_min_burn();
+        max_subnet_registrations_per_interval(3);
+
         const QUICK_TEMPO: u16 = 25;
         const SLOW_TEMPO: u16 = 1000;
         // Register the general subnet.
         let netuid: u16 = 0;
-        let key = U256::from(0);
+        let key = 0;
         let stake_amount: u64 = to_nano(1_000);
-
-        // Make sure registration cost is not affected
-        zero_min_burn();
 
         assert_ok!(register_module(netuid, key, stake_amount));
 
         // Register the yuma subnets, the important part of the tests starts here:
         // FAST
         let s_netuid: u16 = 1;
-        let s_key = U256::from(1);
+        let s_key = 1;
         let s_amount: u64 = to_nano(10_000);
 
         assert_ok!(register_module(s_netuid, s_key, s_amount));
@@ -1148,7 +1074,7 @@ fn test_tempo_compound() {
         // SLOW
         let f_netuid = 2;
         // Now an honest actor will come, the goal is for him to accumulate more
-        let f_key = U256::from(3);
+        let f_key = 3;
         assert_ok!(register_module(f_netuid, f_key, s_amount));
         // we will set a slower tempo
         update_params!(f_netuid => { tempo: QUICK_TEMPO });
@@ -1156,8 +1082,8 @@ fn test_tempo_compound() {
         // we will now step, SLOW_TEMPO -> 1000 blocks
         step_block(SLOW_TEMPO);
 
-        let fast = Stake::<Test>::get(f_netuid, f_key);
-        let slow = Stake::<Test>::get(s_netuid, s_key);
+        let fast = Stake::<Test>::get(f_key);
+        let slow = Stake::<Test>::get(s_key);
 
         // faster tempo should have quicker compound rate
         assert!(fast > slow);

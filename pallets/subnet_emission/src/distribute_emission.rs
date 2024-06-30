@@ -15,7 +15,7 @@ use pallet_subspace::{SetWeightCallsPerEpoch, Tempo};
 ///
 /// This function iterates through all subnets, updates their pending emissions,
 /// and runs an epoch if it's time for that subnet.
-pub fn process_subnets<T: Config>(block_number: u64, subnets_emission_distribution: PricedSubnets) {
+fn process_subnets<T: Config>(block_number: u64, subnets_emission_distribution: PricedSubnets) {
     for (netuid, tempo) in Tempo::<T>::iter() {
         update_pending_emission::<T>(
             netuid,

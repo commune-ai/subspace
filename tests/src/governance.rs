@@ -117,10 +117,11 @@ fn global_proposal_validates_parameters() {
 #[test]
 fn global_custom_proposal_is_accepted_correctly() {
     new_test_ext().execute_with(|| {
+        zero_min_burn();
+
         const FOR: u32 = 0;
         const AGAINST: u32 = 1;
 
-        zero_min_burn();
         let key = 0;
         let origin = get_origin(key);
 
@@ -192,10 +193,11 @@ fn subnet_custom_proposal_is_accepted_correctly() {
 #[test]
 fn global_proposal_is_refused_correctly() {
     new_test_ext().execute_with(|| {
+        zero_min_burn();
+
         const FOR: u32 = 0;
         const AGAINST: u32 = 1;
 
-        zero_min_burn();
         let origin = get_origin(0);
 
         register(FOR, 0, 0, to_nano(5));
@@ -227,8 +229,9 @@ fn global_proposal_is_refused_correctly() {
 #[test]
 fn global_params_proposal_accepted() {
     new_test_ext().execute_with(|| {
-        const KEY: u32 = 0;
         zero_min_burn();
+
+        const KEY: u32 = 0;
 
         register(KEY, 0, 0, to_nano(10));
         config(1, 100);
@@ -286,8 +289,9 @@ fn global_params_proposal_accepted() {
 #[test]
 fn subnet_params_proposal_accepted() {
     new_test_ext().execute_with(|| {
-        const KEY: u32 = 0;
         zero_min_burn();
+
+        const KEY: u32 = 0;
 
         register(KEY, 0, 0, to_nano(10));
         config(1, 100);
@@ -366,12 +370,13 @@ fn subnet_params_proposal_accepted() {
 #[test]
 fn global_proposals_counts_delegated_stake() {
     new_test_ext().execute_with(|| {
+        zero_min_burn();
+
         const FOR: u32 = 0;
         const AGAINST: u32 = 1;
         const FOR_DELEGATED: u32 = 2;
         const AGAINST_DELEGATED: u32 = 3;
 
-        zero_min_burn();
         let origin = get_origin(0);
 
         register(FOR, 0, 0, to_nano(5));
@@ -495,6 +500,7 @@ fn creates_treasury_transfer_proposal_and_transfers() {
 fn rewards_wont_exceed_treasury() {
     new_test_ext().execute_with(|| {
         zero_min_burn();
+
         // Fill the governance address with 1 mil so we are not limited by the max allocation
         let amount = to_nano(1_000_000_000);
         let key = DaoTreasuryAddress::<Test>::get();

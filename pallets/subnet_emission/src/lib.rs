@@ -20,6 +20,8 @@ pub mod subnet_consensus {
     pub mod yuma;
 }
 
+pub use distribute_emission::blocks_until_next_epoch;
+
 // TODO:
 // move some import outside of the macro
 #[frame_support::pallet]
