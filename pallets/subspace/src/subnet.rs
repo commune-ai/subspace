@@ -57,6 +57,7 @@ impl<T: Config> SubnetChangeset<T> {
         );
 
         AdjustmentAlpha::<T>::insert(netuid, self.params.adjustment_alpha);
+        MinImmunityStake::<T>::insert(netuid, self.params.min_immunity_stake);
         if self.params.maximum_set_weight_calls_per_epoch == 0 {
             MaximumSetWeightCallsPerEpoch::<T>::remove(netuid);
         } else {
@@ -147,6 +148,11 @@ impl<T: Config> SubnetChangeset<T> {
             Error::<T>::InvalidAdjustmentAlpha
         );
 
+        ensure!(
+            params.min_immunity_stake > 20_000_000_000_000, // Min is 20k
+            Error::<T>::InvalidMinImmunityStake
+        );
+
         match Pallet::<T>::get_netuid_for_name(&params.name) {
             Some(id) if netuid.is_some_and(|netuid| netuid == id) => { /* subnet kept same name */ }
             Some(_) => return Err(Error::<T>::SubnetNameAlreadyExists.into()),
@@ -187,6 +193,7 @@ impl<T: Config> Pallet<T> {
             target_registrations_per_interval: TargetRegistrationsPerInterval::<T>::get(netuid),
             max_registrations_per_interval: MaxRegistrationsPerInterval::<T>::get(netuid),
             adjustment_alpha: AdjustmentAlpha::<T>::get(netuid),
+            min_immunity_stake: MinImmunityStake::<T>::get(netuid),
             governance_config: T::get_subnet_governance_configuration(netuid),
         }
     }
@@ -293,7 +300,7 @@ impl<T: Config> Pallet<T> {
         TargetRegistrationsPerInterval::<T>::remove(netuid);
         MaxRegistrationsPerInterval::<T>::remove(netuid);
         AdjustmentAlpha::<T>::remove(netuid);
-
+        MinImmunityStake::<T>::remove(netuid);
         T::handle_subnet_removal(netuid);
 
         // --- 4 Adjust the total number of subnets. and remove the subnet from the list of subnets.

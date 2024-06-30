@@ -236,11 +236,11 @@ pub mod pallet {
 
     #[pallet::storage] // --- MAP ( netuid ) --> target_registrations_interval
     pub type TargetRegistrationsInterval<T> =
-        StorageMap<_, Identity, u16, u16, ValueQuery, ConstU16<200>>;
+        StorageMap<_, Identity, u16, u16, ValueQuery, ConstU16<142>>;
 
     #[pallet::storage] // MAP ( netuid ) --> target_registrations_per_interval
     pub type TargetRegistrationsPerInterval<T> =
-        StorageMap<_, Identity, u16, u16, ValueQuery, ConstU16<100>>;
+        StorageMap<_, Identity, u16, u16, ValueQuery, ConstU16<3>>;
 
     #[pallet::storage] // --- ITEM ( registrations_this block )
     pub type RegistrationsPerBlock<T> = StorageValue<_, u16, ValueQuery>;
@@ -251,6 +251,12 @@ pub mod pallet {
     #[pallet::storage] // --- MAP ( netuid ) --> adjustment_alpha
     pub type AdjustmentAlpha<T> =
         StorageMap<_, Identity, u16, u64, ValueQuery, ConstU64<{ u64::MAX / 2 }>>;
+
+    // Deregistrations
+
+    #[pallet::storage] // MAP (netuid) --> minimum immunity stake
+    pub type MinImmunityStake<T> =
+        StorageMap<_, Identity, u16, u64, ValueQuery, ConstU64<50_000_000_000_000>>; // Default 50K
 
     // ---------------------------------
     //  Module Staking Variables
@@ -322,6 +328,8 @@ pub mod pallet {
     pub struct DefaultSubnetParams<T: Config>(sp_std::marker::PhantomData<((), T)>);
 
     impl<T: Config> DefaultSubnetParams<T> {
+        // TODO: not hardcoe values here, get them from the storages instead,
+        // if they implement default already.
         pub fn get() -> SubnetParams<T> {
             SubnetParams {
                 name: BoundedVec::default(),
@@ -329,7 +337,7 @@ pub mod pallet {
                 immunity_period: 0,
                 min_allowed_weights: 1,
                 max_allowed_weights: 420,
-                max_allowed_uids: 820,
+                max_allowed_uids: 420,
                 max_weight_age: 3_600,
                 trust_ratio: GetDefault::get(),
                 founder_share: FloorFounderShare::<T>::get() as u16,
@@ -338,10 +346,11 @@ pub mod pallet {
                 founder: DefaultKey::<T>::get(),
                 maximum_set_weight_calls_per_epoch: 0,
                 bonds_ma: 900_000,
-                target_registrations_interval: 200,
-                target_registrations_per_interval: 100,
-                max_registrations_per_interval: 42,
+                target_registrations_interval: 142,
+                target_registrations_per_interval: 3,
+                max_registrations_per_interval: 32,
                 adjustment_alpha: u64::MAX / 2,
+                min_immunity_stake: 50_000_000_000_000, // 50k
                 governance_config: GovernanceConfiguration {
                     vote_mode: VoteMode::Authority,
                     ..Default::default()
@@ -378,12 +387,15 @@ pub mod pallet {
         pub target_registrations_per_interval: u16,
         pub max_registrations_per_interval: u16,
         pub adjustment_alpha: u64,
+        pub min_immunity_stake: u64, /* minimum stake for module to be immuned against
+                                      * deregistrations, made to prevent validator
+                                      * deregisterations. */
 
         pub governance_config: GovernanceConfiguration,
     }
 
     #[pallet::storage] // --- MAP ( netuid ) --> max_allowed_uids
-    pub type MaxAllowedUids<T> = StorageMap<_, Identity, u16, u16, ValueQuery, ConstU16<820>>;
+    pub type MaxAllowedUids<T> = StorageMap<_, Identity, u16, u16, ValueQuery, ConstU16<420>>;
 
     #[pallet::storage] // --- MAP ( netuid ) --> immunity_period
     pub type ImmunityPeriod<T> = StorageMap<_, Identity, u16, u16, ValueQuery, ConstU16<0>>;
@@ -396,7 +408,7 @@ pub mod pallet {
 
     #[pallet::storage] // --- MAP ( netuid ) --> max_registratoins_per_interval
     pub type MaxRegistrationsPerInterval<T> =
-        StorageMap<_, Identity, u16, u16, ValueQuery, ConstU16<42>>;
+        StorageMap<_, Identity, u16, u16, ValueQuery, ConstU16<32>>;
 
     #[pallet::storage] // --- MAP ( netuid ) --> min_allowed_weights
     pub type MaxWeightAge<T> = StorageMap<_, Identity, u16, u64, ValueQuery, ConstU64<3600>>;
@@ -641,6 +653,7 @@ pub mod pallet {
         InvalidMaxRegistrationsPerInterval,
         InvalidAdjustmentAlpha,
         InvalidTargetRegistrationsInterval,
+        InvalidMinImmunityStake,
     }
 
     // ---------------------------------
@@ -912,6 +925,7 @@ pub mod pallet {
             target_registrations_per_interval: u16,
             max_registrations_per_interval: u16,
             adjustment_alpha: u64,
+            min_immunity_stake: u64,
         ) -> DispatchResult {
             let params = SubnetParams {
                 founder,
@@ -932,6 +946,7 @@ pub mod pallet {
                 target_registrations_per_interval,
                 max_registrations_per_interval,
                 adjustment_alpha,
+                min_immunity_stake,
                 governance_config: GovernanceConfiguration {
                     vote_mode,
                     ..T::get_subnet_governance_configuration(netuid)

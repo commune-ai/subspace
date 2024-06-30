@@ -180,44 +180,44 @@ impl<T: Config> Pallet<T> {
     //
     // In case the this lowest uid check is called by the global deregistration call
     // we ignore the immunity period and deregister the lowest uid (No matter the immunity period)
+    
+    // TODO:
+    // Can this be optimized ? 
     pub fn get_lowest_uid(netuid: u16, ignore_immunity: bool) -> Option<u16> {
-        // Immunity ignoring -> used if the deregistration is forced by global module overflow.
-        // Immunity consideration -> used if the deregistration is forced by subnet module overflow.
-        let mut min_score: u64 = u64::MAX;
-
-        // This will stay `None` if every module is in immunity period.
-        let mut lowest_priority_uid: Option<u16> = None;
-
         let current_block = Self::get_current_block_number();
-        let immunity_period: u64 = ImmunityPeriod::<T>::get(netuid) as u64;
+        let immunity_period = ImmunityPeriod::<T>::get(netuid) as u64;
+        let emission_vec = Emission::<T>::get(netuid);
+        let min_immunity_stake = MinImmunityStake::<T>::get(netuid);
 
-        // Get all the UIDs and their registration blocks from the storage
-        let mut uids: Vec<_> = RegistrationBlock::<T>::iter_prefix(netuid).collect();
-
-        // Sort the UIDs based on their registration block in ascending order
-        // This will make sure we evaluate old miners first.
-        uids.sort_by_key(|a| a.1);
-
-        let emission_vec: Vec<u64> = Emission::<T>::get(netuid);
-        for (module_uid_i, block_at_registration) in uids {
-            let pruning_score: u64 = *emission_vec.get(module_uid_i as usize).unwrap_or(&0);
-
-            // Find min pruning score.
-            if min_score > pruning_score {
-                let module_age: u64 = current_block.saturating_sub(block_at_registration);
-
-                // Only allow modules that have greater than immunity period
-                // or if we are ignoring immunity period
-                if module_age >= immunity_period || ignore_immunity {
-                    lowest_priority_uid = Some(module_uid_i);
-                    min_score = pruning_score;
-                    if min_score == 0 {
-                        break;
+        let process_uids = || {
+            RegistrationBlock::<T>::iter_prefix(netuid)
+                .map(|(uid, block_at_registration)| {
+                    let pruning_score = emission_vec.get(uid as usize).copied().unwrap_or(0);
+                    (uid, pruning_score, block_at_registration)
+                })
+                .filter(move |&(uid, _, block_at_registration)| {
+                    if ignore_immunity
+                        || current_block.saturating_sub(block_at_registration) >= immunity_period
+                    {
+                        let module_key = Keys::<T>::get(netuid, uid);
+                        Stake::<T>::get(module_key) < min_immunity_stake
+                    } else {
+                        false
                     }
-                }
-            }
-        }
-        lowest_priority_uid
+                })
+        };
+
+        // Age is secondary to the emission.
+        process_uids()
+            // This is usual scenario, that is why we check for oldest 0 emission to return early
+            .filter(|&(_, pruning_score, _)| pruning_score == 0)
+            .min_by_key(|&(_, _, block_at_registration)| block_at_registration)
+            .or_else(|| {
+                process_uids().min_by(|&(_, score_a, block_a), &(_, score_b, block_b)| {
+                    score_a.cmp(&score_b).then_with(|| block_a.cmp(&block_b))
+                })
+            })
+            .map(|(uid, _, _)| uid)
     }
 
     pub fn add_subnet_from_registration(

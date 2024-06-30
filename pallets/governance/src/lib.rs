@@ -242,6 +242,7 @@ pub mod pallet {
             target_registrations_per_interval: u16,
             max_registrations_per_interval: u16,
             adjustment_alpha: u64,
+            min_immunity_stake: u64,
         ) -> DispatchResult {
             let mut params = pallet_subspace::Pallet::subnet_params(subnet_id);
             params.founder = founder;
@@ -263,6 +264,7 @@ pub mod pallet {
             params.target_registrations_per_interval = target_registrations_per_interval;
             params.max_registrations_per_interval = max_registrations_per_interval;
             params.adjustment_alpha = adjustment_alpha;
+            params.min_immunity_stake = min_immunity_stake;
 
             Self::do_add_subnet_params_proposal(origin, subnet_id, data, params)
         }

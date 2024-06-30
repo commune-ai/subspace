@@ -62,6 +62,7 @@ fn subnet_update_changes_all_parameter_values() {
             target_registrations_per_interval: 15,
             max_registrations_per_interval: 16,
             adjustment_alpha: 17,
+            min_immunity_stake: 18,
             governance_config: GovernanceConfiguration {
                 proposal_cost: 18,
                 proposal_expiration: 19,
@@ -91,6 +92,7 @@ fn subnet_update_changes_all_parameter_values() {
             target_registrations_per_interval,
             max_registrations_per_interval,
             adjustment_alpha,
+            min_immunity_stake,
             governance_config,
         } = params.clone();
 
@@ -160,6 +162,7 @@ fn removes_subnet_from_storage() {
                     target_registrations_per_interval,
                     max_registrations_per_interval,
                     adjustment_alpha,
+                    min_immunity_stake: _,
                     governance_config,
                 } = DefaultSubnetParams::<Test>::get();
 
@@ -247,6 +250,7 @@ fn update_subnet_verifies_names_uniquiness_integrity() {
                 params.target_registrations_per_interval,
                 params.max_registrations_per_interval,
                 params.adjustment_alpha,
+                params.min_immunity_stake,
             )
         };
 

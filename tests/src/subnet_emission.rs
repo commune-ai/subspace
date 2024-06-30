@@ -1071,7 +1071,6 @@ fn test_tempo_compound() {
         let s_netuid: u16 = 1;
         let s_key = 1;
         let s_amount: u64 = to_nano(10_000);
-
         assert_ok!(register_module(s_netuid, s_key, s_amount));
         update_params!(s_netuid => { tempo: SLOW_TEMPO });
 

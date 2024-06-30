@@ -28,6 +28,7 @@ fn module_registration_burn_increases() {
         TargetRegistrationsPerInterval::<Test>::insert(0, 25);
         TargetRegistrationsInterval::<Test>::insert(0, target_reg_interval); // for the netuid 0
         TargetRegistrationsPerInterval::<Test>::insert(0, target_reg_per_interval); // for the netuid 0
+        MaxRegistrationsPerInterval::<Test>::insert(0, 1000);
 
         // register 500 modules on yuma subnet
         let netuid = 1;
