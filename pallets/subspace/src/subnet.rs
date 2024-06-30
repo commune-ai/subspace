@@ -339,6 +339,7 @@ impl<T: Config> Pallet<T> {
     // Setters
     // ---------------------------------
 
+    // TODO: should modules be removed by pruning score?
     fn set_max_allowed_uids(netuid: u16, mut max_allowed_uids: u16) -> DispatchResult {
         let n: u16 = N::<T>::get(netuid);
         if max_allowed_uids < n {

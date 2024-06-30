@@ -568,7 +568,7 @@ pub fn max_subnet_registrations_per_interval(max: u16) {
 }
 
 macro_rules! update_params {
-    ($netuid:expr => {$($f:ident:$v:expr),+}) => {{
+    ($netuid:expr => { $($f:ident: $v:expr),+ }) => {{
         let params = ::pallet_subspace::SubnetParams {
             $($f: $v),+,
             ..SubspaceMod::subnet_params($netuid)

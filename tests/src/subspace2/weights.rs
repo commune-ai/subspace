@@ -146,3 +146,87 @@ fn set_weights_call_respects_rootnet_weight_limit() {
         );
     });
 }
+
+#[test]
+fn set_weights_on_itself_is_invalid() {
+    new_test_ext().execute_with(|| {
+        zero_min_burn();
+
+        assert_ok!(register_module(0, 0, 1));
+        let result = SubspaceMod::set_weights(RuntimeOrigin::signed(0), 0, vec![0], vec![0]);
+        assert_err!(result, Error::<Test>::NoSelfWeight);
+    });
+}
+
+#[test]
+fn set_weights_respects_min_and_max_weights() {
+    new_test_ext().execute_with(|| {
+        zero_min_burn();
+
+        let account_id = 0;
+
+        assert_ok!(register_module(0, account_id, 1));
+        update_params!(0 => { min_allowed_weights: 2, max_allowed_weights: 3 });
+
+        for i in 1..5 {
+            assert_ok!(register_module(0, i, 1));
+        }
+
+        let result =
+            SubspaceMod::set_weights(RuntimeOrigin::signed(account_id), 0, vec![1], vec![1]);
+        assert_err!(result, Error::<Test>::InvalidUidsLength);
+
+        let result = SubspaceMod::set_weights(
+            RuntimeOrigin::signed(account_id),
+            0,
+            vec![1, 2, 3, 4],
+            vec![1, 2, 3, 4],
+        );
+        assert_err!(result, Error::<Test>::InvalidUidsLength);
+
+        let result = SubspaceMod::set_weights(
+            RuntimeOrigin::signed(account_id),
+            0,
+            vec![1, 2, 3],
+            vec![1, 2, 3],
+        );
+        assert_ok!(result);
+    });
+}
+
+#[test]
+fn set_weights_fails_for_stakes_below_minimum() {
+    new_test_ext().execute_with(|| {
+        let mut global_params = SubspaceMod::global_params();
+        global_params.min_weight_stake = to_nano(20);
+        assert_ok!(SubspaceMod::set_global_params(global_params));
+        MaxRegistrationsPerBlock::<Test>::set(1000);
+        zero_min_burn();
+
+        let netuid = 0;
+        let module_count = 16u16;
+        let voter_key = 0u32;
+
+        // registers the modules
+        for i in 0..module_count {
+            assert_ok!(register_module(netuid, i as u32, to_nano(10)));
+        }
+
+        let uids: Vec<_> = (0..module_count).filter(|&uid| uid != voter_key as u16).collect();
+        let weights = vec![1; uids.len()];
+
+        assert_err!(
+            SubspaceMod::set_weights(get_origin(voter_key), netuid, uids.clone(), weights.clone(),),
+            Error::<Test>::NotEnoughStakePerWeight
+        );
+
+        increase_stake(voter_key, to_nano(400));
+
+        assert_ok!(SubspaceMod::set_weights(
+            get_origin(voter_key),
+            netuid,
+            uids,
+            weights,
+        ));
+    });
+}

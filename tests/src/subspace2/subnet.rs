@@ -262,14 +262,14 @@ fn update_subnet_verifies_names_uniquiness_integrity() {
 }
 
 #[test]
-fn subnet_is_replaced_on_reaching_max_allowed_subnets() {
+fn subnet_is_replaced_on_reaching_max_allowed_modules() {
     new_test_ext().execute_with(|| {
         zero_min_burn();
         max_subnet_registrations_per_interval(6);
 
         // Defines the maximum number of modules, that can be registered,
         // on all subnets at once.
-        let expected_subnet_amount: u16 = 3;
+        let expected_subnet_amount = 3;
         MaxAllowedModules::<Test>::put(expected_subnet_amount);
 
         let subnets = [
@@ -308,5 +308,26 @@ fn subnet_is_replaced_on_reaching_max_allowed_subnets() {
         let netuids = SubspaceMod::netuids();
         let max_netuid = netuids.iter().max().unwrap();
         assert_eq!(*max_netuid, 2);
+    });
+}
+
+#[test]
+fn updating_max_allowed_uids_shrinks_subnet_correctly() {
+    new_test_ext().execute_with(|| {
+        zero_min_burn();
+
+        for module_uid in 1..5u32 {
+            assert_ok!(register_module(0, module_uid, module_uid as u64));
+        }
+
+        assert_eq!(N::<Test>::get(0), 4);
+
+        update_params!(0 => {
+            max_allowed_uids: 2
+        });
+
+        assert_eq!(N::<Test>::get(0), 2);
+        assert_eq!(SubspaceMod::get_total_subnet_stake(0), 3);
+        assert_eq!(SubspaceMod::get_keys(0), vec![1, 2]);
     });
 }
