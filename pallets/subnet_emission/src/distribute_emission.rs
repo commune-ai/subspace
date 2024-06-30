@@ -108,18 +108,16 @@ fn run_consensus_algorithm<T: Config>(
     netuid: u16,
     emission_to_drain: u64,
 ) -> Result<(), &'static str> {
-    with_storage_layer(|| match netuid {
-        // 0 just recycles emission, rootnet
-        0 => Ok(()),
-        // 1 allocates 100% of emission to treasury
-        1 => run_treasury_consensus::<T>(netuid, emission_to_drain),
-        // runs linear consensus
-        2 => run_linear_consensus::<T>(netuid, emission_to_drain),
-        // other, normal subnets
-        _ => run_yuma_consensus::<T>(netuid, emission_to_drain),
+    with_storage_layer(|| {
+        let consensus_type = SubnetConsensusType::<T>::get(netuid);
+        match consensus_type {
+            SubnetConsensus::Root => Ok(()),
+            SubnetConsensus::Treasury => run_treasury_consensus::<T>(netuid, emission_to_drain),
+            SubnetConsensus::Linear => run_linear_consensus::<T>(netuid, emission_to_drain),
+            SubnetConsensus::Yuma => run_yuma_consensus::<T>(netuid, emission_to_drain),
+        }
     })
 }
-
 /// Runs the linear consensus algorithm for subnet 0.
 ///
 /// # Arguments
@@ -266,11 +264,10 @@ impl<T: Config> Pallet<T> {
     /// or None if there are no subnets.
     pub fn get_lowest_emission_netuid() -> Option<u16> {
         SubnetEmission::<T>::iter()
-            .filter(|(netuid, _)| pallet_subspace::N::<T>::get(netuid) > 0)
+            .filter(|(netuid, _)| Self::can_remove_subnet(*netuid))
             .min_by_key(|(_, emission)| *emission)
             .map(|(netuid, _)| netuid)
     }
-
     /// Removes the emission storage for a given subnet.
     ///
     /// # Arguments
@@ -288,5 +285,9 @@ impl<T: Config> Pallet<T> {
     /// * `emission` - The emission value to set for the subnet.
     pub fn set_subnet_emission_storage(netuid: u16, emission: u64) {
         SubnetEmission::<T>::insert(netuid, emission);
+    }
+
+    pub fn can_remove_subnet(netuid: u16) -> bool {
+        matches!(SubnetConsensusType::<T>::get(netuid), SubnetConsensus::Yuma)
     }
 }

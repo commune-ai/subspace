@@ -235,6 +235,9 @@ impl<T: Config> Pallet<T> {
             return 0;
         }
 
+        if !T::can_remove_subnet(netuid) {
+            return 0;
+        }
         // TODO:
         // If the key is only present on the subnet, it is getting deregistered from.
         // Then we want to unstake, otherwise we don't do that.

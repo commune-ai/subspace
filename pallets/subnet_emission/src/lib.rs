@@ -1,6 +1,9 @@
+#![allow(non_snake_case)]
 #![cfg_attr(not(feature = "std"), no_std)]
 
 pub use pallet::*;
+use parity_scale_codec::{Decode, Encode, MaxEncodedLen};
+use scale_info::TypeInfo;
 use sp_std::collections::btree_map::BTreeMap;
 // ! Pallet that handles the emisson distribution amongs subnets
 
@@ -78,8 +81,28 @@ pub mod pallet {
     #[pallet::storage]
     pub type PendingEmission<T> = StorageMap<_, Identity, u16, u64, ValueQuery>;
 
+    #[derive(Clone, Copy, Debug, PartialEq, Eq, TypeInfo, Decode, Encode, MaxEncodedLen)]
+    pub enum SubnetConsensus {
+        // Default
+        Yuma,
+        // System
+        Linear,
+        Treasury,
+        // Pricing
+        Root,
+    }
+
     #[pallet::storage]
     pub type SubnetEmission<T> = StorageMap<_, Identity, u16, u64, ValueQuery>;
+
+    #[pallet::type_value]
+    pub fn DefaultSubnetConsensus<T: Config>() -> SubnetConsensus {
+        SubnetConsensus::Yuma
+    }
+
+    #[pallet::storage]
+    pub type SubnetConsensusType<T> =
+        StorageMap<_, Identity, u16, SubnetConsensus, ValueQuery, DefaultSubnetConsensus<T>>;
 
     type BalanceOf<T> =
         <<T as Config>::Currency as Currency<<T as frame_system::Config>::AccountId>>::Balance;

@@ -6,4 +6,6 @@ pub trait SubnetEmissionApi {
     fn remove_subnet_emission_storage(netuid: u16);
 
     fn set_subnet_emission_storage(netuid: u16, emission: u64);
+
+    fn can_remove_subnet(netuid: u16) -> bool;
 }
