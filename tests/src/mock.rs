@@ -150,6 +150,10 @@ impl SubnetEmissionApi for Test {
     fn set_subnet_emission_storage(subnet_id: u16, emission: u64) {
         pallet_subnet_emission::Pallet::<Test>::set_subnet_emission_storage(subnet_id, emission)
     }
+
+    fn can_remove_subnet(netuid: u16) -> bool {
+        pallet_subnet_emission::Pallet::<Test>::can_remove_subnet(netuid)
+    }
 }
 
 impl pallet_subnet_emission::Config for Test {

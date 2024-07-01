@@ -832,6 +832,10 @@ impl pallet_subnet_emission_api::SubnetEmissionApi for Runtime {
     fn set_subnet_emission_storage(netuid: u16, emission: u64) {
         SubnetEmissionModule::set_subnet_emission_storage(netuid, emission)
     }
+
+    fn can_remove_subnet(netuid: u16) -> bool {
+        SubnetEmissionModule::can_remove_subnet(netuid)
+    }
 }
 
 impl pallet_governance_api::GovernanceApi<<Runtime as frame_system::Config>::AccountId>
