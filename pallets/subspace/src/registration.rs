@@ -11,7 +11,6 @@ impl<T: Config> Pallet<T> {
     // TODO:
     // make registration cost for rootnet (s0) to 0
     // Used on extrinsics, can panic
-    #[allow(clippy::arithmetic_side_effects)]
     pub fn do_register(
         origin: T::RuntimeOrigin,
         network_name: Vec<u8>,
@@ -136,7 +135,7 @@ impl<T: Config> Pallet<T> {
         Self::add_rootnet_validator(netuid, uid)?;
 
         // --- 10. Increment the number of registrations.
-        RegistrationsPerBlock::<T>::mutate(|val: &mut u16| *val += 1);
+        RegistrationsPerBlock::<T>::mutate(|val: &mut u16| *val = val.saturating_add(1));
         RegistrationsThisInterval::<T>::mutate(netuid, |registrations| {
             *registrations = registrations.saturating_add(1);
         });

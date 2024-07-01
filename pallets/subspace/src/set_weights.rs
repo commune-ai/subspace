@@ -9,8 +9,6 @@ impl<T: Config> Pallet<T> {
         items.iter().any(|item| !seen.insert(item))
     }
 
-    // Outside of the on_initalize hook, it's ok for this code to panic.
-    #[allow(clippy::arithmetic_side_effects, clippy::indexing_slicing)]
     pub fn do_set_weights(
         origin: T::RuntimeOrigin,
         netuid: u16,
@@ -83,7 +81,9 @@ impl<T: Config> Pallet<T> {
 
         // --- 11. Check if the stake per weight is greater than the required minimum stake.
         let min_stake_per_weight: u64 = MinWeightStake::<T>::get();
-        let min_stake_for_weights: u64 = min_stake_per_weight * uids.len() as u64;
+        let min_stake_for_weights: u64 = min_stake_per_weight
+            .checked_mul(uids.len() as u64)
+            .ok_or(Error::<T>::ExtrinsicPanicked)?;
         ensure!(
             stake >= min_stake_for_weights,
             Error::<T>::NotEnoughStakePerWeight
@@ -136,7 +136,6 @@ impl<T: Config> Pallet<T> {
     }
 
     /// normalizes the passed positive integer weights so that they sum to u16 max value inplace.
-    #[allow(clippy::arithmetic_side_effects)]
     pub fn normalize_weights(weights: Vec<u16>) -> Vec<u16> {
         let Some(sum) = NonZeroU64::new(weights.iter().map(|&x| x as u64).sum()) else {
             return weights;
@@ -144,7 +143,7 @@ impl<T: Config> Pallet<T> {
 
         weights
             .into_iter()
-            .map(|x| ((x as u64 * u16::MAX as u64) / sum) as u16)
+            .map(|x| ((x as u64).saturating_mul(u16::MAX as u64) / sum) as u16)
             .collect()
     }
 }

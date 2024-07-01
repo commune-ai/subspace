@@ -1,8 +1,6 @@
 use crate::EmissionError;
 use core::marker::PhantomData;
 // use frame_support::{pallet_prelude::Weight, weights::RuntimeDbWeight};
-// TODO:
-// Rename the pallet to pallet subspace
 use pallet_subspace::{
     math::*, Config, Dividends, Emission, Founder, GlobalParams, Incentive, IncentiveRatio,
     LastUpdate, Pallet as PalletSubspace, Stake, SubnetParams, Trust, TrustRatio, Vec, Weights, N,
@@ -156,11 +154,11 @@ impl<T: Config> LinearEpoch<T> {
         Incentive::<T>::insert(self.netuid, cloned_incentive);
 
         //  BONDS
-        let bonds: Vec<Vec<(u16, I32F32)>> = Self::compute_bonds_delta(&weights, &stake);
+        let bonds: Vec<Vec<(u16, I32F32)>> = Self::compute_bonds_delta(&weights, &stake)?;
 
         // DIVIDENDS
         let (fixed_dividends, dividends) =
-            Self::compute_dividends(&bonds, &incentive, &uid_key_tuples);
+            Self::compute_dividends(&bonds, &incentive, &uid_key_tuples)?;
         Dividends::<T>::insert(self.netuid, fixed_dividends);
 
         // EMISSION
@@ -318,26 +316,36 @@ impl<T: Config> LinearEpoch<T> {
         Emission::<T>::insert(netuid, emission);
     }
 
-    // TODO: disable this later, this function has proven to be correct
-    #[allow(clippy::indexing_slicing)]
-    #[allow(clippy::arithmetic_side_effects)]
     fn compute_dividends(
         bonds: &[Vec<(u16, I32F32)>],
         incentive: &[I32F32],
         uid_key_tuples: &[(u16, T::AccountId)],
-    ) -> (Vec<u16>, Vec<I32F32>) {
+    ) -> Result<(Vec<u16>, Vec<I32F32>), EmissionError> {
         let n = incentive.len();
         let mut dividends: Vec<I32F32> = vec![I32F32::from_num(0.0); n];
 
         for (i, sparse_row) in bonds.iter().enumerate() {
             for (j, value) in sparse_row.iter() {
-                dividends[i] += incentive[*j as usize] * *value;
+                let incentive_i = match incentive.get(*j as usize) {
+                    Some(value) => *value,
+                    None => {
+                        return Err(EmissionError::Other(
+                            "linear step panicked in dividends calculation",
+                        ))
+                    }
+                };
+
+                if let Some(target) = dividends.get_mut(i) {
+                    *target = target.saturating_add(value.saturating_mul(incentive_i))
+                };
             }
         }
 
         if dividends.iter().all(|&x| x == I32F32::from_num(0.0)) {
             for (uid_i, _) in uid_key_tuples.iter() {
-                dividends[*uid_i as usize] = I32F32::from_num(1.0);
+                if let Some(target) = dividends.get_mut(*uid_i as usize) {
+                    *target = I32F32::from_num(1.0);
+                }
             }
         }
 
@@ -346,38 +354,44 @@ impl<T: Config> LinearEpoch<T> {
         let fixed_dividends: Vec<u16> =
             dividends.iter().map(|xi| fixed_proportion_to_u16(*xi)).collect();
 
-        (fixed_dividends, dividends)
+        Ok((fixed_dividends, dividends))
     }
 
-    // Disable this later, this function has proven to be correct
-    #[allow(clippy::arithmetic_side_effects)]
-    #[allow(clippy::indexing_slicing)]
     fn compute_bonds_delta(
         weights: &[Vec<(u16, I32F32)>],
         stake: &[I32F32],
-    ) -> Vec<Vec<(u16, I32F32)>> {
+    ) -> Result<Vec<Vec<(u16, I32F32)>>, EmissionError> {
         let n = weights.len();
         let mut bonds: Vec<Vec<(u16, I32F32)>> = weights.to_vec();
         let mut col_sum: Vec<I32F32> = vec![I32F32::from_num(0.0); n];
 
         for (i, sparse_row) in bonds.iter_mut().enumerate() {
             for (j, value) in sparse_row.iter_mut() {
-                *value *= stake[i];
-                col_sum[*j as usize] += *value;
+                *value = match stake.get(i) {
+                    Some(v) => value.saturating_mul(*v),
+                    None => {
+                        return Err(EmissionError::Other(
+                            "linear step panicked in bonds calculation",
+                        ))
+                    }
+                };
+                if let Some(col_sum_j) = col_sum.get_mut(*j as usize) {
+                    *col_sum_j = col_sum_j.saturating_add(*value);
+                }
             }
         }
 
         for sparse_row in bonds.iter_mut() {
             for (j, value) in sparse_row.iter_mut() {
-                if col_sum.get(*j as usize).unwrap_or(&I32F32::from_num(0.0))
-                    > &I32F32::from_num(0.0)
-                {
-                    *value /= col_sum.get(*j as usize).unwrap_or(&I32F32::from_num(0.0));
+                let zero = I32F32::from_num(0.0);
+                let i = col_sum.get(*j as usize).unwrap_or(&zero);
+                if i > &I32F32::from_num(0.0) {
+                    *value = value.saturating_div(*i);
                 }
             }
         }
 
-        bonds
+        Ok(bonds)
     }
 
     fn compute_trust(

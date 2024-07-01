@@ -3,7 +3,7 @@ use core::marker::PhantomData;
 use frame_support::{ensure, DebugNoBound};
 use pallet_subspace::{
     math::*, Active, Bonds, BondsMovingAverage, Config, Consensus, Dividends, Emission, Founder,
-    Incentive, IncentiveRatio, Kappa, Keys, LastUpdate, MaxAllowedValidators, MaxWeightAge,
+    Incentive, Kappa, Keys, LastUpdate, MaxAllowedValidators, MaxWeightAge,
     Pallet as PalletSubspace, PruningScores, Rank, Stake, Trust, Uids, ValidatorPermits,
     ValidatorTrust, Vec, Weights, N,
 };

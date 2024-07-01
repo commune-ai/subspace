@@ -4,7 +4,7 @@ use frame_support::{dispatch::DispatchResult, ensure, LOG_TARGET};
 use frame_system::{self as system, ensure_none, pallet_prelude::BlockNumberFor};
 use pallet_subspace::{Pallet as PalletSubspace, Stake};
 use sp_core::{keccak_256, sha2_256, Get, H256, U256};
-use sp_runtime::{traits::StaticLookup, MultiAddress};
+use sp_runtime::{traits::StaticLookup, DispatchError, MultiAddress};
 
 pub use pallet::*;
 use parity_scale_codec::Encode;
@@ -133,7 +133,6 @@ pub mod pallet {
 
 impl<T: Config> Pallet<T> {
     // Make sure this can never panic
-    #[allow(clippy::arithmetic_side_effects)]
     pub fn do_faucet(
         origin: T::RuntimeOrigin,
         block_number: u64,
@@ -162,7 +161,7 @@ impl<T: Config> Pallet<T> {
             Error::<T>::InvalidWorkBlock
         );
         ensure!(
-            current_block_number - block_number < 3,
+            current_block_number.saturating_sub(block_number) < 3,
             Error::<T>::InvalidWorkBlock
         );
 
@@ -176,7 +175,7 @@ impl<T: Config> Pallet<T> {
 
         // --- 4. Check Work is the product of the nonce, the block number, and hotkey. Add this as
         // used work.
-        let seal: H256 = Self::create_seal_hash(block_number, nonce, &key);
+        let seal: H256 = Self::create_seal_hash(block_number, nonce, &key)?;
         ensure!(seal == work_hash, Error::<T>::InvalidSeal);
 
         // --- 5. Add Balance via faucet.
@@ -192,28 +191,36 @@ impl<T: Config> Pallet<T> {
         Ok(())
     }
 
-    #[allow(clippy::indexing_slicing)]
-    pub fn hash_block_and_key(block_hash_bytes: &[u8; 32], key: &T::AccountId) -> H256 {
+    pub fn hash_block_and_key(
+        block_hash_bytes: &[u8; 32],
+        key: &T::AccountId,
+    ) -> Result<H256, sp_runtime::DispatchError> {
         // Get the public key from the account id.
         let key_pubkey: MultiAddress<_, ()> = MultiAddress::Id(key.clone());
         let binding = key_pubkey.encode();
         // Skip extra 0th byte.
-        let key_bytes: &[u8] = &binding[1..];
+        let key_bytes = binding.get(1..).ok_or(pallet_subspace::Error::<T>::ExtrinsicPanicked)?;
         let mut full_bytes = [0u8; 64];
         let (first_half, second_half) = full_bytes.split_at_mut(32);
         first_half.copy_from_slice(block_hash_bytes);
         // Safe because Substrate guarantees that all AccountId types are at least 32 bytes
-        second_half.copy_from_slice(&key_bytes[..32]);
+        second_half.copy_from_slice(
+            key_bytes.get(..32).ok_or(pallet_subspace::Error::<T>::ExtrinsicPanicked)?,
+        );
         let keccak_256_seal_hash_vec: [u8; 32] = keccak_256(&full_bytes[..]);
 
-        H256::from_slice(&keccak_256_seal_hash_vec)
+        Ok(H256::from_slice(&keccak_256_seal_hash_vec))
     }
 
-    pub fn create_seal_hash(block_number_u64: u64, nonce_u64: u64, hotkey: &T::AccountId) -> H256 {
+    pub fn create_seal_hash(
+        block_number_u64: u64,
+        nonce_u64: u64,
+        hotkey: &T::AccountId,
+    ) -> Result<H256, DispatchError> {
         let nonce = nonce_u64.to_le_bytes();
         let block_hash_at_number: H256 = Self::get_block_hash_from_u64(block_number_u64);
         let block_hash_bytes: &[u8; 32] = block_hash_at_number.as_fixed_bytes();
-        let binding = Self::hash_block_and_key(block_hash_bytes, hotkey);
+        let binding = Self::hash_block_and_key(block_hash_bytes, hotkey)?;
         let block_and_hotkey_hash_bytes: &[u8; 32] = binding.as_fixed_bytes();
 
         let mut full_bytes = [0u8; 40];
@@ -228,7 +235,7 @@ impl<T: Config> Pallet<T> {
             "hotkey:{hotkey:?} \nblock_number: {block_number_u64:?}, \nnonce_u64: {nonce_u64:?}, \nblock_hash: {block_hash_at_number:?}, \nfull_bytes: {full_bytes:?}, \nsha256_seal_hash_vec: {sha256_seal_hash_vec:?},  \nkeccak_256_seal_hash_vec: {keccak_256_seal_hash_vec:?}, \nseal_hash: {seal_hash:?}",
         );
 
-        seal_hash
+        Ok(seal_hash)
     }
 
     pub fn get_block_hash_from_u64(block_number: u64) -> H256 {
