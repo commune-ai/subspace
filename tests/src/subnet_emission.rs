@@ -795,6 +795,8 @@ fn test_10_graph() {
     }
 
     new_test_ext().execute_with(|| {
+        max_subnet_registrations_per_interval(10);
+
         UnitEmission::<Test>::put(23148148148);
         zero_min_burn();
         FloorFounderShare::<Test>::put(0);
@@ -958,6 +960,8 @@ fn yuma_weights_older_than_max_age_are_discarded() {
 #[test]
 fn test_emission_exploit() {
     new_test_ext().execute_with(|| {
+        max_subnet_registrations_per_interval(10);
+
         const SUBNET_TEMPO: u16 = 25;
         // Register the general subnet.
         let netuid: u16 = 0;

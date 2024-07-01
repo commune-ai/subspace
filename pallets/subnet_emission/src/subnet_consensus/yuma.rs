@@ -18,8 +18,6 @@ pub type EmissionMap<T> = BTreeMap<ModuleKey<T>, BTreeMap<AccountKey<T>, u64>>;
 pub struct YumaEpoch<T: Config> {
     /// The amount of modules on the subnet
     module_count: u16,
-    // The distribution proportion between the miners and validators.
-    incentive_ratio: u16,
     /// The UID of the subnet
     netuid: u16,
     /// Consensus majority ratio, e.g. 51%.
@@ -52,7 +50,6 @@ impl<T: Config> YumaEpoch<T> {
 
         Self {
             module_count: N::<T>::get(netuid),
-            incentive_ratio: IncentiveRatio::<T>::get(netuid),
             netuid,
             kappa: Pallet::<T>::get_float_kappa(),
 
@@ -435,10 +432,6 @@ impl<T: Config> YumaEpoch<T> {
         let mut bonds = Pallet::<T>::get_bonds_sparse(self.netuid)?;
         log::trace!("  original bonds: {bonds:?}");
 
-        // // Save to debug storage
-        // TempDebugWeights::<T>::insert(self.netuid, weights.as_ref().clone());
-        // TempDebugStake::<T>::insert(self.netuid, active_stake.as_ref().clone());
-
         // Remove bonds referring to deregistered modules.
         bonds = vec_mask_sparse_matrix(
             &bonds,
@@ -549,35 +542,16 @@ impl<T: Config> YumaEpoch<T> {
         let to_be_emitted = I96F32::from_num(self.to_be_emitted);
         log::trace!("  to be emitted: {to_be_emitted}");
 
-        let incentive_ratio = I96F32::from_num(self.incentive_ratio)
-            .checked_div(I96F32::from_num(100))
-            .unwrap_or(I96F32::from_num(0.5));
-        log::trace!("  incentive ratio: {incentive_ratio}");
-        let dividend_ratio = I96F32::from_num(1.0).saturating_sub(incentive_ratio);
-        log::trace!("  dividend ratio: {dividend_ratio}");
-
         let miner_emissions: Vec<u64> = normalized_miner_emission
             .iter()
-            .map(|&se| {
-                I96F32::from_num(se)
-                    .checked_mul(to_be_emitted)
-                    .unwrap_or_default()
-                    .checked_mul(incentive_ratio)
-                    .unwrap_or_default()
-            })
+            .map(|&se| I96F32::from_num(se).checked_mul(to_be_emitted).unwrap_or_default())
             .map(I96F32::to_num)
             .collect();
         log::trace!("  miners emissions: {miner_emissions:?}");
 
         let validator_emissions: Vec<u64> = normalized_validator_emission
             .iter()
-            .map(|&ve| {
-                I96F32::from_num(ve)
-                    .checked_mul(to_be_emitted)
-                    .unwrap_or_default()
-                    .checked_mul(dividend_ratio)
-                    .unwrap_or_default()
-            })
+            .map(|&ve| I96F32::from_num(ve).checked_mul(to_be_emitted).unwrap_or_default())
             .map(I96F32::to_num)
             .collect();
         log::trace!("  validator_emissions: {validator_emissions:?}");
