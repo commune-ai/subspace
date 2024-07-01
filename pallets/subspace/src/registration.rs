@@ -212,7 +212,7 @@ impl<T: Config> Pallet<T> {
             .min_by_key(|&(_, _, block_at_registration)| block_at_registration)
             .or_else(|| {
                 uids.iter().min_by(|&(_, score_a, block_a), &(_, score_b, block_b)| {
-                    score_a.cmp(&score_b).then_with(|| block_a.cmp(&block_b))
+                    score_a.cmp(score_b).then_with(|| block_a.cmp(block_b))
                 })
             })
             .map(|(uid, _, _)| *uid)
