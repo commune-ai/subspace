@@ -180,44 +180,43 @@ impl<T: Config> Pallet<T> {
     //
     // In case the this lowest uid check is called by the global deregistration call
     // we ignore the immunity period and deregister the lowest uid (No matter the immunity period)
-    
+
     // TODO:
-    // Can this be optimized ? 
+    // Can this be optimized ?
     pub fn get_lowest_uid(netuid: u16, ignore_immunity: bool) -> Option<u16> {
         let current_block = Self::get_current_block_number();
         let immunity_period = ImmunityPeriod::<T>::get(netuid) as u64;
         let emission_vec = Emission::<T>::get(netuid);
         let min_immunity_stake = MinImmunityStake::<T>::get(netuid);
 
-        let process_uids = || {
-            RegistrationBlock::<T>::iter_prefix(netuid)
-                .map(|(uid, block_at_registration)| {
-                    let pruning_score = emission_vec.get(uid as usize).copied().unwrap_or(0);
-                    (uid, pruning_score, block_at_registration)
-                })
-                .filter(move |&(uid, _, block_at_registration)| {
-                    if ignore_immunity
-                        || current_block.saturating_sub(block_at_registration) >= immunity_period
-                    {
-                        let module_key = Keys::<T>::get(netuid, uid);
-                        Stake::<T>::get(module_key) < min_immunity_stake
-                    } else {
-                        false
-                    }
-                })
-        };
+        let uids: Vec<_> = RegistrationBlock::<T>::iter_prefix(netuid)
+            .filter(move |&(uid, block_at_registration)| {
+                if ignore_immunity
+                    || current_block.saturating_sub(block_at_registration) >= immunity_period
+                {
+                    let module_key = Keys::<T>::get(netuid, uid);
+                    Stake::<T>::get(module_key) < min_immunity_stake
+                } else {
+                    false
+                }
+            })
+            .map(|(uid, block_at_registration)| {
+                let pruning_score = emission_vec.get(uid as usize).copied().unwrap_or(0);
+                (uid, pruning_score, block_at_registration)
+            })
+            .collect();
 
         // Age is secondary to the emission.
-        process_uids()
+        uids.iter()
             // This is usual scenario, that is why we check for oldest 0 emission to return early
-            .filter(|&(_, pruning_score, _)| pruning_score == 0)
+            .filter(|&(_, pruning_score, _)| *pruning_score == 0)
             .min_by_key(|&(_, _, block_at_registration)| block_at_registration)
             .or_else(|| {
-                process_uids().min_by(|&(_, score_a, block_a), &(_, score_b, block_b)| {
+                uids.iter().min_by(|&(_, score_a, block_a), &(_, score_b, block_b)| {
                     score_a.cmp(&score_b).then_with(|| block_a.cmp(&block_b))
                 })
             })
-            .map(|(uid, _, _)| uid)
+            .map(|(uid, _, _)| *uid)
     }
 
     pub fn add_subnet_from_registration(

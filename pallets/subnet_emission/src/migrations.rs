@@ -60,6 +60,11 @@ impl<T: Config + pallet_subspace::Config> OnRuntimeUpgrade for InitialMigration<
             crate::PendingEmission::<T>::iter().collect::<Vec<_>>()
         );
 
+        for subnet_id in pallet_subspace::N::<T>::iter_keys().filter(|n| *n != 0) {
+            SubnetConsensusType::<T>::set(subnet_id, Some(SubnetConsensus::Yuma));
+        }
+        SubnetConsensusType::<T>::set(0, Some(SubnetConsensus::Root));
+
         Weight::zero()
     }
 }

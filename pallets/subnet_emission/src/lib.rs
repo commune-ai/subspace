@@ -95,14 +95,8 @@ pub mod pallet {
     #[pallet::storage]
     pub type SubnetEmission<T> = StorageMap<_, Identity, u16, u64, ValueQuery>;
 
-    #[pallet::type_value]
-    pub fn DefaultSubnetConsensus<T: Config>() -> SubnetConsensus {
-        SubnetConsensus::Yuma
-    }
-
     #[pallet::storage]
-    pub type SubnetConsensusType<T> =
-        StorageMap<_, Identity, u16, SubnetConsensus, ValueQuery, DefaultSubnetConsensus<T>>;
+    pub type SubnetConsensusType<T> = StorageMap<_, Identity, u16, SubnetConsensus>;
 
     type BalanceOf<T> =
         <<T as Config>::Currency as Currency<<T as frame_system::Config>::AccountId>>::Balance;

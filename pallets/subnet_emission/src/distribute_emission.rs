@@ -109,7 +109,10 @@ fn run_consensus_algorithm<T: Config>(
     emission_to_drain: u64,
 ) -> Result<(), &'static str> {
     with_storage_layer(|| {
-        let consensus_type = SubnetConsensusType::<T>::get(netuid);
+        let Some(consensus_type) = SubnetConsensusType::<T>::get(netuid) else {
+            return Ok(());
+        };
+
         match consensus_type {
             SubnetConsensus::Root => Ok(()),
             SubnetConsensus::Treasury => run_treasury_consensus::<T>(netuid, emission_to_drain),
@@ -288,6 +291,9 @@ impl<T: Config> Pallet<T> {
     }
 
     pub fn can_remove_subnet(netuid: u16) -> bool {
-        matches!(SubnetConsensusType::<T>::get(netuid), SubnetConsensus::Yuma)
+        matches!(
+            SubnetConsensusType::<T>::get(netuid),
+            Some(SubnetConsensus::Yuma)
+        )
     }
 }

@@ -6,6 +6,7 @@ use pallet_subspace::{global::BurnConfiguration, *};
 fn module_registration_burn_increases() {
     new_test_ext().execute_with(|| {
         max_subnet_registrations_per_interval(3);
+
         let min_burn = to_nano(10);
         let max_burn = to_nano(1000);
 
