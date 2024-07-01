@@ -3306,12 +3306,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "ident_case"
-version = "1.0.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b9e0384b61958566e926dc50660321d12159025e767c18e043daf26b70104c39"
-
-[[package]]
 name = "idna"
 version = "0.2.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -4704,19 +4698,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "ndarray"
-version = "0.15.6"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "adb12d4e967ec485a5f71c6311fe28158e9d6f4bc4a447b474184d0f91a8fa32"
-dependencies = [
- "matrixmultiply",
- "num-complex",
- "num-integer",
- "num-traits",
- "rawpointer",
-]
-
-[[package]]
 name = "netlink-packet-core"
 version = "0.4.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -5331,7 +5312,6 @@ dependencies = [
  "frame-support",
  "frame-system",
  "log",
- "ndarray",
  "pallet-balances",
  "pallet-governance-api",
  "pallet-subnet-emission-api",
@@ -5341,10 +5321,6 @@ dependencies = [
  "parity-util-mem",
  "rand",
  "scale-info",
- "serde",
- "serde-tuple-vec-map",
- "serde_bytes",
- "serde_with",
  "sp-arithmetic",
  "sp-core",
  "sp-io",
@@ -7980,15 +7956,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "780f1cebed1629e4753a1a38a3c72d30b97ec044f0aef68cb26650a3c5cf363c"
 dependencies = [
  "serde_derive",
-]
-
-[[package]]
-name = "serde-tuple-vec-map"
-version = "1.0.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a04d0ebe0de77d7d445bb729a895dcb0a288854b267ca85f030ce51cdc578c82"
-dependencies = [
- "serde",
 ]
 
 [[package]]
