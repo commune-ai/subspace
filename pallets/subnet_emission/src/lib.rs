@@ -23,8 +23,6 @@ pub mod subnet_consensus {
     pub mod yuma;
 }
 
-pub use distribute_emission::blocks_until_next_epoch;
-
 // TODO:
 // move some import outside of the macro
 #[frame_support::pallet]
@@ -163,7 +161,10 @@ pub mod pallet {
     {
             let total_free_balance = Self::get_total_free_balance();
             let total_staked_balance = TotalStake::<T>::get();
-            total_free_balance.try_into().unwrap_or(0).saturating_add(total_staked_balance)
+            total_free_balance
+                .try_into()
+                .unwrap_or_default()
+                .saturating_add(total_staked_balance)
         }
 
         // Halving Logic / Emission distributed per block

@@ -389,7 +389,7 @@ pub fn get_stake_for_uid(netuid: u16, module_uid: u16) -> u64 {
 
 #[allow(dead_code)]
 pub fn get_emission_for_key(netuid: u16, key: &AccountId) -> u64 {
-    let uid = SubspaceMod::get_uid_for_key(netuid, key);
+    let uid = SubspaceMod::get_uid_for_key(netuid, key).unwrap();
     SubspaceMod::get_emission_for_uid(netuid, uid)
 }
 

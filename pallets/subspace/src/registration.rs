@@ -128,7 +128,7 @@ impl<T: Config> Pallet<T> {
         // Make sure that the registration went through.
         ensure!(
             Self::key_registered(netuid, &module_key),
-            Error::<T>::NotRegistered
+            Error::<T>::ModuleDoesNotExist
         );
 
         // Add validator permit if rootnet
@@ -150,12 +150,9 @@ impl<T: Config> Pallet<T> {
         // --- 1. Check that the caller has signed the transaction.
         let key = ensure_signed(origin)?;
 
-        ensure!(
-            Self::key_registered(netuid, &key),
-            Error::<T>::NotRegistered
-        );
-
-        let uid: u16 = Self::get_uid_for_key(netuid, &key);
+        let Some(uid) = Self::get_uid_for_key(netuid, &key) else {
+            return Err(Error::<T>::ModuleDoesNotExist.into());
+        };
 
         Self::remove_module(netuid, uid, true)?;
         ensure!(
@@ -193,14 +190,19 @@ impl<T: Config> Pallet<T> {
                 if ignore_immunity
                     || current_block.saturating_sub(block_at_registration) >= immunity_period
                 {
-                    let module_key = Keys::<T>::get(netuid, uid);
+                    let Some(module_key) = Keys::<T>::get(netuid, uid) else {
+                        log::error!(
+                            "module {uid} does not exist in keys but exists in registration block"
+                        );
+                        return false;
+                    };
                     Stake::<T>::get(module_key) < min_immunity_stake
                 } else {
                     false
                 }
             })
             .map(|(uid, block_at_registration)| {
-                let pruning_score = emission_vec.get(uid as usize).copied().unwrap_or(0);
+                let pruning_score = emission_vec.get(uid as usize).copied().unwrap_or_default();
                 (uid, pruning_score, block_at_registration)
             })
             .collect();
@@ -293,14 +295,19 @@ impl<T: Config> Pallet<T> {
             let permits = ValidatorPermits::<T>::get(ROOTNET_ID);
             let (lower_stake_validator, lower_stake) = Keys::<T>::iter_prefix(ROOTNET_ID)
                 .filter(|(uid, _)| permits.get(*uid as usize).is_some_and(|b| *b))
-                .map(|(_, key)| (key.clone(), Stake::<T>::get(key)))
+                .map(|(_, key)| {
+                    let stake = Stake::<T>::get(&key);
+                    (key, stake)
+                })
                 .min_by_key(|(_, stake)| *stake)
                 .ok_or(Error::<T>::ArithmeticError)?;
 
             ensure!(stake >= lower_stake, Error::<T>::NotEnoughStakeToRegister);
 
             let lower_stake_validator_uid =
-                Self::get_uid_for_key(ROOTNET_ID, &lower_stake_validator);
+                Self::get_uid_for_key(ROOTNET_ID, &lower_stake_validator).ok_or(
+                    "selected lowest stake validator does not exist, this is really concerning",
+                )?;
 
             Self::remove_module(ROOTNET_ID, lower_stake_validator_uid, true)?
         }
@@ -311,7 +318,7 @@ impl<T: Config> Pallet<T> {
         if netuid == ROOTNET_ID {
             let mut validator_permits = ValidatorPermits::<T>::get(ROOTNET_ID);
             if validator_permits.len() <= module_uid as usize {
-                return Err(Error::<T>::NotRegistered.into());
+                return Err(Error::<T>::ModuleDoesNotExist.into());
             }
 
             if let Some(permit) = validator_permits.get_mut(module_uid as usize) {

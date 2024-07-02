@@ -12,7 +12,7 @@ pub fn inplace_row_normalize_64(x: &mut [Vec<I64F64>]) {
         let row_sum: I64F64 = row.iter().sum();
         if row_sum > I64F64::from_num(0.0_f64) {
             row.iter_mut().for_each(|x_ij: &mut I64F64| {
-                *x_ij = x_ij.checked_div(row_sum).unwrap_or(I64F64::from_num(0));
+                *x_ij = x_ij.checked_div(row_sum).unwrap_or_default();
             });
         }
     }
@@ -46,7 +46,7 @@ pub fn matmul_64(matrix: &[Vec<I64F64>], vector: &[I64F64]) -> Vec<I64F64> {
                     // Compute trust scores: t_j = SUM(i) w_ij * s_i
                     // result_j = SUM(i) vector_i * matrix_ij
                     acc_val
-                        .checked_add(vec_val.checked_mul(*m_val).unwrap_or(I64F64::from_num(0)))
+                        .checked_add(vec_val.checked_mul(*m_val).unwrap_or_default())
                         .unwrap_or(acc_val)
                 })
                 .collect()

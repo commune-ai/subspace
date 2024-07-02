@@ -30,11 +30,10 @@ impl<T: Config> Pallet<T> {
             Error::<T>::NetworkDoesNotExist
         );
 
-        // --- 4. Check to see if the key is registered to the passed network.
-        ensure!(
-            Self::key_registered(netuid, &key),
-            Error::<T>::NotRegistered
-        );
+        // --- 4. Get the module uid of associated key on network netuid.
+        let Some(uid) = Self::get_uid_for_key(netuid, &key) else {
+            return Err(Error::<T>::ModuleDoesNotExist.into());
+        };
 
         let max_set_weights =
             MaximumSetWeightCallsPerEpoch::<T>::get(netuid).filter(|max| *max > 0);
@@ -50,9 +49,7 @@ impl<T: Config> Pallet<T> {
             );
         }
 
-        // --- 5. Get the module uid of associated key on network netuid.
-        let uid: u16 = Self::get_uid_for_key(netuid, &key);
-
+        // --- 5. If subnet is the rootnet, check daily weight limit.
         Self::check_rootnet_daily_limit(netuid, uid)?;
 
         // --- 6. Ensure the passed uids contain no duplicates.
@@ -145,5 +142,17 @@ impl<T: Config> Pallet<T> {
             .into_iter()
             .map(|x| ((x as u64).saturating_mul(u16::MAX as u64) / sum) as u16)
             .collect()
+    }
+
+    /// Clears the set weight rate limiter for a given subnet.
+    ///
+    /// # Arguments
+    ///
+    /// * `netuid` - The ID of the subnet.
+    ///
+    /// This function removes all entries from the SetWeightCallsPerEpoch storage
+    /// for the specified subnet.
+    pub fn clear_set_weight_rate_limiter(netuid: u16) {
+        let _ = SetWeightCallsPerEpoch::<T>::clear_prefix(netuid, u32::MAX, None);
     }
 }

@@ -61,7 +61,7 @@ impl<T: Config> DemoPricing<T> {
         }
 
         let num_netuids = priced_subnets.len() as u64;
-        let emission_per_netuid = self.to_be_emitted.checked_div(num_netuids).unwrap_or(0);
+        let emission_per_netuid = self.to_be_emitted.checked_div(num_netuids).unwrap_or_default();
 
         for emission in priced_subnets.values_mut() {
             *emission = emission_per_netuid;

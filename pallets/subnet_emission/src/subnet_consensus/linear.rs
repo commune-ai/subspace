@@ -94,7 +94,7 @@ impl<T: Config> LinearEpoch<T> {
             .map(|x| {
                 I64F64::from_num(*x)
                     .checked_div(I64F64::from_num(total_stake_u64))
-                    .unwrap_or(I64F64::from_num(0))
+                    .unwrap_or_default()
             })
             .collect();
 
@@ -126,7 +126,7 @@ impl<T: Config> LinearEpoch<T> {
         if trust_ratio > 0 {
             let trust_share: I32F32 = I32F32::from_num(trust_ratio)
                 .checked_div(I32F32::from_num(100))
-                .unwrap_or(I32F32::from_num(0));
+                .unwrap_or_default();
             let incentive_share: I32F32 = I32F32::from_num(1.0).saturating_sub(trust_share);
             let trust =
                 Self::compute_trust(&weights, &stake, &self.subnet_params, self.module_count);
@@ -183,7 +183,7 @@ impl<T: Config> LinearEpoch<T> {
     ) -> (Vec<I64F64>, Vec<I64F64>) {
         let incentive_ratio: I64F64 = I64F64::from_num(IncentiveRatio::<T>::get(netuid) as u64)
             .checked_div(I64F64::from_num(100))
-            .unwrap_or(I64F64::from_num(0));
+            .unwrap_or_default();
         let dividend_ratio: I64F64 = I64F64::from_num(1.0).saturating_sub(incentive_ratio);
 
         let incentive_emission_float: Vec<I64F64> = incentive
@@ -193,9 +193,9 @@ impl<T: Config> LinearEpoch<T> {
                 let token_emission_float = I64F64::from_num(token_emission);
                 x_float
                     .checked_mul(token_emission_float)
-                    .unwrap_or(I64F64::from_num(0))
+                    .unwrap_or_default()
                     .checked_mul(incentive_ratio)
-                    .unwrap_or(I64F64::from_num(0))
+                    .unwrap_or_default()
             })
             .collect();
 
@@ -206,9 +206,9 @@ impl<T: Config> LinearEpoch<T> {
                 let token_emission_float = I64F64::from_num(token_emission);
                 x_float
                     .checked_mul(token_emission_float)
-                    .unwrap_or(I64F64::from_num(0))
+                    .unwrap_or_default()
                     .checked_mul(dividend_ratio)
-                    .unwrap_or(I64F64::from_num(0))
+                    .unwrap_or_default()
             })
             .collect();
 
@@ -230,8 +230,10 @@ impl<T: Config> LinearEpoch<T> {
             dividends_emission_float.iter().map(|e| e.to_num::<u64>()).collect();
 
         if netuid != 0 {
-            let founder_uid = PalletSubspace::<T>::get_uid_for_key(netuid, founder_key);
-            if let Some(founder_incentive) = incentive_emission.get_mut(founder_uid as usize) {
+            if let Some(founder_incentive) =
+                PalletSubspace::<T>::get_uid_for_key(netuid, founder_key)
+                    .and_then(|founder_uid| incentive_emission.get_mut(founder_uid as usize))
+            {
                 *founder_incentive = founder_incentive.saturating_add(founder_emission);
             }
         }
@@ -264,7 +266,7 @@ impl<T: Config> LinearEpoch<T> {
                         I64F64::from_num(total_owner_dividends_emission)
                             .checked_mul(*delegate_ratio)
                             .map(|result| result.to_num::<u64>())
-                            .unwrap_or(0);
+                            .unwrap_or_default();
                     let to_module: u64 = delegation_fee.mul_floor(dividends_from_delegate);
                     let to_delegate: u64 = dividends_from_delegate.saturating_sub(to_module);
                     PalletSubspace::<T>::increase_stake(delegate_key, module_key, to_delegate);
@@ -454,7 +456,7 @@ impl<T: Config> LinearEpoch<T> {
             .get(uid_i as usize)
             .copied()
             .map(|last_update| current_block.saturating_sub(last_update))
-            .unwrap_or(0)
+            .unwrap_or_default()
     }
 
     #[allow(clippy::too_many_arguments)]
@@ -483,15 +485,15 @@ impl<T: Config> LinearEpoch<T> {
 
             let weight_f64 = I64F64::from_num(*weight_ij)
                 .checked_div(I64F64::from_num(u16::MAX))
-                .unwrap_or(I64F64::from_num(0));
+                .unwrap_or_default();
             let weight_stake = stake_f64
                 .get(uid_i as usize)
                 .copied()
-                .unwrap_or(I64F64::from_num(0))
+                .unwrap_or_default()
                 .checked_mul(weight_f64)
-                .unwrap_or(I64F64::from_num(0))
+                .unwrap_or_default()
                 .checked_mul(I64F64::from_num(total_stake_u64))
-                .unwrap_or(I64F64::from_num(0));
+                .unwrap_or_default();
             if weight_stake > min_weight_stake_f64 {
                 valid_weights.push((*uid_j, *weight_ij));
             } else {

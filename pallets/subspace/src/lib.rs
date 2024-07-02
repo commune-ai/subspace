@@ -454,8 +454,7 @@ pub mod pallet {
         T::AccountId::decode(&mut sp_runtime::traits::TrailingZeroInput::zeroes()).unwrap()
     }
     #[pallet::storage] // --- DMAP ( netuid, uid ) --> module_key
-    pub type Keys<T: Config> =
-        StorageDoubleMap<_, Identity, u16, Identity, u16, T::AccountId, ValueQuery, DefaultKey<T>>;
+    pub type Keys<T: Config> = StorageDoubleMap<_, Identity, u16, Identity, u16, T::AccountId>;
 
     #[pallet::storage] // --- DMAP ( netuid, uid ) --> module_name
     pub type Name<T: Config> =
@@ -547,13 +546,14 @@ pub mod pallet {
     // Errors inform users that something went wrong.
     #[pallet::error]
     pub enum Error<T> {
-        NetworkDoesNotExist, // --- Thrown when the network does not exist.
+        NetworkDoesNotExist,
+        ModuleDoesNotExist,
+
         NetworkIsImmuned,
         NotEnoughBalanceToRegisterSubnet,
-        NotRegistered, // module which does not exist in the active set.
         NotEnoughStakeToWithdraw, /* ---- Thrown when the caller requests removing more stake
-                        * then there exists in the staking account. See: fn
-                        * remove_stake. */
+                                   * then there exists in the staking account. See: fn
+                                   * remove_stake. */
         NotEnoughBalanceToStake, /*  ---- Thrown when the caller requests adding more stake
                                   * than there exists in the cold key account. See: fn
                                   * add_stake */
@@ -745,6 +745,14 @@ pub mod pallet {
             // Clears the root net weights daily quota
             Self::clear_rootnet_daily_weight_calls(block_number);
 
+            for netuid in N::<T>::iter_keys() {
+                if Self::blocks_until_next_epoch(netuid, block_number) > 0 {
+                    continue;
+                }
+
+                Self::clear_set_weight_rate_limiter(netuid);
+            }
+
             // TODO: fix later
             Weight::default()
         }
@@ -895,7 +903,7 @@ pub mod pallet {
             let key = ensure_signed(origin.clone())?;
             ensure!(
                 Self::is_registered(Some(netuid), &key),
-                Error::<T>::NotRegistered
+                Error::<T>::ModuleDoesNotExist
             );
 
             let params = Self::module_params(netuid, &key);

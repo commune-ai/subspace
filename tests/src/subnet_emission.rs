@@ -480,7 +480,10 @@ fn test_no_weights() {
 #[test]
 fn calculates_blocks_until_epoch() {
     new_test_ext().execute_with(|| {
-        use pallet_subnet_emission::blocks_until_next_epoch;
+        let blocks_until_next_epoch = |netuid, tempo, block_number| {
+            Tempo::<Test>::set(netuid, tempo);
+            SubspaceMod::blocks_until_next_epoch(netuid, block_number)
+        };
 
         // Check tempo = 0 block = * netuid = *
         assert_eq!(blocks_until_next_epoch(0, 0, 0), 1000);
@@ -905,8 +908,8 @@ fn yuma_weights_older_than_max_age_are_discarded() {
             max_weight_age: MAX_WEIGHT_AGE
         });
 
-        let miner_uid = SubspaceMod::get_uid_for_key(yuma_netuid, &yuma_miner_key);
-        let validator_uid = SubspaceMod::get_uid_for_key(yuma_netuid, &yuma_validator_key);
+        let miner_uid = SubspaceMod::get_uid_for_key(yuma_netuid, &yuma_miner_key).unwrap();
+        let validator_uid = SubspaceMod::get_uid_for_key(yuma_netuid, &yuma_validator_key).unwrap();
         let uid = [miner_uid].to_vec();
         let weight = [1].to_vec();
 

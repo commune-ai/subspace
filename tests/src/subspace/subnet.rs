@@ -128,6 +128,7 @@ fn subnet_update_changes_all_parameter_values() {
             max_registrations_per_interval
         );
         assert_eq!(AdjustmentAlpha::<Test>::get(0), adjustment_alpha);
+        assert_eq!(MinImmunityStake::<Test>::get(0), min_immunity_stake);
 
         assert_eq!(SubnetGovernanceConfig::<Test>::get(0), governance_config);
 

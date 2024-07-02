@@ -126,12 +126,12 @@ impl<T: Config> Pallet<T> {
         // --- 2.1 old module check
         ensure!(
             Self::is_registered(None, &module_key),
-            Error::<T>::NotRegistered
+            Error::<T>::ModuleDoesNotExist
         );
         // --- 2.2 new module check
         ensure!(
             Self::is_registered(None, &new_module_key),
-            Error::<T>::NotRegistered
+            Error::<T>::ModuleDoesNotExist
         );
 
         // --- 3. Check if the caller has enough stake in the old module
@@ -161,7 +161,7 @@ impl<T: Config> Pallet<T> {
         // --- 2. We check that the module is registered.
         ensure!(
             Self::is_registered(None, &module_key.clone()),
-            Error::<T>::NotRegistered
+            Error::<T>::ModuleDoesNotExist
         );
 
         // --- 3. We check that the caller has enough balance to stake.
@@ -226,7 +226,7 @@ impl<T: Config> Pallet<T> {
         // --- 2. We check that the module is registered.
         ensure!(
             Self::is_registered(None, &module_key.clone()),
-            Error::<T>::NotRegistered
+            Error::<T>::ModuleDoesNotExist
         );
 
         // --- 3. We check that the caller has enough stake in the module.
@@ -302,7 +302,7 @@ impl<T: Config> Pallet<T> {
             .into_iter()
             .find(|(k, _)| k == module_key)
             .map(|(_, v)| v)
-            .unwrap_or(0)
+            .unwrap_or_default()
     }
 
     pub fn get_stake_to_vector(staker: &T::AccountId) -> BTreeMap<T::AccountId, u64> {

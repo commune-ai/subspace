@@ -2,7 +2,7 @@ use super::*;
 use crate::subnet_consensus::{linear::LinearEpoch, treasury::TreasuryEpoch, yuma::YumaEpoch};
 
 use frame_support::storage::with_storage_layer;
-use pallet_subspace::{SetWeightCallsPerEpoch, Tempo};
+use pallet_subspace::N;
 
 // TODO: make sure that sn0 recycles emission and s1 puts to treasury
 
@@ -16,13 +16,13 @@ use pallet_subspace::{SetWeightCallsPerEpoch, Tempo};
 /// This function iterates through all subnets, updates their pending emissions,
 /// and runs an epoch if it's time for that subnet.
 fn process_subnets<T: Config>(block_number: u64, subnets_emission_distribution: PricedSubnets) {
-    for (netuid, tempo) in Tempo::<T>::iter() {
+    for netuid in N::<T>::iter_keys() {
         update_pending_emission::<T>(
             netuid,
             subnets_emission_distribution.get(&netuid).unwrap_or(&0),
         );
 
-        if blocks_until_next_epoch(netuid, tempo, block_number) > 0 {
+        if pallet_subspace::Pallet::<T>::blocks_until_next_epoch(netuid, block_number) > 0 {
             continue;
         }
 
@@ -58,7 +58,6 @@ fn update_pending_emission<T: Config>(netuid: u16, new_queued_emission: &u64) {
 /// it finalizes the epoch. If an error occurs during consensus, it logs the error
 fn run_epoch<T: Config>(netuid: u16) {
     log::trace!("running epoch for subnet {netuid}");
-    clear_set_weight_rate_limiter::<T>(netuid);
 
     let emission_to_drain = PendingEmission::<T>::get(netuid);
     if emission_to_drain > 0 {
@@ -73,18 +72,6 @@ fn run_epoch<T: Config>(netuid: u16) {
             }
         }
     }
-}
-
-/// Clears the set weight rate limiter for a given subnet.
-///
-/// # Arguments
-///
-/// * `netuid` - The ID of the subnet.
-///
-/// This function removes all entries from the SetWeightCallsPerEpoch storage
-/// for the specified subnet.
-fn clear_set_weight_rate_limiter<T: Config>(netuid: u16) {
-    let _ = SetWeightCallsPerEpoch::<T>::clear_prefix(netuid, u32::MAX, None);
 }
 
 // ---------------------------------
@@ -215,27 +202,6 @@ fn run_treasury_consensus<T: Config>(
 fn finalize_epoch<T: Config>(netuid: u16) {
     PendingEmission::<T>::insert(netuid, 0);
     Pallet::<T>::deposit_event(Event::<T>::EpochFinished(netuid));
-}
-
-/// Calculates the number of blocks until the next epoch for a subnet.
-///
-/// # Arguments
-///
-/// * `netuid` - The ID of the subnet.
-/// * `tempo` - The tempo (frequency) of the subnet's epochs.
-/// * `block_number` - The current block number.
-///
-/// # Returns
-///
-/// The number of blocks until the next epoch, or 1000 if the tempo is 0.
-pub fn blocks_until_next_epoch(netuid: u16, tempo: u16, block_number: u64) -> u64 {
-    // in this case network never runs
-    if tempo == 0 {
-        return 1000;
-    }
-    (block_number.saturating_add(u64::from(netuid)))
-        .checked_rem(u64::from(tempo))
-        .unwrap_or(1000)
 }
 
 impl<T: Config> Pallet<T> {

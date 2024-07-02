@@ -104,7 +104,7 @@ impl<T: Config> Pallet<T> {
     ) -> DispatchResult {
         // 1. We check the callers (key) signature.
         let key = ensure_signed(origin)?;
-        let uid: u16 = Self::get_uid_for_key(netuid, &key);
+        let uid: u16 = Self::get_uid_for_key(netuid, &key).ok_or(Error::<T>::ModuleDoesNotExist)?;
 
         // 2. Apply the changeset
         changeset.apply::<T>(netuid, key, uid)?;
@@ -183,9 +183,11 @@ impl<T: Config> Pallet<T> {
             return Ok(());
         }
 
-        let module_key: T::AccountId = Keys::<T>::get(netuid, uid);
+        let module_key: T::AccountId =
+            Keys::<T>::get(netuid, uid).ok_or(Error::<T>::ModuleDoesNotExist)?;
         let replace_uid = n.saturating_sub(1);
-        let replace_key: T::AccountId = Keys::<T>::get(netuid, replace_uid);
+        let replace_key: T::AccountId =
+            Keys::<T>::get(netuid, replace_uid).expect("this is infallible");
 
         log::debug!(
             "remove_module( netuid: {:?} | uid : {:?} | key: {:?} ) ",

@@ -258,7 +258,7 @@ impl<T: Config> YumaEpoch<T> {
 
                     let dividends_from_delegate: u64 = total_validator_emission
                         .checked_mul(delegate_ratio)
-                        .unwrap_or(I64F64::from_num(0))
+                        .unwrap_or_default()
                         .to_num::<u64>();
 
                     let to_module: u64 = delegation_fee.mul_floor(dividends_from_delegate);
@@ -456,7 +456,7 @@ impl<T: Config> YumaEpoch<T> {
         // Compute bonds moving average.
         let bonds_moving_average = I64F64::from_num(BondsMovingAverage::<T>::get(self.netuid))
             .checked_div(I64F64::from_num(1_000_000))
-            .unwrap_or(I64F64::from_num(0));
+            .unwrap_or_default();
         log::trace!("  bonds moving average: {bonds_moving_average}");
         let alpha = I32F32::from_num(1).saturating_sub(I32F32::from_num(bonds_moving_average));
         let mut ema_bonds = mat_ema_sparse(&bonds_delta, &bonds, alpha);
@@ -559,9 +559,7 @@ impl<T: Config> YumaEpoch<T> {
         // Only used to track emission in storage.
         let combined_emissions: Vec<u64> = normalized_combined_emission
             .iter()
-            .map(|&ce| {
-                I96F32::from_num(ce).checked_mul(to_be_emitted).unwrap_or(I96F32::from_num(0))
-            })
+            .map(|&ce| I96F32::from_num(ce).checked_mul(to_be_emitted).unwrap_or_default())
             .map(I96F32::to_num)
             .collect();
         log::trace!("  combined_emissions: {combined_emissions:?}");
@@ -659,7 +657,7 @@ impl<T: Config> Pallet<T> {
     pub fn get_float_kappa() -> I32F32 {
         I32F32::from_num(Kappa::<T>::get())
             .checked_div(I32F32::from_num(u16::MAX))
-            .unwrap_or(I32F32::from_num(0))
+            .unwrap_or_default()
     }
 
     fn get_weights_sparse(netuid: u16) -> Option<Vec<Vec<(u16, I32F32)>>> {

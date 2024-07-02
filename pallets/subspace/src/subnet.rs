@@ -424,11 +424,11 @@ impl<T: Config> Pallet<T> {
     }
     // Returs the key under the network uid as a Result. Ok if the uid is taken.
     pub fn get_key_for_uid(netuid: u16, module_uid: u16) -> Option<T::AccountId> {
-        Keys::<T>::try_get(netuid, module_uid).ok()
+        Keys::<T>::get(netuid, module_uid)
     }
     // Returns the uid of the key in the network as a Result. Ok if the key has a slot.
-    pub fn get_uid_for_key(netuid: u16, key: &T::AccountId) -> u16 {
-        Uids::<T>::get(netuid, key).unwrap_or(0)
+    pub fn get_uid_for_key(netuid: u16, key: &T::AccountId) -> Option<u16> {
+        Uids::<T>::get(netuid, key)
     }
 
     pub fn get_current_block_number() -> u64 {
@@ -464,12 +464,12 @@ impl<T: Config> Pallet<T> {
 
         let founder_emission_ratio: I64F64 = I64F64::from_num(founder_share.min(100))
             .checked_div(I64F64::from_num(100))
-            .unwrap_or(I64F64::from_num(0));
+            .unwrap_or_default();
 
         let founder_emission = founder_emission_ratio
             .checked_mul(I64F64::from_num(token_emission))
             .map(|result| result.to_num::<u64>())
-            .unwrap_or(0);
+            .unwrap_or_default();
 
         token_emission = token_emission.saturating_sub(founder_emission);
 
@@ -498,12 +498,7 @@ impl<T: Config> Pallet<T> {
         } else {
             ownership_vector = ownership_vector
                 .into_iter()
-                .map(|(k, v)| {
-                    (
-                        k,
-                        v.checked_div(total_stake_from).unwrap_or(I64F64::from_num(0)),
-                    )
-                })
+                .map(|(k, v)| (k, v.checked_div(total_stake_from).unwrap_or_default()))
                 .collect();
         }
 
@@ -546,5 +541,28 @@ impl<T: Config> Pallet<T> {
         for dangling in netuid_keys.difference(&global_keys) {
             Self::remove_stake_from_storage(dangling);
         }
+    }
+
+    /// Calculates the number of blocks until the next epoch for a subnet.
+    ///
+    /// # Arguments
+    ///
+    /// * `netuid` - The ID of the subnet.
+    /// * `tempo` - The tempo (frequency) of the subnet's epochs.
+    /// * `block_number` - The current block number.
+    ///
+    /// # Returns
+    ///
+    /// The number of blocks until the next epoch, or 1000 if the tempo is 0.
+    pub fn blocks_until_next_epoch(netuid: u16, block_number: u64) -> u64 {
+        let tempo = Tempo::<T>::get(netuid);
+
+        if tempo == 0 {
+            return u64::MAX;
+        }
+
+        (block_number.saturating_add(u64::from(netuid)))
+            .checked_rem(u64::from(tempo))
+            .unwrap_or(1000)
     }
 }

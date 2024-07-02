@@ -119,8 +119,8 @@ fn registers_a_module_and_storage_values_correctly() {
 
         assert_eq!(N::<Test>::get(netuid), 1);
 
-        let module_uid = SubspaceMod::get_uid_for_key(netuid, &key);
-        assert_eq!(SubspaceMod::get_uid_for_key(netuid, &key), 0);
+        let module_uid = SubspaceMod::get_uid_for_key(netuid, &key).unwrap();
+        assert_eq!(SubspaceMod::get_uid_for_key(netuid, &key).unwrap(), 0);
         assert_eq!(get_stake_for_uid(netuid, module_uid), 1);
     });
 }

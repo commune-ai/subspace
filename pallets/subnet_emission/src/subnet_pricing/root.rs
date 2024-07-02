@@ -95,7 +95,7 @@ impl<T: Config + pallet_subspace::Config> RootPricing<T> {
                 .unwrap_or_else(|| I64F64::from_num(0));
             let temperatured_trust = shifted_trust
                 .checked_mul(I64F64::from_num(pallet_subspace::Rho::<T>::get()))
-                .unwrap_or(I64F64::from_num(0));
+                .unwrap_or_default();
             let neg_trust = temperatured_trust
                 .checked_neg()
                 .ok_or(sp_runtime::DispatchError::Other("Negation failed"))?;

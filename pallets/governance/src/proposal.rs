@@ -233,7 +233,7 @@ impl<T: Config> Pallet<T> {
         } else {
             expiration_block
                 .saturating_add(100)
-                .saturating_sub(expiration_block.checked_rem(100).unwrap_or(0))
+                .saturating_sub(expiration_block.checked_rem(100).unwrap_or_default())
         };
 
         let proposal = Proposal {
@@ -386,9 +386,9 @@ pub fn get_minimal_stake_to_execute_with_percentage<T: Config>(
     stake
         .saturated_into::<u128>()
         .checked_mul(threshold.deconstruct() as u128)
-        .unwrap_or(0)
+        .unwrap_or_default()
         .checked_div(100)
-        .unwrap_or(0) as u64
+        .unwrap_or_default() as u64
 }
 
 fn tick_proposal<T: Config>(
