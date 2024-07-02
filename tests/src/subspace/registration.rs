@@ -30,7 +30,7 @@ fn module_registration_respects_min_stake() {
         assert_eq!(RegistrationsPerBlock::<Test>::get(), 0);
 
         let n = reg_this_block as u32;
-        let keys_list: Vec<_> = (1..n as u32).collect();
+        let keys_list: Vec<_> = (1..n).collect();
 
         let min_stake_to_register = MinStake::<Test>::get(netuid);
 

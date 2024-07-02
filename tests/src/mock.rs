@@ -291,7 +291,7 @@ pub fn add_balance(key: AccountId, amount: Balance) {
 
 pub fn delegate(account: u32) {
     assert_ok!(GovernanceMod::enable_vote_power_delegation(get_origin(
-        account.into()
+        account
     )));
 }
 
@@ -299,18 +299,18 @@ pub fn delegate(account: u32) {
 pub fn get_stakes(netuid: u16) -> Vec<u64> {
     SubspaceMod::get_uid_key_tuples(netuid)
         .into_iter()
-        .map(|(_, key)| Stake::<Test>::get(&key))
+        .map(|(_, key)| Stake::<Test>::get(key))
         .collect()
 }
 
 pub fn stake(account: u32, module: u32, stake: u64) {
-    if get_balance(account.into()) <= stake {
-        add_balance(account.into(), stake + to_nano(1));
+    if get_balance(account) <= stake {
+        add_balance(account, stake + to_nano(1));
     }
 
     assert_ok!(SubspaceMod::do_add_stake(
-        get_origin(account.into()),
-        module.into(),
+        get_origin(account),
+        module,
         stake
     ));
 }
@@ -330,6 +330,14 @@ pub fn set_total_issuance(total_issuance: u64) {
 pub fn new_test_ext() -> sp_io::TestExternalities {
     sp_tracing::try_init_simple();
     frame_system::GenesisConfig::<Test>::default().build_storage().unwrap().into()
+}
+
+pub fn new_test_ext_with_block(block: u64) -> sp_io::TestExternalities {
+    sp_tracing::try_init_simple();
+    let t = frame_system::GenesisConfig::<Test>::default().build_storage().unwrap();
+    let mut ext = sp_io::TestExternalities::new(t);
+    ext.execute_with(|| System::set_block_number(block));
+    ext
 }
 
 pub fn get_origin(key: AccountId) -> RuntimeOrigin {
@@ -511,13 +519,30 @@ pub fn register_module(netuid: u16, key: AccountId, stake: u64) -> Result<u16, D
     Ok(uid)
 }
 
+#[allow(dead_code)]
+pub fn register_root_validator(key: AccountId, stake: u64) -> Result<u16, DispatchError> {
+    let origin = get_origin(key);
+    let network = b"rootnet".to_vec();
+    let name = format!("module{key}").as_bytes().to_vec();
+    let address = "0.0.0.0:30333".as_bytes().to_vec();
+
+    SubspaceMod::add_balance_to_account(&key, stake + SubnetBurn::<Test>::get() + 1);
+    SubspaceMod::register(origin, network.clone(), name, address, stake, key, None)?;
+
+    let netuid = SubspaceMod::get_netuid_for_name(&network).ok_or("netuid is missing")?;
+    if netuid != 0 {
+        return Err("rootnet id is not 0".into());
+    }
+    pallet_subspace::Uids::<Test>::get(netuid, key).ok_or("uid is missing".into())
+}
+
 pub fn get_balance(key: AccountId) -> Balance {
     <Balances as Currency<AccountId>>::free_balance(&key)
 }
 
 pub fn vote(account: u32, proposal_id: u64, agree: bool) {
     assert_ok!(GovernanceMod::do_vote_proposal(
-        get_origin(account.into()),
+        get_origin(account),
         proposal_id,
         agree
     ));
@@ -580,5 +605,12 @@ macro_rules! assert_ok {
     };
 }
 
+macro_rules! assert_in_range {
+    ($value:expr, $expected:expr, $margin:expr) => {
+        assert!(($expected..=$expected).contains(&$value));
+    };
+}
+
+pub(crate) use assert_in_range;
 pub(crate) use assert_ok;
 pub(crate) use update_params;

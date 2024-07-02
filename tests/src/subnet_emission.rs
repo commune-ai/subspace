@@ -770,7 +770,7 @@ fn test_1_graph() {
 
         let new_stake_amount = stake_amount + ONE;
 
-        assert_eq!(Stake::<Test>::get(&key), new_stake_amount - offset);
+        assert_eq!(Stake::<Test>::get(key), new_stake_amount - offset);
         assert_eq!(utils::get_rank_for_uid(netuid, uid), 0);
         assert_eq!(utils::get_trust_for_uid(netuid, uid), 0);
         assert_eq!(utils::get_consensus_for_uid(netuid, uid), 0);
@@ -991,7 +991,7 @@ fn test_emission_exploit() {
         // step first 40 blocks from the registration
         step_block(40);
 
-        let stake_accumulated = Stake::<Test>::get(yuma_badactor_key as u32);
+        let stake_accumulated = Stake::<Test>::get(yuma_badactor_key);
         // User will now unstake and register another subnet.
         assert_ok!(SubspaceMod::do_remove_stake(
             get_origin(yuma_badactor_key),

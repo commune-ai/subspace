@@ -35,7 +35,7 @@ impl<T: Config + pallet_subspace::Config> RootPricing<T> {
             return Err("Rootnet has no validators.".into());
         }
 
-        let subnet_ids = RootPricing::<T>::get_subnet_ids();
+        let subnet_ids = pallet_subspace::N::<T>::iter_keys().collect::<Vec<_>>();
         let num_subnet_ids = subnet_ids.len();
         if num_subnet_ids == 0 {
             return Err("No networks to validate.".into());
@@ -153,11 +153,5 @@ impl<T: Config + pallet_subspace::Config> RootPricing<T> {
         }
 
         weights
-    }
-
-    fn get_subnet_ids() -> Vec<u16> {
-        pallet_subspace::N::<T>::iter_keys()
-            .filter(|subnet_id| subnet_id != &0) //filter rootnet out
-            .collect::<Vec<_>>()
     }
 }

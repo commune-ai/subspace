@@ -92,7 +92,8 @@ impl<T: Config> Pallet<T> {
         // also ensures that in the case current_burn is present, the stake is enough
         // as burn, will be decreased from the stake on the module
         ensure!(
-            Self::enough_stake_to_register(min_stake, current_burn, stake),
+            (netuid == 0 && stake >= min_stake) // TODO: ASK HONZA
+                || Self::enough_stake_to_register(min_stake, current_burn, stake),
             Error::<T>::NotEnoughStakeToRegister
         );
 
@@ -120,7 +121,7 @@ impl<T: Config> Pallet<T> {
         Self::do_add_stake(origin, module_key.clone(), stake)?;
 
         // constant -> current_burn logic
-        if current_burn > 0 {
+        if netuid != 0 && current_burn > 0 {
             // if min burn is present, decrease the stake by the min burn
             Self::decrease_stake(&key, &module_key, current_burn);
         }

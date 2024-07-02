@@ -1,146 +1,189 @@
 use super::*;
-use core::num::NonZeroU64;
 use frame_support::pallet_prelude::DispatchResult;
 
 impl<T: Config> Pallet<T> {
-    // Returns true if the items contain duplicates.
-    fn contains_duplicates(items: &[u16]) -> bool {
-        let mut seen = sp_std::collections::btree_set::BTreeSet::new();
-        items.iter().any(|item| !seen.insert(item))
-    }
-
+    /// Sets weights for a node in a specific subnet.   
+    /// # Arguments
+    ///
+    /// * `origin` - The origin of the call, must be a signed account.
+    /// * `netuid` - The ID of the subnet.
+    /// * `uids` - A vector of UIDs to set weights for.
+    /// * `values` - A vector of weight values corresponding to the UIDs.
+    ///
+    /// # Errors
+    ///
+    /// This function will return an error if:
+    ///
+    /// * The caller's signature is invalid.
+    /// * The `uids` and `values` vectors are not of equal length.
+    /// * The specified subnet does not exist.
+    /// * The caller is not registered in the specified subnet.
+    /// * The maximum number of set weight calls per epoch has been reached.
+    /// * The daily limit for root network has been exceeded.
+    /// * There are duplicate UIDs in the `uids` vector.
+    /// * Any of the UIDs are invalid for the specified subnet.
+    /// * The number of weights is outside the allowed range.
+    /// * The caller attempts to set a weight for themselves (except in subnet 0).
+    /// * The caller doesn't have enough stake to set the specified weights.
+    /// * The caller has no stake.
+    ///
+    /// # Effects
+    ///
+    /// If successful, this function will:
+    ///
+    /// 1. Normalize the provided weight values.
+    /// 2. Update the weights for the specified UIDs in storage.
+    /// 3. Update the last activity timestamp for the caller in the subnet.
+    /// 4. Emit a `WeightsSet` event.
+    ///
+    /// # Notes
+    ///
+    /// - The function includes various checks to ensure the integrity and validity of the
+    ///   weight-setting operation.
+    /// - Weight normalization is performed to ensure a consistent scale across all weights.
+    /// - The function tracks the number of weight-setting calls per epoch to prevent abuse.
+    /// - For the root network (netuid 0), additional daily limit checks are performed.
+    #[allow(clippy::arithmetic_side_effects, clippy::indexing_slicing)]
     pub fn do_set_weights(
         origin: T::RuntimeOrigin,
         netuid: u16,
         uids: Vec<u16>,
         values: Vec<u16>,
     ) -> dispatch::DispatchResult {
-        // --- 1. Check the caller's signature. This is the key of a registered account.
         let key = ensure_signed(origin)?;
+        let Some(uid) = Self::get_uid_for_key(netuid, &key) else {
+            return Err(Error::<T>::ModuleDoesNotExist.into());
+        };
+        Self::validate_input(uid, &uids, &values, netuid)?;
+        Self::handle_rate_limiting(uid, netuid, &key)?;
+        Self::validate_stake(&key, uids.len())?;
+        Self::finalize_weights(netuid, uid, &uids, &values)?;
+        Ok(())
+    }
 
-        // --- 2. Check that the length of uid list and value list are equal for this network.
+    fn validate_input(uid: u16, uids: &[u16], values: &[u16], netuid: u16) -> DispatchResult {
         ensure!(
             uids.len() == values.len(),
             Error::<T>::WeightVecNotEqualSize
         );
-
-        // --- 3. Check to see if this is a valid network.
         ensure!(
             Self::if_subnet_exist(netuid),
             Error::<T>::NetworkDoesNotExist
         );
+        ensure!(!Self::contains_duplicates(uids), Error::<T>::DuplicateUids);
+        Self::perform_uid_validity_check(uids, netuid)?;
+        Self::validate_uids_length(uids.len(), netuid)?;
+        ensure!(
+            netuid == ROOTNET_ID || !uids.contains(&uid),
+            Error::<T>::NoSelfWeight
+        );
+        Ok(())
+    }
 
-        // --- 4. Get the module uid of associated key on network netuid.
-        let Some(uid) = Self::get_uid_for_key(netuid, &key) else {
-            return Err(Error::<T>::ModuleDoesNotExist.into());
-        };
+    fn validate_stake(key: &T::AccountId, uids_len: usize) -> DispatchResult {
+        let stake = Stake::<T>::get(key);
+        let min_stake_per_weight = MinWeightStake::<T>::get();
+        let min_stake_for_weights = min_stake_per_weight.checked_mul(uids_len as u64).unwrap_or(0);
+        ensure!(
+            stake >= min_stake_for_weights,
+            Error::<T>::NotEnoughStakePerWeight
+        );
+        ensure!(stake > 0, Error::<T>::NotEnoughStakeToSetWeights);
+        Ok(())
+    }
 
-        let max_set_weights =
-            MaximumSetWeightCallsPerEpoch::<T>::get(netuid).filter(|max| *max > 0);
-        if let Some(max_set_weights) = max_set_weights {
-            let set_weight_uses = SetWeightCallsPerEpoch::<T>::mutate(netuid, &key, |value| {
+    fn validate_uids_length(len: usize, netuid: u16) -> DispatchResult {
+        let min_allowed_length = Self::get_min_allowed_weights(netuid) as usize;
+        let max_allowed_length =
+            MaxAllowedWeights::<T>::get(netuid).min(N::<T>::get(netuid)) as usize;
+        ensure!(
+            len >= min_allowed_length && len <= max_allowed_length,
+            Error::<T>::InvalidUidsLength
+        );
+        Ok(())
+    }
+
+    fn finalize_weights(netuid: u16, uid: u16, uids: &[u16], values: &[u16]) -> DispatchResult {
+        let normalized_values = Self::normalize_weights(values);
+        let zipped_weights: Vec<(u16, u16)> = uids.iter().copied().zip(normalized_values).collect();
+        Weights::<T>::insert(netuid, uid, zipped_weights);
+        let current_block = Self::get_current_block_number();
+        Self::set_last_update_for_uid(netuid, uid, current_block);
+        Self::deposit_event(Event::WeightsSet(netuid, uid));
+        Ok(())
+    }
+
+    // ----------
+    // Utils
+    // ----------
+
+    fn contains_duplicates(items: &[u16]) -> bool {
+        let mut seen = sp_std::collections::btree_set::BTreeSet::new();
+        items.iter().any(|item| !seen.insert(item))
+    }
+
+    pub fn perform_uid_validity_check(uids: &[u16], netuid: u16) -> DispatchResult {
+        ensure!(
+            uids.iter().all(|&uid| Self::uid_exist_on_network(netuid, uid)),
+            Error::<T>::InvalidUid
+        );
+        Ok(())
+    }
+
+    pub fn uid_exist_on_network(netuid: u16, uid: u16) -> bool {
+        if netuid == ROOTNET_ID {
+            N::<T>::contains_key(uid)
+        } else {
+            Keys::<T>::contains_key(netuid, uid)
+        }
+    }
+
+    // ----------------
+    // Rate limiting
+    // ----------------
+
+    fn handle_rate_limiting(uid: u16, netuid: u16, key: &T::AccountId) -> dispatch::DispatchResult {
+        if let Some(max_set_weights) = MaximumSetWeightCallsPerEpoch::<T>::get(netuid) {
+            let set_weight_uses = SetWeightCallsPerEpoch::<T>::mutate(netuid, key, |value| {
                 *value = value.saturating_add(1);
                 *value
             });
-
             ensure!(
                 set_weight_uses <= max_set_weights,
                 Error::<T>::MaximumSetWeightsPerEpochReached
             );
         }
-
-        // --- 5. If subnet is the rootnet, check daily weight limit.
-        Self::check_rootnet_daily_limit(netuid, uid)?;
-
-        // --- 6. Ensure the passed uids contain no duplicates.
-        ensure!(!Self::contains_duplicates(&uids), Error::<T>::DuplicateUids);
-
-        // --- 7. Ensure that the passed uids are valid for the network.
-        ensure!(
-            uids.iter().all(|&uid| Self::uid_exist_on_network(netuid, uid)),
-            Error::<T>::InvalidUid
-        );
-
-        // --- 8. Check the allowed length of uids.
-        let min_allowed_length: usize = Self::get_min_allowed_weights(netuid) as usize;
-        let max_allowed_length: usize =
-            MaxAllowedWeights::<T>::get(netuid).min(N::<T>::get(netuid)) as usize;
-        ensure!(
-            uids.len() >= min_allowed_length && uids.len() <= max_allowed_length,
-            Error::<T>::InvalidUidsLength
-        );
-
-        // --- 9. Ensure the uid is not setting weights for itself.
-        ensure!(!uids.contains(&uid), Error::<T>::NoSelfWeight);
-
-        // --- 10. Get the stake for the key.
-        let stake: u64 = Stake::<T>::get(&key);
-
-        // --- 11. Check if the stake per weight is greater than the required minimum stake.
-        let min_stake_per_weight: u64 = MinWeightStake::<T>::get();
-        let min_stake_for_weights: u64 = min_stake_per_weight
-            .checked_mul(uids.len() as u64)
-            .ok_or(Error::<T>::ExtrinsicPanicked)?;
-        ensure!(
-            stake >= min_stake_for_weights,
-            Error::<T>::NotEnoughStakePerWeight
-        );
-
-        // --- 12. Ensure the key has enough stake to set weights.
-        ensure!(stake > 0, Error::<T>::NotEnoughStakeToSetWeights);
-
-        // --- 13. Normalize the weights.
-        let normalized_values = Self::normalize_weights(values);
-
-        // --- 14. Zip weights for sinking to storage map.
-        let zipped_weights: Vec<(u16, u16)> = uids
-            .iter()
-            .zip(normalized_values.iter())
-            .map(|(&uid, &val)| (uid, val))
-            .collect();
-
-        // --- 15. Set weights under netuid, uid double map entry.
-        Weights::<T>::insert(netuid, uid, zipped_weights);
-
-        // --- 16. Set the activity for the weights on this network.
-        let current_block: u64 = Self::get_current_block_number();
-        Self::set_last_update_for_uid(netuid, uid, current_block);
-
-        // --- 17. Emit the tracking event.
-        Self::deposit_event(Event::WeightsSet(netuid, uid));
-
-        Ok(())
+        Self::check_rootnet_daily_limit(netuid, uid)
     }
-
-    // -------------
-    // Util
-    // -------------
 
     fn check_rootnet_daily_limit(netuid: u16, module_id: u16) -> DispatchResult {
         if netuid == ROOTNET_ID {
-            if RootNetWeightCalls::<T>::get(module_id).is_some() {
-                return Err(Error::<T>::MaxRootnetWeightCallsPerInterval.into());
-            }
-
+            ensure!(
+                RootNetWeightCalls::<T>::get(module_id).is_none(),
+                Error::<T>::MaximumSetWeightsPerEpochReached
+            );
             RootNetWeightCalls::<T>::set(module_id, Some(()));
         }
         Ok(())
     }
 
-    // Returns true if the uid is set on the network.
-    pub fn uid_exist_on_network(netuid: u16, uid: u16) -> bool {
-        Keys::<T>::contains_key(netuid, uid)
-    }
-
-    /// normalizes the passed positive integer weights so that they sum to u16 max value inplace.
-    pub fn normalize_weights(weights: Vec<u16>) -> Vec<u16> {
-        let Some(sum) = NonZeroU64::new(weights.iter().map(|&x| x as u64).sum()) else {
-            return weights;
-        };
-
+    // ----------------
+    // Normalization
+    // ----------------
+    pub fn normalize_weights(weights: &[u16]) -> Vec<u16> {
+        let sum: u64 = weights.iter().map(|&x| u64::from(x)).sum();
+        if sum == 0 {
+            return weights.to_vec();
+        }
         weights
-            .into_iter()
-            .map(|x| ((x as u64).saturating_mul(u16::MAX as u64) / sum) as u16)
+            .iter()
+            .map(|&x| {
+                u64::from(x)
+                    .checked_mul(u64::from(u16::MAX))
+                    .and_then(|product| product.checked_div(sum))
+                    .and_then(|result| result.try_into().ok())
+                    .unwrap_or(0)
+            })
             .collect()
     }
 

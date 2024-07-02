@@ -13,17 +13,17 @@ use pallet_subspace::{subnet::SubnetChangeset, GlobalParams, SubnetParams};
 use substrate_fixed::{types::extra::U32, FixedI128};
 
 fn register(account: u32, subnet_id: u16, module: u32, stake: u64) {
-    if get_balance(account.into()) <= stake {
-        add_balance(account.into(), stake + to_nano(1));
+    if get_balance(account) <= stake {
+        add_balance(account, stake + to_nano(1));
     }
 
     assert_ok!(SubspaceMod::do_register(
-        get_origin(account.into()),
+        get_origin(account),
         format!("subnet-{subnet_id}").as_bytes().to_vec(),
         format!("module-{module}").as_bytes().to_vec(),
         format!("address-{account}-{module}").as_bytes().to_vec(),
         stake,
-        module.into(),
+        module,
         None,
     ));
 }
@@ -56,7 +56,7 @@ fn global_governance_config_validates_parameters_correctly() {
 fn global_proposal_validates_parameters() {
     new_test_ext().execute_with(|| {
         const KEY: u32 = 0;
-        add_balance(KEY.into(), to_nano(100_000));
+        add_balance(KEY, to_nano(100_000));
 
         let test = |global_params| {
             let GlobalParams {
@@ -78,7 +78,7 @@ fn global_proposal_validates_parameters() {
             } = global_params;
 
             GovernanceMod::add_global_params_proposal(
-                get_origin(KEY.into()),
+                get_origin(KEY),
                 vec![b'0'; 64],
                 max_name_length,
                 min_name_length,
@@ -257,7 +257,7 @@ fn global_params_proposal_accepted() {
         governance_config.proposal_cost = 69_420;
 
         GovernanceMod::add_global_params_proposal(
-            get_origin(KEY.into()),
+            get_origin(KEY),
             vec![b'0'; 64],
             max_name_length,
             min_name_length,
@@ -333,7 +333,7 @@ fn subnet_params_proposal_accepted() {
         governance_config.vote_mode = VoteMode::Authority;
 
         GovernanceMod::add_subnet_params_proposal(
-            get_origin(KEY.into()),
+            get_origin(KEY),
             0,
             vec![b'0'; 64],
             founder,
