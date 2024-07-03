@@ -83,7 +83,6 @@ fn set_weights_only_accepts_existing_keys() {
 fn set_weights_call_respects_rate_limit() {
     new_test_ext().execute_with(|| {
         zero_min_burn();
-        max_subnet_registrations_per_interval(2);
 
         assert_ok!(register_module(0, 0, 1));
         assert_ok!(register_module(1, 0, 1));
@@ -96,20 +95,14 @@ fn set_weights_call_respects_rate_limit() {
         let set_weights = || SubspaceMod::set_weights(get_origin(0), 1, vec![1], vec![10]);
 
         assert_ok!(set_weights());
-        assert_err!(
-            set_weights(),
-            Error::<Test>::MaximumSetWeightsPerEpochReached
-        );
+        assert_err!(set_weights(), Error::<Test>::MaxSetWeightsPerEpochReached);
 
         step_block(5);
 
         eprintln!("foo");
 
         assert_ok!(set_weights());
-        assert_err!(
-            set_weights(),
-            Error::<Test>::MaximumSetWeightsPerEpochReached
-        );
+        assert_err!(set_weights(), Error::<Test>::MaxSetWeightsPerEpochReached);
 
         MaximumSetWeightCallsPerEpoch::<Test>::set(1, None);
         assert_ok!(set_weights());
@@ -128,22 +121,17 @@ fn set_weights_call_respects_rootnet_weight_limit() {
 
         assert_ok!(register_module(0, 0, 1));
         assert_ok!(register_module(0, 1, 1));
+        assert_ok!(register_module(1, 1, 1));
 
         let set_weights = || SubspaceMod::set_weights(get_origin(0), 0, vec![1], vec![10]);
 
         assert_ok!(set_weights());
-        assert_err!(
-            set_weights(),
-            Error::<Test>::MaxRootnetWeightCallsPerInterval
-        );
+        assert_err!(set_weights(), Error::<Test>::MaxSetWeightsPerEpochReached);
 
         step_block(10_800);
 
         assert_ok!(set_weights());
-        assert_err!(
-            set_weights(),
-            Error::<Test>::MaxRootnetWeightCallsPerInterval
-        );
+        assert_err!(set_weights(), Error::<Test>::MaxSetWeightsPerEpochReached);
     });
 }
 
@@ -152,8 +140,8 @@ fn set_weights_on_itself_is_invalid() {
     new_test_ext().execute_with(|| {
         zero_min_burn();
 
-        assert_ok!(register_module(0, 0, 1));
-        let result = SubspaceMod::set_weights(RuntimeOrigin::signed(0), 0, vec![0], vec![0]);
+        assert_ok!(register_module(1, 0, 1));
+        let result = SubspaceMod::set_weights(RuntimeOrigin::signed(0), 1, vec![0], vec![0]);
         assert_err!(result, Error::<Test>::NoSelfWeight);
     });
 }
@@ -165,20 +153,20 @@ fn set_weights_respects_min_and_max_weights() {
 
         let account_id = 0;
 
-        assert_ok!(register_module(0, account_id, 1));
-        update_params!(0 => { min_allowed_weights: 2, max_allowed_weights: 3 });
+        assert_ok!(register_module(1, account_id, 1));
+        update_params!(1 => { min_allowed_weights: 2, max_allowed_weights: 3 });
 
         for i in 1..5 {
-            assert_ok!(register_module(0, i, 1));
+            assert_ok!(register_module(1, i, 1));
         }
 
         let result =
-            SubspaceMod::set_weights(RuntimeOrigin::signed(account_id), 0, vec![1], vec![1]);
+            SubspaceMod::set_weights(RuntimeOrigin::signed(account_id), 1, vec![1], vec![1]);
         assert_err!(result, Error::<Test>::InvalidUidsLength);
 
         let result = SubspaceMod::set_weights(
             RuntimeOrigin::signed(account_id),
-            0,
+            1,
             vec![1, 2, 3, 4],
             vec![1, 2, 3, 4],
         );
@@ -186,7 +174,7 @@ fn set_weights_respects_min_and_max_weights() {
 
         let result = SubspaceMod::set_weights(
             RuntimeOrigin::signed(account_id),
-            0,
+            1,
             vec![1, 2, 3],
             vec![1, 2, 3],
         );
@@ -200,10 +188,10 @@ fn set_weights_fails_for_stakes_below_minimum() {
         let mut global_params = SubspaceMod::global_params();
         global_params.min_weight_stake = to_nano(20);
         assert_ok!(SubspaceMod::set_global_params(global_params));
-        MaxRegistrationsPerBlock::<Test>::set(1000);
         zero_min_burn();
+        MaxRegistrationsPerBlock::<Test>::set(1000);
 
-        let netuid = 0;
+        let netuid = 1;
         let module_count = 16u16;
         let voter_key = 0u32;
 
@@ -216,7 +204,7 @@ fn set_weights_fails_for_stakes_below_minimum() {
         let weights = vec![1; uids.len()];
 
         assert_err!(
-            SubspaceMod::set_weights(get_origin(voter_key), netuid, uids.clone(), weights.clone(),),
+            SubspaceMod::set_weights(get_origin(voter_key), netuid, uids.clone(), weights.clone()),
             Error::<Test>::NotEnoughStakePerWeight
         );
 

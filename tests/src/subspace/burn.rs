@@ -5,8 +5,6 @@ use pallet_subspace::{global::BurnConfiguration, *};
 #[test]
 fn module_registration_burn_increases() {
     new_test_ext().execute_with(|| {
-        max_subnet_registrations_per_interval(3);
-
         let min_burn = to_nano(10);
         let max_burn = to_nano(1000);
 
@@ -29,7 +27,6 @@ fn module_registration_burn_increases() {
         TargetRegistrationsPerInterval::<Test>::insert(0, 25);
         TargetRegistrationsInterval::<Test>::insert(0, target_reg_interval); // for the netuid 0
         TargetRegistrationsPerInterval::<Test>::insert(0, target_reg_per_interval); // for the netuid 0
-        MaxRegistrationsPerInterval::<Test>::insert(0, 1000);
 
         // register 500 modules on yuma subnet
         let netuid = 1;

@@ -10,14 +10,13 @@ fn adds_and_removes_subnets() {
     new_test_ext().execute_with(|| {
         zero_min_burn();
 
-        let iterations = 5u16;
-        max_subnet_registrations_per_interval(iterations + 1);
+        let iterations = 6u16;
 
         MaxRegistrationsPerBlock::<Test>::set(iterations * iterations);
 
-        for i in 0..iterations {
+        for i in 1..iterations {
             assert_ok!(register_module(i, i as u32, 1));
-            for j in 0..iterations {
+            for j in 1..iterations {
                 if i != j {
                     assert_ok!(register_module(i, j as u32, 1));
                 }
@@ -41,7 +40,8 @@ fn adds_and_removes_subnets() {
 #[test]
 fn subnet_update_changes_all_parameter_values() {
     new_test_ext().execute_with(|| {
-        assert_ok!(register_module(0, 0, to_nano(10)));
+        let netuid = 1;
+        assert_ok!(register_module(netuid, 0, to_nano(10)));
 
         let params = SubnetParams::<Test> {
             founder: 1,
@@ -96,44 +96,47 @@ fn subnet_update_changes_all_parameter_values() {
             governance_config,
         } = params.clone();
 
-        SubnetChangeset::<Test>::update(0, params).unwrap().apply(0).unwrap();
+        SubnetChangeset::<Test>::update(netuid, params).unwrap().apply(netuid).unwrap();
 
-        assert_eq!(Founder::<Test>::get(0), founder);
-        assert_eq!(FounderShare::<Test>::get(0), founder_share);
-        assert_eq!(ImmunityPeriod::<Test>::get(0), immunity_period);
-        assert_eq!(IncentiveRatio::<Test>::get(0), incentive_ratio);
-        assert_eq!(MaxAllowedUids::<Test>::get(0), max_allowed_uids);
-        assert_eq!(MaxAllowedWeights::<Test>::get(0), max_allowed_weights);
-        assert_eq!(MinAllowedWeights::<Test>::get(0), min_allowed_weights);
-        assert_eq!(MaxWeightAge::<Test>::get(0), max_weight_age);
-        assert_eq!(MinStake::<Test>::get(0), min_stake);
-        assert_eq!(SubnetNames::<Test>::get(0), name.into_inner());
-        assert_eq!(Tempo::<Test>::get(0), tempo);
-        assert_eq!(TrustRatio::<Test>::get(0), trust_ratio);
+        assert_eq!(Founder::<Test>::get(netuid), founder);
+        assert_eq!(FounderShare::<Test>::get(netuid), founder_share);
+        assert_eq!(ImmunityPeriod::<Test>::get(netuid), immunity_period);
+        assert_eq!(IncentiveRatio::<Test>::get(netuid), incentive_ratio);
+        assert_eq!(MaxAllowedUids::<Test>::get(netuid), max_allowed_uids);
+        assert_eq!(MaxAllowedWeights::<Test>::get(netuid), max_allowed_weights);
+        assert_eq!(MinAllowedWeights::<Test>::get(netuid), min_allowed_weights);
+        assert_eq!(MaxWeightAge::<Test>::get(netuid), max_weight_age);
+        assert_eq!(MinStake::<Test>::get(netuid), min_stake);
+        assert_eq!(SubnetNames::<Test>::get(netuid), name.into_inner());
+        assert_eq!(Tempo::<Test>::get(netuid), tempo);
+        assert_eq!(TrustRatio::<Test>::get(netuid), trust_ratio);
         assert_eq!(
-            MaximumSetWeightCallsPerEpoch::<Test>::get(0),
+            MaximumSetWeightCallsPerEpoch::<Test>::get(netuid),
             Some(maximum_set_weight_calls_per_epoch)
         );
-        assert_eq!(BondsMovingAverage::<Test>::get(0), bonds_ma);
+        assert_eq!(BondsMovingAverage::<Test>::get(netuid), bonds_ma);
         assert_eq!(
-            TargetRegistrationsInterval::<Test>::get(0),
+            TargetRegistrationsInterval::<Test>::get(netuid),
             target_registrations_interval
         );
         assert_eq!(
-            TargetRegistrationsPerInterval::<Test>::get(0),
+            TargetRegistrationsPerInterval::<Test>::get(netuid),
             target_registrations_per_interval
         );
         assert_eq!(
-            MaxRegistrationsPerInterval::<Test>::get(0),
+            MaxRegistrationsPerInterval::<Test>::get(netuid),
             max_registrations_per_interval
         );
-        assert_eq!(AdjustmentAlpha::<Test>::get(0), adjustment_alpha);
-        assert_eq!(MinImmunityStake::<Test>::get(0), min_immunity_stake);
+        assert_eq!(AdjustmentAlpha::<Test>::get(netuid), adjustment_alpha);
+        assert_eq!(MinImmunityStake::<Test>::get(netuid), min_immunity_stake);
 
-        assert_eq!(SubnetGovernanceConfig::<Test>::get(0), governance_config);
+        assert_eq!(
+            SubnetGovernanceConfig::<Test>::get(netuid),
+            governance_config
+        );
 
         assert_eq!(TotalSubnets::<Test>::get(), 1);
-        assert_eq!(N::<Test>::get(0), 1);
+        assert_eq!(N::<Test>::get(netuid), 1);
     });
 }
 
@@ -226,7 +229,6 @@ fn removes_subnet_from_storage() {
 fn update_subnet_verifies_names_uniquiness_integrity() {
     new_test_ext().execute_with(|| {
         zero_min_burn();
-        max_subnet_registrations_per_interval(2);
 
         let update_params = |key, netuid, params: SubnetParams<Test>| {
             SubspaceMod::update_subnet(
@@ -270,7 +272,6 @@ fn update_subnet_verifies_names_uniquiness_integrity() {
 fn subnet_is_replaced_on_reaching_max_allowed_modules() {
     new_test_ext().execute_with(|| {
         zero_min_burn();
-        max_subnet_registrations_per_interval(6);
 
         // Defines the maximum number of modules, that can be registered,
         // on all subnets at once.

@@ -94,6 +94,11 @@ pub mod pallet {
         /// Currency type that will be used to place deposits on modules.
         type Currency: Currency<Self::AccountId> + Send + Sync;
 
+        /// The default number of modules that can be registered per interval.
+        type DefaultMaxRegistrationsPerInterval: Get<u16>;
+        /// The default number of subnets that can be registered per interval.
+        type DefaultMaxSubnetRegistrationsPerInterval: Get<u16>;
+
         /// The weight information of this pallet.
         type WeightInfo: WeightInfo;
     }
@@ -407,8 +412,8 @@ pub mod pallet {
     pub type MinStake<T> = StorageMap<_, Identity, u16, u64, ValueQuery>;
 
     #[pallet::storage] // --- MAP ( netuid ) --> max_registratoins_per_interval
-    pub type MaxRegistrationsPerInterval<T> =
-        StorageMap<_, Identity, u16, u16, ValueQuery, ConstU16<32>>;
+    pub type MaxRegistrationsPerInterval<T: Config> =
+        StorageMap<_, Identity, u16, u16, ValueQuery, T::DefaultMaxRegistrationsPerInterval>;
 
     #[pallet::storage] // --- MAP ( netuid ) --> min_allowed_weights
     pub type MaxWeightAge<T> = StorageMap<_, Identity, u16, u64, ValueQuery, ConstU64<3600>>;
@@ -645,9 +650,8 @@ pub mod pallet {
 
         // Other
         InvalidMaxWeightAge,
-        MaximumSetWeightsPerEpochReached,
+        MaxSetWeightsPerEpochReached,
         ArithmeticError,
-        MaxRootnetWeightCallsPerInterval,
         // Registrations
         InvalidTargetRegistrationsPerInterval,
         InvalidMaxRegistrationsPerInterval,

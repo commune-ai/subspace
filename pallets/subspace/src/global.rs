@@ -1,5 +1,6 @@
 use super::*;
 use frame_support::pallet_prelude::{DispatchResult, MaxEncodedLen};
+use sp_core::Get;
 use sp_runtime::DispatchError;
 
 // TODO:
@@ -59,7 +60,7 @@ impl<T: Config> Default for SubnetBurnConfiguration<T> {
             adjustment_alpha: u64::MAX / 2,
             adjustment_interval: 5_400,
             expected_registrations: 1,
-            max_registrations: 1,
+            max_registrations: T::DefaultMaxSubnetRegistrationsPerInterval::get(),
             _pd: PhantomData,
         }
     }

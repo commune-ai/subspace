@@ -486,7 +486,7 @@ fn calculates_blocks_until_epoch() {
         };
 
         // Check tempo = 0 block = * netuid = *
-        assert_eq!(blocks_until_next_epoch(0, 0, 0), 1000);
+        assert_eq!(blocks_until_next_epoch(0, 0, 0), u64::MAX);
 
         // Check tempo = 1 block = * netuid = *
         assert_eq!(blocks_until_next_epoch(0, 1, 0), 0);
@@ -729,7 +729,6 @@ const ONE: u64 = to_nano(1);
 fn test_1_graph() {
     new_test_ext().execute_with(|| {
         zero_min_burn();
-        max_subnet_registrations_per_interval(2);
 
         UnitEmission::<Test>::put(23148148148);
         FloorFounderShare::<Test>::put(0);
@@ -798,8 +797,6 @@ fn test_10_graph() {
     }
 
     new_test_ext().execute_with(|| {
-        max_subnet_registrations_per_interval(10);
-
         UnitEmission::<Test>::put(23148148148);
         zero_min_burn();
         FloorFounderShare::<Test>::put(0);
@@ -869,8 +866,6 @@ fn test_10_graph() {
 #[test]
 fn yuma_weights_older_than_max_age_are_discarded() {
     new_test_ext().execute_with(|| {
-        max_subnet_registrations_per_interval(2);
-
         const MAX_WEIGHT_AGE: u64 = 300;
         const SUBNET_TEMPO: u16 = 100;
         // Register the general subnet.
@@ -963,8 +958,6 @@ fn yuma_weights_older_than_max_age_are_discarded() {
 #[test]
 fn test_emission_exploit() {
     new_test_ext().execute_with(|| {
-        max_subnet_registrations_per_interval(10);
-
         const SUBNET_TEMPO: u16 = 25;
         // Register the general subnet.
         let netuid: u16 = 0;
@@ -1058,7 +1051,6 @@ fn test_emission_exploit() {
 fn test_tempo_compound() {
     new_test_ext().execute_with(|| {
         zero_min_burn();
-        max_subnet_registrations_per_interval(3);
 
         const QUICK_TEMPO: u16 = 25;
         const SLOW_TEMPO: u16 = 1000;

@@ -155,7 +155,6 @@ fn global_custom_proposal_is_accepted_correctly() {
 fn subnet_custom_proposal_is_accepted_correctly() {
     new_test_ext().execute_with(|| {
         zero_min_burn();
-        max_subnet_registrations_per_interval(2);
 
         const FOR: u32 = 0;
         const AGAINST: u32 = 1;
@@ -417,7 +416,6 @@ fn global_proposals_counts_delegated_stake() {
 fn subnet_proposals_counts_delegated_stake() {
     new_test_ext().execute_with(|| {
         zero_min_burn();
-        max_subnet_registrations_per_interval(2);
 
         const FOR: u32 = 0;
         const AGAINST: u32 = 1;

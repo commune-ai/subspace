@@ -366,6 +366,8 @@ impl pallet_subspace::Config for Runtime {
     type RuntimeEvent = RuntimeEvent;
     type Currency = Balances;
     type PalletId = SubspacePalletId;
+    type DefaultMaxRegistrationsPerInterval = ConstU16<32>;
+    type DefaultMaxSubnetRegistrationsPerInterval = ConstU16<1>;
     type WeightInfo = pallet_subspace::weights::SubstrateWeight<Runtime>;
 }
 

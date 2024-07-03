@@ -166,21 +166,22 @@ fn registers_module_delegating_stake() {
 #[test]
 fn deregister_within_subnet_when_limit_is_reached() {
     new_test_ext().execute_with(|| {
-        max_subnet_registrations_per_interval(2);
+        zero_min_burn();
+
         MaxAllowedModules::<Test>::set(3);
         assert_ok!(register_module(0, 0, to_nano(10_000)));
         assert_ok!(register_module(1, 1, to_nano(5_000)));
 
-        assert_eq!(Stake::<Test>::get(0), to_nano(9_996));
-        assert_eq!(Stake::<Test>::get(1), to_nano(4_996));
+        assert_eq!(Stake::<Test>::get(0), to_nano(10_000));
+        assert_eq!(Stake::<Test>::get(1), to_nano(5_000));
 
         MaxAllowedUids::<Test>::set(0, 1);
         MaxAllowedUids::<Test>::set(1, 1);
 
         assert_ok!(register_module(0, 2, to_nano(15_000)));
 
-        assert_eq!(Stake::<Test>::get(2), to_nano(14_996));
-        assert_eq!(Stake::<Test>::get(1), to_nano(4_996));
+        assert_eq!(Stake::<Test>::get(2), to_nano(15_000));
+        assert_eq!(Stake::<Test>::get(1), to_nano(5_000));
 
         assert_eq!(Emission::<Test>::get(0).len(), 1);
         assert_eq!(Emission::<Test>::get(1).len(), 1);
@@ -191,7 +192,6 @@ fn deregister_within_subnet_when_limit_is_reached() {
 fn deregister_globally_when_global_limit_is_reached() {
     new_test_ext().execute_with(|| {
         zero_min_burn();
-        max_subnet_registrations_per_interval(3);
 
         let get_emission = |netuid, id| {
             let id = Uids::<Test>::get(netuid, id).unwrap_or(u16::MAX);
@@ -334,7 +334,6 @@ mod subnet_validation {
     fn subnet_registration_validates_subnet_names() {
         new_test_ext().execute_with(|| {
             zero_min_burn();
-            max_subnet_registrations_per_interval(5);
 
             let address = b"0.0.0.0".to_vec();
             let stake = to_nano(1);
@@ -397,7 +396,7 @@ fn new_subnet_reutilized_removed_netuid_if_total_is_bigger_than_removed() {
 
         TotalSubnets::<Test>::set(10);
         SubnetGaps::<Test>::set(BTreeSet::from([5]));
-        assert_ok!(register_module(0, 0, to_nano(1)));
+        assert_ok!(register_module(1, 0, to_nano(1)));
 
         let subnets: Vec<_> = N::<Test>::iter().collect();
         assert_eq!(subnets, vec![(5, 1)]);
@@ -412,7 +411,7 @@ fn new_subnet_does_not_reuse_removed_netuid_if_total_is_smaller_than_removed() {
 
         TotalSubnets::<Test>::set(3);
         SubnetGaps::<Test>::set(BTreeSet::from([7]));
-        assert_ok!(register_module(0, 0, to_nano(1)));
+        assert_ok!(register_module(1, 0, to_nano(1)));
 
         let subnets: Vec<_> = N::<Test>::iter().collect();
         assert_eq!(subnets, vec![(7, 1)]);
@@ -424,13 +423,12 @@ fn new_subnet_does_not_reuse_removed_netuid_if_total_is_smaller_than_removed() {
 fn new_subnets_on_removed_uids_register_modules_to_the_correct_netuids() {
     fn assert_subnets(v: &[(u16, &str)]) {
         let v: Vec<_> = v.iter().map(|(u, n)| (*u, n.as_bytes().to_vec())).collect();
-        let names: Vec<_> = SubnetNames::<Test>::iter().collect();
+        let names: Vec<_> = SubnetNames::<Test>::iter().filter(|(n, _)| *n > 0).collect();
         assert_eq!(names, v);
     }
 
     new_test_ext().execute_with(|| {
         zero_min_burn();
-        max_subnet_registrations_per_interval(6);
 
         let add_emission = |netuid, id, emission| {
             let netuid =
@@ -441,27 +439,28 @@ fn new_subnets_on_removed_uids_register_modules_to_the_correct_netuids() {
             pallet_subnet_emission::SubnetEmission::<Test>::mutate(netuid, |s| *s += emission);
         };
 
-        MaxAllowedSubnets::<Test>::put(3);
+        MaxAllowedSubnets::<Test>::put(4);
+        assert_ok!(register_module(0, 0, 1));
 
-        assert_ok!(register_module(0, 0, to_nano(10)));
-        assert_ok!(register_module(1, 1, to_nano(5)));
-        assert_ok!(register_module(2, 2, to_nano(1)));
-        assert_subnets(&[(0, "test0"), (1, "test1"), (2, "test2")]);
+        assert_ok!(register_module(1, 0, to_nano(10)));
+        assert_ok!(register_module(2, 1, to_nano(5)));
+        assert_ok!(register_module(3, 2, to_nano(1)));
+        assert_subnets(&[(1, "test1"), (2, "test2"), (3, "test3")]);
 
-        assert_ok!(register_module(3, 3, to_nano(15)));
-        assert_subnets(&[(0, "test0"), (1, "test1"), (2, "test3")]);
+        assert_ok!(register_module(4, 3, to_nano(15)));
+        assert_subnets(&[(1, "test1"), (2, "test2"), (3, "test4")]);
 
-        assert_ok!(register_module(4, 4, to_nano(20)));
-        assert_subnets(&[(0, "test0"), (1, "test4"), (2, "test3")]);
+        assert_ok!(register_module(5, 4, to_nano(20)));
+        assert_subnets(&[(1, "test1"), (2, "test5"), (3, "test4")]);
 
         add_balance(0, to_nano(50));
-        add_emission(0, 0, to_nano(10));
+        add_emission(1, 0, to_nano(10));
 
-        assert_ok!(register_module(5, 5, to_nano(17)));
-        assert_subnets(&[(0, "test0"), (1, "test4"), (2, "test5")]);
+        assert_ok!(register_module(6, 5, to_nano(17)));
+        assert_subnets(&[(1, "test1"), (2, "test5"), (3, "test6")]);
 
-        assert_eq!(N::<Test>::get(0), 1);
         assert_eq!(N::<Test>::get(1), 1);
         assert_eq!(N::<Test>::get(2), 1);
+        assert_eq!(N::<Test>::get(3), 1);
     });
 }

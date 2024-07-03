@@ -71,8 +71,8 @@ impl<T: Config> Pallet<T> {
             Error::<T>::NetworkDoesNotExist
         );
         ensure!(!Self::contains_duplicates(uids), Error::<T>::DuplicateUids);
-        Self::perform_uid_validity_check(uids, netuid)?;
         Self::validate_uids_length(uids.len(), netuid)?;
+        Self::perform_uid_validity_check(uids, netuid)?;
         ensure!(
             netuid == ROOTNET_ID || !uids.contains(&uid),
             Error::<T>::NoSelfWeight
@@ -143,14 +143,16 @@ impl<T: Config> Pallet<T> {
     // ----------------
 
     fn handle_rate_limiting(uid: u16, netuid: u16, key: &T::AccountId) -> dispatch::DispatchResult {
-        if let Some(max_set_weights) = MaximumSetWeightCallsPerEpoch::<T>::get(netuid) {
+        if let Some(max_set_weights) =
+            MaximumSetWeightCallsPerEpoch::<T>::get(netuid).filter(|r| *r > 0)
+        {
             let set_weight_uses = SetWeightCallsPerEpoch::<T>::mutate(netuid, key, |value| {
                 *value = value.saturating_add(1);
                 *value
             });
             ensure!(
                 set_weight_uses <= max_set_weights,
-                Error::<T>::MaximumSetWeightsPerEpochReached
+                Error::<T>::MaxSetWeightsPerEpochReached
             );
         }
         Self::check_rootnet_daily_limit(netuid, uid)
@@ -160,7 +162,7 @@ impl<T: Config> Pallet<T> {
         if netuid == ROOTNET_ID {
             ensure!(
                 RootNetWeightCalls::<T>::get(module_id).is_none(),
-                Error::<T>::MaximumSetWeightsPerEpochReached
+                Error::<T>::MaxSetWeightsPerEpochReached
             );
             RootNetWeightCalls::<T>::set(module_id, Some(()));
         }

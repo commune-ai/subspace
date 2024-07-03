@@ -1,7 +1,7 @@
 #![allow(non_camel_case_types)]
 
 use frame_support::{
-    parameter_types,
+    ensure, parameter_types,
     traits::{Currency, Everything, Get, Hooks},
     PalletId,
 };
@@ -10,12 +10,13 @@ use pallet_governance::GlobalGovernanceConfig;
 use pallet_governance_api::*;
 use pallet_subnet_emission_api::SubnetEmissionApi;
 use scale_info::prelude::collections::BTreeSet;
-use sp_core::H256;
+use sp_core::{ConstU16, H256};
 use std::cell::RefCell;
 
 use pallet_subspace::{
-    Address, BurnConfig, DefaultKey, Dividends, Emission, Incentive, LastUpdate,
-    MaxRegistrationsPerBlock, Name, Stake, SubnetBurn, SubnetBurnConfig, Tempo, N,
+    subnet::SubnetChangeset, Address, BurnConfig, DefaultKey, DefaultSubnetParams, Dividends,
+    Emission, Incentive, LastUpdate, MaxRegistrationsPerBlock, Name, Stake, SubnetBurn,
+    SubnetBurnConfig, SubnetParams, Tempo, N,
 };
 use sp_runtime::{
     traits::{AccountIdConversion, BlakeTwo256, IdentityLookup},
@@ -74,6 +75,8 @@ impl pallet_subspace::Config for Test {
     type RuntimeEvent = RuntimeEvent;
     type Currency = Balances;
     type WeightInfo = ();
+    type DefaultMaxRegistrationsPerInterval = ConstU16<{ u16::MAX }>;
+    type DefaultMaxSubnetRegistrationsPerInterval = ConstU16<{ u16::MAX }>;
     type PalletId = SubspacePalletId;
 }
 
@@ -500,12 +503,32 @@ pub fn register_n_modules(netuid: u16, n: u16, stake: u64) {
     }
 }
 
+fn register_subnet(key: AccountId, netuid: u16) -> DispatchResult {
+    ensure!(
+        !N::<Test>::contains_key(netuid),
+        "subnet id already registered"
+    );
+
+    let name = format!("test{netuid}").as_bytes().to_vec();
+    let params = SubnetParams {
+        name: name.try_into().unwrap(),
+        founder: key,
+        ..DefaultSubnetParams::<Test>::get()
+    };
+
+    SubnetChangeset::<Test>::new(params).unwrap().apply(netuid).unwrap();
+    Ok(())
+}
+
 #[allow(dead_code)]
 pub fn register_module(netuid: u16, key: AccountId, stake: u64) -> Result<u16, DispatchError> {
     let origin = get_origin(key);
+
     let network = format!("test{netuid}").as_bytes().to_vec();
     let name = format!("module{key}").as_bytes().to_vec();
     let address = "0.0.0.0:30333".as_bytes().to_vec();
+
+    let _ = register_subnet(key, netuid);
 
     SubspaceMod::add_balance_to_account(&key, stake + SubnetBurn::<Test>::get() + 1);
     SubspaceMod::register(origin, network.clone(), name, address, stake, key, None)?;
@@ -573,11 +596,6 @@ pub fn round_first_five(num: u64) -> u64 {
 pub fn zero_min_burn() {
     BurnConfig::<Test>::mutate(|cfg| cfg.min_burn = 0);
     SubnetBurnConfig::<Test>::mutate(|cfg| cfg.min_burn = 0);
-}
-
-#[allow(dead_code)]
-pub fn max_subnet_registrations_per_interval(max: u16) {
-    SubnetBurnConfig::<Test>::mutate(|cfg| cfg.max_registrations = max);
 }
 
 macro_rules! update_params {
