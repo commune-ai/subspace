@@ -353,7 +353,7 @@ pub mod pallet {
                 bonds_ma: 900_000,
                 target_registrations_interval: 142,
                 target_registrations_per_interval: 3,
-                max_registrations_per_interval: 32,
+                max_registrations_per_interval: T::DefaultMaxRegistrationsPerInterval::get(),
                 adjustment_alpha: u64::MAX / 2,
                 min_immunity_stake: 50_000_000_000_000, // 50k
                 governance_config: GovernanceConfiguration {
