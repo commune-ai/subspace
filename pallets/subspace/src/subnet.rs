@@ -489,7 +489,7 @@ impl<T: Config> Pallet<T> {
 
         let mut ownership_vector: Vec<(T::AccountId, I64F64)> = Vec::new();
 
-        for (k, v) in stake_from_vector.clone().into_iter() {
+        for (k, v) in stake_from_vector.into_iter() {
             let ownership = I64F64::from_num(v);
             ownership_vector.push((k.clone(), ownership));
             total_stake_from = total_stake_from.saturating_add(ownership);

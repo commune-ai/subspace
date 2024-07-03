@@ -273,4 +273,23 @@ impl<T: Config> Pallet<T> {
             Some(SubnetConsensus::Yuma)
         )
     }
+
+    // Subnet is minable, if it's consensus isn't root or treasury
+    pub fn is_minable_subnet(netuid: u16) -> bool {
+        matches!(
+            SubnetConsensusType::<T>::get(netuid),
+            Some(SubnetConsensus::Linear) | Some(SubnetConsensus::Yuma)
+        )
+    }
+
+    // Gets rootnet id by iterating through consensus, until we find root consensus
+    pub fn get_rootnet_netuid() -> Option<u16> {
+        // This should always result in returning Some(0), but we are just making sure
+        N::<T>::iter_keys().find(|netuid| {
+            matches!(
+                SubnetConsensusType::<T>::get(*netuid),
+                Some(SubnetConsensus::Root)
+            )
+        })
+    }
 }

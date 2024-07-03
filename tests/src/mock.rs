@@ -165,6 +165,14 @@ impl SubnetEmissionApi for Test {
     fn can_remove_subnet(netuid: u16) -> bool {
         pallet_subnet_emission::Pallet::<Test>::can_remove_subnet(netuid)
     }
+
+    fn is_minable_subnet(netuid: u16) -> bool {
+        pallet_subnet_emission::Pallet::<Test>::is_minable_subnet(netuid)
+    }
+
+    fn get_rootnet_netuid() -> Option<u16> {
+        pallet_subnet_emission::Pallet::<Test>::get_rootnet_netuid()
+    }
 }
 
 impl pallet_subnet_emission::Config for Test {

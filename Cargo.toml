@@ -22,6 +22,10 @@ arithmetic_side_effects = "deny"
 indexing_slicing = "deny"
 panicking_unwrap = "deny"
 out_of_bounds_indexing = "deny"
+integer_arithmetic = "deny"
+match_bool = "deny"
+integer_overflow = "deny"
+infinite_loop = "deny"
 
 [workspace.dependencies]
 # External dependencies

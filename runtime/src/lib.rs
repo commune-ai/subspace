@@ -846,6 +846,14 @@ impl pallet_subnet_emission_api::SubnetEmissionApi for Runtime {
     fn can_remove_subnet(netuid: u16) -> bool {
         SubnetEmissionModule::can_remove_subnet(netuid)
     }
+
+    fn is_minable_subnet(netuid: u16) -> bool {
+        SubnetEmissionModule::is_minable_subnet(netuid)
+    }
+
+    fn get_rootnet_netuid() -> Option<u16> {
+        SubnetEmissionModule::get_rootnet_netuid()
+    }
 }
 
 impl pallet_governance_api::GovernanceApi<<Runtime as frame_system::Config>::AccountId>

@@ -148,7 +148,7 @@ impl<T: Config> YumaEpoch<T> {
         let validator_trust: Vec<_> =
             validator_trust.into_inner().into_iter().map(fixed_proportion_to_u16).collect();
 
-        Active::<T>::insert(self.netuid, active.clone());
+        Active::<T>::insert(self.netuid, active);
         Consensus::<T>::insert(self.netuid, consensus);
         Dividends::<T>::insert(self.netuid, dividends);
         Emission::<T>::insert(self.netuid, combined_emissions);
