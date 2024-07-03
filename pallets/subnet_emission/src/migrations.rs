@@ -6,6 +6,7 @@ use frame_support::{
     traits::{OnRuntimeUpgrade, StorageVersion},
     Identity,
 };
+use pallet_subnet_emission_api::SubnetConsensus;
 use pallet_subspace::Vec;
 
 #[derive(Default)]

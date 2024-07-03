@@ -37,6 +37,7 @@ sp-arithmetic.workspace = true
 bty.workspace = true
 log.workspace = true
 
+pallet-subnet-emission-api = { path = "../subnet_emission/api", default-features = false }
 pallet-subspace = { path = "../subspace", default-features = false }
 pallet-governance-api = { path = "../governance/api", default-features = false }
 

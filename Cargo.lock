@@ -5280,6 +5280,7 @@ dependencies = [
  "log",
  "pallet-balances",
  "pallet-governance-api",
+ "pallet-subnet-emission-api",
  "pallet-subspace",
  "parity-scale-codec",
  "scale-info",

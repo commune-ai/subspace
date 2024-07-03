@@ -41,8 +41,8 @@ use sp_version::NativeVersion;
 pub use frame_support::{
     construct_runtime, parameter_types,
     traits::{
-        ConstBool, ConstU128, ConstU32, ConstU64, ConstU8, FindAuthor, KeyOwnerProofSystem,
-        OnFinalize, Randomness, StorageInfo,
+        ConstBool, ConstU128, ConstU16, ConstU32, ConstU64, ConstU8, FindAuthor,
+        KeyOwnerProofSystem, OnFinalize, Randomness, StorageInfo,
     },
     weights::{
         constants::{
@@ -823,6 +823,14 @@ impl_runtime_apis! {
 }
 
 impl pallet_subnet_emission_api::SubnetEmissionApi for Runtime {
+    fn get_unit_emission() -> u64 {
+        pallet_subnet_emission::UnitEmission::<Runtime>::get()
+    }
+
+    fn set_unit_emission(unit_emission: u64) {
+        pallet_subnet_emission::UnitEmission::<Runtime>::set(unit_emission);
+    }
+
     fn get_lowest_emission_netuid() -> Option<u16> {
         SubnetEmissionModule::get_lowest_emission_netuid()
     }
@@ -853,6 +861,35 @@ impl pallet_subnet_emission_api::SubnetEmissionApi for Runtime {
 
     fn get_rootnet_netuid() -> Option<u16> {
         SubnetEmissionModule::get_rootnet_netuid()
+    }
+
+    fn get_pending_emission(netuid: u16) -> u64 {
+        pallet_subnet_emission::PendingEmission::<Runtime>::get(netuid)
+    }
+
+    fn set_pending_emission(netuid: u16, pending_emission: u64) {
+        pallet_subnet_emission::PendingEmission::<Runtime>::set(netuid, pending_emission);
+    }
+
+    fn get_subnet_emission(netuid: u16) -> u64 {
+        pallet_subnet_emission::SubnetEmission::<Runtime>::get(netuid)
+    }
+
+    fn set_subnet_emission(netuid: u16, subnet_emission: u64) {
+        pallet_subnet_emission::SubnetEmission::<Runtime>::set(netuid, subnet_emission);
+    }
+
+    fn get_subnet_consensus_type(
+        netuid: u16,
+    ) -> Option<pallet_subnet_emission_api::SubnetConsensus> {
+        pallet_subnet_emission::SubnetConsensusType::<Runtime>::get(netuid)
+    }
+
+    fn set_subnet_consensus_type(
+        netuid: u16,
+        subnet_consensus: Option<pallet_subnet_emission_api::SubnetConsensus>,
+    ) {
+        pallet_subnet_emission::SubnetConsensusType::<Runtime>::set(netuid, subnet_consensus)
     }
 }
 
