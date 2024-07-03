@@ -10,13 +10,13 @@ fn adds_and_removes_subnets() {
     new_test_ext().execute_with(|| {
         zero_min_burn();
 
-        let iterations = 6u16;
+        let iterations = 5u16;
 
         MaxRegistrationsPerBlock::<Test>::set(iterations * iterations);
 
-        for i in 1..iterations {
+        for i in 1..iterations + 1 {
             assert_ok!(register_module(i, i as u32, 1));
-            for j in 1..iterations {
+            for j in 1..iterations + 1 {
                 if i != j {
                     assert_ok!(register_module(i, j as u32, 1));
                 }
@@ -25,7 +25,7 @@ fn adds_and_removes_subnets() {
             assert_eq!(N::<Test>::get(i), iterations);
             assert_eq!(
                 TotalSubnets::<Test>::get(),
-                i + 1,
+                i,
                 "number of subnets is not equal to expected subnets"
             );
         }
@@ -62,7 +62,7 @@ fn subnet_update_changes_all_parameter_values() {
             target_registrations_per_interval: 15,
             max_registrations_per_interval: 16,
             adjustment_alpha: 17,
-            min_immunity_stake: 18,
+            min_immunity_stake: to_nano(20_000) * 2,
             governance_config: GovernanceConfiguration {
                 proposal_cost: 18,
                 proposal_expiration: 19,
@@ -145,6 +145,8 @@ fn removes_subnet_from_storage() {
     new_test_ext().execute_with(|| {
         zero_min_burn();
 
+        let netuid = 5;
+
         macro_rules! params {
             ($m:ident) => {
                 let SubnetParams {
@@ -198,30 +200,30 @@ fn removes_subnet_from_storage() {
         macro_rules! exists {
             ($v:ident, $f:ident) => {
                 let _ = $f;
-                assert!($v::<Test>::contains_key(0));
+                assert!($v::<Test>::contains_key(netuid));
             };
             ($v:ident) => {
-                assert!($v::<Test>::contains_key(0));
+                assert!($v::<Test>::contains_key(netuid));
             };
         }
         macro_rules! not_exists {
             ($v:ident, $f:ident) => {
                 let _ = $f;
-                assert!(!$v::<Test>::contains_key(0));
+                assert!(!$v::<Test>::contains_key(netuid));
             };
             ($v:ident) => {
-                assert!(!$v::<Test>::contains_key(0));
+                assert!(!$v::<Test>::contains_key(netuid));
             };
         }
 
-        assert_ok!(register_module(0, 0, to_nano(10)));
+        assert_ok!(register_module(netuid, 0, to_nano(10)));
         params!(exists);
         assert_eq!(TotalSubnets::<Test>::get(), 1);
 
-        SubspaceMod::remove_subnet(0);
+        SubspaceMod::remove_subnet(netuid);
         params!(not_exists);
         assert_eq!(TotalSubnets::<Test>::get(), 0);
-        assert!(SubnetGaps::<Test>::get().contains(&0));
+        assert!(SubnetGaps::<Test>::get().contains(&netuid));
     });
 }
 
@@ -279,13 +281,13 @@ fn subnet_is_replaced_on_reaching_max_allowed_modules() {
         MaxAllowedModules::<Test>::put(expected_subnet_amount);
 
         let subnets = [
-            (0, to_nano(100_000)),
-            (1, to_nano(5_000)),
-            (2, to_nano(4_000)),
-            (3, to_nano(1_100)),
+            (1, to_nano(100_000)),
+            (2, to_nano(5_000)),
+            (3, to_nano(4_000)),
+            (4, to_nano(1_100)),
         ];
 
-        let random_keys = [4, 5];
+        let random_keys = [5, 6];
 
         // Register all subnets
         for (i, (subnet_key, subnet_stake)) in subnets.iter().enumerate() {
@@ -297,14 +299,14 @@ fn subnet_is_replaced_on_reaching_max_allowed_modules() {
 
         // Register module on the subnet one (netuid 0), this means that subnet
         // subnet two (netuid 1) will be deregistered, as we reached global module limit.
-        assert_ok!(register_module(0, random_keys[0], to_nano(1_000)));
-        assert_ok!(register_module(4, random_keys[1], to_nano(150_000)));
+        assert_ok!(register_module(1, random_keys[0], to_nano(1_000)));
+        assert_ok!(register_module(5, random_keys[1], to_nano(150_000)));
 
         let subnet_amount = TotalSubnets::<Test>::get();
-        assert_eq!(subnet_amount, expected_subnet_amount - 1);
+        assert_eq!(subnet_amount, expected_subnet_amount);
 
         // netuid 1 replaced by subnet four
-        assert_ok!(register_module(3, subnets[3].0, subnets[3].1));
+        assert_ok!(register_module(4, subnets[3].0, subnets[3].1));
 
         let subnet_amount = TotalSubnets::<Test>::get();
         let total_module_amount = SubspaceMod::global_n_modules();
@@ -313,7 +315,7 @@ fn subnet_is_replaced_on_reaching_max_allowed_modules() {
 
         let netuids = SubspaceMod::netuids();
         let max_netuid = netuids.iter().max().unwrap();
-        assert_eq!(*max_netuid, 2);
+        assert_eq!(*max_netuid, 5);
     });
 }
 

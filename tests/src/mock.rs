@@ -154,6 +154,14 @@ impl SubnetEmissionApi for Test {
         pallet_subnet_emission::Pallet::<Test>::set_subnet_emission_storage(subnet_id, emission)
     }
 
+    fn create_yuma_subnet(netuid: u16) {
+        pallet_subnet_emission::Pallet::<Test>::create_yuma_subnet(netuid)
+    }
+
+    fn remove_yuma_subnet(netuid: u16) {
+        pallet_subnet_emission::Pallet::<Test>::remove_yuma_subnet(netuid)
+    }
+
     fn can_remove_subnet(netuid: u16) -> bool {
         pallet_subnet_emission::Pallet::<Test>::can_remove_subnet(netuid)
     }
@@ -516,7 +524,8 @@ fn register_subnet(key: AccountId, netuid: u16) -> DispatchResult {
         ..DefaultSubnetParams::<Test>::get()
     };
 
-    SubnetChangeset::<Test>::new(params).unwrap().apply(netuid).unwrap();
+    SubspaceMod::add_subnet(SubnetChangeset::<Test>::new(params).unwrap(), Some(netuid)).unwrap();
+
     Ok(())
 }
 

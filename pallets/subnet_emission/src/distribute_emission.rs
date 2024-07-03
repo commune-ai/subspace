@@ -234,6 +234,7 @@ impl<T: Config> Pallet<T> {
     pub fn get_lowest_emission_netuid() -> Option<u16> {
         SubnetEmission::<T>::iter()
             .filter(|(netuid, _)| Self::can_remove_subnet(*netuid))
+            .filter(|(netuid, _)| pallet_subspace::N::<T>::get(netuid) > 0)
             .min_by_key(|(_, emission)| *emission)
             .map(|(netuid, _)| netuid)
     }
@@ -254,6 +255,16 @@ impl<T: Config> Pallet<T> {
     /// * `emission` - The emission value to set for the subnet.
     pub fn set_subnet_emission_storage(netuid: u16, emission: u64) {
         SubnetEmission::<T>::insert(netuid, emission);
+    }
+
+    pub fn create_yuma_subnet(netuid: u16) {
+        SubnetConsensusType::<T>::set(netuid, Some(SubnetConsensus::Yuma));
+    }
+
+    pub fn remove_yuma_subnet(netuid: u16) {
+        if Self::can_remove_subnet(netuid) {
+            SubnetConsensusType::<T>::remove(netuid);
+        }
     }
 
     pub fn can_remove_subnet(netuid: u16) -> bool {

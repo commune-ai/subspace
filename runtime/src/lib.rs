@@ -835,6 +835,14 @@ impl pallet_subnet_emission_api::SubnetEmissionApi for Runtime {
         SubnetEmissionModule::set_subnet_emission_storage(netuid, emission)
     }
 
+    fn create_yuma_subnet(netuid: u16) {
+        SubnetEmissionModule::create_yuma_subnet(netuid)
+    }
+
+    fn remove_yuma_subnet(netuid: u16) {
+        SubnetEmissionModule::remove_yuma_subnet(netuid)
+    }
+
     fn can_remove_subnet(netuid: u16) -> bool {
         SubnetEmissionModule::can_remove_subnet(netuid)
     }

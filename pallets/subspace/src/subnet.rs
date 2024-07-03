@@ -225,6 +225,8 @@ impl<T: Config> Pallet<T> {
 
         SubnetGaps::<T>::mutate(|subnets| subnets.remove(&netuid));
 
+        T::create_yuma_subnet(netuid);
+
         // --- 6. Emit the new network event.
         Self::deposit_event(Event::NetworkAdded(netuid, name.into_inner()));
 
@@ -236,15 +238,16 @@ impl<T: Config> Pallet<T> {
     // TODO: improve safety, to check if all storages are,
     // actually being deleted, from subnet_params struct,
     // and other storage items, in consensus vectors etc..
-    pub fn remove_subnet(netuid: u16) -> u16 {
+    pub fn remove_subnet(netuid: u16) {
         // --- 0. Ensure the network to be removed exists.
         if !Self::if_subnet_exist(netuid) {
-            return 0;
+            return;
         }
 
         if !T::can_remove_subnet(netuid) {
-            return 0;
+            return;
         }
+
         // TODO:
         // If the key is only present on the subnet, it is getting deregistered from.
         // Then we want to unstake, otherwise we don't do that.
@@ -301,7 +304,9 @@ impl<T: Config> Pallet<T> {
         MaxRegistrationsPerInterval::<T>::remove(netuid);
         AdjustmentAlpha::<T>::remove(netuid);
         MinImmunityStake::<T>::remove(netuid);
+
         T::handle_subnet_removal(netuid);
+        T::remove_yuma_subnet(netuid);
 
         // --- 4 Adjust the total number of subnets. and remove the subnet from the list of subnets.
         // =========================================================================================
@@ -314,8 +319,6 @@ impl<T: Config> Pallet<T> {
         // ======================
 
         Self::deposit_event(Event::NetworkRemoved(netuid));
-
-        netuid
     }
 
     // ---------------------------------
