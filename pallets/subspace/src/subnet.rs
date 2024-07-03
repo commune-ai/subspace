@@ -78,81 +78,82 @@ impl<T: Config> SubnetChangeset<T> {
         // checks if params are valid
         let global_params = Pallet::<T>::global_params();
 
-        // check valid tempo
-        ensure!(
-            params.min_allowed_weights <= params.max_allowed_weights,
-            Error::<T>::InvalidMinAllowedWeights
-        );
+        if netuid.is_some_and(|netuid| T::is_minable_subnet(netuid)) {
+            // check valid tempo
+            ensure!(
+                params.min_allowed_weights <= params.max_allowed_weights,
+                Error::<T>::InvalidMinAllowedWeights
+            );
 
-        ensure!(
-            params.max_allowed_weights <= global_params.max_allowed_weights,
-            Error::<T>::InvalidMaxAllowedWeights
-        );
+            ensure!(
+                params.max_allowed_weights <= global_params.max_allowed_weights,
+                Error::<T>::InvalidMaxAllowedWeights
+            );
 
-        ensure!(
-            params.min_allowed_weights >= 1,
-            Error::<T>::InvalidMinAllowedWeights
-        );
+            ensure!(
+                params.min_allowed_weights >= 1,
+                Error::<T>::InvalidMinAllowedWeights
+            );
 
-        // lower tempos might significantly slow down the chain
-        ensure!(params.tempo >= 25, Error::<T>::InvalidTempo);
+            // lower tempos might significantly slow down the chain
+            ensure!(params.tempo >= 25, Error::<T>::InvalidTempo);
 
-        ensure!(
-            params.max_weight_age > params.tempo as u64,
-            Error::<T>::InvalidMaxWeightAge
-        );
+            ensure!(
+                params.max_weight_age > params.tempo as u64,
+                Error::<T>::InvalidMaxWeightAge
+            );
 
-        // ensure the trust_ratio is between 0 and 100
-        ensure!(params.trust_ratio <= 100, Error::<T>::InvalidTrustRatio);
+            // ensure the trust_ratio is between 0 and 100
+            ensure!(params.trust_ratio <= 100, Error::<T>::InvalidTrustRatio);
 
-        ensure!(
-            params.max_allowed_uids > 0,
-            Error::<T>::InvalidMaxAllowedUids
-        );
+            ensure!(
+                params.max_allowed_uids > 0,
+                Error::<T>::InvalidMaxAllowedUids
+            );
 
-        ensure!(params.founder_share <= 100, Error::<T>::InvalidFounderShare);
+            ensure!(params.founder_share <= 100, Error::<T>::InvalidFounderShare);
 
-        ensure!(
-            params.founder_share >= FloorFounderShare::<T>::get() as u16,
-            Error::<T>::InvalidFounderShare
-        );
+            ensure!(
+                params.founder_share >= FloorFounderShare::<T>::get() as u16,
+                Error::<T>::InvalidFounderShare
+            );
 
-        ensure!(
-            params.incentive_ratio <= 100,
-            Error::<T>::InvalidIncentiveRatio
-        );
+            ensure!(
+                params.incentive_ratio <= 100,
+                Error::<T>::InvalidIncentiveRatio
+            );
 
-        ensure!(
-            params.max_allowed_weights <= MaxAllowedWeightsGlobal::<T>::get(),
-            Error::<T>::InvalidMaxAllowedWeights
-        );
+            ensure!(
+                params.max_allowed_weights <= MaxAllowedWeightsGlobal::<T>::get(),
+                Error::<T>::InvalidMaxAllowedWeights
+            );
 
-        // match registration parameters
-        ensure!(
-            params.target_registrations_interval >= 10,
-            Error::<T>::InvalidTargetRegistrationsInterval
-        );
+            // match registration parameters
+            ensure!(
+                params.target_registrations_interval >= 10,
+                Error::<T>::InvalidTargetRegistrationsInterval
+            );
 
-        ensure!(
-            params.target_registrations_per_interval >= 1,
-            Error::<T>::InvalidTargetRegistrationsPerInterval
-        );
+            ensure!(
+                params.target_registrations_per_interval >= 1,
+                Error::<T>::InvalidTargetRegistrationsPerInterval
+            );
 
-        ensure!(
-            params.max_registrations_per_interval >= 1,
-            Error::<T>::InvalidMaxRegistrationsPerInterval
-        );
+            ensure!(
+                params.max_registrations_per_interval >= 1,
+                Error::<T>::InvalidMaxRegistrationsPerInterval
+            );
 
-        ensure!(
-            params.adjustment_alpha > 0,
-            Error::<T>::InvalidAdjustmentAlpha
-        );
+            ensure!(
+                params.adjustment_alpha > 0,
+                Error::<T>::InvalidAdjustmentAlpha
+            );
 
-        ensure!(
-            params.min_immunity_stake > 20_000_000_000_000, // Min is 20k
-            Error::<T>::InvalidMinImmunityStake
-        );
-
+            ensure!(
+                params.min_immunity_stake > 20_000_000_000_000, // Min is 20k
+                Error::<T>::InvalidMinImmunityStake
+            );
+        }
         match Pallet::<T>::get_netuid_for_name(&params.name) {
             Some(id) if netuid.is_some_and(|netuid| netuid == id) => { /* subnet kept same name */ }
             Some(_) => return Err(Error::<T>::SubnetNameAlreadyExists.into()),
