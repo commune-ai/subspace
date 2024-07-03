@@ -634,7 +634,13 @@ macro_rules! assert_ok {
 
 macro_rules! assert_in_range {
     ($value:expr, $expected:expr, $margin:expr) => {
-        assert!(($expected..=$expected).contains(&$value));
+        assert!(
+            ($expected - $margin..=$expected + $margin).contains(&$value),
+            "value {} is out of range {}..={}",
+            $value,
+            $expected,
+            $margin
+        );
     };
 }
 
