@@ -80,6 +80,8 @@ impl<T: Config> Pallet<T> {
         // --- 4. make sure the subnet exists, or create it, assuming the caller passes creation
         // fees
         let netuid = Self::resolve_or_create_network(&key, &network_name)?;
+        // --- 4.1 Ensure that user can register on the network
+        Self::ensure_registerable(netuid)?;
         // --- 5. provide further rate limiting
         Self::check_interval_registration_limits(netuid)?;
         let registration_burn = Burn::<T>::get(netuid);
@@ -218,6 +220,14 @@ impl<T: Config> Pallet<T> {
             !Self::key_registered(netuid, module_key),
             Error::<T>::KeyAlreadyRegistered
         );
+        Ok(())
+    }
+
+    fn ensure_registerable(netuid: u16) -> DispatchResult {
+        if MaxAllowedUids::<T>::get(netuid) < 1 {
+            return Err(Error::<T>::NetworkIsImmuned.into());
+        }
+
         Ok(())
     }
 
