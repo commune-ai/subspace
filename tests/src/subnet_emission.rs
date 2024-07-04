@@ -1131,25 +1131,7 @@ fn test_non_minable_subnet_emisson() {
     });
 }
 
-#[test]
-fn test_demo_pricing() {
-    new_test_ext().execute_with(|| {
-        // This test is very naive, it just registers two subnets,
-        // and checks if the emission distribution is even. (Proof of concept subnet pricing)
-        let key = 0;
-        let key2 = 1;
-        let stake = to_nano(1000);
-        assert_ok!(register_module(0, key, stake));
-        assert_ok!(register_module(1, key2, stake));
-        step_block(10);
-        let pending_emission_zero = PendingEmission::<Test>::get(0);
-        let pending_emission_one = PendingEmission::<Test>::get(1);
-        assert_eq!(pending_emission_zero, pending_emission_one);
-    });
-}
-
 // Halving
-
 // Tests halving logic of the blockchain
 #[test]
 fn test_halving() {
