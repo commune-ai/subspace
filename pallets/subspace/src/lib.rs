@@ -691,6 +691,8 @@ pub mod pallet {
                     ..DefaultSubnetParams::<T>::get()
                 };
 
+                log::info!("registering subnet {netuid} with params: {params:?}");
+
                 let fee = DelegationFee::<T>::get(netuid, &params.founder);
                 let changeset: SubnetChangeset<T> =
                     SubnetChangeset::new(params).expect("genesis subnets are valid");
@@ -744,9 +746,10 @@ pub mod pallet {
             Self::block_step(block_number)
         }
 
-        fn on_idle(_n: BlockNumberFor<T>, remaining: Weight) -> Weight {
+        fn on_idle(_n: BlockNumberFor<T>, _remaining: Weight) -> Weight {
             log::info!("running on_idle");
-            Pallet::<T>::deregister_not_whitelisted_modules(remaining)
+            // Pallet::<T>::deregister_not_whitelisted_modules(remaining)
+            Weight::zero()
         }
     }
 

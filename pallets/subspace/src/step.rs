@@ -816,6 +816,7 @@ impl<T: Config> Pallet<T> {
         }
     }
 
+    #[allow(dead_code)]
     pub(crate) fn deregister_not_whitelisted_modules(mut remaining: Weight) -> Weight {
         use crate::weights::WeightInfo;
 
