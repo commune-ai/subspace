@@ -77,60 +77,74 @@ pub mod v12 {
             log::info!("Migrating storage to v12");
 
             // Download existing data into separate types
-            let old_stake: BTreeMap<(u16, AccountIdOf<T>), u64> = old_storage::Stake::<T>::iter()
-                .map(|(netuid, account, stake)| ((netuid, account), stake))
-                .collect();
-            let old_stake_from: BTreeMap<(u16, AccountIdOf<T>), BTreeMap<AccountIdOf<T>, u64>> =
-                old_storage::StakeFrom::<T>::iter()
-                    .map(|(netuid, account, stakes)| ((netuid, account), stakes))
-                    .collect();
-            let old_stake_to: BTreeMap<(u16, AccountIdOf<T>), BTreeMap<AccountIdOf<T>, u64>> =
-                old_storage::StakeTo::<T>::iter()
-                    .map(|(netuid, account, stakes)| ((netuid, account), stakes))
-                    .collect();
+            let old_stake = old_storage::Stake::<T>::iter().fold(
+                BTreeMap::<AccountIdOf<T>, u64>::new(),
+                |mut acc, (_, key, stake)| {
+                    acc.entry(key)
+                        .and_modify(|existing| *existing = existing.saturating_add(stake))
+                        .or_insert(stake);
+                    acc
+                },
+            );
+            let old_stake_from = old_storage::StakeFrom::<T>::iter().fold(
+                BTreeMap::<AccountIdOf<T>, BTreeMap<AccountIdOf<T>, u64>>::new(),
+                |mut acc, (_, key, stake)| {
+                    let existing = acc.entry(key).or_insert_with(|| Default::default());
+                    for (key, stake) in stake {
+                        existing
+                            .entry(key)
+                            .and_modify(|existing| *existing = existing.saturating_add(stake))
+                            .or_insert(stake);
+                    }
+                    acc
+                },
+            );
+            let old_stake_to = old_storage::StakeTo::<T>::iter().fold(
+                BTreeMap::<AccountIdOf<T>, BTreeMap<AccountIdOf<T>, u64>>::new(),
+                |mut acc, (_, key, stake)| {
+                    let existing = acc.entry(key).or_insert_with(|| Default::default());
+                    for (key, stake) in stake {
+                        existing
+                            .entry(key)
+                            .and_modify(|existing| *existing = existing.saturating_add(stake))
+                            .or_insert(stake);
+                    }
+                    acc
+                },
+            );
 
             // Before migration counts
-            let stake_count_before =
-                old_stake.keys().map(|(_, key)| key).collect::<BTreeSet<_>>().len();
-            let stake_from_count_before = old_stake_from
-                .iter()
-                .flat_map(|((_, key), stakes)| stakes.keys().map(move |key2| (key.clone(), key2)))
-                .collect::<BTreeSet<_>>()
-                .len();
-            let stake_to_count_before = old_stake_to
-                .iter()
-                .flat_map(|((_, key), stakes)| stakes.keys().map(move |key2| (key.clone(), key2)))
-                .collect::<BTreeSet<_>>()
-                .len();
+            let stake_count_before = old_stake.len();
+            let stake_from_count_before: usize =
+                old_stake_from.values().map(|stakes| stakes.len()).sum();
+            let stake_to_count_before: usize =
+                old_stake_to.values().map(|stakes| stakes.len()).sum();
 
-            // Clear the problematic stake storages
-            // We tried to do this with the old storage instead, after migration, but experienced
-            // decoding issues.
+            // TODO: // Clear the problematic stake storages
+            // // We tried to do this with the old storage instead, after migration, but experienced
+            // // decoding issues.
             let _ = Stake::<T>::clear(u32::MAX, None);
             let _ = StakeTo::<T>::clear(u32::MAX, None);
             let _ = StakeFrom::<T>::clear(u32::MAX, None);
 
             // Migrate Stake, getting rid of netuid
-            for ((_, account), stake) in old_stake {
-                let current_stake = Stake::<T>::get(&account);
-                Stake::<T>::insert(&account, current_stake.saturating_add(stake));
+            for (account, stake) in old_stake {
+                Stake::<T>::insert(account, stake);
             }
             log::info!("Migrated Stake");
 
             // Migrate StakeFrom
-            for ((_, from), stakes) in old_stake_from {
+            for (from, stakes) in old_stake_from {
                 for (to, amount) in stakes {
-                    let current_amount = StakeFrom::<T>::get(&from, &to);
-                    StakeFrom::<T>::insert(&from, &to, current_amount.saturating_add(amount));
+                    StakeFrom::<T>::insert(&from, &to, amount);
                 }
             }
             log::info!("Migrated StakeFrom");
 
             // Migrate StakeTo
-            for ((_, to), stakes) in old_stake_to {
+            for (to, stakes) in old_stake_to {
                 for (from, amount) in stakes {
-                    let current_amount = StakeFrom::<T>::get(&from, &to);
-                    StakeTo::<T>::insert(&from, &to, current_amount.saturating_add(amount));
+                    StakeTo::<T>::insert(&from, &to, amount);
                 }
             }
             log::info!("Migrated StakeTo");
@@ -160,7 +174,14 @@ pub mod v12 {
             log_result("StakeFrom", stake_from_count_before, stake_from_count_after);
             log_result("StakeTo", stake_to_count_before, stake_to_count_after);
 
+            let stake_sum: u64 = Stake::<T>::iter_values().sum();
+            let stake_from_sum: u64 = StakeFrom::<T>::iter_values().sum();
+            let stake_to_sum: u64 = StakeTo::<T>::iter_values().sum();
+
             log::info!("Total stake is now: {:?}", TotalStake::<T>::get());
+            log::info!("Stake sum is now: {:?}", stake_sum);
+            log::info!("Stake from is now: {:?}", stake_from_sum);
+            log::info!("Stake to is now: {:?}", stake_to_sum);
 
             log::info!("-------------------");
             log::info!("STAKE MIGRATION DONE");
