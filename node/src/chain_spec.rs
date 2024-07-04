@@ -22,7 +22,7 @@ pub fn authority_keys_from_seed(s: &str) -> (AuraId, GrandpaId) {
 }
 
 /// (name, tempo, immunity_period, min_allowed_weights, max_allowed_weights,
-/// max_allowed_uids, founder)
+/// max_allowed_uids, min_stake, founder)
 pub type JSONSubnet = (String, u16, u16, u16, u16, u16, u64, String);
 
 /// (key, name, address, stake, weights)
@@ -32,7 +32,7 @@ pub type JSONModule = (String, String, String, Vec<(u16, u16)>);
 pub type JSONStakeTo = (String, Vec<(String, u64)>);
 
 /// (name, tempo, immunity_period, min_allowed_weights, max_allowed_weights,
-/// max_allowed_uids, founder)
+/// max_allowed_uids, min_stake, founder)
 pub type Subnet = (
     Vec<u8>,
     u16,
@@ -52,6 +52,7 @@ pub type StakeTo = (sp_runtime::AccountId32, Vec<(sp_runtime::AccountId32, u64)>
 
 /// A struct containing the patch values for the default chain spec.
 #[derive(Deserialize, Debug)]
+#[serde(rename_all = "camelCase")]
 struct ChainSpecPatch {
     #[serde(default)]
     balances: std::collections::HashMap<String, u64>,
