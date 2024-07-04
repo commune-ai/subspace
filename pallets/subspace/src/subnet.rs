@@ -572,9 +572,9 @@ impl<T: Config> Pallet<T> {
     }
 
     pub fn is_rootnet(netuid: u16) -> bool {
-        return matches!(
+        matches!(
             T::get_subnet_consensus_type(netuid),
             Some(SubnetConsensus::Root)
-        );
+        )
     }
 }
