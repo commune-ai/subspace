@@ -89,6 +89,20 @@ pub mod v12 {
                     .map(|(netuid, account, stakes)| ((netuid, account), stakes))
                     .collect();
 
+            // Before migration counts
+            let stake_count_before =
+                old_stake.keys().map(|(_, key)| key).collect::<BTreeSet<_>>().len();
+            let stake_from_count_before = old_stake_from
+                .iter()
+                .flat_map(|((_, key), stakes)| stakes.keys().map(move |key2| (key.clone(), key2)))
+                .collect::<BTreeSet<_>>()
+                .len();
+            let stake_to_count_before = old_stake_to
+                .iter()
+                .flat_map(|((_, key), stakes)| stakes.keys().map(move |key2| (key.clone(), key2)))
+                .collect::<BTreeSet<_>>()
+                .len();
+
             // Clear the problematic stake storages
             // We tried to do this with the old storage instead, after migration, but experienced
             // decoding issues.
@@ -121,13 +135,36 @@ pub mod v12 {
             }
             log::info!("Migrated StakeTo");
 
-            // Migrate TotalStake (unchanged)
             let total_stake: u64 =
                 old_storage::TotalStake::<T>::iter().map(|(_, stake)| stake).sum();
-            TotalStake::<T>::put(total_stake);
-            old_storage::TotalStake::<T>::remove_all(None);
+
+            let _ = old_storage::TotalStake::<T>::clear(u32::MAX, None);
+
+            TotalStake::<T>::set(total_stake);
             log::info!("Migrated TotalStake");
 
+            // After migration counts
+            let stake_count_after = Stake::<T>::iter().count();
+            let stake_from_count_after = StakeFrom::<T>::iter().count();
+            let stake_to_count_after = StakeTo::<T>::iter().count();
+            // Log results
+            let log_result = |name: &str, before: usize, after: usize| {
+                if before == after {
+                    log::info!("{} count: {} (unchanged)", name, before);
+                } else {
+                    log::warn!("{} count: {} before, {} after", name, before, after);
+                }
+            };
+
+            log_result("Stake", stake_count_before, stake_count_after);
+            log_result("StakeFrom", stake_from_count_before, stake_from_count_after);
+            log_result("StakeTo", stake_to_count_before, stake_to_count_after);
+
+            log::info!("Total stake is now: {:?}", TotalStake::<T>::get());
+
+            log::info!("-------------------");
+            log::info!("STAKE MIGRATION DONE");
+            log::info!("-------------------");
             // Subnet netuid migration
             /*
             ====================
