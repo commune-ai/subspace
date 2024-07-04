@@ -1,6 +1,7 @@
 use pallet_subnet_emission::{
     subnet_pricing::root::RootPricing, PendingEmission, SubnetEmission, UnitEmission,
 };
+use pallet_subnet_emission_api::{SubnetConsensus, SubnetEmissionApi};
 use pallet_subspace::{
     Kappa, MaxAllowedUids, MaxRegistrationsPerBlock, MaxRegistrationsPerInterval, Rho,
     TargetRegistrationsPerInterval, Tempo,
@@ -18,6 +19,9 @@ fn test_root_pricing() {
         MaxRegistrationsPerBlock::<Test>::set(6);
         MaxRegistrationsPerInterval::<Test>::set(0, 3);
 
+        assert_ok!(register_named_subnet(u32::MAX, 0, "Rootnet"));
+        Test::set_subnet_consensus_type(0, Some(SubnetConsensus::Root));
+
         let net1_id = 1;
         let net2_id = 2;
         let net3_id = 3;
@@ -30,13 +34,13 @@ fn test_root_pricing() {
         let val2_stake = to_nano(40_000);
         let val3_stake = to_nano(40_000);
 
-        let _ = assert_ok!(register_root_validator(val1_id, val1_stake));
-        let _ = assert_ok!(register_root_validator(val2_id, val2_stake));
-        let _ = assert_ok!(register_root_validator(val3_id, val3_stake));
-
         assert_ok!(register_module(net1_id, val1_id, val1_stake));
         assert_ok!(register_module(net2_id, val2_id, val2_stake));
         assert_ok!(register_module(net3_id, val3_id, val3_stake));
+
+        let _ = assert_ok!(register_root_validator(val1_id, val1_stake));
+        let _ = assert_ok!(register_root_validator(val2_id, val2_stake));
+        let _ = assert_ok!(register_root_validator(val3_id, val3_stake));
 
         set_weights(
             0,
@@ -79,6 +83,9 @@ fn test_emission() {
     new_test_ext_with_block(1).execute_with(|| {
         zero_min_burn();
 
+        assert_ok!(register_named_subnet(u32::MAX, 0, "Rootnet"));
+        Test::set_subnet_consensus_type(0, Some(SubnetConsensus::Root));
+
         let n = 10;
         MaxRegistrationsPerBlock::<Test>::set(n * 2);
         TargetRegistrationsPerInterval::<Test>::set(ROOT_NETUID, n);
@@ -94,7 +101,7 @@ fn test_emission() {
             SubspaceMod::add_balance_to_account(&key_id, 1_000_000_000_000_000);
             assert_ok!(SubspaceMod::register(
                 key_origin,
-                b"rootnet".to_vec(),
+                b"Rootnet".to_vec(),
                 format!("test{}", i).as_bytes().to_vec(),
                 b"0.0.0.0:30333".to_vec(),
                 1000,

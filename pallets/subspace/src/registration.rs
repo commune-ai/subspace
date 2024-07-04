@@ -423,14 +423,16 @@ impl<T: Config> Pallet<T> {
     // Rootnet utils
     // --------------------------
 
+    const ROOTNET_ID: u16 = 0;
+
     fn reserve_rootnet_slot(netuid: u16, stake: u64) -> DispatchResult {
-        let rootnet_id = T::get_rootnet_netuid().unwrap_or(ROOTNET_ID);
+        let rootnet_id = T::get_rootnet_netuid().unwrap_or(Self::ROOTNET_ID);
         if netuid == rootnet_id
-            && Self::get_validator_count(ROOTNET_ID)
-                >= MaxAllowedValidators::<T>::get(ROOTNET_ID).unwrap_or(u16::MAX) as usize
+            && Self::get_validator_count(Self::ROOTNET_ID)
+                >= MaxAllowedValidators::<T>::get(Self::ROOTNET_ID).unwrap_or(u16::MAX) as usize
         {
-            let permits = ValidatorPermits::<T>::get(ROOTNET_ID);
-            let (lower_stake_validator, lower_stake) = Keys::<T>::iter_prefix(ROOTNET_ID)
+            let permits = ValidatorPermits::<T>::get(Self::ROOTNET_ID);
+            let (lower_stake_validator, lower_stake) = Keys::<T>::iter_prefix(Self::ROOTNET_ID)
                 .filter(|(uid, _)| permits.get(*uid as usize).is_some_and(|b| *b))
                 .map(|(_, key)| (key.clone(), Stake::<T>::get(key)))
                 .min_by_key(|(_, stake)| *stake)
@@ -439,19 +441,19 @@ impl<T: Config> Pallet<T> {
             ensure!(stake >= lower_stake, Error::<T>::NotEnoughStakeToRegister);
 
             let lower_stake_validator_uid =
-                Self::get_uid_for_key(ROOTNET_ID, &lower_stake_validator).ok_or(
+                Self::get_uid_for_key(Self::ROOTNET_ID, &lower_stake_validator).ok_or(
                     "selected lowest stake validator does not exist, this is really concerning",
                 )?;
 
-            Self::remove_module(ROOTNET_ID, lower_stake_validator_uid, true)?
+            Self::remove_module(Self::ROOTNET_ID, lower_stake_validator_uid, true)?
         }
         Ok(())
     }
 
     fn add_rootnet_validator(netuid: u16, module_uid: u16) -> DispatchResult {
-        let rootnet_id = T::get_rootnet_netuid().unwrap_or(ROOTNET_ID);
+        let rootnet_id = T::get_rootnet_netuid().unwrap_or(Self::ROOTNET_ID);
         if netuid == rootnet_id {
-            let mut validator_permits = ValidatorPermits::<T>::get(ROOTNET_ID);
+            let mut validator_permits = ValidatorPermits::<T>::get(Self::ROOTNET_ID);
             if validator_permits.len() <= module_uid as usize {
                 return Err(Error::<T>::ModuleDoesNotExist.into());
             }

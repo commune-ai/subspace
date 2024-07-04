@@ -1,5 +1,6 @@
 use crate::mock::*;
 use frame_support::assert_err;
+use pallet_subnet_emission_api::{SubnetConsensus, SubnetEmissionApi};
 use pallet_subspace::*;
 use sp_runtime::DispatchError;
 
@@ -119,7 +120,10 @@ fn set_weights_call_respects_rootnet_weight_limit() {
     new_test_ext().execute_with(|| {
         zero_min_burn();
 
-        assert_ok!(register_module(0, 0, 1));
+        assert_ok!(register_named_subnet(u32::MAX, 0, "Rootnet"));
+        Test::set_subnet_consensus_type(0, Some(SubnetConsensus::Root));
+
+        assert_ok!(register_root_validator(0, 1));
         assert_ok!(register_module(0, 1, 1));
         assert_ok!(register_module(1, 1, 1));
 

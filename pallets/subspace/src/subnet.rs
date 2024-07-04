@@ -3,6 +3,7 @@ use super::*;
 use frame_support::{
     pallet_prelude::DispatchResult, storage::IterableStorageMap, IterableStorageDoubleMap,
 };
+use pallet_subnet_emission_api::SubnetConsensus;
 
 use self::global::BurnConfiguration;
 use sp_runtime::{BoundedVec, DispatchError};
@@ -568,5 +569,12 @@ impl<T: Config> Pallet<T> {
         (block_number.saturating_add(u64::from(netuid)))
             .checked_rem(u64::from(tempo))
             .unwrap_or(1000)
+    }
+
+    pub fn is_rootnet(netuid: u16) -> bool {
+        return matches!(
+            T::get_subnet_consensus_type(netuid),
+            Some(SubnetConsensus::Root)
+        );
     }
 }

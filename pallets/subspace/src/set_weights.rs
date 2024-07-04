@@ -74,7 +74,7 @@ impl<T: Config> Pallet<T> {
         Self::validate_uids_length(uids.len(), netuid)?;
         Self::perform_uid_validity_check(uids, netuid)?;
         ensure!(
-            netuid == ROOTNET_ID || !uids.contains(&uid),
+            Self::is_rootnet(netuid) || !uids.contains(&uid),
             Error::<T>::NoSelfWeight
         );
         Ok(())
@@ -131,7 +131,7 @@ impl<T: Config> Pallet<T> {
     }
 
     pub fn uid_exist_on_network(netuid: u16, uid: u16) -> bool {
-        if netuid == ROOTNET_ID {
+        if Self::is_rootnet(netuid) {
             N::<T>::contains_key(uid)
         } else {
             Keys::<T>::contains_key(netuid, uid)
@@ -159,7 +159,7 @@ impl<T: Config> Pallet<T> {
     }
 
     fn check_rootnet_daily_limit(netuid: u16, module_id: u16) -> DispatchResult {
-        if netuid == ROOTNET_ID {
+        if Self::is_rootnet(netuid) {
             ensure!(
                 RootNetWeightCalls::<T>::get(module_id).is_none(),
                 Error::<T>::MaxSetWeightsPerEpochReached

@@ -114,8 +114,6 @@ pub mod pallet {
 
     // Rootnet
     // =======
-    pub const ROOTNET_ID: u16 = 0;
-
     #[pallet::storage]
     pub type Rho<T> = StorageValue<_, u16, ValueQuery, ConstU16<10>>;
 

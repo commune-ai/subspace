@@ -12,6 +12,7 @@ use pallet_subnet_emission::{
     subnet_consensus::yuma::{AccountKey, EmissionMap, ModuleKey, YumaEpoch},
     UnitEmission,
 };
+use pallet_subnet_emission_api::{SubnetConsensus, SubnetEmissionApi};
 use pallet_subspace::*;
 
 // fn update_params(netuid: u16, tempo: u16, max_weights: u16, min_weights: u16) {

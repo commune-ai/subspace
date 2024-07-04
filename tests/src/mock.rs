@@ -8,19 +8,19 @@ use frame_support::{
 use frame_system as system;
 use pallet_governance::GlobalGovernanceConfig;
 use pallet_governance_api::*;
-use pallet_subnet_emission_api::SubnetEmissionApi;
+use pallet_subnet_emission_api::{SubnetConsensus, SubnetEmissionApi};
 use scale_info::prelude::collections::BTreeSet;
 use sp_core::{ConstU16, H256};
 use std::cell::RefCell;
 
 use pallet_subspace::{
-    subnet::SubnetChangeset, Address, BurnConfig, DefaultKey, DefaultSubnetParams, Dividends,
-    Emission, Incentive, LastUpdate, MaxRegistrationsPerBlock, Name, Stake, SubnetBurn,
-    SubnetBurnConfig, SubnetParams, Tempo, N,
+    subnet::SubnetChangeset, Address, Burn, BurnConfig, DefaultKey, DefaultSubnetParams, Dividends,
+    Emission, Incentive, LastUpdate, MaxAllowedUids, MaxAllowedValidators,
+    MaxRegistrationsPerBlock, Name, Stake, SubnetBurn, SubnetBurnConfig, SubnetParams, Tempo, N,
 };
 use sp_runtime::{
     traits::{AccountIdConversion, BlakeTwo256, IdentityLookup},
-    BuildStorage, DispatchError, DispatchResult,
+    BoundedVec, BuildStorage, DispatchError, DispatchResult,
 };
 
 type Block = frame_system::mocking::MockBlock<Test>;
@@ -385,7 +385,10 @@ pub fn set_total_issuance(total_issuance: u64) {
 
 pub fn new_test_ext() -> sp_io::TestExternalities {
     sp_tracing::try_init_simple();
-    frame_system::GenesisConfig::<Test>::default().build_storage().unwrap().into()
+    let t = frame_system::GenesisConfig::<Test>::default().build_storage().unwrap();
+    let mut ext = sp_io::TestExternalities::new(t);
+    ext.execute_with(|| {});
+    ext
 }
 
 pub fn new_test_ext_with_block(block: u64) -> sp_io::TestExternalities {
@@ -556,13 +559,13 @@ pub fn register_n_modules(netuid: u16, n: u16, stake: u64) {
     }
 }
 
-fn register_subnet(key: AccountId, netuid: u16) -> DispatchResult {
+pub fn register_named_subnet(key: AccountId, netuid: u16, name: impl ToString) -> DispatchResult {
     ensure!(
         !N::<Test>::contains_key(netuid),
         "subnet id already registered"
     );
 
-    let name = format!("test{netuid}").as_bytes().to_vec();
+    let name = name.to_string().as_bytes().to_vec();
     let params = SubnetParams {
         name: name.try_into().unwrap(),
         founder: key,
@@ -572,6 +575,10 @@ fn register_subnet(key: AccountId, netuid: u16) -> DispatchResult {
     SubspaceMod::add_subnet(SubnetChangeset::<Test>::new(params).unwrap(), Some(netuid)).unwrap();
 
     Ok(())
+}
+
+pub fn register_subnet(key: AccountId, netuid: u16) -> DispatchResult {
+    register_named_subnet(key, netuid, format!("test{netuid}"))
 }
 
 #[allow(dead_code)]
@@ -599,7 +606,7 @@ pub fn register_module(netuid: u16, key: AccountId, stake: u64) -> Result<u16, D
 #[allow(dead_code)]
 pub fn register_root_validator(key: AccountId, stake: u64) -> Result<u16, DispatchError> {
     let origin = get_origin(key);
-    let network = b"rootnet".to_vec();
+    let network = b"Rootnet".to_vec();
     let name = format!("module{key}").as_bytes().to_vec();
     let address = "0.0.0.0:30333".as_bytes().to_vec();
 
