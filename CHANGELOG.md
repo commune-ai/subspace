@@ -7,9 +7,19 @@ spec_version `118`
 This branch starts off of the commit hash `95e5d26b550839c24fd367090e02abaa37df3d32`.
 diff [here](https://github.com/agicommies/subspace-network/compare/db8a19b1d2155d3ecda4172aaf72cdeea1feda2b...agicommies:subspace-network:feat/global-stake)
 
-- Renames error `NotRegistered` to `ModuleDoesNotExist`;
+- Error type `NotRegistered` was renamed to `ModuleDoesNotExist`.
+- Error `InvalidSubnetStakeThreshold` removed.
+- Storage value changes:
+    
+    - MaximumSetWeightCallsPerEpoch lost its `ValueQuery` behavior and returns an `Option<u16>` now instead of 0 if missing.
+    - `SubnetEmission`, `PendingEmission` and `UnitEmission` were moved to the new subnet_emission pallet.
+    - `Stake` went from a `StorageDoubleMap` to a `StorageMap` losing its subnet id key.
+    -  `StakeFrom` and `StakeTo` lost their subnet id key. Because of this the value type changed from `BTreeMap<T::AcountId,u64>` to just `u64`. Their new type is `StorageDoubleMap<T::AccountId, T::AcountId, u64>` _(other generics ommited for clarity)_.
+    - `TotalStake` lost its subnet id key and turned into a simple `StorageValue<u64>` _(other generics ommited for clarity)_.
 
-TODO:
+- Extrinsics changes:
+
+  - `add_stake`, `remove_stake`, `add_stake_multiple`, `remove_stake_multiple` and `transfer_stake` lost their subnet id parameter. 
 
 ## Version 1.7.8
 
