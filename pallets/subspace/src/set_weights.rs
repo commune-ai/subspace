@@ -43,7 +43,6 @@ impl<T: Config> Pallet<T> {
     /// - Weight normalization is performed to ensure a consistent scale across all weights.
     /// - The function tracks the number of weight-setting calls per epoch to prevent abuse.
     /// - For the root network (netuid 0), additional daily limit checks are performed.
-    #[allow(clippy::arithmetic_side_effects, clippy::indexing_slicing)]
     pub fn do_set_weights(
         origin: T::RuntimeOrigin,
         netuid: u16,

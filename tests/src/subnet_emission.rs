@@ -8,11 +8,12 @@ use crate::mock::*;
 
 use frame_support::assert_ok;
 use log::info;
+use pallet_governance::DaoTreasuryAddress;
 use pallet_subnet_emission::{
     subnet_consensus::yuma::{AccountKey, EmissionMap, ModuleKey, YumaEpoch},
-    UnitEmission,
+    PendingEmission, SubnetConsensusType, UnitEmission,
 };
-use pallet_subnet_emission_api::{SubnetConsensus, SubnetEmissionApi};
+use pallet_subnet_emission_api::SubnetConsensus;
 use pallet_subspace::*;
 
 // fn update_params(netuid: u16, tempo: u16, max_weights: u16, min_weights: u16) {
@@ -1086,5 +1087,112 @@ fn test_tempo_compound() {
 
         // faster tempo should have quicker compound rate
         assert!(fast > slow);
+    });
+}
+
+#[test]
+fn test_non_minable_subnet_emisson() {
+    new_test_ext().execute_with(|| {
+        // First we register the rootnet
+        // Total 3 modules, same stake
+        let rootnet_key_zero = 0;
+        let rootnet_key_one = 1;
+        const ROOTNET_NETUID: u16 = 0;
+        assert_ok!(register_root_validator(rootnet_key_zero, to_nano(1000)));
+        assert_ok!(register_root_validator(rootnet_key_one, to_nano(1000)));
+        SubnetConsensusType::<Test>::insert(0, SubnetConsensus::Root);
+        // Now we register treasury subnet
+        assert_ok!(register_subnet(3, 1));
+        SubnetConsensusType::<Test>::insert(1, SubnetConsensus::Treasury);
+        UnitEmission::<Test>::put(to_nano(100_000));
+
+        // Set emission only on rootnet and expect recycling
+        set_weights(
+            ROOTNET_NETUID,
+            rootnet_key_zero,
+            [ROOTNET_NETUID].to_vec(),
+            [1].to_vec(),
+        );
+        let issuance_before = get_total_issuance();
+        // Run the epoch
+        step_block(200);
+        let issuance_after = get_total_issuance();
+        assert_eq!(issuance_before, issuance_after);
+
+        // Start setting weights on treasury as well
+        set_weights(ROOTNET_NETUID, rootnet_key_one, [1].to_vec(), [1].to_vec());
+
+        // Run the epoch
+        step_block(200);
+        let issuance_after_treasury = get_total_issuance();
+        assert!(issuance_after_treasury > issuance_after);
+        let treasury_balance = get_balance(DaoTreasuryAddress::<Test>::get());
+        assert_eq!(treasury_balance, issuance_after_treasury - issuance_after);
+    });
+}
+
+#[test]
+fn test_demo_pricing() {
+    new_test_ext().execute_with(|| {
+        // This test is very naive, it just registers two subnets,
+        // and checks if the emission distribution is even. (Proof of concept subnet pricing)
+        let key = 0;
+        let key2 = 1;
+        let stake = to_nano(1000);
+        assert_ok!(register_module(0, key, stake));
+        assert_ok!(register_module(1, key2, stake));
+        step_block(10);
+        let pending_emission_zero = PendingEmission::<Test>::get(0);
+        let pending_emission_one = PendingEmission::<Test>::get(1);
+        assert_eq!(pending_emission_zero, pending_emission_one);
+    });
+}
+
+// Halving
+
+// Tests halving logic of the blockchain
+#[test]
+fn test_halving() {
+    new_test_ext().execute_with(|| {
+        // Set the emission configuration
+        let decimals = 9;
+        let multiplier = 10_u64.pow(decimals as u32);
+        set_emission_config(decimals, 250_000_000, 1_000_000_000);
+
+        // Set the initial unit emission to a large value
+        let initial_unit_emission = 1_000_000_000_000_000;
+        UnitEmission::<Test>::put(initial_unit_emission);
+
+        // Test emission at different total issuance levels
+        set_total_issuance(0);
+        assert_eq!(
+            SubnetEmissionMod::get_total_emission_per_block(),
+            initial_unit_emission
+        );
+
+        set_total_issuance(250_000_000 * multiplier);
+        assert_eq!(
+            SubnetEmissionMod::get_total_emission_per_block(),
+            initial_unit_emission / 2
+        );
+
+        set_total_issuance(500_000_000 * multiplier);
+        assert_eq!(
+            SubnetEmissionMod::get_total_emission_per_block(),
+            initial_unit_emission / 4
+        );
+
+        set_total_issuance(750_000_000 * multiplier);
+        assert_eq!(
+            SubnetEmissionMod::get_total_emission_per_block(),
+            initial_unit_emission / 8
+        );
+
+        set_total_issuance(1_000_000_000 * multiplier);
+        assert_eq!(SubnetEmissionMod::get_total_emission_per_block(), 0);
+
+        // mission beyond the maximum supply
+        set_total_issuance(1_250_000_000 * multiplier);
+        assert_eq!(SubnetEmissionMod::get_total_emission_per_block(), 0);
     });
 }

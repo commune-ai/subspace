@@ -8,7 +8,7 @@ use frame_support::{
 use frame_system as system;
 use pallet_governance::GlobalGovernanceConfig;
 use pallet_governance_api::*;
-use pallet_subnet_emission_api::{SubnetConsensus, SubnetEmissionApi};
+use pallet_subnet_emission_api::SubnetEmissionApi;
 use scale_info::prelude::collections::BTreeSet;
 use sp_core::{ConstU16, H256};
 use std::cell::RefCell;
@@ -16,7 +16,8 @@ use std::cell::RefCell;
 use pallet_subspace::{
     subnet::SubnetChangeset, Address, Burn, BurnConfig, DefaultKey, DefaultSubnetParams, Dividends,
     Emission, Incentive, LastUpdate, MaxAllowedUids, MaxAllowedValidators,
-    MaxRegistrationsPerBlock, Name, Stake, SubnetBurn, SubnetBurnConfig, SubnetParams, Tempo, N,
+    MaxRegistrationsPerBlock, Name, Stake, SubnetBurn, SubnetBurnConfig, SubnetParams, Tempo,
+    TotalStake, N,
 };
 use sp_runtime::{
     traits::{AccountIdConversion, BlakeTwo256, IdentityLookup},
@@ -622,6 +623,12 @@ pub fn register_root_validator(key: AccountId, stake: u64) -> Result<u16, Dispat
 
 pub fn get_balance(key: AccountId) -> Balance {
     <Balances as Currency<AccountId>>::free_balance(&key)
+}
+
+pub fn get_total_issuance() -> u64 {
+    let total_staked_balance = TotalStake::<Test>::get();
+    let total_free_balance = pallet_balances::Pallet::<Test>::total_issuance();
+    total_staked_balance + total_free_balance
 }
 
 pub fn vote(account: u32, proposal_id: u64, agree: bool) {
