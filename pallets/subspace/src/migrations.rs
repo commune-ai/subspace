@@ -308,18 +308,12 @@ pub mod v12 {
         };
     }
 
-    fn transfer_subnet<T: Config>(
-        current_subnet_id: u16,
-        target_subnet_id: Option<u16>,
-    ) -> DispatchResult {
-        let target_subnet_id =
-            target_subnet_id.unwrap_or(match SubnetGaps::<T>::get().first().copied() {
+    fn transfer_subnet<T: Config>(curr: u16, target: Option<u16>) -> DispatchResult {
+        let target =
+            target.unwrap_or_else(|| match SubnetGaps::<T>::mutate(|set| set.pop_first()) {
                 Some(removed) => removed,
                 None => TotalSubnets::<T>::get(),
             });
-
-        let curr = current_subnet_id;
-        let target = target_subnet_id;
 
         migrate_double_map!(T, Bonds, curr, target);
         migrate_map!(T, BondsMovingAverage, curr, target);

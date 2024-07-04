@@ -11,7 +11,7 @@ use log::info;
 use pallet_governance::DaoTreasuryAddress;
 use pallet_subnet_emission::{
     subnet_consensus::yuma::{AccountKey, EmissionMap, ModuleKey, YumaEpoch},
-    PendingEmission, SubnetConsensusType, UnitEmission,
+    SubnetConsensusType, UnitEmission,
 };
 use pallet_subnet_emission_api::SubnetConsensus;
 use pallet_subspace::*;
@@ -516,7 +516,7 @@ fn calculates_blocks_until_epoch() {
 fn test_incentives() {
     new_test_ext().execute_with(|| {
         // CONSSTANTS
-        let netuid: u16 = 0;
+        let netuid: u16 = 1;
         let n: u16 = 10;
         let stake_per_module: u64 = 10_000;
 
@@ -576,16 +576,14 @@ fn test_incentives() {
 #[test]
 fn test_trust() {
     new_test_ext().execute_with(|| {
-        // CONSSTANTS
-        let netuid: u16 = 0;
+        zero_min_burn();
+
+        let netuid: u16 = 1;
         let n: u16 = 10;
         let _n_list: Vec<u16> = vec![10, 50, 100, 1000];
         let _blocks_per_epoch_list: u64 = 1;
         let stake_per_module: u64 = 10_000;
-        // make sure that the results won´t get affected by burn
-        zero_min_burn();
 
-        // SETUP NETWORK
         register_n_modules(netuid, n, stake_per_module);
         let mut params = SubspaceMod::subnet_params(netuid);
         params.min_allowed_weights = 1;
@@ -614,8 +612,9 @@ fn test_trust() {
 
         // evaluate votees
         info!("trust: {:?}", trust);
-        assert!(trust[1] as u32 > 0);
+        assert!(trust[1] > 0);
         assert!(trust[2] as u32 > 2 * (trust[1] as u32) - 10);
+
         // evaluate votees
         info!("trust: {emission:?}");
         assert!(emission[1] > 0);
@@ -871,14 +870,14 @@ fn yuma_weights_older_than_max_age_are_discarded() {
         const MAX_WEIGHT_AGE: u64 = 300;
         const SUBNET_TEMPO: u16 = 100;
         // Register the general subnet.
-        let netuid: u16 = 0;
+        let netuid: u16 = 1;
         let key = 0;
         let stake_amount: u64 = to_nano(1_000);
 
         assert_ok!(register_module(netuid, key, stake_amount));
 
         // Register the yuma subnet.
-        let yuma_netuid: u16 = 1;
+        let yuma_netuid: u16 = 2;
         let yuma_validator_key = 1;
         let yuma_miner_key = 2;
         let yuma_vali_amount: u64 = to_nano(10_000);
@@ -1057,7 +1056,7 @@ fn test_tempo_compound() {
         const QUICK_TEMPO: u16 = 25;
         const SLOW_TEMPO: u16 = 1000;
         // Register the general subnet.
-        let netuid: u16 = 0;
+        let netuid: u16 = 5;
         let key = 0;
         let stake_amount: u64 = to_nano(1_000);
 
@@ -1065,14 +1064,14 @@ fn test_tempo_compound() {
 
         // Register the yuma subnets, the important part of the tests starts here:
         // FAST
-        let s_netuid: u16 = 1;
+        let s_netuid: u16 = 6;
         let s_key = 1;
         let s_amount: u64 = to_nano(10_000);
         assert_ok!(register_module(s_netuid, s_key, s_amount));
         update_params!(s_netuid => { tempo: SLOW_TEMPO });
 
         // SLOW
-        let f_netuid = 2;
+        let f_netuid = 7;
         // Now an honest actor will come, the goal is for him to accumulate more
         let f_key = 3;
         assert_ok!(register_module(f_netuid, f_key, s_amount));
@@ -1082,8 +1081,8 @@ fn test_tempo_compound() {
         // we will now step, SLOW_TEMPO -> 1000 blocks
         step_block(SLOW_TEMPO);
 
-        let fast = Stake::<Test>::get(f_key);
-        let slow = Stake::<Test>::get(s_key);
+        let fast = dbg!(Stake::<Test>::get(f_key));
+        let slow = dbg!(Stake::<Test>::get(s_key));
 
         // faster tempo should have quicker compound rate
         assert!(fast > slow);

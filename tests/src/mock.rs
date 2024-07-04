@@ -14,14 +14,13 @@ use sp_core::{ConstU16, H256};
 use std::cell::RefCell;
 
 use pallet_subspace::{
-    subnet::SubnetChangeset, Address, Burn, BurnConfig, DefaultKey, DefaultSubnetParams, Dividends,
-    Emission, Incentive, LastUpdate, MaxAllowedUids, MaxAllowedValidators,
-    MaxRegistrationsPerBlock, Name, Stake, SubnetBurn, SubnetBurnConfig, SubnetParams, Tempo,
-    TotalStake, N,
+    subnet::SubnetChangeset, Address, BurnConfig, DefaultKey, DefaultSubnetParams, Dividends,
+    Emission, Incentive, LastUpdate, MaxRegistrationsPerBlock, Name, Stake, SubnetBurn,
+    SubnetBurnConfig, SubnetParams, Tempo, TotalStake, N,
 };
 use sp_runtime::{
     traits::{AccountIdConversion, BlakeTwo256, IdentityLookup},
-    BoundedVec, BuildStorage, DispatchError, DispatchResult,
+    BuildStorage, DispatchError, DispatchResult,
 };
 
 type Block = frame_system::mocking::MockBlock<Test>;
