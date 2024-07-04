@@ -25,8 +25,10 @@ pub mod v12 {
     use super::*;
     use dispatch::DispatchResult;
     use frame_support::{storage::with_storage_layer, traits::OnRuntimeUpgrade, weights::Weight};
+    use module::ModuleChangeset;
     use pallet_governance_api::VoteMode;
     use pallet_subnet_emission_api::SubnetConsensus;
+    use sp_runtime::Percent;
     use sp_std::collections::btree_map::BTreeMap;
 
     pub mod old_storage {
@@ -264,6 +266,16 @@ pub mod v12 {
                 T::set_subnet_consensus_type(ROOTNET_ID, Some(SubnetConsensus::Root));
                 Burn::<T>::set(ROOTNET_ID, 0);
                 MinStake::<T>::set(ROOTNET_ID, 0);
+                Pallet::<T>::append_module(
+                    ROOTNET_ID,
+                    &T::get_dao_treasury_address(),
+                    ModuleChangeset::new(
+                        b"system".to_vec(),
+                        b"system".to_vec(),
+                        Percent::from_parts(100),
+                        None,
+                    ),
+                )?;
 
                 // Treasury subnet configuration
                 const TREASURYNET_ID: u16 = 1;
@@ -273,6 +285,16 @@ pub mod v12 {
                 FounderShare::<T>::set(TREASURYNET_ID, u16::MAX);
                 MaxAllowedUids::<T>::set(TREASURYNET_ID, 0);
                 T::set_subnet_consensus_type(TREASURYNET_ID, Some(SubnetConsensus::Treasury));
+                Pallet::<T>::append_module(
+                    TREASURYNET_ID,
+                    &T::get_dao_treasury_address(),
+                    ModuleChangeset::new(
+                        b"system".to_vec(),
+                        b"system".to_vec(),
+                        Percent::from_parts(100),
+                        None,
+                    ),
+                )?;
 
                 // Linear subnet configuration
                 const LINEARNET_ID: u16 = 2;
