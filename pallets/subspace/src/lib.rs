@@ -727,6 +727,8 @@ pub mod pallet {
                     }
                 }
             }
+            log::info!("{}", TotalSubnets::<T>::get());
+            log::info!("{:?}", SubnetGaps::<T>::get());
         }
     }
 

@@ -337,58 +337,75 @@ pub mod v12 {
                 None => TotalSubnets::<T>::get(),
             });
 
-        migrate_double_map!(T, Bonds, curr, target);
-        migrate_map!(T, BondsMovingAverage, curr, target);
-        migrate_map!(T, ValidatorPermits, curr, target);
-        migrate_map!(T, ValidatorTrust, curr, target);
-        migrate_map!(T, PruningScores, curr, target);
-        migrate_map!(T, MaxAllowedValidators, curr, target);
-        migrate_map!(T, Consensus, curr, target);
-        migrate_map!(T, Active, curr, target);
-        migrate_map!(T, Rank, curr, target);
-        migrate_map!(T, RegistrationsThisInterval, curr, target);
-        migrate_map!(T, Burn, curr, target);
-        migrate_map!(T, MaximumSetWeightCallsPerEpoch, curr, target);
-        migrate_double_map!(T, SetWeightCallsPerEpoch, curr, target);
-        migrate_map!(T, TargetRegistrationsInterval, curr, target);
-        migrate_map!(T, TargetRegistrationsPerInterval, curr, target);
-        migrate_map!(T, AdjustmentAlpha, curr, target);
-        migrate_map!(T, N, curr, target);
-        migrate_map!(T, Founder, curr, target);
-        migrate_map!(T, IncentiveRatio, curr, target);
-        migrate_map!(T, MaxAllowedUids, curr, target);
-        migrate_map!(T, ImmunityPeriod, curr, target);
-        migrate_map!(T, MinAllowedWeights, curr, target);
-        migrate_map!(T, MinStake, curr, target);
-        migrate_map!(T, MaxRegistrationsPerInterval, curr, target);
-        migrate_map!(T, MaxWeightAge, curr, target);
-        migrate_map!(T, MaxAllowedWeights, curr, target);
-        migrate_map!(T, TrustRatio, curr, target);
-        migrate_map!(T, Tempo, curr, target);
-        migrate_map!(T, FounderShare, curr, target);
-        migrate_double_map!(T, Uids, curr, target);
-        migrate_double_map!(T, Keys, curr, target);
-        migrate_double_map!(T, Name, curr, target);
-        migrate_double_map!(T, Address, curr, target);
-        migrate_double_map!(T, Metadata, curr, target);
-        migrate_map!(T, Incentive, curr, target);
-        migrate_map!(T, Trust, curr, target);
-        migrate_map!(T, Dividends, curr, target);
-        migrate_map!(T, Emission, curr, target);
-        migrate_map!(T, LastUpdate, curr, target);
-        migrate_double_map!(T, RegistrationBlock, curr, target);
-        migrate_double_map!(T, Weights, curr, target);
-        migrate_double_map!(T, DelegationFee, curr, target);
-        migrate_double_map!(T, DelegationFee, curr, target);
-        migrate_api!(T, get_pending_emission, set_pending_emission, curr, target);
-        migrate_api!(T, get_subnet_emission, set_subnet_emission, curr, target);
-        migrate_api!(
-            T,
-            get_subnet_consensus_type,
-            set_subnet_consensus_type,
-            curr,
-            target
-        );
+        macro_rules! migrate_double_map {
+            ($map:ident) => {
+                for k2 in $map::<T>::iter_key_prefix(&curr) {
+                    $map::<T>::swap(&curr, &k2, &target, &k2);
+                }
+            };
+        }
+
+        macro_rules! migrate_map {
+            ($map:ident) => {
+                $map::<T>::swap(curr, target);
+            };
+        }
+
+        macro_rules! migrate_api {
+            ($getter:ident, $setter:ident) => {
+                let curr_value = T::$getter(curr);
+                let target_value = T::$getter(target);
+                T::$setter(curr, target_value);
+                T::$setter(target, curr_value);
+            };
+        }
+
+        migrate_double_map!(Bonds);
+        migrate_map!(BondsMovingAverage);
+        migrate_map!(ValidatorPermits);
+        migrate_map!(ValidatorTrust);
+        migrate_map!(PruningScores);
+        migrate_map!(MaxAllowedValidators);
+        migrate_map!(Consensus);
+        migrate_map!(Active);
+        migrate_map!(Rank);
+        migrate_map!(RegistrationsThisInterval);
+        migrate_map!(Burn);
+        migrate_map!(MaximumSetWeightCallsPerEpoch);
+        migrate_double_map!(SetWeightCallsPerEpoch);
+        migrate_map!(TargetRegistrationsInterval);
+        migrate_map!(TargetRegistrationsPerInterval);
+        migrate_map!(AdjustmentAlpha);
+        migrate_map!(N);
+        migrate_map!(Founder);
+        migrate_map!(IncentiveRatio);
+        migrate_map!(MaxAllowedUids);
+        migrate_map!(ImmunityPeriod);
+        migrate_map!(MinAllowedWeights);
+        migrate_map!(MinStake);
+        migrate_map!(MaxRegistrationsPerInterval);
+        migrate_map!(MaxWeightAge);
+        migrate_map!(MaxAllowedWeights);
+        migrate_map!(TrustRatio);
+        migrate_map!(Tempo);
+        migrate_map!(FounderShare);
+        migrate_double_map!(Uids);
+        migrate_double_map!(Keys);
+        migrate_double_map!(Name);
+        migrate_double_map!(Address);
+        migrate_double_map!(Metadata);
+        migrate_map!(Incentive);
+        migrate_map!(Trust);
+        migrate_map!(Dividends);
+        migrate_map!(Emission);
+        migrate_map!(LastUpdate);
+        migrate_double_map!(RegistrationBlock);
+        migrate_double_map!(Weights);
+        migrate_double_map!(DelegationFee);
+        migrate_double_map!(DelegationFee);
+        migrate_api!(get_pending_emission, set_pending_emission);
+        migrate_api!(get_subnet_emission, set_subnet_emission);
+        migrate_api!(get_subnet_consensus_type, set_subnet_consensus_type);
 
         let curr_governance_config = T::get_subnet_governance_configuration(curr);
         let target_governance_config = T::get_subnet_governance_configuration(curr);
@@ -396,31 +413,5 @@ pub mod v12 {
         T::update_subnet_governance_configuration(target, curr_governance_config)?;
 
         Ok(())
-    }
-
-    #[macro_export]
-    macro_rules! migrate_double_map {
-        ($gen:ident, $map:ident, $curr_id:ident, $target_id:ident) => {
-            for k2 in $map::<$gen>::iter_key_prefix(&$curr_id) {
-                $map::<$gen>::swap(&$curr_id, &k2, &$target_id, &k2);
-            }
-        };
-    }
-
-    #[macro_export]
-    macro_rules! migrate_map {
-        ($gen:ident, $map:ident, $curr_id:ident, $target_id:ident) => {
-            $map::<$gen>::swap($curr_id, $target_id);
-        };
-    }
-
-    #[macro_export]
-    macro_rules! migrate_api {
-        ($gen:ident, $getter:ident, $setter:ident, $curr_id:ident, $target_id:ident) => {
-            let curr_value = $gen::$getter($curr_id);
-            let target_value = $gen::$getter($target_id);
-            $gen::$setter($curr_id, target_value);
-            $gen::$setter($target_id, curr_value);
-        };
     }
 }
