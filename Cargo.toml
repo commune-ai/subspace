@@ -2,6 +2,7 @@
 members = [
     "node",
     "pallets/subspace",
+    "pallets/subspace/genesis-config",
     "pallets/governance",
     "pallets/governance/api",
     "pallets/faucet",

@@ -66,6 +66,7 @@ frame-benchmarking-cli.workspace = true
 # Local Dependencies
 node-subspace-runtime.path = "../runtime"
 
+pallet-subspace-genesis-config.path = "../pallets/subspace/genesis-config"
 subspace-rpc.path = "../pallets/subspace/rpc"
 
 [build-dependencies]

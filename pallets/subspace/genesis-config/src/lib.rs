@@ -1,0 +1,28 @@
+#![no_std]
+
+extern crate alloc;
+
+use alloc::vec::Vec;
+use serde::{Deserialize, Serialize};
+
+#[derive(Debug, Deserialize, Serialize)]
+pub struct ConfigSubnet<Name, AccountId> {
+    pub name: Name,
+    pub founder: AccountId,
+    pub tempo: Option<u16>,
+    pub immunity_period: Option<u16>,
+    pub min_allowed_weights: Option<u16>,
+    pub max_allowed_weights: Option<u16>,
+    pub max_allowed_uids: Option<u16>,
+    pub min_stake: Option<u64>,
+    pub modules: Vec<ConfigModule<Name, AccountId>>,
+}
+
+#[derive(Debug, Deserialize, Serialize)]
+pub struct ConfigModule<Name, AccountId> {
+    pub key: AccountId,
+    pub name: Name,
+    pub address: Name,
+    pub weights: Option<Vec<(u16, u16)>>,
+    pub stake_from: Option<Vec<(AccountId, u64)>>,
+}

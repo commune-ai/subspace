@@ -47,7 +47,7 @@ mod set_weights;
 mod staking;
 mod step;
 pub mod subnet;
-pub mod weights; // Weight benchmarks
+pub mod weights;
 
 #[cfg(debug_assertions)]
 pub use step::yuma;
@@ -658,37 +658,32 @@ pub mod pallet {
     #[derive(frame_support::DefaultNoBound)]
     #[pallet::genesis_config]
     pub struct GenesisConfig<T: Config> {
-        // key, name, address, weights
-        pub modules: Vec<Vec<(T::AccountId, Vec<u8>, Vec<u8>, Vec<(u16, u16)>)>>,
-        // name, tempo, immunity_period, min_allowed_weight, max_allowed_weight, max_allowed_uids,
-        // immunity_ratio, founder
-        pub subnets: Vec<(Vec<u8>, u16, u16, u16, u16, u16, u64, T::AccountId)>,
-
-        pub stake_to: Vec<Vec<(T::AccountId, Vec<(T::AccountId, u64)>)>>,
-
+        pub subnets: Vec<pallet_subspace_genesis_config::ConfigSubnet<Vec<u8>, T::AccountId>>,
         pub block: u32,
     }
 
     #[pallet::genesis_build]
     impl<T: Config> BuildGenesisConfig for GenesisConfig<T> {
         fn build(&self) {
-            // Set initial total issuance from balances
-            // Subnet config values
+            let def = DefaultSubnetParams::<T>::get();
 
-            for (subnet_idx, subnet) in self.subnets.iter().enumerate() {
-                let netuid: u16 = subnet_idx as u16;
-                // --- Set subnet parameters
+            for (netuid, subnet) in self.subnets.iter().enumerate() {
+                let netuid = netuid as u16;
 
                 let params: SubnetParams<T> = SubnetParams {
-                    name: subnet.0.clone().try_into().expect("subnet name is too long"),
-                    tempo: subnet.1,
-                    immunity_period: subnet.2,
-                    min_allowed_weights: subnet.3,
-                    max_allowed_weights: subnet.4,
-                    max_allowed_uids: subnet.5,
-                    min_stake: subnet.6,
-                    founder: subnet.7.clone(),
-                    ..DefaultSubnetParams::<T>::get()
+                    name: subnet.name.clone().try_into().expect("subnet name is too long"),
+                    founder: subnet.founder.clone(),
+                    tempo: subnet.tempo.unwrap_or(def.tempo),
+                    immunity_period: subnet.immunity_period.unwrap_or(def.immunity_period),
+                    min_allowed_weights: subnet
+                        .min_allowed_weights
+                        .unwrap_or(def.min_allowed_weights),
+                    max_allowed_weights: subnet
+                        .max_allowed_weights
+                        .unwrap_or(def.max_allowed_weights),
+                    max_allowed_uids: subnet.max_allowed_uids.unwrap_or(def.max_allowed_uids),
+                    min_stake: subnet.min_stake.unwrap_or(def.min_stake),
+                    ..def.clone()
                 };
 
                 log::info!("registering subnet {netuid} with params: {params:?}");
@@ -699,32 +694,25 @@ pub mod pallet {
                 let _ = self::Pallet::<T>::add_subnet(changeset, Some(netuid))
                     .expect("Failed to register genesis subnet");
 
-                if let Some(modules) = self.modules.get(subnet_idx) {
-                    for (uid_usize, (key, name, address, weights)) in modules.iter().enumerate() {
-                        let changeset =
-                            ModuleChangeset::new(name.clone(), address.clone(), fee, None);
-                        self::Pallet::<T>::append_module(netuid, key, changeset)
-                            .expect("genesis modules are valid");
-                        Weights::<T>::insert(netuid, uid_usize as u16, weights);
-                    }
-                }
-            }
-            // Now we can add the stake to the network
+                for (module_uid, module) in subnet.modules.iter().enumerate() {
+                    let module_uid = module_uid as u16;
 
-            let subnet_stakes = self
-                .subnets
-                .iter()
-                .enumerate()
-                .filter_map(|(subnet_id, _)| Some((subnet_id, self.stake_to.get(subnet_id)?)));
-            for (subnet_id, stakes) in subnet_stakes {
-                for (key, stake_to) in stakes {
-                    for (module_key, stake_amount) in stake_to {
-                        Pallet::<T>::increase_stake(
-                            subnet_id as u16,
-                            key,
-                            module_key,
-                            *stake_amount,
-                        );
+                    let changeset = ModuleChangeset::new(
+                        module.name.clone(),
+                        module.address.clone(),
+                        fee,
+                        None,
+                    );
+                    self::Pallet::<T>::append_module(netuid, &module.key, changeset)
+                        .expect("genesis modules are valid");
+                    Weights::<T>::insert(
+                        netuid,
+                        module_uid,
+                        module.weights.clone().unwrap_or_default(),
+                    );
+
+                    for (staker, stake) in module.stake_from.iter().flatten() {
+                        Pallet::<T>::increase_stake(netuid, staker, &module.key, *stake);
                     }
                 }
             }

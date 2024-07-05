@@ -4810,6 +4810,7 @@ dependencies = [
  "futures",
  "jsonrpsee",
  "node-subspace-runtime",
+ "pallet-subspace-genesis-config",
  "pallet-transaction-payment",
  "pallet-transaction-payment-rpc",
  "sc-basic-authorship",
@@ -5297,6 +5298,7 @@ dependencies = [
  "ndarray",
  "pallet-balances",
  "pallet-governance-api",
+ "pallet-subspace-genesis-config",
  "pallet-transaction-payment",
  "parity-scale-codec",
  "parity-util-mem",
@@ -5314,6 +5316,13 @@ dependencies = [
  "sp-tracing 16.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=release-polkadot-v1.10.1)",
  "sp-version",
  "substrate-fixed",
+]
+
+[[package]]
+name = "pallet-subspace-genesis-config"
+version = "1.0.0"
+dependencies = [
+ "serde",
 ]
 
 [[package]]

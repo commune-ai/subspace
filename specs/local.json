@@ -1,129 +1,78 @@
 {
+  "sudo": "5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY",
   "balances": {
     "5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY": 1000000000000,
     "5FHneW46xGXgs5mUiveU4sbTyGBzmstUspZC92UhjJM694ty": 1000000000000
   },
-  "modules": [
-    [
-      [
-        "5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY",
-        "mod0",
-        "0.0.0.0:80",
-        []
-      ]
-    ],
-    [
-      [
-        "5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY",
-        "mod1",
-        "1.1.1.1:80",
-        []
-      ]
-    ],
-    [
-      [
-        "5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY",
-        "mod2",
-        "2.2.2.2:80",
-        []
-      ]
-    ],
-    [
-      [
-        "5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY",
-        "mod3",
-        "3.3.3.3:80",
-        []
-      ]
-    ]
-  ],
   "subnets": [
-    [
-      "net0",
-      100,
-      0,
-      1,
-      100,
-      100,
-      0,
-      "5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY"
-    ],
-    [
-      "net1",
-      200,
-      0,
-      1,
-      100,
-      100,
-      0,
-      "5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY"
-    ],
-    [
-      "net2",
-      300,
-      0,
-      1,
-      100,
-      100,
-      0,
-      "5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY"
-    ],
-    [
-      "net3",
-      400,
-      0,
-      1,
-      100,
-      100,
-      0,
-      "5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY"
-    ]
-  ],
-  "stakeTo": [
-    [
-      [
-        "5FHneW46xGXgs5mUiveU4sbTyGBzmstUspZC92UhjJM694ty",
-        [
-          [
-            "5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY",
-            100000000000
+    {
+      "name": "net0",
+      "founder": "5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY",
+      "modules": [
+        {
+          "key": "5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY",
+          "name": "mod0",
+          "address": "0.0.0.0:80",
+          "stake_from": [
+            [
+              "5FHneW46xGXgs5mUiveU4sbTyGBzmstUspZC92UhjJM694ty",
+              100000000000
+            ]
           ]
-        ]
+        }
       ]
-    ],
-    [
-      [
-        "5FHneW46xGXgs5mUiveU4sbTyGBzmstUspZC92UhjJM694ty",
-        [
-          [
-            "5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY",
-            200000000000
+    },
+    {
+      "name": "net1",
+      "founder": "5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY",
+      "modules": [
+        {
+          "key": "5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY",
+          "name": "mod1",
+          "address": "1.1.1.1:80",
+          "stake_from": [
+            [
+              "5FHneW46xGXgs5mUiveU4sbTyGBzmstUspZC92UhjJM694ty",
+              200000000000
+            ]
           ]
-        ]
+        }
       ]
-    ],
-    [
-      [
-        "5FHneW46xGXgs5mUiveU4sbTyGBzmstUspZC92UhjJM694ty",
-        [
-          [
-            "5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY",
-            300000000000
+    },
+    {
+      "name": "net2",
+      "founder": "5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY",
+      "modules": [
+        {
+          "key": "5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY",
+          "name": "mod2",
+          "address": "2.2.2.2:80",
+          "stake_from": [
+            [
+              "5FHneW46xGXgs5mUiveU4sbTyGBzmstUspZC92UhjJM694ty",
+              300000000000
+            ]
           ]
-        ]
+        }
       ]
-    ],
-    [
-      [
-        "5FHneW46xGXgs5mUiveU4sbTyGBzmstUspZC92UhjJM694ty",
-        [
-          [
-            "5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY",
-            400000000000
+    },
+    {
+      "name": "net3",
+      "founder": "5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY",
+      "modules": [
+        {
+          "key": "5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY",
+          "name": "mod3",
+          "address": "3.3.3.3:80",
+          "stake_from": [
+            [
+              "5FHneW46xGXgs5mUiveU4sbTyGBzmstUspZC92UhjJM694ty",
+              400000000000
+            ]
           ]
-        ]
+        }
       ]
-    ]
+    }
   ],
   "block": 0
 }
