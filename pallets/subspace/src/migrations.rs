@@ -91,7 +91,7 @@ pub mod v12 {
             let old_stake_from = old_storage::StakeFrom::<T>::iter().fold(
                 BTreeMap::<AccountIdOf<T>, BTreeMap<AccountIdOf<T>, u64>>::new(),
                 |mut acc, (_, key, stake)| {
-                    let existing = acc.entry(key).or_insert_with(|| Default::default());
+                    let existing = acc.entry(key).or_default();
                     for (key, stake) in stake {
                         existing
                             .entry(key)
@@ -104,7 +104,7 @@ pub mod v12 {
             let old_stake_to = old_storage::StakeTo::<T>::iter().fold(
                 BTreeMap::<AccountIdOf<T>, BTreeMap<AccountIdOf<T>, u64>>::new(),
                 |mut acc, (_, key, stake)| {
-                    let existing = acc.entry(key).or_insert_with(|| Default::default());
+                    let existing = acc.entry(key).or_default();
                     for (key, stake) in stake {
                         existing
                             .entry(key)
