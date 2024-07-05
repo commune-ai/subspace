@@ -64,6 +64,15 @@ pub mod v12 {
 
         #[storage_alias]
         pub type TotalStake<T: Config> = StorageMap<Pallet<T>, Identity, u16, u64, ValueQuery>;
+
+        #[storage_alias]
+        pub type UnitEmission<T: Config> = StorageValue<Pallet<T>, u64, ValueQuery>;
+
+        #[storage_alias]
+        pub type PendingEmission<T: Config> = StorageMap<Pallet<T>, Identity, u16, u64, ValueQuery>;
+
+        #[storage_alias]
+        pub type SubnetEmission<T: Config> = StorageMap<Pallet<T>, Identity, u16, u64, ValueQuery>;
     }
 
     pub struct MigrateToV12<T>(sp_std::marker::PhantomData<T>);
@@ -258,12 +267,16 @@ pub mod v12 {
 
                 // Rootnet configuration
                 const ROOTNET_ID: u16 = 0;
-                SubnetNames::<T>::set(ROOTNET_ID, b"Rootnet".to_vec());
+                start_subnet::<T>(
+                    ROOTNET_ID,
+                    "Rootnet",
+                    T::get_dao_treasury_address(),
+                    SubnetConsensus::Root,
+                );
                 MaxAllowedUids::<T>::set(ROOTNET_ID, 256);
                 MaxAllowedValidators::<T>::set(ROOTNET_ID, Some(256));
                 set_vote_mode::<T>(ROOTNET_ID);
                 FounderShare::<T>::set(ROOTNET_ID, 0);
-                T::set_subnet_consensus_type(ROOTNET_ID, Some(SubnetConsensus::Root));
                 Burn::<T>::set(ROOTNET_ID, 0);
                 MinStake::<T>::set(ROOTNET_ID, 0);
                 Pallet::<T>::append_module(
@@ -279,12 +292,15 @@ pub mod v12 {
 
                 // Treasury subnet configuration
                 const TREASURYNET_ID: u16 = 1;
-                SubnetNames::<T>::set(0, b"Treasury".to_vec());
+                start_subnet::<T>(
+                    TREASURYNET_ID,
+                    "Treasury",
+                    T::get_dao_treasury_address(),
+                    SubnetConsensus::Treasury,
+                );
                 set_vote_mode::<T>(TREASURYNET_ID);
-                Founder::<T>::set(TREASURYNET_ID, T::get_dao_treasury_address());
                 FounderShare::<T>::set(TREASURYNET_ID, u16::MAX);
                 MaxAllowedUids::<T>::set(TREASURYNET_ID, 0);
-                T::set_subnet_consensus_type(TREASURYNET_ID, Some(SubnetConsensus::Treasury));
                 Pallet::<T>::append_module(
                     TREASURYNET_ID,
                     &T::get_dao_treasury_address(),
@@ -330,18 +346,78 @@ pub mod v12 {
         };
     }
 
+    fn start_subnet<T: Config>(
+        subnet_id: u16,
+        subnet_name: &'static str,
+        founder: T::AccountId,
+        consensus_type: SubnetConsensus,
+    ) {
+        // Bonds
+        BondsMovingAverage::<T>::set(subnet_id, 900_000);
+        ValidatorPermits::<T>::set(subnet_id, Vec::new());
+        ValidatorTrust::<T>::set(subnet_id, Vec::new());
+        PruningScores::<T>::set(subnet_id, Vec::new());
+        MaxAllowedValidators::<T>::set(subnet_id, None);
+        Consensus::<T>::set(subnet_id, Vec::new());
+        Active::<T>::set(subnet_id, Vec::new());
+        Rank::<T>::set(subnet_id, Vec::new());
+        RegistrationsThisInterval::<T>::set(subnet_id, 0);
+        Burn::<T>::set(subnet_id, 0);
+        MaximumSetWeightCallsPerEpoch::<T>::set(subnet_id, None);
+        TargetRegistrationsInterval::<T>::set(subnet_id, 142);
+        TargetRegistrationsPerInterval::<T>::set(subnet_id, 3);
+        AdjustmentAlpha::<T>::set(subnet_id, u64::MAX / 2);
+        MinImmunityStake::<T>::set(subnet_id, 50_000_000_000_000);
+        SubnetNames::<T>::set(subnet_id, subnet_name.as_bytes().to_vec());
+        N::<T>::insert(subnet_id, 0);
+        Founder::<T>::set(subnet_id, founder);
+        IncentiveRatio::<T>::set(subnet_id, 50);
+        MaxAllowedUids::<T>::set(subnet_id, 420);
+        ImmunityPeriod::<T>::set(subnet_id, 0);
+        MinAllowedWeights::<T>::set(subnet_id, 1);
+        MinStake::<T>::set(subnet_id, 0);
+        // MaxRegistrationsPerInterval::<T>::set(subnet_id, T::DefaultMaxRegistrationsPerInterval);
+        MaxWeightAge::<T>::set(subnet_id, 3600);
+        MaxAllowedWeights::<T>::set(subnet_id, 420);
+        TrustRatio::<T>::set(subnet_id, 0);
+        Tempo::<T>::set(subnet_id, 100);
+        FounderShare::<T>::set(subnet_id, 8);
+        // Uids
+        // Keys
+        // Name
+        // Address
+        // Metadata
+        Incentive::<T>::set(subnet_id, Vec::new());
+        Trust::<T>::set(subnet_id, Vec::new());
+        Dividends::<T>::set(subnet_id, Vec::new());
+        Emission::<T>::set(subnet_id, Vec::new());
+        LastUpdate::<T>::set(subnet_id, Vec::new());
+        // RegistrationBlock
+        // Weights
+        // DelegationFee
+        // DelegationFee
+        T::set_pending_emission(subnet_id, 0);
+        T::set_subnet_emission(subnet_id, 0);
+        T::set_subnet_consensus_type(subnet_id, Some(consensus_type));
+    }
+
     fn transfer_subnet<T: Config>(curr: u16, target: Option<u16>) -> DispatchResult {
         let target =
             target.unwrap_or_else(|| match SubnetGaps::<T>::mutate(|set| set.pop_first()) {
                 Some(removed) => removed,
-                None => TotalSubnets::<T>::get(),
+                None => {
+                    let id = TotalSubnets::<T>::get();
+                    TotalSubnets::<T>::mutate(|value| *value += 1);
+                    id
+                }
             });
 
         log::info!("transferring subnet {} to {}", curr, target);
 
         macro_rules! migrate_double_map {
             ($map:ident) => {
-                for k2 in $map::<T>::iter_key_prefix(&curr) {
+                let keys = $map::<T>::iter_key_prefix(&curr).collect::<Vec<_>>();
+                for k2 in keys {
                     $map::<T>::swap(&curr, &k2, &target, &k2);
                 }
             };
@@ -378,6 +454,8 @@ pub mod v12 {
         migrate_map!(TargetRegistrationsInterval);
         migrate_map!(TargetRegistrationsPerInterval);
         migrate_map!(AdjustmentAlpha);
+        migrate_map!(MinImmunityStake);
+        migrate_map!(SubnetNames);
         migrate_map!(N);
         migrate_map!(Founder);
         migrate_map!(IncentiveRatio);
