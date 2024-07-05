@@ -176,6 +176,8 @@ impl<T: Config> Pallet<T> {
         }
     }
 
+    // TODO:
+    // Shoulden't this set the consensus ?
     fn create_subnet(key: &T::AccountId, network_name: &[u8]) -> Result<u16, DispatchError> {
         let bounded_name: BoundedVec<u8, ConstU32<256>> =
             network_name.to_vec().try_into().map_err(|_| Error::<T>::SubnetNameTooLong)?;

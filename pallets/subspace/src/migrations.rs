@@ -337,6 +337,8 @@ pub mod v12 {
                 None => TotalSubnets::<T>::get(),
             });
 
+        log::info!("transferring subnet {} to {}", curr, target);
+
         macro_rules! migrate_double_map {
             ($map:ident) => {
                 for k2 in $map::<T>::iter_key_prefix(&curr) {
