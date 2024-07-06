@@ -26,6 +26,8 @@ pub fn authority_keys_from_seed(s: &str) -> (AuraId, GrandpaId) {
 #[derive(Deserialize, Debug)]
 #[serde(rename_all = "camelCase")]
 struct ChainSpecPatch {
+    code: Option<String>,
+
     sudo: Option<String>,
 
     #[serde(default)]
@@ -113,9 +115,19 @@ pub fn generate_config(path: &str) -> Result<ChainSpec, String> {
         state.block,
     );
 
-    let wasm_binary = WASM_BINARY.ok_or_else(|| "WASM binary not available".to_string())?;
+    let wasm_binary = state.code.map_or_else(
+        || {
+            WASM_BINARY
+                .map(<[u8]>::to_vec)
+                .ok_or_else(|| "WASM binary not available".to_string())
+        },
+        |code| {
+            let code = code.strip_prefix("0x").unwrap_or(code.as_str());
+            hex::decode(code).map_err(|e| e.to_string())
+        },
+    )?;
 
-    Ok(ChainSpec::builder(wasm_binary, None)
+    Ok(ChainSpec::builder(&wasm_binary, None)
         .with_name("commune")
         .with_id("commune")
         .with_protocol_id("commune")

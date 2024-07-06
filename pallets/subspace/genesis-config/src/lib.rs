@@ -2,11 +2,11 @@
 
 extern crate alloc;
 
-use alloc::vec::Vec;
+use alloc::{collections::BTreeMap, vec::Vec};
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Deserialize, Serialize)]
-pub struct ConfigSubnet<Name, AccountId> {
+pub struct ConfigSubnet<Name, AccountId: Ord + PartialOrd + PartialEq + Eq> {
     pub name: Name,
     pub founder: AccountId,
     pub tempo: Option<u16>,
@@ -19,10 +19,10 @@ pub struct ConfigSubnet<Name, AccountId> {
 }
 
 #[derive(Debug, Deserialize, Serialize)]
-pub struct ConfigModule<Name, AccountId> {
+pub struct ConfigModule<Name, AccountId: Ord + PartialOrd + PartialEq + Eq> {
     pub key: AccountId,
     pub name: Name,
     pub address: Name,
     pub weights: Option<Vec<(u16, u16)>>,
-    pub stake_from: Option<Vec<(AccountId, u64)>>,
+    pub stake_from: Option<BTreeMap<AccountId, u64>>,
 }

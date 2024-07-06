@@ -4808,6 +4808,7 @@ dependencies = [
  "frame-benchmarking-cli",
  "frame-system",
  "futures",
+ "hex",
  "jsonrpsee",
  "node-subspace-runtime",
  "pallet-subspace-genesis-config",

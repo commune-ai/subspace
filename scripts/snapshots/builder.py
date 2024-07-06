@@ -4,12 +4,13 @@ Builds a genesis snapshot of current mainnet state
 import json
 import argparse
 import os
+import codecs
 from typing import Any
 import logging
 
 from substrateinterface.base import SubstrateInterface
 
-QUERY_URL = "wss://commune-api-node-0.communeai.net"
+QUERY_URL = "wss://commune-api-node-1.communeai.net"
 STANDARD_MODULE = "SubspaceModule"
 
 EXISTENTIAL_DEPOSIT = 500
@@ -20,13 +21,11 @@ SUDO = "5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY"
 logging.basicConfig(level=logging.INFO,
                     format='%(asctime)s - %(levelname)s - %(message)s')
 
-
 def query_map_values(client: SubstrateInterface, module: str, storage_function: str, params: list = []) -> dict:
     logging.info(f"Querying {module}.{storage_function} with params {params}")
     result = client.query_map(
         module=module, storage_function=storage_function, params=params)
     return {k.value: v.value for k, v in result}
-
 
 def get_subnets(client: SubstrateInterface) -> dict[str, Any]:
     logging.info("Fetching subnet information")
@@ -69,13 +68,12 @@ def get_subnets(client: SubstrateInterface) -> dict[str, Any]:
                 "key": key,
                 "name": name,
                 "address": addresses[index][:MAX_NAME_LENGTH],
-                "stake_from": stake_froms.get(key, 0)
+                "stake_from": { stake[0]:stake[1] for stake in stake_froms.get(key, 0) }
             }
             subnet["modules"].append(module)
 
         subnets["subnets"].append(subnet)
     return subnets
-
 
 def get_balances(client: SubstrateInterface) -> dict[str, dict[str, int]]:
     logging.info("Fetching account balances")
@@ -85,12 +83,14 @@ def get_balances(client: SubstrateInterface) -> dict[str, dict[str, int]]:
     ) if v["data"]["free"] > EXISTENTIAL_DEPOSIT}
     return {"balances": result}
 
+def get_code(client: SubstrateInterface) -> dict[str, str]:
+    logging.info("Fetching code")
+    return {"code": str(client.query("Substrate", "Code"))}
 
 def get_sudo(key: str) -> dict[str, str]:
     return {"sudo": key}
 
-
-def build_snap(balances: dict[str, dict[str, int]], subnets: dict[str, Any]) -> dict[str, Any]:
+def build_snap(code: dict[str, str], balances: dict[str, dict[str, int]], subnets: dict[str, Any]) -> dict[str, Any]:
     """
     Returns: 
     snapshot spec with keys, in the following order:
@@ -99,11 +99,11 @@ def build_snap(balances: dict[str, dict[str, int]], subnets: dict[str, Any]) -> 
     - subnets: dict[str, Any]
     """
     spec: dict[str, Any] = {}
+    spec.update(code)
     spec.update(get_sudo(SUDO))
     spec.update(balances)
     spec.update(subnets)
     return spec
-
 
 def main():
     parser = argparse.ArgumentParser(
@@ -112,6 +112,8 @@ def main():
                         help="Output file name (default: local.json)")
     parser.add_argument("-d", "--directory", default=".",
                         help="Output directory (default: current directory)")
+    parser.add_argument("-c", "--code", default=False,
+                        help="If the generated spec file should contain the mainnet runtime code (default: false)")
     args = parser.parse_args()
 
     output_path = os.path.join(args.directory, args.output)
@@ -120,11 +122,15 @@ def main():
     client = SubstrateInterface(QUERY_URL)
     logging.info(f"Connected to {QUERY_URL}")
 
+    if args.code:
+        code = get_code(client)
+    else:
+        code = {}
     balances = get_balances(client)
     subnets = get_subnets(client)
 
     logging.info("Building snapshot")
-    spec = build_snap(balances, subnets)
+    spec = build_snap(code, balances, subnets)
 
     logging.info(f"Writing snapshot to {output_path}")
     os.makedirs(args.directory, exist_ok=True)
@@ -132,7 +138,6 @@ def main():
         json.dump(spec, f, indent=4)
 
     logging.info("Snapshot generation complete")
-
 
 if __name__ == "__main__":
     main()
