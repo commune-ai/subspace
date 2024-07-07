@@ -11,7 +11,7 @@ use log::info;
 use pallet_governance::DaoTreasuryAddress;
 use pallet_subnet_emission::{
     subnet_consensus::yuma::{AccountKey, EmissionMap, ModuleKey, YumaEpoch},
-    SubnetConsensusType, UnitEmission,
+    PendingEmission, SubnetConsensusType, UnitEmission,
 };
 use pallet_subnet_emission_api::SubnetConsensus;
 use pallet_subspace::*;
@@ -515,8 +515,7 @@ fn calculates_blocks_until_epoch() {
 #[test]
 fn test_incentives() {
     new_test_ext().execute_with(|| {
-        // CONSSTANTS
-        let netuid: u16 = 1;
+        let netuid: u16 = 0;
         let n: u16 = 10;
         let stake_per_module: u64 = 10_000;
 
@@ -525,26 +524,26 @@ fn test_incentives() {
 
         // SETUP NETWORK
         register_n_modules(netuid, n, stake_per_module);
+        // Test perform under linear consensus network.
+        SubnetConsensusType::<Test>::insert(netuid, SubnetConsensus::Linear);
         let mut params = SubspaceMod::subnet_params(netuid);
         params.min_allowed_weights = 0;
         params.max_allowed_weights = n;
         params.tempo = 100;
 
         let keys = SubspaceMod::get_keys(netuid);
-        let _uids = SubspaceMod::get_uids(netuid);
-
-        // do a list of ones for weights
         let weight_uids: Vec<u16> = [1, 2].to_vec();
-        // do a list of ones for weights
         let weight_values: Vec<u16> = [1, 1].to_vec();
 
         set_weights(netuid, keys[0], weight_uids.clone(), weight_values.clone());
+        // Make sure network will run the consensus ditribution
+        PendingEmission::<Test>::insert(netuid, 90000000000000);
         step_block(params.tempo);
 
         let incentives: Vec<u16> = Incentive::<Test>::get(netuid);
         let emissions: Vec<u64> = Emission::<Test>::get(netuid);
 
-        // evaluate votees
+        // evaluate votes
         assert!(incentives[1] > 0);
         assert!(incentives[1] == incentives[2]);
         assert!(emissions[1] == emissions[2]);
@@ -554,7 +553,8 @@ fn test_incentives() {
 
         set_weights(netuid, keys[0], weight_uids.clone(), weight_values.clone());
         set_weights(netuid, keys[9], weight_uids.clone(), weight_values.clone());
-
+        // Make sure network will run the consensus ditribution, again
+        PendingEmission::<Test>::insert(netuid, 90000000000000);
         step_block(params.tempo);
 
         let incentives: Vec<u16> = Incentive::<Test>::get(netuid);
@@ -580,11 +580,13 @@ fn test_trust() {
 
         let netuid: u16 = 1;
         let n: u16 = 10;
-        let _n_list: Vec<u16> = vec![10, 50, 100, 1000];
-        let _blocks_per_epoch_list: u64 = 1;
         let stake_per_module: u64 = 10_000;
 
         register_n_modules(netuid, n, stake_per_module);
+        // Testing trust on linear consensus
+        SubnetConsensusType::<Test>::insert(netuid, SubnetConsensus::Linear);
+        // Make sure that the network has some pending emission to start running consensus
+        PendingEmission::<Test>::insert(netuid, 90000000000000);
         let mut params = SubspaceMod::subnet_params(netuid);
         params.min_allowed_weights = 1;
         params.max_allowed_weights = n;
@@ -594,7 +596,6 @@ fn test_trust() {
         update_params!(netuid => params.clone());
 
         let keys = SubspaceMod::get_keys(netuid);
-        let _uids = SubspaceMod::get_uids(netuid);
 
         // do a list of ones for weights
         let weight_uids: Vec<u16> = [2].to_vec();
@@ -619,8 +620,6 @@ fn test_trust() {
         info!("trust: {emission:?}");
         assert!(emission[1] > 0);
         assert!(emission[2] > 2 * (emission[1]) - 1000);
-
-        // assert!(trust[2] as u32 < 2*(trust[1] as u32)   );
     });
 }
 
@@ -869,17 +868,29 @@ fn yuma_weights_older_than_max_age_are_discarded() {
     new_test_ext().execute_with(|| {
         const MAX_WEIGHT_AGE: u64 = 300;
         const SUBNET_TEMPO: u16 = 100;
+
+        // first setup the rootnet
+        let rootnet_netuid: u16 = 0;
+        let rootnet_key = 0;
+        let rootnet_stake_amount: u64 = to_nano(1_000);
+        assert_ok!(register_module(
+            rootnet_netuid,
+            rootnet_key,
+            rootnet_stake_amount
+        ));
+        SubnetConsensusType::<Test>::insert(rootnet_netuid, SubnetConsensus::Root);
+
         // Register the general subnet.
         let netuid: u16 = 1;
-        let key = 0;
+        let key = 1;
         let stake_amount: u64 = to_nano(1_000);
 
         assert_ok!(register_module(netuid, key, stake_amount));
 
         // Register the yuma subnet.
         let yuma_netuid: u16 = 2;
-        let yuma_validator_key = 1;
-        let yuma_miner_key = 2;
+        let yuma_validator_key = 2;
+        let yuma_miner_key = 3;
         let yuma_vali_amount: u64 = to_nano(10_000);
         let yuma_miner_amount = to_nano(1_000);
 
@@ -895,6 +906,11 @@ fn yuma_weights_older_than_max_age_are_discarded() {
             yuma_miner_key,
             yuma_miner_amount
         ));
+
+        // Set rootnet weight equally
+        let uids = vec![netuid, yuma_netuid];
+        let weights = vec![1, 1];
+        set_weights(rootnet_netuid, rootnet_key, uids, weights);
 
         step_block(1);
 
@@ -1055,31 +1071,37 @@ fn test_tempo_compound() {
 
         const QUICK_TEMPO: u16 = 25;
         const SLOW_TEMPO: u16 = 1000;
-        // Register the general subnet.
-        let netuid: u16 = 5;
-        let key = 0;
+        // Register the root subnet.
+        let root_netuid: u16 = 0;
+        let root_key = 0;
         let stake_amount: u64 = to_nano(1_000);
 
-        assert_ok!(register_module(netuid, key, stake_amount));
+        assert_ok!(register_module(root_netuid, root_key, stake_amount));
+        SubnetConsensusType::<Test>::insert(root_netuid, SubnetConsensus::Root);
 
         // Register the yuma subnets, the important part of the tests starts here:
-        // FAST
-        let s_netuid: u16 = 6;
+        // SLOW
+        let s_netuid: u16 = 1;
         let s_key = 1;
         let s_amount: u64 = to_nano(10_000);
         assert_ok!(register_module(s_netuid, s_key, s_amount));
         update_params!(s_netuid => { tempo: SLOW_TEMPO });
 
-        // SLOW
-        let f_netuid = 7;
+        // FAST
+        let f_netuid = 2;
         // Now an honest actor will come, the goal is for him to accumulate more
-        let f_key = 3;
+        let f_key = 2;
         assert_ok!(register_module(f_netuid, f_key, s_amount));
         // we will set a slower tempo
         update_params!(f_netuid => { tempo: QUICK_TEMPO });
 
-        // we will now step, SLOW_TEMPO -> 1000 blocks
-        step_block(SLOW_TEMPO);
+        // set the weight on both subnets equally
+        let uids: Vec<u16> = vec![s_netuid, f_netuid];
+        let weights: Vec<u16> = vec![1, 1];
+        set_weights(root_netuid, root_key, uids.clone(), weights.clone());
+
+        // we will now step the blocks
+        step_block(SLOW_TEMPO + 24);
 
         let fast = dbg!(Stake::<Test>::get(f_key));
         let slow = dbg!(Stake::<Test>::get(s_key));

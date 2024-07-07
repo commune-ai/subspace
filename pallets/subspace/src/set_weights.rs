@@ -93,8 +93,7 @@ impl<T: Config> Pallet<T> {
 
     fn validate_uids_length(len: usize, netuid: u16) -> DispatchResult {
         let min_allowed_length = Self::get_min_allowed_weights(netuid) as usize;
-        let max_allowed_length =
-            MaxAllowedWeights::<T>::get(netuid).min(N::<T>::get(netuid)) as usize;
+        let max_allowed_length = MaxAllowedWeights::<T>::get(netuid) as usize; //.min(N::<T>::get(netuid)) as usize;
         ensure!(
             len >= min_allowed_length && len <= max_allowed_length,
             Error::<T>::InvalidUidsLength
