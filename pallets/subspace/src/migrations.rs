@@ -155,7 +155,7 @@ pub mod v12 {
             // Migrate StakeTo
             for (to, stakes) in old_stake_to {
                 for (from, amount) in stakes {
-                    StakeTo::<T>::insert(&from, &to, amount);
+                    StakeTo::<T>::insert(&to, &from, amount);
                 }
             }
             log::info!("Migrated StakeTo");
