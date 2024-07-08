@@ -9,6 +9,7 @@ use sp_runtime::Percent;
 fn module_registration_respects_min_stake() {
     new_test_ext().execute_with(|| {
         zero_min_burn();
+        MinimumAllowedStake::<Test>::set(0);
 
         let netuid = 0;
         let min_stake = 100_000_000;
