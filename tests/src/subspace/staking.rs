@@ -23,7 +23,7 @@ fn adds_stake_and_removes_to_module_and_calculates_total_stake() {
             for key in key_vector.iter() {
                 assert_ok!(register_module(netuid, *key, amount_staked));
 
-                assert_eq!(Stake::<Test>::get(key), amount_staked);
+                assert_eq!(SubspaceMod::get_owned_stake(&key), amount_staked);
                 assert_eq!(SubspaceMod::get_balance(key), 1);
 
                 assert_ok!(SubspaceMod::remove_stake(
@@ -32,17 +32,17 @@ fn adds_stake_and_removes_to_module_and_calculates_total_stake() {
                     amount_staked
                 ));
                 assert_eq!(SubspaceMod::get_balance(key), amount_staked + 1);
-                assert_eq!(Stake::<Test>::get(key), 0);
+                assert_eq!(SubspaceMod::get_owned_stake(&key), 0);
 
                 assert_ok!(SubspaceMod::add_stake(
                     get_origin(*key),
                     *key,
                     amount_staked,
                 ));
-                assert_eq!(Stake::<Test>::get(key), amount_staked);
+                assert_eq!(SubspaceMod::get_owned_stake(&key), amount_staked);
                 assert_eq!(SubspaceMod::get_balance(key), 1);
 
-                subnet_stake += Stake::<Test>::get(key);
+                subnet_stake += SubspaceMod::get_owned_stake(&key);
             }
 
             total_stake += subnet_stake;

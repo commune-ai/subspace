@@ -3,7 +3,7 @@ use core::marker::PhantomData;
 // use frame_support::{pallet_prelude::Weight, weights::RuntimeDbWeight};
 use pallet_subspace::{
     math::*, Config, Dividends, Emission, Founder, GlobalParams, Incentive, IncentiveRatio,
-    LastUpdate, Pallet as PalletSubspace, Stake, SubnetParams, Trust, TrustRatio, Vec, Weights, N,
+    LastUpdate, Pallet as PalletSubspace, SubnetParams, Trust, TrustRatio, Vec, Weights, N,
 };
 // use sp_core::Get;
 use sp_std::vec;
@@ -86,8 +86,10 @@ impl<T: Config> LinearEpoch<T> {
             PalletSubspace::<T>::get_uid_key_tuples(self.netuid);
         let total_stake_u64: u64 = PalletSubspace::<T>::get_total_subnet_stake(self.netuid).max(1);
 
-        let stake_u64: Vec<u64> =
-            uid_key_tuples.iter().map(|(_, key)| Stake::<T>::get(key)).collect();
+        let stake_u64: Vec<u64> = uid_key_tuples
+            .iter()
+            .map(|(_, key)| pallet_subspace::Pallet::<T>::get_delegated_stake(key))
+            .collect();
 
         let stake_f64: Vec<I64F64> = stake_u64
             .iter()

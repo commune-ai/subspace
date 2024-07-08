@@ -87,16 +87,10 @@ pub mod v12 {
             }
             log::info!("Migrating storage to v12");
 
+            // Clearing Stake storage value
+            let _ = old_storage::Stake::<T>::clear(u32::MAX, None);
+
             // Download existing data into separate types
-            let old_stake = old_storage::Stake::<T>::iter().fold(
-                BTreeMap::<AccountIdOf<T>, u64>::new(),
-                |mut acc, (_, key, stake)| {
-                    acc.entry(key)
-                        .and_modify(|existing| *existing = existing.saturating_add(stake))
-                        .or_insert(stake);
-                    acc
-                },
-            );
             let old_stake_from = old_storage::StakeFrom::<T>::iter().fold(
                 BTreeMap::<AccountIdOf<T>, BTreeMap<AccountIdOf<T>, u64>>::new(),
                 |mut acc, (_, key, stake)| {
@@ -125,7 +119,7 @@ pub mod v12 {
             );
 
             // Before migration counts
-            let stake_count_before = old_stake.len();
+            // let stake_count_before = old_stake.len();
             let stake_from_count_before: usize =
                 old_stake_from.values().map(|stakes| stakes.len()).sum();
             let stake_to_count_before: usize =
@@ -134,15 +128,9 @@ pub mod v12 {
             // TODO: // Clear the problematic stake storages
             // // We tried to do this with the old storage instead, after migration, but experienced
             // // decoding issues.
-            let _ = Stake::<T>::clear(u32::MAX, None);
+            // let _ = Stake::<T>::clear(u32::MAX, None);
             let _ = StakeTo::<T>::clear(u32::MAX, None);
             let _ = StakeFrom::<T>::clear(u32::MAX, None);
-
-            // Migrate Stake, getting rid of netuid
-            for (account, stake) in old_stake {
-                Stake::<T>::insert(account, stake);
-            }
-            log::info!("Migrated Stake");
 
             // Migrate StakeFrom
             for (from, stakes) in old_stake_from {
@@ -169,7 +157,6 @@ pub mod v12 {
             log::info!("Migrated TotalStake");
 
             // After migration counts
-            let stake_count_after = Stake::<T>::iter().count();
             let stake_from_count_after = StakeFrom::<T>::iter().count();
             let stake_to_count_after = StakeTo::<T>::iter().count();
             // Log results
@@ -181,16 +168,13 @@ pub mod v12 {
                 }
             };
 
-            log_result("Stake", stake_count_before, stake_count_after);
             log_result("StakeFrom", stake_from_count_before, stake_from_count_after);
             log_result("StakeTo", stake_to_count_before, stake_to_count_after);
 
-            let stake_sum: u64 = Stake::<T>::iter_values().sum();
             let stake_from_sum: u64 = StakeFrom::<T>::iter_values().sum();
             let stake_to_sum: u64 = StakeTo::<T>::iter_values().sum();
 
             log::info!("Total stake is now: {:?}", TotalStake::<T>::get());
-            log::info!("Stake sum is now: {:?}", stake_sum);
             log::info!("Stake from is now: {:?}", stake_from_sum);
             log::info!("Stake to is now: {:?}", stake_to_sum);
 

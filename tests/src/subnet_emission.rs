@@ -773,7 +773,10 @@ fn test_1_graph() {
 
         let new_stake_amount = stake_amount + ONE;
 
-        assert_eq!(Stake::<Test>::get(key), new_stake_amount - offset);
+        assert_eq!(
+            SubspaceMod::get_delegated_stake(&key),
+            new_stake_amount - offset
+        );
         assert_eq!(utils::get_rank_for_uid(netuid, uid), 0);
         assert_eq!(utils::get_trust_for_uid(netuid, uid), 0);
         assert_eq!(utils::get_consensus_for_uid(netuid, uid), 0);
@@ -846,7 +849,7 @@ fn test_10_graph() {
         let emission_per_node = ONE / n as u64;
         for i in 0..n as u16 {
             assert_eq!(
-                from_nano(Stake::<Test>::get(i as u32)),
+                from_nano(SubspaceMod::get_delegated_stake(&(i as u32))),
                 from_nano(to_nano(1) + emission_per_node)
             );
 
@@ -1006,7 +1009,7 @@ fn test_emission_exploit() {
         // step first 40 blocks from the registration
         step_block(40);
 
-        let stake_accumulated = Stake::<Test>::get(yuma_badactor_key);
+        let stake_accumulated = SubspaceMod::get_delegated_stake(&yuma_badactor_key);
         // User will now unstake and register another subnet.
         assert_ok!(SubspaceMod::do_remove_stake(
             get_origin(yuma_badactor_key),
@@ -1042,7 +1045,7 @@ fn test_emission_exploit() {
         step_block(58);
 
         // remove the stake again
-        let stake_accumulated_two = Stake::<Test>::get(yuma_badactor_key);
+        let stake_accumulated_two = SubspaceMod::get_delegated_stake(&yuma_badactor_key);
         assert_ok!(SubspaceMod::do_remove_stake(
             get_origin(yuma_badactor_key),
             yuma_badactor_key,
@@ -1064,7 +1067,7 @@ fn test_emission_exploit() {
         step_block(101);
 
         // get the stake of honest actor
-        let hones_stake = Stake::<Test>::get(honest_actor_key);
+        let hones_stake = SubspaceMod::get_delegated_stake(&honest_actor_key);
         assert!(hones_stake > badactor_balance_after);
     });
 }
@@ -1108,8 +1111,8 @@ fn test_tempo_compound() {
         // we will now step the blocks
         step_block(SLOW_TEMPO + 24);
 
-        let fast = dbg!(Stake::<Test>::get(f_key));
-        let slow = dbg!(Stake::<Test>::get(s_key));
+        let fast = dbg!(SubspaceMod::get_delegated_stake(&f_key));
+        let slow = dbg!(SubspaceMod::get_delegated_stake(&s_key));
 
         // faster tempo should have quicker compound rate
         assert!(fast > slow);

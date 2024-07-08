@@ -9,7 +9,7 @@ use frame_support::{
 };
 use frame_system::ensure_signed;
 use pallet_subspace::{
-    subnet::SubnetChangeset, Event as SubspaceEvent, GlobalParams, Pallet as PalletSubspace, Stake,
+    subnet::SubnetChangeset, Event as SubspaceEvent, GlobalParams, Pallet as PalletSubspace,
     SubnetParams, TotalStake,
 };
 use parity_scale_codec::{Decode, Encode, MaxEncodedLen};
@@ -496,7 +496,7 @@ fn calc_stake<T: Config>(not_delegating: &BTreeSet<T::AccountId>, voter: &T::Acc
     let own_stake = if !not_delegating.contains(voter) {
         0
     } else {
-        Stake::<T>::get(voter)
+        pallet_subspace::Pallet::<T>::get_delegated_stake(voter)
     };
 
     let calculate_delegated = || -> u64 {

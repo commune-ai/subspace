@@ -15,8 +15,8 @@ use std::cell::RefCell;
 
 use pallet_subspace::{
     subnet::SubnetChangeset, Address, BurnConfig, DefaultKey, DefaultSubnetParams, Dividends,
-    Emission, Incentive, LastUpdate, MaxRegistrationsPerBlock, Name, Stake, SubnetBurn,
-    SubnetBurnConfig, SubnetParams, Tempo, TotalStake, N,
+    Emission, Incentive, LastUpdate, MaxRegistrationsPerBlock, Name, SubnetBurn, SubnetBurnConfig,
+    SubnetParams, Tempo, TotalStake, N,
 };
 use sp_runtime::{
     traits::{AccountIdConversion, BlakeTwo256, IdentityLookup},
@@ -355,7 +355,7 @@ pub fn delegate(account: u32) {
 pub fn get_stakes(netuid: u16) -> Vec<u64> {
     SubspaceMod::get_uid_key_tuples(netuid)
         .into_iter()
-        .map(|(_, key)| Stake::<Test>::get(key))
+        .map(|(_, key)| SubspaceMod::get_delegated_stake(&key))
         .collect()
 }
 
@@ -451,7 +451,7 @@ pub fn get_stake_for_uid(netuid: u16, module_uid: u16) -> u64 {
     let Some(key) = SubspaceMod::get_key_for_uid(netuid, module_uid) else {
         return 0;
     };
-    Stake::<Test>::get(key)
+    SubspaceMod::get_delegated_stake(&key)
 }
 
 #[allow(dead_code)]

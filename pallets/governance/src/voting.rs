@@ -1,7 +1,6 @@
 use crate::{proposal::ProposalStatus, *};
 use frame_support::pallet_prelude::DispatchResult;
 use frame_system::ensure_signed;
-use pallet_subspace::Stake;
 
 impl<T: Config> Pallet<T> {
     /// Votes on proposals,
@@ -30,7 +29,7 @@ impl<T: Config> Pallet<T> {
             Error::<T>::AlreadyVoted
         );
 
-        let voter_stake = Stake::<T>::get(&key);
+        let voter_stake = pallet_subspace::Pallet::<T>::get_delegated_stake(&key);
 
         ensure!(voter_stake > 0, Error::<T>::InsufficientStake);
 

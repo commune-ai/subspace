@@ -50,7 +50,7 @@ impl<T: Config + pallet_subspace::Config> RootPricing<T> {
 
         let mut stake_i64: Vec<I64F64> = vec![I64F64::from_num(0.0); num_root_validators];
         for ((_, key), stake) in keys.iter().zip(&mut stake_i64) {
-            *stake = I64F64::from_num(pallet_subspace::Stake::<T>::get(key));
+            *stake = I64F64::from_num(pallet_subspace::Pallet::<T>::get_delegated_stake(key));
         }
         pallet_subspace::math::inplace_normalize_64(&mut stake_i64);
 

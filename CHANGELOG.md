@@ -13,9 +13,9 @@ diff [here](https://github.com/agicommies/subspace-network/compare/db8a19b1d2155
     
     - MaximumSetWeightCallsPerEpoch lost its `ValueQuery` behavior and returns an `Option<u16>` now instead of 0 if missing.
     - `SubnetEmission`, `PendingEmission` and `UnitEmission` were moved to the new subnet_emission pallet.
-    - `Stake` went from a `StorageDoubleMap` to a `StorageMap` losing its subnet id key.
     -  `StakeFrom` and `StakeTo` lost their subnet id key. Because of this the value type changed from `BTreeMap<T::AcountId,u64>` to just `u64`. Their new type is `StorageDoubleMap<T::AccountId, T::AcountId, u64>` _(other generics ommited for clarity)_.
     - `TotalStake` lost its subnet id key and turned into a simple `StorageValue<u64>` _(other generics ommited for clarity)_.
+    - `Stake` storage value was removed.
 
 - Extrinsics changes:
 

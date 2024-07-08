@@ -4,7 +4,7 @@ use frame_support::{ensure, DebugNoBound};
 use pallet_subspace::{
     math::*, Active, Bonds, BondsMovingAverage, Config, Consensus, Dividends, Emission, Founder,
     Incentive, Kappa, Keys, LastUpdate, MaxAllowedValidators, MaxWeightAge,
-    Pallet as PalletSubspace, PruningScores, Rank, Stake, Trust, Uids, ValidatorPermits,
+    Pallet as PalletSubspace, PruningScores, Rank, StakeFrom, Trust, Uids, ValidatorPermits,
     ValidatorTrust, Vec, Weights, N,
 };
 use sp_std::vec;
@@ -323,10 +323,18 @@ impl<T: Config> YumaEpoch<T> {
     }
 
     fn compute_stake(&self) -> Result<StakeVal, &'static str> {
-        let mut keys_map: BTreeMap<_, _> = Uids::<T>::iter_prefix(self.netuid).collect();
-        let stake_map: BTreeMap<_, _> = Stake::<T>::iter()
-            .filter_map(|(k, v)| Some((keys_map.remove(&k)?, I64F64::from_num(v))))
-            .collect();
+        let keys_map: BTreeMap<_, _> = Uids::<T>::iter_prefix(self.netuid).collect();
+        let mut stake_map: BTreeMap<u16, I64F64> = BTreeMap::new();
+        for (k1, _, value) in StakeFrom::<T>::iter() {
+            if let Some(uid) = keys_map.get(&k1) {
+                let stake = stake_map.entry(*uid).or_default();
+                *stake = stake.saturating_add(I64F64::from_num(value));
+            }
+        }
+
+        // let stake_map: BTreeMap<_, _> = StakeFrom::<T>::iter_key_prefix()
+        //     .filter_map(|(k, v)| Some((keys_map.remove(&k)?, I64F64::from_num(v))))
+        //     .collect();
         let mut stake: Vec<_> = stake_map.into_values().collect();
 
         ensure!(

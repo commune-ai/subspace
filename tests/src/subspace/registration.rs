@@ -174,16 +174,16 @@ fn deregister_within_subnet_when_limit_is_reached() {
         assert_ok!(register_module(0, 0, to_nano(10_000)));
         assert_ok!(register_module(1, 1, to_nano(5_000)));
 
-        assert_eq!(Stake::<Test>::get(0), to_nano(10_000));
-        assert_eq!(Stake::<Test>::get(1), to_nano(5_000));
+        assert_eq!(SubspaceMod::get_delegated_stake(&0), to_nano(10_000));
+        assert_eq!(SubspaceMod::get_delegated_stake(&1), to_nano(5_000));
 
         MaxAllowedUids::<Test>::set(0, 1);
         MaxAllowedUids::<Test>::set(1, 1);
 
         assert_ok!(register_module(0, 2, to_nano(15_000)));
 
-        assert_eq!(Stake::<Test>::get(2), to_nano(15_000));
-        assert_eq!(Stake::<Test>::get(1), to_nano(5_000));
+        assert_eq!(SubspaceMod::get_delegated_stake(&2), to_nano(15_000));
+        assert_eq!(SubspaceMod::get_delegated_stake(&1), to_nano(5_000));
 
         assert_eq!(Emission::<Test>::get(0).len(), 1);
         assert_eq!(Emission::<Test>::get(1).len(), 1);

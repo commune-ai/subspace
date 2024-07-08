@@ -80,7 +80,7 @@ impl<T: Config> Pallet<T> {
     }
 
     fn validate_stake(key: &T::AccountId, uids_len: usize) -> DispatchResult {
-        let stake = Stake::<T>::get(key);
+        let stake = Self::get_delegated_stake(key);
         let min_stake_per_weight = MinWeightStake::<T>::get();
         let min_stake_for_weights = min_stake_per_weight.checked_mul(uids_len as u64).unwrap_or(0);
         ensure!(

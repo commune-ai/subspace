@@ -2,7 +2,7 @@
 
 use frame_support::{dispatch::DispatchResult, ensure, LOG_TARGET};
 use frame_system::{self as system, ensure_none, pallet_prelude::BlockNumberFor};
-use pallet_subspace::{Pallet as PalletSubspace, Stake};
+use pallet_subspace::Pallet as PalletSubspace;
 use sp_core::{keccak_256, sha2_256, Get, H256, U256};
 use sp_runtime::{traits::StaticLookup, DispatchError, MultiAddress};
 
@@ -56,7 +56,9 @@ pub mod pallet {
             let key = T::Lookup::lookup(key.clone())?;
 
             let key_balance = PalletSubspace::<T>::get_balance_u64(&key);
-            let key_stake: u64 = N::<T>::iter().map(|_| Stake::<T>::get(&key)).sum();
+            let key_stake: u64 = N::<T>::iter()
+                .map(|_| pallet_subspace::Pallet::<T>::get_delegated_stake(&key))
+                .sum();
             let total_worth = key_balance.saturating_add(key_stake);
             if total_worth >= 50_000_000_000_000 {
                 // if it's larger than 50k don't allow more funds

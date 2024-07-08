@@ -317,7 +317,7 @@ impl<T: Config> Pallet<T> {
                         );
                         return false;
                     };
-                    Stake::<T>::get(module_key) < min_immunity_stake
+                    Self::get_delegated_stake(&module_key) < min_immunity_stake
                 } else {
                     false
                 }
@@ -436,7 +436,7 @@ impl<T: Config> Pallet<T> {
             let permits = ValidatorPermits::<T>::get(Self::ROOTNET_ID);
             let (lower_stake_validator, lower_stake) = Keys::<T>::iter_prefix(Self::ROOTNET_ID)
                 .filter(|(uid, _)| permits.get(*uid as usize).is_some_and(|b| *b))
-                .map(|(_, key)| (key.clone(), Stake::<T>::get(key)))
+                .map(|(_, key)| (key.clone(), Self::get_delegated_stake(&key)))
                 .min_by_key(|(_, stake)| *stake)
                 .ok_or(Error::<T>::ArithmeticError)?;
 

@@ -267,10 +267,7 @@ pub mod pallet {
 
     // ---------------------------------
     //  Module Staking Variables
-    /// ---------------------------------
-
-    #[pallet::storage]
-    pub type Stake<T: Config> = StorageMap<_, Identity, T::AccountId, u64, ValueQuery>;
+    /// -------------------------a--------
 
     #[pallet::storage]
     pub type StakeFrom<T: Config> =
@@ -985,6 +982,16 @@ pub mod pallet {
 
     // ---- Subspace helper functions.
     impl<T: Config> Pallet<T> {
+        /// used to get account total value staked to modules
+        pub fn get_owned_stake(key: &T::AccountId) -> u64 {
+            StakeTo::<T>::iter_prefix(key).map(|(_, stake)| stake).sum()
+        }
+
+        /// used to get modules total value staked from accounts
+        pub fn get_delegated_stake(key: &T::AccountId) -> u64 {
+            StakeFrom::<T>::iter_prefix(key).map(|(_, stake)| stake).sum()
+        }
+
         // --- Returns the transaction priority for setting weights.
         pub fn get_priority_set_weights(key: &T::AccountId, netuid: u16) -> u64 {
             if let Some(uid) = Uids::<T>::get(netuid, key) {
@@ -997,7 +1004,7 @@ pub mod pallet {
         // --- Returns the transaction priority for setting weights.
         pub fn get_priority_stake(key: &T::AccountId, netuid: u16) -> u64 {
             if Uids::<T>::contains_key(netuid, key) {
-                return Stake::<T>::get(key);
+                return Self::get_delegated_stake(key);
             }
             0
         }
