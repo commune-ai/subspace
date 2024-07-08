@@ -57,6 +57,7 @@ fn adds_stake_and_removes_to_module_and_calculates_total_stake() {
 fn transfers_stake_between_keys() {
     new_test_ext().execute_with(|| {
         zero_min_burn();
+        MinimumAllowedStake::<Test>::set(0);
 
         let (key_1, key_2) = (0, 1);
         let stake_amount = to_nano(10);
@@ -101,6 +102,7 @@ fn fails_to_register_if_stake_is_below_minimum() {
 fn fails_to_withdraw_zero_stake() {
     new_test_ext().execute_with(|| {
         zero_min_burn();
+        MinimumAllowedStake::<Test>::set(0);
 
         let key = 0;
 
@@ -116,6 +118,7 @@ fn fails_to_withdraw_zero_stake() {
 fn adds_and_removes_stakes_for_a_delegated_module() {
     new_test_ext().execute_with(|| {
         zero_min_burn();
+        MinimumAllowedStake::<Test>::set(0);
 
         let key = 2;
         add_balance(key, 6);
@@ -140,6 +143,7 @@ fn adds_and_removes_stakes_for_a_delegated_module() {
 fn adds_and_removes_multiple_stakes_for_different_modules() {
     new_test_ext().execute_with(|| {
         zero_min_burn();
+        MinimumAllowedStake::<Test>::set(0);
 
         let key = 2;
         add_balance(key, 11);

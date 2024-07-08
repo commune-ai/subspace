@@ -109,6 +109,7 @@ fn registration_fails_when_max_registrations_per_interval_reached() {
 fn registers_a_module_and_storage_values_correctly() {
     new_test_ext().execute_with(|| {
         zero_min_burn();
+        MinimumAllowedStake::<Test>::set(0);
 
         let netuid: u16 = 0;
         let key = 1u32;
@@ -129,6 +130,7 @@ fn registers_a_module_and_storage_values_correctly() {
 fn cannot_register_same_key_twice_in_a_subnet() {
     new_test_ext().execute_with(|| {
         zero_min_burn();
+        MinimumAllowedStake::<Test>::set(0);
 
         let netuid = 0;
         let stake = 10;
@@ -261,6 +263,7 @@ mod module_validation {
         new_test_ext().execute_with(|| {
             // make sure that the results won´t get affected by burn
             zero_min_burn();
+            MinimumAllowedStake::<Test>::set(0);
             test_validation_cases(|name, addr| register_custom(0, 0, name, addr));
 
             assert_err!(
@@ -278,6 +281,7 @@ mod module_validation {
             let origin_0 = get_origin(0);
             // make sure that the results won´t get affected by burn
             zero_min_burn();
+            MinimumAllowedStake::<Test>::set(0);
 
             assert_ok!(register_custom(subnet, key_0, b"test", b"0.0.0.0:1"));
 

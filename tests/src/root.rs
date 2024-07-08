@@ -3,8 +3,8 @@ use pallet_subnet_emission::{
 };
 use pallet_subnet_emission_api::{SubnetConsensus, SubnetEmissionApi};
 use pallet_subspace::{
-    Kappa, MaxAllowedUids, MaxRegistrationsPerBlock, MaxRegistrationsPerInterval, Rho,
-    TargetRegistrationsPerInterval, Tempo,
+    Kappa, MaxAllowedUids, MaxRegistrationsPerBlock, MaxRegistrationsPerInterval,
+    MinimumAllowedStake, Rho, TargetRegistrationsPerInterval, Tempo,
 };
 
 pub use crate::mock::*;
@@ -82,6 +82,7 @@ fn test_root_pricing() {
 fn test_emission() {
     new_test_ext_with_block(1).execute_with(|| {
         zero_min_burn();
+        MinimumAllowedStake::<Test>::set(0);
 
         assert_ok!(register_named_subnet(u32::MAX, 0, "Rootnet"));
         Test::set_subnet_consensus_type(0, Some(SubnetConsensus::Root));

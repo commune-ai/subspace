@@ -553,8 +553,10 @@ pub fn check_subnet_storage(netuid: u16) -> bool {
 #[allow(dead_code)]
 pub fn register_n_modules(netuid: u16, n: u16, stake: u64) {
     for i in 0..n {
-        register_module(netuid, i as u32, stake).unwrap_or_else(|_| {
-            panic!("register module failed for netuid: {netuid} key: {i} stake: {stake}")
+        register_module(netuid, i as u32, stake).unwrap_or_else(|err| {
+            panic!(
+                "register module failed for netuid: {netuid} key: {i} stake: {stake}. err: {err:?}"
+            )
         });
     }
 }

@@ -56,6 +56,7 @@ fn test_no_weights() {
 
         // make sure that the results won´t get affected by burn
         zero_min_burn();
+        MinimumAllowedStake::<Test>::set(0);
 
         register_n_modules(0, 10, 1000);
         Tempo::<Test>::insert(netuid, 1);
@@ -521,6 +522,7 @@ fn test_incentives() {
 
         // make sure that the results won´t get affected by burn
         zero_min_burn();
+        MinimumAllowedStake::<Test>::set(0);
 
         // SETUP NETWORK
         register_n_modules(netuid, n, stake_per_module);
@@ -577,6 +579,7 @@ fn test_incentives() {
 fn test_trust() {
     new_test_ext().execute_with(|| {
         zero_min_burn();
+        MinimumAllowedStake::<Test>::set(0);
 
         let netuid: u16 = 1;
         let n: u16 = 10;
@@ -729,6 +732,7 @@ const ONE: u64 = to_nano(1);
 fn test_1_graph() {
     new_test_ext().execute_with(|| {
         zero_min_burn();
+        MinimumAllowedStake::<Test>::set(0);
 
         UnitEmission::<Test>::put(23148148148);
         FloorFounderShare::<Test>::put(0);
@@ -799,6 +803,7 @@ fn test_10_graph() {
     new_test_ext().execute_with(|| {
         UnitEmission::<Test>::put(23148148148);
         zero_min_burn();
+        MinimumAllowedStake::<Test>::set(0);
         FloorFounderShare::<Test>::put(0);
         MaxRegistrationsPerBlock::<Test>::set(1000);
         // Register general subnet

@@ -8,6 +8,7 @@ use sp_runtime::DispatchError;
 fn set_weights_call_must_fail_with_keys_and_values_are_not_the_same_length() {
     new_test_ext().execute_with(|| {
         zero_min_burn();
+        MinimumAllowedStake::<Test>::set(0);
 
         assert_ok!(register_module(0, 0, 1));
 
@@ -25,6 +26,7 @@ fn set_weights_call_must_fail_with_keys_and_values_are_not_the_same_length() {
 fn cannot_set_weights_with_duplicate_keys() {
     new_test_ext().execute_with(|| {
         zero_min_burn();
+        MinimumAllowedStake::<Test>::set(0);
 
         let netuid = 0;
 
@@ -65,6 +67,7 @@ fn set_weights_requires_signature() {
 fn set_weights_only_accepts_existing_keys() {
     new_test_ext().execute_with(|| {
         zero_min_burn();
+        MinimumAllowedStake::<Test>::set(0);
 
         assert_ok!(register_module(0, 0, 1));
 
@@ -84,6 +87,7 @@ fn set_weights_only_accepts_existing_keys() {
 fn set_weights_call_respects_rate_limit() {
     new_test_ext().execute_with(|| {
         zero_min_burn();
+        MinimumAllowedStake::<Test>::set(0);
 
         assert_ok!(register_module(0, 0, 1));
         assert_ok!(register_module(1, 0, 1));
@@ -119,6 +123,7 @@ fn set_weights_call_respects_rate_limit() {
 fn set_weights_call_respects_rootnet_weight_limit() {
     new_test_ext().execute_with(|| {
         zero_min_burn();
+        MinimumAllowedStake::<Test>::set(0);
 
         assert_ok!(register_named_subnet(u32::MAX, 0, "Rootnet"));
         Test::set_subnet_consensus_type(0, Some(SubnetConsensus::Root));
@@ -143,6 +148,7 @@ fn set_weights_call_respects_rootnet_weight_limit() {
 fn set_weights_on_itself_is_invalid() {
     new_test_ext().execute_with(|| {
         zero_min_burn();
+        MinimumAllowedStake::<Test>::set(0);
 
         assert_ok!(register_module(1, 0, 1));
         let result = SubspaceMod::set_weights(RuntimeOrigin::signed(0), 1, vec![0], vec![0]);
@@ -154,6 +160,7 @@ fn set_weights_on_itself_is_invalid() {
 fn set_weights_respects_min_and_max_weights() {
     new_test_ext().execute_with(|| {
         zero_min_burn();
+        MinimumAllowedStake::<Test>::set(0);
 
         let account_id = 0;
 

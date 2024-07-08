@@ -28,6 +28,12 @@ impl<T: Config> Pallet<T> {
         // in transfer multiple, this is not needed, as user pays gass
         ensure!(amounts.len() <= 100, Error::<T>::TooManyKeys);
 
+        let minimum_allowed_stake = MinimumAllowedStake::<T>::get();
+        ensure!(
+            amounts.iter().all(|amount| amount >= &minimum_allowed_stake),
+            Error::<T>::StakeTooSmall
+        );
+
         // --- 3. Check if the caller has enough balance to stake
         let total_amount: u64 = amounts.iter().sum();
         ensure!(
@@ -99,6 +105,12 @@ impl<T: Config> Pallet<T> {
         // -- 2.2 Make sure they are not above 100
         ensure!(amounts.len() <= 100, Error::<T>::TooManyKeys);
 
+        let minimum_allowed_stake = MinimumAllowedStake::<T>::get();
+        ensure!(
+            amounts.iter().all(|amount| amount >= &minimum_allowed_stake),
+            Error::<T>::StakeTooSmall
+        );
+
         // --- 3. Remove stake from each module
         for (m_key, amount) in module_keys.iter().zip(amounts.iter()) {
             ensure!(
@@ -132,6 +144,11 @@ impl<T: Config> Pallet<T> {
         ensure!(
             Self::is_registered(None, &new_module_key),
             Error::<T>::ModuleDoesNotExist
+        );
+
+        ensure!(
+            amount >= MinimumAllowedStake::<T>::get(),
+            Error::<T>::StakeTooSmall
         );
 
         // --- 3. Check if the caller has enough stake in the old module
@@ -168,6 +185,11 @@ impl<T: Config> Pallet<T> {
         ensure!(
             Self::has_enough_balance(&key, amount),
             Error::<T>::NotEnoughBalanceToStake
+        );
+
+        ensure!(
+            amount >= MinimumAllowedStake::<T>::get(),
+            Error::<T>::StakeTooSmall
         );
 
         // --- 4. Make sure we can convert to balance
@@ -233,6 +255,11 @@ impl<T: Config> Pallet<T> {
         ensure!(
             Self::has_enough_stake(&key, &module_key, amount),
             Error::<T>::NotEnoughStakeToWithdraw
+        );
+
+        ensure!(
+            amount >= MinimumAllowedStake::<T>::get(),
+            Error::<T>::StakeTooSmall
         );
 
         // --- 4. Make sure we can convert to balance

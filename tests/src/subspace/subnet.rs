@@ -9,6 +9,7 @@ use subnet::SubnetChangeset;
 fn adds_and_removes_subnets() {
     new_test_ext().execute_with(|| {
         zero_min_burn();
+        MinimumAllowedStake::<Test>::set(0);
 
         let iterations = 5u16;
 
@@ -231,6 +232,7 @@ fn removes_subnet_from_storage() {
 fn update_subnet_verifies_names_uniquiness_integrity() {
     new_test_ext().execute_with(|| {
         zero_min_burn();
+        MinimumAllowedStake::<Test>::set(0);
 
         let update_params = |key, netuid, params: SubnetParams<Test>| {
             SubspaceMod::update_subnet(
@@ -323,6 +325,7 @@ fn subnet_is_replaced_on_reaching_max_allowed_modules() {
 fn updating_max_allowed_uids_shrinks_subnet_correctly() {
     new_test_ext().execute_with(|| {
         zero_min_burn();
+        MinimumAllowedStake::<Test>::set(0);
 
         for module_uid in 1..5u32 {
             assert_ok!(register_module(0, module_uid, module_uid as u64));

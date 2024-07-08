@@ -60,7 +60,11 @@ pub mod pallet {
 
     use super::*;
     pub use crate::weights::WeightInfo;
-    use frame_support::{pallet_prelude::*, traits::Currency, Identity};
+    use frame_support::{
+        pallet_prelude::{ValueQuery, *},
+        traits::Currency,
+        Identity,
+    };
     use frame_system::pallet_prelude::*;
     use global::{BurnConfiguration, SubnetBurnConfiguration};
     use module::ModuleChangeset;
@@ -409,6 +413,9 @@ pub mod pallet {
     #[pallet::storage] // --- MAP ( netuid ) --> min_allowed_weights
     pub type MinStake<T> = StorageMap<_, Identity, u16, u64, ValueQuery>;
 
+    #[pallet::storage]
+    pub type MinimumAllowedStake<T> = StorageValue<_, u64, ValueQuery, ConstU64<500000000>>;
+
     #[pallet::storage] // --- MAP ( netuid ) --> max_registratoins_per_interval
     pub type MaxRegistrationsPerInterval<T: Config> =
         StorageMap<_, Identity, u16, u16, ValueQuery, T::DefaultMaxRegistrationsPerInterval>;
@@ -660,6 +667,8 @@ pub mod pallet {
         // Extrinsic panicked
         ExtrinsicPanicked,
         StepPanicked,
+
+        StakeTooSmall,
     }
 
     // ---------------------------------
