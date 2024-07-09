@@ -14,13 +14,15 @@ use crate::PricedSubnets;
 use substrate_fixed::types::{I32F32, I64F64};
 
 pub struct RootPricing<T: Config + pallet_subspace::Config> {
+    rootnet_id: u16,
     to_be_emitted: u64,
     _pd: PhantomData<T>,
 }
 
 impl<T: Config + pallet_subspace::Config> RootPricing<T> {
-    pub fn new(to_be_emitted: u64) -> Self {
+    pub fn new(rootnet_id: u16, to_be_emitted: u64) -> Self {
         Self {
+            rootnet_id,
             to_be_emitted,
             _pd: PhantomData,
         }
@@ -54,7 +56,7 @@ impl<T: Config + pallet_subspace::Config> RootPricing<T> {
         }
         pallet_subspace::math::inplace_normalize_64(&mut stake_i64);
 
-        let mut weights: Vec<Vec<I64F64>> = RootPricing::<T>::get_root_weights();
+        let mut weights: Vec<Vec<I64F64>> = RootPricing::<T>::get_root_weights(self.rootnet_id);
         pallet_subspace::math::inplace_row_normalize_64(&mut weights);
 
         let ranks: Vec<I64F64> = pallet_subspace::math::matmul_64(&weights, &stake_i64);
@@ -127,7 +129,7 @@ impl<T: Config + pallet_subspace::Config> RootPricing<T> {
         Ok(priced_subnets)
     }
 
-    fn get_root_weights() -> Vec<Vec<I64F64>> {
+    fn get_root_weights(rootnet_id: u16) -> Vec<Vec<I64F64>> {
         let num_root_validators = pallet_subspace::ValidatorPermits::<T>::get(0)
             .into_iter()
             .filter(|b| *b)
@@ -139,7 +141,7 @@ impl<T: Config + pallet_subspace::Config> RootPricing<T> {
         let mut weights: Vec<Vec<I64F64>> =
             vec![vec![I64F64::from_num(0.0); num_subnet_ids]; num_root_validators];
 
-        for (uid_i, weights_i) in pallet_subspace::Weights::<T>::iter_prefix(0) {
+        for (uid_i, weights_i) in pallet_subspace::Weights::<T>::iter_prefix(rootnet_id) {
             for (netuid, weight_ij) in &weights_i {
                 let idx = uid_i as usize;
                 if let Some(weight) = weights.get_mut(idx) {

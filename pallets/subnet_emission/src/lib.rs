@@ -196,7 +196,8 @@ pub mod pallet {
         pub fn get_subnet_pricing(token_emission: u64) -> PricedSubnets {
             // TODO:
             // use a with_storage_layer here
-            let pricing = RootPricing::<T>::new(token_emission);
+            let rootnet_id = Self::get_rootnet_netuid().unwrap_or(0);
+            let pricing = RootPricing::<T>::new(rootnet_id, token_emission);
             let priced_subnets = pricing.run().unwrap_or_default();
 
             for (netuid, emission) in priced_subnets.iter() {

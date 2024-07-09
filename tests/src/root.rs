@@ -62,7 +62,7 @@ fn test_root_pricing() {
         );
 
         let distributed = to_nano(1_000);
-        let priced_subnets = assert_ok!(RootPricing::<Test>::new(to_nano(1_000)).run());
+        let priced_subnets = assert_ok!(RootPricing::<Test>::new(0, to_nano(1_000)).run());
 
         let net1_emission = *priced_subnets.get(&net1_id).unwrap();
         let net2_emission = *priced_subnets.get(&net2_id).unwrap();
