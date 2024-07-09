@@ -466,7 +466,6 @@ pub mod v12 {
         migrate_double_map!(RegistrationBlock);
         migrate_double_map!(Weights);
         migrate_double_map!(DelegationFee);
-        migrate_double_map!(DelegationFee);
         migrate_api!(get_pending_emission, set_pending_emission);
         migrate_api!(get_subnet_emission, set_subnet_emission);
         migrate_api!(get_subnet_consensus_type, set_subnet_consensus_type);
