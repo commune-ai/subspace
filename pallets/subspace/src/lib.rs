@@ -267,7 +267,7 @@ pub mod pallet {
 
     // ---------------------------------
     //  Module Staking Variables
-    /// -------------------------a--------
+    // ---------------------------------
 
     #[pallet::storage]
     pub type StakeFrom<T: Config> =

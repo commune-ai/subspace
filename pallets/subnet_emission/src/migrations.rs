@@ -21,7 +21,9 @@ impl<T: Config + pallet_subspace::Config> OnRuntimeUpgrade for InitialMigration<
 
         let old_unit_emission =
             pallet_subspace::migrations::v12::old_storage::UnitEmission::<T>::get();
-        crate::UnitEmission::<T>::put(old_unit_emission);
+        if old_unit_emission > 0 {
+            crate::UnitEmission::<T>::put(old_unit_emission);
+        }
         log::info!(
             "Migrated UnitEmission: {:?}",
             crate::UnitEmission::<T>::get()

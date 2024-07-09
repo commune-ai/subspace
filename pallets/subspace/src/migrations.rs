@@ -391,7 +391,7 @@ pub mod v12 {
                 Some(removed) => removed,
                 None => {
                     let id = TotalSubnets::<T>::get();
-                    TotalSubnets::<T>::mutate(|value| *value += 1);
+                    TotalSubnets::<T>::mutate(|value| *value = value.saturating_add(1));
                     id
                 }
             });

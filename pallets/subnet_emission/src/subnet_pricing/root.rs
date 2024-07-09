@@ -6,6 +6,7 @@
 use core::marker::PhantomData;
 
 use frame_system::Config;
+use pallet_subspace::Uids;
 use substrate_fixed::transcendental::exp;
 
 use sp_std::{vec, vec::Vec};
@@ -29,7 +30,7 @@ impl<T: Config + pallet_subspace::Config> RootPricing<T> {
     }
 
     pub fn run(self) -> Result<PricedSubnets, sp_runtime::DispatchError> {
-        let num_root_validators = pallet_subspace::ValidatorPermits::<T>::get(0)
+        let num_root_validators = pallet_subspace::ValidatorPermits::<T>::get(self.rootnet_id)
             .into_iter()
             .filter(|b| *b)
             .count();
@@ -46,7 +47,7 @@ impl<T: Config + pallet_subspace::Config> RootPricing<T> {
         let emission = I64F64::from_num(self.to_be_emitted);
 
         let mut keys: Vec<(u16, T::AccountId)> = vec![];
-        for (uid_i, key) in pallet_subspace::Keys::<T>::iter_prefix(0) {
+        for (uid_i, key) in pallet_subspace::Keys::<T>::iter_prefix(self.rootnet_id) {
             keys.push((uid_i, key));
         }
 
@@ -130,7 +131,8 @@ impl<T: Config + pallet_subspace::Config> RootPricing<T> {
     }
 
     fn get_root_weights(rootnet_id: u16) -> Vec<Vec<I64F64>> {
-        let num_root_validators = pallet_subspace::ValidatorPermits::<T>::get(0)
+        let num_modules = Uids::<T>::iter_prefix(rootnet_id).count();
+        let num_root_validators = pallet_subspace::ValidatorPermits::<T>::get(rootnet_id)
             .into_iter()
             .filter(|b| *b)
             .count();
@@ -143,7 +145,8 @@ impl<T: Config + pallet_subspace::Config> RootPricing<T> {
 
         for (uid_i, weights_i) in pallet_subspace::Weights::<T>::iter_prefix(rootnet_id) {
             for (netuid, weight_ij) in &weights_i {
-                let idx = uid_i as usize;
+                let idx = (uid_i as usize)
+                    .saturating_sub(num_modules.saturating_sub(num_root_validators));
                 if let Some(weight) = weights.get_mut(idx) {
                     if let Some((w, _)) =
                         weight.iter_mut().zip(&subnet_ids).find(|(_, subnet)| *subnet == netuid)
