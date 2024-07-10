@@ -1,5 +1,6 @@
 use pallet_subnet_emission::{
-    subnet_pricing::root::RootPricing, PendingEmission, SubnetEmission, UnitEmission,
+    subnet_pricing::root::RootPricing, PendingEmission, SubnetConsensusType, SubnetEmission,
+    UnitEmission,
 };
 use pallet_subnet_emission_api::{SubnetConsensus, SubnetEmissionApi};
 use pallet_subspace::{
@@ -178,5 +179,49 @@ fn test_emission() {
             SubspaceMod::blocks_until_next_epoch(10, SubspaceMod::get_current_block_number());
         step_block(step as u16);
         assert_eq!(PendingEmission::<Test>::get(10), 0);
+    });
+}
+
+/// PWTG (Perverse Wielders of Token Generation) validators can not control rootnet emission
+/// distribution.
+#[test]
+fn test_sigmoid_distribution() {
+    new_test_ext().execute_with(|| {
+        zero_min_burn();
+        let key_zero = 0;
+        let key_one = 1;
+        let stake_zero = to_nano(26_000_000);
+        let stake_one = to_nano(60_000_000);
+
+        // Set kappa to 37k
+        Kappa::<Test>::put(37_000);
+        // Set rho to 12
+        Rho::<Test>::put(12);
+        assert_ok!(register_root_validator(key_one, stake_one));
+        assert_ok!(register_root_validator(key_zero, stake_zero));
+        SubnetConsensusType::<Test>::insert(0, SubnetConsensus::Root);
+
+        // Register subnet 1 and 2
+        let subnet_one_key = 2;
+        assert_ok!(register_named_subnet(subnet_one_key, 1, "s1"));
+        let subnet_two_key = 3;
+        assert_ok!(register_named_subnet(subnet_two_key, 2, "s2"));
+        // Set the weights on the subnets
+        set_weights(0, key_zero, vec![1, 2], vec![1, 0]);
+        set_weights(0, key_one, vec![1, 2], vec![0, 1]);
+
+        step_block(1);
+
+        let subnet_one_emission = SubnetEmission::<Test>::get(1);
+        let subnet_two_emission = SubnetEmission::<Test>::get(2);
+
+        let total_emission = subnet_one_emission + subnet_two_emission;
+        let subnet_one_perc = subnet_one_emission as f32 / total_emission as f32;
+        // s1 gets < 6% emissions
+        assert!(
+            subnet_one_perc < 0.06,
+            "Subnet 1 emission percentage should be less than 6%, but was {:.2}%",
+            subnet_one_perc * 100.0
+        );
     });
 }

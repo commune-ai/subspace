@@ -305,6 +305,12 @@ pub mod v12 {
 
                 log::info!("migrated rootnet.");
 
+                // Set kappa to 37k
+                Kappa::<T>::put(37_000);
+                // Set rho to 12
+                Rho::<T>::put(12);
+                log::info!("migrated rootnet consensus variables.");
+
                 Ok(()) as DispatchResult
             }) {
                 log::error!("could not complete the rootnet migration: {err:?}");
