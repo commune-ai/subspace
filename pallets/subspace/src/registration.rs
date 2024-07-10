@@ -176,8 +176,6 @@ impl<T: Config> Pallet<T> {
         }
     }
 
-    // TODO:
-    // Shoulden't this set the consensus ?
     fn create_subnet(key: &T::AccountId, network_name: &[u8]) -> Result<u16, DispatchError> {
         let bounded_name: BoundedVec<u8, ConstU32<256>> =
             network_name.to_vec().try_into().map_err(|_| Error::<T>::SubnetNameTooLong)?;
@@ -429,7 +427,6 @@ impl<T: Config> Pallet<T> {
 
     fn reserve_rootnet_slot(netuid: u16, stake: u64) -> DispatchResult {
         let rootnet_id = T::get_rootnet_netuid().unwrap_or(Self::ROOTNET_ID);
-        // TODO: Else error ?
         if netuid == rootnet_id
             && Self::get_validator_count(rootnet_id)
                 >= MaxAllowedValidators::<T>::get(rootnet_id).unwrap_or(u16::MAX) as usize

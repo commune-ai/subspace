@@ -175,21 +175,22 @@ impl<T: Config> Pallet<T> {
         // T::AccountId key information.
         let key = ensure_signed(origin)?;
 
-        // --- 2. We check that the module is registered.
-        ensure!(
-            Self::is_registered(None, &module_key.clone()),
-            Error::<T>::ModuleDoesNotExist
-        );
-
-        // --- 3. We check that the caller has enough balance to stake.
+        // --- 2. We check that the caller has enough balance to stake.
         ensure!(
             Self::has_enough_balance(&key, amount),
             Error::<T>::NotEnoughBalanceToStake
         );
 
+        // --- 2.1 check the size is enough
         ensure!(
             amount >= MinimumAllowedStake::<T>::get(),
             Error::<T>::StakeTooSmall
+        );
+
+        // --- 3. We check that the module is registered.
+        ensure!(
+            Self::is_registered(None, &module_key.clone()),
+            Error::<T>::ModuleDoesNotExist
         );
 
         // --- 4. Make sure we can convert to balance
@@ -245,21 +246,22 @@ impl<T: Config> Pallet<T> {
         // information.
         let key = ensure_signed(origin)?;
 
-        // --- 2. We check that the module is registered.
-        ensure!(
-            Self::is_registered(None, &module_key.clone()),
-            Error::<T>::ModuleDoesNotExist
-        );
-
-        // --- 3. We check that the caller has enough stake in the module.
+        // --- 2. We check that the caller has enough stake in the module.
         ensure!(
             Self::has_enough_stake(&key, &module_key, amount),
             Error::<T>::NotEnoughStakeToWithdraw
         );
 
+        // --- 2.1 check the size is enough
         ensure!(
             amount >= MinimumAllowedStake::<T>::get(),
             Error::<T>::StakeTooSmall
+        );
+
+        // --- 3. We check that the module is registered.
+        ensure!(
+            Self::is_registered(None, &module_key.clone()),
+            Error::<T>::ModuleDoesNotExist
         );
 
         // --- 4. Make sure we can convert to balance
