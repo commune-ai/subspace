@@ -268,11 +268,8 @@ impl pallet_timestamp::Config for Runtime {
 }
 
 // Existential Deposit
-#[cfg(not(feature = "testnet-faucet"))]
 pub const EXISTENTIAL_DEPOSIT: u64 = 500;
 
-#[cfg(feature = "testnet-faucet")]
-pub const EXISTENTIAL_DEPOSIT: u64 = 0;
 
 impl pallet_balances::Config for Runtime {
     type MaxLocks = ConstU32<50>;
