@@ -2,7 +2,7 @@
 name = "subspace-rpc"
 version = "1.0.0"
 edition = "2021"
-authors = ["David Tanaka <https://github.com/realhardworkingdeveloper>"]
+authors = ["Commune Community"]
 description = 'RPC methods for subspace pallet'
 
 [lints]

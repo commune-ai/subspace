@@ -2,7 +2,7 @@
 name = "tests"
 version = "1.0.0"
 description = "Unit testing for the Subspace runtime."
-authors = ["Commune Nucleus Team"]
+authors = ["Commune Community"]
 homepage = "https://commune.com"
 edition = "2021"
 license = "Unlicense"

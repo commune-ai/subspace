@@ -1,6 +1,6 @@
 [package]
 name = "subspace-runtime-api"
-authors = ["David Tanaka <https://github.com/realhardworkingdeveloper>"]
+authors = ["Commune Community"]
 version = "1.0.0"
 edition = "2021"
 

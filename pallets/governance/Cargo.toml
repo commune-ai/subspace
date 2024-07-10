@@ -2,7 +2,7 @@
 name = "pallet-governance"
 version = "1.0.0"
 description = "FRAME pallet for runtime logic of Subspace Blockchain."
-authors = ["Commune Nucleus Team"]
+authors = ["Commune Community"]
 homepage = "https://communeai.org/"
 edition = "2021"
 license = "Unlicense"

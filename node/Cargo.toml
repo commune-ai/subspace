@@ -2,7 +2,7 @@
 name = "node-subspace"
 version = "1.7.5"
 description = "The node implementation for Commune's subspace chain."
-authors = ["Substrate DevHub <https://github.com/substrate-developer-hub>"]
+authors = ["Commune Community"]
 homepage = "https://communeai.org/"
 edition = "2021"
 license = "Unlicense"
