@@ -550,7 +550,7 @@ pub mod pallet {
     // Error Variables
     // ---------------------------------
 
-    // Errors inform users about failures 
+    // Errors inform users about failures
     #[pallet::error]
     pub enum Error<T> {
         /// The specified network does not exist.
