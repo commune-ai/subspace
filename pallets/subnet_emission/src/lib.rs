@@ -169,19 +169,38 @@ pub mod pallet {
             let max_supply = T::MaxSupply::get();
             let decimals = T::Decimals::get() as u32;
 
-            let halving_interval = halving_interval
-                .checked_mul(10_u64.pow(decimals))
-                .expect("halving_interval overflow");
+            let halving_interval = match halving_interval.checked_mul(10_u64.pow(decimals)) {
+                Some(val) => val,
+                None => {
+                    log::error!(
+                        "Critical error: halving_interval overflow in get_total_emission_per_block"
+                    );
+                    return 0;
+                }
+            };
 
-            let max_supply =
-                max_supply.checked_mul(10_u64.pow(decimals)).expect("max_supply overflow");
+            let max_supply = match max_supply.checked_mul(10_u64.pow(decimals)) {
+                Some(val) => val,
+                None => {
+                    log::error!(
+                        "Critical error: max_supply overflow in get_total_emission_per_block"
+                    );
+                    return 0;
+                }
+            };
 
             if total_issuance >= max_supply {
                 0
             } else {
-                let halving_count =
-                    total_issuance.checked_div(halving_interval).expect("Division failed");
-                unit_emission >> halving_count
+                match total_issuance.checked_div(halving_interval) {
+                    Some(halving_count) => unit_emission >> halving_count,
+                    None => {
+                        log::error!(
+                            "Critical error: Division failed in get_total_emission_per_block"
+                        );
+                        0
+                    }
+                }
             }
         }
 
