@@ -223,6 +223,31 @@ fn deregister_globally_when_global_limit_is_reached() {
     });
 }
 
+#[test]
+fn deregister_subnet_with_dangling_keys() {
+    new_test_ext().execute_with(|| {
+        zero_min_burn();
+
+        let key_a = 0;
+        let stake_a = 100000000000;
+        let key_b = 1;
+        let stake_b = 100000000000;
+
+        assert_ok!(register_module(0, key_a, stake_a));
+        assert_ok!(register_module(1, key_a, stake_a));
+        assert_ok!(register_module(1, key_b, stake_b));
+
+        assert_eq!(StakeFrom::<Test>::get(key_a, key_a), stake_a * 2);
+        assert_eq!(StakeFrom::<Test>::get(key_b, key_b), stake_b);
+
+        let netuid = SubspaceMod::get_netuid_for_name("test1".as_bytes()).unwrap();
+        SubspaceMod::remove_subnet(netuid);
+
+        assert_eq!(StakeFrom::<Test>::get(key_b, key_b), 0);
+        assert_eq!(SubspaceMod::get_balance(&key_b), stake_b + 1)
+    });
+}
+
 mod module_validation {
     use super::*;
 

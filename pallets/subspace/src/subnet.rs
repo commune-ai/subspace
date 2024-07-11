@@ -259,6 +259,8 @@ impl<T: Config> Pallet<T> {
         // --- 1. Erase all subnet module data.
         // ====================================
 
+        Self::remove_subnet_dangling_keys(netuid);
+
         SubnetNames::<T>::remove(netuid);
         let _ = Name::<T>::clear_prefix(netuid, u32::MAX, None);
         let _ = Address::<T>::clear_prefix(netuid, u32::MAX, None);
