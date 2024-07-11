@@ -4,7 +4,7 @@ use crate::{Pallet as GovernanceMod, *};
 use frame_benchmarking::{account, benchmarks};
 use frame_system::RawOrigin;
 pub use pallet::*;
-use pallet_subspace::{BurnConfig, Pallet as SubspaceMod};
+use pallet_subspace::{BurnConfig, Pallet as SubspaceMod, SubnetBurn};
 use sp_std::vec::Vec;
 
 fn submit_dao_application<T: Config>() -> Result<(), &'static str> {
@@ -35,7 +35,7 @@ fn register_mock<T: Config>(
     BurnConfig::<T>::mutate(|cfg| cfg.min_burn = 0);
     SubspaceMod::<T>::add_balance_to_account(
         &key,
-        SubspaceMod::<T>::u64_to_balance(stake + 2000).unwrap(),
+        SubspaceMod::<T>::u64_to_balance(stake + SubnetBurn::<T>::get() + 2000).unwrap(),
     );
     let metadata = Some("metadata".as_bytes().to_vec());
     SubspaceMod::<T>::register(
@@ -86,7 +86,9 @@ benchmarks! {
             params.curator,                            // curator: subnet 0 dao multisig
             params.governance_config.proposal_cost,                      // proposal_cost: amount of $COMAI to create a proposal, returned if proposal gets accepted
             params.governance_config.proposal_expiration,                // proposal_expiration: the block number, proposal expires at
-            params.general_subnet_application_cost     // general_subnet_application_cost
+            params.general_subnet_application_cost,     // general_subnet_application_cost
+            params.kappa,
+            params.rho
         )
 
 
@@ -95,17 +97,17 @@ benchmarks! {
         let caller: T::AccountId = account("Alice", 0, 1);
 
         // register the subnet
-        register_mock::<T>(caller.clone(), caller.clone(), 100000000000000u64,
+        register_mock::<T>(caller.clone(), caller.clone(), 100000000000000u64 + SubnetBurn::<T>::get(),
     "test".as_bytes().to_vec())?;
+        let netuid = SubspaceMod::<T>::get_netuid_for_name("testnet".as_bytes()).unwrap();
 
         // Switch the vote mode to vote
-        let params = SubspaceMod::<T>::subnet_params(0);
+        let params = SubspaceMod::<T>::subnet_params(netuid);
         let data = "ipfshash".as_bytes().to_vec();
-
 
         SubspaceMod::<T>::update_subnet(
             RawOrigin::Signed(caller.clone()).into(),
-            0,
+            netuid,
             params.founder.clone(),
             params.founder_share,
             params.immunity_period,
@@ -124,7 +126,8 @@ benchmarks! {
             params.target_registrations_interval,
             params.target_registrations_per_interval,
             params.max_registrations_per_interval,
-            params.adjustment_alpha
+            params.adjustment_alpha,
+            params.min_immunity_stake
         )?;
 
         // add balance to submit the proposal
@@ -136,7 +139,7 @@ benchmarks! {
 
     }: add_subnet_params_proposal(
         RawOrigin::Signed(caller),
-        0,
+        netuid,
         data,
         params.founder.clone(),
         params.name.clone(),
@@ -156,7 +159,8 @@ benchmarks! {
         params.target_registrations_interval,
         params.target_registrations_per_interval,
         params.max_registrations_per_interval,
-        params.adjustment_alpha
+        params.adjustment_alpha,
+        params.min_immunity_stake
     )
 
     // 2
