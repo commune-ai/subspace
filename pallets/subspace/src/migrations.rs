@@ -320,7 +320,6 @@ pub mod v12 {
                 log::info!("===============================");
                 log::info!("MIGRATED SUBNETS");
                 log::info!("===============================");
-                // Now migrate freshly created subnet parameter MIN_IMMUNITY_STAKE
                 Ok(()) as DispatchResult
             }) {
                 log::error!("could not complete the rootnet migration: {err:?}");
