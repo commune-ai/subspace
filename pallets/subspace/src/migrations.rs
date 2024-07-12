@@ -303,14 +303,24 @@ pub mod v12 {
                 let current_unit_emission = T::get_unit_emission();
                 T::set_unit_emission(current_unit_emission / 4);
 
-                log::info!("migrated rootnet.");
-
+                // GLOBAL PARAMS / ROOTNET CONFIG
                 // Set kappa to 37k
                 Kappa::<T>::put(37_000);
                 // Set rho to 12
                 Rho::<T>::put(12);
                 log::info!("migrated rootnet consensus variables.");
 
+                // Migrate freshly created subnet parameter MIN_IMMUNITY_STAKE, to all existing
+                // subnets
+                let base_min_immunity_stake = 50_000_000_000_000; // 50k
+                N::<T>::iter_keys().for_each(|netuid| {
+                    MinImmunityStake::<T>::insert(netuid, base_min_immunity_stake);
+                });
+
+                log::info!("===============================");
+                log::info!("MIGRATED SUBNETS");
+                log::info!("===============================");
+                // Now migrate freshly created subnet parameter MIN_IMMUNITY_STAKE
                 Ok(()) as DispatchResult
             }) {
                 log::error!("could not complete the rootnet migration: {err:?}");

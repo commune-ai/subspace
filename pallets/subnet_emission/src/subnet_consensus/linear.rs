@@ -118,7 +118,6 @@ impl<T: Config> LinearEpoch<T> {
         );
 
         // INCENTIVE
-        // see if this shit needs to be mut
         let mut incentive: Vec<I32F32> =
             Self::compute_incentive(&weights, &stake, &uid_key_tuples, self.module_count);
 

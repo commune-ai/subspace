@@ -250,15 +250,13 @@ impl<T: Config> Pallet<T> {
             return;
         }
 
-        // TODO:
-        // If the key is only present on the subnet, it is getting deregistered from.
-        // Then we want to unstake, otherwise we don't do that.
-        // Decide how to proceed with this
-        // Self::remove_netuid_stake_storage(netuid);
-
         // --- 1. Erase all subnet module data.
         // ====================================
 
+        // --- Potentially Remove stake
+        // Automatically removed the stake of modules that are only registered on this subnet.
+        // This is because it's not desirable for module to be **globally** unregistered with
+        // "active" stake storage.
         Self::remove_subnet_dangling_keys(netuid);
 
         SubnetNames::<T>::remove(netuid);
@@ -357,6 +355,7 @@ impl<T: Config> Pallet<T> {
     // ---------------------------------
 
     // TODO: should modules be removed by pruning score?
+    // Maybe this whole thing should be removed and the max_allowed_uids should be immutable.
     fn set_max_allowed_uids(netuid: u16, mut max_allowed_uids: u16) -> DispatchResult {
         let n: u16 = N::<T>::get(netuid);
         if max_allowed_uids < n {
