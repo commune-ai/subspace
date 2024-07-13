@@ -11,7 +11,8 @@ use log::info;
 use pallet_governance::DaoTreasuryAddress;
 use pallet_subnet_emission::{
     subnet_consensus::yuma::{AccountKey, EmissionMap, ModuleKey, YumaEpoch},
-    PendingEmission, SubnetConsensusType, UnitEmission,
+    EmissionLoweringBlock, OriginalUnitEmission, PendingEmission, SubnetConsensusType,
+    UnitEmission,
 };
 use pallet_subnet_emission_api::SubnetConsensus;
 use pallet_subspace::*;
@@ -1205,5 +1206,37 @@ fn test_halving() {
         // mission beyond the maximum supply
         set_total_issuance(1_250_000_000 * multiplier);
         assert_eq!(SubnetEmissionMod::get_total_emission_per_block(), 0);
+    });
+}
+
+#[test]
+fn test_automatic_unit_emission() {
+    new_test_ext().execute_with(|| {
+        OriginalUnitEmission::<Test>::set(UnitEmission::<Test>::get());
+        UnitEmission::<Test>::set(UnitEmission::<Test>::get() / 3);
+        EmissionLoweringBlock::<Test>::set(
+            pallet_subspace::Pallet::<Test>::get_current_block_number(),
+        );
+
+        step_block(10800);
+
+        assert_eq!(
+            UnitEmission::<Test>::get(),
+            OriginalUnitEmission::<Test>::get() / 2
+        );
+
+        step_block(10800);
+
+        assert_eq!(
+            UnitEmission::<Test>::get(),
+            OriginalUnitEmission::<Test>::get() / 1
+        );
+
+        step_block(10800);
+
+        assert_eq!(
+            UnitEmission::<Test>::get(),
+            OriginalUnitEmission::<Test>::get() / 1
+        );
     });
 }

@@ -6,7 +6,7 @@ use frame_support::{
     traits::{OnRuntimeUpgrade, StorageVersion},
 };
 use pallet_subnet_emission_api::SubnetConsensus;
-use pallet_subspace::Vec;
+use pallet_subspace::{Pallet as PalletSubspace, Vec};
 
 #[derive(Default)]
 pub struct InitialMigration<T>(PhantomData<T>);
@@ -58,6 +58,12 @@ impl<T: Config + pallet_subspace::Config> OnRuntimeUpgrade for InitialMigration<
                 log::info!("Setting Yuma consensus for subnet {}", subnet_id);
                 SubnetConsensusType::<T>::set(subnet_id, Some(SubnetConsensus::Yuma));
             }
+        }
+
+        if OriginalUnitEmission::<T>::get() == 0 {
+            OriginalUnitEmission::<T>::set(UnitEmission::<T>::get());
+            UnitEmission::<T>::set(UnitEmission::<T>::get() / 3);
+            EmissionLoweringBlock::<T>::set(PalletSubspace::<T>::get_current_block_number());
         }
 
         Weight::zero()
