@@ -229,3 +229,48 @@ fn set_weights_fails_for_stakes_below_minimum() {
         ));
     });
 }
+
+
+/// Test Setting Rootnet Weights On non-existant subnets
+/// 1. Register the rootnet and set the consensus to Root assert_ok!(register_named_subnet(u32::MAX,
+///    0, "Rootnet")); Test::set_subnet_consensus_type(0, Some(SubnetConsensus::Root));
+/// 2. Register a rootnet validator let _ = assert_ok!(register_root_validator(val1_id,
+///    val1_stake));
+/// 2. Register the other subnets
+/// 3. Set weights on those subnets that exist and exect succes
+/// 4. Register another rootnet validator
+/// 5. This time set weights on the non-existant subnet and expect an error, use assert_err
+#[test]
+fn set_weights_on_non_existent_subnets() {
+    new_test_ext().execute_with(|| {
+        // 1. Register the rootnet and set the consensus to Root
+        assert_ok!(register_named_subnet(u32::MAX, 0, "Rootnet"));
+        Test::set_subnet_consensus_type(0, Some(SubnetConsensus::Root));
+        let universal_stake = to_nano(200);
+
+        // 2. Register a rootnet validator
+        let val1_id = 1;
+        assert_ok!(register_root_validator(val1_id, universal_stake));
+
+        // 3. Register the other subnets
+        assert_ok!(register_named_subnet(1, 1, "Subnet1"));
+        assert_ok!(register_named_subnet(2, 2, "Subnet2"));
+
+        // Set weights on existing subnets
+        assert_ok!(SubspaceMod::set_weights(
+            get_origin(val1_id),
+            0,
+            vec![1, 2],
+            vec![100, 100]
+        ));
+        // 4. Register another rootnet validator
+        let val2_id = 2;
+        assert_ok!(register_root_validator(val2_id, universal_stake));
+
+        // 5. Set weights on a non-existent subnet and expect an error
+        assert_err!(
+            SubspaceMod::set_weights(get_origin(val2_id), 0, vec![1, 2, 3], vec![100, 100, 100]),
+            Error::<Test>::InvalidUid
+        );
+    });
+}
