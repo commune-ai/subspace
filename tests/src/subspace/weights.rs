@@ -230,7 +230,6 @@ fn set_weights_fails_for_stakes_below_minimum() {
     });
 }
 
-
 /// Test Setting Rootnet Weights On non-existant subnets
 /// 1. Register the rootnet and set the consensus to Root assert_ok!(register_named_subnet(u32::MAX,
 ///    0, "Rootnet")); Test::set_subnet_consensus_type(0, Some(SubnetConsensus::Root));
