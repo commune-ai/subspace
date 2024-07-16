@@ -339,6 +339,7 @@ impl<T: Config> Pallet<T> {
             .map(|(uid, _, _)| *uid)
     }
 
+    // TODO: write a test on the subnet deregistration logic
     pub fn add_subnet_from_registration(
         changeset: SubnetChangeset<T>,
     ) -> Result<u16, sp_runtime::DispatchError> {

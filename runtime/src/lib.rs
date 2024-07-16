@@ -111,7 +111,9 @@ pub mod opaque {
 }
 
 pub type Migrations = (
+    // ! Make sure that this migration in Subspace pallet runs first everytime
     pallet_subspace::migrations::v12::MigrateToV12<Runtime>,
+    // Initialize the new pallet
     pallet_subnet_emission::migrations::InitialMigration<Runtime>,
     pallet_governance::migrations::MigrationV1<Runtime>,
 );

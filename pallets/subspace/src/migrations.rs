@@ -21,6 +21,7 @@ pub fn ss58_to_account_id<T: Config>(
     Ok(T::AccountId::decode(&mut &account_id_vec[..]).unwrap())
 }
 
+/// ! First migration running in global stake update
 pub mod v12 {
     use super::*;
     use dispatch::DispatchResult;
@@ -87,10 +88,12 @@ pub mod v12 {
             }
             log::info!("Migrating storage to v12");
 
-            // Clearing Stake storage value
+            // --- 1 collect and cleanup the old storages
+
+            // --- 1.1 Nuke the old `Stake` storage, we will no longer support this StorageValue
             let _ = old_storage::Stake::<T>::clear(u32::MAX, None);
 
-            // Download existing data into separate types
+            // --- 1.2 Download existing data into separate types
             let old_stake_from = old_storage::StakeFrom::<T>::iter().fold(
                 BTreeMap::<AccountIdOf<T>, BTreeMap<AccountIdOf<T>, u64>>::new(),
                 |mut acc, (_, key, stake)| {
@@ -118,21 +121,20 @@ pub mod v12 {
                 },
             );
 
-            // Before migration counts
-            // let stake_count_before = old_stake.len();
+            // --- 1. 3 Before migration counts
             let stake_from_count_before: usize =
                 old_stake_from.values().map(|stakes| stakes.len()).sum();
             let stake_to_count_before: usize =
                 old_stake_to.values().map(|stakes| stakes.len()).sum();
 
-            // TODO: // Clear the problematic stake storages
-            // // We tried to do this with the old storage instead, after migration, but experienced
-            // // decoding issues.
-            // let _ = Stake::<T>::clear(u32::MAX, None);
+            // --- 1.4 Nuke the old `StakeFrom` and `StakeTo` storages, they will be initialized
+            // again from the downloaded data
             let _ = StakeTo::<T>::clear(u32::MAX, None);
             let _ = StakeFrom::<T>::clear(u32::MAX, None);
 
-            // Migrate StakeFrom
+            // --- 2. Initialize the Stake storages again
+
+            // --- 2. 1  Migrate StakeFrom
             for (from, stakes) in old_stake_from {
                 for (to, amount) in stakes {
                     StakeFrom::<T>::insert(&from, &to, amount);
@@ -140,7 +142,7 @@ pub mod v12 {
             }
             log::info!("Migrated StakeFrom");
 
-            // Migrate StakeTo
+            // --- 2.2  Migrate StakeTo
             for (to, stakes) in old_stake_to {
                 for (from, amount) in stakes {
                     StakeTo::<T>::insert(&to, &from, amount);
@@ -148,15 +150,20 @@ pub mod v12 {
             }
             log::info!("Migrated StakeTo");
 
+            // --- 3. Migrate TotalStake
+
+            // --- 3.1 Download and sum
             let total_stake: u64 =
                 old_storage::TotalStake::<T>::iter().map(|(_, stake)| stake).sum();
 
+            // --- 3.2 Nuke the old `TotalStake` storage
             let _ = old_storage::TotalStake::<T>::clear(u32::MAX, None);
 
+            // --- 3.3 Reinitialize the TotalStake storage again
             TotalStake::<T>::set(total_stake);
             log::info!("Migrated TotalStake");
 
-            // After migration counts
+            // --- 4. Log if everything went as expected
             let stake_from_count_after = StakeFrom::<T>::iter().count();
             let stake_to_count_after = StakeTo::<T>::iter().count();
             // Log results
@@ -181,7 +188,11 @@ pub mod v12 {
             log::info!("-------------------");
             log::info!("STAKE MIGRATION DONE");
             log::info!("-------------------");
-            // Subnet netuid migration
+            // --- 5. Done for stake storage
+
+            // ========================
+            // Subnets migration TL;DR
+            // ========================
             /*
             ====================
             Currently
@@ -244,12 +255,31 @@ pub mod v12 {
             the consensus type to Linear.
 
             */
+
+            // --- 1 Deregister "dead" subnets
+            // Deregister subnets that don't even have the SubnetEmission storage (inactive)
+            // They will need to go through the burned register, instead of having "free" innactive
+            // spot.
+            for (netuid, emission) in old_storage::SubnetEmission::<T>::iter() {
+                if emission == 0 {
+                    log::info!("removing subnnets with no emission, netuid {:?}", netuid);
+                    Pallet::<T>::remove_subnet(netuid)
+                }
+            }
+
             if let Err(err) = with_storage_layer(|| {
+                // --- 2 Migrate the subnets
+
+                // --- 2.1 Transfer subnet 1,2 to free spots
                 transfer_subnet::<T>(1, None)?;
                 transfer_subnet::<T>(2, None)?;
+                // --- 2.2 Transfer subnet 0 to subnet 2
                 transfer_subnet::<T>(0, Some(2))?;
 
+                // --- 2.3 Overwrite the subnets for Rootnet, Treasury, Linear
+
                 // Rootnet configuration
+                // This will be netuid 0
                 const ROOTNET_ID: u16 = 0;
                 start_subnet::<T>(
                     ROOTNET_ID,
@@ -275,6 +305,7 @@ pub mod v12 {
                 )?;
 
                 // Treasury subnet configuration
+                // This will be netuid 1
                 const TREASURYNET_ID: u16 = 1;
                 start_subnet::<T>(
                     TREASURYNET_ID,
@@ -297,23 +328,17 @@ pub mod v12 {
                 )?;
 
                 // Linear subnet configuration
+                // This will be netuid 2
                 const LINEARNET_ID: u16 = 2;
                 T::set_subnet_consensus_type(LINEARNET_ID, Some(SubnetConsensus::Linear));
 
-                let current_unit_emission = T::get_unit_emission();
-                T::set_unit_emission(current_unit_emission / 4);
-
-                // GLOBAL PARAMS / ROOTNET CONFIG
-                // Set kappa to 37k
-                Kappa::<T>::put(37_000);
-                // Set rho to 12
-                Rho::<T>::put(12);
-                log::info!("migrated rootnet consensus variables.");
+                // --- 3. Initialize the MinImmunityStake storage for all subnets.
 
                 // Migrate freshly created subnet parameter MIN_IMMUNITY_STAKE, to all existing
                 // subnets
                 let base_min_immunity_stake = 50_000_000_000_000; // 50k
                 N::<T>::iter_keys().for_each(|netuid| {
+                    // New parameter
                     MinImmunityStake::<T>::insert(netuid, base_min_immunity_stake);
                 });
 
@@ -325,6 +350,18 @@ pub mod v12 {
                 log::error!("could not complete the rootnet migration: {err:?}");
             };
 
+            // --- 4. Finally update global parameters / rootnet config
+
+            // Set kappa to 37k
+            Kappa::<T>::put(37_000);
+            // Set rho to 12
+            Rho::<T>::put(12);
+            log::info!("migrated global rootnet consensus variables.");
+
+            // --- 6. Done
+            log::info!("==Storage v12 migration done for Subspace Pallet==");
+
+            // --- 6.1 Update the storage version
             StorageVersion::new(12).put::<Pallet<T>>();
             T::DbWeight::get().reads_writes(1, 1)
         }
@@ -395,8 +432,8 @@ pub mod v12 {
         // Weights
         // DelegationFee
         // DelegationFee
-        T::set_pending_emission(subnet_id, 0);
-        T::set_subnet_emission(subnet_id, 0);
+        old_storage::PendingEmission::<T>::set(subnet_id, 0);
+        old_storage::SubnetEmission::<T>::set(subnet_id, 0);
         T::set_subnet_consensus_type(subnet_id, Some(consensus_type));
     }
 
@@ -434,6 +471,15 @@ pub mod v12 {
                 let target_value = T::$getter(target);
                 T::$setter(curr, target_value);
                 T::$setter(target, curr_value);
+            };
+        }
+
+        macro_rules! migrate_storage_alias {
+            ($storage:ty) => {
+                let curr_value = <$storage>::get(curr);
+                let target_value = <$storage>::get(target);
+                <$storage>::insert(curr, target_value);
+                <$storage>::insert(target, curr_value);
             };
         }
 
@@ -481,8 +527,10 @@ pub mod v12 {
         migrate_double_map!(RegistrationBlock);
         migrate_double_map!(Weights);
         migrate_double_map!(DelegationFee);
-        migrate_api!(get_pending_emission, set_pending_emission);
-        migrate_api!(get_subnet_emission, set_subnet_emission);
+        // Pending emission
+        migrate_storage_alias!(old_storage::PendingEmission<T>);
+        // Subnet emission
+        migrate_storage_alias!(old_storage::SubnetEmission<T>);
         migrate_api!(get_subnet_consensus_type, set_subnet_consensus_type);
 
         let curr_governance_config = T::get_subnet_governance_configuration(curr);
