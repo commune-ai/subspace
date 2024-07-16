@@ -22,11 +22,10 @@ impl<T: Config + pallet_subspace::Config> OnRuntimeUpgrade for InitialMigration<
         // Storage moving Subacpace -> SubnetEmission
         // ---------------------------------------------------------------------
 
-
         // --- 1. Unit emission moving
         let old_unit_emission =
             pallet_subspace::migrations::v12::old_storage::UnitEmission::<T>::get();
-       
+
         if old_unit_emission > 0 {
             crate::UnitEmission::<T>::put(old_unit_emission);
         }
@@ -77,7 +76,7 @@ impl<T: Config + pallet_subspace::Config> OnRuntimeUpgrade for InitialMigration<
 
         let block = PalletSubspace::<T>::get_current_block_number();
         let unit_emission: u64 = 23148148148;
-        
+
         // --- 5.1 Initalization of new temporary storage
         OriginalUnitEmission::<T>::set(unit_emission);
         log::info!(

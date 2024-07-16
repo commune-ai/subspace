@@ -12,7 +12,7 @@ use pallet_governance::DaoTreasuryAddress;
 use pallet_subnet_emission::{
     subnet_consensus::yuma::{AccountKey, EmissionMap, ModuleKey, YumaEpoch},
     EmissionLoweringBlock, OriginalUnitEmission, PendingEmission, SubnetConsensusType,
-    UnitEmission,
+    SubnetEmission, UnitEmission,
 };
 use pallet_subnet_emission_api::SubnetConsensus;
 use pallet_subspace::*;
@@ -1238,5 +1238,58 @@ fn test_automatic_unit_emission() {
             UnitEmission::<Test>::get(),
             OriginalUnitEmission::<Test>::get() / 1
         );
+    });
+}
+
+/// This test is aimed at subnet deregistration based on emission
+/// 1. Set MaxAllowedSubnets to 3
+/// 2. Register 3 subnets, using the function `register_named_subnet`
+/// 3. Set SubnetEmission to 100, 300, 200
+/// 4. Register new subnet and expect the first subnet with lowest emission to get deregistered
+/// 5. Set subne<t emission to 500 for the new subnet
+/// 6. Register new subnet and expect the 3th subnet (the one with 200 emission) to be the one
+///    deregistered
+#[test]
+fn test_subnet_deregistration_based_on_emission() {
+    new_test_ext().execute_with(|| {
+        zero_min_burn();
+        // Set MaxAllowedSubnets to 3
+        MaxAllowedSubnets::<Test>::set(3);
+
+        // Register 3 subnets
+        assert_ok!(register_named_subnet(0, 0, "subnet1"));
+        assert_ok!(register_named_subnet(1, 1, "subnet2"));
+        assert_ok!(register_named_subnet(2, 2, "subnet3"));
+
+        // Set SubnetEmission for the three subnets
+        SubnetEmission::<Test>::insert(0, 200);
+        SubnetEmission::<Test>::insert(1, 100);
+        SubnetEmission::<Test>::insert(2, 350);
+        SubnetConsensusType::<Test>::insert(0, SubnetConsensus::Yuma);
+        SubnetConsensusType::<Test>::insert(1, SubnetConsensus::Yuma);
+        SubnetConsensusType::<Test>::insert(2, SubnetConsensus::Yuma);
+        N::<Test>::insert(0, 1);
+        N::<Test>::insert(1, 1);
+        N::<Test>::insert(2, 1);
+        // Register a new subnet, expect the first subnet (lowest emission) to be deregistered
+
+        let universal_vec = "subnet4".to_string().as_bytes().to_vec();
+        add_balance(3, to_nano(3000));
+        assert_ok!(SubspaceMod::do_register(
+            get_origin(3),
+            universal_vec.clone(),
+            universal_vec.clone(),
+            universal_vec.clone(),
+            to_nano(2000),
+            2,
+            Some(universal_vec),
+        ));
+
+        assert_eq!(SubnetNames::<Test>::get(0), "subnet1".as_bytes().to_vec());
+        assert_eq!(SubnetNames::<Test>::get(1), "subnet4".as_bytes().to_vec());
+        assert_eq!(SubnetNames::<Test>::get(2), "subnet3".as_bytes().to_vec());
+
+        // Set subnet emission for the new subnet
+        SubnetEmission::<Test>::insert(4, 500);
     });
 }
