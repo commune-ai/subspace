@@ -566,6 +566,7 @@ impl<T: Config> Pallet<T> {
     }
 
     pub fn clear_rootnet_daily_weight_calls(block: u64) {
+        // 10_800 == blocks in a day
         if block.checked_rem(10_800).is_some_and(|r| r == 0) {
             let _ = RootNetWeightCalls::<T>::clear(u32::MAX, None);
         }

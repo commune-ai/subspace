@@ -1132,9 +1132,10 @@ fn test_non_minable_subnet_emisson() {
         let rootnet_key_zero = 0;
         let rootnet_key_one = 1;
         const ROOTNET_NETUID: u16 = 0;
+        assert_ok!(register_named_subnet(u32::MAX, ROOTNET_NETUID, "Rootnet"));
+        SubnetConsensusType::<Test>::insert(0, SubnetConsensus::Root);
         assert_ok!(register_root_validator(rootnet_key_zero, to_nano(1000)));
         assert_ok!(register_root_validator(rootnet_key_one, to_nano(1000)));
-        SubnetConsensusType::<Test>::insert(0, SubnetConsensus::Root);
         // Now we register treasury subnet
         assert_ok!(register_subnet(3, 1));
         SubnetConsensusType::<Test>::insert(1, SubnetConsensus::Treasury);

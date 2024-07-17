@@ -2,13 +2,14 @@ use std::collections::BTreeSet;
 
 use crate::mock::*;
 use frame_support::{assert_err, assert_noop, dispatch::DispatchResult};
+use pallet_subnet_emission::SubnetConsensusType;
+use pallet_subnet_emission_api::SubnetConsensus;
 use pallet_subspace::*;
 use sp_runtime::Percent;
 
 #[test]
 fn module_is_registered_correctly() {
     new_test_ext().execute_with(|| {
-        zero_min_burn();
         MinimumAllowedStake::<Test>::set(0);
 
         let netuid = 0;
@@ -18,12 +19,15 @@ fn module_is_registered_correctly() {
         let network = format!("test{netuid}").as_bytes().to_vec();
         let name = b"module".to_vec();
         let address = "0.0.0.0:30333".as_bytes().to_vec();
-
+        let network_string = String::from_utf8(network.clone()).expect("Invalid UTF-8");
+        assert_ok!(register_named_subnet(0, 0, network_string));
+        // Direct the rootnet netuid to something else than 0
+        SubnetConsensusType::<Test>::insert(1, SubnetConsensus::Root);
         assert_noop!(
             SubspaceMod::do_register(get_origin(0), network, name, address, 0, None),
             Error::<Test>::NotEnoughBalanceToRegister
         );
-
+        Burn::<Test>::insert(netuid, 0);
         MaxRegistrationsPerBlock::<Test>::set(max_registrations_per_block);
         step_block(1);
         assert_eq!(RegistrationsPerBlock::<Test>::get(), 0);

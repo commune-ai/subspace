@@ -606,7 +606,6 @@ pub fn register_root_validator(key: AccountId, stake: u64) -> Result<u16, Dispat
     let name = format!("module{key}").as_bytes().to_vec();
     let address = "0.0.0.0:30333".as_bytes().to_vec();
 
-    SubspaceMod::add_balance_to_account(&key, SubnetBurn::<Test>::get() + 1);
     SubspaceMod::register(origin, network.clone(), name, address, key, None)?;
     SubspaceMod::increase_stake(&key, &key, stake);
 

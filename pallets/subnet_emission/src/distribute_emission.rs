@@ -291,12 +291,12 @@ impl<T: Config> Pallet<T> {
 
     // Gets rootnet id by iterating through consensus, until we find root consensus
     pub fn get_rootnet_netuid() -> Option<u16> {
-        // This should always result in returning Some(0), but we are just making sure
-        N::<T>::iter_keys().find(|netuid| {
-            matches!(
-                SubnetConsensusType::<T>::get(*netuid),
-                Some(SubnetConsensus::Root)
-            )
+        SubnetConsensusType::<T>::iter().find_map(|(netuid, consensus)| {
+            if consensus == SubnetConsensus::Root {
+                Some(netuid)
+            } else {
+                None
+            }
         })
     }
 }

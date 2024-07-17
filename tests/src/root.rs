@@ -6,7 +6,8 @@ use pallet_subnet_emission::{
 use pallet_subnet_emission_api::{SubnetConsensus, SubnetEmissionApi};
 use pallet_subspace::{
     Error, Kappa, Keys, MaxAllowedUids, MaxAllowedValidators, MaxRegistrationsPerBlock,
-    MaxRegistrationsPerInterval, MinimumAllowedStake, Rho, TargetRegistrationsPerInterval, Tempo,
+    MaxRegistrationsPerInterval, MinimumAllowedStake, Rho, StakeFrom,
+    TargetRegistrationsPerInterval, Tempo,
 };
 
 pub use crate::mock::*;
@@ -267,7 +268,10 @@ fn test_rootnet_registration_requirements() {
 
         // Register with more stake than the least staked key
         let more_stake = initial_stake + to_nano(last_stake as u64);
-        assert_ok!(register_root_validator(6, more_stake));
+
+        // Manually increase the stake from on the non-registered key
+        StakeFrom::<Test>::insert(6, 6, more_stake);
+        assert_ok!(register_root_validator(6, 0));
 
         // Make sure the first key to register has no stake, as it should be deregistered
         assert_eq!(SubspaceMod::get_total_stake_from(&1), 0);

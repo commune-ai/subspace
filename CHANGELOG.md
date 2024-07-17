@@ -16,11 +16,15 @@ diff [here](https://github.com/agicommies/subspace-network/compare/db8a19b1d2155
   - `StakeFrom` and `StakeTo` lost their subnet id key. Because of this the value type changed from `BTreeMap<T::AcountId,u64>` to just `u64`. Their new type is `StorageDoubleMap<T::AccountId, T::AcountId, u64>` _(other generics ommited for clarity)_.
   - `TotalStake` lost its subnet id key and turned into a simple `StorageValue<u64>` _(other generics ommited for clarity)_.
   - `Stake` storage value was removed.
+  - `MinStake` storage map / subnet parameter was removed
+  - `SubnetImmunityPeriod`storage value was introduced
+  - `SubnetRegistrationBlock` storage map was introduced
   - `MinimumAllowedStake` was introduced. Users cannot stake or unstake a value smaller than this minimum.
   - `MinImmunityStake` was introduced. This value is a subnet parameter that can be changed by the subnet owner. A validator (key) with delegated stake higher than or equal to this value is immune to deregistrations. This aims to reduce sudden validator deregistrations, with adaptability to subnet owner's consensus.
 - Extrinsics changes:
 
   - `add_stake`, `remove_stake`, `add_stake_multiple`, `remove_stake_multiple` and `transfer_stake` lost their subnet id parameter.
+  - `register` no longer takes the `stake` parameter
 
 ## Version 1.7.8
 
