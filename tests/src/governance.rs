@@ -75,6 +75,7 @@ fn global_proposal_validates_parameters() {
                 governance_config,
                 kappa,
                 rho,
+                subnet_immunity_period,
             } = global_params;
 
             GovernanceMod::add_global_params_proposal(
@@ -97,6 +98,7 @@ fn global_proposal_validates_parameters() {
                 general_subnet_application_cost,
                 kappa,
                 rho,
+                subnet_immunity_period,
             )
         };
 
@@ -251,6 +253,7 @@ fn global_params_proposal_accepted() {
             mut governance_config,
             rho,
             kappa,
+            subnet_immunity_period,
         } = SubspaceMod::global_params();
 
         governance_config.proposal_cost = 69_420;
@@ -275,6 +278,7 @@ fn global_params_proposal_accepted() {
             general_subnet_application_cost,
             kappa,
             rho,
+            subnet_immunity_period,
         )
         .unwrap();
 

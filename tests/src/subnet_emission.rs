@@ -1257,6 +1257,7 @@ fn test_automatic_unit_emission() {
 fn test_subnet_deregistration_based_on_emission() {
     new_test_ext().execute_with(|| {
         zero_min_burn();
+        SubnetImmunityPeriod::<Test>::set(0);
         // Set MaxAllowedSubnets to 3
         MaxAllowedSubnets::<Test>::set(3);
 

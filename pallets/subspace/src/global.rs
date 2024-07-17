@@ -96,6 +96,7 @@ impl<T: Config> Pallet<T> {
             min_weight_stake: MinWeightStake::<T>::get(),
 
             // s0 config
+            subnet_immunity_period: SubnetImmunityPeriod::<T>::get(),
             general_subnet_application_cost: T::get_general_subnet_application_cost(),
             kappa: Kappa::<T>::get(),
             rho: Rho::<T>::get(),

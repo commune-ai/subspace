@@ -533,6 +533,7 @@ pub mod v12 {
         // Subnet emission
         migrate_storage_alias!(old_storage::SubnetEmission<T>);
         migrate_api!(get_subnet_consensus_type, set_subnet_consensus_type);
+        migrate_map!(SubnetRegistrationBlock);
 
         let curr_governance_config = T::get_subnet_governance_configuration(curr);
         let target_governance_config = T::get_subnet_governance_configuration(curr);

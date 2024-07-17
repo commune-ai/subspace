@@ -195,6 +195,7 @@ pub mod pallet {
             general_subnet_application_cost: u64,
             kappa: u16,
             rho: u16,
+            subnet_immunity_period: u64,
         ) -> DispatchResult {
             let mut params = pallet_subspace::Pallet::<T>::global_params();
             params.max_name_length = max_name_length;
@@ -214,6 +215,7 @@ pub mod pallet {
             params.burn_config.max_burn = max_burn;
             params.kappa = kappa;
             params.rho = rho;
+            params.subnet_immunity_period = subnet_immunity_period;
             Self::do_add_global_params_proposal(origin, data, params)
         }
 

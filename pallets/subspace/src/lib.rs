@@ -14,8 +14,7 @@ use frame_support::{
     dispatch::{DispatchInfo, PostDispatchInfo},
     ensure,
     traits::{
-        tokens::WithdrawReasons, ConstU16, ConstU32, ConstU64, Currency, ExistenceRequirement,
-        IsSubType,
+        tokens::WithdrawReasons, ConstU16, ConstU32, Currency, ExistenceRequirement, IsSubType,
     },
     PalletId,
 };
@@ -70,7 +69,7 @@ pub mod pallet {
     use module::ModuleChangeset;
     use pallet_governance_api::{GovernanceConfiguration, VoteMode};
     use sp_arithmetic::per_things::Percent;
-    use sp_core::ConstU8;
+    use sp_core::{ConstU64, ConstU8};
     pub use sp_std::{vec, vec::Vec};
 
     const STORAGE_VERSION: StorageVersion = StorageVersion::new(12);
@@ -230,6 +229,7 @@ pub mod pallet {
         pub general_subnet_application_cost: u64,
 
         // Other
+        pub subnet_immunity_period: u64,
         pub burn_config: BurnConfiguration<T>,
         pub governance_config: GovernanceConfiguration,
 
@@ -484,6 +484,12 @@ pub mod pallet {
     pub type Emission<T: Config> = StorageMap<_, Identity, u16, Vec<u64>, ValueQuery>;
     #[pallet::storage] // --- MAP ( netuid ) --> last_update
     pub type LastUpdate<T: Config> = StorageMap<_, Identity, u16, Vec<u64>, ValueQuery>;
+
+    #[pallet::storage]
+    pub type SubnetImmunityPeriod<T: Config> = StorageValue<_, u64, ValueQuery, ConstU64<32400>>;
+
+    #[pallet::storage] // --- DMAP ( netuid, uid ) --> block number that the module is registered
+    pub type SubnetRegistrationBlock<T: Config> = StorageMap<_, Identity, u16, u64>;
 
     #[pallet::storage] // --- DMAP ( netuid, uid ) --> block number that the module is registered
     pub type RegistrationBlock<T: Config> =

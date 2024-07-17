@@ -233,9 +233,15 @@ impl<T: Config> Pallet<T> {
     /// An Option containing the ID of the subnet with the lowest emission,
     /// or None if there are no subnets.
     pub fn get_lowest_emission_netuid() -> Option<u16> {
+        let current_block = pallet_subspace::Pallet::<T>::get_current_block_number();
+        let immunity_period = pallet_subspace::SubnetImmunityPeriod::<T>::get();
         SubnetEmission::<T>::iter()
             .filter(|(netuid, _)| Self::can_remove_subnet(*netuid))
             .filter(|(netuid, _)| pallet_subspace::N::<T>::get(netuid) > 0)
+            .filter(|(netuid, _)| {
+                !pallet_subspace::SubnetRegistrationBlock::<T>::get(netuid)
+                    .is_some_and(|block| current_block.saturating_sub(block) < immunity_period)
+            })
             .min_by_key(|(_, emission)| *emission)
             .map(|(netuid, _)| netuid)
     }

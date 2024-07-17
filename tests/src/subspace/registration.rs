@@ -191,6 +191,7 @@ fn deregister_within_subnet_when_limit_is_reached() {
 fn deregister_globally_when_global_limit_is_reached() {
     new_test_ext().execute_with(|| {
         zero_min_burn();
+        SubnetImmunityPeriod::<Test>::set(0);
 
         let get_emission = |netuid, id| {
             let id = Uids::<Test>::get(netuid, id).unwrap_or(u16::MAX);
@@ -475,6 +476,7 @@ fn new_subnets_on_removed_uids_register_modules_to_the_correct_netuids() {
 
     fn register_module(netuid: u16, key: AccountId, stake: u64) {
         let origin = get_origin(key);
+        SubnetImmunityPeriod::<Test>::set(0);
 
         let network = format!("test{netuid}").as_bytes().to_vec();
         let name = format!("module{key}").as_bytes().to_vec();
@@ -525,5 +527,37 @@ fn new_subnets_on_removed_uids_register_modules_to_the_correct_netuids() {
         assert_eq!(N::<Test>::get(1), 1);
         assert_eq!(N::<Test>::get(2), 1);
         assert_eq!(N::<Test>::get(3), 1);
+    });
+}
+
+#[test]
+fn test_subnet_immunity() {
+    new_test_ext().execute_with(|| {
+        zero_min_burn();
+        MaxAllowedSubnets::<Test>::set(1);
+
+        SubspaceMod::add_balance_to_account(&0, SubnetBurn::<Test>::get());
+        assert_ok!(SubspaceMod::register(
+            get_origin(0),
+            b"net1".to_vec(),
+            b"mod1".to_vec(),
+            b"127.0.0.1".to_vec(),
+            0,
+            None
+        ));
+        SubspaceMod::increase_stake(&0, &0, 100000000000);
+
+        SubspaceMod::add_balance_to_account(&1, 100000000001 + SubnetBurn::<Test>::get());
+        assert_err!(
+            SubspaceMod::register(
+                get_origin(1),
+                b"net2".to_vec(),
+                b"mod2".to_vec(),
+                b"127.0.0.1".to_vec(),
+                1,
+                None
+            ),
+            sp_runtime::DispatchError::Other("No valid netuid to deregister")
+        );
     });
 }

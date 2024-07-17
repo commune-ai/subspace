@@ -270,6 +270,7 @@ fn update_subnet_verifies_names_uniquiness_integrity() {
 fn subnet_is_replaced_on_reaching_max_allowed_modules() {
     new_test_ext().execute_with(|| {
         zero_min_burn();
+        SubnetImmunityPeriod::<Test>::set(0);
 
         // Defines the maximum number of modules, that can be registered,
         // on all subnets at once.

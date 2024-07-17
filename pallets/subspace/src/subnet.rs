@@ -222,6 +222,7 @@ impl<T: Config> Pallet<T> {
         N::<T>::insert(netuid, 0);
         T::set_subnet_emission_storage(netuid, 0);
         SubnetRegistrationsThisInterval::<T>::mutate(|value| *value = value.saturating_add(1));
+        SubnetRegistrationBlock::<T>::set(netuid, Some(Self::get_current_block_number()));
 
         // Insert the minimum burn to the netuid,
         // to prevent free registrations the first target registration interval.
@@ -308,6 +309,7 @@ impl<T: Config> Pallet<T> {
         MaxRegistrationsPerInterval::<T>::remove(netuid);
         AdjustmentAlpha::<T>::remove(netuid);
         MinImmunityStake::<T>::remove(netuid);
+        SubnetRegistrationBlock::<T>::remove(netuid);
 
         T::handle_subnet_removal(netuid);
         T::remove_yuma_subnet(netuid);
