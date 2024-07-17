@@ -1030,13 +1030,17 @@ fn test_emission_exploit() {
         let address: Vec<u8> = "0.0.0.0:30333".as_bytes().to_vec();
         let origin = get_origin(yuma_badactor_key);
         assert_ok!(SubspaceMod::register(
-            origin,
+            origin.clone(),
             network,
             name,
             address,
-            yuma_badactor_amount - 1,
             yuma_badactor_key,
             None
+        ));
+        assert_ok!(SubspaceMod::add_stake(
+            origin,
+            yuma_badactor_key,
+            yuma_badactor_amount - 1
         ));
 
         // set the tempo
@@ -1068,8 +1072,8 @@ fn test_emission_exploit() {
         step_block(101);
 
         // get the stake of honest actor
-        let hones_stake = SubspaceMod::get_delegated_stake(&honest_actor_key);
-        assert!(hones_stake > badactor_balance_after);
+        let honest_stake = SubspaceMod::get_delegated_stake(&honest_actor_key);
+        assert!(honest_stake > badactor_balance_after);
     });
 }
 
@@ -1229,14 +1233,14 @@ fn test_automatic_unit_emission() {
 
         assert_eq!(
             UnitEmission::<Test>::get(),
-            OriginalUnitEmission::<Test>::get() / 1
+            OriginalUnitEmission::<Test>::get()
         );
 
         step_block(10800);
 
         assert_eq!(
             UnitEmission::<Test>::get(),
-            OriginalUnitEmission::<Test>::get() / 1
+            OriginalUnitEmission::<Test>::get()
         );
     });
 }

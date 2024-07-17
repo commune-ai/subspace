@@ -74,6 +74,9 @@ pub mod v12 {
 
         #[storage_alias]
         pub type SubnetEmission<T: Config> = StorageMap<Pallet<T>, Identity, u16, u64, ValueQuery>;
+
+        #[storage_alias]
+        pub type MinStake<T: Config> = StorageMap<Pallet<T>, Identity, u16, u64>;
     }
 
     pub struct MigrateToV12<T>(sp_std::marker::PhantomData<T>);
@@ -92,6 +95,7 @@ pub mod v12 {
 
             // --- 1.1 Nuke the old `Stake` storage, we will no longer support this StorageValue
             let _ = old_storage::Stake::<T>::clear(u32::MAX, None);
+            let _ = old_storage::MinStake::<T>::clear(u32::MAX, None);
 
             // --- 1.2 Download existing data into separate types
             let old_stake_from = old_storage::StakeFrom::<T>::iter().fold(
@@ -292,7 +296,6 @@ pub mod v12 {
                 set_vote_mode::<T>(ROOTNET_ID);
                 FounderShare::<T>::set(ROOTNET_ID, 0);
                 Burn::<T>::set(ROOTNET_ID, 0);
-                MinStake::<T>::set(ROOTNET_ID, 0);
                 Pallet::<T>::append_module(
                     ROOTNET_ID,
                     &T::get_dao_treasury_address(),
@@ -411,7 +414,6 @@ pub mod v12 {
         MaxAllowedUids::<T>::set(subnet_id, 420);
         ImmunityPeriod::<T>::set(subnet_id, 0);
         MinAllowedWeights::<T>::set(subnet_id, 1);
-        MinStake::<T>::set(subnet_id, 0);
         // MaxRegistrationsPerInterval::<T>::set(subnet_id, T::DefaultMaxRegistrationsPerInterval);
         MaxWeightAge::<T>::set(subnet_id, 3600);
         MaxAllowedWeights::<T>::set(subnet_id, 420);
@@ -507,7 +509,6 @@ pub mod v12 {
         migrate_map!(MaxAllowedUids);
         migrate_map!(ImmunityPeriod);
         migrate_map!(MinAllowedWeights);
-        migrate_map!(MinStake);
         migrate_map!(MaxRegistrationsPerInterval);
         migrate_map!(MaxWeightAge);
         migrate_map!(MaxAllowedWeights);

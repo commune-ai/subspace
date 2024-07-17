@@ -32,7 +32,7 @@ pub trait SubnetEmissionApi {
 
     fn can_remove_subnet(netuid: u16) -> bool;
 
-    fn is_minable_subnet(netuid: u16) -> bool;
+    fn is_mineable_subnet(netuid: u16) -> bool;
 
     fn get_rootnet_netuid() -> Option<u16>;
 

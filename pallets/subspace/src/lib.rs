@@ -346,7 +346,6 @@ pub mod pallet {
                 trust_ratio: GetDefault::get(),
                 founder_share: FloorFounderShare::<T>::get() as u16,
                 incentive_ratio: 50,
-                min_stake: 0,
                 founder: DefaultKey::<T>::get(),
                 maximum_set_weight_calls_per_epoch: 0,
                 bonds_ma: 900_000,
@@ -379,7 +378,6 @@ pub mod pallet {
                                     * allowed to be registered in this subnet */
         pub min_allowed_weights: u16, // min number of weights allowed to be registered in this
         pub max_weight_age: u64,      // max age of a weight
-        pub min_stake: u64,           // min stake required
         pub name: BoundedVec<u8, ConstU32<256>>,
         pub tempo: u16, // how many blocks to wait before rewarding models
         pub trust_ratio: u16,
@@ -406,9 +404,6 @@ pub mod pallet {
 
     #[pallet::storage] // --- MAP ( netuid ) --> min_allowed_weights
     pub type MinAllowedWeights<T> = StorageMap<_, Identity, u16, u16, ValueQuery, ConstU16<1>>;
-
-    #[pallet::storage] // --- MAP ( netuid ) --> min_allowed_weights
-    pub type MinStake<T> = StorageMap<_, Identity, u16, u64, ValueQuery>;
 
     #[pallet::storage]
     pub type MinimumAllowedStake<T> = StorageValue<_, u64, ValueQuery, ConstU64<500000000>>;
@@ -649,8 +644,6 @@ pub mod pallet {
         InvalidMinAllowedWeights,
         /// The maximum allowed weights value is invalid.
         InvalidMaxAllowedWeights,
-        /// The minimum stake value is invalid.
-        InvalidMinStake,
         /// The minimum delegation fee is invalid.
         InvalidMinDelegationFee,
         /// The module metadata is invalid.
@@ -746,7 +739,6 @@ pub mod pallet {
                         .max_allowed_weights
                         .unwrap_or(def.max_allowed_weights),
                     max_allowed_uids: subnet.max_allowed_uids.unwrap_or(def.max_allowed_uids),
-                    min_stake: subnet.min_stake.unwrap_or(def.min_stake),
                     ..def.clone()
                 };
 
@@ -932,11 +924,10 @@ pub mod pallet {
             network: Vec<u8>,
             name: Vec<u8>,
             address: Vec<u8>,
-            stake: u64,
             module_key: T::AccountId,
             metadata: Option<Vec<u8>>,
         ) -> DispatchResult {
-            Self::do_register(origin, network, name, address, stake, module_key, metadata)
+            Self::do_register(origin, network, name, address, module_key, metadata)
         }
 
         #[pallet::call_index(8)]
@@ -985,7 +976,6 @@ pub mod pallet {
             max_allowed_weights: u16,
             min_allowed_weights: u16,
             max_weight_age: u64,
-            min_stake: u64,
             name: BoundedVec<u8, ConstU32<256>>,
             tempo: u16,
             trust_ratio: u16,
@@ -1007,7 +997,6 @@ pub mod pallet {
                 max_allowed_weights,
                 min_allowed_weights,
                 max_weight_age,
-                min_stake,
                 name,
                 tempo,
                 trust_ratio,

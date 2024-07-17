@@ -276,7 +276,7 @@ impl<T: Config> Pallet<T> {
     }
 
     // Subnet is minable, if it's consensus isn't root or treasury
-    pub fn is_minable_subnet(netuid: u16) -> bool {
+    pub fn is_mineable_subnet(netuid: u16) -> bool {
         matches!(
             SubnetConsensusType::<T>::get(netuid),
             Some(SubnetConsensus::Linear) | Some(SubnetConsensus::Yuma)

@@ -6,13 +6,12 @@ use pallet_subspace::*;
 use sp_runtime::Percent;
 
 #[test]
-fn module_registration_respects_min_stake() {
+fn module_is_registered_correctly() {
     new_test_ext().execute_with(|| {
         zero_min_burn();
         MinimumAllowedStake::<Test>::set(0);
 
         let netuid = 0;
-        let min_stake = 100_000_000;
         let max_registrations_per_block = 10;
         let reg_this_block = 100;
 
@@ -21,11 +20,10 @@ fn module_registration_respects_min_stake() {
         let address = "0.0.0.0:30333".as_bytes().to_vec();
 
         assert_noop!(
-            SubspaceMod::do_register(get_origin(0), network, name, address, 0, 0, None),
+            SubspaceMod::do_register(get_origin(0), network, name, address, 0, None),
             Error::<Test>::NotEnoughBalanceToRegister
         );
 
-        MinStake::<Test>::set(netuid, min_stake);
         MaxRegistrationsPerBlock::<Test>::set(max_registrations_per_block);
         step_block(1);
         assert_eq!(RegistrationsPerBlock::<Test>::get(), 0);
@@ -33,10 +31,8 @@ fn module_registration_respects_min_stake() {
         let n = reg_this_block as u32;
         let keys_list: Vec<_> = (1..n).collect();
 
-        let min_stake_to_register = MinStake::<Test>::get(netuid);
-
         for key in keys_list {
-            let _ = register_module(netuid, key, min_stake_to_register);
+            let _ = register_module(netuid, key, 0);
         }
 
         let registrations_this_block = RegistrationsPerBlock::<Test>::get();
@@ -262,7 +258,7 @@ mod module_validation {
 
         // make sure there is some balance
         add_balance(key, 2);
-        SubspaceMod::register(origin, network, name.to_vec(), addr.to_vec(), 1, key, None)
+        SubspaceMod::register(origin, network, name.to_vec(), addr.to_vec(), key, None)
     }
 
     fn test_validation_cases(f: impl Fn(&[u8], &[u8]) -> DispatchResult) {
@@ -366,17 +362,15 @@ mod subnet_validation {
             zero_min_burn();
 
             let address = b"0.0.0.0".to_vec();
-            let stake = to_nano(1);
             let module_name = b"test".to_vec();
 
             let register_subnet = |key, name| {
-                add_balance(key, stake + 1);
+                add_balance(key, 1);
                 SubspaceMod::register(
                     get_origin(key),
                     name,
                     module_name.clone(),
                     address.clone(),
-                    stake,
                     key,
                     None,
                 )
@@ -433,7 +427,6 @@ fn new_subnet_reutilized_removed_netuid_if_total_is_bigger_than_removed() {
             b"test".to_vec(),
             b"test".to_vec(),
             b"test".to_vec(),
-            to_nano(10),
             0,
             None,
         )
@@ -459,7 +452,6 @@ fn new_subnet_does_not_reuse_removed_netuid_if_total_is_smaller_than_removed() {
             b"test".to_vec(),
             b"test".to_vec(),
             b"test".to_vec(),
-            to_nano(10),
             0,
             None,
         )
@@ -489,7 +481,7 @@ fn new_subnets_on_removed_uids_register_modules_to_the_correct_netuids() {
         let address = "0.0.0.0:30333".as_bytes().to_vec();
 
         SubspaceMod::add_balance_to_account(&key, stake + SubnetBurn::<Test>::get() + 1);
-        SubspaceMod::register(origin, network.clone(), name, address, stake, key, None).unwrap();
+        SubspaceMod::register(origin, network.clone(), name, address, key, None).unwrap();
 
         let netuid = SubspaceMod::get_netuid_for_name(&network).unwrap();
         let uid = pallet_subspace::Uids::<Test>::get(netuid, key).unwrap();

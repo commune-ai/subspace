@@ -80,7 +80,6 @@ pub fn generate_config(path: &str) -> Result<ChainSpec, String> {
                 min_allowed_weights: subnet.min_allowed_weights,
                 max_allowed_weights: subnet.max_allowed_weights,
                 max_allowed_uids: subnet.max_allowed_uids,
-                min_stake: subnet.min_stake,
 
                 modules,
             }

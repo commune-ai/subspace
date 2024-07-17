@@ -43,7 +43,6 @@ impl<T: Config> SubnetChangeset<T> {
         MaxAllowedWeights::<T>::insert(netuid, self.params.max_allowed_weights);
         MaxWeightAge::<T>::insert(netuid, self.params.max_weight_age);
         MinAllowedWeights::<T>::insert(netuid, self.params.min_allowed_weights);
-        MinStake::<T>::insert(netuid, self.params.min_stake);
         TrustRatio::<T>::insert(netuid, self.params.trust_ratio);
         IncentiveRatio::<T>::insert(netuid, self.params.incentive_ratio);
         BondsMovingAverage::<T>::insert(netuid, self.params.bonds_ma);
@@ -79,82 +78,87 @@ impl<T: Config> SubnetChangeset<T> {
         // checks if params are valid
         let global_params = Pallet::<T>::global_params();
 
-        if netuid.is_some_and(|netuid| T::is_minable_subnet(netuid)) {
-            // check valid tempo
-            ensure!(
-                params.min_allowed_weights <= params.max_allowed_weights,
-                Error::<T>::InvalidMinAllowedWeights
-            );
+        // check valid tempo
+        ensure!(
+            params.min_allowed_weights <= params.max_allowed_weights,
+            Error::<T>::InvalidMinAllowedWeights
+        );
 
-            ensure!(
-                params.max_allowed_weights <= global_params.max_allowed_weights,
-                Error::<T>::InvalidMaxAllowedWeights
-            );
+        ensure!(
+            params.max_allowed_weights <= global_params.max_allowed_weights,
+            Error::<T>::InvalidMaxAllowedWeights
+        );
 
-            ensure!(
-                params.min_allowed_weights >= 1,
-                Error::<T>::InvalidMinAllowedWeights
-            );
+        ensure!(
+            params.min_allowed_weights >= 1,
+            Error::<T>::InvalidMinAllowedWeights
+        );
 
-            // lower tempos might significantly slow down the chain
-            ensure!(params.tempo >= 25, Error::<T>::InvalidTempo);
+        // lower tempos might significantly slow down the chain
+        ensure!(params.tempo >= 25, Error::<T>::InvalidTempo);
 
-            ensure!(
-                params.max_weight_age > params.tempo as u64,
-                Error::<T>::InvalidMaxWeightAge
-            );
+        ensure!(
+            params.max_weight_age > params.tempo as u64,
+            Error::<T>::InvalidMaxWeightAge
+        );
 
-            // ensure the trust_ratio is between 0 and 100
-            ensure!(params.trust_ratio <= 100, Error::<T>::InvalidTrustRatio);
+        // ensure the trust_ratio is between 0 and 100
+        ensure!(params.trust_ratio <= 100, Error::<T>::InvalidTrustRatio);
 
-            ensure!(
-                params.max_allowed_uids > 0,
-                Error::<T>::InvalidMaxAllowedUids
-            );
+        ensure!(
+            params.max_allowed_uids > 0,
+            Error::<T>::InvalidMaxAllowedUids
+        );
 
-            ensure!(params.founder_share <= 100, Error::<T>::InvalidFounderShare);
+        ensure!(params.founder_share <= 100, Error::<T>::InvalidFounderShare);
 
-            ensure!(
-                params.founder_share >= FloorFounderShare::<T>::get() as u16,
-                Error::<T>::InvalidFounderShare
-            );
+        ensure!(
+            params.founder_share >= FloorFounderShare::<T>::get() as u16,
+            Error::<T>::InvalidFounderShare
+        );
 
-            ensure!(
-                params.incentive_ratio <= 100,
-                Error::<T>::InvalidIncentiveRatio
-            );
+        ensure!(
+            params.incentive_ratio <= 100,
+            Error::<T>::InvalidIncentiveRatio
+        );
 
-            ensure!(
-                params.max_allowed_weights <= MaxAllowedWeightsGlobal::<T>::get(),
-                Error::<T>::InvalidMaxAllowedWeights
-            );
+        ensure!(
+            params.max_allowed_weights <= MaxAllowedWeightsGlobal::<T>::get(),
+            Error::<T>::InvalidMaxAllowedWeights
+        );
 
-            // match registration parameters
-            ensure!(
-                params.target_registrations_interval >= 10,
-                Error::<T>::InvalidTargetRegistrationsInterval
-            );
+        // match registration parameters
+        ensure!(
+            params.target_registrations_interval >= 10,
+            Error::<T>::InvalidTargetRegistrationsInterval
+        );
 
-            ensure!(
-                params.target_registrations_per_interval >= 1,
-                Error::<T>::InvalidTargetRegistrationsPerInterval
-            );
+        ensure!(
+            params.target_registrations_per_interval >= 1,
+            Error::<T>::InvalidTargetRegistrationsPerInterval
+        );
 
-            ensure!(
-                params.max_registrations_per_interval >= 1,
-                Error::<T>::InvalidMaxRegistrationsPerInterval
-            );
+        ensure!(
+            params.max_registrations_per_interval >= 1,
+            Error::<T>::InvalidMaxRegistrationsPerInterval
+        );
 
-            ensure!(
-                params.adjustment_alpha > 0,
-                Error::<T>::InvalidAdjustmentAlpha
-            );
+        ensure!(
+            params.adjustment_alpha > 0,
+            Error::<T>::InvalidAdjustmentAlpha
+        );
 
-            ensure!(
-                params.min_immunity_stake > 20_000_000_000_000, // Min is 20k
-                Error::<T>::InvalidMinImmunityStake
-            );
-        }
+        ensure!(
+            params.min_immunity_stake > 20_000_000_000_000, // Min is 20k
+            Error::<T>::InvalidMinImmunityStake
+        );
+
+        ensure!(
+            netuid.map_or(true, |netuid| params.max_allowed_uids
+                >= N::<T>::get(netuid)),
+            Error::<T>::InvalidMaxAllowedUids
+        );
+
         match Pallet::<T>::get_netuid_for_name(&params.name) {
             Some(id) if netuid.is_some_and(|netuid| netuid == id) => { /* subnet kept same name */ }
             Some(_) => return Err(Error::<T>::SubnetNameAlreadyExists.into()),
@@ -184,7 +188,6 @@ impl<T: Config> Pallet<T> {
             max_allowed_uids: MaxAllowedUids::<T>::get(netuid),
             max_weight_age: MaxWeightAge::<T>::get(netuid),
             min_allowed_weights: MinAllowedWeights::<T>::get(netuid),
-            min_stake: MinStake::<T>::get(netuid),
             name: BoundedVec::truncate_from(SubnetNames::<T>::get(netuid)),
             trust_ratio: TrustRatio::<T>::get(netuid),
             incentive_ratio: IncentiveRatio::<T>::get(netuid),
@@ -296,7 +299,6 @@ impl<T: Config> Pallet<T> {
         MaxAllowedUids::<T>::remove(netuid);
         MaxWeightAge::<T>::remove(netuid);
         MinAllowedWeights::<T>::remove(netuid);
-        MinStake::<T>::remove(netuid);
         TrustRatio::<T>::remove(netuid);
         IncentiveRatio::<T>::remove(netuid);
         MaximumSetWeightCallsPerEpoch::<T>::remove(netuid);
@@ -356,24 +358,10 @@ impl<T: Config> Pallet<T> {
 
     // TODO: should modules be removed by pruning score?
     // Maybe this whole thing should be removed and the max_allowed_uids should be immutable.
-    fn set_max_allowed_uids(netuid: u16, mut max_allowed_uids: u16) -> DispatchResult {
+    fn set_max_allowed_uids(netuid: u16, max_allowed_uids: u16) -> DispatchResult {
         let n: u16 = N::<T>::get(netuid);
-        if max_allowed_uids < n {
-            // limit it at 256 at a time
-            let mut remainder_n: u16 = n.saturating_sub(max_allowed_uids);
-            let max_remainder = 256;
-            if remainder_n > max_remainder {
-                // remove the modules in small amounts, as this can be a heavy load on the chain
-                remainder_n = max_remainder;
-                max_allowed_uids = n.saturating_sub(remainder_n);
-            }
-            // remove the modules by adding the to the deregister queue
-            for i in 0..remainder_n {
-                let next_uid = n.saturating_sub(1).saturating_sub(i);
-                Self::remove_module(netuid, next_uid, true)?;
-            }
-        }
 
+        ensure!(n <= max_allowed_uids, Error::<T>::InvalidMaxAllowedUids);
         MaxAllowedUids::<T>::insert(netuid, max_allowed_uids);
 
         Ok(())

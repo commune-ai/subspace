@@ -218,7 +218,6 @@ benchmarks! {
         params.max_allowed_weights,
         params.min_allowed_weights,
         params.max_weight_age,
-        params.min_stake,
         params.name.clone(),
         params.tempo,
         params.trust_ratio,

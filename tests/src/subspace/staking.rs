@@ -1,5 +1,5 @@
 use crate::mock::*;
-use frame_support::{assert_err, assert_noop};
+use frame_support::assert_noop;
 use pallet_subspace::*;
 
 #[test]
@@ -23,7 +23,7 @@ fn adds_stake_and_removes_to_module_and_calculates_total_stake() {
             for key in key_vector.iter() {
                 assert_ok!(register_module(netuid, *key, amount_staked));
 
-                assert_eq!(SubspaceMod::get_owned_stake(&key), amount_staked);
+                assert_eq!(SubspaceMod::get_owned_stake(key), amount_staked);
                 assert_eq!(SubspaceMod::get_balance(key), 1);
 
                 assert_ok!(SubspaceMod::remove_stake(
@@ -32,17 +32,17 @@ fn adds_stake_and_removes_to_module_and_calculates_total_stake() {
                     amount_staked
                 ));
                 assert_eq!(SubspaceMod::get_balance(key), amount_staked + 1);
-                assert_eq!(SubspaceMod::get_owned_stake(&key), 0);
+                assert_eq!(SubspaceMod::get_owned_stake(key), 0);
 
                 assert_ok!(SubspaceMod::add_stake(
                     get_origin(*key),
                     *key,
                     amount_staked,
                 ));
-                assert_eq!(SubspaceMod::get_owned_stake(&key), amount_staked);
+                assert_eq!(SubspaceMod::get_owned_stake(key), amount_staked);
                 assert_eq!(SubspaceMod::get_balance(key), 1);
 
-                subnet_stake += SubspaceMod::get_owned_stake(&key);
+                subnet_stake += SubspaceMod::get_owned_stake(key);
             }
 
             total_stake += subnet_stake;
@@ -77,24 +77,6 @@ fn transfers_stake_between_keys() {
         let key2_stake = SubspaceMod::get_total_stake_from(&key_2);
         assert_eq!(key1_stake, 0);
         assert_eq!(key2_stake, stake_amount + 1);
-    });
-}
-
-#[test]
-fn fails_to_register_if_stake_is_below_minimum() {
-    new_test_ext().execute_with(|| {
-        zero_min_burn();
-
-        let netuid = 0;
-        let num_modules = 10;
-        let min_stake = to_nano(10);
-
-        assert_ok!(register_module(netuid, num_modules, min_stake));
-        update_params!(netuid => { min_stake: min_stake + 100 });
-        assert_err!(
-            register_module(netuid, num_modules, min_stake),
-            Error::<Test>::NotEnoughStakeToRegister
-        );
     });
 }
 

@@ -12,9 +12,9 @@ use pallet_governance_api::GovernanceConfiguration;
 use pallet_subspace::{subnet::SubnetChangeset, GlobalParams, SubnetParams};
 use substrate_fixed::{types::extra::U32, FixedI128};
 
-fn register(account: u32, subnet_id: u16, module: u32, stake: u64) {
-    if get_balance(account) <= stake {
-        add_balance(account, stake + to_nano(1));
+fn register(account: AccountId, subnet_id: u16, module: AccountId, stake: u64) {
+    if get_balance(account) <= to_nano(1) {
+        add_balance(account, to_nano(1));
     }
 
     assert_ok!(SubspaceMod::do_register(
@@ -22,10 +22,10 @@ fn register(account: u32, subnet_id: u16, module: u32, stake: u64) {
         format!("subnet-{subnet_id}").as_bytes().to_vec(),
         format!("module-{module}").as_bytes().to_vec(),
         format!("address-{account}-{module}").as_bytes().to_vec(),
-        stake,
         module,
         None,
     ));
+    SubspaceMod::increase_stake(&account, &module, stake);
 }
 
 #[test]
@@ -315,7 +315,6 @@ fn subnet_params_proposal_accepted() {
             max_allowed_weights,
             min_allowed_weights,
             max_weight_age,
-            min_stake,
             name,
             tempo,
             trust_ratio,
@@ -343,7 +342,6 @@ fn subnet_params_proposal_accepted() {
             max_allowed_uids,
             max_allowed_weights,
             min_allowed_weights,
-            min_stake,
             max_weight_age,
             tempo,
             trust_ratio,
@@ -491,7 +489,7 @@ fn creates_treasury_transfer_proposal_and_transfers() {
         step_block(100);
 
         assert_eq!(get_balance(DaoTreasuryAddress::<Test>::get()), to_nano(5));
-        assert_eq!(get_balance(0), to_nano(7));
+        assert_eq!(get_balance(0), to_nano(8));
     });
 }
 

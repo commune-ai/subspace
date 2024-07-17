@@ -174,8 +174,8 @@ impl SubnetEmissionApi for Test {
         pallet_subnet_emission::Pallet::<Test>::can_remove_subnet(netuid)
     }
 
-    fn is_minable_subnet(netuid: u16) -> bool {
-        pallet_subnet_emission::Pallet::<Test>::is_minable_subnet(netuid)
+    fn is_mineable_subnet(netuid: u16) -> bool {
+        pallet_subnet_emission::Pallet::<Test>::is_mineable_subnet(netuid)
     }
 
     fn get_rootnet_netuid() -> Option<u16> {
@@ -483,15 +483,8 @@ pub fn delegate_register_module(
         SubspaceMod::add_balance_to_account(&key, stake + 1);
     }
 
-    let result = SubspaceMod::register(
-        origin,
-        network,
-        name.clone(),
-        address,
-        stake,
-        module_key,
-        None,
-    );
+    let result = SubspaceMod::register(origin, network, name.clone(), address, module_key, None);
+    SubspaceMod::increase_stake(&key, &module_key, stake);
 
     log::info!("Register ok module: network: {name:?}, module_key: {module_key} key: {key}");
 
@@ -593,8 +586,9 @@ pub fn register_module(netuid: u16, key: AccountId, stake: u64) -> Result<u16, D
 
     let _ = register_subnet(key, netuid);
 
-    SubspaceMod::add_balance_to_account(&key, stake + SubnetBurn::<Test>::get() + 1);
-    SubspaceMod::register(origin, network.clone(), name, address, stake, key, None)?;
+    SubspaceMod::add_balance_to_account(&key, SubnetBurn::<Test>::get() + 1);
+    SubspaceMod::register(origin, network.clone(), name, address, key, None)?;
+    SubspaceMod::increase_stake(&key, &key, stake);
 
     let netuid = SubspaceMod::get_netuid_for_name(&network).ok_or("netuid is missing")?;
     let uid = pallet_subspace::Uids::<Test>::get(netuid, key).ok_or("uid is missing")?;
@@ -612,8 +606,9 @@ pub fn register_root_validator(key: AccountId, stake: u64) -> Result<u16, Dispat
     let name = format!("module{key}").as_bytes().to_vec();
     let address = "0.0.0.0:30333".as_bytes().to_vec();
 
-    SubspaceMod::add_balance_to_account(&key, stake + SubnetBurn::<Test>::get() + 1);
-    SubspaceMod::register(origin, network.clone(), name, address, stake, key, None)?;
+    SubspaceMod::add_balance_to_account(&key, SubnetBurn::<Test>::get() + 1);
+    SubspaceMod::register(origin, network.clone(), name, address, key, None)?;
+    SubspaceMod::increase_stake(&key, &key, stake);
 
     let netuid = SubspaceMod::get_netuid_for_name(&network).ok_or("netuid is missing")?;
     if netuid != 0 {

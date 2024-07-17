@@ -231,7 +231,6 @@ pub mod pallet {
             max_allowed_uids: u16,
             max_allowed_weights: u16,
             min_allowed_weights: u16,
-            min_stake: u64,
             max_weight_age: u64,
             tempo: u16,
             trust_ratio: u16,
@@ -253,7 +252,6 @@ pub mod pallet {
             params.max_allowed_uids = max_allowed_uids;
             params.max_allowed_weights = max_allowed_weights;
             params.min_allowed_weights = min_allowed_weights;
-            params.min_stake = min_stake;
             params.max_weight_age = max_weight_age;
             params.tempo = tempo;
             params.trust_ratio = trust_ratio;

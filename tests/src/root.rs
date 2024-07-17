@@ -106,10 +106,10 @@ fn test_emission() {
                 b"Rootnet".to_vec(),
                 format!("test{}", i).as_bytes().to_vec(),
                 b"0.0.0.0:30333".to_vec(),
-                1000,
                 key_id,
                 None
             ));
+            SubspaceMod::increase_stake(&key_id, &key_id, 1000);
         }
 
         for i in 1..n {
@@ -121,10 +121,10 @@ fn test_emission() {
                 format!("net{}", i).as_bytes().to_vec(),
                 format!("test{}", i).as_bytes().to_vec(),
                 b"0.0.0.0:30333".to_vec(),
-                1000,
                 key_id,
                 None
             ));
+            SubspaceMod::increase_stake(&key_id, &key_id, 1000);
         }
 
         for i in 0..n {

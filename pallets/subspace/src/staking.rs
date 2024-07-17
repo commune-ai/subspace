@@ -375,7 +375,6 @@ impl<T: Config> Pallet<T> {
             *stake = stake.saturating_add(amount);
         });
 
-        // Stake::<T>::mutate(staked, |stake| *stake = stake.saturating_add(amount));
         TotalStake::<T>::mutate(|total_stake| *total_stake = total_stake.saturating_add(amount));
 
         true

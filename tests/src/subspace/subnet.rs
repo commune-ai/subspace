@@ -53,7 +53,6 @@ fn subnet_update_changes_all_parameter_values() {
             max_allowed_weights: 7,
             min_allowed_weights: 6,
             max_weight_age: 600,
-            min_stake: 9,
             name: b"test".to_vec().try_into().unwrap(),
             tempo: 300,
             trust_ratio: 11,
@@ -83,7 +82,6 @@ fn subnet_update_changes_all_parameter_values() {
             max_allowed_weights,
             min_allowed_weights,
             max_weight_age,
-            min_stake,
             name,
             tempo,
             trust_ratio,
@@ -107,7 +105,6 @@ fn subnet_update_changes_all_parameter_values() {
         assert_eq!(MaxAllowedWeights::<Test>::get(netuid), max_allowed_weights);
         assert_eq!(MinAllowedWeights::<Test>::get(netuid), min_allowed_weights);
         assert_eq!(MaxWeightAge::<Test>::get(netuid), max_weight_age);
-        assert_eq!(MinStake::<Test>::get(netuid), min_stake);
         assert_eq!(SubnetNames::<Test>::get(netuid), name.into_inner());
         assert_eq!(Tempo::<Test>::get(netuid), tempo);
         assert_eq!(TrustRatio::<Test>::get(netuid), trust_ratio);
@@ -159,7 +156,6 @@ fn removes_subnet_from_storage() {
                     max_allowed_weights,
                     min_allowed_weights,
                     max_weight_age,
-                    min_stake,
                     name,
                     tempo,
                     trust_ratio,
@@ -181,7 +177,6 @@ fn removes_subnet_from_storage() {
                 $m!(MaxAllowedWeights, max_allowed_weights);
                 $m!(MinAllowedWeights, min_allowed_weights);
                 $m!(MaxWeightAge, max_weight_age);
-                $m!(MinStake, min_stake);
                 $m!(SubnetNames, name);
                 $m!(Tempo, tempo);
                 $m!(TrustRatio, trust_ratio);
@@ -246,7 +241,6 @@ fn update_subnet_verifies_names_uniquiness_integrity() {
                 params.max_allowed_weights,
                 params.min_allowed_weights,
                 params.max_weight_age,
-                params.min_stake,
                 params.name,
                 params.tempo,
                 params.trust_ratio,
@@ -318,27 +312,5 @@ fn subnet_is_replaced_on_reaching_max_allowed_modules() {
         let netuids = SubspaceMod::netuids();
         let max_netuid = netuids.iter().max().unwrap();
         assert_eq!(*max_netuid, 5);
-    });
-}
-
-#[test]
-fn updating_max_allowed_uids_shrinks_subnet_correctly() {
-    new_test_ext().execute_with(|| {
-        zero_min_burn();
-        MinimumAllowedStake::<Test>::set(0);
-
-        for module_uid in 1..5u32 {
-            assert_ok!(register_module(0, module_uid, module_uid as u64));
-        }
-
-        assert_eq!(N::<Test>::get(0), 4);
-
-        update_params!(0 => {
-            max_allowed_uids: 2
-        });
-
-        assert_eq!(N::<Test>::get(0), 2);
-        assert_eq!(SubspaceMod::get_total_subnet_stake(0), 3);
-        assert_eq!(SubspaceMod::get_keys(0), vec![1, 2]);
     });
 }

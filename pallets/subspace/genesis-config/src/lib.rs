@@ -14,7 +14,6 @@ pub struct ConfigSubnet<Name, AccountId: Ord + PartialOrd + PartialEq + Eq> {
     pub min_allowed_weights: Option<u16>,
     pub max_allowed_weights: Option<u16>,
     pub max_allowed_uids: Option<u16>,
-    pub min_stake: Option<u64>,
     pub modules: Vec<ConfigModule<Name, AccountId>>,
 }
 

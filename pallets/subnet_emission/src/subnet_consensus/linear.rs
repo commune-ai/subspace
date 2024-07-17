@@ -129,8 +129,7 @@ impl<T: Config> LinearEpoch<T> {
                 .checked_div(I32F32::from_num(100))
                 .unwrap_or_default();
             let incentive_share: I32F32 = I32F32::from_num(1.0).saturating_sub(trust_share);
-            let trust =
-                Self::compute_trust(&weights, &stake, &self.subnet_params, self.module_count);
+            let trust = Self::compute_trust(&weights, self.module_count);
 
             incentive = incentive
                 .iter()
@@ -397,20 +396,13 @@ impl<T: Config> LinearEpoch<T> {
         Ok(bonds)
     }
 
-    fn compute_trust(
-        weights: &[Vec<(u16, I32F32)>],
-        stake: &[I32F32],
-        subnet_params: &SubnetParams<T>,
-        n: u16,
-    ) -> Vec<I32F32> {
+    fn compute_trust(weights: &[Vec<(u16, I32F32)>], n: u16) -> Vec<I32F32> {
         let mut trust = vec![I32F32::from_num(0.0); n as usize];
-        for (i, weights_i) in weights.iter().enumerate() {
+        for weights_i in weights.iter() {
             for (j, weight_ij) in weights_i.iter() {
-                if let Some(stake_i) = stake.get(i) {
-                    if let Some(trust_j) = trust.get_mut(*j as usize) {
-                        if *weight_ij > 0 && *stake_i > I32F32::from_num(subnet_params.min_stake) {
-                            *trust_j = trust_j.saturating_add(I32F32::from_num(1.0));
-                        }
+                if let Some(trust_j) = trust.get_mut(*j as usize) {
+                    if *weight_ij > 0 {
+                        *trust_j = trust_j.saturating_add(I32F32::from_num(1.0));
                     }
                 }
             }
