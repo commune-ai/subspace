@@ -1,11 +1,12 @@
+use frame_support::assert_err;
 use pallet_subnet_emission::{
     subnet_pricing::root::RootPricing, PendingEmission, SubnetConsensusType, SubnetEmission,
     UnitEmission,
 };
 use pallet_subnet_emission_api::{SubnetConsensus, SubnetEmissionApi};
 use pallet_subspace::{
-    Kappa, MaxAllowedUids, MaxRegistrationsPerBlock, MaxRegistrationsPerInterval,
-    MinimumAllowedStake, Rho, TargetRegistrationsPerInterval, Tempo,
+    Error, Kappa, Keys, MaxAllowedUids, MaxAllowedValidators, MaxRegistrationsPerBlock,
+    MaxRegistrationsPerInterval, MinimumAllowedStake, Rho, TargetRegistrationsPerInterval, Tempo,
 };
 
 pub use crate::mock::*;
@@ -223,5 +224,59 @@ fn test_sigmoid_distribution() {
             "Subnet 1 emission percentage should be less than 6%, but was {:.2}%",
             subnet_one_perc * 100.0
         );
+    });
+}
+
+/// Test rootnet registration requirements:
+/// 1. We need to have more stake than least staked key registered there.
+/// 2. Try to register without having more stake than the lest staked key, and expect an error.
+/// 3. Check deregistered key has no stake and is not present in the registered keys.
+#[test]
+fn test_rootnet_registration_requirements() {
+    new_test_ext().execute_with(|| {
+        zero_min_burn();
+
+        // Set up initial conditions
+        MaxRegistrationsPerBlock::<Test>::set(100);
+        MaxRegistrationsPerInterval::<Test>::set(ROOT_NETUID, 5);
+
+        assert_ok!(register_named_subnet(u32::MAX, ROOT_NETUID, "Rootnet"));
+        // Rootnet configuration
+        Test::set_subnet_consensus_type(ROOT_NETUID, Some(SubnetConsensus::Root));
+        MaxAllowedValidators::<Test>::set(ROOT_NETUID, Some(5));
+        MaxAllowedUids::<Test>::set(ROOT_NETUID, 5);
+
+        // Register initial validators
+        let initial_stake = to_nano(10_000);
+        let last_stake = 5;
+        for i in 1..=last_stake {
+            assert_ok!(register_root_validator(i, initial_stake + i as u64));
+        }
+
+        let lowest_stake_key_exists = Keys::<Test>::iter().any(|(_, _, account_id)| {
+            account_id == <u32 as Into<<Test as frame_system::Config>::AccountId>>::into(1)
+        });
+        assert!(lowest_stake_key_exists);
+
+        // Try to register with less stake than the least staked key
+        let less_stake = to_nano(9_999);
+        assert_err!(
+            register_root_validator(6, less_stake),
+            Error::<Test>::NotEnoughStakeToRegister
+        );
+
+        // Register with more stake than the least staked key
+        let more_stake = initial_stake + to_nano(last_stake as u64);
+        assert_ok!(register_root_validator(6, more_stake));
+
+        // Make sure the first key to register has no stake, as it should be deregistered
+        assert_eq!(SubspaceMod::get_total_stake_from(&1), 0);
+        // Now make sure it is deregistered
+        let key_exists = Keys::<Test>::iter().any(|(_, _, account_id)| {
+            account_id == <u32 as Into<<Test as frame_system::Config>::AccountId>>::into(1)
+        });
+        assert!(!key_exists);
+        // Make sure the second key has the inital stake + 2
+        assert_eq!(SubspaceMod::get_total_stake_from(&2), initial_stake + 2);
     });
 }

@@ -1284,10 +1284,10 @@ fn test_subnet_deregistration_based_on_emission() {
             universal_vec.clone(),
             universal_vec.clone(),
             universal_vec.clone(),
-            to_nano(2000),
             2,
             Some(universal_vec),
         ));
+        assert_ok!(SubspaceMod::add_stake(get_origin(3), 2, to_nano(2000)));
 
         assert_eq!(SubnetNames::<Test>::get(0), "subnet1".as_bytes().to_vec());
         assert_eq!(SubnetNames::<Test>::get(1), "subnet4".as_bytes().to_vec());

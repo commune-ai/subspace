@@ -339,13 +339,13 @@ impl<T: Config> Pallet<T> {
             return Self::replace_lowest_priority_node(netuid, false);
         }
 
-        if Self::global_n_modules() >= MaxAllowedModules::<T>::get() {
-            Self::remove_from_lowest_emission_subnet()?;
-        }
-
         let rootnet_id = T::get_rootnet_netuid().unwrap_or(Self::ROOTNET_ID);
         if netuid == rootnet_id {
             Self::reserve_rootnet_slot(rootnet_id, key)?;
+        }
+
+        if Self::global_n_modules() >= MaxAllowedModules::<T>::get() {
+            Self::remove_from_lowest_emission_subnet()?;
         }
 
         Ok(())
