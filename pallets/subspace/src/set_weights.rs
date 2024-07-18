@@ -57,6 +57,7 @@ impl<T: Config> Pallet<T> {
         Self::handle_rate_limiting(uid, netuid, &key)?;
         Self::validate_stake(&key, uids.len())?;
         Self::finalize_weights(netuid, uid, &uids, &values)?;
+        Self::remove_rootnet_delegation(netuid, key);
         Ok(())
     }
 
@@ -109,6 +110,12 @@ impl<T: Config> Pallet<T> {
         Self::set_last_update_for_uid(netuid, uid, current_block);
         Self::deposit_event(Event::WeightsSet(netuid, uid));
         Ok(())
+    }
+
+    fn remove_rootnet_delegation(netuid: u16, key: T::AccountId) {
+        if Self::is_rootnet(netuid) {
+            RootnetControlDelegation::<T>::remove(key);
+        }
     }
 
     // ----------
@@ -197,5 +204,54 @@ impl<T: Config> Pallet<T> {
     /// for the specified subnet.
     pub fn clear_set_weight_rate_limiter(netuid: u16) {
         let _ = SetWeightCallsPerEpoch::<T>::clear_prefix(netuid, u32::MAX, None);
+    }
+
+    pub fn do_delegate_rootnet_control(
+        origin: T::RuntimeOrigin,
+        target: T::AccountId,
+    ) -> DispatchResult {
+        let key = ensure_signed(origin)?;
+
+        let rootnet_id = T::get_rootnet_netuid().ok_or(Error::<T>::RootnetSubnetNotFound)?;
+
+        let Some(origin_uid) = Self::get_uid_for_key(rootnet_id, &key) else {
+            return Err(Error::<T>::ModuleDoesNotExist.into());
+        };
+
+        if Self::get_uid_for_key(rootnet_id, &target).is_none() {
+            return Err(Error::<T>::ModuleDoesNotExist.into());
+        };
+
+        if RootnetControlDelegation::<T>::get(&target).is_some() {
+            return Err(Error::<T>::TargetIsDelegatingControl.into());
+        }
+
+        Self::check_rootnet_daily_limit(rootnet_id, origin_uid)?;
+
+        RootnetControlDelegation::<T>::set(key, Some(target));
+
+        Ok(())
+    }
+
+    pub fn copy_delegated_weights(block: u64) {
+        use core::ops::Rem;
+        if block.rem(5400) == 0 {
+            let Some(rootnet_id) = T::get_rootnet_netuid() else {
+                return;
+            };
+
+            for (origin, target) in RootnetControlDelegation::<T>::iter().collect::<Vec<_>>() {
+                let Some(target_uid) = Self::get_uid_for_key(rootnet_id, &target) else {
+                    continue;
+                };
+
+                let Some(origin_uid) = Self::get_uid_for_key(rootnet_id, &origin) else {
+                    continue;
+                };
+
+                let weights = Weights::<T>::get(rootnet_id, target_uid);
+                Weights::<T>::set(rootnet_id, origin_uid, weights);
+            }
+        }
     }
 }

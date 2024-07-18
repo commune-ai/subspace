@@ -423,7 +423,12 @@ fn new_subnet_reutilized_removed_netuid_if_total_is_bigger_than_removed() {
     new_test_ext().execute_with(|| {
         zero_min_burn();
 
-        TotalSubnets::<Test>::set(10);
+        // Increase the "subnet_count"
+        for i in 0..10 {
+            N::<Test>::set(i, 0);
+        }
+        dbg!(SubspaceMod::get_total_subnets());
+
         SubnetGaps::<Test>::set(BTreeSet::from([5]));
 
         SubspaceMod::add_balance_to_account(&0, SubnetBurn::<Test>::get() + 1 + to_nano(10));
@@ -437,8 +442,8 @@ fn new_subnet_reutilized_removed_netuid_if_total_is_bigger_than_removed() {
         )
         .unwrap();
 
-        let subnets: Vec<_> = N::<Test>::iter().collect();
-        assert_eq!(subnets, vec![(5, 1)]);
+        let module_count = N::<Test>::get(5);
+        assert_eq!(module_count, 1);
         assert_eq!(SubnetGaps::<Test>::get(), BTreeSet::from([]));
     });
 }
@@ -448,7 +453,11 @@ fn new_subnet_does_not_reuse_removed_netuid_if_total_is_smaller_than_removed() {
     new_test_ext().execute_with(|| {
         zero_min_burn();
 
-        TotalSubnets::<Test>::set(3);
+        // Emulate total subnet count of 3
+        for i in 0..3 {
+            N::<Test>::set(i, 0);
+        }
+
         SubnetGaps::<Test>::set(BTreeSet::from([7]));
 
         SubspaceMod::add_balance_to_account(&0, SubnetBurn::<Test>::get() + 1 + to_nano(10));
@@ -462,8 +471,8 @@ fn new_subnet_does_not_reuse_removed_netuid_if_total_is_smaller_than_removed() {
         )
         .unwrap();
 
-        let subnets: Vec<_> = N::<Test>::iter().collect();
-        assert_eq!(subnets, vec![(7, 1)]);
+        let module_count = N::<Test>::get(7);
+        assert_eq!(module_count, 1);
         assert_eq!(SubnetGaps::<Test>::get(), BTreeSet::from([]));
     });
 }

@@ -19,6 +19,7 @@ diff [here](https://github.com/agicommies/subspace-network/compare/db8a19b1d2155
   - `MinStake` storage map / subnet parameter was removed
   - `SubnetImmunityPeriod`storage value / global parameter was introduced
   - `SubnetRegistrationBlock` storage map was introduced
+  - `TotalSubnets` storage value was removed
   - `MinimumAllowedStake` was introduced. Users cannot stake or unstake a value smaller than this minimum.
   - `MinImmunityStake` was introduced. This value is a subnet parameter that can be changed by the subnet owner. A validator (key) with delegated stake higher than or equal to this value is immune to deregistrations. This aims to reduce sudden validator deregistrations, with adaptability to subnet owner's consensus.
 - Extrinsics changes:

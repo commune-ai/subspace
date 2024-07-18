@@ -25,7 +25,7 @@ fn adds_and_removes_subnets() {
 
             assert_eq!(N::<Test>::get(i), iterations);
             assert_eq!(
-                TotalSubnets::<Test>::get(),
+                SubspaceMod::get_total_subnets(),
                 i,
                 "number of subnets is not equal to expected subnets"
             );
@@ -133,7 +133,7 @@ fn subnet_update_changes_all_parameter_values() {
             governance_config
         );
 
-        assert_eq!(TotalSubnets::<Test>::get(), 1);
+        assert_eq!(SubspaceMod::get_total_subnets(), 1);
         assert_eq!(N::<Test>::get(netuid), 1);
     });
 }
@@ -214,11 +214,11 @@ fn removes_subnet_from_storage() {
 
         assert_ok!(register_module(netuid, 0, to_nano(10)));
         params!(exists);
-        assert_eq!(TotalSubnets::<Test>::get(), 1);
+        assert_eq!(SubspaceMod::get_total_subnets(), 1);
 
         SubspaceMod::remove_subnet(netuid);
         params!(not_exists);
-        assert_eq!(TotalSubnets::<Test>::get(), 0);
+        assert_eq!(SubspaceMod::get_total_subnets(), 0);
         assert!(SubnetGaps::<Test>::get().contains(&netuid));
     });
 }
@@ -291,7 +291,7 @@ fn subnet_is_replaced_on_reaching_max_allowed_modules() {
             assert_ok!(register_module(i as u16, *subnet_key, *subnet_stake));
         }
 
-        let subnet_amount = TotalSubnets::<Test>::get();
+        let subnet_amount = SubspaceMod::get_total_subnets();
         assert_eq!(subnet_amount, expected_subnet_amount);
 
         // Register module on the subnet one (netuid 0), this means that subnet
@@ -299,13 +299,13 @@ fn subnet_is_replaced_on_reaching_max_allowed_modules() {
         assert_ok!(register_module(1, random_keys[0], to_nano(1_000)));
         assert_ok!(register_module(5, random_keys[1], to_nano(150_000)));
 
-        let subnet_amount = TotalSubnets::<Test>::get();
+        let subnet_amount = SubspaceMod::get_total_subnets();
         assert_eq!(subnet_amount, expected_subnet_amount);
 
         // netuid 1 replaced by subnet four
         assert_ok!(register_module(4, subnets[3].0, subnets[3].1));
 
-        let subnet_amount = TotalSubnets::<Test>::get();
+        let subnet_amount = SubspaceMod::get_total_subnets();
         let total_module_amount = SubspaceMod::global_n_modules();
         assert_eq!(subnet_amount, expected_subnet_amount);
         assert_eq!(total_module_amount, expected_subnet_amount);

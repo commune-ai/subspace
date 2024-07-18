@@ -125,7 +125,8 @@ pub mod pallet {
     #[pallet::event]
     #[pallet::generate_deposit(pub fn deposit_event)]
     pub enum Event<T: Config> {
-        EpochFinished(u16), // netuid tempo has finished
+        /// Subnets tempo has finished
+        EpochFinished(u16),
     }
 
     #[derive(Debug)]

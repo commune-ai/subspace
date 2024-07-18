@@ -123,6 +123,7 @@ impl<T: Config> Pallet<T> {
             !Self::key_registered(netuid, &key),
             Error::<T>::StillRegistered
         );
+
         // --- 4. Deposit the event
         Self::deposit_event(Event::ModuleDeregistered(netuid, uid, key));
         // --- 5. Ok and done.
@@ -290,7 +291,7 @@ impl<T: Config> Pallet<T> {
     pub fn add_subnet_from_registration(
         changeset: SubnetChangeset<T>,
     ) -> Result<u16, sp_runtime::DispatchError> {
-        let num_subnets: u16 = TotalSubnets::<T>::get();
+        let num_subnets: u16 = Self::get_total_subnets();
         let max_subnets: u16 = MaxAllowedSubnets::<T>::get();
 
         // RESERVE SUBNET SLOT

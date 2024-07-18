@@ -11,7 +11,7 @@ impl<T: Config> StorageInstance for Pallet<T> {
 }
 
 use sp_core::crypto::Ss58Codec;
-use sp_runtime::AccountId32;
+use sp_runtime::{AccountId32, BoundedVec};
 
 pub fn ss58_to_account_id<T: Config>(
     ss58_address: &str,
@@ -22,10 +22,13 @@ pub fn ss58_to_account_id<T: Config>(
 }
 
 /// ! First migration running in global stake update
+/// This has to run as the first process in the UPDATE !
+/// ! Assume "old" structure of data types
 pub mod v12 {
     use super::*;
     use dispatch::DispatchResult;
     use frame_support::{storage::with_storage_layer, traits::OnRuntimeUpgrade, weights::Weight};
+    use global::BurnConfiguration;
     use module::ModuleChangeset;
     use pallet_governance_api::VoteMode;
     use pallet_subnet_emission_api::SubnetConsensus;
@@ -194,93 +197,33 @@ pub mod v12 {
             log::info!("-------------------");
             // --- 5. Done for stake storage
 
-            // ========================
-            // Subnets migration TL;DR
-            // ========================
             /*
-            ====================
-            Currently
-            ====================
-            Storages are structured like this
+
+            Storages are structured like this:
+
             NETUID     | NAME
             - Subnet 0 | Linear
             - Subnet 1 | Zangief subnet
             - Subnet 2 | Comchat subnet
 
-            ====================
-            After migration
-            ====================
+            After migration:
 
             NETUID     | NAME
             - Subnet 0 | Rootnet
             - Subnet 1 | Treasury subnet
             - Subnet 2 | Linear Subnet
-
-            ------------------------------------------------------------
-
-            Question is, what do we do with subnet 1,2
-
-            Determine the free netuid values:
-
-            let netuid = netuid.unwrap_or_else(|| match SubnetGaps::<T>::get().first().copied() {
-                Some(removed) => removed,
-                None => TotalSubnets::<T>::get(),
-            });
-
-            and move the subnet 1 + 2, to these free netuid spots.
-
-            When you have done this, move subnet 0 to subnet 2
-
-            And insert the new rootnet into SN0, and SN1 for treasury subnet.
-
-            ------------------------------------------------------------
-
-            Both new subnets, Root & Treasury, have to be registered with specific parameters:
-
-            -------------------------
-
-            - Rootnet:
-            set_max_allowed_uids to the number of allowed rootnet validators.
-            set vote mode to vote
-            set founder fee to 0
-            set subnet consensus type to Root
-
-            -------------------------
-            - Treasury subnet:
-            set_founder the treasury account
-            set_founder_fee to 100
-            set_vote_mode to vote
-            set max_allowed_uids to 0
-            set subnet consensus type to Treasury
-
-             -------------------------
-
-            - For linear don't change any parameters, just set
-            the consensus type to Linear.
-
             */
 
-            // --- 1 Deregister "dead" subnets
-            // Deregister subnets that don't even have the SubnetEmission storage (inactive)
-            // They will need to go through the burned register, instead of having "free" innactive
-            // spot.
-            for (netuid, emission) in old_storage::SubnetEmission::<T>::iter() {
-                if emission == 0 {
-                    log::info!("removing subnnets with no emission, netuid {:?}", netuid);
-                    Pallet::<T>::remove_subnet(netuid)
-                }
-            }
-
             if let Err(err) = with_storage_layer(|| {
-                // --- 2 Migrate the subnets
+                // --- 1 Migrate the subnets
 
-                // --- 2.1 Transfer subnet 1,2 to free spots
+                // --- 2. Transfer subnet 1,2 to free spots
                 transfer_subnet::<T>(1, None)?;
                 transfer_subnet::<T>(2, None)?;
-                // --- 2.2 Transfer subnet 0 to subnet 2
+                // --- 2.1 Transfer subnet 0 to subnet 2
                 transfer_subnet::<T>(0, Some(2))?;
 
-                // --- 2.3 Overwrite the subnets for Rootnet, Treasury, Linear
+                // --- 2.2 Overwrite the subnets for Rootnet, Treasury, Linear
 
                 // Rootnet configuration
                 // This will be netuid 0
@@ -290,7 +233,7 @@ pub mod v12 {
                     "Rootnet",
                     T::get_dao_treasury_address(),
                     SubnetConsensus::Root,
-                );
+                )?;
                 MaxAllowedUids::<T>::set(ROOTNET_ID, 256);
                 MaxAllowedValidators::<T>::set(ROOTNET_ID, Some(256));
                 set_vote_mode::<T>(ROOTNET_ID);
@@ -315,7 +258,7 @@ pub mod v12 {
                     "Treasury",
                     T::get_dao_treasury_address(),
                     SubnetConsensus::Treasury,
-                );
+                )?;
                 set_vote_mode::<T>(TREASURYNET_ID);
                 FounderShare::<T>::set(TREASURYNET_ID, u16::MAX);
                 MaxAllowedUids::<T>::set(TREASURYNET_ID, 0);
@@ -337,12 +280,13 @@ pub mod v12 {
 
                 // --- 3. Initialize the MinImmunityStake storage for all subnets.
 
-                // Migrate freshly created subnet parameter MIN_IMMUNITY_STAKE, to all existing
-                // subnets
+                // Migrate freshly created subnet parameter MIN_IMMUNITY_STAKE and
+                // SubnetRegistrationBlock, to all existing subnets
                 let base_min_immunity_stake = 50_000_000_000_000; // 50k
                 N::<T>::iter_keys().for_each(|netuid| {
                     // New parameter
                     MinImmunityStake::<T>::insert(netuid, base_min_immunity_stake);
+                    SubnetRegistrationBlock::<T>::insert(netuid, 0); // Sample value
                 });
 
                 log::info!("===============================");
@@ -360,6 +304,40 @@ pub mod v12 {
             // Set rho to 12
             Rho::<T>::put(12);
             log::info!("migrated global rootnet consensus variables.");
+
+            // Deregister "dead" subnets
+
+            // Deregister subnets that don't even have the SubnetEmission storage (inactive)
+            // They will need to go through the burned register, instead of having "free" innactive
+            // spot.
+            for (netuid, emission) in old_storage::SubnetEmission::<T>::iter() {
+                if emission == 0 {
+                    let current_subnet_consensus = T::get_subnet_consensus_type(netuid);
+                    if current_subnet_consensus.is_none() {
+                        // Get the subnet name before removal
+                        let subnet_name = SubnetNames::<T>::get(netuid);
+                        let name_str = core::str::from_utf8(&subnet_name).unwrap_or_default();
+
+                        // We need to set yuma for the subnet that we want to remove,
+                        // as we don't want an early return from the `remove_subnet`
+                        // Rest of consensus overwrites are handled in subnet_emission module
+                        // migration
+                        T::set_subnet_consensus_type(netuid, Some(SubnetConsensus::Yuma));
+                        Pallet::<T>::remove_subnet(netuid);
+                        log::info!(
+                            "removed subnet with no emission, netuid {:?}, name: {}",
+                            netuid,
+                            name_str
+                        );
+                    }
+                }
+            }
+
+            log::info!("Listing all subnet names:");
+            for (netuid, name) in SubnetNames::<T>::iter() {
+                let name_str = core::str::from_utf8(&name).unwrap_or_default();
+                log::info!("Netuid: {}, Name: {}", netuid, name_str);
+            }
 
             // --- 6. Done
             log::info!("==Storage v12 migration done for Subspace Pallet==");
@@ -385,69 +363,46 @@ pub mod v12 {
         };
     }
 
+    // * Will be starting subnet_id 0 & 1
     fn start_subnet<T: Config>(
         subnet_id: u16,
         subnet_name: &'static str,
         founder: T::AccountId,
         consensus_type: SubnetConsensus,
-    ) {
-        // Bonds
-        BondsMovingAverage::<T>::set(subnet_id, 900_000);
-        ValidatorPermits::<T>::set(subnet_id, Vec::new());
-        ValidatorTrust::<T>::set(subnet_id, Vec::new());
-        PruningScores::<T>::set(subnet_id, Vec::new());
-        MaxAllowedValidators::<T>::set(subnet_id, None);
-        Consensus::<T>::set(subnet_id, Vec::new());
-        Active::<T>::set(subnet_id, Vec::new());
-        Rank::<T>::set(subnet_id, Vec::new());
-        RegistrationsThisInterval::<T>::set(subnet_id, 0);
-        Burn::<T>::set(subnet_id, 0);
-        MaximumSetWeightCallsPerEpoch::<T>::set(subnet_id, None);
-        TargetRegistrationsInterval::<T>::set(subnet_id, 142);
-        TargetRegistrationsPerInterval::<T>::set(subnet_id, 3);
-        AdjustmentAlpha::<T>::set(subnet_id, u64::MAX / 2);
-        MinImmunityStake::<T>::set(subnet_id, 50_000_000_000_000);
-        SubnetNames::<T>::set(subnet_id, subnet_name.as_bytes().to_vec());
+    ) -> DispatchResult {
+        let bounded_name: BoundedVec<u8, ConstU32<256>> = subnet_name
+            .as_bytes()
+            .to_vec()
+            .try_into()
+            .unwrap_or_else(|_| BoundedVec::default());
+
+        let params = SubnetParams {
+            name: bounded_name,
+            founder,
+            ..DefaultSubnetParams::<T>::get()
+        };
+        let changeset = SubnetChangeset::new(params)?;
+
         N::<T>::insert(subnet_id, 0);
-        Founder::<T>::set(subnet_id, founder);
-        IncentiveRatio::<T>::set(subnet_id, 50);
-        MaxAllowedUids::<T>::set(subnet_id, 420);
-        ImmunityPeriod::<T>::set(subnet_id, 0);
-        MinAllowedWeights::<T>::set(subnet_id, 1);
-        // MaxRegistrationsPerInterval::<T>::set(subnet_id, T::DefaultMaxRegistrationsPerInterval);
-        MaxWeightAge::<T>::set(subnet_id, 3600);
-        MaxAllowedWeights::<T>::set(subnet_id, 420);
-        TrustRatio::<T>::set(subnet_id, 0);
-        Tempo::<T>::set(subnet_id, 100);
-        FounderShare::<T>::set(subnet_id, 8);
-        // Uids
-        // Keys
-        // Name
-        // Address
-        // Metadata
-        Incentive::<T>::set(subnet_id, Vec::new());
-        Trust::<T>::set(subnet_id, Vec::new());
-        Dividends::<T>::set(subnet_id, Vec::new());
-        Emission::<T>::set(subnet_id, Vec::new());
-        LastUpdate::<T>::set(subnet_id, Vec::new());
-        // RegistrationBlock
-        // Weights
-        // DelegationFee
-        // DelegationFee
+        // Create the subnet parameters for subnet
+        changeset.apply(subnet_id)?;
+        SubnetRegistrationBlock::<T>::set(subnet_id, Some(Pallet::<T>::get_current_block_number()));
+
+        let BurnConfiguration { min_burn, .. } = BurnConfig::<T>::get();
+        Burn::<T>::insert(subnet_id, min_burn);
+
+        // !  We still did not introduce the new pallet, set it from old storage
         old_storage::PendingEmission::<T>::set(subnet_id, 0);
         old_storage::SubnetEmission::<T>::set(subnet_id, 0);
         T::set_subnet_consensus_type(subnet_id, Some(consensus_type));
+        Ok(())
     }
 
     fn transfer_subnet<T: Config>(curr: u16, target: Option<u16>) -> DispatchResult {
         let target =
             target.unwrap_or_else(|| match SubnetGaps::<T>::mutate(|set| set.pop_first()) {
                 Some(removed) => removed,
-                None => {
-                    let id = TotalSubnets::<T>::get();
-                    TotalSubnets::<T>::mutate(|value| *value = value.saturating_add(1));
-                    id
-                }
+                None => Pallet::<T>::get_total_subnets(),
             });
 
         log::info!("transferring subnet {} to {}", curr, target);
@@ -485,7 +440,73 @@ pub mod v12 {
             };
         }
 
-        migrate_double_map!(Bonds);
+        // Subnet Migration Checklist
+        // ==========================
+
+        // SUBSPACE MODULE
+
+        //  ## Storage maps:
+        // - [x] BondsMovingAverage
+        // - [x] ValidatorPermits
+        // - [x] ValidatorTrust
+        // - [x] PruningScores
+        // - [x] MaxAllowedValidators
+        // - [x] Consensus
+        // - [x] Active
+        // - [x] Rank
+        // - [x] RegistrationsThisInterval
+        // - [x] Burn
+        // - [x] MaximumSetWeightCallsPerEpoch
+        // - [x] TargetRegistrationsInterval
+        // - [x] TargetRegistrationsPerInterval
+        // - [x] AdjustmentAlpha
+        // - [x] MinImmunityStake
+        // - [x] SubnetNames
+        // - [x] N
+        // - [x] Founder
+        // - [x] IncentiveRatio
+        // - [x] MaxAllowedUids
+        // - [x] ImmunityPeriod
+        // - [x] MinAllowedWeights
+        // - [x] MaxRegistrationsPerInterval
+        // - [x] MaxWeightAge
+        // - [x] MaxAllowedWeights
+        // - [x] TrustRatio
+        // - [x] Tempo
+        // - [x] FounderShare
+        // - [x] Incentive
+        // - [x] Trust
+        // - [x] Dividends
+        // - [x] Emission
+        // - [x] LastUpdate
+        // - [x] SubnetRegistrationBlock
+
+        // ## Storage double maps:
+        // - [x] Bonds
+        // - [x] SetWeightCallsPerEpoch
+        // - [x] Uids
+        // - [x] Keys
+        // - [x] Name
+        // - [x] Address
+        // - [x] Metadata
+        // - [x] RegistrationBlock
+        // - [x] Weights
+        // - [x] DelegationFee
+
+        // GOVERNANCE MODULE
+
+        // ## Storage maps:
+        // - [x] SubnetGovernanceConfig
+
+        // SUBNET EMISSION MODULE
+
+        // ## Storage maps:
+        // - [x] PendingEmission
+        // - [x] SubnetEmission
+        // - [x] SubnetConsensusType
+
+        // SUBSPACE MODULE
+        // MAPS
         migrate_map!(BondsMovingAverage);
         migrate_map!(ValidatorPermits);
         migrate_map!(ValidatorTrust);
@@ -497,7 +518,6 @@ pub mod v12 {
         migrate_map!(RegistrationsThisInterval);
         migrate_map!(Burn);
         migrate_map!(MaximumSetWeightCallsPerEpoch);
-        migrate_double_map!(SetWeightCallsPerEpoch);
         migrate_map!(TargetRegistrationsInterval);
         migrate_map!(TargetRegistrationsPerInterval);
         migrate_map!(AdjustmentAlpha);
@@ -515,31 +535,35 @@ pub mod v12 {
         migrate_map!(TrustRatio);
         migrate_map!(Tempo);
         migrate_map!(FounderShare);
-        migrate_double_map!(Uids);
-        migrate_double_map!(Keys);
-        migrate_double_map!(Name);
-        migrate_double_map!(Address);
-        migrate_double_map!(Metadata);
         migrate_map!(Incentive);
         migrate_map!(Trust);
         migrate_map!(Dividends);
         migrate_map!(Emission);
         migrate_map!(LastUpdate);
+        migrate_map!(SubnetRegistrationBlock);
+        // DMAPS
+        migrate_double_map!(Bonds);
+        migrate_double_map!(SetWeightCallsPerEpoch);
+        migrate_double_map!(Uids);
+        migrate_double_map!(Keys);
+        migrate_double_map!(Name);
+        migrate_double_map!(Address);
+        migrate_double_map!(Metadata);
         migrate_double_map!(RegistrationBlock);
         migrate_double_map!(Weights);
         migrate_double_map!(DelegationFee);
-        // Pending emission
+
+        // SUBNET EMISSION MODULE
+        // !  We still did not introduce the new pallet, set it from old storage
         migrate_storage_alias!(old_storage::PendingEmission<T>);
-        // Subnet emission
         migrate_storage_alias!(old_storage::SubnetEmission<T>);
         migrate_api!(get_subnet_consensus_type, set_subnet_consensus_type);
-        migrate_map!(SubnetRegistrationBlock);
 
+        // GOVERNANCE MODULE
         let curr_governance_config = T::get_subnet_governance_configuration(curr);
         let target_governance_config = T::get_subnet_governance_configuration(curr);
         T::update_subnet_governance_configuration(curr, target_governance_config)?;
         T::update_subnet_governance_configuration(target, curr_governance_config)?;
-
         Ok(())
     }
 }

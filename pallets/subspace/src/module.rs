@@ -310,11 +310,33 @@ impl<T: Config> Pallet<T> {
             *v
         }); // Decrease the number of modules in the network.
 
+        if let Some(key) = Self::get_key_for_uid(uid, netuid) {
+            Self::handle_rootnet_module_deregistration(key, netuid);
+        }
+
         // remove the network if it is empty
         if deregister_subnet_if_empty && module_count == 0 {
             Self::remove_subnet(netuid);
         }
 
         Ok(())
+    }
+
+    fn handle_rootnet_module_deregistration(key: T::AccountId, netuid: u16) {
+        if Self::is_rootnet(netuid) {
+            // Remove the direct delegation for the key
+            RootnetControlDelegation::<T>::remove(&key);
+
+            // Remove all delegations to the key
+            RootnetControlDelegation::<T>::translate(
+                |_, v: T::AccountId| {
+                    if v == key {
+                        None
+                    } else {
+                        Some(v)
+                    }
+                },
+            );
+        }
     }
 }

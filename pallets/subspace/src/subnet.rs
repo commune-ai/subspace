@@ -32,9 +32,7 @@ impl<T: Config> SubnetChangeset<T> {
 
     pub fn apply(self, netuid: u16) -> DispatchResult {
         Self::validate_params(Some(netuid), &self.params)?;
-
         Pallet::<T>::set_max_allowed_uids(netuid, self.params.max_allowed_uids)?;
-
         SubnetNames::<T>::insert(netuid, self.params.name.into_inner());
         Founder::<T>::insert(netuid, &self.params.founder);
         FounderShare::<T>::insert(netuid, self.params.founder_share);
@@ -213,12 +211,11 @@ impl<T: Config> Pallet<T> {
     ) -> Result<u16, DispatchError> {
         let netuid = netuid.unwrap_or_else(|| match SubnetGaps::<T>::get().first().copied() {
             Some(removed) => removed,
-            None => TotalSubnets::<T>::get(),
+            None => Self::get_total_subnets(),
         });
 
         let name = changeset.params.name.clone();
         changeset.apply(netuid)?;
-        TotalSubnets::<T>::mutate(|n| *n = n.saturating_add(1));
         N::<T>::insert(netuid, 0);
         T::set_subnet_emission_storage(netuid, 0);
         SubnetRegistrationsThisInterval::<T>::mutate(|value| *value = value.saturating_add(1));
@@ -230,7 +227,6 @@ impl<T: Config> Pallet<T> {
         Burn::<T>::insert(netuid, min_burn);
 
         SubnetGaps::<T>::mutate(|subnets| subnets.remove(&netuid));
-
         T::create_yuma_subnet(netuid);
 
         // --- 6. Emit the new network event.
@@ -318,7 +314,6 @@ impl<T: Config> Pallet<T> {
         // =========================================================================================
 
         N::<T>::remove(netuid);
-        TotalSubnets::<T>::mutate(|val| *val = val.saturating_sub(1));
         SubnetGaps::<T>::mutate(|subnets| subnets.insert(netuid));
 
         // --- 5. Emit the event.
@@ -358,14 +353,10 @@ impl<T: Config> Pallet<T> {
     // Setters
     // ---------------------------------
 
-    // TODO: should modules be removed by pruning score?
-    // Maybe this whole thing should be removed and the max_allowed_uids should be immutable.
     fn set_max_allowed_uids(netuid: u16, max_allowed_uids: u16) -> DispatchResult {
         let n: u16 = N::<T>::get(netuid);
-
         ensure!(n <= max_allowed_uids, Error::<T>::InvalidMaxAllowedUids);
         MaxAllowedUids::<T>::insert(netuid, max_allowed_uids);
-
         Ok(())
     }
 
@@ -537,6 +528,10 @@ impl<T: Config> Pallet<T> {
         for dangling in netuid_keys.difference(&global_keys) {
             Self::remove_stake_from_storage(dangling);
         }
+    }
+
+    pub fn get_total_subnets() -> u16 {
+        N::<T>::iter_keys().count() as u16
     }
 
     /// Calculates the number of blocks until the next epoch for a subnet.

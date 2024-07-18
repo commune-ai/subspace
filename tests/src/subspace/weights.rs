@@ -273,3 +273,35 @@ fn set_weights_on_non_existent_subnets() {
         );
     });
 }
+
+#[test]
+fn delegate_weight_control() {
+    new_test_ext().execute_with(|| {
+        assert_ok!(register_named_subnet(u32::MAX, 0, "Rootnet"));
+        Test::set_subnet_consensus_type(0, Some(SubnetConsensus::Root));
+
+        assert_ok!(register_named_subnet(u32::MAX, 1, "Test"));
+
+        let val1_id = 1;
+        let val2_id = 2;
+        let universal_stake = to_nano(200);
+
+        let val1_uid = assert_ok!(register_root_validator(val1_id, universal_stake));
+        let val2_uid = assert_ok!(register_root_validator(val2_id, universal_stake));
+        assert_ok!(SubspaceMod::set_weights(
+            get_origin(val1_id),
+            0,
+            vec![1],
+            vec![u16::MAX]
+        ));
+        assert_ok!(SubspaceMod::delegate_rootnet_control(
+            get_origin(val2_id),
+            val1_id
+        ));
+        step_block(5401);
+        assert_eq!(
+            Weights::<Test>::get(0, val1_uid),
+            Weights::<Test>::get(0, val2_uid)
+        )
+    });
+}

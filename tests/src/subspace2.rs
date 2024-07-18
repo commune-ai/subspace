@@ -557,7 +557,7 @@ fn test_parasite_subnet_registrations() {
         // Register the parasite subnet
         assert_ok!(register_module(
             parasite_netuid,
-            parasite_subnet_key,
+            parasite_subnet_key,w
             parasite_subnet_stake
         ));
         // Parasite subnet set it's immunity period to 100k blocks.
