@@ -6,15 +6,16 @@ use crate::subnet::SubnetChangeset;
 use frame_system::{self as system, ensure_signed};
 pub use pallet::*;
 use scale_info::TypeInfo;
-use sp_std::collections::{btree_map::BTreeMap, btree_set::BTreeSet};
-
+use sp_std::collections::btree_set::BTreeSet;
 pub mod migrations;
 
 use frame_support::{
     dispatch,
     dispatch::{DispatchInfo, PostDispatchInfo},
     ensure,
-    traits::{tokens::WithdrawReasons, Currency, ExistenceRequirement, IsSubType},
+    traits::{
+        tokens::WithdrawReasons, ConstU16, ConstU32, Currency, ExistenceRequirement, IsSubType,
+    },
     PalletId,
 };
 
@@ -38,18 +39,14 @@ mod benchmarking;
 // ---------------------------------
 
 pub mod global;
-mod math;
+pub mod math;
 pub mod module;
 mod registration;
+pub mod rpc;
 mod set_weights;
 mod staking;
-mod step;
 pub mod subnet;
-pub mod weights; // Weight benchmarks // Commune consensus weights
-
-#[cfg(debug_assertions)]
-pub use step::yuma;
-// TODO: better error handling in whole file
+pub mod weights;
 
 #[frame_support::pallet]
 pub mod pallet {
@@ -62,15 +59,20 @@ pub mod pallet {
 
     use super::*;
     pub use crate::weights::WeightInfo;
-    use frame_support::{pallet_prelude::*, traits::Currency, Identity};
+    use frame_support::{
+        pallet_prelude::{ValueQuery, *},
+        traits::Currency,
+        Identity,
+    };
     use frame_system::pallet_prelude::*;
-    use global::BurnConfiguration;
+    use global::{BurnConfiguration, SubnetBurnConfiguration};
     use module::ModuleChangeset;
     use pallet_governance_api::{GovernanceConfiguration, VoteMode};
     use sp_arithmetic::per_things::Percent;
+    use sp_core::{ConstU64, ConstU8};
     pub use sp_std::{vec, vec::Vec};
 
-    const STORAGE_VERSION: StorageVersion = StorageVersion::new(11);
+    const STORAGE_VERSION: StorageVersion = StorageVersion::new(12);
 
     #[pallet::pallet]
     #[pallet::storage_version(STORAGE_VERSION)]
@@ -82,6 +84,7 @@ pub mod pallet {
     pub trait Config:
         frame_system::Config
         + pallet_governance_api::GovernanceApi<<Self as frame_system::Config>::AccountId>
+        + pallet_subnet_emission_api::SubnetEmissionApi
     {
         /// This pallet's ID, used for generating the treasury account ID.
         #[pallet::constant]
@@ -93,6 +96,11 @@ pub mod pallet {
 
         /// Currency type that will be used to place deposits on modules.
         type Currency: Currency<Self::AccountId> + Send + Sync;
+
+        /// The default number of modules that can be registered per interval.
+        type DefaultMaxRegistrationsPerInterval: Get<u16>;
+        /// The default number of subnets that can be registered per interval.
+        type DefaultMaxSubnetRegistrationsPerInterval: Get<u16>;
 
         /// The weight information of this pallet.
         type WeightInfo: WeightInfo;
@@ -107,45 +115,27 @@ pub mod pallet {
     // Global Variables
     // ---------------------------------
 
+    // Rootnet
+    // =======
+    #[pallet::storage]
+    pub type Rho<T> = StorageValue<_, u16, ValueQuery, ConstU16<10>>;
+
+    #[pallet::storage]
+    pub type RootNetWeightCalls<T: Config> = StorageMap<_, Identity, u16, ()>;
+
     #[pallet::storage]
     pub type BurnConfig<T: Config> = StorageValue<_, BurnConfiguration<T>, ValueQuery>;
 
-    #[pallet::type_value]
-    pub fn DefaultUnitEmission<T: Config>() -> u64 {
-        23148148148
-    }
-    #[pallet::storage] // --- ITEM ( unit_emission )
-    pub type UnitEmission<T> = StorageValue<_, u64, ValueQuery, DefaultUnitEmission<T>>;
-
-    #[pallet::type_value]
-    pub fn DefaultSubnetStakeThreshold<T: Config>() -> Percent {
-        Percent::from_percent(5)
-    }
-
     #[pallet::storage]
-    pub type SubnetStakeThreshold<T> =
-        StorageValue<_, Percent, ValueQuery, DefaultSubnetStakeThreshold<T>>;
-
-    #[pallet::type_value]
-    pub fn DefaultKappa<T: Config>() -> u16 {
-        32_767 // This coresponds to 0,5 (majority of stake agreement)
-    }
-
-    #[pallet::storage]
-    pub type Kappa<T> = StorageValue<_, u16, ValueQuery, DefaultKappa<T>>;
+    pub type Kappa<T> = StorageValue<_, u16, ValueQuery, ConstU16<32_767>>;
 
     #[pallet::storage] // --- DMAP ( netuid, uid ) --> bonds
     pub type Bonds<T: Config> =
         StorageDoubleMap<_, Identity, u16, Identity, u16, Vec<(u16, u16)>, ValueQuery>;
 
-    #[pallet::type_value]
-    pub fn DefaultBondsMovingAverage<T: Config>() -> u64 {
-        900_000
-    }
-
     #[pallet::storage] // --- MAP ( netuid ) --> bonds_moving_average
     pub type BondsMovingAverage<T> =
-        StorageMap<_, Identity, u16, u64, ValueQuery, DefaultBondsMovingAverage<T>>;
+        StorageMap<_, Identity, u16, u64, ValueQuery, ConstU64<900_000>>;
 
     #[pallet::storage] // --- DMAP ( netuid ) --> validator_permit
     pub type ValidatorPermits<T: Config> = StorageMap<_, Identity, u16, Vec<bool>, ValueQuery>;
@@ -165,103 +155,55 @@ pub mod pallet {
     pub type MaxAllowedValidators<T> =
         StorageMap<_, Identity, u16, Option<u16>, ValueQuery, DefaultMaxAllowedValidators<T>>;
 
-    #[pallet::storage] // --- DMAP ( netuid ) --> consensus
+    #[pallet::storage] // --- MAP ( netuid ) --> consensus
     pub type Consensus<T: Config> = StorageMap<_, Identity, u16, Vec<u16>, ValueQuery>;
 
-    #[pallet::storage] // --- DMAP ( netuid ) --> active
+    #[pallet::storage] // --- MAP ( netuid ) --> active
     pub type Active<T: Config> = StorageMap<_, Identity, u16, Vec<bool>, ValueQuery>;
 
     #[pallet::storage] // --- DMAP ( netuid ) --> rank
     pub type Rank<T: Config> = StorageMap<_, Identity, u16, Vec<u16>, ValueQuery>;
 
-    #[pallet::type_value]
-    pub fn DefaultMaxNameLength<T: Config>() -> u16 {
-        32
-    }
     #[pallet::storage] // --- ITEM ( max_name_length )
-    pub type MaxNameLength<T: Config> = StorageValue<_, u16, ValueQuery, DefaultMaxNameLength<T>>;
+    pub type MaxNameLength<T: Config> = StorageValue<_, u16, ValueQuery, ConstU16<32>>;
 
-    #[pallet::type_value]
-    pub fn DefaultMinNameLength<T: Config>() -> u16 {
-        2
-    }
+    #[pallet::storage] // --- ITEM ( min_name_length )
+    pub type MinNameLength<T: Config> = StorageValue<_, u16, ValueQuery, ConstU16<2>>;
 
-    #[pallet::storage]
-    pub type MinNameLength<T: Config> = StorageValue<_, u16, ValueQuery, DefaultMinNameLength<T>>;
-
-    #[pallet::type_value]
-    pub fn DefaultMaxAllowedSubnets<T: Config>() -> u16 {
-        256
-    }
     #[pallet::storage] // --- ITEM ( max_allowed_subnets )
-    pub type MaxAllowedSubnets<T: Config> =
-        StorageValue<_, u16, ValueQuery, DefaultMaxAllowedSubnets<T>>;
+    pub type MaxAllowedSubnets<T: Config> = StorageValue<_, u16, ValueQuery, ConstU16<256>>;
 
-    #[pallet::storage]
-    // --- MAP (netuid) --> registrations_this_interval
-    pub(super) type RegistrationsThisInterval<T: Config> =
-        StorageMap<_, Identity, u16, u16, ValueQuery>;
+    #[pallet::storage] // --- MAP (netuid) --> registrations_this_interval
+    pub type RegistrationsThisInterval<T: Config> = StorageMap<_, Identity, u16, u16, ValueQuery>;
 
     #[pallet::storage]
     // --- MAP (netuid) --> burn
     pub type Burn<T: Config> = StorageMap<_, Identity, u16, u64, ValueQuery>;
 
-    #[pallet::type_value]
-    pub fn DefaultMaxAllowedModules<T: Config>() -> u16 {
-        10_000
-    }
     #[pallet::storage] // --- ITEM ( max_allowed_modules )
-    pub type MaxAllowedModules<T: Config> =
-        StorageValue<_, u16, ValueQuery, DefaultMaxAllowedModules<T>>;
-
-    #[pallet::storage] // --- ITEM ( registrations_this block )
-    pub type RegistrationsPerBlock<T> = StorageValue<_, u16, ValueQuery>;
+    pub type MaxAllowedModules<T: Config> = StorageValue<_, u16, ValueQuery, ConstU16<10_000>>;
 
     #[pallet::type_value]
-    pub fn DefaultMaxRegistrationsPerBlock<T: Config>() -> u16 {
-        10
-    }
-    #[pallet::storage] // --- ITEM( global_max_registrations_per_block )
-    pub type MaxRegistrationsPerBlock<T> =
-        StorageValue<_, u16, ValueQuery, DefaultMaxRegistrationsPerBlock<T>>;
-
-    #[pallet::type_value]
-    pub fn DefaultMinDelegationFeeGlobal<T: Config>() -> Percent {
-        Percent::from_percent(5u8)
+    pub fn DefaultFloorDelegationFee<T: Config>() -> Percent {
+        Percent::from_percent(5)
     }
 
-    #[pallet::storage]
+    #[pallet::storage] // --- ITEM ( floor_delegation_fee )
     pub type FloorDelegationFee<T> =
-        StorageValue<_, Percent, ValueQuery, DefaultMinDelegationFeeGlobal<T>>;
+        StorageValue<_, Percent, ValueQuery, DefaultFloorDelegationFee<T>>;
 
-    #[pallet::storage] // --- MAP ( netuid ) --> min_allowed_weights
+    #[pallet::storage] // --- ITEM ( min_weight_stake )
     pub type MinWeightStake<T> = StorageValue<_, u64, ValueQuery>;
 
-    #[pallet::type_value]
-    pub fn DefaultMaxAllowedWeightsGlobal<T: Config>() -> u16 {
-        512
-    }
-    #[pallet::storage] // --- MAP ( netuid ) --> min_allowed_weights
-    pub type MaxAllowedWeightsGlobal<T> =
-        StorageValue<_, u16, ValueQuery, DefaultMaxAllowedWeightsGlobal<T>>;
+    #[pallet::storage] // --- ITEM ( max_allowed_weights_global )
+    pub type MaxAllowedWeightsGlobal<T> = StorageValue<_, u16, ValueQuery, ConstU16<512>>;
 
-    #[pallet::storage]
-    pub type MaximumSetWeightCallsPerEpoch<T: Config> =
-        StorageMap<_, Identity, u16, u16, ValueQuery>;
+    #[pallet::storage] // --- MAP ( netuid ) --> max_allowed_weights
+    pub type MaximumSetWeightCallsPerEpoch<T: Config> = StorageMap<_, Identity, u16, u16>;
 
-    #[pallet::storage]
+    #[pallet::storage] // DMAP ( netuid, account ) --> weight_calls
     pub type SetWeightCallsPerEpoch<T: Config> =
         StorageDoubleMap<_, Identity, u16, Identity, T::AccountId, u16, ValueQuery>;
-
-    #[derive(Decode, Encode, PartialEq, Eq, Clone, Debug, TypeInfo)]
-    #[scale_info(skip_type_params(T))]
-    pub struct ModuleParams<T: Config> {
-        pub name: Vec<u8>,
-        pub address: Vec<u8>,
-        pub delegation_fee: Percent,
-        pub metadata: Option<Vec<u8>>,
-        pub controller: T::AccountId,
-    }
 
     #[derive(
         Decode, Encode, PartialEq, Eq, Clone, TypeInfo, frame_support::DebugNoBound, MaxEncodedLen,
@@ -286,10 +228,98 @@ pub mod pallet {
         pub general_subnet_application_cost: u64,
 
         // Other
-        pub subnet_stake_threshold: Percent,
+        pub subnet_immunity_period: u64,
         pub burn_config: BurnConfiguration<T>,
         pub governance_config: GovernanceConfiguration,
+
+        pub kappa: u16,
+        pub rho: u16,
     }
+
+    // ---------------------------------
+    // Registrations
+    // ---------------------------------
+
+    #[pallet::storage] // --- MAP ( netuid ) --> target_registrations_interval
+    pub type TargetRegistrationsInterval<T> =
+        StorageMap<_, Identity, u16, u16, ValueQuery, ConstU16<142>>;
+
+    #[pallet::storage] // MAP ( netuid ) --> target_registrations_per_interval
+    pub type TargetRegistrationsPerInterval<T> =
+        StorageMap<_, Identity, u16, u16, ValueQuery, ConstU16<3>>;
+
+    #[pallet::storage] // --- ITEM ( registrations_this block )
+    pub type RegistrationsPerBlock<T> = StorageValue<_, u16, ValueQuery>;
+
+    #[pallet::storage] // --- ITEM ( global_max_registrations_per_block )
+    pub type MaxRegistrationsPerBlock<T> = StorageValue<_, u16, ValueQuery, ConstU16<10>>;
+
+    #[pallet::storage] // --- MAP ( netuid ) --> adjustment_alpha
+    pub type AdjustmentAlpha<T> =
+        StorageMap<_, Identity, u16, u64, ValueQuery, ConstU64<{ u64::MAX / 2 }>>;
+
+    // Deregistrations
+
+    #[pallet::storage] // MAP (netuid) --> minimum immunity stake
+    pub type MinImmunityStake<T> =
+        StorageMap<_, Identity, u16, u64, ValueQuery, ConstU64<50_000_000_000_000>>; // Default 50K
+
+    // ---------------------------------
+    //  Module Staking Variables
+    // ---------------------------------
+
+    #[pallet::storage] // DMAP ( key, account ) --> stake
+    pub type StakeFrom<T: Config> =
+        StorageDoubleMap<_, Identity, T::AccountId, Identity, T::AccountId, u64, ValueQuery>;
+
+    #[pallet::storage] // --- DMAP ( key, account ) --> stake
+    pub type StakeTo<T: Config> =
+        StorageDoubleMap<_, Identity, T::AccountId, Identity, T::AccountId, u64, ValueQuery>;
+
+    #[pallet::storage] // --- ITEM  ( total_stake )
+    pub type TotalStake<T> = StorageValue<_, u64, ValueQuery>;
+
+    // ---------------------------------
+    // Subnets
+    // ---------------------------------
+
+    #[pallet::storage] // --- ITEM ( subnet_gaps )
+    pub type SubnetGaps<T> = StorageValue<_, BTreeSet<u16>, ValueQuery>;
+
+    #[pallet::storage] // --- MAP ( network_name ) --> netuid
+    pub type SubnetNames<T: Config> = StorageMap<_, Identity, u16, Vec<u8>, ValueQuery>;
+
+    #[pallet::storage] // --- ITEM ( floor_founder_share )
+    pub type FloorFounderShare<T: Config> = StorageValue<_, u8, ValueQuery, ConstU8<8>>;
+
+    #[pallet::storage] // --- MAP ( netuid ) --> subnetwork_n (Number of UIDs in the network).
+    pub type N<T> = StorageMap<_, Identity, u16, u16, ValueQuery>;
+
+    #[pallet::storage] // --- MAP ( netuid ) --> subnet_founder_key
+    pub type Founder<T: Config> =
+        StorageMap<_, Identity, u16, T::AccountId, ValueQuery, DefaultKey<T>>;
+
+    #[pallet::storage] // --- DMAP ( key, netuid ) --> bool
+    pub type IncentiveRatio<T: Config> =
+        StorageMap<_, Identity, u16, u16, ValueQuery, ConstU16<50>>;
+
+    // ---------------------------------
+    // Subnet registration parameters
+    // ---------------------------------
+
+    #[pallet::storage] // ITEM ( subnet_burn_config )
+    pub type SubnetBurnConfig<T: Config> = StorageValue<_, SubnetBurnConfiguration<T>, ValueQuery>;
+
+    #[pallet::storage] // ITEM ( subnet_max_registrations_per_interval )
+    pub type SubnetRegistrationsThisInterval<T: Config> = StorageValue<_, u16, ValueQuery>;
+
+    #[pallet::type_value]
+    pub fn DefaultSubnetBurn<T: Config>() -> u64 {
+        SubnetBurnConfig::<T>::get().min_burn
+    }
+
+    #[pallet::storage] // --- ITEM ( subnet_burn )
+    pub type SubnetBurn<T: Config> = StorageValue<_, u64, ValueQuery, DefaultSubnetBurn<T>>;
 
     // ---------------------------------
     // Subnet PARAMS
@@ -298,27 +328,28 @@ pub mod pallet {
     pub struct DefaultSubnetParams<T: Config>(sp_std::marker::PhantomData<((), T)>);
 
     impl<T: Config> DefaultSubnetParams<T> {
+        // TODO: not hardcode values here, get them from the storages instead,
+        // if they implement default already.
         pub fn get() -> SubnetParams<T> {
             SubnetParams {
                 name: BoundedVec::default(),
-                tempo: DefaultTempo::<T>::get(),
-                immunity_period: DefaultImmunityPeriod::<T>::get(),
-                min_allowed_weights: DefaultMinAllowedWeights::<T>::get(),
-                max_allowed_weights: DefaultMaxAllowedWeights::<T>::get(),
-                max_allowed_uids: DefaultMaxAllowedUids::<T>::get(),
-                max_weight_age: DefaultMaxWeightAge::<T>::get(),
+                tempo: 100,
+                immunity_period: 0,
+                min_allowed_weights: 1,
+                max_allowed_weights: 420,
+                max_allowed_uids: 420,
+                max_weight_age: 3_600,
                 trust_ratio: GetDefault::get(),
                 founder_share: FloorFounderShare::<T>::get() as u16,
-                incentive_ratio: DefaultIncentiveRatio::<T>::get(),
-                min_stake: 0,
+                incentive_ratio: 50,
                 founder: DefaultKey::<T>::get(),
                 maximum_set_weight_calls_per_epoch: 0,
-                bonds_ma: DefaultBondsMovingAverage::<T>::get(),
-                target_registrations_interval: DefaultTargetRegistrationsInterval::<T>::get(),
-                target_registrations_per_interval: DefaultTargetRegistrationsPerInterval::<T>::get(
-                ),
-                max_registrations_per_interval: 42,
-                adjustment_alpha: DefaultAdjustmentAlpha::<T>::get(),
+                bonds_ma: 900_000,
+                target_registrations_interval: 142,
+                target_registrations_per_interval: 3,
+                max_registrations_per_interval: T::DefaultMaxRegistrationsPerInterval::get(),
+                adjustment_alpha: u64::MAX / 2,
+                min_immunity_stake: 50_000_000_000_000, // 50k
                 governance_config: GovernanceConfiguration {
                     vote_mode: VoteMode::Authority,
                     ..Default::default()
@@ -343,7 +374,6 @@ pub mod pallet {
                                     * allowed to be registered in this subnet */
         pub min_allowed_weights: u16, // min number of weights allowed to be registered in this
         pub max_weight_age: u64,      // max age of a weight
-        pub min_stake: u64,           // min stake required
         pub name: BoundedVec<u8, ConstU32<256>>,
         pub tempo: u16, // how many blocks to wait before rewarding models
         pub trust_ratio: u16,
@@ -355,93 +385,42 @@ pub mod pallet {
         pub target_registrations_per_interval: u16,
         pub max_registrations_per_interval: u16,
         pub adjustment_alpha: u64,
+        pub min_immunity_stake: u64, /* minimum stake for module to be immuned against
+                                      * deregistrations, made to prevent validator
+                                      * deregisterations. */
 
         pub governance_config: GovernanceConfiguration,
     }
 
-    #[pallet::type_value]
-    pub fn DefaultMaxAllowedUids<T: Config>() -> u16 {
-        820
-    }
     #[pallet::storage] // --- MAP ( netuid ) --> max_allowed_uids
-    pub type MaxAllowedUids<T> =
-        StorageMap<_, Identity, u16, u16, ValueQuery, DefaultMaxAllowedUids<T>>;
+    pub type MaxAllowedUids<T> = StorageMap<_, Identity, u16, u16, ValueQuery, ConstU16<420>>;
 
-    #[pallet::type_value]
-    pub fn DefaultImmunityPeriod<T: Config>() -> u16 {
-        0
-    }
     #[pallet::storage] // --- MAP ( netuid ) --> immunity_period
-    pub type ImmunityPeriod<T> =
-        StorageMap<_, Identity, u16, u16, ValueQuery, DefaultImmunityPeriod<T>>;
-
-    #[pallet::type_value]
-    pub fn DefaultMinAllowedWeights<T: Config>() -> u16 {
-        1
-    }
-    #[pallet::storage] // --- MAP ( netuid ) --> min_allowed_weights
-    pub type MinAllowedWeights<T> =
-        StorageMap<_, Identity, u16, u16, ValueQuery, DefaultMinAllowedWeights<T>>;
+    pub type ImmunityPeriod<T> = StorageMap<_, Identity, u16, u16, ValueQuery, ConstU16<0>>;
 
     #[pallet::storage] // --- MAP ( netuid ) --> min_allowed_weights
-    pub type MinStake<T> = StorageMap<_, Identity, u16, u64, ValueQuery>;
+    pub type MinAllowedWeights<T> = StorageMap<_, Identity, u16, u16, ValueQuery, ConstU16<1>>;
 
-    // Registration parameters
-    // =======================
+    #[pallet::storage] // ITEM ( minimum_allowed_stake )
+    pub type MinimumAllowedStake<T> = StorageValue<_, u64, ValueQuery, ConstU64<500000000>>;
 
-    #[pallet::type_value]
-    pub fn DefaultTargetRegistrationsPerInterval<T: Config>() -> u16 {
-        DefaultTargetRegistrationsInterval::<T>::get() / 2
-    }
-    #[pallet::storage] // MAP ( netuid ) --> trarget_registrations_per_interval
-    pub type TargetRegistrationsPerInterval<T> =
-        StorageMap<_, Identity, u16, u16, ValueQuery, DefaultTargetRegistrationsPerInterval<T>>;
+    #[pallet::storage] // --- MAP ( netuid ) --> max_registratoins_per_interval
+    pub type MaxRegistrationsPerInterval<T: Config> =
+        StorageMap<_, Identity, u16, u16, ValueQuery, T::DefaultMaxRegistrationsPerInterval>;
 
-    #[pallet::type_value]
-    pub fn DefaultTargetRegistrationsInterval<T: Config>() -> u16 {
-        200
-    }
-    #[pallet::storage] // --- MAP ( netuid ) --> trarget_registrations_interval
-    pub type TargetRegistrationsInterval<T> =
-        StorageMap<_, Identity, u16, u16, ValueQuery, DefaultTargetRegistrationsInterval<T>>;
-
-    #[pallet::type_value]
-    pub fn DefaultMaxRegistrationsPerInterval<T: Config>() -> u16 {
-        42
-    }
-    #[pallet::storage] // --- MAP ( netuid ) --> trarget_registrations_interval
-    pub type MaxRegistrationsPerInterval<T> =
-        StorageMap<_, Identity, u16, u16, ValueQuery, DefaultMaxRegistrationsPerInterval<T>>;
-
-    #[pallet::type_value]
-    pub fn DefaultAdjustmentAlpha<T: Config>() -> u64 {
-        u64::MAX / 2
-    }
-    #[pallet::storage] // --- MAP ( netuid ) --> adjustment_alpha
-    pub type AdjustmentAlpha<T> =
-        StorageMap<_, Identity, u16, u64, ValueQuery, DefaultAdjustmentAlpha<T>>;
-
-    #[pallet::type_value]
-    pub fn DefaultMaxWeightAge<T: Config>() -> u64 {
-        3600 // 3.6k blocks, that is 8 hours
-    }
     #[pallet::storage] // --- MAP ( netuid ) --> min_allowed_weights
-    pub type MaxWeightAge<T> =
-        StorageMap<_, Identity, u16, u64, ValueQuery, DefaultMaxWeightAge<T>>;
+    pub type MaxWeightAge<T> = StorageMap<_, Identity, u16, u64, ValueQuery, ConstU64<3600>>;
 
-    #[pallet::type_value]
-    pub fn DefaultMaxAllowedWeights<T: Config>() -> u16 {
-        420
-    }
     #[pallet::storage] // --- MAP ( netuid ) --> min_allowed_weights
-    pub type MaxAllowedWeights<T> =
-        StorageMap<_, Identity, u16, u16, ValueQuery, DefaultMaxAllowedWeights<T>>;
+    pub type MaxAllowedWeights<T> = StorageMap<_, Identity, u16, u16, ValueQuery, ConstU16<420>>;
 
-    #[pallet::storage] // --- DMAP ( key, netuid ) --> bool
-    pub type Founder<T: Config> =
-        StorageMap<_, Identity, u16, T::AccountId, ValueQuery, DefaultKey<T>>;
+    #[pallet::storage] // --- MAP ( netuid ) --> epoch
+    pub type TrustRatio<T> = StorageMap<_, Identity, u16, u16, ValueQuery>;
 
-    #[pallet::storage] // --- DMAP ( key, proportion )
+    #[pallet::storage] // --- MAP ( netuid ) --> epoch
+    pub type Tempo<T> = StorageMap<_, Identity, u16, u16, ValueQuery, ConstU16<100>>;
+
+    #[pallet::storage] // --- MAP ( key, proportion )
     pub type FounderShare<T: Config> =
         StorageMap<_, Identity, u16, u16, ValueQuery, DefaultFounderShare<T>>;
 
@@ -450,60 +429,19 @@ pub mod pallet {
         FloorFounderShare::<T>::get() as u16
     }
 
-    #[pallet::type_value]
-    pub fn DefaultIncentiveRatio<T: Config>() -> u16 {
-        50
-    }
-    #[pallet::storage] // --- DMAP ( key, netuid ) --> bool
-    pub type IncentiveRatio<T: Config> =
-        StorageMap<_, Identity, u16, u16, ValueQuery, DefaultIncentiveRatio<T>>;
-
-    #[pallet::type_value]
-    pub fn DefaultTempo<T: Config>() -> u16 {
-        100
-    }
-    #[pallet::storage] // --- MAP ( netuid ) --> epoch
-    pub type Tempo<T> = StorageMap<_, Identity, u16, u16, ValueQuery, DefaultTempo<T>>;
-
-    #[pallet::storage] // --- MAP ( netuid ) --> epoch
-    pub type TrustRatio<T> = StorageMap<_, Identity, u16, u16, ValueQuery>;
-
-    // ---------------------------------
-    // Voting
-    // ---------------------------------
-
-    #[pallet::type_value]
-    pub fn DefaultCurator<T: Config>() -> T::AccountId {
-        T::AccountId::decode(&mut sp_runtime::traits::TrailingZeroInput::zeroes()).unwrap()
-    }
-
-    #[pallet::type_value]
-    pub fn DefaultFloorFounderShare<T: Config>() -> u8 {
-        8
-    }
-
-    #[pallet::storage]
-    pub type FloorFounderShare<T: Config> =
-        StorageValue<_, u8, ValueQuery, DefaultFloorFounderShare<T>>;
-
-    #[pallet::storage] // --- ITEM( tota_number_of_existing_networks )
-    pub type TotalSubnets<T> = StorageValue<_, u16, ValueQuery>;
-
-    #[pallet::storage] // --- MAP( netuid ) --> subnet_emission
-    pub type SubnetEmission<T> = StorageMap<_, Identity, u16, u64, ValueQuery>;
-
-    #[pallet::storage] // --- MAP ( netuid ) --> subnetwork_n (Number of UIDs in the network).
-    pub type N<T> = StorageMap<_, Identity, u16, u16, ValueQuery>;
-
-    #[pallet::storage] // --- MAP ( netuid ) --> pending_emission
-    pub type PendingEmission<T> = StorageMap<_, Identity, u16, u64, ValueQuery>;
-
-    #[pallet::storage] // --- MAP ( network_name ) --> netuid
-    pub type SubnetNames<T: Config> = StorageMap<_, Identity, u16, Vec<u8>, ValueQuery>;
-
     // ---------------------------------
     // Module Variables
     // ---------------------------------
+
+    #[derive(Decode, Encode, PartialEq, Eq, Clone, Debug, TypeInfo)]
+    #[scale_info(skip_type_params(T))]
+    pub struct ModuleParams<T: Config> {
+        pub name: Vec<u8>,
+        pub address: Vec<u8>,
+        pub delegation_fee: Percent,
+        pub metadata: Option<Vec<u8>>,
+        pub controller: T::AccountId,
+    }
 
     #[pallet::storage] // --- DMAP ( netuid, module_key ) --> uid
     pub type Uids<T: Config> =
@@ -514,8 +452,7 @@ pub mod pallet {
         T::AccountId::decode(&mut sp_runtime::traits::TrailingZeroInput::zeroes()).unwrap()
     }
     #[pallet::storage] // --- DMAP ( netuid, uid ) --> module_key
-    pub(super) type Keys<T: Config> =
-        StorageDoubleMap<_, Identity, u16, Identity, u16, T::AccountId, ValueQuery, DefaultKey<T>>;
+    pub type Keys<T: Config> = StorageDoubleMap<_, Identity, u16, Identity, u16, T::AccountId>;
 
     #[pallet::storage] // --- DMAP ( netuid, uid ) --> module_name
     pub type Name<T: Config> =
@@ -528,64 +465,6 @@ pub mod pallet {
     #[pallet::storage] // --- DMAP ( netuid, module key ) --> metadata_uri
     pub type Metadata<T: Config> =
         StorageDoubleMap<_, Twox64Concat, u16, Twox64Concat, T::AccountId, Vec<u8>>;
-
-    #[pallet::type_value]
-    pub fn DefaultDelegationFee<T: Config>() -> Percent {
-        Percent::from_percent(20u8)
-    }
-    #[pallet::storage] // -- DMAP(netuid, module_key) -> delegation_fee
-    pub(super) type DelegationFee<T: Config> = StorageDoubleMap<
-        _,
-        Identity,
-        u16,
-        Blake2_128Concat,
-        T::AccountId,
-        Percent,
-        ValueQuery,
-        DefaultDelegationFee<T>,
-    >;
-
-    #[pallet::storage] // --- DMAP ( netuid, uid ) --> block number that the module is registered
-    pub type RegistrationBlock<T: Config> =
-        StorageDoubleMap<_, Identity, u16, Identity, u16, u64, ValueQuery>;
-
-    // ---------------------------------
-    //  Module Staking Variables
-    /// ---------------------------------
-
-    #[pallet::storage] // --- DMAP ( netuid, module_key ) --> stake | Returns the stake under a module.
-    pub type Stake<T: Config> =
-        StorageDoubleMap<_, Identity, u16, Identity, T::AccountId, u64, ValueQuery>;
-
-    #[pallet::storage] // --- DMAP ( netuid, module_key ) --> Vec<(delegater, stake )> | Returns the list of delegates
-                       // and their staked amount under a module
-    pub type StakeFrom<T: Config> = StorageDoubleMap<
-        _,
-        Identity,
-        u16,
-        Identity,
-        T::AccountId,
-        BTreeMap<T::AccountId, u64>,
-        ValueQuery,
-    >;
-
-    #[pallet::storage] // --- DMAP ( netuid, account_id ) --> Vec<(module_key, stake )> | Returns the list of the
-    pub type StakeTo<T: Config> = StorageDoubleMap<
-        _,
-        Identity,
-        u16,
-        Identity,
-        T::AccountId,
-        BTreeMap<T::AccountId, u64>,
-        ValueQuery,
-    >;
-
-    #[pallet::storage] // --- MAP( netuid ) --> lowest_subnet
-    pub type SubnetGaps<T> = StorageValue<_, BTreeSet<u16>, ValueQuery>;
-
-    // TOTAL STAKE PER SUBNET
-    #[pallet::storage] // --- MAP ( netuid ) --> subnet_total_stake
-    pub type TotalStake<T> = StorageMap<_, Identity, u16, u64, ValueQuery>;
 
     // ---------------------------------
     // Module Consensus Variables
@@ -602,9 +481,40 @@ pub mod pallet {
     #[pallet::storage] // --- MAP ( netuid ) --> last_update
     pub type LastUpdate<T: Config> = StorageMap<_, Identity, u16, Vec<u64>, ValueQuery>;
 
+    #[pallet::storage] // ITEM ( max_allowed_weights_global )
+    pub type SubnetImmunityPeriod<T: Config> = StorageValue<_, u64, ValueQuery, ConstU64<32400>>;
+
+    #[pallet::storage] // --- MAP ( netuid, uid ) --> block number that the module is registered
+    pub type SubnetRegistrationBlock<T: Config> = StorageMap<_, Identity, u16, u64>;
+
+    #[pallet::storage] // --- DMAP ( netuid, uid ) --> block number that the module is registered
+    pub type RegistrationBlock<T: Config> =
+        StorageDoubleMap<_, Identity, u16, Identity, u16, u64, ValueQuery>;
+
     #[pallet::storage] // --- DMAP ( netuid, uid ) --> weights
     pub type Weights<T: Config> =
         StorageDoubleMap<_, Identity, u16, Identity, u16, Vec<(u16, u16)>, ValueQuery>;
+
+    #[pallet::type_value]
+    pub fn DefaultDelegationFee<T: Config>() -> Percent {
+        Percent::from_percent(20u8)
+    }
+
+    #[pallet::storage] // -- DMAP (netuid, module_key) -> delegation_fee
+    pub type DelegationFee<T: Config> = StorageDoubleMap<
+        _,
+        Identity,
+        u16,
+        Blake2_128Concat,
+        T::AccountId,
+        Percent,
+        ValueQuery,
+        DefaultDelegationFee<T>,
+    >;
+
+    #[pallet::storage] // MAP (netuid, module_key) -> control_delegation
+    pub type RootnetControlDelegation<T: Config> =
+        StorageMap<_, Identity, T::AccountId, T::AccountId>;
 
     // ---------------------------------
     // Event Variables
@@ -613,152 +523,200 @@ pub mod pallet {
     #[pallet::event]
     #[pallet::generate_deposit(pub fn deposit_event)]
     pub enum Event<T: Config> {
-        NetworkAdded(u16, Vec<u8>), // --- Event created when a new network is added.
-        NetworkRemoved(u16),        // --- Event created when a network is removed.
-        StakeAdded(T::AccountId, T::AccountId, u64), /* --- Event created when stake has been
-                                     * transfered from the a coldkey account
-                                     * onto the key staking account. */
-        StakeRemoved(T::AccountId, T::AccountId, u64), /* --- Event created when stake has been
-                                                        * removed from the key staking account
-                                                        * onto the coldkey account. */
-        WeightsSet(u16, u16), /* ---- Event created when a caller successfully sets their
-                               * weights on a subnetwork. */
-        ModuleRegistered(u16, u16, T::AccountId), /* --- Event created when a new module
-                                                   * account has been registered to the chain. */
-        ModuleDeregistered(u16, u16, T::AccountId), /* --- Event created when a module account
-                                                     * has been deregistered from the chain. */
-        ModuleUpdated(u16, T::AccountId), /* --- Event created when the module got updated
-                                           * information is added to the network. */
-
-        // faucet
-        Faucet(T::AccountId, BalanceOf<T>), // (id, balance_to_add)
-
-        //voting
-        ProposalVoted(u64, T::AccountId, bool), // (id, voter, vote)
-        ProposalVoteUnregistered(u64, T::AccountId), // (id, voter)
-        GlobalParamsUpdated(GlobalParams<T>),   /* --- Event created when global
-                                                 * parameters are
-                                                 * updated */
-        SubnetParamsUpdated(u16), // --- Event created when subnet parameters are updated
-        GlobalProposalAccepted(u64), // (id)
-        CustomProposalAccepted(u64), // (id)
-        SubnetProposalAccepted(u64, u16), // (id, netuid)
+        /// Event created when a new network is added
+        NetworkAdded(u16, Vec<u8>),
+        /// Event created when a network is removed
+        NetworkRemoved(u16),
+        /// Event created when stake has been transferred from the coldkey account onto the key
+        /// staking account
+        StakeAdded(T::AccountId, T::AccountId, u64),
+        /// Event created when stake has been removed from the key staking account onto the coldkey
+        /// account
+        StakeRemoved(T::AccountId, T::AccountId, u64),
+        /// Event created when a caller successfully sets their weights on a subnetwork
+        WeightsSet(u16, u16),
+        /// Event created when a new module account has been registered to the chain
+        ModuleRegistered(u16, u16, T::AccountId),
+        /// Event created when a module account has been deregistered from the chain
+        ModuleDeregistered(u16, u16, T::AccountId),
+        /// Event created when the module's updated information is added to the network
+        ModuleUpdated(u16, T::AccountId),
+        // Parameter Updates
+        /// Event created when global parameters are updated
+        GlobalParamsUpdated(GlobalParams<T>),
+        /// Event created when subnet parameters are updated
+        SubnetParamsUpdated(u16),
     }
 
     // ---------------------------------
     // Error Variables
     // ---------------------------------
 
-    // Errors inform users that something went wrong.
+    // Errors inform users about failures
     #[pallet::error]
     pub enum Error<T> {
-        NetworkDoesNotExist, // --- Thrown when the network does not exist.
+        /// The specified network does not exist.
+        NetworkDoesNotExist,
+        /// The specified module does not exist.
+        ModuleDoesNotExist,
+        /// The network is immune to changes.
         NetworkIsImmuned,
-        NotRegistered, // module which does not exist in the active set.
-        NotEnoughStakeToWithdraw, /* ---- Thrown when the caller requests removing more stake
-                        * then there exists in the staking account. See: fn
-                        * remove_stake. */
-        NotEnoughBalanceToStake, /*  ---- Thrown when the caller requests adding more stake
-                                  * than there exists in the cold key account. See: fn
-                                  * add_stake */
-        WeightVecNotEqualSize, /* ---- Thrown when the caller attempts to set the weight keys
-                                * and values but these vectors have different size. */
-        DuplicateUids, /* ---- Thrown when the caller attempts to set weights with duplicate
-                        * uids in the weight matrix. */
-        InvalidUid, /* ---- Thrown when a caller attempts to set weight to at least one uid
-                     * that does not exist in the metagraph. */
-        InvalidUidsLength, /* ---- Thrown when the caller attempts to set weights with a
-                            * different number of uids than allowed. */
-        TooManyRegistrationsPerBlock, /* ---- Thrown when registrations this block exceeds
-                                       * allowed number. */
-        TooManyRegistrationsPerInterval, /* ---- Thrown when registrations this interval
-                                          * exceeds
-                                          * allowed number. */
-        AlreadyRegistered, /* ---- Thrown when the caller requests registering a module which
-                            * already exists in the active set. */
-        CouldNotConvertToBalance, /* ---- Thrown when the dispatch attempts to convert between
-                                   * a u64 and T::balance but the call fails. */
-        InvalidTempo, // --- Thrown when epoch is not valid
-        SettingWeightsTooFast, /* --- Thrown if the key attempts to set weights twice withing
-                       * net_epoch/2 blocks. */
-        InvalidMaxAllowedUids, /* --- Thrown when the user tries to set max allowed uids to a
-                                * value less than the current number of registered uids. */
+        /// Insufficient balance to register a subnet.
+        NotEnoughBalanceToRegisterSubnet,
+        /// Insufficient stake to withdraw the requested amount.
+        NotEnoughStakeToWithdraw,
+        /// Insufficient balance in the cold key account to stake the requested amount.
+        NotEnoughBalanceToStake,
+        /// The weight vectors for keys and values have different sizes.
+        WeightVecNotEqualSize,
+        /// Duplicate UIDs detected in the weight matrix.
+        DuplicateUids,
+        /// At least one UID in the weight matrix does not exist in the metagraph.
+        InvalidUid,
+        /// The number of UIDs in the weight matrix is different from the allowed amount.
+        InvalidUidsLength,
+        /// The number of registrations in this block exceeds the allowed limit.
+        TooManyRegistrationsPerBlock,
+        /// The number of registrations in this interval exceeds the allowed limit.
+        TooManyRegistrationsPerInterval,
+        /// The number of subnet registrations in this interval exceeds the allowed limit.
+        TooManySubnetRegistrationsPerInterval,
+        /// The module is already registered in the active set.
+        AlreadyRegistered,
+        /// Failed to convert between u64 and T::Balance.
+        CouldNotConvertToBalance,
+        /// The specified tempo (epoch) is not valid.
+        InvalidTempo,
+        /// Attempted to set weights twice within net_epoch/2 blocks.
+        SettingWeightsTooFast,
+        /// Attempted to set max allowed UIDs to a value less than the current number of registered
+        /// UIDs.
+        InvalidMaxAllowedUids,
+        /// The specified netuid does not exist.
         NetuidDoesNotExist,
+        /// A subnet with the given name already exists.
         SubnetNameAlreadyExists,
+        /// The subnet name is too short.
         SubnetNameTooShort,
+        /// The subnet name is too long.
         SubnetNameTooLong,
+        /// The subnet name contains invalid characters.
         InvalidSubnetName,
+        /// Failed to add balance to the account.
         BalanceNotAdded,
+        /// Failed to remove stake from the account.
         StakeNotRemoved,
+        /// The key is already registered.
         KeyAlreadyRegistered,
+        /// No keys provided (empty key set).
         EmptyKeys,
+        /// Too many keys provided.
         TooManyKeys,
+        /// Invalid shares distribution.
         InvalidShares,
+        /// The caller is not the founder of the subnet.
         NotFounder,
+        /// Insufficient stake to set weights.
         NotEnoughStakeToSetWeights,
+        /// Insufficient stake to start a network.
         NotEnoughStakeToStartNetwork,
+        /// Insufficient stake per weight.
         NotEnoughStakePerWeight,
+        /// No self-weight provided.
         NoSelfWeight,
+        /// Vectors have different lengths.
         DifferentLengths,
+        /// Insufficient balance to register.
         NotEnoughBalanceToRegister,
+        /// Failed to add stake to the account.
         StakeNotAdded,
+        /// Failed to remove balance from the account.
         BalanceNotRemoved,
+        /// Balance could not be removed from the account.
         BalanceCouldNotBeRemoved,
+        /// Insufficient stake to register.
         NotEnoughStakeToRegister,
+        /// The entity is still registered and cannot be modified.
         StillRegistered,
-        MaxAllowedModules, /* --- Thrown when the user tries to set max allowed modules to a
-                            * value less than the current number of registered modules. */
+        /// Attempted to set max allowed modules to a value less than the current number of
+        /// registered modules.
+        MaxAllowedModules,
+        /// Insufficient balance to transfer.
         NotEnoughBalanceToTransfer,
+        /// The system is not in vote mode.
         NotVoteMode,
+        /// The trust ratio is invalid.
         InvalidTrustRatio,
+        /// The minimum allowed weights value is invalid.
         InvalidMinAllowedWeights,
+        /// The maximum allowed weights value is invalid.
         InvalidMaxAllowedWeights,
-        InvalidMinStake,
+        /// The minimum delegation fee is invalid.
         InvalidMinDelegationFee,
-        InvalidSubnetStakeThreshold,
+        /// The module metadata is invalid.
         InvalidModuleMetadata,
+        /// The module metadata is too long.
         ModuleMetadataTooLong,
-
+        /// The maximum name length is invalid.
         InvalidMaxNameLength,
+        /// The minimum name length is invalid.
         InvalidMinNameLenght,
+        /// The maximum allowed subnets value is invalid.
         InvalidMaxAllowedSubnets,
+        /// The maximum allowed modules value is invalid.
         InvalidMaxAllowedModules,
+        /// The maximum registrations per block value is invalid.
         InvalidMaxRegistrationsPerBlock,
+        /// The minimum burn value is invalid.
         InvalidMinBurn,
+        /// The maximum burn value is invalid.
         InvalidMaxBurn,
-
-        // Faucet
-        FaucetDisabled, // --- Thrown when the faucet is disabled.
-        InvalidDifficulty,
-        InvalidWorkBlock,
-        InvalidSeal,
-
-        // Modules
         /// The module name is too long.
         ModuleNameTooLong,
+        /// The module name is too short.
         ModuleNameTooShort,
-        /// The module name is invalid. It has to be a UTF-8 encoded string.
+        /// The module name is invalid. It must be a UTF-8 encoded string.
         InvalidModuleName,
-        /// The address is too long.
+        /// The module address is too long.
         ModuleAddressTooLong,
         /// The module address is invalid.
         InvalidModuleAddress,
         /// A module with this name already exists in the subnet.
         ModuleNameAlreadyExists,
-
+        /// The founder share is invalid.
         InvalidFounderShare,
+        /// The incentive ratio is invalid.
         InvalidIncentiveRatio,
+        /// The general subnet application cost is invalid.
         InvalidGeneralSubnetApplicationCost,
+        /// The proposal expiration is invalid.
         InvalidProposalExpiration,
-
-        // Other
+        /// The maximum weight age is invalid.
         InvalidMaxWeightAge,
-        MaximumSetWeightsPerEpochReached,
-        // Registrations
+        /// The maximum number of set weights per epoch has been reached.
+        MaxSetWeightsPerEpochReached,
+        /// An arithmetic error occurred during calculation.
+        ArithmeticError,
+        /// The target registrations per interval is invalid.
         InvalidTargetRegistrationsPerInterval,
+        /// The maximum registrations per interval is invalid.
         InvalidMaxRegistrationsPerInterval,
+        /// The adjustment alpha value is invalid.
         InvalidAdjustmentAlpha,
+        /// The target registrations interval is invalid.
         InvalidTargetRegistrationsInterval,
+        /// The minimum immunity stake is invalid.
+        InvalidMinImmunityStake,
+        /// The extrinsic panicked during execution.
+        ExtrinsicPanicked,
+        /// A step in the process panicked.
+        StepPanicked,
+        /// The stake amount to add or remove is too small. Minimum is 0.5 unit.
+        StakeTooSmall,
+        /// The target rootnet validator is delegating weights to another validator
+        TargetIsDelegatingControl,
+        /// There is no subnet that is running with the Rootnet consensus
+        RootnetSubnetNotFound,
     }
 
     // ---------------------------------
@@ -768,38 +726,34 @@ pub mod pallet {
     #[derive(frame_support::DefaultNoBound)]
     #[pallet::genesis_config]
     pub struct GenesisConfig<T: Config> {
-        // key, name, address, weights
-        pub modules: Vec<Vec<(T::AccountId, Vec<u8>, Vec<u8>, Vec<(u16, u16)>)>>,
-        // name, tempo, immunity_period, min_allowed_weight, max_allowed_weight, max_allowed_uids,
-        // immunity_ratio, founder
-        pub subnets: Vec<(Vec<u8>, u16, u16, u16, u16, u16, u64, T::AccountId)>,
-
-        pub stake_to: Vec<Vec<(T::AccountId, Vec<(T::AccountId, u64)>)>>,
-
+        pub subnets: Vec<pallet_subspace_genesis_config::ConfigSubnet<Vec<u8>, T::AccountId>>,
         pub block: u32,
     }
 
     #[pallet::genesis_build]
     impl<T: Config> BuildGenesisConfig for GenesisConfig<T> {
         fn build(&self) {
-            // Set initial total issuance from balances
-            // Subnet config values
+            let def = DefaultSubnetParams::<T>::get();
 
-            for (subnet_idx, subnet) in self.subnets.iter().enumerate() {
-                let netuid: u16 = subnet_idx as u16;
-                // --- Set subnet parameters
+            for (netuid, subnet) in self.subnets.iter().enumerate() {
+                let netuid = netuid as u16;
 
                 let params: SubnetParams<T> = SubnetParams {
-                    name: subnet.0.clone().try_into().expect("subnet name is too long"),
-                    tempo: subnet.1,
-                    immunity_period: subnet.2,
-                    min_allowed_weights: subnet.3,
-                    max_allowed_weights: subnet.4,
-                    max_allowed_uids: subnet.5,
-                    min_stake: subnet.6,
-                    founder: subnet.7.clone(),
-                    ..DefaultSubnetParams::<T>::get()
+                    name: subnet.name.clone().try_into().expect("subnet name is too long"),
+                    founder: subnet.founder.clone(),
+                    tempo: subnet.tempo.unwrap_or(def.tempo),
+                    immunity_period: subnet.immunity_period.unwrap_or(def.immunity_period),
+                    min_allowed_weights: subnet
+                        .min_allowed_weights
+                        .unwrap_or(def.min_allowed_weights),
+                    max_allowed_weights: subnet
+                        .max_allowed_weights
+                        .unwrap_or(def.max_allowed_weights),
+                    max_allowed_uids: subnet.max_allowed_uids.unwrap_or(def.max_allowed_uids),
+                    ..def.clone()
                 };
+
+                log::info!("registering subnet {netuid} with params: {params:?}");
 
                 let fee = DelegationFee::<T>::get(netuid, &params.founder);
                 let changeset: SubnetChangeset<T> =
@@ -807,35 +761,29 @@ pub mod pallet {
                 let _ = self::Pallet::<T>::add_subnet(changeset, Some(netuid))
                     .expect("Failed to register genesis subnet");
 
-                if let Some(modules) = self.modules.get(subnet_idx) {
-                    for (uid_usize, (key, name, address, weights)) in modules.iter().enumerate() {
-                        let changeset =
-                            ModuleChangeset::new(name.clone(), address.clone(), fee, None);
-                        self::Pallet::<T>::append_module(netuid, key, changeset)
-                            .expect("genesis modules are valid");
-                        Weights::<T>::insert(netuid, uid_usize as u16, weights);
-                    }
-                }
-            }
-            // Now we can add the stake to the network
+                for (module_uid, module) in subnet.modules.iter().enumerate() {
+                    let module_uid = module_uid as u16;
 
-            let subnet_stakes = self
-                .subnets
-                .iter()
-                .enumerate()
-                .filter_map(|(subnet_id, _)| Some((subnet_id, self.stake_to.get(subnet_id)?)));
-            for (subnet_id, stakes) in subnet_stakes {
-                for (key, stake_to) in stakes {
-                    for (module_key, stake_amount) in stake_to {
-                        Pallet::<T>::increase_stake(
-                            subnet_id as u16,
-                            key,
-                            module_key,
-                            *stake_amount,
-                        );
+                    let changeset = ModuleChangeset::new(
+                        module.name.clone(),
+                        module.address.clone(),
+                        fee,
+                        None,
+                    );
+                    self::Pallet::<T>::append_module(netuid, &module.key, changeset)
+                        .expect("genesis modules are valid");
+                    Weights::<T>::insert(
+                        netuid,
+                        module_uid,
+                        module.weights.clone().unwrap_or_default(),
+                    );
+
+                    for (staker, stake) in module.stake_from.iter().flatten() {
+                        Pallet::<T>::increase_stake(staker, &module.key, *stake);
                     }
                 }
             }
+            log::info!("{:?}", SubnetGaps::<T>::get());
         }
     }
 
@@ -847,9 +795,34 @@ pub mod pallet {
     impl<T: Config> Hooks<BlockNumberFor<T>> for Pallet<T> {
         /// ---- Called on the initialization of this pallet. (the order of on_finalize calls is
         /// determined in the runtime)
-        fn on_initialize(_block_number: BlockNumberFor<T>) -> Weight {
-            Self::block_step();
+        fn on_initialize(block_number: BlockNumberFor<T>) -> Weight {
+            let block_number: u64 =
+                block_number.try_into().ok().expect("blockchain won't pass 2 ^ 64 blocks");
 
+            // Adjust costs to reflect the demand
+            Self::adjust_registration_parameters(block_number);
+
+            // Clears the root net weights daily quota
+            Self::clear_rootnet_daily_weight_calls(block_number);
+
+            Self::copy_delegated_weights(block_number);
+
+            for netuid in N::<T>::iter_keys() {
+                if Self::blocks_until_next_epoch(netuid, block_number) > 0 {
+                    continue;
+                }
+
+                // Clear weights for normal subnets
+                Self::clear_set_weight_rate_limiter(netuid);
+            }
+
+            // TODO: fix later
+            Weight::default()
+        }
+
+        fn on_idle(_n: BlockNumberFor<T>, _remaining: Weight) -> Weight {
+            log::info!("running on_idle");
+            // Pallet::<T>::deregister_not_whitelisted_modules(remaining)
             Weight::zero()
         }
     }
@@ -887,22 +860,20 @@ pub mod pallet {
         #[pallet::weight((T::WeightInfo::add_stake(), DispatchClass::Normal, Pays::No))]
         pub fn add_stake(
             origin: OriginFor<T>,
-            netuid: u16,
             module_key: T::AccountId,
             amount: u64,
         ) -> DispatchResult {
-            Self::do_add_stake(origin, netuid, module_key, amount)
+            Self::do_add_stake(origin, module_key, amount)
         }
 
         #[pallet::call_index(2)]
         #[pallet::weight((T::WeightInfo::remove_stake(), DispatchClass::Normal, Pays::No))]
         pub fn remove_stake(
             origin: OriginFor<T>,
-            netuid: u16,
             module_key: T::AccountId,
             amount: u64,
         ) -> DispatchResult {
-            Self::do_remove_stake(origin, netuid, module_key, amount)
+            Self::do_remove_stake(origin, module_key, amount)
         }
 
         // ---------------------------------
@@ -913,22 +884,20 @@ pub mod pallet {
         #[pallet::weight((T::WeightInfo::add_stake_multiple(), DispatchClass::Normal, Pays::No))]
         pub fn add_stake_multiple(
             origin: OriginFor<T>,
-            netuid: u16,
             module_keys: Vec<T::AccountId>,
             amounts: Vec<u64>,
         ) -> DispatchResult {
-            Self::do_add_stake_multiple(origin, netuid, module_keys, amounts)
+            Self::do_add_stake_multiple(origin, module_keys, amounts)
         }
 
         #[pallet::call_index(4)]
         #[pallet::weight((T::WeightInfo::remove_stake_multiple(), DispatchClass::Normal, Pays::No))]
         pub fn remove_stake_multiple(
             origin: OriginFor<T>,
-            netuid: u16,
             module_keys: Vec<T::AccountId>,
             amounts: Vec<u64>,
         ) -> DispatchResult {
-            Self::do_remove_stake_multiple(origin, netuid, module_keys, amounts)
+            Self::do_remove_stake_multiple(origin, module_keys, amounts)
         }
 
         // ---------------------------------
@@ -939,12 +908,11 @@ pub mod pallet {
         #[pallet::weight((T::WeightInfo::transfer_stake(), DispatchClass::Normal, Pays::No))]
         pub fn transfer_stake(
             origin: OriginFor<T>,         // --- The account that is calling this function.
-            netuid: u16,                  // --- The network id.
             module_key: T::AccountId,     // --- The module key.
             new_module_key: T::AccountId, // --- The new module key.
             amount: u64,                  // --- The amount of stake to transfer.
         ) -> DispatchResult {
-            Self::do_transfer_stake(origin, netuid, module_key, new_module_key, amount)
+            Self::do_transfer_stake(origin, module_key, new_module_key, amount)
         }
 
         #[pallet::call_index(6)]
@@ -968,11 +936,10 @@ pub mod pallet {
             network: Vec<u8>,
             name: Vec<u8>,
             address: Vec<u8>,
-            stake: u64,
             module_key: T::AccountId,
             metadata: Option<Vec<u8>>,
         ) -> DispatchResult {
-            Self::do_register(origin, network, name, address, stake, module_key, metadata)
+            Self::do_register(origin, network, name, address, module_key, metadata)
         }
 
         #[pallet::call_index(8)]
@@ -996,7 +963,10 @@ pub mod pallet {
             metadata: Option<Vec<u8>>,
         ) -> DispatchResult {
             let key = ensure_signed(origin.clone())?;
-            ensure!(Self::is_registered(netuid, &key), Error::<T>::NotRegistered);
+            ensure!(
+                Self::is_registered(Some(netuid), &key),
+                Error::<T>::ModuleDoesNotExist
+            );
 
             let params = Self::module_params(netuid, &key);
 
@@ -1018,7 +988,6 @@ pub mod pallet {
             max_allowed_weights: u16,
             min_allowed_weights: u16,
             max_weight_age: u64,
-            min_stake: u64,
             name: BoundedVec<u8, ConstU32<256>>,
             tempo: u16,
             trust_ratio: u16,
@@ -1029,6 +998,7 @@ pub mod pallet {
             target_registrations_per_interval: u16,
             max_registrations_per_interval: u16,
             adjustment_alpha: u64,
+            min_immunity_stake: u64,
         ) -> DispatchResult {
             let params = SubnetParams {
                 founder,
@@ -1039,7 +1009,6 @@ pub mod pallet {
                 max_allowed_weights,
                 min_allowed_weights,
                 max_weight_age,
-                min_stake,
                 name,
                 tempo,
                 trust_ratio,
@@ -1049,6 +1018,7 @@ pub mod pallet {
                 target_registrations_per_interval,
                 max_registrations_per_interval,
                 adjustment_alpha,
+                min_immunity_stake,
                 governance_config: GovernanceConfiguration {
                     vote_mode,
                     ..T::get_subnet_governance_configuration(netuid)
@@ -1059,30 +1029,28 @@ pub mod pallet {
             Self::do_update_subnet(origin, netuid, changeset)
         }
 
-        // ---------------------------------
-        // Testnet
-        // ---------------------------------
-
         #[pallet::call_index(11)]
-        #[pallet::weight((Weight::from_parts(85_000_000, 0)
-        .saturating_add(T::DbWeight::get().reads(16))
-        .saturating_add(T::DbWeight::get().writes(28)), DispatchClass::Operational, Pays::No))]
-        pub fn faucet(
+        #[pallet::weight((T::WeightInfo::delegate_rootnet_control(), DispatchClass::Normal, Pays::No))]
+        pub fn delegate_rootnet_control(
             origin: OriginFor<T>,
-            block_number: u64,
-            nonce: u64,
-            work: Vec<u8>,
+            target: T::AccountId,
         ) -> DispatchResult {
-            if cfg!(feature = "testnet-faucet") {
-                Self::do_faucet(origin, block_number, nonce, work)
-            } else {
-                Err(Error::<T>::FaucetDisabled.into())
-            }
+            Self::do_delegate_rootnet_control(origin, target)
         }
     }
 
     // ---- Subspace helper functions.
     impl<T: Config> Pallet<T> {
+        /// used to get account total value staked to modules
+        pub fn get_owned_stake(key: &T::AccountId) -> u64 {
+            StakeTo::<T>::iter_prefix(key).map(|(_, stake)| stake).sum()
+        }
+
+        /// used to get modules total value staked from accounts
+        pub fn get_delegated_stake(key: &T::AccountId) -> u64 {
+            StakeFrom::<T>::iter_prefix(key).map(|(_, stake)| stake).sum()
+        }
+
         // --- Returns the transaction priority for setting weights.
         pub fn get_priority_set_weights(key: &T::AccountId, netuid: u16) -> u64 {
             if let Some(uid) = Uids::<T>::get(netuid, key) {
@@ -1095,7 +1063,7 @@ pub mod pallet {
         // --- Returns the transaction priority for setting weights.
         pub fn get_priority_stake(key: &T::AccountId, netuid: u16) -> u64 {
             if Uids::<T>::contains_key(netuid, key) {
-                return Self::get_stake(netuid, key);
+                return Self::get_delegated_stake(key);
             }
             0
         }

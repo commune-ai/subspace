@@ -15,3 +15,6 @@
 .direnv
 
 .idea
+
+# scripts
+__pycache__

@@ -1,4 +1,5 @@
 use node_subspace_runtime::{AccountId, RuntimeGenesisConfig, WASM_BINARY};
+use pallet_subspace_genesis_config::{ConfigModule, ConfigSubnet};
 use sc_service::ChainType;
 use serde::Deserialize;
 use sp_consensus_aura::sr25519::AuthorityId as AuraId;
@@ -21,49 +22,19 @@ pub fn authority_keys_from_seed(s: &str) -> (AuraId, GrandpaId) {
     (get_from_seed::<AuraId>(s), get_from_seed::<GrandpaId>(s))
 }
 
-/// (name, tempo, immunity_period, min_allowed_weights, max_allowed_weights,
-/// max_allowed_uids, founder)
-pub type JSONSubnet = (String, u16, u16, u16, u16, u16, u64, String);
-
-/// (key, name, address, stake, weights)
-pub type JSONModule = (String, String, String, Vec<(u16, u16)>);
-
-/// (module_key, amount)
-pub type JSONStakeTo = (String, Vec<(String, u64)>);
-
-/// (name, tempo, immunity_period, min_allowed_weights, max_allowed_weights,
-/// max_allowed_uids, founder)
-pub type Subnet = (
-    Vec<u8>,
-    u16,
-    u16,
-    u16,
-    u16,
-    u16,
-    u64,
-    sp_runtime::AccountId32,
-);
-
-/// (key, name, address, stake, weights)
-pub type Module = (sp_runtime::AccountId32, Vec<u8>, Vec<u8>, Vec<(u16, u16)>);
-
-/// (module_key, amount)
-pub type StakeTo = (sp_runtime::AccountId32, Vec<(sp_runtime::AccountId32, u64)>);
-
 /// A struct containing the patch values for the default chain spec.
 #[derive(Deserialize, Debug)]
+#[serde(rename_all = "camelCase")]
 struct ChainSpecPatch {
+    code: Option<String>,
+
+    sudo: Option<String>,
+
     #[serde(default)]
     balances: std::collections::HashMap<String, u64>,
 
     #[serde(default)]
-    subnets: Vec<JSONSubnet>,
-
-    #[serde(default)]
-    modules: Vec<Vec<JSONModule>>,
-
-    #[serde(default)]
-    stake_to: Vec<Vec<JSONStakeTo>>,
+    subnets: Vec<ConfigSubnet<String, String>>,
 
     #[serde(default)]
     block: u32,
@@ -79,51 +50,41 @@ pub fn generate_config(path: &str) -> Result<ChainSpec, String> {
     let state: ChainSpecPatch =
         serde_json::from_reader(&file).map_err(|e| format!("Error parsing spec file: {e}"))?;
 
-    let mut subnets: Vec<Subnet> = Vec::new();
-    let mut modules: Vec<Vec<Module>> = Vec::new();
-    let mut stake_to: Vec<Vec<StakeTo>> = Vec::new();
+    let subnets: Vec<_> = state
+        .subnets
+        .into_iter()
+        .map(|subnet| {
+            let modules = subnet
+                .modules
+                .into_iter()
+                .map(|module| ModuleData {
+                    key: account_id_from_str(&module.key),
+                    name: module.name.as_bytes().to_vec(),
+                    address: module.address.as_bytes().to_vec(),
+                    weights: module.weights,
+                    stake_from: module.stake_from.map(|stake_from| {
+                        stake_from
+                            .into_iter()
+                            .map(|(key, stake)| (account_id_from_str(&key), stake))
+                            .collect()
+                    }),
+                })
+                .collect();
 
-    for (netuid, subnet) in state.subnets.into_iter().enumerate() {
-        subnets.push((
-            subnet.0.as_bytes().to_vec(),
-            subnet.1,
-            subnet.2,
-            subnet.3,
-            subnet.4,
-            subnet.5,
-            subnet.6,
-            account_id_from_str(&subnet.7),
-        ));
+            SubnetData {
+                name: subnet.name.as_bytes().to_vec(),
+                founder: account_id_from_str(&subnet.founder),
 
-        let subnet_module = state.modules[netuid]
-            .iter()
-            .map(|(key, name, addr, weights)| {
-                (
-                    account_id_from_str(key),
-                    name.as_bytes().to_vec(),
-                    addr.as_bytes().to_vec(),
-                    weights.iter().map(|(a, b)| (*a, *b)).collect(),
-                )
-            })
-            .collect();
-        modules.push(subnet_module);
+                tempo: subnet.tempo,
+                immunity_period: subnet.immunity_period,
+                min_allowed_weights: subnet.min_allowed_weights,
+                max_allowed_weights: subnet.max_allowed_weights,
+                max_allowed_uids: subnet.max_allowed_uids,
 
-        let subnet_stake_to = state.stake_to[netuid]
-            .iter()
-            .map(|(key, key_stake_to)| {
-                let key = account_id_from_str(key);
-                let key_stake_to = key_stake_to
-                    .iter()
-                    .map(|(a, b)| {
-                        let key = account_id_from_str(a);
-                        (key, *b)
-                    })
-                    .collect();
-                (key, key_stake_to)
-            })
-            .collect();
-        stake_to.push(subnet_stake_to);
-    }
+                modules,
+            }
+        })
+        .collect();
 
     let processed_balances: Vec<_> = state
         .balances
@@ -137,22 +98,35 @@ pub fn generate_config(path: &str) -> Result<ChainSpec, String> {
     properties.insert("tokenDecimals".into(), 9.into());
     properties.insert("ss58Format".into(), 13116.into());
 
+    let sudo_key = state.sudo.map_or_else(
+        || account_id_from_str("5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY"),
+        |key| account_id_from_str(&key),
+    );
+
     let patch = genesis_patch(
         &[
             authority_keys_from_seed("Alice"),
             authority_keys_from_seed("Bob"),
         ],
-        account_id_from_str("5FXymAnjbb7p57pNyfdLb6YCdzm73ZhVq6oFF1AdCEPEg8Uw"),
+        sudo_key,
         processed_balances,
-        modules,
         subnets,
-        stake_to,
         state.block,
     );
 
-    let wasm_binary = WASM_BINARY.ok_or_else(|| "WASM binary not available".to_string())?;
+    let wasm_binary = state.code.map_or_else(
+        || {
+            WASM_BINARY
+                .map(<[u8]>::to_vec)
+                .ok_or_else(|| "WASM binary not available".to_string())
+        },
+        |code| {
+            let code = code.strip_prefix("0x").unwrap_or(code.as_str());
+            hex::decode(code).map_err(|e| e.to_string())
+        },
+    )?;
 
-    Ok(ChainSpec::builder(wasm_binary, None)
+    Ok(ChainSpec::builder(&wasm_binary, None)
         .with_name("commune")
         .with_id("commune")
         .with_protocol_id("commune")
@@ -162,22 +136,16 @@ pub fn generate_config(path: &str) -> Result<ChainSpec, String> {
         .build())
 }
 
-type ModuleData = (AccountId, Vec<u8>, Vec<u8>, Vec<(u16, u16)>);
-type Modules = Vec<Vec<ModuleData>>;
-type SubnetData = (Vec<u8>, u16, u16, u16, u16, u16, u64, AccountId);
-type Subnets = Vec<SubnetData>;
-type StakeToData = (AccountId, Vec<(AccountId, u64)>);
-type StakeToVec = Vec<Vec<StakeToData>>;
+type SubnetData = ConfigSubnet<Vec<u8>, sp_runtime::AccountId32>;
+type ModuleData = ConfigModule<Vec<u8>, sp_runtime::AccountId32>;
 
-// Configure initial storage state for FRAME modules.
-#[allow(clippy::too_many_arguments)]
+type Subnets = Vec<SubnetData>;
+
 fn genesis_patch(
     initial_authorities: &[(AuraId, GrandpaId)],
-    root_key: AccountId,
+    sudo_key: AccountId,
     balances: Vec<(AccountId, u64)>,
-    modules: Modules,
     subnets: Subnets,
-    stake_to: StakeToVec,
     block: u32,
 ) -> serde_json::Value {
     serde_json::json!({
@@ -191,13 +159,11 @@ fn genesis_patch(
             "authorities": initial_authorities.iter().map(|x| (x.1.clone(), 1)).collect::<Vec<_>>(),
         },
         "sudo": {
-            "key": Some(root_key),
+            "key": Some(sudo_key),
         },
         "subspaceModule": {
-            "modules": modules,
             "subnets": subnets,
             "block": block,
-            "stakeTo": stake_to,
         },
     })
 }

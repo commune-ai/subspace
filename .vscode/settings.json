@@ -1,13 +1,46 @@
 {
-  // Ignore autogen files on VS Code
-  "files.exclude": {
-    "**/*_BASE_*": true,
-    "**/*_BACKUP_*": true,
-    "**/*_LOCAL_*": true,
-    "**/*_REMOTE_*": true,
-  },
-  "search.exclude": {
-    "**/autogen_weights.rs": true
-  },
-  "workbench.iconTheme": "material-icon-theme",
+    // Ignore autogen files on VS Code
+    "files.exclude": {
+        "**/.git": true,
+        "**/.svn": true,
+        "**/.hg": true,
+        "**/CVS": true,
+        "**/.DS_Store": true,
+        "**/Thumbs.db": true,
+        "**/node_modules": true,
+        "**/.next": true,
+        "**/.spago": true,
+        "**/*.bs.js": true,
+        "**/.gradle": true,
+        "**/.classpath": true,
+        "**/.settings": true,
+        "**/.project": true,
+        "**/*.ibc": true,
+        "**/.factorypath": true,
+        "**/*_BASE_*": true,
+        "**/*_BACKUP_*": true,
+        "**/*_LOCAL_*": true,
+        "**/*_REMOTE_*": true,
+        "**/.repos": true
+    },
+    "search.exclude": {
+        "**/node_modules": true,
+        "**/bower_components": true,
+        "**/*.code-search": true,
+        "**/autogen_weights.rs": true,
+        "**/.repos": true
+    },
+    "files.watcherExclude": {
+        "**/.git/objects/**": true,
+        "**/.git/subtree-cache/**": true,
+        "**/node_modules/*/**": true,
+        "**/.hg/store/**": true,
+        "**/.repos": true
+    },
+    "rust-analyzer.cargo.extraEnv": {
+        "SKIP_WASM_BUILD": 1
+    },
+    "rust-analyzer.server.extraEnv": {
+        "SKIP_WASM_BUILD": 1
+    }
 }

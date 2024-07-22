@@ -1,5 +1,6 @@
 use super::*;
 use frame_support::pallet_prelude::{DispatchResult, MaxEncodedLen};
+use sp_core::Get;
 use sp_runtime::DispatchError;
 
 // TODO:
@@ -17,11 +18,49 @@ pub struct BurnConfiguration<T> {
     pub _pd: PhantomData<T>,
 }
 
+#[derive(
+    Clone, TypeInfo, Decode, Encode, PartialEq, Eq, frame_support::DebugNoBound, MaxEncodedLen,
+)]
+#[scale_info(skip_type_params(T))]
+pub struct SubnetBurnConfiguration<T> {
+    /// min burn the adjustment algorithm can set
+    pub min_burn: u64,
+    /// max burn the adjustment algorithm can set
+    pub max_burn: u64,
+    /// the steepness with which the burn curve will increase
+    /// every interval
+    pub adjustment_alpha: u64,
+    /// interval in blocks for the burn to be adjusted
+    pub adjustment_interval: u16,
+    /// the number of registrations expected per interval, if
+    /// below, burn gets decreased, it is increased otherwise
+    pub expected_registrations: u16,
+    /// the maximum number of registrations accepted per interval
+    pub max_registrations: u16,
+    pub _pd: PhantomData<T>,
+}
+
 impl<T: Config> Default for BurnConfiguration<T> {
     fn default() -> Self {
         Self {
             min_burn: 4_000_000_000,
             max_burn: 250_000_000_000,
+            _pd: PhantomData,
+        }
+    }
+}
+
+// TODO:
+// check if these parameters are truly desired
+impl<T: Config> Default for SubnetBurnConfiguration<T> {
+    fn default() -> Self {
+        Self {
+            min_burn: 2_000_000_000_000,
+            max_burn: 100_000_000_000_000,
+            adjustment_alpha: u64::MAX / 2,
+            adjustment_interval: 5_400,
+            expected_registrations: 1,
+            max_registrations: T::DefaultMaxSubnetRegistrationsPerInterval::get(),
             _pd: PhantomData,
         }
     }
@@ -54,11 +93,13 @@ impl<T: Config> Pallet<T> {
             burn_config: BurnConfig::<T>::get(),
             // weights
             max_allowed_weights: MaxAllowedWeightsGlobal::<T>::get(),
-            subnet_stake_threshold: SubnetStakeThreshold::<T>::get(),
             min_weight_stake: MinWeightStake::<T>::get(),
 
             // s0 config
+            subnet_immunity_period: SubnetImmunityPeriod::<T>::get(),
             general_subnet_application_cost: T::get_general_subnet_application_cost(),
+            kappa: Kappa::<T>::get(),
+            rho: Rho::<T>::get(),
 
             governance_config: T::get_global_governance_configuration(),
         }
@@ -77,7 +118,6 @@ impl<T: Config> Pallet<T> {
         // burn & registrations
         MaxRegistrationsPerBlock::<T>::set(params.max_registrations_per_block);
         MinWeightStake::<T>::put(params.min_weight_stake);
-        SubnetStakeThreshold::<T>::put(params.subnet_stake_threshold);
         FloorDelegationFee::<T>::put(params.floor_delegation_fee);
 
         // TODO: update curator
@@ -97,6 +137,8 @@ impl<T: Config> Pallet<T> {
 
         // Update the general subnet application cost
         T::set_general_subnet_application_cost(params.general_subnet_application_cost);
+        Kappa::<T>::set(params.kappa);
+        Rho::<T>::set(params.rho);
 
         Ok(())
     }
@@ -120,15 +162,6 @@ impl<T: Config> Pallet<T> {
                 && params.floor_delegation_fee.deconstruct()
                     >= old_params.floor_delegation_fee.deconstruct(),
             Error::<T>::InvalidMinDelegationFee
-        );
-
-        // we can not increase the stake threshold without a migration
-        // that would mean that subnets that are getting emission would have to get them erased to 0
-        ensure!(
-            params.subnet_stake_threshold.deconstruct() <= 100
-                && params.subnet_stake_threshold.deconstruct()
-                    <= old_params.subnet_stake_threshold.deconstruct(),
-            Error::<T>::InvalidSubnetStakeThreshold
         );
 
         ensure!(

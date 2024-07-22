@@ -2,33 +2,32 @@
 name = "pallet-governance"
 version = "1.0.0"
 description = "FRAME pallet for runtime logic of Subspace Blockchain."
-authors = ["Commune Nucleus Team"]
-homepage = "https://commune.com"
+authors = ["Commune Community"]
+homepage = "https://communeai.org/"
 edition = "2021"
 license = "Unlicense"
 publish = false
 repository = "https://github.com/commune-ai/subspace"
 
+[lints]
+workspace = true
+
 [package.metadata.docs.rs]
 targets = ["x86_64-unknown-linux-gnu"]
-
-[lints.clippy]
-arithmetic_side_effects = "deny"
-indexing_slicing = "deny"
-panicking_unwrap = "deny"
-out_of_bounds_indexing = "deny"
 
 [features]
 default = ["std"]
 std = [
     "frame-support/std",
     "frame-system/std",
+    "frame-benchmarking/std",
     "parity-scale-codec/std",
     "pallet-subspace/std",
     "scale-info/std",
     "sp-std/std",
 ]
 try-runtime = ["frame-support/try-runtime"]
+runtime-benchmarks = ["frame-benchmarking/runtime-benchmarks"]
 
 [dependencies]
 bty.workspace = true
@@ -51,6 +50,9 @@ parity-scale-codec = { workspace = true, default-features = false, features = [
 scale-info = { workspace = true, default-features = false, features = [
     "derive",
 ] }
+
+frame-benchmarking = { workspace = true, optional = true }
+
 
 [dev-dependencies]
 pallet-balances = { workspace = true, features = ["std"] }

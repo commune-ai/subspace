@@ -2,24 +2,39 @@
 members = [
     "node",
     "pallets/subspace",
+    "pallets/subspace/genesis-config",
     "pallets/governance",
     "pallets/governance/api",
+    "pallets/faucet",
+    "pallets/subnet_emission",
     "runtime",
     "xtask",
+    "tests",
 ]
 resolver = "2"
 
 [profile.release]
 panic = "unwind"
 
+[workspace.lints.rust]
+unsafe_code = "forbid"
+unused_must_use = "deny"
+
 [workspace.lints.clippy]
 all = "deny"
+arithmetic_side_effects = "deny"
+indexing_slicing = "deny"
+panicking_unwrap = "deny"
+out_of_bounds_indexing = "deny"
+match_bool = "deny"
+infinite_loop = "deny"
 
 [workspace.dependencies]
 # External dependencies
 bty = { version = "0.2.0", default-features = false }
 clap = "4.4.6"
 futures = "0.3.21"
+hex = "0.4.3"
 jsonrpsee = "0.22.2"
 lazy_static = "1.4.0"
 log = { version = "0.4.21", default-features = false }
@@ -85,6 +100,7 @@ sc-client-api = { git = "https://github.com/paritytech/polkadot-sdk", branch = "
 sc-consensus = { git = "https://github.com/paritytech/polkadot-sdk", branch = "release-polkadot-v1.10.1" }
 sc-consensus-aura = { git = "https://github.com/paritytech/polkadot-sdk", branch = "release-polkadot-v1.10.1" }
 sc-consensus-grandpa = { git = "https://github.com/paritytech/polkadot-sdk", branch = "release-polkadot-v1.10.1" }
+sc-consensus-manual-seal = { git = "https://github.com/paritytech/polkadot-sdk", branch = "release-polkadot-v1.10.1" }
 sc-executor = { git = "https://github.com/paritytech/polkadot-sdk", branch = "release-polkadot-v1.10.1" }
 sc-keystore = { git = "https://github.com/paritytech/polkadot-sdk", branch = "release-polkadot-v1.10.1" }
 sc-network = { git = "https://github.com/paritytech/polkadot-sdk", branch = "release-polkadot-v1.10.1" }
