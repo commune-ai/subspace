@@ -1,6 +1,6 @@
 [package]
 name = "node-subspace"
-version = "1.7.5"
+version = "1.7.6"
 description = "The node implementation for Commune's subspace chain."
 authors = ["Commune Community"]
 homepage = "https://communeai.org/"
