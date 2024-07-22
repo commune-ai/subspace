@@ -1147,6 +1147,20 @@ fn test_automatic_unit_emission() {
             UnitEmission::<Test>::get(),
             OriginalUnitEmission::<Test>::get()
         );
+
+        step_block(10800);
+
+        assert_eq!(
+            UnitEmission::<Test>::get(),
+            OriginalUnitEmission::<Test>::get()
+        );
+
+        step_block(10800);
+
+        assert_eq!(
+            UnitEmission::<Test>::get(),
+            OriginalUnitEmission::<Test>::get()
+        );
     });
 }
 

@@ -224,7 +224,13 @@ pub mod pallet {
         pub fn get_subnet_pricing(token_emission: u64) -> PricedSubnets {
             let rootnet_id = Self::get_consensus_netuid(SubnetConsensus::Root).unwrap_or(0);
             let pricing = RootPricing::<T>::new(rootnet_id, token_emission);
-            let priced_subnets = pricing.run().unwrap_or_default();
+            let priced_subnets = match pricing.run() {
+                Ok(priced_subnets) => priced_subnets,
+                Err(err) => {
+                    log::debug!("could not get priced subnets: {err:?}");
+                    PricedSubnets::default()
+                }
+            };
 
             for (netuid, emission) in priced_subnets.iter() {
                 SubnetEmission::<T>::insert(netuid, emission);

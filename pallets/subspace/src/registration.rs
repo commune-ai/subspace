@@ -212,8 +212,6 @@ impl<T: Config> Pallet<T> {
             Error::<T>::ModuleDoesNotExist
         );
 
-        Self::add_rootnet_validator(netuid, uid)?;
-
         RegistrationsPerBlock::<T>::mutate(|val| *val = val.saturating_add(1));
         RegistrationsThisInterval::<T>::mutate(netuid, |registrations| {
             *registrations = registrations.saturating_add(1);
@@ -379,15 +377,13 @@ impl<T: Config> Pallet<T> {
     const ROOTNET_ID: u16 = 0;
 
     fn reserve_rootnet_slot(rootnet_id: u16, key: &T::AccountId) -> DispatchResult {
-        if Self::get_validator_count(rootnet_id)
-            < MaxAllowedValidators::<T>::get(rootnet_id).unwrap_or(u16::MAX) as usize
+        if Uids::<T>::iter_prefix(rootnet_id).count()
+            < MaxAllowedUids::<T>::get(rootnet_id) as usize
         {
             return Ok(());
         }
 
-        let permits = ValidatorPermits::<T>::get(rootnet_id);
         let (lower_stake_validator, lower_stake) = Keys::<T>::iter_prefix(rootnet_id)
-            .filter(|(uid, _)| permits.get(*uid as usize).is_some_and(|b| *b))
             .map(|(_, key)| (key.clone(), Self::get_delegated_stake(&key)))
             .min_by_key(|(_, stake)| *stake)
             .ok_or(Error::<T>::ArithmeticError)?;
@@ -401,23 +397,6 @@ impl<T: Config> Pallet<T> {
         )?;
 
         Self::remove_module(rootnet_id, lower_stake_validator_uid, true)
-    }
-
-    fn add_rootnet_validator(netuid: u16, module_uid: u16) -> DispatchResult {
-        let rootnet_id = T::get_consensus_netuid(SubnetConsensus::Root).unwrap_or(Self::ROOTNET_ID);
-        if netuid == rootnet_id {
-            let mut validator_permits = ValidatorPermits::<T>::get(rootnet_id);
-            if validator_permits.len() <= module_uid as usize {
-                return Err(Error::<T>::ModuleDoesNotExist.into());
-            }
-
-            if let Some(permit) = validator_permits.get_mut(module_uid as usize) {
-                *permit = true;
-                ValidatorPermits::<T>::set(rootnet_id, validator_permits);
-            }
-        }
-
-        Ok(())
     }
 
     // --------------------------
@@ -560,10 +539,6 @@ impl<T: Config> Pallet<T> {
     /// returns the amount of total modules on the network
     pub fn global_n_modules() -> u16 {
         <N<T> as IterableStorageMap<u16, u16>>::iter().map(|(_, value)| value).sum()
-    }
-
-    fn get_validator_count(netuid: u16) -> usize {
-        ValidatorPermits::<T>::get(netuid).into_iter().filter(|b| *b).count()
     }
 
     pub fn clear_rootnet_daily_weight_calls(block: u64) {
