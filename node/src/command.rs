@@ -221,7 +221,11 @@ pub fn run() -> sc_cli::Result<()> {
         None => {
             let runner = cli.create_runner(&cli.run)?;
             runner.run_node_until_exit(|config| async move {
-                service::new_full(config).map_err(sc_cli::Error::Service)
+                if cli.local_seal {
+                    crate::manual_seal_service::new_full(config).map_err(sc_cli::Error::Service)
+                } else {
+                    service::new_full(config).map_err(sc_cli::Error::Service)
+                }
             })
         }
     }
