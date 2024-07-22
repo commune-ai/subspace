@@ -243,6 +243,10 @@ pub mod pallet {
             let emission_lowering_block = EmissionLoweringBlock::<T>::get();
             let relative_blocks = block_number.saturating_sub(emission_lowering_block);
 
+            if UnitEmission::<T>::get() >= OriginalUnitEmission::<T>::get() {
+                return;
+            }
+
             if relative_blocks > 0 && relative_blocks.wrapping_rem(10800) == 0 {
                 let i = relative_blocks.saturating_div(10800);
 
