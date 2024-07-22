@@ -222,9 +222,7 @@ pub mod pallet {
         // change this to also have the governacne processes, of picking the right subnet pricing
         #[must_use]
         pub fn get_subnet_pricing(token_emission: u64) -> PricedSubnets {
-            // TODO:
-            // use a with_storage_layer here
-            let rootnet_id = Self::get_rootnet_netuid().unwrap_or(0);
+            let rootnet_id = Self::get_consensus_netuid(SubnetConsensus::Root).unwrap_or(0);
             let pricing = RootPricing::<T>::new(rootnet_id, token_emission);
             let priced_subnets = pricing.run().unwrap_or_default();
 

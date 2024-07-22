@@ -8,7 +8,7 @@ use frame_support::{
 use frame_system as system;
 use pallet_governance::GlobalGovernanceConfig;
 use pallet_governance_api::*;
-use pallet_subnet_emission_api::SubnetEmissionApi;
+use pallet_subnet_emission_api::{SubnetConsensus, SubnetEmissionApi};
 use scale_info::prelude::collections::BTreeSet;
 use sp_core::{ConstU16, H256};
 use std::cell::RefCell;
@@ -150,8 +150,8 @@ impl SubnetEmissionApi for Test {
         pallet_subnet_emission::UnitEmission::<Test>::set(unit_emission);
     }
 
-    fn get_lowest_emission_netuid() -> Option<u16> {
-        pallet_subnet_emission::Pallet::<Test>::get_lowest_emission_netuid()
+    fn get_lowest_emission_netuid(ignore_subnet_immunity: bool) -> Option<u16> {
+        pallet_subnet_emission::Pallet::<Test>::get_lowest_emission_netuid(ignore_subnet_immunity)
     }
 
     fn remove_subnet_emission_storage(subnet_id: u16) {
@@ -178,8 +178,8 @@ impl SubnetEmissionApi for Test {
         pallet_subnet_emission::Pallet::<Test>::is_mineable_subnet(netuid)
     }
 
-    fn get_rootnet_netuid() -> Option<u16> {
-        pallet_subnet_emission::Pallet::<Test>::get_rootnet_netuid()
+    fn get_consensus_netuid(subnet_consensus: SubnetConsensus) -> Option<u16> {
+        pallet_subnet_emission::Pallet::<Test>::get_consensus_netuid(subnet_consensus)
     }
 
     fn get_pending_emission(netuid: u16) -> u64 {
@@ -544,9 +544,9 @@ pub fn check_subnet_storage(netuid: u16) -> bool {
 }
 
 #[allow(dead_code)]
-pub fn register_n_modules(netuid: u16, n: u16, stake: u64) {
+pub fn register_n_modules(netuid: u16, n: u16, stake: u64, increase_emission: bool) {
     for i in 0..n {
-        register_module(netuid, i as u32, stake).unwrap_or_else(|err| {
+        register_module(netuid, i as u32, stake, increase_emission).unwrap_or_else(|err| {
             panic!(
                 "register module failed for netuid: {netuid} key: {i} stake: {stake}. err: {err:?}"
             )
@@ -577,7 +577,12 @@ pub fn register_subnet(key: AccountId, netuid: u16) -> DispatchResult {
 }
 
 #[allow(dead_code)]
-pub fn register_module(netuid: u16, key: AccountId, stake: u64) -> Result<u16, DispatchError> {
+pub fn register_module(
+    netuid: u16,
+    key: AccountId,
+    stake: u64,
+    increase_emission: bool,
+) -> Result<u16, DispatchError> {
     let origin = get_origin(key);
 
     let network = format!("test{netuid}").as_bytes().to_vec();
@@ -593,8 +598,10 @@ pub fn register_module(netuid: u16, key: AccountId, stake: u64) -> Result<u16, D
     let netuid = SubspaceMod::get_netuid_for_name(&network).ok_or("netuid is missing")?;
     let uid = pallet_subspace::Uids::<Test>::get(netuid, key).ok_or("uid is missing")?;
 
-    Emission::<Test>::mutate(netuid, |v| v[uid as usize] = stake);
-    pallet_subnet_emission::SubnetEmission::<Test>::mutate(netuid, |s| *s += stake);
+    if increase_emission {
+        Emission::<Test>::mutate(netuid, |v| v[uid as usize] = stake);
+        pallet_subnet_emission::SubnetEmission::<Test>::mutate(netuid, |s| *s += stake);
+    }
 
     Ok(uid)
 }

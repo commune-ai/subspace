@@ -36,7 +36,7 @@ fn module_is_registered_correctly() {
         let keys_list: Vec<_> = (1..n).collect();
 
         for key in keys_list {
-            let _ = register_module(netuid, key, 0);
+            let _ = register_module(netuid, key, 0, false);
         }
 
         let registrations_this_block = RegistrationsPerBlock::<Test>::get();
@@ -57,9 +57,9 @@ fn registration_fails_when_max_registrations_per_block_reached() {
         MaxRegistrationsPerBlock::<Test>::set(1);
 
         for i in 0..2 {
-            assert_ok!(register_module(netuid, i * 2, to_nano(100)));
+            assert_ok!(register_module(netuid, i * 2, to_nano(100), false));
             assert_err!(
-                register_module(netuid, u32::MAX, to_nano(100)),
+                register_module(netuid, u32::MAX, to_nano(100), false),
                 Error::<Test>::TooManyRegistrationsPerBlock
             );
             assert_eq!(RegistrationsPerBlock::<Test>::get(), 1);
@@ -81,7 +81,8 @@ fn registration_fails_when_max_registrations_per_interval_reached() {
                 assert_ok!(register_module(
                     netuid,
                     (i * interval + block + 1) as u32,
-                    to_nano(100)
+                    to_nano(100),
+                    false
                 ));
                 step_block(1);
 
@@ -92,11 +93,12 @@ fn registration_fails_when_max_registrations_per_interval_reached() {
             assert_ok!(register_module(
                 netuid,
                 (i * interval + interval) as u32,
-                to_nano(100)
+                to_nano(100),
+                false
             ));
 
             assert_err!(
-                register_module(netuid, u32::MAX, to_nano(100)),
+                register_module(netuid, u32::MAX, to_nano(100), false),
                 Error::<Test>::TooManyRegistrationsPerInterval
             );
 
@@ -116,7 +118,7 @@ fn registers_a_module_and_storage_values_correctly() {
         let key = 1u32;
 
         add_balance(key, 2);
-        register_module(netuid, key, 1)
+        register_module(netuid, key, 1, false)
             .unwrap_or_else(|_| panic!("register module failed for key {key:?}"));
 
         assert_eq!(N::<Test>::get(netuid), 1);
@@ -137,9 +139,9 @@ fn cannot_register_same_key_twice_in_a_subnet() {
         let stake = 10;
         let key = 1u32;
 
-        assert_ok!(register_module(netuid, key, stake));
+        assert_ok!(register_module(netuid, key, stake, false));
         assert_err!(
-            register_module(netuid, key, stake),
+            register_module(netuid, key, stake, false),
             Error::<Test>::KeyAlreadyRegistered
         );
     });
@@ -172,8 +174,8 @@ fn deregister_within_subnet_when_limit_is_reached() {
         zero_min_burn();
 
         MaxAllowedModules::<Test>::set(3);
-        assert_ok!(register_module(0, 0, to_nano(10_000)));
-        assert_ok!(register_module(1, 1, to_nano(5_000)));
+        assert_ok!(register_module(0, 0, to_nano(10_000), false));
+        assert_ok!(register_module(1, 1, to_nano(5_000), false));
 
         assert_eq!(SubspaceMod::get_delegated_stake(&0), to_nano(10_000));
         assert_eq!(SubspaceMod::get_delegated_stake(&1), to_nano(5_000));
@@ -181,7 +183,7 @@ fn deregister_within_subnet_when_limit_is_reached() {
         MaxAllowedUids::<Test>::set(0, 1);
         MaxAllowedUids::<Test>::set(1, 1);
 
-        assert_ok!(register_module(0, 2, to_nano(15_000)));
+        assert_ok!(register_module(0, 2, to_nano(15_000), false));
 
         assert_eq!(SubspaceMod::get_delegated_stake(&2), to_nano(15_000));
         assert_eq!(SubspaceMod::get_delegated_stake(&1), to_nano(5_000));
@@ -204,8 +206,8 @@ fn deregister_globally_when_global_limit_is_reached() {
 
         MaxAllowedModules::<Test>::set(2);
 
-        assert_ok!(register_module(0, 0, to_nano(10)));
-        assert_ok!(register_module(1, 1, to_nano(5)));
+        assert_ok!(register_module(0, 0, to_nano(10), true));
+        assert_ok!(register_module(1, 1, to_nano(5), true));
 
         assert_eq!(get_emission(0, 0), to_nano(10));
         assert_eq!(get_emission(1, 1), to_nano(5));
@@ -213,7 +215,7 @@ fn deregister_globally_when_global_limit_is_reached() {
         MaxAllowedUids::<Test>::set(0, 2);
         MaxAllowedUids::<Test>::set(1, 1);
 
-        assert_ok!(register_module(0, 2, to_nano(15)));
+        assert_ok!(register_module(0, 2, to_nano(15), true));
 
         assert_eq!(get_emission(0, 0), to_nano(10));
         assert_eq!(get_emission(0, 2), to_nano(15));
@@ -234,9 +236,9 @@ fn deregister_subnet_with_dangling_keys() {
         let key_b = 1;
         let stake_b = 100000000000;
 
-        assert_ok!(register_module(0, key_a, stake_a));
-        assert_ok!(register_module(1, key_a, stake_a));
-        assert_ok!(register_module(1, key_b, stake_b));
+        assert_ok!(register_module(0, key_a, stake_a, false));
+        assert_ok!(register_module(1, key_a, stake_a, false));
+        assert_ok!(register_module(1, key_b, stake_b, false));
 
         assert_eq!(StakeFrom::<Test>::get(key_a, key_a), stake_a * 2);
         assert_eq!(StakeFrom::<Test>::get(key_b, key_b), stake_b);

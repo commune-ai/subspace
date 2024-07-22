@@ -10,7 +10,7 @@ fn set_weights_call_must_fail_with_keys_and_values_are_not_the_same_length() {
         zero_min_burn();
         MinimumAllowedStake::<Test>::set(0);
 
-        assert_ok!(register_module(0, 0, 1));
+        assert_ok!(register_module(0, 0, 1, false));
 
         let weights_keys = vec![1, 2, 3, 4, 5, 6];
         let weight_values = vec![1, 2, 3, 4, 5];
@@ -32,12 +32,12 @@ fn cannot_set_weights_with_duplicate_keys() {
 
         MaxRegistrationsPerBlock::<Test>::set(100);
 
-        assert_ok!(register_module(netuid, 0, 10));
+        assert_ok!(register_module(netuid, 0, 10, false));
         update_params!(netuid => { max_allowed_uids: 100 });
 
-        assert_ok!(register_module(netuid, 1, 100));
-        assert_ok!(register_module(netuid, 2, 10000));
-        assert_ok!(register_module(netuid, 3, 10000000));
+        assert_ok!(register_module(netuid, 1, 100, false));
+        assert_ok!(register_module(netuid, 2, 10000, false));
+        assert_ok!(register_module(netuid, 3, 10000000, false));
 
         assert_eq!(N::<Test>::get(netuid), 4);
 
@@ -69,7 +69,7 @@ fn set_weights_only_accepts_existing_keys() {
         zero_min_burn();
         MinimumAllowedStake::<Test>::set(0);
 
-        assert_ok!(register_module(0, 0, 1));
+        assert_ok!(register_module(0, 0, 1, false));
 
         let invalid_weight_keys: Vec<u16> = vec![9999];
         let weight_values: Vec<u16> = vec![88];
@@ -89,9 +89,9 @@ fn set_weights_call_respects_rate_limit() {
         zero_min_burn();
         MinimumAllowedStake::<Test>::set(0);
 
-        assert_ok!(register_module(0, 0, 1));
-        assert_ok!(register_module(1, 0, 1));
-        assert_ok!(register_module(1, 1, 1));
+        assert_ok!(register_module(0, 0, 1, false));
+        assert_ok!(register_module(1, 0, 1, false));
+        assert_ok!(register_module(1, 1, 1, false));
 
         Tempo::<Test>::set(1, 5);
 
@@ -129,8 +129,8 @@ fn set_weights_call_respects_rootnet_weight_limit() {
         Test::set_subnet_consensus_type(0, Some(SubnetConsensus::Root));
 
         assert_ok!(register_root_validator(0, 1));
-        assert_ok!(register_module(0, 1, 1));
-        assert_ok!(register_module(1, 1, 1));
+        assert_ok!(register_module(0, 1, 1, false));
+        assert_ok!(register_module(1, 1, 1, false));
 
         let set_weights = || SubspaceMod::set_weights(get_origin(0), 0, vec![1], vec![10]);
 
@@ -150,7 +150,7 @@ fn set_weights_on_itself_is_invalid() {
         zero_min_burn();
         MinimumAllowedStake::<Test>::set(0);
 
-        assert_ok!(register_module(1, 0, 1));
+        assert_ok!(register_module(1, 0, 1, false));
         let result = SubspaceMod::set_weights(RuntimeOrigin::signed(0), 1, vec![0], vec![0]);
         assert_err!(result, Error::<Test>::NoSelfWeight);
     });
@@ -164,11 +164,11 @@ fn set_weights_respects_min_and_max_weights() {
 
         let account_id = 0;
 
-        assert_ok!(register_module(1, account_id, 1));
+        assert_ok!(register_module(1, account_id, 1, false));
         update_params!(1 => { min_allowed_weights: 2, max_allowed_weights: 3 });
 
         for i in 1..5 {
-            assert_ok!(register_module(1, i, 1));
+            assert_ok!(register_module(1, i, 1, false));
         }
 
         let result =
@@ -208,7 +208,7 @@ fn set_weights_fails_for_stakes_below_minimum() {
 
         // registers the modules
         for i in 0..module_count {
-            assert_ok!(register_module(netuid, i as u32, to_nano(10)));
+            assert_ok!(register_module(netuid, i as u32, to_nano(10), false));
         }
 
         let uids: Vec<_> = (0..module_count).filter(|&uid| uid != voter_key as u16).collect();
@@ -303,5 +303,19 @@ fn delegate_weight_control() {
             Weights::<Test>::get(0, val1_uid),
             Weights::<Test>::get(0, val2_uid)
         )
+    });
+}
+
+#[test]
+fn test_normalize_weights_does_not_mutate_when_sum_not_zero() {
+    new_test_ext().execute_with(|| {
+        let max_allowed: u16 = 3;
+
+        let weights: Vec<u16> = Vec::from_iter(0..max_allowed);
+
+        let expected = weights.clone();
+        let result = SubspaceMod::normalize_weights(&weights);
+
+        assert_eq!(expected.len(), result.len(), "Length of weights changed?!");
     });
 }

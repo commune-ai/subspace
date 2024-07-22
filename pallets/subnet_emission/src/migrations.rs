@@ -11,7 +11,6 @@ use pallet_subspace::{Pallet as PalletSubspace, Vec};
 #[derive(Default)]
 pub struct InitialMigration<T>(PhantomData<T>);
 
-// TODO:
 impl<T: Config + pallet_subspace::Config> OnRuntimeUpgrade for InitialMigration<T> {
     fn on_runtime_upgrade() -> frame_support::weights::Weight {
         if StorageVersion::get::<Pallet<T>>() != 0 {

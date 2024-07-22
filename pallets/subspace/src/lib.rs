@@ -328,7 +328,7 @@ pub mod pallet {
     pub struct DefaultSubnetParams<T: Config>(sp_std::marker::PhantomData<((), T)>);
 
     impl<T: Config> DefaultSubnetParams<T> {
-        // TODO: not hardcoe values here, get them from the storages instead,
+        // TODO: not hardcode values here, get them from the storages instead,
         // if they implement default already.
         pub fn get() -> SubnetParams<T> {
             SubnetParams {

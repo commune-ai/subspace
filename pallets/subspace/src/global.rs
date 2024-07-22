@@ -143,7 +143,6 @@ impl<T: Config> Pallet<T> {
         Ok(())
     }
 
-    // TODO: kappa and rho constraints?
     pub fn check_global_params(params: &GlobalParams<T>) -> DispatchResult {
         // checks if params are valid
         let old_params = Self::global_params();

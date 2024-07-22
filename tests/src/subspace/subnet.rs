@@ -16,10 +16,10 @@ fn adds_and_removes_subnets() {
         MaxRegistrationsPerBlock::<Test>::set(iterations * iterations);
 
         for i in 1..iterations + 1 {
-            assert_ok!(register_module(i, i as u32, 1));
+            assert_ok!(register_module(i, i as u32, 1, false));
             for j in 1..iterations + 1 {
                 if i != j {
-                    assert_ok!(register_module(i, j as u32, 1));
+                    assert_ok!(register_module(i, j as u32, 1, false));
                 }
             }
 
@@ -32,7 +32,7 @@ fn adds_and_removes_subnets() {
         }
 
         assert_err!(
-            register_module(iterations + 1, 0, 1),
+            register_module(iterations + 1, 0, 1, false),
             Error::<Test>::TooManyRegistrationsPerBlock
         );
     });
@@ -42,7 +42,7 @@ fn adds_and_removes_subnets() {
 fn subnet_update_changes_all_parameter_values() {
     new_test_ext().execute_with(|| {
         let netuid = 1;
-        assert_ok!(register_module(netuid, 0, to_nano(10)));
+        assert_ok!(register_module(netuid, 0, to_nano(10), false));
 
         let params = SubnetParams::<Test> {
             founder: 1,
@@ -212,7 +212,7 @@ fn removes_subnet_from_storage() {
             };
         }
 
-        assert_ok!(register_module(netuid, 0, to_nano(10)));
+        assert_ok!(register_module(netuid, 0, to_nano(10), false));
         params!(exists);
         assert_eq!(SubspaceMod::get_total_subnets(), 1);
 
@@ -255,8 +255,8 @@ fn update_subnet_verifies_names_uniquiness_integrity() {
             )
         };
 
-        assert_ok!(register_module(0, 0, 1));
-        assert_ok!(register_module(1, 1, 1));
+        assert_ok!(register_module(0, 0, 1, false));
+        assert_ok!(register_module(1, 1, 1, false));
 
         assert_ok!(update_params(0, 0, SubspaceMod::subnet_params(0)));
         assert_err!(
@@ -288,7 +288,7 @@ fn subnet_is_replaced_on_reaching_max_allowed_modules() {
 
         // Register all subnets
         for (i, (subnet_key, subnet_stake)) in subnets.iter().enumerate() {
-            assert_ok!(register_module(i as u16, *subnet_key, *subnet_stake));
+            assert_ok!(register_module(i as u16, *subnet_key, *subnet_stake, true));
         }
 
         let subnet_amount = SubspaceMod::get_total_subnets();
@@ -296,14 +296,14 @@ fn subnet_is_replaced_on_reaching_max_allowed_modules() {
 
         // Register module on the subnet one (netuid 0), this means that subnet
         // subnet two (netuid 1) will be deregistered, as we reached global module limit.
-        assert_ok!(register_module(1, random_keys[0], to_nano(1_000)));
-        assert_ok!(register_module(5, random_keys[1], to_nano(150_000)));
+        assert_ok!(register_module(1, random_keys[0], to_nano(1_000), true));
+        assert_ok!(register_module(5, random_keys[1], to_nano(150_000), true));
 
         let subnet_amount = SubspaceMod::get_total_subnets();
         assert_eq!(subnet_amount, expected_subnet_amount);
 
         // netuid 1 replaced by subnet four
-        assert_ok!(register_module(4, subnets[3].0, subnets[3].1));
+        assert_ok!(register_module(4, subnets[3].0, subnets[3].1, true));
 
         let subnet_amount = SubspaceMod::get_total_subnets();
         let total_module_amount = SubspaceMod::global_n_modules();

@@ -1,5 +1,7 @@
-use crate::EmissionError;
+use crate::{pallet, EmissionError, Pallet};
+
 use core::marker::PhantomData;
+use pallet_subnet_emission_api::SubnetConsensus;
 // use frame_support::{pallet_prelude::Weight, weights::RuntimeDbWeight};
 use pallet_subspace::{
     math::*, Config, Dividends, Emission, Founder, GlobalParams, Incentive, IncentiveRatio,
@@ -31,7 +33,7 @@ use substrate_fixed::types::{I32F32, I64F64};
 //     }
 // }
 
-pub struct LinearEpoch<T: Config> {
+pub struct LinearEpoch<T: Config + pallet::Config> {
     module_count: u16,
     netuid: u16,
     founder_key: T::AccountId,
@@ -41,13 +43,14 @@ pub struct LinearEpoch<T: Config> {
     last_update: Vec<u64>,
     global_params: GlobalParams<T>,
     subnet_params: SubnetParams<T>,
+    linear_netuid: u16,
     _pd: PhantomData<T>,
 }
 
 /// This function acts as the main function of the entire blockchain reward distribution.
 /// It calculates the dividends, the incentive, the weights, the bonds,
 /// the trust and the emission for the epoch.
-impl<T: Config> LinearEpoch<T> {
+impl<T: Config + pallet::Config> LinearEpoch<T> {
     pub fn new(netuid: u16, to_be_emitted: u64) -> Self {
         let founder_key = Founder::<T>::get(netuid);
         let (to_be_emitted, founder_emission) =
@@ -68,6 +71,8 @@ impl<T: Config> LinearEpoch<T> {
 
             global_params,
             subnet_params,
+
+            linear_netuid: Pallet::<T>::get_consensus_netuid(SubnetConsensus::Linear).unwrap_or(2),
 
             _pd: Default::default(),
         }
@@ -170,6 +175,7 @@ impl<T: Config> LinearEpoch<T> {
             self.founder_emission,
             &self.founder_key,
             &uid_key_tuples,
+            self.linear_netuid,
         );
 
         Ok(())
@@ -222,6 +228,7 @@ impl<T: Config> LinearEpoch<T> {
         netuid: u16,
         founder_key: &T::AccountId,
         uid_key_tuples: &[(u16, T::AccountId)],
+        linear_netuid: u16,
     ) -> Vec<u64> {
         let n = incentive_emission_float.len();
         let mut incentive_emission: Vec<u64> =
@@ -229,7 +236,7 @@ impl<T: Config> LinearEpoch<T> {
         let dividends_emission: Vec<u64> =
             dividends_emission_float.iter().map(|e| e.to_num::<u64>()).collect();
 
-        if netuid != 0 {
+        if netuid != linear_netuid {
             if let Some(founder_incentive) =
                 PalletSubspace::<T>::get_uid_for_key(netuid, founder_key)
                     .and_then(|founder_uid| incentive_emission.get_mut(founder_uid as usize))
@@ -283,7 +290,7 @@ impl<T: Config> LinearEpoch<T> {
             }
         }
 
-        if netuid == 0 && founder_emission > 0 {
+        if netuid == linear_netuid && founder_emission > 0 {
             // Update global treasure
             PalletSubspace::<T>::add_balance_to_account(
                 &T::get_dao_treasury_address(),
@@ -294,6 +301,7 @@ impl<T: Config> LinearEpoch<T> {
         emission
     }
 
+    #[allow(clippy::too_many_arguments)]
     fn process_emission(
         incentive: &[I32F32],
         dividends: &[I32F32],
@@ -302,6 +310,7 @@ impl<T: Config> LinearEpoch<T> {
         founder_emission: u64,
         founder_key: &T::AccountId,
         uid_key_tuples: &[(u16, T::AccountId)],
+        linear_netuid: u16,
     ) {
         let (incentive_emission_float, dividends_emission_float) =
             Self::calculate_emission_ratios(incentive, dividends, to_be_emitted, netuid);
@@ -313,6 +322,7 @@ impl<T: Config> LinearEpoch<T> {
             netuid,
             founder_key,
             uid_key_tuples,
+            linear_netuid,
         );
 
         Emission::<T>::insert(netuid, emission);

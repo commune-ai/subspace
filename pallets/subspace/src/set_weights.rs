@@ -1,5 +1,6 @@
 use super::*;
 use frame_support::pallet_prelude::DispatchResult;
+use pallet_subnet_emission_api::SubnetConsensus;
 
 impl<T: Config> Pallet<T> {
     /// Sets weights for a node in a specific subnet.   
@@ -212,7 +213,8 @@ impl<T: Config> Pallet<T> {
     ) -> DispatchResult {
         let key = ensure_signed(origin)?;
 
-        let rootnet_id = T::get_rootnet_netuid().ok_or(Error::<T>::RootnetSubnetNotFound)?;
+        let rootnet_id = T::get_consensus_netuid(SubnetConsensus::Root)
+            .ok_or(Error::<T>::RootnetSubnetNotFound)?;
 
         let Some(origin_uid) = Self::get_uid_for_key(rootnet_id, &key) else {
             return Err(Error::<T>::ModuleDoesNotExist.into());
@@ -236,7 +238,7 @@ impl<T: Config> Pallet<T> {
     pub fn copy_delegated_weights(block: u64) {
         use core::ops::Rem;
         if block.rem(5400) == 0 {
-            let Some(rootnet_id) = T::get_rootnet_netuid() else {
+            let Some(rootnet_id) = T::get_consensus_netuid(SubnetConsensus::Root) else {
                 return;
             };
 

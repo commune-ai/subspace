@@ -57,7 +57,7 @@ pub mod pallet {
 
             let key_balance = PalletSubspace::<T>::get_balance_u64(&key);
             let key_stake: u64 = N::<T>::iter()
-                .map(|_| pallet_subspace::Pallet::<T>::get_delegated_stake(&key))
+                .map(|_| pallet_subspace::Pallet::<T>::get_owned_stake(&key))
                 .sum();
             let total_worth = key_balance.saturating_add(key_stake);
             if total_worth >= 50_000_000_000_000 {
@@ -123,8 +123,11 @@ pub mod pallet {
 
     #[pallet::error]
     pub enum Error<T> {
+        /// The work block provided is invalid.
         InvalidWorkBlock,
+        /// The difficulty provided does not meet the required criteria.
         InvalidDifficulty,
+        /// The seal provided is invalid or does not match the expected value.
         InvalidSeal,
     }
 }
@@ -180,8 +183,8 @@ impl<T: Config> Pallet<T> {
         let seal: H256 = Self::create_seal_hash(block_number, nonce, &key)?;
         ensure!(seal == work_hash, Error::<T>::InvalidSeal);
 
-        // --- 5. Add Balance via faucet.
-        let amount: u64 = 1_000_000_000_000;
+        // --- 5. Add Balance via faucet. 15 tokens
+        let amount: u64 = 15_000_000_000;
         let balance_to_add = PalletSubspace::<T>::u64_to_balance(amount).unwrap();
         PalletSubspace::<T>::add_balance_to_account(&key, balance_to_add);
 

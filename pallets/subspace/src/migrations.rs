@@ -399,10 +399,14 @@ pub mod v12 {
     }
 
     fn transfer_subnet<T: Config>(curr: u16, target: Option<u16>) -> DispatchResult {
+        let mut restart_n = false;
         let target =
             target.unwrap_or_else(|| match SubnetGaps::<T>::mutate(|set| set.pop_first()) {
                 Some(removed) => removed,
-                None => Pallet::<T>::get_total_subnets(),
+                None => {
+                    restart_n = true;
+                    Pallet::<T>::get_total_subnets()
+                }
             });
 
         log::info!("transferring subnet {} to {}", curr, target);
@@ -564,6 +568,13 @@ pub mod v12 {
         let target_governance_config = T::get_subnet_governance_configuration(curr);
         T::update_subnet_governance_configuration(curr, target_governance_config)?;
         T::update_subnet_governance_configuration(target, curr_governance_config)?;
+
+        // This is so total subnets changes amount
+        if restart_n {
+            log::info!("restarting N");
+            N::<T>::insert(curr, 0);
+        }
+
         Ok(())
     }
 }

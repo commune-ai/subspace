@@ -6,6 +6,7 @@ use frame_support::{
     pallet_prelude::DispatchResult, sp_runtime::DispatchError, IterableStorageMap,
 };
 use frame_system::ensure_signed;
+use pallet_subnet_emission_api::SubnetConsensus;
 use sp_core::Get;
 use sp_runtime::BoundedVec;
 use substrate_fixed::types::I110F18;
@@ -182,7 +183,7 @@ impl<T: Config> Pallet<T> {
             Error::<T>::KeyAlreadyRegistered
         );
 
-        let rootnet_id = T::get_rootnet_netuid().unwrap_or(Self::ROOTNET_ID);
+        let rootnet_id = T::get_consensus_netuid(SubnetConsensus::Root).unwrap_or(Self::ROOTNET_ID);
         if netuid != rootnet_id {
             let burn =
                 Self::u64_to_balance(Burn::<T>::get(netuid)).ok_or(Error::<T>::ArithmeticError)?;
@@ -287,7 +288,6 @@ impl<T: Config> Pallet<T> {
             .map(|(uid, _, _)| *uid)
     }
 
-    // TODO: write a test on the subnet deregistration logic
     pub fn add_subnet_from_registration(
         changeset: SubnetChangeset<T>,
     ) -> Result<u16, sp_runtime::DispatchError> {
@@ -297,7 +297,7 @@ impl<T: Config> Pallet<T> {
         // RESERVE SUBNET SLOT
         // if we have not reached the max number of subnets, then we can start a new one
         let target_subnet = if num_subnets >= max_subnets {
-            let lowest_emission_netuid = T::get_lowest_emission_netuid();
+            let lowest_emission_netuid = T::get_lowest_emission_netuid(false);
             let netuid = lowest_emission_netuid.ok_or(sp_runtime::DispatchError::Other(
                 "No valid netuid to deregister",
             ))?;
@@ -340,7 +340,7 @@ impl<T: Config> Pallet<T> {
             return Self::replace_lowest_priority_node(netuid, false);
         }
 
-        let rootnet_id = T::get_rootnet_netuid().unwrap_or(Self::ROOTNET_ID);
+        let rootnet_id = T::get_consensus_netuid(SubnetConsensus::Root).unwrap_or(Self::ROOTNET_ID);
         if netuid == rootnet_id {
             Self::reserve_rootnet_slot(rootnet_id, key)?;
         }
@@ -361,7 +361,7 @@ impl<T: Config> Pallet<T> {
     }
 
     fn remove_from_lowest_emission_subnet() -> DispatchResult {
-        if let Some(subnet_id) = T::get_lowest_emission_netuid() {
+        if let Some(subnet_id) = T::get_lowest_emission_netuid(true) {
             if let Some(module_uid) = Self::get_lowest_uid(subnet_id, true) {
                 Self::remove_module(subnet_id, module_uid, true)
             } else {
@@ -404,7 +404,7 @@ impl<T: Config> Pallet<T> {
     }
 
     fn add_rootnet_validator(netuid: u16, module_uid: u16) -> DispatchResult {
-        let rootnet_id = T::get_rootnet_netuid().unwrap_or(Self::ROOTNET_ID);
+        let rootnet_id = T::get_consensus_netuid(SubnetConsensus::Root).unwrap_or(Self::ROOTNET_ID);
         if netuid == rootnet_id {
             let mut validator_permits = ValidatorPermits::<T>::get(rootnet_id);
             if validator_permits.len() <= module_uid as usize {

@@ -5,8 +5,6 @@ use frame_support::storage::with_storage_layer;
 use pallet_subnet_emission_api::SubnetConsensus;
 use pallet_subspace::N;
 
-// TODO: make sure that sn0 recycles emission and s1 puts to treasury
-
 /// Processes subnets by updating pending emissions and running epochs when due.
 ///
 /// # Arguments
@@ -232,15 +230,17 @@ impl<T: Config> Pallet<T> {
     ///
     /// An Option containing the ID of the subnet with the lowest emission,
     /// or None if there are no subnets.
-    pub fn get_lowest_emission_netuid() -> Option<u16> {
+    pub fn get_lowest_emission_netuid(ignore_subnet_immunity: bool) -> Option<u16> {
         let current_block = pallet_subspace::Pallet::<T>::get_current_block_number();
         let immunity_period = pallet_subspace::SubnetImmunityPeriod::<T>::get();
+
         SubnetEmission::<T>::iter()
             .filter(|(netuid, _)| Self::can_remove_subnet(*netuid))
             .filter(|(netuid, _)| pallet_subspace::N::<T>::get(netuid) > 0)
             .filter(|(netuid, _)| {
-                !pallet_subspace::SubnetRegistrationBlock::<T>::get(netuid)
-                    .is_some_and(|block| current_block.saturating_sub(block) < immunity_period)
+                ignore_subnet_immunity
+                    || !pallet_subspace::SubnetRegistrationBlock::<T>::get(netuid)
+                        .is_some_and(|block| current_block.saturating_sub(block) < immunity_period)
             })
             .min_by_key(|(_, emission)| *emission)
             .map(|(netuid, _)| netuid)
@@ -289,10 +289,10 @@ impl<T: Config> Pallet<T> {
         )
     }
 
-    // Gets rootnet id by iterating through consensus, until we find root consensus
-    pub fn get_rootnet_netuid() -> Option<u16> {
+    // Gets consensus running id by iterating through consensus, until we find root consensus
+    pub fn get_consensus_netuid(subnet_consensus: SubnetConsensus) -> Option<u16> {
         SubnetConsensusType::<T>::iter().find_map(|(netuid, consensus)| {
-            if consensus == SubnetConsensus::Root {
+            if consensus == subnet_consensus {
                 Some(netuid)
             } else {
                 None

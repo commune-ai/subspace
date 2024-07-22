@@ -1,12 +1,8 @@
-// -----------
-// Step linear
-// -----------
-
 use std::collections::BTreeMap;
 
 use crate::mock::*;
 
-use frame_support::assert_ok;
+use frame_support::{assert_ok, traits::Currency};
 use log::info;
 use pallet_governance::DaoTreasuryAddress;
 use pallet_subnet_emission::{
@@ -17,469 +13,359 @@ use pallet_subnet_emission::{
 use pallet_subnet_emission_api::SubnetConsensus;
 use pallet_subspace::*;
 
-// fn update_params(netuid: u16, tempo: u16, max_weights: u16, min_weights: u16) {
-//     Tempo::<Test>::insert(netuid, tempo);
-//     MaxAllowedWeights::<Test>::insert(netuid, max_weights);
-//     MinAllowedWeights::<Test>::insert(netuid, min_weights);
-// }
-
-// TODO:
-// get back to life
-// fn check_network_stats(netuid: u16) {
-//     let emission_buffer: u64 = 1_000; // the numbers arent perfect but we want to make sure they
-// fall within a range (10_000 / 2**64)     let threshold = SubnetStakeThreshold::<Test>::get();
-//     let subnet_emission: u64 = SubspaceMod::calculate_network_emission(netuid, threshold);
-//     let incentives: Vec<u16> = Incentive::<Test>::get(netuid);
-//     let dividends: Vec<u16> = Dividends::<Test>::get(netuid);
-//     let emissions: Vec<u64> = Emission::<Test>::get(netuid);
-//     let total_incentives: u16 = incentives.iter().sum();
-//     let total_dividends: u16 = dividends.iter().sum();
-//     let total_emissions: u64 = emissions.iter().sum();
-
-//     info!("total_emissions: {total_emissions}");
-//     info!("total_incentives: {total_incentives}");
-//     info!("total_dividends: {total_dividends}");
-
-//     info!("emission: {emissions:?}");
-//     info!("incentives: {incentives:?}");
-//     info!("dividends: {dividends:?}");
-
-//     assert!(
-//         total_emissions >= subnet_emission - emission_buffer
-//             || total_emissions <= subnet_emission + emission_buffer
-//     );
-// }
-
 #[test]
-fn test_no_weights() {
+fn test_dividends_same_stake() {
     new_test_ext().execute_with(|| {
-        let netuid: u16 = 0;
+        let netuid: u16 = 1;
+        let n: u16 = 10;
+        let stake_per_module: u64 = 10_000;
 
-        // make sure that the results won´t get affected by burn
+        // Setup Rootnet
+        assert_ok!(register_named_subnet(u32::MAX, 0, "Rootnet"));
+        SubnetConsensusType::<Test>::insert(0, SubnetConsensus::Root);
+        assert_ok!(register_root_validator(u32::MAX, stake_per_module));
+
+        // Disable limitations
         zero_min_burn();
-        MinimumAllowedStake::<Test>::set(0);
+        MaxRegistrationsPerBlock::<Test>::set(1000);
 
-        register_n_modules(0, 10, 1000);
-        Tempo::<Test>::insert(netuid, 1);
-        let _keys = SubspaceMod::get_keys(netuid);
-        let _uids = SubspaceMod::get_uids(netuid);
+        // SETUP NETWORK
+        register_n_modules(netuid, n, stake_per_module, false);
+        SubnetConsensusType::<Test>::insert(netuid, SubnetConsensus::Linear);
 
+        // Set rootnet weight
+        set_weights(0, u32::MAX, vec![netuid], vec![1]);
+
+        let keys = SubspaceMod::get_keys(netuid);
+
+        // do a list of ones for weights
+        let weight_uids: Vec<u16> = [2, 3].to_vec();
+        // do a list of ones for weights
+        let weight_values: Vec<u16> = [2, 1].to_vec();
+        set_weights(netuid, keys[0], weight_uids.clone(), weight_values.clone());
+        set_weights(netuid, keys[1], weight_uids.clone(), weight_values.clone());
+
+        let stakes_before: Vec<u64> = get_stakes(netuid);
+        step_epoch(netuid);
         let incentives: Vec<u16> = Incentive::<Test>::get(netuid);
         let dividends: Vec<u16> = Dividends::<Test>::get(netuid);
         let emissions: Vec<u64> = Emission::<Test>::get(netuid);
-        let _total_incentives: u16 = incentives.iter().sum();
-        let _total_dividends: u16 = dividends.iter().sum();
-        let _total_emissions: u64 = emissions.iter().sum();
+        let stakes: Vec<u64> = get_stakes(netuid);
+
+        // evaluate votees
+        assert!(incentives[2] > 0);
+        assert_eq!(dividends[2], dividends[3]);
+        let delta: u64 = 100;
+        assert!((incentives[2] as u64) > (weight_values[0] as u64 * incentives[3] as u64) - delta);
+        assert!((incentives[2] as u64) < (weight_values[0] as u64 * incentives[3] as u64) + delta);
+
+        assert!(emissions[2] > (weight_values[0] as u64 * emissions[3]) - delta);
+        assert!(emissions[2] < (weight_values[0] as u64 * emissions[3]) + delta);
+
+        // evaluate voters
+        assert!(
+            dividends[0] == dividends[1],
+            "dividends[0]: {} != dividends[1]: {}",
+            dividends[0],
+            dividends[1]
+        );
+        assert!(
+            dividends[0] == dividends[1],
+            "dividends[0]: {} != dividends[1]: {}",
+            dividends[0],
+            dividends[1]
+        );
+
+        assert_eq!(incentives[0], incentives[1]);
+        assert_eq!(dividends[2], dividends[3]);
+
+        info!("emissions: {emissions:?}");
+
+        for (uid, emission) in emissions.iter().enumerate() {
+            if emission == &0 {
+                continue;
+            }
+            let stake: u64 = stakes[uid];
+            let stake_before: u64 = stakes_before[uid];
+            let stake_difference: u64 = stake - stake_before;
+            let expected_stake_difference: u64 = emissions[uid];
+            let error_delta: u64 = (emissions[uid] as f64 * 0.001) as u64;
+
+            assert!(
+                stake_difference < expected_stake_difference + error_delta
+                    && stake_difference > expected_stake_difference - error_delta,
+                "stake_difference: {} != expected_stake_difference: {}",
+                stake_difference,
+                expected_stake_difference
+            );
+        }
     });
 }
 
-// TODO:
-// get back to life
-// #[test]
-// fn test_dividends_same_stake() {
-//     new_test_ext().execute_with(|| {
-//         // CONSSTANTS
-//         let netuid: u16 = 0;
-//         let n: u16 = 10;
-//         let stake_per_module: u64 = 10_000;
-
-//         // make sure that the results won´t get affected by burn
-//         zero_min_burn();
-
-//         // SETUP NETWORK
-//         register_n_modules(netuid, n, stake_per_module);
-//         update_params(netuid, 1, n, 0);
-
-//         let keys = SubspaceMod::get_keys(netuid);
-//         let _uids = SubspaceMod::get_uids(netuid);
-
-//         // do a list of ones for weights
-//         let weight_uids: Vec<u16> = [2, 3].to_vec();
-//         // do a list of ones for weights
-//         let weight_values: Vec<u16> = [2, 1].to_vec();
-//         set_weights(netuid, keys[0], weight_uids.clone(), weight_values.clone());
-//         set_weights(netuid, keys[1], weight_uids.clone(), weight_values.clone());
-
-//         let stakes_before: Vec<u64> = get_stakes(netuid);
-//         step_epoch(netuid);
-//         let incentives: Vec<u16> = Incentive::<Test>::get(netuid);
-//         let dividends: Vec<u16> = Dividends::<Test>::get(netuid);
-//         let emissions: Vec<u64> = Emission::<Test>::get(netuid);
-//         let stakes: Vec<u64> = get_stakes(netuid);
-
-//         // evaluate votees
-//         assert!(incentives[2] > 0);
-//         assert_eq!(dividends[2], dividends[3]);
-//         let delta: u64 = 100;
-//         assert!((incentives[2] as u64) > (weight_values[0] as u64 * incentives[3] as u64) -
-// delta);         assert!((incentives[2] as u64) < (weight_values[0] as u64 * incentives[3] as u64)
-// + delta);
-
-//         assert!(emissions[2] > (weight_values[0] as u64 * emissions[3]) - delta);
-//         assert!(emissions[2] < (weight_values[0] as u64 * emissions[3]) + delta);
-
-//         // evaluate voters
-//         assert!(
-//             dividends[0] == dividends[1],
-//             "dividends[0]: {} != dividends[1]: {}",
-//             dividends[0],
-//             dividends[1]
-//         );
-//         assert!(
-//             dividends[0] == dividends[1],
-//             "dividends[0]: {} != dividends[1]: {}",
-//             dividends[0],
-//             dividends[1]
-//         );
-
-//         assert_eq!(incentives[0], incentives[1]);
-//         assert_eq!(dividends[2], dividends[3]);
-
-//         info!("emissions: {emissions:?}");
-
-//         for (uid, emission) in emissions.iter().enumerate() {
-//             if emission == &0 {
-//                 continue;
-//             }
-//             let stake: u64 = stakes[uid];
-//             let stake_before: u64 = stakes_before[uid];
-//             let stake_difference: u64 = stake - stake_before;
-//             let expected_stake_difference: u64 = emissions[uid];
-//             let error_delta: u64 = (emissions[uid] as f64 * 0.001) as u64;
-
-//             assert!(
-//                 stake_difference < expected_stake_difference + error_delta
-//                     && stake_difference > expected_stake_difference - error_delta,
-//                 "stake_difference: {} != expected_stake_difference: {}",
-//                 stake_difference,
-//                 expected_stake_difference
-//             );
-//         }
-
-//         check_network_stats(netuid);
-//     });
-// }
-
-// TODO:
-// get back to life
-// #[test]
-// fn test_dividends_diff_stake() {
-//     new_test_ext().execute_with(|| {
-//         // CONSSTANTS
-//         let netuid: u16 = 0;
-//         let n: u16 = 10;
-//         let _n_list: Vec<u16> = vec![10, 50, 100, 1000];
-//         let _blocks_per_epoch_list: u64 = 1;
-//         let stake_per_module: u64 = 10_000;
-//         let tempo: u16 = 100;
-
-//         // make sure that the results won´t get affected by burn
-//         zero_min_burn();
-
-//         // SETUP NETWORK
-//         for i in 0..n {
-//             let mut stake = stake_per_module;
-//             if i == 0 {
-//                 stake = 2 * stake_per_module
-//             }
-//             let key: U256 = i;
-//             assert_ok!(register_module(netuid, key, stake));
-//         }
-//         update_params(netuid, tempo, n, 0);
-
-//         let keys = SubspaceMod::get_keys(netuid);
-//         let _uids = SubspaceMod::get_uids(netuid);
-
-//         // do a list of ones for weights
-//         let weight_uids: Vec<u16> = [2, 3].to_vec();
-//         // do a list of ones for weights
-//         let weight_values: Vec<u16> = [1, 1].to_vec();
-//         set_weights(netuid, keys[0], weight_uids.clone(), weight_values.clone());
-//         set_weights(netuid, keys[1], weight_uids.clone(), weight_values.clone());
-
-//         let stakes_before: Vec<u64> = get_stakes(netuid);
-//         step_epoch(netuid);
-//         let incentives: Vec<u16> = Incentive::<Test>::get(netuid);
-//         let dividends: Vec<u16> = Dividends::<Test>::get(netuid);
-//         let emissions: Vec<u64> = Emission::<Test>::get(netuid);
-//         let stakes: Vec<u64> = get_stakes(netuid);
-
-//         // evaluate votees
-//         assert!(incentives[2] > 0);
-//         assert_eq!(dividends[2], dividends[3]);
-//         let delta: u64 = 100;
-//         assert!((incentives[2] as u64) > (weight_values[0] as u64 * incentives[3] as u64) -
-// delta);         assert!((incentives[2] as u64) < (weight_values[0] as u64 * incentives[3] as u64)
-// + delta);
-
-//         assert!(emissions[2] > (weight_values[0] as u64 * emissions[3]) - delta);
-//         assert!(emissions[2] < (weight_values[0] as u64 * emissions[3]) + delta);
-
-//         // evaluate voters
-//         let delta: u64 = 100;
-//         assert!((dividends[0] as u64) > (dividends[1] as u64 * 2) - delta);
-//         assert!((dividends[0] as u64) < (dividends[1] as u64 * 2) + delta);
-
-//         assert_eq!(incentives[0], incentives[1]);
-//         assert_eq!(dividends[2], dividends[3]);
-
-//         info!("emissions: {emissions:?}");
-
-//         for (uid, emission) in emissions.iter().enumerate() {
-//             if emission == &0 {
-//                 continue;
-//             }
-//             let stake: u64 = stakes[uid];
-//             let stake_before: u64 = stakes_before[uid];
-//             let stake_difference: u64 = stake - stake_before;
-//             let expected_stake_difference: u64 = emissions[uid];
-//             let error_delta: u64 = (emissions[uid] as f64 * 0.001) as u64;
-
-//             assert!(
-//                 stake_difference < expected_stake_difference + error_delta
-//                     && stake_difference > expected_stake_difference - error_delta,
-//                 "stake_difference: {} != expected_stake_difference: {}",
-//                 stake_difference,
-//                 expected_stake_difference
-//             );
-//         }
-//         check_network_stats(netuid);
-//     });
-// }
-
-// TODO:
-// get back to life
-// #[test]
-// fn test_pruning() {
-//     new_test_ext().execute_with(|| {
-//         // CONSTANTS
-//         let netuid: u16 = 0;
-//         let n: u16 = 100;
-//         let stake_per_module: u64 = 10_000;
-//         let tempo: u16 = 100;
-
-//         // make sure that the results won´t get affected by burn
-//         zero_min_burn();
-//         MaxRegistrationsPerBlock::<Test>::set(1000);
-
-//         // SETUP NETWORK
-//         register_n_modules(netuid, n, stake_per_module);
-//         MaxAllowedModules::<Test>::put(n);
-//         update_params(netuid, 1, n, 0);
-
-//         let voter_idx = 0;
-//         let keys = SubspaceMod::get_keys(netuid);
-//         let _uids = SubspaceMod::get_uids(netuid);
-
-//         // Create a list of UIDs excluding the voter_idx
-//         let weight_uids: Vec<u16> = (0..n).filter(|&x| x != voter_idx as u16).collect();
-
-//         // Create a list of ones for weights, excluding the voter_idx
-//         let mut weight_values: Vec<u16> = weight_uids.iter().map(|_x| 1_u16).collect();
-
-//         let prune_uid: u16 = weight_uids.last().cloned().unwrap_or(0);
-
-//         if let Some(prune_idx) = weight_uids.iter().position(|&uid| uid == prune_uid) {
-//             weight_values[prune_idx] = 0;
-//         }
-
-//         set_weights(
-//             netuid,
-//             keys[voter_idx as usize],
-//             weight_uids.clone(),
-//             weight_values.clone(),
-//         );
-
-//         step_block(tempo);
-
-//         let lowest_priority_uid: u16 = SubspaceMod::get_lowest_uid(netuid, false).unwrap_or(0);
-//         assert!(lowest_priority_uid == prune_uid);
-
-//         let new_key: U256 = U256::from(n + 1);
-
-//         assert_ok!(register_module(netuid, new_key, stake_per_module));
-
-//         let is_registered: bool = SubspaceMod::key_registered(netuid, &new_key);
-//         assert!(is_registered);
-
-//         assert!(
-//             N::<Test>::get(netuid) == n,
-//             "N::<Test>::get(netuid): {} != n: {}",
-//             N::<Test>::get(netuid),
-//             n
-//         );
-
-//         let is_prune_registered: bool =
-//             SubspaceMod::key_registered(netuid, &keys[prune_uid as usize]);
-//         assert!(!is_prune_registered);
-
-//         check_network_stats(netuid);
-//     });
-// }
-
-// TODO:
-// get back to life
-// #[test]
-// fn test_lowest_priority_mechanism() {
-//     new_test_ext().execute_with(|| {
-//         // CONSSTANTS
-//         let netuid: u16 = 0;
-//         let n: u16 = 100;
-//         let stake_per_module: u64 = 10_000;
-//         let tempo: u16 = 100;
-
-//         // make sure that the results won´t get affected by burn
-//         zero_min_burn();
-//         MaxRegistrationsPerBlock::<Test>::set(1000);
-
-//         // SETUP NETWORK
-//         register_n_modules(netuid, n, stake_per_module);
-
-//         update_params(netuid, tempo, n, 0);
-
-//         let keys = SubspaceMod::get_keys(netuid);
-//         let voter_idx = 0;
-
-//         // Create a list of UIDs excluding the voter_idx
-//         let weight_uids: Vec<u16> = (0..n).filter(|&x| x != voter_idx).collect();
-
-//         // Create a list of ones for weights, excluding the voter_idx
-//         let mut weight_values: Vec<u16> = weight_uids.iter().map(|_x| 1_u16).collect();
-
-//         let prune_uid: u16 = n - 1;
-
-//         // Check if the prune_uid is still valid after excluding the voter_idx
-//         if prune_uid != voter_idx {
-//             // Find the index of prune_uid in the updated weight_uids vector
-//             if let Some(prune_idx) = weight_uids.iter().position(|&uid| uid == prune_uid) {
-//                 weight_values[prune_idx] = 0;
-//             }
-//         }
-
-//         set_weights(
-//             netuid,
-//             keys[voter_idx as usize],
-//             weight_uids.clone(),
-//             weight_values.clone(),
-//         );
-//         step_block(tempo);
-//         let incentives: Vec<u16> = Incentive::<Test>::get(netuid);
-//         let dividends: Vec<u16> = Dividends::<Test>::get(netuid);
-//         let emissions: Vec<u64> = Emission::<Test>::get(netuid);
-//         let _stakes: Vec<u64> = get_stakes(netuid);
-
-//         assert!(emissions[prune_uid as usize] == 0);
-//         assert!(incentives[prune_uid as usize] == 0);
-//         assert!(dividends[prune_uid as usize] == 0);
-
-//         let lowest_priority_uid: u16 = SubspaceMod::get_lowest_uid(netuid, false).unwrap_or(0);
-//         info!("lowest_priority_uid: {lowest_priority_uid}");
-//         info!("prune_uid: {prune_uid}");
-//         info!("emissions: {emissions:?}");
-//         info!("lowest_priority_uid: {lowest_priority_uid:?}");
-//         info!("dividends: {dividends:?}");
-//         info!("incentives: {incentives:?}");
-//         assert!(lowest_priority_uid == prune_uid);
-//         check_network_stats(netuid);
-//     });
-// }
-
-// #[test]
-// fn test_deregister_zero_emission_uids() {
-// 	new_test_ext().execute_with(|| {
-//     // CONSSTANTS
-//     let netuid: u16 = 0;
-//     let n : u16 = 100;
-//     let num_zero_uids : u16 = 10;
-//     let blocks_per_epoch_list : u64 = 1;
-//     let stake_per_module : u64 = 10_000;
-
-//     // SETUP NETWORK
-//     let tempo: u16 = 1;
-//     register_n_modules( netuid, n, stake_per_module );
-//     SubspaceMod::set_tempo( netuid, tempo );
-//     SubspaceMod::set_max_allowed_weights(netuid, n );
-//     SubspaceMod::set_min_allowed_weights(netuid, 0 );
-//     SubspaceMod::set_immunity_period(netuid, tempo );
-
-//     let keys = SubspaceMod::get_keys( netuid );
-//     let uids = SubspaceMod::get_uids( netuid );
-//     // do a list of ones for weights
-//     let weight_uids : Vec<u16> = (0..n).collect();
-//     // do a list of ones for weights
-//     let mut weight_values : Vec<u16> = weight_uids.iter().map(|x| 1 as u16 ).collect();
-
-//     let mut shuffled_uids: Vec<u16> = weight_uids.clone().to_vec();
-//     shuffled_uids.shuffle(&mut thread_rng());
-
-//     let mut zero_uids : Vec<u16> = shuffled_uids[0..num_zero_uids as usize].to_vec();
-
-//     for uid in zero_uids.iter() {
-//         weight_values[*uid as usize] = 0;
-
-//     }
-//     let old_n  : u16 = N::<Test>::get( netuid );
-//     set_weights(netuid, keys[0], weight_uids.clone() , weight_values.clone() );
-//     step_block( tempo );
-//     let n: u16 = N::<Test>::get( netuid );
-//     assert !( old_n - num_zero_uids == n );
-
-//     });
-
-// }
-
-// TODO:
-// #[test]
-// fn test_with_weights() {
-// 	new_test_ext().execute_with(|| {
-// 		let n_list: Vec<u16> = vec![10, 50, 100, 1000];
-// 		let blocks_per_epoch_list: u64 = 1;
-// 		let stake_per_module: u64 = 10_000;
-
-// 		for (netuid, n) in n_list.iter().enumerate() {
-// 			info!("netuid: {}", netuid);
-// 			let netuid: u16 = netuid as u16;
-// 			let n: u16 = *n;
-
-// 			for i in 0..n {
-// 				info!("i: {}", i);
-// 				info!("keys: {:?}", SubspaceMod::get_keys(netuid));
-// 				info!("uids: {:?}", SubspaceMod::get_uids(netuid));
-// 				let key: U256 = i;
-// 				info!(
-// 					"Before Registered: {:?} -> {:?}",
-// 					key,
-// 					SubspaceMod::key_registered(netuid, &key)
-// 				);
-// 				register_module(netuid, key, stake_per_module);
-// 				info!(
-// 					"After Registered: {:?} -> {:?}",
-// 					key,
-// 					SubspaceMod::key_registered(netuid, &key)
-// 				);
-// 			}
-// 			SubspaceMod::set_tempo(netuid, 1);
-// 			SubspaceMod::set_max_allowed_weights(netuid, n);
-// 			let keys = SubspaceMod::get_keys(netuid);
-// 			let uids = SubspaceMod::get_uids(netuid);
-
-// 			let weight_values: Vec<u16> = (0..n).collect();
-// 			let weight_uids: Vec<u16> = (0..n).collect();
-
-// 			for i in 0..n {
-// 				SubspaceMod::set_weights(
-// 					get_origin(keys[i as usize]),
-// 					netuid,
-// 					weight_values.clone(),
-// 					weight_uids.clone(),
-// 				)
-// 				.unwrap();
-// 			}
-// 			step_block(1);
-// 			check_network_stats(netuid);
-// 		}
-// 	});
-// }
+#[test]
+fn test_dividends_diff_stake() {
+    new_test_ext().execute_with(|| {
+        let netuid: u16 = 1;
+        let n: u16 = 10;
+        let stake_per_module: u64 = 10_000;
+
+        // Setup Rootnet
+        assert_ok!(register_named_subnet(u32::MAX, 0, "Rootnet"));
+        SubnetConsensusType::<Test>::insert(0, SubnetConsensus::Root);
+        assert_ok!(register_root_validator(u32::MAX, stake_per_module));
+
+        // Disable limitations
+        zero_min_burn();
+        MaxRegistrationsPerBlock::<Test>::set(1000);
+
+        // SETUP NETWORK
+        for i in 0..n {
+            let mut stake = stake_per_module;
+            if i == 0 {
+                stake = 2 * stake_per_module
+            }
+            let key = i as u32;
+            assert_ok!(register_module(netuid, key, stake, false));
+        }
+        SubnetConsensusType::<Test>::insert(netuid, SubnetConsensus::Linear);
+
+        // Set rootnet weight
+        set_weights(0, u32::MAX, vec![netuid], vec![1]);
+
+        let keys = SubspaceMod::get_keys(netuid);
+
+        // do a list of ones for weights
+        let weight_uids: Vec<u16> = [2, 3].to_vec();
+        // do a list of ones for weights
+        let weight_values: Vec<u16> = [1, 1].to_vec();
+        set_weights(netuid, keys[0], weight_uids.clone(), weight_values.clone());
+        set_weights(netuid, keys[1], weight_uids.clone(), weight_values.clone());
+
+        let stakes_before: Vec<u64> = get_stakes(netuid);
+        step_epoch(netuid);
+        let incentives: Vec<u16> = Incentive::<Test>::get(netuid);
+        let dividends: Vec<u16> = Dividends::<Test>::get(netuid);
+        let emissions: Vec<u64> = Emission::<Test>::get(netuid);
+        let stakes: Vec<u64> = get_stakes(netuid);
+
+        // evaluate votees
+        assert!(incentives[2] > 0);
+        assert_eq!(dividends[2], dividends[3]);
+        let delta: u64 = 100;
+        assert!((incentives[2] as u64) > (weight_values[0] as u64 * incentives[3] as u64) - delta);
+        assert!((incentives[2] as u64) < (weight_values[0] as u64 * incentives[3] as u64) + delta);
+
+        assert!(emissions[2] > (weight_values[0] as u64 * emissions[3]) - delta);
+        assert!(emissions[2] < (weight_values[0] as u64 * emissions[3]) + delta);
+
+        // evaluate voters
+        let delta: u64 = 100;
+        assert!((dividends[0] as u64) > (dividends[1] as u64 * 2) - delta);
+        assert!((dividends[0] as u64) < (dividends[1] as u64 * 2) + delta);
+
+        assert_eq!(incentives[0], incentives[1]);
+        assert_eq!(dividends[2], dividends[3]);
+
+        info!("emissions: {emissions:?}");
+
+        for (uid, emission) in emissions.iter().enumerate() {
+            if emission == &0 {
+                continue;
+            }
+            let stake: u64 = stakes[uid];
+            let stake_before: u64 = stakes_before[uid];
+            let stake_difference: u64 = stake - stake_before;
+            let expected_stake_difference: u64 = emissions[uid];
+            let error_delta: u64 = (emissions[uid] as f64 * 0.001) as u64;
+
+            assert!(
+                stake_difference < expected_stake_difference + error_delta
+                    && stake_difference > expected_stake_difference - error_delta,
+                "stake_difference: {} != expected_stake_difference: {}",
+                stake_difference,
+                expected_stake_difference
+            );
+        }
+    });
+}
+
+#[test]
+fn test_pruning() {
+    new_test_ext().execute_with(|| {
+        // Initialize test environment
+        zero_min_burn();
+        let netuid: u16 = 1;
+        let n: u16 = 100;
+        let stake_per_module: u64 = to_nano(10_000);
+        let tempo: u16 = 100;
+
+        // Setup Rootnet
+        assert_ok!(register_named_subnet(u32::MAX, 0, "Rootnet"));
+        SubnetConsensusType::<Test>::insert(0, SubnetConsensus::Root);
+        assert_ok!(register_root_validator(u32::MAX, stake_per_module));
+        MaxRegistrationsPerBlock::<Test>::set(1000);
+
+        // Setup subnet
+        register_n_modules(netuid, n, stake_per_module, false);
+        MaxAllowedModules::<Test>::put(n + 2);
+        Tempo::<Test>::set(netuid, tempo);
+        ImmunityPeriod::<Test>::insert(netuid, 0);
+
+        // Register validator and set consensus type
+        let voter_idx = u32::MAX;
+        assert_ok!(register_module(netuid, voter_idx, stake_per_module, false));
+        SubnetConsensusType::<Test>::insert(netuid, SubnetConsensus::Yuma);
+
+        // Set rootnet weight
+        set_weights(0, u32::MAX, vec![netuid], vec![1]);
+
+        // Prepare weights
+        let weight_uids: Vec<u16> = (0..n).collect();
+        let mut weight_values: Vec<u16> = weight_uids
+            .iter()
+            .enumerate()
+            .map(|(i, _)| (weight_uids.len() - i) as u16)
+            .collect();
+
+        // Set prune_uid to the last UID and set its weight to 0
+        let prune_uid: u16 = *weight_uids.last().unwrap();
+        if let Some(prune_idx) = weight_uids.iter().position(|&uid| uid == prune_uid) {
+            weight_values[prune_idx] = 0;
+        }
+
+        // Step block so yuma does not think modules are deregistered, and set weights
+        step_block(1);
+        set_weights(
+            netuid,
+            voter_idx,
+            weight_uids.clone(),
+            weight_values.clone(),
+        );
+        step_block(tempo);
+
+        // Debug emission and lowest priority UID
+        let lowest_priority_uid: u16 = SubspaceMod::get_lowest_uid(netuid, false).unwrap();
+        assert_eq!(lowest_priority_uid, prune_uid);
+
+        // Register new module
+        let new_key = n as u32 + 1;
+        let prune_key = SubspaceMod::get_key_for_uid(netuid, prune_uid).unwrap();
+        assert_ok!(register_module(netuid, new_key, stake_per_module, false));
+
+        // Assert new module is registered
+        let is_registered: bool = SubspaceMod::key_registered(netuid, &new_key);
+        assert!(is_registered);
+
+        // Assert total number of modules
+        let n_assert = n + 1;
+        assert_eq!(
+            N::<Test>::get(netuid),
+            n_assert,
+            "N::<Test>::get(netuid): {} != n: {}",
+            N::<Test>::get(netuid),
+            n_assert
+        );
+
+        // Assert pruned module is no longer registered
+        let is_prune_registered: bool = SubspaceMod::key_registered(netuid, &prune_key);
+        assert!(!is_prune_registered);
+
+        // Now test register a new subnet, with 2 modules, both 0 emission,
+        // the oldest will be the lowest_uid
+        let new_netuid: u16 = 2;
+        // Restart the module limit
+        MaxAllowedModules::<Test>::put(1000);
+        assert_ok!(register_module(
+            new_netuid,
+            u32::MAX,
+            stake_per_module,
+            false
+        ));
+        assert_ok!(register_module(
+            new_netuid,
+            u32::MAX - 1,
+            stake_per_module,
+            false
+        ));
+
+        // Temper with the registration blocks
+        RegistrationBlock::<Test>::insert(new_netuid, 0, 1);
+        RegistrationBlock::<Test>::insert(new_netuid, 1, 0);
+
+        assert_eq!(SubspaceMod::get_emission_for_uid(new_netuid, 0), 0);
+        assert_eq!(SubspaceMod::get_emission_for_uid(new_netuid, 1), 0);
+        assert_eq!(SubspaceMod::get_lowest_uid(new_netuid, false), Some(1));
+    });
+}
+
+#[test]
+fn test_lowest_priority_mechanism() {
+    new_test_ext().execute_with(|| {
+        let netuid: u16 = 1;
+        let n: u16 = 100;
+        let stake_per_module: u64 = 10_000;
+        let tempo: u16 = 100;
+
+        // Setup Rootnet
+        assert_ok!(register_named_subnet(u32::MAX, 0, "Rootnet"));
+        SubnetConsensusType::<Test>::insert(0, SubnetConsensus::Root);
+        assert_ok!(register_root_validator(u32::MAX, stake_per_module));
+
+        // Disable limitations
+        zero_min_burn();
+        MaxRegistrationsPerBlock::<Test>::set(1000);
+
+        // SETUP NETWORK
+        register_n_modules(netuid, n, stake_per_module, false);
+        SubnetConsensusType::<Test>::insert(netuid, SubnetConsensus::Linear);
+
+        // Set rootnet weight
+        set_weights(0, u32::MAX, vec![netuid], vec![1]);
+
+        let keys = SubspaceMod::get_keys(netuid);
+        let voter_idx = 0;
+
+        // Create a list of UIDs excluding the voter_idx
+        let weight_uids: Vec<u16> = (0..n).filter(|&x| x != voter_idx).collect();
+
+        // Create a list of ones for weights, excluding the voter_idx
+        let mut weight_values: Vec<u16> = weight_uids.iter().map(|_x| 1_u16).collect();
+
+        let prune_uid: u16 = n - 1;
+
+        // Check if the prune_uid is still valid after excluding the voter_idx
+        if prune_uid != voter_idx {
+            // Find the index of prune_uid in the updated weight_uids vector
+            if let Some(prune_idx) = weight_uids.iter().position(|&uid| uid == prune_uid) {
+                weight_values[prune_idx] = 0;
+            }
+        }
+
+        set_weights(
+            netuid,
+            keys[voter_idx as usize],
+            weight_uids.clone(),
+            weight_values.clone(),
+        );
+        step_block(tempo);
+        let incentives: Vec<u16> = Incentive::<Test>::get(netuid);
+        let dividends: Vec<u16> = Dividends::<Test>::get(netuid);
+        let emissions: Vec<u64> = Emission::<Test>::get(netuid);
+
+        assert!(emissions[prune_uid as usize] == 0);
+        assert!(incentives[prune_uid as usize] == 0);
+        assert!(dividends[prune_uid as usize] == 0);
+
+        let lowest_priority_uid: u16 = SubspaceMod::get_lowest_uid(netuid, false).unwrap_or(0);
+        info!("lowest_priority_uid: {lowest_priority_uid}");
+        info!("prune_uid: {prune_uid}");
+        info!("emissions: {emissions:?}");
+        info!("lowest_priority_uid: {lowest_priority_uid:?}");
+        info!("dividends: {dividends:?}");
+        info!("incentives: {incentives:?}");
+        assert!(lowest_priority_uid == prune_uid);
+    });
+}
 
 #[test]
 fn calculates_blocks_until_epoch() {
@@ -526,7 +412,7 @@ fn test_incentives() {
         MinimumAllowedStake::<Test>::set(0);
 
         // SETUP NETWORK
-        register_n_modules(netuid, n, stake_per_module);
+        register_n_modules(netuid, n, stake_per_module, false);
         // Test perform under linear consensus network.
         SubnetConsensusType::<Test>::insert(netuid, SubnetConsensus::Linear);
         let mut params = SubspaceMod::subnet_params(netuid);
@@ -586,7 +472,7 @@ fn test_trust() {
         let n: u16 = 10;
         let stake_per_module: u64 = 10_000;
 
-        register_n_modules(netuid, n, stake_per_module);
+        register_n_modules(netuid, n, stake_per_module, false);
         // Testing trust on linear consensus
         SubnetConsensusType::<Test>::insert(netuid, SubnetConsensus::Linear);
         // Make sure that the network has some pending emission to start running consensus
@@ -627,70 +513,83 @@ fn test_trust() {
     });
 }
 
-// TODO:
-// get back to life
-// #[test]
-// fn test_founder_share() {
-//     new_test_ext().execute_with(|| {
-//         let netuid = 0;
-//         let n = 20;
-//         let initial_stake: u64 = 1000;
-//         let keys: Vec<U256> = (0..n).map(U256::from).collect();
-//         let stakes: Vec<u64> = (0..n).map(|_x| initial_stake * 1_000_000_000).collect();
+#[test]
+fn test_founder_share() {
+    new_test_ext().execute_with(|| {
+        let netuid = 1;
+        let n: u16 = 20;
+        let initial_stake: u64 = to_nano(1_000);
+        let keys: Vec<u32> = (0..n as u32).collect();
+        let stakes: Vec<u64> = (0..n).map(|_x| initial_stake).collect();
 
-//         let founder_key = keys[0];
-//         MaxRegistrationsPerBlock::<Test>::set(1000);
-//         for i in 0..n {
-//             assert_ok!(register_module(netuid, keys[i], stakes[i]));
-//             let stake_from_vector = SubspaceMod::get_stake_to_vector(netuid, &keys[i]);
-//             info!("{:?}", stake_from_vector);
-//         }
-//         update_params!(netuid => { founder_share: 12 });
-//         let founder_share = FounderShare::<Test>::get(netuid);
-//         let founder_ratio: f64 = founder_share as f64 / 100.0;
+        // Setup Rootnet
+        assert_ok!(register_named_subnet(u32::MAX, 0, "Rootnet"));
+        SubnetConsensusType::<Test>::insert(0, SubnetConsensus::Root);
+        assert_ok!(register_root_validator(u32::MAX, initial_stake));
 
-//         let subnet_params = SubspaceMod::subnet_params(netuid);
+        let founder_key = keys[0];
+        MaxRegistrationsPerBlock::<Test>::set(1000);
+        for i in 0..n {
+            assert_ok!(register_module(
+                netuid,
+                keys[i as usize],
+                stakes[i as usize],
+                false
+            ));
+        }
+        SubnetConsensusType::<Test>::insert(netuid, SubnetConsensus::Yuma);
 
-//         let founder_stake_before = Stake::<Test>::get(netuid, founder_key);
-//         info!("founder_stake_before: {founder_stake_before:?}");
-//         // vote to avoid key[0] as we want to see the key[0] burn
-//         step_epoch(netuid);
-//         let threshold = SubnetStakeThreshold::<Test>::get();
-//         let total_emission =
-//             SubspaceMod::calculate_network_emission(netuid, threshold) * subnet_params.tempo as
-// u64;         let expected_founder_share = (total_emission as f64 * founder_ratio) as u64;
-//         let expected_emission = total_emission - expected_founder_share;
-//         let emissions = Emission::<Test>::get(netuid);
-//         let dividends = Dividends::<Test>::get(netuid);
-//         let incentives = Incentive::<Test>::get(netuid);
-//         let total_dividends: u64 = dividends.iter().sum::<u16>() as u64;
-//         let total_incentives: u64 = incentives.iter().sum::<u16>() as u64;
+        // Set rootnet weight
+        set_weights(0, u32::MAX, vec![netuid], vec![1]);
 
-//         let founder_dividend_emission = ((dividends[0] as f64 / total_dividends as f64)
-//             * (expected_emission / 2) as f64) as u64;
-//         let founder_incentive_emission = ((incentives[0] as f64 / total_incentives as f64)
-//             * (expected_emission / 2) as f64) as u64;
-//         let founder_emission = founder_incentive_emission + founder_dividend_emission;
+        update_params!(netuid => { founder_share: 12 });
+        let founder_share = FounderShare::<Test>::get(netuid);
+        let founder_ratio: f64 = founder_share as f64 / 100.0;
+        let subnet_params = SubspaceMod::subnet_params(netuid);
+        let total_emission = UnitEmission::<Test>::get() * subnet_params.tempo as u64;
+        let expected_founder_share_precise = total_emission as f64 * founder_ratio;
 
-//         let calcualted_total_emission = emissions.iter().sum::<u64>();
+        <pallet_balances::Pallet<Test> as Currency<_>>::make_free_balance_be(
+            &founder_key.into(),
+            0u32.into(),
+        );
+        step_epoch(netuid);
 
-//         let key_stake = Stake::<Test>::get(netuid, founder_key);
-//         let founder_total_stake = founder_stake_before + founder_emission;
-//         assert_eq!(
-//             key_stake - (key_stake % 1000),
-//             founder_total_stake - (founder_total_stake % 1000)
-//         );
-//         assert_eq!(
-//             SubspaceMod::get_balance(&Test::get_dao_treasury_address()),
-//             expected_founder_share - 1 /* Account for rounding errors */
-//         );
+        let founder_balance = SubspaceMod::get_balance(&founder_key);
 
-//         assert_eq!(
-//             expected_emission - (expected_emission % 100000),
-//             calcualted_total_emission - (calcualted_total_emission % 100000)
-//         );
-//     });
-// }
+        let tolerance = 3_000_000_000;
+
+        assert!(
+            (founder_balance as i64 - expected_founder_share_precise as i64).abs() <= tolerance,
+            "Founder balance {} differs from expected {} by more than {}",
+            founder_balance,
+            expected_founder_share_precise,
+            tolerance
+        );
+
+        // Repeat with consensus of linear
+        SubnetConsensusType::<Test>::insert(netuid, SubnetConsensus::Linear);
+
+        let treasury_address = DaoTreasuryAddress::<Test>::get();
+
+        // Explicitly show 0 balance
+        <pallet_balances::Pallet<Test> as Currency<_>>::make_free_balance_be(
+            &treasury_address,
+            0u32.into(),
+        );
+        step_epoch(netuid);
+
+        let treasury_balance = SubspaceMod::get_balance(&treasury_address);
+
+        assert!(
+            (treasury_balance as i64 - expected_founder_share_precise as i64).abs() <= tolerance,
+            "Founder balance {} differs from expected {} by more than {}",
+            founder_balance,
+            expected_founder_share_precise,
+            tolerance
+        );
+    });
+}
 
 // ------------
 // Step Yuma
@@ -739,7 +638,7 @@ fn test_1_graph() {
         FloorFounderShare::<Test>::put(0);
 
         // Register general subnet
-        assert_ok!(register_module(0, 10, 1));
+        assert_ok!(register_module(0, 10, 1, false));
 
         log::info!("test_1_graph:");
         let netuid: u16 = 1;
@@ -747,12 +646,12 @@ fn test_1_graph() {
         let uid: u16 = 0;
         let stake_amount: u64 = to_nano(100);
 
-        assert_ok!(register_module(netuid, key, stake_amount));
+        assert_ok!(register_module(netuid, key, stake_amount, false));
         update_params!(netuid => {
             max_allowed_uids: 2
         });
 
-        assert_ok!(register_module(netuid, key + 1, 1));
+        assert_ok!(register_module(netuid, key + 1, 1, false));
         assert_eq!(N::<Test>::get(netuid), 2);
 
         run_to_block(1); // run to next block to ensure weights are set on nodes after their registration block
@@ -800,7 +699,7 @@ fn test_10_graph() {
             N::<Test>::get(netuid),
         );
 
-        assert_ok!(register_module(netuid, key, stake_amount));
+        assert_ok!(register_module(netuid, key, stake_amount, false));
         assert_eq!(N::<Test>::get(netuid) - 1, uid);
     }
 
@@ -811,7 +710,7 @@ fn test_10_graph() {
         FloorFounderShare::<Test>::put(0);
         MaxRegistrationsPerBlock::<Test>::set(1000);
         // Register general subnet
-        assert_ok!(register_module(0, 10_000, 1));
+        assert_ok!(register_module(0, 10_000, 1, false));
 
         log::info!("test_10_graph");
 
@@ -829,7 +728,7 @@ fn test_10_graph() {
             max_allowed_uids: n as u16 + 1
         });
 
-        assert_ok!(register_module(netuid, n + 1, 1));
+        assert_ok!(register_module(netuid, n + 1, 1, false));
         assert_eq!(N::<Test>::get(netuid), 11);
 
         run_to_block(1); // run to next block to ensure weights are set on nodes after their registration block
@@ -885,7 +784,8 @@ fn yuma_weights_older_than_max_age_are_discarded() {
         assert_ok!(register_module(
             rootnet_netuid,
             rootnet_key,
-            rootnet_stake_amount
+            rootnet_stake_amount,
+            false
         ));
         SubnetConsensusType::<Test>::insert(rootnet_netuid, SubnetConsensus::Root);
 
@@ -894,7 +794,7 @@ fn yuma_weights_older_than_max_age_are_discarded() {
         let key = 1;
         let stake_amount: u64 = to_nano(1_000);
 
-        assert_ok!(register_module(netuid, key, stake_amount));
+        assert_ok!(register_module(netuid, key, stake_amount, false));
 
         // Register the yuma subnet.
         let yuma_netuid: u16 = 2;
@@ -907,13 +807,15 @@ fn yuma_weights_older_than_max_age_are_discarded() {
         assert_ok!(register_module(
             yuma_netuid,
             yuma_validator_key,
-            yuma_vali_amount
+            yuma_vali_amount,
+            false
         ));
         // This will act as an miner.
         assert_ok!(register_module(
             yuma_netuid,
             yuma_miner_key,
-            yuma_miner_amount
+            yuma_miner_amount,
+            false
         ));
 
         // Set rootnet weight equally
@@ -993,7 +895,7 @@ fn test_emission_exploit() {
         // Make sure registration cost is not affected
         zero_min_burn();
 
-        assert_ok!(register_module(netuid, key, stake_amount));
+        assert_ok!(register_module(netuid, key, stake_amount, false));
 
         // Register the yuma subnet.
         let yuma_netuid: u16 = 1;
@@ -1003,7 +905,8 @@ fn test_emission_exploit() {
         assert_ok!(register_module(
             yuma_netuid,
             yuma_badactor_key,
-            yuma_badactor_amount
+            yuma_badactor_amount,
+            false
         ));
         update_params!(netuid => { tempo: SUBNET_TEMPO });
 
@@ -1065,7 +968,8 @@ fn test_emission_exploit() {
         assert_ok!(register_module(
             new_netuid,
             honest_actor_key,
-            yuma_badactor_amount
+            yuma_badactor_amount,
+            false
         ));
         // we will set a slower tempo, standard 100
         update_params!(new_netuid => { tempo: 100 });
@@ -1089,7 +993,7 @@ fn test_tempo_compound() {
         let root_key = 0;
         let stake_amount: u64 = to_nano(1_000);
 
-        assert_ok!(register_module(root_netuid, root_key, stake_amount));
+        assert_ok!(register_module(root_netuid, root_key, stake_amount, false));
         SubnetConsensusType::<Test>::insert(root_netuid, SubnetConsensus::Root);
 
         // Register the yuma subnets, the important part of the tests starts here:
@@ -1097,14 +1001,14 @@ fn test_tempo_compound() {
         let s_netuid: u16 = 1;
         let s_key = 1;
         let s_amount: u64 = to_nano(10_000);
-        assert_ok!(register_module(s_netuid, s_key, s_amount));
+        assert_ok!(register_module(s_netuid, s_key, s_amount, false));
         update_params!(s_netuid => { tempo: SLOW_TEMPO });
 
         // FAST
         let f_netuid = 2;
         // Now an honest actor will come, the goal is for him to accumulate more
         let f_key = 2;
-        assert_ok!(register_module(f_netuid, f_key, s_amount));
+        assert_ok!(register_module(f_netuid, f_key, s_amount, false));
         // we will set a slower tempo
         update_params!(f_netuid => { tempo: QUICK_TEMPO });
 

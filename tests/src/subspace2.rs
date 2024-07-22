@@ -132,9 +132,6 @@ fn test_ownership_ratio() {
         assert_eq!(total_new_tokens, total_emissions);
 
         let stake_from_vector = SubspaceMod::get_stake_from_vector(&voter_key);
-        let _stake: u64 = SubspaceMod::get_stake(netuid, &voter_key);
-        let _sumed_stake: u64 = stake_from_vector.iter().fold(0, |acc, (_a, x)| acc + x);
-        let _total_stake: u64 = SubspaceMod::get_total_subnet_stake(netuid);
         info!("stake_from_vector: {stake_from_vector:?}");
     });
 }
@@ -253,38 +250,6 @@ fn test_emission_ratio() {
             assert!(block == 0, "block {} is not 0", block);
             info!("block {} subnet_emission {} ", block, subnet_emission);
         }
-    });
-}
-
-#[test]
-fn test_deregister_subnet_when_overflows_max_allowed_subnets() {
-    new_test_ext().execute_with(|| {
-        let extra = 1;
-        let mut params = SubspaceMod::global_params();
-        params.max_allowed_subnets = 3;
-        assert_ok!(SubspaceMod::set_global_params(params.clone()));
-        // make sure that the results won´t get affected by burn
-        zero_min_burn();
-
-        assert_eq!(params.max_allowed_subnets, 3);
-
-        let stakes: Vec<u64> = vec![
-            2_000_000_000,
-            6_000_000_000,
-            3_000_000_000,
-            4_000_000_000,
-            9_000_000_000,
-        ];
-
-        for netuid in 0..params.max_allowed_subnets + extra {
-            let stake: u64 = stakes[netuid as usize];
-            assert_ok!(register_module(netuid, U256::from(netuid), stake));
-        }
-
-        assert_eq!(SubspaceMod::get_total_subnet_stake(1), stakes[1]);
-        assert_eq!(SubspaceMod::get_total_subnet_stake(2), stakes[2]);
-        assert_eq!(SubspaceMod::get_total_subnet_stake(0), stakes[3]);
-        assert_eq!(TotalSubnets::<Test>::get(), 3);
     });
 }
 
@@ -690,21 +655,6 @@ fn test_active_stake() {
 // ----------------
 // Weights
 // ----------------
-
-/// Check do something path
-#[test]
-fn test_normalize_weights_does_not_mutate_when_sum_not_zero() {
-    new_test_ext().execute_with(|| {
-        let max_allowed: u16 = 3;
-
-        let weights: Vec<u16> = Vec::from_iter(0..max_allowed);
-
-        let expected = weights.clone();
-        let result = SubspaceMod::normalize_weights(weights);
-
-        assert_eq!(expected.len(), result.len(), "Length of weights changed?!");
-    });
-}
 
 #[test]
 fn test_weight_age() {

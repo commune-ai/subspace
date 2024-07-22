@@ -37,9 +37,9 @@ fn test_root_pricing() {
         let val2_stake = to_nano(40_000);
         let val3_stake = to_nano(40_000);
 
-        assert_ok!(register_module(net1_id, val1_id, val1_stake));
-        assert_ok!(register_module(net2_id, val2_id, val2_stake));
-        assert_ok!(register_module(net3_id, val3_id, val3_stake));
+        assert_ok!(register_module(net1_id, val1_id, val1_stake, false));
+        assert_ok!(register_module(net2_id, val2_id, val2_stake, false));
+        assert_ok!(register_module(net3_id, val3_id, val3_stake, false));
 
         let _ = assert_ok!(register_root_validator(val1_id, val1_stake));
         let _ = assert_ok!(register_root_validator(val2_id, val2_stake));

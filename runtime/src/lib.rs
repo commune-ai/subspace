@@ -17,6 +17,7 @@ use pallet_governance_api::GovernanceConfiguration;
 use pallet_grandpa::{
     fg_primitives, AuthorityId as GrandpaId, AuthorityList as GrandpaAuthorityList,
 };
+use pallet_subnet_emission_api::SubnetConsensus;
 use smallvec::smallvec;
 use sp_api::impl_runtime_apis;
 use sp_consensus_aura::sr25519::AuthorityId as AuraId;
@@ -829,8 +830,8 @@ impl pallet_subnet_emission_api::SubnetEmissionApi for Runtime {
         pallet_subnet_emission::UnitEmission::<Runtime>::set(unit_emission);
     }
 
-    fn get_lowest_emission_netuid() -> Option<u16> {
-        SubnetEmissionModule::get_lowest_emission_netuid()
+    fn get_lowest_emission_netuid(ignore_subnet_immunity: bool) -> Option<u16> {
+        SubnetEmissionModule::get_lowest_emission_netuid(ignore_subnet_immunity)
     }
 
     fn remove_subnet_emission_storage(netuid: u16) {
@@ -857,8 +858,8 @@ impl pallet_subnet_emission_api::SubnetEmissionApi for Runtime {
         SubnetEmissionModule::is_mineable_subnet(netuid)
     }
 
-    fn get_rootnet_netuid() -> Option<u16> {
-        SubnetEmissionModule::get_rootnet_netuid()
+    fn get_consensus_netuid(subnet_consensus: SubnetConsensus) -> Option<u16> {
+        SubnetEmissionModule::get_consensus_netuid(subnet_consensus)
     }
 
     fn get_pending_emission(netuid: u16) -> u64 {

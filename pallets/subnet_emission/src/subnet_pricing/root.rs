@@ -151,7 +151,6 @@ impl<T: Config + pallet_subspace::Config> RootPricing<T> {
                 }
             }
         }
-
         weights
     }
 }

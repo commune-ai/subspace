@@ -20,7 +20,7 @@ pub trait SubnetEmissionApi {
 
     fn set_unit_emission(unit_emission: u64);
 
-    fn get_lowest_emission_netuid() -> Option<u16>;
+    fn get_lowest_emission_netuid(ignore_subnet_immunity: bool) -> Option<u16>;
 
     fn remove_subnet_emission_storage(netuid: u16);
 
@@ -34,7 +34,7 @@ pub trait SubnetEmissionApi {
 
     fn is_mineable_subnet(netuid: u16) -> bool;
 
-    fn get_rootnet_netuid() -> Option<u16>;
+    fn get_consensus_netuid(subnet_consensus: SubnetConsensus) -> Option<u16>;
 
     fn get_pending_emission(netuid: u16) -> u64;
 

@@ -20,7 +20,7 @@ fn module_registration_burn_increases() {
         let target_reg_per_interval = 25;
 
         // register the general subnet
-        assert_ok!(register_module(0, 0, to_nano(20)));
+        assert_ok!(register_module(0, 0, to_nano(20), false));
 
         // Adjust max registrations per block to a high number.
         // We will be doing "registration raid"
@@ -38,7 +38,7 @@ fn module_registration_burn_increases() {
         // this will perform 300 registrations and step in between
         for module_key in 1..n {
             // this registers five in block
-            assert_ok!(register_module(netuid, module_key, initial_stake));
+            assert_ok!(register_module(netuid, module_key, initial_stake, false));
 
             if module_key % 5 == 0 {
                 // after that we step 30 blocks
