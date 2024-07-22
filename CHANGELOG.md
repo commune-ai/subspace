@@ -1,5 +1,35 @@
 # Changelog
 
+[Unreleased]
+
+spec_version `118`
+
+This branch starts off of the commit hash `95e5d26b550839c24fd367090e02abaa37df3d32`.
+diff [here](https://github.com/agicommies/subspace-network/compare/db8a19b1d2155d3ecda4172aaf72cdeea1feda2b...agicommies:subspace-network:feat/global-stake)
+
+- Error type `NotRegistered` was renamed to `ModuleDoesNotExist`.
+- Error `InvalidSubnetStakeThreshold` removed.
+- Storage value changes:
+
+  - MaximumSetWeightCallsPerEpoch lost its `ValueQuery` behavior and returns an `Option<u16>` now instead of 0 if missing.
+  - `SubnetEmission`, `PendingEmission` and `UnitEmission` were moved to the new subnet_emission pallet.
+  - `StakeFrom` and `StakeTo` lost their subnet id key. Because of this the value type changed from `BTreeMap<T::AcountId,u64>` to just `u64`. Their new type is `StorageDoubleMap<T::AccountId, T::AcountId, u64>` _(other generics ommited for clarity)_.
+  - `TotalStake` lost its subnet id key and turned into a simple `StorageValue<u64>` _(other generics ommited for clarity)_.
+  - `Stake` storage value was removed.
+  - `MinStake` storage map / subnet parameter was removed
+  - `SubnetImmunityPeriod`storage value / global parameter was introduced
+  - `SubnetRegistrationBlock` storage map was introduced
+  - `TotalSubnets` storage value was removed
+  - `RootnetControlDelegation`:  MAP (netuid, module_key) -> control_delegation, storage map was introduced, which stores information from `delegate_rootnet_control` extrinsic.
+  - `MinimumAllowedStake` was introduced. Users cannot stake or unstake a value smaller than this minimum.
+  - `MinImmunityStake` was introduced. This value is a subnet parameter that can be changed by the subnet owner. A validator (key) with delegated stake higher than or equal to this value is immune to deregistrations. This aims to reduce sudden validator deregistrations, with adaptability to subnet owner's consensus.
+- Extrinsics changes:
+
+  - `add_stake`, `remove_stake`, `add_stake_multiple`, `remove_stake_multiple` and `transfer_stake` lost their subnet id parameter.
+  - `register` no longer takes the `stake` parameter
+  - New extrinsic `delegate_rootnet_control: target: T::AccountId,`:
+Rootnet validators are capable of calling this extrinsic. The weight setting of the calling validator is delegated to the specified target (another validator making rootnet decisions on behalf).
+
 ## Version 1.7.8
 
 `spec_version: 117`

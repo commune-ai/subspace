@@ -10,26 +10,26 @@ use sp_std::vec::Vec;
 fn register_mock<T: Config>(
     key: T::AccountId,
     module_key: T::AccountId,
-    stake: u64,
     name: Vec<u8>,
 ) -> Result<(), &'static str> {
     let address = "test".as_bytes().to_vec();
     let network = "testnet".as_bytes().to_vec();
-    BurnConfig::<T>::mutate(|cfg| cfg.min_burn = 0);
+
+    let enough_stake = 10000000000000u64;
     SubspaceMod::<T>::add_balance_to_account(
         &key,
-        SubspaceMod::<T>::u64_to_balance(stake + 2000).unwrap(),
+        SubspaceMod::<T>::u64_to_balance(SubnetBurn::<T>::get() + enough_stake).unwrap(),
     );
     let metadata = Some("metadata".as_bytes().to_vec());
     SubspaceMod::<T>::register(
-        RawOrigin::Signed(key).into(),
+        RawOrigin::Signed(key.clone()).into(),
         network,
         name,
         address,
-        stake.into(),
-        module_key,
+        module_key.clone(),
         metadata,
     )?;
+    SubspaceMod::<T>::increase_stake(&key, &module_key, enough_stake);
     Ok(())
 }
 
@@ -42,12 +42,12 @@ benchmarks! {
 
     // 0
     set_weights {
-        let netuid = 0;
         let module_key: T::AccountId = account("ModuleKey", 0, 2);
         let module_key2: T::AccountId = account("ModuleKey2", 0, 3);
-        let stake = 100000000000000u64;
-        register_mock::<T>(module_key.clone(), module_key.clone(), stake, "test".as_bytes().to_vec())?;
-        register_mock::<T>(module_key2.clone(), module_key2.clone(), stake, "test1".as_bytes().to_vec())?;
+
+        register_mock::<T>(module_key.clone(), module_key.clone(), "test".as_bytes().to_vec())?;
+        register_mock::<T>(module_key2.clone(), module_key2.clone(), "test1".as_bytes().to_vec())?;
+        let netuid = SubspaceMod::<T>::get_netuid_for_name("testnet".as_bytes()).unwrap();
         let uids = vec![0];
         let weights = vec![10];
     }: set_weights(RawOrigin::Signed(module_key2), netuid, uids, weights)
@@ -59,30 +59,28 @@ benchmarks! {
     // 1
     add_stake {
         let key: T::AccountId = account("Alice", 0, 1);
-        let netuid = 0;
         let module_key: T::AccountId = account("ModuleKey", 0, 2);
         let stake = 100000000000000u64;
         SubspaceMod::<T>::add_balance_to_account(
             &key,
             SubspaceMod::<T>::u64_to_balance(stake + 2000).unwrap(),
         );
-        register_mock::<T>(module_key.clone(), module_key.clone(), stake.clone(), "test".as_bytes().to_vec())?;
-    }: add_stake(RawOrigin::Signed(key), netuid, module_key, stake)
+        register_mock::<T>(module_key.clone(), module_key.clone(), "test".as_bytes().to_vec())?;
+    }: add_stake(RawOrigin::Signed(key), module_key, stake)
 
     // 2
     remove_stake {
         let caller: T::AccountId = account("Alice", 0, 1);
-        let netuid = 0;
         let module_key: T::AccountId = account("ModuleKey", 0, 2);
         let stake = 100000000000000u64;
-        register_mock::<T>(module_key.clone(), module_key.clone(), stake, "test".as_bytes().to_vec())?;
-        let amount = 100000;
+        register_mock::<T>(module_key.clone(), module_key.clone(), "test".as_bytes().to_vec())?;
+        let amount = 1000000000000;
         SubspaceMod::<T>::add_balance_to_account(
             &caller,
             SubspaceMod::<T>::u64_to_balance(amount).unwrap(),
         );
-        SubspaceMod::<T>::add_stake(RawOrigin::Signed(caller.clone()).into(), netuid, module_key.clone(), amount - REMOVE_WHEN_STAKING)?;
-    }: remove_stake(RawOrigin::Signed(caller), netuid, module_key, amount - REMOVE_WHEN_STAKING)
+        SubspaceMod::<T>::add_stake(RawOrigin::Signed(caller.clone()).into(), module_key.clone(), amount - REMOVE_WHEN_STAKING)?;
+    }: remove_stake(RawOrigin::Signed(caller), module_key, amount - REMOVE_WHEN_STAKING)
 
     // ---------------------------------
     // Bulk stake operations
@@ -91,41 +89,37 @@ benchmarks! {
     // 3
     add_stake_multiple {
         let caller: T::AccountId = account("Alice", 0, 1);
-        let netuid = 0;
         let module_key1: T::AccountId = account("ModuleKey1", 0, 2);
         let module_key2: T::AccountId = account("ModuleKey2", 0, 3);
-        let stake = 100000000000000u64;
-        register_mock::<T>(module_key1.clone(), module_key1.clone(), stake, "test".as_bytes().to_vec())?;
-        register_mock::<T>(module_key2.clone(), module_key2.clone(), stake, "test1".as_bytes().to_vec())?;
+        register_mock::<T>(module_key1.clone(), module_key1.clone(),"test".as_bytes().to_vec())?;
+        register_mock::<T>(module_key2.clone(), module_key2.clone(), "test1".as_bytes().to_vec())?;
         let module_keys = vec![module_key1, module_key2];
-        let mut amounts = vec![10000, 20000];
+        let mut amounts = vec![100000000000000, 100000000000000];
         SubspaceMod::<T>::add_balance_to_account(
             &caller,
             SubspaceMod::<T>::u64_to_balance(amounts.iter().sum::<u64>()).unwrap(),
         );
         // remove REMOVE_WHEN_STAKING from all amounts
         amounts.iter_mut().for_each(|x| *x -= REMOVE_WHEN_STAKING);
-    }: add_stake_multiple(RawOrigin::Signed(caller), netuid, module_keys, amounts)
+    }: add_stake_multiple(RawOrigin::Signed(caller), module_keys, amounts)
 
     // 4
     remove_stake_multiple {
         let caller: T::AccountId = account("Alice", 0, 1);
-        let netuid = 0;
         let module_key1: T::AccountId = account("ModuleKey1", 0, 2);
         let module_key2: T::AccountId = account("ModuleKey2", 0, 3);
-        let stake = 100000000000000u64;
-        register_mock::<T>(module_key1.clone(), module_key1.clone(), stake, "test".as_bytes().to_vec())?;
-        register_mock::<T>(module_key2.clone(), module_key2.clone(), stake, "test1".as_bytes().to_vec())?;
+        register_mock::<T>(module_key1.clone(), module_key1.clone(), "test".as_bytes().to_vec())?;
+        register_mock::<T>(module_key2.clone(), module_key2.clone(), "test1".as_bytes().to_vec())?;
         let module_keys = vec![module_key1.clone(), module_key2.clone()];
-        let mut amounts = vec![1000, 2000];
+        let mut amounts = vec![100000000000000, 100000000000000];
         SubspaceMod::<T>::add_balance_to_account(
             &caller,
             SubspaceMod::<T>::u64_to_balance(amounts.iter().sum::<u64>()).unwrap(),
         );
         // remove REMOVE_WHEN_STAKING from all amounts
         amounts.iter_mut().for_each(|x| *x -= REMOVE_WHEN_STAKING);
-        SubspaceMod::<T>::add_stake_multiple(RawOrigin::Signed(caller.clone()).into(), netuid, module_keys.clone(), amounts.clone())?;
-    }: remove_stake_multiple(RawOrigin::Signed(caller), netuid, module_keys, amounts)
+        SubspaceMod::<T>::add_stake_multiple(RawOrigin::Signed(caller.clone()).into(), module_keys.clone(), amounts.clone())?;
+    }: remove_stake_multiple(RawOrigin::Signed(caller), module_keys, amounts)
 
     // ---------------------------------
     // Transfers
@@ -134,19 +128,17 @@ benchmarks! {
     // 5
     transfer_stake {
         let caller: T::AccountId = account("Alice", 0, 1);
-        let netuid = 0;
         let module_key: T::AccountId = account("ModuleKey", 0, 2);
         let new_module_key: T::AccountId = account("NewModuleKey", 0, 3);
-        let stake = 100000000000000u64;
-        register_mock::<T>(module_key.clone(), module_key.clone(), stake, "test".as_bytes().to_vec())?;
-        register_mock::<T>(new_module_key.clone(), new_module_key.clone(), stake, "test1".as_bytes().to_vec())?;
-        let amount = 10000;
+        register_mock::<T>(module_key.clone(), module_key.clone(), "test".as_bytes().to_vec())?;
+        register_mock::<T>(new_module_key.clone(), new_module_key.clone(), "test1".as_bytes().to_vec())?;
+        let amount = 50000000000000;
         SubspaceMod::<T>::add_balance_to_account(
             &caller,
             SubspaceMod::<T>::u64_to_balance(amount).unwrap(),
         );
-        SubspaceMod::<T>::add_stake(RawOrigin::Signed(caller.clone()).into(), netuid, module_key.clone(), amount - REMOVE_WHEN_STAKING)?;
-    }: transfer_stake(RawOrigin::Signed(caller), netuid, module_key, new_module_key, amount - REMOVE_WHEN_STAKING)
+        SubspaceMod::<T>::add_stake(RawOrigin::Signed(caller.clone()).into(), module_key.clone(), amount - REMOVE_WHEN_STAKING)?;
+    }: transfer_stake(RawOrigin::Signed(caller), module_key, new_module_key, amount - REMOVE_WHEN_STAKING)
 
     // 6
     transfer_multiple {
@@ -154,7 +146,7 @@ benchmarks! {
         let dest1: T::AccountId = account("Dest1", 0, 2);
         let dest2: T::AccountId = account("Dest2", 0, 3);
         let destinations = vec![dest1.clone(), dest2.clone()];
-        let mut amounts = vec![10000, 20000];
+        let mut amounts = vec![100000000000000, 100000000000000];
         SubspaceMod::<T>::add_balance_to_account(
             &caller,
             SubspaceMod::<T>::u64_to_balance(amounts.iter().sum()).unwrap(),
@@ -175,16 +167,15 @@ benchmarks! {
         let stake = 100000000000000u64;
         SubspaceMod::<T>::add_balance_to_account(
             &key,
-            SubspaceMod::<T>::u64_to_balance(stake + 2000).unwrap(),
+            SubspaceMod::<T>::u64_to_balance(stake + SubnetBurn::<T>::get() + 2000).unwrap(),
         );
-    }: register(RawOrigin::Signed(key.clone()), "test".as_bytes().to_vec(), "test".as_bytes().to_vec(), "test".as_bytes().to_vec(), stake.into(), module_key.clone(), Some("metadata".as_bytes().to_vec()))
+    }: register(RawOrigin::Signed(key.clone()), "test".as_bytes().to_vec(), "test".as_bytes().to_vec(), "test".as_bytes().to_vec(),  module_key.clone(), Some("metadata".as_bytes().to_vec()))
 
     // 8
     deregister {
         let caller: T::AccountId = account("Alice", 0, 1);
-        let netuid = 0;
-        let stake = 100000000000000u64;
-        register_mock::<T>(caller.clone(), caller.clone(), stake, "test".as_bytes().to_vec())?;
+        register_mock::<T>(caller.clone(), caller.clone(), "test".as_bytes().to_vec())?;
+        let netuid = SubspaceMod::<T>::get_netuid_for_name("testnet".as_bytes()).unwrap();
     }: deregister(RawOrigin::Signed(caller), netuid)
 
     // ---------------------------------
@@ -194,22 +185,21 @@ benchmarks! {
     // 9
     update_module {
         let caller: T::AccountId = account("Alice", 0, 1);
-        let netuid = 0;
         let stake = 100000000000000u64;
-        register_mock::<T>(caller.clone(), caller.clone(), stake, "test".as_bytes().to_vec())?;
+        register_mock::<T>(caller.clone(), caller.clone(), "test".as_bytes().to_vec())?;
         let name = "updated_name".as_bytes().to_vec();
         let address = "updated_address".as_bytes().to_vec();
         let delegation_fee = Some(Percent::from_percent(5));
         let metadata = Some("updated_metadata".as_bytes().to_vec());
+        let netuid = SubspaceMod::<T>::get_netuid_for_name("testnet".as_bytes()).unwrap();
     }: update_module(RawOrigin::Signed(caller), netuid, name, address, delegation_fee, metadata)
 
 
    // 10
    update_subnet {
         let caller: T::AccountId = account("Alice", 0, 1);
-        let netuid = 0;
-        let stake = 100000000000000u64;
-        register_mock::<T>(caller.clone(), caller.clone(), stake, "test".as_bytes().to_vec())?;
+        register_mock::<T>(caller.clone(), caller.clone(), "test".as_bytes().to_vec())?;
+        let netuid = SubspaceMod::<T>::get_netuid_for_name("testnet".as_bytes()).unwrap();
         let params = SubspaceMod::<T>::subnet_params(netuid);
     }: update_subnet(
         RawOrigin::Signed(caller),
@@ -222,7 +212,6 @@ benchmarks! {
         params.max_allowed_weights,
         params.min_allowed_weights,
         params.max_weight_age,
-        params.min_stake,
         params.name.clone(),
         params.tempo,
         params.trust_ratio,
@@ -232,6 +221,18 @@ benchmarks! {
         params.target_registrations_interval,
         params.target_registrations_per_interval,
         params.max_registrations_per_interval,
-        params.adjustment_alpha
+        params.adjustment_alpha,
+        params.min_immunity_stake
     )
+    // 11
+    delegate_rootnet_control {
+        use pallet_subnet_emission_api::SubnetConsensus;
+        let module_key: T::AccountId = account("ModuleKey", 0, 2);
+        let module_key2: T::AccountId = account("ModuleKey2", 0, 3);
+
+        register_mock::<T>(module_key.clone(), module_key.clone(), "test".as_bytes().to_vec())?;
+        register_mock::<T>(module_key2.clone(), module_key2.clone(), "test1".as_bytes().to_vec())?;
+        let netuid = SubspaceMod::<T>::get_netuid_for_name(b"testnet").unwrap();
+        T::set_subnet_consensus_type(netuid, Some(SubnetConsensus::Root));
+    }: delegate_rootnet_control(RawOrigin::Signed(module_key), module_key2)
 }

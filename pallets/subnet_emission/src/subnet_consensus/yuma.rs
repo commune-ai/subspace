@@ -1,19 +1,21 @@
+use crate::{EmissionError, Pallet};
 use core::marker::PhantomData;
-
-use sp_std::{borrow::Cow, collections::btree_map::BTreeMap};
+use frame_support::{ensure, DebugNoBound};
+use pallet_subspace::{
+    math::*, Active, Bonds, BondsMovingAverage, Config, Consensus, Dividends, Emission, Founder,
+    Incentive, Kappa, Keys, LastUpdate, MaxAllowedValidators, MaxWeightAge,
+    Pallet as PalletSubspace, PruningScores, Rank, StakeFrom, Trust, Uids, ValidatorPermits,
+    ValidatorTrust, Vec, Weights, N,
+};
+use sp_std::vec;
 use substrate_fixed::types::{I32F32, I64F64, I96F32};
 
-use crate::{
-    math::*, vec, Active, Bonds, BondsMovingAverage, Config, Consensus, Dividends, Emission,
-    Founder, Incentive, Kappa, Keys, LastUpdate, MaxAllowedValidators, MaxWeightAge, Pallet,
-    PruningScores, Rank, Stake, Trust, Uids, ValidatorPermits, ValidatorTrust, Weights, N,
-};
-use frame_support::ensure;
-use sp_std::vec::Vec;
+use sp_std::{borrow::Cow, collections::btree_map::BTreeMap};
 
 pub type EmissionMap<T> = BTreeMap<ModuleKey<T>, BTreeMap<AccountKey<T>, u64>>;
 
-pub struct YumaCalc<T: Config> {
+#[derive(DebugNoBound)]
+pub struct YumaEpoch<T: Config> {
     /// The amount of modules on the subnet
     module_count: u16,
     /// The UID of the subnet
@@ -37,14 +39,14 @@ pub struct YumaCalc<T: Config> {
     _pd: PhantomData<T>,
 }
 
-impl<T: Config> YumaCalc<T> {
+impl<T: Config> YumaEpoch<T> {
     pub fn new(netuid: u16, to_be_emitted: u64) -> Self {
         let validator_permits = ValidatorPermits::<T>::get(netuid);
         let validator_forbids = validator_permits.iter().map(|&b| !b).collect();
 
         let founder_key = Founder::<T>::get(netuid);
         let (to_be_emitted, founder_emission) =
-            Pallet::<T>::calculate_founder_emission(netuid, to_be_emitted);
+            PalletSubspace::<T>::calculate_founder_emission(netuid, to_be_emitted);
 
         Self {
             module_count: N::<T>::get(netuid),
@@ -55,10 +57,10 @@ impl<T: Config> YumaCalc<T> {
             founder_emission,
             to_be_emitted,
 
-            current_block: Pallet::<T>::get_current_block_number(),
+            current_block: PalletSubspace::<T>::get_current_block_number(),
             activity_cutoff: MaxWeightAge::<T>::get(netuid),
             last_update: LastUpdate::<T>::get(netuid),
-            block_at_registration: Pallet::<T>::get_block_at_registration(netuid),
+            block_at_registration: PalletSubspace::<T>::get_block_at_registration(netuid),
 
             validator_forbids,
             validator_permits,
@@ -70,13 +72,14 @@ impl<T: Config> YumaCalc<T> {
 
     /// Runs the YUMA consensus calculation on the network and distributes the emissions. Returns a
     /// map of emissions distributed per module key.
-    pub fn run(self) -> Result<EmissionMap<T>, YumaError> {
+    pub fn run(self) -> Result<EmissionMap<T>, EmissionError> {
         log::debug!(
             "running yuma for netuid {}, will emit {} modules and {} to founder",
             self.netuid,
             self.to_be_emitted,
             self.founder_emission
         );
+        log::trace!("yuma for netuid {} parameters: {self:?}", self.netuid);
 
         let (inactive, active): (Vec<_>, Vec<_>) = self
             .last_update
@@ -89,8 +92,9 @@ impl<T: Config> YumaCalc<T> {
             })
             .unzip();
 
-        let mut weights =
-            self.compute_weights().ok_or(YumaError::Other("weights storage is broken"))?;
+        let mut weights = self
+            .compute_weights()
+            .ok_or(EmissionError::Other("weights storage is broken"))?;
         log::trace!("final weights: {weights:?}");
 
         let stake = self.compute_stake()?;
@@ -123,7 +127,7 @@ impl<T: Config> YumaCalc<T> {
             dividends,
         } = self
             .compute_bonds_and_dividends(&weights, &active_stake, &incentives)
-            .ok_or(YumaError::Other("bonds storage is broken"))?;
+            .ok_or(EmissionError::Other("bonds storage is broken"))?;
 
         let Emissions {
             pruning_scores,
@@ -144,7 +148,7 @@ impl<T: Config> YumaCalc<T> {
         let validator_trust: Vec<_> =
             validator_trust.into_inner().into_iter().map(fixed_proportion_to_u16).collect();
 
-        Active::<T>::insert(self.netuid, active.clone());
+        Active::<T>::insert(self.netuid, active);
         Consensus::<T>::insert(self.netuid, consensus);
         Dividends::<T>::insert(self.netuid, dividends);
         Emission::<T>::insert(self.netuid, combined_emissions);
@@ -212,21 +216,23 @@ impl<T: Config> YumaCalc<T> {
     fn distribute_emissions(
         &self,
         result: Vec<(ModuleKey<T>, u64, u64)>,
-    ) -> Result<EmissionMap<T>, YumaError> {
+    ) -> Result<EmissionMap<T>, EmissionError> {
         let mut emissions: EmissionMap<T> = Default::default();
         let mut emitted: u64 = 0;
 
         if self.founder_emission > 0 {
-            Pallet::<T>::add_balance_to_account(
-                &self.founder_key.0,
-                Pallet::<T>::u64_to_balance(self.founder_emission).unwrap_or_default(),
-            );
+            match PalletSubspace::<T>::u64_to_balance(self.founder_emission) {
+                Some(balance) => {
+                    PalletSubspace::<T>::add_balance_to_account(&self.founder_key.0, balance);
+                }
+                None => return Err(EmissionError::BalanceConversionFailed),
+            }
             emitted = emitted.saturating_add(self.founder_emission);
         }
 
         for (module_key, server_emission, mut validator_emission) in result {
             let mut increase_stake = |account_key: &AccountKey<T>, amount: u64| {
-                Pallet::<T>::increase_stake(self.netuid, &account_key.0, &module_key.0, amount);
+                PalletSubspace::<T>::increase_stake(&account_key.0, &module_key.0, amount);
 
                 let stake = emissions
                     .entry(module_key.clone())
@@ -240,8 +246,9 @@ impl<T: Config> YumaCalc<T> {
 
             if validator_emission > 0 {
                 let ownership_vector =
-                    Pallet::<T>::get_ownership_ratios(self.netuid, &module_key.0);
-                let delegation_fee = Pallet::<T>::get_delegation_fee(self.netuid, &module_key.0);
+                    PalletSubspace::<T>::get_ownership_ratios(self.netuid, &module_key.0);
+                let delegation_fee =
+                    PalletSubspace::<T>::get_delegation_fee(self.netuid, &module_key.0);
 
                 let total_validator_emission = I64F64::from_num(validator_emission);
                 for (delegate_key, delegate_ratio) in ownership_vector {
@@ -251,7 +258,7 @@ impl<T: Config> YumaCalc<T> {
 
                     let dividends_from_delegate: u64 = total_validator_emission
                         .checked_mul(delegate_ratio)
-                        .unwrap_or(I64F64::from_num(0))
+                        .unwrap_or_default()
                         .to_num::<u64>();
 
                     let to_module: u64 = delegation_fee.mul_floor(dividends_from_delegate);
@@ -273,7 +280,7 @@ impl<T: Config> YumaCalc<T> {
 
         ensure!(
             emitted <= self.founder_emission.saturating_add(self.to_be_emitted),
-            YumaError::EmittedMoreThanExpected {
+            EmissionError::EmittedMoreThanExpected {
                 emitted,
                 expected: self.founder_emission.saturating_add(self.to_be_emitted)
             }
@@ -316,10 +323,18 @@ impl<T: Config> YumaCalc<T> {
     }
 
     fn compute_stake(&self) -> Result<StakeVal, &'static str> {
-        let mut keys_map: BTreeMap<_, _> = Uids::<T>::iter_prefix(self.netuid).collect();
-        let stake_map: BTreeMap<_, _> = Stake::<T>::iter_prefix(self.netuid)
-            .filter_map(|(k, v)| Some((keys_map.remove(&k)?, I64F64::from_num(v))))
-            .collect();
+        let keys_map: BTreeMap<_, _> = Uids::<T>::iter_prefix(self.netuid).collect();
+        let mut stake_map: BTreeMap<u16, I64F64> = BTreeMap::new();
+        for (k1, _, value) in StakeFrom::<T>::iter() {
+            if let Some(uid) = keys_map.get(&k1) {
+                let stake = stake_map.entry(*uid).or_default();
+                *stake = stake.saturating_add(I64F64::from_num(value));
+            }
+        }
+
+        // let stake_map: BTreeMap<_, _> = StakeFrom::<T>::iter_key_prefix()
+        //     .filter_map(|(k, v)| Some((keys_map.remove(&k)?, I64F64::from_num(v))))
+        //     .collect();
         let mut stake: Vec<_> = stake_map.into_values().collect();
 
         ensure!(
@@ -425,10 +440,6 @@ impl<T: Config> YumaCalc<T> {
         let mut bonds = Pallet::<T>::get_bonds_sparse(self.netuid)?;
         log::trace!("  original bonds: {bonds:?}");
 
-        // // Save to debug storage
-        // TempDebugWeights::<T>::insert(self.netuid, weights.as_ref().clone());
-        // TempDebugStake::<T>::insert(self.netuid, active_stake.as_ref().clone());
-
         // Remove bonds referring to deregistered modules.
         bonds = vec_mask_sparse_matrix(
             &bonds,
@@ -453,7 +464,7 @@ impl<T: Config> YumaCalc<T> {
         // Compute bonds moving average.
         let bonds_moving_average = I64F64::from_num(BondsMovingAverage::<T>::get(self.netuid))
             .checked_div(I64F64::from_num(1_000_000))
-            .unwrap_or(I64F64::from_num(0));
+            .unwrap_or_default();
         log::trace!("  bonds moving average: {bonds_moving_average}");
         let alpha = I32F32::from_num(1).saturating_sub(I32F32::from_num(bonds_moving_average));
         let mut ema_bonds = mat_ema_sparse(&bonds_delta, &bonds, alpha);
@@ -541,18 +552,14 @@ impl<T: Config> YumaCalc<T> {
 
         let miner_emissions: Vec<u64> = normalized_miner_emission
             .iter()
-            .map(|&se| {
-                I96F32::from_num(se).checked_mul(to_be_emitted).unwrap_or(I96F32::from_num(0))
-            })
+            .map(|&se| I96F32::from_num(se).checked_mul(to_be_emitted).unwrap_or_default())
             .map(I96F32::to_num)
             .collect();
         log::trace!("  miners emissions: {miner_emissions:?}");
 
         let validator_emissions: Vec<u64> = normalized_validator_emission
             .iter()
-            .map(|&ve| {
-                I96F32::from_num(ve).checked_mul(to_be_emitted).unwrap_or(I96F32::from_num(0))
-            })
+            .map(|&ve| I96F32::from_num(ve).checked_mul(to_be_emitted).unwrap_or_default())
             .map(I96F32::to_num)
             .collect();
         log::trace!("  validator_emissions: {validator_emissions:?}");
@@ -560,9 +567,7 @@ impl<T: Config> YumaCalc<T> {
         // Only used to track emission in storage.
         let combined_emissions: Vec<u64> = normalized_combined_emission
             .iter()
-            .map(|&ce| {
-                I96F32::from_num(ce).checked_mul(to_be_emitted).unwrap_or(I96F32::from_num(0))
-            })
+            .map(|&ce| I96F32::from_num(ce).checked_mul(to_be_emitted).unwrap_or_default())
             .map(I96F32::to_num)
             .collect();
         log::trace!("  combined_emissions: {combined_emissions:?}");
@@ -660,7 +665,7 @@ impl<T: Config> Pallet<T> {
     pub fn get_float_kappa() -> I32F32 {
         I32F32::from_num(Kappa::<T>::get())
             .checked_div(I32F32::from_num(u16::MAX))
-            .unwrap_or(I32F32::from_num(0))
+            .unwrap_or_default()
     }
 
     fn get_weights_sparse(netuid: u16) -> Option<Vec<Vec<(u16, I32F32)>>> {
@@ -685,19 +690,5 @@ impl<T: Config> Pallet<T> {
             }
         }
         Some(bonds)
-    }
-}
-
-#[derive(Debug)]
-#[allow(dead_code)]
-pub enum YumaError {
-    EmittedMoreThanExpected { emitted: u64, expected: u64 },
-    HasEmissionRemaining { emitted: u64 },
-    Other(&'static str),
-}
-
-impl From<&'static str> for YumaError {
-    fn from(v: &'static str) -> Self {
-        Self::Other(v)
     }
 }

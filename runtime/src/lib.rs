@@ -17,6 +17,7 @@ use pallet_governance_api::GovernanceConfiguration;
 use pallet_grandpa::{
     fg_primitives, AuthorityId as GrandpaId, AuthorityList as GrandpaAuthorityList,
 };
+use pallet_subnet_emission_api::SubnetConsensus;
 use smallvec::smallvec;
 use sp_api::impl_runtime_apis;
 use sp_consensus_aura::sr25519::AuthorityId as AuraId;
@@ -28,7 +29,7 @@ use sp_runtime::{
         One, PostDispatchInfoOf, Verify,
     },
     transaction_validity::{TransactionSource, TransactionValidity, TransactionValidityError},
-    ApplyExtrinsicResult, DispatchResult, MultiSignature, Percent,
+    ApplyExtrinsicResult, DispatchResult, MultiSignature,
 };
 use sp_std::{collections::btree_set::BTreeSet, prelude::*};
 use sp_version::RuntimeVersion;
@@ -41,8 +42,8 @@ use sp_version::NativeVersion;
 pub use frame_support::{
     construct_runtime, parameter_types,
     traits::{
-        ConstBool, ConstU128, ConstU32, ConstU64, ConstU8, FindAuthor, KeyOwnerProofSystem,
-        OnFinalize, Randomness, StorageInfo,
+        ConstBool, ConstU128, ConstU16, ConstU32, ConstU64, ConstU8, FindAuthor,
+        KeyOwnerProofSystem, OnFinalize, Randomness, StorageInfo,
     },
     weights::{
         constants::{
@@ -110,8 +111,13 @@ pub mod opaque {
     }
 }
 
-pub type Migrations = (pallet_subspace::migrations::v11::MigrateToV11<Runtime>,);
-
+pub type Migrations = (
+    // ! Make sure that this migration in Subspace pallet runs first everytime
+    pallet_subspace::migrations::v12::MigrateToV12<Runtime>,
+    // Initialize the new pallet
+    pallet_subnet_emission::migrations::InitialMigration<Runtime>,
+    pallet_governance::migrations::MigrationV1<Runtime>,
+);
 // To learn more about runtime versioning, see:
 // https://docs.substrate.io/main-docs/build/upgrade#runtime-versioning
 #[sp_version::runtime_version]
@@ -124,7 +130,7 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
     //   `spec_version`, and `authoring_version` are the same between Wasm and native.
     // This value is set to 100 to notify Polkadot-JS App (https://polkadot.js.org/apps) to use
     //   the compatible custom types.
-    spec_version: 117,
+    spec_version: 118,
     impl_version: 1,
     apis: RUNTIME_API_VERSIONS,
     transaction_version: 1,
@@ -265,11 +271,7 @@ impl pallet_timestamp::Config for Runtime {
 }
 
 // Existential Deposit
-#[cfg(not(feature = "testnet-faucet"))]
 pub const EXISTENTIAL_DEPOSIT: u64 = 500;
-
-#[cfg(feature = "testnet-faucet")]
-pub const EXISTENTIAL_DEPOSIT: u64 = 0;
 
 impl pallet_balances::Config for Runtime {
     type MaxLocks = ConstU32<50>;
@@ -363,6 +365,8 @@ impl pallet_subspace::Config for Runtime {
     type RuntimeEvent = RuntimeEvent;
     type Currency = Balances;
     type PalletId = SubspacePalletId;
+    type DefaultMaxRegistrationsPerInterval = ConstU16<32>;
+    type DefaultMaxSubnetRegistrationsPerInterval = ConstU16<1>;
     type WeightInfo = pallet_subspace::weights::SubstrateWeight<Runtime>;
 }
 
@@ -373,9 +377,19 @@ impl pallet_governance::Config for Runtime {
     type WeightInfo = pallet_governance::weights::SubstrateWeight<Runtime>;
 }
 
+#[cfg(feature = "testnet-faucet")]
 impl pallet_faucet::Config for Runtime {
     type RuntimeEvent = RuntimeEvent;
     type Currency = Balances;
+}
+
+// Includes emission logic for the runtime
+impl pallet_subnet_emission::Config for Runtime {
+    type RuntimeEvent = RuntimeEvent;
+    type Currency = Balances;
+    type Decimals = ConstU8<9>; // The runtime has 9 token decimals
+    type HalvingInterval = ConstU64<250_000_000>;
+    type MaxSupply = ConstU64<1_000_000_000>;
 }
 
 pub const WEIGHT_MILLISECS_PER_BLOCK: u64 = 2000;
@@ -434,6 +448,9 @@ construct_runtime!(
         Utility: pallet_utility,
         SubspaceModule: pallet_subspace,
         GovernanceModule: pallet_governance,
+        SubnetEmissionModule: pallet_subnet_emission,
+
+        #[cfg(feature = "testnet-faucet")]
         FaucetModule: pallet_faucet,
 
         // EVM Support
@@ -804,15 +821,82 @@ impl_runtime_apis! {
     }
 }
 
+impl pallet_subnet_emission_api::SubnetEmissionApi for Runtime {
+    fn get_unit_emission() -> u64 {
+        pallet_subnet_emission::UnitEmission::<Runtime>::get()
+    }
+
+    fn set_unit_emission(unit_emission: u64) {
+        pallet_subnet_emission::UnitEmission::<Runtime>::set(unit_emission);
+    }
+
+    fn get_lowest_emission_netuid(ignore_subnet_immunity: bool) -> Option<u16> {
+        SubnetEmissionModule::get_lowest_emission_netuid(ignore_subnet_immunity)
+    }
+
+    fn remove_subnet_emission_storage(netuid: u16) {
+        SubnetEmissionModule::remove_subnet_emission_storage(netuid)
+    }
+
+    fn set_subnet_emission_storage(netuid: u16, emission: u64) {
+        SubnetEmissionModule::set_subnet_emission_storage(netuid, emission)
+    }
+
+    fn create_yuma_subnet(netuid: u16) {
+        SubnetEmissionModule::create_yuma_subnet(netuid)
+    }
+
+    fn remove_yuma_subnet(netuid: u16) {
+        SubnetEmissionModule::remove_yuma_subnet(netuid)
+    }
+
+    fn can_remove_subnet(netuid: u16) -> bool {
+        SubnetEmissionModule::can_remove_subnet(netuid)
+    }
+
+    fn is_mineable_subnet(netuid: u16) -> bool {
+        SubnetEmissionModule::is_mineable_subnet(netuid)
+    }
+
+    fn get_consensus_netuid(subnet_consensus: SubnetConsensus) -> Option<u16> {
+        SubnetEmissionModule::get_consensus_netuid(subnet_consensus)
+    }
+
+    fn get_pending_emission(netuid: u16) -> u64 {
+        pallet_subnet_emission::PendingEmission::<Runtime>::get(netuid)
+    }
+
+    fn set_pending_emission(netuid: u16, pending_emission: u64) {
+        pallet_subnet_emission::PendingEmission::<Runtime>::set(netuid, pending_emission);
+    }
+
+    fn get_subnet_emission(netuid: u16) -> u64 {
+        pallet_subnet_emission::SubnetEmission::<Runtime>::get(netuid)
+    }
+
+    fn set_subnet_emission(netuid: u16, subnet_emission: u64) {
+        pallet_subnet_emission::SubnetEmission::<Runtime>::set(netuid, subnet_emission);
+    }
+
+    fn get_subnet_consensus_type(
+        netuid: u16,
+    ) -> Option<pallet_subnet_emission_api::SubnetConsensus> {
+        pallet_subnet_emission::SubnetConsensusType::<Runtime>::get(netuid)
+    }
+
+    fn set_subnet_consensus_type(
+        netuid: u16,
+        subnet_consensus: Option<pallet_subnet_emission_api::SubnetConsensus>,
+    ) {
+        pallet_subnet_emission::SubnetConsensusType::<Runtime>::set(netuid, subnet_consensus)
+    }
+}
+
 impl pallet_governance_api::GovernanceApi<<Runtime as frame_system::Config>::AccountId>
     for Runtime
 {
     fn get_dao_treasury_address() -> AccountId {
         pallet_governance::DaoTreasuryAddress::<Runtime>::get()
-    }
-
-    fn get_dao_treasury_distribution() -> Percent {
-        pallet_governance::DaoTreasuryDistribution::<Runtime>::get()
     }
 
     fn is_delegating_voting_power(delegator: &AccountId) -> bool {

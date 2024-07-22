@@ -1,4 +1,5 @@
 //! The Governance pallet.
+#![allow(non_camel_case_types, non_snake_case)]
 #![cfg_attr(not(feature = "std"), no_std)]
 
 #[cfg(feature = "runtime-benchmarks")]
@@ -39,7 +40,7 @@ pub mod pallet {
     use pallet_subspace::DefaultKey;
     use sp_runtime::traits::AccountIdConversion;
 
-    const STORAGE_VERSION: StorageVersion = StorageVersion::new(0);
+    const STORAGE_VERSION: StorageVersion = StorageVersion::new(1);
 
     #[pallet::pallet]
     #[pallet::storage_version(STORAGE_VERSION)]
@@ -139,15 +140,6 @@ pub mod pallet {
     pub type DaoTreasuryAddress<T: Config> =
         StorageValue<_, T::AccountId, ValueQuery, DefaultDaoTreasuryAddress<T>>;
 
-    #[pallet::type_value]
-    pub fn DefaultDaoTreasuryDistribution<T: Config>() -> Percent {
-        Percent::from_percent(5u8)
-    }
-
-    #[pallet::storage]
-    pub type DaoTreasuryDistribution<T: Config> =
-        StorageValue<_, Percent, ValueQuery, DefaultDaoTreasuryDistribution<T>>;
-
     // ---------------------------------
     // Dao
     // ---------------------------------
@@ -198,10 +190,12 @@ pub mod pallet {
             floor_founder_share: u8,
             min_weight_stake: u64,
             curator: T::AccountId,
-            subnet_stake_threshold: Percent,
             proposal_cost: u64,
             proposal_expiration: u32,
             general_subnet_application_cost: u64,
+            kappa: u16,
+            rho: u16,
+            subnet_immunity_period: u64,
         ) -> DispatchResult {
             let mut params = pallet_subspace::Pallet::<T>::global_params();
             params.max_name_length = max_name_length;
@@ -214,14 +208,14 @@ pub mod pallet {
             params.floor_founder_share = floor_founder_share;
             params.min_weight_stake = min_weight_stake;
             params.curator = curator;
-            params.subnet_stake_threshold = subnet_stake_threshold;
             params.governance_config.proposal_cost = proposal_cost;
             params.governance_config.proposal_expiration = proposal_expiration;
             params.general_subnet_application_cost = general_subnet_application_cost;
-
             params.burn_config.min_burn = min_burn;
             params.burn_config.max_burn = max_burn;
-
+            params.kappa = kappa;
+            params.rho = rho;
+            params.subnet_immunity_period = subnet_immunity_period;
             Self::do_add_global_params_proposal(origin, data, params)
         }
 
@@ -239,7 +233,6 @@ pub mod pallet {
             max_allowed_uids: u16,
             max_allowed_weights: u16,
             min_allowed_weights: u16,
-            min_stake: u64,
             max_weight_age: u64,
             tempo: u16,
             trust_ratio: u16,
@@ -250,6 +243,7 @@ pub mod pallet {
             target_registrations_per_interval: u16,
             max_registrations_per_interval: u16,
             adjustment_alpha: u64,
+            min_immunity_stake: u64,
         ) -> DispatchResult {
             let mut params = pallet_subspace::Pallet::subnet_params(subnet_id);
             params.founder = founder;
@@ -260,7 +254,6 @@ pub mod pallet {
             params.max_allowed_uids = max_allowed_uids;
             params.max_allowed_weights = max_allowed_weights;
             params.min_allowed_weights = min_allowed_weights;
-            params.min_stake = min_stake;
             params.max_weight_age = max_weight_age;
             params.tempo = tempo;
             params.trust_ratio = trust_ratio;
@@ -271,6 +264,7 @@ pub mod pallet {
             params.target_registrations_per_interval = target_registrations_per_interval;
             params.max_registrations_per_interval = max_registrations_per_interval;
             params.adjustment_alpha = adjustment_alpha;
+            params.min_immunity_stake = min_immunity_stake;
 
             Self::do_add_subnet_params_proposal(origin, subnet_id, data, params)
         }
@@ -384,22 +378,25 @@ pub mod pallet {
     #[pallet::event]
     #[pallet::generate_deposit(pub(crate) fn deposit_event)]
     pub enum Event<T: Config> {
+        /// A new proposal has been created.
         ProposalCreated(ProposalId),
-
+        /// A proposal has been accepted.
         ProposalAccepted(ProposalId),
+        /// A proposal has been refused.
         ProposalRefused(ProposalId),
+        /// A proposal has expired.
         ProposalExpired(ProposalId),
-
+        /// A vote has been cast on a proposal.
         ProposalVoted(u64, T::AccountId, bool),
+        /// A vote has been unregistered from a proposal.
         ProposalVoteUnregistered(u64, T::AccountId),
-
-        WhitelistModuleAdded(T::AccountId), /* --- Event created when a module account has been
-                                             * added to the whitelist. */
-        WhitelistModuleRemoved(T::AccountId), /* --- Event created when a module account has
-                                               * been removed from the whitelist. */
+        /// A module account has been added to the whitelist.
+        WhitelistModuleAdded(T::AccountId),
+        /// A module account has been removed from the whitelist.
+        WhitelistModuleRemoved(T::AccountId),
+        /// A new application has been created.
         ApplicationCreated(u64),
     }
-
     // ---------------------------------
     // Errors
     // ---------------------------------
@@ -449,21 +446,27 @@ pub mod pallet {
         VoteModeIsNotAuthority,
         /// An internal error occurred, probably relating to the size of the bounded sets.
         InternalError,
-
-        // DAO / Governance
+        /// The application data is too small or empty.
         ApplicationTooSmall,
+        /// The application data is too large, exceeding the maximum allowed size.
         ApplicationTooLarge,
+        /// The application is not in a pending state.
         ApplicationNotPending,
+        /// The application data is invalid or malformed.
         InvalidApplication,
+        /// The account doesn't have enough balance to submit an application.
         NotEnoughtBalnceToApply,
+        /// The recommended weight for the application is invalid.
         InvalidRecommendedWeight,
-        NotCurator, /* --- Thrown when the user tries to set the curator and is not the
-                     * curator */
+        /// The operation can only be performed by the curator.
+        NotCurator,
+        /// The application with the given ID was not found.
         ApplicationNotFound,
-        AlreadyWhitelisted, /* --- Thrown when the user tries to whitelist an account that is
-                             * already whitelisted. */
-        NotWhitelisted, /* --- Thrown when the user tries to remove an account from the
-                         * whitelist that is not whitelisted. */
+        /// The account is already whitelisted and cannot be added again.
+        AlreadyWhitelisted,
+        /// The account is not whitelisted and cannot be removed from the whitelist.
+        NotWhitelisted,
+        /// Failed to convert the given value to a balance.
         CouldNotConvertToBalance,
     }
 }

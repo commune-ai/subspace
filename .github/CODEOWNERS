@@ -1,7 +1,3 @@
-validator_hyperparameters.md @unconst
-validator_hyperparameters.md @shibshib
-validator_hyperparameters.md @opentaco
+/.github/workflows @DaviPtrs
 
-.github/CODEOWNERS @unconst
-.github/CODEOWNERS @shibshib
-.github/CODEOWNERS @opentaco
+* @Supremesource @devwckd @aripiprazole @saiintbrisson

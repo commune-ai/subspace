@@ -4,7 +4,7 @@ use crate::{Pallet as GovernanceMod, *};
 use frame_benchmarking::{account, benchmarks};
 use frame_system::RawOrigin;
 pub use pallet::*;
-use pallet_subspace::{BurnConfig, Pallet as SubspaceMod};
+use pallet_subspace::{BurnConfig, Pallet as SubspaceMod, SubnetBurn};
 use sp_std::vec::Vec;
 
 fn submit_dao_application<T: Config>() -> Result<(), &'static str> {
@@ -27,29 +27,28 @@ fn submit_dao_application<T: Config>() -> Result<(), &'static str> {
 fn register_mock<T: Config>(
     key: T::AccountId,
     module_key: T::AccountId,
-    stake: u64,
     name: Vec<u8>,
 ) -> Result<(), &'static str> {
     let address = "test".as_bytes().to_vec();
     let network = "testnet".as_bytes().to_vec();
-    BurnConfig::<T>::mutate(|cfg| cfg.min_burn = 0);
+
+    let enough_stake = 10000000000000u64;
     SubspaceMod::<T>::add_balance_to_account(
         &key,
-        SubspaceMod::<T>::u64_to_balance(stake + 2000).unwrap(),
+        SubspaceMod::<T>::u64_to_balance(SubnetBurn::<T>::get() + enough_stake).unwrap(),
     );
     let metadata = Some("metadata".as_bytes().to_vec());
     SubspaceMod::<T>::register(
-        RawOrigin::Signed(key).into(),
+        RawOrigin::Signed(key.clone()).into(),
         network,
         name,
         address,
-        stake.into(),
-        module_key,
+        module_key.clone(),
         metadata,
     )?;
+    SubspaceMod::<T>::increase_stake(&key, &module_key, enough_stake);
     Ok(())
 }
-
 benchmarks! {
     //---------------------------------
     //Adding proposals
@@ -84,10 +83,12 @@ benchmarks! {
             params.floor_founder_share,            // floor_founder_share: min founder share
             params.min_weight_stake,               // min_weight_stake: min weight stake required
             params.curator,                            // curator: subnet 0 dao multisig
-            params.subnet_stake_threshold,             // subnet_stake_threshold: stake needed to start subnet emission
             params.governance_config.proposal_cost,                      // proposal_cost: amount of $COMAI to create a proposal, returned if proposal gets accepted
             params.governance_config.proposal_expiration,                // proposal_expiration: the block number, proposal expires at
-            params.general_subnet_application_cost     // general_subnet_application_cost
+            params.general_subnet_application_cost,     // general_subnet_application_cost
+            params.kappa,
+            params.rho,
+            params.subnet_immunity_period
         )
 
 
@@ -96,17 +97,17 @@ benchmarks! {
         let caller: T::AccountId = account("Alice", 0, 1);
 
         // register the subnet
-        register_mock::<T>(caller.clone(), caller.clone(), 100000000000000u64,
+        register_mock::<T>(caller.clone(), caller.clone(),
     "test".as_bytes().to_vec())?;
+        let netuid = SubspaceMod::<T>::get_netuid_for_name("testnet".as_bytes()).unwrap();
 
         // Switch the vote mode to vote
-        let params = SubspaceMod::<T>::subnet_params(0);
+        let params = SubspaceMod::<T>::subnet_params(netuid);
         let data = "ipfshash".as_bytes().to_vec();
-
 
         SubspaceMod::<T>::update_subnet(
             RawOrigin::Signed(caller.clone()).into(),
-            0,
+            netuid,
             params.founder.clone(),
             params.founder_share,
             params.immunity_period,
@@ -115,7 +116,6 @@ benchmarks! {
             params.max_allowed_weights,
             params.min_allowed_weights,
             params.max_weight_age,
-            params.min_stake,
             params.name.clone(),
             params.tempo,
             params.trust_ratio,
@@ -125,7 +125,8 @@ benchmarks! {
             params.target_registrations_interval,
             params.target_registrations_per_interval,
             params.max_registrations_per_interval,
-            params.adjustment_alpha
+            params.adjustment_alpha,
+            params.min_immunity_stake
         )?;
 
         // add balance to submit the proposal
@@ -137,7 +138,7 @@ benchmarks! {
 
     }: add_subnet_params_proposal(
         RawOrigin::Signed(caller),
-        0,
+        netuid,
         data,
         params.founder.clone(),
         params.name.clone(),
@@ -147,7 +148,6 @@ benchmarks! {
         params.max_allowed_uids,
         params.max_allowed_weights,
         params.min_allowed_weights,
-        params.min_stake,
         params.max_weight_age,
         params.tempo,
         params.trust_ratio,
@@ -157,7 +157,8 @@ benchmarks! {
         params.target_registrations_interval,
         params.target_registrations_per_interval,
         params.max_registrations_per_interval,
-        params.adjustment_alpha
+        params.adjustment_alpha,
+        params.min_immunity_stake
     )
 
     // 2
@@ -172,7 +173,7 @@ benchmarks! {
     add_subnet_custom_proposal {
         let caller: T::AccountId = account("Alice", 0, 1);
         // The subnet has to exist
-        register_mock::<T>(caller.clone(), caller.clone(), 100000000000000u64,
+        register_mock::<T>(caller.clone(), caller.clone(),
     "test".as_bytes().to_vec())?;     // Add alice fund to submit the proposal
         SubspaceMod::<T>::add_balance_to_account(&caller,
     SubspaceMod::<T>::u64_to_balance(1_000_000_000_000_000).unwrap());
@@ -203,7 +204,7 @@ benchmarks! {
     vote_proposal {
         let caller: T::AccountId = account("Alice", 0, 1);
         // Register Alice such that she has funds to vote
-        register_mock::<T>(caller.clone(), caller.clone(), 100000000000000u64, "test".as_bytes().to_vec())?;
+        register_mock::<T>(caller.clone(), caller.clone(), "test".as_bytes().to_vec())?;
 
         // Add Alice's funds to submit the proposal
         SubspaceMod::<T>::add_balance_to_account(&caller, SubspaceMod::<T>::u64_to_balance(1_000_000_000_000_000).unwrap());
@@ -220,7 +221,7 @@ benchmarks! {
     remove_vote_proposal {
         let caller: T::AccountId = account("Alice", 0, 1);
         // Register Alice such that she has funds to vote
-        register_mock::<T>(caller.clone(), caller.clone(), 100000000000000u64, "test".as_bytes().to_vec())?;
+        register_mock::<T>(caller.clone(), caller.clone(), "test".as_bytes().to_vec())?;
 
         // Add Alice's funds to submit the proposal
         SubspaceMod::<T>::add_balance_to_account(&caller, SubspaceMod::<T>::u64_to_balance(1_000_000_000_000_000).unwrap());

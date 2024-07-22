@@ -4,7 +4,7 @@ use frame_support::{dispatch::DispatchResult, ensure, LOG_TARGET};
 use frame_system::{self as system, ensure_none, pallet_prelude::BlockNumberFor};
 use pallet_subspace::Pallet as PalletSubspace;
 use sp_core::{keccak_256, sha2_256, Get, H256, U256};
-use sp_runtime::{traits::StaticLookup, MultiAddress};
+use sp_runtime::{traits::StaticLookup, DispatchError, MultiAddress};
 
 pub use pallet::*;
 use parity_scale_codec::Encode;
@@ -53,28 +53,24 @@ pub mod pallet {
                 return InvalidTransaction::Call.into();
             };
 
-            if cfg!(feature = "testnet-faucet") {
-                let key = T::Lookup::lookup(key.clone())?;
+            let key = T::Lookup::lookup(key.clone())?;
 
-                let key_balance = PalletSubspace::<T>::get_balance_u64(&key);
-                let key_stake: u64 = N::<T>::iter_keys()
-                    .map(|netuid| PalletSubspace::<T>::get_stake(netuid, &key))
-                    .sum();
-                let total_worth = key_balance.saturating_add(key_stake);
-                if total_worth >= 50_000_000_000_000 {
-                    // if it's larger than 50k don't allow more funds
-                    return InvalidTransaction::Custom(0).into();
-                }
-
-                ValidTransaction::with_tag_prefix("RunFaucet")
-                    .priority(0) // Faucet, so low priority
-                    .longevity(5) // 5 blocks longevity to prevent too much spam
-                    .and_provides(key)
-                    .propagate(true)
-                    .build()
-            } else {
-                InvalidTransaction::Custom(1).into()
+            let key_balance = PalletSubspace::<T>::get_balance_u64(&key);
+            let key_stake: u64 = N::<T>::iter()
+                .map(|_| pallet_subspace::Pallet::<T>::get_owned_stake(&key))
+                .sum();
+            let total_worth = key_balance.saturating_add(key_stake);
+            if total_worth >= 50_000_000_000_000 {
+                // if it's larger than 50k don't allow more funds
+                return InvalidTransaction::Custom(0).into();
             }
+
+            ValidTransaction::with_tag_prefix("RunFaucet")
+                .priority(0) // Faucet, so low priority
+                .longevity(5) // 5 blocks longevity to prevent too much spam
+                .and_provides(key)
+                .propagate(true)
+                .build()
         }
 
         fn pre_dispatch(_: &Self::Call) -> Result<(), TransactionValidityError> {
@@ -106,11 +102,7 @@ pub mod pallet {
             work: Vec<u8>,
             key: AccountIdLookupOf<T>,
         ) -> DispatchResult {
-            if cfg!(feature = "testnet-faucet") {
-                Self::do_faucet(origin, block_number, nonce, work, key)
-            } else {
-                Err(Error::<T>::FaucetDisabled.into())
-            }
+            Self::do_faucet(origin, block_number, nonce, work, key)
         }
     }
 
@@ -131,10 +123,11 @@ pub mod pallet {
 
     #[pallet::error]
     pub enum Error<T> {
-        // Faucet
-        FaucetDisabled, // --- Thrown when the faucet is disabled.
+        /// The work block provided is invalid.
         InvalidWorkBlock,
+        /// The difficulty provided does not meet the required criteria.
         InvalidDifficulty,
+        /// The seal provided is invalid or does not match the expected value.
         InvalidSeal,
     }
 }
@@ -145,7 +138,6 @@ pub mod pallet {
 
 impl<T: Config> Pallet<T> {
     // Make sure this can never panic
-    #[allow(clippy::arithmetic_side_effects)]
     pub fn do_faucet(
         origin: T::RuntimeOrigin,
         block_number: u64,
@@ -174,7 +166,7 @@ impl<T: Config> Pallet<T> {
             Error::<T>::InvalidWorkBlock
         );
         ensure!(
-            current_block_number - block_number < 3,
+            current_block_number.saturating_sub(block_number) < 3,
             Error::<T>::InvalidWorkBlock
         );
 
@@ -188,11 +180,11 @@ impl<T: Config> Pallet<T> {
 
         // --- 4. Check Work is the product of the nonce, the block number, and hotkey. Add this as
         // used work.
-        let seal: H256 = Self::create_seal_hash(block_number, nonce, &key);
+        let seal: H256 = Self::create_seal_hash(block_number, nonce, &key)?;
         ensure!(seal == work_hash, Error::<T>::InvalidSeal);
 
-        // --- 5. Add Balance via faucet.
-        let amount: u64 = 1_000_000_000_000;
+        // --- 5. Add Balance via faucet. 15 tokens
+        let amount: u64 = 15_000_000_000;
         let balance_to_add = PalletSubspace::<T>::u64_to_balance(amount).unwrap();
         PalletSubspace::<T>::add_balance_to_account(&key, balance_to_add);
 
@@ -204,28 +196,36 @@ impl<T: Config> Pallet<T> {
         Ok(())
     }
 
-    #[allow(clippy::indexing_slicing)]
-    pub fn hash_block_and_key(block_hash_bytes: &[u8; 32], key: &T::AccountId) -> H256 {
+    pub fn hash_block_and_key(
+        block_hash_bytes: &[u8; 32],
+        key: &T::AccountId,
+    ) -> Result<H256, sp_runtime::DispatchError> {
         // Get the public key from the account id.
         let key_pubkey: MultiAddress<_, ()> = MultiAddress::Id(key.clone());
         let binding = key_pubkey.encode();
         // Skip extra 0th byte.
-        let key_bytes: &[u8] = &binding[1..];
+        let key_bytes = binding.get(1..).ok_or(pallet_subspace::Error::<T>::ExtrinsicPanicked)?;
         let mut full_bytes = [0u8; 64];
         let (first_half, second_half) = full_bytes.split_at_mut(32);
         first_half.copy_from_slice(block_hash_bytes);
         // Safe because Substrate guarantees that all AccountId types are at least 32 bytes
-        second_half.copy_from_slice(&key_bytes[..32]);
+        second_half.copy_from_slice(
+            key_bytes.get(..32).ok_or(pallet_subspace::Error::<T>::ExtrinsicPanicked)?,
+        );
         let keccak_256_seal_hash_vec: [u8; 32] = keccak_256(&full_bytes[..]);
 
-        H256::from_slice(&keccak_256_seal_hash_vec)
+        Ok(H256::from_slice(&keccak_256_seal_hash_vec))
     }
 
-    pub fn create_seal_hash(block_number_u64: u64, nonce_u64: u64, hotkey: &T::AccountId) -> H256 {
+    pub fn create_seal_hash(
+        block_number_u64: u64,
+        nonce_u64: u64,
+        hotkey: &T::AccountId,
+    ) -> Result<H256, DispatchError> {
         let nonce = nonce_u64.to_le_bytes();
         let block_hash_at_number: H256 = Self::get_block_hash_from_u64(block_number_u64);
         let block_hash_bytes: &[u8; 32] = block_hash_at_number.as_fixed_bytes();
-        let binding = Self::hash_block_and_key(block_hash_bytes, hotkey);
+        let binding = Self::hash_block_and_key(block_hash_bytes, hotkey)?;
         let block_and_hotkey_hash_bytes: &[u8; 32] = binding.as_fixed_bytes();
 
         let mut full_bytes = [0u8; 40];
@@ -240,7 +240,7 @@ impl<T: Config> Pallet<T> {
             "hotkey:{hotkey:?} \nblock_number: {block_number_u64:?}, \nnonce_u64: {nonce_u64:?}, \nblock_hash: {block_hash_at_number:?}, \nfull_bytes: {full_bytes:?}, \nsha256_seal_hash_vec: {sha256_seal_hash_vec:?},  \nkeccak_256_seal_hash_vec: {keccak_256_seal_hash_vec:?}, \nseal_hash: {seal_hash:?}",
         );
 
-        seal_hash
+        Ok(seal_hash)
     }
 
     pub fn get_block_hash_from_u64(block_number: u64) -> H256 {

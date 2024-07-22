@@ -7,6 +7,13 @@ pub struct Cli {
 
     #[clap(flatten)]
     pub run: RunCmd,
+
+    /// Runs the node simulating AURA and GRANDPA using Manual Seal. This makes the node
+    /// incompatible with any network.
+    ///
+    /// https://github.com/paritytech/polkadot-sdk/tree/master/substrate/client/consensus/manual-seal
+    #[arg(long)]
+    pub local_seal: bool,
 }
 
 #[derive(Debug, clap::Subcommand)]

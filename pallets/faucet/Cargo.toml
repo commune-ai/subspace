@@ -2,18 +2,15 @@
 name = "pallet-faucet"
 version = "1.0.0"
 description = "FRAME pallet for runtime logic of Subspace Blockchain."
-authors = ["Commune Nucleus Team"]
+authors = ["Commune Community"]
 homepage = "https://communeai.org/"
 edition = "2021"
 license = "Unlicense"
 publish = false
 repository = "https://github.com/commune-ai/subspace"
 
-[lints.clippy]
-arithmetic_side_effects = "deny"
-indexing_slicing = "deny"
-panicking_unwrap = "deny"
-out_of_bounds_indexing = "deny"
+[lints]
+workspace = true
 
 [features]
 default = ["std"]
@@ -26,7 +23,6 @@ std = [
     "sp-std/std",
 ]
 try-runtime = ["frame-support/try-runtime"]
-testnet-faucet = []
 
 [dependencies]
 bty.workspace = true

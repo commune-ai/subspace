@@ -1,11 +1,56 @@
-#![allow(clippy::arithmetic_side_effects, clippy::indexing_slicing)]
-
 use sp_std::{vec, vec::Vec};
 use substrate_fixed::types::{I32F32, I64F64};
 
 // Return true when vector sum is zero.
 pub fn is_zero(vector: &[I32F32]) -> bool {
     vector.iter().sum::<I32F32>() == I32F32::from_num(0)
+}
+
+#[allow(dead_code)]
+pub fn inplace_row_normalize_64(x: &mut [Vec<I64F64>]) {
+    for row in x {
+        let row_sum: I64F64 = row.iter().sum();
+        if row_sum > I64F64::from_num(0.0_f64) {
+            row.iter_mut().for_each(|x_ij: &mut I64F64| {
+                *x_ij = x_ij.checked_div(row_sum).unwrap_or_default();
+            });
+        }
+    }
+}
+
+pub fn fixed64_to_u64(x: I64F64) -> u64 {
+    x.to_num::<u64>()
+}
+
+pub fn vec_fixed64_to_u64(vec: Vec<I64F64>) -> Vec<u64> {
+    vec.into_iter().map(fixed64_to_u64).collect()
+}
+
+pub fn matmul_64(matrix: &[Vec<I64F64>], vector: &[I64F64]) -> Vec<I64F64> {
+    let Some(first_row) = matrix.first() else {
+        return vec![];
+    };
+    let cols = first_row.len();
+    if cols == 0 {
+        return vec![];
+    }
+    assert!(matrix.len() == vector.len());
+    matrix
+        .iter()
+        .zip(vector)
+        .fold(vec![I64F64::from_num(0.0); cols], |acc, (row, vec_val)| {
+            row.iter()
+                .zip(acc)
+                .map(|(m_val, acc_val)| {
+                    // Compute ranks: r_j = SUM(i) w_ij * s_i
+                    // Compute trust scores: t_j = SUM(i) w_ij * s_i
+                    // result_j = SUM(i) vector_i * matrix_ij
+                    acc_val
+                        .checked_add(vec_val.checked_mul(*m_val).unwrap_or_default())
+                        .unwrap_or(acc_val)
+                })
+                .collect()
+        })
 }
 
 // Normalizes (sum to 1 except 0) the input vector directly in-place.
@@ -15,16 +60,16 @@ pub fn inplace_normalize(x: &mut [I32F32]) {
         return;
     }
     for i in x.iter_mut() {
-        *i /= x_sum;
+        *i = i.saturating_div(x_sum);
     }
 }
 
 pub fn u16_proportion_to_fixed(x: u16) -> I32F32 {
-    I32F32::from_num(x) / I32F32::from_num(u16::MAX)
+    I32F32::from_num(x).saturating_div(I32F32::from_num(u16::MAX))
 }
 
 pub fn fixed_proportion_to_u16(x: I32F32) -> u16 {
-    (x * I32F32::from_num(u16::MAX)).to_num()
+    (x.saturating_mul(I32F32::from_num(u16::MAX))).to_num()
 }
 
 // Return a new sparse matrix with a masked out diagonal of input sparse matrix.
@@ -34,7 +79,11 @@ pub fn mask_diag_sparse(sparse_matrix: &[Vec<(u16, I32F32)>]) -> Vec<Vec<(u16, I
     for (i, sparse_row) in sparse_matrix.iter().enumerate() {
         for (j, value) in sparse_row.iter() {
             if i != (*j as usize) {
-                result[i].push((*j, *value));
+                let Some(row) = result.get_mut(i) else {
+                    continue;
+                };
+
+                row.push((*j, *value));
             }
         }
     }
@@ -46,7 +95,9 @@ pub fn inplace_row_normalize_sparse(sparse_matrix: &mut [Vec<(u16, I32F32)>]) {
     for sparse_row in sparse_matrix.iter_mut() {
         let row_sum: I32F32 = sparse_row.iter().map(|(_j, value)| *value).sum();
         if row_sum != I32F32::from_num(0) {
-            sparse_row.iter_mut().for_each(|(_j, value)| *value /= row_sum);
+            sparse_row
+                .iter_mut()
+                .for_each(|(_j, value)| *value = value.saturating_div(row_sum));
         }
     }
 }
@@ -62,7 +113,13 @@ pub fn matmul_sparse(
             // Compute ranks: r_j = SUM(i) w_ij * s_i
             // Compute trust scores: t_j = SUM(i) w_ij * s_i
             // result_j = SUM(i) vector_i * matrix_ij
-            result[*j as usize] += vector[i] * value;
+            let Some(target) = result.get_mut(*j as usize) else {
+                continue;
+            };
+            let Some(vector_i) = vector.get(i) else {
+                continue;
+            };
+            *target = target.saturating_add(vector_i.saturating_mul(*value));
         }
     }
     result
@@ -80,23 +137,41 @@ pub fn weighted_median_col_sparse(
     inplace_normalize(&mut use_stake);
     let stake_sum: I32F32 = use_stake.iter().sum();
     let stake_idx: Vec<usize> = (0..use_stake.len()).collect();
-    let minority: I32F32 = stake_sum - majority;
+    let minority: I32F32 = stake_sum.saturating_sub(majority);
     let mut use_score: Vec<Vec<I32F32>> = vec![vec![zero; use_stake.len()]; columns as usize];
     let mut median: Vec<I32F32> = vec![zero; columns as usize];
     let mut k: usize = 0;
     for r in 0..rows {
-        if stake[r] <= zero {
+        let Some(stake_r) = stake.get(r) else {
+            continue;
+        };
+        let Some(score_r) = score.get(r) else {
+            continue;
+        };
+        if *stake_r <= zero {
             continue;
         }
-        for (c, val) in score[r].iter() {
-            use_score[*c as usize][k] = *val;
+        for (c, val) in score_r.iter() {
+            let Some(use_score_c) = use_score.get_mut(*c as usize) else {
+                continue;
+            };
+            let Some(use_score_c_k) = use_score_c.get_mut(k) else {
+                continue;
+            };
+            *use_score_c_k = *val;
         }
-        k += 1;
+        k = k.saturating_add(1);
     }
     for c in 0..columns as usize {
-        median[c] = weighted_median(
+        let Some(median_c) = median.get_mut(c) else {
+            continue;
+        };
+        let Some(use_score_c) = use_score.get(c) else {
+            continue;
+        };
+        *median_c = weighted_median(
             &use_stake,
-            &use_score[c],
+            use_score_c,
             &stake_idx,
             minority,
             zero,
@@ -148,49 +223,68 @@ pub fn weighted_median(
         return I32F32::from_num(0);
     }
     if n == 1 {
-        return score[partition_idx[0]];
+        let Some(partition_idx_0) = partition_idx.first() else {
+            return I32F32::from_num(0);
+        };
+        let Some(score_idx) = score.get(*partition_idx_0) else {
+            return I32F32::from_num(0);
+        };
+        return *score_idx;
     }
     assert!(stake.len() == score.len());
     let mid_idx: usize = n / 2;
-    let pivot: I32F32 = score[partition_idx[mid_idx]];
+    let Some(partition_idx_mid_idx) = partition_idx.get(mid_idx) else {
+        return I32F32::from_num(0);
+    };
+    let Some(pivot) = score.get(*partition_idx_mid_idx) else {
+        return I32F32::from_num(0);
+    };
     let mut lo_stake: I32F32 = I32F32::from_num(0);
     let mut hi_stake: I32F32 = I32F32::from_num(0);
     let mut lower: Vec<usize> = vec![];
     let mut upper: Vec<usize> = vec![];
     for &idx in partition_idx.iter() {
-        if score[idx] == pivot {
+        let Some(score_idx) = score.get(idx) else {
+            continue;
+        };
+        let Some(stake_idx) = stake.get(idx) else {
+            continue;
+        };
+        if *score_idx == *pivot {
             continue;
         }
-        if score[idx] < pivot {
-            lo_stake += stake[idx];
+        if *score_idx < *pivot {
+            lo_stake = lo_stake.saturating_add(*stake_idx);
             lower.push(idx);
         } else {
-            hi_stake += stake[idx];
+            hi_stake = hi_stake.saturating_add(*stake_idx);
             upper.push(idx);
         }
     }
-    if (partition_lo + lo_stake <= minority) && (minority < partition_hi - hi_stake) {
-        return pivot;
-    } else if (minority < partition_lo + lo_stake) && !lower.is_empty() {
+    if (partition_lo.saturating_add(lo_stake) <= minority)
+        && (minority < partition_hi.saturating_sub(hi_stake))
+    {
+        return *pivot;
+    } else if (minority < partition_lo.saturating_add(lo_stake)) && !lower.is_empty() {
         return weighted_median(
             stake,
             score,
             &lower,
             minority,
             partition_lo,
-            partition_lo + lo_stake,
+            partition_lo.saturating_add(lo_stake),
         );
-    } else if (partition_hi - hi_stake <= minority) && !upper.is_empty() {
+    } else if (partition_hi.saturating_sub(hi_stake) <= minority) && !upper.is_empty() {
         return weighted_median(
             stake,
             score,
             &upper,
             minority,
-            partition_hi - hi_stake,
+            partition_hi.saturating_sub(hi_stake),
             partition_hi,
         );
     }
-    pivot
+    *pivot
 }
 
 // Sum across each row (dim=0) of a sparse matrix.
@@ -199,7 +293,11 @@ pub fn row_sum_sparse(sparse_matrix: &[Vec<(u16, I32F32)>]) -> Vec<I32F32> {
     let mut result: Vec<I32F32> = vec![I32F32::from_num(0); rows];
     for (i, sparse_row) in sparse_matrix.iter().enumerate() {
         for (_j, value) in sparse_row.iter() {
-            result[i] += value;
+            let Some(result_i) = result.get_mut(i) else {
+                continue;
+            };
+
+            *result_i = result_i.saturating_add(*value);
         }
     }
     result
@@ -213,12 +311,17 @@ pub fn col_clip_sparse(
     let mut result: Vec<Vec<(u16, I32F32)>> = vec![vec![]; sparse_matrix.len()];
     for (i, sparse_row) in sparse_matrix.iter().enumerate() {
         for (j, value) in sparse_row.iter() {
-            if col_threshold[*j as usize] < *value {
-                if 0 < col_threshold[*j as usize] {
-                    result[i].push((*j, col_threshold[*j as usize]));
-                }
+            let Some(col_threshold_j) = col_threshold.get(*j as usize) else {
+                continue;
+            };
+            let Some(result_i) = result.get_mut(i) else {
+                continue;
+            };
+
+            if *col_threshold_j < *value {
+                result_i.push((*j, *col_threshold_j));
             } else {
-                result[i].push((*j, *value));
+                result_i.push((*j, *value));
             }
         }
     }
@@ -238,8 +341,14 @@ pub fn mask_rows_sparse(
 
     let mut result: Vec<Vec<(u16, I32F32)>> = vec![vec![]; n];
     for (i, sparse_row) in sparse_matrix.iter().enumerate() {
-        if !mask[i] {
-            result[i].clone_from(sparse_row);
+        let Some(mask_i) = mask.get(i) else {
+            continue;
+        };
+        let Some(result_i) = result.get_mut(i) else {
+            continue;
+        };
+        if !mask_i {
+            result_i.clone_from(sparse_row);
         }
     }
 
@@ -258,7 +367,11 @@ pub fn vec_mask_sparse_matrix(
     for (i, sparse_row) in sparse_matrix.iter().enumerate() {
         for (j, value) in sparse_row.iter() {
             if !mask_fn(*first_vector.get(i)?, *second_vector.get(*j as usize)?) {
-                result[i].push((*j, *value));
+                let Some(result_i) = result.get_mut(i) else {
+                    continue;
+                };
+
+                result_i.push((*j, *value));
             }
         }
     }
@@ -277,7 +390,7 @@ pub fn inplace_mask_vector(mask: &[bool], vector: &mut [I32F32]) {
     vector
         .iter_mut()
         .enumerate()
-        .filter(|(idx, _)| mask[*idx])
+        .filter(|(idx, _)| *mask.get(*idx).unwrap_or(&false))
         .for_each(|(_, v)| *v = zero);
 }
 
@@ -288,7 +401,7 @@ pub fn inplace_normalize_64(x: &mut [I64F64]) {
     }
 
     for x in x {
-        *x /= x_sum;
+        *x = x.saturating_div(x_sum);
     }
 }
 
@@ -304,8 +417,16 @@ pub fn is_topk(vector: &[I32F32], k: usize) -> Vec<bool> {
     }
 
     let mut idxs: Vec<usize> = (0..n).collect();
-    idxs.sort_by_key(|&idx| &vector[idx]); // ascending stable sort
-    idxs[..(n - k)].iter().for_each(|&idx| result[idx] = false);
+    idxs.sort_by_key(|&idx| *vector.get(idx).unwrap_or(&I32F32::from_num(0))); // ascending stable sort
+    let Some(idxs_n_sub_k) = idxs.get(..(n.saturating_sub(k))) else {
+        return result;
+    };
+    for idx in idxs_n_sub_k {
+        let Some(result_idx) = result.get_mut(*idx) else {
+            continue;
+        };
+        *result_idx = false;
+    }
 
     result
 }
@@ -315,17 +436,22 @@ pub fn inplace_col_normalize_sparse(sparse_matrix: &mut [Vec<(u16, I32F32)>], co
 
     for sparse_row in sparse_matrix.iter() {
         for (j, value) in sparse_row {
-            col_sum[*j as usize] += *value;
+            let Some(col_sum_j) = col_sum.get_mut(*j as usize) else {
+                continue;
+            };
+            *col_sum_j = col_sum_j.saturating_add(*value);
         }
     }
 
     for sparse_row in sparse_matrix {
         for (j, value) in sparse_row {
-            if col_sum[*j as usize] == I32F32::from_num(0.) {
+            let Some(col_sum_j) = col_sum.get(*j as usize) else {
+                continue;
+            };
+            if *col_sum_j == I32F32::from_num(0.) {
                 continue;
             }
-
-            *value /= col_sum[*j as usize];
+            *value = value.saturating_div(*col_sum_j);
         }
     }
 }
@@ -337,7 +463,10 @@ pub fn row_hadamard_sparse(
     let mut result: Vec<Vec<(u16, I32F32)>> = sparse_matrix.to_vec();
     for (i, sparse_row) in result.iter_mut().enumerate() {
         for (_j, value) in sparse_row {
-            *value *= vector[i];
+            let Some(vector_i) = vector.get(i) else {
+                continue;
+            };
+            *value = value.saturating_mul(*vector_i);
         }
     }
     result
@@ -349,7 +478,7 @@ pub fn inplace_normalize_using_sum(x: &mut [I32F32], x_sum: I32F32) {
     }
 
     for x in x {
-        *x /= x_sum;
+        *x = x.saturating_div(x_sum);
     }
 }
 
@@ -363,7 +492,13 @@ pub fn matmul_transpose_sparse(
             // Compute dividends: d_j = SUM(i) b_ji * inc_i
             // result_j = SUM(i) vector_i * matrix_ji
             // result_i = SUM(j) vector_j * matrix_ij
-            result[i] += vector[*j as usize] * value;
+            let Some(vector_j) = vector.get(*j as usize) else {
+                continue;
+            };
+            let Some(result_i) = result.get_mut(i) else {
+                continue;
+            };
+            *result_i = result_i.saturating_add(vector_j.saturating_mul(*value))
         }
     }
     result
@@ -377,19 +512,34 @@ pub fn mat_ema_sparse(
     assert!(new.len() == old.len());
     let n = new.len(); // assume square matrix, rows=cols
     let zero: I32F32 = I32F32::from_num(0.0);
-    let one_minus_alpha: I32F32 = I32F32::from_num(1.0) - alpha;
+    let one_minus_alpha: I32F32 = I32F32::from_num(1.0).saturating_sub(alpha);
     let mut result: Vec<Vec<(u16, I32F32)>> = vec![vec![]; n];
     for i in 0..new.len() {
         let mut row: Vec<I32F32> = vec![zero; n];
-        for (j, value) in new[i].iter() {
-            row[*j as usize] += alpha * value;
+        let Some(new_i) = new.get(i) else {
+            continue;
+        };
+        let Some(old_i) = old.get(i) else {
+            continue;
+        };
+        for (j, value) in new_i.iter() {
+            let Some(row_j) = row.get_mut(*j as usize) else {
+                continue;
+            };
+            *row_j = row_j.saturating_add(alpha.saturating_mul(*value));
         }
-        for (j, value) in old[i].iter() {
-            row[*j as usize] += one_minus_alpha * value;
+        for (j, value) in old_i.iter() {
+            let Some(row_j) = row.get_mut(*j as usize) else {
+                continue;
+            };
+            *row_j = row_j.saturating_add(one_minus_alpha.saturating_mul(*value));
         }
         for (j, value) in row.iter().enumerate() {
+            let Some(result_i) = result.get_mut(i) else {
+                continue;
+            };
             if *value > zero {
-                result[i].push((j as u16, *value))
+                result_i.push((j as u16, *value))
             }
         }
     }
@@ -405,22 +555,32 @@ pub fn vec_max_upscale_to_u16(vec: &[I32F32]) -> Vec<u16> {
     match max_value {
         Some(val) => {
             if *val == I32F32::from_num(0) {
-                return vec.iter().map(|e: &I32F32| (e * u16_max).to_num::<u16>()).collect();
+                return vec
+                    .iter()
+                    .map(|e: &I32F32| e.saturating_mul(u16_max).to_num::<u16>())
+                    .collect();
             }
             if *val > threshold {
                 return vec
                     .iter()
-                    .map(|e: &I32F32| (e * (u16_max / *val)).round().to_num::<u16>())
+                    .map(|e: &I32F32| {
+                        e.saturating_mul(u16_max.saturating_div(*val)).round().to_num::<u16>()
+                    })
                     .collect();
             }
             return vec
                 .iter()
-                .map(|e: &I32F32| ((e * u16_max) / *val).round().to_num::<u16>())
+                .map(|e: &I32F32| {
+                    e.saturating_mul(u16_max).saturating_div(*val).round().to_num::<u16>()
+                })
                 .collect();
         }
         None => {
             let sum: I32F32 = vec.iter().sum();
-            return vec.iter().map(|e: &I32F32| ((e * u16_max) / sum).to_num::<u16>()).collect();
+            return vec
+                .iter()
+                .map(|e: &I32F32| e.saturating_mul(u16_max).saturating_div(sum).to_num::<u16>())
+                .collect();
         }
     }
 }
@@ -430,8 +590,17 @@ pub fn vecdiv(x: &[I32F32], y: &[I32F32]) -> Vec<I32F32> {
     let n = x.len();
     let mut result: Vec<I32F32> = vec![I32F32::from_num(0); n];
     for i in 0..n {
-        if y[i] != 0 {
-            result[i] = x[i] / y[i];
+        let Some(y_i) = y.get(i) else {
+            continue;
+        };
+        if *y_i != I32F32::from_num(0.) {
+            let Some(result_i) = result.get_mut(i) else {
+                continue;
+            };
+            let Some(x_i) = x.get(i) else {
+                continue;
+            };
+            *result_i = x_i.saturating_div(*y_i);
         }
     }
     result
@@ -442,22 +611,29 @@ pub fn inplace_col_max_upscale_sparse(sparse_matrix: &mut [Vec<(u16, I32F32)>], 
     let mut col_max: Vec<I32F32> = vec![I32F32::from_num(0.0); columns as usize]; // assume square matrix, rows=cols
     for sparse_row in sparse_matrix.iter() {
         for (j, value) in sparse_row.iter() {
-            if col_max[*j as usize] < *value {
-                col_max[*j as usize] = *value;
+            let Some(col_max_j) = col_max.get_mut(*j as usize) else {
+                continue;
+            };
+            if *col_max_j < *value {
+                *col_max_j = *value;
             }
         }
     }
     for sparse_row in sparse_matrix.iter_mut() {
         for (j, value) in sparse_row.iter_mut() {
-            if col_max[*j as usize] == I32F32::from_num(0.) {
+            let Some(col_max_j) = col_max.get(*j as usize) else {
+                continue;
+            };
+            if *col_max_j == I32F32::from_num(0.) {
                 continue;
             }
-            *value /= col_max[*j as usize];
+            *value = value.saturating_div(*col_max_j);
         }
     }
 }
 
 #[cfg(test)]
+#[allow(clippy::arithmetic_side_effects, clippy::indexing_slicing)]
 mod tests {
     use crate::math::*;
     use substrate_fixed::types::{I32F32, I64F64, I96F32};

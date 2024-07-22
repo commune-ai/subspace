@@ -1,8 +1,11 @@
 [package]
 name = "pallet-governance-api"
-authors = ["Commune Nucleus Team"]
+authors = ["Commune Community"]
 version = "1.0.0"
 edition = "2021"
+
+[lints]
+workspace = true
 
 [package.metadata.docs.rs]
 targets = ["x86_64-unknown-linux-gnu"]

@@ -1,8 +1,11 @@
 [package]
 name = "subspace-runtime-api"
-authors = ["David Tanaka <https://github.com/realhardworkingdeveloper>"]
+authors = ["Commune Community"]
 version = "1.0.0"
 edition = "2021"
+
+[lints]
+workspace = true
 
 [package.metadata.docs.rs]
 targets = ["x86_64-unknown-linux-gnu"]
@@ -25,4 +28,3 @@ std = [
     "scale-info/std",
     "sp-arithmetic/std",
 ]
-testnet-faucet = []

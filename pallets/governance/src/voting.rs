@@ -1,7 +1,6 @@
 use crate::{proposal::ProposalStatus, *};
 use frame_support::pallet_prelude::DispatchResult;
 use frame_system::ensure_signed;
-use pallet_subspace::Pallet as PalletSubspace;
 
 impl<T: Config> Pallet<T> {
     /// Votes on proposals,
@@ -16,7 +15,6 @@ impl<T: Config> Pallet<T> {
             return Err(Error::<T>::ProposalNotFound.into());
         };
 
-        let subnet_id = proposal.subnet_id();
         let ProposalStatus::Open {
             votes_for,
             votes_against,
@@ -31,15 +29,13 @@ impl<T: Config> Pallet<T> {
             Error::<T>::AlreadyVoted
         );
 
-        let voter_stake = PalletSubspace::<T>::get_account_stake(&key, subnet_id);
+        let voter_stake = pallet_subspace::Pallet::<T>::get_delegated_stake(&key);
 
         ensure!(voter_stake > 0, Error::<T>::InsufficientStake);
 
-        let has_stake_from = || {
-            pallet_subspace::StakeFrom::<T>::iter()
-                .any(|(_, k, stakes)| k == key && !stakes.is_empty())
-        };
-
+        let stake_from_vector = pallet_subspace::Pallet::<T>::get_stake_from_vector(&key);
+        let has_stake_from =
+            || stake_from_vector.iter().any(|(k, stakes)| k == &key && *stakes > 0);
         if !NotDelegatingVotingPower::<T>::get().contains(&key) && !has_stake_from() {
             return Err(Error::<T>::VoterIsDelegatingVotingPower.into());
         }
