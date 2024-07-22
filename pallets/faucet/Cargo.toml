@@ -1,0 +1,52 @@
+[package]
+name = "pallet-faucet"
+version = "1.0.0"
+description = "FRAME pallet for runtime logic of Subspace Blockchain."
+authors = ["Commune Community"]
+homepage = "https://communeai.org/"
+edition = "2021"
+license = "Unlicense"
+publish = false
+repository = "https://github.com/commune-ai/subspace"
+
+[lints]
+workspace = true
+
+[features]
+default = ["std"]
+std = [
+    "frame-support/std",
+    "frame-system/std",
+    "parity-scale-codec/std",
+    "pallet-subspace/std",
+    "scale-info/std",
+    "sp-std/std",
+]
+try-runtime = ["frame-support/try-runtime"]
+
+[dependencies]
+bty.workspace = true
+log.workspace = true
+
+pallet-subspace = { path = "../subspace", default-features = false }
+
+frame-support.workspace = true
+frame-system.workspace = true
+
+sp-runtime.workspace = true
+sp-std.workspace = true
+sp-core.workspace = true
+
+substrate-fixed.workspace = true
+
+parity-scale-codec = { workspace = true, default-features = false, features = [
+    "derive",
+] }
+scale-info = { workspace = true, default-features = false, features = [
+    "derive",
+] }
+
+[dev-dependencies]
+pallet-balances = { workspace = true, features = ["std"] }
+sp-io.workspace = true
+sp-tracing.workspace = true

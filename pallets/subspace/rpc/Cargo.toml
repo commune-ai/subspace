@@ -2,8 +2,11 @@
 name = "subspace-rpc"
 version = "1.0.0"
 edition = "2021"
-authors = ["David Tanaka <https://github.com/realhardworkingdeveloper>"]
+authors = ["Commune Community"]
 description = 'RPC methods for subspace pallet'
+
+[lints]
+workspace = true
 
 [package.metadata.docs.rs]
 targets = ["x86_64-unknown-linux-gnu"]
@@ -33,4 +36,3 @@ std = [
   "subspace-runtime-api/std",
   "pallet-subspace/std",
 ]
-testnet-faucet = []

@@ -1,7 +1,1 @@
-validator_hyperparameters.md @unconst
-validator_hyperparameters.md @shibshib
-validator_hyperparameters.md @opentaco
-
-.github/CODEOWNERS @unconst
-.github/CODEOWNERS @shibshib
-.github/CODEOWNERS @opentaco
+* @Supremesource @saiintbrisson

@@ -68,7 +68,10 @@ fn localnet_run(mut r: flags::Run) {
     ops::key_insert_cmd(&path, &chain_path, &account.suri, "aura");
     ops::key_insert_cmd(&path, &chain_path, &account.suri, "gran");
 
-    let _run = ops::run_node(&path, &chain_path, &node, &r.bootnodes).spawn().unwrap().wait();
+    let _run = ops::run_node(&path, &chain_path, &node, &r.bootnodes, r.isolated)
+        .spawn()
+        .unwrap()
+        .wait();
 }
 
 #[derive(Clone)]
@@ -254,6 +257,7 @@ mod ops {
         chain_spec: &dyn AsRef<OsStr>,
         node: &Node<'_>,
         bootnodes: &[String],
+        isolated: bool,
     ) -> Command {
         #[rustfmt::skip]
         let mut cmd = node_subspace!(
@@ -263,6 +267,8 @@ mod ops {
             "--rpc-cors", "all",
             "--port", node.tcp_port.to_string(),
             "--rpc-port", node.rpc_port.to_string(),
+            "--allow-private-ipv4",
+            "--discover-local",
             "--force-authoring"
         );
 
@@ -280,6 +286,10 @@ mod ops {
 
         if let Some(node_key) = &node.key {
             cmd.args(["--node-key", node_key]);
+        }
+
+        if isolated {
+            cmd.args(["--in-peers", "0", "--out-peers", "0", "--local-seal"]);
         }
 
         cmd

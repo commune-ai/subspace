@@ -65,6 +65,7 @@ pub fn run() -> sc_cli::Result<()> {
         "info".to_string(),
         "pallet_subspace=debug".to_string(),
         "pallet_governance=debug".to_string(),
+        "pallet_subnet_emission=debug".to_string(),
     ]);
 
     match &cli.subcommand {
@@ -220,7 +221,11 @@ pub fn run() -> sc_cli::Result<()> {
         None => {
             let runner = cli.create_runner(&cli.run)?;
             runner.run_node_until_exit(|config| async move {
-                service::new_full(config).map_err(sc_cli::Error::Service)
+                if cli.local_seal {
+                    crate::manual_seal_service::new_full(config).map_err(sc_cli::Error::Service)
+                } else {
+                    service::new_full(config).map_err(sc_cli::Error::Service)
+                }
             })
         }
     }

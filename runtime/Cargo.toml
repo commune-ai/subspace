@@ -2,7 +2,7 @@
 name = "node-subspace-runtime"
 version = "1.7.5"
 description = "A Substrate node for commune-ai"
-authors = ["Sal Vivona <https://github.com/salvivona>"]
+authors = ["Commune Community"]
 homepage = "https://substrate.io/"
 edition = "2021"
 license = "Unlicense"
@@ -15,6 +15,8 @@ targets = ["x86_64-unknown-linux-gnu"]
 [dependencies]
 pallet-subspace = { path = "../pallets/subspace", default-features = false }
 pallet-governance = { path = "../pallets/governance", default-features = false }
+pallet-faucet = { path = "../pallets/faucet", optional = true, default-features = false }
+pallet-subnet-emission = { path = "../pallets/subnet_emission", default-features = false }
 
 log.workspace = true
 smallvec.workspace = true
@@ -69,12 +71,13 @@ pallet-base-fee.workspace = true
 
 subspace-runtime-api = { path = "../pallets/subspace/rpc/runtime-api", default-features = false }
 pallet-governance-api = { path = "../pallets/governance/api", default-features = false }
+pallet-subnet-emission-api = { path = "../pallets/subnet_emission/api", default-features = false }
 [build-dependencies]
 substrate-wasm-builder = { workspace = true, optional = true }
 
 [features]
 default = ["std"]
-testnet-faucet = ["pallet-subspace/testnet-faucet"]
+testnet-faucet = ["pallet-faucet"]
 std = [
 	"frame-try-runtime?/std",
 	"frame-system-benchmarking?/std",
@@ -88,6 +91,7 @@ std = [
 	"frame-try-runtime/std",
 	"pallet-subspace/std",
 	"pallet-governance/std",
+	"pallet-faucet/std",
 	"pallet-aura/std",
 	"pallet-balances/std",
 	"pallet-grandpa/std",
@@ -128,6 +132,7 @@ runtime-benchmarks = [
 	"pallet-utility/runtime-benchmarks",
 	"sp-runtime/runtime-benchmarks",
 	"pallet-subspace/runtime-benchmarks",
+	"pallet-governance/runtime-benchmarks",
 ]
 try-runtime = [
 	"fp-self-contained/try-runtime",
@@ -142,6 +147,8 @@ try-runtime = [
 	"pallet-insecure-randomness-collective-flip/try-runtime",
 	"pallet-multisig/try-runtime",
 	"pallet-governance/try-runtime",
+	"pallet-subnet-emission/try-runtime",
+	"pallet-faucet/try-runtime",
 	"pallet-subspace/try-runtime",
 	"pallet-sudo/try-runtime",
 	"pallet-timestamp/try-runtime",

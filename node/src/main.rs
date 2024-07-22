@@ -6,6 +6,8 @@ mod chain_spec;
 #[macro_use]
 mod service;
 
+mod manual_seal_service;
+
 mod benchmarking;
 mod cli;
 mod command;

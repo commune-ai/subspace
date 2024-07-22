@@ -20,6 +20,9 @@ xflags::xflags! {
             /// The Bob node listens on TCP 30342 and RPC 9952.
             optional --bob
 
+            /// If set, the node will be set to 0 Out/In peers.
+            optional --isolated
+
             /// Overrides the default node name.
             optional --node-name node_name: String
             /// Overrides the default node key.
@@ -58,6 +61,7 @@ pub struct Run {
     pub path: Option<PathBuf>,
     pub alice: bool,
     pub bob: bool,
+    pub isolated: bool,
     pub node_name: Option<String>,
     pub node_key: Option<String>,
     pub node_validator: Option<bool>,

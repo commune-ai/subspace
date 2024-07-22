@@ -1,0 +1,45 @@
+[package]
+name = "tests"
+version = "1.0.0"
+description = "Unit testing for the Subspace runtime."
+authors = ["Commune Community"]
+homepage = "https://commune.com"
+edition = "2021"
+license = "Unlicense"
+publish = false
+repository = "https://github.com/commune-ai/subspace"
+
+[package.metadata.docs.rs]
+targets = ["x86_64-unknown-linux-gnu"]
+
+[dependencies]
+
+[dev-dependencies]
+substrate-fixed.workspace = true
+pallet-balances.workspace = true
+sp-tracing.workspace = true
+sp-io.workspace = true
+sp-core.workspace = true
+sp-runtime.workspace = true
+sp-arithmetic.workspace = true
+bty.workspace = true
+log.workspace = true
+
+pallet-governance = { path = "../pallets/governance", features = ["std"] }
+pallet-subspace = { path = "../pallets/subspace", features = ["std"] }
+pallet-subnet-emission = { path = "../pallets/subnet_emission", features = ["std"] }
+
+pallet-governance-api = { path = "../pallets/governance/api" }
+pallet-subnet-emission-api = { path = "../pallets/subnet_emission/api" }
+
+frame-support = { workspace = true, features = ["std"] }
+frame-system = { workspace = true, features = ["std"] }
+
+sp-std.workspace = true
+
+parity-scale-codec = { workspace = true, default-features = false, features = [
+    "derive", "std"
+] }
+scale-info = { workspace = true, default-features = false, features = [
+    "derive", "std"
+] }

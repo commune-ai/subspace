@@ -2,7 +2,7 @@
 
 use frame_support::DebugNoBound;
 use parity_scale_codec::{Decode, Encode, MaxEncodedLen};
-use scale_info::TypeInfo;
+use scale_info::{prelude::collections::BTreeSet, TypeInfo};
 use sp_runtime::{DispatchResult, Percent};
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, TypeInfo, Decode, Encode, MaxEncodedLen)]
@@ -40,9 +40,6 @@ pub trait GovernanceApi<AccountId> {
     /// Gets the account address for the DAO treasury.
     fn get_dao_treasury_address() -> AccountId;
 
-    /// Gets the percentage of the treasury to be distributed in a step.
-    fn get_dao_treasury_distribution() -> Percent;
-
     /// Gets global governance configuration.
     fn get_global_governance_configuration() -> GovernanceConfiguration;
 
@@ -79,6 +76,8 @@ pub trait GovernanceApi<AccountId> {
 
     /// Returns bool indicating whether the application on SN0 exists.
     fn curator_application_exists(module_key: &AccountId) -> bool;
+
+    fn whitelisted_keys() -> BTreeSet<AccountId>;
 
     fn get_curator() -> AccountId;
 
