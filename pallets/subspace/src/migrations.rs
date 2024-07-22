@@ -310,8 +310,9 @@ pub mod v12 {
             // Deregister subnets that don't even have the SubnetEmission storage (inactive)
             // They will need to go through the burned register, instead of having "free" innactive
             // spot.
-            for (netuid, emission) in old_storage::SubnetEmission::<T>::iter() {
-                if emission == 0 {
+            let low_moudle_count = 10;
+            for (netuid, module_count) in N::<T>::iter() {
+                if module_count < low_moudle_count {
                     let current_subnet_consensus = T::get_subnet_consensus_type(netuid);
                     if current_subnet_consensus.is_none() {
                         // Get the subnet name before removal
