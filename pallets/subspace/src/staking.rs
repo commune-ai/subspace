@@ -338,26 +338,6 @@ impl<T: Config> Pallet<T> {
         StakeTo::<T>::iter_prefix(staker).collect()
     }
 
-    pub fn set_stake_to_vector(
-        staker: &T::AccountId,
-        stake_to_vector: BTreeMap<T::AccountId, u64>,
-    ) {
-        StakeTo::<T>::remove_prefix(staker, None);
-        for (k, v) in stake_to_vector.iter() {
-            StakeTo::<T>::insert(staker, k, v);
-        }
-    }
-
-    pub fn set_stake_from_vector(
-        staked: &T::AccountId,
-        stake_from_vector: BTreeMap<T::AccountId, u64>,
-    ) {
-        StakeFrom::<T>::remove_prefix(staked, None);
-        for (k, v) in stake_from_vector.iter() {
-            StakeFrom::<T>::insert(staked, k, v);
-        }
-    }
-
     pub fn get_stake_from_vector(staked: &T::AccountId) -> BTreeMap<T::AccountId, u64> {
         StakeFrom::<T>::iter_prefix(staked).collect::<BTreeMap<_, _>>()
     }
@@ -397,7 +377,6 @@ impl<T: Config> Pallet<T> {
             StakeTo::<T>::remove(staker, staked);
         }
 
-        // Stake::<T>::mutate(staked, |stake| *stake = stake.saturating_sub(amount));
         TotalStake::<T>::mutate(|total_stake| *total_stake = total_stake.saturating_sub(amount));
     }
 
@@ -415,8 +394,6 @@ impl<T: Config> Pallet<T> {
                 Self::u64_to_balance(delegate_stake_amount).unwrap(),
             );
         }
-
-        // Stake::<T>::remove(staked);
     }
 
     pub fn add_balance_to_account(key: &T::AccountId, amount: BalanceOf<T>) {
