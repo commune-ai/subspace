@@ -26,7 +26,7 @@ jobs:
           repo-token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Build node
-        run: cargo build --release --package node-subspace
+        run: cargo build --release --package node-subspace-runtime
     
       - uses: actions/upload-artifact@v4
         with:
