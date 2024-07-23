@@ -1,0 +1,36 @@
+name: Build and publish
+
+on:
+  push: 
+    tags: 'v*'
+
+jobs:
+  check:
+    runs-on: ubuntu-22.04
+
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Setup Rust cache
+        uses: Swatinem/rust-cache@v2
+
+      - name: Install Rust toolchain
+        run: |
+          rustup set profile minimal
+          rustup show
+
+      - name: Install Protoc
+        uses: arduino/setup-protoc@v1
+        with:
+          version: 3.20.1
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build node
+        run: cargo build --release --package node-subspace-runtime
+    
+      - uses: actions/upload-artifact@v4
+        with:
+          name: node_subspace_runtime.compact.compressed.wasm
+          path: target/release/wbuild/node-subspace-runtime/node_subspace_runtime.compact.compressed.wasm
+          if-no-files-found: error
+          overwrite: true
