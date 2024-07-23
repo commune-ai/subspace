@@ -176,7 +176,7 @@ impl<T: Config + pallet::Config> LinearEpoch<T> {
             &self.founder_key,
             &uid_key_tuples,
             self.linear_netuid,
-        );
+        )?;
 
         Ok(())
     }
@@ -311,7 +311,7 @@ impl<T: Config + pallet::Config> LinearEpoch<T> {
         founder_key: &T::AccountId,
         uid_key_tuples: &[(u16, T::AccountId)],
         linear_netuid: u16,
-    ) {
+    ) -> Result<(), EmissionError> {
         let (incentive_emission_float, dividends_emission_float) =
             Self::calculate_emission_ratios(incentive, dividends, to_be_emitted, netuid);
 
@@ -325,7 +325,17 @@ impl<T: Config + pallet::Config> LinearEpoch<T> {
             linear_netuid,
         );
 
+        // Check if total emission exceeds to_be_emitted
+        let total_emitted: u64 = emission.iter().sum();
+        if total_emitted > to_be_emitted {
+            return Err(EmissionError::EmittedMoreThanExpected {
+                emitted: total_emitted,
+                expected: to_be_emitted,
+            });
+        }
+
         Emission::<T>::insert(netuid, emission);
+        Ok(())
     }
 
     fn compute_dividends(

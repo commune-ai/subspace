@@ -332,9 +332,6 @@ impl<T: Config> YumaEpoch<T> {
             }
         }
 
-        // let stake_map: BTreeMap<_, _> = StakeFrom::<T>::iter_key_prefix()
-        //     .filter_map(|(k, v)| Some((keys_map.remove(&k)?, I64F64::from_num(v))))
-        //     .collect();
         let mut stake: Vec<_> = stake_map.into_values().collect();
 
         ensure!(

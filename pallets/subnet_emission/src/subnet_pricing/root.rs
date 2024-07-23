@@ -144,11 +144,21 @@ impl<T: Config + pallet_subspace::Config> RootPricing<T> {
         log::debug!("Rootnet# emission_u64 {emission_u64:?}.");
 
         let mut priced_subnets = PricedSubnets::new();
+        let mut total_emission: u64 = 0;
         emission_u64.into_iter().enumerate().for_each(|(index, emission)| {
             priced_subnets.insert(*subnet_ids.get(index).unwrap(), emission);
+            total_emission = total_emission.saturating_add(emission);
         });
 
         log::debug!("Rootnet# priced subnets {priced_subnets:?}.");
+        log::debug!("Rootnet# total emission {total_emission}.");
+
+        // Check if the total emission is not larger than to_be_emitted
+        if total_emission > self.to_be_emitted {
+            return Err(sp_runtime::DispatchError::Other(
+                "Total emission exceeds the allowed amount",
+            ));
+        }
 
         Ok(priced_subnets)
     }
