@@ -176,6 +176,7 @@ pub fn new_full(mut config: Configuration) -> Result<TaskManager, ServiceError> 
 
     let (mut sink, commands_stream) = futures::channel::mpsc::channel(1024);
     task_manager.spawn_handle().spawn("block_authoring", None, async move {
+        #[allow(clippy::infinite_loop)]
         loop {
             jsonrpsee::tokio::time::sleep(std::time::Duration::from_secs(8)).await;
             sink.try_send(sc_consensus_manual_seal::EngineCommand::SealNewBlock {
