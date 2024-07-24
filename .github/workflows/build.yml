@@ -3,6 +3,7 @@ name: Build and publish
 on:
   push: 
     tags: 'v*'
+  workflow_dispatch:
 
 jobs:
   check:
@@ -25,9 +26,9 @@ jobs:
           version: 3.20.1
           repo-token: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Build node
+      - name: Build runtime
         run: |
-          cargo build --release --package node-subspace-runtim
+          cargo build --release --package node-subspace-runtime
 
           export SHA256SUM=$(sha256sum target/release/wbuild/node-subspace-runtime/node_subspace_runtime.compact.compressed.wasm | cut -d ' ' -f1)
           echo Hash of compact and compressed WASM: $SHA256SUM
@@ -38,7 +39,7 @@ jobs:
 
       - uses: actions/upload-artifact@v4
         with:
-          name: 
+          name: node_subspace_runtime.compact.compressed
           path: out/
           if-no-files-found: error
           overwrite: true
