@@ -1038,35 +1038,36 @@ pub mod pallet {
             Self::do_delegate_rootnet_control(origin, target)
         }
     }
+}
 
-    // ---- Subspace helper functions.
-    impl<T: Config> Pallet<T> {
-        /// used to get account total value staked to modules
-        pub fn get_owned_stake(key: &T::AccountId) -> u64 {
-            StakeTo::<T>::iter_prefix(key).map(|(_, stake)| stake).sum()
-        }
+impl<T: Config> Pallet<T> {
+    /// Returns the total amount staked by the given key to other keys.
+    #[inline]
+    pub fn get_owned_stake(staker: &T::AccountId) -> u64 {
+        StakeTo::<T>::iter_prefix_values(staker).sum()
+    }
 
-        /// used to get modules total value staked from accounts
-        pub fn get_delegated_stake(key: &T::AccountId) -> u64 {
-            StakeFrom::<T>::iter_prefix(key).map(|(_, stake)| stake).sum()
-        }
+    /// Returns the total amount staked into the given key by other keys.
+    #[inline]
+    pub fn get_delegated_stake(staked: &T::AccountId) -> u64 {
+        StakeFrom::<T>::iter_prefix_values(staked).sum()
+    }
 
-        // --- Returns the transaction priority for setting weights.
-        pub fn get_priority_set_weights(key: &T::AccountId, netuid: u16) -> u64 {
-            if let Some(uid) = Uids::<T>::get(netuid, key) {
-                let last_update = Self::get_last_update_for_uid(netuid, uid);
-                Self::get_current_block_number().saturating_add(last_update)
-            } else {
-                0
-            }
-        }
-        // --- Returns the transaction priority for setting weights.
-        pub fn get_priority_stake(key: &T::AccountId, netuid: u16) -> u64 {
-            if Uids::<T>::contains_key(netuid, key) {
-                return Self::get_delegated_stake(key);
-            }
+    // --- Returns the transaction priority for setting weights.
+    pub fn get_priority_set_weights(key: &T::AccountId, netuid: u16) -> u64 {
+        if let Some(uid) = Uids::<T>::get(netuid, key) {
+            let last_update = Self::get_last_update_for_uid(netuid, uid);
+            Self::get_current_block_number().saturating_add(last_update)
+        } else {
             0
         }
+    }
+    // --- Returns the transaction priority for setting weights.
+    pub fn get_priority_stake(key: &T::AccountId, netuid: u16) -> u64 {
+        if Uids::<T>::contains_key(netuid, key) {
+            return Self::get_delegated_stake(key);
+        }
+        0
     }
 }
 

@@ -4,8 +4,8 @@ use frame_support::{ensure, DebugNoBound};
 use pallet_subspace::{
     math::*, Active, Bonds, BondsMovingAverage, Config, Consensus, Dividends, Emission, Founder,
     Incentive, Kappa, Keys, LastUpdate, MaxAllowedValidators, MaxWeightAge,
-    Pallet as PalletSubspace, PruningScores, Rank, StakeFrom, Trust, Uids, ValidatorPermits,
-    ValidatorTrust, Vec, Weights, N,
+    Pallet as PalletSubspace, PruningScores, Rank, Trust, Uids, ValidatorPermits, ValidatorTrust,
+    Vec, Weights, N,
 };
 use sp_std::vec;
 use substrate_fixed::types::{I32F32, I64F64, I96F32};
@@ -323,16 +323,11 @@ impl<T: Config> YumaEpoch<T> {
     }
 
     fn compute_stake(&self) -> Result<StakeVal, &'static str> {
-        let keys_map: BTreeMap<_, _> = Uids::<T>::iter_prefix(self.netuid).collect();
-        let mut stake_map: BTreeMap<u16, I64F64> = BTreeMap::new();
-        for (k1, _, value) in StakeFrom::<T>::iter() {
-            if let Some(uid) = keys_map.get(&k1) {
-                let stake = stake_map.entry(*uid).or_default();
-                *stake = stake.saturating_add(I64F64::from_num(value));
-            }
+        let mut stake = vec![I64F64::from(0); self.module_count as usize];
+        for (module, uid) in Uids::<T>::iter_prefix(self.netuid) {
+            let stake = stake.get_mut(uid as usize).ok_or("uids is bigger than N module count")?;
+            *stake = I64F64::from_num(PalletSubspace::<T>::get_delegated_stake(&module));
         }
-
-        let mut stake: Vec<_> = stake_map.into_values().collect();
 
         ensure!(
             stake.len() == self.module_count as usize,
