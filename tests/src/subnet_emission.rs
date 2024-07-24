@@ -1217,3 +1217,21 @@ fn test_subnet_deregistration_based_on_emission() {
         SubnetEmission::<Test>::insert(4, 500);
     });
 }
+
+#[test]
+fn yuma_does_not_fail_if_module_does_not_have_stake() {
+    new_test_ext().execute_with(|| {
+        zero_min_burn();
+        MinimumAllowedStake::<Test>::set(0);
+
+        let netuid: u16 = 1;
+        let key = 0;
+
+        let stake: u64 = 1;
+
+        assert_ok!(register_module(netuid, key, stake, false));
+        assert_ok!(SubspaceMod::do_remove_stake(get_origin(key), key, stake));
+
+        assert_ok!(YumaEpoch::<Test>::new(netuid, ONE).run());
+    });
+}

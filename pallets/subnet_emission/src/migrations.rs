@@ -9,7 +9,7 @@ use pallet_subnet_emission_api::SubnetConsensus;
 use pallet_subspace::{Pallet as PalletSubspace, Vec};
 
 #[derive(Default)]
-pub struct InitialMigration<T>(PhantomData<T>);
+struct InitialMigration<T>(PhantomData<T>);
 
 impl<T: Config + pallet_subspace::Config> OnRuntimeUpgrade for InitialMigration<T> {
     fn on_runtime_upgrade() -> frame_support::weights::Weight {

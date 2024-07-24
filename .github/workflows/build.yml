@@ -26,11 +26,15 @@ jobs:
           repo-token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Build node
-        run: cargo build --release --package node-subspace-runtime
-    
+        run: |
+          cargo build --release --package node-subspace-runtime
+          export SHA256SUM=$(sha256sum target/release/wbuild/node-subspace-runtime/node_subspace_runtime.compact.compressed.wasm)
+          echo $SHA256SUM
+          touch $SHA256SUM
+
       - uses: actions/upload-artifact@v4
         with:
-          name: node_subspace_runtime.compact.compressed.wasm
-          path: target/release/wbuild/node-subspace-runtime/node_subspace_runtime.compact.compressed.wasm
+          name: 
+          path: target/release/wbuild/node-subspace-runtime/
           if-no-files-found: error
           overwrite: true
