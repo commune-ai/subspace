@@ -28,7 +28,7 @@ jobs:
 
       - name: Build runtime
         run: |
-          cargo build --release --package node-subspace-runtime
+          cargo build --release --timings --package node-subspace-runtime
 
           export SHA256SUM=$(sha256sum target/release/wbuild/node-subspace-runtime/node_subspace_runtime.compact.compressed.wasm | cut -d ' ' -f1)
           echo Hash of compact and compressed WASM: $SHA256SUM
@@ -42,4 +42,10 @@ jobs:
           name: node_subspace_runtime.compact.compressed
           path: out/
           if-no-files-found: error
+          overwrite: true
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: node-subspace-runtime-timings
+          path: target/cargo-timings/cargo-timing.html
           overwrite: true
