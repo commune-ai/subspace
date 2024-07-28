@@ -184,7 +184,7 @@ fn test_emission() {
     });
 }
 
-/// PWTG (Perverse Wielders of Token Generation) validators can not control rootnet emission
+/// Test manipulative minority validators can not control rootnet emission
 /// distribution.
 #[test]
 fn test_sigmoid_distribution() {
