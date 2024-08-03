@@ -1,0 +1,59 @@
+[package]
+name = "pallet-offworker"
+version = "1.0.0"
+description = "FRAME pallet for runtime logic of Subspace Blockchain."
+authors = ["Commune Community"]
+homepage = "https://communeai.org/"
+edition = "2021"
+license = "Unlicense"
+publish = false
+repository = "https://github.com/commune-ai/subspace"
+
+[lints]
+workspace = true
+
+[features]
+default = ["std"]
+std = [
+    "frame-support/std",
+    "frame-system/std",
+    "parity-scale-codec/std",
+    "scale-info/std",
+    "sp-std/std",
+    "sp-io/std",
+    "sp-externalities/std",
+    "sp-runtime/std",
+    "sp-core/std",
+    "testthing/std",
+    "pallet-aura/std",
+]
+try-runtime = ["frame-support/try-runtime"]
+
+[dependencies]
+testthing = { path = "../../testthing", default-features = false }
+
+bty.workspace = true
+log.workspace = true
+
+frame-support.workspace = true
+frame-system.workspace = true
+
+sp-core.workspace = true
+sp-externalities.workspace = true
+sp-io.workspace = true
+sp-runtime.workspace = true
+sp-std.workspace = true
+
+pallet-aura.workspace = true
+
+substrate-fixed.workspace = true
+
+parity-scale-codec = { workspace = true, default-features = false, features = [
+    "derive",
+] }
+scale-info = { workspace = true, default-features = false, features = [
+    "derive",
+] }
+
+[dev-dependencies]
+sp-tracing.workspace = true

@@ -1,0 +1,16 @@
+[package]
+name = "testthing"
+version = "0.1.0"
+edition = "2021"
+
+[features]
+default = ["std"]
+std = ["sp-externalities/std", "sp-runtime-interface/std", "sp-std/std"]
+
+[dependencies]
+sp-externalities.workspace = true
+sp-runtime-interface.workspace = true
+sp-std.workspace = true
+
+[lints]
+workspace = true

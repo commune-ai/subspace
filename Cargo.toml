@@ -1,15 +1,17 @@
 [workspace]
 members = [
     "node",
-    "pallets/subspace",
-    "pallets/subspace/genesis-config",
+    "pallets/faucet",
     "pallets/governance",
     "pallets/governance/api",
-    "pallets/faucet",
+    "pallets/offworker",
     "pallets/subnet_emission",
+    "pallets/subspace",
+    "pallets/subspace/genesis-config",
     "runtime",
     "xtask",
     "tests",
+    "testthing",
 ]
 resolver = "2"
 
@@ -32,6 +34,7 @@ infinite_loop = "deny"
 [workspace.dependencies]
 # External dependencies
 bty = { version = "0.2.0", default-features = false }
+env_logger = "0.11.3"
 futures = "0.3.21"
 clap = "4.4.6"
 hex = "0.4.3"
@@ -102,6 +105,7 @@ sc-consensus-aura = { git = "https://github.com/paritytech/polkadot-sdk", branch
 sc-consensus-grandpa = { git = "https://github.com/paritytech/polkadot-sdk", branch = "release-polkadot-v1.10.1" }
 sc-consensus-manual-seal = { git = "https://github.com/paritytech/polkadot-sdk", branch = "release-polkadot-v1.10.1" }
 sc-executor = { git = "https://github.com/paritytech/polkadot-sdk", branch = "release-polkadot-v1.10.1" }
+sp-externalities = { git = "https://github.com/paritytech/polkadot-sdk", branch = "release-polkadot-v1.10.1", default-features = false }
 sc-keystore = { git = "https://github.com/paritytech/polkadot-sdk", branch = "release-polkadot-v1.10.1" }
 sc-network = { git = "https://github.com/paritytech/polkadot-sdk", branch = "release-polkadot-v1.10.1" }
 sc-offchain = { git = "https://github.com/paritytech/polkadot-sdk", branch = "release-polkadot-v1.10.1" }
@@ -125,6 +129,7 @@ sp-io = { git = "https://github.com/paritytech/polkadot-sdk", branch = "release-
 sp-keyring = { git = "https://github.com/paritytech/polkadot-sdk", branch = "release-polkadot-v1.10.1" }
 sp-offchain = { git = "https://github.com/paritytech/polkadot-sdk", branch = "release-polkadot-v1.10.1", default-features = false }
 sp-runtime = { git = "https://github.com/paritytech/polkadot-sdk", branch = "release-polkadot-v1.10.1", default-features = false }
+sp-runtime-interface = { git = "https://github.com/paritytech/polkadot-sdk", branch = "release-polkadot-v1.10.1", default-features = false }
 sp-session = { git = "https://github.com/paritytech/polkadot-sdk", branch = "release-polkadot-v1.10.1", default-features = false }
 sp-std = { git = "https://github.com/paritytech/polkadot-sdk", branch = "release-polkadot-v1.10.1", default-features = false }
 sp-storage = { git = "https://github.com/paritytech/polkadot-sdk", branch = "release-polkadot-v1.10.1", default-features = false }

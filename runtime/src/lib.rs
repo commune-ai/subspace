@@ -430,6 +430,10 @@ impl pallet_faucet::Config for Runtime {
     type Currency = Balances;
 }
 
+impl pallet_offworker::Config for Runtime {
+    type RuntimeEvent = RuntimeEvent;
+}
+
 // Includes emission logic for the runtime
 impl pallet_subnet_emission::Config for Runtime {
     type RuntimeEvent = RuntimeEvent;
@@ -560,6 +564,8 @@ construct_runtime!(
 
         #[cfg(feature = "testnet-faucet")]
         FaucetModule: pallet_faucet,
+
+        OffworkerModule: pallet_offworker,
 
         // EVM Support
         EVM: pallet_evm,

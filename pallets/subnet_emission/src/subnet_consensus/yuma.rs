@@ -1,42 +1,205 @@
-use crate::{EmissionError, Pallet};
+use crate::EmissionError;
 use core::marker::PhantomData;
 use frame_support::{ensure, weights::Weight, DebugNoBound};
-use pallet_subspace::{
-    math::*, Active, Bonds, BondsMovingAverage, Config, Consensus, Dividends, Emission, Founder,
-    Incentive, Kappa, Keys, LastUpdate, MaxAllowedValidators, MaxWeightAge,
-    Pallet as PalletSubspace, PruningScores, Rank, Trust, Uids, ValidatorPermits, ValidatorTrust,
-    Vec, Weights, N,
-};
+use pallet_subspace::{math::*, Config, Pallet as PalletSubspace};
 use sp_std::vec;
 use substrate_fixed::types::{I32F32, I64F64, I96F32};
 
-use sp_std::{borrow::Cow, collections::btree_map::BTreeMap};
+use sp_std::{borrow::Cow, collections::btree_map::BTreeMap, vec::Vec};
 
 use super::WeightCounter;
 
 pub type EmissionMap<T> = BTreeMap<ModuleKey<T>, BTreeMap<AccountKey<T>, u64>>;
 
+mod foo {
+    use std::collections::BTreeMap;
+
+    use super::{AccountKey, ModuleKey};
+
+    use frame_support::DebugNoBound;
+    use pallet_subspace::{
+        math::*, Bonds, BondsMovingAverage, Config, Founder, Kappa, Keys, LastUpdate,
+        MaxAllowedValidators, MaxWeightAge, Pallet as PalletSubspace, ValidatorPermits, Vec,
+    };
+    use substrate_fixed::types::{I32F32, I64F64};
+
+    #[derive(DebugNoBound)]
+    pub(super) struct Foo<T: Config> {
+        pub subnet_id: u16,
+        pub token_emission: u64,
+
+        pub modules: BTreeMap<ModuleKey<T>, ModuleParams>,
+        pub kappa: I32F32,
+
+        pub founder_key: AccountKey<T>,
+        pub founder_emission: u64,
+
+        pub current_block: u64,
+        pub activity_cutoff: u64,
+        pub max_allowed_validators: Option<u16>,
+        pub bonds_moving_average: u64,
+    }
+
+    #[derive(DebugNoBound)]
+    pub(super) struct ModuleParams {
+        pub uid: u16,
+        pub last_update: u64,
+        pub block_at_registration: u64,
+        pub validator_permit: bool,
+        pub stake: I32F32,
+        pub bonds: Vec<(u16, u16)>,
+        pub weight_unencrypted_hash: Vec<u8>,
+        pub weight_encrypted: Vec<u8>,
+    }
+
+    #[derive(DebugNoBound)]
+    pub(super) struct FlattenedModules<T: Config> {
+        pub keys: Vec<ModuleKey<T>>,
+        pub last_update: Vec<u64>,
+        pub block_at_registration: Vec<u64>,
+        pub validator_permit: Vec<bool>,
+        pub validator_forbid: Vec<bool>,
+        pub stake: Vec<I32F32>,
+        pub bonds: Vec<Vec<(u16, I32F32)>>,
+        pub weight_unencrypted_hash: Vec<Vec<u8>>,
+        pub weight_encrypted: Vec<Vec<u8>>,
+    }
+
+    impl<T: Config> From<BTreeMap<ModuleKey<T>, ModuleParams>> for FlattenedModules<T> {
+        fn from(value: BTreeMap<ModuleKey<T>, ModuleParams>) -> Self {
+            let mut modules = FlattenedModules {
+                keys: Default::default(),
+                last_update: Default::default(),
+                block_at_registration: Default::default(),
+                validator_permit: Default::default(),
+                validator_forbid: Default::default(),
+                stake: Default::default(),
+                bonds: Default::default(),
+                weight_unencrypted_hash: Default::default(),
+                weight_encrypted: Default::default(),
+            };
+
+            for (key, module) in value {
+                modules.keys.push(key);
+                modules.last_update.push(module.last_update);
+                modules.block_at_registration.push(module.block_at_registration);
+                modules.validator_permit.push(module.validator_permit);
+                modules.validator_forbid.push(!module.validator_permit);
+                modules.stake.push(module.stake);
+                modules.bonds.push(
+                    module.bonds.into_iter().map(|(k, m)| (k, I32F32::from_num(m))).collect(),
+                );
+                modules.weight_unencrypted_hash.push(module.weight_unencrypted_hash);
+                modules.weight_encrypted.push(module.weight_encrypted);
+            }
+
+            modules
+        }
+    }
+
+    impl<T: Config> Foo<T> {
+        fn new(subnet_id: u16, token_emission: u64) -> Result<Self, &'static str> {
+            let uids: BTreeMap<_, _> = Keys::<T>::iter_prefix(subnet_id).collect();
+
+            let stake = Self::compute_stake(&uids);
+            let bonds = Self::compute_bonds(subnet_id, &uids);
+
+            let last_update = LastUpdate::<T>::get(subnet_id);
+            let block_at_registration = PalletSubspace::<T>::get_block_at_registration(subnet_id);
+            let validator_permits = ValidatorPermits::<T>::get(subnet_id);
+
+            let modules = uids
+                .into_iter()
+                .zip(stake)
+                .zip(bonds)
+                .map(|(((uid, key), stake), bonds)| {
+                    let uid = uid as usize;
+                    let last_update =
+                        last_update.get(uid).copied().ok_or("LastUpdate storage is broken")?;
+                    let block_at_registration = block_at_registration
+                        .get(uid)
+                        .copied()
+                        .ok_or("RegistrationBlock storage is broken")?;
+                    let validator_permit = validator_permits
+                        .get(uid)
+                        .copied()
+                        .ok_or("ValidatorPermits storage is broken")?;
+
+                    let module = ModuleParams {
+                        uid: uid as u16,
+                        last_update,
+                        block_at_registration,
+                        validator_permit,
+                        stake,
+                        bonds,
+                        // TODO: implement weights
+                        weight_unencrypted_hash: Default::default(),
+                        // TODO: implement weights
+                        weight_encrypted: Default::default(),
+                    };
+
+                    Result::<_, &'static str>::Ok((ModuleKey(key), module))
+                })
+                .collect::<Result<_, _>>()?;
+
+            let founder_key = AccountKey(Founder::<T>::get(subnet_id));
+            let (token_emission, founder_emission) =
+                PalletSubspace::<T>::calculate_founder_emission(subnet_id, token_emission);
+
+            Ok(Self {
+                subnet_id,
+                token_emission,
+
+                modules,
+
+                kappa: I32F32::from_num(Kappa::<T>::get())
+                    .checked_div(I32F32::from_num(u16::MAX))
+                    .unwrap_or_default(),
+                founder_key,
+                founder_emission,
+
+                current_block: PalletSubspace::<T>::get_current_block_number(),
+                activity_cutoff: MaxWeightAge::<T>::get(subnet_id),
+                max_allowed_validators: MaxAllowedValidators::<T>::get(subnet_id),
+                bonds_moving_average: BondsMovingAverage::<T>::get(subnet_id),
+            })
+        }
+
+        fn compute_stake(uids: &BTreeMap<u16, T::AccountId>) -> Vec<I32F32> {
+            // BTreeMap provides natural order, so iterating and collecting
+            // will result in a vector with the same order as the uid map.
+            let mut stake: Vec<_> = uids
+                .values()
+                .map(PalletSubspace::<T>::get_delegated_stake)
+                .map(I64F64::from_num)
+                .collect();
+            log::trace!(target: "stake", "original: {stake:?}");
+
+            inplace_normalize_64(&mut stake);
+            log::trace!(target: "stake", "normalized: {stake:?}");
+
+            vec_fixed64_to_fixed32(stake)
+        }
+
+        fn compute_bonds(
+            subnet_id: u16,
+            uids: &BTreeMap<u16, T::AccountId>,
+        ) -> Vec<Vec<(u16, u16)>> {
+            let mut bonds: BTreeMap<_, _> = Bonds::<T>::iter_prefix(subnet_id).collect();
+            // BTreeMap provides natural order, so iterating and collecting
+            // will result in a vector with the same order as the uid map.
+            uids.keys().map(|uid| bonds.remove(uid).unwrap_or_default()).collect()
+        }
+    }
+}
+
 #[derive(DebugNoBound)]
 pub struct YumaEpoch<T: Config> {
-    /// The amount of modules on the subnet
-    module_count: u16,
     /// The UID of the subnet
-    netuid: u16,
-    /// Consensus majority ratio, e.g. 51%.
-    kappa: I32F32,
+    subnet_id: u16,
 
-    founder_key: AccountKey<T>,
-    founder_emission: u64,
-    to_be_emitted: u64,
-
-    current_block: u64,
-    activity_cutoff: u64,
-    last_update: Vec<u64>,
-    block_at_registration: Vec<u64>,
-
-    validator_permits: Vec<bool>,
-    validator_forbids: Vec<bool>,
-    max_allowed_validators: Option<u16>,
+    params: foo::Foo<T>,
+    modules: foo::FlattenedModules<T>,
 
     weight_counter: WeightCounter,
 
@@ -44,7 +207,8 @@ pub struct YumaEpoch<T: Config> {
 }
 
 impl<T: Config> YumaEpoch<T> {
-    pub fn new(netuid: u16, to_be_emitted: u64) -> Self {
+    pub fn new(subnet_id: u16, mut params: foo::Foo<T>) -> Self {
+        let modules = sp_std::mem::take(&mut params.modules).into();
         let mut weight_counter = WeightCounter::new();
 
         let validator_permits = ValidatorPermits::<T>::get(netuid);
@@ -59,22 +223,10 @@ impl<T: Config> YumaEpoch<T> {
 
         weight_counter.read(7);
         Self {
-            module_count: N::<T>::get(netuid),
-            netuid,
-            kappa: Pallet::<T>::get_float_kappa(),
+            subnet_id,
 
-            founder_key: AccountKey(founder_key),
-            founder_emission,
-            to_be_emitted,
-
-            current_block: PalletSubspace::<T>::get_current_block_number(),
-            activity_cutoff: MaxWeightAge::<T>::get(netuid),
-            last_update: LastUpdate::<T>::get(netuid),
-            block_at_registration: PalletSubspace::<T>::get_block_at_registration(netuid),
-
-            validator_forbids,
-            validator_permits,
-            max_allowed_validators: MaxAllowedValidators::<T>::get(netuid),
+            params,
+            modules,
 
             weight_counter,
 
@@ -82,38 +234,46 @@ impl<T: Config> YumaEpoch<T> {
         }
     }
 
+    #[inline]
+    fn module_count<I: From<u16>>(&self) -> I {
+        (self.modules.keys.len() as u16).into()
+    }
+
     /// Runs the YUMA consensus calculation on the network and distributes the emissions. Returns a
     /// map of emissions distributed per module key.
     pub fn run(mut self) -> Result<(EmissionMap<T>, Weight), EmissionError> {
         log::debug!(
-            "running yuma for netuid {}, will emit {} modules and {} to founder",
-            self.netuid,
-            self.to_be_emitted,
-            self.founder_emission
+            "running yuma for subnet_id {}, will emit {} modules and {} to founder",
+            self.subnet_id,
+            self.params.token_emission,
+            self.params.founder_emission
         );
-        log::trace!("yuma for netuid {} parameters: {self:?}", self.netuid);
+        log::trace!("yuma for subnet_id {} parameters: {self:?}", self.subnet_id);
 
         let (inactive, active): (Vec<_>, Vec<_>) = self
+            .modules
             .last_update
             .iter()
-            .zip(&self.block_at_registration)
+            .zip(&self.modules.block_at_registration)
             .map(|(updated, block_at_registration)| {
                 let is_inactive = *updated <= *block_at_registration
-                    || updated.saturating_add(self.activity_cutoff) < self.current_block;
+                    || updated.saturating_add(self.params.activity_cutoff)
+                        < self.params.current_block;
                 (is_inactive, !is_inactive)
             })
             .unzip();
 
-        let mut weights = self
-            .compute_weights()
-            .ok_or(EmissionError::Other("weights storage is broken"))?;
-        log::trace!("final weights: {weights:?}");
+        let mut weights = WeightsVal::default();
 
-        let stake = self.compute_stake()?;
+        let stake = StakeVal::unchecked_from_inner(self.modules.stake.clone());
         log::trace!("final stake: {stake:?}");
 
-        let max_validators = self.max_allowed_validators;
-        let mut new_permits = vec![false; stake.as_ref().len()];
+        let new_permits: Vec<bool> = if let Some(max) = self.params.max_allowed_validators {
+            is_topk(stake.as_ref(), max as usize)
+        } else {
+            vec![true; stake.as_ref().len()]
+        };
+        log::trace!("new permis: {new_permits:?}");
 
         let mut sorted_indexed_stake: Vec<(u16, u64)> = (0u16..(stake.as_ref().len() as u16))
             .map(|idx| {
@@ -203,41 +363,32 @@ impl<T: Config> YumaEpoch<T> {
         let validator_trust: Vec<_> =
             validator_trust.into_inner().into_iter().map(fixed_proportion_to_u16).collect();
 
-        Active::<T>::insert(self.netuid, active);
-        self.weight_counter.wrote(1);
-        Consensus::<T>::insert(self.netuid, consensus);
-        self.weight_counter.wrote(1);
-        Dividends::<T>::insert(self.netuid, dividends);
-        self.weight_counter.wrote(1);
-        Emission::<T>::insert(self.netuid, combined_emissions);
-        self.weight_counter.wrote(1);
-        Incentive::<T>::insert(self.netuid, incentives);
-        self.weight_counter.wrote(1);
-        PruningScores::<T>::insert(self.netuid, pruning_scores);
-        self.weight_counter.wrote(1);
-        Rank::<T>::insert(self.netuid, ranks);
-        self.weight_counter.wrote(1);
-        Trust::<T>::insert(self.netuid, trust);
-        self.weight_counter.wrote(1);
-        ValidatorPermits::<T>::insert(self.netuid, &new_permits);
-        self.weight_counter.wrote(1);
-        ValidatorTrust::<T>::insert(self.netuid, validator_trust);
-        self.weight_counter.wrote(1);
+        pallet_subspace::Active::<T>::insert(self.subnet_id, active);
+        pallet_subspace::Consensus::<T>::insert(self.subnet_id, consensus);
+        pallet_subspace::Dividends::<T>::insert(self.subnet_id, dividends);
+        pallet_subspace::Emission::<T>::insert(self.subnet_id, combined_emissions);
+        pallet_subspace::Incentive::<T>::insert(self.subnet_id, incentives);
+        pallet_subspace::PruningScores::<T>::insert(self.subnet_id, pruning_scores);
+        pallet_subspace::Rank::<T>::insert(self.subnet_id, ranks);
+        pallet_subspace::Trust::<T>::insert(self.subnet_id, trust);
+        pallet_subspace::ValidatorPermits::<T>::insert(self.subnet_id, &new_permits);
+        pallet_subspace::ValidatorTrust::<T>::insert(self.subnet_id, validator_trust);
+        self.weight_counter.wrote(10);
 
         ensure!(
-            new_permits.len() == self.module_count as usize,
+            new_permits.len() == self.module_count::<usize>(),
             "unequal number of permits and modules"
         );
         ensure!(
-            ema_bonds.len() == self.module_count as usize,
+            ema_bonds.len() == self.module_count::<usize>(),
             "unequal number of bonds and modules"
         );
         ensure!(
-            self.validator_permits.len() == self.module_count as usize,
+            self.modules.validator_permit.len() == self.module_count::<usize>(),
             "unequal number of bonds and modules"
         );
 
-        for i in 0..self.module_count as usize {
+        for i in 0..self.module_count() {
             // Set bonds only if uid retains validator permit, otherwise clear bonds.
             if *new_permits.get(i).unwrap_or(&false) {
                 let new_bonds_row: Vec<(u16, u16)> = ema_bonds
@@ -249,33 +400,33 @@ impl<T: Config> YumaEpoch<T> {
                             .collect()
                     })
                     .unwrap_or_default();
-                Bonds::<T>::insert(self.netuid, i as u16, new_bonds_row);
+                pallet_subspace::Bonds::<T>::insert(self.subnet_id, i as u16, new_bonds_row);
                 self.weight_counter.wrote(1);
-            } else if self.max_allowed_validators.is_none()
-                || *self.validator_permits.get(i).unwrap_or(&false)
+            } else if self.params.max_allowed_validators.is_none()
+                || *self.modules.validator_permit.get(i).unwrap_or(&false)
             {
                 // Only overwrite the intersection.
                 let new_empty_bonds_row: Vec<(u16, u16)> = vec![];
-                Bonds::<T>::insert(self.netuid, i as u16, new_empty_bonds_row);
+                pallet_subspace::Bonds::<T>::insert(self.subnet_id, i as u16, new_empty_bonds_row);
                 self.weight_counter.wrote(1);
             }
         }
 
         // Emission tuples ( key, server_emission, validator_emission )
-        let mut result: Vec<(ModuleKey<T>, u64, u64)> = vec![];
+        let mut result = Vec::with_capacity(self.module_count());
         self.weight_counter.read(1);
-        for (uid_i, module_key) in Keys::<T>::iter_prefix(self.netuid) {
+        for (module_uid, module_key) in self.modules.keys.iter().enumerate() {
             result.push((
-                ModuleKey(module_key),
-                *server_emissions.get(uid_i as usize).unwrap_or(&0),
-                *validator_emissions.get(uid_i as usize).unwrap_or(&0),
+                module_key.to_owned(),
+                *server_emissions.get(module_uid).unwrap_or(&0),
+                *validator_emissions.get(module_uid).unwrap_or(&0),
             ));
         }
 
         let distribute_emissions = self.distribute_emissions(result);
         log::debug!(
             "finished yuma for {} with distributed: {distribute_emissions:?}",
-            self.netuid
+            self.subnet_id
         );
 
         Ok((distribute_emissions?, self.weight_counter.to_weights::<T>()))
@@ -288,14 +439,17 @@ impl<T: Config> YumaEpoch<T> {
         let mut emissions: EmissionMap<T> = Default::default();
         let mut emitted: u64 = 0;
 
-        if self.founder_emission > 0 {
-            match PalletSubspace::<T>::u64_to_balance(self.founder_emission) {
+        if self.params.founder_emission > 0 {
+            match PalletSubspace::<T>::u64_to_balance(self.params.founder_emission) {
                 Some(balance) => {
-                    PalletSubspace::<T>::add_balance_to_account(&self.founder_key.0, balance);
+                    PalletSubspace::<T>::add_balance_to_account(
+                        &self.params.founder_key.0,
+                        balance,
+                    );
                 }
                 None => return Err(EmissionError::BalanceConversionFailed),
             }
-            emitted = emitted.saturating_add(self.founder_emission);
+            emitted = emitted.saturating_add(self.params.founder_emission);
         }
 
         for (module_key, server_emission, mut validator_emission) in result {
@@ -314,7 +468,7 @@ impl<T: Config> YumaEpoch<T> {
 
             if validator_emission > 0 {
                 let ownership_vector =
-                    PalletSubspace::<T>::get_ownership_ratios(self.netuid, &module_key.0);
+                    PalletSubspace::<T>::get_ownership_ratios(self.subnet_id, &module_key.0);
                 let delegation_fee = PalletSubspace::<T>::get_delegation_fee(&module_key.0);
 
                 let total_validator_emission = I64F64::from_num(validator_emission);
@@ -346,68 +500,16 @@ impl<T: Config> YumaEpoch<T> {
         }
 
         ensure!(
-            emitted <= self.founder_emission.saturating_add(self.to_be_emitted),
+            emitted <= self.params.founder_emission.saturating_add(self.params.token_emission),
             EmissionError::EmittedMoreThanExpected {
                 emitted,
-                expected: self.founder_emission.saturating_add(self.to_be_emitted)
+                expected: self.params.founder_emission.saturating_add(self.params.token_emission)
             }
         );
 
         log::trace!("emitted {emitted} tokens in total");
 
         Ok(emissions)
-    }
-
-    fn compute_weights(&self) -> Option<WeightsVal> {
-        // Access network weights row unnormalized.
-        let mut weights = Pallet::<T>::get_weights_sparse(self.netuid)?;
-        log::trace!("  original weights: {weights:?}");
-
-        if self.max_allowed_validators.is_some() {
-            // Mask weights that are not from permitted validators.
-            weights = mask_rows_sparse(&self.validator_forbids, &weights);
-            log::trace!("  no forbidden validator weights: {weights:?}");
-        }
-
-        // Remove self-weight by masking diagonal.
-        weights = mask_diag_sparse(&weights);
-        log::trace!("  no self-weight weights: {weights:?}");
-
-        // Remove weights referring to deregistered modules.
-        weights = vec_mask_sparse_matrix(
-            &weights,
-            &self.last_update,
-            &self.block_at_registration,
-            |updated, registered| updated <= registered,
-        )?;
-        log::trace!("  no deregistered modules weights: {weights:?}");
-
-        // Normalize remaining weights.
-        inplace_row_normalize_sparse(&mut weights);
-        log::trace!("  normalized weights: {weights:?}");
-
-        Some(WeightsVal::unchecked_from_inner(weights))
-    }
-
-    fn compute_stake(&self) -> Result<StakeVal, &'static str> {
-        let mut stake = vec![I64F64::from(0); self.module_count as usize];
-        for (module, uid) in Uids::<T>::iter_prefix(self.netuid) {
-            let stake = stake.get_mut(uid as usize).ok_or("uids is bigger than N module count")?;
-            *stake = I64F64::from_num(PalletSubspace::<T>::get_delegated_stake(&module));
-        }
-
-        ensure!(
-            stake.len() == self.module_count as usize,
-            "unequal number of stakes and modules"
-        );
-        log::trace!("  original stake: {stake:?}");
-
-        inplace_normalize_64(&mut stake);
-        log::trace!("  normalized stake: {stake:?}");
-
-        Ok(StakeVal::unchecked_from_inner(vec_fixed64_to_fixed32(
-            stake,
-        ))) // range: I32F32(0, 1)
     }
 
     fn compute_active_stake(&self, inactive: &[bool], stake: &StakeVal) -> ActiveStake {
@@ -418,9 +520,9 @@ impl<T: Config> YumaEpoch<T> {
         inplace_mask_vector(inactive, &mut active_stake);
         log::trace!("  no inactive active stake: {active_stake:?}");
 
-        if self.max_allowed_validators.is_some() {
+        if self.params.max_allowed_validators.is_some() {
             // Remove non-validator stake.
-            inplace_mask_vector(&self.validator_forbids, &mut active_stake);
+            inplace_mask_vector(&self.modules.validator_forbid, &mut active_stake);
             log::trace!("  no non-validator active stake: {active_stake:?}");
         }
 
@@ -440,13 +542,13 @@ impl<T: Config> YumaEpoch<T> {
         let consensus = weighted_median_col_sparse(
             active_stake.as_ref(),
             weights.as_ref(),
-            self.module_count,
-            self.kappa,
+            self.module_count(),
+            self.params.kappa,
         );
         log::trace!("final consensus: {consensus:?}");
 
         // Compute preranks: r_j = SUM(i) w_ij * s_i
-        let preranks = matmul_sparse(weights.as_ref(), active_stake.as_ref(), self.module_count);
+        let preranks = matmul_sparse(weights.as_ref(), active_stake.as_ref(), self.module_count());
         log::trace!("final preranks: {preranks:?}");
 
         *weights = WeightsVal::unchecked_from_inner(col_clip_sparse(weights.as_ref(), &consensus));
@@ -469,7 +571,7 @@ impl<T: Config> YumaEpoch<T> {
         preranks: &Preranks,
     ) -> IncentivesAndTrust {
         // Compute ranks: r_j = SUM(i) w_ij * s_i.
-        let ranks = matmul_sparse(weights.as_ref(), active_stake.as_ref(), self.module_count);
+        let ranks = matmul_sparse(weights.as_ref(), active_stake.as_ref(), self.module_count());
         log::trace!("final ranks: {ranks:?}");
 
         // Compute miner trust: ratio of rank after vs. rank before.
@@ -496,20 +598,20 @@ impl<T: Config> YumaEpoch<T> {
         incentives: &IncentivesVal,
     ) -> Option<BondsAndDividends> {
         // Access network bonds.
-        let mut bonds = Pallet::<T>::get_bonds_sparse(self.netuid)?;
+        let mut bonds = self.modules.bonds.clone();
         log::trace!("  original bonds: {bonds:?}");
 
         // Remove bonds referring to deregistered modules.
         bonds = vec_mask_sparse_matrix(
             &bonds,
-            &self.last_update,
-            &self.block_at_registration,
+            &self.modules.last_update,
+            &self.modules.block_at_registration,
             |updated, registered| updated <= registered,
         )?;
         log::trace!("  no deregistered modules bonds: {bonds:?}");
 
         // Normalize remaining bonds: sum_i b_ij = 1.
-        inplace_col_normalize_sparse(&mut bonds, self.module_count);
+        inplace_col_normalize_sparse(&mut bonds, self.module_count());
         log::trace!("  normalized bonds: {bonds:?}");
 
         // Compute bonds delta column normalized.
@@ -517,11 +619,11 @@ impl<T: Config> YumaEpoch<T> {
         log::trace!("  original bonds delta: {bonds_delta:?}");
 
         // Normalize bonds delta.
-        inplace_col_normalize_sparse(&mut bonds_delta, self.module_count); // sum_i b_ij = 1
+        inplace_col_normalize_sparse(&mut bonds_delta, self.module_count()); // sum_i b_ij = 1
         log::trace!("  normalized bonds delta: {bonds_delta:?}");
 
         // Compute bonds moving average.
-        let bonds_moving_average = I64F64::from_num(BondsMovingAverage::<T>::get(self.netuid))
+        let bonds_moving_average = I64F64::from_num(self.params.bonds_moving_average)
             .checked_div(I64F64::from_num(1_000_000))
             .unwrap_or_default();
         log::trace!("  bonds moving average: {bonds_moving_average}");
@@ -530,7 +632,7 @@ impl<T: Config> YumaEpoch<T> {
         log::trace!("  original ema bonds: {ema_bonds:?}");
 
         // Normalize EMA bonds.
-        inplace_col_normalize_sparse(&mut ema_bonds, self.module_count); // sum_i b_ij = 1
+        inplace_col_normalize_sparse(&mut ema_bonds, self.module_count()); // sum_i b_ij = 1
         log::trace!("  normalized ema bonds: {ema_bonds:?}");
 
         // Compute dividends: d_i = SUM(j) b_ij * inc_j.
@@ -542,7 +644,7 @@ impl<T: Config> YumaEpoch<T> {
         log::trace!("  normalized dividends: {dividends:?}");
 
         // Column max-upscale EMA bonds for storage: max_i w_ij = 1.
-        inplace_col_max_upscale_sparse(&mut ema_bonds, self.module_count);
+        inplace_col_max_upscale_sparse(&mut ema_bonds, self.module_count());
         log::trace!("  upscaled ema bonds: {ema_bonds:?}");
 
         Some(BondsAndDividends {
@@ -606,7 +708,7 @@ impl<T: Config> YumaEpoch<T> {
         log::trace!("  normalized combined emission: {normalized_combined_emission:?}");
 
         // Compute rao based emission scores. range: I96F32(0, rao_emission)
-        let to_be_emitted = I96F32::from_num(self.to_be_emitted);
+        let to_be_emitted = I96F32::from_num(self.params.token_emission);
         log::trace!("  to be emitted: {to_be_emitted}");
 
         let miner_emissions: Vec<u64> = normalized_miner_emission
@@ -718,36 +820,4 @@ struct Emissions {
     validator_emissions: Vec<u64>,
     server_emissions: Vec<u64>,
     combined_emissions: Vec<u64>,
-}
-
-impl<T: Config> Pallet<T> {
-    pub fn get_float_kappa() -> I32F32 {
-        I32F32::from_num(Kappa::<T>::get())
-            .checked_div(I32F32::from_num(u16::MAX))
-            .unwrap_or_default()
-    }
-
-    fn get_weights_sparse(netuid: u16) -> Option<Vec<Vec<(u16, I32F32)>>> {
-        let n = N::<T>::get(netuid) as usize;
-        let mut weights: Vec<Vec<(u16, I32F32)>> = vec![vec![]; n];
-        for (uid_i, weights_i) in
-            Weights::<T>::iter_prefix(netuid).filter(|(uid, _)| *uid < n as u16)
-        {
-            for (uid_j, weight_ij) in weights_i.into_iter().filter(|(uid, _)| *uid < n as u16) {
-                weights.get_mut(uid_i as usize)?.push((uid_j, I32F32::from_num(weight_ij)));
-            }
-        }
-        Some(weights)
-    }
-
-    fn get_bonds_sparse(netuid: u16) -> Option<Vec<Vec<(u16, I32F32)>>> {
-        let n: usize = N::<T>::get(netuid) as usize;
-        let mut bonds: Vec<Vec<(u16, I32F32)>> = vec![vec![]; n];
-        for (uid_i, bonds_i) in Bonds::<T>::iter_prefix(netuid).filter(|(uid, _)| *uid < n as u16) {
-            for (uid_j, bonds_ij) in bonds_i.into_iter().filter(|(uid, _)| *uid < n as u16) {
-                bonds.get_mut(uid_i as usize)?.push((uid_j, I32F32::from_num(bonds_ij)));
-            }
-        }
-        Some(bonds)
-    }
 }
