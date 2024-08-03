@@ -30,6 +30,7 @@ serde_json.workspace = true
 sc-cli.workspace = true
 sp-core.workspace = true
 sc-executor.workspace = true
+sp-externalities.workspace = true
 sc-network.workspace = true
 sc-service.workspace = true
 sc-telemetry.workspace = true
@@ -67,6 +68,8 @@ frame-benchmarking-cli.workspace = true
 
 # Local Dependencies
 node-subspace-runtime.path = "../runtime"
+
+testthing.path = "../testthing"
 
 pallet-subspace-genesis-config.path = "../pallets/subspace/genesis-config"
 subspace-rpc.path = "../pallets/subspace/rpc"

@@ -12,8 +12,13 @@ use sc_telemetry::{Telemetry, TelemetryWorker};
 use sc_transaction_pool_api::OffchainTransactionPoolFactory;
 use std::sync::Arc;
 
+type CustomHostFunctions = (
+    sp_io::SubstrateHostFunctions,
+    testthing::offworker::HostFunctions,
+);
+
 pub(crate) type FullClient =
-    sc_service::TFullClient<Block, RuntimeApi, WasmExecutor<sp_io::SubstrateHostFunctions>>;
+    sc_service::TFullClient<Block, RuntimeApi, WasmExecutor<CustomHostFunctions>>;
 type FullBackend = sc_service::TFullBackend<Block>;
 type FullSelectChain = sc_consensus::LongestChain<FullBackend, Block>;
 
@@ -51,6 +56,7 @@ pub fn new_partial(
             telemetry.as_ref().map(|(_, telemetry)| telemetry.handle()),
             executor,
         )?;
+
     let client = Arc::new(client);
 
     let telemetry = telemetry.map(|(worker, telemetry)| {
@@ -128,7 +134,9 @@ pub fn new_full(mut config: Configuration) -> Result<TaskManager, ServiceError> 
                 )),
                 network_provider: network.clone(),
                 enable_http_requests: true,
-                custom_extensions: |_| vec![],
+                custom_extensions: |_| {
+                    vec![Box::new(testthing::OffworkerExt::new(Decrypter)) as Box<_>]
+                },
             })
             .run(client.clone(), task_manager.spawn_handle())
             .boxed(),
@@ -222,5 +230,23 @@ pub fn new_full(mut config: Configuration) -> Result<TaskManager, ServiceError> 
         .spawn_blocking("manual-seal", None, authorship_future);
 
     network_starter.start_network();
+
     Ok(task_manager)
+}
+
+struct Decrypter {
+    // TODO: swap this with the node's decryption key type and store it once it starts
+    decryption_key: (),
+}
+
+impl testthing::OffworkerExtension for Decrypter {
+    fn decrypt_weight(&self, _encrypted: Vec<u8>) -> Vec<u8> {
+        // TODO: weight decryption goes here
+        todo!()
+    }
+
+    fn get_encryption_key(&self) -> Vec<u8> {
+        // TODO: return a encryption key derived from our decryption key, or always return the same
+        todo!()
+    }
 }
