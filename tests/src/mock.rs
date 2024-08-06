@@ -483,7 +483,15 @@ pub fn delegate_register_module(
         SubspaceMod::add_balance_to_account(&key, stake + 1);
     }
 
-    let result = SubspaceMod::register(origin, network, name.clone(), address, module_key, None);
+    let result = SubspaceMod::register(
+        origin,
+        network,
+        name.clone(),
+        address,
+        module_key,
+        None,
+        None,
+    );
     SubspaceMod::increase_stake(&key, &module_key, stake);
 
     log::info!("Register ok module: network: {name:?}, module_key: {module_key} key: {key}");
@@ -562,7 +570,7 @@ pub fn register_named_subnet(key: AccountId, netuid: u16, name: impl ToString) -
 
     let name = name.to_string().as_bytes().to_vec();
     let params = SubnetParams {
-        name: name.try_into().unwrap(),
+        name: name.clone().try_into().unwrap(),
         founder: key,
         ..DefaultSubnetParams::<Test>::get()
     };
@@ -592,7 +600,7 @@ pub fn register_module(
     let _ = register_subnet(key, netuid);
 
     SubspaceMod::add_balance_to_account(&key, SubnetBurn::<Test>::get() + 1);
-    SubspaceMod::register(origin, network.clone(), name, address, key, None)?;
+    SubspaceMod::register(origin, network.clone(), name, address, key, None, None)?;
     SubspaceMod::increase_stake(&key, &key, stake);
 
     let netuid = SubspaceMod::get_netuid_for_name(&network).ok_or("netuid is missing")?;
@@ -613,7 +621,7 @@ pub fn register_root_validator(key: AccountId, stake: u64) -> Result<u16, Dispat
     let name = format!("module{key}").as_bytes().to_vec();
     let address = "0.0.0.0:30333".as_bytes().to_vec();
 
-    SubspaceMod::register(origin, network.clone(), name, address, key, None)?;
+    SubspaceMod::register(origin, network.clone(), name, address, key, None, None)?;
     SubspaceMod::increase_stake(&key, &key, stake);
 
     let netuid = SubspaceMod::get_netuid_for_name(&network).ok_or("netuid is missing")?;

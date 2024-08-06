@@ -289,6 +289,9 @@ pub mod pallet {
     #[pallet::storage] // --- MAP ( network_name ) --> netuid
     pub type SubnetNames<T: Config> = StorageMap<_, Identity, u16, Vec<u8>, ValueQuery>;
 
+    #[pallet::storage]
+    pub type SubnetMetadata<T: Config> = StorageMap<_, Identity, u16, BoundedVec<u8, ConstU32<59>>>;
+
     #[pallet::storage] // --- ITEM ( floor_founder_share )
     pub type FloorFounderShare<T: Config> = StorageValue<_, u8, ValueQuery, ConstU8<8>>;
 
@@ -354,6 +357,7 @@ pub mod pallet {
                     vote_mode: VoteMode::Authority,
                     ..Default::default()
                 },
+                metadata: None,
             }
         }
     }
@@ -375,6 +379,7 @@ pub mod pallet {
         pub min_allowed_weights: u16, // min number of weights allowed to be registered in this
         pub max_weight_age: u64,      // max age of a weight
         pub name: BoundedVec<u8, ConstU32<256>>,
+        pub metadata: Option<BoundedVec<u8, ConstU32<59>>>,
         pub tempo: u16, // how many blocks to wait before rewarding models
         pub trust_ratio: u16,
         pub maximum_set_weight_calls_per_epoch: u16,
@@ -657,6 +662,10 @@ pub mod pallet {
         InvalidModuleMetadata,
         /// The module metadata is too long.
         ModuleMetadataTooLong,
+        /// The module metadata is invalid.
+        InvalidSubnetMetadata,
+        /// The module metadata is too long.
+        SubnetMetadataTooLong,
         /// The maximum name length is invalid.
         InvalidMaxNameLength,
         /// The minimum name length is invalid.
@@ -933,13 +942,22 @@ pub mod pallet {
         #[pallet::weight((T::WeightInfo::register(), DispatchClass::Normal, Pays::No))]
         pub fn register(
             origin: OriginFor<T>,
-            network: Vec<u8>,
+            network_name: Vec<u8>,
             name: Vec<u8>,
             address: Vec<u8>,
             module_key: T::AccountId,
+            network_metadata: Option<Vec<u8>>,
             metadata: Option<Vec<u8>>,
         ) -> DispatchResult {
-            Self::do_register(origin, network, name, address, module_key, metadata)
+            Self::do_register(
+                origin,
+                network_name,
+                name,
+                address,
+                module_key,
+                network_metadata,
+                metadata,
+            )
         }
 
         #[pallet::call_index(8)]
@@ -989,6 +1007,7 @@ pub mod pallet {
             min_allowed_weights: u16,
             max_weight_age: u64,
             name: BoundedVec<u8, ConstU32<256>>,
+            metadata: Option<BoundedVec<u8, ConstU32<59>>>,
             tempo: u16,
             trust_ratio: u16,
             maximum_set_weight_calls_per_epoch: u16,
@@ -1023,6 +1042,7 @@ pub mod pallet {
                     vote_mode,
                     ..T::get_subnet_governance_configuration(netuid)
                 },
+                metadata,
             };
 
             let changeset = SubnetChangeset::update(netuid, params)?;

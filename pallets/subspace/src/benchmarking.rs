@@ -20,6 +20,7 @@ fn register_mock<T: Config>(
         &key,
         SubspaceMod::<T>::u64_to_balance(SubnetBurn::<T>::get() + enough_stake).unwrap(),
     );
+    let network_metadata = Some("networkmetadata".as_bytes().to_vec());
     let metadata = Some("metadata".as_bytes().to_vec());
     SubspaceMod::<T>::register(
         RawOrigin::Signed(key.clone()).into(),
@@ -27,6 +28,7 @@ fn register_mock<T: Config>(
         name,
         address,
         module_key.clone(),
+        network_metadata,
         metadata,
     )?;
     SubspaceMod::<T>::increase_stake(&key, &module_key, enough_stake);
@@ -169,7 +171,7 @@ benchmarks! {
             &key,
             SubspaceMod::<T>::u64_to_balance(stake + SubnetBurn::<T>::get() + 2000).unwrap(),
         );
-    }: register(RawOrigin::Signed(key.clone()), "test".as_bytes().to_vec(), "test".as_bytes().to_vec(), "test".as_bytes().to_vec(),  module_key.clone(), Some("metadata".as_bytes().to_vec()))
+    }: register(RawOrigin::Signed(key.clone()), "test".as_bytes().to_vec(), "test".as_bytes().to_vec(), "test".as_bytes().to_vec(),  module_key.clone(), Some("network-metadata".as_bytes().to_vec()), Some("metadata".as_bytes().to_vec()))
 
     // 8
     deregister {
@@ -213,6 +215,7 @@ benchmarks! {
         params.min_allowed_weights,
         params.max_weight_age,
         params.name.clone(),
+        params.metadata.clone(),
         params.tempo,
         params.trust_ratio,
         params.maximum_set_weight_calls_per_epoch,
