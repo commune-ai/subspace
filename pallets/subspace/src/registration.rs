@@ -68,6 +68,7 @@ impl<T: Config> Pallet<T> {
         name: Vec<u8>,
         address: Vec<u8>,
         module_key: T::AccountId,
+        network_metadata: Option<Vec<u8>>,
         metadata: Option<Vec<u8>>,
     ) -> DispatchResult {
         let key = ensure_signed(origin.clone())?;
@@ -77,7 +78,8 @@ impl<T: Config> Pallet<T> {
             Error::<T>::TooManyRegistrationsPerBlock
         );
 
-        let netuid = Self::resolve_or_create_network(&key, &network_name)?;
+        let netuid =
+            Self::resolve_or_create_network(&key, &network_name, network_metadata.as_deref())?;
 
         Self::validate_registration_request(netuid, &key, &module_key)?;
 
@@ -138,6 +140,7 @@ impl<T: Config> Pallet<T> {
     fn resolve_or_create_network(
         key: &T::AccountId,
         network_name: &[u8],
+        network_metadata: Option<&[u8]>,
     ) -> Result<u16, DispatchError> {
         if let Some(netuid) = Self::get_netuid_for_name(network_name) {
             return Ok(netuid);
@@ -146,8 +149,16 @@ impl<T: Config> Pallet<T> {
         let bounded_name: BoundedVec<u8, ConstU32<256>> =
             network_name.to_vec().try_into().map_err(|_| Error::<T>::SubnetNameTooLong)?;
 
+        let network_metadata: Option<BoundedVec<u8, ConstU32<59>>> = match network_metadata {
+            Some(slice) => {
+                Some(slice.to_vec().try_into().map_err(|_| Error::<T>::SubnetNameTooLong)?)
+            }
+            None => None,
+        };
+
         let params = SubnetParams {
             name: bounded_name,
+            metadata: network_metadata,
             founder: key.clone(),
             ..DefaultSubnetParams::<T>::get()
         };

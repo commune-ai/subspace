@@ -69,6 +69,8 @@ impl<T: Config> SubnetChangeset<T> {
 
         Pallet::<T>::deposit_event(Event::SubnetParamsUpdated(netuid));
 
+        SubnetMetadata::<T>::set(netuid, self.params.metadata);
+
         Ok(())
     }
 
@@ -91,6 +93,10 @@ impl<T: Config> SubnetChangeset<T> {
             params.min_allowed_weights >= 1,
             Error::<T>::InvalidMinAllowedWeights
         );
+
+        if let Some(metadata) = &params.metadata {
+            ensure!(!metadata.is_empty(), Error::<T>::InvalidSubnetMetadata);
+        }
 
         // lower tempos might significantly slow down the chain
         ensure!(params.tempo >= 25, Error::<T>::InvalidTempo);
@@ -198,6 +204,7 @@ impl<T: Config> Pallet<T> {
             adjustment_alpha: AdjustmentAlpha::<T>::get(netuid),
             min_immunity_stake: MinImmunityStake::<T>::get(netuid),
             governance_config: T::get_subnet_governance_configuration(netuid),
+            metadata: SubnetMetadata::<T>::get(netuid),
         }
     }
 
@@ -306,6 +313,7 @@ impl<T: Config> Pallet<T> {
         AdjustmentAlpha::<T>::remove(netuid);
         MinImmunityStake::<T>::remove(netuid);
         SubnetRegistrationBlock::<T>::remove(netuid);
+        SubnetMetadata::<T>::remove(netuid);
 
         T::handle_subnet_removal(netuid);
         T::remove_yuma_subnet(netuid);

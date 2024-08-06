@@ -109,6 +109,7 @@ fn test_emission() {
                 format!("test{}", i).as_bytes().to_vec(),
                 b"0.0.0.0:30333".to_vec(),
                 key_id,
+                None,
                 None
             ));
             SubspaceMod::increase_stake(&key_id, &key_id, 1000);
@@ -124,6 +125,7 @@ fn test_emission() {
                 format!("test{}", i).as_bytes().to_vec(),
                 b"0.0.0.0:30333".to_vec(),
                 key_id,
+                None,
                 None
             ));
             SubspaceMod::increase_stake(&key_id, &key_id, 1000);

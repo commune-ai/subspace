@@ -54,6 +54,7 @@ fn subnet_update_changes_all_parameter_values() {
             min_allowed_weights: 6,
             max_weight_age: 600,
             name: b"test".to_vec().try_into().unwrap(),
+            metadata: Some(b"metadata".to_vec().try_into().unwrap()),
             tempo: 300,
             trust_ratio: 11,
             maximum_set_weight_calls_per_epoch: 12,
@@ -83,6 +84,7 @@ fn subnet_update_changes_all_parameter_values() {
             min_allowed_weights,
             max_weight_age,
             name,
+            metadata,
             tempo,
             trust_ratio,
             maximum_set_weight_calls_per_epoch,
@@ -135,6 +137,7 @@ fn subnet_update_changes_all_parameter_values() {
 
         assert_eq!(SubspaceMod::get_total_subnets(), 1);
         assert_eq!(N::<Test>::get(netuid), 1);
+        assert_eq!(SubnetMetadata::<Test>::get(netuid), metadata);
     });
 }
 
@@ -167,6 +170,7 @@ fn removes_subnet_from_storage() {
                     adjustment_alpha,
                     min_immunity_stake: _,
                     governance_config,
+                    ..
                 } = DefaultSubnetParams::<Test>::get();
 
                 $m!(Founder, founder);
@@ -242,6 +246,7 @@ fn update_subnet_verifies_names_uniquiness_integrity() {
                 params.min_allowed_weights,
                 params.max_weight_age,
                 params.name,
+                params.metadata,
                 params.tempo,
                 params.trust_ratio,
                 params.maximum_set_weight_calls_per_epoch,

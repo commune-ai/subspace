@@ -937,6 +937,7 @@ fn test_emission_exploit() {
             name,
             address,
             yuma_badactor_key,
+            None,
             None
         ));
         assert_ok!(SubspaceMod::add_stake(
@@ -1158,6 +1159,7 @@ fn test_subnet_deregistration_based_on_emission() {
             universal_vec.clone(),
             universal_vec.clone(),
             2,
+            Some(universal_vec.clone()),
             Some(universal_vec),
         ));
         assert_ok!(SubspaceMod::add_stake(get_origin(3), 2, to_nano(2000)));

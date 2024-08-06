@@ -24,6 +24,7 @@ fn register(account: AccountId, subnet_id: u16, module: AccountId, stake: u64) {
         format!("address-{account}-{module}").as_bytes().to_vec(),
         module,
         None,
+        None,
     ));
     SubspaceMod::increase_stake(&account, &module, stake);
 }
@@ -330,6 +331,7 @@ fn subnet_params_proposal_accepted() {
             adjustment_alpha,
             min_immunity_stake,
             mut governance_config,
+            ..
         } = SubspaceMod::subnet_params(0);
 
         governance_config.vote_mode = VoteMode::Authority;
