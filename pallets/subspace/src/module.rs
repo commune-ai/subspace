@@ -80,7 +80,9 @@ impl ModuleChangeset {
             let floor = FloorDelegationFee::<T>::get();
             ensure!(fee >= floor, Error::<T>::InvalidMinDelegationFee);
 
-            DelegationFee::<T>::insert(netuid, &key, fee);
+            if !DelegationFee::<T>::contains_key(&key) {
+                DelegationFee::<T>::insert(&key, fee);
+            }
         }
 
         if let Some(metadata) = self.metadata {
@@ -123,7 +125,7 @@ impl<T: Config> Pallet<T> {
             name: Name::<T>::get(netuid, uid),
             address: Address::<T>::get(netuid, uid),
             metadata: Metadata::<T>::get(netuid, key),
-            delegation_fee: DelegationFee::<T>::get(netuid, key),
+            delegation_fee: DelegationFee::<T>::get(key),
             controller: key.clone(),
         }
     }
@@ -294,12 +296,10 @@ impl<T: Config> Pallet<T> {
         Name::<T>::remove(netuid, replace_uid);
 
         // HANDLE THE DELEGATION FEE
-        DelegationFee::<T>::insert(
-            netuid,
-            &module_key,
-            DelegationFee::<T>::get(netuid, &replace_key),
-        ); // Make uid - key association.
-        DelegationFee::<T>::remove(netuid, &replace_key); // Make uid - key association.
+
+        if Uids::<T>::iter().all(|(_, key, _)| key != module_key) {
+            DelegationFee::<T>::remove(&module_key);
+        }
 
         // remove stake from old key and add to new key
         Self::remove_stake_from_storage(&module_key);

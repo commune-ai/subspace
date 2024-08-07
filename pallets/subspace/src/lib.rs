@@ -72,7 +72,7 @@ pub mod pallet {
     use sp_core::{ConstU64, ConstU8};
     pub use sp_std::{vec, vec::Vec};
 
-    const STORAGE_VERSION: StorageVersion = StorageVersion::new(12);
+    const STORAGE_VERSION: StorageVersion = StorageVersion::new(13);
 
     #[pallet::pallet]
     #[pallet::storage_version(STORAGE_VERSION)]
@@ -502,20 +502,12 @@ pub mod pallet {
 
     #[pallet::type_value]
     pub fn DefaultDelegationFee<T: Config>() -> Percent {
-        Percent::from_percent(20u8)
+        Percent::from_percent(5u8)
     }
 
     #[pallet::storage] // -- DMAP (netuid, module_key) -> delegation_fee
-    pub type DelegationFee<T: Config> = StorageDoubleMap<
-        _,
-        Identity,
-        u16,
-        Blake2_128Concat,
-        T::AccountId,
-        Percent,
-        ValueQuery,
-        DefaultDelegationFee<T>,
-    >;
+    pub type DelegationFee<T: Config> =
+        StorageMap<_, Blake2_128Concat, T::AccountId, Percent, ValueQuery, DefaultDelegationFee<T>>;
 
     #[pallet::storage] // MAP (netuid, module_key) -> control_delegation
     pub type RootnetControlDelegation<T: Config> =
@@ -764,7 +756,7 @@ pub mod pallet {
 
                 log::info!("registering subnet {netuid} with params: {params:?}");
 
-                let fee = DelegationFee::<T>::get(netuid, &params.founder);
+                let fee = DelegationFee::<T>::get(&params.founder);
                 let changeset: SubnetChangeset<T> =
                     SubnetChangeset::new(params).expect("genesis subnets are valid");
                 let _ = self::Pallet::<T>::add_subnet(changeset, Some(netuid))
