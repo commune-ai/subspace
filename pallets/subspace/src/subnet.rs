@@ -260,7 +260,7 @@ impl<T: Config> Pallet<T> {
         // --- 1. Erase all subnet module data.
         // ====================================
 
-        // --- Potentially Remove stake
+        // --- Potentially Remove Stake
         // Automatically removed the stake of modules that are only registered on this subnet.
         // This is because it's not desirable for module to be **globally** unregistered with
         // "active" stake storage.
@@ -270,9 +270,26 @@ impl<T: Config> Pallet<T> {
         let _ = Name::<T>::clear_prefix(netuid, u32::MAX, None);
         let _ = Address::<T>::clear_prefix(netuid, u32::MAX, None);
         let _ = Metadata::<T>::clear_prefix(netuid, u32::MAX, None);
+
+        // --- Potentially Remove DelegationFee
+
+        // --- 1. Create a set of keys that exist in other netuids
+        let mut keys_in_other_netuids = BTreeSet::new();
+        for (other_netuid, other_key, _) in Uids::<T>::iter() {
+            if other_netuid != netuid {
+                keys_in_other_netuids.insert(other_key);
+            }
+        }
+
+        // --- 2. Iterate over keys in the current netuid and remove delegation fees
+        for (key, _) in Uids::<T>::iter_prefix(netuid) {
+            if !keys_in_other_netuids.contains(&key) {
+                DelegationFee::<T>::remove(&key);
+            }
+        }
+
         let _ = Uids::<T>::clear_prefix(netuid, u32::MAX, None);
         let _ = Keys::<T>::clear_prefix(netuid, u32::MAX, None);
-        let _ = DelegationFee::<T>::clear_prefix(netuid, u32::MAX, None);
 
         // --- 2. Remove consnesus vectors
         // ===============================
