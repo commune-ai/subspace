@@ -1,6 +1,6 @@
 use crate::mock::*;
 use frame_support::assert_ok;
-use global::SubnetBurnConfiguration;
+use global::GeneralBurnConfiguration;
 use pallet_subspace::{global::BurnConfiguration, *};
 
 #[test]
@@ -67,7 +67,7 @@ fn subnet_registration_burn_increases() {
         let min_burn = to_nano(100);
         let max_burn = to_nano(10000);
 
-        let burn_config = SubnetBurnConfiguration {
+        let burn_config = GeneralBurnConfiguration {
             min_burn,
             max_burn,
             adjustment_alpha: 200,

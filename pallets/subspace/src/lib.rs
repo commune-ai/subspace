@@ -65,7 +65,7 @@ pub mod pallet {
         Identity,
     };
     use frame_system::pallet_prelude::*;
-    use global::{BurnConfiguration, SubnetBurnConfiguration};
+    use global::{BurnType, GeneralBurnConfiguration};
     use module::ModuleChangeset;
     use pallet_governance_api::{GovernanceConfiguration, VoteMode};
     use sp_arithmetic::per_things::Percent;
@@ -124,9 +124,6 @@ pub mod pallet {
     pub type RootNetWeightCalls<T: Config> = StorageMap<_, Identity, u16, ()>;
 
     #[pallet::storage]
-    pub type BurnConfig<T: Config> = StorageValue<_, BurnConfiguration<T>, ValueQuery>;
-
-    #[pallet::storage]
     pub type Kappa<T> = StorageValue<_, u16, ValueQuery, ConstU16<32_767>>;
 
     #[pallet::storage] // --- DMAP ( netuid, uid ) --> bonds
@@ -172,9 +169,6 @@ pub mod pallet {
 
     #[pallet::storage] // --- ITEM ( max_allowed_subnets )
     pub type MaxAllowedSubnets<T: Config> = StorageValue<_, u16, ValueQuery, ConstU16<256>>;
-
-    #[pallet::storage] // --- MAP (netuid) --> registrations_this_interval
-    pub type RegistrationsThisInterval<T: Config> = StorageMap<_, Identity, u16, u16, ValueQuery>;
 
     #[pallet::storage]
     // --- MAP (netuid) --> burn
@@ -229,7 +223,6 @@ pub mod pallet {
 
         // Other
         pub subnet_immunity_period: u64,
-        pub burn_config: BurnConfiguration<T>,
         pub governance_config: GovernanceConfiguration,
 
         pub kappa: u16,
@@ -240,25 +233,11 @@ pub mod pallet {
     // Registrations
     // ---------------------------------
 
-    #[pallet::storage] // --- MAP ( netuid ) --> target_registrations_interval
-    pub type TargetRegistrationsInterval<T> =
-        StorageMap<_, Identity, u16, u16, ValueQuery, ConstU16<142>>;
-
-    #[pallet::storage] // MAP ( netuid ) --> target_registrations_per_interval
-    pub type TargetRegistrationsPerInterval<T> =
-        StorageMap<_, Identity, u16, u16, ValueQuery, ConstU16<3>>;
-
     #[pallet::storage] // --- ITEM ( registrations_this block )
     pub type RegistrationsPerBlock<T> = StorageValue<_, u16, ValueQuery>;
 
     #[pallet::storage] // --- ITEM ( global_max_registrations_per_block )
     pub type MaxRegistrationsPerBlock<T> = StorageValue<_, u16, ValueQuery, ConstU16<10>>;
-
-    #[pallet::storage] // --- MAP ( netuid ) --> adjustment_alpha
-    pub type AdjustmentAlpha<T> =
-        StorageMap<_, Identity, u16, u64, ValueQuery, ConstU64<{ u64::MAX / 2 }>>;
-
-    // Deregistrations
 
     // ---------------------------------
     //  Module Staking Variables
@@ -307,10 +286,17 @@ pub mod pallet {
     // ---------------------------------
 
     #[pallet::storage] // ITEM ( subnet_burn_config )
-    pub type SubnetBurnConfig<T: Config> = StorageValue<_, SubnetBurnConfiguration<T>, ValueQuery>;
+    pub type SubnetBurnConfig<T: Config> = StorageValue<_, GeneralBurnConfiguration<T>, ValueQuery>;
+
+    #[pallet::storage] // --- MAP ( netuid ) -> module_burn_config
+    pub type ModuleBurnConfig<T: Config> =
+        StorageMap<_, Identity, u16, GeneralBurnConfiguration<T>, ValueQuery>;
 
     #[pallet::storage] // ITEM ( subnet_max_registrations_per_interval )
     pub type SubnetRegistrationsThisInterval<T: Config> = StorageValue<_, u16, ValueQuery>;
+
+    #[pallet::storage] // --- MAP (netuid) --> registrations_this_interval
+    pub type RegistrationsThisInterval<T: Config> = StorageMap<_, Identity, u16, u16, ValueQuery>;
 
     #[pallet::type_value]
     pub fn DefaultSubnetBurn<T: Config>() -> u64 {
@@ -343,6 +329,8 @@ pub mod pallet {
         // TODO: not hardcode values here, get them from the storages instead,
         // if they implement default already.
         pub fn get() -> SubnetParams<T> {
+            let module_burn_defaults = GeneralBurnConfiguration::<T>::default_for(BurnType::Module);
+
             SubnetParams {
                 name: BoundedVec::default(),
                 tempo: 100,
@@ -357,11 +345,17 @@ pub mod pallet {
                 founder: DefaultKey::<T>::get(),
                 maximum_set_weight_calls_per_epoch: 0,
                 bonds_ma: 900_000,
-                target_registrations_interval: 142,
-                target_registrations_per_interval: 3,
-                max_registrations_per_interval: T::DefaultMaxRegistrationsPerInterval::get(),
-                adjustment_alpha: u64::MAX / 2,
-                min_validator_stake: DefaultMinValidatorStake::<T>::get(), // 50k
+
+                // registrations
+                min_burn: module_burn_defaults.min_burn,
+                max_burn: module_burn_defaults.max_burn,
+                target_registrations_interval: module_burn_defaults.target_registrations_interval,
+                target_registrations_per_interval: module_burn_defaults
+                    .target_registrations_per_interval,
+                max_registrations_per_interval: module_burn_defaults.max_registrations_per_interval,
+                adjustment_alpha: module_burn_defaults.adjustment_alpha,
+
+                min_validator_stake: DefaultMinValidatorStake::<T>::get(),
                 governance_config: GovernanceConfiguration {
                     vote_mode: VoteMode::Authority,
                     ..Default::default()
@@ -395,6 +389,8 @@ pub mod pallet {
         // consensus
         pub bonds_ma: u64,
         // registrations
+        pub min_burn: u64,
+        pub max_burn: u64,
         pub target_registrations_interval: u16,
         pub target_registrations_per_interval: u16,
         pub max_registrations_per_interval: u16,
@@ -414,10 +410,6 @@ pub mod pallet {
 
     #[pallet::storage] // ITEM ( minimum_allowed_stake )
     pub type MinimumAllowedStake<T> = StorageValue<_, u64, ValueQuery, ConstU64<500000000>>;
-
-    #[pallet::storage] // --- MAP ( netuid ) --> max_registratoins_per_interval
-    pub type MaxRegistrationsPerInterval<T: Config> =
-        StorageMap<_, Identity, u16, u16, ValueQuery, T::DefaultMaxRegistrationsPerInterval>;
 
     #[pallet::storage] // --- MAP ( netuid ) --> min_allowed_weights
     pub type MaxWeightAge<T> = StorageMap<_, Identity, u16, u64, ValueQuery, ConstU64<3600>>;
@@ -677,7 +669,7 @@ pub mod pallet {
         InvalidMaxAllowedModules,
         /// The maximum registrations per block value is invalid.
         InvalidMaxRegistrationsPerBlock,
-        /// The minimum burn value is invalid.
+        /// The minimum burn value is invalid, likely too small.
         InvalidMinBurn,
         /// The maximum burn value is invalid.
         InvalidMaxBurn,
@@ -1016,6 +1008,8 @@ pub mod pallet {
             maximum_set_weight_calls_per_epoch: u16,
             vote_mode: VoteMode,
             bonds_ma: u64,
+            min_burn: u64,
+            max_burn: u64,
             target_registrations_interval: u16,
             target_registrations_per_interval: u16,
             max_registrations_per_interval: u16,
@@ -1036,6 +1030,8 @@ pub mod pallet {
                 trust_ratio,
                 maximum_set_weight_calls_per_epoch,
                 bonds_ma,
+                min_burn,
+                max_burn,
                 target_registrations_interval,
                 target_registrations_per_interval,
                 max_registrations_per_interval,
