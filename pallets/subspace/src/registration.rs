@@ -260,26 +260,41 @@ impl<T: Config> Pallet<T> {
         let current_block = Self::get_current_block_number();
         let immunity_period = ImmunityPeriod::<T>::get(netuid) as u64;
         let emission_vec = Emission::<T>::get(netuid);
-        let min_immunity_stake = MinImmunityStake::<T>::get(netuid);
+        let dividend_vec = Dividends::<T>::get(netuid);
+        let incentive_vec = Incentive::<T>::get(netuid);
 
         let uids: Vec<_> = RegistrationBlock::<T>::iter_prefix(netuid)
             .filter(move |&(uid, block_at_registration)| {
                 if ignore_immunity
                     || current_block.saturating_sub(block_at_registration) >= immunity_period
                 {
-                    let Some(module_key) = Keys::<T>::get(netuid, uid) else {
-                        log::error!(
-                            "module {uid} does not exist in keys but exists in registration block"
-                        );
-                        return false;
-                    };
-                    Self::get_delegated_stake(&module_key) < min_immunity_stake
+                    !*ValidatorPermits::<T>::get(netuid).get(uid as usize).unwrap_or(&false)
                 } else {
                     false
                 }
             })
             .map(|(uid, block_at_registration)| {
-                let pruning_score = emission_vec.get(uid as usize).copied().unwrap_or_default();
+                let emission =
+                    I110F18::from_num(emission_vec.get(uid as usize).copied().unwrap_or_default());
+
+                let dividend_perc =
+                    I110F18::from_num(dividend_vec.get(uid as usize).copied().unwrap_or_default());
+                let incentive_perc =
+                    I110F18::from_num(incentive_vec.get(uid as usize).copied().unwrap_or_default());
+
+                if dividend_perc == 0 && incentive_perc == 0 {
+                    return (uid, I110F18::from_num(0), block_at_registration);
+                }
+
+                let dividend = dividend_perc
+                    .saturating_div(dividend_perc.saturating_add(incentive_perc))
+                    .saturating_mul(emission);
+                let incentive = incentive_perc
+                    .saturating_div(dividend_perc.saturating_add(incentive_perc))
+                    .saturating_mul(emission);
+
+                let pruning_score =
+                    (I110F18::from_num(0.3).saturating_mul(dividend)).saturating_add(incentive);
                 (uid, pruning_score, block_at_registration)
             })
             .collect();

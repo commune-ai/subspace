@@ -55,7 +55,7 @@ impl<T: Config> SubnetChangeset<T> {
         );
 
         AdjustmentAlpha::<T>::insert(netuid, self.params.adjustment_alpha);
-        MinImmunityStake::<T>::insert(netuid, self.params.min_immunity_stake);
+        MinValidatorStake::<T>::insert(netuid, self.params.min_validator_stake);
         if self.params.maximum_set_weight_calls_per_epoch == 0 {
             MaximumSetWeightCallsPerEpoch::<T>::remove(netuid);
         } else {
@@ -153,14 +153,14 @@ impl<T: Config> SubnetChangeset<T> {
         );
 
         ensure!(
-            params.min_immunity_stake > 20_000_000_000_000, // Min is 20k
-            Error::<T>::InvalidMinImmunityStake
-        );
-
-        ensure!(
             netuid.map_or(true, |netuid| params.max_allowed_uids
                 >= N::<T>::get(netuid)),
             Error::<T>::InvalidMaxAllowedUids
+        );
+
+        ensure!(
+            params.min_validator_stake <= 250_000_000_000_000,
+            Error::<T>::InvalidMinValidatorStake
         );
 
         match Pallet::<T>::get_netuid_for_name(&params.name) {
@@ -202,7 +202,7 @@ impl<T: Config> Pallet<T> {
             target_registrations_per_interval: TargetRegistrationsPerInterval::<T>::get(netuid),
             max_registrations_per_interval: MaxRegistrationsPerInterval::<T>::get(netuid),
             adjustment_alpha: AdjustmentAlpha::<T>::get(netuid),
-            min_immunity_stake: MinImmunityStake::<T>::get(netuid),
+            min_validator_stake: MinValidatorStake::<T>::get(netuid),
             governance_config: T::get_subnet_governance_configuration(netuid),
             metadata: SubnetMetadata::<T>::get(netuid),
         }
@@ -295,6 +295,7 @@ impl<T: Config> Pallet<T> {
         // ===============================
 
         let _ = Weights::<T>::clear_prefix(netuid, u32::MAX, None);
+        let _ = WeightSetAt::<T>::clear_prefix(netuid, u32::MAX, None);
         Active::<T>::remove(netuid);
         Consensus::<T>::remove(netuid);
         Dividends::<T>::remove(netuid);
@@ -328,7 +329,7 @@ impl<T: Config> Pallet<T> {
         TargetRegistrationsPerInterval::<T>::remove(netuid);
         MaxRegistrationsPerInterval::<T>::remove(netuid);
         AdjustmentAlpha::<T>::remove(netuid);
-        MinImmunityStake::<T>::remove(netuid);
+        MinValidatorStake::<T>::remove(netuid);
         SubnetRegistrationBlock::<T>::remove(netuid);
         SubnetMetadata::<T>::remove(netuid);
 

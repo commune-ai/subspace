@@ -23,7 +23,7 @@ pub fn ss58_to_account_id<T: Config>(
 pub mod v13 {
     use super::*;
     use frame_support::traits::OnRuntimeUpgrade;
-    use sp_runtime::Percent;
+    use sp_runtime::{BoundedVec, Percent};
 
     pub mod old_storage {
         use super::*;
@@ -46,6 +46,8 @@ pub mod v13 {
             }
             log::info!("Migrating storage to v13");
 
+            log::info!("Migrating delegation fees to new storage");
+
             let old_delegation_fee_keys = old_storage::DelegationFee::<T>::iter()
                 .map(|(_, key, _)| key)
                 .collect::<BTreeSet<_>>();
@@ -53,6 +55,68 @@ pub mod v13 {
 
             for key in old_delegation_fee_keys {
                 DelegationFee::<T>::set(key, Percent::from_percent(5));
+            }
+
+            // Add metadata to existing subnets
+            for (netuid, _) in SubnetNames::<T>::iter() {
+                let metadata = match netuid {
+                    3 => b"https://github.com/agicommies/synthia/".to_vec(),
+                    5 => b"https://open.0xscope.com/home".to_vec(),
+                    6 => b"https://github.com/Comtensor/comtensor".to_vec(),
+                    7 => b"https://kaiwa.dev/".to_vec(),
+                    9 => b"https://github.com/panthervis/prediction-subnet".to_vec(),
+                    10 => b"https://github.com/Agent-Artificial/eden-subnet/".to_vec(),
+                    12 => b"https://www.yogpt.ai/".to_vec(),
+                    13 => b"https://github.com/nakamoto-ai/zangief".to_vec(),
+                    14 => b"https://mosaicx.org/".to_vec(),
+                    15 => b"https://github.com/smart-window/comchat-subnet".to_vec(),
+                    16 => b"https://github.com/bit-current/dtune/blob/commune/docs/tutorial.md"
+                        .to_vec(),
+                    17 => b"https://marketcompass.ai/".to_vec(),
+                    18 => b"https://github.com/nakamoto-ai/yama".to_vec(),
+                    _ => continue,
+                };
+
+                if let Ok(bounded_metadata) = BoundedVec::<u8, ConstU32<59>>::try_from(metadata) {
+                    SubnetMetadata::<T>::insert(netuid, bounded_metadata);
+                }
+            }
+
+            // Metadata
+            log::info!("Metadata for subnets:");
+
+            for (netuid, metadata) in SubnetMetadata::<T>::iter() {
+                let subnet_name = SubnetNames::<T>::get(netuid);
+                if let Ok(subnet_name_str) = core::str::from_utf8(&subnet_name) {
+                    if let Ok(metadata_str) = core::str::from_utf8(&metadata) {
+                        log::info!(
+                            "Subnet {}: {} - Metadata: {}",
+                            netuid,
+                            subnet_name_str,
+                            metadata_str
+                        );
+                    } else {
+                        log::info!(
+                            "Subnet {}: {} - Metadata: {:?} (non-UTF8)",
+                            netuid,
+                            subnet_name_str,
+                            metadata
+                        );
+                    }
+                } else {
+                    log::info!(
+                        "Subnet {} - Metadata: {:?} (subnet name is non-UTF8)",
+                        netuid,
+                        metadata
+                    );
+                }
+            }
+
+            // Change the name of subnet 2 from "commune" to "General"
+            SubnetNames::<T>::insert(2, b"General".to_vec());
+
+            for key in N::<T>::iter_keys() {
+                MinValidatorStake::<T>::insert(key, GetDefaultMinValidatorStake::<T>::get());
             }
 
             log::info!("Migrated storage to v13");

@@ -22,7 +22,7 @@ diff [here](https://github.com/agicommies/subspace-network/compare/db8a19b1d2155
   - `TotalSubnets` storage value was removed
   - `RootnetControlDelegation`:  MAP (netuid, module_key) -> control_delegation, storage map was introduced, which stores information from `delegate_rootnet_control` extrinsic.
   - `MinimumAllowedStake` was introduced. Users cannot stake or unstake a value smaller than this minimum.
-  - `MinImmunityStake` was introduced. This value is a subnet parameter that can be changed by the subnet owner. A validator (key) with delegated stake higher than or equal to this value is immune to deregistrations. This aims to reduce sudden validator deregistrations, with adaptability to subnet owner's consensus.
+  - `MinValidatorStake` was introduced. This value is a subnet parameter that can be changed by the subnet owner. A validator (key) with delegated stake higher than or equal to this value is immune to deregistrations. This aims to reduce sudden validator deregistrations, with adaptability to subnet owner's consensus.
 - Extrinsics changes:
 
   - `add_stake`, `remove_stake`, `add_stake_multiple`, `remove_stake_multiple` and `transfer_stake` lost their subnet id parameter.
