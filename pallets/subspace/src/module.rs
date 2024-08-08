@@ -299,13 +299,11 @@ impl<T: Config> Pallet<T> {
         Name::<T>::remove(netuid, replace_uid);
 
         // HANDLE THE DELEGATION FEE
-
         if Uids::<T>::iter().all(|(_, key, _)| key != module_key) {
             DelegationFee::<T>::remove(&module_key);
+            // Remove stake from old key and add to new key
+            Self::remove_stake_from_storage(&module_key);
         }
-
-        // remove stake from old key and add to new key
-        Self::remove_stake_from_storage(&module_key);
 
         // 3. Remove the network if it is empty.
         let module_count = N::<T>::mutate(netuid, |v| {
