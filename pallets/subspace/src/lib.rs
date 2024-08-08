@@ -260,10 +260,6 @@ pub mod pallet {
 
     // Deregistrations
 
-    #[pallet::storage] // MAP (netuid) --> minimum immunity stake
-    pub type MinImmunityStake<T> =
-        StorageMap<_, Identity, u16, u64, ValueQuery, ConstU64<50_000_000_000_000>>; // Default 50K
-
     // ---------------------------------
     //  Module Staking Variables
     // ---------------------------------
@@ -328,6 +324,19 @@ pub mod pallet {
     // Subnet PARAMS
     // ---------------------------------
 
+    #[pallet::storage]
+    pub type DefaultMinValidatorStake<T: Config> =
+        StorageValue<_, u64, ValueQuery, ConstU64<50_000_000_000_000>>;
+
+    #[pallet::type_value]
+    pub fn GetDefaultMinValidatorStake<T: Config>() -> u64 {
+        DefaultMinValidatorStake::<T>::get()
+    }
+
+    #[pallet::storage]
+    pub type MinValidatorStake<T: Config> =
+        StorageMap<_, Identity, u16, u64, ValueQuery, GetDefaultMinValidatorStake<T>>;
+
     pub struct DefaultSubnetParams<T: Config>(sp_std::marker::PhantomData<((), T)>);
 
     impl<T: Config> DefaultSubnetParams<T> {
@@ -352,7 +361,7 @@ pub mod pallet {
                 target_registrations_per_interval: 3,
                 max_registrations_per_interval: T::DefaultMaxRegistrationsPerInterval::get(),
                 adjustment_alpha: u64::MAX / 2,
-                min_immunity_stake: 50_000_000_000_000, // 50k
+                min_validator_stake: DefaultMinValidatorStake::<T>::get(), // 50k
                 governance_config: GovernanceConfiguration {
                     vote_mode: VoteMode::Authority,
                     ..Default::default()
@@ -390,10 +399,7 @@ pub mod pallet {
         pub target_registrations_per_interval: u16,
         pub max_registrations_per_interval: u16,
         pub adjustment_alpha: u64,
-        pub min_immunity_stake: u64, /* minimum stake for module to be immuned against
-                                      * deregistrations, made to prevent validator
-                                      * deregisterations. */
-
+        pub min_validator_stake: u64,
         pub governance_config: GovernanceConfiguration,
     }
 
@@ -496,9 +502,12 @@ pub mod pallet {
     pub type RegistrationBlock<T: Config> =
         StorageDoubleMap<_, Identity, u16, Identity, u16, u64, ValueQuery>;
 
-    #[pallet::storage] // --- DMAP ( netuid, uid ) --> weights
+    #[pallet::storage] // --- DMAP ( netuid, uid ) --> (u64, weights)
     pub type Weights<T: Config> =
         StorageDoubleMap<_, Identity, u16, Identity, u16, Vec<(u16, u16)>, ValueQuery>;
+
+    #[pallet::storage]
+    pub type WeightSetAt<T: Config> = StorageDoubleMap<_, Identity, u16, Identity, u16, u64>;
 
     #[pallet::type_value]
     pub fn DefaultDelegationFee<T: Config>() -> Percent {
@@ -718,6 +727,8 @@ pub mod pallet {
         TargetIsDelegatingControl,
         /// There is no subnet that is running with the Rootnet consensus
         RootnetSubnetNotFound,
+        /// MinValidatorStake must be lower than 250k
+        InvalidMinValidatorStake,
     }
 
     // ---------------------------------
@@ -1009,7 +1020,7 @@ pub mod pallet {
             target_registrations_per_interval: u16,
             max_registrations_per_interval: u16,
             adjustment_alpha: u64,
-            min_immunity_stake: u64,
+            min_validator_stake: u64,
         ) -> DispatchResult {
             let params = SubnetParams {
                 founder,
@@ -1029,7 +1040,7 @@ pub mod pallet {
                 target_registrations_per_interval,
                 max_registrations_per_interval,
                 adjustment_alpha,
-                min_immunity_stake,
+                min_validator_stake,
                 governance_config: GovernanceConfiguration {
                     vote_mode,
                     ..T::get_subnet_governance_configuration(netuid)

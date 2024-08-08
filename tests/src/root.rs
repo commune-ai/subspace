@@ -17,6 +17,7 @@ const ROOT_NETUID: u16 = 0;
 #[test]
 fn test_root_pricing() {
     new_test_ext().execute_with(|| {
+        zero_min_validator_stake();
         zero_min_burn();
 
         MaxRegistrationsPerBlock::<Test>::set(6);
@@ -84,6 +85,7 @@ fn test_root_pricing() {
 #[test]
 fn test_emission() {
     new_test_ext_with_block(1).execute_with(|| {
+        zero_min_validator_stake();
         zero_min_burn();
         MinimumAllowedStake::<Test>::set(0);
 

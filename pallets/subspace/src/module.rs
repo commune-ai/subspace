@@ -267,6 +267,9 @@ impl<T: Config> Pallet<T> {
         ValidatorPermits::<T>::insert(netuid, validator_permit);
         ValidatorTrust::<T>::insert(netuid, validator_trust);
 
+        WeightSetAt::<T>::set(netuid, uid, WeightSetAt::<T>::get(netuid, replace_uid));
+        WeightSetAt::<T>::remove(netuid, replace_uid);
+
         // SWAP WEIGHTS
         Weights::<T>::insert(netuid, uid, Weights::<T>::get(netuid, replace_uid)); // Make uid - key association.
         Weights::<T>::remove(netuid, replace_uid); // Make uid - key association.

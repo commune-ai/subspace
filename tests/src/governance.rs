@@ -329,7 +329,7 @@ fn subnet_params_proposal_accepted() {
             target_registrations_per_interval,
             max_registrations_per_interval,
             adjustment_alpha,
-            min_immunity_stake,
+            min_validator_stake,
             mut governance_config,
             ..
         } = SubspaceMod::subnet_params(0);
@@ -358,7 +358,7 @@ fn subnet_params_proposal_accepted() {
             target_registrations_per_interval,
             max_registrations_per_interval,
             adjustment_alpha,
-            min_immunity_stake,
+            min_validator_stake,
         )
         .unwrap();
 

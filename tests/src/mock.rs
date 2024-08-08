@@ -14,9 +14,9 @@ use sp_core::{ConstU16, H256};
 use std::cell::RefCell;
 
 use pallet_subspace::{
-    subnet::SubnetChangeset, Address, BurnConfig, DefaultKey, DefaultSubnetParams, Dividends,
-    Emission, Incentive, LastUpdate, MaxRegistrationsPerBlock, Name, SubnetBurn, SubnetBurnConfig,
-    SubnetParams, Tempo, TotalStake, N,
+    subnet::SubnetChangeset, Address, BurnConfig, DefaultKey, DefaultMinValidatorStake,
+    DefaultSubnetParams, Dividends, Emission, Incentive, LastUpdate, MaxRegistrationsPerBlock,
+    Name, SubnetBurn, SubnetBurnConfig, SubnetParams, Tempo, TotalStake, N,
 };
 use sp_runtime::{
     traits::{AccountIdConversion, BlakeTwo256, IdentityLookup},
@@ -574,7 +574,7 @@ pub fn register_named_subnet(key: AccountId, netuid: u16, name: impl ToString) -
         founder: key,
         ..DefaultSubnetParams::<Test>::get()
     };
-
+    Test::set_subnet_consensus_type(netuid, Some(SubnetConsensus::Yuma));
     SubspaceMod::add_subnet(SubnetChangeset::<Test>::new(params).unwrap(), Some(netuid)).unwrap();
 
     Ok(())
@@ -674,6 +674,11 @@ pub fn round_first_five(num: u64) -> u64 {
 pub fn zero_min_burn() {
     BurnConfig::<Test>::mutate(|cfg| cfg.min_burn = 0);
     SubnetBurnConfig::<Test>::mutate(|cfg| cfg.min_burn = 0);
+}
+
+#[allow(dead_code)]
+pub fn zero_min_validator_stake() {
+    DefaultMinValidatorStake::<Test>::set(0);
 }
 
 macro_rules! update_params {
