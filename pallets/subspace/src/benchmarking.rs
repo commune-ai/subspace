@@ -22,13 +22,17 @@ fn register_mock<T: Config>(
     );
     let network_metadata = Some("networkmetadata".as_bytes().to_vec());
     let metadata = Some("metadata".as_bytes().to_vec());
+    let _ = SubspaceMod::<T>::register_subnet(
+        RawOrigin::Signed(key.clone()).into(),
+        network.clone(),
+        network_metadata,
+    );
     SubspaceMod::<T>::register(
         RawOrigin::Signed(key.clone()).into(),
         network,
         name,
         address,
         module_key.clone(),
-        network_metadata,
         metadata,
     )?;
     SubspaceMod::<T>::increase_stake(&key, &module_key, enough_stake);
@@ -171,7 +175,7 @@ benchmarks! {
             &key,
             SubspaceMod::<T>::u64_to_balance(stake + SubnetBurn::<T>::get() + 2000).unwrap(),
         );
-    }: register(RawOrigin::Signed(key.clone()), "test".as_bytes().to_vec(), "test".as_bytes().to_vec(), "test".as_bytes().to_vec(),  module_key.clone(), Some("network-metadata".as_bytes().to_vec()), Some("metadata".as_bytes().to_vec()))
+    }: register(RawOrigin::Signed(key.clone()), "test".as_bytes().to_vec(), "test".as_bytes().to_vec(), "test".as_bytes().to_vec(),  module_key.clone(), Some("metadata".as_bytes().to_vec()))
 
     // 8
     deregister {
@@ -225,7 +229,7 @@ benchmarks! {
         params.target_registrations_per_interval,
         params.max_registrations_per_interval,
         params.adjustment_alpha,
-        params.min_immunity_stake
+        params.min_validator_stake
     )
     // 11
     delegate_rootnet_control {
@@ -238,4 +242,14 @@ benchmarks! {
         let netuid = SubspaceMod::<T>::get_netuid_for_name(b"testnet").unwrap();
         T::set_subnet_consensus_type(netuid, Some(SubnetConsensus::Root));
     }: delegate_rootnet_control(RawOrigin::Signed(module_key), module_key2)
+
+    register_subnet {
+        let key: T::AccountId = account("Alice", 0, 1);
+        let stake = 100000000000000u64;
+        SubspaceMod::<T>::add_balance_to_account(
+            &key,
+            SubspaceMod::<T>::u64_to_balance(stake + SubnetBurn::<T>::get() + 2000).unwrap(),
+        );
+    }: register_subnet(RawOrigin::Signed(key.clone()), "testnet".as_bytes().to_vec(), Some(b"testmetadata".to_vec()))
+
 }

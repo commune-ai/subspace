@@ -68,7 +68,6 @@ impl<T: Config> Pallet<T> {
         name: Vec<u8>,
         address: Vec<u8>,
         module_key: T::AccountId,
-        network_metadata: Option<Vec<u8>>,
         metadata: Option<Vec<u8>>,
     ) -> DispatchResult {
         let key = ensure_signed(origin.clone())?;
@@ -79,7 +78,7 @@ impl<T: Config> Pallet<T> {
         );
 
         let netuid =
-            Self::resolve_or_create_network(&key, &network_name, network_metadata.as_deref())?;
+            Self::get_netuid_for_name(&network_name).ok_or(Error::<T>::NetworkDoesNotExist)?;
 
         Self::validate_registration_request(netuid, &key, &module_key)?;
 
@@ -89,6 +88,45 @@ impl<T: Config> Pallet<T> {
         Self::finalize_registration(netuid, uid, &module_key)?;
 
         Ok(())
+    }
+
+    pub fn do_register_subnet(
+        origin: T::RuntimeOrigin,
+        network_name: Vec<u8>,
+        network_metadata: Option<Vec<u8>>,
+    ) -> DispatchResult {
+        let key = ensure_signed(origin.clone())?;
+
+        if Self::get_netuid_for_name(&network_name).is_some() {
+            return Err(Error::<T>::SubnetNameAlreadyExists.into());
+        }
+
+        let bounded_name: BoundedVec<u8, ConstU32<256>> =
+            network_name.to_vec().try_into().map_err(|_| Error::<T>::SubnetNameTooLong)?;
+
+        let network_metadata: Option<BoundedVec<u8, ConstU32<59>>> = match network_metadata {
+            Some(slice) => {
+                Some(slice.to_vec().try_into().map_err(|_| Error::<T>::SubnetNameTooLong)?)
+            }
+            None => None,
+        };
+
+        let params = SubnetParams {
+            name: bounded_name,
+            metadata: network_metadata,
+            founder: key.clone(),
+            ..DefaultSubnetParams::<T>::get()
+        };
+        let changeset = SubnetChangeset::new(params)?;
+        let burn = SubnetBurn::<T>::get();
+
+        Self::remove_balance_from_account(
+            &key,
+            Self::u64_to_balance(burn).ok_or(Error::<T>::CouldNotConvertToBalance)?,
+        )
+        .map_err(|_| Error::<T>::NotEnoughBalanceToRegisterSubnet)?;
+
+        Self::add_subnet_from_registration(changeset)
     }
 
     /// Deregisters a module from the specified subnet.
@@ -136,43 +174,6 @@ impl<T: Config> Pallet<T> {
     // --------------------------
     // Registration Utils
     // --------------------------
-
-    fn resolve_or_create_network(
-        key: &T::AccountId,
-        network_name: &[u8],
-        network_metadata: Option<&[u8]>,
-    ) -> Result<u16, DispatchError> {
-        if let Some(netuid) = Self::get_netuid_for_name(network_name) {
-            return Ok(netuid);
-        }
-
-        let bounded_name: BoundedVec<u8, ConstU32<256>> =
-            network_name.to_vec().try_into().map_err(|_| Error::<T>::SubnetNameTooLong)?;
-
-        let network_metadata: Option<BoundedVec<u8, ConstU32<59>>> = match network_metadata {
-            Some(slice) => {
-                Some(slice.to_vec().try_into().map_err(|_| Error::<T>::SubnetNameTooLong)?)
-            }
-            None => None,
-        };
-
-        let params = SubnetParams {
-            name: bounded_name,
-            metadata: network_metadata,
-            founder: key.clone(),
-            ..DefaultSubnetParams::<T>::get()
-        };
-        let changeset = SubnetChangeset::new(params)?;
-        let burn = SubnetBurn::<T>::get();
-
-        Self::remove_balance_from_account(
-            key,
-            Self::u64_to_balance(burn).ok_or(Error::<T>::CouldNotConvertToBalance)?,
-        )
-        .map_err(|_| Error::<T>::NotEnoughBalanceToRegisterSubnet)?;
-
-        Self::add_subnet_from_registration(changeset)
-    }
 
     fn validate_registration_request(
         netuid: u16,
@@ -313,9 +314,7 @@ impl<T: Config> Pallet<T> {
             .map(|(uid, _, _)| *uid)
     }
 
-    pub fn add_subnet_from_registration(
-        changeset: SubnetChangeset<T>,
-    ) -> Result<u16, sp_runtime::DispatchError> {
+    pub fn add_subnet_from_registration(changeset: SubnetChangeset<T>) -> DispatchResult {
         let num_subnets: u16 = Self::get_total_subnets();
         let max_subnets: u16 = MaxAllowedSubnets::<T>::get();
 
@@ -334,7 +333,8 @@ impl<T: Config> Pallet<T> {
             None
         };
 
-        Self::add_subnet(changeset, target_subnet)
+        Self::add_subnet(changeset, target_subnet)?;
+        Ok(())
     }
 
     /// Reserves a module slot on the specified subnet.

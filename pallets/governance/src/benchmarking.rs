@@ -45,7 +45,6 @@ fn register_mock<T: Config>(
         name,
         address,
         module_key.clone(),
-        network_metadata,
         metadata,
     )?;
     SubspaceMod::<T>::increase_stake(&key, &module_key, enough_stake);
@@ -129,7 +128,7 @@ benchmarks! {
             params.target_registrations_per_interval,
             params.max_registrations_per_interval,
             params.adjustment_alpha,
-            params.min_immunity_stake
+            params.min_validator_stake
         )?;
 
         // add balance to submit the proposal
@@ -161,7 +160,7 @@ benchmarks! {
         params.target_registrations_per_interval,
         params.max_registrations_per_interval,
         params.adjustment_alpha,
-        params.min_immunity_stake
+        params.min_validator_stake
     )
 
     // 2

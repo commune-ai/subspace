@@ -17,7 +17,15 @@ Storages:
 
 Extrinsics:
 
-- `register` now takes `network_name` instead of just `network`, and an optional `network_metadata` parameter (`Option<Vec<u8>>`) that works as subnet metadata storage.
+- `register` now does not take `network_name`
+- `register_subnet` extrinsic now registers a subnet and takes
+
+```rs
+    origin: OriginFor<T>,
+    name: Vec<u8>,
+    metadata: Option<Vec<u8>>,
+```
+
 - `add_global_params_proposal` no longer takes `min_burn` and `max_burn`
 - `update_subnet` now takes `min_burn` and `max_burn`
 
