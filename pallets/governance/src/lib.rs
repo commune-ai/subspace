@@ -184,8 +184,6 @@ pub mod pallet {
             max_allowed_modules: u16,
             max_registrations_per_block: u16,
             max_allowed_weights: u16,
-            max_burn: u64,
-            min_burn: u64,
             floor_delegation_fee: Percent,
             floor_founder_share: u8,
             min_weight_stake: u64,
@@ -211,8 +209,6 @@ pub mod pallet {
             params.governance_config.proposal_cost = proposal_cost;
             params.governance_config.proposal_expiration = proposal_expiration;
             params.general_subnet_application_cost = general_subnet_application_cost;
-            params.burn_config.min_burn = min_burn;
-            params.burn_config.max_burn = max_burn;
             params.kappa = kappa;
             params.rho = rho;
             params.subnet_immunity_period = subnet_immunity_period;

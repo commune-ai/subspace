@@ -1,8 +1,27 @@
 # Changelog
 
-[Unreleased]
+spec version `120`
 
-spec_version `118`
+Storages:
+
+- `MinValidatorStake` storage map introduced: This is a subnet parameter that sets the minimum stake an individual needs to be considered a potential validator on that subnet.
+- `MaxAllowedValidators` storage map introduced: This is a subnet parameter that allows subnet owners to control the maximum number of validators on their subnet.
+- `MinImmunityStake` storage removed: Replaced by the new logic with `MinValidatorStake`.
+- `SubnetMetadata` storage map introduced: Maps subnet id to metadata (u16 to BoundedVec<u8, ConstU32<59>>).
+- `BurnConfig` storage value removed: Replaced by subnet-specific burn configurations.
+- `ModuleBurnConfig` storage map introduced: Maps u16 to GeneralBurnConfiguration<T> for module-specific burn parameters.
+- `TargetRegistrationsInterval` storage map removed: Integrated into ModuleBurnConfig.
+- `TargetRegistrationsPerInterval` storage map removed: Integrated into ModuleBurnConfig.
+- `AdjustmentAlpha` storage map removed: Integrated into ModuleBurnConfig.
+- `MaxRegistrationsPerInterval` storage map removed: Integrated into ModuleBurnConfig.
+
+Extrinsics:
+
+- `register` now takes `network_name` instead of just `network`, and an optional `network_metadata` parameter (`Option<Vec<u8>>`) that works as subnet metadata storage.
+- `add_global_params_proposal` no longer takes `min_burn` and `max_burn`
+- `update_subnet` now takes `min_burn` and `max_burn`
+
+spec_version `118-119`
 
 This branch starts off of the commit hash `95e5d26b550839c24fd367090e02abaa37df3d32`.
 diff [here](https://github.com/agicommies/subspace-network/compare/db8a19b1d2155d3ecda4172aaf72cdeea1feda2b...agicommies:subspace-network:feat/global-stake)
@@ -22,7 +41,7 @@ diff [here](https://github.com/agicommies/subspace-network/compare/db8a19b1d2155
   - `TotalSubnets` storage value was removed
   - `RootnetControlDelegation`:  MAP (netuid, module_key) -> control_delegation, storage map was introduced, which stores information from `delegate_rootnet_control` extrinsic.
   - `MinimumAllowedStake` was introduced. Users cannot stake or unstake a value smaller than this minimum.
-  - `MinValidatorStake` was introduced. This value is a subnet parameter that can be changed by the subnet owner. A validator (key) with delegated stake higher than or equal to this value is immune to deregistrations. This aims to reduce sudden validator deregistrations, with adaptability to subnet owner's consensus.
+  - `MinImmunityStake` was introduced. This value is a subnet parameter that can be changed by the subnet owner. A validator (key) with delegated stake higher than or equal to this value is immune to deregistrations. This aims to reduce sudden validator deregistrations, with adaptability to subnet owner's consensus.
 - Extrinsics changes:
 
   - `add_stake`, `remove_stake`, `add_stake_multiple`, `remove_stake_multiple` and `transfer_stake` lost their subnet id parameter.

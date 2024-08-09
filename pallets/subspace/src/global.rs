@@ -3,26 +3,12 @@ use frame_support::pallet_prelude::{DispatchResult, MaxEncodedLen};
 use sp_core::Get;
 use sp_runtime::DispatchError;
 
-// TODO:
-// This will eventually become a subnet parameter (once we have global stake)
-// So it will hold truly all burn adjustments.
+/// This struct is used for both global (Subnet Burn) and MAP parameters (Module Burn)
 #[derive(
     Clone, TypeInfo, Decode, Encode, PartialEq, Eq, frame_support::DebugNoBound, MaxEncodedLen,
 )]
 #[scale_info(skip_type_params(T))]
-pub struct BurnConfiguration<T> {
-    /// min burn the adjustment algorithm can set
-    pub min_burn: u64,
-    /// max burn the adjustment algorithm can set
-    pub max_burn: u64,
-    pub _pd: PhantomData<T>,
-}
-
-#[derive(
-    Clone, TypeInfo, Decode, Encode, PartialEq, Eq, frame_support::DebugNoBound, MaxEncodedLen,
-)]
-#[scale_info(skip_type_params(T))]
-pub struct SubnetBurnConfiguration<T> {
+pub struct GeneralBurnConfiguration<T> {
     /// min burn the adjustment algorithm can set
     pub min_burn: u64,
     /// max burn the adjustment algorithm can set
@@ -31,47 +17,86 @@ pub struct SubnetBurnConfiguration<T> {
     /// every interval
     pub adjustment_alpha: u64,
     /// interval in blocks for the burn to be adjusted
-    pub adjustment_interval: u16,
+    pub target_registrations_interval: u16,
     /// the number of registrations expected per interval, if
     /// below, burn gets decreased, it is increased otherwise
-    pub expected_registrations: u16,
+    pub target_registrations_per_interval: u16,
     /// the maximum number of registrations accepted per interval
-    pub max_registrations: u16,
+    pub max_registrations_per_interval: u16,
     pub _pd: PhantomData<T>,
 }
 
-impl<T: Config> Default for BurnConfiguration<T> {
+pub enum BurnType {
+    Subnet,
+    Module,
+}
+
+impl<T: Config> Default for GeneralBurnConfiguration<T> {
     fn default() -> Self {
-        Self {
-            min_burn: 4_000_000_000,
-            max_burn: 250_000_000_000,
-            _pd: PhantomData,
-        }
+        Self::module_burn_default()
     }
 }
 
-// TODO:
-// check if these parameters are truly desired
-impl<T: Config> Default for SubnetBurnConfiguration<T> {
-    fn default() -> Self {
+impl<T: Config> GeneralBurnConfiguration<T> {
+    fn subnet_burn_default() -> Self {
         Self {
-            min_burn: 2_000_000_000_000,
+            min_burn: T::DefaultSubnetMinBurn::get(),
             max_burn: 100_000_000_000_000,
             adjustment_alpha: u64::MAX / 2,
-            adjustment_interval: 5_400,
-            expected_registrations: 1,
-            max_registrations: T::DefaultMaxSubnetRegistrationsPerInterval::get(),
+            target_registrations_interval: 5_400,
+            target_registrations_per_interval: 1,
+            max_registrations_per_interval: T::DefaultMaxSubnetRegistrationsPerInterval::get(),
             _pd: PhantomData,
         }
     }
-}
 
-impl<T: Config> BurnConfiguration<T> {
-    pub fn apply(self) -> Result<(), DispatchError> {
-        ensure!(self.min_burn >= 100_000_000, Error::<T>::InvalidMinBurn);
+    pub fn module_burn_default() -> Self {
+        Self {
+            min_burn: T::DefaultModuleMinBurn::get(),
+            max_burn: 150_000_000_000,
+            adjustment_alpha: u64::MAX / 2,
+            target_registrations_interval: 142,
+            target_registrations_per_interval: 3,
+            max_registrations_per_interval: T::DefaultMaxRegistrationsPerInterval::get(),
+            _pd: PhantomData,
+        }
+    }
+
+    pub fn default_for(burn_type: BurnType) -> Self {
+        match burn_type {
+            BurnType::Subnet => Self::subnet_burn_default(),
+            BurnType::Module => Self::module_burn_default(),
+        }
+    }
+
+    pub fn apply_module_burn(self, netuid: u16) -> Result<(), DispatchError> {
+        ensure!(
+            self.min_burn >= T::DefaultModuleMinBurn::get(),
+            Error::<T>::InvalidMinBurn
+        );
         ensure!(self.max_burn > self.min_burn, Error::<T>::InvalidMaxBurn);
+        ensure!(
+            self.adjustment_alpha > 0,
+            Error::<T>::InvalidAdjustmentAlpha
+        );
+        ensure!(
+            self.target_registrations_interval >= 10,
+            Error::<T>::InvalidTargetRegistrationsInterval
+        );
+        ensure!(
+            self.target_registrations_per_interval >= 1,
+            Error::<T>::InvalidTargetRegistrationsPerInterval
+        );
+        ensure!(
+            self.max_registrations_per_interval >= 1,
+            Error::<T>::InvalidMaxRegistrationsPerInterval
+        );
+        ensure!(
+            self.max_registrations_per_interval >= self.target_registrations_per_interval,
+            Error::<T>::InvalidMaxRegistrationsPerInterval
+        );
 
-        BurnConfig::<T>::set(self);
+        ModuleBurnConfig::<T>::set(netuid, self);
 
         Ok(())
     }
@@ -88,9 +113,8 @@ impl<T: Config> Pallet<T> {
             curator: T::get_curator(),
             floor_founder_share: FloorFounderShare::<T>::get(),
             floor_delegation_fee: FloorDelegationFee::<T>::get(),
-            // burn & registrations
+            // registrations
             max_registrations_per_block: MaxRegistrationsPerBlock::<T>::get(),
-            burn_config: BurnConfig::<T>::get(),
             // weights
             max_allowed_weights: MaxAllowedWeightsGlobal::<T>::get(),
             min_weight_stake: MinWeightStake::<T>::get(),
@@ -131,9 +155,6 @@ impl<T: Config> Pallet<T> {
 
         T::update_global_governance_configuration(params.governance_config)
             .expect("invalid governance configuration");
-
-        // burn
-        params.burn_config.apply()?;
 
         // Update the general subnet application cost
         T::set_general_subnet_application_cost(params.general_subnet_application_cost);

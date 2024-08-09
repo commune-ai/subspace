@@ -179,9 +179,10 @@ impl<T: Config> Pallet<T> {
         key: &T::AccountId,
         module_key: &T::AccountId,
     ) -> DispatchResult {
+        let burn_config = ModuleBurnConfig::<T>::get(netuid);
         ensure!(
             RegistrationsThisInterval::<T>::get(netuid)
-                < MaxRegistrationsPerInterval::<T>::get(netuid),
+                < burn_config.max_registrations_per_interval,
             Error::<T>::TooManyRegistrationsPerInterval
         );
 
@@ -436,9 +437,9 @@ impl<T: Config> Pallet<T> {
         let subnet_burn = SubnetBurn::<T>::get();
         Self::adjust_burn_parameters(
             block_number,
-            subnet_config.adjustment_interval,
+            subnet_config.target_registrations_interval,
             SubnetRegistrationsThisInterval::<T>::get(),
-            subnet_config.expected_registrations,
+            subnet_config.target_registrations_per_interval,
             subnet_config.adjustment_alpha,
             subnet_config.min_burn,
             subnet_config.max_burn,
@@ -453,20 +454,20 @@ impl<T: Config> Pallet<T> {
         RegistrationsPerBlock::<T>::mutate(|val| *val = 0);
 
         for (netuid, _) in Tempo::<T>::iter() {
-            let module_config = BurnConfig::<T>::get();
+            let module_config = ModuleBurnConfig::<T>::get(netuid);
             let module_burn = Burn::<T>::get(netuid);
             Self::adjust_burn_parameters(
                 block_number,
-                TargetRegistrationsInterval::<T>::get(netuid),
+                module_config.target_registrations_interval,
                 RegistrationsThisInterval::<T>::get(netuid),
-                TargetRegistrationsPerInterval::<T>::get(netuid),
-                AdjustmentAlpha::<T>::get(netuid),
+                module_config.target_registrations_per_interval,
+                module_config.adjustment_alpha,
                 module_config.min_burn,
                 module_config.max_burn,
                 module_burn,
                 |adjusted_burn| {
-                    Burn::<T>::insert(netuid, adjusted_burn);
-                    RegistrationsThisInterval::<T>::insert(netuid, 0);
+                    Burn::<T>::set(netuid, adjusted_burn);
+                    RegistrationsThisInterval::<T>::set(netuid, 0);
                 },
             );
         }

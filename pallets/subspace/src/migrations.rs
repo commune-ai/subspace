@@ -1,6 +1,7 @@
 use super::*;
 
 use frame_support::traits::{Get, StorageInstance, StorageVersion};
+use global::GeneralBurnConfiguration;
 
 impl<T: Config> StorageInstance for Pallet<T> {
     fn pallet_prefix() -> &'static str {
@@ -33,6 +34,19 @@ pub mod v13 {
         #[storage_alias]
         pub type DelegationFee<T: Config> =
             StorageDoubleMap<Pallet<T>, Identity, u16, Blake2_128Concat, AccountIdOf<T>, Percent>;
+
+        #[storage_alias]
+        pub type AdjustmentAlpha<T: Config> = StorageMap<Pallet<T>, Identity, u16, u64>;
+
+        #[storage_alias]
+        pub type TargetRegistrationsPerInterval<T: Config> =
+            StorageMap<Pallet<T>, Identity, u16, u16>;
+
+        #[storage_alias]
+        pub type TargetRegistrationsInterval<T: Config> = StorageMap<Pallet<T>, Identity, u16, u16>;
+
+        #[storage_alias]
+        pub type MaxRegistrationsPerInterval<T: Config> = StorageMap<Pallet<T>, Identity, u16, u16>;
     }
 
     pub struct MigrateToV13<T>(sp_std::marker::PhantomData<T>);
@@ -117,6 +131,39 @@ pub mod v13 {
 
             for key in N::<T>::iter_keys() {
                 MinValidatorStake::<T>::insert(key, GetDefaultMinValidatorStake::<T>::get());
+            }
+
+            for netuid in N::<T>::iter_keys() {
+                let burn_config: GeneralBurnConfiguration<T> = GeneralBurnConfiguration {
+                    min_burn: T::DefaultModuleMinBurn::get(),
+                    max_burn: 150_000_000_000,
+                    adjustment_alpha: old_storage::AdjustmentAlpha::<T>::get(netuid).unwrap_or(0),
+                    target_registrations_interval:
+                        old_storage::TargetRegistrationsInterval::<T>::get(netuid).unwrap_or(142),
+                    target_registrations_per_interval:
+                        old_storage::TargetRegistrationsPerInterval::<T>::get(netuid).unwrap_or(3),
+                    max_registrations_per_interval:
+                        old_storage::MaxRegistrationsPerInterval::<T>::get(netuid)
+                            .unwrap_or(T::DefaultMaxRegistrationsPerInterval::get()),
+                    _pd: PhantomData,
+                };
+                match burn_config.apply_module_burn(netuid) {
+                    Ok(_) => (),
+                    Err(e) => {
+                        log::error!("Failed to apply module burn: {:?}", e);
+                        let default_config = GeneralBurnConfiguration::<T>::default();
+                        if let Err(e) = default_config.apply_module_burn(netuid) {
+                            log::error!("Failed to apply default module burn: {:?}", e);
+                        } else {
+                            log::info!("Applied default burn config for netuid {}", netuid);
+                        }
+                    }
+                }
+                log::info!(
+                    "netuid {} has a burn config {:?}",
+                    netuid,
+                    ModuleBurnConfig::<T>::get(netuid)
+                );
             }
 
             log::info!("Migrated storage to v13");
