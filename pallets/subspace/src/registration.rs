@@ -68,6 +68,7 @@ impl<T: Config> Pallet<T> {
         name: Vec<u8>,
         address: Vec<u8>,
         module_key: T::AccountId,
+        network_metadata: Option<Vec<u8>>,
         metadata: Option<Vec<u8>>,
     ) -> DispatchResult {
         let key = ensure_signed(origin.clone())?;
@@ -77,7 +78,8 @@ impl<T: Config> Pallet<T> {
             Error::<T>::TooManyRegistrationsPerBlock
         );
 
-        let netuid = Self::resolve_or_create_network(&key, &network_name)?;
+        let netuid =
+            Self::resolve_or_create_network(&key, &network_name, network_metadata.as_deref())?;
 
         Self::validate_registration_request(netuid, &key, &module_key)?;
 
@@ -138,6 +140,7 @@ impl<T: Config> Pallet<T> {
     fn resolve_or_create_network(
         key: &T::AccountId,
         network_name: &[u8],
+        network_metadata: Option<&[u8]>,
     ) -> Result<u16, DispatchError> {
         if let Some(netuid) = Self::get_netuid_for_name(network_name) {
             return Ok(netuid);
@@ -146,8 +149,16 @@ impl<T: Config> Pallet<T> {
         let bounded_name: BoundedVec<u8, ConstU32<256>> =
             network_name.to_vec().try_into().map_err(|_| Error::<T>::SubnetNameTooLong)?;
 
+        let network_metadata: Option<BoundedVec<u8, ConstU32<59>>> = match network_metadata {
+            Some(slice) => {
+                Some(slice.to_vec().try_into().map_err(|_| Error::<T>::SubnetNameTooLong)?)
+            }
+            None => None,
+        };
+
         let params = SubnetParams {
             name: bounded_name,
+            metadata: network_metadata,
             founder: key.clone(),
             ..DefaultSubnetParams::<T>::get()
         };
@@ -168,9 +179,10 @@ impl<T: Config> Pallet<T> {
         key: &T::AccountId,
         module_key: &T::AccountId,
     ) -> DispatchResult {
+        let burn_config = ModuleBurnConfig::<T>::get(netuid);
         ensure!(
             RegistrationsThisInterval::<T>::get(netuid)
-                < MaxRegistrationsPerInterval::<T>::get(netuid),
+                < burn_config.max_registrations_per_interval,
             Error::<T>::TooManyRegistrationsPerInterval
         );
 
@@ -249,26 +261,41 @@ impl<T: Config> Pallet<T> {
         let current_block = Self::get_current_block_number();
         let immunity_period = ImmunityPeriod::<T>::get(netuid) as u64;
         let emission_vec = Emission::<T>::get(netuid);
-        let min_immunity_stake = MinImmunityStake::<T>::get(netuid);
+        let dividend_vec = Dividends::<T>::get(netuid);
+        let incentive_vec = Incentive::<T>::get(netuid);
 
         let uids: Vec<_> = RegistrationBlock::<T>::iter_prefix(netuid)
             .filter(move |&(uid, block_at_registration)| {
                 if ignore_immunity
                     || current_block.saturating_sub(block_at_registration) >= immunity_period
                 {
-                    let Some(module_key) = Keys::<T>::get(netuid, uid) else {
-                        log::error!(
-                            "module {uid} does not exist in keys but exists in registration block"
-                        );
-                        return false;
-                    };
-                    Self::get_delegated_stake(&module_key) < min_immunity_stake
+                    !*ValidatorPermits::<T>::get(netuid).get(uid as usize).unwrap_or(&false)
                 } else {
                     false
                 }
             })
             .map(|(uid, block_at_registration)| {
-                let pruning_score = emission_vec.get(uid as usize).copied().unwrap_or_default();
+                let emission =
+                    I110F18::from_num(emission_vec.get(uid as usize).copied().unwrap_or_default());
+
+                let dividend_perc =
+                    I110F18::from_num(dividend_vec.get(uid as usize).copied().unwrap_or_default());
+                let incentive_perc =
+                    I110F18::from_num(incentive_vec.get(uid as usize).copied().unwrap_or_default());
+
+                if dividend_perc == 0 && incentive_perc == 0 {
+                    return (uid, I110F18::from_num(0), block_at_registration);
+                }
+
+                let dividend = dividend_perc
+                    .saturating_div(dividend_perc.saturating_add(incentive_perc))
+                    .saturating_mul(emission);
+                let incentive = incentive_perc
+                    .saturating_div(dividend_perc.saturating_add(incentive_perc))
+                    .saturating_mul(emission);
+
+                let pruning_score =
+                    (I110F18::from_num(0.3).saturating_mul(dividend)).saturating_add(incentive);
                 (uid, pruning_score, block_at_registration)
             })
             .collect();
@@ -410,9 +437,9 @@ impl<T: Config> Pallet<T> {
         let subnet_burn = SubnetBurn::<T>::get();
         Self::adjust_burn_parameters(
             block_number,
-            subnet_config.adjustment_interval,
+            subnet_config.target_registrations_interval,
             SubnetRegistrationsThisInterval::<T>::get(),
-            subnet_config.expected_registrations,
+            subnet_config.target_registrations_per_interval,
             subnet_config.adjustment_alpha,
             subnet_config.min_burn,
             subnet_config.max_burn,
@@ -427,20 +454,20 @@ impl<T: Config> Pallet<T> {
         RegistrationsPerBlock::<T>::mutate(|val| *val = 0);
 
         for (netuid, _) in Tempo::<T>::iter() {
-            let module_config = BurnConfig::<T>::get();
+            let module_config = ModuleBurnConfig::<T>::get(netuid);
             let module_burn = Burn::<T>::get(netuid);
             Self::adjust_burn_parameters(
                 block_number,
-                TargetRegistrationsInterval::<T>::get(netuid),
+                module_config.target_registrations_interval,
                 RegistrationsThisInterval::<T>::get(netuid),
-                TargetRegistrationsPerInterval::<T>::get(netuid),
-                AdjustmentAlpha::<T>::get(netuid),
+                module_config.target_registrations_per_interval,
+                module_config.adjustment_alpha,
                 module_config.min_burn,
                 module_config.max_burn,
                 module_burn,
                 |adjusted_burn| {
-                    Burn::<T>::insert(netuid, adjusted_burn);
-                    RegistrationsThisInterval::<T>::insert(netuid, 0);
+                    Burn::<T>::set(netuid, adjusted_burn);
+                    RegistrationsThisInterval::<T>::set(netuid, 0);
                 },
             );
         }

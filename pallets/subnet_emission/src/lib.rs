@@ -77,12 +77,6 @@ pub mod pallet {
     pub type UnitEmission<T> = StorageValue<_, u64, ValueQuery, ConstU64<23148148148>>;
 
     #[pallet::storage]
-    pub type OriginalUnitEmission<T> = StorageValue<_, u64, ValueQuery>;
-
-    #[pallet::storage]
-    pub type EmissionLoweringBlock<T> = StorageValue<_, u64, ValueQuery>;
-
-    #[pallet::storage]
     pub type PendingEmission<T> = StorageMap<_, Identity, u16, u64, ValueQuery>;
 
     #[pallet::storage]
@@ -105,8 +99,6 @@ pub mod pallet {
         fn on_initialize(block_number: BlockNumberFor<T>) -> Weight {
             let block_number: u64 =
                 block_number.try_into().ok().expect("blockchain won't pass 2 ^ 64 blocks");
-
-            Self::handle_emission_division(block_number);
 
             let emission_per_block = Self::get_total_emission_per_block();
             // Make sure to use storage layer,
@@ -237,26 +229,6 @@ pub mod pallet {
             }
 
             priced_subnets
-        }
-
-        pub fn handle_emission_division(block_number: u64) {
-            let emission_lowering_block = EmissionLoweringBlock::<T>::get();
-            let relative_blocks = block_number.saturating_sub(emission_lowering_block);
-
-            if UnitEmission::<T>::get() >= OriginalUnitEmission::<T>::get() {
-                return;
-            }
-
-            if relative_blocks > 0 && relative_blocks.wrapping_rem(10800) == 0 {
-                let i = relative_blocks.saturating_div(10800);
-
-                if let Some(emission) = 3u64
-                    .checked_sub(i)
-                    .and_then(|i| OriginalUnitEmission::<T>::get().checked_div(i))
-                {
-                    UnitEmission::<T>::set(emission);
-                }
-            }
         }
     }
 }

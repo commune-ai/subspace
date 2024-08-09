@@ -54,6 +54,9 @@ impl<T: Config> Pallet<T> {
         let Some(uid) = Self::get_uid_for_key(netuid, &key) else {
             return Err(Error::<T>::ModuleDoesNotExist.into());
         };
+        if Pallet::<T>::get_delegated_stake(&key) < pallet::MinValidatorStake::<T>::get(netuid) {
+            return Err(Error::<T>::NotEnoughStakeToSetWeights.into());
+        }
         Self::validate_input(uid, &uids, &values, netuid)?;
         Self::handle_rate_limiting(uid, netuid, &key)?;
         Self::validate_stake(&key, uids.len())?;
@@ -107,6 +110,7 @@ impl<T: Config> Pallet<T> {
         let normalized_values = Self::normalize_weights(values);
         let zipped_weights: Vec<(u16, u16)> = uids.iter().copied().zip(normalized_values).collect();
         Weights::<T>::insert(netuid, uid, zipped_weights);
+        WeightSetAt::<T>::insert(netuid, uid, Self::get_current_block_number());
         let current_block = Self::get_current_block_number();
         Self::set_last_update_for_uid(netuid, uid, current_block);
         Self::deposit_event(Event::WeightsSet(netuid, uid));

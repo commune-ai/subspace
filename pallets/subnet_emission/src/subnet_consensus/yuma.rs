@@ -100,13 +100,51 @@ impl<T: Config> YumaEpoch<T> {
         let stake = self.compute_stake()?;
         log::trace!("final stake: {stake:?}");
 
-        let new_permits: Vec<bool> = if let Some(max) = self.max_allowed_validators {
-            is_topk(stake.as_ref(), max as usize)
-        } else {
-            vec![true; stake.as_ref().len()]
-        };
-        log::trace!("new permis: {new_permits:?}");
+        let max_validators = self.max_allowed_validators;
+        let mut new_permits = vec![false; stake.as_ref().len()];
 
+        let mut sorted_indexed_stake: Vec<(u16, u64)> = (0u16..(stake.as_ref().len() as u16))
+            .map(|idx| {
+                (
+                    idx,
+                    match PalletSubspace::<T>::get_key_for_uid(self.netuid, idx) {
+                        Some(key) => PalletSubspace::<T>::get_delegated_stake(&key),
+                        None => 0,
+                    },
+                )
+            })
+            .collect::<Vec<_>>();
+        sorted_indexed_stake.sort_by_key(|(_idx, stake)| *stake);
+        sorted_indexed_stake.reverse();
+
+        let current_block = PalletSubspace::<T>::get_current_block_number();
+        let min_stake = pallet_subspace::MinValidatorStake::<T>::get(self.netuid);
+        let mut validator_count = 0;
+        for (idx, stake) in sorted_indexed_stake {
+            if max_validators.is_some_and(|max| max <= validator_count) {
+                break;
+            }
+
+            if stake < min_stake {
+                continue;
+            }
+
+            match pallet_subspace::WeightSetAt::<T>::get(self.netuid, idx) {
+                Some(weight_block) => {
+                    if current_block.saturating_sub(weight_block) > 7200 {
+                        continue;
+                    }
+                }
+                None => continue,
+            }
+
+            if let Some(permit) = new_permits.get_mut(idx as usize) {
+                validator_count = validator_count.saturating_add(1);
+                *permit = true;
+            }
+        }
+
+        log::trace!("new permis: {new_permits:?}");
         let active_stake = self.compute_active_stake(&inactive, &stake);
         log::trace!("final active stake: {active_stake:?}");
 
@@ -247,8 +285,7 @@ impl<T: Config> YumaEpoch<T> {
             if validator_emission > 0 {
                 let ownership_vector =
                     PalletSubspace::<T>::get_ownership_ratios(self.netuid, &module_key.0);
-                let delegation_fee =
-                    PalletSubspace::<T>::get_delegation_fee(self.netuid, &module_key.0);
+                let delegation_fee = PalletSubspace::<T>::get_delegation_fee(&module_key.0);
 
                 let total_validator_emission = I64F64::from_num(validator_emission);
                 for (delegate_key, delegate_ratio) in ownership_vector {

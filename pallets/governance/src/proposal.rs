@@ -583,7 +583,7 @@ pub fn get_reward_allocation<T: crate::Config>(
         I92F36::from_num(governance_config.max_proposal_reward_treasury_allocation);
 
     let mut allocation = treasury_balance
-        .checked_div(allocation_percentage)
+        .checked_mul(allocation_percentage)
         .unwrap_or_default()
         .min(max_allocation);
     if n > 0 {

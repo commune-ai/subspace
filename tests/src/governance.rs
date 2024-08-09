@@ -24,6 +24,7 @@ fn register(account: AccountId, subnet_id: u16, module: AccountId, stake: u64) {
         format!("address-{account}-{module}").as_bytes().to_vec(),
         module,
         None,
+        None,
     ));
     SubspaceMod::increase_stake(&account, &module, stake);
 }
@@ -71,7 +72,6 @@ fn global_proposal_validates_parameters() {
                 min_weight_stake,
                 curator,
                 general_subnet_application_cost,
-                burn_config,
                 governance_config,
                 kappa,
                 rho,
@@ -87,8 +87,6 @@ fn global_proposal_validates_parameters() {
                 max_allowed_modules,
                 max_registrations_per_block,
                 max_allowed_weights,
-                burn_config.max_burn,
-                burn_config.min_burn,
                 floor_delegation_fee,
                 floor_founder_share,
                 min_weight_stake,
@@ -249,7 +247,6 @@ fn global_params_proposal_accepted() {
             min_weight_stake,
             curator,
             general_subnet_application_cost,
-            burn_config,
             mut governance_config,
             rho,
             kappa,
@@ -267,8 +264,6 @@ fn global_params_proposal_accepted() {
             max_allowed_modules,
             max_registrations_per_block,
             max_allowed_weights,
-            burn_config.max_burn,
-            100_000_000,
             floor_delegation_fee,
             floor_founder_share,
             min_weight_stake,
@@ -328,8 +323,9 @@ fn subnet_params_proposal_accepted() {
             target_registrations_per_interval,
             max_registrations_per_interval,
             adjustment_alpha,
-            min_immunity_stake,
+            min_validator_stake,
             mut governance_config,
+            ..
         } = SubspaceMod::subnet_params(0);
 
         governance_config.vote_mode = VoteMode::Authority;
@@ -356,7 +352,7 @@ fn subnet_params_proposal_accepted() {
             target_registrations_per_interval,
             max_registrations_per_interval,
             adjustment_alpha,
-            min_immunity_stake,
+            min_validator_stake,
         )
         .unwrap();
 

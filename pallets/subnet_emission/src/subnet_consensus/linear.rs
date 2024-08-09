@@ -261,7 +261,7 @@ impl<T: Config + pallet::Config> LinearEpoch<T> {
                 let ownership_vector: Vec<(T::AccountId, I64F64)> =
                     PalletSubspace::<T>::get_ownership_ratios(netuid, module_key);
 
-                let delegation_fee = PalletSubspace::<T>::get_delegation_fee(netuid, module_key);
+                let delegation_fee = PalletSubspace::<T>::get_delegation_fee(module_key);
 
                 let total_owner_dividends_emission: u64 = owner_dividends_emission;
                 for (delegate_key, delegate_ratio) in ownership_vector.iter() {
