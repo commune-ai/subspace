@@ -2,7 +2,7 @@ use crate::mock::*;
 use frame_support::{assert_err, assert_noop, assert_ok};
 use log::info;
 use pallet_subspace::{
-    global::{BurnConfiguration, SubnetBurnConfiguration},
+    global::{BurnConfiguration, GeneralBurnConfiguration},
     *,
 };
 use sp_core::U256;

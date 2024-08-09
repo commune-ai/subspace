@@ -14,9 +14,9 @@ use sp_core::{ConstU16, H256};
 use std::cell::RefCell;
 
 use pallet_subspace::{
-    subnet::SubnetChangeset, Address, BurnConfig, DefaultKey, DefaultMinValidatorStake,
-    DefaultSubnetParams, Dividends, Emission, Incentive, LastUpdate, MaxRegistrationsPerBlock,
-    Name, SubnetBurn, SubnetBurnConfig, SubnetParams, Tempo, TotalStake, N,
+    subnet::SubnetChangeset, Address, DefaultKey, DefaultMinValidatorStake, DefaultSubnetParams,
+    Dividends, Emission, Incentive, LastUpdate, MaxRegistrationsPerBlock, Name, SubnetBurn,
+    SubnetParams, Tempo, TotalStake, N,
 };
 use sp_runtime::{
     traits::{AccountIdConversion, BlakeTwo256, IdentityLookup},
@@ -71,12 +71,41 @@ impl Get<PalletId> for SubspacePalletId {
     }
 }
 
+thread_local! {
+    static DEFAULT_MODULE_MIN_BURN: RefCell<u64> = RefCell::new(10_000_000_000);
+    static DEFAULT_SUBNET_MIN_BURN: RefCell<u64> = RefCell::new(2_000_000_000_000);
+}
+
+pub struct ModuleMinBurnConfig;
+pub struct SubnetMinBurnConfig;
+
+impl Get<u64> for ModuleMinBurnConfig {
+    fn get() -> u64 {
+        DEFAULT_MODULE_MIN_BURN.with(|v| *v.borrow())
+    }
+}
+
+impl Get<u64> for SubnetMinBurnConfig {
+    fn get() -> u64 {
+        DEFAULT_SUBNET_MIN_BURN.with(|v| *v.borrow())
+    }
+}
+
+pub fn set_default_module_min_burn(value: u64) {
+    DEFAULT_MODULE_MIN_BURN.with(|v| *v.borrow_mut() = value);
+}
+
+pub fn set_default_subnet_min_burn(value: u64) {
+    DEFAULT_SUBNET_MIN_BURN.with(|v| *v.borrow_mut() = value);
+}
 impl pallet_subspace::Config for Test {
     type RuntimeEvent = RuntimeEvent;
     type Currency = Balances;
     type WeightInfo = ();
     type DefaultMaxRegistrationsPerInterval = ConstU16<{ u16::MAX }>;
     type DefaultMaxSubnetRegistrationsPerInterval = ConstU16<{ u16::MAX }>;
+    type DefaultModuleMinBurn = ModuleMinBurnConfig;
+    type DefaultSubnetMinBurn = SubnetMinBurnConfig;
     type PalletId = SubspacePalletId;
 }
 
@@ -672,8 +701,8 @@ pub fn round_first_five(num: u64) -> u64 {
 
 #[allow(dead_code)]
 pub fn zero_min_burn() {
-    BurnConfig::<Test>::mutate(|cfg| cfg.min_burn = 0);
-    SubnetBurnConfig::<Test>::mutate(|cfg| cfg.min_burn = 0);
+    set_default_module_min_burn(0);
+    set_default_subnet_min_burn(0);
 }
 
 #[allow(dead_code)]

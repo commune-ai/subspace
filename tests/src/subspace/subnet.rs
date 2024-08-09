@@ -72,6 +72,8 @@ fn subnet_update_changes_all_parameter_values() {
                 max_proposal_reward_treasury_allocation: 21,
                 proposal_reward_interval: 22,
             },
+            min_burn: 20000000000,
+            max_burn: 21000000000,
         };
 
         let SubnetParams {
@@ -89,6 +91,8 @@ fn subnet_update_changes_all_parameter_values() {
             trust_ratio,
             maximum_set_weight_calls_per_epoch,
             bonds_ma,
+            min_burn,
+            max_burn,
             target_registrations_interval,
             target_registrations_per_interval,
             max_registrations_per_interval,
@@ -115,19 +119,24 @@ fn subnet_update_changes_all_parameter_values() {
             Some(maximum_set_weight_calls_per_epoch)
         );
         assert_eq!(BondsMovingAverage::<Test>::get(netuid), bonds_ma);
+        assert_eq!(ModuleBurnConfig::<Test>::get(netuid).min_burn, min_burn);
+        assert_eq!(ModuleBurnConfig::<Test>::get(netuid).max_burn, max_burn);
         assert_eq!(
-            TargetRegistrationsInterval::<Test>::get(netuid),
+            ModuleBurnConfig::<Test>::get(netuid).target_registrations_interval,
             target_registrations_interval
         );
         assert_eq!(
-            TargetRegistrationsPerInterval::<Test>::get(netuid),
+            ModuleBurnConfig::<Test>::get(netuid).target_registrations_per_interval,
             target_registrations_per_interval
         );
         assert_eq!(
-            MaxRegistrationsPerInterval::<Test>::get(netuid),
+            ModuleBurnConfig::<Test>::get(netuid).max_registrations_per_interval,
             max_registrations_per_interval
         );
-        assert_eq!(AdjustmentAlpha::<Test>::get(netuid), adjustment_alpha);
+        assert_eq!(
+            ModuleBurnConfig::<Test>::get(netuid).adjustment_alpha,
+            adjustment_alpha
+        );
         assert_eq!(MinValidatorStake::<Test>::get(netuid), min_validator_stake);
 
         assert_eq!(
@@ -164,10 +173,6 @@ fn removes_subnet_from_storage() {
                     trust_ratio,
                     maximum_set_weight_calls_per_epoch: _,
                     bonds_ma,
-                    target_registrations_interval,
-                    target_registrations_per_interval,
-                    max_registrations_per_interval,
-                    adjustment_alpha,
                     min_validator_stake: _,
                     governance_config,
                     ..
@@ -185,13 +190,6 @@ fn removes_subnet_from_storage() {
                 $m!(Tempo, tempo);
                 $m!(TrustRatio, trust_ratio);
                 $m!(BondsMovingAverage, bonds_ma);
-                $m!(TargetRegistrationsInterval, target_registrations_interval);
-                $m!(
-                    TargetRegistrationsPerInterval,
-                    target_registrations_per_interval
-                );
-                $m!(MaxRegistrationsPerInterval, max_registrations_per_interval);
-                $m!(AdjustmentAlpha, adjustment_alpha);
                 $m!(SubnetGovernanceConfig, governance_config);
                 $m!(N);
             };
@@ -252,6 +250,8 @@ fn update_subnet_verifies_names_uniquiness_integrity() {
                 params.maximum_set_weight_calls_per_epoch,
                 params.governance_config.vote_mode,
                 params.bonds_ma,
+                params.min_burn,
+                params.max_burn,
                 params.target_registrations_interval,
                 params.target_registrations_per_interval,
                 params.max_registrations_per_interval,

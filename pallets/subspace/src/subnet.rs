@@ -5,7 +5,7 @@ use frame_support::{
 };
 use pallet_subnet_emission_api::SubnetConsensus;
 
-use self::global::BurnConfiguration;
+use global::{BurnType, GeneralBurnConfiguration};
 use sp_runtime::{BoundedVec, DispatchError};
 use sp_std::vec::Vec;
 use substrate_fixed::types::I64F64;
@@ -44,17 +44,16 @@ impl<T: Config> SubnetChangeset<T> {
         TrustRatio::<T>::insert(netuid, self.params.trust_ratio);
         IncentiveRatio::<T>::insert(netuid, self.params.incentive_ratio);
         BondsMovingAverage::<T>::insert(netuid, self.params.bonds_ma);
-        TargetRegistrationsInterval::<T>::insert(netuid, self.params.target_registrations_interval);
-        TargetRegistrationsPerInterval::<T>::insert(
-            netuid,
-            self.params.target_registrations_per_interval,
-        );
-        MaxRegistrationsPerInterval::<T>::insert(
-            netuid,
-            self.params.max_registrations_per_interval,
-        );
-
-        AdjustmentAlpha::<T>::insert(netuid, self.params.adjustment_alpha);
+        let burn_config: GeneralBurnConfiguration<T> = GeneralBurnConfiguration {
+            min_burn: self.params.min_burn,
+            max_burn: self.params.max_burn,
+            adjustment_alpha: self.params.adjustment_alpha,
+            target_registrations_interval: self.params.target_registrations_interval,
+            target_registrations_per_interval: self.params.target_registrations_per_interval,
+            max_registrations_per_interval: self.params.max_registrations_per_interval,
+            _pd: PhantomData,
+        };
+        burn_config.apply_module_burn(netuid)?;
         MinValidatorStake::<T>::insert(netuid, self.params.min_validator_stake);
         if self.params.maximum_set_weight_calls_per_epoch == 0 {
             MaximumSetWeightCallsPerEpoch::<T>::remove(netuid);
@@ -131,27 +130,6 @@ impl<T: Config> SubnetChangeset<T> {
             Error::<T>::InvalidMaxAllowedWeights
         );
 
-        // match registration parameters
-        ensure!(
-            params.target_registrations_interval >= 10,
-            Error::<T>::InvalidTargetRegistrationsInterval
-        );
-
-        ensure!(
-            params.target_registrations_per_interval >= 1,
-            Error::<T>::InvalidTargetRegistrationsPerInterval
-        );
-
-        ensure!(
-            params.max_registrations_per_interval >= 1,
-            Error::<T>::InvalidMaxRegistrationsPerInterval
-        );
-
-        ensure!(
-            params.adjustment_alpha > 0,
-            Error::<T>::InvalidAdjustmentAlpha
-        );
-
         ensure!(
             netuid.map_or(true, |netuid| params.max_allowed_uids
                 >= N::<T>::get(netuid)),
@@ -176,13 +154,15 @@ impl<T: Config> SubnetChangeset<T> {
                 core::str::from_utf8(name).map_err(|_| Error::<T>::InvalidSubnetName)?;
             }
         }
-
+        // ? Registration parameters omitted, they are using apply
         Ok(())
     }
 }
 
 impl<T: Config> Pallet<T> {
     pub fn subnet_params(netuid: u16) -> SubnetParams<T> {
+        let module_burn_config = ModuleBurnConfig::<T>::get(netuid);
+
         SubnetParams {
             founder: Founder::<T>::get(netuid),
             founder_share: FounderShare::<T>::get(netuid),
@@ -198,10 +178,15 @@ impl<T: Config> Pallet<T> {
             maximum_set_weight_calls_per_epoch: MaximumSetWeightCallsPerEpoch::<T>::get(netuid)
                 .unwrap_or_default(),
             bonds_ma: BondsMovingAverage::<T>::get(netuid),
-            target_registrations_interval: TargetRegistrationsInterval::<T>::get(netuid),
-            target_registrations_per_interval: TargetRegistrationsPerInterval::<T>::get(netuid),
-            max_registrations_per_interval: MaxRegistrationsPerInterval::<T>::get(netuid),
-            adjustment_alpha: AdjustmentAlpha::<T>::get(netuid),
+
+            // Registrations
+            min_burn: module_burn_config.min_burn,
+            max_burn: module_burn_config.max_burn,
+            target_registrations_interval: module_burn_config.target_registrations_interval,
+            target_registrations_per_interval: module_burn_config.target_registrations_per_interval,
+            max_registrations_per_interval: module_burn_config.max_registrations_per_interval,
+            adjustment_alpha: module_burn_config.adjustment_alpha,
+
             min_validator_stake: MinValidatorStake::<T>::get(netuid),
             governance_config: T::get_subnet_governance_configuration(netuid),
             metadata: SubnetMetadata::<T>::get(netuid),
@@ -230,8 +215,8 @@ impl<T: Config> Pallet<T> {
 
         // Insert the minimum burn to the netuid,
         // to prevent free registrations the first target registration interval.
-        let BurnConfiguration { min_burn, .. } = BurnConfig::<T>::get();
-        Burn::<T>::insert(netuid, min_burn);
+        let min_burn = GeneralBurnConfiguration::<T>::default_for(BurnType::Module).min_burn;
+        Burn::<T>::set(netuid, min_burn);
 
         SubnetGaps::<T>::mutate(|subnets| subnets.remove(&netuid));
         T::create_yuma_subnet(netuid);
@@ -325,10 +310,7 @@ impl<T: Config> Pallet<T> {
         IncentiveRatio::<T>::remove(netuid);
         MaximumSetWeightCallsPerEpoch::<T>::remove(netuid);
         BondsMovingAverage::<T>::remove(netuid);
-        TargetRegistrationsInterval::<T>::remove(netuid);
-        TargetRegistrationsPerInterval::<T>::remove(netuid);
-        MaxRegistrationsPerInterval::<T>::remove(netuid);
-        AdjustmentAlpha::<T>::remove(netuid);
+        ModuleBurnConfig::<T>::remove(netuid);
         MinValidatorStake::<T>::remove(netuid);
         SubnetRegistrationBlock::<T>::remove(netuid);
         SubnetMetadata::<T>::remove(netuid);

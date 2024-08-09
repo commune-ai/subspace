@@ -362,6 +362,8 @@ impl pallet_subspace::Config for Runtime {
     type PalletId = SubspacePalletId;
     type DefaultMaxRegistrationsPerInterval = ConstU16<32>;
     type DefaultMaxSubnetRegistrationsPerInterval = ConstU16<1>;
+    type DefaultModuleMinBurn = ConstU64<10_000_000_000>;
+    type DefaultSubnetMinBurn = ConstU64<2_000_000_000_000>;
     type WeightInfo = pallet_subspace::weights::SubstrateWeight<Runtime>;
 }
 
