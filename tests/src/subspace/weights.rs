@@ -7,6 +7,7 @@ use sp_runtime::DispatchError;
 #[test]
 fn set_weights_call_must_fail_with_keys_and_values_are_not_the_same_length() {
     new_test_ext().execute_with(|| {
+        zero_min_validator_stake();
         zero_min_burn();
         MinimumAllowedStake::<Test>::set(0);
 
@@ -25,6 +26,7 @@ fn set_weights_call_must_fail_with_keys_and_values_are_not_the_same_length() {
 #[test]
 fn cannot_set_weights_with_duplicate_keys() {
     new_test_ext().execute_with(|| {
+        zero_min_validator_stake();
         zero_min_burn();
         MinimumAllowedStake::<Test>::set(0);
 
@@ -66,6 +68,7 @@ fn set_weights_requires_signature() {
 #[test]
 fn set_weights_only_accepts_existing_keys() {
     new_test_ext().execute_with(|| {
+        zero_min_validator_stake();
         zero_min_burn();
         MinimumAllowedStake::<Test>::set(0);
 
@@ -86,6 +89,7 @@ fn set_weights_only_accepts_existing_keys() {
 #[test]
 fn set_weights_call_respects_rate_limit() {
     new_test_ext().execute_with(|| {
+        zero_min_validator_stake();
         zero_min_burn();
         MinimumAllowedStake::<Test>::set(0);
 
@@ -122,6 +126,7 @@ fn set_weights_call_respects_rate_limit() {
 #[test]
 fn set_weights_call_respects_rootnet_weight_limit() {
     new_test_ext().execute_with(|| {
+        zero_min_validator_stake();
         zero_min_burn();
         MinimumAllowedStake::<Test>::set(0);
 
@@ -147,6 +152,7 @@ fn set_weights_call_respects_rootnet_weight_limit() {
 #[test]
 fn set_weights_on_itself_is_invalid() {
     new_test_ext().execute_with(|| {
+        zero_min_validator_stake();
         zero_min_burn();
         MinimumAllowedStake::<Test>::set(0);
 
@@ -159,6 +165,7 @@ fn set_weights_on_itself_is_invalid() {
 #[test]
 fn set_weights_respects_min_and_max_weights() {
     new_test_ext().execute_with(|| {
+        zero_min_validator_stake();
         zero_min_burn();
         MinimumAllowedStake::<Test>::set(0);
 
@@ -196,6 +203,7 @@ fn set_weights_respects_min_and_max_weights() {
 #[test]
 fn set_weights_fails_for_stakes_below_minimum() {
     new_test_ext().execute_with(|| {
+        zero_min_validator_stake();
         let mut global_params = SubspaceMod::global_params();
         global_params.min_weight_stake = to_nano(20);
         assert_ok!(SubspaceMod::set_global_params(global_params));
@@ -242,6 +250,7 @@ fn set_weights_fails_for_stakes_below_minimum() {
 #[test]
 fn set_weights_on_non_existent_subnets() {
     new_test_ext().execute_with(|| {
+        zero_min_validator_stake();
         // 1. Register the rootnet and set the consensus to Root
         assert_ok!(register_named_subnet(u32::MAX, 0, "Rootnet"));
         Test::set_subnet_consensus_type(0, Some(SubnetConsensus::Root));
@@ -277,6 +286,7 @@ fn set_weights_on_non_existent_subnets() {
 #[test]
 fn delegate_weight_control() {
     new_test_ext().execute_with(|| {
+        zero_min_validator_stake();
         assert_ok!(register_named_subnet(u32::MAX, 0, "Rootnet"));
         Test::set_subnet_consensus_type(0, Some(SubnetConsensus::Root));
 

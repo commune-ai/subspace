@@ -7,8 +7,7 @@ use log::info;
 use pallet_governance::DaoTreasuryAddress;
 use pallet_subnet_emission::{
     subnet_consensus::yuma::{AccountKey, EmissionMap, ModuleKey, YumaEpoch},
-    EmissionLoweringBlock, OriginalUnitEmission, PendingEmission, SubnetConsensusType,
-    SubnetEmission, UnitEmission,
+    PendingEmission, SubnetConsensusType, SubnetEmission, UnitEmission,
 };
 use pallet_subnet_emission_api::SubnetConsensus;
 use pallet_subspace::*;
@@ -16,6 +15,7 @@ use pallet_subspace::*;
 #[test]
 fn test_dividends_same_stake() {
     new_test_ext().execute_with(|| {
+        zero_min_validator_stake();
         let netuid: u16 = 1;
         let n: u16 = 10;
         let stake_per_module: u64 = 10_000;
@@ -105,6 +105,7 @@ fn test_dividends_same_stake() {
 #[test]
 fn test_dividends_diff_stake() {
     new_test_ext().execute_with(|| {
+        zero_min_validator_stake();
         let netuid: u16 = 1;
         let n: u16 = 10;
         let stake_per_module: u64 = 10_000;
@@ -192,6 +193,7 @@ fn test_dividends_diff_stake() {
 #[test]
 fn test_pruning() {
     new_test_ext().execute_with(|| {
+        zero_min_validator_stake();
         // Initialize test environment
         zero_min_burn();
         let netuid: u16 = 1;
@@ -301,6 +303,7 @@ fn test_pruning() {
 #[test]
 fn test_lowest_priority_mechanism() {
     new_test_ext().execute_with(|| {
+        zero_min_validator_stake();
         let netuid: u16 = 1;
         let n: u16 = 100;
         let stake_per_module: u64 = 10_000;
@@ -403,6 +406,7 @@ fn calculates_blocks_until_epoch() {
 #[test]
 fn test_incentives() {
     new_test_ext().execute_with(|| {
+        zero_min_validator_stake();
         let netuid: u16 = 0;
         let n: u16 = 10;
         let stake_per_module: u64 = 10_000;
@@ -465,6 +469,7 @@ fn test_incentives() {
 #[test]
 fn test_trust() {
     new_test_ext().execute_with(|| {
+        zero_min_validator_stake();
         zero_min_burn();
         MinimumAllowedStake::<Test>::set(0);
 
@@ -516,6 +521,7 @@ fn test_trust() {
 #[test]
 fn test_founder_share() {
     new_test_ext().execute_with(|| {
+        zero_min_validator_stake();
         let netuid = 1;
         let n: u16 = 20;
         let initial_stake: u64 = to_nano(1_000);
@@ -631,6 +637,7 @@ const ONE: u64 = to_nano(1);
 #[test]
 fn test_1_graph() {
     new_test_ext().execute_with(|| {
+        zero_min_validator_stake();
         zero_min_burn();
         MinimumAllowedStake::<Test>::set(0);
 
@@ -704,6 +711,7 @@ fn test_10_graph() {
     }
 
     new_test_ext().execute_with(|| {
+        zero_min_validator_stake();
         UnitEmission::<Test>::put(23148148148);
         zero_min_burn();
         MinimumAllowedStake::<Test>::set(0);
@@ -774,6 +782,7 @@ fn test_10_graph() {
 #[test]
 fn yuma_weights_older_than_max_age_are_discarded() {
     new_test_ext().execute_with(|| {
+        zero_min_validator_stake();
         const MAX_WEIGHT_AGE: u64 = 300;
         const SUBNET_TEMPO: u16 = 100;
 
@@ -932,6 +941,7 @@ fn test_emission_exploit() {
         name.extend(key.to_string().as_bytes().to_vec());
         let address: Vec<u8> = "0.0.0.0:30333".as_bytes().to_vec();
         let origin = get_origin(yuma_badactor_key);
+        let _ = SubspaceMod::register_subnet(origin.clone(), network.clone(), None);
         assert_ok!(SubspaceMod::register(
             origin.clone(),
             network,
@@ -984,6 +994,7 @@ fn test_emission_exploit() {
 #[test]
 fn test_tempo_compound() {
     new_test_ext().execute_with(|| {
+        zero_min_validator_stake();
         zero_min_burn();
 
         const QUICK_TEMPO: u16 = 25;
@@ -1031,6 +1042,7 @@ fn test_tempo_compound() {
 #[test]
 fn test_non_minable_subnet_emisson() {
     new_test_ext().execute_with(|| {
+        zero_min_validator_stake();
         // First we register the rootnet
         // Total 3 modules, same stake
         let rootnet_key_zero = 0;
@@ -1118,52 +1130,6 @@ fn test_halving() {
     });
 }
 
-#[test]
-fn test_automatic_unit_emission() {
-    new_test_ext().execute_with(|| {
-        OriginalUnitEmission::<Test>::set(UnitEmission::<Test>::get());
-        UnitEmission::<Test>::set(UnitEmission::<Test>::get() / 3);
-        EmissionLoweringBlock::<Test>::set(
-            pallet_subspace::Pallet::<Test>::get_current_block_number(),
-        );
-
-        step_block(10800);
-
-        assert_eq!(
-            UnitEmission::<Test>::get(),
-            OriginalUnitEmission::<Test>::get() / 2
-        );
-
-        step_block(10800);
-
-        assert_eq!(
-            UnitEmission::<Test>::get(),
-            OriginalUnitEmission::<Test>::get()
-        );
-
-        step_block(10800);
-
-        assert_eq!(
-            UnitEmission::<Test>::get(),
-            OriginalUnitEmission::<Test>::get()
-        );
-
-        step_block(10800);
-
-        assert_eq!(
-            UnitEmission::<Test>::get(),
-            OriginalUnitEmission::<Test>::get()
-        );
-
-        step_block(10800);
-
-        assert_eq!(
-            UnitEmission::<Test>::get(),
-            OriginalUnitEmission::<Test>::get()
-        );
-    });
-}
-
 /// This test is aimed at subnet deregistration based on emission
 /// 1. Set MaxAllowedSubnets to 3
 /// 2. Register 3 subnets, using the function `register_named_subnet`
@@ -1199,13 +1165,14 @@ fn test_subnet_deregistration_based_on_emission() {
 
         let universal_vec = "subnet4".to_string().as_bytes().to_vec();
         add_balance(3, to_nano(3000));
+        let _ = SubspaceMod::do_register_subnet(get_origin(3), universal_vec.clone(), None);
         assert_ok!(SubspaceMod::do_register(
             get_origin(3),
             universal_vec.clone(),
             universal_vec.clone(),
             universal_vec.clone(),
             2,
-            Some(universal_vec),
+            Some(universal_vec.clone()),
         ));
         assert_ok!(SubspaceMod::add_stake(get_origin(3), 2, to_nano(2000)));
 
@@ -1233,5 +1200,59 @@ fn yuma_does_not_fail_if_module_does_not_have_stake() {
         assert_ok!(SubspaceMod::do_remove_stake(get_origin(key), key, stake));
 
         assert_ok!(YumaEpoch::<Test>::new(netuid, ONE).run());
+    });
+}
+
+#[test]
+fn yuma_change_permits() {
+    new_test_ext().execute_with(|| {
+        zero_min_burn();
+
+        let netuid = 6;
+        let first_uid = register_module(netuid, 0, 1, false).unwrap();
+        let second_uid = register_module(netuid, 1, to_nano(51000), false).unwrap();
+        let third_uid = register_module(netuid, 2, to_nano(52000), false).unwrap();
+
+        MaxAllowedValidators::<Test>::set(netuid, Some(2));
+
+        set_weights(netuid, 2, vec![first_uid, second_uid], vec![50, 60]);
+
+        assert_ok!(YumaEpoch::<Test>::new(netuid, ONE).run());
+
+        assert_eq!(
+            ValidatorPermits::<Test>::get(netuid)[first_uid as usize],
+            false
+        );
+        assert_eq!(
+            ValidatorPermits::<Test>::get(netuid)[second_uid as usize],
+            false
+        );
+        assert_eq!(
+            ValidatorPermits::<Test>::get(netuid)[third_uid as usize],
+            true
+        );
+
+        let fourth_uid = register_module(netuid, 3, to_nano(54000), false).unwrap();
+        set_weights(netuid, 1, vec![third_uid, fourth_uid], vec![50, 60]);
+        set_weights(netuid, 3, vec![first_uid, second_uid], vec![50, 60]);
+
+        assert_ok!(YumaEpoch::<Test>::new(netuid, ONE).run());
+
+        assert_eq!(
+            ValidatorPermits::<Test>::get(netuid)[first_uid as usize],
+            false
+        );
+        assert_eq!(
+            ValidatorPermits::<Test>::get(netuid)[second_uid as usize],
+            false
+        );
+        assert_eq!(
+            ValidatorPermits::<Test>::get(netuid)[third_uid as usize],
+            true
+        );
+        assert_eq!(
+            ValidatorPermits::<Test>::get(netuid)[fourth_uid as usize],
+            true
+        );
     });
 }

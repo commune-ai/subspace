@@ -1,8 +1,35 @@
 # Changelog
 
-[Unreleased]
+spec version `120`
 
-spec_version `118`
+Storages:
+
+- `MinValidatorStake` storage map introduced: This is a subnet parameter that sets the minimum stake an individual needs to be considered a potential validator on that subnet.
+- `MaxAllowedValidators` storage map introduced: This is a subnet parameter that allows subnet owners to control the maximum number of validators on their subnet.
+- `MinImmunityStake` storage removed: Replaced by the new logic with `MinValidatorStake`.
+- `SubnetMetadata` storage map introduced: Maps subnet id to metadata (u16 to BoundedVec<u8, ConstU32<59>>).
+- `BurnConfig` storage value removed: Replaced by subnet-specific burn configurations.
+- `ModuleBurnConfig` storage map introduced: Maps u16 to GeneralBurnConfiguration<T> for module-specific burn parameters.
+- `TargetRegistrationsInterval` storage map removed: Integrated into ModuleBurnConfig.
+- `TargetRegistrationsPerInterval` storage map removed: Integrated into ModuleBurnConfig.
+- `AdjustmentAlpha` storage map removed: Integrated into ModuleBurnConfig.
+- `MaxRegistrationsPerInterval` storage map removed: Integrated into ModuleBurnConfig.
+
+Extrinsics:
+
+- `register` now does not take `network_name`
+- `register_subnet` extrinsic now registers a subnet and takes
+
+```rs
+    origin: OriginFor<T>,
+    name: Vec<u8>,
+    metadata: Option<Vec<u8>>,
+```
+
+- `add_global_params_proposal` no longer takes `min_burn` and `max_burn`
+- `update_subnet` now takes `min_burn` and `max_burn`
+
+spec_version `118-119`
 
 This branch starts off of the commit hash `95e5d26b550839c24fd367090e02abaa37df3d32`.
 diff [here](https://github.com/agicommies/subspace-network/compare/db8a19b1d2155d3ecda4172aaf72cdeea1feda2b...agicommies:subspace-network:feat/global-stake)
