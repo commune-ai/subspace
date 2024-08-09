@@ -24,7 +24,7 @@ fn module_is_registered_correctly() {
         // Direct the rootnet netuid to something else than 0
         SubnetConsensusType::<Test>::insert(1, SubnetConsensus::Root);
         assert_noop!(
-            SubspaceMod::do_register(get_origin(0), network, name, address, 0, None, None),
+            SubspaceMod::do_register(get_origin(0), network, name, address, 0, None),
             Error::<Test>::NotEnoughBalanceToRegister
         );
         Burn::<Test>::insert(netuid, 0);
@@ -267,15 +267,8 @@ mod module_validation {
 
         // make sure there is some balance
         add_balance(key, 2);
-        SubspaceMod::register(
-            origin,
-            network,
-            name.to_vec(),
-            addr.to_vec(),
-            key,
-            None,
-            None,
-        )
+        let _ = SubspaceMod::register_subnet(origin.clone(), network.clone(), None);
+        SubspaceMod::register(origin, network, name.to_vec(), addr.to_vec(), key, None)
     }
 
     fn test_validation_cases(f: impl Fn(&[u8], &[u8]) -> DispatchResult) {
@@ -381,15 +374,16 @@ mod subnet_validation {
             let address = b"0.0.0.0".to_vec();
             let module_name = b"test".to_vec();
 
-            let register_subnet = |key, name| {
+            let register_subnet = |key, name: Vec<u8>| {
                 add_balance(key, 1);
+
+                SubspaceMod::register_subnet(get_origin(key), name.clone(), None)?;
                 SubspaceMod::register(
                     get_origin(key),
                     name,
                     module_name.clone(),
                     address.clone(),
                     key,
-                    None,
                     None,
                 )
             };
@@ -445,13 +439,13 @@ fn new_subnet_reutilized_removed_netuid_if_total_is_bigger_than_removed() {
         SubnetGaps::<Test>::set(BTreeSet::from([5]));
 
         SubspaceMod::add_balance_to_account(&0, SubnetBurn::<Test>::get() + 1 + to_nano(10));
+        let _ = SubspaceMod::register_subnet(get_origin(0), b"test".to_vec(), None);
         SubspaceMod::register(
             get_origin(0),
             b"test".to_vec(),
             b"test".to_vec(),
             b"test".to_vec(),
             0,
-            None,
             None,
         )
         .unwrap();
@@ -475,13 +469,13 @@ fn new_subnet_does_not_reuse_removed_netuid_if_total_is_smaller_than_removed() {
         SubnetGaps::<Test>::set(BTreeSet::from([7]));
 
         SubspaceMod::add_balance_to_account(&0, SubnetBurn::<Test>::get() + 1 + to_nano(10));
+        let _ = SubspaceMod::register_subnet(get_origin(0), b"test".to_vec(), None);
         SubspaceMod::register(
             get_origin(0),
             b"test".to_vec(),
             b"test".to_vec(),
             b"test".to_vec(),
             0,
-            None,
             None,
         )
         .unwrap();
@@ -511,7 +505,8 @@ fn new_subnets_on_removed_uids_register_modules_to_the_correct_netuids() {
         let address = "0.0.0.0:30333".as_bytes().to_vec();
 
         SubspaceMod::add_balance_to_account(&key, stake + SubnetBurn::<Test>::get() + 1);
-        SubspaceMod::register(origin, network.clone(), name, address, key, None, None).unwrap();
+        let _ = SubspaceMod::register_subnet(origin.clone(), network.clone(), None);
+        SubspaceMod::register(origin, network.clone(), name, address, key, None).unwrap();
 
         let netuid = SubspaceMod::get_netuid_for_name(&network).unwrap();
         let uid = pallet_subspace::Uids::<Test>::get(netuid, key).unwrap();
@@ -565,7 +560,7 @@ fn test_subnet_immunity() {
         MaxAllowedSubnets::<Test>::set(1);
 
         SubspaceMod::add_balance_to_account(&0, SubnetBurn::<Test>::get());
-        dbg!(SubnetBurn::<Test>::get());
+        let _ = SubspaceMod::register_subnet(get_origin(0), b"net1".to_vec(), None);
         assert_ok!(SubspaceMod::register(
             get_origin(0),
             b"net1".to_vec(),
@@ -573,21 +568,13 @@ fn test_subnet_immunity() {
             b"127.0.0.1".to_vec(),
             0,
             None,
-            None
         ));
         SubspaceMod::increase_stake(&0, &0, 100000000000);
 
         SubspaceMod::add_balance_to_account(&1, 100000000001 + SubnetBurn::<Test>::get());
+
         assert_err!(
-            SubspaceMod::register(
-                get_origin(1),
-                b"net2".to_vec(),
-                b"mod2".to_vec(),
-                b"127.0.0.1".to_vec(),
-                1,
-                None,
-                None
-            ),
+            SubspaceMod::register_subnet(get_origin(1), b"net2".to_vec(), None),
             sp_runtime::DispatchError::Other("No valid netuid to deregister")
         );
     });

@@ -17,13 +17,18 @@ fn register(account: AccountId, subnet_id: u16, module: AccountId, stake: u64) {
         add_balance(account, to_nano(1));
     }
 
+    let _ = SubspaceMod::do_register_subnet(
+        get_origin(account),
+        format!("subnet-{subnet_id}").as_bytes().to_vec(),
+        None,
+    );
+
     assert_ok!(SubspaceMod::do_register(
         get_origin(account),
         format!("subnet-{subnet_id}").as_bytes().to_vec(),
         format!("module-{module}").as_bytes().to_vec(),
         format!("address-{account}-{module}").as_bytes().to_vec(),
         module,
-        None,
         None,
     ));
     SubspaceMod::increase_stake(&account, &module, stake);
