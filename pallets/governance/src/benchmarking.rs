@@ -4,7 +4,7 @@ use crate::{Pallet as GovernanceMod, *};
 use frame_benchmarking::{account, benchmarks};
 use frame_system::RawOrigin;
 pub use pallet::*;
-use pallet_subspace::{BurnConfig, Pallet as SubspaceMod, SubnetBurn};
+use pallet_subspace::{Pallet as SubspaceMod, SubnetBurn};
 use sp_std::vec::Vec;
 
 fn submit_dao_application<T: Config>() -> Result<(), &'static str> {
@@ -37,6 +37,7 @@ fn register_mock<T: Config>(
         &key,
         SubspaceMod::<T>::u64_to_balance(SubnetBurn::<T>::get() + enough_stake).unwrap(),
     );
+    let network_metadata = Some("networkmetadata".as_bytes().to_vec());
     let metadata = Some("metadata".as_bytes().to_vec());
     SubspaceMod::<T>::register(
         RawOrigin::Signed(key.clone()).into(),
@@ -117,6 +118,7 @@ benchmarks! {
             params.min_allowed_weights,
             params.max_weight_age,
             params.name.clone(),
+            params.metadata.clone(),
             params.tempo,
             params.trust_ratio,
             params.maximum_set_weight_calls_per_epoch,
@@ -126,7 +128,7 @@ benchmarks! {
             params.target_registrations_per_interval,
             params.max_registrations_per_interval,
             params.adjustment_alpha,
-            params.min_immunity_stake
+            params.min_validator_stake
         )?;
 
         // add balance to submit the proposal
@@ -158,7 +160,7 @@ benchmarks! {
         params.target_registrations_per_interval,
         params.max_registrations_per_interval,
         params.adjustment_alpha,
-        params.min_immunity_stake
+        params.min_validator_stake
     )
 
     // 2

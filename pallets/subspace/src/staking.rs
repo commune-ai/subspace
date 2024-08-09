@@ -315,9 +315,9 @@ impl<T: Config> Pallet<T> {
     }
 
     // Returns the delegation fee of a module
-    pub fn get_delegation_fee(netuid: u16, module_key: &T::AccountId) -> Percent {
+    pub fn get_delegation_fee(module_key: &T::AccountId) -> Percent {
         let min_deleg_fee_global = FloorDelegationFee::<T>::get();
-        let delegation_fee = DelegationFee::<T>::get(netuid, module_key);
+        let delegation_fee = DelegationFee::<T>::get(module_key);
 
         delegation_fee.max(min_deleg_fee_global)
     }

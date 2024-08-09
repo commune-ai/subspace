@@ -6,8 +6,7 @@ use pallet_subnet_emission::{
 use pallet_subnet_emission_api::{SubnetConsensus, SubnetEmissionApi};
 use pallet_subspace::{
     Error, Kappa, Keys, MaxAllowedUids, MaxAllowedValidators, MaxRegistrationsPerBlock,
-    MaxRegistrationsPerInterval, MinimumAllowedStake, Rho, StakeFrom,
-    TargetRegistrationsPerInterval, Tempo,
+    MinimumAllowedStake, ModuleBurnConfig, Rho, StakeFrom, Tempo,
 };
 
 pub use crate::mock::*;
@@ -17,10 +16,12 @@ const ROOT_NETUID: u16 = 0;
 #[test]
 fn test_root_pricing() {
     new_test_ext().execute_with(|| {
+        zero_min_validator_stake();
         zero_min_burn();
 
         MaxRegistrationsPerBlock::<Test>::set(6);
-        MaxRegistrationsPerInterval::<Test>::set(0, 3);
+
+        ModuleBurnConfig::<Test>::mutate(0, |config| config.max_registrations_per_interval = 3);
 
         assert_ok!(register_named_subnet(u32::MAX, 0, "Rootnet"));
         Test::set_subnet_consensus_type(0, Some(SubnetConsensus::Root));
@@ -84,6 +85,7 @@ fn test_root_pricing() {
 #[test]
 fn test_emission() {
     new_test_ext_with_block(1).execute_with(|| {
+        zero_min_validator_stake();
         zero_min_burn();
         MinimumAllowedStake::<Test>::set(0);
 
@@ -92,7 +94,9 @@ fn test_emission() {
 
         let n = 10;
         MaxRegistrationsPerBlock::<Test>::set(n * 2);
-        TargetRegistrationsPerInterval::<Test>::set(ROOT_NETUID, n);
+        ModuleBurnConfig::<Test>::mutate(ROOT_NETUID, |config| {
+            config.target_registrations_per_interval = n
+        });
         MaxAllowedUids::<Test>::set(ROOT_NETUID, n);
         UnitEmission::<Test>::set(1000000000);
         Rho::<Test>::set(30);
@@ -109,7 +113,7 @@ fn test_emission() {
                 format!("test{}", i).as_bytes().to_vec(),
                 b"0.0.0.0:30333".to_vec(),
                 key_id,
-                None
+                None,
             ));
             SubspaceMod::increase_stake(&key_id, &key_id, 1000);
         }
@@ -118,13 +122,18 @@ fn test_emission() {
             let key_id: u32 = i as u32 + 100;
             let key_origin = get_origin(key_id);
             SubspaceMod::add_balance_to_account(&key_id, 1_000_000_000_000_000);
+            let _ = SubspaceMod::register_subnet(
+                key_origin.clone(),
+                format!("net{}", i).as_bytes().to_vec(),
+                None,
+            );
             assert_ok!(SubspaceMod::register(
                 key_origin,
                 format!("net{}", i).as_bytes().to_vec(),
                 format!("test{}", i).as_bytes().to_vec(),
                 b"0.0.0.0:30333".to_vec(),
                 key_id,
-                None
+                None,
             ));
             SubspaceMod::increase_stake(&key_id, &key_id, 1000);
         }
@@ -184,7 +193,7 @@ fn test_emission() {
     });
 }
 
-/// PWTG (Perverse Wielders of Token Generation) validators can not control rootnet emission
+/// Test manipulative minority validators can not control rootnet emission
 /// distribution.
 #[test]
 fn test_sigmoid_distribution() {
@@ -239,7 +248,9 @@ fn test_rootnet_registration_requirements() {
 
         // Set up initial conditions
         MaxRegistrationsPerBlock::<Test>::set(100);
-        MaxRegistrationsPerInterval::<Test>::set(ROOT_NETUID, 5);
+        ModuleBurnConfig::<Test>::mutate(ROOT_NETUID, |config| {
+            config.max_registrations_per_interval = 5
+        });
 
         assert_ok!(register_named_subnet(u32::MAX, ROOT_NETUID, "Rootnet"));
         // Rootnet configuration
