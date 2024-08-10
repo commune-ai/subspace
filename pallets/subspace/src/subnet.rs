@@ -44,16 +44,7 @@ impl<T: Config> SubnetChangeset<T> {
         TrustRatio::<T>::insert(netuid, self.params.trust_ratio);
         IncentiveRatio::<T>::insert(netuid, self.params.incentive_ratio);
         BondsMovingAverage::<T>::insert(netuid, self.params.bonds_ma);
-        let burn_config: GeneralBurnConfiguration<T> = GeneralBurnConfiguration {
-            min_burn: self.params.min_burn,
-            max_burn: self.params.max_burn,
-            adjustment_alpha: self.params.adjustment_alpha,
-            target_registrations_interval: self.params.target_registrations_interval,
-            target_registrations_per_interval: self.params.target_registrations_per_interval,
-            max_registrations_per_interval: self.params.max_registrations_per_interval,
-            _pd: PhantomData,
-        };
-        burn_config.apply_module_burn(netuid)?;
+        self.params.module_burn_config.apply_module_burn(netuid)?;
         MinValidatorStake::<T>::insert(netuid, self.params.min_validator_stake);
         if self.params.maximum_set_weight_calls_per_epoch == 0 {
             MaximumSetWeightCallsPerEpoch::<T>::remove(netuid);
@@ -169,8 +160,6 @@ impl<T: Config> SubnetChangeset<T> {
 
 impl<T: Config> Pallet<T> {
     pub fn subnet_params(netuid: u16) -> SubnetParams<T> {
-        let module_burn_config = ModuleBurnConfig::<T>::get(netuid);
-
         SubnetParams {
             founder: Founder::<T>::get(netuid),
             founder_share: FounderShare::<T>::get(netuid),
@@ -188,13 +177,7 @@ impl<T: Config> Pallet<T> {
             bonds_ma: BondsMovingAverage::<T>::get(netuid),
 
             // Registrations
-            min_burn: module_burn_config.min_burn,
-            max_burn: module_burn_config.max_burn,
-            target_registrations_interval: module_burn_config.target_registrations_interval,
-            target_registrations_per_interval: module_burn_config.target_registrations_per_interval,
-            max_registrations_per_interval: module_burn_config.max_registrations_per_interval,
-            adjustment_alpha: module_burn_config.adjustment_alpha,
-
+            module_burn_config: ModuleBurnConfig::<T>::get(netuid),
             min_validator_stake: MinValidatorStake::<T>::get(netuid),
             max_allowed_validators: MaxAllowedValidators::<T>::get(netuid),
             governance_config: T::get_subnet_governance_configuration(netuid),
