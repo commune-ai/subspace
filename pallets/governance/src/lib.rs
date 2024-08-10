@@ -243,6 +243,7 @@ pub mod pallet {
             max_registrations_per_interval: u16,
             adjustment_alpha: u64,
             min_validator_stake: u64,
+            max_allowed_validators: Option<u16>,
         ) -> DispatchResult {
             let mut params = pallet_subspace::Pallet::subnet_params(netuid);
             params.founder = founder;
@@ -267,6 +268,7 @@ pub mod pallet {
             params.max_registrations_per_interval = max_registrations_per_interval;
             params.adjustment_alpha = adjustment_alpha;
             params.min_validator_stake = min_validator_stake;
+            params.max_allowed_validators = max_allowed_validators;
             Self::do_add_subnet_params_proposal(origin, netuid, data, params)
         }
 

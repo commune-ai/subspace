@@ -332,6 +332,7 @@ fn subnet_params_proposal_accepted() {
             max_registrations_per_interval,
             adjustment_alpha,
             min_validator_stake,
+            max_allowed_validators,
             mut governance_config,
             ..
         } = SubspaceMod::subnet_params(0);
@@ -364,6 +365,7 @@ fn subnet_params_proposal_accepted() {
             max_registrations_per_interval,
             adjustment_alpha,
             min_validator_stake,
+            max_allowed_validators,
         )
         .unwrap();
 

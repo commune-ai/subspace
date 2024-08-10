@@ -64,6 +64,7 @@ fn subnet_update_changes_all_parameter_values() {
             max_registrations_per_interval: 16,
             adjustment_alpha: 17,
             min_validator_stake: to_nano(50_000),
+            max_allowed_validators: Some(18),
             governance_config: GovernanceConfiguration {
                 proposal_cost: 18,
                 proposal_expiration: 19,
@@ -98,6 +99,7 @@ fn subnet_update_changes_all_parameter_values() {
             max_registrations_per_interval,
             adjustment_alpha,
             min_validator_stake,
+            max_allowed_validators,
             governance_config,
         } = params.clone();
 
@@ -257,6 +259,7 @@ fn update_subnet_verifies_names_uniquiness_integrity() {
                 params.max_registrations_per_interval,
                 params.adjustment_alpha,
                 params.min_validator_stake,
+                params.max_allowed_validators,
             )
         };
 
