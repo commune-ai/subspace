@@ -219,11 +219,12 @@ pub mod pallet {
         #[pallet::weight((<T as pallet::Config>::WeightInfo::add_subnet_params_proposal(), DispatchClass::Normal, Pays::No))]
         pub fn add_subnet_params_proposal(
             origin: OriginFor<T>,
-            subnet_id: u16,
+            netuid: u16,
             data: Vec<u8>,
             founder: T::AccountId,
-            name: BoundedVec<u8, ConstU32<256>>,
             founder_share: u16,
+            name: BoundedVec<u8, ConstU32<256>>,
+            metadata: Option<BoundedVec<u8, ConstU32<59>>>,
             immunity_period: u16,
             incentive_ratio: u16,
             max_allowed_uids: u16,
@@ -235,16 +236,19 @@ pub mod pallet {
             maximum_set_weight_calls_per_epoch: u16,
             vote_mode: VoteMode,
             bonds_ma: u64,
+            min_burn: u64,
+            max_burn: u64,
             target_registrations_interval: u16,
             target_registrations_per_interval: u16,
             max_registrations_per_interval: u16,
             adjustment_alpha: u64,
             min_validator_stake: u64,
         ) -> DispatchResult {
-            let mut params = pallet_subspace::Pallet::subnet_params(subnet_id);
+            let mut params = pallet_subspace::Pallet::subnet_params(netuid);
             params.founder = founder;
-            params.name = name;
             params.founder_share = founder_share;
+            params.name = name;
+            params.metadata = metadata;
             params.immunity_period = immunity_period;
             params.incentive_ratio = incentive_ratio;
             params.max_allowed_uids = max_allowed_uids;
@@ -256,13 +260,14 @@ pub mod pallet {
             params.maximum_set_weight_calls_per_epoch = maximum_set_weight_calls_per_epoch;
             params.governance_config.vote_mode = vote_mode;
             params.bonds_ma = bonds_ma;
+            params.min_burn = min_burn;
+            params.max_burn = max_burn;
             params.target_registrations_interval = target_registrations_interval;
             params.target_registrations_per_interval = target_registrations_per_interval;
             params.max_registrations_per_interval = max_registrations_per_interval;
             params.adjustment_alpha = adjustment_alpha;
             params.min_validator_stake = min_validator_stake;
-
-            Self::do_add_subnet_params_proposal(origin, subnet_id, data, params)
+            Self::do_add_subnet_params_proposal(origin, netuid, data, params)
         }
 
         #[pallet::call_index(2)]
@@ -275,10 +280,10 @@ pub mod pallet {
         #[pallet::weight((<T as pallet::Config>::WeightInfo::add_subnet_custom_proposal(), DispatchClass::Normal, Pays::No))]
         pub fn add_subnet_custom_proposal(
             origin: OriginFor<T>,
-            subnet_id: u16,
+            netuid: u16,
             data: Vec<u8>,
         ) -> DispatchResult {
-            Self::do_add_subnet_custom_proposal(origin, subnet_id, data)
+            Self::do_add_subnet_custom_proposal(origin, netuid, data)
         }
 
         #[pallet::call_index(4)]
