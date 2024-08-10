@@ -4804,7 +4804,7 @@ dependencies = [
 
 [[package]]
 name = "node-subspace-runtime"
-version = "1.8.1"
+version = "1.8.2"
 dependencies = [
  "fp-account",
  "fp-rpc",
@@ -5279,7 +5279,7 @@ dependencies = [
 
 [[package]]
 name = "pallet-subspace"
-version = "1.8.1"
+version = "1.8.2"
 dependencies = [
  "bty",
  "frame-benchmarking",
