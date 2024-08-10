@@ -366,6 +366,7 @@ pub mod pallet {
                 adjustment_alpha: module_burn_defaults.adjustment_alpha,
 
                 min_validator_stake: DefaultMinValidatorStake::<T>::get(),
+                max_allowed_validators: None,
                 governance_config: GovernanceConfiguration {
                     vote_mode: VoteMode::Authority,
                     ..Default::default()
@@ -406,6 +407,7 @@ pub mod pallet {
         pub max_registrations_per_interval: u16,
         pub adjustment_alpha: u64,
         pub min_validator_stake: u64,
+        pub max_allowed_validators: Option<u16>,
         pub governance_config: GovernanceConfiguration,
     }
 
@@ -1016,6 +1018,7 @@ pub mod pallet {
             max_registrations_per_interval: u16,
             adjustment_alpha: u64,
             min_validator_stake: u64,
+            max_allowed_validators: Option<u16>,
         ) -> DispatchResult {
             let params = SubnetParams {
                 founder,
@@ -1038,6 +1041,7 @@ pub mod pallet {
                 max_registrations_per_interval,
                 adjustment_alpha,
                 min_validator_stake,
+                max_allowed_validators,
                 governance_config: GovernanceConfiguration {
                     vote_mode,
                     ..T::get_subnet_governance_configuration(netuid)
