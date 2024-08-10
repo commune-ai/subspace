@@ -69,6 +69,7 @@ impl<T: Config> SubnetChangeset<T> {
         Pallet::<T>::deposit_event(Event::SubnetParamsUpdated(netuid));
 
         SubnetMetadata::<T>::set(netuid, self.params.metadata);
+        MaxAllowedValidators::<T>::insert(netuid, self.params.max_allowed_validators);
 
         Ok(())
     }
@@ -140,6 +141,13 @@ impl<T: Config> SubnetChangeset<T> {
             params.min_validator_stake <= 250_000_000_000_000,
             Error::<T>::InvalidMinValidatorStake
         );
+
+        if let Some(max_allowed_validators) = params.max_allowed_validators {
+            ensure!(
+                max_allowed_validators >= 10,
+                Error::<T>::InvalidMaxAllowedValidators
+            );
+        }
 
         match Pallet::<T>::get_netuid_for_name(&params.name) {
             Some(id) if netuid.is_some_and(|netuid| netuid == id) => { /* subnet kept same name */ }
