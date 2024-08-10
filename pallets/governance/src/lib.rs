@@ -37,7 +37,7 @@ pub mod pallet {
         PalletId,
     };
     use frame_system::pallet_prelude::{ensure_signed, BlockNumberFor};
-    use pallet_subspace::DefaultKey;
+    use pallet_subspace::{global::GeneralBurnConfiguration, DefaultKey};
     use sp_runtime::traits::AccountIdConversion;
 
     const STORAGE_VERSION: StorageVersion = StorageVersion::new(1);
@@ -236,12 +236,7 @@ pub mod pallet {
             maximum_set_weight_calls_per_epoch: u16,
             vote_mode: VoteMode,
             bonds_ma: u64,
-            min_burn: u64,
-            max_burn: u64,
-            target_registrations_interval: u16,
-            target_registrations_per_interval: u16,
-            max_registrations_per_interval: u16,
-            adjustment_alpha: u64,
+            module_burn_config: GeneralBurnConfiguration<T>,
             min_validator_stake: u64,
             max_allowed_validators: Option<u16>,
         ) -> DispatchResult {
@@ -261,12 +256,7 @@ pub mod pallet {
             params.maximum_set_weight_calls_per_epoch = maximum_set_weight_calls_per_epoch;
             params.governance_config.vote_mode = vote_mode;
             params.bonds_ma = bonds_ma;
-            params.min_burn = min_burn;
-            params.max_burn = max_burn;
-            params.target_registrations_interval = target_registrations_interval;
-            params.target_registrations_per_interval = target_registrations_per_interval;
-            params.max_registrations_per_interval = max_registrations_per_interval;
-            params.adjustment_alpha = adjustment_alpha;
+            params.module_burn_config = module_burn_config;
             params.min_validator_stake = min_validator_stake;
             params.max_allowed_validators = max_allowed_validators;
             Self::do_add_subnet_params_proposal(origin, netuid, data, params)

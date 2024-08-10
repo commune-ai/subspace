@@ -1,5 +1,6 @@
 use crate::mock::*;
 use frame_support::assert_err;
+use global::GeneralBurnConfiguration;
 use pallet_governance::{GovernanceConfiguration, SubnetGovernanceConfig, VoteMode};
 use pallet_subspace::*;
 use sp_runtime::Percent;
@@ -59,10 +60,6 @@ fn subnet_update_changes_all_parameter_values() {
             trust_ratio: 11,
             maximum_set_weight_calls_per_epoch: 12,
             bonds_ma: 13,
-            target_registrations_interval: 14,
-            target_registrations_per_interval: 15,
-            max_registrations_per_interval: 16,
-            adjustment_alpha: 17,
             min_validator_stake: to_nano(50_000),
             max_allowed_validators: Some(18),
             governance_config: GovernanceConfiguration {
@@ -73,8 +70,15 @@ fn subnet_update_changes_all_parameter_values() {
                 max_proposal_reward_treasury_allocation: 21,
                 proposal_reward_interval: 22,
             },
-            min_burn: 20000000000,
-            max_burn: 21000000000,
+            module_burn_config: GeneralBurnConfiguration {
+                min_burn: to_nano(15),
+                max_burn: to_nano(24),
+                target_registrations_interval: 25,
+                target_registrations_per_interval: 26,
+                max_registrations_per_interval: 27,
+                adjustment_alpha: 28,
+                ..Default::default()
+            },
         };
 
         let SubnetParams {
@@ -92,19 +96,13 @@ fn subnet_update_changes_all_parameter_values() {
             trust_ratio,
             maximum_set_weight_calls_per_epoch,
             bonds_ma,
-            min_burn,
-            max_burn,
-            target_registrations_interval,
-            target_registrations_per_interval,
-            max_registrations_per_interval,
-            adjustment_alpha,
+            module_burn_config,
             min_validator_stake,
             max_allowed_validators,
             governance_config,
         } = params.clone();
 
         SubnetChangeset::<Test>::update(netuid, params).unwrap().apply(netuid).unwrap();
-
         assert_eq!(Founder::<Test>::get(netuid), founder);
         assert_eq!(FounderShare::<Test>::get(netuid), founder_share);
         assert_eq!(ImmunityPeriod::<Test>::get(netuid), immunity_period);
@@ -121,31 +119,13 @@ fn subnet_update_changes_all_parameter_values() {
             Some(maximum_set_weight_calls_per_epoch)
         );
         assert_eq!(BondsMovingAverage::<Test>::get(netuid), bonds_ma);
-        assert_eq!(ModuleBurnConfig::<Test>::get(netuid).min_burn, min_burn);
-        assert_eq!(ModuleBurnConfig::<Test>::get(netuid).max_burn, max_burn);
-        assert_eq!(
-            ModuleBurnConfig::<Test>::get(netuid).target_registrations_interval,
-            target_registrations_interval
-        );
-        assert_eq!(
-            ModuleBurnConfig::<Test>::get(netuid).target_registrations_per_interval,
-            target_registrations_per_interval
-        );
-        assert_eq!(
-            ModuleBurnConfig::<Test>::get(netuid).max_registrations_per_interval,
-            max_registrations_per_interval
-        );
-        assert_eq!(
-            ModuleBurnConfig::<Test>::get(netuid).adjustment_alpha,
-            adjustment_alpha
-        );
+        assert_eq!(ModuleBurnConfig::<Test>::get(netuid), module_burn_config);
         assert_eq!(MinValidatorStake::<Test>::get(netuid), min_validator_stake);
-
+        assert_eq!(MinValidatorStake::<Test>::get(netuid), min_validator_stake);
         assert_eq!(
             SubnetGovernanceConfig::<Test>::get(netuid),
             governance_config
         );
-
         assert_eq!(SubspaceMod::get_total_subnets(), 1);
         assert_eq!(N::<Test>::get(netuid), 1);
         assert_eq!(SubnetMetadata::<Test>::get(netuid), metadata);
@@ -252,12 +232,7 @@ fn update_subnet_verifies_names_uniquiness_integrity() {
                 params.maximum_set_weight_calls_per_epoch,
                 params.governance_config.vote_mode,
                 params.bonds_ma,
-                params.min_burn,
-                params.max_burn,
-                params.target_registrations_interval,
-                params.target_registrations_per_interval,
-                params.max_registrations_per_interval,
-                params.adjustment_alpha,
+                params.module_burn_config,
                 params.min_validator_stake,
                 params.max_allowed_validators,
             )
