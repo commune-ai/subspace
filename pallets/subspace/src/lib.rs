@@ -733,6 +733,8 @@ pub mod pallet {
         RootnetSubnetNotFound,
         /// MinValidatorStake must be lower than 250k
         InvalidMinValidatorStake,
+        /// The maximum allowed validators value is invalid, minimum is 10.
+        InvalidMaxAllowedValidators,
     }
 
     // ---------------------------------
