@@ -339,8 +339,6 @@ pub mod pallet {
         // TODO: not hardcode values here, get them from the storages instead,
         // if they implement default already.
         pub fn get() -> SubnetParams<T> {
-            let module_burn_defaults = GeneralBurnConfiguration::<T>::default_for(BurnType::Module);
-
             SubnetParams {
                 name: BoundedVec::default(),
                 tempo: 100,
@@ -357,14 +355,7 @@ pub mod pallet {
                 bonds_ma: 900_000,
 
                 // registrations
-                min_burn: module_burn_defaults.min_burn,
-                max_burn: module_burn_defaults.max_burn,
-                target_registrations_interval: module_burn_defaults.target_registrations_interval,
-                target_registrations_per_interval: module_burn_defaults
-                    .target_registrations_per_interval,
-                max_registrations_per_interval: module_burn_defaults.max_registrations_per_interval,
-                adjustment_alpha: module_burn_defaults.adjustment_alpha,
-
+                module_burn_config: GeneralBurnConfiguration::<T>::default_for(BurnType::Module),
                 min_validator_stake: DefaultMinValidatorStake::<T>::get(),
                 max_allowed_validators: None,
                 governance_config: GovernanceConfiguration {
@@ -399,13 +390,7 @@ pub mod pallet {
         pub maximum_set_weight_calls_per_epoch: u16,
         // consensus
         pub bonds_ma: u64,
-        // registrations
-        pub min_burn: u64,
-        pub max_burn: u64,
-        pub target_registrations_interval: u16,
-        pub target_registrations_per_interval: u16,
-        pub max_registrations_per_interval: u16,
-        pub adjustment_alpha: u64,
+        pub module_burn_config: GeneralBurnConfiguration<T>,
         pub min_validator_stake: u64,
         pub max_allowed_validators: Option<u16>,
         pub governance_config: GovernanceConfiguration,
@@ -1013,12 +998,7 @@ pub mod pallet {
             maximum_set_weight_calls_per_epoch: u16,
             vote_mode: VoteMode,
             bonds_ma: u64,
-            min_burn: u64,
-            max_burn: u64,
-            target_registrations_interval: u16,
-            target_registrations_per_interval: u16,
-            max_registrations_per_interval: u16,
-            adjustment_alpha: u64,
+            module_burn_config: GeneralBurnConfiguration<T>,
             min_validator_stake: u64,
             max_allowed_validators: Option<u16>,
         ) -> DispatchResult {
@@ -1036,12 +1016,7 @@ pub mod pallet {
                 trust_ratio,
                 maximum_set_weight_calls_per_epoch,
                 bonds_ma,
-                min_burn,
-                max_burn,
-                target_registrations_interval,
-                target_registrations_per_interval,
-                max_registrations_per_interval,
-                adjustment_alpha,
+                module_burn_config,
                 min_validator_stake,
                 max_allowed_validators,
                 governance_config: GovernanceConfiguration {
