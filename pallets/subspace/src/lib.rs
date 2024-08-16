@@ -13,9 +13,7 @@ use frame_support::{
     dispatch,
     dispatch::{DispatchInfo, PostDispatchInfo},
     ensure,
-    traits::{
-        tokens::WithdrawReasons, ConstU16, ConstU32, Currency, ExistenceRequirement, IsSubType,
-    },
+    traits::{tokens::WithdrawReasons, ConstU32, Currency, ExistenceRequirement, IsSubType},
     PalletId,
 };
 
@@ -60,6 +58,7 @@ pub mod pallet {
     use super::*;
     pub use crate::weights::WeightInfo;
     use frame_support::{
+        dispatch::DispatchResult,
         pallet_prelude::{ValueQuery, *},
         traits::Currency,
         Identity,
@@ -69,7 +68,7 @@ pub mod pallet {
     use module::ModuleChangeset;
     use pallet_governance_api::{GovernanceConfiguration, VoteMode};
     use sp_arithmetic::per_things::Percent;
-    use sp_core::{ConstU64, ConstU8};
+    use sp_core::{ConstU16, ConstU64, ConstU8};
     pub use sp_std::{vec, vec::Vec};
 
     const STORAGE_VERSION: StorageVersion = StorageVersion::new(13);
@@ -429,6 +428,10 @@ pub mod pallet {
         FloorFounderShare::<T>::get() as u16
     }
 
+    #[pallet::storage]
+    pub type ValidatorBlacklist<T: Config> =
+        StorageMap<_, Identity, u16, BTreeSet<T::AccountId>, ValueQuery>;
+
     // ---------------------------------
     // Module Variables
     // ---------------------------------
@@ -720,6 +723,12 @@ pub mod pallet {
         InvalidMinValidatorStake,
         /// The maximum allowed validators value is invalid, minimum is 10.
         InvalidMaxAllowedValidators,
+        /// The subject is not a module
+        NotAModule,
+        /// Module is already on the subnet blacklist
+        AlreadyBlacklisted,
+        /// Module is not on the subnet blacklist
+        NotBlacklisted,
     }
 
     // ---------------------------------
@@ -1047,6 +1056,26 @@ pub mod pallet {
             metadata: Option<Vec<u8>>,
         ) -> DispatchResult {
             Self::do_register_subnet(origin, name, metadata)
+        }
+
+        #[pallet::call_index(13)]
+        #[pallet::weight((T::WeightInfo::delegate_rootnet_control(), DispatchClass::Normal, Pays::No))]
+        pub fn add_blacklist(
+            origin: OriginFor<T>,
+            netuid: u16,
+            module: T::AccountId,
+        ) -> DispatchResult {
+            Self::do_add_blacklist(origin, netuid, module)
+        }
+
+        #[pallet::call_index(14)]
+        #[pallet::weight((T::WeightInfo::delegate_rootnet_control(), DispatchClass::Normal, Pays::No))]
+        pub fn remove_blacklist(
+            origin: OriginFor<T>,
+            netuid: u16,
+            module: T::AccountId,
+        ) -> DispatchResult {
+            Self::do_remove_blacklist(origin, netuid, module)
         }
     }
 }
