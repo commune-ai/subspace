@@ -4,8 +4,8 @@ use frame_support::{ensure, DebugNoBound};
 use pallet_subspace::{
     math::*, Active, Bonds, BondsMovingAverage, Config, Consensus, Dividends, Emission, Founder,
     Incentive, Kappa, Keys, LastUpdate, MaxAllowedValidators, MaxWeightAge,
-    Pallet as PalletSubspace, PruningScores, Rank, Trust, Uids, ValidatorPermits, ValidatorTrust,
-    Vec, Weights, N,
+    Pallet as PalletSubspace, PruningScores, Rank, Trust, Uids, ValidatorBlacklist,
+    ValidatorPermits, ValidatorTrust, Vec, Weights, N,
 };
 use sp_std::vec;
 use substrate_fixed::types::{I32F32, I64F64, I96F32};
@@ -103,26 +103,32 @@ impl<T: Config> YumaEpoch<T> {
         let max_validators = self.max_allowed_validators;
         let mut new_permits = vec![false; stake.as_ref().len()];
 
-        let mut sorted_indexed_stake: Vec<(u16, u64)> = (0u16..(stake.as_ref().len() as u16))
+        let mut sorted_indexed_stake: Vec<(u16, T::AccountId, u64)> = (0u16..(stake.as_ref().len()
+            as u16))
             .map(|idx| {
-                (
-                    idx,
-                    match PalletSubspace::<T>::get_key_for_uid(self.netuid, idx) {
-                        Some(key) => PalletSubspace::<T>::get_delegated_stake(&key),
-                        None => 0,
-                    },
-                )
+                let key = match PalletSubspace::<T>::get_key_for_uid(self.netuid, idx) {
+                    Some(key) => key,
+                    None => return Err(EmissionError::Other("module doesn't have a key")),
+                };
+
+                let stake = PalletSubspace::<T>::get_delegated_stake(&key);
+                Ok((idx, key, stake))
             })
-            .collect::<Vec<_>>();
-        sorted_indexed_stake.sort_by_key(|(_idx, stake)| *stake);
+            .collect::<Result<Vec<_>, EmissionError>>()?;
+        sorted_indexed_stake.sort_by_key(|(_, _, stake)| *stake);
         sorted_indexed_stake.reverse();
 
+        let blacklist = ValidatorBlacklist::<T>::get(self.netuid);
         let current_block = PalletSubspace::<T>::get_current_block_number();
         let min_stake = pallet_subspace::MinValidatorStake::<T>::get(self.netuid);
         let mut validator_count = 0;
-        for (idx, stake) in sorted_indexed_stake {
+        for (idx, key, stake) in sorted_indexed_stake {
             if max_validators.is_some_and(|max| max <= validator_count) {
                 break;
+            }
+
+            if blacklist.contains(&key) {
+                continue;
             }
 
             if stake < min_stake {

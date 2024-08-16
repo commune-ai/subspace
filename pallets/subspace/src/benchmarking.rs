@@ -212,24 +212,22 @@ benchmarks! {
         netuid,
         params.founder,
         params.founder_share,
+        params.name.clone(),
+        params.metadata.clone(),
         params.immunity_period,
         params.incentive_ratio,
         params.max_allowed_uids,
         params.max_allowed_weights,
         params.min_allowed_weights,
         params.max_weight_age,
-        params.name.clone(),
-        params.metadata.clone(),
         params.tempo,
         params.trust_ratio,
         params.maximum_set_weight_calls_per_epoch,
         params.governance_config.vote_mode,
         params.bonds_ma,
-        params.target_registrations_interval,
-        params.target_registrations_per_interval,
-        params.max_registrations_per_interval,
-        params.adjustment_alpha,
-        params.min_validator_stake
+        params.module_burn_config,
+        params.min_validator_stake,
+        params.max_allowed_validators
     )
     // 11
     delegate_rootnet_control {
@@ -243,6 +241,7 @@ benchmarks! {
         T::set_subnet_consensus_type(netuid, Some(SubnetConsensus::Root));
     }: delegate_rootnet_control(RawOrigin::Signed(module_key), module_key2)
 
+    // 12
     register_subnet {
         let key: T::AccountId = account("Alice", 0, 1);
         let stake = 100000000000000u64;
@@ -252,4 +251,22 @@ benchmarks! {
         );
     }: register_subnet(RawOrigin::Signed(key.clone()), "testnet".as_bytes().to_vec(), Some(b"testmetadata".to_vec()))
 
+    add_blacklist {
+        let owner: T::AccountId = account("Alice", 0, 1);
+        let stake = 100000000000000u64;
+        let blacklisted: T::AccountId = account("Module", 0, 2);
+        register_mock::<T>(owner.clone(), owner.clone(), b"owner".to_vec()).unwrap();
+        register_mock::<T>(owner.clone(), owner.clone(), b"blacklisted".to_vec()).unwrap();
+        let netuid = SubspaceMod::<T>::get_netuid_for_name(b"testnet").unwrap();
+    }: add_blacklist(RawOrigin::Signed(owner), netuid, blacklisted)
+
+    remove_blacklist {
+        let owner: T::AccountId = account("Alice", 0, 1);
+        let stake = 100000000000000u64;
+        let blacklisted: T::AccountId = account("Module", 0, 2);
+        register_mock::<T>(owner.clone(), owner.clone(), b"owner".to_vec()).unwrap();
+        register_mock::<T>(owner.clone(), owner.clone(), b"blacklisted".to_vec()).unwrap();
+        let netuid = SubspaceMod::<T>::get_netuid_for_name(b"testnet").unwrap();
+        SubspaceMod::<T>::add_blacklist(RawOrigin::Signed(owner.clone()).into(), netuid, blacklisted.clone()).unwrap();
+    }: remove_blacklist(RawOrigin::Signed(owner), netuid, blacklisted)
 }
