@@ -105,6 +105,7 @@ pub mod pallet {
         type DefaultModuleMinBurn: Get<u64>;
         /// The default minimum burn amount required for module registration.
         type DefaultSubnetMinBurn: Get<u64>;
+        type DefaultMinValidatorStake: Get<u64>;
 
         /// The weight information of this pallet.
         type WeightInfo: WeightInfo;
@@ -321,17 +322,8 @@ pub mod pallet {
     // ---------------------------------
 
     #[pallet::storage]
-    pub type DefaultMinValidatorStake<T: Config> =
-        StorageValue<_, u64, ValueQuery, ConstU64<50_000_000_000_000>>;
-
-    #[pallet::type_value]
-    pub fn GetDefaultMinValidatorStake<T: Config>() -> u64 {
-        DefaultMinValidatorStake::<T>::get()
-    }
-
-    #[pallet::storage]
     pub type MinValidatorStake<T: Config> =
-        StorageMap<_, Identity, u16, u64, ValueQuery, GetDefaultMinValidatorStake<T>>;
+        StorageMap<_, Identity, u16, u64, ValueQuery, T::DefaultMinValidatorStake>;
 
     pub struct DefaultSubnetParams<T: Config>(sp_std::marker::PhantomData<((), T)>);
 
@@ -356,7 +348,7 @@ pub mod pallet {
 
                 // registrations
                 module_burn_config: GeneralBurnConfiguration::<T>::default_for(BurnType::Module),
-                min_validator_stake: DefaultMinValidatorStake::<T>::get(),
+                min_validator_stake: T::DefaultMinValidatorStake::get(),
                 max_allowed_validators: None,
                 governance_config: GovernanceConfiguration {
                     vote_mode: VoteMode::Authority,

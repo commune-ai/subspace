@@ -365,6 +365,7 @@ impl pallet_subspace::Config for Runtime {
     type DefaultModuleMinBurn = ConstU64<10_000_000_000>;
     type DefaultSubnetMinBurn = ConstU64<2_000_000_000_000>;
     type WeightInfo = pallet_subspace::weights::SubstrateWeight<Runtime>;
+    type DefaultMinValidatorStake = ConstU64<50_000_000_000_000>;
 }
 
 impl pallet_governance::Config for Runtime {

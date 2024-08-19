@@ -130,7 +130,7 @@ pub mod v13 {
             SubnetNames::<T>::insert(2, b"General".to_vec());
 
             for key in N::<T>::iter_keys() {
-                MinValidatorStake::<T>::insert(key, GetDefaultMinValidatorStake::<T>::get());
+                MinValidatorStake::<T>::insert(key, T::DefaultMinValidatorStake::get());
             }
 
             for netuid in N::<T>::iter_keys() {
