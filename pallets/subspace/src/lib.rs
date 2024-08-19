@@ -723,8 +723,6 @@ pub mod pallet {
         InvalidMinValidatorStake,
         /// The maximum allowed validators value is invalid, minimum is 10.
         InvalidMaxAllowedValidators,
-        /// The subject is not a module
-        NotAModule,
         /// Module is already on the subnet blacklist
         AlreadyBlacklisted,
         /// Module is not on the subnet blacklist

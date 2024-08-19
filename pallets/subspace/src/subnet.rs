@@ -574,11 +574,6 @@ impl<T: Config> Pallet<T> {
         let params = Self::subnet_params(netuid);
         ensure!(params.founder == key, Error::<T>::NotFounder);
 
-        ensure!(
-            Uids::<T>::get(netuid, &module).is_some(),
-            Error::<T>::NotAModule
-        );
-
         let mut blacklist = ValidatorBlacklist::<T>::get(netuid);
         ensure!(!blacklist.contains(&module), Error::<T>::AlreadyBlacklisted);
 
@@ -597,11 +592,6 @@ impl<T: Config> Pallet<T> {
 
         let params = Self::subnet_params(netuid);
         ensure!(params.founder == key, Error::<T>::NotFounder);
-
-        ensure!(
-            Uids::<T>::get(netuid, &module).is_some(),
-            Error::<T>::NotAModule
-        );
 
         let mut blacklist = ValidatorBlacklist::<T>::get(netuid);
         ensure!(blacklist.contains(&module), Error::<T>::NotBlacklisted);
