@@ -1,6 +1,7 @@
 use super::*;
 use frame_support::pallet_prelude::DispatchResult;
 use pallet_subnet_emission_api::SubnetConsensus;
+use sp_std::collections::btree_set::BTreeSet;
 
 impl<T: Config> Pallet<T> {
     /// Sets weights for a node in a specific subnet.   
@@ -129,8 +130,7 @@ impl<T: Config> Pallet<T> {
 
     #[must_use]
     fn contains_duplicates(items: &[u16]) -> bool {
-        let mut seen = sp_std::collections::btree_set::BTreeSet::new();
-        items.iter().any(|item| !seen.insert(item))
+        items.len() > BTreeSet::from_iter(items.iter()).len()
     }
 
     pub fn perform_uid_validity_check(uids: &[u16], netuid: u16) -> DispatchResult {
