@@ -32,7 +32,7 @@ fn test_dividends_same_stake() {
         // SETUP NETWORK
         register_n_modules(netuid, n, stake_per_module, false);
         SubnetConsensusType::<Test>::insert(netuid, SubnetConsensus::Linear);
-
+        insert_keys_into_legit_whitelist();
         // Set rootnet weight
         set_weights(0, u32::MAX, vec![netuid], vec![1]);
 
@@ -129,7 +129,7 @@ fn test_dividends_diff_stake() {
             assert_ok!(register_module(netuid, key, stake, false));
         }
         SubnetConsensusType::<Test>::insert(netuid, SubnetConsensus::Linear);
-
+        insert_keys_into_legit_whitelist();
         // Set rootnet weight
         set_weights(0, u32::MAX, vec![netuid], vec![1]);
 
@@ -344,6 +344,8 @@ fn test_lowest_priority_mechanism() {
             }
         }
 
+        insert_keys_into_legit_whitelist();
+
         set_weights(
             netuid,
             keys[voter_idx as usize],
@@ -428,6 +430,8 @@ fn test_incentives() {
         let weight_uids: Vec<u16> = [1, 2].to_vec();
         let weight_values: Vec<u16> = [1, 1].to_vec();
 
+        insert_keys_into_legit_whitelist();
+
         set_weights(netuid, keys[0], weight_uids.clone(), weight_values.clone());
         // Make sure network will run the consensus ditribution
         PendingEmission::<Test>::insert(netuid, 90000000000000);
@@ -495,6 +499,8 @@ fn test_trust() {
         // do a list of ones for weights
         let weight_uids: Vec<u16> = [2].to_vec();
         let weight_values: Vec<u16> = [1].to_vec();
+
+        insert_keys_into_legit_whitelist();
 
         set_weights(netuid, keys[8], weight_uids.clone(), weight_values.clone());
         // do a list of ones for weights
@@ -698,7 +704,7 @@ fn test_10_graph() {
     /// Function for adding a nodes to the graph.
     fn add_node(netuid: u16, key: AccountId, uid: u16, stake_amount: u64) {
         log::info!(
-            "+Add net:{:?} hotkey:{:?} uid:{:?} stake_amount: {:?} subn: {:?}",
+            "+Add net:{:?} key:{:?} uid:{:?} stake_amount: {:?} subn: {:?}",
             netuid,
             key,
             uid,

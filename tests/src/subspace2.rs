@@ -56,7 +56,7 @@ fn test_ownership_ratio() {
                 pre_delegate_stake_from_vector.len() + i + 1
             );
         }
-        let ownership_ratios = SubspaceMod::get_ownership_ratios(netuid, &voter_key);
+        let ownership_ratios = SubspaceMod::get_ownership_ratios(&voter_key);
         assert_eq!(ownership_ratios.len(), delegate_keys.len() + 1);
 
         let total_balance = keys
@@ -181,7 +181,7 @@ fn test_ownership_ratio() {
                 );
             }
             let ownership_ratios: Vec<(U256, I64F64)> =
-                SubspaceMod::get_ownership_ratios(netuid, k);
+                SubspaceMod::get_ownership_ratios(k);
 
             assert_eq!(ownership_ratios.len(), delegate_keys.len() + 1);
             info!("OWNERSHIP RATIOS: {ownership_ratios:?}");

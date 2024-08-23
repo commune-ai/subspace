@@ -172,7 +172,7 @@ impl GovernanceApi<<Test as frame_system::Config>::AccountId> for Test {
     }
 
     fn whitelisted_keys() -> BTreeSet<AccountId> {
-        Default::default()
+        pallet_governance::LegitWhitelist::<Test>::iter_keys().collect()
     }
 
     fn get_curator() -> <Test as frame_system::Config>::AccountId {
@@ -717,6 +717,15 @@ pub fn zero_min_burn() {
 #[allow(dead_code)]
 pub fn zero_min_validator_stake() {
     set_default_min_validator_stake(0);
+}
+
+#[allow(dead_code)]
+pub fn insert_keys_into_legit_whitelist() {
+    let netuid = Test::get_consensus_netuid(SubnetConsensus::Linear).unwrap();
+    let keys = SubspaceMod::get_keys(netuid);
+    for key in &keys {
+        pallet_governance::LegitWhitelist::<Test>::insert(key, 1u8);
+    }
 }
 
 macro_rules! update_params {

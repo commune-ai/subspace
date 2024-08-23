@@ -156,7 +156,7 @@ pub mod pallet {
     #[pallet::storage]
     pub type CuratorApplications<T: Config> = StorageMap<_, Identity, u64, CuratorApplication<T>>;
 
-    // whitelist for the base subnet (netuid 0)
+    // whitelist for the base subnet (netuid 2)
     #[pallet::storage]
     pub type LegitWhitelist<T: Config> = StorageMap<_, Identity, T::AccountId, u8, ValueQuery>;
 

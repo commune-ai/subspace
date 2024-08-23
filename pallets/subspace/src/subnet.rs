@@ -463,12 +463,8 @@ impl<T: Config> Pallet<T> {
         (token_emission, founder_emission)
     }
 
-    pub fn get_ownership_ratios(
-        netuid: u16,
-        module_key: &T::AccountId,
-    ) -> Vec<(T::AccountId, I64F64)> {
+    pub fn get_ownership_ratios(module_key: &T::AccountId) -> Vec<(T::AccountId, I64F64)> {
         let stake_from_vector = Self::get_stake_from_vector(module_key);
-        let _uid = Self::get_uid_for_key(netuid, module_key);
         let mut total_stake_from: I64F64 = I64F64::from_num(0);
 
         let mut ownership_vector: Vec<(T::AccountId, I64F64)> = Vec::new();
@@ -561,6 +557,13 @@ impl<T: Config> Pallet<T> {
         matches!(
             T::get_subnet_consensus_type(netuid),
             Some(SubnetConsensus::Root)
+        )
+    }
+
+    pub fn is_linear(netuid: u16) -> bool {
+        matches!(
+            T::get_subnet_consensus_type(netuid),
+            Some(SubnetConsensus::Linear)
         )
     }
 

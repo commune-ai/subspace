@@ -289,8 +289,7 @@ impl<T: Config> YumaEpoch<T> {
             };
 
             if validator_emission > 0 {
-                let ownership_vector =
-                    PalletSubspace::<T>::get_ownership_ratios(self.netuid, &module_key.0);
+                let ownership_vector = PalletSubspace::<T>::get_ownership_ratios(&module_key.0);
                 let delegation_fee = PalletSubspace::<T>::get_delegation_fee(&module_key.0);
 
                 let total_validator_emission = I64F64::from_num(validator_emission);

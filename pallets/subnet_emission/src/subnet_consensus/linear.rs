@@ -5,7 +5,8 @@ use pallet_subnet_emission_api::SubnetConsensus;
 // use frame_support::{pallet_prelude::Weight, weights::RuntimeDbWeight};
 use pallet_subspace::{
     math::*, Config, Dividends, Emission, Founder, GlobalParams, Incentive, IncentiveRatio,
-    LastUpdate, Pallet as PalletSubspace, SubnetParams, Trust, TrustRatio, Vec, Weights, N,
+    LastUpdate, MaxAllowedValidators, Pallet as PalletSubspace, SubnetParams, Trust, TrustRatio,
+    ValidatorBlacklist, ValidatorPermits, Vec, Weights, N,
 };
 // use sp_core::Get;
 use sp_std::vec;
@@ -44,6 +45,7 @@ pub struct LinearEpoch<T: Config + pallet::Config> {
     global_params: GlobalParams<T>,
     subnet_params: SubnetParams<T>,
     linear_netuid: u16,
+    max_allowed_validators: Option<u16>,
     _pd: PhantomData<T>,
 }
 
@@ -74,6 +76,7 @@ impl<T: Config + pallet::Config> LinearEpoch<T> {
 
             linear_netuid: Pallet::<T>::get_consensus_netuid(SubnetConsensus::Linear).unwrap_or(2),
 
+            max_allowed_validators: MaxAllowedValidators::<T>::get(netuid),
             _pd: Default::default(),
         }
     }
@@ -106,7 +109,57 @@ impl<T: Config + pallet::Config> LinearEpoch<T> {
             .collect();
 
         let mut stake: Vec<I32F32> = stake_f64.iter().map(|x| I32F32::from_num(*x)).collect();
+        let max_validators = self.max_allowed_validators;
+        let mut new_permits = vec![false; stake.len()];
 
+        let mut sorted_indexed_stake: Vec<(u16, T::AccountId, u64)> = (0u16..(stake.len() as u16))
+            .map(|idx| {
+                let key = match PalletSubspace::<T>::get_key_for_uid(self.netuid, idx) {
+                    Some(key) => key,
+                    None => return Err(EmissionError::Other("module doesn't have a key")),
+                };
+
+                let stake = PalletSubspace::<T>::get_delegated_stake(&key);
+                Ok((idx, key, stake))
+            })
+            .collect::<Result<Vec<_>, EmissionError>>()?;
+        sorted_indexed_stake.sort_by_key(|(_, _, stake)| *stake);
+        sorted_indexed_stake.reverse();
+
+        let blacklist = ValidatorBlacklist::<T>::get(self.netuid);
+        let current_block = PalletSubspace::<T>::get_current_block_number();
+        let min_stake = pallet_subspace::MinValidatorStake::<T>::get(self.netuid);
+        let mut validator_count = 0;
+        for (idx, key, stake) in sorted_indexed_stake {
+            if max_validators.is_some_and(|max| max <= validator_count) {
+                break;
+            }
+
+            if blacklist.contains(&key) {
+                continue;
+            }
+
+            if stake < min_stake {
+                continue;
+            }
+
+            match pallet_subspace::WeightSetAt::<T>::get(self.netuid, idx) {
+                Some(weight_block) => {
+                    if current_block.saturating_sub(weight_block) > 7200 {
+                        continue;
+                    }
+                }
+                None => continue,
+            }
+
+            if let Some(permit) = new_permits.get_mut(idx as usize) {
+                validator_count = validator_count.saturating_add(1);
+                *permit = true;
+            }
+        }
+
+        log::info!("new permits: {new_permits:?}");
+        ValidatorPermits::<T>::set(self.netuid, new_permits);
         // Normalize stake.
         inplace_normalize(&mut stake);
 
@@ -259,7 +312,7 @@ impl<T: Config + pallet::Config> LinearEpoch<T> {
 
             if owner_dividends_emission > 0 {
                 let ownership_vector: Vec<(T::AccountId, I64F64)> =
-                    PalletSubspace::<T>::get_ownership_ratios(netuid, module_key);
+                    PalletSubspace::<T>::get_ownership_ratios(module_key);
 
                 let delegation_fee = PalletSubspace::<T>::get_delegation_fee(module_key);
 

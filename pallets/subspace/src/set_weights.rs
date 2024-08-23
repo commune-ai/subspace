@@ -127,6 +127,7 @@ impl<T: Config> Pallet<T> {
     // Utils
     // ----------
 
+    #[must_use]
     fn contains_duplicates(items: &[u16]) -> bool {
         let mut seen = sp_std::collections::btree_set::BTreeSet::new();
         items.iter().any(|item| !seen.insert(item))
@@ -140,14 +141,17 @@ impl<T: Config> Pallet<T> {
         Ok(())
     }
 
+    #[inline]
+    #[must_use]
     pub fn uid_exist_on_network(netuid: u16, uid: u16) -> bool {
-        if Self::is_rootnet(netuid) {
-            N::<T>::contains_key(uid)
-        } else {
-            Keys::<T>::contains_key(netuid, uid)
+        match (Self::is_rootnet(netuid), Self::is_linear(netuid)) {
+            (true, _) => N::<T>::contains_key(uid),
+            (_, true) => {
+                T::whitelisted_keys().contains(&Self::get_key_for_uid(netuid, uid).unwrap())
+            }
+            _ => Keys::<T>::contains_key(netuid, uid),
         }
     }
-
     // ----------------
     // Rate limiting
     // ----------------

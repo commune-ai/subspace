@@ -178,7 +178,7 @@ impl<T: Config> Pallet<T> {
             Error::<T>::InvalidDifficulty
         ); // Check that the work meets difficulty.
 
-        // --- 4. Check Work is the product of the nonce, the block number, and hotkey. Add this as
+        // --- 4. Check Work is the product of the nonce, the block number, and key. Add this as
         // used work.
         let seal: H256 = Self::create_seal_hash(block_number, nonce, &key)?;
         ensure!(seal == work_hash, Error::<T>::InvalidSeal);
@@ -220,24 +220,24 @@ impl<T: Config> Pallet<T> {
     pub fn create_seal_hash(
         block_number_u64: u64,
         nonce_u64: u64,
-        hotkey: &T::AccountId,
+        key: &T::AccountId,
     ) -> Result<H256, DispatchError> {
         let nonce = nonce_u64.to_le_bytes();
         let block_hash_at_number: H256 = Self::get_block_hash_from_u64(block_number_u64);
         let block_hash_bytes: &[u8; 32] = block_hash_at_number.as_fixed_bytes();
-        let binding = Self::hash_block_and_key(block_hash_bytes, hotkey)?;
-        let block_and_hotkey_hash_bytes: &[u8; 32] = binding.as_fixed_bytes();
+        let binding = Self::hash_block_and_key(block_hash_bytes, key)?;
+        let block_and_key_hash_bytes: &[u8; 32] = binding.as_fixed_bytes();
 
         let mut full_bytes = [0u8; 40];
         let (first_chunk, second_chunk) = full_bytes.split_at_mut(8);
         first_chunk.copy_from_slice(&nonce);
-        second_chunk.copy_from_slice(block_and_hotkey_hash_bytes);
+        second_chunk.copy_from_slice(block_and_key_hash_bytes);
         let sha256_seal_hash_vec: [u8; 32] = sha2_256(&full_bytes[..]);
         let keccak_256_seal_hash_vec: [u8; 32] = keccak_256(&sha256_seal_hash_vec);
         let seal_hash: H256 = H256::from_slice(&keccak_256_seal_hash_vec);
 
         log::trace!(
-            "hotkey:{hotkey:?} \nblock_number: {block_number_u64:?}, \nnonce_u64: {nonce_u64:?}, \nblock_hash: {block_hash_at_number:?}, \nfull_bytes: {full_bytes:?}, \nsha256_seal_hash_vec: {sha256_seal_hash_vec:?},  \nkeccak_256_seal_hash_vec: {keccak_256_seal_hash_vec:?}, \nseal_hash: {seal_hash:?}",
+            "key:{key:?} \nblock_number: {block_number_u64:?}, \nnonce_u64: {nonce_u64:?}, \nblock_hash: {block_hash_at_number:?}, \nfull_bytes: {full_bytes:?}, \nsha256_seal_hash_vec: {sha256_seal_hash_vec:?},  \nkeccak_256_seal_hash_vec: {keccak_256_seal_hash_vec:?}, \nseal_hash: {seal_hash:?}",
         );
 
         Ok(seal_hash)

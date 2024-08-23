@@ -561,7 +561,7 @@ pub mod pallet {
         WeightVecNotEqualSize,
         /// Duplicate UIDs detected in the weight matrix.
         DuplicateUids,
-        /// At least one UID in the weight matrix does not exist in the metagraph.
+        /// At least one UID is invalid. Not registered, not whitelisted, or not a subnet.
         InvalidUid,
         /// The number of UIDs in the weight matrix is different from the allowed amount.
         InvalidUidsLength,

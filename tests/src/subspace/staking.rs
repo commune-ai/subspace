@@ -193,7 +193,7 @@ fn test_ownership_ratio() {
                     pre_delegate_stake_from_vector.len() + i + 1
                 );
             }
-            let ownership_ratios: Vec<(u32, I64F64)> = SubspaceMod::get_ownership_ratios(netuid, k);
+            let ownership_ratios: Vec<(u32, I64F64)> = SubspaceMod::get_ownership_ratios(k);
 
             assert_eq!(ownership_ratios.len(), delegate_keys.len() + 1);
             log::info!("OWNERSHIP RATIOS: {ownership_ratios:?}");
