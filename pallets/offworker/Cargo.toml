@@ -24,12 +24,16 @@ std = [
     "sp-externalities/std",
     "sp-runtime/std",
     "sp-core/std",
+    "pallet-subnet-emission/std",
+    "pallet-subspace/std",
     "testthing/std",
     "pallet-aura/std",
 ]
 try-runtime = ["frame-support/try-runtime"]
 
 [dependencies]
+pallet-subnet-emission = { path = "../subnet_emission", default-features = false }
+pallet-subspace = { path = "../subspace", default-features = false }
 testthing = { path = "../../testthing", default-features = false }
 
 bty.workspace = true
