@@ -37,10 +37,7 @@ impl<T: Config> Pallet<T> {
             Error::<T>::InsufficientStake
         );
 
-        let stake_from_vector = pallet_subspace::Pallet::<T>::get_stake_from_vector(&key);
-        let has_stake_from =
-            || stake_from_vector.iter().any(|(k, stakes)| k == &key && *stakes > 0);
-        if !NotDelegatingVotingPower::<T>::get().contains(&key) && !has_stake_from() {
+        if !NotDelegatingVotingPower::<T>::get().contains(&key) && voter_delegated_stake == 0 {
             return Err(Error::<T>::VoterIsDelegatingVotingPower.into());
         }
 
