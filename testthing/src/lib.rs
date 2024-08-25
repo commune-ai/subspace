@@ -30,7 +30,7 @@ pub trait Offworker {
             .decrypt_weight(encrypted)
     }
 
-    fn get_encryption_key(&mut self) -> Vec<u8> {
+    fn get_encryption_key(&mut self) -> sp_std::vec::Vec<u8> {
         self.extension::<OffworkerExt>()
             .expect("missing offworker ext")
             .get_encryption_key()

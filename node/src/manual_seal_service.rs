@@ -135,7 +135,7 @@ pub fn new_full(mut config: Configuration) -> Result<TaskManager, ServiceError> 
                 network_provider: network.clone(),
                 enable_http_requests: true,
                 custom_extensions: |_| {
-                    vec![Box::new(testthing::OffworkerExt::new(Decrypter)) as Box<_>]
+                    vec![Box::new(testthing::OffworkerExt::new(Decrypter::default())) as Box<_>]
                 },
             })
             .run(client.clone(), task_manager.spawn_handle())
@@ -234,6 +234,7 @@ pub fn new_full(mut config: Configuration) -> Result<TaskManager, ServiceError> 
     Ok(task_manager)
 }
 
+#[derive(Default)]
 struct Decrypter {
     // TODO: swap this with the node's decryption key type and store it once it starts
     decryption_key: (),
