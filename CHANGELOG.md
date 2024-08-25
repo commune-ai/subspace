@@ -1,5 +1,9 @@
 # Changelog
 
+spec version `121`
+
+Fixing `InsufficientStake` bug in proposal voting
+
 spec version `120`
 
 Storages:
