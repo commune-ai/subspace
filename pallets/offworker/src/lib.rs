@@ -2,8 +2,6 @@
 
 extern crate alloc;
 
-use std::collections::BTreeMap;
-
 use alloc::vec::Vec;
 use frame_support::traits::Get;
 use frame_system::{
@@ -12,6 +10,7 @@ use frame_system::{
     pallet_prelude::BlockNumberFor,
 };
 use parity_scale_codec::{Decode, Encode};
+use scale_info::prelude::marker::PhantomData;
 use sp_core::crypto::KeyTypeId;
 use sp_runtime::{
     offchain::storage::{StorageRetrievalError, StorageValueRef},
@@ -123,14 +122,20 @@ pub mod pallet {
         /// You can use `Local Storage` API to coordinate runs of the worker.
         fn offchain_worker(block_number: BlockNumberFor<T>) {
             for subnet_id in [0u16; 0] {
-                let last: LastYuma<T> = todo!();
-                let current: CurrentYuma<T> = todo!();
+                let foo = ConsensusSimulationResult {
+                    cumulative_copier_divs: I64F64::from_num(0.8),
+                    cumulative_avg_delegate_divs: I64F64::from_num(1.0),
+                    min_underperf_threshold: I64F64::from_num(0.1),
+                    black_box_age: 100,
+                    max_encryption_period: 1000,
+                    _phantom: PhantomData,
+                };
 
-                if is_still_profitable(last, current) {
+                if is_copying_irrational::<T>(foo) {
                     continue;
                 }
 
-                // | 0 | 1 | 2 | 3 | 4 | 5 |
+                //  | 0 | 1 | 2 | 3 | 4 | 5 |
                 //                       ^ choose node F
                 //                   ^ choose node E
                 //               ^ choose node D
@@ -287,19 +292,55 @@ impl<T: Config> Pallet<T> {
     }
 }
 
-struct LastYuma<T: pallet_subspace::Config> {
-    emissions: BTreeMap<T::AccountId, I64F64>,
-    stakes: BTreeMap<T::AccountId, I64F64>,
+/// Represents the result of a consensus simulation.
+///
+/// # Type Parameters
+///
+/// * `T` - The configuration type for the Subspace pallet.
+///
+/// # Fields
+///
+/// * `cumulative_copier_divs` - Cumulative dividends for the copier.
+/// * `cumulative_avg_delegate_divs` - Cumulative average dividends for delegates.
+/// * `min_underperf_threshold` - Minimum underperformance threshold.
+/// * `epoch_block_sum` - Sum of blocks in the epoch.
+/// * `max_encryption_period` - Maximum encryption period.
+/// * `_phantom` - PhantomData for the generic type `T`.
+struct ConsensusSimulationResult<T: pallet_subspace::Config> {
+    cumulative_copier_divs: I64F64,
+    cumulative_avg_delegate_divs: I64F64,
+    min_underperf_threshold: I64F64,
+    black_box_age: u64,
+    max_encryption_period: u64,
+    _phantom: PhantomData<T>,
 }
 
-struct CurrentYuma<T: pallet_subspace::Config> {
-    emissions: BTreeMap<T::AccountId, I64F64>,
-    stakes: BTreeMap<T::AccountId, I64F64>,
-}
-
-fn is_still_profitable<T: pallet_subspace::Config>(
-    last: LastYuma<T>,
-    current: CurrentYuma<T>,
+/// Determines if the copier's performance is irrational based on cumulative dividends.
+///
+/// # Arguments
+///
+/// * `consensus_result` - A `ConsensusSimulationResult` struct containing simulation data.
+///
+/// # Returns
+///
+/// * `true` if the copier's cumulative dividends are significantly lower than the adjusted average
+///   delegate dividends, and the `epoch_block_sum` is less than `max_encryption_period`.
+/// * `false` otherwise, including when `epoch_block_sum` is greater than or equal to
+///   `max_encryption_period`.
+///
+/// # Note
+///
+/// The function compares `cumulative_copier_divs` against an adjusted
+/// `cumulative_avg_delegate_divs`, taking into account the `min_underperf_threshold`.
+#[must_use]
+fn is_copying_irrational<T: pallet_subspace::Config>(
+    consensus_result: ConsensusSimulationResult<T>,
 ) -> bool {
-    true
+    if consensus_result.black_box_age >= consensus_result.max_encryption_period {
+        return true;
+    }
+    consensus_result.cumulative_copier_divs
+        < I64F64::from_num(1)
+            .saturating_sub(consensus_result.min_underperf_threshold)
+            .saturating_mul(consensus_result.cumulative_avg_delegate_divs)
 }
