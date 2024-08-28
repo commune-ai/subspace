@@ -129,6 +129,16 @@ pub mod pallet {
                     log::info!("Not a validator node, skipping offchain computation.");
                     return;
                 }
+
+                let block_number: u64 =
+                    block_number.try_into().ok().expect("blockchain won't pass 2 ^ 64 blocks");
+
+                // This should always run after on_initialize, so YumaParams are already ready
+                if pallet_subspace::Pallet::<T>::blocks_until_next_epoch(subnet_id, block_number)
+                    > 0
+                {
+                    return;
+                }
                 // TODO:
                 // let foo = ConsensusSimulationResult {
                 //     cumulative_copier_divs: I64F64::from_num(0.8),
@@ -153,17 +163,6 @@ pub mod pallet {
             }
 
             log::info!("Hello World from offchain workers!");
-
-            // Since off-chain workers are just part of the runtime code, they have direct access
-            // to the storage and other included pallets.
-            //
-            // We can easily import `frame_system` and retrieve a block hash of the parent block.
-            let parent_hash = <system::Pallet<T>>::block_hash(block_number - 1u32.into());
-            log::debug!(
-                "Current block: {:?} (parent hash: {:?})",
-                block_number,
-                parent_hash
-            );
         }
     }
 
