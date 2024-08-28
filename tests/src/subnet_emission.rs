@@ -1,4 +1,4 @@
-use std::collections::BTreeMap;
+use std::{collections::BTreeMap, marker::PhantomData};
 
 use crate::mock::*;
 
@@ -6,11 +6,17 @@ use frame_support::{assert_ok, pallet_prelude::Weight, traits::Currency};
 use log::info;
 use pallet_governance::DaoTreasuryAddress;
 use pallet_subnet_emission::{
-    subnet_consensus::yuma::{AccountKey, EmissionMap, ModuleKey, YumaEpoch},
-    PendingEmission, SubnetConsensusType, SubnetEmission, UnitEmission,
+    subnet_consensus::yuma::{
+        self,
+        params::{AccountKey, ModuleKey, YumaParams},
+        EmissionMap, YumaEpoch,
+    },
+    EmissionLoweringBlock, OriginalUnitEmission, PendingEmission, SubnetConsensusType,
+    SubnetEmission, UnitEmission,
 };
 use pallet_subnet_emission_api::SubnetConsensus;
 use pallet_subspace::*;
+use substrate_fixed::types::{I32F32, I64F64};
 
 #[test]
 fn test_dividends_same_stake() {
@@ -670,16 +676,16 @@ fn test_1_graph() {
             vec![u16::MAX],
         ));
 
-        let emissions = YumaEpoch::<Test>::new(netuid, ONE).run();
+        let params = YumaParams::<Test>::new(netuid, ONE).unwrap();
+        let emissions = YumaEpoch::<Test>::new(netuid, params).run().unwrap();
         let offset = 1;
 
         assert_eq!(
-            emissions.unwrap(),
-            (
-                [(ModuleKey(key), [(AccountKey(key), ONE - offset)].into())].into(),
-                Weight::zero()
-            )
+            emissions.emission_map,
+            [(ModuleKey(key), [(AccountKey(key), ONE - offset)].into())].into()
         );
+
+        emissions.apply();
 
         let new_stake_amount = stake_amount + ONE;
 
@@ -753,8 +759,20 @@ fn test_10_graph() {
             ));
         }
 
-        let emissions = YumaEpoch::<Test>::new(netuid, ONE).run();
-        let mut expected: EmissionMap<Test> = BTreeMap::new();
+        let params = YumaParams::<Test>::new(netuid, ONE).unwrap();
+        let emissions = YumaEpoch::<Test>::new(netuid, params).run().unwrap();
+
+        let mut expected: EmissionMap<u32> = BTreeMap::new();
+        for i in 0..n as u16 {
+            expected
+                .entry(ModuleKey(i.into()))
+                .or_default()
+                .insert(AccountKey(i.into()), 99999999);
+        }
+
+        assert_eq!(emissions.emission_map, expected);
+
+        emissions.apply();
 
         // Check return values.
         let emission_per_node = ONE / n as u64;
@@ -770,15 +788,7 @@ fn test_10_graph() {
             assert_eq!(utils::get_incentive_for_uid(netuid, i), 0);
             assert_eq!(utils::get_dividends_for_uid(netuid, i), 0);
             assert_eq!(utils::get_emission_for_uid(netuid, i), 99999999);
-
-            expected
-                .entry(ModuleKey(i.into()))
-                .or_default()
-                .insert(AccountKey(i.into()), 99999999);
         }
-
-        let (actual_emissions, _) = emissions.unwrap();
-        assert_eq!(actual_emissions, expected);
     });
 }
 
@@ -1203,7 +1213,32 @@ fn yuma_does_not_fail_if_module_does_not_have_stake() {
         assert_ok!(register_module(netuid, key, stake, false));
         assert_ok!(SubspaceMod::do_remove_stake(get_origin(key), key, stake));
 
-        assert_ok!(YumaEpoch::<Test>::new(netuid, ONE).run());
+        let params = YumaParams::<Test>::new(netuid, ONE).unwrap();
+        assert_ok!(YumaEpoch::<Test>::new(netuid, params).run());
+    });
+}
+
+#[test]
+fn foo() {
+    new_test_ext().execute_with(|| {
+        register_subnet(0, 0).unwrap();
+
+        let last_params = YumaParams::<Test>::new(0, to_nano(100)).unwrap();
+        let last_output = YumaEpoch::<Test>::new(0, last_params).run().unwrap();
+
+        let now_params = YumaParams::<Test>::new(0, to_nano(50)).unwrap();
+        let now_output = YumaEpoch::<Test>::new(0, now_params).run().unwrap();
+
+        let foo = pallet_offworker::ConsensusSimulationResult {
+            cumulative_copier_divs: I64F64::from_num(0.8),
+            cumulative_avg_delegate_divs: I64F64::from_num(1.0),
+            min_underperf_threshold: I64F64::from_num(0.1),
+            black_box_age: 100,
+            max_encryption_period: 1000,
+            _phantom: PhantomData,
+        };
+
+        pallet_offworker::is_copying_irrational::<Test>(last_output, now_output, foo);
     });
 }
 

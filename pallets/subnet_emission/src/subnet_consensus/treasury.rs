@@ -6,7 +6,7 @@ use super::yuma::AccountKey;
 // Code structure to reflect other consensus types, this code is ready for additional features.
 // Whenever needed.
 pub struct TreasuryEpoch<T: Config> {
-    founder_key: AccountKey<T>,
+    founder_key: AccountKey<T::AccountId>,
     founder_emission: u64,
     _pd: PhantomData<T>,
 }

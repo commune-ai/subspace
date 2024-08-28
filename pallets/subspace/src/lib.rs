@@ -94,7 +94,7 @@ pub mod pallet {
         type RuntimeEvent: From<Event<Self>> + IsType<<Self as frame_system::Config>::RuntimeEvent>;
 
         /// Currency type that will be used to place deposits on modules.
-        type Currency: Currency<Self::AccountId> + Send + Sync;
+        type Currency: Currency<Self::AccountId, Balance = u64> + Send + Sync;
 
         /// The default number of modules that can be registered per interval.
         type DefaultMaxRegistrationsPerInterval: Get<u16>;
