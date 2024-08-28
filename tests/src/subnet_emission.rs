@@ -1222,23 +1222,23 @@ fn yuma_does_not_fail_if_module_does_not_have_stake() {
 fn foo() {
     new_test_ext().execute_with(|| {
         register_subnet(0, 0).unwrap();
+        // TODO:
+        // let last_params = YumaParams::<Test>::new(0, to_nano(100)).unwrap();
+        // let last_output = YumaEpoch::<Test>::new(0, last_params).run().unwrap();
 
-        let last_params = YumaParams::<Test>::new(0, to_nano(100)).unwrap();
-        let last_output = YumaEpoch::<Test>::new(0, last_params).run().unwrap();
+        // let now_params = YumaParams::<Test>::new(0, to_nano(50)).unwrap();
+        // let now_output = YumaEpoch::<Test>::new(0, now_params).run().unwrap();
 
-        let now_params = YumaParams::<Test>::new(0, to_nano(50)).unwrap();
-        let now_output = YumaEpoch::<Test>::new(0, now_params).run().unwrap();
+        // let foo = pallet_offworker::ConsensusSimulationResult {
+        //     cumulative_copier_divs: I64F64::from_num(0.8),
+        //     cumulative_avg_delegate_divs: I64F64::from_num(1.0),
+        //     min_underperf_threshold: I64F64::from_num(0.1),
+        //     black_box_age: 100,
+        //     max_encryption_period: 1000,
+        //     _phantom: PhantomData,
+        // };
 
-        let foo = pallet_offworker::ConsensusSimulationResult {
-            cumulative_copier_divs: I64F64::from_num(0.8),
-            cumulative_avg_delegate_divs: I64F64::from_num(1.0),
-            min_underperf_threshold: I64F64::from_num(0.1),
-            black_box_age: 100,
-            max_encryption_period: 1000,
-            _phantom: PhantomData,
-        };
-
-        pallet_offworker::is_copying_irrational::<Test>(last_output, now_output, foo);
+        // pallet_offworker::is_copying_irrational::<Test>(last_output, now_output, foo);
     });
 }
 

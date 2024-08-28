@@ -10,12 +10,13 @@ use frame_system::{
     pallet_prelude::BlockNumberFor,
 };
 use pallet_subnet_emission::subnet_consensus::yuma::{params::YumaParams, YumaOutput};
+use pallet_subspace::Weights;
 use parity_scale_codec::{Decode, Encode};
 use scale_info::prelude::marker::PhantomData;
 use sp_core::crypto::KeyTypeId;
 use sp_runtime::{
     offchain::storage::{StorageRetrievalError, StorageValueRef},
-    RuntimeDebug,
+    Percent, RuntimeDebug,
 };
 
 /// Defines application identifier for crypto keys of this module.
@@ -112,17 +113,23 @@ pub mod pallet {
 
     #[pallet::hooks]
     impl<T: Config> Hooks<BlockNumberFor<T>> for Pallet<T> {
-        /// Offchain Worker entry point.
-        ///
-        /// By implementing `fn offchain_worker` you declare a new offchain worker.
-        /// This function will be called when the node is fully synced and a new best block is
-        /// successfully imported.
-        /// Note that it's not guaranteed for offchain workers to run on EVERY block, there might
-        /// be cases where some blocks are skipped, or for some the worker runs twice (re-orgs),
-        /// so the code should be able to handle that.
-        /// You can use `Local Storage` API to coordinate runs of the worker.
+        /// Reproducing offchain worker behaivor for testing
+        #[cfg(test)]
+        fn on_initialize(_block_number: BlockNumberFor<T>) -> Weight {
+            log::info!("Hello World from on_initialize!");
+            // TODO
+            Weight::zero()
+        }
+
         fn offchain_worker(block_number: BlockNumberFor<T>) {
             for subnet_id in [0u16; 0] {
+                let is_validator = sp_io::offchain::is_validator();
+
+                if !is_validator {
+                    log::info!("Not a validator node, skipping offchain computation.");
+                    return;
+                }
+                // TODO:
                 // let foo = ConsensusSimulationResult {
                 //     cumulative_copier_divs: I64F64::from_num(0.8),
                 //     cumulative_avg_delegate_divs: I64F64::from_num(1.0),
@@ -136,13 +143,13 @@ pub mod pallet {
                 //     continue;
                 // }
 
-                //  | 0 | 1 | 2 | 3 | 4 | 5 |
-                //                       ^ choose node F
-                //                   ^ choose node E
-                //               ^ choose node D
-                //           ^ choose node C
-                //       ^ choose node B
-                //   ^ choose node A
+                //|  | 0 | 1 | 2 | 3 | 4 | 5 |
+                //|                       ^ choose node F
+                //|                   ^ choose node E
+                //|               ^ choose node D
+                //|           ^ choose node C
+                //|       ^ choose node B
+                //|   ^ choose node A
             }
 
             log::info!("Hello World from offchain workers!");
@@ -204,6 +211,17 @@ pub mod pallet {
     /// This storage entry defines when new transaction is going to be accepted.
     #[pallet::storage]
     pub(super) type NextUnsignedAt<T: Config> = StorageValue<_, BlockNumberFor<T>, ValueQuery>;
+
+    #[pallet::type_value]
+    pub fn DefaultMeasuredStakeAmount<T: Config>() -> Percent {
+        Percent::from_percent(5u8)
+    }
+
+    /// The amount of actual consensus sum stake. Used for a simulated consensus.
+    /// Weight copying representant
+    #[pallet::storage]
+    pub type MeasuredStakeAmount<T: Config> =
+        StorageValue<_, Percent, ValueQuery, DefaultMeasuredStakeAmount<T>>;
 }
 
 /// Payload used by this example crate to hold price
@@ -316,6 +334,26 @@ pub struct ConsensusSimulationResult<T: pallet_subspace::Config> {
     pub _phantom: PhantomData<T>,
 }
 
+/// Calculates the consensus simulation result
+/// determines if copying weights is irrational.
+pub fn is_copying_irrational<T: pallet_subspace::Config>(
+    netuid: u16,
+    decrypted_weights: Vec<(u8, Vec<(u8, u8)>)>,
+) -> bool {
+    // TODO:
+    // 1. Query onchain decrypted weights
+    // 2. Overwrite them by decrypted_weights
+    // 3. Query MeasuredStakeAmount
+    // 4. Query Minimum Delegation fee
+    // 5. Query onchain YumaParams
+    // 6. Generate weight copier information (consensus_stake * MeasuredStakeAmount, generate key,
+    //    uid, use last decrypted onchain weights etc.)
+    // 7. Append this weight copier information to YumaParams
+    // 8. Run YumaEpoch with the new YumaParams
+    // 9. Update ConsensusSimulationResult struct
+    // 10. Return can_decrypt(ConsensusSimulationResult)
+    true
+}
 /// Determines if the copier's performance is irrational based on cumulative dividends.
 ///
 /// # Arguments
@@ -334,9 +372,7 @@ pub struct ConsensusSimulationResult<T: pallet_subspace::Config> {
 /// The function compares `cumulative_copier_divs` against an adjusted
 /// `cumulative_avg_delegate_divs`, taking into account the `min_underperf_threshold`.
 #[must_use]
-pub fn is_copying_irrational<T: pallet_subspace::Config>(
-    last_yuma_result: YumaOutput<T>,
-    now_yuma_result: YumaOutput<T>,
+pub fn can_decrypt<T: pallet_subspace::Config>(
     consensus_result: ConsensusSimulationResult<T>,
 ) -> bool {
     if consensus_result.black_box_age >= consensus_result.max_encryption_period {
