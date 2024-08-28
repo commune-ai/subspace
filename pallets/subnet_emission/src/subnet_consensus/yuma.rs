@@ -1,199 +1,20 @@
 use crate::EmissionError;
 use core::marker::PhantomData;
 use frame_support::{ensure, weights::Weight, DebugNoBound};
-use pallet_subspace::{math::*, Config, Pallet as PalletSubspace};
+use pallet_subspace::{math::*, BalanceOf, Config, Pallet as PalletSubspace};
+pub use params::{AccountKey, ModuleKey, YumaParams};
 use sp_std::vec;
 use substrate_fixed::types::{I32F32, I64F64, I96F32};
 
 use sp_std::{borrow::Cow, collections::btree_map::BTreeMap, vec::Vec};
 
 use super::WeightCounter;
+pub mod params;
 
-pub type EmissionMap<T> = BTreeMap<ModuleKey<T>, BTreeMap<AccountKey<T>, u64>>;
-
-pub mod params {
-    use sp_std::collections::btree_map::BTreeMap;
-
-    use super::{AccountKey, ModuleKey};
-
-    use frame_support::DebugNoBound;
-    use pallet_subspace::{
-        math::*, Bonds, BondsMovingAverage, Config, Founder, Kappa, Keys, LastUpdate,
-        MaxAllowedValidators, MaxWeightAge, Pallet as PalletSubspace, ValidatorPermits, Vec,
-    };
-    use substrate_fixed::types::{I32F32, I64F64};
-
-    // StorageDoubleMap<SubnetId, TempoIndex = epoch block number, YumaParams>;
-
-    #[derive(DebugNoBound)]
-    pub struct YumaParams<T: Config> {
-        pub subnet_id: u16,
-        pub token_emission: u64,
-
-        pub modules: BTreeMap<ModuleKey<T>, ModuleParams>,
-        pub kappa: I32F32,
-
-        pub founder_key: AccountKey<T>,
-        pub founder_emission: u64,
-
-        pub current_block: u64,
-        pub activity_cutoff: u64,
-        pub max_allowed_validators: Option<u16>,
-        pub bonds_moving_average: u64,
-    }
-
-    #[derive(DebugNoBound)]
-    pub struct ModuleParams {
-        pub uid: u16,
-        pub last_update: u64,
-        pub block_at_registration: u64,
-        pub validator_permit: bool,
-        pub stake: I32F32,
-        pub bonds: Vec<(u16, u16)>,
-        pub weight_unencrypted_hash: Vec<u8>,
-        pub weight_encrypted: Vec<u8>,
-    }
-
-    #[derive(DebugNoBound)]
-    pub(super) struct FlattenedModules<T: Config> {
-        pub keys: Vec<ModuleKey<T>>,
-        pub last_update: Vec<u64>,
-        pub block_at_registration: Vec<u64>,
-        pub validator_permit: Vec<bool>,
-        pub validator_forbid: Vec<bool>,
-        pub stake: Vec<I32F32>,
-        pub bonds: Vec<Vec<(u16, I32F32)>>,
-        pub weight_unencrypted_hash: Vec<Vec<u8>>,
-        pub weight_encrypted: Vec<Vec<u8>>,
-    }
-
-    impl<T: Config> From<BTreeMap<ModuleKey<T>, ModuleParams>> for FlattenedModules<T> {
-        fn from(value: BTreeMap<ModuleKey<T>, ModuleParams>) -> Self {
-            let mut modules = FlattenedModules {
-                keys: Default::default(),
-                last_update: Default::default(),
-                block_at_registration: Default::default(),
-                validator_permit: Default::default(),
-                validator_forbid: Default::default(),
-                stake: Default::default(),
-                bonds: Default::default(),
-                weight_unencrypted_hash: Default::default(),
-                weight_encrypted: Default::default(),
-            };
-
-            for (key, module) in value {
-                modules.keys.push(key);
-                modules.last_update.push(module.last_update);
-                modules.block_at_registration.push(module.block_at_registration);
-                modules.validator_permit.push(module.validator_permit);
-                modules.validator_forbid.push(!module.validator_permit);
-                modules.stake.push(module.stake);
-                modules.bonds.push(
-                    module.bonds.into_iter().map(|(k, m)| (k, I32F32::from_num(m))).collect(),
-                );
-                modules.weight_unencrypted_hash.push(module.weight_unencrypted_hash);
-                modules.weight_encrypted.push(module.weight_encrypted);
-            }
-
-            modules
-        }
-    }
-
-    impl<T: Config> YumaParams<T> {
-        pub fn new(subnet_id: u16, token_emission: u64) -> Result<Self, &'static str> {
-            let uids: BTreeMap<_, _> = Keys::<T>::iter_prefix(subnet_id).collect();
-
-            let stake = Self::compute_stake(&uids);
-            let bonds = Self::compute_bonds(subnet_id, &uids);
-
-            let last_update = LastUpdate::<T>::get(subnet_id);
-            let block_at_registration = PalletSubspace::<T>::get_block_at_registration(subnet_id);
-            let validator_permits = ValidatorPermits::<T>::get(subnet_id);
-
-            let modules = uids
-                .into_iter()
-                .zip(stake)
-                .zip(bonds)
-                .map(|(((uid, key), stake), bonds)| {
-                    let uid = uid as usize;
-                    let last_update =
-                        last_update.get(uid).copied().ok_or("LastUpdate storage is broken")?;
-                    let block_at_registration = block_at_registration
-                        .get(uid)
-                        .copied()
-                        .ok_or("RegistrationBlock storage is broken")?;
-                    let validator_permit = validator_permits
-                        .get(uid)
-                        .copied()
-                        .ok_or("ValidatorPermits storage is broken")?;
-
-                    let module = ModuleParams {
-                        uid: uid as u16,
-                        last_update,
-                        block_at_registration,
-                        validator_permit,
-                        stake,
-                        bonds,
-                        // TODO: implement weights
-                        weight_unencrypted_hash: Default::default(),
-                        // TODO: implement weights
-                        weight_encrypted: Default::default(),
-                    };
-
-                    Result::<_, &'static str>::Ok((ModuleKey(key), module))
-                })
-                .collect::<Result<_, _>>()?;
-
-            let founder_key = AccountKey(Founder::<T>::get(subnet_id));
-            let (token_emission, founder_emission) =
-                PalletSubspace::<T>::calculate_founder_emission(subnet_id, token_emission);
-
-            Ok(Self {
-                subnet_id,
-                token_emission,
-
-                modules,
-
-                kappa: I32F32::from_num(Kappa::<T>::get())
-                    .checked_div(I32F32::from_num(u16::MAX))
-                    .unwrap_or_default(),
-                founder_key,
-                founder_emission,
-
-                current_block: PalletSubspace::<T>::get_current_block_number(),
-                activity_cutoff: MaxWeightAge::<T>::get(subnet_id),
-                max_allowed_validators: MaxAllowedValidators::<T>::get(subnet_id),
-                bonds_moving_average: BondsMovingAverage::<T>::get(subnet_id),
-            })
-        }
-
-        fn compute_stake(uids: &BTreeMap<u16, T::AccountId>) -> Vec<I32F32> {
-            // BTreeMap provides natural order, so iterating and collecting
-            // will result in a vector with the same order as the uid map.
-            let mut stake: Vec<_> = uids
-                .values()
-                .map(PalletSubspace::<T>::get_delegated_stake)
-                .map(I64F64::from_num)
-                .collect();
-            log::trace!(target: "stake", "original: {stake:?}");
-
-            inplace_normalize_64(&mut stake);
-            log::trace!(target: "stake", "normalized: {stake:?}");
-
-            vec_fixed64_to_fixed32(stake)
-        }
-
-        fn compute_bonds(
-            subnet_id: u16,
-            uids: &BTreeMap<u16, T::AccountId>,
-        ) -> Vec<Vec<(u16, u16)>> {
-            let mut bonds: BTreeMap<_, _> = Bonds::<T>::iter_prefix(subnet_id).collect();
-            // BTreeMap provides natural order, so iterating and collecting
-            // will result in a vector with the same order as the uid map.
-            uids.keys().map(|uid| bonds.remove(uid).unwrap_or_default()).collect()
-        }
-    }
-}
+pub type EmissionMap<AccountId> =
+    BTreeMap<ModuleKey<AccountId>, BTreeMap<AccountKey<AccountId>, u64>>;
+pub type YumaEmissionMap<AccountId> =
+    BTreeMap<ModuleKey<AccountId>, BTreeMap<AccountKey<AccountId>, u64>>;
 
 #[derive(DebugNoBound)]
 pub struct YumaEpoch<T: Config> {
@@ -201,7 +22,7 @@ pub struct YumaEpoch<T: Config> {
     subnet_id: u16,
 
     params: params::YumaParams<T>,
-    modules: params::FlattenedModules<T>,
+    modules: params::FlattenedModules<T::AccountId>,
 
     weight_counter: WeightCounter,
 
@@ -243,9 +64,9 @@ impl<T: Config> YumaEpoch<T> {
 
     /// Runs the YUMA consensus calculation on the network and distributes the emissions. Returns a
     /// map of emissions distributed per module key.
-    pub fn run(mut self) -> Result<(EmissionMap<T>, Weight), EmissionError> {
+    pub fn run(self) -> Result<YumaOutput<T>, EmissionError> {
         log::debug!(
-            "running yuma for subnet_id {}, will emit {} modules and {} to founder",
+            "running yuma for subnet_id {}, will emit {:?} modules and {:?} to founder",
             self.subnet_id,
             self.params.token_emission,
             self.params.founder_emission
@@ -265,7 +86,7 @@ impl<T: Config> YumaEpoch<T> {
             })
             .unzip();
 
-        let mut weights = WeightsVal::default();
+        let mut weights = WeightsVal::unchecked_from_inner(self.modules.weight_unencrypted.clone());
 
         let stake = StakeVal::unchecked_from_inner(self.modules.stake.clone());
         log::trace!("final stake: {stake:?}");
@@ -365,18 +186,6 @@ impl<T: Config> YumaEpoch<T> {
         let validator_trust: Vec<_> =
             validator_trust.into_inner().into_iter().map(fixed_proportion_to_u16).collect();
 
-        pallet_subspace::Active::<T>::insert(self.subnet_id, active);
-        pallet_subspace::Consensus::<T>::insert(self.subnet_id, consensus);
-        pallet_subspace::Dividends::<T>::insert(self.subnet_id, dividends);
-        pallet_subspace::Emission::<T>::insert(self.subnet_id, combined_emissions);
-        pallet_subspace::Incentive::<T>::insert(self.subnet_id, incentives);
-        pallet_subspace::PruningScores::<T>::insert(self.subnet_id, pruning_scores);
-        pallet_subspace::Rank::<T>::insert(self.subnet_id, ranks);
-        pallet_subspace::Trust::<T>::insert(self.subnet_id, trust);
-        pallet_subspace::ValidatorPermits::<T>::insert(self.subnet_id, &new_permits);
-        pallet_subspace::ValidatorTrust::<T>::insert(self.subnet_id, validator_trust);
-        self.weight_counter.wrote(10);
-
         ensure!(
             new_permits.len() == self.module_count::<usize>(),
             "unequal number of permits and modules"
@@ -390,29 +199,32 @@ impl<T: Config> YumaEpoch<T> {
             "unequal number of bonds and modules"
         );
 
-        for i in 0..self.module_count() {
-            // Set bonds only if uid retains validator permit, otherwise clear bonds.
-            if *new_permits.get(i).unwrap_or(&false) {
-                let new_bonds_row: Vec<(u16, u16)> = ema_bonds
-                    .get(i)
-                    .map(|bonds_row| {
-                        bonds_row
-                            .iter()
-                            .map(|(j, value)| (*j, fixed_proportion_to_u16(*value)))
-                            .collect()
-                    })
-                    .unwrap_or_default();
-                pallet_subspace::Bonds::<T>::insert(self.subnet_id, i as u16, new_bonds_row);
-                self.weight_counter.wrote(1);
-            } else if self.params.max_allowed_validators.is_none()
-                || *self.modules.validator_permit.get(i).unwrap_or(&false)
-            {
-                // Only overwrite the intersection.
-                let new_empty_bonds_row: Vec<(u16, u16)> = vec![];
-                pallet_subspace::Bonds::<T>::insert(self.subnet_id, i as u16, new_empty_bonds_row);
-                self.weight_counter.wrote(1);
-            }
-        }
+        let has_max_validators = self.params.max_allowed_validators.is_none();
+        let bonds: Vec<_> = (0..self.module_count())
+            .map(|i| {
+                // Set bonds only if uid retains validator permit, otherwise clear bonds.
+                if *new_permits.get(i).unwrap_or(&false) {
+                    let new_bonds_row: Vec<(u16, u16)> = ema_bonds
+                        .get(i)
+                        .map(|bonds_row| {
+                            bonds_row
+                                .iter()
+                                .map(|(j, value)| (*j, fixed_proportion_to_u16(*value)))
+                                .collect()
+                        })
+                        .unwrap_or_default();
+
+                    return Some(new_bonds_row);
+                }
+
+                if has_max_validators || *self.modules.validator_permit.get(i).unwrap_or(&false) {
+                    // Only overwrite the intersection.
+                    return Some(vec![]);
+                }
+
+                None
+            })
+            .collect();
 
         // Emission tuples ( key, server_emission, validator_emission )
         let mut result = Vec::with_capacity(self.module_count());
@@ -425,43 +237,53 @@ impl<T: Config> YumaEpoch<T> {
             ));
         }
 
-        let distribute_emissions = self.distribute_emissions(result);
+        let (emission_map, total_emitted) = self.calculate_final_emissions(result)?;
         log::debug!(
-            "finished yuma for {} with distributed: {distribute_emissions:?}",
+            "finished yuma for {} with distributed: {emission_map:?}",
             self.subnet_id
         );
 
-        Ok((distribute_emissions?, self.weight_counter.to_weights::<T>()))
+        Ok(YumaOutput {
+            subnet_id: self.subnet_id,
+
+            active,
+            consensus,
+            dividends,
+            combined_emissions,
+            incentives,
+            pruning_scores,
+            ranks,
+            trust,
+            validator_permits: new_permits,
+            validator_trust,
+            bonds,
+
+            founder_emission: self.params.founder_emission,
+            emission_map,
+            total_emitted,
+
+            params: self.params,
+            weights: self.weight_counter.to_weights::<T>(),
+        })
     }
 
-    fn distribute_emissions(
+    fn calculate_final_emissions(
         &self,
-        result: Vec<(ModuleKey<T>, u64, u64)>,
-    ) -> Result<EmissionMap<T>, EmissionError> {
-        let mut emissions: EmissionMap<T> = Default::default();
+        result: Vec<(ModuleKey<T::AccountId>, u64, u64)>,
+    ) -> Result<(EmissionMap<T::AccountId>, u64), EmissionError> {
+        let mut emissions: EmissionMap<T::AccountId> = Default::default();
         let mut emitted: u64 = 0;
 
         if self.params.founder_emission > 0 {
-            match PalletSubspace::<T>::u64_to_balance(self.params.founder_emission) {
-                Some(balance) => {
-                    PalletSubspace::<T>::add_balance_to_account(
-                        &self.params.founder_key.0,
-                        balance,
-                    );
-                }
-                None => return Err(EmissionError::BalanceConversionFailed),
-            }
             emitted = emitted.saturating_add(self.params.founder_emission);
         }
 
         for (module_key, server_emission, mut validator_emission) in result {
-            let mut increase_stake = |account_key: &AccountKey<T>, amount: u64| {
-                PalletSubspace::<T>::increase_stake(&account_key.0, &module_key.0, amount);
-
+            let mut increase_stake = |account_key: AccountKey<T::AccountId>, amount: u64| {
                 let stake = emissions
                     .entry(module_key.clone())
                     .or_default()
-                    .entry(account_key.clone())
+                    .entry(account_key)
                     .or_default();
                 *stake = stake.saturating_add(amount);
 
@@ -487,7 +309,7 @@ impl<T: Config> YumaEpoch<T> {
                     let to_module: u64 = delegation_fee.mul_floor(dividends_from_delegate);
                     let to_delegate: u64 = dividends_from_delegate.saturating_sub(to_module);
 
-                    increase_stake(&AccountKey(delegate_key), to_delegate);
+                    increase_stake(AccountKey(delegate_key), to_delegate);
 
                     validator_emission = validator_emission
                         .checked_sub(to_delegate)
@@ -497,21 +319,11 @@ impl<T: Config> YumaEpoch<T> {
 
             let remaining_emission = server_emission.saturating_add(validator_emission);
             if remaining_emission > 0 {
-                increase_stake(&AccountKey(module_key.0.clone()), remaining_emission);
+                increase_stake(AccountKey(module_key.0.clone()), remaining_emission);
             }
         }
 
-        ensure!(
-            emitted <= self.params.founder_emission.saturating_add(self.params.token_emission),
-            EmissionError::EmittedMoreThanExpected {
-                emitted,
-                expected: self.params.founder_emission.saturating_add(self.params.token_emission)
-            }
-        );
-
-        log::trace!("emitted {emitted} tokens in total");
-
-        Ok(emissions)
+        Ok((emissions, emitted))
     }
 
     fn compute_active_stake(&self, inactive: &[bool], stake: &StakeVal) -> ActiveStake {
@@ -710,7 +522,8 @@ impl<T: Config> YumaEpoch<T> {
         log::trace!("  normalized combined emission: {normalized_combined_emission:?}");
 
         // Compute rao based emission scores. range: I96F32(0, rao_emission)
-        let to_be_emitted = I96F32::from_num(self.params.token_emission);
+        let to_be_emitted =
+            I96F32::from_num::<u64>(self.params.token_emission.try_into().unwrap_or_default());
         log::trace!("  to be emitted: {to_be_emitted}");
 
         let miner_emissions: Vec<u64> = normalized_miner_emission
@@ -747,6 +560,91 @@ impl<T: Config> YumaEpoch<T> {
     }
 }
 
+#[derive(DebugNoBound)]
+pub struct YumaOutput<T: Config> {
+    pub subnet_id: u16,
+    pub params: YumaParams<T>,
+
+    pub active: Vec<bool>,
+    pub consensus: Vec<u16>,
+    pub dividends: Vec<u16>,
+    pub combined_emissions: Vec<u64>,
+    pub incentives: Vec<u16>,
+    pub pruning_scores: Vec<u16>,
+    pub ranks: Vec<u16>,
+    pub trust: Vec<u16>,
+    pub validator_permits: Vec<bool>,
+    pub validator_trust: Vec<u16>,
+    pub bonds: Vec<Option<Vec<(u16, u16)>>>,
+
+    pub founder_emission: BalanceOf<T>,
+    pub emission_map: EmissionMap<T::AccountId>,
+    pub total_emitted: u64,
+    pub weights: Weight,
+}
+
+impl<T: Config> YumaOutput<T> {
+    pub fn apply(self) {
+        use pallet_subspace::*;
+
+        let Self {
+            subnet_id,
+            active,
+            consensus,
+            dividends,
+            combined_emissions,
+            incentives,
+            pruning_scores,
+            ranks,
+            trust,
+            validator_permits,
+            validator_trust,
+            bonds,
+            ..
+        } = self;
+
+        Active::<T>::insert(subnet_id, active);
+        Consensus::<T>::insert(subnet_id, consensus);
+        Dividends::<T>::insert(subnet_id, dividends);
+        Emission::<T>::insert(subnet_id, combined_emissions);
+        Incentive::<T>::insert(subnet_id, incentives);
+        PruningScores::<T>::insert(subnet_id, pruning_scores);
+        Rank::<T>::insert(subnet_id, ranks);
+        Trust::<T>::insert(subnet_id, trust);
+        ValidatorPermits::<T>::insert(subnet_id, validator_permits);
+        ValidatorTrust::<T>::insert(subnet_id, validator_trust);
+
+        for (module_uid, bonds) in bonds.into_iter().enumerate() {
+            let Some(bonds) = bonds else {
+                continue;
+            };
+
+            Bonds::<T>::insert(subnet_id, module_uid as u16, bonds);
+        }
+
+        // TODO: ensure!(
+        //     self.total_emitted <= self.founder_emission.saturating_add(params.token_emission),
+        //     EmissionError::EmittedMoreThanExpected {
+        //         emitted,
+        //         expected: self.params.founder_emission.saturating_add(self.params.token_emission)
+        //     }
+        // );
+
+        log::trace!("emitted {:?} tokens in total", self.total_emitted);
+
+        PalletSubspace::<T>::add_balance_to_account(
+            &self.params.founder_key.0,
+            self.founder_emission,
+        );
+
+        for (module_key, emitted_to) in self.emission_map {
+            for (account_key, emission) in emitted_to {
+                PalletSubspace::<T>::increase_stake(&account_key.0, &module_key.0, emission);
+            }
+        }
+    }
+}
+
 bty::brand! {
     pub type ActiveStake = Vec<I32F32>;
     pub type ConsensusVal = Vec<I32F32>;
@@ -760,45 +658,6 @@ bty::brand! {
     pub type ValidatorTrustVal = Vec<I32F32>;
     pub type WeightsVal = Vec<Vec<(u16, I32F32)>>;
 }
-
-#[derive(Clone)]
-pub struct ModuleKey<T: Config>(pub T::AccountId);
-
-#[derive(Clone)]
-pub struct AccountKey<T: Config>(pub T::AccountId);
-
-macro_rules! impl_things {
-    ($ty:ident) => {
-        impl<T: Config> PartialEq for $ty<T> {
-            fn eq(&self, other: &Self) -> bool {
-                self.0 == other.0
-            }
-        }
-
-        impl<T: Config> Eq for $ty<T> {}
-
-        impl<T: Config> PartialOrd for $ty<T> {
-            fn partial_cmp(&self, other: &Self) -> Option<core::cmp::Ordering> {
-                Some(self.cmp(other))
-            }
-        }
-
-        impl<T: Config> Ord for $ty<T> {
-            fn cmp(&self, other: &Self) -> scale_info::prelude::cmp::Ordering {
-                self.0.cmp(&other.0)
-            }
-        }
-
-        impl<T: Config> core::fmt::Debug for $ty<T> {
-            fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
-                f.write_fmt(format_args!("{}({:?})", stringify!($ty), self.0))
-            }
-        }
-    };
-}
-
-impl_things!(ModuleKey);
-impl_things!(AccountKey);
 
 struct ConsensusAndTrust {
     consensus: ConsensusVal,

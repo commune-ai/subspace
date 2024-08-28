@@ -27,7 +27,10 @@ log.workspace = true
 
 pallet-governance = { path = "../pallets/governance", features = ["std"] }
 pallet-subspace = { path = "../pallets/subspace", features = ["std"] }
-pallet-subnet-emission = { path = "../pallets/subnet_emission", features = ["std"] }
+pallet-subnet-emission = { path = "../pallets/subnet_emission", features = [
+    "std",
+] }
+pallet-offworker = { path = "../pallets/offworker" }
 
 pallet-governance-api = { path = "../pallets/governance/api" }
 pallet-subnet-emission-api = { path = "../pallets/subnet_emission/api" }
@@ -38,8 +41,10 @@ frame-system = { workspace = true, features = ["std"] }
 sp-std.workspace = true
 
 parity-scale-codec = { workspace = true, default-features = false, features = [
-    "derive", "std"
+    "derive",
+    "std",
 ] }
 scale-info = { workspace = true, default-features = false, features = [
-    "derive", "std"
+    "derive",
+    "std",
 ] }

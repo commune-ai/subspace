@@ -9497,6 +9497,7 @@ dependencies = [
  "pallet-balances",
  "pallet-governance",
  "pallet-governance-api",
+ "pallet-offworker",
  "pallet-subnet-emission",
  "pallet-subnet-emission-api",
  "pallet-subspace",

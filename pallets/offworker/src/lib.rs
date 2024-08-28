@@ -9,6 +9,7 @@ use frame_system::{
     offchain::{AppCrypto, CreateSignedTransaction, SignedPayload, Signer, SigningTypes},
     pallet_prelude::BlockNumberFor,
 };
+use pallet_subnet_emission::subnet_consensus::yuma::{params::YumaParams, YumaOutput};
 use parity_scale_codec::{Decode, Encode};
 use scale_info::prelude::marker::PhantomData;
 use sp_core::crypto::KeyTypeId;
@@ -122,18 +123,18 @@ pub mod pallet {
         /// You can use `Local Storage` API to coordinate runs of the worker.
         fn offchain_worker(block_number: BlockNumberFor<T>) {
             for subnet_id in [0u16; 0] {
-                let foo = ConsensusSimulationResult {
-                    cumulative_copier_divs: I64F64::from_num(0.8),
-                    cumulative_avg_delegate_divs: I64F64::from_num(1.0),
-                    min_underperf_threshold: I64F64::from_num(0.1),
-                    black_box_age: 100,
-                    max_encryption_period: 1000,
-                    _phantom: PhantomData,
-                };
+                // let foo = ConsensusSimulationResult {
+                //     cumulative_copier_divs: I64F64::from_num(0.8),
+                //     cumulative_avg_delegate_divs: I64F64::from_num(1.0),
+                //     min_underperf_threshold: I64F64::from_num(0.1),
+                //     black_box_age: 100,
+                //     max_encryption_period: 1000,
+                //     _phantom: PhantomData,
+                // };
 
-                if is_copying_irrational::<T>(foo) {
-                    continue;
-                }
+                // if is_copying_irrational::<T>(foo) {
+                //     continue;
+                // }
 
                 //  | 0 | 1 | 2 | 3 | 4 | 5 |
                 //                       ^ choose node F
@@ -306,13 +307,13 @@ impl<T: Config> Pallet<T> {
 /// * `epoch_block_sum` - Sum of blocks in the epoch.
 /// * `max_encryption_period` - Maximum encryption period.
 /// * `_phantom` - PhantomData for the generic type `T`.
-struct ConsensusSimulationResult<T: pallet_subspace::Config> {
-    cumulative_copier_divs: I64F64,
-    cumulative_avg_delegate_divs: I64F64,
-    min_underperf_threshold: I64F64,
-    black_box_age: u64,
-    max_encryption_period: u64,
-    _phantom: PhantomData<T>,
+pub struct ConsensusSimulationResult<T: pallet_subspace::Config> {
+    pub cumulative_copier_divs: I64F64,
+    pub cumulative_avg_delegate_divs: I64F64,
+    pub min_underperf_threshold: I64F64,
+    pub black_box_age: u64,
+    pub max_encryption_period: u64,
+    pub _phantom: PhantomData<T>,
 }
 
 /// Determines if the copier's performance is irrational based on cumulative dividends.
@@ -333,7 +334,9 @@ struct ConsensusSimulationResult<T: pallet_subspace::Config> {
 /// The function compares `cumulative_copier_divs` against an adjusted
 /// `cumulative_avg_delegate_divs`, taking into account the `min_underperf_threshold`.
 #[must_use]
-fn is_copying_irrational<T: pallet_subspace::Config>(
+pub fn is_copying_irrational<T: pallet_subspace::Config>(
+    last_yuma_result: YumaOutput<T>,
+    now_yuma_result: YumaOutput<T>,
     consensus_result: ConsensusSimulationResult<T>,
 ) -> bool {
     if consensus_result.black_box_age >= consensus_result.max_encryption_period {

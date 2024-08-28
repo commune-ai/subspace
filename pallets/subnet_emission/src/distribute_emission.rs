@@ -165,13 +165,17 @@ fn run_linear_consensus<T: Config>(
 fn run_yuma_consensus<T: Config>(netuid: u16, emission_to_drain: u64) -> Result<(), &'static str> {
     let params = subnet_consensus::yuma::params::YumaParams::<T>::new(netuid, emission_to_drain)?;
 
-    YumaEpoch::<T>::new(netuid, params).run().map(|_| ()).map_err(|err| {
+    let output = YumaEpoch::<T>::new(netuid, params).run().map_err(|err| {
         log::error!(
             "Failed to run yuma consensus algorithm: {err:?}, skipping this block. \
             {emission_to_drain} tokens will be emitted on the next epoch."
-            );
-            "yuma failed"
-        })
+        );
+        "yuma failed"
+    })?;
+
+    output.apply();
+
+    Ok(())
 }
 
 /// Runs the treasury consensus algorithm for a given network and emission amount.
