@@ -3,6 +3,7 @@ use frame_support::assert_err;
 use global::GeneralBurnConfiguration;
 use pallet_governance::{GovernanceConfiguration, SubnetGovernanceConfig, VoteMode};
 use pallet_subspace::*;
+use sp_core::Get;
 use sp_runtime::Percent;
 use subnet::SubnetChangeset;
 
@@ -79,6 +80,7 @@ fn subnet_update_changes_all_parameter_values() {
                 adjustment_alpha: 28,
                 ..Default::default()
             },
+            boosted_beta: DefaultBoostedBeta::<Test>::get(),
         };
 
         let SubnetParams {
@@ -100,6 +102,7 @@ fn subnet_update_changes_all_parameter_values() {
             min_validator_stake,
             max_allowed_validators,
             governance_config,
+            boosted_beta,
         } = params.clone();
 
         SubnetChangeset::<Test>::update(netuid, params).unwrap().apply(netuid).unwrap();
@@ -132,6 +135,7 @@ fn subnet_update_changes_all_parameter_values() {
         assert_eq!(SubspaceMod::get_total_subnets(), 1);
         assert_eq!(N::<Test>::get(netuid), 1);
         assert_eq!(SubnetMetadata::<Test>::get(netuid), metadata);
+        assert_eq!(BoostedBeta::<Test>::get(netuid), boosted_beta);
     });
 }
 
@@ -238,6 +242,7 @@ fn update_subnet_verifies_names_uniquiness_integrity() {
                 params.module_burn_config,
                 params.min_validator_stake,
                 params.max_allowed_validators,
+                params.boosted_beta,
             )
         };
 

@@ -182,6 +182,7 @@ impl<T: Config> Pallet<T> {
             max_allowed_validators: MaxAllowedValidators::<T>::get(netuid),
             governance_config: T::get_subnet_governance_configuration(netuid),
             metadata: SubnetMetadata::<T>::get(netuid),
+            boosted_beta: BoostedBeta::<T>::get(netuid),
         }
     }
 

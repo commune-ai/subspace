@@ -362,6 +362,7 @@ pub mod pallet {
                     ..Default::default()
                 },
                 metadata: None,
+                boosted_beta: DefaultBoostedBeta::<T>::get(),
             }
         }
     }
@@ -393,6 +394,7 @@ pub mod pallet {
         pub min_validator_stake: u64,
         pub max_allowed_validators: Option<u16>,
         pub governance_config: GovernanceConfiguration,
+        pub boosted_beta: Percent,
     }
 
     #[pallet::storage] // --- MAP ( netuid ) --> max_allowed_uids
@@ -431,6 +433,15 @@ pub mod pallet {
     #[pallet::storage]
     pub type ValidatorBlacklist<T: Config> =
         StorageMap<_, Identity, u16, BTreeSet<T::AccountId>, ValueQuery>;
+
+    #[pallet::type_value]
+    pub fn DefaultBoostedBeta<T: Config>() -> Percent {
+        Percent::from_percent(10)
+    }
+
+    #[pallet::storage]
+    pub type BoostedBeta<T> =
+        StorageMap<_, Identity, u16, Percent, ValueQuery, DefaultBoostedBeta<T>>;
 
     // ---------------------------------
     // Module Variables
@@ -1008,6 +1019,7 @@ pub mod pallet {
             module_burn_config: GeneralBurnConfiguration<T>,
             min_validator_stake: u64,
             max_allowed_validators: Option<u16>,
+            boosted_beta: Percent,
         ) -> DispatchResult {
             let params = SubnetParams {
                 founder,
@@ -1031,6 +1043,7 @@ pub mod pallet {
                     ..T::get_subnet_governance_configuration(netuid)
                 },
                 metadata,
+                boosted_beta,
             };
 
             let changeset = SubnetChangeset::update(netuid, params)?;

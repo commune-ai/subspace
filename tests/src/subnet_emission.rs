@@ -6,11 +6,15 @@ use frame_support::{assert_ok, traits::Currency};
 use log::info;
 use pallet_governance::DaoTreasuryAddress;
 use pallet_subnet_emission::{
-    subnet_consensus::yuma::{AccountKey, EmissionMap, ModuleKey, YumaEpoch},
+    subnet_consensus::yuma::{
+        AccountKey, ActiveStake, ConsensusVal, EmissionMap, ModuleKey, StakeVal, WeightsVal,
+        YumaEpoch,
+    },
     PendingEmission, SubnetConsensusType, SubnetEmission, UnitEmission,
 };
 use pallet_subnet_emission_api::SubnetConsensus;
 use pallet_subspace::*;
+use substrate_fixed::types::I32F32;
 
 #[test]
 fn test_dividends_same_stake() {
@@ -1317,6 +1321,28 @@ fn yuma_change_permits_blacklisted() {
         assert_eq!(
             ValidatorPermits::<Test>::get(netuid)[fourth_uid as usize],
             true
+        );
+    });
+}
+
+#[test]
+fn yuma_slashing_bonds() {
+    new_test_ext().execute_with(|| {
+        let yuma = YumaEpoch::<Test>::new(0, to_nano(10));
+
+        let weights = WeightsVal::unchecked_from_inner(vec![
+            vec![(0, I32F32::from_num(1))],
+            vec![(0, I32F32::from_num(5))],
+        ]);
+        let active_stake =
+            ActiveStake::unchecked_from_inner(vec![I32F32::from_num(1), I32F32::from_num(1)]);
+        let consensus = ConsensusVal::unchecked_from_inner(vec![I32F32::from_num(3)]);
+        let ref delta = yuma.compute_boosted_bonds_delta(&weights, &active_stake, &consensus);
+        dbg!(delta);
+
+        assert_eq!(
+            (delta[1][0].1.clone() - consensus.as_ref()[0]).abs(),
+            ((delta[0][0].1 - consensus.as_ref()[0]).abs() * I32F32::from_num(0.9))
         );
     });
 }

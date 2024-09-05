@@ -2,8 +2,8 @@ use crate::{EmissionError, Pallet};
 use core::marker::PhantomData;
 use frame_support::{ensure, DebugNoBound};
 use pallet_subspace::{
-    math::*, Active, Bonds, BondsMovingAverage, Config, Consensus, Dividends, Emission, Founder,
-    Incentive, Kappa, Keys, LastUpdate, MaxAllowedValidators, MaxWeightAge,
+    math::*, Active, Bonds, BondsMovingAverage, BoostedBeta, Config, Consensus, Dividends,
+    Emission, Founder, Incentive, Kappa, Keys, LastUpdate, MaxAllowedValidators, MaxWeightAge,
     Pallet as PalletSubspace, PruningScores, Rank, Trust, Uids, ValidatorBlacklist,
     ValidatorPermits, ValidatorTrust, Vec, Weights, N,
 };
@@ -36,6 +36,8 @@ pub struct YumaEpoch<T: Config> {
     validator_forbids: Vec<bool>,
     max_allowed_validators: Option<u16>,
 
+    boosted_beta: I32F32,
+
     _pd: PhantomData<T>,
 }
 
@@ -65,6 +67,10 @@ impl<T: Config> YumaEpoch<T> {
             validator_forbids,
             validator_permits,
             max_allowed_validators: MaxAllowedValidators::<T>::get(netuid),
+
+            boosted_beta: I32F32::from_num(
+                BoostedBeta::<T>::get(netuid).deconstruct() as f32 / u8::MAX as f32,
+            ),
 
             _pd: Default::default(),
         }
@@ -170,7 +176,7 @@ impl<T: Config> YumaEpoch<T> {
             ema_bonds,
             dividends,
         } = self
-            .compute_bonds_and_dividends(&weights, &active_stake, &incentives)
+            .compute_bonds_and_dividends(&weights, &active_stake, &incentives, &consensus)
             .ok_or(EmissionError::Other("bonds storage is broken"))?;
 
         let Emissions {
@@ -465,11 +471,51 @@ impl<T: Config> YumaEpoch<T> {
         }
     }
 
+    pub fn compute_boosted_bonds_delta(
+        &self,
+        weights: &WeightsVal,
+        active_stake: &ActiveStake,
+        consensus: &ConsensusVal,
+    ) -> Vec<Vec<(u16, I32F32)>> {
+        let boosted_beta = self.boosted_beta;
+        let weights = weights.as_ref();
+        let active_stake = active_stake.as_ref();
+        let consensus = consensus.as_ref();
+
+        let mut bonds_delta = Vec::with_capacity(weights.len());
+
+        for (i, row) in weights.iter().enumerate() {
+            let mut new_row = Vec::with_capacity(row.len());
+            for &(j, weight) in row {
+                let stake = active_stake[i];
+                let cons = consensus[j as usize];
+                dbg!(&cons);
+                let mut new_weight = weight;
+                if weight > cons {
+                    dbg!("a");
+                    new_weight = cons;
+                    let penalty = (weight - cons) * (I32F32::from_num(1) + boosted_beta);
+                    new_weight -= penalty;
+                } else if weight < cons {
+                    dbg!("b");
+                    let penalty = (cons - weight) * boosted_beta;
+                    new_weight -= penalty;
+                }
+
+                new_row.push((j, new_weight * stake));
+            }
+            bonds_delta.push(new_row);
+        }
+
+        bonds_delta
+    }
+
     fn compute_bonds_and_dividends(
         &self,
         weights: &WeightsVal,
         active_stake: &ActiveStake,
         incentives: &IncentivesVal,
+        consensus: &ConsensusVal,
     ) -> Option<BondsAndDividends> {
         // Access network bonds.
         let mut bonds = Pallet::<T>::get_bonds_sparse(self.netuid)?;
@@ -489,7 +535,9 @@ impl<T: Config> YumaEpoch<T> {
         log::trace!("  normalized bonds: {bonds:?}");
 
         // Compute bonds delta column normalized.
-        let mut bonds_delta = row_hadamard_sparse(weights.as_ref(), active_stake.as_ref()); // ΔB = W◦S (outdated W masked)
+        // let mut bonds_delta = row_hadamard_sparse(weights.as_ref(), active_stake.as_ref()); // ΔB
+        // = W◦S (outdated W masked)
+        let mut bonds_delta = self.compute_boosted_bonds_delta(weights, active_stake, consensus);
         log::trace!("  original bonds delta: {bonds_delta:?}");
 
         // Normalize bonds delta.
