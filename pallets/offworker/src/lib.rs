@@ -5,12 +5,11 @@ extern crate alloc;
 use alloc::vec::Vec;
 use frame_support::traits::Get;
 use frame_system::{
-    self as system,
     offchain::{AppCrypto, CreateSignedTransaction, SignedPayload, Signer, SigningTypes},
     pallet_prelude::BlockNumberFor,
 };
-use pallet_subnet_emission::subnet_consensus::yuma::{params::YumaParams, YumaOutput};
-use pallet_subspace::Weights;
+use pallet_subnet_emission::subnet_consensus::yuma::YumaOutput;
+use pallet_subspace::{CopierMargin, MaxEncryptionPeriod, Pallet as SubspaceModule};
 use parity_scale_codec::{Decode, Encode};
 use scale_info::prelude::marker::PhantomData;
 use sp_core::crypto::KeyTypeId;
@@ -18,6 +17,7 @@ use sp_runtime::{
     offchain::storage::{StorageRetrievalError, StorageValueRef},
     Percent, RuntimeDebug,
 };
+use substrate_fixed::FixedI128;
 
 /// Defines application identifier for crypto keys of this module.
 ///
@@ -143,7 +143,7 @@ pub mod pallet {
                 // let foo = ConsensusSimulationResult {
                 //     cumulative_copier_divs: I64F64::from_num(0.8),
                 //     cumulative_avg_delegate_divs: I64F64::from_num(1.0),
-                //     min_underperf_threshold: I64F64::from_num(0.1),
+                //     copying_margin: I64F64::from_num(0.1),
                 //     black_box_age: 100,
                 //     max_encryption_period: 1000,
                 //     _phantom: PhantomData,
@@ -310,49 +310,9 @@ impl<T: Config> Pallet<T> {
     }
 }
 
-/// Represents the result of a consensus simulation.
-///
-/// # Type Parameters
-///
-/// * `T` - The configuration type for the Subspace pallet.
-///
-/// # Fields
-///
-/// * `cumulative_copier_divs` - Cumulative dividends for the copier.
-/// * `cumulative_avg_delegate_divs` - Cumulative average dividends for delegates.
-/// * `min_underperf_threshold` - Minimum underperformance threshold.
-/// * `epoch_block_sum` - Sum of blocks in the epoch.
-/// * `max_encryption_period` - Maximum encryption period.
-/// * `_phantom` - PhantomData for the generic type `T`.
-pub struct ConsensusSimulationResult<T: pallet_subspace::Config> {
-    pub cumulative_copier_divs: I64F64,
-    pub cumulative_avg_delegate_divs: I64F64,
-    pub min_underperf_threshold: I64F64,
-    pub black_box_age: u64,
-    pub max_encryption_period: u64,
-    pub _phantom: PhantomData<T>,
-}
+// Copying profitability calulations
+// =================================
 
-/// Calculates the consensus simulation result
-/// determines if copying weights is irrational.
-pub fn is_copying_irrational<T: pallet_subspace::Config>(
-    netuid: u16,
-    decrypted_weights: Vec<(u8, Vec<(u8, u8)>)>,
-) -> bool {
-    // TODO:
-    // 1. Query onchain decrypted weights
-    // 2. Overwrite them by decrypted_weights
-    // 3. Query MeasuredStakeAmount
-    // 4. Query Minimum Delegation fee
-    // 5. Query onchain YumaParams
-    // 6. Generate weight copier information (consensus_stake * MeasuredStakeAmount, generate key,
-    //    uid, use last decrypted onchain weights etc.)
-    // 7. Append this weight copier information to YumaParams
-    // 8. Run YumaEpoch with the new YumaParams
-    // 9. Update ConsensusSimulationResult struct
-    // 10. Return can_decrypt(ConsensusSimulationResult)
-    true
-}
 /// Determines if the copier's performance is irrational based on cumulative dividends.
 ///
 /// # Arguments
@@ -369,16 +329,144 @@ pub fn is_copying_irrational<T: pallet_subspace::Config>(
 /// # Note
 ///
 /// The function compares `cumulative_copier_divs` against an adjusted
-/// `cumulative_avg_delegate_divs`, taking into account the `min_underperf_threshold`.
+/// `cumulative_avg_delegate_divs`, taking into account the `copying_margin`.
 #[must_use]
-pub fn can_decrypt<T: pallet_subspace::Config>(
-    consensus_result: ConsensusSimulationResult<T>,
+pub fn is_copying_irrational<T: pallet_subspace::Config>(
+    ConsensusSimulationResult {
+        black_box_age,
+        max_encryption_period,
+        copier_margin,
+        cumulative_avg_delegate_divs,
+        cumulative_copier_divs,
+        ..
+    }: ConsensusSimulationResult<T>,
 ) -> bool {
-    if consensus_result.black_box_age >= consensus_result.max_encryption_period {
+    dbg!(
+        black_box_age,
+        max_encryption_period,
+        copier_margin,
+        cumulative_avg_delegate_divs,
+        cumulative_copier_divs
+    );
+    if black_box_age >= max_encryption_period {
         return true;
     }
-    consensus_result.cumulative_copier_divs
-        < I64F64::from_num(1)
-            .saturating_sub(consensus_result.min_underperf_threshold)
-            .saturating_mul(consensus_result.cumulative_avg_delegate_divs)
+    let threshold =
+        (I64F64::from_num(1) + copier_margin).saturating_mul(cumulative_avg_delegate_divs);
+    cumulative_copier_divs < threshold
+}
+/// # Arguments
+///
+/// * `netuid` - The network UID.
+/// * `dividends` - A slice of dividend values for each UID.
+/// * `copier_uid` - The UID of the copier.
+/// * `delegation_fee` - The delegation fee percentage.
+///
+/// # Returns
+///
+/// The calculated average delegate dividends as an `I64F64` fixed-point number.
+pub fn calculate_avg_delegate_divs<T: pallet_subspace::Config>(
+    netuid: u16,
+    dividends: &[u16],
+    copier_uid: u16,
+    delegation_fee: Percent,
+) -> Option<I64F64> {
+    let copier_idx = copier_uid as usize;
+    let fee_factor = I64F64::from_num(100)
+        .saturating_sub(I64F64::from_num(delegation_fee.deconstruct()))
+        .checked_div(I64F64::from_num(100))?;
+
+    let (total_stake, total_dividends) = dividends
+        .iter()
+        .enumerate()
+        .filter(|&(i, &div)| i != copier_idx && div != 0)
+        .try_fold(
+            (I64F64::from_num(0), I64F64::from_num(0)),
+            |(stake_acc, div_acc), (i, &div)| {
+                let stake = I64F64::from_num(get_delegated_stake_on_uid::<T>(netuid, i as u16));
+                let dividend = I64F64::from_num(div);
+                Some((
+                    stake_acc.saturating_add(stake),
+                    div_acc.saturating_add(dividend),
+                ))
+            },
+        )?;
+
+    let average_dividends = total_dividends.checked_div(total_stake)?;
+    let copier_stake = I64F64::from_num(get_delegated_stake_on_uid::<T>(netuid, copier_uid));
+
+    average_dividends.saturating_mul(fee_factor).saturating_mul(copier_stake).into()
+}
+
+// TODO:
+// get rid of this shit, make it more efficient
+#[inline]
+pub fn get_delegated_stake_on_uid<T: pallet_subspace::Config>(netuid: u16, module_uid: u16) -> u64 {
+    SubspaceModule::<T>::get_key_for_uid(netuid, module_uid)
+        .map_or(0, |key| SubspaceModule::<T>::get_delegated_stake(&key))
+}
+
+/// Represents the result of a consensus simulation.
+///
+/// # Type Parameters
+///
+/// * `T` - The configuration type for the Subspace pallet.
+///
+/// # Fields
+///
+/// * `cumulative_copier_divs` - Cumulative dividends for the copier.
+/// * `cumulative_avg_delegate_divs` - Cumulative average dividends for delegates.
+/// * `copying_margin` - Minimum underperformance threshold.
+/// * `epoch_block_sum` - Sum of blocks in the epoch.
+/// * `max_encryption_period` - Maximum encryption period.
+/// * `_phantom` - PhantomData for the generic type `T`.
+#[derive(Clone, Debug, PartialEq)]
+
+pub struct ConsensusSimulationResult<T: pallet_subspace::Config> {
+    pub cumulative_copier_divs: I64F64,
+    pub cumulative_avg_delegate_divs: I64F64,
+    pub copier_margin: I64F64,
+    pub black_box_age: u64,
+    pub max_encryption_period: u64,
+    pub _phantom: PhantomData<T>,
+}
+
+impl<T: pallet_subspace::Config> Default for ConsensusSimulationResult<T> {
+    fn default() -> Self {
+        ConsensusSimulationResult {
+            cumulative_copier_divs: I64F64::from_num(0),
+            cumulative_avg_delegate_divs: I64F64::from_num(0),
+            copier_margin: I64F64::from_num(0),
+            black_box_age: 0,
+            max_encryption_period: 0,
+            _phantom: PhantomData,
+        }
+    }
+}
+impl<T: pallet_subspace::Config> ConsensusSimulationResult<T> {
+    pub fn update(
+        &mut self,
+        yuma_output: YumaOutput<T>,
+        tempo: u64,
+        copier_uid: u16,
+        delegation_fee: Percent,
+    ) {
+        let netuid = yuma_output.subnet_id;
+        let avg_delegate_divs = calculate_avg_delegate_divs::<T>(
+            netuid,
+            &yuma_output.dividends,
+            copier_uid,
+            delegation_fee,
+        )
+        .unwrap_or_else(|| FixedI128::from(0));
+        let copier_divs = I64F64::from_num(yuma_output.dividends[copier_uid as usize]);
+
+        self.cumulative_copier_divs = self.cumulative_copier_divs.saturating_add(copier_divs);
+        self.cumulative_avg_delegate_divs =
+            self.cumulative_avg_delegate_divs.saturating_add(avg_delegate_divs);
+        self.black_box_age = self.black_box_age.saturating_add(tempo);
+
+        self.max_encryption_period = MaxEncryptionPeriod::<T>::get(netuid);
+        self.copier_margin = CopierMargin::<T>::get(netuid);
+    }
 }

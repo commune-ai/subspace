@@ -70,6 +70,7 @@ pub mod pallet {
     use sp_arithmetic::per_things::Percent;
     use sp_core::{ConstU16, ConstU64, ConstU8};
     pub use sp_std::{vec, vec::Vec};
+    use substrate_fixed::types::I64F64;
 
     const STORAGE_VERSION: StorageVersion = StorageVersion::new(13);
 
@@ -316,6 +317,34 @@ pub mod pallet {
 
     #[pallet::storage] // --- ITEM ( subnet_burn )
     pub type SubnetBurn<T: Config> = StorageValue<_, u64, ValueQuery, DefaultSubnetBurn<T>>;
+
+    // TODO: make these a subnet params
+    #[pallet::storage]
+    pub type MaxEncryptionPeriod<T: Config> =
+        StorageMap<_, Identity, u16, u64, ValueQuery, ConstU64<2_000>>;
+
+    #[pallet::type_value]
+    pub fn DefaultMinUnderperformanceThreshold() -> I64F64 {
+        I64F64::from_num(0)
+    }
+
+    /// Allowed percentage profit margin of rationality,
+    /// above full irrationality for the weight copying strategy.
+    #[pallet::storage]
+    pub type CopierMargin<T: Config> =
+        StorageMap<_, Identity, u16, I64F64, ValueQuery, DefaultMinUnderperformanceThreshold>;
+
+    #[pallet::storage]
+    pub type UseWeightsEncrytyption<T: Config> = StorageMap<_, Identity, u16, bool, ValueQuery>;
+
+    #[pallet::type_value]
+    pub fn DefaultAlphaValues<T: Config>() -> (u16, u16) {
+        (45875, 58982)
+    }
+
+    #[pallet::storage]
+    pub type AlphaValues<T: Config> =
+        StorageMap<_, Identity, u16, (u16, u16), ValueQuery, DefaultAlphaValues<T>>;
 
     // ---------------------------------
     // Subnet PARAMS

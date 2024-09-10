@@ -27,20 +27,16 @@ std = [
 try-runtime = ["frame-support/try-runtime"]
 
 [dependencies]
-sp-runtime.workspace = true
-bty.workspace = true
-log.workspace = true
+bty = { workspace = true }
+
+frame-support = { workspace = true }
+frame-system = { workspace = true }
+log = { workspace = true }
+pallet-balances = { workspace = true }
+pallet-governance-api = { path = "../governance/api", default-features = false }
 
 pallet-subnet-emission-api = { path = "../subnet_emission/api", default-features = false }
 pallet-subspace = { path = "../subspace", default-features = false }
-pallet-governance-api = { path = "../governance/api", default-features = false }
-
-frame-support.workspace = true
-frame-system.workspace = true
-
-sp-std.workspace = true
-
-substrate-fixed.workspace = true
 
 parity-scale-codec = { workspace = true, default-features = false, features = [
     "derive",
@@ -48,5 +44,14 @@ parity-scale-codec = { workspace = true, default-features = false, features = [
 scale-info = { workspace = true, default-features = false, features = [
     "derive",
 ] }
+sp-arithmetic = { workspace = true }
+sp-core = { workspace = true }
+sp-io = { workspace = true }
+sp-runtime = { workspace = true }
+
+sp-std = { workspace = true }
+sp-tracing = { workspace = true }
+
+substrate-fixed = { workspace = true }
 
 [dev-dependencies]

@@ -1,7 +1,7 @@
 [package]
 name = "pallet-subspace"
 version = "1.8.2"
-description = "FRAME pallet for runtime logic of Subspace Blockchain."
+description = "frame pallet for Subspace module"
 authors = ["Commune Community"]
 homepage = "https://commune.com"
 edition = "2021"
@@ -24,30 +24,38 @@ std = [
     "frame-system/std",
     "scale-info/std",
     "sp-std/std",
+    "num-traits/std",
 ]
 runtime-benchmarks = ["frame-benchmarking/runtime-benchmarks"]
 try-runtime = ["frame-support/try-runtime"]
 
 [dependencies]
-parity-scale-codec.workspace = true
-sp-arithmetic.workspace = true
-sp-core.workspace = true
-scale-info.workspace = true
+bty = { workspace = true }
 frame-benchmarking = { workspace = true, optional = true }
-frame-support.workspace = true
-frame-system.workspace = true
-sp-runtime.workspace = true
-sp-std.workspace = true
-log.workspace = true
-substrate-fixed.workspace = true
-
-pallet-subspace-genesis-config.path = "./genesis-config"
+frame-support = { workspace = true }
+frame-system = { workspace = true }
+log = { workspace = true }
+num-traits = { version = "0.2.19", default-features = false, features = [
+    "libm",
+] }
+pallet-balances = { workspace = true }
 pallet-governance-api = { path = "../governance/api", default-features = false }
 pallet-subnet-emission-api = { path = "../subnet_emission/api", default-features = false }
 
+pallet-subspace-genesis-config = { path = "./genesis-config" }
+pallet-transaction-payment = { workspace = true }
+parity-scale-codec = { workspace = true }
+scale-info = { workspace = true }
+sp-arithmetic = { workspace = true }
+sp-core = { workspace = true }
+sp-runtime = { workspace = true }
+sp-std = { workspace = true }
+substrate-fixed = { workspace = true }
+
 [dev-dependencies]
 pallet-balances = { workspace = true, features = ["std"] }
-sp-io.workspace = true
-sp-version.workspace = true
-# Substrate
-sp-tracing.workspace = true
+parity-util-mem = { workspace = true, features = ['primitive-types'] }
+rand = { workspace = true }
+sp-io = { workspace = true }
+sp-tracing = { workspace = true }
+sp-version = { workspace = true }

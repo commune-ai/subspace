@@ -15,36 +15,41 @@ targets = ["x86_64-unknown-linux-gnu"]
 [dependencies]
 
 [dev-dependencies]
-substrate-fixed.workspace = true
-pallet-balances.workspace = true
-sp-tracing.workspace = true
-sp-io.workspace = true
-sp-core.workspace = true
-sp-runtime.workspace = true
-sp-arithmetic.workspace = true
-bty.workspace = true
-log.workspace = true
+bty = { workspace = true }
+csv = "1.1"
 
-pallet-governance = { path = "../pallets/governance", features = ["std"] }
-pallet-subspace = { path = "../pallets/subspace", features = ["std"] }
-pallet-subnet-emission = { path = "../pallets/subnet_emission", features = [
-    "std",
-] }
-pallet-offworker = { path = "../pallets/offworker" }
-
-pallet-governance-api = { path = "../pallets/governance/api" }
-pallet-subnet-emission-api = { path = "../pallets/subnet_emission/api" }
+testthing = { path = "../testthing" }
 
 frame-support = { workspace = true, features = ["std"] }
 frame-system = { workspace = true, features = ["std"] }
+log = { workspace = true }
+pallet-balances = { workspace = true }
 
-sp-std.workspace = true
+pallet-governance = { path = "../pallets/governance", features = ["std"] }
+
+pallet-governance-api = { path = "../pallets/governance/api" }
+pallet-offworker = { path = "../pallets/offworker" }
+pallet-subnet-emission = { path = "../pallets/subnet_emission", features = [
+    "std",
+] }
+pallet-subnet-emission-api = { path = "../pallets/subnet_emission/api" }
+pallet-subspace = { path = "../pallets/subspace", features = ["std"] }
 
 parity-scale-codec = { workspace = true, default-features = false, features = [
     "derive",
     "std",
 ] }
+rand = { workspace = true }
 scale-info = { workspace = true, default-features = false, features = [
     "derive",
     "std",
 ] }
+serde_json = { workspace = true }
+sp-arithmetic = { workspace = true }
+sp-core = { workspace = true }
+sp-io = { workspace = true }
+sp-runtime = { workspace = true }
+
+sp-std = { workspace = true }
+sp-tracing = { workspace = true }
+substrate-fixed = { workspace = true }

@@ -1,4 +1,4 @@
-use std::{collections::BTreeMap, marker::PhantomData};
+use std::collections::BTreeMap;
 
 use crate::mock::*;
 
@@ -7,7 +7,6 @@ use log::info;
 use pallet_governance::DaoTreasuryAddress;
 use pallet_subnet_emission::{
     subnet_consensus::yuma::{
-        self,
         params::{AccountKey, ModuleKey, YumaParams},
         EmissionMap, YumaEpoch,
     },
@@ -16,7 +15,6 @@ use pallet_subnet_emission::{
 };
 use pallet_subnet_emission_api::SubnetConsensus;
 use pallet_subspace::*;
-use substrate_fixed::types::{I32F32, I64F64};
 
 #[test]
 fn test_dividends_same_stake() {
@@ -1045,8 +1043,8 @@ fn test_tempo_compound() {
         // we will now step the blocks
         step_block(SLOW_TEMPO + 24);
 
-        let fast = dbg!(SubspaceMod::get_delegated_stake(&f_key));
-        let slow = dbg!(SubspaceMod::get_delegated_stake(&s_key));
+        let fast = SubspaceMod::get_delegated_stake(&f_key);
+        let slow = SubspaceMod::get_delegated_stake(&s_key);
 
         // faster tempo should have quicker compound rate
         assert!(fast > slow);

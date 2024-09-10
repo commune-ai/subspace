@@ -1,5 +1,9 @@
-use sp_std::{vec, vec::Vec};
-use substrate_fixed::types::{I32F32, I64F64};
+use num_traits::float::Float;
+use sp_std::{cmp::Ordering, collections::btree_map::BTreeMap, vec, vec::Vec};
+use substrate_fixed::{
+    transcendental::{exp, ln},
+    types::{I32F32, I64F64},
+};
 
 // Return true when vector sum is zero.
 pub fn is_zero(vector: &[I32F32]) -> bool {
@@ -90,6 +94,105 @@ pub fn mask_diag_sparse(sparse_matrix: &[Vec<(u16, I32F32)>]) -> Vec<Vec<(u16, I
     result
 }
 
+pub fn mat_ema_alpha_vec_sparse(
+    new: &[Vec<(u16, I32F32)>],
+    old: &[Vec<(u16, I32F32)>],
+    alpha: &[I32F32],
+) -> Vec<Vec<(u16, I32F32)>> {
+    assert_eq!(
+        new.len(),
+        old.len(),
+        "New and old matrices must have the same number of rows"
+    );
+    let zero = I32F32::from_num(0.0);
+    let one = I32F32::from_num(1.0);
+
+    new.iter()
+        .zip(old)
+        .map(|(new_row, old_row)| {
+            let mut row_map: BTreeMap<u16, I32F32> = new_row
+                .iter()
+                .map(|&(j, value)| {
+                    let alpha_val = alpha.get(j as usize).copied().unwrap_or(zero);
+                    (j, alpha_val.saturating_mul(value))
+                })
+                .collect();
+
+            old_row.iter().for_each(|&(j, value)| {
+                let alpha_val = alpha.get(j as usize).copied().unwrap_or(zero);
+                let old_component = one.saturating_sub(alpha_val).saturating_mul(value);
+                row_map
+                    .entry(j)
+                    .and_modify(|e| *e = e.saturating_add(old_component))
+                    .or_insert(old_component);
+            });
+
+            row_map.into_iter().filter(|&(_, v)| v > zero).collect()
+        })
+        .collect()
+}
+
+pub fn calculate_logistic_params(
+    alpha_high: I32F32,
+    alpha_low: I32F32,
+    consensus_high: I32F32,
+    consensus_low: I32F32,
+) -> (I32F32, I32F32) {
+    if consensus_high <= consensus_low
+        || alpha_low == I32F32::from_num(0)
+        || alpha_high == I32F32::from_num(0)
+    {
+        return (I32F32::from_num(0), I32F32::from_num(0));
+    }
+
+    let calc_term = |alpha: I32F32| {
+        ln((I32F32::from_num(1) / alpha) - I32F32::from_num(1)).unwrap_or(I32F32::from_num(0.0))
+    };
+
+    let a = (calc_term(alpha_high) - calc_term(alpha_low)) / (consensus_low - consensus_high);
+    let b = calc_term(alpha_low) + a * consensus_low;
+
+    (a, b)
+}
+
+pub fn compute_alpha_values(consensus: &[I32F32], a: I32F32, b: I32F32) -> Vec<I32F32> {
+    let alpha: Vec<I32F32> = consensus
+        .iter()
+        .map(|&c| {
+            let exp_val =
+                exp(b.saturating_sub(a.saturating_mul(c))).unwrap_or(I32F32::from_num(0.0));
+            I32F32::from_num(1.0).saturating_div(I32F32::from_num(1.0).saturating_add(exp_val))
+        })
+        .collect();
+
+    alpha
+}
+
+trait Lerp {
+    fn lerp(self, other: Self, t: Self) -> Self;
+}
+impl Lerp for I32F32 {
+    fn lerp(self, other: Self, t: Self) -> Self {
+        self + (other - self) * t
+    }
+}
+
+pub fn quantile(data: &[I32F32], quantile: f64) -> I32F32 {
+    let mut sorted = data.to_vec();
+    sorted.sort_by(|a, b| a.partial_cmp(b).unwrap_or(Ordering::Equal));
+    let len = sorted.len();
+    if len == 0 {
+        return I32F32::from_num(0);
+    }
+    let pos = quantile * (len - 1) as f64;
+    let (low, high) = (pos.floor() as usize, pos.ceil() as usize);
+    if low == high {
+        sorted[low]
+    } else {
+        sorted[low].lerp(sorted[high], I32F32::from_num(pos.fract()))
+    }
+}
+
 /// Normalizes (sum to 1 except 0) each row (dim=0) of a sparse matrix in-place.
 pub fn inplace_row_normalize_sparse(sparse_matrix: &mut [Vec<(u16, I32F32)>]) {
     for sparse_row in sparse_matrix.iter_mut() {
@@ -135,12 +238,15 @@ pub fn weighted_median_col_sparse(
     let zero: I32F32 = I32F32::from_num(0);
     let mut use_stake: Vec<I32F32> = stake.iter().copied().filter(|&s| s > zero).collect();
     inplace_normalize(&mut use_stake);
+
     let stake_sum: I32F32 = use_stake.iter().sum();
     let stake_idx: Vec<usize> = (0..use_stake.len()).collect();
     let minority: I32F32 = stake_sum.saturating_sub(majority);
     let mut use_score: Vec<Vec<I32F32>> = vec![vec![zero; use_stake.len()]; columns as usize];
+
     let mut median: Vec<I32F32> = vec![zero; columns as usize];
     let mut k: usize = 0;
+
     for r in 0..rows {
         let Some(stake_r) = stake.get(r) else {
             continue;
@@ -162,6 +268,7 @@ pub fn weighted_median_col_sparse(
         }
         k = k.saturating_add(1);
     }
+
     for c in 0..columns as usize {
         let Some(median_c) = median.get_mut(c) else {
             continue;
@@ -178,6 +285,7 @@ pub fn weighted_median_col_sparse(
             stake_sum,
         );
     }
+
     median
 }
 

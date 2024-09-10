@@ -1,29 +1,33 @@
 #![allow(non_camel_case_types)]
 
+use core::panic;
 use frame_support::{
     ensure, parameter_types,
     traits::{Currency, Everything, Get, Hooks},
     PalletId,
 };
-use frame_system as system;
+use frame_system::{
+    self as system,
+    offchain::{AppCrypto, CreateSignedTransaction, SigningTypes},
+};
 use pallet_governance::GlobalGovernanceConfig;
 use pallet_governance_api::*;
+use pallet_offworker::{crypto::Signature, Call as OffworkerCall, MeasuredStakeAmount};
 use pallet_subnet_emission_api::{SubnetConsensus, SubnetEmissionApi};
-use scale_info::prelude::collections::BTreeSet;
-use sp_core::{ConstU16, H256};
-use std::cell::RefCell;
-
 use pallet_subspace::{
     subnet::SubnetChangeset, Address, DefaultKey, DefaultSubnetParams, Dividends, Emission,
     Incentive, LastUpdate, MaxRegistrationsPerBlock, Name, SubnetBurn, SubnetParams, Tempo,
     TotalStake, N,
 };
+use parity_scale_codec::{Decode, Encode};
+use scale_info::{prelude::collections::BTreeSet, TypeInfo};
+use sp_core::{sr25519, ConstU16, H256};
 use sp_runtime::{
-    traits::{AccountIdConversion, BlakeTwo256, IdentityLookup},
-    BuildStorage, DispatchError, DispatchResult,
+    generic::UncheckedExtrinsic,
+    traits::{AccountIdConversion, BlakeTwo256, IdentifyAccount, IdentityLookup},
+    BuildStorage, DispatchError, DispatchResult, KeyTypeId,
 };
-
-type Block = frame_system::mocking::MockBlock<Test>;
+use std::{cell::RefCell, iter::Copied};
 
 frame_support::construct_runtime!(
     pub enum Test {
@@ -32,8 +36,12 @@ frame_support::construct_runtime!(
         SubnetEmissionMod: pallet_subnet_emission,
         SubspaceMod: pallet_subspace,
         GovernanceMod: pallet_governance,
+        OffWorkerMod: pallet_offworker,
     }
 );
+
+pub type Block = frame_system::mocking::MockBlock<Test>;
+pub type AccountId = u32;
 
 #[allow(dead_code)]
 pub type BalanceCall = pallet_balances::Call<Test>;
@@ -45,8 +53,6 @@ parameter_types! {
     pub const BlockHashCount: u64 = 250;
     pub const SS58Prefix: u8 = 42;
 }
-
-pub type AccountId = u32;
 
 // Balance of an account.
 pub type Balance = u64;
@@ -286,6 +292,72 @@ impl pallet_balances::Config for Test {
     type RuntimeFreezeReason = ();
 }
 
+// Things needed to impl offchain worker module
+// ============================================
+
+pub const KEY_TYPE: KeyTypeId = KeyTypeId(*b"offw");
+
+pub struct TestAuthId;
+
+impl AppCrypto<<Test as SigningTypes>::Public, <Test as SigningTypes>::Signature> for TestAuthId {
+    type RuntimeAppPublic = pallet_offworker::crypto::Public;
+    type GenericSignature = sp_core::sr25519::Signature;
+    type GenericPublic = sp_core::sr25519::Public;
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Ord, PartialOrd, Encode, Decode, TypeInfo)]
+pub struct CustomPublic(sr25519::Public);
+
+impl IdentifyAccount for CustomPublic {
+    type AccountId = u32;
+
+    fn into_account(self) -> Self::AccountId {
+        let bytes: &[u8] = self.0.as_ref();
+        u32::from_le_bytes([bytes[0], bytes[1], bytes[2], bytes[3]])
+    }
+}
+
+impl From<sr25519::Public> for CustomPublic {
+    fn from(pub_key: sr25519::Public) -> Self {
+        CustomPublic(pub_key)
+    }
+}
+
+impl From<CustomPublic> for sr25519::Public {
+    fn from(custom_public: CustomPublic) -> Self {
+        custom_public.0
+    }
+}
+impl SigningTypes for Test {
+    type Public = CustomPublic;
+    type Signature = Signature;
+}
+
+impl CreateSignedTransaction<OffworkerCall<Test>> for Test {
+    fn create_transaction<C: AppCrypto<Self::Public, Self::Signature>>(
+        _call: OffworkerCall<Test>,
+        _public: Self::Public,
+        _account: AccountId,
+        _nonce: u32,
+    ) -> Option<(OffworkerCall<Test>, <UncheckedExtrinsic<AccountId, OffworkerCall<Test>, Signature, ()> as sp_runtime::traits::Extrinsic>::SignaturePayload)>{
+        None
+    }
+}
+
+impl frame_system::offchain::SendTransactionTypes<OffworkerCall<Test>> for Test {
+    type Extrinsic = UncheckedExtrinsic<AccountId, OffworkerCall<Test>, Signature, ()>;
+    type OverarchingCall = OffworkerCall<Test>;
+}
+
+impl pallet_offworker::Config for Test {
+    type AuthorityId = TestAuthId;
+    type RuntimeEvent = RuntimeEvent;
+    type GracePeriod = frame_support::traits::ConstU64<5>;
+    type UnsignedInterval = frame_support::traits::ConstU64<10>;
+    type UnsignedPriority = frame_support::traits::ConstU64<1000>;
+    type MaxPrices = frame_support::traits::ConstU32<64>;
+}
+
 impl system::Config for Test {
     type BaseCallFilter = Everything;
     type Block = Block;
@@ -418,6 +490,21 @@ pub fn increase_stake(key: AccountId, stake: u64) {
     SubspaceMod::increase_stake(&key, &key, stake);
 }
 
+// Sets all key's stake to 0 and increases delegated stake to desired amount
+pub fn make_keys_all_stake_be(account: AccountId, stake: u64) {
+    let _ = StakeFrom::<Test>::clear_prefix(&account, u32::MAX, None);
+    let _ = StakeTo::<Test>::clear_prefix(&account, u32::MAX, None);
+
+    let keys_total_stake =
+        SubspaceMod::get_delegated_stake(&account) + SubspaceMod::get_owned_stake(&account);
+
+    TotalStake::<Test>::mutate(|total_stake| {
+        *total_stake = total_stake.saturating_sub(keys_total_stake).saturating_add(stake);
+    });
+
+    increase_stake(account, stake);
+}
+
 pub fn set_total_issuance(total_issuance: u64) {
     let key = DefaultKey::<Test>::get();
     // Reset the issuance (completelly nuke the key's balance)
@@ -450,6 +537,29 @@ pub fn get_origin(key: AccountId) -> RuntimeOrigin {
 pub fn get_total_subnet_balance(netuid: u16) -> u64 {
     let keys = SubspaceMod::get_keys(netuid);
     keys.iter().map(SubspaceMod::get_balance_u64).sum()
+}
+
+pub fn get_copier_stake(netuid: u16) -> u64 {
+    // Sums up all validators stake
+    let subnet_stake = Active::<Test>::get(netuid)
+        .iter()
+        .enumerate()
+        .filter(|(_, &is_active)| is_active)
+        .map(|(uid, _)| pallet_offworker::get_delegated_stake_on_uid::<Test>(netuid, uid as u16))
+        .sum();
+
+    let measured_stake_amt = MeasuredStakeAmount::<Test>::get();
+    let copier_stake = measured_stake_amt.mul_floor(subnet_stake);
+    copier_stake
+}
+
+/// Appends weight copier validator
+pub fn add_weight_copier(netuid: u16, key: u32, uids: Vec<u16>, values: Vec<u16>) {
+    let copier_stake = get_copier_stake(netuid);
+    // registers module if not already registered
+    let _ = register_module(netuid, key, copier_stake, false);
+    step_block(1);
+    set_weights(netuid, key, uids, values);
 }
 
 #[allow(dead_code)]
@@ -669,10 +779,6 @@ pub fn register_root_validator(key: AccountId, stake: u64) -> Result<u16, Dispat
     pallet_subspace::Uids::<Test>::get(netuid, key).ok_or("uid is missing".into())
 }
 
-pub fn get_balance(key: AccountId) -> Balance {
-    <Balances as Currency<AccountId>>::free_balance(&key)
-}
-
 pub fn get_total_issuance() -> u64 {
     let total_staked_balance = TotalStake::<Test>::get();
     let total_free_balance = pallet_balances::Pallet::<Test>::total_issuance();
@@ -694,6 +800,13 @@ pub fn config(proposal_cost: u64, proposal_expiration: u32) {
         vote_mode: pallet_governance_api::VoteMode::Vote,
         ..Default::default()
     });
+}
+
+// Utility functions
+//===================
+
+pub fn get_balance(key: AccountId) -> Balance {
+    <Balances as Currency<AccountId>>::free_balance(&key)
 }
 
 #[allow(dead_code)]

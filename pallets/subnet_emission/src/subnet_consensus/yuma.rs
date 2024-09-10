@@ -3,10 +3,10 @@ use core::marker::PhantomData;
 use frame_support::{ensure, weights::Weight, DebugNoBound};
 use pallet_subspace::{math::*, BalanceOf, Config, Pallet as PalletSubspace};
 pub use params::{AccountKey, ModuleKey, YumaParams};
-use sp_std::vec;
+use parity_scale_codec::{Decode, Encode};
+use scale_info::TypeInfo;
+use sp_std::{borrow::Cow, collections::btree_map::BTreeMap, vec, vec::Vec};
 use substrate_fixed::types::{I32F32, I64F64, I96F32};
-
-use sp_std::{borrow::Cow, collections::btree_map::BTreeMap, vec::Vec};
 
 use super::WeightCounter;
 pub mod params;
@@ -86,7 +86,8 @@ impl<T: Config> YumaEpoch<T> {
             })
             .unzip();
 
-        let mut weights = WeightsVal::unchecked_from_inner(self.modules.weight_unencrypted.clone());
+        let mut weights =
+            self.compute_weights().ok_or(EmissionError::Other("weights are broken"))?;
 
         let stake = StakeVal::unchecked_from_inner(self.modules.stake.clone());
         log::trace!("final stake: {stake:?}");
@@ -164,7 +165,7 @@ impl<T: Config> YumaEpoch<T> {
             ema_bonds,
             dividends,
         } = self
-            .compute_bonds_and_dividends(&weights, &active_stake, &incentives)
+            .compute_bonds_and_dividends(&consensus, &weights, &active_stake, &incentives)
             .ok_or(EmissionError::Other("bonds storage is broken"))?;
 
         let Emissions {
@@ -326,6 +327,41 @@ impl<T: Config> YumaEpoch<T> {
         Ok((emissions, emitted))
     }
 
+    fn compute_weights(&self) -> Option<WeightsVal> {
+        // Access network weights row unnormalized.
+        let mut weights = self.modules.weight_unencrypted.clone();
+        log::trace!("  original weights: {weights:?}");
+
+        let validator_forbids: Vec<bool> =
+            self.modules.validator_permit.iter().map(|&b| !b).collect();
+
+        if self.params.max_allowed_validators.is_some() {
+            // Mask weights that are not from permitted validators.
+            weights = mask_rows_sparse(&validator_forbids, &weights);
+            log::trace!("  no forbidden validator weights: {weights:?}");
+        }
+
+        // Remove self-weight by masking diagonal.
+        weights = mask_diag_sparse(&weights);
+        log::trace!("  no self-weight weights: {weights:?}");
+
+        // Remove weights referring to deregistered modules.
+        weights = vec_mask_sparse_matrix(
+            &weights,
+            &self.modules.last_update,
+            &self.modules.block_at_registration,
+            |updated, registered| updated <= registered,
+        )?;
+        log::trace!("  no deregistered modules weights: {weights:?}");
+
+        // Normalize remaining weights.
+        inplace_row_normalize_sparse(&mut weights);
+
+        log::trace!("  normalized weights: {weights:?}");
+
+        Some(WeightsVal::unchecked_from_inner(weights))
+    }
+
     fn compute_active_stake(&self, inactive: &[bool], stake: &StakeVal) -> ActiveStake {
         let mut active_stake = stake.as_ref().clone();
         log::trace!("  original active stake: {active_stake:?}");
@@ -359,6 +395,7 @@ impl<T: Config> YumaEpoch<T> {
             self.module_count(),
             self.params.kappa,
         );
+
         log::trace!("final consensus: {consensus:?}");
 
         // Compute preranks: r_j = SUM(i) w_ij * s_i
@@ -366,6 +403,7 @@ impl<T: Config> YumaEpoch<T> {
         log::trace!("final preranks: {preranks:?}");
 
         *weights = WeightsVal::unchecked_from_inner(col_clip_sparse(weights.as_ref(), &consensus));
+
         log::trace!("final consensus weights: {weights:?}");
 
         let validator_trust = row_sum_sparse(weights.as_ref());
@@ -405,8 +443,44 @@ impl<T: Config> YumaEpoch<T> {
         }
     }
 
+    fn calculate_ema_bonds(
+        &self,
+        bonds_delta: &[Vec<(u16, I32F32)>],
+        bonds: &[Vec<(u16, I32F32)>],
+        consensus: &[I32F32],
+    ) -> Vec<Vec<(u16, I32F32)>> {
+        let bonds_moving_average = I64F64::from_num(self.params.bonds_moving_average)
+            .checked_div(I64F64::from_num(1_000_000))
+            .unwrap_or_default();
+        let default_alpha =
+            I32F32::from_num(1).saturating_sub(I32F32::from_num(bonds_moving_average));
+
+        if !self.params.use_weights_encryption {
+            return mat_ema_sparse(bonds_delta, bonds, default_alpha);
+        }
+
+        let consensus_high = quantile(consensus, 0.75);
+        let consensus_low = quantile(consensus, 0.25);
+
+        if consensus_high <= consensus_low && consensus_high == 0 && consensus_low >= 0 {
+            return mat_ema_sparse(bonds_delta, bonds, default_alpha);
+        }
+        log::trace!("Using Liquid Alpha");
+        let (alpha_low, alpha_high) = self.params.alpha_values;
+        log::trace!("alpha_low: {:?} alpha_high: {:?}", alpha_low, alpha_high);
+
+        let (a, b) =
+            calculate_logistic_params(alpha_high, alpha_low, consensus_high, consensus_low);
+        let alpha = compute_alpha_values(consensus, a, b);
+        let clamped_alpha: Vec<I32F32> =
+            alpha.into_iter().map(|a| a.clamp(alpha_low, alpha_high)).collect();
+
+        mat_ema_alpha_vec_sparse(bonds_delta, bonds, &clamped_alpha)
+    }
+
     fn compute_bonds_and_dividends(
         &self,
+        consensus: &ConsensusVal,
         weights: &WeightsVal,
         active_stake: &ActiveStake,
         incentives: &IncentivesVal,
@@ -422,6 +496,7 @@ impl<T: Config> YumaEpoch<T> {
             &self.modules.block_at_registration,
             |updated, registered| updated <= registered,
         )?;
+
         log::trace!("  no deregistered modules bonds: {bonds:?}");
 
         // Normalize remaining bonds: sum_i b_ij = 1.
@@ -437,12 +512,9 @@ impl<T: Config> YumaEpoch<T> {
         log::trace!("  normalized bonds delta: {bonds_delta:?}");
 
         // Compute bonds moving average.
-        let bonds_moving_average = I64F64::from_num(self.params.bonds_moving_average)
-            .checked_div(I64F64::from_num(1_000_000))
-            .unwrap_or_default();
-        log::trace!("  bonds moving average: {bonds_moving_average}");
-        let alpha = I32F32::from_num(1).saturating_sub(I32F32::from_num(bonds_moving_average));
-        let mut ema_bonds = mat_ema_sparse(&bonds_delta, &bonds, alpha);
+        let mut ema_bonds =
+            Self::calculate_ema_bonds(&self, &bonds_delta, &bonds, &consensus.clone().into_inner());
+
         log::trace!("  original ema bonds: {ema_bonds:?}");
 
         // Normalize EMA bonds.
@@ -560,7 +632,8 @@ impl<T: Config> YumaEpoch<T> {
     }
 }
 
-#[derive(DebugNoBound)]
+#[derive(DebugNoBound, Clone, Encode, Decode, TypeInfo)]
+#[scale_info(skip_type_params(T))]
 pub struct YumaOutput<T: Config> {
     pub subnet_id: u16,
     pub params: YumaParams<T>,
@@ -645,20 +718,6 @@ impl<T: Config> YumaOutput<T> {
     }
 }
 
-bty::brand! {
-    pub type ActiveStake = Vec<I32F32>;
-    pub type ConsensusVal = Vec<I32F32>;
-    pub type DividendsVal = Vec<I32F32>;
-    pub type IncentivesVal = Vec<I32F32>;
-    pub type Preranks = Vec<I32F32>;
-    pub type PruningScoresVal = Vec<I32F32>;
-    pub type RanksVal = Vec<I32F32>;
-    pub type StakeVal = Vec<I32F32>;
-    pub type TrustVal = Vec<I32F32>;
-    pub type ValidatorTrustVal = Vec<I32F32>;
-    pub type WeightsVal = Vec<Vec<(u16, I32F32)>>;
-}
-
 struct ConsensusAndTrust {
     consensus: ConsensusVal,
     validator_trust: ValidatorTrustVal,
@@ -681,4 +740,18 @@ struct Emissions {
     validator_emissions: Vec<u64>,
     server_emissions: Vec<u64>,
     combined_emissions: Vec<u64>,
+}
+
+bty::brand! {
+    pub type ActiveStake = Vec<I32F32>;
+    pub type ConsensusVal = Vec<I32F32>;
+    pub type DividendsVal = Vec<I32F32>;
+    pub type IncentivesVal = Vec<I32F32>;
+    pub type Preranks = Vec<I32F32>;
+    pub type PruningScoresVal = Vec<I32F32>;
+    pub type RanksVal = Vec<I32F32>;
+    pub type StakeVal = Vec<I32F32>;
+    pub type TrustVal = Vec<I32F32>;
+    pub type ValidatorTrustVal = Vec<I32F32>;
+    pub type WeightsVal = Vec<Vec<(u16, I32F32)>>;
 }

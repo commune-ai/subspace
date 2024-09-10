@@ -3,7 +3,7 @@ use crate::subnet_consensus::{linear::LinearEpoch, treasury::TreasuryEpoch, yuma
 
 use frame_support::{storage::with_storage_layer, traits::Get, weights::Weight};
 use pallet_subnet_emission_api::SubnetConsensus;
-use pallet_subspace::N;
+use pallet_subspace::{Pallet as PalletSubspace, N};
 
 /// Processes subnets by updating pending emissions and running epochs when due.
 ///
@@ -165,15 +165,22 @@ fn run_linear_consensus<T: Config>(
 fn run_yuma_consensus<T: Config>(netuid: u16, emission_to_drain: u64) -> Result<(), &'static str> {
     let params = subnet_consensus::yuma::params::YumaParams::<T>::new(netuid, emission_to_drain)?;
 
-    let output = YumaEpoch::<T>::new(netuid, params).run().map_err(|err| {
-        log::error!(
-            "Failed to run yuma consensus algorithm: {err:?}, skipping this block. \
-            {emission_to_drain} tokens will be emitted on the next epoch."
-        );
-        "yuma failed"
-    })?;
+    let block_number = PalletSubspace::<T>::get_current_block_number();
+    // Save the params
+    YumaParameters::<T>::insert(netuid, block_number, params);
+    // Save the yuma params
 
-    output.apply();
+    // TODO:
+    // later when decrypted weights come
+    // let output = YumaEpoch::<T>::new(netuid, params).run().map_err(|err| {
+    //     log::error!(
+    //         "Failed to run yuma consensus algorithm: {err:?}, skipping this block. \
+    //         {emission_to_drain} tokens will be emitted on the next epoch."
+    //     );
+    //     "yuma failed"
+    // })?;
+
+    // output.apply();
 
     Ok(())
 }

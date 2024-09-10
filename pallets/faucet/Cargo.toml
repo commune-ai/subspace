@@ -25,16 +25,13 @@ std = [
 try-runtime = ["frame-support/try-runtime"]
 
 [dependencies]
-log.workspace = true
+bty = { workspace = true }
+
+frame-support = { workspace = true }
+frame-system = { workspace = true }
+log = { workspace = true }
 
 pallet-subspace = { path = "../subspace", default-features = false }
-
-frame-support.workspace = true
-frame-system.workspace = true
-
-sp-runtime.workspace = true
-sp-std.workspace = true
-sp-core.workspace = true
 
 parity-scale-codec = { workspace = true, default-features = false, features = [
     "derive",
@@ -42,8 +39,14 @@ parity-scale-codec = { workspace = true, default-features = false, features = [
 scale-info = { workspace = true, default-features = false, features = [
     "derive",
 ] }
+sp-core = { workspace = true }
+
+sp-runtime = { workspace = true }
+sp-std = { workspace = true }
+
+substrate-fixed = { workspace = true }
 
 [dev-dependencies]
 pallet-balances = { workspace = true, features = ["std"] }
-sp-io.workspace = true
-sp-tracing.workspace = true
+sp-io = { workspace = true }
+sp-tracing = { workspace = true }

@@ -295,3 +295,10 @@ fn test_rootnet_registration_requirements() {
         assert_eq!(SubspaceMod::get_total_stake_from(&2), initial_stake + 2);
     });
 }
+
+#[test]
+fn test_rootnet_registration_requirements() {
+    new_test_ext().execute_with(|| {
+        testthing::
+    });
+}

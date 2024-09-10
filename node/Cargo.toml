@@ -23,6 +23,7 @@ name = "node-subspace"
 clap = { workspace = true, features = ["derive"] }
 futures = { workspace = true, features = ["thread-pool"] }
 hex.workspace = true
+rsa.workspace = true
 serde.workspace = true
 
 serde_json.workspace = true
