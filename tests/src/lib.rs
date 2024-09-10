@@ -10,6 +10,8 @@ pub mod governance;
 #[cfg(test)]
 pub mod mock;
 #[cfg(test)]
+pub mod research;
+#[cfg(test)]
 pub mod root;
 #[cfg(test)]
 pub mod subnet_emission;

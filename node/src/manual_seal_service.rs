@@ -2,6 +2,7 @@
 
 use futures::FutureExt;
 use node_subspace_runtime::{self, opaque::Block, RuntimeApi};
+use rsa::{rand_core::OsRng, traits::PublicKeyParts, Pkcs1v15Encrypt};
 use sc_client_api::Backend;
 use sc_consensus_manual_seal::consensus::{
     aura::AuraConsensusDataProvider, timestamp::SlotTimestampProvider,
@@ -234,20 +235,30 @@ pub fn new_full(mut config: Configuration) -> Result<TaskManager, ServiceError> 
     Ok(task_manager)
 }
 
-#[derive(Default)]
 struct Decrypter {
     // TODO: swap this with the node's decryption key type and store it once it starts
-    decryption_key: (),
+    key: rsa::RsaPrivateKey,
+}
+
+impl Default for Decrypter {
+    fn default() -> Self {
+        Self {
+            key: rsa::RsaPrivateKey::new(&mut OsRng, 128).unwrap(),
+        }
+    }
 }
 
 impl testthing::OffworkerExtension for Decrypter {
-    fn decrypt_weight(&self, _encrypted: Vec<u8>) -> Vec<u8> {
-        // TODO: weight decryption goes here
-        todo!()
+    fn decrypt_weight(&self, encrypted: Vec<u8>) -> Option<Vec<u8>> {
+        self.key.decrypt(Pkcs1v15Encrypt, &encrypted).ok()
+    }
+    fn encrypt_weight(&self, decrypted: Vec<u8>) -> Option<Vec<u8>> {
+        let encryption_key = rsa::RsaPublicKey::from(&self.key);
+        encryption_key.encrypt(&mut OsRng, Pkcs1v15Encrypt, &decrypted[..]).ok()
     }
 
-    fn get_encryption_key(&self) -> Vec<u8> {
-        // TODO: return a encryption key derived from our decryption key, or always return the same
-        todo!()
+    fn get_encryption_key(&self) -> (Vec<u8>, Vec<u8>) {
+        let public = rsa::RsaPublicKey::from(&self.key);
+        (public.n().to_bytes_be(), public.e().to_bytes_le())
     }
 }

@@ -9,9 +9,9 @@ members = [
     "pallets/subspace",
     "pallets/subspace/genesis-config",
     "runtime",
-    "xtask",
     "tests",
     "testthing",
+    "xtask",
 ]
 resolver = "2"
 
@@ -32,6 +32,7 @@ match_bool = "deny"
 infinite_loop = "deny"
 
 [workspace.dependencies]
+rsa = "0.9.4"
 # External dependencies
 bty = { version = "0.2.0", default-features = false }
 env_logger = "0.11.3"
@@ -40,7 +41,11 @@ clap = "4.4.6"
 hex = "0.4.3"
 jsonrpsee = "0.22.2"
 log = { version = "0.4.21", default-features = false }
-tokio = "1.17.0"
+parity-util-mem = "0.11.0"
+rand = "0.8"
+scale-info = { version = "2.10.0", default-features = false, features = [
+    "derive",
+] }
 serde = { version = "1.0.145", default-features = false, features = ["derive"] }
 serde_json = { version = "1.0.108", default-features = false, features = [
     "alloc",

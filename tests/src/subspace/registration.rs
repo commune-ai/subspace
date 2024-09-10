@@ -434,7 +434,6 @@ fn new_subnet_reutilized_removed_netuid_if_total_is_bigger_than_removed() {
         for i in 0..10 {
             N::<Test>::set(i, 0);
         }
-        dbg!(SubspaceMod::get_total_subnets());
 
         SubnetGaps::<Test>::set(BTreeSet::from([5]));
 
