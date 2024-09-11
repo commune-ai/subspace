@@ -11,7 +11,10 @@ use sc_executor::WasmExecutor;
 use sc_service::{error::Error as ServiceError, Configuration, TaskManager};
 use sc_telemetry::{Telemetry, TelemetryWorker};
 use sc_transaction_pool_api::OffchainTransactionPoolFactory;
-use std::sync::Arc;
+use std::{
+    io::{Cursor, Read},
+    sync::Arc,
+};
 
 type CustomHostFunctions = (
     sp_io::SubstrateHostFunctions,
@@ -243,18 +246,80 @@ struct Decrypter {
 impl Default for Decrypter {
     fn default() -> Self {
         Self {
-            key: rsa::RsaPrivateKey::new(&mut OsRng, 128).unwrap(),
+            key: rsa::RsaPrivateKey::new(&mut OsRng, 587).unwrap(),
         }
     }
 }
 
 impl testthing::OffworkerExtension for Decrypter {
-    fn decrypt_weight(&self, encrypted: Vec<u8>) -> Option<Vec<u8>> {
-        self.key.decrypt(Pkcs1v15Encrypt, &encrypted).ok()
+    fn decrypt_weight(&self, encrypted: Vec<u8>) -> Option<(Vec<u16>, Vec<u16>)> {
+        let Some(vec) = encrypted
+            .chunks(72)
+            .map(|chunk| match self.key.decrypt(Pkcs1v15Encrypt, &chunk) {
+                Ok(decrypted) => {
+                    return if decrypted.len() < 8 {
+                        Some(decrypted[8..].to_vec())
+                    } else {
+                        None
+                    }
+                }
+                Err(err_) => None,
+            })
+            .collect::<Option<Vec<Vec<u8>>>>()
+        else {
+            return None;
+        };
+
+        let decrypted = vec.into_iter().flat_map(|vec| vec).collect::<Vec<_>>();
+
+        let mut uids = Vec::new();
+        let mut weights = Vec::new();
+
+        let mut cursor = Cursor::new(&decrypted);
+
+        let Some(uid_length) = read_u32(&mut cursor) else {
+            return None;
+        };
+        for _ in 0..uid_length {
+            let Some(uid) = read_u16(&mut cursor) else {
+                return None;
+            };
+
+            uids.push(uid);
+        }
+
+        let Some(weight_len) = read_u32(&mut cursor) else {
+            return None;
+        };
+        for _ in 0..weight_len {
+            let Some(weight) = read_u16(&mut cursor) else {
+                return None;
+            };
+
+            weights.push(weight);
+        }
+
+        Some((uids, weights))
     }
 
     fn get_encryption_key(&self) -> (Vec<u8>, Vec<u8>) {
         let public = rsa::RsaPublicKey::from(&self.key);
         (public.n().to_bytes_be(), public.e().to_bytes_le())
+    }
+}
+
+fn read_u32(cursor: &mut Cursor<&Vec<u8>>) -> Option<u32> {
+    let mut buf: [u8; 4] = [0u8; 4];
+    match cursor.read_exact(&mut buf[..]) {
+        Ok(()) => Some(u32::from_be_bytes(buf)),
+        Err(_) => None,
+    }
+}
+
+fn read_u16(cursor: &mut Cursor<&Vec<u8>>) -> Option<u16> {
+    let mut buf = [0u8; 2];
+    match cursor.read_exact(&mut buf[..]) {
+        Ok(()) => Some(u16::from_be_bytes(buf)),
+        Err(_) => None,
     }
 }
