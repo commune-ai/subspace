@@ -252,10 +252,6 @@ impl testthing::OffworkerExtension for Decrypter {
     fn decrypt_weight(&self, encrypted: Vec<u8>) -> Option<Vec<u8>> {
         self.key.decrypt(Pkcs1v15Encrypt, &encrypted).ok()
     }
-    fn encrypt_weight(&self, decrypted: Vec<u8>) -> Option<Vec<u8>> {
-        let encryption_key = rsa::RsaPublicKey::from(&self.key);
-        encryption_key.encrypt(&mut OsRng, Pkcs1v15Encrypt, &decrypted[..]).ok()
-    }
 
     fn get_encryption_key(&self) -> (Vec<u8>, Vec<u8>) {
         let public = rsa::RsaPublicKey::from(&self.key);

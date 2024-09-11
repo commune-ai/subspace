@@ -20,6 +20,8 @@ use pallet_subspace::{
     TotalStake, N,
 };
 use parity_scale_codec::{Decode, Encode};
+use rand::rngs::OsRng;
+use rsa::{traits::PublicKeyParts, Pkcs1v15Encrypt};
 use scale_info::{prelude::collections::BTreeSet, TypeInfo};
 use sp_core::{sr25519, ConstU16, H256};
 use sp_runtime::{
@@ -517,6 +519,7 @@ pub fn new_test_ext() -> sp_io::TestExternalities {
     sp_tracing::try_init_simple();
     let t = frame_system::GenesisConfig::<Test>::default().build_storage().unwrap();
     let mut ext = sp_io::TestExternalities::new(t);
+    ext.register_extension(testthing::OffworkerExt::new(Decrypter::default()));
     ext.execute_with(|| {});
     ext
 }
@@ -872,3 +875,27 @@ macro_rules! assert_in_range {
 pub(crate) use assert_in_range;
 pub(crate) use assert_ok;
 pub(crate) use update_params;
+
+struct Decrypter {
+    // TODO: swap this with the node's decryption key type and store it once it starts
+    key: rsa::RsaPrivateKey,
+}
+
+impl Default for Decrypter {
+    fn default() -> Self {
+        Self {
+            key: rsa::RsaPrivateKey::new(&mut OsRng, 128).unwrap(),
+        }
+    }
+}
+
+impl testthing::OffworkerExtension for Decrypter {
+    fn decrypt_weight(&self, encrypted: Vec<u8>) -> Option<Vec<u8>> {
+        self.key.decrypt(Pkcs1v15Encrypt, &encrypted).ok()
+    }
+
+    fn get_encryption_key(&self) -> (Vec<u8>, Vec<u8>) {
+        let public = rsa::RsaPublicKey::from(&self.key);
+        (public.n().to_bytes_be(), public.e().to_bytes_le())
+    }
+}
