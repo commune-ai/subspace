@@ -18,7 +18,6 @@ impl OffworkerExt {
 #[cfg(feature = "std")]
 pub trait OffworkerExtension: Send + 'static {
     fn decrypt_weight(&self, encrypted: Vec<u8>) -> Option<Vec<u8>>;
-    fn encrypt_weight(&self, decrypted: Vec<u8>) -> Option<Vec<u8>>;
 
     fn get_encryption_key(&self) -> (Vec<u8>, Vec<u8>);
 }
@@ -29,12 +28,6 @@ pub trait Offworker {
         self.extension::<OffworkerExt>()
             .expect("missing offworker ext")
             .decrypt_weight(encrypted)
-    }
-
-    fn encrypt_weight(&mut self, decrypted: sp_std::vec::Vec<u8>) -> Option<sp_std::vec::Vec<u8>> {
-        self.extension::<OffworkerExt>()
-            .expect("missing offworker ext")
-            .encrypt_weight(decrypted)
     }
 
     fn get_encryption_key(&mut self) -> (sp_std::vec::Vec<u8>, sp_std::vec::Vec<u8>) {
