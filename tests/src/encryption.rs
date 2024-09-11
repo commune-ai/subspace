@@ -13,7 +13,7 @@ fn encrypt(key: (Vec<u8>, Vec<u8>), data: (Vec<u16>, Vec<u16>)) -> Vec<u8> {
         BigUint::from_bytes_be(&key.0),
         BigUint::from_bytes_be(&key.1),
     )
-    .unwrap();
+    .unwrap(); // todo remove unwrap
 
     let res = encoded
         .chunks(120)

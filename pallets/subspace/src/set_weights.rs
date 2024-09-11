@@ -260,4 +260,14 @@ impl<T: Config> Pallet<T> {
             }
         }
     }
+
+    pub fn do_set_weights_encrypted(
+        _origin: T::RuntimeOrigin,
+        _netuid: u16,
+        _encrypted_weights: Vec<u16>,
+    ) -> DispatchResult {
+        // TODO
+        // impelment this function
+        Ok(())
+    }
 }
