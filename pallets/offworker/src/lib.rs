@@ -2,14 +2,19 @@
 
 extern crate alloc;
 
+use std::collections::BTreeMap;
+
 use alloc::vec::Vec;
-use frame_support::traits::Get;
+use frame_support::{traits::Get, weights};
 use frame_system::{
     offchain::{AppCrypto, CreateSignedTransaction, SignedPayload, Signer, SigningTypes},
     pallet_prelude::BlockNumberFor,
 };
-use pallet_subnet_emission::subnet_consensus::yuma::YumaOutput;
-use pallet_subspace::{CopierMargin, MaxEncryptionPeriod, Pallet as SubspaceModule};
+use pallet_subnet_emission::subnet_consensus::yuma::{YumaEpoch, YumaOutput, YumaParams};
+use pallet_subspace::{
+    Active, Consensus, CopierMargin, FloorDelegationFee, MaxEncryptionPeriod,
+    Pallet as SubspaceModule, Tempo, Weights, N,
+};
 use parity_scale_codec::{Decode, Encode};
 use scale_info::prelude::marker::PhantomData;
 use sp_core::crypto::KeyTypeId;
@@ -67,11 +72,15 @@ pub mod pallet {
     use super::*;
     use frame_support::pallet_prelude::*;
     use frame_system::pallet_prelude::*;
+    use pallet_subnet_emission::YumaParameters;
 
     /// This pallet's configuration trait
     #[pallet::config]
     pub trait Config:
-        CreateSignedTransaction<Call<Self>> + frame_system::Config + pallet_subspace::Config
+        CreateSignedTransaction<Call<Self>>
+        + frame_system::Config
+        + pallet_subspace::Config
+        + pallet_subnet_emission::Config
     {
         /// The identifier type for an offchain worker.
         type AuthorityId: AppCrypto<Self::Public, Self::Signature>;
@@ -121,10 +130,12 @@ pub mod pallet {
             Weight::zero()
         }
 
+        // ! This function is not actually guaranteed to run on every block
         fn offchain_worker(block_number: BlockNumberFor<T>) {
+            log::info!("Offchain worker is running");
             for subnet_id in [0u16; 0] {
+                // TODO: see if this is needed
                 let is_validator = sp_io::offchain::is_validator();
-
                 if !is_validator {
                     log::info!("Not a validator node, skipping offchain computation.");
                     return;
@@ -133,25 +144,32 @@ pub mod pallet {
                 let block_number: u64 =
                     block_number.try_into().ok().expect("blockchain won't pass 2 ^ 64 blocks");
 
-                // This should always run after on_initialize, so YumaParams are already ready
+                // This hook should always run after on_initialize, so YumaParams are already ready
                 if pallet_subspace::Pallet::<T>::blocks_until_next_epoch(subnet_id, block_number)
                     > 0
                 {
                     return;
                 }
-                // TODO:
-                // let foo = ConsensusSimulationResult {
-                //     cumulative_copier_divs: I64F64::from_num(0.8),
-                //     cumulative_avg_delegate_divs: I64F64::from_num(1.0),
-                //     copying_margin: I64F64::from_num(0.1),
-                //     black_box_age: 100,
-                //     max_encryption_period: 1000,
-                //     _phantom: PhantomData,
-                // };
 
-                // if is_copying_irrational::<T>(foo) {
-                //     continue;
-                // }
+                // Get the latest runtime YumaParams
+                let latest_rumtime_yuma_params = YumaParameters::<T>::iter_prefix(subnet_id)
+                    .max_by_key(|(block_number, _)| *block_number)
+                    .map(|(_, params)| params)
+                    .unwrap(); // Todo: remove unwrap, handle None
+
+                // TODO: Decrypt Encrypted Weight
+                // Potentially return a result here
+                let decrypted_weights: Option<Vec<(u16, Vec<(u16, u16)>)>> = Some(Vec::new());
+
+                if let Some(decrypted_weights) = decrypted_weights {
+                    let should_decrypt = Self::should_decrpyt(
+                        decrypted_weights,
+                        latest_rumtime_yuma_params,
+                        subnet_id,
+                    );
+
+                    if should_decrypt { /* TODO: Send decrypted weights to the runtime */ }
+                }
 
                 //|  | 0 | 1 | 2 | 3 | 4 | 5 |
                 //|                       ^ choose node F
@@ -161,8 +179,6 @@ pub mod pallet {
                 //|       ^ choose node B
                 //|   ^ choose node A
             }
-
-            log::info!("Hello World from offchain workers!");
         }
     }
 
@@ -243,6 +259,132 @@ impl<T: SigningTypes> SignedPayload<T>
 }
 
 impl<T: Config> Pallet<T> {
+    #[must_use]
+    pub fn should_decrpyt(
+        decrypted_weights: Vec<(u16, Vec<(u16, u16)>)>,
+        latest_rumtime_yuma_params: YumaParams<T>,
+        subnet_id: u16,
+    ) -> bool {
+        let (copier_uid, simulation_yuma_params) = Pallet::<T>::compute_simulation_yuma_params(
+            decrypted_weights,
+            latest_rumtime_yuma_params,
+            subnet_id,
+        );
+
+        // Run simulation
+        let simulation_yuma_output =
+            YumaEpoch::<T>::new(subnet_id, simulation_yuma_params).run().unwrap(); // TODO: handle unwrap
+
+        // Create a reference to Local Storage value
+        let storage_key = format!("consensus_simulation_result:{}", subnet_id).into_bytes();
+        let storage = StorageValueRef::persistent(&storage_key);
+
+        // Retrieve the existing simulation result or create a new one
+        let mut simulation_result = storage
+            .mutate(
+                |stored_data: Result<
+                    Option<ConsensusSimulationResult<T>>,
+                    StorageRetrievalError,
+                >|
+                 -> Result<ConsensusSimulationResult<T>, StorageRetrievalError> {
+                    match stored_data {
+                        Ok(Some(data)) => Ok(data),
+                        Ok(None) => Ok(ConsensusSimulationResult::default()),
+                        Err(e) => Err(e),
+                    }
+                },
+            )
+            .unwrap_or_else(|_| ConsensusSimulationResult::default());
+
+        // Update the simulation result
+        let tempo = Tempo::<T>::get(subnet_id);
+        let delegation_fee = FloorDelegationFee::<T>::get();
+        simulation_result.update(simulation_yuma_output, tempo, copier_uid, delegation_fee);
+
+        // Save the updated simulation result to local offchain worker storage
+        storage.set(&simulation_result);
+
+        is_copying_irrational::<T>(simulation_result)
+    }
+
+    /// Appends copier information to simulated consensus YumaParams
+    /// Overwrites onchain decrypted weights with the offchain workers' decrypted weights
+    pub fn compute_simulation_yuma_params(
+        decrypted_weights: Vec<(u16, Vec<(u16, u16)>)>,
+        mut runtime_yuma_params: YumaParams<T>,
+        subnet_id: u16,
+        // Return copier uid and YumaParams
+    ) -> (u16, YumaParams<T>) {
+        // TODO:
+        // Append registered information of copier to the `YumaParams` struct
+        let copier_uid: u16 = N::<T>::get(subnet_id);
+
+        let consensus_weights = Consensus::<T>::get(subnet_id);
+        let copier_weights: Vec<(u16, u16)> = consensus_weights
+            .into_iter()
+            .enumerate()
+            .map(|(index, value)| (index as u16, value))
+            .collect();
+
+        // Overwrite the runtime yuma params with copier information
+        runtime_yuma_params = Self::add_copier_to_yuma_params(
+            copier_uid,
+            runtime_yuma_params,
+            subnet_id,
+            copier_weights,
+        );
+
+        // Query the onchain weights for subnet_id
+        let onchain_weights: Vec<(u16, Vec<(u16, u16)>)> =
+            Weights::<T>::iter_prefix(subnet_id).collect();
+
+        // Create a map of uid to decrypted weights for easier lookup
+        let decrypted_weights_map: BTreeMap<u16, Vec<(u16, u16)>> =
+            decrypted_weights.into_iter().collect();
+
+        // Update the modules in runtime_yuma_params
+        for (_, module) in runtime_yuma_params.modules.iter_mut() {
+            let uid = module.uid;
+
+            // Use decrypted weights if available, otherwise use onchain weights
+            let weights = decrypted_weights_map
+                .get(&uid)
+                .cloned()
+                .or_else(|| {
+                    onchain_weights.iter().find(|(w_uid, _)| *w_uid == uid).map(|(_, w)| w.clone())
+                })
+                .unwrap_or_default();
+
+            // TODO:
+            // eventually we will move the decrypted weights out of `YumaParams`,
+            // so this is a temporary solution
+
+            // Update the weights_unencrypted field
+            module.weights_unencrypted = weights;
+        }
+
+        (copier_uid, runtime_yuma_params)
+    }
+
+    /// This will mutate YumaParams with copier information, ready for simulation
+    pub fn add_copier_to_yuma_params(
+        _copier_uid: u16,
+        mut _runtime_yuma_params: YumaParams<T>,
+        subnet_id: u16,
+        _weights: Vec<(u16, u16)>,
+    ) -> YumaParams<T> {
+        // TODO:
+
+        let _copier_stake = get_copier_stake::<T>(subnet_id);
+        // With pseudo code
+        // let _ = register_module(netuid, key, copier_stake, false);
+        // step_block(1);
+        // set_weights(netuid, key, uids, values);
+
+        // todo
+        _runtime_yuma_params
+    }
+
     /// Chooses which transaction type to send.
     ///
     /// This function serves mostly to showcase `StorageValue` helper
@@ -341,13 +483,6 @@ pub fn is_copying_irrational<T: pallet_subspace::Config>(
         ..
     }: ConsensusSimulationResult<T>,
 ) -> bool {
-    dbg!(
-        black_box_age,
-        max_encryption_period,
-        copier_margin,
-        cumulative_avg_delegate_divs,
-        cumulative_copier_divs
-    );
     if black_box_age >= max_encryption_period {
         return true;
     }
@@ -398,6 +533,19 @@ pub fn calculate_avg_delegate_divs<T: pallet_subspace::Config>(
     average_dividends.saturating_mul(fee_factor).saturating_mul(copier_stake).into()
 }
 
+pub fn get_copier_stake<T>(netuid: u16) -> u64
+where
+    T: pallet_subspace::Config + pallet::Config,
+{
+    let subnet_stake: u64 = Active::<T>::get(netuid)
+        .iter()
+        .enumerate()
+        .filter(|&(_, &is_active)| is_active)
+        .map(|(uid, _)| get_delegated_stake_on_uid::<T>(netuid, uid as u16))
+        .sum();
+
+    MeasuredStakeAmount::<T>::get().mul_floor(subnet_stake)
+}
 // TODO:
 // get rid of this shit, make it more efficient
 #[inline]
@@ -420,7 +568,7 @@ pub fn get_delegated_stake_on_uid<T: pallet_subspace::Config>(netuid: u16, modul
 /// * `epoch_block_sum` - Sum of blocks in the epoch.
 /// * `max_encryption_period` - Maximum encryption period.
 /// * `_phantom` - PhantomData for the generic type `T`.
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq, Encode, Decode)]
 
 pub struct ConsensusSimulationResult<T: pallet_subspace::Config> {
     pub cumulative_copier_divs: I64F64,
@@ -447,7 +595,7 @@ impl<T: pallet_subspace::Config> ConsensusSimulationResult<T> {
     pub fn update(
         &mut self,
         yuma_output: YumaOutput<T>,
-        tempo: u64,
+        tempo: u16,
         copier_uid: u16,
         delegation_fee: Percent,
     ) {
@@ -464,7 +612,7 @@ impl<T: pallet_subspace::Config> ConsensusSimulationResult<T> {
         self.cumulative_copier_divs = self.cumulative_copier_divs.saturating_add(copier_divs);
         self.cumulative_avg_delegate_divs =
             self.cumulative_avg_delegate_divs.saturating_add(avg_delegate_divs);
-        self.black_box_age = self.black_box_age.saturating_add(tempo);
+        self.black_box_age = self.black_box_age.saturating_add(tempo as u64);
 
         self.max_encryption_period = MaxEncryptionPeriod::<T>::get(netuid);
         self.copier_margin = CopierMargin::<T>::get(netuid);

@@ -329,7 +329,7 @@ impl<T: Config> YumaEpoch<T> {
 
     fn compute_weights(&self) -> Option<WeightsVal> {
         // Access network weights row unnormalized.
-        let mut weights = self.modules.weight_unencrypted.clone();
+        let mut weights = self.modules.weights_unencrypted.clone();
         log::trace!("  original weights: {weights:?}");
 
         let validator_forbids: Vec<bool> =

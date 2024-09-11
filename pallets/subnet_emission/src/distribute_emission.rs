@@ -1,5 +1,5 @@
 use super::*;
-use crate::subnet_consensus::{linear::LinearEpoch, treasury::TreasuryEpoch, yuma::YumaEpoch};
+use crate::subnet_consensus::{linear::LinearEpoch, treasury::TreasuryEpoch};
 
 use frame_support::{storage::with_storage_layer, traits::Get, weights::Weight};
 use pallet_subnet_emission_api::SubnetConsensus;

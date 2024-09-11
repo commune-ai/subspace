@@ -48,7 +48,7 @@ pub struct ModuleParams {
     pub bonds: Vec<(u16, u16)>,
     pub weight_unencrypted_hash: Vec<u8>,
     pub weight_encrypted: Vec<u8>,
-    pub weight_unencrypted: Vec<(u16, u16)>,
+    pub weights_unencrypted: Vec<(u16, u16)>,
 }
 
 #[derive(DebugNoBound)]
@@ -62,7 +62,7 @@ pub(super) struct FlattenedModules<AccountId: Debug> {
     pub bonds: Vec<Vec<(u16, I32F32)>>,
     pub weight_unencrypted_hash: Vec<Vec<u8>>,
     pub weight_encrypted: Vec<Vec<u8>>,
-    pub weight_unencrypted: Vec<Vec<(u16, I32F32)>>,
+    pub weights_unencrypted: Vec<Vec<(u16, I32F32)>>,
 }
 
 impl<AccountId: Debug> From<BTreeMap<ModuleKey<AccountId>, ModuleParams>>
@@ -79,7 +79,7 @@ impl<AccountId: Debug> From<BTreeMap<ModuleKey<AccountId>, ModuleParams>>
             bonds: Vec::with_capacity(value.len()),
             weight_unencrypted_hash: Vec::with_capacity(value.len()),
             weight_encrypted: Vec::with_capacity(value.len()),
-            weight_unencrypted: Vec::with_capacity(value.len()),
+            weights_unencrypted: Vec::with_capacity(value.len()),
         };
 
         for (key, module) in value {
@@ -94,9 +94,9 @@ impl<AccountId: Debug> From<BTreeMap<ModuleKey<AccountId>, ModuleParams>>
                 .push(module.bonds.into_iter().map(|(k, m)| (k, I32F32::from_num(m))).collect());
             modules.weight_unencrypted_hash.push(module.weight_unencrypted_hash);
             modules.weight_encrypted.push(module.weight_encrypted);
-            modules.weight_unencrypted.push(
+            modules.weights_unencrypted.push(
                 module
-                    .weight_unencrypted
+                    .weights_unencrypted
                     .into_iter()
                     .map(|(k, m)| (k, I32F32::from_num(m)))
                     .collect(),
@@ -150,7 +150,7 @@ impl<T: Config> YumaParams<T> {
                     // TODO: implement weights
                     weight_encrypted: Default::default(),
                     // TODO: remove once we encrypt weights
-                    weight_unencrypted: weights,
+                    weights_unencrypted: weights,
                 };
 
                 Result::<_, &'static str>::Ok((ModuleKey(key), module))

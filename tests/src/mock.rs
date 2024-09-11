@@ -15,9 +15,9 @@ use pallet_governance_api::*;
 use pallet_offworker::{crypto::Signature, Call as OffworkerCall, MeasuredStakeAmount};
 use pallet_subnet_emission_api::{SubnetConsensus, SubnetEmissionApi};
 use pallet_subspace::{
-    subnet::SubnetChangeset, Address, DefaultKey, DefaultSubnetParams, Dividends, Emission,
-    Incentive, LastUpdate, MaxRegistrationsPerBlock, Name, SubnetBurn, SubnetParams, Tempo,
-    TotalStake, N,
+    subnet::SubnetChangeset, Active, Address, BurnConfig, DefaultKey, DefaultSubnetParams,
+    Dividends, Emission, Incentive, LastUpdate, MaxRegistrationsPerBlock, Name, StakeFrom, StakeTo,
+    SubnetBurn, SubnetBurnConfig, SubnetParams, Tempo, TotalStake, N,
 };
 use parity_scale_codec::{Decode, Encode};
 use rand::rngs::OsRng;
@@ -546,23 +546,9 @@ pub fn get_total_subnet_balance(netuid: u16) -> u64 {
     keys.iter().map(SubspaceMod::get_balance_u64).sum()
 }
 
-pub fn get_copier_stake(netuid: u16) -> u64 {
-    // Sums up all validators stake
-    let subnet_stake = Active::<Test>::get(netuid)
-        .iter()
-        .enumerate()
-        .filter(|(_, &is_active)| is_active)
-        .map(|(uid, _)| pallet_offworker::get_delegated_stake_on_uid::<Test>(netuid, uid as u16))
-        .sum();
-
-    let measured_stake_amt = MeasuredStakeAmount::<Test>::get();
-    let copier_stake = measured_stake_amt.mul_floor(subnet_stake);
-    copier_stake
-}
-
 /// Appends weight copier validator
 pub fn add_weight_copier(netuid: u16, key: u32, uids: Vec<u16>, values: Vec<u16>) {
-    let copier_stake = get_copier_stake(netuid);
+    let copier_stake = pallet_offworker::get_copier_stake::<Test>(netuid);
     // registers module if not already registered
     let _ = register_module(netuid, key, copier_stake, false);
     step_block(1);

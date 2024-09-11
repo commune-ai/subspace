@@ -1068,6 +1068,35 @@ pub mod pallet {
         ) -> DispatchResult {
             Self::do_register_subnet(origin, name, metadata)
         }
+
+        #[pallet::call_index(13)]
+        #[pallet::weight((T::WeightInfo::delegate_rootnet_control(), DispatchClass::Normal, Pays::No))]
+        pub fn add_blacklist(
+            origin: OriginFor<T>,
+            netuid: u16,
+            module: T::AccountId,
+        ) -> DispatchResult {
+            Self::do_add_blacklist(origin, netuid, module)
+        }
+
+        #[pallet::call_index(14)]
+        #[pallet::weight((T::WeightInfo::delegate_rootnet_control(), DispatchClass::Normal, Pays::No))]
+        pub fn remove_blacklist(
+            origin: OriginFor<T>,
+            netuid: u16,
+            module: T::AccountId,
+        ) -> DispatchResult {
+            Self::do_remove_blacklist(origin, netuid, module)
+        }
+
+        #[pallet::weight(0)] // TODO: add benchmark
+        pub fn set_weights_encrypted(
+            origin: OriginFor<T>,
+            netuid: u16,
+            encrypted_weights: Vec<u16>,
+        ) -> DispatchResult {
+            Self::do_set_weights_encrypted(origin, netuid, encrypted_weights)
+        }
     }
 }
 impl<T: Config> Pallet<T> {
