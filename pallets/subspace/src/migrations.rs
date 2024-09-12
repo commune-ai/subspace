@@ -91,7 +91,7 @@ pub mod v13 {
                     _ => continue,
                 };
 
-                if let Ok(bounded_metadata) = BoundedVec::<u8, ConstU32<59>>::try_from(metadata) {
+                if let Ok(bounded_metadata) = BoundedVec::<u8, ConstU32<120>>::try_from(metadata) {
                     SubnetMetadata::<T>::insert(netuid, bounded_metadata);
                 }
             }

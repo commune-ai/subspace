@@ -224,7 +224,7 @@ pub mod pallet {
             founder: T::AccountId,
             founder_share: u16,
             name: BoundedVec<u8, ConstU32<256>>,
-            metadata: Option<BoundedVec<u8, ConstU32<59>>>,
+            metadata: Option<BoundedVec<u8, ConstU32<120>>>,
             immunity_period: u16,
             incentive_ratio: u16,
             max_allowed_uids: u16,

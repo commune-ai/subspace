@@ -104,7 +104,7 @@ impl<T: Config> Pallet<T> {
         let bounded_name: BoundedVec<u8, ConstU32<256>> =
             network_name.to_vec().try_into().map_err(|_| Error::<T>::SubnetNameTooLong)?;
 
-        let network_metadata: Option<BoundedVec<u8, ConstU32<59>>> = match network_metadata {
+        let network_metadata: Option<BoundedVec<u8, ConstU32<120>>> = match network_metadata {
             Some(slice) => {
                 Some(slice.to_vec().try_into().map_err(|_| Error::<T>::SubnetNameTooLong)?)
             }
