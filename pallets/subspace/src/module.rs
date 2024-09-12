@@ -80,14 +80,12 @@ impl ModuleChangeset {
             let floor = FloorDelegationFee::<T>::get();
             ensure!(fee >= floor, Error::<T>::InvalidMinDelegationFee);
 
-            if !DelegationFee::<T>::contains_key(&key) {
-                DelegationFee::<T>::insert(&key, fee);
-            }
+            DelegationFee::<T>::insert(&key, fee);
         }
 
         if let Some(metadata) = self.metadata {
             ensure!(!metadata.is_empty(), Error::<T>::InvalidModuleMetadata);
-            ensure!(metadata.len() <= 59, Error::<T>::ModuleMetadataTooLong);
+            ensure!(metadata.len() <= 120, Error::<T>::ModuleMetadataTooLong);
             core::str::from_utf8(&metadata).map_err(|_| Error::<T>::InvalidModuleMetadata)?;
 
             Metadata::<T>::insert(netuid, &key, metadata);

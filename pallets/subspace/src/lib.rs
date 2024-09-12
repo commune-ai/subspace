@@ -268,7 +268,7 @@ pub mod pallet {
     pub type SubnetNames<T: Config> = StorageMap<_, Identity, u16, Vec<u8>, ValueQuery>;
 
     #[pallet::storage]
-    pub type SubnetMetadata<T: Config> = StorageMap<_, Identity, u16, BoundedVec<u8, ConstU32<59>>>;
+    pub type SubnetMetadata<T: Config> = StorageMap<_, Identity, u16, BoundedVec<u8, ConstU32<120>>>;
 
     #[pallet::storage] // --- ITEM ( floor_founder_share )
     pub type FloorFounderShare<T: Config> = StorageValue<_, u8, ValueQuery, ConstU8<8>>;
@@ -383,7 +383,7 @@ pub mod pallet {
         pub min_allowed_weights: u16, // min number of weights allowed to be registered in this
         pub max_weight_age: u64,      // max age of a weight
         pub name: BoundedVec<u8, ConstU32<256>>,
-        pub metadata: Option<BoundedVec<u8, ConstU32<59>>>,
+        pub metadata: Option<BoundedVec<u8, ConstU32<120>>>,
         pub tempo: u16, // how many blocks to wait before rewarding models
         pub trust_ratio: u16,
         pub maximum_set_weight_calls_per_epoch: u16,
@@ -993,7 +993,7 @@ pub mod pallet {
             founder: T::AccountId,
             founder_share: u16,
             name: BoundedVec<u8, ConstU32<256>>,
-            metadata: Option<BoundedVec<u8, ConstU32<59>>>,
+            metadata: Option<BoundedVec<u8, ConstU32<120>>>,
             immunity_period: u16,
             incentive_ratio: u16,
             max_allowed_uids: u16,
