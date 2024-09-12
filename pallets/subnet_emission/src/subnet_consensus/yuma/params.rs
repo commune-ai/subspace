@@ -25,6 +25,7 @@ pub struct YumaParams<T: Config> {
     pub token_emission: BalanceOf<T>,
 
     pub modules: BTreeMap<ModuleKey<T::AccountId>, ModuleParams>,
+    pub stake_non_normalized: Vec<I64F64>, // Use for WC simulation purposes
     pub kappa: I32F32,
 
     pub founder_key: AccountKey<T::AccountId>,
@@ -111,7 +112,7 @@ impl<T: Config> YumaParams<T> {
     pub fn new(subnet_id: u16, token_emission: u64) -> Result<Self, &'static str> {
         let uids: BTreeMap<_, _> = Keys::<T>::iter_prefix(subnet_id).collect();
 
-        let stake = Self::compute_stake(&uids);
+        let (stake_original, stake_normalized) = Self::compute_stake(&uids);
         let bonds = Self::compute_bonds(subnet_id, &uids);
         let weights = Self::compute_weights(subnet_id, &uids);
 
@@ -122,7 +123,7 @@ impl<T: Config> YumaParams<T> {
 
         let modules = uids
             .into_iter()
-            .zip(stake)
+            .zip(stake_normalized)
             .zip(bonds)
             .zip(weights)
             .map(|((((uid, key), stake), bonds), weights)| {
@@ -169,6 +170,7 @@ impl<T: Config> YumaParams<T> {
             token_emission,
 
             modules,
+            stake_non_normalized: stake_original,
             kappa: I32F32::from_num(Kappa::<T>::get())
                 .checked_div(I32F32::from_num(u16::MAX))
                 .unwrap_or_default(),
@@ -185,22 +187,25 @@ impl<T: Config> YumaParams<T> {
         })
     }
 
-    fn compute_stake(uids: &BTreeMap<u16, T::AccountId>) -> Vec<I32F32> {
+    fn compute_stake(uids: &BTreeMap<u16, T::AccountId>) -> (Vec<I64F64>, Vec<I32F32>) {
         // BTreeMap provides natural order, so iterating and collecting
         // will result in a vector with the same order as the uid map.
-        let mut stake: Vec<_> = uids
+        let original: Vec<I64F64> = uids
             .values()
             .map(PalletSubspace::<T>::get_delegated_stake)
             .map(I64F64::from_num)
             .collect();
-        log::trace!(target: "stake", "original: {stake:?}");
 
-        inplace_normalize_64(&mut stake);
-        log::trace!(target: "stake", "normalized: {stake:?}");
+        log::trace!(target: "stake", "original: {:?}", original);
 
-        vec_fixed64_to_fixed32(stake)
+        let mut normalized = original.clone();
+        inplace_normalize_64(&mut normalized);
+        log::trace!(target: "stake", "normalized: {:?}", normalized);
+
+        let normalized_32 = vec_fixed64_to_fixed32(normalized);
+
+        (original, normalized_32)
     }
-
     fn compute_bonds(subnet_id: u16, uids: &BTreeMap<u16, T::AccountId>) -> Vec<Vec<(u16, u16)>> {
         let mut bonds: BTreeMap<_, _> = Bonds::<T>::iter_prefix(subnet_id).collect();
         // BTreeMap provides natural order, so iterating and collecting
