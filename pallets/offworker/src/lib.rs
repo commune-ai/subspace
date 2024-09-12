@@ -5,13 +5,16 @@ extern crate alloc;
 use std::collections::BTreeMap;
 
 use alloc::vec::Vec;
-use frame_support::{traits::Get, weights};
+use frame_support::traits::Get;
 use frame_system::{
     offchain::{AppCrypto, CreateSignedTransaction, SignedPayload, Signer, SigningTypes},
     pallet_prelude::BlockNumberFor,
 };
-use pallet_subnet_emission::subnet_consensus::yuma::{YumaEpoch, YumaOutput, YumaParams};
+use pallet_subnet_emission::subnet_consensus::yuma::{
+    params::ModuleParams, ModuleKey, YumaEpoch, YumaOutput, YumaParams,
+};
 use pallet_subspace::{
+    math::{inplace_normalize_64, vec_fixed64_to_fixed32},
     Active, Consensus, CopierMargin, FloorDelegationFee, MaxEncryptionPeriod,
     Pallet as SubspaceModule, Tempo, Weights, N,
 };
@@ -20,9 +23,10 @@ use scale_info::prelude::marker::PhantomData;
 use sp_core::crypto::KeyTypeId;
 use sp_runtime::{
     offchain::storage::{StorageRetrievalError, StorageValueRef},
+    traits::{BlakeTwo256, Hash},
     Percent, RuntimeDebug,
 };
-use substrate_fixed::FixedI128;
+use substrate_fixed::{types::I32F32, FixedI128};
 
 /// Defines application identifier for crypto keys of this module.
 ///
@@ -275,7 +279,8 @@ impl<T: Config> Pallet<T> {
         let simulation_yuma_output =
             YumaEpoch::<T>::new(subnet_id, simulation_yuma_params).run().unwrap(); // TODO: handle unwrap
 
-        // Create a reference to Local Storage value
+        // Create a reference to Local Storage value, we don't want to store the results in offchain
+        // worker memory
         let storage_key = format!("consensus_simulation_result:{}", subnet_id).into_bytes();
         let storage = StorageValueRef::persistent(&storage_key);
 
@@ -368,57 +373,62 @@ impl<T: Config> Pallet<T> {
 
     /// This will mutate YumaParams with copier information, ready for simulation
     pub fn add_copier_to_yuma_params(
-        _copier_uid: u16,
-        mut _runtime_yuma_params: YumaParams<T>,
+        copier_uid: u16,
+        mut runtime_yuma_params: YumaParams<T>,
         subnet_id: u16,
-        _weights: Vec<(u16, u16)>,
+        weights: Vec<(u16, u16)>,
     ) -> YumaParams<T> {
-        // TODO:
+        let copier_stake = get_copier_stake::<T>(subnet_id);
+        let current_block = runtime_yuma_params.current_block;
 
-        let _copier_stake = get_copier_stake::<T>(subnet_id);
-        // With pseudo code
-        // let _ = register_module(netuid, key, copier_stake, false);
-        // step_block(1);
-        // set_weights(netuid, key, uids, values);
+        // Add the copier's stake to the non-normalized stakes
+        let mut all_stakes = runtime_yuma_params.stake_non_normalized.clone();
+        all_stakes.push(I64F64::from_num(copier_stake));
 
-        // todo
-        _runtime_yuma_params
-    }
+        // Normalize all stakes including the copier's
+        inplace_normalize_64(&mut all_stakes);
 
-    /// Chooses which transaction type to send.
-    ///
-    /// This function serves mostly to showcase `StorageValue` helper
-    /// and local storage usage.
-    ///
-    /// Returns a type of transaction that should be produced in current run.
-    fn local_storage(block_number: BlockNumberFor<T>) {
-        /// A friendlier name for the error that is going to be returned in case we are in the grace
-        /// period.
-        const RECENTLY_SENT: () = ();
+        // Convert the normalized stakes back to I32F32
+        let normalized_stakes = vec_fixed64_to_fixed32(all_stakes.clone());
 
-        // Start off by creating a reference to Local Storage value.
-        // Since the local storage is common for all offchain workers, it's a good practice
-        // to prepend your entry with the module name.
-        let val = StorageValueRef::persistent(b"example_ocw::last_send");
-        // The Local Storage is persisted and shared between runs of the offchain workers,
-        // and offchain workers may run concurrently. We can use the `mutate` function, to
-        // write a storage entry in an atomic fashion. Under the hood it uses `compare_and_set`
-        // low-level method of local storage API, which means that only one worker
-        // will be able to "acquire a lock" and send a transaction if multiple workers
-        // happen to be executed concurrently.
-        let _res = val.mutate(
-            |last_send: Result<Option<BlockNumberFor<T>>, StorageRetrievalError>| {
-                match last_send {
-                    // If we already have a value in storage and the block number is recent enough
-                    // we avoid sending another transaction at this time.
-                    Ok(Some(block)) if block_number < block + T::GracePeriod::get() => {
-                        Err(RECENTLY_SENT)
-                    }
-                    // In every other case we attempt to acquire the lock and send a transaction.
-                    _ => Ok(block_number),
-                }
-            },
-        );
+        // The copier's normalized stake is the last element
+        let copier_stake_normalized = normalized_stakes.last().cloned().unwrap_or_default();
+
+        // Create a new ModuleParams for the copier
+        let copier_module = ModuleParams {
+            uid: copier_uid,
+            last_update: current_block,
+            // We are subtracting one block to prevent the copier weight from being clipped.
+            block_at_registration: current_block.saturating_sub(1),
+            validator_permit: true,
+            stake: copier_stake_normalized,
+            bonds: Vec::new(),
+            weight_unencrypted_hash: Vec::new(),
+            weight_encrypted: Vec::new(),
+            weights_unencrypted: weights,
+        };
+
+        // Generates copier acc id
+        let seed = (b"copier", subnet_id, copier_uid).using_encoded(BlakeTwo256::hash);
+        let copier_account_id = T::AccountId::decode(&mut seed.as_ref())
+            .expect("32 bytes should be more than enough for any AccountId; qed");
+
+        // Generate a new ModuleKey for the copier
+        let copier_key = ModuleKey(copier_account_id);
+
+        // Insert the copier's ModuleParams into the YumaParams
+        runtime_yuma_params.modules.insert(copier_key, copier_module);
+
+        // Update the stake_non_normalized to include the copier's stake
+        runtime_yuma_params.stake_non_normalized = all_stakes;
+
+        // Update the normalized stakes for all modules
+        for (_, module) in runtime_yuma_params.modules.iter_mut() {
+            let index = module.uid as usize;
+            module.stake = normalized_stakes.get(index).cloned().unwrap_or_default();
+        }
+
+        runtime_yuma_params
     }
 
     /// A helper function to fetch the price and send signed transaction.
@@ -501,7 +511,7 @@ pub fn is_copying_irrational<T: pallet_subspace::Config>(
 ///
 /// The calculated average delegate dividends as an `I64F64` fixed-point number.
 pub fn calculate_avg_delegate_divs<T: pallet_subspace::Config>(
-    netuid: u16,
+    subnet_id: u16,
     dividends: &[u16],
     copier_uid: u16,
     delegation_fee: Percent,
@@ -518,7 +528,7 @@ pub fn calculate_avg_delegate_divs<T: pallet_subspace::Config>(
         .try_fold(
             (I64F64::from_num(0), I64F64::from_num(0)),
             |(stake_acc, div_acc), (i, &div)| {
-                let stake = I64F64::from_num(get_delegated_stake_on_uid::<T>(netuid, i as u16));
+                let stake = I64F64::from_num(get_delegated_stake_on_uid::<T>(subnet_id, i as u16));
                 let dividend = I64F64::from_num(div);
                 Some((
                     stake_acc.saturating_add(stake),
@@ -528,20 +538,20 @@ pub fn calculate_avg_delegate_divs<T: pallet_subspace::Config>(
         )?;
 
     let average_dividends = total_dividends.checked_div(total_stake)?;
-    let copier_stake = I64F64::from_num(get_delegated_stake_on_uid::<T>(netuid, copier_uid));
+    let copier_stake = I64F64::from_num(get_delegated_stake_on_uid::<T>(subnet_id, copier_uid));
 
     average_dividends.saturating_mul(fee_factor).saturating_mul(copier_stake).into()
 }
 
-pub fn get_copier_stake<T>(netuid: u16) -> u64
+pub fn get_copier_stake<T>(subnet_id: u16) -> u64
 where
     T: pallet_subspace::Config + pallet::Config,
 {
-    let subnet_stake: u64 = Active::<T>::get(netuid)
+    let subnet_stake: u64 = Active::<T>::get(subnet_id)
         .iter()
         .enumerate()
         .filter(|&(_, &is_active)| is_active)
-        .map(|(uid, _)| get_delegated_stake_on_uid::<T>(netuid, uid as u16))
+        .map(|(uid, _)| get_delegated_stake_on_uid::<T>(subnet_id, uid as u16))
         .sum();
 
     MeasuredStakeAmount::<T>::get().mul_floor(subnet_stake)
@@ -599,22 +609,26 @@ impl<T: pallet_subspace::Config> ConsensusSimulationResult<T> {
         copier_uid: u16,
         delegation_fee: Percent,
     ) {
-        let netuid = yuma_output.subnet_id;
         let avg_delegate_divs = calculate_avg_delegate_divs::<T>(
-            netuid,
+            yuma_output.subnet_id,
             &yuma_output.dividends,
             copier_uid,
             delegation_fee,
         )
         .unwrap_or_else(|| FixedI128::from(0));
-        let copier_divs = I64F64::from_num(yuma_output.dividends[copier_uid as usize]);
+
+        let copier_divs = yuma_output
+            .dividends
+            .get(copier_uid as usize)
+            .map(|&div| I64F64::from_num(div))
+            .unwrap_or_else(|| I64F64::from_num(0));
 
         self.cumulative_copier_divs = self.cumulative_copier_divs.saturating_add(copier_divs);
         self.cumulative_avg_delegate_divs =
             self.cumulative_avg_delegate_divs.saturating_add(avg_delegate_divs);
-        self.black_box_age = self.black_box_age.saturating_add(tempo as u64);
+        self.black_box_age = self.black_box_age.saturating_add(u64::from(tempo));
 
-        self.max_encryption_period = MaxEncryptionPeriod::<T>::get(netuid);
-        self.copier_margin = CopierMargin::<T>::get(netuid);
+        self.max_encryption_period = MaxEncryptionPeriod::<T>::get(yuma_output.subnet_id);
+        self.copier_margin = CopierMargin::<T>::get(yuma_output.subnet_id);
     }
 }
