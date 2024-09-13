@@ -12,9 +12,9 @@
 // };
 // use pallet_subnet_emission_api::SubnetConsensus;
 // use pallet_subspace::{
-//     BondsMovingAverage, CopierMargin, FounderShare, LastUpdate, MaxAllowedUids, MaxAllowedWeights,
-//     MaxEncryptionPeriod, MaxRegistrationsPerBlock, MaxWeightAge, RegistrationBlock, Tempo,
-//     UseWeightsEncrytyption, ValidatorPermits, Weights, N,
+//     BondsMovingAverage, CopierMargin, FounderShare, LastUpdate, MaxAllowedUids,
+// MaxAllowedWeights,     MaxEncryptionPeriod, MaxRegistrationsPerBlock, MaxWeightAge,
+// RegistrationBlock, Tempo,     UseWeightsEncrytyption, ValidatorPermits, Weights, N,
 // };
 // use serde_json::Value;
 // use sp_runtime::Percent;
@@ -107,8 +107,8 @@
 //             assert!(
 //                 pallet_offworker::is_copying_irrational(simulation_result.clone())
 //                     || iteration_counter >= MAX_EPOCHS,
-//                 "Copying should have become irrational or max iterations should have been reached"
-//             );
+//                 "Copying should have become irrational or max iterations should have been
+// reached"             );
 //         }
 
 //         wtr.flush().expect("Failed to flush CSV writer");
@@ -199,7 +199,8 @@
 //         }
 
 //         System::set_block_number(block_number);
-//         make_parameter_consensus_overwrites(netuid, block_number, &json, Some(copier_last_update));
+//         make_parameter_consensus_overwrites(netuid, block_number, &json,
+// Some(copier_last_update));
 
 //         let weights: &Value = &block_weights[json_netuid];
 
@@ -358,8 +359,8 @@
 //             let (uids, values): (Vec<u16>, Vec<u16>) = weight_vec.into_iter().unzip();
 //             let zipped_weights: Vec<(u16, u16)> = uids.iter().copied().zip(values).collect();
 
-//             if !zipped_weights.is_empty() && zipped_weights.iter().any(|(_, value)| *value != 0) {
-//                 ValidatorPermits::<Test>::insert(netuid, permits.clone());
+//             if !zipped_weights.is_empty() && zipped_weights.iter().any(|(_, value)| *value != 0)
+// {                 ValidatorPermits::<Test>::insert(netuid, permits.clone());
 //                 Weights::<Test>::insert(netuid, uid, zipped_weights);
 //             }
 //         }
