@@ -89,7 +89,7 @@ impl<T: Config> YumaEpoch<T> {
         let mut weights =
             self.compute_weights().ok_or(EmissionError::Other("weights are broken"))?;
 
-        let stake = StakeVal::unchecked_from_inner(self.modules.stake.clone());
+        let stake = StakeVal::unchecked_from_inner(self.modules.stake_normalized.clone());
         log::trace!("final stake: {stake:?}");
 
         let new_permits: Vec<bool> = if let Some(max) = self.params.max_allowed_validators {
