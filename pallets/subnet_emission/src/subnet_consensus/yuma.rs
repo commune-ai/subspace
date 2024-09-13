@@ -1,6 +1,6 @@
 use crate::{EmissionError, Pallet};
 use core::marker::PhantomData;
-use frame_support::{ensure, DebugNoBound};
+use frame_support::{ensure, weights::Weight, DebugNoBound};
 use pallet_subspace::{
     math::*, Active, Bonds, BondsMovingAverage, Config, Consensus, Dividends, Emission, Founder,
     Incentive, Kappa, Keys, LastUpdate, MaxAllowedValidators, MaxWeightAge,
@@ -11,6 +11,8 @@ use sp_std::vec;
 use substrate_fixed::types::{I32F32, I64F64, I96F32};
 
 use sp_std::{borrow::Cow, collections::btree_map::BTreeMap};
+
+use super::WeightCounter;
 
 pub type EmissionMap<T> = BTreeMap<ModuleKey<T>, BTreeMap<AccountKey<T>, u64>>;
 
@@ -36,18 +38,26 @@ pub struct YumaEpoch<T: Config> {
     validator_forbids: Vec<bool>,
     max_allowed_validators: Option<u16>,
 
+    weight_counter: WeightCounter,
+
     _pd: PhantomData<T>,
 }
 
 impl<T: Config> YumaEpoch<T> {
     pub fn new(netuid: u16, to_be_emitted: u64) -> Self {
+        let mut weight_counter = WeightCounter::new();
+
         let validator_permits = ValidatorPermits::<T>::get(netuid);
+        weight_counter.read(1);
         let validator_forbids = validator_permits.iter().map(|&b| !b).collect();
 
         let founder_key = Founder::<T>::get(netuid);
+        weight_counter.read(1);
         let (to_be_emitted, founder_emission) =
             PalletSubspace::<T>::calculate_founder_emission(netuid, to_be_emitted);
+        weight_counter.read(1);
 
+        weight_counter.read(7);
         Self {
             module_count: N::<T>::get(netuid),
             netuid,
@@ -66,13 +76,15 @@ impl<T: Config> YumaEpoch<T> {
             validator_permits,
             max_allowed_validators: MaxAllowedValidators::<T>::get(netuid),
 
+            weight_counter,
+
             _pd: Default::default(),
         }
     }
 
     /// Runs the YUMA consensus calculation on the network and distributes the emissions. Returns a
     /// map of emissions distributed per module key.
-    pub fn run(self) -> Result<EmissionMap<T>, EmissionError> {
+    pub fn run(mut self) -> Result<(EmissionMap<T>, Weight), EmissionError> {
         log::debug!(
             "running yuma for netuid {}, will emit {} modules and {} to founder",
             self.netuid,
@@ -106,11 +118,13 @@ impl<T: Config> YumaEpoch<T> {
         let mut sorted_indexed_stake: Vec<(u16, T::AccountId, u64)> = (0u16..(stake.as_ref().len()
             as u16))
             .map(|idx| {
+                self.weight_counter.read(1);
                 let key = match PalletSubspace::<T>::get_key_for_uid(self.netuid, idx) {
                     Some(key) => key,
                     None => return Err(EmissionError::Other("module doesn't have a key")),
                 };
 
+                self.weight_counter.read(1);
                 let stake = PalletSubspace::<T>::get_delegated_stake(&key);
                 Ok((idx, key, stake))
             })
@@ -119,8 +133,11 @@ impl<T: Config> YumaEpoch<T> {
         sorted_indexed_stake.reverse();
 
         let blacklist = ValidatorBlacklist::<T>::get(self.netuid);
+        self.weight_counter.read(1);
         let current_block = PalletSubspace::<T>::get_current_block_number();
+        self.weight_counter.read(1);
         let min_stake = pallet_subspace::MinValidatorStake::<T>::get(self.netuid);
+        self.weight_counter.read(1);
         let mut validator_count = 0;
         for (idx, key, stake) in sorted_indexed_stake {
             if max_validators.is_some_and(|max| max <= validator_count) {
@@ -135,6 +152,7 @@ impl<T: Config> YumaEpoch<T> {
                 continue;
             }
 
+            self.weight_counter.read(1);
             match pallet_subspace::WeightSetAt::<T>::get(self.netuid, idx) {
                 Some(weight_block) => {
                     if current_block.saturating_sub(weight_block) > 7200 {
@@ -193,15 +211,25 @@ impl<T: Config> YumaEpoch<T> {
             validator_trust.into_inner().into_iter().map(fixed_proportion_to_u16).collect();
 
         Active::<T>::insert(self.netuid, active);
+        self.weight_counter.wrote(1);
         Consensus::<T>::insert(self.netuid, consensus);
+        self.weight_counter.wrote(1);
         Dividends::<T>::insert(self.netuid, dividends);
+        self.weight_counter.wrote(1);
         Emission::<T>::insert(self.netuid, combined_emissions);
+        self.weight_counter.wrote(1);
         Incentive::<T>::insert(self.netuid, incentives);
+        self.weight_counter.wrote(1);
         PruningScores::<T>::insert(self.netuid, pruning_scores);
+        self.weight_counter.wrote(1);
         Rank::<T>::insert(self.netuid, ranks);
+        self.weight_counter.wrote(1);
         Trust::<T>::insert(self.netuid, trust);
+        self.weight_counter.wrote(1);
         ValidatorPermits::<T>::insert(self.netuid, &new_permits);
+        self.weight_counter.wrote(1);
         ValidatorTrust::<T>::insert(self.netuid, validator_trust);
+        self.weight_counter.wrote(1);
 
         ensure!(
             new_permits.len() == self.module_count as usize,
@@ -229,17 +257,20 @@ impl<T: Config> YumaEpoch<T> {
                     })
                     .unwrap_or_default();
                 Bonds::<T>::insert(self.netuid, i as u16, new_bonds_row);
+                self.weight_counter.wrote(1);
             } else if self.max_allowed_validators.is_none()
                 || *self.validator_permits.get(i).unwrap_or(&false)
             {
                 // Only overwrite the intersection.
                 let new_empty_bonds_row: Vec<(u16, u16)> = vec![];
                 Bonds::<T>::insert(self.netuid, i as u16, new_empty_bonds_row);
+                self.weight_counter.wrote(1);
             }
         }
 
         // Emission tuples ( key, server_emission, validator_emission )
         let mut result: Vec<(ModuleKey<T>, u64, u64)> = vec![];
+        self.weight_counter.read(1);
         for (uid_i, module_key) in Keys::<T>::iter_prefix(self.netuid) {
             result.push((
                 ModuleKey(module_key),
@@ -254,7 +285,7 @@ impl<T: Config> YumaEpoch<T> {
             self.netuid
         );
 
-        distribute_emissions
+        Ok((distribute_emissions?, self.weight_counter.to_weights::<T>()))
     }
 
     fn distribute_emissions(

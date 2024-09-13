@@ -2,7 +2,7 @@ use std::collections::BTreeMap;
 
 use crate::mock::*;
 
-use frame_support::{assert_ok, traits::Currency};
+use frame_support::{assert_ok, pallet_prelude::Weight, traits::Currency};
 use log::info;
 use pallet_governance::DaoTreasuryAddress;
 use pallet_subnet_emission::{
@@ -675,7 +675,10 @@ fn test_1_graph() {
 
         assert_eq!(
             emissions.unwrap(),
-            [(ModuleKey(key), [(AccountKey(key), ONE - offset)].into())].into()
+            (
+                [(ModuleKey(key), [(AccountKey(key), ONE - offset)].into())].into(),
+                Weight::zero()
+            )
         );
 
         let new_stake_amount = stake_amount + ONE;
@@ -774,7 +777,8 @@ fn test_10_graph() {
                 .insert(AccountKey(i.into()), 99999999);
         }
 
-        assert_eq!(emissions.unwrap(), expected);
+        let (actual_emissions, _) = emissions.unwrap();
+        assert_eq!(actual_emissions, expected);
     });
 }
 

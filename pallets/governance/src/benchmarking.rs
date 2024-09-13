@@ -271,7 +271,7 @@ benchmarks! {
         let caller: T::AccountId = account("Alice", 0, 1);
         let application_key: T::AccountId = account("Bob", 0, 2);
         Curator::<T>::set(caller.clone());
-    }: add_to_whitelist(RawOrigin::Signed(caller), application_key, 1)
+    }: add_to_whitelist(RawOrigin::Signed(caller), application_key)
 
     // 12
     remove_from_whitelist {
@@ -282,7 +282,7 @@ benchmarks! {
         Curator::<T>::set(caller.clone());
         // Now add it to whitelist
         GovernanceMod::<T>::add_to_whitelist(RawOrigin::Signed(caller.clone()).into(),
-    application_key.clone(), 1)?; }: remove_from_whitelist(RawOrigin::Signed(caller),
+    application_key.clone())?; }: remove_from_whitelist(RawOrigin::Signed(caller),
     application_key)
 
 }
