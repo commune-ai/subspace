@@ -25,7 +25,6 @@ pub struct YumaParams<T: Config> {
     pub token_emission: BalanceOf<T>,
 
     pub modules: BTreeMap<ModuleKey<T::AccountId>, ModuleParams>,
-    pub stake_non_normalized: Vec<I64F64>, // Use for WC simulation purposes
     pub kappa: I32F32,
 
     pub founder_key: AccountKey<T::AccountId>,
@@ -45,7 +44,8 @@ pub struct ModuleParams {
     pub last_update: u64,
     pub block_at_registration: u64,
     pub validator_permit: bool,
-    pub stake: I32F32,
+    pub stake_normalized: I32F32,
+    pub stake_original: I64F64, // Use for WC simulation purposes
     pub bonds: Vec<(u16, u16)>,
     pub weight_unencrypted_hash: Vec<u8>,
     pub weight_encrypted: Vec<u8>,
@@ -59,7 +59,7 @@ pub(super) struct FlattenedModules<AccountId: Debug> {
     pub block_at_registration: Vec<u64>,
     pub validator_permit: Vec<bool>,
     pub validator_forbid: Vec<bool>,
-    pub stake: Vec<I32F32>,
+    pub stake_normalized: Vec<I32F32>,
     pub bonds: Vec<Vec<(u16, I32F32)>>,
     pub weight_unencrypted_hash: Vec<Vec<u8>>,
     pub weight_encrypted: Vec<Vec<u8>>,
@@ -76,7 +76,7 @@ impl<AccountId: Debug> From<BTreeMap<ModuleKey<AccountId>, ModuleParams>>
             block_at_registration: Vec::with_capacity(value.len()),
             validator_permit: Vec::with_capacity(value.len()),
             validator_forbid: Vec::with_capacity(value.len()),
-            stake: Vec::with_capacity(value.len()),
+            stake_normalized: Vec::with_capacity(value.len()),
             bonds: Vec::with_capacity(value.len()),
             weight_unencrypted_hash: Vec::with_capacity(value.len()),
             weight_encrypted: Vec::with_capacity(value.len()),
@@ -89,7 +89,7 @@ impl<AccountId: Debug> From<BTreeMap<ModuleKey<AccountId>, ModuleParams>>
             modules.block_at_registration.push(module.block_at_registration);
             modules.validator_permit.push(module.validator_permit);
             modules.validator_forbid.push(!module.validator_permit);
-            modules.stake.push(module.stake);
+            modules.stake_normalized.push(module.stake_normalized);
             modules
                 .bonds
                 .push(module.bonds.into_iter().map(|(k, m)| (k, I32F32::from_num(m))).collect());
@@ -124,38 +124,42 @@ impl<T: Config> YumaParams<T> {
         let modules = uids
             .into_iter()
             .zip(stake_normalized)
+            .zip(stake_original)
             .zip(bonds)
             .zip(weights)
-            .map(|((((uid, key), stake), bonds), weights)| {
-                let uid = uid as usize;
-                let last_update =
-                    last_update.get(uid).copied().ok_or("LastUpdate storage is broken")?;
-                let block_at_registration = block_at_registration
-                    .get(uid)
-                    .copied()
-                    .ok_or("RegistrationBlock storage is broken")?;
-                let validator_permit = validator_permits
-                    .get(uid)
-                    .copied()
-                    .ok_or("ValidatorPermits storage is broken")?;
+            .map(
+                |(((((uid, key), stake_normalized), stake_original), bonds), weights)| {
+                    let uid = uid as usize;
+                    let last_update =
+                        last_update.get(uid).copied().ok_or("LastUpdate storage is broken")?;
+                    let block_at_registration = block_at_registration
+                        .get(uid)
+                        .copied()
+                        .ok_or("RegistrationBlock storage is broken")?;
+                    let validator_permit = validator_permits
+                        .get(uid)
+                        .copied()
+                        .ok_or("ValidatorPermits storage is broken")?;
 
-                let module = ModuleParams {
-                    uid: uid as u16,
-                    last_update,
-                    block_at_registration,
-                    validator_permit,
-                    stake,
-                    bonds,
-                    // TODO: implement weights
-                    weight_unencrypted_hash: Default::default(),
-                    // TODO: implement weights
-                    weight_encrypted: Default::default(),
-                    // TODO: remove once we encrypt weights
-                    weights_unencrypted: weights,
-                };
+                    let module = ModuleParams {
+                        uid: uid as u16,
+                        last_update,
+                        block_at_registration,
+                        validator_permit,
+                        stake_normalized,
+                        stake_original,
+                        bonds,
+                        // TODO: implement weights
+                        weight_unencrypted_hash: Default::default(),
+                        // TODO: implement weights
+                        weight_encrypted: Default::default(),
+                        // TODO: remove once we encrypt weights
+                        weights_unencrypted: weights,
+                    };
 
-                Result::<_, &'static str>::Ok((ModuleKey(key), module))
-            })
+                    Result::<_, &'static str>::Ok((ModuleKey(key), module))
+                },
+            )
             .collect::<Result<_, _>>()?;
 
         let founder_key = AccountKey(Founder::<T>::get(subnet_id));
@@ -170,7 +174,6 @@ impl<T: Config> YumaParams<T> {
             token_emission,
 
             modules,
-            stake_non_normalized: stake_original,
             kappa: I32F32::from_num(Kappa::<T>::get())
                 .checked_div(I32F32::from_num(u16::MAX))
                 .unwrap_or_default(),

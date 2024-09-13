@@ -134,54 +134,55 @@ pub mod pallet {
             Weight::zero()
         }
 
+        //|  | 0 | 1 | 2 | 3 | 4 | 5 |
+        //|                       ^ choose node F
+        //|                   ^ choose node E
+        //|               ^ choose node D
+        //|           ^ choose node C
+        //|       ^ choose node B
+        //|   ^ choose node A
+
         // ! This function is not actually guaranteed to run on every block
         fn offchain_worker(block_number: BlockNumberFor<T>) {
             log::info!("Offchain worker is running");
+            let decryption_keys = vec![0u16; 0]; // TODO
+
             for subnet_id in [0u16; 0] {
-                // TODO: see if this is needed
-                let is_validator = sp_io::offchain::is_validator();
-                if !is_validator {
-                    log::info!("Not a validator node, skipping offchain computation.");
-                    return;
+                let current_block: u64 =
+                    block_number.try_into().ok().expect("blockchain won't pass 2^64 blocks");
+
+                // Create a reference to Local Storage value for the last processed block
+                let storage_key = format!("last_processed_block:{}", subnet_id).into_bytes();
+                let storage = StorageValueRef::persistent(&storage_key);
+
+                // Retrieve the last processed block or use 0 if not found
+                let last_processed_block: u64 = storage.get::<u64>().ok().flatten().unwrap_or(0);
+
+                // Get all new YumaParameters since the last processed block
+                let new_params: Vec<(u64, YumaParams<T>)> =
+                    YumaParameters::<T>::iter_prefix(subnet_id)
+                        .filter(|(block, _)| {
+                            *block > last_processed_block && *block <= current_block
+                        })
+                        .collect();
+
+                for (param_block, params) in new_params {
+                    // Try to decrypt the weight here
+                    // TODO: Decrypt Encrypted Weight
+                    let decrypted_weights: Option<Vec<(u16, Vec<(u16, u16)>)>> = Some(Vec::new());
+
+                    if let Some(decrypted_weights) = decrypted_weights {
+                        let should_decrypt =
+                            Self::should_decrpyt(decrypted_weights, params, subnet_id);
+
+                        if should_decrypt {
+                            // TODO: Send decrypted weights to the runtime
+                        }
+                    }
+
+                    // Update the last processed block in local storage
+                    storage.set(&param_block);
                 }
-
-                let block_number: u64 =
-                    block_number.try_into().ok().expect("blockchain won't pass 2 ^ 64 blocks");
-
-                // This hook should always run after on_initialize, so YumaParams are already ready
-                if pallet_subspace::Pallet::<T>::blocks_until_next_epoch(subnet_id, block_number)
-                    > 0
-                {
-                    return;
-                }
-
-                // Get the latest runtime YumaParams
-                let latest_rumtime_yuma_params = YumaParameters::<T>::iter_prefix(subnet_id)
-                    .max_by_key(|(block_number, _)| *block_number)
-                    .map(|(_, params)| params)
-                    .unwrap(); // Todo: remove unwrap, handle None
-
-                // TODO: Decrypt Encrypted Weight
-                // Potentially return a result here
-                let decrypted_weights: Option<Vec<(u16, Vec<(u16, u16)>)>> = Some(Vec::new());
-
-                if let Some(decrypted_weights) = decrypted_weights {
-                    let should_decrypt = Self::should_decrpyt(
-                        decrypted_weights,
-                        latest_rumtime_yuma_params,
-                        subnet_id,
-                    );
-
-                    if should_decrypt { /* TODO: Send decrypted weights to the runtime */ }
-                }
-
-                //|  | 0 | 1 | 2 | 3 | 4 | 5 |
-                //|                       ^ choose node F
-                //|                   ^ choose node E
-                //|               ^ choose node D
-                //|           ^ choose node C
-                //|       ^ choose node B
-                //|   ^ choose node A
             }
         }
     }
@@ -320,8 +321,6 @@ impl<T: Config> Pallet<T> {
         subnet_id: u16,
         // Return copier uid and YumaParams
     ) -> (u16, YumaParams<T>) {
-        // TODO:
-        // Append registered information of copier to the `YumaParams` struct
         let copier_uid: u16 = N::<T>::get(subnet_id);
 
         let consensus_weights = Consensus::<T>::get(subnet_id);
@@ -378,110 +377,60 @@ impl<T: Config> Pallet<T> {
         subnet_id: u16,
         weights: Vec<(u16, u16)>,
     ) -> YumaParams<T> {
-        let copier_stake = get_copier_stake::<T>(subnet_id);
+        let copier_stake = get_copier_stake::<T>(&runtime_yuma_params, subnet_id);
         let current_block = runtime_yuma_params.current_block;
 
-        // Add the copier's stake to the non-normalized stakes
-        let mut all_stakes = runtime_yuma_params.stake_non_normalized.clone();
-        all_stakes.push(I64F64::from_num(copier_stake));
+        let mut all_stakes: Vec<I64F64> = runtime_yuma_params
+            .modules
+            .values()
+            .map(|m| m.stake_original)
+            .chain(std::iter::once(I64F64::from_num(copier_stake)))
+            .collect();
 
-        // Normalize all stakes including the copier's
         inplace_normalize_64(&mut all_stakes);
 
-        // Convert the normalized stakes back to I32F32
         let normalized_stakes = vec_fixed64_to_fixed32(all_stakes.clone());
 
-        // The copier's normalized stake is the last element
         let copier_stake_normalized = normalized_stakes.last().cloned().unwrap_or_default();
 
-        // Create a new ModuleParams for the copier
         let copier_module = ModuleParams {
             uid: copier_uid,
             last_update: current_block,
-            // We are subtracting one block to prevent the copier weight from being clipped.
             block_at_registration: current_block.saturating_sub(1),
             validator_permit: true,
-            stake: copier_stake_normalized,
+            stake_normalized: copier_stake_normalized,
+            stake_original: I64F64::from_num(copier_stake),
             bonds: Vec::new(),
             weight_unencrypted_hash: Vec::new(),
             weight_encrypted: Vec::new(),
             weights_unencrypted: weights,
         };
 
-        // Generates copier acc id
         let seed = (b"copier", subnet_id, copier_uid).using_encoded(BlakeTwo256::hash);
         let copier_account_id = T::AccountId::decode(&mut seed.as_ref())
-            .expect("32 bytes should be more than enough for any AccountId; qed");
+            .expect("32 bytes should be sufficient for any AccountId");
 
-        // Generate a new ModuleKey for the copier
         let copier_key = ModuleKey(copier_account_id);
 
-        // Insert the copier's ModuleParams into the YumaParams
-        runtime_yuma_params.modules.insert(copier_key, copier_module);
+        runtime_yuma_params.modules.insert(copier_key.clone(), copier_module);
 
-        // Update the stake_non_normalized to include the copier's stake
-        runtime_yuma_params.stake_non_normalized = all_stakes;
-
-        // Update the normalized stakes for all modules
-        for (_, module) in runtime_yuma_params.modules.iter_mut() {
-            let index = module.uid as usize;
-            module.stake = normalized_stakes.get(index).cloned().unwrap_or_default();
+        for (index, module) in runtime_yuma_params.modules.values_mut().enumerate() {
+            module.stake_normalized =
+                normalized_stakes.get(index).cloned().unwrap_or_else(|| I32F32::from_num(0));
+            module.stake_original =
+                all_stakes.get(index).cloned().unwrap_or_else(|| I64F64::from_num(0));
+        }
+        if let Some(copier_module) = runtime_yuma_params.modules.get_mut(&copier_key) {
+            copier_module.stake_original = I64F64::from_num(copier_stake);
         }
 
         runtime_yuma_params
     }
-
-    /// A helper function to fetch the price and send signed transaction.
-    fn fetch_price_and_send_signed() -> Result<(), &'static str> {
-        let signer = Signer::<T, T::AuthorityId>::all_accounts();
-        if !signer.can_sign() {
-            return Err(
-                "No local accounts available. Consider adding one via `author_insertKey` RPC.",
-            );
-        }
-
-        // Using `send_signed_transaction` associated type we create and submit a transaction
-        // representing the call, we've just created.
-        // Submit signed will return a vector of results for all accounts that were found in the
-        // local keystore with expected `KEY_TYPE`.
-        // let results = signer.send_signed_transaction(|_account| {
-        //     // Received price is wrapped into a call to `submit_price` public function of this
-        //     // pallet. This means that the transaction, when executed, will simply call that
-        //     // function passing `price` as an argument.
-        //     Call::submit_price { price }
-        // });
-
-        // for (acc, res) in &results {
-        //     match res {
-        //         Ok(()) => log::info!("[{:?}] Submitted price of {} cents", acc.id, price),
-        //         Err(e) => log::error!("[{:?}] Failed to submit transaction: {:?}", acc.id, e),
-        //     }
-        // }
-
-        Ok(())
-    }
 }
 
-// Copying profitability calulations
-// =================================
+// Copying Profitbility Math
+// =========================
 
-/// Determines if the copier's performance is irrational based on cumulative dividends.
-///
-/// # Arguments
-///
-/// * `consensus_result` - A `ConsensusSimulationResult` struct containing simulation data.
-///
-/// # Returns
-///
-/// * `true` if the copier's cumulative dividends are significantly lower than the adjusted average
-///   delegate dividends, and the `epoch_block_sum` is less than `max_encryption_period`.
-/// * `false` otherwise, including when `epoch_block_sum` is greater than or equal to
-///   `max_encryption_period`.
-///
-/// # Note
-///
-/// The function compares `cumulative_copier_divs` against an adjusted
-/// `cumulative_avg_delegate_divs`, taking into account the `copying_margin`.
 #[must_use]
 pub fn is_copying_irrational<T: pallet_subspace::Config>(
     ConsensusSimulationResult {
@@ -496,23 +445,13 @@ pub fn is_copying_irrational<T: pallet_subspace::Config>(
     if black_box_age >= max_encryption_period {
         return true;
     }
-    let threshold =
-        (I64F64::from_num(1) + copier_margin).saturating_mul(cumulative_avg_delegate_divs);
-    cumulative_copier_divs < threshold
+    let one = I64F64::from_num(1);
+    let threshold = one.saturating_add(copier_margin).saturating_mul(cumulative_avg_delegate_divs);
+    cumulative_copier_divs.saturating_sub(threshold).is_negative()
 }
-/// # Arguments
-///
-/// * `netuid` - The network UID.
-/// * `dividends` - A slice of dividend values for each UID.
-/// * `copier_uid` - The UID of the copier.
-/// * `delegation_fee` - The delegation fee percentage.
-///
-/// # Returns
-///
-/// The calculated average delegate dividends as an `I64F64` fixed-point number.
+
 pub fn calculate_avg_delegate_divs<T: pallet_subspace::Config>(
-    subnet_id: u16,
-    dividends: &[u16],
+    yuma_output: &YumaOutput<T>,
     copier_uid: u16,
     delegation_fee: Percent,
 ) -> Option<I64F64> {
@@ -521,14 +460,16 @@ pub fn calculate_avg_delegate_divs<T: pallet_subspace::Config>(
         .saturating_sub(I64F64::from_num(delegation_fee.deconstruct()))
         .checked_div(I64F64::from_num(100))?;
 
-    let (total_stake, total_dividends) = dividends
+    let (total_stake, total_dividends) = yuma_output
+        .dividends
         .iter()
         .enumerate()
         .filter(|&(i, &div)| i != copier_idx && div != 0)
         .try_fold(
             (I64F64::from_num(0), I64F64::from_num(0)),
             |(stake_acc, div_acc), (i, &div)| {
-                let stake = I64F64::from_num(get_delegated_stake_on_uid::<T>(subnet_id, i as u16));
+                let stake =
+                    I64F64::from_num(get_params_uid_deleg_stake::<T>(yuma_output, i as u16));
                 let dividend = I64F64::from_num(div);
                 Some((
                     stake_acc.saturating_add(stake),
@@ -538,46 +479,44 @@ pub fn calculate_avg_delegate_divs<T: pallet_subspace::Config>(
         )?;
 
     let average_dividends = total_dividends.checked_div(total_stake)?;
-    let copier_stake = I64F64::from_num(get_delegated_stake_on_uid::<T>(subnet_id, copier_uid));
+    let copier_stake = I64F64::from_num(get_params_uid_deleg_stake::<T>(yuma_output, copier_uid));
 
     average_dividends.saturating_mul(fee_factor).saturating_mul(copier_stake).into()
 }
 
-pub fn get_copier_stake<T>(subnet_id: u16) -> u64
+#[inline]
+fn get_params_uid_deleg_stake<T: pallet_subspace::Config>(
+    yuma_output: &YumaOutput<T>,
+    uid: u16,
+) -> u64 {
+    yuma_output
+        .params
+        .modules
+        .values()
+        .find(|module| module.uid == uid)
+        .map(|module| module.stake_original.to_num::<u64>())
+        .unwrap_or(0)
+}
+
+pub fn get_copier_stake<T>(runtime_yuma_params: &YumaParams<T>, subnet_id: u16) -> u64
 where
     T: pallet_subspace::Config + pallet::Config,
 {
-    let subnet_stake: u64 = Active::<T>::get(subnet_id)
+    let active = Active::<T>::get(subnet_id);
+
+    let subnet_stake: u64 = active
         .iter()
         .enumerate()
         .filter(|&(_, &is_active)| is_active)
-        .map(|(uid, _)| get_delegated_stake_on_uid::<T>(subnet_id, uid as u16))
+        .filter_map(|(index, _)| {
+            let uid = index as u16;
+            runtime_yuma_params.modules.values().find(|module| module.uid == uid)
+        })
+        .map(|module| module.stake_original.to_num::<u64>())
         .sum();
 
-    MeasuredStakeAmount::<T>::get().mul_floor(subnet_stake)
+    subnet_stake
 }
-// TODO:
-// get rid of this shit, make it more efficient
-#[inline]
-pub fn get_delegated_stake_on_uid<T: pallet_subspace::Config>(netuid: u16, module_uid: u16) -> u64 {
-    SubspaceModule::<T>::get_key_for_uid(netuid, module_uid)
-        .map_or(0, |key| SubspaceModule::<T>::get_delegated_stake(&key))
-}
-
-/// Represents the result of a consensus simulation.
-///
-/// # Type Parameters
-///
-/// * `T` - The configuration type for the Subspace pallet.
-///
-/// # Fields
-///
-/// * `cumulative_copier_divs` - Cumulative dividends for the copier.
-/// * `cumulative_avg_delegate_divs` - Cumulative average dividends for delegates.
-/// * `copying_margin` - Minimum underperformance threshold.
-/// * `epoch_block_sum` - Sum of blocks in the epoch.
-/// * `max_encryption_period` - Maximum encryption period.
-/// * `_phantom` - PhantomData for the generic type `T`.
 #[derive(Clone, Debug, PartialEq, Encode, Decode)]
 
 pub struct ConsensusSimulationResult<T: pallet_subspace::Config> {
@@ -609,13 +548,9 @@ impl<T: pallet_subspace::Config> ConsensusSimulationResult<T> {
         copier_uid: u16,
         delegation_fee: Percent,
     ) {
-        let avg_delegate_divs = calculate_avg_delegate_divs::<T>(
-            yuma_output.subnet_id,
-            &yuma_output.dividends,
-            copier_uid,
-            delegation_fee,
-        )
-        .unwrap_or_else(|| FixedI128::from(0));
+        let avg_delegate_divs =
+            calculate_avg_delegate_divs::<T>(&yuma_output, copier_uid, delegation_fee)
+                .unwrap_or_else(|| FixedI128::from(0));
 
         let copier_divs = yuma_output
             .dividends
