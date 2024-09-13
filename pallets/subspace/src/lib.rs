@@ -268,7 +268,8 @@ pub mod pallet {
     pub type SubnetNames<T: Config> = StorageMap<_, Identity, u16, Vec<u8>, ValueQuery>;
 
     #[pallet::storage]
-    pub type SubnetMetadata<T: Config> = StorageMap<_, Identity, u16, BoundedVec<u8, ConstU32<120>>>;
+    pub type SubnetMetadata<T: Config> =
+        StorageMap<_, Identity, u16, BoundedVec<u8, ConstU32<120>>>;
 
     #[pallet::storage] // --- ITEM ( floor_founder_share )
     pub type FloorFounderShare<T: Config> = StorageValue<_, u8, ValueQuery, ConstU8<8>>;
