@@ -228,6 +228,39 @@ pub fn matmul_sparse(
     result
 }
 
+pub fn linear_consensus(
+    stake: &[I32F32],
+    score: &[Vec<(u16, I32F32)>],
+    columns: u16,
+) -> Vec<I32F32> {
+    let zero: I32F32 = I32F32::from_num(0);
+    let mut consensus: Vec<I32F32> = vec![zero; columns as usize];
+    let mut total_stake: I32F32 = zero;
+
+    for (validator_stake, validator_score) in stake.iter().zip(score.iter()) {
+        if *validator_stake <= zero {
+            continue;
+        }
+
+        total_stake = total_stake.saturating_add(*validator_stake);
+
+        for (column, value) in validator_score.iter() {
+            if let Some(consensus_value) = consensus.get_mut(*column as usize) {
+                *consensus_value =
+                    consensus_value.saturating_add(value.saturating_mul(*validator_stake));
+            }
+        }
+    }
+
+    if total_stake > zero {
+        for consensus_value in consensus.iter_mut() {
+            *consensus_value = consensus_value.saturating_div(total_stake);
+        }
+    }
+
+    consensus
+}
+
 pub fn weighted_median_col_sparse(
     stake: &[I32F32],
     score: &[Vec<(u16, I32F32)>],

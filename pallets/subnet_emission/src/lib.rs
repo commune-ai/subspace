@@ -34,7 +34,7 @@ pub mod pallet {
     use pallet_subnet_emission_api::SubnetConsensus;
     use pallet_subspace::TotalStake;
 
-    use subnet_consensus::yuma::YumaParams;
+    use subnet_consensus::yuma::ConsensusParams;
     use subnet_pricing::root::RootPricing;
 
     const STORAGE_VERSION: StorageVersion = StorageVersion::new(0);
@@ -87,7 +87,7 @@ pub mod pallet {
     /// Netuid, to block number to yuma parameters
     #[pallet::storage]
     pub type YumaParameters<T: Config> =
-        StorageDoubleMap<_, Identity, u16, Identity, u64, YumaParams<T>, OptionQuery>;
+        StorageDoubleMap<_, Identity, u16, Identity, u64, ConsensusParams<T>, OptionQuery>;
 
     type BalanceOf<T> =
         <<T as Config>::Currency as Currency<<T as frame_system::Config>::AccountId>>::Balance;

@@ -3,6 +3,7 @@ use frame_system::Config;
 
 pub mod linear;
 pub mod treasury;
+pub mod util;
 pub mod yuma;
 
 #[derive(Debug)]
