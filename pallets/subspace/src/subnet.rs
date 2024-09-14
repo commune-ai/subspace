@@ -41,7 +41,6 @@ impl<T: Config> SubnetChangeset<T> {
         MaxAllowedWeights::<T>::insert(netuid, self.params.max_allowed_weights);
         MaxWeightAge::<T>::insert(netuid, self.params.max_weight_age);
         MinAllowedWeights::<T>::insert(netuid, self.params.min_allowed_weights);
-        TrustRatio::<T>::insert(netuid, self.params.trust_ratio);
         IncentiveRatio::<T>::insert(netuid, self.params.incentive_ratio);
         BondsMovingAverage::<T>::insert(netuid, self.params.bonds_ma);
         self.params.module_burn_config.apply_module_burn(netuid)?;
@@ -97,9 +96,6 @@ impl<T: Config> SubnetChangeset<T> {
             params.max_weight_age > params.tempo as u64,
             Error::<T>::InvalidMaxWeightAge
         );
-
-        // ensure the trust_ratio is between 0 and 100
-        ensure!(params.trust_ratio <= 100, Error::<T>::InvalidTrustRatio);
 
         ensure!(
             params.max_allowed_uids > 0,
@@ -171,7 +167,6 @@ impl<T: Config> Pallet<T> {
             max_weight_age: MaxWeightAge::<T>::get(netuid),
             min_allowed_weights: MinAllowedWeights::<T>::get(netuid),
             name: BoundedVec::truncate_from(SubnetNames::<T>::get(netuid)),
-            trust_ratio: TrustRatio::<T>::get(netuid),
             incentive_ratio: IncentiveRatio::<T>::get(netuid),
             maximum_set_weight_calls_per_epoch: MaximumSetWeightCallsPerEpoch::<T>::get(netuid)
                 .unwrap_or_default(),
@@ -299,7 +294,6 @@ impl<T: Config> Pallet<T> {
         MaxAllowedUids::<T>::remove(netuid);
         MaxWeightAge::<T>::remove(netuid);
         MinAllowedWeights::<T>::remove(netuid);
-        TrustRatio::<T>::remove(netuid);
         IncentiveRatio::<T>::remove(netuid);
         MaximumSetWeightCallsPerEpoch::<T>::remove(netuid);
         BondsMovingAverage::<T>::remove(netuid);

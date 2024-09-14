@@ -221,7 +221,6 @@ benchmarks! {
         params.min_allowed_weights,
         params.max_weight_age,
         params.tempo,
-        params.trust_ratio,
         params.maximum_set_weight_calls_per_epoch,
         params.governance_config.vote_mode,
         params.bonds_ma,

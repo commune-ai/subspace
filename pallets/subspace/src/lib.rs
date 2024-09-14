@@ -368,7 +368,6 @@ pub mod pallet {
                 max_allowed_weights: 420,
                 max_allowed_uids: 420,
                 max_weight_age: 3_600,
-                trust_ratio: GetDefault::get(),
                 founder_share: FloorFounderShare::<T>::get() as u16,
                 incentive_ratio: 50,
                 founder: DefaultKey::<T>::get(),
@@ -407,7 +406,6 @@ pub mod pallet {
         pub name: BoundedVec<u8, ConstU32<256>>,
         pub metadata: Option<BoundedVec<u8, ConstU32<120>>>,
         pub tempo: u16, // how many blocks to wait before rewarding models
-        pub trust_ratio: u16,
         pub maximum_set_weight_calls_per_epoch: u16,
         // consensus
         pub bonds_ma: u64,
@@ -490,6 +488,8 @@ pub mod pallet {
 
     #[pallet::storage] // --- MAP ( netuid ) --> incentive
     pub type Incentive<T: Config> = StorageMap<_, Identity, u16, Vec<u16>, ValueQuery>;
+    #[pallet::storage] // --- MAP ( netuid ) --> trust
+    pub type Trust<T: Config> = StorageMap<_, Identity, u16, Vec<u16>, ValueQuery>;
     #[pallet::storage] // --- MAP ( netuid ) --> dividends
     pub type Dividends<T: Config> = StorageMap<_, Identity, u16, Vec<u16>, ValueQuery>;
     #[pallet::storage] // --- MAP ( netuid ) --> emission
@@ -1009,7 +1009,6 @@ pub mod pallet {
             min_allowed_weights: u16,
             max_weight_age: u64,
             tempo: u16,
-            trust_ratio: u16,
             maximum_set_weight_calls_per_epoch: u16,
             vote_mode: VoteMode,
             bonds_ma: u64,
@@ -1028,7 +1027,6 @@ pub mod pallet {
                 max_weight_age,
                 name,
                 tempo,
-                trust_ratio,
                 maximum_set_weight_calls_per_epoch,
                 bonds_ma,
                 module_burn_config,

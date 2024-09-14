@@ -1,7 +1,7 @@
 use super::params::{AccountKey, ConsensusParams, FlattenedModules, ModuleKey};
 use crate::EmissionError;
-use frame_support::DebugNoBound;
-use pallet_subspace::{math::*, BalanceOf, Config, Pallet as PalletSubspace};
+use frame_support::{ensure, DebugNoBound};
+use pallet_subspace::{math::*, vec, BalanceOf, Config, Pallet as PalletSubspace};
 use parity_scale_codec::{Decode, Encode};
 use scale_info::TypeInfo;
 use sp_std::{borrow::Cow, collections::btree_map::BTreeMap, vec::Vec};
@@ -73,7 +73,7 @@ pub fn calculate_final_emissions<T: Config>(
         emitted = emitted.saturating_add(founder_emission);
     }
 
-    for (module_key, server_emission, mut validator_emission) in result {
+    for (module_key, miner_emisison, mut validator_emission) in result {
         let mut increase_stake = |account_key: AccountKey<T::AccountId>, amount: u64| {
             let stake =
                 emissions.entry(module_key.clone()).or_default().entry(account_key).or_default();
@@ -109,7 +109,7 @@ pub fn calculate_final_emissions<T: Config>(
             }
         }
 
-        let remaining_emission = server_emission.saturating_add(validator_emission);
+        let remaining_emission = miner_emisison.saturating_add(validator_emission);
         if remaining_emission > 0 {
             increase_stake(AccountKey(module_key.0.clone()), remaining_emission);
         }
@@ -181,34 +181,41 @@ pub fn compute_active_stake<T: Config>(
     ActiveStake::unchecked_from_inner(active_stake)
 }
 
+/// There is no modulation of weights. Linear relationship between stake and weights.
 pub fn compute_consensus_and_trust_linear<T: Config>(
     modules: &FlattenedModules<T::AccountId>,
-    weights: &mut WeightsVal,
     active_stake: &ActiveStake,
+    weights: &WeightsVal,
 ) -> ConsensusAndTrust {
-    // Compute linear consensus
-    let consensus = linear_consensus(
-        active_stake.as_ref(),
-        weights.as_ref(),
-        modules.module_count(),
-    );
+    let total_stake: I32F32 = active_stake
+        .as_ref()
+        .iter()
+        .fold(I32F32::from_num(0), |acc, &x| acc.saturating_add(x));
 
-    log::trace!("final consensus: {consensus:?}");
+    // Compute consensus as a weighted sum of validator weights
+    let mut consensus = vec![I32F32::from_num(0); modules.module_count()];
+    for (validator_idx, validator_weights) in weights.as_ref().iter().enumerate() {
+        let stake = active_stake.as_ref().get(validator_idx).cloned().unwrap_or_default();
+        let stake_ratio = stake.checked_div(total_stake).unwrap_or_default();
 
-    // Compute preranks: r_j = SUM(i) w_ij * s_i
+        for &(uid, weight) in validator_weights {
+            let uid_usize = uid as usize;
+            if let Some(consensus_weight) = consensus.get_mut(uid_usize) {
+                *consensus_weight = consensus_weight
+                    .saturating_add(weight.checked_mul(stake_ratio).unwrap_or_default());
+            }
+        }
+    }
+
+    // Computes preranks as stake-scaled weights for each module
     let preranks = matmul_sparse(
         weights.as_ref(),
         active_stake.as_ref(),
         modules.module_count(),
     );
-    log::trace!("final preranks: {preranks:?}");
 
-    *weights = WeightsVal::unchecked_from_inner(col_clip_sparse(weights.as_ref(), &consensus));
-
-    log::trace!("final consensus weights: {weights:?}");
-
+    // Compute validator trust as the sum of their weights
     let validator_trust = row_sum_sparse(weights.as_ref());
-    log::trace!("final validator trust: {validator_trust:?}");
 
     ConsensusAndTrust {
         consensus: ConsensusVal::unchecked_from_inner(consensus),
@@ -340,12 +347,58 @@ pub fn compute_emissions<'a>(
     Emissions {
         pruning_scores: PruningScoresVal::unchecked_from_inner(pruning_scores),
         validator_emissions,
-        server_emissions: miner_emissions,
+        miner_emisisons: miner_emissions,
         combined_emissions,
     }
 }
 
-pub fn compute_bonds_and_dividends<T: Config>(
+pub fn compute_bonds_and_dividends_linear<T: Config>(
+    modules: &FlattenedModules<T::AccountId>,
+    weights: &WeightsVal,
+    active_stake: &ActiveStake,
+    incentives: &IncentivesVal,
+) -> Option<BondsAndDividends> {
+    // Access network bonds.
+    let mut bonds = modules.bonds.clone();
+    log::trace!("  original bonds: {bonds:?}");
+
+    // Remove bonds referring to deregistered modules.
+    bonds = vec_mask_sparse_matrix(
+        &bonds,
+        &modules.last_update,
+        &modules.block_at_registration,
+        |updated, registered| updated <= registered,
+    )?;
+
+    log::trace!("  no deregistered modules bonds: {bonds:?}");
+
+    // Normalize remaining bonds: sum_i b_ij = 1.
+    inplace_col_normalize_sparse(&mut bonds, modules.module_count());
+    log::trace!("  normalized bonds: {bonds:?}");
+
+    // Compute bonds delta column normalized.
+    let mut bonds_delta = row_hadamard_sparse(weights.as_ref(), active_stake.as_ref()); // ΔB = W◦S (outdated W masked)
+    log::trace!("  original bonds delta: {bonds_delta:?}");
+
+    // Normalize bonds delta.
+    inplace_col_normalize_sparse(&mut bonds_delta, modules.module_count()); // sum_i b_ij = 1
+    log::trace!("  normalized bonds delta: {bonds_delta:?}");
+
+    // Compute dividends: d_i = SUM(j) b_ij * inc_j.
+    // range: I32F32(0, 1)
+    let mut dividends = matmul_transpose_sparse(&bonds_delta, incentives.as_ref());
+    log::trace!("  original dividends: {dividends:?}");
+
+    inplace_normalize(&mut dividends);
+    log::trace!("  normalized dividends: {dividends:?}");
+
+    Some(BondsAndDividends {
+        ema_bonds: bonds_delta, // Use bonds_delta instead of ema_bonds
+        dividends: DividendsVal::unchecked_from_inner(dividends),
+    })
+}
+
+pub fn compute_bonds_and_dividends_yuma<T: Config>(
     params: &ConsensusParams<T>,
     modules: &FlattenedModules<T::AccountId>,
     consensus: &ConsensusVal,
@@ -475,6 +528,110 @@ pub fn compute_incentive_and_trust<T: Config>(
     }
 }
 
+pub fn process_consensus_output<T: Config>(
+    params: &ConsensusParams<T>,
+    modules: &FlattenedModules<T::AccountId>,
+    stake: StakeVal,
+    active_stake: ActiveStake,
+    consensus: ConsensusVal,
+    incentives: IncentivesVal,
+    dividends: DividendsVal,
+    trust: TrustVal,
+    ranks: RanksVal,
+    active: Vec<bool>,
+    validator_trust: ValidatorTrustVal,
+    new_permits: Vec<bool>,
+    ema_bonds: &[Vec<(u16, I32F32)>],
+) -> Result<ConsensusOutput<T>, EmissionError> {
+    let subnet_id = params.subnet_id;
+    let Emissions {
+        pruning_scores,
+        validator_emissions,
+        miner_emisisons,
+        combined_emissions,
+    } = compute_emissions(
+        params.token_emission.try_into().unwrap_or_default(),
+        &stake,
+        &active_stake,
+        &incentives,
+        &dividends,
+    );
+
+    let consensus: Vec<_> =
+        consensus.into_inner().into_iter().map(fixed_proportion_to_u16).collect();
+    let incentives: Vec<_> =
+        incentives.into_inner().into_iter().map(fixed_proportion_to_u16).collect();
+    let dividends: Vec<_> =
+        dividends.into_inner().into_iter().map(fixed_proportion_to_u16).collect();
+    let trust: Vec<_> = trust.into_inner().into_iter().map(fixed_proportion_to_u16).collect();
+    let ranks: Vec<_> = ranks.into_inner().into_iter().map(fixed_proportion_to_u16).collect();
+    let pruning_scores = vec_max_upscale_to_u16(pruning_scores.as_ref());
+    let validator_trust: Vec<_> =
+        validator_trust.into_inner().into_iter().map(fixed_proportion_to_u16).collect();
+
+    ensure!(
+        new_permits.len() == modules.module_count::<usize>(),
+        "unequal number of permits and modules"
+    );
+    ensure!(
+        ema_bonds.len() == modules.module_count::<usize>(),
+        "unequal number of bonds and modules"
+    );
+    ensure!(
+        modules.validator_permit.len() == modules.module_count::<usize>(),
+        "unequal number of bonds and modules"
+    );
+
+    let has_max_validators = params.max_allowed_validators.is_none();
+
+    let bonds = extract_bonds::<T>(
+        modules.module_count(),
+        &new_permits,
+        &ema_bonds,
+        has_max_validators,
+        &modules.validator_permit,
+    );
+
+    // Emission tuples ( key, miner_emisison, validator_emission )
+    let mut result = Vec::with_capacity(modules.module_count());
+    for (module_uid, module_key) in modules.keys.iter().enumerate() {
+        result.push((
+            ModuleKey(module_key.0.clone()),
+            *miner_emisisons.get(module_uid).unwrap_or(&0),
+            *validator_emissions.get(module_uid).unwrap_or(&0),
+        ));
+    }
+
+    let (emission_map, total_emitted) =
+        calculate_final_emissions::<T>(params.founder_emission, subnet_id, result)?;
+    log::debug!(
+        "finished yuma for {} with distributed: {emission_map:?}",
+        subnet_id
+    );
+
+    Ok(ConsensusOutput {
+        subnet_id,
+
+        active,
+        consensus,
+        dividends,
+        combined_emissions,
+        incentives,
+        pruning_scores,
+        ranks,
+        trust,
+        validator_permits: new_permits,
+        validator_trust,
+        bonds,
+
+        founder_emission: params.founder_emission,
+        emission_map,
+        total_emitted,
+
+        params: params.clone(),
+    })
+}
+
 #[derive(DebugNoBound, Clone, Encode, Decode, TypeInfo)]
 #[scale_info(skip_type_params(T))]
 pub struct ConsensusOutput<T: Config> {
@@ -581,7 +738,7 @@ pub struct IncentivesAndTrust {
 pub struct Emissions {
     pub pruning_scores: PruningScoresVal,
     pub validator_emissions: Vec<u64>,
-    pub server_emissions: Vec<u64>,
+    pub miner_emisisons: Vec<u64>,
     pub combined_emissions: Vec<u64>,
 }
 
