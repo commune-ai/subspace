@@ -20,7 +20,7 @@ pub struct ModuleKey<AccountId>(pub AccountId);
 
 #[derive(DebugNoBound, Clone, Encode, Decode, TypeInfo)]
 #[scale_info(skip_type_params(T))]
-pub struct YumaParams<T: Config> {
+pub struct ConsensusParams<T: Config> {
     pub subnet_id: u16,
     pub token_emission: BalanceOf<T>,
 
@@ -53,7 +53,7 @@ pub struct ModuleParams {
 }
 
 #[derive(DebugNoBound)]
-pub(super) struct FlattenedModules<AccountId: Debug> {
+pub struct FlattenedModules<AccountId: Debug> {
     pub keys: Vec<ModuleKey<AccountId>>,
     pub last_update: Vec<u64>,
     pub block_at_registration: Vec<u64>,
@@ -108,7 +108,14 @@ impl<AccountId: Debug> From<BTreeMap<ModuleKey<AccountId>, ModuleParams>>
     }
 }
 
-impl<T: Config> YumaParams<T> {
+impl<AccountId: Debug> FlattenedModules<AccountId> {
+    #[inline]
+    pub fn module_count<I: From<u16>>(&self) -> I {
+        (self.keys.len() as u16).into()
+    }
+}
+
+impl<T: Config> ConsensusParams<T> {
     pub fn new(subnet_id: u16, token_emission: u64) -> Result<Self, &'static str> {
         let uids: BTreeMap<_, _> = Keys::<T>::iter_prefix(subnet_id).collect();
 

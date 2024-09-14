@@ -11,7 +11,7 @@ use frame_system::{
     pallet_prelude::BlockNumberFor,
 };
 use pallet_subnet_emission::subnet_consensus::yuma::{
-    params::ModuleParams, ModuleKey, YumaEpoch, YumaOutput, YumaParams,
+    params::ModuleParams, ConsensusOutput, ConsensusParams, ModuleKey, YumaEpoch,
 };
 use pallet_subspace::{
     math::{inplace_normalize_64, vec_fixed64_to_fixed32},
@@ -119,6 +119,9 @@ pub mod pallet {
         /// Maximum number of prices.
         #[pallet::constant]
         type MaxPrices: Get<u32>;
+
+        // TODO:
+        // add hardcoded limit of how many black boxes we can hold
     }
 
     #[pallet::pallet]
@@ -158,8 +161,9 @@ pub mod pallet {
                 // Retrieve the last processed block or use 0 if not found
                 let last_processed_block: u64 = storage.get::<u64>().ok().flatten().unwrap_or(0);
 
+                // TODO: if last processed block is missing then just return everything
                 // Get all new YumaParameters since the last processed block
-                let new_params: Vec<(u64, YumaParams<T>)> =
+                let new_params: Vec<(u64, ConsensusParams<T>)> =
                     YumaParameters::<T>::iter_prefix(subnet_id)
                         .filter(|(block, _)| {
                             *block > last_processed_block && *block <= current_block
@@ -172,11 +176,13 @@ pub mod pallet {
                     let decrypted_weights: Option<Vec<(u16, Vec<(u16, u16)>)>> = Some(Vec::new());
 
                     if let Some(decrypted_weights) = decrypted_weights {
-                        let should_decrypt =
+                        let should_decrypt: bool =
                             Self::should_decrpyt(decrypted_weights, params, subnet_id);
 
                         if should_decrypt {
                             // TODO: Send decrypted weights to the runtime
+                            // Also set the simulation struct to default, and set the offchain
+                            // worker simulation storage to default
                         }
                     }
 
@@ -267,7 +273,7 @@ impl<T: Config> Pallet<T> {
     #[must_use]
     pub fn should_decrpyt(
         decrypted_weights: Vec<(u16, Vec<(u16, u16)>)>,
-        latest_rumtime_yuma_params: YumaParams<T>,
+        latest_rumtime_yuma_params: ConsensusParams<T>,
         subnet_id: u16,
     ) -> bool {
         let (copier_uid, simulation_yuma_params) = Pallet::<T>::compute_simulation_yuma_params(
@@ -313,14 +319,14 @@ impl<T: Config> Pallet<T> {
         is_copying_irrational::<T>(simulation_result)
     }
 
-    /// Appends copier information to simulated consensus YumaParams
+    /// Appends copier information to simulated consensus ConsensusParams
     /// Overwrites onchain decrypted weights with the offchain workers' decrypted weights
     pub fn compute_simulation_yuma_params(
         decrypted_weights: Vec<(u16, Vec<(u16, u16)>)>,
-        mut runtime_yuma_params: YumaParams<T>,
+        mut runtime_yuma_params: ConsensusParams<T>,
         subnet_id: u16,
-        // Return copier uid and YumaParams
-    ) -> (u16, YumaParams<T>) {
+        // Return copier uid and ConsensusParams
+    ) -> (u16, ConsensusParams<T>) {
         let copier_uid: u16 = N::<T>::get(subnet_id);
 
         let consensus_weights = Consensus::<T>::get(subnet_id);
@@ -360,7 +366,7 @@ impl<T: Config> Pallet<T> {
                 .unwrap_or_default();
 
             // TODO:
-            // eventually we will move the decrypted weights out of `YumaParams`,
+            // eventually we will move the decrypted weights out of `ConsensusParams`,
             // so this is a temporary solution
 
             // Update the weights_unencrypted field
@@ -370,13 +376,13 @@ impl<T: Config> Pallet<T> {
         (copier_uid, runtime_yuma_params)
     }
 
-    /// This will mutate YumaParams with copier information, ready for simulation
+    /// This will mutate ConsensusParams with copier information, ready for simulation
     pub fn add_copier_to_yuma_params(
         copier_uid: u16,
-        mut runtime_yuma_params: YumaParams<T>,
+        mut runtime_yuma_params: ConsensusParams<T>,
         subnet_id: u16,
         weights: Vec<(u16, u16)>,
-    ) -> YumaParams<T> {
+    ) -> ConsensusParams<T> {
         let copier_stake = get_copier_stake::<T>(&runtime_yuma_params, subnet_id);
         let current_block = runtime_yuma_params.current_block;
 
@@ -451,7 +457,7 @@ pub fn is_copying_irrational<T: pallet_subspace::Config>(
 }
 
 pub fn calculate_avg_delegate_divs<T: pallet_subspace::Config>(
-    yuma_output: &YumaOutput<T>,
+    yuma_output: &ConsensusOutput<T>,
     copier_uid: u16,
     delegation_fee: Percent,
 ) -> Option<I64F64> {
@@ -486,7 +492,7 @@ pub fn calculate_avg_delegate_divs<T: pallet_subspace::Config>(
 
 #[inline]
 fn get_params_uid_deleg_stake<T: pallet_subspace::Config>(
-    yuma_output: &YumaOutput<T>,
+    yuma_output: &ConsensusOutput<T>,
     uid: u16,
 ) -> u64 {
     yuma_output
@@ -498,7 +504,7 @@ fn get_params_uid_deleg_stake<T: pallet_subspace::Config>(
         .unwrap_or(0)
 }
 
-pub fn get_copier_stake<T>(runtime_yuma_params: &YumaParams<T>, subnet_id: u16) -> u64
+pub fn get_copier_stake<T>(runtime_yuma_params: &ConsensusParams<T>, subnet_id: u16) -> u64
 where
     T: pallet_subspace::Config + pallet::Config,
 {
@@ -543,7 +549,7 @@ impl<T: pallet_subspace::Config> Default for ConsensusSimulationResult<T> {
 impl<T: pallet_subspace::Config> ConsensusSimulationResult<T> {
     pub fn update(
         &mut self,
-        yuma_output: YumaOutput<T>,
+        yuma_output: ConsensusOutput<T>,
         tempo: u16,
         copier_uid: u16,
         delegation_fee: Percent,

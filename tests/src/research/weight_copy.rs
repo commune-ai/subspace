@@ -7,7 +7,7 @@
 
 // use pallet_offworker::ConsensusSimulationResult;
 // use pallet_subnet_emission::{
-//     subnet_consensus::yuma::{YumaEpoch, YumaParams},
+//     subnet_consensus::yuma::{YumaEpoch, ConsensusParams},
 //     SubnetConsensusType,
 // };
 // use pallet_subnet_emission_api::SubnetConsensus;
@@ -156,7 +156,7 @@
 //         v_permits,
 //     );
 
-//     let last_params = YumaParams::<Test>::new(netuid, universal_pending_emission).unwrap();
+//     let last_params = ConsensusParams::<Test>::new(netuid, universal_pending_emission).unwrap();
 //     let last_output = YumaEpoch::<Test>::new(netuid, last_params).run().unwrap();
 //     last_output.clone().apply();
 
@@ -209,9 +209,9 @@
 
 //         insert_weights_for_block(weights, netuid, v_permits);
 
-//         let last_params = YumaParams::<Test>::new(netuid, universal_pending_emission).unwrap();
-//         let last_output = YumaEpoch::<Test>::new(netuid, last_params).run().unwrap();
-//         last_output.clone().apply();
+//         let last_params = ConsensusParams::<Test>::new(netuid,
+// universal_pending_emission).unwrap();         let last_output = YumaEpoch::<Test>::new(netuid,
+// last_params).run().unwrap();         last_output.clone().apply();
 //         simulation_result.update(last_output.clone(), tempo, copier_uid, delegation_fee);
 
 //         // Calculate the percent difference between Dc(e) and Dd(e) for this epoch

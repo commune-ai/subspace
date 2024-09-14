@@ -7,7 +7,7 @@ use log::info;
 use pallet_governance::DaoTreasuryAddress;
 use pallet_subnet_emission::{
     subnet_consensus::yuma::{
-        params::{AccountKey, ModuleKey, YumaParams},
+        params::{AccountKey, ConsensusParams, ModuleKey},
         EmissionMap, YumaEpoch,
     },
     EmissionLoweringBlock, OriginalUnitEmission, PendingEmission, SubnetConsensusType,
@@ -674,7 +674,7 @@ fn test_1_graph() {
             vec![u16::MAX],
         ));
 
-        let params = YumaParams::<Test>::new(netuid, ONE).unwrap();
+        let params = ConsensusParams::<Test>::new(netuid, ONE).unwrap();
         let emissions = YumaEpoch::<Test>::new(netuid, params).run().unwrap();
         let offset = 1;
 
@@ -757,7 +757,7 @@ fn test_10_graph() {
             ));
         }
 
-        let params = YumaParams::<Test>::new(netuid, ONE).unwrap();
+        let params = ConsensusParams::<Test>::new(netuid, ONE).unwrap();
         let emissions = YumaEpoch::<Test>::new(netuid, params).run().unwrap();
 
         let mut expected: EmissionMap<u32> = BTreeMap::new();
@@ -1211,7 +1211,7 @@ fn yuma_does_not_fail_if_module_does_not_have_stake() {
         assert_ok!(register_module(netuid, key, stake, false));
         assert_ok!(SubspaceMod::do_remove_stake(get_origin(key), key, stake));
 
-        let params = YumaParams::<Test>::new(netuid, ONE).unwrap();
+        let params = ConsensusParams::<Test>::new(netuid, ONE).unwrap();
         assert_ok!(YumaEpoch::<Test>::new(netuid, params).run());
     });
 }
@@ -1221,10 +1221,10 @@ fn foo() {
     new_test_ext().execute_with(|| {
         register_subnet(0, 0).unwrap();
         // TODO:
-        // let last_params = YumaParams::<Test>::new(0, to_nano(100)).unwrap();
+        // let last_params = ConsensusParams::<Test>::new(0, to_nano(100)).unwrap();
         // let last_output = YumaEpoch::<Test>::new(0, last_params).run().unwrap();
 
-        // let now_params = YumaParams::<Test>::new(0, to_nano(50)).unwrap();
+        // let now_params = ConsensusParams::<Test>::new(0, to_nano(50)).unwrap();
         // let now_output = YumaEpoch::<Test>::new(0, now_params).run().unwrap();
 
         // let foo = pallet_offworker::ConsensusSimulationResult {

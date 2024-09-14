@@ -436,9 +436,6 @@ pub mod pallet {
     pub type MaxAllowedWeights<T> = StorageMap<_, Identity, u16, u16, ValueQuery, ConstU16<420>>;
 
     #[pallet::storage] // --- MAP ( netuid ) --> epoch
-    pub type TrustRatio<T> = StorageMap<_, Identity, u16, u16, ValueQuery>;
-
-    #[pallet::storage] // --- MAP ( netuid ) --> epoch
     pub type Tempo<T> = StorageMap<_, Identity, u16, u16, ValueQuery, ConstU16<100>>;
 
     #[pallet::storage] // --- MAP ( key, proportion )
@@ -493,8 +490,6 @@ pub mod pallet {
 
     #[pallet::storage] // --- MAP ( netuid ) --> incentive
     pub type Incentive<T: Config> = StorageMap<_, Identity, u16, Vec<u16>, ValueQuery>;
-    #[pallet::storage] // --- MAP ( netuid ) --> trust
-    pub type Trust<T: Config> = StorageMap<_, Identity, u16, Vec<u16>, ValueQuery>;
     #[pallet::storage] // --- MAP ( netuid ) --> dividends
     pub type Dividends<T: Config> = StorageMap<_, Identity, u16, Vec<u16>, ValueQuery>;
     #[pallet::storage] // --- MAP ( netuid ) --> emission
