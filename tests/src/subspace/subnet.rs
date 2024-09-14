@@ -57,7 +57,6 @@ fn subnet_update_changes_all_parameter_values() {
             name: b"test".to_vec().try_into().unwrap(),
             metadata: Some(b"metadata".to_vec().try_into().unwrap()),
             tempo: 300,
-            trust_ratio: 11,
             maximum_set_weight_calls_per_epoch: 12,
             bonds_ma: 13,
             min_validator_stake: to_nano(50_000),
@@ -93,7 +92,6 @@ fn subnet_update_changes_all_parameter_values() {
             name,
             metadata,
             tempo,
-            trust_ratio,
             maximum_set_weight_calls_per_epoch,
             bonds_ma,
             module_burn_config,
@@ -113,7 +111,6 @@ fn subnet_update_changes_all_parameter_values() {
         assert_eq!(MaxWeightAge::<Test>::get(netuid), max_weight_age);
         assert_eq!(SubnetNames::<Test>::get(netuid), name.into_inner());
         assert_eq!(Tempo::<Test>::get(netuid), tempo);
-        assert_eq!(TrustRatio::<Test>::get(netuid), trust_ratio);
         assert_eq!(
             MaximumSetWeightCallsPerEpoch::<Test>::get(netuid),
             Some(maximum_set_weight_calls_per_epoch)
@@ -158,7 +155,6 @@ fn removes_subnet_from_storage() {
                     max_weight_age,
                     name,
                     tempo,
-                    trust_ratio,
                     maximum_set_weight_calls_per_epoch: _,
                     bonds_ma,
                     min_validator_stake: _,
@@ -176,7 +172,6 @@ fn removes_subnet_from_storage() {
                 $m!(MaxWeightAge, max_weight_age);
                 $m!(SubnetNames, name);
                 $m!(Tempo, tempo);
-                $m!(TrustRatio, trust_ratio);
                 $m!(BondsMovingAverage, bonds_ma);
                 $m!(SubnetGovernanceConfig, governance_config);
                 $m!(N);
@@ -234,7 +229,6 @@ fn update_subnet_verifies_names_uniquiness_integrity() {
                 params.min_allowed_weights,
                 params.max_weight_age,
                 params.tempo,
-                params.trust_ratio,
                 params.maximum_set_weight_calls_per_epoch,
                 params.governance_config.vote_mode,
                 params.bonds_ma,

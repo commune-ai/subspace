@@ -490,7 +490,6 @@ fn test_trust() {
         params.min_allowed_weights = 1;
         params.max_allowed_weights = n;
         params.tempo = 100;
-        params.trust_ratio = 100;
 
         update_params!(netuid => params.clone());
 

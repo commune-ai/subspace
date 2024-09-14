@@ -10,9 +10,14 @@ use frame_system::{
     offchain::{AppCrypto, CreateSignedTransaction, SignedPayload, Signer, SigningTypes},
     pallet_prelude::BlockNumberFor,
 };
-use pallet_subnet_emission::subnet_consensus::yuma::{
-    params::ModuleParams, ConsensusOutput, ConsensusParams, ModuleKey, YumaEpoch,
+use pallet_subnet_emission::subnet_consensus::{
+    util::{
+        consensus::ConsensusOutput,
+        params::{ConsensusParams, ModuleKey, ModuleParams},
+    },
+    yuma::YumaEpoch,
 };
+
 use pallet_subspace::{
     math::{inplace_normalize_64, vec_fixed64_to_fixed32},
     Active, Consensus, CopierMargin, FloorDelegationFee, MaxEncryptionPeriod,
@@ -76,7 +81,7 @@ pub mod pallet {
     use super::*;
     use frame_support::pallet_prelude::*;
     use frame_system::pallet_prelude::*;
-    use pallet_subnet_emission::YumaParameters;
+    use pallet_subnet_emission::ConsensusParameters;
 
     /// This pallet's configuration trait
     #[pallet::config]
@@ -162,9 +167,9 @@ pub mod pallet {
                 let last_processed_block: u64 = storage.get::<u64>().ok().flatten().unwrap_or(0);
 
                 // TODO: if last processed block is missing then just return everything
-                // Get all new YumaParameters since the last processed block
+                // Get all new ConsensusParameters since the last processed block
                 let new_params: Vec<(u64, ConsensusParams<T>)> =
-                    YumaParameters::<T>::iter_prefix(subnet_id)
+                    ConsensusParameters::<T>::iter_prefix(subnet_id)
                         .filter(|(block, _)| {
                             *block > last_processed_block && *block <= current_block
                         })

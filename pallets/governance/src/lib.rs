@@ -231,7 +231,6 @@ pub mod pallet {
             min_allowed_weights: u16,
             max_weight_age: u64,
             tempo: u16,
-            trust_ratio: u16,
             maximum_set_weight_calls_per_epoch: u16,
             vote_mode: VoteMode,
             bonds_ma: u64,
@@ -251,7 +250,6 @@ pub mod pallet {
             params.min_allowed_weights = min_allowed_weights;
             params.max_weight_age = max_weight_age;
             params.tempo = tempo;
-            params.trust_ratio = trust_ratio;
             params.maximum_set_weight_calls_per_epoch = maximum_set_weight_calls_per_epoch;
             params.governance_config.vote_mode = vote_mode;
             params.bonds_ma = bonds_ma;

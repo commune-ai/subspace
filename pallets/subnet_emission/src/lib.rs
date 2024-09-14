@@ -10,7 +10,6 @@ use sp_std::collections::btree_map::BTreeMap;
 
 pub mod distribute_emission;
 pub mod migrations;
-pub mod post_runtime;
 pub mod subnet_pricing {
     pub mod demo;
     pub mod root;
@@ -22,7 +21,7 @@ pub mod subnet_consensus;
 // move some import outside of the macro
 #[frame_support::pallet]
 pub mod pallet {
-    use crate::*;
+    use crate::{subnet_consensus::util::params::ConsensusParams, *};
     use frame_support::{
         pallet_prelude::*,
         sp_runtime::SaturatedConversion,
@@ -33,8 +32,6 @@ pub mod pallet {
     use frame_system::pallet_prelude::BlockNumberFor;
     use pallet_subnet_emission_api::SubnetConsensus;
     use pallet_subspace::TotalStake;
-
-    use subnet_consensus::yuma::ConsensusParams;
     use subnet_pricing::root::RootPricing;
 
     const STORAGE_VERSION: StorageVersion = StorageVersion::new(0);
@@ -84,9 +81,9 @@ pub mod pallet {
     #[pallet::storage]
     pub type SubnetConsensusType<T> = StorageMap<_, Identity, u16, SubnetConsensus>;
 
-    /// Netuid, to block number to yuma parameters
+    /// Netuid, to block number to consensus parameters
     #[pallet::storage]
-    pub type YumaParameters<T: Config> =
+    pub type ConsensusParameters<T: Config> =
         StorageDoubleMap<_, Identity, u16, Identity, u64, ConsensusParams<T>, OptionQuery>;
 
     type BalanceOf<T> =
@@ -115,11 +112,6 @@ pub mod pallet {
                 log::error!("Error in on_initialize emission: {err:?}, skipping...");
             }
             Weight::zero()
-        }
-
-        fn on_idle(_n: BlockNumberFor<T>, remaining: Weight) -> Weight {
-            log::info!("on_idle: {remaining:?}");
-            Self::deregister_excess_modules(remaining)
         }
     }
 
