@@ -57,10 +57,11 @@ impl<T: Config> SubnetChangeset<T> {
 
         T::update_subnet_governance_configuration(netuid, self.params.governance_config)?;
 
-        Pallet::<T>::deposit_event(Event::SubnetParamsUpdated(netuid));
-
-        SubnetMetadata::<T>::set(netuid, self.params.metadata);
+        if let Some(metadata) = &self.params.metadata {
+            SubnetMetadata::<T>::insert(netuid, metadata);
+        }
         MaxAllowedValidators::<T>::insert(netuid, self.params.max_allowed_validators);
+        Pallet::<T>::deposit_event(Event::SubnetParamsUpdated(netuid));
 
         Ok(())
     }
