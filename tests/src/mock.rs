@@ -265,6 +265,61 @@ impl SubnetEmissionApi for Test {
     ) {
         pallet_subnet_emission::SubnetConsensusType::<Test>::set(netuid, subnet_consensus)
     }
+
+    fn get_weights(netuid: u16, uid: u16) -> Option<Vec<(u16, u16)>> {
+        pallet_subnet_emission::Weights::<Test>::get(netuid, uid)
+    }
+
+    /// returns the old weights if it's overwritten
+    fn set_weights(
+        netuid: u16,
+        uid: u16,
+        weights: Option<Vec<(u16, u16)>>,
+    ) -> Option<Vec<(u16, u16)>> {
+        let old_weights = pallet_subnet_emission::Weights::<Test>::get(netuid, uid);
+        pallet_subnet_emission::Weights::<Test>::set(netuid, uid, weights);
+        old_weights
+    }
+
+    /// returns the removed weights if any
+    fn remove_weights(netuid: u16, uid: u16) -> Option<Vec<(u16, u16)>> {
+        let old_weights = pallet_subnet_emission::Weights::<Test>::get(netuid, uid);
+        pallet_subnet_emission::Weights::<Test>::remove(netuid, uid);
+        old_weights
+    }
+
+    fn set_subnet_weights(
+        netuid: u16,
+        weights: Option<Vec<(u16, Vec<(u16, u16)>)>>,
+    ) -> Option<Vec<(u16, Vec<(u16, u16)>)>> {
+        let old_weights = pallet_subnet_emission::Weights::<Test>::iter_prefix(netuid)
+            .collect::<Vec<(_, Vec<_>)>>();
+        let _ =
+            pallet_subnet_emission::Weights::<Test>::clear_prefix(netuid, u16::MAX as u32, None);
+        if let Some(weights) = weights {
+            for (uid, weights) in weights.into_iter() {
+                pallet_subnet_emission::Weights::<Test>::insert(netuid, uid, weights);
+            }
+        }
+
+        if old_weights.is_empty() {
+            None
+        } else {
+            Some(old_weights)
+        }
+    }
+
+    fn clear_subnet_weights(netuid: u16) -> Option<Vec<(u16, Vec<(u16, u16)>)>> {
+        let old_weights = pallet_subnet_emission::Weights::<Test>::iter_prefix(netuid)
+            .collect::<Vec<(_, Vec<_>)>>();
+        let _ =
+            pallet_subnet_emission::Weights::<Test>::clear_prefix(netuid, u16::MAX as u32, None);
+        if old_weights.is_empty() {
+            None
+        } else {
+            Some(old_weights)
+        }
+    }
 }
 
 impl pallet_subnet_emission::Config for Test {

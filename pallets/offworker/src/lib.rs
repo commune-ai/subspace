@@ -18,10 +18,11 @@ use pallet_subnet_emission::subnet_consensus::{
     yuma::YumaEpoch,
 };
 
+use pallet_subnet_emission::Weights;
 use pallet_subspace::{
     math::{inplace_normalize_64, vec_fixed64_to_fixed32},
     Active, Consensus, CopierMargin, FloorDelegationFee, MaxEncryptionPeriod,
-    Pallet as SubspaceModule, Tempo, Weights, N,
+    Pallet as SubspaceModule, Tempo, N,
 };
 use parity_scale_codec::{Decode, Encode};
 use scale_info::prelude::marker::PhantomData;
@@ -461,7 +462,7 @@ pub fn is_copying_irrational<T: pallet_subspace::Config>(
     cumulative_copier_divs.saturating_sub(threshold).is_negative()
 }
 
-pub fn calculate_avg_delegate_divs<T: pallet_subspace::Config>(
+pub fn calculate_avg_delegate_divs<T: pallet_subspace::Config + pallet_subnet_emission::Config>(
     yuma_output: &ConsensusOutput<T>,
     copier_uid: u16,
     delegation_fee: Percent,
@@ -496,7 +497,7 @@ pub fn calculate_avg_delegate_divs<T: pallet_subspace::Config>(
 }
 
 #[inline]
-fn get_params_uid_deleg_stake<T: pallet_subspace::Config>(
+fn get_params_uid_deleg_stake<T: pallet_subspace::Config + pallet_subnet_emission::Config>(
     yuma_output: &ConsensusOutput<T>,
     uid: u16,
 ) -> u64 {
@@ -551,7 +552,7 @@ impl<T: pallet_subspace::Config> Default for ConsensusSimulationResult<T> {
         }
     }
 }
-impl<T: pallet_subspace::Config> ConsensusSimulationResult<T> {
+impl<T: pallet_subspace::Config + pallet_subnet_emission::Config> ConsensusSimulationResult<T> {
     pub fn update(
         &mut self,
         yuma_output: ConsensusOutput<T>,
