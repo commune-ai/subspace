@@ -267,7 +267,7 @@ impl<T: Config> Pallet<T> {
         // --- 2. Remove consnesus vectors
         // ===============================
 
-        let _ = Weights::<T>::clear_prefix(netuid, u32::MAX, None);
+        let _ = T::clear_subnet_weights(netuid);
         let _ = WeightSetAt::<T>::clear_prefix(netuid, u32::MAX, None);
         Active::<T>::remove(netuid);
         Consensus::<T>::remove(netuid);

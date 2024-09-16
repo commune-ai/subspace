@@ -1,5 +1,6 @@
 use crate::mock::*;
 use frame_support::assert_err;
+use pallet_subnet_emission::*;
 use pallet_subnet_emission_api::{SubnetConsensus, SubnetEmissionApi};
 use pallet_subspace::*;
 use sp_runtime::DispatchError;
@@ -16,8 +17,12 @@ fn set_weights_call_must_fail_with_keys_and_values_are_not_the_same_length() {
         let weights_keys = vec![1, 2, 3, 4, 5, 6];
         let weight_values = vec![1, 2, 3, 4, 5];
 
-        let result =
-            SubspaceMod::set_weights(RuntimeOrigin::signed(0), 0, weights_keys, weight_values);
+        let result = SubnetEmissionMod::set_weights(
+            RuntimeOrigin::signed(0),
+            0,
+            weights_keys,
+            weight_values,
+        );
 
         assert_err!(result, Error::<Test>::WeightVecNotEqualSize);
     });
@@ -45,7 +50,7 @@ fn cannot_set_weights_with_duplicate_keys() {
 
         let duplicated_weights_keys: Vec<u16> = vec![1, 1, 1];
         let weight_values: Vec<u16> = vec![1, 2, 3];
-        let result = SubspaceMod::set_weights(
+        let result = SubnetEmissionMod::set_weights(
             get_origin(0),
             netuid,
             duplicated_weights_keys,
@@ -60,7 +65,7 @@ fn set_weights_requires_signature() {
     new_test_ext().execute_with(|| {
         let uids: Vec<u16> = vec![];
         let values: Vec<u16> = vec![];
-        let result = SubspaceMod::set_weights(RuntimeOrigin::none(), 1, uids, values);
+        let result = SubnetEmissionMod::set_weights(RuntimeOrigin::none(), 1, uids, values);
         assert_err!(result, DispatchError::BadOrigin);
     });
 }
@@ -76,7 +81,7 @@ fn set_weights_only_accepts_existing_keys() {
 
         let invalid_weight_keys: Vec<u16> = vec![9999];
         let weight_values: Vec<u16> = vec![88];
-        let result = SubspaceMod::set_weights(
+        let result = SubnetEmissionMod::set_weights(
             RuntimeOrigin::signed(0),
             0,
             invalid_weight_keys,
@@ -101,7 +106,7 @@ fn set_weights_call_respects_rate_limit() {
 
         MaximumSetWeightCallsPerEpoch::<Test>::set(1, Some(1));
 
-        let set_weights = || SubspaceMod::set_weights(get_origin(0), 1, vec![1], vec![10]);
+        let set_weights = || SubnetEmissionMod::set_weights(get_origin(0), 1, vec![1], vec![10]);
 
         assert_ok!(set_weights());
         assert_err!(set_weights(), Error::<Test>::MaxSetWeightsPerEpochReached);
@@ -137,7 +142,7 @@ fn set_weights_call_respects_rootnet_weight_limit() {
         assert_ok!(register_module(0, 1, 1, false));
         assert_ok!(register_module(1, 1, 1, false));
 
-        let set_weights = || SubspaceMod::set_weights(get_origin(0), 0, vec![1], vec![10]);
+        let set_weights = || SubnetEmissionMod::set_weights(get_origin(0), 0, vec![1], vec![10]);
 
         assert_ok!(set_weights());
         assert_err!(set_weights(), Error::<Test>::MaxSetWeightsPerEpochReached);
@@ -157,7 +162,7 @@ fn set_weights_on_itself_is_invalid() {
         MinimumAllowedStake::<Test>::set(0);
 
         assert_ok!(register_module(1, 0, 1, false));
-        let result = SubspaceMod::set_weights(RuntimeOrigin::signed(0), 1, vec![0], vec![0]);
+        let result = SubnetEmissionMod::set_weights(RuntimeOrigin::signed(0), 1, vec![0], vec![0]);
         assert_err!(result, Error::<Test>::NoSelfWeight);
     });
 }
@@ -179,10 +184,10 @@ fn set_weights_respects_min_and_max_weights() {
         }
 
         let result =
-            SubspaceMod::set_weights(RuntimeOrigin::signed(account_id), 1, vec![1], vec![1]);
+            SubnetEmissionMod::set_weights(RuntimeOrigin::signed(account_id), 1, vec![1], vec![1]);
         assert_err!(result, Error::<Test>::InvalidUidsLength);
 
-        let result = SubspaceMod::set_weights(
+        let result = SubnetEmissionMod::set_weights(
             RuntimeOrigin::signed(account_id),
             1,
             vec![1, 2, 3, 4],
@@ -190,7 +195,7 @@ fn set_weights_respects_min_and_max_weights() {
         );
         assert_err!(result, Error::<Test>::InvalidUidsLength);
 
-        let result = SubspaceMod::set_weights(
+        let result = SubnetEmissionMod::set_weights(
             RuntimeOrigin::signed(account_id),
             1,
             vec![1, 2, 3],
@@ -223,13 +228,18 @@ fn set_weights_fails_for_stakes_below_minimum() {
         let weights = vec![1; uids.len()];
 
         assert_err!(
-            SubspaceMod::set_weights(get_origin(voter_key), netuid, uids.clone(), weights.clone()),
+            SubnetEmissionMod::set_weights(
+                get_origin(voter_key),
+                netuid,
+                uids.clone(),
+                weights.clone()
+            ),
             Error::<Test>::NotEnoughStakePerWeight
         );
 
         increase_stake(voter_key, to_nano(400));
 
-        assert_ok!(SubspaceMod::set_weights(
+        assert_ok!(SubnetEmissionMod::set_weights(
             get_origin(voter_key),
             netuid,
             uids,
@@ -265,7 +275,7 @@ fn set_weights_on_non_existent_subnets() {
         assert_ok!(register_named_subnet(2, 2, "Subnet2"));
 
         // Set weights on existing subnets
-        assert_ok!(SubspaceMod::set_weights(
+        assert_ok!(SubnetEmissionMod::set_weights(
             get_origin(val1_id),
             0,
             vec![1, 2],
@@ -277,7 +287,12 @@ fn set_weights_on_non_existent_subnets() {
 
         // 5. Set weights on a non-existent subnet and expect an error
         assert_err!(
-            SubspaceMod::set_weights(get_origin(val2_id), 0, vec![1, 2, 3], vec![100, 100, 100]),
+            SubnetEmissionMod::set_weights(
+                get_origin(val2_id),
+                0,
+                vec![1, 2, 3],
+                vec![100, 100, 100]
+            ),
             Error::<Test>::InvalidUid
         );
     });
@@ -298,13 +313,13 @@ fn delegate_weight_control() {
 
         let val1_uid = assert_ok!(register_root_validator(val1_id, universal_stake));
         let val2_uid = assert_ok!(register_root_validator(val2_id, universal_stake));
-        assert_ok!(SubspaceMod::set_weights(
+        assert_ok!(SubnetEmissionMod::set_weights(
             get_origin(val1_id),
             0,
             vec![1],
             vec![u16::MAX]
         ));
-        assert_ok!(SubspaceMod::delegate_rootnet_control(
+        assert_ok!(SubnetEmissionMod::delegate_rootnet_control(
             get_origin(val2_id),
             val1_id
         ));
@@ -324,7 +339,7 @@ fn test_normalize_weights_does_not_mutate_when_sum_not_zero() {
         let weights: Vec<u16> = Vec::from_iter(0..max_allowed);
 
         let expected = weights.clone();
-        let result = SubspaceMod::normalize_weights(&weights);
+        let result = SubnetEmissionMod::normalize_weights(&weights);
 
         assert_eq!(expected.len(), result.len(), "Length of weights changed?!");
     });

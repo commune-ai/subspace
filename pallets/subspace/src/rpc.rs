@@ -21,7 +21,8 @@ impl<T: Config> Pallet<T> {
         let dividends = Self::get_dividends_for_uid(netuid, uid);
         let last_update = Self::get_last_update_for_uid(netuid, uid);
 
-        let weights: Vec<(u16, u16)> = Weights::<T>::get(netuid, uid)
+        let weights: Vec<(u16, u16)> = T::get_weights(netuid, uid)
+            .unwrap_or_default()
             .iter()
             .filter_map(|(i, w)| if *w > 0 { Some((*i, *w)) } else { None })
             .collect();

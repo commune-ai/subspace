@@ -1,7 +1,7 @@
 #![no_std]
 
 use parity_scale_codec::{Decode, Encode, MaxEncodedLen};
-use scale_info::TypeInfo;
+use scale_info::{prelude::vec::Vec, TypeInfo};
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, TypeInfo, Decode, Encode, MaxEncodedLen)]
 pub enum SubnetConsensus {
@@ -47,4 +47,25 @@ pub trait SubnetEmissionApi {
     fn get_subnet_consensus_type(netuid: u16) -> Option<SubnetConsensus>;
 
     fn set_subnet_consensus_type(netuid: u16, subnet_consensus: Option<SubnetConsensus>);
+
+    fn get_weights(netuid: u16, uid: u16) -> Option<Vec<(u16, u16)>>;
+
+    /// returns the old weights if it's overwritten
+    fn set_weights(
+        netuid: u16,
+        uid: u16,
+        weigths: Option<Vec<(u16, u16)>>,
+    ) -> Option<Vec<(u16, u16)>>;
+
+    /// returns the removed weights if any
+    fn remove_weights(netuid: u16, uid: u16) -> Option<Vec<(u16, u16)>>;
+
+    /// returns the old weights if it's overwritten
+    fn set_subnet_weights(
+        netuid: u16,
+        weigths: Option<Vec<(u16, Vec<(u16, u16)>)>>,
+    ) -> Option<Vec<(u16, Vec<(u16, u16)>)>>;
+
+    /// returns the removed weights if any
+    fn clear_subnet_weights(netuid: u16) -> Option<Vec<(u16, Vec<(u16, u16)>)>>;
 }

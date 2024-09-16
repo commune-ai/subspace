@@ -1,15 +1,15 @@
 use core::fmt::Debug;
 
-use sp_std::collections::btree_map::BTreeMap;
-
+use crate::{Config, Weights};
 use frame_support::DebugNoBound;
 use pallet_subspace::{
-    math::*, AlphaValues, BalanceOf, Bonds, BondsMovingAverage, Config, Founder, Kappa, Keys,
-    LastUpdate, MaxAllowedValidators, MaxWeightAge, Pallet as PalletSubspace,
-    UseWeightsEncrytyption, ValidatorPermits, Vec, Weights,
+    math::*, AlphaValues, BalanceOf, Bonds, BondsMovingAverage, Founder, Kappa, Keys, LastUpdate,
+    MaxAllowedValidators, MaxWeightAge, Pallet as PalletSubspace, UseWeightsEncrytyption,
+    ValidatorPermits, Vec,
 };
 use parity_scale_codec::{Decode, Encode};
 use scale_info::TypeInfo;
+use sp_std::collections::btree_map::BTreeMap;
 use substrate_fixed::types::{I32F32, I64F64};
 
 #[derive(Clone, Encode, Decode, TypeInfo)]

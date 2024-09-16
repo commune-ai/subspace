@@ -3,9 +3,10 @@ use crate::{
     EmissionError,
 };
 
+use crate::Config;
 use core::marker::PhantomData;
 use frame_support::DebugNoBound;
-use pallet_subspace::{math::*, Config};
+use pallet_subspace::math::*;
 use sp_std::{vec, vec::Vec};
 
 #[derive(DebugNoBound)]

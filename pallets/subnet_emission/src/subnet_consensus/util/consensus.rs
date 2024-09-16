@@ -1,12 +1,13 @@
 use super::params::{AccountKey, ConsensusParams, FlattenedModules, ModuleKey};
 use crate::EmissionError;
 use frame_support::{ensure, DebugNoBound};
-use pallet_subspace::{math::*, vec, BalanceOf, Config, Pallet as PalletSubspace};
+use pallet_subspace::{math::*, vec, BalanceOf, Pallet as PalletSubspace};
 use parity_scale_codec::{Decode, Encode};
 use scale_info::TypeInfo;
 use sp_std::{borrow::Cow, collections::btree_map::BTreeMap, vec::Vec};
 use substrate_fixed::types::{I32F32, I64F64, I96F32};
 
+use crate::Config;
 pub type EmissionMap<AccountId> =
     BTreeMap<ModuleKey<AccountId>, BTreeMap<AccountKey<AccountId>, u64>>;
 
