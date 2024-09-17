@@ -492,11 +492,12 @@ pub fn tick_proposal_rewards<T: Config>(block_number: u64) {
     });
 }
 
+#[inline]
 fn calc_stake<T: Config>(not_delegating: &BTreeSet<T::AccountId>, voter: &T::AccountId) -> u64 {
     let own_stake = if !not_delegating.contains(voter) {
         0
     } else {
-        pallet_subspace::Pallet::<T>::get_delegated_stake(voter)
+        pallet_subspace::Pallet::<T>::get_owned_stake(voter)
     };
 
     let calculate_delegated = || -> u64 {
