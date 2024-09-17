@@ -66,7 +66,7 @@ impl<T: Config> Pallet<T> {
                 log::info!("Deregistering module with UID: {}", uid);
 
                 let _ = PalletS::<T>::remove_module(netuid, uid, false);
-                module_count -= 1;
+                module_count = module_count.saturating_sub(1);
                 weight = weight.saturating_add(deregister_weight);
                 remaining = remaining.saturating_sub(deregister_weight);
             } else {
