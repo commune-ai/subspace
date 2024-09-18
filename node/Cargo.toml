@@ -33,7 +33,6 @@ sc-executor.workspace = true
 sc-network.workspace = true
 sc-service.workspace = true
 sc-telemetry.workspace = true
-sc-keystore.workspace = true
 sc-transaction-pool.workspace = true
 sc-transaction-pool-api.workspace = true
 sc-offchain.workspace = true
@@ -42,7 +41,6 @@ sp-consensus-aura.workspace = true
 sc-consensus-grandpa.workspace = true
 sp-consensus-grandpa.workspace = true
 sc-consensus-manual-seal.workspace = true
-sp-consensus.workspace = true
 sc-consensus.workspace = true
 sc-client-api.workspace = true
 sp-runtime.workspace = true
@@ -55,7 +53,6 @@ pallet-transaction-payment.workspace = true
 
 # These dependencies are used for the subspace's RPCs
 jsonrpsee = { workspace = true, features = ["server"] }
-sc-rpc.workspace = true
 sp-api.workspace = true
 sc-rpc-api.workspace = true
 sp-blockchain.workspace = true
