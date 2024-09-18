@@ -14,9 +14,9 @@ use sp_core::{ConstU16, H256};
 use std::cell::RefCell;
 
 use pallet_subspace::{
-    subnet::SubnetChangeset, Address, DefaultKey, DefaultMinValidatorStake, DefaultSubnetParams,
-    Dividends, Emission, Incentive, LastUpdate, MaxRegistrationsPerBlock, Name, SubnetBurn,
-    SubnetParams, Tempo, TotalStake, N,
+    subnet::SubnetChangeset, Address, DefaultKey, DefaultSubnetParams, Dividends, Emission,
+    Incentive, LastUpdate, MaxRegistrationsPerBlock, Name, SubnetBurn, SubnetParams, Tempo,
+    TotalStake, N,
 };
 use sp_runtime::{
     traits::{AccountIdConversion, BlakeTwo256, IdentityLookup},
@@ -74,10 +74,12 @@ impl Get<PalletId> for SubspacePalletId {
 thread_local! {
     static DEFAULT_MODULE_MIN_BURN: RefCell<u64> = RefCell::new(10_000_000_000);
     static DEFAULT_SUBNET_MIN_BURN: RefCell<u64> = RefCell::new(2_000_000_000_000);
+    static DEFAULT_MIN_VALIDATOR_STAKE: RefCell<u64> = RefCell::new(50_000_000_000_000);
 }
 
 pub struct ModuleMinBurnConfig;
 pub struct SubnetMinBurnConfig;
+pub struct MinValidatorStake;
 
 impl Get<u64> for ModuleMinBurnConfig {
     fn get() -> u64 {
@@ -91,6 +93,12 @@ impl Get<u64> for SubnetMinBurnConfig {
     }
 }
 
+impl Get<u64> for MinValidatorStake {
+    fn get() -> u64 {
+        DEFAULT_MIN_VALIDATOR_STAKE.with(|v| *v.borrow())
+    }
+}
+
 pub fn set_default_module_min_burn(value: u64) {
     DEFAULT_MODULE_MIN_BURN.with(|v| *v.borrow_mut() = value);
 }
@@ -98,6 +106,11 @@ pub fn set_default_module_min_burn(value: u64) {
 pub fn set_default_subnet_min_burn(value: u64) {
     DEFAULT_SUBNET_MIN_BURN.with(|v| *v.borrow_mut() = value);
 }
+
+pub fn set_default_min_validator_stake(value: u64) {
+    DEFAULT_MIN_VALIDATOR_STAKE.with(|v| *v.borrow_mut() = value)
+}
+
 impl pallet_subspace::Config for Test {
     type RuntimeEvent = RuntimeEvent;
     type Currency = Balances;
@@ -106,6 +119,7 @@ impl pallet_subspace::Config for Test {
     type DefaultMaxSubnetRegistrationsPerInterval = ConstU16<{ u16::MAX }>;
     type DefaultModuleMinBurn = ModuleMinBurnConfig;
     type DefaultSubnetMinBurn = SubnetMinBurnConfig;
+    type DefaultMinValidatorStake = MinValidatorStake;
     type PalletId = SubspacePalletId;
 }
 
@@ -702,7 +716,7 @@ pub fn zero_min_burn() {
 
 #[allow(dead_code)]
 pub fn zero_min_validator_stake() {
-    DefaultMinValidatorStake::<Test>::set(0);
+    set_default_min_validator_stake(0);
 }
 
 macro_rules! update_params {

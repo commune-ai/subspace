@@ -492,11 +492,12 @@ pub fn tick_proposal_rewards<T: Config>(block_number: u64) {
     });
 }
 
+#[inline]
 fn calc_stake<T: Config>(not_delegating: &BTreeSet<T::AccountId>, voter: &T::AccountId) -> u64 {
     let own_stake = if !not_delegating.contains(voter) {
         0
     } else {
-        pallet_subspace::Pallet::<T>::get_delegated_stake(voter)
+        pallet_subspace::Pallet::<T>::get_owned_stake(voter)
     };
 
     let calculate_delegated = || -> u64 {
@@ -564,7 +565,11 @@ pub fn execute_proposal_rewards<T: Config>(
         n = n.saturating_add(1);
     }
 
-    distribute_proposal_rewards::<T>(account_stakes, total_allocation);
+    distribute_proposal_rewards::<T>(
+        account_stakes,
+        total_allocation,
+        governance_config.max_proposal_reward_treasury_allocation,
+    );
 }
 
 pub fn get_reward_allocation<T: crate::Config>(
@@ -601,22 +606,23 @@ pub fn get_reward_allocation<T: crate::Config>(
 
         allocation = allocation.checked_div(result).unwrap_or(allocation);
     }
-
-    pallet_subspace::Pallet::<T>::remove_balance_from_account(
-        &treasury_address,
-        pallet_subspace::Pallet::<T>::u64_to_balance(allocation.to_num())
-            .ok_or(Error::<T>::InsufficientDaoTreasuryFunds)?,
-    )?;
-
     Ok(allocation)
 }
 
 fn distribute_proposal_rewards<T: crate::Config>(
     account_stakes: BoundedBTreeMap<T::AccountId, u64, ConstU32<{ u32::MAX }>>,
     total_allocation: I92F36,
+    max_proposal_reward_treasury_allocation: u64,
 ) {
+    // This is just a sanity check, making sure we can never allocate more than the max
+    if total_allocation > I92F36::from_num(max_proposal_reward_treasury_allocation) {
+        log::error!("total allocation exceeds max proposal reward treasury allocation");
+        return;
+    }
+
     use frame_support::sp_runtime::traits::IntegerSquareRoot;
 
+    let dao_treasury_address = DaoTreasuryAddress::<T>::get();
     let account_sqrt_stakes: Vec<_> = account_stakes
         .into_iter()
         .map(|(acc_id, stake)| (acc_id, stake.integer_sqrt()))
@@ -629,14 +635,12 @@ fn distribute_proposal_rewards<T: crate::Config>(
         let percentage = I92F36::from_num(stake).checked_div(total_stake).unwrap_or_default();
 
         let reward: u64 = total_allocation.checked_mul(percentage).unwrap_or_default().to_num();
-        let reward = match pallet_subspace::Pallet::<T>::u64_to_balance(reward) {
-            Some(balance) => balance,
-            None => {
-                log::error!("could not transform {reward} into T::Balance");
-                continue;
-            }
-        };
 
-        pallet_subspace::Pallet::<T>::add_balance_to_account(&acc_id, reward);
+        // Transfer the proposal reward to the accounts from treasury
+        let _ = PalletSubspace::<T>::transfer_balance_to_account(
+            &dao_treasury_address,
+            &acc_id,
+            reward,
+        );
     }
 }

@@ -1,5 +1,16 @@
 # Changelog
 
+ spec version 122
+
+## Subnet 2 Changes
+
+- Fixed subnet 2 curator applications
+- Deregistered extra modules on subnet 2
+
+## Settings Changes
+
+- Removed Python-related things from flake
+
 spec version `121`
 
 Fixing `InsufficientStake` bug in proposal voting
