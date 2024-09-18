@@ -565,7 +565,11 @@ pub fn execute_proposal_rewards<T: Config>(
         n = n.saturating_add(1);
     }
 
-    distribute_proposal_rewards::<T>(account_stakes, total_allocation);
+    distribute_proposal_rewards::<T>(
+        account_stakes,
+        total_allocation,
+        governance_config.max_proposal_reward_treasury_allocation,
+    );
 }
 
 pub fn get_reward_allocation<T: crate::Config>(
@@ -602,20 +606,20 @@ pub fn get_reward_allocation<T: crate::Config>(
 
         allocation = allocation.checked_div(result).unwrap_or(allocation);
     }
-
-    pallet_subspace::Pallet::<T>::remove_balance_from_account(
-        &treasury_address,
-        pallet_subspace::Pallet::<T>::u64_to_balance(allocation.to_num())
-            .ok_or(Error::<T>::InsufficientDaoTreasuryFunds)?,
-    )?;
-
     Ok(allocation)
 }
 
 fn distribute_proposal_rewards<T: crate::Config>(
     account_stakes: BoundedBTreeMap<T::AccountId, u64, ConstU32<{ u32::MAX }>>,
     total_allocation: I92F36,
+    max_proposal_reward_treasury_allocation: u64,
 ) {
+    // This is just a sanity check, making sure we can never allocate more than the max
+    if total_allocation > I92F36::from_num(max_proposal_reward_treasury_allocation) {
+        log::error!("total allocation exceeds max proposal reward treasury allocation");
+        return;
+    }
+
     use frame_support::sp_runtime::traits::IntegerSquareRoot;
 
     let dao_treasury_address = DaoTreasuryAddress::<T>::get();
