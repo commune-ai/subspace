@@ -251,22 +251,4 @@ benchmarks! {
         );
     }: register_subnet(RawOrigin::Signed(key.clone()), "testnet".as_bytes().to_vec(), Some(b"testmetadata".to_vec()))
 
-    add_blacklist {
-        let owner: T::AccountId = account("Alice", 0, 1);
-        let stake = 100000000000000u64;
-        let blacklisted: T::AccountId = account("Module", 0, 2);
-        register_mock::<T>(owner.clone(), owner.clone(), b"owner".to_vec()).unwrap();
-        register_mock::<T>(owner.clone(), owner.clone(), b"blacklisted".to_vec()).unwrap();
-        let netuid = SubspaceMod::<T>::get_netuid_for_name(b"testnet").unwrap();
-    }: add_blacklist(RawOrigin::Signed(owner), netuid, blacklisted)
-
-    remove_blacklist {
-        let owner: T::AccountId = account("Alice", 0, 1);
-        let stake = 100000000000000u64;
-        let blacklisted: T::AccountId = account("Module", 0, 2);
-        register_mock::<T>(owner.clone(), owner.clone(), b"owner".to_vec()).unwrap();
-        register_mock::<T>(owner.clone(), owner.clone(), b"blacklisted".to_vec()).unwrap();
-        let netuid = SubspaceMod::<T>::get_netuid_for_name(b"testnet").unwrap();
-        SubspaceMod::<T>::add_blacklist(RawOrigin::Signed(owner.clone()).into(), netuid, blacklisted.clone()).unwrap();
-    }: remove_blacklist(RawOrigin::Signed(owner), netuid, blacklisted)
 }
