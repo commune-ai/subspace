@@ -618,6 +618,7 @@ fn distribute_proposal_rewards<T: crate::Config>(
 ) {
     use frame_support::sp_runtime::traits::IntegerSquareRoot;
 
+    let dao_treasury_address = DaoTreasuryAddress::<T>::get();
     let account_sqrt_stakes: Vec<_> = account_stakes
         .into_iter()
         .map(|(acc_id, stake)| (acc_id, stake.integer_sqrt()))
@@ -630,14 +631,12 @@ fn distribute_proposal_rewards<T: crate::Config>(
         let percentage = I92F36::from_num(stake).checked_div(total_stake).unwrap_or_default();
 
         let reward: u64 = total_allocation.checked_mul(percentage).unwrap_or_default().to_num();
-        let reward = match pallet_subspace::Pallet::<T>::u64_to_balance(reward) {
-            Some(balance) => balance,
-            None => {
-                log::error!("could not transform {reward} into T::Balance");
-                continue;
-            }
-        };
 
-        pallet_subspace::Pallet::<T>::add_balance_to_account(&acc_id, reward);
+        // Transfer the proposal reward to the accounts from treasury
+        let _ = PalletSubspace::<T>::transfer_balance_to_account(
+            &dao_treasury_address,
+            &acc_id,
+            reward,
+        );
     }
 }
