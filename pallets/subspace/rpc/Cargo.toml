@@ -13,17 +13,12 @@ targets = ["x86_64-unknown-linux-gnu"]
 
 [dependencies]
 jsonrpsee = { workspace = true, features = ["server", "macros"] }
-lazy_static = { workspace = true, optional = true }
-tokio = { workspace = true, optional = true }
 serde.workspace = true
-serde_json.workspace = true
+sp-blockchain.workspace = true
 
 # Substrate packages
-parity-scale-codec.workspace = true
 sp-api.workspace = true
-sp-blockchain.workspace = true
 sp-runtime.workspace = true
-pallet-subspace = { default-features = false, path = "../" }
 
 # local packages
 subspace-runtime-api = { path = "./runtime-api", default-features = false }
@@ -34,5 +29,4 @@ std = [
   "sp-api/std",
   "sp-runtime/std",
   "subspace-runtime-api/std",
-  "pallet-subspace/std",
 ]

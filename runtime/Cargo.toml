@@ -18,11 +18,9 @@ pallet-governance = { path = "../pallets/governance", default-features = false }
 pallet-faucet = { path = "../pallets/faucet", optional = true, default-features = false }
 pallet-subnet-emission = { path = "../pallets/subnet_emission", default-features = false }
 
-log.workspace = true
 smallvec.workspace = true
 parity-scale-codec.workspace = true
 scale-info.workspace = true
-serde_json.workspace = true
 
 frame-executive.workspace = true
 frame-support.workspace = true
@@ -31,7 +29,6 @@ frame-try-runtime = { workspace = true, optional = true }
 pallet-aura.workspace = true
 pallet-balances.workspace = true
 pallet-grandpa.workspace = true
-pallet-insecure-randomness-collective-flip.workspace = true
 pallet-multisig.workspace = true
 pallet-sudo.workspace = true
 pallet-timestamp.workspace = true
@@ -62,16 +59,25 @@ frame-system-benchmarking = { workspace = true, optional = true }
 # EVM Support
 
 # Frontier
-fp-account.workspace = true
-fp-rpc.workspace = true
-fp-self-contained.workspace = true
-
+fp-account = { workspace = true }
+fp-evm = { workspace = true, features = ["serde"] }
+fp-rpc = { workspace = true }
+fp-self-contained = { workspace = true, features = ["serde"] }
 # Frontier FRAME
-pallet-base-fee.workspace = true
+pallet-base-fee = { workspace = true }
+pallet-dynamic-fee = { workspace = true }
+pallet-ethereum = { workspace = true }
+pallet-evm = { workspace = true }
+pallet-evm-chain-id = { workspace = true }
+pallet-evm-precompile-modexp = { workspace = true }
+pallet-evm-precompile-sha3fips = { workspace = true }
+pallet-evm-precompile-simple = { workspace = true }
 
+# Pallets' APIs
 subspace-runtime-api = { path = "../pallets/subspace/rpc/runtime-api", default-features = false }
 pallet-governance-api = { path = "../pallets/governance/api", default-features = false }
 pallet-subnet-emission-api = { path = "../pallets/subnet_emission/api", default-features = false }
+
 [build-dependencies]
 substrate-wasm-builder = { workspace = true, optional = true }
 
@@ -95,7 +101,6 @@ std = [
 	"pallet-aura/std",
 	"pallet-balances/std",
 	"pallet-grandpa/std",
-	"pallet-insecure-randomness-collective-flip/std",
 	"pallet-multisig/std",
 	"pallet-sudo/std",
 	"pallet-timestamp/std",
@@ -115,11 +120,22 @@ std = [
 	"sp-transaction-pool/std",
 	"sp-version/std",
 	"substrate-wasm-builder",
+	"subspace-runtime-api/std",
+	# EVM
+	# Frontier
 	"fp-account/std",
+	"fp-evm/std",
 	"fp-rpc/std",
 	"fp-self-contained/std",
+	# Frontier FRAME
 	"pallet-base-fee/std",
-	"subspace-runtime-api/std",
+	"pallet-dynamic-fee/std",
+	"pallet-ethereum/std",
+	"pallet-evm/std",
+	"pallet-evm-chain-id/std",
+	"pallet-evm-precompile-modexp/std",
+	"pallet-evm-precompile-sha3fips/std",
+	"pallet-evm-precompile-simple/std",
 ]
 runtime-benchmarks = [
 	"frame-benchmarking/runtime-benchmarks",
@@ -135,7 +151,6 @@ runtime-benchmarks = [
 	"pallet-governance/runtime-benchmarks",
 ]
 try-runtime = [
-	"fp-self-contained/try-runtime",
 	"frame-executive/try-runtime",
 	"frame-support/try-runtime",
 	"frame-system/try-runtime",
@@ -144,7 +159,6 @@ try-runtime = [
 	"pallet-balances/try-runtime",
 	"pallet-base-fee/try-runtime",
 	"pallet-grandpa/try-runtime",
-	"pallet-insecure-randomness-collective-flip/try-runtime",
 	"pallet-multisig/try-runtime",
 	"pallet-governance/try-runtime",
 	"pallet-subnet-emission/try-runtime",
