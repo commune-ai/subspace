@@ -168,4 +168,9 @@ try-runtime = [
 	"pallet-timestamp/try-runtime",
 	"pallet-transaction-payment/try-runtime",
 	"pallet-utility/try-runtime",
+	"pallet-dynamic-fee/try-runtime",
+	"pallet-ethereum/try-runtime",
+	"pallet-evm/try-runtime",
+	"pallet-evm-chain-id/try-runtime",
+	"fp-self-contained/try-runtime",
 ]
