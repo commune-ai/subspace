@@ -37,7 +37,6 @@ fn register_mock<T: Config>(
         &key,
         SubspaceMod::<T>::u64_to_balance(SubnetBurn::<T>::get() + enough_stake).unwrap(),
     );
-    let network_metadata = Some("networkmetadata".as_bytes().to_vec());
     let metadata = Some("metadata".as_bytes().to_vec());
     SubspaceMod::<T>::register(
         RawOrigin::Signed(key.clone()).into(),
@@ -78,8 +77,6 @@ benchmarks! {
             params.max_allowed_modules,            // max_allowed_modules: max number of modules allowed per subnet
             params.max_registrations_per_block,    // max_registrations_per_block: max number of registrations per block
             params.max_allowed_weights,            // max_allowed_weights: max number of weights per module
-            params.burn_config.max_burn,           // max_burn: max burn allowed to register
-            params.burn_config.min_burn,           // min_burn: min burn required to register
             params.floor_delegation_fee,           // floor_delegation_fee: min delegation fee
             params.floor_founder_share,            // floor_founder_share: min founder share
             params.min_weight_stake,               // min_weight_stake: min weight stake required
@@ -111,24 +108,22 @@ benchmarks! {
             netuid,
             params.founder.clone(),
             params.founder_share,
+            params.name.clone(),
+            params.metadata.clone(),
             params.immunity_period,
             params.incentive_ratio,
             params.max_allowed_uids,
             params.max_allowed_weights,
             params.min_allowed_weights,
             params.max_weight_age,
-            params.name.clone(),
-            params.metadata.clone(),
             params.tempo,
             params.trust_ratio,
             params.maximum_set_weight_calls_per_epoch,
             VoteMode::Vote,
             params.bonds_ma,
-            params.target_registrations_interval,
-            params.target_registrations_per_interval,
-            params.max_registrations_per_interval,
-            params.adjustment_alpha,
-            params.min_validator_stake
+            params.module_burn_config.clone(),
+            params.min_validator_stake,
+            params.max_allowed_validators
         )?;
 
         // add balance to submit the proposal
@@ -143,8 +138,9 @@ benchmarks! {
         netuid,
         data,
         params.founder.clone(),
-        params.name.clone(),
         params.founder_share,
+        params.name.clone(),
+        params.metadata.clone(),
         params.immunity_period,
         params.incentive_ratio,
         params.max_allowed_uids,
@@ -156,11 +152,9 @@ benchmarks! {
         params.maximum_set_weight_calls_per_epoch,
         VoteMode::Vote,
         params.bonds_ma,
-        params.target_registrations_interval,
-        params.target_registrations_per_interval,
-        params.max_registrations_per_interval,
-        params.adjustment_alpha,
-        params.min_validator_stake
+        params.module_burn_config,
+        params.min_validator_stake,
+        params.max_allowed_validators
     )
 
     // 2
@@ -277,7 +271,7 @@ benchmarks! {
         let caller: T::AccountId = account("Alice", 0, 1);
         let application_key: T::AccountId = account("Bob", 0, 2);
         Curator::<T>::set(caller.clone());
-    }: add_to_whitelist(RawOrigin::Signed(caller), application_key, 1)
+    }: add_to_whitelist(RawOrigin::Signed(caller), application_key)
 
     // 12
     remove_from_whitelist {
@@ -288,7 +282,7 @@ benchmarks! {
         Curator::<T>::set(caller.clone());
         // Now add it to whitelist
         GovernanceMod::<T>::add_to_whitelist(RawOrigin::Signed(caller.clone()).into(),
-    application_key.clone(), 1)?; }: remove_from_whitelist(RawOrigin::Signed(caller),
+    application_key.clone())?; }: remove_from_whitelist(RawOrigin::Signed(caller),
     application_key)
 
 }

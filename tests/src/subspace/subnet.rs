@@ -120,7 +120,10 @@ fn subnet_update_changes_all_parameter_values() {
         );
         assert_eq!(BondsMovingAverage::<Test>::get(netuid), bonds_ma);
         assert_eq!(ModuleBurnConfig::<Test>::get(netuid), module_burn_config);
-        assert_eq!(MinValidatorStake::<Test>::get(netuid), min_validator_stake);
+        assert_eq!(
+            pallet_subspace::MinValidatorStake::<Test>::get(netuid),
+            min_validator_stake
+        );
         assert_eq!(
             MaxAllowedValidators::<Test>::get(netuid),
             max_allowed_validators

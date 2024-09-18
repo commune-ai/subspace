@@ -13,9 +13,7 @@ use frame_support::{
     dispatch,
     dispatch::{DispatchInfo, PostDispatchInfo},
     ensure,
-    traits::{
-        tokens::WithdrawReasons, ConstU16, ConstU32, Currency, ExistenceRequirement, IsSubType,
-    },
+    traits::{tokens::WithdrawReasons, ConstU32, Currency, ExistenceRequirement, IsSubType},
     PalletId,
 };
 
@@ -60,6 +58,7 @@ pub mod pallet {
     use super::*;
     pub use crate::weights::WeightInfo;
     use frame_support::{
+        dispatch::DispatchResult,
         pallet_prelude::{ValueQuery, *},
         traits::Currency,
         Identity,
@@ -69,7 +68,7 @@ pub mod pallet {
     use module::ModuleChangeset;
     use pallet_governance_api::{GovernanceConfiguration, VoteMode};
     use sp_arithmetic::per_things::Percent;
-    use sp_core::{ConstU64, ConstU8};
+    use sp_core::{ConstU16, ConstU64, ConstU8};
     pub use sp_std::{vec, vec::Vec};
 
     const STORAGE_VERSION: StorageVersion = StorageVersion::new(13);
@@ -105,6 +104,7 @@ pub mod pallet {
         type DefaultModuleMinBurn: Get<u64>;
         /// The default minimum burn amount required for module registration.
         type DefaultSubnetMinBurn: Get<u64>;
+        type DefaultMinValidatorStake: Get<u64>;
 
         /// The weight information of this pallet.
         type WeightInfo: WeightInfo;
@@ -269,7 +269,8 @@ pub mod pallet {
     pub type SubnetNames<T: Config> = StorageMap<_, Identity, u16, Vec<u8>, ValueQuery>;
 
     #[pallet::storage]
-    pub type SubnetMetadata<T: Config> = StorageMap<_, Identity, u16, BoundedVec<u8, ConstU32<59>>>;
+    pub type SubnetMetadata<T: Config> =
+        StorageMap<_, Identity, u16, BoundedVec<u8, ConstU32<120>>>;
 
     #[pallet::storage] // --- ITEM ( floor_founder_share )
     pub type FloorFounderShare<T: Config> = StorageValue<_, u8, ValueQuery, ConstU8<8>>;
@@ -321,17 +322,8 @@ pub mod pallet {
     // ---------------------------------
 
     #[pallet::storage]
-    pub type DefaultMinValidatorStake<T: Config> =
-        StorageValue<_, u64, ValueQuery, ConstU64<50_000_000_000_000>>;
-
-    #[pallet::type_value]
-    pub fn GetDefaultMinValidatorStake<T: Config>() -> u64 {
-        DefaultMinValidatorStake::<T>::get()
-    }
-
-    #[pallet::storage]
     pub type MinValidatorStake<T: Config> =
-        StorageMap<_, Identity, u16, u64, ValueQuery, GetDefaultMinValidatorStake<T>>;
+        StorageMap<_, Identity, u16, u64, ValueQuery, T::DefaultMinValidatorStake>;
 
     pub struct DefaultSubnetParams<T: Config>(sp_std::marker::PhantomData<((), T)>);
 
@@ -356,7 +348,7 @@ pub mod pallet {
 
                 // registrations
                 module_burn_config: GeneralBurnConfiguration::<T>::default_for(BurnType::Module),
-                min_validator_stake: DefaultMinValidatorStake::<T>::get(),
+                min_validator_stake: T::DefaultMinValidatorStake::get(),
                 max_allowed_validators: None,
                 governance_config: GovernanceConfiguration {
                     vote_mode: VoteMode::Authority,
@@ -384,7 +376,7 @@ pub mod pallet {
         pub min_allowed_weights: u16, // min number of weights allowed to be registered in this
         pub max_weight_age: u64,      // max age of a weight
         pub name: BoundedVec<u8, ConstU32<256>>,
-        pub metadata: Option<BoundedVec<u8, ConstU32<59>>>,
+        pub metadata: Option<BoundedVec<u8, ConstU32<120>>>,
         pub tempo: u16, // how many blocks to wait before rewarding models
         pub trust_ratio: u16,
         pub maximum_set_weight_calls_per_epoch: u16,
@@ -819,13 +811,12 @@ pub mod pallet {
                 Self::clear_set_weight_rate_limiter(netuid);
             }
 
-            // TODO: fix later
+            // TODO: fix latr
             Weight::default()
         }
 
         fn on_idle(_n: BlockNumberFor<T>, _remaining: Weight) -> Weight {
             log::info!("running on_idle");
-            // Pallet::<T>::deregister_not_whitelisted_modules(remaining)
             Weight::zero()
         }
     }
@@ -986,7 +977,7 @@ pub mod pallet {
             founder: T::AccountId,
             founder_share: u16,
             name: BoundedVec<u8, ConstU32<256>>,
-            metadata: Option<BoundedVec<u8, ConstU32<59>>>,
+            metadata: Option<BoundedVec<u8, ConstU32<120>>>,
             immunity_period: u16,
             incentive_ratio: u16,
             max_allowed_uids: u16,
@@ -1050,7 +1041,6 @@ pub mod pallet {
         }
     }
 }
-
 impl<T: Config> Pallet<T> {
     /// Returns the total amount staked by the given key to other keys.
     #[inline]

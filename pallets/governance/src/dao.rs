@@ -14,6 +14,7 @@ pub struct CuratorApplication<T: Config> {
     pub data: BoundedVec<u8, ConstU32<256>>,
     pub status: ApplicationStatus,
     pub application_cost: u64,
+    pub block_number: u64,
 }
 
 #[derive(Clone, Debug, Default, PartialEq, Eq, MaxEncodedLen, TypeInfo, Decode, Encode)]
@@ -22,6 +23,7 @@ pub enum ApplicationStatus {
     Pending,
     Accepted,
     Refused,
+    Removed,
 }
 
 impl<T: Config> Pallet<T> {
@@ -32,27 +34,50 @@ impl<T: Config> Pallet<T> {
         }
     }
 
+    #[must_use]
+    fn can_add_application_status_based(key: &T::AccountId) -> bool {
+        // check if there's an application with the given key
+        CuratorApplications::<T>::iter().find(|(_, app)| app.user_id == *key).map_or(
+            true,
+            |(_, app)| {
+                // if the application exists, check its status
+                !matches!(
+                    app.status,
+                    ApplicationStatus::Pending | ApplicationStatus::Accepted
+                )
+            },
+        )
+    }
+
     pub fn add_application(
         key: T::AccountId,
         application_key: T::AccountId,
         data: Vec<u8>,
     ) -> DispatchResult {
-        // Check if the proposer has enough balance
-        // re use the same value as for proposals
-        let application_cost = GeneralSubnetApplicationCost::<T>::get();
+        ensure!(
+            !Self::is_in_legit_whitelist(&application_key),
+            Error::<T>::AlreadyWhitelisted
+        );
 
+        ensure!(
+            Self::can_add_application_status_based(&application_key),
+            Error::<T>::ApplicationKeyAlreadyUsed
+        );
+
+        let application_cost = GeneralSubnetApplicationCost::<T>::get();
         ensure!(
             PalletSubspace::<T>::has_enough_balance(&key, application_cost),
-            Error::<T>::NotEnoughtBalnceToApply
+            Error::<T>::NotEnoughBalanceToApply
         );
 
-        let removed_balance_as_currency = PalletSubspace::<T>::u64_to_balance(application_cost);
-        ensure!(
-            removed_balance_as_currency.is_some(),
-            Error::<T>::CouldNotConvertToBalance
-        );
+        let Some(removed_balance_as_currency) =
+            PalletSubspace::<T>::u64_to_balance(application_cost)
+        else {
+            return Err(Error::<T>::InvalidCurrencyConversionValue.into());
+        };
 
         let application_id = Self::get_next_application_id();
+        let current_block = PalletSubspace::<T>::get_current_block_number();
 
         let application = CuratorApplication {
             user_id: application_key,
@@ -61,13 +86,10 @@ impl<T: Config> Pallet<T> {
             data: BoundedVec::truncate_from(data),
             status: ApplicationStatus::Pending,
             application_cost,
+            block_number: current_block,
         };
 
-        // Burn the application cost from the proposer's balance
-        PalletSubspace::<T>::remove_balance_from_account(
-            &key,
-            removed_balance_as_currency.unwrap(),
-        )?;
+        PalletSubspace::<T>::remove_balance_from_account(&key, removed_balance_as_currency)?;
 
         CuratorApplications::<T>::insert(application_id, application);
 
@@ -81,21 +103,17 @@ impl<T: Config> Pallet<T> {
     ) -> DispatchResult {
         let key = ensure_signed(origin)?;
 
-        // --- 2. Ensure that the key is the curator multisig.
+        // Ensure that the key is the curator multisig.
         ensure!(Curator::<T>::get() == key, Error::<T>::NotCurator);
 
-        let mut application =
-            CuratorApplications::<T>::get(application_id).ok_or(Error::<T>::ApplicationNotFound)?;
-
-        ensure!(
-            application.status == ApplicationStatus::Pending,
-            Error::<T>::ApplicationNotPending
-        );
-
-        // Change the status of application to refused
-        application.status = ApplicationStatus::Refused;
-
-        CuratorApplications::<T>::insert(application_id, application);
+        CuratorApplications::<T>::try_mutate(application_id, |application| match application {
+            Some(app) if app.status == ApplicationStatus::Pending => {
+                app.status = ApplicationStatus::Refused;
+                Ok(())
+            }
+            Some(_) => Err(Error::<T>::ApplicationNotPending),
+            None => Err(Error::<T>::ApplicationNotFound),
+        })?;
 
         Ok(())
     }
@@ -106,9 +124,14 @@ impl<T: Config> Pallet<T> {
         data: Vec<u8>,
     ) -> DispatchResult {
         let key = ensure_signed(origin)?;
-        ensure!(!data.is_empty(), Error::<T>::ApplicationTooSmall);
-        ensure!(data.len() <= 256, Error::<T>::ApplicationTooLarge);
-        sp_std::str::from_utf8(&data).map_err(|_| Error::<T>::InvalidApplication)?;
+        ensure!(
+            (1..=256).contains(&data.len()),
+            Error::<T>::InvalidApplicationSize
+        );
+        ensure!(
+            sp_std::str::from_utf8(&data).is_ok(),
+            Error::<T>::InvalidApplication
+        );
 
         Self::add_application(key, application_key, data)
     }
@@ -136,39 +159,30 @@ impl<T: Config> Pallet<T> {
     pub fn do_add_to_whitelist(
         origin: T::RuntimeOrigin,
         module_key: T::AccountId,
-        recommended_weight: u8,
     ) -> DispatchResult {
-        // --- 1. Check that the caller has signed the transaction.
         let key = ensure_signed(origin)?;
-
-        // --- 2. Ensure that the key is the curator multisig.
         ensure!(Curator::<T>::get() == key, Error::<T>::NotCurator);
 
-        // --- 2.1 Make sure the key application was submitted
-        let application_exists = T::curator_application_exists(&module_key);
-        ensure!(application_exists, Error::<T>::ApplicationNotFound);
+        let application = CuratorApplications::<T>::iter_values()
+            .find(|app| app.user_id == module_key)
+            .ok_or(Error::<T>::ApplicationNotFound)?;
 
-        // --- 3. Ensure that the module_key is not already in the whitelist.
+        ensure!(
+            application.status == ApplicationStatus::Pending,
+            Error::<T>::ApplicationNotPending
+        );
+
         ensure!(
             !Self::is_in_legit_whitelist(&module_key),
             Error::<T>::AlreadyWhitelisted
         );
 
-        ensure!(
-            recommended_weight <= 100 && recommended_weight > 0,
-            Error::<T>::InvalidRecommendedWeight
-        );
+        LegitWhitelist::<T>::insert(&module_key, ());
 
-        // --- 4. Insert the module_key into the whitelist.
-        LegitWhitelist::<T>::insert(module_key.clone(), recommended_weight);
+        T::execute_application(&module_key)?;
 
-        // execute the application
-        T::execute_application(&module_key).unwrap();
+        Self::deposit_event(Event::WhitelistModuleAdded(module_key.clone()));
 
-        // -- deposit event
-        Self::deposit_event(Event::WhitelistModuleAdded(module_key));
-
-        // --- 5. Ok and done.
         Ok(())
     }
 
@@ -176,25 +190,24 @@ impl<T: Config> Pallet<T> {
         origin: T::RuntimeOrigin,
         module_key: T::AccountId,
     ) -> DispatchResult {
-        // --- 1. Check that the caller has signed the transaction.
         let key = ensure_signed(origin)?;
-
-        // --- 2. Ensure that the key is the curator multisig.
         ensure!(Curator::<T>::get() == key, Error::<T>::NotCurator);
-
-        // --- 3. Ensure that the module_key is in the whitelist.
         ensure!(
             Self::is_in_legit_whitelist(&module_key),
             Error::<T>::NotWhitelisted
         );
 
-        // --- 4. Remove the module_key from the whitelist.
         LegitWhitelist::<T>::remove(&module_key);
 
-        // -- deposit event
+        CuratorApplications::<T>::iter()
+            .filter(|(_, app)| app.user_id == module_key)
+            .for_each(|(id, mut app)| {
+                app.status = ApplicationStatus::Removed;
+                CuratorApplications::<T>::insert(id, app);
+            });
+
         Self::deposit_event(Event::WhitelistModuleRemoved(module_key));
 
-        // --- 5. Ok and done.
         Ok(())
     }
 

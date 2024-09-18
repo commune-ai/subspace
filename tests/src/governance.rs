@@ -550,11 +550,7 @@ fn whitelist_executes_application_correctly() {
         }
 
         // add key to whitelist
-        assert_ok!(GovernanceMod::add_to_whitelist(
-            get_origin(key),
-            adding_key,
-            1,
-        ));
+        assert_ok!(GovernanceMod::add_to_whitelist(get_origin(key), adding_key,));
 
         let balance_after_accept = SubspaceMod::get_balance_u64(&key);
 
@@ -598,7 +594,6 @@ fn user_is_removed_from_whitelist() {
         assert_ok!(GovernanceMod::add_to_whitelist(
             get_origin(whitelist_key),
             module_key,
-            1
         ));
         assert!(GovernanceMod::is_in_legit_whitelist(&module_key));
 
@@ -621,7 +616,7 @@ fn whitelist_curator_must_be_a_valid_key() {
 
         // Try to add to whitelist with an invalid curator key
         assert_noop!(
-            GovernanceMod::add_to_whitelist(get_origin(invalid_key), module_key, 1),
+            GovernanceMod::add_to_whitelist(get_origin(invalid_key), module_key),
             Error::<Test>::NotCurator
         );
         assert!(!GovernanceMod::is_in_legit_whitelist(&module_key));

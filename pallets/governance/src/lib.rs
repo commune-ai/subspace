@@ -40,7 +40,7 @@ pub mod pallet {
     use pallet_subspace::{global::GeneralBurnConfiguration, DefaultKey};
     use sp_runtime::traits::AccountIdConversion;
 
-    const STORAGE_VERSION: StorageVersion = StorageVersion::new(1);
+    const STORAGE_VERSION: StorageVersion = StorageVersion::new(2);
 
     #[pallet::pallet]
     #[pallet::storage_version(STORAGE_VERSION)]
@@ -156,9 +156,8 @@ pub mod pallet {
     #[pallet::storage]
     pub type CuratorApplications<T: Config> = StorageMap<_, Identity, u64, CuratorApplication<T>>;
 
-    // whitelist for the base subnet (netuid 0)
     #[pallet::storage]
-    pub type LegitWhitelist<T: Config> = StorageMap<_, Identity, T::AccountId, u8, ValueQuery>;
+    pub type LegitWhitelist<T: Config> = StorageMap<_, Identity, T::AccountId, (), ValueQuery>;
 
     #[pallet::storage]
     pub type Curator<T: Config> = StorageValue<_, T::AccountId, ValueQuery, DefaultKey<T>>;
@@ -224,7 +223,7 @@ pub mod pallet {
             founder: T::AccountId,
             founder_share: u16,
             name: BoundedVec<u8, ConstU32<256>>,
-            metadata: Option<BoundedVec<u8, ConstU32<59>>>,
+            metadata: Option<BoundedVec<u8, ConstU32<120>>>,
             immunity_period: u16,
             incentive_ratio: u16,
             max_allowed_uids: u16,
@@ -346,12 +345,8 @@ pub mod pallet {
 
         #[pallet::call_index(11)]
         #[pallet::weight((<T as pallet::Config>::WeightInfo::add_to_whitelist(), DispatchClass::Normal, Pays::No))]
-        pub fn add_to_whitelist(
-            origin: OriginFor<T>,
-            module_key: T::AccountId,
-            recommended_weight: u8,
-        ) -> DispatchResult {
-            Self::do_add_to_whitelist(origin, module_key, recommended_weight)
+        pub fn add_to_whitelist(origin: OriginFor<T>, module_key: T::AccountId) -> DispatchResult {
+            Self::do_add_to_whitelist(origin, module_key)
         }
 
         #[pallet::call_index(12)]
@@ -442,15 +437,15 @@ pub mod pallet {
         /// The application data is too small or empty.
         ApplicationTooSmall,
         /// The application data is too large, exceeding the maximum allowed size.
-        ApplicationTooLarge,
+        InvalidApplicationSize,
         /// The application is not in a pending state.
         ApplicationNotPending,
+        /// The application key is already used in another application.
+        ApplicationKeyAlreadyUsed,
         /// The application data is invalid or malformed.
         InvalidApplication,
         /// The account doesn't have enough balance to submit an application.
-        NotEnoughtBalnceToApply,
-        /// The recommended weight for the application is invalid.
-        InvalidRecommendedWeight,
+        NotEnoughBalanceToApply,
         /// The operation can only be performed by the curator.
         NotCurator,
         /// The application with the given ID was not found.
