@@ -67,7 +67,7 @@ cargo build --release
 To run a single development node with ephemeral storage:
 
 ```sh
-./target/release/node-subspace --dev
+./target/release/node-subspace --chain specs/local.json
 ```
 
 This will start a Subspace node with a clean state. The node's state will be
