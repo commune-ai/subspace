@@ -263,7 +263,7 @@ impl testthing::OffworkerExtension for Decrypter {
                         None
                     }
                 }
-                Err(err_) => None,
+                Err(_) => None,
             })
             .collect::<Option<Vec<Vec<u8>>>>()
         else {

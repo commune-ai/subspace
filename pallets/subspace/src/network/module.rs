@@ -1,4 +1,4 @@
-use super::*;
+use crate::*;
 
 use frame_support::pallet_prelude::DispatchResult;
 use sp_arithmetic::per_things::Percent;
