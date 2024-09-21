@@ -1,0 +1,170 @@
+use frame_support::pallet_macros::pallet_section;
+
+#[pallet_section]
+pub mod dispatches {
+    #[pallet::call]
+    impl<T: Config> Pallet<T> {
+        #[pallet::call_index(1)]
+        #[pallet::weight((T::WeightInfo::add_stake(), DispatchClass::Normal, Pays::No))]
+        pub fn add_stake(
+            origin: OriginFor<T>,
+            module_key: T::AccountId,
+            amount: u64,
+        ) -> DispatchResult {
+            Self::do_add_stake(origin, module_key, amount)
+        }
+
+        #[pallet::call_index(2)]
+        #[pallet::weight((T::WeightInfo::remove_stake(), DispatchClass::Normal, Pays::No))]
+        pub fn remove_stake(
+            origin: OriginFor<T>,
+            module_key: T::AccountId,
+            amount: u64,
+        ) -> DispatchResult {
+            Self::do_remove_stake(origin, module_key, amount)
+        }
+
+        #[pallet::call_index(3)]
+        #[pallet::weight((T::WeightInfo::add_stake_multiple(), DispatchClass::Normal, Pays::No))]
+        pub fn add_stake_multiple(
+            origin: OriginFor<T>,
+            module_keys: Vec<T::AccountId>,
+            amounts: Vec<u64>,
+        ) -> DispatchResult {
+            Self::do_add_stake_multiple(origin, module_keys, amounts)
+        }
+
+        #[pallet::call_index(4)]
+        #[pallet::weight((T::WeightInfo::remove_stake_multiple(), DispatchClass::Normal, Pays::No))]
+        pub fn remove_stake_multiple(
+            origin: OriginFor<T>,
+            module_keys: Vec<T::AccountId>,
+            amounts: Vec<u64>,
+        ) -> DispatchResult {
+            Self::do_remove_stake_multiple(origin, module_keys, amounts)
+        }
+
+        #[pallet::call_index(5)]
+        #[pallet::weight((T::WeightInfo::transfer_stake(), DispatchClass::Normal, Pays::No))]
+        pub fn transfer_stake(
+            origin: OriginFor<T>,
+            module_key: T::AccountId,
+            new_module_key: T::AccountId,
+            amount: u64,
+        ) -> DispatchResult {
+            Self::do_transfer_stake(origin, module_key, new_module_key, amount)
+        }
+
+        #[pallet::call_index(6)]
+        #[pallet::weight((T::WeightInfo::transfer_multiple(), DispatchClass::Normal, Pays::No))]
+        pub fn transfer_multiple(
+            origin: OriginFor<T>,
+            destinations: Vec<T::AccountId>,
+            amounts: Vec<u64>,
+        ) -> DispatchResult {
+            Self::do_transfer_multiple(origin, destinations, amounts)
+        }
+
+        #[pallet::call_index(7)]
+        #[pallet::weight((T::WeightInfo::register(), DispatchClass::Normal, Pays::No))]
+        pub fn register(
+            origin: OriginFor<T>,
+            network_name: Vec<u8>,
+            name: Vec<u8>,
+            address: Vec<u8>,
+            module_key: T::AccountId,
+            metadata: Option<Vec<u8>>,
+        ) -> DispatchResult {
+            Self::do_register(origin, network_name, name, address, module_key, metadata)
+        }
+
+        #[pallet::call_index(8)]
+        #[pallet::weight((T::WeightInfo::deregister(), DispatchClass::Normal, Pays::No))]
+        pub fn deregister(origin: OriginFor<T>, netuid: u16) -> DispatchResult {
+            Self::do_deregister(origin, netuid)
+        }
+
+        #[pallet::call_index(9)]
+        #[pallet::weight((T::WeightInfo::deregister(), DispatchClass::Normal, Pays::No))]
+        pub fn update_module(
+            origin: OriginFor<T>,
+            netuid: u16,
+            name: Vec<u8>,
+            address: Vec<u8>,
+            delegation_fee: Option<Percent>,
+            metadata: Option<Vec<u8>>,
+        ) -> DispatchResult {
+            let key = ensure_signed(origin.clone())?;
+            ensure!(
+                Self::is_registered(Some(netuid), &key),
+                Error::<T>::ModuleDoesNotExist
+            );
+
+            let params = Self::module_params(netuid, &key);
+
+            let changeset =
+                ModuleChangeset::update(&params, name, address, delegation_fee, metadata);
+            Self::do_update_module(origin, netuid, changeset)
+        }
+
+        #[pallet::call_index(10)]
+        #[pallet::weight((T::WeightInfo::update_subnet(), DispatchClass::Normal, Pays::No))]
+        pub fn update_subnet(
+            origin: OriginFor<T>,
+            netuid: u16,
+            founder: T::AccountId,
+            founder_share: u16,
+            name: BoundedVec<u8, ConstU32<256>>,
+            metadata: Option<BoundedVec<u8, ConstU32<120>>>,
+            immunity_period: u16,
+            incentive_ratio: u16,
+            max_allowed_uids: u16,
+            max_allowed_weights: u16,
+            min_allowed_weights: u16,
+            max_weight_age: u64,
+            tempo: u16,
+            maximum_set_weight_calls_per_epoch: u16,
+            vote_mode: VoteMode,
+            bonds_ma: u64,
+            module_burn_config: GeneralBurnConfiguration<T>,
+            min_validator_stake: u64,
+            max_allowed_validators: Option<u16>,
+        ) -> DispatchResult {
+            let params = SubnetParams {
+                founder,
+                founder_share,
+                immunity_period,
+                incentive_ratio,
+                max_allowed_uids,
+                max_allowed_weights,
+                min_allowed_weights,
+                max_weight_age,
+                name,
+                tempo,
+                maximum_set_weight_calls_per_epoch,
+                bonds_ma,
+                module_burn_config,
+                min_validator_stake,
+                max_allowed_validators,
+                governance_config: GovernanceConfiguration {
+                    vote_mode,
+                    ..T::get_subnet_governance_configuration(netuid)
+                },
+                metadata,
+            };
+
+            let changeset = SubnetChangeset::update(netuid, params)?;
+            Self::do_update_subnet(origin, netuid, changeset)
+        }
+
+        #[pallet::call_index(12)]
+        #[pallet::weight((T::WeightInfo::register(), DispatchClass::Normal, Pays::No))]
+        pub fn register_subnet(
+            origin: OriginFor<T>,
+            name: Vec<u8>,
+            metadata: Option<Vec<u8>>,
+        ) -> DispatchResult {
+            Self::do_register_subnet(origin, name, metadata)
+        }
+    }
+}

@@ -1,11 +1,10 @@
-use super::*;
+use crate::*;
 
 use frame_support::{
     pallet_prelude::DispatchResult, storage::IterableStorageMap, IterableStorageDoubleMap,
 };
 use pallet_subnet_emission_api::SubnetConsensus;
 
-use global::{BurnType, GeneralBurnConfiguration};
 use sp_runtime::{BoundedVec, DispatchError};
 use sp_std::vec::Vec;
 use substrate_fixed::types::I64F64;

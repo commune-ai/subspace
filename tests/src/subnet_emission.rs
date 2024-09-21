@@ -1,18 +1,18 @@
+use crate::mock::*;
+use pallet_subnet_emission::subnet_consensus::util::{
+    consensus::EmissionMap,
+    params::{AccountKey, ModuleKey},
+};
 use std::collections::BTreeMap;
 
-use crate::mock::*;
-
-use frame_support::{assert_ok, pallet_prelude::Weight, traits::Currency};
+use frame_support::{assert_ok, traits::Currency};
 use log::info;
 use pallet_governance::DaoTreasuryAddress;
 use pallet_subnet_emission::{
-    subnet_consensus::yuma::{
-        params::{AccountKey, ConsensusParams, ModuleKey},
-        EmissionMap, YumaEpoch,
-    },
-    EmissionLoweringBlock, OriginalUnitEmission, PendingEmission, SubnetConsensusType,
-    SubnetEmission, UnitEmission,
+    subnet_consensus::{util::params::ConsensusParams, yuma::YumaEpoch},
+    PendingEmission, SubnetConsensusType, SubnetEmission, UnitEmission,
 };
+
 use pallet_subnet_emission_api::SubnetConsensus;
 use pallet_subspace::*;
 
@@ -1253,7 +1253,9 @@ fn yuma_change_permits() {
 
         set_weights(netuid, 2, vec![first_uid, second_uid], vec![50, 60]);
 
-        assert_ok!(YumaEpoch::<Test>::new(netuid, ONE).run());
+        let yuma_params = ConsensusParams::<Test>::new(netuid, ONE).unwrap();
+
+        assert_ok!(YumaEpoch::<Test>::new(netuid, yuma_params.clone()).run());
 
         assert_eq!(
             ValidatorPermits::<Test>::get(netuid)[first_uid as usize],
@@ -1272,7 +1274,7 @@ fn yuma_change_permits() {
         set_weights(netuid, 1, vec![third_uid, fourth_uid], vec![50, 60]);
         set_weights(netuid, 3, vec![first_uid, second_uid], vec![50, 60]);
 
-        assert_ok!(YumaEpoch::<Test>::new(netuid, ONE).run());
+        assert_ok!(YumaEpoch::<Test>::new(netuid, yuma_params).run());
 
         assert_eq!(
             ValidatorPermits::<Test>::get(netuid)[first_uid as usize],

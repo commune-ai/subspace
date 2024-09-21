@@ -21,6 +21,10 @@ use sp_std::vec::Vec;
 
 pub use pallet::*;
 pub use pallet_governance_api::*;
+use pallet_subspace::{
+    self, network::subnet::SubnetChangeset, params::global::GeneralBurnConfiguration, DefaultKey,
+};
+
 pub use proposal::{Proposal, ProposalData, ProposalId, ProposalStatus, UnrewardedProposal};
 
 type SubnetId = u16;
@@ -37,7 +41,6 @@ pub mod pallet {
         PalletId,
     };
     use frame_system::pallet_prelude::{ensure_signed, BlockNumberFor};
-    use pallet_subspace::{global::GeneralBurnConfiguration, DefaultKey};
     use sp_runtime::traits::AccountIdConversion;
 
     const STORAGE_VERSION: StorageVersion = StorageVersion::new(2);

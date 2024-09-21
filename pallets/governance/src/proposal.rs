@@ -9,8 +9,7 @@ use frame_support::{
 };
 use frame_system::ensure_signed;
 use pallet_subspace::{
-    subnet::SubnetChangeset, Event as SubspaceEvent, GlobalParams, Pallet as PalletSubspace,
-    SubnetParams, TotalStake,
+    Event as SubspaceEvent, GlobalParams, Pallet as PalletSubspace, SubnetParams, TotalStake,
 };
 use parity_scale_codec::{Decode, Encode, MaxEncodedLen};
 use scale_info::TypeInfo;

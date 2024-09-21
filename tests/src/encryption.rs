@@ -1,5 +1,5 @@
 use crate::mock::*;
-use rand::{rngs::OsRng, thread_rng, Rng, RngCore};
+use rand::{rngs::OsRng, thread_rng, Rng};
 use rsa::{BigUint, Pkcs1v15Encrypt};
 
 fn encrypt(key: (Vec<u8>, Vec<u8>), data: (Vec<u16>, Vec<u16>)) -> Vec<u8> {
