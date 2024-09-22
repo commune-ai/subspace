@@ -1,6 +1,6 @@
 use core::fmt::Debug;
 
-use crate::{Config, Weights};
+use crate::{Config, EncryptedWeightHashes, EncryptedWeights, Weights};
 use frame_support::DebugNoBound;
 use pallet_subspace::{
     math::*, AlphaValues, BalanceOf, Bonds, BondsMovingAverage, Founder, Kappa, Keys, LastUpdate,
@@ -49,7 +49,6 @@ pub struct ModuleParams {
     pub bonds: Vec<(u16, u16)>,
     pub weight_unencrypted_hash: Vec<u8>,
     pub weight_encrypted: Vec<u8>,
-    pub weights_unencrypted: Vec<(u16, u16)>,
 }
 
 #[derive(DebugNoBound)]
@@ -95,13 +94,6 @@ impl<AccountId: Debug> From<BTreeMap<ModuleKey<AccountId>, ModuleParams>>
                 .push(module.bonds.into_iter().map(|(k, m)| (k, I32F32::from_num(m))).collect());
             modules.weight_unencrypted_hash.push(module.weight_unencrypted_hash);
             modules.weight_encrypted.push(module.weight_encrypted);
-            modules.weights_unencrypted.push(
-                module
-                    .weights_unencrypted
-                    .into_iter()
-                    .map(|(k, m)| (k, I32F32::from_num(m)))
-                    .collect(),
-            );
         }
 
         modules
@@ -156,12 +148,12 @@ impl<T: Config> ConsensusParams<T> {
                         stake_normalized,
                         stake_original,
                         bonds,
-                        // TODO: implement weights
-                        weight_unencrypted_hash: Default::default(),
-                        // TODO: implement weights
-                        weight_encrypted: Default::default(),
-                        // TODO: remove once we encrypt weights
-                        weights_unencrypted: weights,
+                        weight_unencrypted_hash: EncryptedWeightHashes::<T>::get(
+                            subnet_id, uid as u16,
+                        )
+                        .unwrap_or_default(), // TODO CHECK THIS
+                        weight_encrypted: EncryptedWeights::<T>::get(subnet_id, uid as u16)
+                            .unwrap_or_default(), // TODO CHECK THIS
                     };
 
                     Result::<_, &'static str>::Ok((ModuleKey(key), module))

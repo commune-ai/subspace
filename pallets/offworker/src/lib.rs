@@ -2,21 +2,26 @@
 
 extern crate alloc;
 
-use std::collections::BTreeMap;
-
 use alloc::vec::Vec;
 use frame_support::traits::Get;
 use frame_system::{
-    offchain::{AppCrypto, CreateSignedTransaction, SignedPayload, Signer, SigningTypes},
+    offchain::{
+        AppCrypto, CreateSignedTransaction, SendSignedTransaction, SendUnsignedTransaction,
+        SignedPayload, Signer, SigningTypes,
+    },
     pallet_prelude::BlockNumberFor,
 };
-use pallet_subnet_emission::subnet_consensus::{
-    util::{
-        consensus::ConsensusOutput,
-        params::{ConsensusParams, ModuleKey, ModuleParams},
+use pallet_subnet_emission::{
+    subnet_consensus::{
+        util::{
+            consensus::ConsensusOutput,
+            params::{ConsensusParams, ModuleKey, ModuleParams},
+        },
+        yuma::YumaEpoch,
     },
-    yuma::YumaEpoch,
+    EncryptedWeights,
 };
+use std::collections::BTreeMap;
 
 use pallet_subnet_emission::Weights;
 use pallet_subspace::{
@@ -154,9 +159,28 @@ pub mod pallet {
         // ! This function is not actually guaranteed to run on every block
         fn offchain_worker(block_number: BlockNumberFor<T>) {
             log::info!("Offchain worker is running");
-            let decryption_keys = vec![0u16; 0]; // TODO
 
-            for subnet_id in [0u16; 0] {
+            if !ow_extensions::offworker::is_decryption_node() {
+                return;
+            }
+
+            let public_key: (Vec<u8>, Vec<u8>) = (vec![], vec![]);
+
+            let subnets = pallet_subnet_emission::SubnetDecryptionData::<T>::iter()
+                .filter_map(|(netuid, data)| {
+                    if !pallet_subspace::UseWeightsEncrytyption::<T>::get(netuid) {
+                        return None;
+                    }
+
+                    if data.node_public_key != public_key {
+                        return None;
+                    }
+
+                    Some(netuid)
+                })
+                .collect::<Vec<_>>();
+
+            for subnet_id in subnets {
                 let current_block: u64 =
                     block_number.try_into().ok().expect("blockchain won't pass 2^64 blocks");
 
@@ -176,24 +200,41 @@ pub mod pallet {
                         })
                         .collect();
 
+                let mut epochs = Vec::new();
                 for (param_block, params) in new_params {
-                    // Try to decrypt the weight here
-                    // TODO: Decrypt Encrypted Weight
-                    let decrypted_weights: Option<Vec<(u16, Vec<(u16, u16)>)>> = Some(Vec::new());
+                    let decrypted_weights = params
+                        .modules
+                        .iter()
+                        .filter_map(
+                            |(key, params)| match ow_extensions::offworker::decrypt_weight(
+                                params.weight_encrypted.clone(),
+                            ) {
+                                Some(decrypted) => {
+                                    match pallet_subspace::Pallet::<T>::get_uid_for_key(
+                                        subnet_id, &key.0,
+                                    ) {
+                                        Some(uid) => Some((uid, decrypted)),
+                                        None => None,
+                                    }
+                                }
+                                None => None,
+                            },
+                        )
+                        .collect::<Vec<_>>();
 
-                    if let Some(decrypted_weights) = decrypted_weights {
-                        let should_decrypt: bool =
-                            Self::should_decrpyt(decrypted_weights, params, subnet_id);
+                    let should_decrypt: bool =
+                        Self::should_decrpyt(&decrypted_weights, params, subnet_id);
 
-                        if should_decrypt {
-                            // TODO: Send decrypted weights to the runtime
-                            // Also set the simulation struct to default, and set the offchain
-                            // worker simulation storage to default
-                        }
+                    if should_decrypt {
+                        epochs.push((param_block, decrypted_weights));
                     }
 
                     // Update the last processed block in local storage
                     storage.set(&param_block);
+                }
+
+                if let Err(err) = Self::send_weights(subnet_id, epochs) {
+                    log::error!("couldn't send weights to runtime: {err}");
                 }
             }
         }
@@ -204,24 +245,38 @@ pub mod pallet {
     impl<T: Config> Pallet<T> {
         #[pallet::call_index(2)]
         #[pallet::weight({0})]
-        pub fn submit_price_unsigned_with_signed_payload(
+        pub fn send_decrypted_weights(
             origin: OriginFor<T>,
-            _price_payload: WeightsPayload<T::Public, T::AccountId, BlockNumberFor<T>>,
-            _signature: T::Signature,
+            subnet_id: u16,
+            decrypted_weights: Vec<(u64, Vec<(u16, Vec<(u16, u16)>)>)>,
         ) -> DispatchResultWithPostInfo {
-            // This ensures that the function can only be called via unsigned transaction.
             ensure_none(origin)?;
 
-            // now increment the block number at which we expect next unsigned transaction.
-            // let current_block = <system::Pallet<T>>::block_number();
-            // <NextUnsignedAt<T>>::put(current_block + T::UnsignedInterval::get());
+            pallet_subnet_emission::Pallet::<T>::handle_decrypted_weights(
+                subnet_id,
+                decrypted_weights,
+            );
+
+            Ok(().into())
+        }
+
+        #[pallet::call_index(3)]
+        #[pallet::weight({0})]
+        pub fn send_keep_alive(
+            origin: OriginFor<T>,
+            public_key: (Vec<u8>, Vec<u8>),
+        ) -> DispatchResultWithPostInfo {
+            ensure_none(origin)?;
+
+            pallet_subnet_emission::Pallet::<T>::handle_authority_node_keep_alive(public_key);
+
             Ok(().into())
         }
     }
 
     /// Events for the pallet.
     #[pallet::event]
-    #[pallet::generate_deposit(pub(super) fn deposit_event)]
+    // #[pallet::generate_deposit(pub(super) fn deposit_event)]
     pub enum Event<T: Config> {
         /// Event generated when new price is accepted to contribute to the average.
         NewPrice {
@@ -256,29 +311,10 @@ pub mod pallet {
         StorageValue<_, Percent, ValueQuery, DefaultMeasuredStakeAmount<T>>;
 }
 
-/// Payload used by this example crate to hold price
-/// data required to submit a transaction.
-#[derive(Encode, Decode, Clone, PartialEq, Eq, RuntimeDebug, scale_info::TypeInfo)]
-pub struct WeightsPayload<Public, AccountId, BlockNumber> {
-    subnet_id: u16,
-    epoch: BlockNumber,
-    module_key: AccountId,
-    decrypted_weights: Vec<u8>,
-    public: Public,
-}
-
-impl<T: SigningTypes> SignedPayload<T>
-    for WeightsPayload<T::Public, T::AccountId, BlockNumberFor<T>>
-{
-    fn public(&self) -> T::Public {
-        self.public.clone()
-    }
-}
-
 impl<T: Config> Pallet<T> {
     #[must_use]
     pub fn should_decrpyt(
-        decrypted_weights: Vec<(u16, Vec<(u16, u16)>)>,
+        decrypted_weights: &Vec<(u16, Vec<(u16, u16)>)>,
         latest_rumtime_yuma_params: ConsensusParams<T>,
         subnet_id: u16,
     ) -> bool {
@@ -328,7 +364,7 @@ impl<T: Config> Pallet<T> {
     /// Appends copier information to simulated consensus ConsensusParams
     /// Overwrites onchain decrypted weights with the offchain workers' decrypted weights
     pub fn compute_simulation_yuma_params(
-        decrypted_weights: Vec<(u16, Vec<(u16, u16)>)>,
+        decrypted_weights: &Vec<(u16, Vec<(u16, u16)>)>,
         mut runtime_yuma_params: ConsensusParams<T>,
         subnet_id: u16,
         // Return copier uid and ConsensusParams
@@ -356,7 +392,7 @@ impl<T: Config> Pallet<T> {
 
         // Create a map of uid to decrypted weights for easier lookup
         let decrypted_weights_map: BTreeMap<u16, Vec<(u16, u16)>> =
-            decrypted_weights.into_iter().collect();
+            decrypted_weights.iter().cloned().collect();
 
         // Update the modules in runtime_yuma_params
         for (_, module) in runtime_yuma_params.modules.iter_mut() {
@@ -370,13 +406,6 @@ impl<T: Config> Pallet<T> {
                     onchain_weights.iter().find(|(w_uid, _)| *w_uid == uid).map(|(_, w)| w.clone())
                 })
                 .unwrap_or_default();
-
-            // TODO:
-            // eventually we will move the decrypted weights out of `ConsensusParams`,
-            // so this is a temporary solution
-
-            // Update the weights_unencrypted field
-            module.weights_unencrypted = weights;
         }
 
         (copier_uid, runtime_yuma_params)
@@ -415,7 +444,6 @@ impl<T: Config> Pallet<T> {
             bonds: Vec::new(),
             weight_unencrypted_hash: Vec::new(),
             weight_encrypted: Vec::new(),
-            weights_unencrypted: weights,
         };
 
         let seed = (b"copier", subnet_id, copier_uid).using_encoded(BlakeTwo256::hash);
@@ -437,6 +465,25 @@ impl<T: Config> Pallet<T> {
         }
 
         runtime_yuma_params
+    }
+
+    fn send_weights(
+        netuid: u16,
+        decrypted_weights: Vec<(u64, Vec<(u16, Vec<(u16, u16)>)>)>,
+    ) -> Result<(), &'static str> {
+        let signer = Signer::<T, T::AuthorityId>::all_accounts();
+        if !signer.can_sign() {
+            return Err(
+                "No local accounts available. Consider adding one via `author_insertKey` RPC.",
+            );
+        }
+
+        signer.send_signed_transaction(|_| Call::send_decrypted_weights {
+            decrypted_weights: decrypted_weights.clone(),
+            subnet_id: netuid,
+        });
+
+        Ok(())
     }
 }
 

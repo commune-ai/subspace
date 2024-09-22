@@ -12,6 +12,7 @@ use sp_std::{collections::btree_map::BTreeMap, vec::Vec};
 // Pallet Imports
 // ==============
 
+pub mod decryption;
 pub mod distribute_emission;
 pub mod migrations;
 pub mod subnet_pricing {
@@ -22,13 +23,19 @@ pub mod subnet_pricing {
 pub mod set_weights;
 pub mod subnet_consensus;
 
+pub type PublicKey = (Vec<u8>, Vec<u8>);
+
 // TODO:
 // move some import outside of the macro
 #[frame_support::pallet]
 pub mod pallet {
-    use crate::{subnet_consensus::util::params::ConsensusParams, *};
+    use crate::{
+        decryption::{DecryptionNodeInfo, SubnetDecryptionInfo},
+        subnet_consensus::util::params::ConsensusParams,
+        *,
+    };
     use frame_support::{
-        pallet_prelude::*,
+        pallet_prelude::{ValueQuery, *},
         sp_runtime::SaturatedConversion,
         storage::with_storage_layer,
         traits::{ConstU64, Currency},
@@ -94,6 +101,28 @@ pub mod pallet {
     #[pallet::storage]
     pub type Weights<T> = StorageDoubleMap<_, Identity, u16, Identity, u16, Vec<(u16, u16)>>;
 
+    #[pallet::storage]
+    pub type EncryptedWeights<T> = StorageDoubleMap<_, Identity, u16, Identity, u16, Vec<u8>>;
+
+    #[pallet::storage]
+    pub type EncryptedWeightHashes<T> = StorageDoubleMap<_, Identity, u16, Identity, u16, Vec<u8>>;
+
+    #[pallet::storage]
+    pub type AuthorizedPublicKeys<T> = StorageValue<_, Vec<PublicKey>, ValueQuery>;
+
+    #[pallet::storage]
+    pub type DecryptionNodes<T> = StorageValue<_, Vec<DecryptionNodeInfo>, ValueQuery>;
+
+    #[pallet::storage]
+    pub type SubnetDecryptionData<T> = StorageMap<_, Identity, u16, SubnetDecryptionInfo>;
+
+    #[pallet::storage]
+    pub type DecryptionNodeCursor<T> = StorageValue<_, u16, ValueQuery>;
+
+    #[pallet::storage]
+    pub type DecryptedWeights<T> =
+        StorageMap<_, Identity, u16, Vec<(u64, Vec<(u16, Vec<(u16, u16)>)>)>>;
+
     type BalanceOf<T> =
         <<T as Config>::Currency as Currency<<T as frame_system::Config>::AccountId>>::Balance;
 
@@ -108,6 +137,8 @@ pub mod pallet {
         fn on_initialize(block_number: BlockNumberFor<T>) -> Weight {
             let block_number: u64 =
                 block_number.try_into().ok().expect("blockchain won't pass 2 ^ 64 blocks");
+
+            Self::distribute_subnets_to_nodes(block_number);
 
             let emission_per_block = Self::get_total_emission_per_block();
             // Make sure to use storage layer,
@@ -165,11 +196,11 @@ pub mod pallet {
             <T as Config>::Currency::total_issuance().saturated_into()
         }
 
-    fn get_total_issuence_as_u64() -> u64
-    where
-        <<T as pallet::Config>::Currency as Currency<<T as frame_system::Config>::AccountId>>::Balance:
-            TryInto<u64>,
-    {
+        fn get_total_issuence_as_u64() -> u64
+        where
+            <<T as pallet::Config>::Currency as Currency<<T as frame_system::Config>::AccountId>>::Balance:
+                TryInto<u64>,
+        {
             let total_free_balance = Self::get_total_free_balance();
             let total_staked_balance = TotalStake::<T>::get();
             total_free_balance
@@ -251,9 +282,6 @@ pub mod pallet {
 
             priced_subnets
         }
-    }
-
-    impl<T: Config> Pallet<T> {
         // --- Returns the transaction priority for setting weights.
         pub fn get_priority_set_weights(key: &T::AccountId, netuid: u16) -> u64 {
             if let Some(uid) = pallet_subspace::Uids::<T>::get(netuid, key) {
@@ -270,6 +298,17 @@ pub mod pallet {
                 return pallet_subspace::Pallet::<T>::get_delegated_stake(key);
             }
             0
+        }
+
+        pub fn handle_decrypted_weights(
+            netuid: u16,
+            weights: Vec<(u64, Vec<(u16, Vec<(u16, u16)>)>)>,
+        ) {
+            Self::do_handle_decrypted_weights(netuid, weights);
+        }
+
+        pub fn handle_authority_node_keep_alive(public_key: (Vec<u8>, Vec<u8>)) {
+            Self::do_handle_authority_node_keep_alive(public_key);
         }
     }
 
@@ -291,9 +330,15 @@ pub mod pallet {
         pub fn set_weights_encrypted(
             origin: OriginFor<T>,
             netuid: u16,
-            encrypted_weights: Vec<u16>,
+            encrypted_weights: Vec<u8>,
+            encrypted_weights_hash: Vec<u8>,
         ) -> DispatchResult {
-            Self::do_set_weights_encrypted(origin, netuid, encrypted_weights)
+            Self::do_set_weights_encrypted(
+                origin,
+                netuid,
+                encrypted_weights,
+                encrypted_weights_hash,
+            )
         }
 
         #[pallet::call_index(2)]

@@ -174,5 +174,9 @@ pub mod errors {
         InvalidMinValidatorStake,
         /// The maximum allowed validators value is invalid, minimum is 10.
         InvalidMaxAllowedValidators,
+        /// Subnet is using encrypted weight calls
+        SubnetEncrypted,
+        /// Subnet is not using encrypted weight calls
+        SubnetNotEncrypted,
     }
 }
