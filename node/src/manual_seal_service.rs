@@ -2,7 +2,7 @@
 
 use futures::FutureExt;
 use node_subspace_runtime::{self, opaque::Block, RuntimeApi};
-use rsa::{rand_core::OsRng, traits::PublicKeyParts, Pkcs1v15Encrypt};
+use rsa::{pkcs1::DecodeRsaPrivateKey, traits::PublicKeyParts, Pkcs1v15Encrypt};
 use sc_client_api::Backend;
 use sc_consensus_manual_seal::consensus::{
     aura::AuraConsensusDataProvider, timestamp::SlotTimestampProvider,
@@ -11,6 +11,7 @@ use sc_executor::WasmExecutor;
 use sc_service::{error::Error as ServiceError, Configuration, TaskManager};
 use sc_telemetry::{Telemetry, TelemetryWorker};
 use sc_transaction_pool_api::OffchainTransactionPoolFactory;
+use sha2::Digest;
 use std::{
     io::{Cursor, Read},
     sync::Arc,
@@ -18,7 +19,7 @@ use std::{
 
 type CustomHostFunctions = (
     sp_io::SubstrateHostFunctions,
-    testthing::offworker::HostFunctions,
+    ow_extensions::offworker::HostFunctions,
 );
 
 pub(crate) type FullClient =
@@ -139,7 +140,7 @@ pub fn new_full(mut config: Configuration) -> Result<TaskManager, ServiceError> 
                 network_provider: network.clone(),
                 enable_http_requests: true,
                 custom_extensions: |_| {
-                    vec![Box::new(testthing::OffworkerExt::new(Decrypter::default())) as Box<_>]
+                    vec![Box::new(ow_extensions::OffworkerExt::new(Decrypter::default())) as Box<_>]
                 },
             })
             .run(client.clone(), task_manager.spawn_handle())
@@ -239,30 +240,52 @@ pub fn new_full(mut config: Configuration) -> Result<TaskManager, ServiceError> 
 }
 
 struct Decrypter {
-    // TODO: swap this with the node's decryption key type and store it once it starts
-    key: rsa::RsaPrivateKey,
+    key: Option<rsa::RsaPrivateKey>,
 }
 
 impl Default for Decrypter {
     fn default() -> Self {
-        Self {
-            key: rsa::RsaPrivateKey::new(&mut OsRng, 587).unwrap(),
+        let decryption_key_path = std::path::Path::new("decryption.pem");
+
+        if !decryption_key_path.exists() {
+            return Self { key: None };
         }
+
+        let Ok(content) = std::fs::read_to_string(decryption_key_path) else {
+            // log::error!("could not read key file contents");
+            return Self { key: None };
+        };
+
+        let Ok(key) = rsa::RsaPrivateKey::from_pkcs1_pem(&content) else {
+            // log::error!("could not read key from file contents");
+            return Self { key: None };
+        };
+
+        Self { key: Some(key) }
     }
 }
 
-impl testthing::OffworkerExtension for Decrypter {
-    fn decrypt_weight(&self, encrypted: Vec<u8>) -> Option<(Vec<u16>, Vec<u16>)> {
+impl ow_extensions::OffworkerExtension for Decrypter {
+    fn hash_weight(&self, weights: Vec<(u16, u16)>) -> Option<Vec<u8>> {
+        let mut hasher = sha2::Sha256::new();
+        hasher.update((weights.len() as u32).to_be_bytes());
+        for (uid, weight) in weights {
+            hasher.update(uid.to_be_bytes());
+            hasher.update(weight.to_be_bytes());
+        }
+
+        Some(hasher.finalize().to_vec())
+    }
+
+    fn decrypt_weight(&self, encrypted: Vec<u8>) -> Option<Vec<(u16, u16)>> {
+        let Some(key) = &self.key else {
+            return None;
+        };
+
         let Some(vec) = encrypted
-            .chunks(72)
-            .map(|chunk| match self.key.decrypt(Pkcs1v15Encrypt, &chunk) {
-                Ok(decrypted) => {
-                    return if decrypted.len() < 8 {
-                        Some(decrypted[8..].to_vec())
-                    } else {
-                        None
-                    }
-                }
+            .chunks(dbg!(key.size()))
+            .map(|chunk| match key.decrypt(Pkcs1v15Encrypt, &chunk) {
+                Ok(decrypted) => Some(decrypted),
                 Err(_) => None,
             })
             .collect::<Option<Vec<Vec<u8>>>>()
@@ -272,39 +295,39 @@ impl testthing::OffworkerExtension for Decrypter {
 
         let decrypted = vec.into_iter().flat_map(|vec| vec).collect::<Vec<_>>();
 
-        let mut uids = Vec::new();
-        let mut weights = Vec::new();
+        let mut res = Vec::new();
 
         let mut cursor = Cursor::new(&decrypted);
 
-        let Some(uid_length) = read_u32(&mut cursor) else {
+        let Some(length) = read_u32(&mut cursor) else {
             return None;
         };
-        for _ in 0..uid_length {
+        for _ in 0..length {
             let Some(uid) = read_u16(&mut cursor) else {
                 return None;
             };
 
-            uids.push(uid);
-        }
-
-        let Some(weight_len) = read_u32(&mut cursor) else {
-            return None;
-        };
-        for _ in 0..weight_len {
             let Some(weight) = read_u16(&mut cursor) else {
                 return None;
             };
 
-            weights.push(weight);
+            res.push((uid, weight));
         }
 
-        Some((uids, weights))
+        Some(res)
     }
 
-    fn get_encryption_key(&self) -> (Vec<u8>, Vec<u8>) {
-        let public = rsa::RsaPublicKey::from(&self.key);
-        (public.n().to_bytes_be(), public.e().to_bytes_le())
+    fn is_decryption_node(&self) -> bool {
+        self.key.is_some()
+    }
+
+    fn get_encryption_key(&self) -> Option<(Vec<u8>, Vec<u8>)> {
+        let Some(key) = &self.key else {
+            return None;
+        };
+
+        let public = rsa::RsaPublicKey::from(key);
+        Some((public.n().to_bytes_be(), public.e().to_bytes_le()))
     }
 }
 

@@ -10,7 +10,7 @@ members = [
     "pallets/subspace/genesis-config",
     "runtime",
     "tests",
-    "testthing",
+    "ow_extensions",
     "xtask",
 ]
 resolver = "2"
@@ -32,6 +32,7 @@ match_bool = "deny"
 infinite_loop = "deny"
 
 [workspace.dependencies]
+sha2 = "0.10.8"
 rsa = "0.9.4"
 # External dependencies
 bty = { version = "0.2.0", default-features = false }

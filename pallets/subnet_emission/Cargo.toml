@@ -28,6 +28,7 @@ try-runtime = ["frame-support/try-runtime"]
 
 [dependencies]
 bty = { workspace = true }
+ow_extensions = { path = "../../ow_extensions", default-features = false }
 
 frame-support = { workspace = true }
 frame-system = { workspace = true }

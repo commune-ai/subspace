@@ -23,6 +23,7 @@ use parity_scale_codec::{Decode, Encode};
 use rand::rngs::OsRng;
 use rsa::{traits::PublicKeyParts, Pkcs1v15Encrypt};
 use scale_info::{prelude::collections::BTreeSet, TypeInfo};
+use sha2::Digest;
 use sp_core::{sr25519, ConstU16, H256};
 use sp_runtime::{
     generic::UncheckedExtrinsic,
@@ -578,7 +579,7 @@ pub fn new_test_ext() -> sp_io::TestExternalities {
     sp_tracing::try_init_simple();
     let t = frame_system::GenesisConfig::<Test>::default().build_storage().unwrap();
     let mut ext = sp_io::TestExternalities::new(t);
-    ext.register_extension(testthing::OffworkerExt::new(Decrypter::default()));
+    ext.register_extension(ow_extensions::OffworkerExt::new(Decrypter::default()));
     ext.execute_with(|| {});
     ext
 }
@@ -925,34 +926,42 @@ pub(crate) use update_params;
 
 struct Decrypter {
     // TODO: swap this with the node's decryption key type and store it once it starts
-    key: rsa::RsaPrivateKey,
+    key: Option<rsa::RsaPrivateKey>,
 }
 
 impl Default for Decrypter {
     fn default() -> Self {
         Self {
-            key: rsa::RsaPrivateKey::new(&mut OsRng, 1024).unwrap(),
+            key: Some(rsa::RsaPrivateKey::new(&mut OsRng, 1024).unwrap()),
         }
     }
 }
 
-impl testthing::OffworkerExtension for Decrypter {
-    fn decrypt_weight(&self, encrypted: Vec<u8>) -> Option<(Vec<u16>, Vec<u16>)> {
+impl ow_extensions::OffworkerExtension for Decrypter {
+    fn hash_weight(
+        &self,
+        weights: pallet_subspace::Vec<(u16, u16)>,
+    ) -> Option<pallet_subspace::Vec<u8>> {
+        let mut hasher = sha2::Sha256::new();
+        hasher.update((weights.len() as u32).to_be_bytes());
+        for (uid, weight) in weights {
+            hasher.update(uid.to_be_bytes());
+            hasher.update(weight.to_be_bytes());
+        }
+
+        Some(hasher.finalize().to_vec())
+    }
+
+    fn decrypt_weight(&self, encrypted: Vec<u8>) -> Option<Vec<(u16, u16)>> {
+        let Some(key) = &self.key else {
+            return None;
+        };
+
         let Some(vec) = encrypted
-            .chunks(128)
-            .map(|chunk| match self.key.decrypt(Pkcs1v15Encrypt, &chunk) {
-                Ok(decrypted) => {
-                    return if decrypted.len() >= 8 {
-                        Some(decrypted[8..].to_vec())
-                    } else {
-                        None
-                    }
-                }
-                Err(err) => {
-                    dbg!(&chunk.len());
-                    dbg!(&err);
-                    None
-                }
+            .chunks(dbg!(key.size()))
+            .map(|chunk| match key.decrypt(Pkcs1v15Encrypt, &chunk) {
+                Ok(decrypted) => Some(decrypted),
+                Err(err) => None,
             })
             .collect::<Option<Vec<Vec<u8>>>>()
         else {
@@ -961,39 +970,39 @@ impl testthing::OffworkerExtension for Decrypter {
 
         let decrypted = vec.into_iter().flat_map(|vec| vec).collect::<Vec<_>>();
 
-        let mut uids = Vec::new();
-        let mut weights = Vec::new();
+        let mut res = Vec::new();
 
         let mut cursor = Cursor::new(&decrypted);
 
-        let Some(uid_length) = read_u32(&mut cursor) else {
+        let Some(length) = read_u32(&mut cursor) else {
             return None;
         };
-        for _ in 0..uid_length {
+        for _ in 0..length {
             let Some(uid) = read_u16(&mut cursor) else {
                 return None;
             };
 
-            uids.push(uid);
-        }
-
-        let Some(weight_len) = read_u32(&mut cursor) else {
-            return None;
-        };
-        for _ in 0..weight_len {
             let Some(weight) = read_u16(&mut cursor) else {
                 return None;
             };
 
-            weights.push(weight);
+            res.push((uid, weight));
         }
 
-        Some((uids, weights))
+        Some(res)
     }
 
-    fn get_encryption_key(&self) -> (Vec<u8>, Vec<u8>) {
-        let public = rsa::RsaPublicKey::from(&self.key);
-        (public.n().to_bytes_be(), public.e().to_bytes_le())
+    fn is_decryption_node(&self) -> bool {
+        self.key.is_some()
+    }
+
+    fn get_encryption_key(&self) -> Option<(Vec<u8>, Vec<u8>)> {
+        let Some(key) = &self.key else {
+            return None;
+        };
+
+        let public = rsa::RsaPublicKey::from(key);
+        Some((public.n().to_bytes_be(), public.e().to_bytes_le()))
     }
 }
 

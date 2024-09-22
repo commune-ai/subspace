@@ -13,7 +13,7 @@ use sp_std::{vec, vec::Vec};
 pub struct YumaEpoch<T: Config> {
     subnet_id: u16,
 
-    params: params::ConsensusParams<T>,
+    pub(crate) params: params::ConsensusParams<T>,
     modules: params::FlattenedModules<T::AccountId>,
 
     _pd: PhantomData<T>,

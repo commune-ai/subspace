@@ -52,6 +52,11 @@ impl<T: Config> Pallet<T> {
         values: Vec<u16>,
     ) -> dispatch::DispatchResult {
         let key = ensure_signed(origin)?;
+
+        if !pallet_subspace::UseWeightsEncrytyption::<T>::get(netuid) {
+            return Err(pallet_subspace::Error::<T>::SubnetEncrypted.into());
+        }
+
         let Some(uid) = pallet_subspace::Pallet::<T>::get_uid_for_key(netuid, &key) else {
             return Err(pallet_subspace::Error::<T>::ModuleDoesNotExist.into());
         };
@@ -286,12 +291,26 @@ impl<T: Config> Pallet<T> {
     }
 
     pub fn do_set_weights_encrypted(
-        _origin: T::RuntimeOrigin,
-        _netuid: u16,
-        _encrypted_weights: Vec<u16>,
+        origin: T::RuntimeOrigin,
+        netuid: u16,
+        encrypted_weights: Vec<u8>,
+        encrypted_weights_hash: Vec<u8>,
     ) -> DispatchResult {
-        // TODO
-        // impelment this function
+        let key = ensure_signed(origin)?;
+
+        if !pallet_subspace::UseWeightsEncrytyption::<T>::get(netuid) {
+            return Err(pallet_subspace::Error::<T>::SubnetNotEncrypted.into());
+        }
+
+        let Some(uid) = pallet_subspace::Pallet::<T>::get_uid_for_key(netuid, &key) else {
+            return Err(pallet_subspace::Error::<T>::ModuleDoesNotExist.into());
+        };
+
+        // TODO check rate limit etc...
+
+        EncryptedWeights::<T>::set(netuid, uid, Some(encrypted_weights));
+        EncryptedWeightHashes::<T>::set(netuid, uid, Some(encrypted_weights_hash));
+
         Ok(())
     }
 }
