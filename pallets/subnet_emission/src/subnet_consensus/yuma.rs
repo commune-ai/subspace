@@ -33,7 +33,10 @@ impl<T: Config> YumaEpoch<T> {
         }
     }
 
-    pub fn run(self) -> Result<ConsensusOutput<T>, EmissionError> {
+    pub fn run(
+        self,
+        weights: Vec<(u16, Vec<(u16, u16)>)>,
+    ) -> Result<ConsensusOutput<T>, EmissionError> {
         log::debug!(
             "running yuma for subnet_id {}, will emit {:?} modules and {:?} to founder",
             self.subnet_id,
@@ -49,7 +52,7 @@ impl<T: Config> YumaEpoch<T> {
             self.params.current_block,
         );
 
-        let mut weights = compute_weights(&self.modules, &self.params)
+        let mut weights = compute_weights(&self.modules, &self.params, weights)
             .ok_or(EmissionError::Other("weights are broken"))?;
 
         let stake = StakeVal::unchecked_from_inner(self.modules.stake_normalized.clone());

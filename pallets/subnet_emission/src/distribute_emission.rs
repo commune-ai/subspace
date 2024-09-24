@@ -5,6 +5,7 @@ use crate::subnet_consensus::util::params::ConsensusParams;
 use frame_support::storage::with_storage_layer;
 use pallet_subnet_emission_api::SubnetConsensus;
 use pallet_subspace::{Pallet as PalletSubspace, N};
+use subnet_consensus::yuma::YumaEpoch;
 
 /// Processes subnets by updating pending emissions and running epochs when due.
 ///
@@ -127,7 +128,12 @@ pub fn run_linear_consensus<T: Config>(
         .map_err(|_| "Failed to create ConsensusParams")?;
 
     let run = LinearEpoch::<T>::new(netuid, params);
-    let consensus_output = run.run().map_err(|_| "Failed to run consensus")?;
+
+    let uids = pallet_subspace::Keys::<T>::iter_prefix(netuid).collect::<BTreeMap<_, _>>();
+    let mut weights: BTreeMap<_, _> = Weights::<T>::iter_prefix(netuid).collect();
+    let weights = uids.keys().map(|uid| (*uid, weights.remove(uid).unwrap_or_default())).collect();
+
+    let consensus_output = run.run(weights).map_err(|_| "Failed to run consensus")?;
     consensus_output.apply();
     Ok(())
 }
@@ -146,23 +152,59 @@ pub fn run_linear_consensus<T: Config>(
 fn run_yuma_consensus<T: Config>(netuid: u16, emission_to_drain: u64) -> Result<(), &'static str> {
     let params = ConsensusParams::<T>::new(netuid, emission_to_drain)?;
 
+    if !pallet_subspace::UseWeightsEncrytyption::<T>::get(netuid) {
+        return Ok(());
+    }
+
+    let mut accumulated_emission: u64 = 0;
+    if let Some(mut weights) = DecryptedWeights::<T>::get(netuid) {
+        weights.sort_by_key(|(block, _)| *block);
+
+        let last = weights.last().cloned();
+
+        for (block, weights) in weights {
+            let consensus_type =
+                SubnetConsensusType::<T>::get(netuid).ok_or("Invalid network ID")?;
+
+            if consensus_type != pallet_subnet_emission_api::SubnetConsensus::Yuma {
+                return Err("Unsupported consensus type");
+            }
+
+            let Some(mut params) = ConsensusParameters::<T>::get(netuid, block) else {
+                log::error!("no params found for netuid {netuid} block {block}");
+                continue;
+            };
+
+            ConsensusParameters::<T>::remove(netuid, block);
+
+            params.token_emission = params.token_emission.saturating_add(accumulated_emission);
+            let new_emission = params.token_emission;
+            accumulated_emission = 0;
+
+            let output = match YumaEpoch::new(netuid, params).run(weights) {
+                Ok(output) => output,
+                Err(err) => {
+                    log::error!("could not run yuma consensus for {netuid} block {block}: {err:?}");
+                    accumulated_emission = new_emission;
+                    continue;
+                }
+            };
+
+            output.apply();
+        }
+
+        if let Some((_, last)) = last {
+            for (uid, weights) in last {
+                Weights::<T>::set(netuid, uid, Some(weights));
+            }
+        }
+
+        let _ = DecryptedWeights::<T>::remove(netuid);
+    };
+
     let block_number = PalletSubspace::<T>::get_current_block_number();
-    // Save the params
+
     ConsensusParameters::<T>::insert(netuid, block_number, params);
-    // Save the yuma params
-
-    // TODO:
-    // later when decrypted weights come
-    // let output = YumaEpoch::<T>::new(netuid, params).run().map_err(|err| {
-    //     log::error!(
-    //         "Failed to run yuma consensus algorithm: {err:?}, skipping this block. \
-    //         {emission_to_drain} tokens will be emitted on the next epoch."
-    //     );
-    //     "yuma failed"
-    // })?;
-
-    // output.apply();
-
     Ok(())
 }
 

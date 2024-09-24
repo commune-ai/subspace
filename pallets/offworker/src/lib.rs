@@ -164,6 +164,11 @@ pub mod pallet {
                 return;
             }
 
+            let block_number =
+                block_number.try_into().ok().expect("blockchain won't pass 2^64 blocks");
+
+            Self::do_send_keep_alive(block_number);
+
             let public_key: (Vec<u8>, Vec<u8>) = (vec![], vec![]);
 
             let subnets = pallet_subnet_emission::SubnetDecryptionData::<T>::iter()
@@ -181,9 +186,6 @@ pub mod pallet {
                 .collect::<Vec<_>>();
 
             for subnet_id in subnets {
-                let current_block: u64 =
-                    block_number.try_into().ok().expect("blockchain won't pass 2^64 blocks");
-
                 // Create a reference to Local Storage value for the last processed block
                 let storage_key = format!("last_processed_block:{}", subnet_id).into_bytes();
                 let storage = StorageValueRef::persistent(&storage_key);
@@ -196,7 +198,7 @@ pub mod pallet {
                 let new_params: Vec<(u64, ConsensusParams<T>)> =
                     ConsensusParameters::<T>::iter_prefix(subnet_id)
                         .filter(|(block, _)| {
-                            *block > last_processed_block && *block <= current_block
+                            *block > last_processed_block && *block <= block_number
                         })
                         .collect();
 
@@ -205,21 +207,25 @@ pub mod pallet {
                     let decrypted_weights = params
                         .modules
                         .iter()
-                        .filter_map(
-                            |(key, params)| match ow_extensions::offworker::decrypt_weight(
+                        .filter_map(|(key, params)| {
+                            // TODO check if were able to use this here
+                            let Some(uid) =
+                                pallet_subspace::Pallet::<T>::get_uid_for_key(subnet_id, &key.0)
+                            else {
+                                return None;
+                            };
+
+                            if params.weight_encrypted.is_empty() {
+                                return Some((uid, Vec::new()));
+                            }
+
+                            match ow_extensions::offworker::decrypt_weight(
                                 params.weight_encrypted.clone(),
                             ) {
-                                Some(decrypted) => {
-                                    match pallet_subspace::Pallet::<T>::get_uid_for_key(
-                                        subnet_id, &key.0,
-                                    ) {
-                                        Some(uid) => Some((uid, decrypted)),
-                                        None => None,
-                                    }
-                                }
+                                Some(decrypted) => Some((uid, decrypted)),
                                 None => None,
-                            },
-                        )
+                            }
+                        })
                         .collect::<Vec<_>>();
 
                     let should_decrypt: bool =
@@ -233,7 +239,7 @@ pub mod pallet {
                     storage.set(&param_block);
                 }
 
-                if let Err(err) = Self::send_weights(subnet_id, epochs) {
+                if let Err(err) = Self::do_send_weights(subnet_id, epochs) {
                     log::error!("couldn't send weights to runtime: {err}");
                 }
             }
@@ -325,8 +331,9 @@ impl<T: Config> Pallet<T> {
         );
 
         // Run simulation
-        let simulation_yuma_output =
-            YumaEpoch::<T>::new(subnet_id, simulation_yuma_params).run().unwrap(); // TODO: handle unwrap
+        let simulation_yuma_output = YumaEpoch::<T>::new(subnet_id, simulation_yuma_params)
+            .run(decrypted_weights.clone())
+            .unwrap(); // TODO: handle unwrap
 
         // Create a reference to Local Storage value, we don't want to store the results in offchain
         // worker memory
@@ -442,8 +449,8 @@ impl<T: Config> Pallet<T> {
             stake_normalized: copier_stake_normalized,
             stake_original: I64F64::from_num(copier_stake),
             bonds: Vec::new(),
-            weight_unencrypted_hash: Vec::new(),
             weight_encrypted: Vec::new(),
+            weight_hash: Vec::new(),
         };
 
         let seed = (b"copier", subnet_id, copier_uid).using_encoded(BlakeTwo256::hash);
@@ -467,7 +474,7 @@ impl<T: Config> Pallet<T> {
         runtime_yuma_params
     }
 
-    fn send_weights(
+    fn do_send_weights(
         netuid: u16,
         decrypted_weights: Vec<(u64, Vec<(u16, Vec<(u16, u16)>)>)>,
     ) -> Result<(), &'static str> {
@@ -484,6 +491,33 @@ impl<T: Config> Pallet<T> {
         });
 
         Ok(())
+    }
+
+    fn do_send_keep_alive(current_block: u64) {
+        let Some(public_key) = ow_extensions::offworker::get_encryption_key() else {
+            return;
+        };
+
+        let storage_key = "last_keep_alive".as_bytes();
+        let storage = StorageValueRef::persistent(&storage_key);
+        let last_keep_alive = storage.get::<u64>().ok().flatten().unwrap_or(0);
+
+        if last_keep_alive != 0 && current_block - last_keep_alive < 50 {
+            return;
+        }
+
+        let signer = Signer::<T, T::AuthorityId>::all_accounts();
+        if !signer.can_sign() {
+            log::error!(
+                "No local accounts available. Consider adding one via `author_insertKey` RPC.",
+            );
+        }
+
+        signer.send_signed_transaction(|_| Call::send_keep_alive {
+            public_key: public_key.clone(),
+        });
+
+        storage.set(&current_block);
     }
 }
 

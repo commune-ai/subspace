@@ -1,6 +1,7 @@
 use core::ops::Index;
 
 use pallet_subspace::UseWeightsEncrytyption;
+use sp_runtime::traits::Get;
 use subnet_consensus::util::params::ModuleKey;
 
 use super::*;
@@ -19,21 +20,6 @@ pub struct SubnetDecryptionInfo {
 }
 
 impl<T: Config> Pallet<T> {
-    pub fn run_decrypted_weights() {
-        for (netuid, mut weights) in DecryptedWeights::<T>::iter() {
-            weights.sort_by_key(|(block, _)| *block);
-
-            for (block, weights) in weights {
-                if let Err(err) = Self::execute_decrypted_weights(netuid, block, weights) {
-                    log::error!("could not execute decrypted weights for block {block} in netuid {netuid}: {err}");
-                }
-            }
-        }
-
-        // ASSUMPTION
-        let _ = DecryptedWeights::<T>::clear(u32::MAX, None);
-    }
-
     pub fn distribute_subnets_to_nodes(block: u64) {
         let authority_node_count = DecryptionNodes::<T>::get().len();
         if authority_node_count < 1 {
@@ -86,14 +72,18 @@ impl<T: Config> Pallet<T> {
             return;
         };
 
-        for (block, weights) in &weights {
+        let mut valid_weights: Vec<(u64, Vec<(u16, Vec<(u16, u16)>)>)> = Vec::new();
+
+        for (block, weights) in weights.into_iter() {
+            let mut valid_block_weights: Vec<(u16, Vec<(u16, u16)>)> = Vec::new();
+
             for (uid, weights) in weights {
                 let Some(params) = ConsensusParameters::<T>::get(netuid, block) else {
                     log::error!("could not find required consensus parameters for block {block} in subnet {netuid}");
                     continue;
                 };
 
-                let Some(module_key) = pallet_subspace::Pallet::<T>::get_key_for_uid(netuid, *uid)
+                let Some(module_key) = pallet_subspace::Pallet::<T>::get_key_for_uid(netuid, uid)
                 else {
                     log::error!("could not find module {uid} key in subnet {netuid}");
                     continue;
@@ -104,30 +94,35 @@ impl<T: Config> Pallet<T> {
                     continue;
                 };
 
-                let Some(hash) = ow_extensions::offworker::hash_weight(weights.clone()) else {
-                    log::error!("could hash required module {uid}'s weights for block {block} in subnet {netuid}");
-                    continue;
-                };
+                let hash =
+                    sp_io::hashing::sha2_256(&Self::weights_to_blob(&weights[..])[..]).to_vec();
 
-                if hash != module.weight_unencrypted_hash {
-                    log::error!("incoherent weight hashes for module {uid} on block {block} in subnet {netuid}");
-                    // WHAT TO DO HERE?
+                if hash != module.weight_hash {
+                    log::error!("incoherent hash received for module {uid} on block {block} in subnet {netuid}");
                     continue;
                 }
+
+                if let None = Self::validate_weights(uid, &weights, netuid) {
+                    log::error!("validation failed for module {uid} weights on block {block} in subnet {netuid}");
+                    continue;
+                }
+
+                valid_block_weights.push((uid, weights));
             }
+
+            valid_weights.push((block, valid_block_weights));
         }
 
         match DecryptedWeights::<T>::get(netuid) {
             Some(mut cached) => {
-                cached.extend(weights);
+                cached.extend(valid_weights);
                 DecryptedWeights::<T>::set(netuid, Some(cached));
             }
-            None => DecryptedWeights::<T>::set(netuid, Some(weights)),
+            None => DecryptedWeights::<T>::set(netuid, Some(valid_weights)),
         }
 
         let block_number = pallet_subspace::Pallet::<T>::get_current_block_number();
-        if block_number - info.block_assigned < 100 {
-            // TODO check this number
+        if block_number - info.block_assigned < T::DecryptionNodeRotationInterval::get() {
             return;
         }
 
@@ -149,60 +144,6 @@ impl<T: Config> Pallet<T> {
                 block_assigned: block_number,
             }),
         );
-    }
-
-    /// Executes consensus for the oldest set of parameters in the given netuid.
-    /// Currently only supports Yuma consensus.
-    ///
-    /// This function:
-    /// 1. Retrieves the oldest ConsensusParameters for the specified netuid
-    /// 2. Executes the Yuma consensus using these parameters
-    /// 3. Applies the consensus results
-    /// 4. Deletes the processed ConsensusParameters from storage
-    ///
-    /// Parameters:
-    /// - netuid: The network ID
-    /// - weights: The decrypted weights to be used in the consensus
-    ///
-    /// Returns:
-    /// - Ok(()) if successful
-    /// - Err with a descriptive message if an error occurs
-    pub fn execute_decrypted_weights(
-        netuid: u16,
-        block: u64,
-        weights: Vec<(u16, Vec<(u16, u16)>)>,
-    ) -> Result<(), &'static str> {
-        // Check if the given netuid is running Yuma consensus
-        let consensus_type = SubnetConsensusType::<T>::get(netuid).ok_or("Invalid network ID")?;
-
-        if consensus_type != pallet_subnet_emission_api::SubnetConsensus::Yuma {
-            return Err("Unsupported consensus type");
-        }
-
-        // Retrieve the oldest ConsensusParameters
-        let (oldest_epoch, oldest_params) = ConsensusParameters::<T>::iter_prefix(netuid)
-            .min_by_key(|(k, _)| *k)
-            .ok_or("No consensus parameters found")?;
-
-        // Initialize Yuma epoch with the oldest parameters
-        let mut yuma_epoch =
-            crate::subnet_consensus::yuma::YumaEpoch::<T>::new(netuid, oldest_params);
-
-        // // Execute Yuma consensus
-        // let emission_to_drain =
-        //     Self::get_emission_to_drain(netuid).map_err(|_| "Failed to get emission to drain")?;
-        // yuma_epoch.run(weights).map_err(|_| "Failed to run Yuma consensus")?;
-
-        // // Apply consensus results
-        // yuma_epoch
-        //     .params
-        //     .apply(netuid)
-        //     .map_err(|_| "Failed to apply consensus results")?;
-
-        // // Delete the processed ConsensusParameters from storage
-        // ConsensusParameters::<T>::remove(netuid, oldest_epoch);
-
-        Ok(())
     }
 
     pub fn do_handle_authority_node_keep_alive(public_key: (Vec<u8>, Vec<u8>)) {
@@ -230,5 +171,45 @@ impl<T: Config> Pallet<T> {
 
     fn is_node_authorized(public_key: &(Vec<u8>, Vec<u8>)) -> bool {
         AuthorizedPublicKeys::<T>::get().iter().any(|node| node == public_key)
+    }
+
+    fn weights_to_blob(weights: &[(u16, u16)]) -> Vec<u8> {
+        let mut encoded = Vec::new();
+        encoded.extend((weights.len() as u32).to_be_bytes());
+        encoded.extend(weights.iter().flat_map(|(uid, weight)| {
+            sp_std::vec![uid.to_be_bytes(), weight.to_be_bytes()]
+                .into_iter()
+                .flat_map(|a| a)
+        }));
+
+        encoded
+    }
+
+    fn validate_weights(uid: u16, weights: &Vec<(u16, u16)>, netuid: u16) -> Option<()> {
+        let (uids, values) = weights.iter().copied().collect::<(Vec<u16>, Vec<u16>)>();
+
+        let len = uids.len();
+        if len != values.len() {
+            return None;
+        }
+
+        let mut seen = sp_std::collections::btree_set::BTreeSet::new();
+        if uids.iter().any(|item| !seen.insert(item)) {
+            return None;
+        }
+
+        if uids.contains(&uid) {
+            return None;
+        }
+
+        let min_allowed_length =
+            pallet_subspace::Pallet::<T>::get_min_allowed_weights(netuid) as usize;
+        let max_allowed_length = pallet_subspace::MaxAllowedWeights::<T>::get(netuid) as usize; //.min(N::<T>::get(netuid)) as usize;
+
+        if len < min_allowed_length || len > max_allowed_length {
+            return None;
+        }
+
+        Some(())
     }
 }

@@ -2,7 +2,9 @@
 
 use futures::FutureExt;
 use node_subspace_runtime::{self, opaque::Block, RuntimeApi};
-use rsa::{pkcs1::DecodeRsaPrivateKey, traits::PublicKeyParts, Pkcs1v15Encrypt};
+use rsa::{
+    pkcs1::DecodeRsaPrivateKey, rand_core::OsRng, traits::PublicKeyParts, BigUint, Pkcs1v15Encrypt,
+};
 use sc_client_api::Backend;
 use sc_consensus_manual_seal::consensus::{
     aura::AuraConsensusDataProvider, timestamp::SlotTimestampProvider,
@@ -266,17 +268,6 @@ impl Default for Decrypter {
 }
 
 impl ow_extensions::OffworkerExtension for Decrypter {
-    fn hash_weight(&self, weights: Vec<(u16, u16)>) -> Option<Vec<u8>> {
-        let mut hasher = sha2::Sha256::new();
-        hasher.update((weights.len() as u32).to_be_bytes());
-        for (uid, weight) in weights {
-            hasher.update(uid.to_be_bytes());
-            hasher.update(weight.to_be_bytes());
-        }
-
-        Some(hasher.finalize().to_vec())
-    }
-
     fn decrypt_weight(&self, encrypted: Vec<u8>) -> Option<Vec<(u16, u16)>> {
         let Some(key) = &self.key else {
             return None;

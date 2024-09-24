@@ -122,9 +122,14 @@ pub fn calculate_final_emissions<T: Config>(
 pub fn compute_weights<T: Config>(
     modules: &FlattenedModules<T::AccountId>,
     params: &ConsensusParams<T>,
+    mut weights: Vec<(u16, Vec<(u16, u16)>)>,
 ) -> Option<WeightsVal> {
-    // Access network weights row unnormalized.
-    let mut weights = modules.weights_unencrypted.clone();
+    weights.sort_by_key(|(uid, _)| *uid);
+
+    let mut weights = weights
+        .into_iter()
+        .map(|(_, vec)| vec.into_iter().map(|(key, value)| (key, I32F32::from(value))).collect())
+        .collect::<Vec<_>>();
     log::trace!("  original weights: {weights:?}");
 
     let validator_forbids: Vec<bool> = modules.validator_permit.iter().map(|&b| !b).collect();

@@ -294,7 +294,7 @@ impl<T: Config> Pallet<T> {
         origin: T::RuntimeOrigin,
         netuid: u16,
         encrypted_weights: Vec<u8>,
-        encrypted_weights_hash: Vec<u8>,
+        decrypted_weights_hash: Vec<u8>,
     ) -> DispatchResult {
         let key = ensure_signed(origin)?;
 
@@ -306,10 +306,11 @@ impl<T: Config> Pallet<T> {
             return Err(pallet_subspace::Error::<T>::ModuleDoesNotExist.into());
         };
 
-        // TODO check rate limit etc...
+        Self::handle_rate_limiting(uid, netuid, &key)?;
+        Self::remove_rootnet_delegation(netuid, key);
 
         EncryptedWeights::<T>::set(netuid, uid, Some(encrypted_weights));
-        EncryptedWeightHashes::<T>::set(netuid, uid, Some(encrypted_weights_hash));
+        DecryptedWeightHashes::<T>::set(netuid, uid, Some(decrypted_weights_hash));
 
         Ok(())
     }
