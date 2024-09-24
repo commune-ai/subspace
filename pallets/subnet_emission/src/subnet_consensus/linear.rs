@@ -33,7 +33,10 @@ impl<T: Config> LinearEpoch<T> {
         }
     }
 
-    pub fn run(self) -> Result<ConsensusOutput<T>, EmissionError> {
+    pub fn run(
+        self,
+        weights: Vec<(u16, Vec<(u16, u16)>)>,
+    ) -> Result<ConsensusOutput<T>, EmissionError> {
         log::debug!(
             "running linear for subnet_id {}, will emit {:?} modules and {:?} to founder",
             self.subnet_id,
@@ -54,7 +57,7 @@ impl<T: Config> LinearEpoch<T> {
         );
 
         // Notice that linear consensus does not have mutable weights
-        let weights = compute_weights(&self.modules, &self.params)
+        let weights = compute_weights(&self.modules, &self.params, weights)
             .ok_or(EmissionError::Other("weights are broken"))?;
 
         // Stays for linear & yuma

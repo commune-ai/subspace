@@ -433,6 +433,7 @@ impl pallet_subnet_emission::Config for Runtime {
     type Decimals = ConstU8<9>; // The runtime has 9 token decimals
     type HalvingInterval = ConstU64<250_000_000>;
     type MaxSupply = ConstU64<1_000_000_000>;
+    type DecryptionNodeRotationInterval = ConstU64<5_000>;
 }
 
 pub const WEIGHT_MILLISECS_PER_BLOCK: u64 = 2000;

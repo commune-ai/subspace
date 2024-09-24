@@ -34,17 +34,38 @@ fn register_mock<T: Config>(
 }
 
 benchmarks! {
-    process_subnets {
-        let caller: T::AccountId = account("Alice", 0, 1);
-        // Add Alice's funds to submit the proposal
-        SubspaceMod::<T>::add_balance_to_account(
-            &caller,
-            SubspaceMod::<T>::u64_to_balance(1_000_000_000_000_000).unwrap()
-        );
+    set_weights {
+        let module_key: T::AccountId = account("ModuleKey", 0, 2);
+        let module_key2: T::AccountId = account("ModuleKey2", 0, 3);
 
-        register_mock::<T>(caller.clone(), caller.clone(),
-    "test".as_bytes().to_vec())?;
+        register_mock::<T>(module_key.clone(), module_key.clone(), "test".as_bytes().to_vec())?;
+        register_mock::<T>(module_key2.clone(), module_key2.clone(), "test1".as_bytes().to_vec())?;
+        let netuid = SubspaceMod::<T>::get_netuid_for_name("testnet".as_bytes()).unwrap();
+        let uids = vec![0];
+        let weights = vec![10];
+    }: set_weights(RawOrigin::Signed(module_key2), netuid, uids, weights)
 
-        reigster_mock()
-    }: process_subnets()
+    set_weights_encrypted {
+        let module_key: T::AccountId = account("ModuleKey", 0, 2);
+        let module_key2: T::AccountId = account("ModuleKey2", 0, 3);
+
+        register_mock::<T>(module_key.clone(), module_key.clone(), "test".as_bytes().to_vec())?;
+        register_mock::<T>(module_key2.clone(), module_key2.clone(), "test1".as_bytes().to_vec())?;
+        let netuid = SubspaceMod::<T>::get_netuid_for_name("testnet".as_bytes()).unwrap();
+        pallet_subspace::UseWeightsEncrytyption::<T>::set(netuid, true);
+
+        let weights = vec![10u8];
+        let hash = vec![10u8];
+    }: set_weights_encrypted(RawOrigin::Signed(module_key2), netuid, weights, hash)
+
+    delegate_rootnet_control {
+        use pallet_subnet_emission_api::SubnetConsensus;
+        let module_key: T::AccountId = account("ModuleKey", 0, 2);
+        let module_key2: T::AccountId = account("ModuleKey2", 0, 3);
+
+        register_mock::<T>(module_key.clone(), module_key.clone(), "test".as_bytes().to_vec())?;
+        register_mock::<T>(module_key2.clone(), module_key2.clone(), "test1".as_bytes().to_vec())?;
+        let netuid = SubspaceMod::<T>::get_netuid_for_name(b"testnet").unwrap();
+        T::set_subnet_consensus_type(netuid, Some(SubnetConsensus::Root));
+    }: delegate_rootnet_control(RawOrigin::Signed(module_key), module_key2)
 }

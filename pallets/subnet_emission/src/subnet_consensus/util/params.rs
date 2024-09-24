@@ -1,6 +1,6 @@
 use core::fmt::Debug;
 
-use crate::{Config, EncryptedWeightHashes, EncryptedWeights, Weights};
+use crate::{Config, DecryptedWeightHashes, EncryptedWeights, Weights};
 use frame_support::DebugNoBound;
 use pallet_subspace::{
     math::*, AlphaValues, BalanceOf, Bonds, BondsMovingAverage, Founder, Kappa, Keys, LastUpdate,
@@ -47,8 +47,8 @@ pub struct ModuleParams {
     pub stake_normalized: I32F32,
     pub stake_original: I64F64, // Use for WC simulation purposes
     pub bonds: Vec<(u16, u16)>,
-    pub weight_unencrypted_hash: Vec<u8>,
     pub weight_encrypted: Vec<u8>,
+    pub weight_hash: Vec<u8>,
 }
 
 #[derive(DebugNoBound)]
@@ -62,7 +62,6 @@ pub struct FlattenedModules<AccountId: Debug> {
     pub bonds: Vec<Vec<(u16, I32F32)>>,
     pub weight_unencrypted_hash: Vec<Vec<u8>>,
     pub weight_encrypted: Vec<Vec<u8>>,
-    pub weights_unencrypted: Vec<Vec<(u16, I32F32)>>,
 }
 
 impl<AccountId: Debug> From<BTreeMap<ModuleKey<AccountId>, ModuleParams>>
@@ -79,7 +78,6 @@ impl<AccountId: Debug> From<BTreeMap<ModuleKey<AccountId>, ModuleParams>>
             bonds: Vec::with_capacity(value.len()),
             weight_unencrypted_hash: Vec::with_capacity(value.len()),
             weight_encrypted: Vec::with_capacity(value.len()),
-            weights_unencrypted: Vec::with_capacity(value.len()),
         };
 
         for (key, module) in value {
@@ -92,7 +90,6 @@ impl<AccountId: Debug> From<BTreeMap<ModuleKey<AccountId>, ModuleParams>>
             modules
                 .bonds
                 .push(module.bonds.into_iter().map(|(k, m)| (k, I32F32::from_num(m))).collect());
-            modules.weight_unencrypted_hash.push(module.weight_unencrypted_hash);
             modules.weight_encrypted.push(module.weight_encrypted);
         }
 
@@ -148,11 +145,9 @@ impl<T: Config> ConsensusParams<T> {
                         stake_normalized,
                         stake_original,
                         bonds,
-                        weight_unencrypted_hash: EncryptedWeightHashes::<T>::get(
-                            subnet_id, uid as u16,
-                        )
-                        .unwrap_or_default(), // TODO CHECK THIS
                         weight_encrypted: EncryptedWeights::<T>::get(subnet_id, uid as u16)
+                            .unwrap_or_default(), // TODO CHECK THIS
+                        weight_hash: DecryptedWeightHashes::<T>::get(subnet_id, uid as u16)
                             .unwrap_or_default(), // TODO CHECK THIS
                     };
 

@@ -23,6 +23,9 @@ pub mod subnet_pricing {
 pub mod set_weights;
 pub mod subnet_consensus;
 
+#[cfg(feature = "runtime-benchmarks")]
+mod benchmarking;
+
 pub type PublicKey = (Vec<u8>, Vec<u8>);
 
 // TODO:
@@ -76,6 +79,9 @@ pub mod pallet {
         /// The maximum token supply.
         #[pallet::constant]
         type MaxSupply: Get<u64>;
+
+        #[pallet::constant]
+        type DecryptionNodeRotationInterval: Get<u64>;
     }
 
     // Storage
@@ -105,7 +111,7 @@ pub mod pallet {
     pub type EncryptedWeights<T> = StorageDoubleMap<_, Identity, u16, Identity, u16, Vec<u8>>;
 
     #[pallet::storage]
-    pub type EncryptedWeightHashes<T> = StorageDoubleMap<_, Identity, u16, Identity, u16, Vec<u8>>;
+    pub type DecryptedWeightHashes<T> = StorageDoubleMap<_, Identity, u16, Identity, u16, Vec<u8>>;
 
     #[pallet::storage]
     pub type AuthorizedPublicKeys<T> = StorageValue<_, Vec<PublicKey>, ValueQuery>;
@@ -331,13 +337,13 @@ pub mod pallet {
             origin: OriginFor<T>,
             netuid: u16,
             encrypted_weights: Vec<u8>,
-            encrypted_weights_hash: Vec<u8>,
+            decrypted_weights_hash: Vec<u8>,
         ) -> DispatchResult {
             Self::do_set_weights_encrypted(
                 origin,
                 netuid,
                 encrypted_weights,
-                encrypted_weights_hash,
+                decrypted_weights_hash,
             )
         }
 

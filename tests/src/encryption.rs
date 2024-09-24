@@ -2,7 +2,7 @@ use std::iter::zip;
 
 use crate::mock::*;
 use rand::{rngs::OsRng, thread_rng, Rng};
-use rsa::{BigUint, Pkcs1v15Encrypt};
+use rsa::{traits::PublicKeyParts, BigUint, Pkcs1v15Encrypt};
 
 fn encrypt(key: (Vec<u8>, Vec<u8>), data: Vec<(u16, u16)>) -> Vec<u8> {
     let mut encoded = Vec::new();
@@ -66,9 +66,19 @@ fn test_hash() {
 
         let to_hash = zip(uids, weights).collect::<Vec<(_, _)>>();
 
-        let hash1 = ow_extensions::offworker::hash_weight(to_hash.clone()).unwrap();
-        let hash2 = ow_extensions::offworker::hash_weight(to_hash.clone()).unwrap();
+        let hash1 = sp_io::hashing::sha2_256(&weights_to_blob(&to_hash.clone()[..])[..]);
+        let hash2 = sp_io::hashing::sha2_256(&weights_to_blob(&to_hash.clone()[..])[..]);
 
         assert_eq!(hash1, hash2);
     });
+}
+
+fn weights_to_blob(weights: &[(u16, u16)]) -> Vec<u8> {
+    let mut encoded = Vec::new();
+    encoded.extend((weights.len() as u32).to_be_bytes());
+    encoded.extend(weights.iter().flat_map(|(uid, weight)| {
+        vec![uid.to_be_bytes(), weight.to_be_bytes()].into_iter().flat_map(|a| a)
+    }));
+
+    encoded
 }

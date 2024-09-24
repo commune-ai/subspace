@@ -5481,6 +5481,7 @@ name = "pallet-subnet-emission"
 version = "1.0.1"
 dependencies = [
  "bty",
+ "frame-benchmarking",
  "frame-support",
  "frame-system",
  "log",

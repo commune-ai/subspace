@@ -18,16 +18,20 @@ targets = ["x86_64-unknown-linux-gnu"]
 [features]
 default = ["std"]
 std = [
+    "pallet-balances/std",
+    "frame-benchmarking/std",
     "frame-support/std",
     "parity-scale-codec/std",
     "frame-system/std",
     "pallet-subspace/std",
     "scale-info/std",
 ]
+runtime-benchmarks = ["frame-benchmarking/runtime-benchmarks"]
 try-runtime = ["frame-support/try-runtime"]
 
 [dependencies]
 bty = { workspace = true }
+frame-benchmarking = { workspace = true, optional = true }
 ow_extensions = { path = "../../ow_extensions", default-features = false }
 
 frame-support = { workspace = true }

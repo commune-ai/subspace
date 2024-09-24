@@ -47,16 +47,6 @@ benchmarks! {
     // ---------------------------------
 
     // 0
-    set_weights {
-        let module_key: T::AccountId = account("ModuleKey", 0, 2);
-        let module_key2: T::AccountId = account("ModuleKey2", 0, 3);
-
-        register_mock::<T>(module_key.clone(), module_key.clone(), "test".as_bytes().to_vec())?;
-        register_mock::<T>(module_key2.clone(), module_key2.clone(), "test1".as_bytes().to_vec())?;
-        let netuid = SubspaceMod::<T>::get_netuid_for_name("testnet".as_bytes()).unwrap();
-        let uids = vec![0];
-        let weights = vec![10];
-    }: set_weights(RawOrigin::Signed(module_key2), netuid, uids, weights)
 
     // ---------------------------------
     // Stake operations
@@ -175,6 +165,11 @@ benchmarks! {
             &key,
             SubspaceMod::<T>::u64_to_balance(stake + SubnetBurn::<T>::get() + 2000).unwrap(),
         );
+        let _ = SubspaceMod::<T>::register_subnet(
+            RawOrigin::Signed(key.clone()).into(),
+            "test".as_bytes().to_vec(),
+           None,
+        );
     }: register(RawOrigin::Signed(key.clone()), "test".as_bytes().to_vec(), "test".as_bytes().to_vec(), "test".as_bytes().to_vec(),  module_key.clone(), Some("metadata".as_bytes().to_vec()))
 
     // 8
@@ -229,16 +224,6 @@ benchmarks! {
         params.max_allowed_validators
     )
     // 11
-    delegate_rootnet_control {
-        use pallet_subnet_emission_api::SubnetConsensus;
-        let module_key: T::AccountId = account("ModuleKey", 0, 2);
-        let module_key2: T::AccountId = account("ModuleKey2", 0, 3);
-
-        register_mock::<T>(module_key.clone(), module_key.clone(), "test".as_bytes().to_vec())?;
-        register_mock::<T>(module_key2.clone(), module_key2.clone(), "test1".as_bytes().to_vec())?;
-        let netuid = SubspaceMod::<T>::get_netuid_for_name(b"testnet").unwrap();
-        T::set_subnet_consensus_type(netuid, Some(SubnetConsensus::Root));
-    }: delegate_rootnet_control(RawOrigin::Signed(module_key), module_key2)
 
     // 12
     register_subnet {

@@ -21,10 +21,10 @@ use pallet_subspace::{
 };
 use parity_scale_codec::{Decode, Encode};
 use rand::rngs::OsRng;
-use rsa::{traits::PublicKeyParts, Pkcs1v15Encrypt};
+use rsa::{traits::PublicKeyParts, BigUint, Pkcs1v15Encrypt, RsaPrivateKey, RsaPublicKey};
 use scale_info::{prelude::collections::BTreeSet, TypeInfo};
 use sha2::Digest;
-use sp_core::{sr25519, ConstU16, H256};
+use sp_core::{sr25519, ConstU16, ConstU64, H256};
 use sp_runtime::{
     generic::UncheckedExtrinsic,
     traits::{AccountIdConversion, BlakeTwo256, IdentifyAccount, IdentityLookup},
@@ -329,6 +329,7 @@ impl pallet_subnet_emission::Config for Test {
     type Decimals = Decimals;
     type HalvingInterval = HalvingInterval;
     type MaxSupply = MaxSupply;
+    type DecryptionNodeRotationInterval = ConstU64<5_000>;
 }
 
 impl pallet_governance::Config for Test {
@@ -938,20 +939,6 @@ impl Default for Decrypter {
 }
 
 impl ow_extensions::OffworkerExtension for Decrypter {
-    fn hash_weight(
-        &self,
-        weights: pallet_subspace::Vec<(u16, u16)>,
-    ) -> Option<pallet_subspace::Vec<u8>> {
-        let mut hasher = sha2::Sha256::new();
-        hasher.update((weights.len() as u32).to_be_bytes());
-        for (uid, weight) in weights {
-            hasher.update(uid.to_be_bytes());
-            hasher.update(weight.to_be_bytes());
-        }
-
-        Some(hasher.finalize().to_vec())
-    }
-
     fn decrypt_weight(&self, encrypted: Vec<u8>) -> Option<Vec<(u16, u16)>> {
         let Some(key) = &self.key else {
             return None;
@@ -1002,7 +989,7 @@ impl ow_extensions::OffworkerExtension for Decrypter {
         };
 
         let public = rsa::RsaPublicKey::from(key);
-        Some((public.n().to_bytes_be(), public.e().to_bytes_le()))
+        Some((public.n().to_bytes_be(), public.e().to_bytes_be()))
     }
 }
 
