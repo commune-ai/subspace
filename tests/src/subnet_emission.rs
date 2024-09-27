@@ -1,7 +1,10 @@
 use crate::mock::*;
-use pallet_subnet_emission::subnet_consensus::util::{
-    consensus::EmissionMap,
-    params::{AccountKey, ModuleKey},
+use pallet_subnet_emission::{
+    subnet_consensus::util::{
+        consensus::EmissionMap,
+        params::{AccountKey, ModuleKey},
+    },
+    Weights,
 };
 use std::collections::BTreeMap;
 
@@ -674,7 +677,8 @@ fn test_1_graph() {
         ));
 
         let params = ConsensusParams::<Test>::new(netuid, ONE).unwrap();
-        let emissions = YumaEpoch::<Test>::new(netuid, params).run().unwrap();
+        let weights = Weights::<Test>::iter_prefix(netuid).collect::<Vec<_>>();
+        let emissions = YumaEpoch::<Test>::new(netuid, params).run(weights).unwrap();
         let offset = 1;
 
         assert_eq!(
@@ -757,7 +761,8 @@ fn test_10_graph() {
         }
 
         let params = ConsensusParams::<Test>::new(netuid, ONE).unwrap();
-        let emissions = YumaEpoch::<Test>::new(netuid, params).run().unwrap();
+        let weights = Weights::<Test>::iter_prefix(netuid).collect::<Vec<_>>();
+        let emissions = YumaEpoch::<Test>::new(netuid, params).run(weights).unwrap();
 
         let mut expected: EmissionMap<u32> = BTreeMap::new();
         for i in 0..n as u16 {
@@ -1211,7 +1216,8 @@ fn yuma_does_not_fail_if_module_does_not_have_stake() {
         assert_ok!(SubspaceMod::do_remove_stake(get_origin(key), key, stake));
 
         let params = ConsensusParams::<Test>::new(netuid, ONE).unwrap();
-        assert_ok!(YumaEpoch::<Test>::new(netuid, params).run());
+        let weights = Weights::<Test>::iter_prefix(netuid).collect::<Vec<_>>();
+        assert_ok!(YumaEpoch::<Test>::new(netuid, params).run(weights));
     });
 }
 
@@ -1255,7 +1261,8 @@ fn yuma_change_permits() {
 
         let yuma_params = ConsensusParams::<Test>::new(netuid, ONE).unwrap();
 
-        assert_ok!(YumaEpoch::<Test>::new(netuid, yuma_params.clone()).run());
+        let weights = Weights::<Test>::iter_prefix(netuid).collect::<Vec<_>>();
+        assert_ok!(YumaEpoch::<Test>::new(netuid, yuma_params.clone()).run(weights));
 
         assert_eq!(
             ValidatorPermits::<Test>::get(netuid)[first_uid as usize],
@@ -1274,7 +1281,8 @@ fn yuma_change_permits() {
         set_weights(netuid, 1, vec![third_uid, fourth_uid], vec![50, 60]);
         set_weights(netuid, 3, vec![first_uid, second_uid], vec![50, 60]);
 
-        assert_ok!(YumaEpoch::<Test>::new(netuid, yuma_params).run());
+        let weights = Weights::<Test>::iter_prefix(netuid).collect::<Vec<_>>();
+        assert_ok!(YumaEpoch::<Test>::new(netuid, yuma_params).run(weights));
 
         assert_eq!(
             ValidatorPermits::<Test>::get(netuid)[first_uid as usize],

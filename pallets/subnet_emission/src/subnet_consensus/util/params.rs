@@ -110,7 +110,6 @@ impl<T: Config> ConsensusParams<T> {
 
         let (stake_original, stake_normalized) = Self::compute_stake(&uids);
         let bonds = Self::compute_bonds(subnet_id, &uids);
-        let weights = Self::compute_weights(subnet_id, &uids);
 
         let last_update = LastUpdate::<T>::get(subnet_id);
         let block_at_registration = PalletSubspace::<T>::get_block_at_registration(subnet_id);
@@ -122,9 +121,8 @@ impl<T: Config> ConsensusParams<T> {
             .zip(stake_normalized)
             .zip(stake_original)
             .zip(bonds)
-            .zip(weights)
             .map(
-                |(((((uid, key), stake_normalized), stake_original), bonds), weights)| {
+                |((((uid, key), stake_normalized), stake_original), bonds)| {
                     let uid = uid as usize;
                     let last_update =
                         last_update.get(uid).copied().ok_or("LastUpdate storage is broken")?;
@@ -210,13 +208,6 @@ impl<T: Config> ConsensusParams<T> {
         uids.keys().map(|uid| bonds.remove(uid).unwrap_or_default()).collect()
     }
 
-    fn compute_weights(subnet_id: u16, uids: &BTreeMap<u16, T::AccountId>) -> Vec<Vec<(u16, u16)>> {
-        let mut weights: BTreeMap<_, _> = Weights::<T>::iter_prefix(subnet_id).collect();
-        // BTreeMap provides natural order, so iterating and collecting
-        // will result in a vector with the same order as the uid map.
-        uids.keys().map(|uid| weights.remove(uid).unwrap_or_default()).collect()
-    }
-
     pub fn get_alpha_values_32(netuid: u16) -> (I32F32, I32F32) {
         let (alpha_low, alpha_high) = AlphaValues::<T>::get(netuid);
 
@@ -224,6 +215,18 @@ impl<T: Config> ConsensusParams<T> {
             .map(|alpha| I32F32::from_num(alpha) / I32F32::from_num(u16::MAX));
         (result[0], result[1])
     }
+}
+
+/// Precomputes weights for the consensus.
+pub fn compute_weights<T: Config>(subnet_id: u16) -> Vec<(u16, Vec<(u16, u16)>)> {
+    let uids: BTreeMap<_, _> = Keys::<T>::iter_prefix(subnet_id).collect();
+
+    let mut weights: BTreeMap<_, _> = Weights::<T>::iter_prefix(subnet_id).collect();
+
+    // Now we map each UID to a tuple containing the UID and its weights
+    uids.keys()
+        .map(|&uid| (uid, weights.remove(&uid).unwrap_or_default()))
+        .collect()
 }
 
 macro_rules! impl_things {
