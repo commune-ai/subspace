@@ -21,13 +21,15 @@ use pallet_subnet_emission::{
     },
     EncryptedWeights,
 };
+use pallet_subspace::TotalStake;
+
 use std::collections::BTreeMap;
 
 use pallet_subnet_emission::Weights;
 use pallet_subspace::{
     math::{inplace_normalize_64, vec_fixed64_to_fixed32},
     Active, Consensus, CopierMargin, FloorDelegationFee, MaxEncryptionPeriod,
-    Pallet as SubspaceModule, Tempo, N,
+    Pallet as SubspaceModule, StakeFrom, Tempo, N,
 };
 use parity_scale_codec::{Decode, Encode};
 use scale_info::prelude::marker::PhantomData;
@@ -85,7 +87,10 @@ use substrate_fixed::types::I64F64;
 #[frame_support::pallet]
 pub mod pallet {
     use super::*;
-    use frame_support::pallet_prelude::*;
+    use frame_support::{
+        pallet_prelude::{ValueQuery, *},
+        Identity,
+    };
     use frame_system::pallet_prelude::*;
     use pallet_subnet_emission::ConsensusParameters;
 
@@ -315,6 +320,10 @@ pub mod pallet {
     #[pallet::storage]
     pub type MeasuredStakeAmount<T: Config> =
         StorageValue<_, Percent, ValueQuery, DefaultMeasuredStakeAmount<T>>;
+
+    #[pallet::storage]
+    pub type IrrationalityDelta<T: Config> =
+        StorageMap<_, Identity, u16, Option<I64F64>, ValueQuery>;
 }
 
 impl<T: Config> Pallet<T> {
@@ -365,7 +374,11 @@ impl<T: Config> Pallet<T> {
         // Save the updated simulation result to local offchain worker storage
         storage.set(&simulation_result);
 
-        is_copying_irrational::<T>(simulation_result)
+        // TODO:
+        // send delta back to the runtime
+        let (is_irrational, _) = is_copying_irrational::<T>(simulation_result);
+
+        is_irrational
     }
 
     /// Appends copier information to simulated consensus ConsensusParams
@@ -425,7 +438,7 @@ impl<T: Config> Pallet<T> {
         subnet_id: u16,
         weights: Vec<(u16, u16)>,
     ) -> ConsensusParams<T> {
-        let copier_stake = get_copier_stake::<T>(&runtime_yuma_params, subnet_id);
+        let copier_stake = get_copier_stake::<T>(subnet_id);
         let current_block = runtime_yuma_params.current_block;
 
         let mut all_stakes: Vec<I64F64> = runtime_yuma_params
@@ -534,13 +547,14 @@ pub fn is_copying_irrational<T: pallet_subspace::Config>(
         cumulative_copier_divs,
         ..
     }: ConsensusSimulationResult<T>,
-) -> bool {
+) -> (bool, I64F64) {
     if black_box_age >= max_encryption_period {
-        return true;
+        return (true, I64F64::from_num(0));
     }
     let one = I64F64::from_num(1);
     let threshold = one.saturating_add(copier_margin).saturating_mul(cumulative_avg_delegate_divs);
-    cumulative_copier_divs.saturating_sub(threshold).is_negative()
+    let delta = cumulative_copier_divs.saturating_sub(threshold);
+    (delta.is_negative(), delta)
 }
 
 pub fn calculate_avg_delegate_divs<T: pallet_subspace::Config + pallet_subnet_emission::Config>(
@@ -548,6 +562,7 @@ pub fn calculate_avg_delegate_divs<T: pallet_subspace::Config + pallet_subnet_em
     copier_uid: u16,
     delegation_fee: Percent,
 ) -> Option<I64F64> {
+    let subnet_id = yuma_output.subnet_id;
     let copier_idx = copier_uid as usize;
     let fee_factor = I64F64::from_num(100)
         .saturating_sub(I64F64::from_num(delegation_fee.deconstruct()))
@@ -561,8 +576,7 @@ pub fn calculate_avg_delegate_divs<T: pallet_subspace::Config + pallet_subnet_em
         .try_fold(
             (I64F64::from_num(0), I64F64::from_num(0)),
             |(stake_acc, div_acc), (i, &div)| {
-                let stake =
-                    I64F64::from_num(get_params_uid_deleg_stake::<T>(yuma_output, i as u16));
+                let stake = I64F64::from_num(get_uid_deleg_stake::<T>(i as u16, subnet_id));
                 let dividend = I64F64::from_num(div);
                 Some((
                     stake_acc.saturating_add(stake),
@@ -572,44 +586,40 @@ pub fn calculate_avg_delegate_divs<T: pallet_subspace::Config + pallet_subnet_em
         )?;
 
     let average_dividends = total_dividends.checked_div(total_stake)?;
-    let copier_stake = I64F64::from_num(get_params_uid_deleg_stake::<T>(yuma_output, copier_uid));
+    let copier_stake = I64F64::from_num(get_uid_deleg_stake::<T>(copier_uid, subnet_id));
 
     average_dividends.saturating_mul(fee_factor).saturating_mul(copier_stake).into()
 }
 
+// TODO:
+// Optimization possible here
 #[inline]
-fn get_params_uid_deleg_stake<T: pallet_subspace::Config + pallet_subnet_emission::Config>(
-    yuma_output: &ConsensusOutput<T>,
-    uid: u16,
-) -> u64 {
-    yuma_output
-        .params
-        .modules
-        .values()
-        .find(|module| module.uid == uid)
-        .map(|module| module.stake_original.to_num::<u64>())
-        .unwrap_or(0)
+fn get_uid_deleg_stake<T>(module_id: u16, subnet_id: u16) -> u64
+where
+    T: pallet_subspace::Config,
+{
+    let deleg_stake = SubspaceModule::<T>::get_key_for_uid(subnet_id, module_id)
+        .map_or(0, |key| SubspaceModule::<T>::get_delegated_stake(&key));
+
+    deleg_stake
 }
 
-pub fn get_copier_stake<T>(runtime_yuma_params: &ConsensusParams<T>, subnet_id: u16) -> u64
+// TODO:
+// The way stake is calculated here is wrong
+pub fn get_copier_stake<T>(subnet_id: u16) -> u64
 where
     T: pallet_subspace::Config + pallet::Config,
 {
-    let active = Active::<T>::get(subnet_id);
-
-    let subnet_stake: u64 = active
+    let subnet_stake: u64 = Active::<T>::get(subnet_id)
         .iter()
         .enumerate()
         .filter(|&(_, &is_active)| is_active)
-        .filter_map(|(index, _)| {
-            let uid = index as u16;
-            runtime_yuma_params.modules.values().find(|module| module.uid == uid)
-        })
-        .map(|module| module.stake_original.to_num::<u64>())
+        .map(|(uid, _)| get_uid_deleg_stake::<T>(uid as u16, subnet_id))
         .sum();
 
-    subnet_stake
+    MeasuredStakeAmount::<T>::get().mul_floor(subnet_stake)
 }
+
 #[derive(Clone, Debug, PartialEq, Encode, Decode)]
 
 pub struct ConsensusSimulationResult<T: pallet_subspace::Config> {
