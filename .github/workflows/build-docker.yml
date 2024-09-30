@@ -43,5 +43,5 @@ jobs:
             SCCACHE_REGION=auto
           push: true
           tags: |
-            ghcr.io/agicommies/subspace:${{ steps.commit.outputs.short }}
-            ghcr.io/agicommies/subspace:${{ github.ref_name }}
+            ghcr.io/renlabs-dev/subspace:${{ steps.commit.outputs.short }}
+            ghcr.io/renlabs-dev/subspace:${{ github.ref_name }}
