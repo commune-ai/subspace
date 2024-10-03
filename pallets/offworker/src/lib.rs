@@ -153,14 +153,6 @@ pub mod pallet {
             Weight::zero()
         }
 
-        //|  | 0 | 1 | 2 | 3 | 4 | 5 |
-        //|                       ^ choose node F
-        //|                   ^ choose node E
-        //|               ^ choose node D
-        //|           ^ choose node C
-        //|       ^ choose node B
-        //|   ^ choose node A
-
         // ! This function is not actually guaranteed to run on every block
         fn offchain_worker(block_number: BlockNumberFor<T>) {
             log::info!("Offchain worker is running");
@@ -506,31 +498,31 @@ impl<T: Config> Pallet<T> {
         Ok(())
     }
 
-    fn do_send_keep_alive(current_block: u64) {
-        let Some(public_key) = ow_extensions::offworker::get_encryption_key() else {
-            return;
-        };
+    fn do_send_keep_alive(current_block: u64) -> Result<(), Box<dyn std::error::Error>> {
+        let public_key = ow_extensions::offworker::get_encryption_key()
+            .ok_or("Failed to get encryption key")?;
 
-        let storage_key = "last_keep_alive".as_bytes();
-        let storage = StorageValueRef::persistent(&storage_key);
-        let last_keep_alive = storage.get::<u64>().ok().flatten().unwrap_or(0);
+        let storage_key = b"last_keep_alive";
+        let storage = StorageValueRef::persistent(storage_key);
+        let last_keep_alive = storage.get::<u64>().transpose().unwrap_or(Ok(0))?;
 
-        if last_keep_alive != 0 && current_block - last_keep_alive < 50 {
-            return;
+        if last_keep_alive != 0 && current_block.saturating_sub(last_keep_alive) < 50 {
+            return Ok(());
         }
 
         let signer = Signer::<T, T::AuthorityId>::all_accounts();
         if !signer.can_sign() {
-            log::error!(
-                "No local accounts available. Consider adding one via `author_insertKey` RPC.",
-            );
+            error!("No local accounts available. Consider adding one via `author_insertKey` RPC.");
+            return Err("No local accounts available".into());
         }
 
-        signer.send_signed_transaction(|_| Call::send_keep_alive {
-            public_key: public_key.clone(),
-        });
+        signer
+            .send_signed_transaction(|_| Call::send_keep_alive { public_key: public_key.clone() })
+            .map(|_| ())
+            .map_err(|e| format!("Failed to send keep-alive transaction: {:?}", e))?;
 
         storage.set(&current_block);
+        Ok(())
     }
 }
 
