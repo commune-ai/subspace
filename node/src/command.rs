@@ -41,7 +41,7 @@ impl SubstrateCli for Cli {
     fn load_spec(&self, id: &str) -> Result<Box<dyn sc_service::ChainSpec>, String> {
         Ok(match id {
             "local" => Box::new(chain_spec::generate_config("./specs/local.json")?),
-            "dev" => Box::new(chain_spec::generate_config("./specs/dev.json")?),
+            "dev" => Box::new(chain_spec::generate_costnfig("./specs/dev.json")?),
             "main" => Box::new(chain_spec::ChainSpec::from_json_bytes(
                 include_bytes!("../chain-specs/main.json").as_ref(),
             )?),
