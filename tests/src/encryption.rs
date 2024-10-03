@@ -17,9 +17,7 @@ use rsa::{traits::PublicKeyParts, BigUint, Pkcs1v15Encrypt};
 //         BigUint::from_bytes_be(&key.0),
 //         BigUint::from_bytes_be(&key.1),
 //     )
-//     .unwrap(); // todo remove unwrap
-
-//     dbg!(&key.size());
+//     .unwrap();
 
 //     let res = encoded
 //         .chunks(key.size())
@@ -31,7 +29,6 @@ use rsa::{traits::PublicKeyParts, BigUint, Pkcs1v15Encrypt};
 //         })
 //         .collect::<Vec<_>>();
 
-//     dbg!(&res.len());
 //     res
 // }
 

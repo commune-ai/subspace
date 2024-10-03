@@ -9,9 +9,42 @@
 
 **Rust Encryption Reference** (performed by client)
 ```rs
-// TODO: implement this
-// hash
-// encrypt
+fn hash(data: Vec<(u16, u16)>) -> Vec<u8> {
+    sp_io::hashing::sha2_256(&weights_to_blob(&to_hash.clone()[..])[..]).to_vec() //can be any sha256 lib, this one is used on substrate.
+}
+
+// the key needs to be retrieved from the blockchain
+fn encrypt(key: (Vec<u8>, Vec<u8>), data: Vec<(u16, u16)>) -> Vec<u8> {
+    let mut blob = weights_to_blob(&data[..]);
+
+    let key = rsa::RsaPublicKey::new(
+        BigUint::from_bytes_be(&key.0),
+        BigUint::from_bytes_be(&key.1),
+    )
+    .unwrap();
+
+    let res = encoded
+        .chunks(key.size())
+        .into_iter()
+        .flat_map(|chunk| {
+            let enc = key.encrypt(&mut OsRng, Pkcs1v15Encrypt, chunk).unwrap();
+            dbg!(enc.len());
+            enc
+        })
+        .collect::<Vec<_>>();
+
+    res
+}
+
+fn weights_to_blob(weights: &[(u16, u16)]) -> Vec<u8> {
+    let mut encoded = Vec::new();
+    encoded.extend((weights.len() as u32).to_be_bytes());
+    encoded.extend(weights.iter().flat_map(|(uid, weight)| {
+        vec![uid.to_be_bytes(), weight.to_be_bytes()].into_iter().flat_map(|a| a)
+    }));
+
+    encoded
+}
 ```
 
 **Python Encryption Reference**
