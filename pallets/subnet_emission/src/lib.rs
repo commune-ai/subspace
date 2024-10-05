@@ -331,6 +331,8 @@ pub mod pallet {
             Self::do_set_weights(origin, netuid, uids, weights)
         }
 
+        // TODO:
+        // add benchmark
         #[pallet::call_index(1)]
         #[pallet::weight(0)] // TODO: add benchmark
         pub fn set_weights_encrypted(
