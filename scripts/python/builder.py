@@ -23,7 +23,6 @@ logging.basicConfig(
     level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s"
 )
 
-
 def query_map_values(
     client: SubstrateInterface, module: str, storage_function: str, params: list = []
 ) -> dict:

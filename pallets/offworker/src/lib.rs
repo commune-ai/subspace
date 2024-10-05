@@ -3,7 +3,7 @@
 extern crate alloc;
 
 use alloc::vec::Vec;
-use frame_support::traits::Get;
+use frame_support::{sp_runtime::DispatchError, traits::Get};
 use frame_system::{
     offchain::{
         AppCrypto, CreateSignedTransaction, SendSignedTransaction, SendUnsignedTransaction,
@@ -21,7 +21,7 @@ use pallet_subnet_emission::{
     },
     EncryptedWeights,
 };
-use pallet_subspace::TotalStake;
+use substrate_fixed::FixedI128;
 
 use std::collections::BTreeMap;
 
@@ -29,7 +29,7 @@ use pallet_subnet_emission::Weights;
 use pallet_subspace::{
     math::{inplace_normalize_64, vec_fixed64_to_fixed32},
     Active, Consensus, CopierMargin, FloorDelegationFee, MaxEncryptionPeriod,
-    Pallet as SubspaceModule, StakeFrom, Tempo, N,
+    Pallet as SubspaceModule, Tempo, N,
 };
 use parity_scale_codec::{Decode, Encode};
 use scale_info::prelude::marker::PhantomData;
@@ -37,9 +37,11 @@ use sp_core::crypto::KeyTypeId;
 use sp_runtime::{
     offchain::storage::{StorageRetrievalError, StorageValueRef},
     traits::{BlakeTwo256, Hash},
-    Percent, RuntimeDebug,
+    Percent,
 };
-use substrate_fixed::{types::I32F32, FixedI128};
+use substrate_fixed::types::I32F32;
+
+pub mod types;
 
 /// Defines application identifier for crypto keys of this module.
 ///
@@ -109,7 +111,6 @@ pub mod pallet {
         type RuntimeEvent: From<Event<Self>> + IsType<<Self as frame_system::Config>::RuntimeEvent>;
 
         // Configuration parameters
-
         /// A grace period after we send transaction.
         ///
         /// To avoid sending too many transactions, we only attempt to send one
@@ -145,7 +146,6 @@ pub mod pallet {
 
     #[pallet::hooks]
     impl<T: Config> Hooks<BlockNumberFor<T>> for Pallet<T> {
-        /// Reproducing offchain worker behaivor for testing
         #[cfg(test)]
         fn on_initialize(_block_number: BlockNumberFor<T>) -> Weight {
             log::info!("Hello World from on_initialize!");
@@ -164,9 +164,15 @@ pub mod pallet {
             let block_number =
                 block_number.try_into().ok().expect("blockchain won't pass 2^64 blocks");
 
-            Self::do_send_keep_alive(block_number);
+            // Sends a signal to the runtime informing that the offchain worker node is active
+            if let Err(e) = Self::do_send_keep_alive(block_number) {
+                log::error!("Error sending keep alive: {:?}", e);
+                return;
+            }
 
-            let public_key: (Vec<u8>, Vec<u8>) = (vec![], vec![]);
+            let Some(public_key) = ow_extensions::offworker::get_encryption_key() else {
+                return;
+            };
 
             let subnets = pallet_subnet_emission::SubnetDecryptionData::<T>::iter()
                 .filter_map(|(netuid, data)| {
@@ -183,24 +189,12 @@ pub mod pallet {
                 .collect::<Vec<_>>();
 
             for subnet_id in subnets {
-                // Create a reference to Local Storage value for the last processed block
-                let storage_key = format!("last_processed_block:{}", subnet_id).into_bytes();
-                let storage = StorageValueRef::persistent(&storage_key);
-
-                // Retrieve the last processed block or use 0 if not found
-                let last_processed_block: u64 = storage.get::<u64>().ok().flatten().unwrap_or(0);
-
-                // TODO: if last processed block is missing then just return everything
-                // Get all new ConsensusParameters since the last processed block
-                let new_params: Vec<(u64, ConsensusParams<T>)> =
-                    ConsensusParameters::<T>::iter_prefix(subnet_id)
-                        .filter(|(block, _)| {
-                            *block > last_processed_block && *block <= block_number
-                        })
-                        .collect();
+                // Gets all subnets consensus parameters, accumulated over epochs
+                let consensus_params: Vec<(u64, ConsensusParams<T>)> =
+                    ConsensusParameters::<T>::iter_prefix(subnet_id).collect();
 
                 let mut epochs = Vec::new();
-                for (param_block, params) in new_params {
+                for (param_block, params) in consensus_params {
                     let decrypted_weights = params
                         .modules
                         .iter()
@@ -226,14 +220,11 @@ pub mod pallet {
                         .collect::<Vec<_>>();
 
                     let should_decrypt: bool =
-                        Self::should_decrpyt(&decrypted_weights, params, subnet_id);
+                        Self::should_decrypt(&decrypted_weights, params, subnet_id);
 
                     if should_decrypt {
                         epochs.push((param_block, decrypted_weights));
                     }
-
-                    // Update the last processed block in local storage
-                    storage.set(&param_block);
                 }
 
                 if let Err(err) = Self::do_send_weights(subnet_id, epochs) {
@@ -244,10 +235,17 @@ pub mod pallet {
     }
 
     /// A public part of the pallet.
+    /// TODO: benchmark the extrinsics
     #[pallet::call]
     impl<T: Config> Pallet<T> {
-        #[pallet::call_index(2)]
-        #[pallet::weight({0})]
+        #[pallet::call_index(0)]
+        #[pallet::weight((
+            Weight::from_parts(0, 0)
+            .saturating_add(T::DbWeight::get().reads(0))
+            .saturating_add(T::DbWeight::get().writes(0)),
+            DispatchClass::Operational,
+            Pays::No
+        ))]
         pub fn send_decrypted_weights(
             origin: OriginFor<T>,
             subnet_id: u16,
@@ -260,11 +258,19 @@ pub mod pallet {
                 decrypted_weights,
             );
 
+            Self::deposit_event(Event::WeightsDecrypted(subnet_id));
+
             Ok(().into())
         }
 
-        #[pallet::call_index(3)]
-        #[pallet::weight({0})]
+        #[pallet::call_index(1)]
+        #[pallet::weight((
+            Weight::from_parts(0, 0)
+            .saturating_add(T::DbWeight::get().reads(0))
+            .saturating_add(T::DbWeight::get().writes(0)),
+            DispatchClass::Operational,
+            Pays::No
+        ))]
         pub fn send_keep_alive(
             origin: OriginFor<T>,
             public_key: (Vec<u8>, Vec<u8>),
@@ -279,13 +285,10 @@ pub mod pallet {
 
     /// Events for the pallet.
     #[pallet::event]
-    // #[pallet::generate_deposit(pub(super) fn deposit_event)]
+    #[pallet::generate_deposit(pub(super) fn deposit_event)]
     pub enum Event<T: Config> {
-        /// Event generated when new price is accepted to contribute to the average.
-        NewPrice {
-            price: u32,
-            maybe_who: Option<T::AccountId>,
-        },
+        /// Offchain worker is decrypting weights for subnet `u16`
+        WeightsDecrypted(u16),
     }
 
     /// A vector of recently submitted prices.
@@ -313,62 +316,38 @@ pub mod pallet {
     pub type MeasuredStakeAmount<T: Config> =
         StorageValue<_, Percent, ValueQuery, DefaultMeasuredStakeAmount<T>>;
 
+    /// The amount of delta between comulative copier dividends and compulative delegator dividends.
     #[pallet::storage]
     pub type IrrationalityDelta<T: Config> =
         StorageMap<_, Identity, u16, Option<I64F64>, ValueQuery>;
 }
 
 impl<T: Config> Pallet<T> {
+    /// Returns
     #[must_use]
-    pub fn should_decrpyt(
-        decrypted_weights: &Vec<(u16, Vec<(u16, u16)>)>,
-        latest_rumtime_yuma_params: ConsensusParams<T>,
+    pub fn should_decrypt(
+        decrypted_weights: &[(u16, Vec<(u16, u16)>)],
+        latest_runtime_yuma_params: ConsensusParams<T>,
         subnet_id: u16,
+        mut simulation_result: ConsensusSimulationResult<T>,
     ) -> bool {
         let (copier_uid, simulation_yuma_params) = Pallet::<T>::compute_simulation_yuma_params(
             decrypted_weights,
-            latest_rumtime_yuma_params,
+            latest_runtime_yuma_params,
             subnet_id,
         );
 
         // Run simulation
         let simulation_yuma_output = YumaEpoch::<T>::new(subnet_id, simulation_yuma_params)
-            .run(decrypted_weights.clone())
-            .unwrap(); // TODO: handle unwrap
-
-        // Create a reference to Local Storage value, we don't want to store the results in offchain
-        // worker memory
-        let storage_key = format!("consensus_simulation_result:{}", subnet_id).into_bytes();
-        let storage = StorageValueRef::persistent(&storage_key);
-
-        // Retrieve the existing simulation result or create a new one
-        let mut simulation_result = storage
-            .mutate(
-                |stored_data: Result<
-                    Option<ConsensusSimulationResult<T>>,
-                    StorageRetrievalError,
-                >|
-                 -> Result<ConsensusSimulationResult<T>, StorageRetrievalError> {
-                    match stored_data {
-                        Ok(Some(data)) => Ok(data),
-                        Ok(None) => Ok(ConsensusSimulationResult::default()),
-                        Err(e) => Err(e),
-                    }
-                },
-            )
-            .unwrap_or_else(|_| ConsensusSimulationResult::default());
+            .run(decrypted_weights.to_vec())
+            .unwrap();
 
         // Update the simulation result
         let tempo = Tempo::<T>::get(subnet_id);
         let delegation_fee = FloorDelegationFee::<T>::get();
         simulation_result.update(simulation_yuma_output, tempo, copier_uid, delegation_fee);
 
-        // Save the updated simulation result to local offchain worker storage
-        storage.set(&simulation_result);
-
-        // TODO:
-        // send delta back to the runtime
-        let (is_irrational, _) = is_copying_irrational::<T>(simulation_result);
+        let (is_irrational, delta) = is_copying_irrational::<T>(simulation_result);
 
         is_irrational
     }
@@ -376,7 +355,7 @@ impl<T: Config> Pallet<T> {
     /// Appends copier information to simulated consensus ConsensusParams
     /// Overwrites onchain decrypted weights with the offchain workers' decrypted weights
     pub fn compute_simulation_yuma_params(
-        decrypted_weights: &Vec<(u16, Vec<(u16, u16)>)>,
+        decrypted_weights: &[(u16, Vec<(u16, u16)>)],
         mut runtime_yuma_params: ConsensusParams<T>,
         subnet_id: u16,
         // Return copier uid and ConsensusParams
@@ -497,14 +476,13 @@ impl<T: Config> Pallet<T> {
 
         Ok(())
     }
-
-    fn do_send_keep_alive(current_block: u64) -> Result<(), Box<dyn std::error::Error>> {
-        let public_key = ow_extensions::offworker::get_encryption_key()
-            .ok_or("Failed to get encryption key")?;
+    fn do_send_keep_alive(current_block: u64) -> Result<(), DispatchError> {
+        let public_key =
+            ow_extensions::offworker::get_encryption_key().ok_or("Failed to get encryption key")?;
 
         let storage_key = b"last_keep_alive";
         let storage = StorageValueRef::persistent(storage_key);
-        let last_keep_alive = storage.get::<u64>().transpose().unwrap_or(Ok(0))?;
+        let last_keep_alive = storage.get::<u64>().ok().flatten().unwrap_or(0);
 
         if last_keep_alive != 0 && current_block.saturating_sub(last_keep_alive) < 50 {
             return Ok(());
@@ -512,14 +490,21 @@ impl<T: Config> Pallet<T> {
 
         let signer = Signer::<T, T::AuthorityId>::all_accounts();
         if !signer.can_sign() {
-            error!("No local accounts available. Consider adding one via `author_insertKey` RPC.");
+            log::error!(
+                "No local accounts available. Consider adding one via `author_insertKey` RPC."
+            );
             return Err("No local accounts available".into());
         }
+        let result = signer.send_signed_transaction(|_| Call::send_keep_alive {
+            public_key: public_key.clone(),
+        });
 
-        signer
-            .send_signed_transaction(|_| Call::send_keep_alive { public_key: public_key.clone() })
-            .map(|_| ())
-            .map_err(|e| format!("Failed to send keep-alive transaction: {:?}", e))?;
+        for (_account, result) in result {
+            if let Err(e) = result {
+                log::error!("Failed to send keep-alive transaction: {:?}", e);
+                return Err("Failed to send keep-alive transaction".into());
+            }
+        }
 
         storage.set(&current_block);
         Ok(())

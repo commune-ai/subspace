@@ -216,12 +216,12 @@ fn run_simulation(
         let weights = compute_weights::<Test>(netuid);
         let last_output = YumaEpoch::<Test>::new(netuid, last_params.clone()).run(weights).unwrap();
         last_output.clone().apply();
-        
+
         if let Some(irrationality_delta) = IrrationalityDelta::<Test>::get(netuid) {
             let abs_delta = irrationality_delta.abs();
             simulation_result.cumulative_avg_delegate_divs =
-            simulation_result.cumulative_avg_delegate_divs.saturating_add(abs_delta);
-            
+                simulation_result.cumulative_avg_delegate_divs.saturating_add(abs_delta);
+
             dbg!(simulation_result.clone());
             // Set the IrrationalityDelta back to None after using it
             IrrationalityDelta::<Test>::insert(netuid, None::<I64F64>);
@@ -233,7 +233,6 @@ fn run_simulation(
             copier_uid,
             delegation_fee,
         );
-
 
         // Calculate the percent difference between Dc(e) and Dd(e) for this epoch
         let dc = simulation_result.cumulative_copier_divs.to_num::<f64>();
