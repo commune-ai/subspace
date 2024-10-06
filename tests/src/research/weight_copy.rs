@@ -224,7 +224,7 @@ fn run_simulation(
 
             dbg!(simulation_result.clone());
             // Set the IrrationalityDelta back to None after using it
-            IrrationalityDelta::<Test>::insert(netuid, None::<I64F64>);
+            IrrationalityDelta::<Test>::remove(netuid);
         }
 
         simulation_result.update(

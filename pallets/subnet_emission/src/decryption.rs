@@ -113,6 +113,15 @@ impl<T: Config> Pallet<T> {
             valid_weights.push((block, valid_block_weights));
         }
 
+        match valid_weights.iter().max_by_key(|(key, _)| key) {
+            Some((_, weights)) => {
+                for (uid, weights) in weights {
+                    Weights::<T>::set(netuid, uid, Some(weights.clone()));
+                }
+            }
+            None => {}
+        }
+
         match DecryptedWeights::<T>::get(netuid) {
             Some(mut cached) => {
                 cached.extend(valid_weights);

@@ -43,9 +43,9 @@ use substrate_fixed::types::I32F32;
 use types::{ConsensusSimulationResult, ShouldDecryptResult};
 use util::process_consensus_params;
 
+mod profitability;
 mod types;
 mod util;
-mod profitability;
 
 /// Defines application identifier for crypto keys of this module.
 ///
@@ -114,40 +114,7 @@ pub mod pallet {
         /// The overarching event type.
         type RuntimeEvent: From<Event<Self>> + IsType<<Self as frame_system::Config>::RuntimeEvent>;
 
-        // TODO:
-        // get rid of this
-
-        // Configuration parameters
-        /// A grace period after we send transaction.
-        ///
-        /// To avoid sending too many transactions, we only attempt to send one
-        /// every `GRACE_PERIOD` blocks. We use Local Storage to coordinate
-        /// sending between distinct runs of this offchain worker.
-        #[pallet::constant]
-        type GracePeriod: Get<BlockNumberFor<Self>>;
-
-        /// Number of blocks of cooldown after unsigned transaction is included.
-        ///
-        /// This ensures that we only accept unsigned transactions once, every `UnsignedInterval`
-        /// blocks.
-        #[pallet::constant]
-        type UnsignedInterval: Get<BlockNumberFor<Self>>;
-
-        /// A configuration for base priority of unsigned transactions.
-        ///
-        /// This is exposed so that it can be tuned for particular runtime, when
-        /// multiple pallets send unsigned transactions.
-        #[pallet::constant]
-        type UnsignedPriority: Get<TransactionPriority>;
-
-        /// Maximum number of prices.
-        #[pallet::constant]
-        type MaxPrices: Get<u32>;
-
-        // TODO:
-        // add hardcoded limit of how many black boxes we can hold
-        /// After 10_800 >= blocks forcefully decrypt the black box
-        /// in process_consensus_params
+        type MaxEncryptionTime: Get<u64>;
     }
 
     #[pallet::pallet]
@@ -193,26 +160,42 @@ pub mod pallet {
 
             for subnet_id in subnets {
                 // Gets all subnets consensus parameters, accumulated over epochs
-
-                /// TODO:
-                /// Add a local storage value, of last processed block number, if the number matches the
-                /// latest parameter block number, you will skip the processing of the parameters
-                /// Make sure to update the last time set after not before the check lol
                 let params: Vec<(u64, ConsensusParams<T>)> =
                     ConsensusParameters::<T>::iter_prefix(subnet_id).collect();
 
-                // Use result
-                let (epochs, _result) = process_consensus_params::<T>(subnet_id, params);
+                let max_block = params
+                    .iter()
+                    .max_by_key(|(block, _)| block)
+                    .map(|(block, _)| *block)
+                    .unwrap_or(0);
 
-                // TODO:
-                // send only if epochs are not empty
-                //  check before or in the function
-                if let Err(err) = Self::do_send_weights(subnet_id, epochs) {
+                let storage_key = format!("last_block:{subnet_id}");
+                let storage = StorageValueRef::persistent(storage_key.as_bytes());
+                let last_block = storage.get::<u64>().ok().flatten().unwrap_or(0);
+
+                if last_block >= max_block {
+                    continue;
+                }
+
+                // Use result
+                let (epochs, result) = process_consensus_params::<T>(subnet_id, params);
+
+                storage.set(&max_block);
+
+                if epochs.is_empty() {
+                    continue;
+                }
+
+                if let Err(err) = Self::do_send_weights(subnet_id, epochs, result.delta) {
                     log::error!("couldn't send weights to runtime: {err}");
                 }
             }
         }
     }
+
+    #[pallet::event]
+    #[pallet::generate_deposit(pub(super) fn deposit_event)]
+    pub enum Event<T: Config> {}
 
     /// A public part of the pallet.
     /// TODO: benchmark the extrinsics
@@ -230,15 +213,16 @@ pub mod pallet {
             origin: OriginFor<T>,
             subnet_id: u16,
             decrypted_weights: Vec<(u64, Vec<(u16, Vec<(u16, u16)>)>)>,
+            delta: I64F64,
         ) -> DispatchResultWithPostInfo {
             ensure_none(origin)?;
+
+            IrrationalityDelta::<T>::set(subnet_id, Some(delta));
 
             pallet_subnet_emission::Pallet::<T>::handle_decrypted_weights(
                 subnet_id,
                 decrypted_weights,
             );
-
-            Self::deposit_event(Event::WeightsDecrypted(subnet_id));
 
             Ok(().into())
         }
@@ -276,16 +260,14 @@ pub mod pallet {
 
     /// The amount of delta between comulative copier dividends and compulative delegator dividends.
     #[pallet::storage]
-    pub type IrrationalityDelta<T: Config> =
-        StorageMap<_, Identity, u16, Option<I64F64>, ValueQuery>;
+    pub type IrrationalityDelta<T: Config> = StorageMap<_, Identity, u16, I64F64>;
 }
 
 impl<T: Config> Pallet<T> {
-    /// TODO: Make this take and send the delta with the weights
-    /// Runtime saves delta into `IrrationalityDelta` storage
     fn do_send_weights(
         netuid: u16,
         decrypted_weights: Vec<(u64, Vec<(u16, Vec<(u16, u16)>)>)>,
+        delta: I64F64,
     ) -> Result<(), &'static str> {
         let signer = Signer::<T, T::AuthorityId>::all_accounts();
         if !signer.can_sign() {
@@ -297,6 +279,7 @@ impl<T: Config> Pallet<T> {
         signer.send_signed_transaction(|_| Call::send_decrypted_weights {
             decrypted_weights: decrypted_weights.clone(),
             subnet_id: netuid,
+            delta,
         });
 
         Ok(())
