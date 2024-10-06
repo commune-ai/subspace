@@ -1,18 +1,26 @@
-use super::*;
+use core::default;
 
-/// TODO:
-/// This is wrong, when `  if should_decrypt_result.should_decrypt {` is met,
-/// we will decrypt the weights of literally all ConsensusParams for that given subnet.
-/// so everything that was encrypted for that subnet will be decrypted.
+use super::*;
+use crate::profitability::{get_copier_stake, is_copying_irrational};
+
 pub fn process_consensus_params<T: Config>(
     subnet_id: u16,
     consensus_params: Vec<(u64, ConsensusParams<T>)>,
-) -> (Vec<(u64, Vec<(UidT<T>, Vec<u8>)>)>, ShouldDecryptResult<T>)
+) -> (
+    Vec<(u64, Vec<(u16, Vec<(u16, u16)>)>)>,
+    ShouldDecryptResult<T>,
+)
 where
     T: pallet_subspace::Config,
 {
     let mut epochs = Vec::new();
-    let mut result = SimulationResult::<T>::default();
+    let mut result = ShouldDecryptResult::<T> {
+        should_decrypt: false,
+        simulation_result: ConsensusSimulationResult::<T>::default(),
+        delta: I64F64::from_num(0.0),
+    };
+
+    let mut tmp_epochs = Vec::new();
 
     for (param_block, params) in consensus_params {
         let decrypted_weights = params
@@ -33,39 +41,48 @@ where
             })
             .collect::<Vec<_>>();
 
-        let should_decrypt_result: ShouldDecryptResult<T> =
-            Self::should_decrypt_weights(&decrypted_weights, params, subnet_id, result.clone());
-
-        result = should_decrypt_result.simulation_result;
+        let should_decrypt_result: ShouldDecryptResult<T> = should_decrypt_weights::<T>(
+            &decrypted_weights,
+            params,
+            subnet_id,
+            result.simulation_result.clone(),
+        );
 
         if should_decrypt_result.should_decrypt {
-            epochs.push((param_block, decrypted_weights));
+            epochs.extend(tmp_epochs.clone());
+            tmp_epochs.clear();
+            result = should_decrypt_result;
+            continue;
         }
+
+        tmp_epochs.push((param_block, decrypted_weights));
     }
 
-    (epochs, should_decrypt_result)
+    (epochs, result)
 }
 
 /// Returns
 #[must_use]
-pub fn should_decrypt_weights(
+pub fn should_decrypt_weights<T: Config>(
     decrypted_weights: &[(u16, Vec<(u16, u16)>)],
     latest_runtime_yuma_params: ConsensusParams<T>,
     subnet_id: u16,
     mut simulation_result: ConsensusSimulationResult<T>,
 ) -> ShouldDecryptResult<T> {
     // Now this will return struct X
-    let (copier_uid, simulation_yuma_params) = Pallet::<T>::compute_simulation_yuma_params(
+    let SimulationYumaParams {
+        uid: copier_uid,
+        params: simulation_yuma_params,
+        decrypted_weights_map,
+    } = compute_simulation_yuma_params::<T>(
         decrypted_weights,
         latest_runtime_yuma_params,
         subnet_id,
     );
 
     // Run simulation
-    /// TODO:
-    /// use here the ` decrypted_weights` from the struct X instead of the one from the function arguments
     let simulation_yuma_output = YumaEpoch::<T>::new(subnet_id, simulation_yuma_params)
-        .run(decrypted_weights.to_vec())
+        .run(decrypted_weights_map.into_iter().collect::<Vec<_>>())
         .unwrap();
 
     // Update the simulation result
@@ -82,17 +99,20 @@ pub fn should_decrypt_weights(
     }
 }
 
+pub struct SimulationYumaParams<T: Config> {
+    pub uid: u16,
+    pub params: ConsensusParams<T>,
+    pub decrypted_weights_map: BTreeMap<u16, Vec<(u16, u16)>>,
+}
+
 /// Appends copier information to simulated consensus ConsensusParams
 /// Overwrites onchain decrypted weights with the offchain workers' decrypted weights
-///
-/// TODO:
-/// make this return a struct of u16, ConsensusParams<T>, decrypted_weights_map. Every of them seperately
-pub fn compute_simulation_yuma_params(
+pub fn compute_simulation_yuma_params<T: Config>(
     decrypted_weights: &[(u16, Vec<(u16, u16)>)],
     mut runtime_yuma_params: ConsensusParams<T>,
     subnet_id: u16,
     // Return copier uid and ConsensusParams
-) -> (u16, ConsensusParams<T>) {
+) -> SimulationYumaParams<T> {
     let copier_uid: u16 = N::<T>::get(subnet_id);
 
     let consensus_weights = Consensus::<T>::get(subnet_id);
@@ -103,29 +123,23 @@ pub fn compute_simulation_yuma_params(
         .collect();
 
     // Overwrite the runtime yuma params with copier information
-    runtime_yuma_params = Self::add_copier_to_yuma_params(
-        copier_uid,
-        runtime_yuma_params,
-        subnet_id,
-        copier_weights,
-    );
+    runtime_yuma_params =
+        add_copier_to_yuma_params(copier_uid, runtime_yuma_params, subnet_id, copier_weights);
 
-    // Query the onchain weights for subnet_id
-    /// TODO:
-    /// Make sure the runtime really writes into the  `Weights` even for subnets that have the encryption on
-    /// otherwise this whole logic is fucked !
-    let onchain_weights: Vec<(u16, Vec<(u16, u16)>)> =
+    let mut onchain_weights: BTreeMap<u16, Vec<(u16, u16)>> =
         Weights::<T>::iter_prefix(subnet_id).collect();
 
-    // Create a map of uid to decrypted weights for easier lookup
-    let decrypted_weights_map: BTreeMap<u16, Vec<(u16, u16)>> =
-        decrypted_weights.iter().cloned().collect();
+    onchain_weights.extend(decrypted_weights.iter().cloned());
 
-    (copier_uid, runtime_yuma_params)
+    SimulationYumaParams {
+        uid: copier_uid,
+        params: runtime_yuma_params,
+        decrypted_weights_map: onchain_weights,
+    }
 }
 
 /// This will mutate ConsensusParams with copier information, ready for simulation
-pub fn add_copier_to_yuma_params(
+pub fn add_copier_to_yuma_params<T: Config>(
     copier_uid: u16,
     mut runtime_yuma_params: ConsensusParams<T>,
     subnet_id: u16,

@@ -7,6 +7,7 @@ pub use pallet::*;
 use parity_scale_codec::{Decode, Encode};
 use scale_info::TypeInfo;
 use sp_std::{collections::btree_map::BTreeMap, vec::Vec};
+use substrate_fixed::types::I64F64;
 // ! Pallet that handles the emisson distribution amongs subnets
 
 // Pallet Imports
