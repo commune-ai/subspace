@@ -3,7 +3,7 @@
 extern crate alloc;
 
 use alloc::vec::Vec;
-use frame_support::{sp_runtime::DispatchError, traits::Get};
+use frame_support::{pallet_macros::import_section, sp_runtime::DispatchError, traits::Get};
 use frame_system::{
     offchain::{AppCrypto, CreateSignedTransaction, SendSignedTransaction, Signer},
     pallet_prelude::BlockNumberFor,
@@ -36,6 +36,8 @@ use substrate_fixed::types::I32F32;
 use types::{ConsensusSimulationResult, ShouldDecryptResult};
 use util::process_consensus_params;
 
+mod dispatches;
+mod process;
 mod profitability;
 mod types;
 mod util;
@@ -83,6 +85,7 @@ pub mod crypto {
 pub use pallet::*;
 use substrate_fixed::types::I64F64;
 
+#[import_section(dispatches::dispatches)]
 #[frame_support::pallet]
 pub mod pallet {
     use super::*;
@@ -116,7 +119,6 @@ pub mod pallet {
     impl<T: Config> Hooks<BlockNumberFor<T>> for Pallet<T> {
         #[cfg(test)]
         fn on_initialize(_block_number: BlockNumberFor<T>) -> Weight {
-            log::info!("Offchain worker on init is running");
             Weight::zero()
         }
 
@@ -148,56 +150,6 @@ pub mod pallet {
     #[pallet::event]
     pub enum Event<T: Config> {}
 
-    /// A public part of the pallet.
-    /// TODO: benchmark the extrinsics
-    #[pallet::call]
-    impl<T: Config> Pallet<T> {
-        #[pallet::call_index(0)]
-        #[pallet::weight((
-            Weight::from_parts(0, 0)
-            .saturating_add(T::DbWeight::get().reads(0))
-            .saturating_add(T::DbWeight::get().writes(0)),
-            DispatchClass::Operational,
-            Pays::No
-        ))]
-        pub fn send_decrypted_weights(
-            origin: OriginFor<T>,
-            subnet_id: u16,
-            decrypted_weights: Vec<(u64, Vec<(u16, Vec<(u16, u16)>)>)>,
-            delta: I64F64,
-        ) -> DispatchResultWithPostInfo {
-            ensure_none(origin)?;
-
-            IrrationalityDelta::<T>::set(subnet_id, delta);
-
-            pallet_subnet_emission::Pallet::<T>::handle_decrypted_weights(
-                subnet_id,
-                decrypted_weights,
-            );
-
-            Ok(().into())
-        }
-
-        #[pallet::call_index(1)]
-        #[pallet::weight((
-            Weight::from_parts(0, 0)
-            .saturating_add(T::DbWeight::get().reads(0))
-            .saturating_add(T::DbWeight::get().writes(0)),
-            DispatchClass::Operational,
-            Pays::No
-        ))]
-        pub fn send_keep_alive(
-            origin: OriginFor<T>,
-            public_key: (Vec<u8>, Vec<u8>),
-        ) -> DispatchResultWithPostInfo {
-            ensure_none(origin)?;
-
-            pallet_subnet_emission::Pallet::<T>::handle_authority_node_keep_alive(public_key);
-
-            Ok(().into())
-        }
-    }
-
     // 5 % of total active stake
     #[pallet::type_value]
     pub fn DefaultMeasuredStakeAmount<T: Config>() -> Percent {
@@ -216,61 +168,6 @@ pub mod pallet {
 }
 
 impl<T: Config> Pallet<T> {
-    pub fn get_valid_subnets(public_key: (Vec<u8>, Vec<u8>)) -> Vec<u16> {
-        pallet_subnet_emission::SubnetDecryptionData::<T>::iter()
-            .filter(|(netuid, data)| {
-                pallet_subspace::UseWeightsEncrytyption::<T>::get(*netuid)
-                    && data.node_public_key == public_key
-            })
-            .map(|(netuid, _)| netuid)
-            .collect()
-    }
-
-    pub fn process_subnets(subnets: Vec<u16>) {
-        subnets
-            .into_iter()
-            .filter_map(|subnet_id| {
-                let params: Vec<(u64, ConsensusParams<T>)> =
-                    ConsensusParameters::<T>::iter_prefix(subnet_id).collect();
-
-                let max_block = params.iter().map(|(block, _)| *block).max().unwrap_or(0);
-
-                if !Self::should_process_subnet(subnet_id, max_block) {
-                    return None;
-                }
-
-                let (epochs, result) = process_consensus_params::<T>(subnet_id, params);
-
-                if epochs.is_empty() {
-                    return None;
-                }
-
-                Some((subnet_id, epochs, result.delta))
-            })
-            .for_each(|(subnet_id, epochs, delta)| {
-                if let Err(err) = Self::do_send_weights(subnet_id, epochs, delta) {
-                    log::error!(
-                        "couldn't send weights to runtime for subnet {}: {}",
-                        subnet_id,
-                        err
-                    );
-                }
-            });
-    }
-
-    fn should_process_subnet(subnet_id: u16, max_block: u64) -> bool {
-        let storage_key = format!("last_processed_block:{subnet_id}");
-        let storage = StorageValueRef::persistent(storage_key.as_bytes());
-        let last_processed_block = storage.get::<u64>().ok().flatten().unwrap_or(0);
-
-        if last_processed_block < max_block {
-            storage.set(&max_block);
-            true
-        } else {
-            false
-        }
-    }
-
     fn do_send_weights(
         netuid: u16,
         decrypted_weights: Vec<(u64, Vec<(u16, Vec<(u16, u16)>)>)>,
