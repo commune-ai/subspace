@@ -46,14 +46,11 @@ where
             result.simulation_result.clone(),
         );
 
-        match should_decrypt_result.should_decrypt {
-            true => {
-                epochs.extend(tmp_epochs.drain(..));
-                result = should_decrypt_result;
-            }
-            false => {
-                tmp_epochs.push((param_block, decrypted_weights));
-            }
+        if should_decrypt_result.should_decrypt {
+            epochs.extend(tmp_epochs.drain(..));
+            result = should_decrypt_result;
+        } else {
+            tmp_epochs.push((param_block, decrypted_weights));
         }
     }
 
