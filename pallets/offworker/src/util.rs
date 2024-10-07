@@ -1,7 +1,8 @@
 use super::*;
 use crate::profitability::{get_copier_stake, is_copying_irrational};
 use types::SimulationYumaParams;
-pub fn process_consensus_params<T: Config>(
+
+pub fn process_consensus_params<T>(
     subnet_id: u16,
     consensus_params: Vec<(u64, ConsensusParams<T>)>,
 ) -> (
@@ -9,46 +10,46 @@ pub fn process_consensus_params<T: Config>(
     ShouldDecryptResult<T>,
 )
 where
-    T: pallet_subspace::Config + pallet_subnet_emission::Config,
+    T: pallet_subspace::Config + pallet_subnet_emission::Config + pallet::Config,
 {
     let mut epochs = Vec::new();
     let mut result = ShouldDecryptResult::<T>::default();
     let mut tmp_epochs = Vec::new();
 
     for (param_block, params) in consensus_params {
-        let decrypted_weights = params
+        let decrypted_weights: Vec<_> = params
             .modules
             .iter()
             .filter_map(|(key, params)| {
-                let Some(uid) = pallet_subspace::Pallet::<T>::get_uid_for_key(subnet_id, &key.0)
-                else {
-                    return None;
-                };
-
-                if params.weight_encrypted.is_empty() {
-                    return Some((uid, Vec::new()));
-                }
-
-                ow_extensions::offworker::decrypt_weight(params.weight_encrypted.clone())
-                    .map(|decrypted| (uid, decrypted))
+                pallet_subspace::Pallet::<T>::get_uid_for_key(subnet_id, &key.0)
+                    .map(|uid| (uid, params))
             })
-            .collect::<Vec<_>>();
+            .filter_map(|(uid, params)| {
+                if params.weight_encrypted.is_empty() {
+                    Some((uid, Vec::new()))
+                } else {
+                    ow_extensions::offworker::decrypt_weight(params.weight_encrypted.clone())
+                        .map(|decrypted| (uid, decrypted))
+                }
+            })
+            .collect();
 
-        let should_decrypt_result: ShouldDecryptResult<T> = should_decrypt_weights::<T>(
+        let should_decrypt_result = should_decrypt_weights::<T>(
             &decrypted_weights,
             params,
             subnet_id,
             result.simulation_result.clone(),
         );
 
-        if should_decrypt_result.should_decrypt {
-            epochs.extend(tmp_epochs.clone());
-            tmp_epochs.clear();
-            result = should_decrypt_result;
-            continue;
+        match should_decrypt_result.should_decrypt {
+            true => {
+                epochs.extend(tmp_epochs.drain(..));
+                result = should_decrypt_result;
+            }
+            false => {
+                tmp_epochs.push((param_block, decrypted_weights));
+            }
         }
-
-        tmp_epochs.push((param_block, decrypted_weights));
     }
 
     (epochs, result)
@@ -98,25 +99,27 @@ pub fn compute_simulation_yuma_params<T: Config>(
     decrypted_weights: &[(u16, Vec<(u16, u16)>)],
     mut runtime_yuma_params: ConsensusParams<T>,
     subnet_id: u16,
-    // Return copier uid and ConsensusParams
 ) -> SimulationYumaParams<T> {
     let copier_uid: u16 = N::<T>::get(subnet_id);
 
     let consensus_weights = Consensus::<T>::get(subnet_id);
-    // Use copier weights
     let copier_weights: Vec<(u16, u16)> = consensus_weights
         .into_iter()
         .enumerate()
         .map(|(index, value)| (index as u16, value))
         .collect();
 
-    // Overwrite the runtime yuma params with copier information
     runtime_yuma_params = add_copier_to_yuma_params(copier_uid, runtime_yuma_params, subnet_id);
 
     let mut onchain_weights: BTreeMap<u16, Vec<(u16, u16)>> =
         Weights::<T>::iter_prefix(subnet_id).collect();
 
-    update_weights(&mut onchain_weights, &decrypted_weights);
+    update_weights(
+        &mut onchain_weights,
+        decrypted_weights,
+        copier_uid,
+        &copier_weights,
+    );
 
     SimulationYumaParams {
         uid: copier_uid,
@@ -128,10 +131,15 @@ pub fn compute_simulation_yuma_params<T: Config>(
 fn update_weights(
     onchain_weights: &mut BTreeMap<u16, Vec<(u16, u16)>>,
     decrypted_weights: &[(u16, Vec<(u16, u16)>)],
+    copier_uid: u16,
+    copier_weights: &[(u16, u16)],
 ) {
     decrypted_weights.iter().for_each(|&(uid, ref weights)| {
         onchain_weights.insert(uid, weights.clone());
     });
+
+    // Insert the copier weight
+    onchain_weights.insert(copier_uid, copier_weights.to_vec());
 }
 
 /// This will mutate ConsensusParams with copier information, ready for simulation
@@ -140,11 +148,9 @@ pub fn add_copier_to_yuma_params<T: Config>(
     mut runtime_yuma_params: ConsensusParams<T>,
     subnet_id: u16,
 ) -> ConsensusParams<T> {
-    // Weight copier stake calculation
     let copier_stake = get_copier_stake::<T>(subnet_id);
     let current_block = runtime_yuma_params.current_block;
 
-    // TODO: is this correct ?
     let mut all_stakes: Vec<I64F64> = runtime_yuma_params
         .modules
         .values()
@@ -153,17 +159,14 @@ pub fn add_copier_to_yuma_params<T: Config>(
         .collect();
 
     inplace_normalize_64(&mut all_stakes);
-
     let normalized_stakes = vec_fixed64_to_fixed32(all_stakes.clone());
-
-    let copier_stake_normalized = normalized_stakes.last().cloned().unwrap_or_default();
 
     let copier_module = ModuleParams {
         uid: copier_uid,
         last_update: current_block,
         block_at_registration: current_block.saturating_sub(1),
         validator_permit: true,
-        stake_normalized: copier_stake_normalized,
+        stake_normalized: *normalized_stakes.last().unwrap_or(&I32F32::from_num(0)),
         stake_original: I64F64::from_num(copier_stake),
         bonds: Vec::new(),
         weight_encrypted: Vec::new(),
@@ -176,17 +179,16 @@ pub fn add_copier_to_yuma_params<T: Config>(
 
     let copier_key = ModuleKey(copier_account_id);
 
-    runtime_yuma_params.modules.insert(copier_key.clone(), copier_module);
+    runtime_yuma_params.modules.insert(copier_key, copier_module);
 
-    for (index, module) in runtime_yuma_params.modules.values_mut().enumerate() {
-        module.stake_normalized =
-            normalized_stakes.get(index).cloned().unwrap_or_else(|| I32F32::from_num(0));
-        module.stake_original =
-            all_stakes.get(index).cloned().unwrap_or_else(|| I64F64::from_num(0));
-    }
-    if let Some(copier_module) = runtime_yuma_params.modules.get_mut(&copier_key) {
-        copier_module.stake_original = I64F64::from_num(copier_stake);
-    }
+    runtime_yuma_params
+        .modules
+        .values_mut()
+        .zip(normalized_stakes.iter().zip(all_stakes.iter()))
+        .for_each(|(module, (&normalized, &original))| {
+            module.stake_normalized = normalized;
+            module.stake_original = original;
+        });
 
     runtime_yuma_params
 }

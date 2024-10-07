@@ -416,10 +416,7 @@ impl frame_system::offchain::SendTransactionTypes<OffworkerCall<Test>> for Test 
 impl pallet_offworker::Config for Test {
     type AuthorityId = TestAuthId;
     type RuntimeEvent = RuntimeEvent;
-    type GracePeriod = frame_support::traits::ConstU64<5>;
-    type UnsignedInterval = frame_support::traits::ConstU64<10>;
-    type UnsignedPriority = frame_support::traits::ConstU64<1000>;
-    type MaxPrices = frame_support::traits::ConstU32<64>;
+    type MaxEncryptionTime = ConstU64<10_800>;
 }
 
 impl system::Config for Test {
@@ -602,17 +599,6 @@ pub fn get_origin(key: AccountId) -> RuntimeOrigin {
 pub fn get_total_subnet_balance(netuid: u16) -> u64 {
     let keys = SubspaceMod::get_keys(netuid);
     keys.iter().map(SubspaceMod::get_balance_u64).sum()
-}
-
-/// Appends weight copier validator
-pub fn add_weight_copier(netuid: u16, key: u32, uids: Vec<u16>, values: Vec<u16>) {
-    dbg!(TotalStake::<Test>::get());
-    let copier_stake = pallet_offworker::get_copier_stake::<Test>(netuid);
-    // registers module if not already registered
-    let _ = register_module(netuid, key, copier_stake, false);
-    step_block(1);
-    dbg!(copier_stake);
-    set_weights(netuid, key, uids, values);
 }
 
 #[allow(dead_code)]

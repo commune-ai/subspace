@@ -334,7 +334,7 @@ pub mod pallet {
         // TODO:
         // add benchmark
         #[pallet::call_index(1)]
-        #[pallet::weight(0)] // TODO: add benchmark
+        #[pallet::weight((0, DispatchClass::Normal, Pays::No))]
         pub fn set_weights_encrypted(
             origin: OriginFor<T>,
             netuid: u16,
