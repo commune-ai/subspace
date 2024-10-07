@@ -2,7 +2,6 @@ use super::*;
 use crate::profitability::calculate_avg_delegate_divs;
 
 #[derive(Clone, Debug, PartialEq, Encode, Decode)]
-
 pub struct ConsensusSimulationResult<T: pallet_subspace::Config> {
     pub cumulative_copier_divs: I64F64,
     pub cumulative_avg_delegate_divs: I64F64,
