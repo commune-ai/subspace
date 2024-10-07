@@ -153,6 +153,17 @@ fn run_yuma_consensus<T: Config>(netuid: u16, emission_to_drain: u64) -> Result<
     let params = ConsensusParams::<T>::new(netuid, emission_to_drain)?;
 
     if !pallet_subspace::UseWeightsEncrytyption::<T>::get(netuid) {
+        let output =
+            match YumaEpoch::new(netuid, params).run(Weights::<T>::iter_prefix(netuid).collect()) {
+                Ok(output) => output,
+                Err(err) => {
+                    log::error!("could not run yuma consensus for {netuid}: {err:?}");
+                    return Err("could not run yuma consensus");
+                }
+            };
+
+        output.apply();
+
         return Ok(());
     }
 
