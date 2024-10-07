@@ -35,18 +35,26 @@ impl<T: pallet_subspace::Config + pallet_subnet_emission::Config> ConsensusSimul
     ) {
         let avg_delegate_divs =
             calculate_avg_delegate_divs::<T>(&yuma_output, copier_uid, delegation_fee)
-                .unwrap_or_else(|| FixedI128::from(0));
+                .unwrap_or_default();
 
         let copier_divs = yuma_output
             .dividends
             .get(copier_uid as usize)
             .map(|&div| I64F64::from_num(div))
-            .unwrap_or_else(|| I64F64::from_num(0));
+            .unwrap_or_default();
 
-        self.cumulative_copier_divs = self.cumulative_copier_divs.saturating_add(copier_divs);
-        self.cumulative_avg_delegate_divs =
-            self.cumulative_avg_delegate_divs.saturating_add(avg_delegate_divs);
-        self.black_box_age = self.black_box_age.saturating_add(u64::from(tempo));
+        self.cumulative_copier_divs = self
+            .cumulative_copier_divs
+            .checked_add(copier_divs)
+            .unwrap_or(self.cumulative_copier_divs);
+
+        self.cumulative_avg_delegate_divs = self
+            .cumulative_avg_delegate_divs
+            .checked_add(avg_delegate_divs)
+            .unwrap_or(self.cumulative_avg_delegate_divs);
+
+        self.black_box_age =
+            self.black_box_age.checked_add(u64::from(tempo)).unwrap_or(self.black_box_age);
 
         self.max_encryption_period = MaxEncryptionPeriod::<T>::get(yuma_output.subnet_id);
         self.copier_margin = CopierMargin::<T>::get(yuma_output.subnet_id);
