@@ -5,21 +5,15 @@ extern crate alloc;
 use alloc::vec::Vec;
 use frame_support::{sp_runtime::DispatchError, traits::Get};
 use frame_system::{
-    offchain::{
-        AppCrypto, CreateSignedTransaction, SendSignedTransaction, SendUnsignedTransaction,
-        SignedPayload, Signer, SigningTypes,
-    },
+    offchain::{AppCrypto, CreateSignedTransaction, SendSignedTransaction, Signer},
     pallet_prelude::BlockNumberFor,
 };
-use pallet_subnet_emission::{
-    subnet_consensus::{
-        util::{
-            consensus::ConsensusOutput,
-            params::{ConsensusParams, ModuleKey, ModuleParams},
-        },
-        yuma::YumaEpoch,
+use pallet_subnet_emission::subnet_consensus::{
+    util::{
+        consensus::ConsensusOutput,
+        params::{ConsensusParams, ModuleKey, ModuleParams},
     },
-    EncryptedWeights,
+    yuma::YumaEpoch,
 };
 use substrate_fixed::FixedI128;
 
@@ -122,10 +116,11 @@ pub mod pallet {
 
     #[pallet::hooks]
     impl<T: Config> Hooks<BlockNumberFor<T>> for Pallet<T> {
+        // TODO:
+        // optinal implement this for tests
         #[cfg(test)]
         fn on_initialize(_block_number: BlockNumberFor<T>) -> Weight {
             log::info!("Hello World from on_initialize!");
-            // TODO
             Weight::zero()
         }
 
@@ -169,18 +164,19 @@ pub mod pallet {
                     .map(|(block, _)| *block)
                     .unwrap_or(0);
 
-                let storage_key = format!("last_block:{subnet_id}");
+                let storage_key = format!("last_processed_block:{subnet_id}");
                 let storage = StorageValueRef::persistent(storage_key.as_bytes());
-                let last_block = storage.get::<u64>().ok().flatten().unwrap_or(0);
+                let last_processed_block = storage.get::<u64>().ok().flatten().unwrap_or(0);
 
-                if last_block >= max_block {
+                if last_processed_block >= max_block {
                     continue;
                 }
 
+                // Set last processed block
+                storage.set(&max_block);
+
                 // Use result
                 let (epochs, result) = process_consensus_params::<T>(subnet_id, params);
-
-                storage.set(&max_block);
 
                 if epochs.is_empty() {
                     continue;
@@ -194,7 +190,6 @@ pub mod pallet {
     }
 
     #[pallet::event]
-    #[pallet::generate_deposit(pub(super) fn deposit_event)]
     pub enum Event<T: Config> {}
 
     /// A public part of the pallet.
@@ -247,6 +242,7 @@ pub mod pallet {
         }
     }
 
+    // 5 % of total active stake
     #[pallet::type_value]
     pub fn DefaultMeasuredStakeAmount<T: Config>() -> Percent {
         Percent::from_percent(5u8)

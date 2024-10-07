@@ -1,5 +1,3 @@
-use core::ops::Index;
-
 use pallet_subspace::UseWeightsEncrytyption;
 use sp_runtime::traits::Get;
 use subnet_consensus::util::params::ModuleKey;

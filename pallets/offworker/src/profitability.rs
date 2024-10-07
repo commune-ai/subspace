@@ -57,8 +57,6 @@ pub fn calculate_avg_delegate_divs<T: pallet_subspace::Config + pallet_subnet_em
     average_dividends.saturating_mul(fee_factor).saturating_mul(copier_stake).into()
 }
 
-// TODO:
-// Optimization possible here
 #[inline]
 fn get_uid_deleg_stake<T>(module_id: u16, subnet_id: u16) -> u64
 where
@@ -70,8 +68,6 @@ where
     deleg_stake
 }
 
-// TODO:
-// The way stake is calculated here is wrong
 pub fn get_copier_stake<T>(subnet_id: u16) -> u64
 where
     T: pallet_subspace::Config + pallet::Config,
