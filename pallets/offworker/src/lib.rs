@@ -115,8 +115,8 @@ pub mod pallet {
     #[pallet::hooks]
     impl<T: Config> Hooks<BlockNumberFor<T>> for Pallet<T> {
         #[cfg(test)]
-        fn on_initialize(block_number: BlockNumberFor<T>) -> Weight {
-            log::info!("Offchain worker on intiiialize is running");
+        fn on_initialize(_block_number: BlockNumberFor<T>) -> Weight {
+            log::info!("Offchain worker on init is running");
             Weight::zero()
         }
 

@@ -14,6 +14,11 @@ where
 {
     let mut epochs = Vec::new();
     let mut result = ShouldDecryptResult::<T>::default();
+    // Add the delta from the previous run
+    result.simulation_result.cumulative_avg_delegate_divs = result
+        .simulation_result
+        .cumulative_avg_delegate_divs
+        .saturating_add(IrrationalityDelta::<T>::get(subnet_id));
     let mut tmp_epochs = Vec::new();
 
     for (param_block, params) in consensus_params {
@@ -114,11 +119,11 @@ pub fn compute_simulation_yuma_params<T: Config>(
     let mut onchain_weights: BTreeMap<u16, Vec<(u16, u16)>> =
         Weights::<T>::iter_prefix(subnet_id).collect();
 
-    update_weights(
-        &mut onchain_weights,
-        decrypted_weights,
-        copier_uid,
-        &copier_weights,
+    onchain_weights.extend(
+        decrypted_weights
+            .iter()
+            .cloned()
+            .chain(std::iter::once((copier_uid, copier_weights))),
     );
 
     SimulationYumaParams {
@@ -126,20 +131,6 @@ pub fn compute_simulation_yuma_params<T: Config>(
         params: runtime_yuma_params,
         decrypted_weights_map: onchain_weights,
     }
-}
-
-fn update_weights(
-    onchain_weights: &mut BTreeMap<u16, Vec<(u16, u16)>>,
-    decrypted_weights: &[(u16, Vec<(u16, u16)>)],
-    copier_uid: u16,
-    copier_weights: &[(u16, u16)],
-) {
-    decrypted_weights.iter().for_each(|&(uid, ref weights)| {
-        onchain_weights.insert(uid, weights.clone());
-    });
-
-    // Insert the copier weight
-    onchain_weights.insert(copier_uid, copier_weights.to_vec());
 }
 
 /// This will mutate ConsensusParams with copier information, ready for simulation
