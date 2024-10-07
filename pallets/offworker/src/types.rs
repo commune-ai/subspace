@@ -52,9 +52,24 @@ impl<T: pallet_subspace::Config + pallet_subnet_emission::Config> ConsensusSimul
         self.copier_margin = CopierMargin::<T>::get(yuma_output.subnet_id);
     }
 }
-
 pub struct ShouldDecryptResult<T: pallet_subspace::Config> {
     pub should_decrypt: bool,
     pub simulation_result: ConsensusSimulationResult<T>,
     pub delta: I64F64,
+}
+
+impl<T: pallet_subspace::Config> Default for ShouldDecryptResult<T> {
+    fn default() -> Self {
+        ShouldDecryptResult {
+            should_decrypt: false,
+            simulation_result: ConsensusSimulationResult::default(),
+            delta: I64F64::from_num(0),
+        }
+    }
+}
+
+pub struct SimulationYumaParams<T: Config> {
+    pub uid: u16,
+    pub params: ConsensusParams<T>,
+    pub decrypted_weights_map: BTreeMap<u16, Vec<(u16, u16)>>,
 }

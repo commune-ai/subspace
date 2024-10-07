@@ -1,8 +1,6 @@
-use core::default;
-
 use super::*;
 use crate::profitability::{get_copier_stake, is_copying_irrational};
-
+use types::SimulationYumaParams;
 pub fn process_consensus_params<T: Config>(
     subnet_id: u16,
     consensus_params: Vec<(u64, ConsensusParams<T>)>,
@@ -11,15 +9,10 @@ pub fn process_consensus_params<T: Config>(
     ShouldDecryptResult<T>,
 )
 where
-    T: pallet_subspace::Config,
+    T: pallet_subspace::Config + pallet_subnet_emission::Config,
 {
     let mut epochs = Vec::new();
-    let mut result = ShouldDecryptResult::<T> {
-        should_decrypt: false,
-        simulation_result: ConsensusSimulationResult::<T>::default(),
-        delta: I64F64::from_num(0.0),
-    };
-
+    let mut result = ShouldDecryptResult::<T>::default();
     let mut tmp_epochs = Vec::new();
 
     for (param_block, params) in consensus_params {
@@ -99,12 +92,6 @@ pub fn should_decrypt_weights<T: Config>(
     }
 }
 
-pub struct SimulationYumaParams<T: Config> {
-    pub uid: u16,
-    pub params: ConsensusParams<T>,
-    pub decrypted_weights_map: BTreeMap<u16, Vec<(u16, u16)>>,
-}
-
 /// Appends copier information to simulated consensus ConsensusParams
 /// Overwrites onchain decrypted weights with the offchain workers' decrypted weights
 pub fn compute_simulation_yuma_params<T: Config>(
@@ -116,6 +103,7 @@ pub fn compute_simulation_yuma_params<T: Config>(
     let copier_uid: u16 = N::<T>::get(subnet_id);
 
     let consensus_weights = Consensus::<T>::get(subnet_id);
+    // Use copier weights
     let copier_weights: Vec<(u16, u16)> = consensus_weights
         .into_iter()
         .enumerate()
@@ -123,13 +111,12 @@ pub fn compute_simulation_yuma_params<T: Config>(
         .collect();
 
     // Overwrite the runtime yuma params with copier information
-    runtime_yuma_params =
-        add_copier_to_yuma_params(copier_uid, runtime_yuma_params, subnet_id, copier_weights);
+    runtime_yuma_params = add_copier_to_yuma_params(copier_uid, runtime_yuma_params, subnet_id);
 
     let mut onchain_weights: BTreeMap<u16, Vec<(u16, u16)>> =
         Weights::<T>::iter_prefix(subnet_id).collect();
 
-    onchain_weights.extend(decrypted_weights.iter().cloned());
+    update_weights(&mut onchain_weights, &decrypted_weights);
 
     SimulationYumaParams {
         uid: copier_uid,
@@ -138,16 +125,26 @@ pub fn compute_simulation_yuma_params<T: Config>(
     }
 }
 
+fn update_weights(
+    onchain_weights: &mut BTreeMap<u16, Vec<(u16, u16)>>,
+    decrypted_weights: &[(u16, Vec<(u16, u16)>)],
+) {
+    decrypted_weights.iter().for_each(|&(uid, ref weights)| {
+        onchain_weights.insert(uid, weights.clone());
+    });
+}
+
 /// This will mutate ConsensusParams with copier information, ready for simulation
 pub fn add_copier_to_yuma_params<T: Config>(
     copier_uid: u16,
     mut runtime_yuma_params: ConsensusParams<T>,
     subnet_id: u16,
-    weights: Vec<(u16, u16)>,
 ) -> ConsensusParams<T> {
+    // Weight copier stake calculation
     let copier_stake = get_copier_stake::<T>(subnet_id);
     let current_block = runtime_yuma_params.current_block;
 
+    // TODO: is this correct ?
     let mut all_stakes: Vec<I64F64> = runtime_yuma_params
         .modules
         .values()
