@@ -13,7 +13,6 @@ use frame_system::{
 use pallet_governance::GlobalGovernanceConfig;
 use pallet_governance_api::*;
 use pallet_offworker::{crypto::Signature, Call as OffworkerCall};
-use pallet_subnet_emission::subnet_consensus::util::params::ConsensusParams;
 use pallet_subnet_emission_api::{SubnetConsensus, SubnetEmissionApi};
 use pallet_subspace::{
     subnet::SubnetChangeset, Address, DefaultKey, DefaultSubnetParams, Dividends, Emission,
@@ -22,9 +21,9 @@ use pallet_subspace::{
 };
 use parity_scale_codec::{Decode, Encode};
 use rand::rngs::OsRng;
-use rsa::{traits::PublicKeyParts, BigUint, Pkcs1v15Encrypt, RsaPrivateKey, RsaPublicKey};
+use rsa::{traits::PublicKeyParts, Pkcs1v15Encrypt};
 use scale_info::{prelude::collections::BTreeSet, TypeInfo};
-use sha2::Digest;
+
 use sp_core::{sr25519, ConstU16, ConstU64, H256};
 use sp_runtime::{
     generic::UncheckedExtrinsic,
@@ -34,7 +33,6 @@ use sp_runtime::{
 use std::{
     cell::RefCell,
     io::{Cursor, Read},
-    iter::Copied,
 };
 
 frame_support::construct_runtime!(
@@ -937,7 +935,7 @@ impl ow_extensions::OffworkerExtension for Decrypter {
             .chunks(dbg!(key.size()))
             .map(|chunk| match key.decrypt(Pkcs1v15Encrypt, &chunk) {
                 Ok(decrypted) => Some(decrypted),
-                Err(err) => None,
+                Err(_) => None,
             })
             .collect::<Option<Vec<Vec<u8>>>>()
         else {
@@ -969,7 +967,7 @@ impl ow_extensions::OffworkerExtension for Decrypter {
     }
 
     fn is_decryption_node(&self) -> bool {
-        self.key.is_some()
+        true
     }
 
     fn get_encryption_key(&self) -> Option<(Vec<u8>, Vec<u8>)> {
