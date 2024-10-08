@@ -143,6 +143,7 @@ pub mod pallet {
             };
 
             let subnets = Self::get_valid_subnets(public_key);
+            dbg!(&subnets);
             Self::process_subnets(subnets);
         }
     }
@@ -196,13 +197,13 @@ impl<T: Config> Pallet<T> {
         let storage_key = b"last_keep_alive";
         let storage = StorageValueRef::persistent(storage_key);
         let last_keep_alive = storage.get::<u64>().ok().flatten().unwrap_or(0);
-
         if last_keep_alive != 0 && current_block.saturating_sub(last_keep_alive) < 50 {
             return Ok(());
         }
 
         let signer = Signer::<T, T::AuthorityId>::all_accounts();
         if !signer.can_sign() {
+            dbg!("no local accs");
             log::error!(
                 "No local accounts available. Consider adding one via `author_insertKey` RPC."
             );

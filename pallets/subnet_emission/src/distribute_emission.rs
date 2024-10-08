@@ -97,11 +97,8 @@ fn run_consensus_algorithm<T: Config>(
 ) -> Result<(), &'static str> {
     with_storage_layer(|| {
         let Some(consensus_type) = SubnetConsensusType::<T>::get(netuid) else {
-            dbg!("return");
             return Ok(());
         };
-
-        dbg!(&consensus_type);
 
         match consensus_type {
             SubnetConsensus::Root => Ok(()),
@@ -137,7 +134,6 @@ pub fn run_linear_consensus<T: Config>(
     let weights = uids.keys().map(|uid| (*uid, weights.remove(uid).unwrap_or_default())).collect();
 
     let consensus_output = run.run(weights).map_err(|_| "Failed to run consensus")?;
-    dbg!("ran linear consensus");
     consensus_output.apply();
     Ok(())
 }
