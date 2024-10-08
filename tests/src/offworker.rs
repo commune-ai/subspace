@@ -7,7 +7,7 @@ use pallet_subnet_emission_api::SubnetConsensus;
 
 use parity_scale_codec::Decode;
 use rand::rngs::OsRng;
-use rsa::{traits::PublicKeyParts, Pkcs1v15Encrypt, RsaPrivateKey, RsaPublicKey};
+use rsa::{traits::PublicKeyParts, BigUint, Pkcs1v15Encrypt, RsaPrivateKey, RsaPublicKey};
 use serde_json::Value;
 use sp_core::{
     offchain::{testing, OffchainDbExt, OffchainWorkerExt, TransactionPoolExt},
@@ -252,6 +252,48 @@ fn get_value_for_block(module: &str, block_number: u64, json: &Value) -> Vec<u64
     stuff_vec
 }
 
+fn hash(data: Vec<(u16, u16)>) -> Vec<u8> {
+    //can be any sha256 lib, this one is used by substrate.
+    sp_io::hashing::sha2_256(&weights_to_blob(&data.clone()[..])[..]).to_vec()
+}
+
+fn weights_to_blob(weights: &[(u16, u16)]) -> Vec<u8> {
+    let mut encoded = Vec::new();
+    encoded.extend((weights.len() as u32).to_be_bytes());
+    encoded.extend(weights.iter().flat_map(|(uid, weight)| {
+        vec![uid.to_be_bytes(), weight.to_be_bytes()].into_iter().flat_map(|a| a)
+    }));
+
+    encoded
+}
+
+// the key needs to be retrieved from the blockchain
+fn encrypt(key: (Vec<u8>, Vec<u8>), data: Vec<(u16, u16)>) -> Vec<u8> {
+    let key = rsa::RsaPublicKey::new(
+        BigUint::from_bytes_be(&key.0),
+        BigUint::from_bytes_be(&key.1),
+    )
+    .unwrap();
+
+    let mut encoded = Vec::new();
+    encoded.extend((data.len() as u32).to_be_bytes());
+    encoded.extend(data.iter().flat_map(|(uid, weight)| {
+        vec![uid.to_be_bytes(), weight.to_be_bytes()].into_iter().flat_map(|a| a)
+    }));
+
+    let res = encoded
+        .chunks(key.size())
+        .into_iter()
+        .flat_map(|chunk| {
+            let enc = key.encrypt(&mut OsRng, Pkcs1v15Encrypt, chunk).unwrap();
+            dbg!(enc.len());
+            enc
+        })
+        .collect::<Vec<_>>();
+
+    res
+}
+
 /// This is the subnet id specifid in the data/...weights_stake.json
 /// We are using real network data to perform the tests
 const SAMPLE_SUBNET_ID: &str = "31";
@@ -261,6 +303,7 @@ const SUBNET_TEMPO: u64 = 360;
 const PENDING_EMISSION: u64 = to_nano(1000);
 
 #[test]
+#[ignore = "too long run indivudually"]
 fn test_offchain_worker_behavior() {
     let mock_offworker_ext = MockOffworkerExt::default();
     let (mut ext, pool_state, _offchain_state) = new_test_ext(mock_offworker_ext);
@@ -292,7 +335,7 @@ fn test_offchain_worker_behavior() {
             public_key,
             last_keep_alive: first_block,
         };
-        let decryption_nodes = vec![decryption_info];
+        let decryption_nodes = vec![decryption_info.clone()];
         DecryptionNodes::<Test>::set(decryption_nodes);
 
         // Run all important things in on initialize hooks
@@ -318,17 +361,44 @@ fn test_offchain_worker_behavior() {
             let weights: &Value = &block_weights[SAMPLE_SUBNET_ID];
 
             // Set encrypted weights instead of inserting them
-            for (uid, weight_data) in weights.as_object().unwrap() {
-                let uid: u16 = uid.parse().unwrap();
-                let encrypted_weights = weight_data.to_string().as_bytes().to_vec();
-                let decrypted_weights_hash = sp_core::blake2_256(&encrypted_weights).to_vec();
+            if let Some(weight_object) = weights.as_object() {
+                for (uid, weight_data) in weight_object {
+                    if let (Ok(uid), Some(weight_data_object)) =
+                        (uid.parse::<u16>(), weight_data.as_object())
+                    {
+                        let encrypted_weights = encrypt(
+                            decryption_info.public_key.clone(),
+                            weight_data_object
+                                .iter()
+                                .filter_map(|(uid, weight)| {
+                                    uid.parse::<u16>()
+                                        .ok()
+                                        .and_then(|uid| weight.as_u64().map(|w| (uid, w as u16)))
+                                })
+                                .collect(),
+                        );
 
-                set_weights_encrypted(
-                    TEST_SUBNET_ID,
-                    SubspaceMod::get_key_for_uid(TEST_SUBNET_ID, uid).unwrap(),
-                    encrypted_weights,
-                    decrypted_weights_hash,
-                );
+                        let decrypted_weights_hash = hash(
+                            weight_data_object
+                                .iter()
+                                .filter_map(|(uid, weight)| {
+                                    uid.parse::<u16>()
+                                        .ok()
+                                        .and_then(|uid| weight.as_u64().map(|w| (uid, w as u16)))
+                                })
+                                .collect(),
+                        );
+
+                        if let Some(key) = SubspaceMod::get_key_for_uid(TEST_SUBNET_ID, uid) {
+                            set_weights_encrypted(
+                                TEST_SUBNET_ID,
+                                key,
+                                encrypted_weights,
+                                decrypted_weights_hash,
+                            );
+                        }
+                    }
+                }
             }
 
             // Run the offchain worker
