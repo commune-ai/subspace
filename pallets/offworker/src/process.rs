@@ -4,8 +4,9 @@ impl<T: Config> Pallet<T> {
     pub fn get_valid_subnets(public_key: (Vec<u8>, Vec<u8>)) -> Vec<u16> {
         pallet_subnet_emission::SubnetDecryptionData::<T>::iter()
             .filter(|(netuid, data)| {
-                pallet_subspace::UseWeightsEncrytyption::<T>::get(*netuid)
-                    && data.node_public_key == public_key
+                let use_weights = pallet_subspace::UseWeightsEncrytyption::<T>::get(*netuid);
+                let key_match = &data.node_public_key == &public_key;
+                use_weights && key_match
             })
             .map(|(netuid, _)| netuid)
             .collect()
@@ -21,8 +22,14 @@ impl<T: Config> Pallet<T> {
                 let max_block = params.iter().map(|(block, _)| *block).max().unwrap_or(0);
 
                 if !Self::should_process_subnet(subnet_id, max_block) {
+                    dbg!(
+                        "skipping subnet {} because it has already been processed",
+                        subnet_id
+                    );
                     return None;
                 }
+
+                dbg!("processing subnet {}", subnet_id);
 
                 let (epochs, result) = process_consensus_params::<T>(subnet_id, params);
 

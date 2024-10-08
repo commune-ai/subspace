@@ -143,7 +143,6 @@ pub mod pallet {
             };
 
             let subnets = Self::get_valid_subnets(public_key);
-            dbg!(&subnets);
             Self::process_subnets(subnets);
         }
     }
