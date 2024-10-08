@@ -1,13 +1,11 @@
 use crate::{
     subnet_consensus::util::{consensus::*, params},
-    EmissionError,
+    Config, EmissionError,
 };
-
-use crate::Config;
 use core::marker::PhantomData;
 use frame_support::DebugNoBound;
 use pallet_subspace::math::*;
-use sp_std::{vec, vec::Vec};
+use sp_std::{collections::btree_map::BTreeMap, vec, vec::Vec};
 
 #[derive(DebugNoBound)]
 pub struct YumaEpoch<T: Config> {
@@ -33,9 +31,30 @@ impl<T: Config> YumaEpoch<T> {
         }
     }
 
+    fn prepare_weights(
+        &self,
+        input_weights: Vec<(u16, Vec<(u16, u16)>)>,
+    ) -> Vec<(u16, Vec<(u16, u16)>)> {
+        let uids: BTreeMap<u16, ()> = self
+            .modules
+            .keys
+            .iter()
+            .enumerate()
+            .map(|(index, _)| (index as u16, ()))
+            .collect();
+
+        // Convert input weights to a BTreeMap for easier manipulation
+        let mut weights: BTreeMap<u16, Vec<(u16, u16)>> = input_weights.into_iter().collect();
+
+        // Map over uids, keeping the uid and collecting weights
+        uids.keys()
+            .map(|&uid| (uid, weights.remove(&uid).unwrap_or_default()))
+            .collect()
+    }
+
     pub fn run(
         self,
-        weights: Vec<(u16, Vec<(u16, u16)>)>,
+        input_weights: Vec<(u16, Vec<(u16, u16)>)>,
     ) -> Result<ConsensusOutput<T>, EmissionError> {
         log::debug!(
             "running yuma for subnet_id {}, will emit {:?} modules and {:?} to founder",
@@ -44,6 +63,8 @@ impl<T: Config> YumaEpoch<T> {
             self.params.founder_emission
         );
         log::trace!("yuma for subnet_id {} parameters: {self:?}", self.subnet_id);
+
+        let weights = self.prepare_weights(input_weights);
 
         let (inactive, active) = split_modules_by_activity(
             &self.modules.last_update,

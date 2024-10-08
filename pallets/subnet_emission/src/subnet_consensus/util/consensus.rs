@@ -430,7 +430,6 @@ pub fn compute_bonds_and_dividends_yuma<T: Config>(
     inplace_col_normalize_sparse(&mut bonds, modules.module_count());
     log::trace!("  normalized bonds: {bonds:?}");
 
-    // Compute bonds delta column normalized.
     let mut bonds_delta = row_hadamard_sparse(weights.as_ref(), active_stake.as_ref()); // ΔB = W◦S (outdated W masked)
     log::trace!("  original bonds delta: {bonds_delta:?}");
 

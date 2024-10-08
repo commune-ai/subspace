@@ -1,6 +1,6 @@
 use core::fmt::Debug;
 
-use crate::{Config, DecryptedWeightHashes, EncryptedWeights, Weights};
+use crate::{Config, DecryptedWeightHashes, EncryptedWeights};
 use frame_support::DebugNoBound;
 use pallet_subspace::{
     math::*, AlphaValues, BalanceOf, Bonds, BondsMovingAverage, Founder, Kappa, Keys, LastUpdate,
@@ -215,18 +215,6 @@ impl<T: Config> ConsensusParams<T> {
             .map(|alpha| I32F32::from_num(alpha) / I32F32::from_num(u16::MAX));
         (result[0], result[1])
     }
-}
-
-/// Precomputes weights for the consensus.
-pub fn compute_weights<T: Config>(subnet_id: u16) -> Vec<(u16, Vec<(u16, u16)>)> {
-    let uids: BTreeMap<_, _> = Keys::<T>::iter_prefix(subnet_id).collect();
-
-    let mut weights: BTreeMap<_, _> = Weights::<T>::iter_prefix(subnet_id).collect();
-
-    // Now we map each UID to a tuple containing the UID and its weights
-    uids.keys()
-        .map(|&uid| (uid, weights.remove(&uid).unwrap_or_default()))
-        .collect()
 }
 
 macro_rules! impl_things {
