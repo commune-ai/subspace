@@ -7,10 +7,10 @@ from substrateinterface.exceptions import SubstrateRequestException  # type: ign
 
 QUERY_URL: str = "wss://bittensor-finney.api.onfinality.io/public"
 STANDARD_MODULE: str = "SubtensorModule"
-SUBNET = 19
-TEMPO = 360
-START_BLOCK = 3_600_000
-ITER_EPOCHS = 24
+SUBNET: int = 0
+DEFAULT_TEMPO = 360
+DEFAULT_START_BLOCK = 3_600_000
+DEFAULT_ITER_EPOCHS = 100
 
 
 def query_map_values(

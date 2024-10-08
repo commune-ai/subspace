@@ -22,6 +22,7 @@ sha2.workspace = true
 rsa.workspace = true
 bty = { workspace = true }
 csv = "1.1"
+hex = { workspace = true }
 
 ow_extensions = { path = "../ow_extensions" }
 

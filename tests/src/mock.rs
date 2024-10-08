@@ -637,6 +637,22 @@ pub fn set_weights(netuid: u16, key: AccountId, uids: Vec<u16>, values: Vec<u16>
 }
 
 #[allow(dead_code)]
+pub fn set_weights_encrypted(
+    netuid: u16,
+    key: AccountId,
+    encrypted_weights: Vec<u8>,
+    decrypted_weights_hash: Vec<u8>,
+) {
+    SubnetEmissionMod::set_weights_encrypted(
+        get_origin(key),
+        netuid,
+        encrypted_weights,
+        decrypted_weights_hash,
+    )
+    .unwrap();
+}
+
+#[allow(dead_code)]
 pub fn get_stake_for_uid(netuid: u16, module_uid: u16) -> u64 {
     let Some(key) = SubspaceMod::get_key_for_uid(netuid, module_uid) else {
         return 0;

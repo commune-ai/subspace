@@ -9593,6 +9593,7 @@ dependencies = [
  "csv",
  "frame-support",
  "frame-system",
+ "hex",
  "log",
  "ow_extensions",
  "pallet-balances",
