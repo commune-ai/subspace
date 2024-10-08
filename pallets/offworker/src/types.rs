@@ -59,6 +59,7 @@ impl<T: pallet_subspace::Config + pallet_subnet_emission::Config> ConsensusSimul
         self.copier_margin = CopierMargin::<T>::get(yuma_output.subnet_id);
     }
 }
+
 pub struct ShouldDecryptResult<T: pallet_subspace::Config> {
     pub should_decrypt: bool,
     pub simulation_result: ConsensusSimulationResult<T>,

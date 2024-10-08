@@ -6,8 +6,8 @@ use super::*;
 
 #[derive(Clone, Encode, Decode, TypeInfo)]
 pub struct DecryptionNodeInfo {
-    public_key: PublicKey,
-    last_keep_alive: u64,
+    pub public_key: PublicKey,
+    pub last_keep_alive: u64,
 }
 
 #[derive(Clone, Encode, Decode, TypeInfo)]

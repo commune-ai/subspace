@@ -21,6 +21,8 @@ where
         .saturating_add(IrrationalityDelta::<T>::get(subnet_id));
     let mut tmp_epochs = Vec::new();
 
+    dbg!("processing consensus params");
+
     for (param_block, params) in consensus_params {
         let decrypted_weights: Vec<_> = params
             .modules
