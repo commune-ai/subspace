@@ -362,9 +362,9 @@ fn test_lowest_priority_mechanism() {
         let dividends: Vec<u16> = Dividends::<Test>::get(netuid);
         let emissions: Vec<u64> = Emission::<Test>::get(netuid);
 
-        assert!(emissions[prune_uid as usize] == 0);
-        assert!(incentives[prune_uid as usize] == 0);
-        assert!(dividends[prune_uid as usize] == 0);
+        assert_eq!(emissions[prune_uid as usize], 0);
+        assert_eq!(incentives[prune_uid as usize], 0);
+        assert_eq!(dividends[prune_uid as usize], 0);
 
         let lowest_priority_uid: u16 = SubspaceMod::get_lowest_uid(netuid, false).unwrap_or(0);
         info!("lowest_priority_uid: {lowest_priority_uid}");

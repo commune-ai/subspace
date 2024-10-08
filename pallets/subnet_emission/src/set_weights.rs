@@ -53,7 +53,7 @@ impl<T: Config> Pallet<T> {
     ) -> dispatch::DispatchResult {
         let key = ensure_signed(origin)?;
 
-        if !pallet_subspace::UseWeightsEncrytyption::<T>::get(netuid) {
+        if pallet_subspace::UseWeightsEncrytyption::<T>::get(netuid) {
             return Err(pallet_subspace::Error::<T>::SubnetEncrypted.into());
         }
 

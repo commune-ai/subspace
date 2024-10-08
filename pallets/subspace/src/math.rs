@@ -652,7 +652,7 @@ pub fn mat_ema_sparse(
     old: &[Vec<(u16, I32F32)>],
     alpha: I32F32,
 ) -> Vec<Vec<(u16, I32F32)>> {
-    assert!(new.len() == old.len());
+    assert_eq!(new.len(), old.len());
     let n = new.len(); // assume square matrix, rows=cols
     let zero: I32F32 = I32F32::from_num(0.0);
     let one_minus_alpha: I32F32 = I32F32::from_num(1.0).saturating_sub(alpha);

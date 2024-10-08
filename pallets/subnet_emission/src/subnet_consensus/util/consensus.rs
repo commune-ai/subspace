@@ -434,9 +434,14 @@ pub fn compute_bonds_and_dividends_yuma<T: Config>(
     let mut bonds_delta = row_hadamard_sparse(weights.as_ref(), active_stake.as_ref()); // ΔB = W◦S (outdated W masked)
     log::trace!("  original bonds delta: {bonds_delta:?}");
 
+    dbg!(&bonds_delta.len());
+
     // Normalize bonds delta.
     inplace_col_normalize_sparse(&mut bonds_delta, modules.module_count()); // sum_i b_ij = 1
     log::trace!("  normalized bonds delta: {bonds_delta:?}");
+
+    dbg!(&bonds.len());
+    dbg!(&bonds_delta.len());
 
     // Compute bonds moving average.
     let mut ema_bonds = calculate_ema_bonds(
