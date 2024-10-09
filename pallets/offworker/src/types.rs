@@ -32,6 +32,7 @@ impl<T: pallet_subspace::Config + pallet_subnet_emission::Config> ConsensusSimul
         copier_uid: u16,
         delegation_fee: Percent,
     ) {
+        dbg!("updating");
         let avg_delegate_divs =
             calculate_avg_delegate_divs::<T>(&yuma_output, copier_uid, delegation_fee)
                 .unwrap_or_default();

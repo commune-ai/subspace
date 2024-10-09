@@ -5,6 +5,7 @@ use types::SimulationYumaParams;
 pub fn process_consensus_params<T>(
     subnet_id: u16,
     consensus_params: Vec<(u64, ConsensusParams<T>)>,
+    mut simulation_result: ConsensusSimulationResult<T>,
 ) -> (
     Vec<(u64, Vec<(u16, Vec<(u16, u16)>)>)>,
     ShouldDecryptResult<T>,
@@ -13,15 +14,21 @@ where
     T: pallet_subspace::Config + pallet_subnet_emission::Config + pallet::Config,
 {
     let mut epochs = Vec::new();
-    let mut result = ShouldDecryptResult::<T>::default();
-    // Add the delta from the previous run
+    dbg!(simulation_result.cumulative_copier_divs);
+    dbg!(simulation_result.cumulative_avg_delegate_divs);
+    let mut result = ShouldDecryptResult::<T> {
+        should_decrypt: false,
+        simulation_result: simulation_result.clone(),
+        delta: I64F64::from_num(0),
+    };
+
+    // Add the delta from the previous run or initialize if not available
     result.simulation_result.cumulative_avg_delegate_divs = result
         .simulation_result
         .cumulative_avg_delegate_divs
         .saturating_add(IrrationalityDelta::<T>::get(subnet_id));
-    let mut tmp_epochs = Vec::new();
 
-    dbg!("processing consensus params");
+    log::info!("Processing consensus params for subnet {}", subnet_id);
 
     for (param_block, params) in consensus_params {
         let decrypted_weights: Vec<_> = params
@@ -41,18 +48,20 @@ where
             })
             .collect();
 
+        dbg!(decrypted_weights.clone());
+
         let should_decrypt_result = should_decrypt_weights::<T>(
             &decrypted_weights,
             params,
             subnet_id,
-            result.simulation_result.clone(),
+            simulation_result.clone(),
         );
 
+        simulation_result = should_decrypt_result.simulation_result.clone();
+
         if should_decrypt_result.should_decrypt {
-            epochs.extend(tmp_epochs.drain(..));
+            epochs.push((param_block, decrypted_weights));
             result = should_decrypt_result;
-        } else {
-            tmp_epochs.push((param_block, decrypted_weights));
         }
     }
 

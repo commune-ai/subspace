@@ -13,53 +13,81 @@ impl<T: Config> Pallet<T> {
     }
 
     pub fn process_subnets(subnets: Vec<u16>) {
-        subnets
-            .into_iter()
-            .filter_map(|subnet_id| {
-                let params: Vec<(u64, ConsensusParams<T>)> =
-                    ConsensusParameters::<T>::iter_prefix(subnet_id).collect();
+        for subnet_id in subnets {
+            let params: Vec<(u64, ConsensusParams<T>)> =
+                ConsensusParameters::<T>::iter_prefix(subnet_id).collect();
 
-                let max_block = params.iter().map(|(block, _)| *block).max().unwrap_or(0);
+            let max_block = params.iter().map(|(block, _)| *block).max().unwrap_or(0);
 
-                if !Self::should_process_subnet(subnet_id, max_block) {
-                    dbg!(
-                        "skipping subnet {} because it has already been processed",
-                        subnet_id
-                    );
-                    return None;
-                }
+            let (last_processed_block, simulation_result) = Self::get_subnet_state(subnet_id);
 
-                dbg!("processing subnet {}", subnet_id);
+            dbg!(last_processed_block);
 
-                let (epochs, result) = process_consensus_params::<T>(subnet_id, params);
+            if last_processed_block >= max_block {
+                log::info!(
+                    "Skipping subnet {} as it has already been processed",
+                    subnet_id
+                );
+                continue;
+            }
 
-                if epochs.is_empty() {
-                    return None;
-                }
+            log::info!(
+                "Processing subnet {} from block {} to {}",
+                subnet_id,
+                last_processed_block,
+                max_block
+            );
 
-                Some((subnet_id, epochs, result.delta))
-            })
-            .for_each(|(subnet_id, epochs, delta)| {
-                if let Err(err) = Self::do_send_weights(subnet_id, epochs, delta) {
+            let new_params: Vec<_> =
+                params.into_iter().filter(|(block, _)| *block > last_processed_block).collect();
+
+            let (epochs, result) =
+                process_consensus_params::<T>(subnet_id, new_params, simulation_result);
+
+            if !epochs.is_empty() {
+                if let Err(err) = Self::do_send_weights(subnet_id, epochs, result.delta) {
                     log::error!(
-                        "couldn't send weights to runtime for subnet {}: {}",
+                        "Couldn't send weights to runtime for subnet {}: {}",
                         subnet_id,
                         err
                     );
+                } else {
+                    // Save, and wait for another round of processing, to try to send weights again
+                    Self::save_subnet_state(subnet_id, max_block, result.simulation_result.clone());
                 }
-            });
+            }
+            Self::save_subnet_state(subnet_id, max_block, result.simulation_result);
+        }
     }
 
-    fn should_process_subnet(subnet_id: u16, max_block: u64) -> bool {
-        let storage_key = format!("last_processed_block:{subnet_id}");
+    fn get_subnet_state(subnet_id: u16) -> (u64, ConsensusSimulationResult<T>) {
+        let storage_key = format!("subnet_state:{subnet_id}");
         let storage = StorageValueRef::persistent(storage_key.as_bytes());
-        let last_processed_block = storage.get::<u64>().ok().flatten().unwrap_or(0);
+        storage
+            .get::<(u64, ConsensusSimulationResult<T>)>()
+            .unwrap_or_else(|_| {
+                log::warn!(
+                    "Failed to retrieve subnet state for subnet {}. Starting from the beginning.",
+                    subnet_id
+                );
+                Some((0, ConsensusSimulationResult::default()))
+            })
+            .unwrap_or_else(|| {
+                log::warn!(
+                    "Subnet state not found for subnet {}. Starting from the beginning.",
+                    subnet_id
+                );
+                (0, ConsensusSimulationResult::default())
+            })
+    }
 
-        if last_processed_block < max_block {
-            storage.set(&max_block);
-            true
-        } else {
-            false
-        }
+    fn save_subnet_state(
+        subnet_id: u16,
+        last_processed_block: u64,
+        simulation_result: ConsensusSimulationResult<T>,
+    ) {
+        let storage_key = format!("subnet_state:{subnet_id}");
+        let storage = StorageValueRef::persistent(storage_key.as_bytes());
+        storage.set(&(last_processed_block, simulation_result));
     }
 }
