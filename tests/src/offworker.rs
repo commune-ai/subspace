@@ -77,8 +77,6 @@ impl ow_extensions::OffworkerExtension for MockOffworkerExt {
             return None;
         };
 
-        dbg!("decrpyting weights");
-
         let Some(vec) = encrypted
             .chunks(key.size())
             .map(|chunk| match key.decrypt(Pkcs1v15Encrypt, &chunk) {
@@ -271,31 +269,31 @@ fn weights_to_blob(weights: &[(u16, u16)]) -> Vec<u8> {
 
 // the key needs to be retrieved from the blockchain
 fn encrypt(key: (Vec<u8>, Vec<u8>), data: Vec<(u16, u16)>) -> Vec<u8> {
-    let key = rsa::RsaPublicKey::new(
+    let rsa_key = RsaPublicKey::new(
         BigUint::from_bytes_be(&key.0),
         BigUint::from_bytes_be(&key.1),
     )
-    .unwrap();
+    .expect("Failed to create RSA key");
 
-    let mut encoded = Vec::new();
-    encoded.extend((data.len() as u32).to_be_bytes());
-    encoded.extend(data.iter().flat_map(|(uid, weight)| {
-        vec![uid.to_be_bytes(), weight.to_be_bytes()].into_iter().flat_map(|a| a)
-    }));
+    let encoded = [
+        (data.len() as u32).to_be_bytes().to_vec(),
+        data.into_iter()
+            .flat_map(|(uid, weight)| {
+                uid.to_be_bytes().into_iter().chain(weight.to_be_bytes().into_iter())
+            })
+            .collect(),
+    ]
+    .concat();
 
-    let res = encoded
-        .chunks(key.size())
-        .into_iter()
+    let max_chunk_size = rsa_key.size() - 11; // 11 bytes for PKCS1v15 padding
+
+    encoded
+        .chunks(max_chunk_size)
         .flat_map(|chunk| {
-            let enc = key.encrypt(&mut OsRng, Pkcs1v15Encrypt, chunk).unwrap();
-            dbg!(enc.len());
-            enc
+            rsa_key.encrypt(&mut OsRng, Pkcs1v15Encrypt, chunk).expect("Encryption failed")
         })
-        .collect::<Vec<_>>();
-
-    res
+        .collect()
 }
-
 /// This is the subnet id specifid in the data/...weights_stake.json
 /// We are using real network data to perform the tests
 const SAMPLE_SUBNET_ID: &str = "31";
@@ -305,7 +303,6 @@ const SUBNET_TEMPO: u64 = 360;
 const PENDING_EMISSION: u64 = to_nano(1000);
 
 #[test]
-#[ignore = "takes long to run"]
 fn test_offchain_worker_behavior() {
     let mock_offworker_ext = MockOffworkerExt::default();
     let (mut ext, pool_state, _offchain_state) = new_test_ext(mock_offworker_ext);
@@ -386,7 +383,6 @@ fn test_offchain_worker_behavior() {
 
                                 if let Some(key) = SubspaceMod::get_key_for_uid(TEST_SUBNET_ID, uid)
                                 {
-                                    dbg!(uid, key);
                                     set_weights_encrypted(
                                         TEST_SUBNET_ID,
                                         key,

@@ -271,7 +271,7 @@ impl ow_extensions::OffworkerExtension for Decrypter {
         };
 
         let Some(vec) = encrypted
-            .chunks(dbg!(key.size()))
+            .chunks(key.size())
             .map(|chunk| match key.decrypt(Pkcs1v15Encrypt, &chunk) {
                 Ok(decrypted) => Some(decrypted),
                 Err(_) => None,

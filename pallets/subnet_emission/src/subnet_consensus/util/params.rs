@@ -120,7 +120,8 @@ impl<T: Config> ConsensusParams<T> {
         let validator_permits = ValidatorPermits::<T>::get(subnet_id);
         let alpha_values = Self::get_alpha_values_32(subnet_id);
 
-        dbg!(EncryptedWeights::<T>::iter_prefix(subnet_id).collect::<Vec<_>>());
+        dbg!(EncryptedWeights::<T>::iter_prefix(subnet_id).collect::<Vec<_>>().len());
+        dbg!(DecryptedWeightHashes::<T>::iter_prefix(subnet_id).collect::<Vec<_>>().len());
 
         let modules = uids
             .into_iter()

@@ -202,7 +202,6 @@ impl<T: Config> Pallet<T> {
 
         let signer = Signer::<T, T::AuthorityId>::all_accounts();
         if !signer.can_sign() {
-            dbg!("no local accs");
             log::error!(
                 "No local accounts available. Consider adding one via `author_insertKey` RPC."
             );
