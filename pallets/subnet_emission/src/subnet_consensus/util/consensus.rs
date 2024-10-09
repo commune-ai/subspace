@@ -645,10 +645,8 @@ pub fn calculate_new_permits<T: Config>(
     let max_validators = params.max_allowed_validators.unwrap_or(u16::MAX);
     let current_block = params.current_block;
 
-    let mut indexed_stake: Vec<_> = stake.iter()
-        .enumerate()
-        .map(|(idx, &stake)| (idx, stake))
-        .collect();
+    let mut indexed_stake: Vec<_> =
+        stake.iter().enumerate().map(|(idx, &stake)| (idx, stake)).collect();
 
     indexed_stake.sort_unstable_by(|(_, a), (_, b)| b.partial_cmp(a).unwrap_or(Ordering::Equal));
 

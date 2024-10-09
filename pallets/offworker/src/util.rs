@@ -48,8 +48,6 @@ where
             })
             .collect();
 
-        dbg!(decrypted_weights.clone());
-
         let should_decrypt_result = should_decrypt_weights::<T>(
             &decrypted_weights,
             params,

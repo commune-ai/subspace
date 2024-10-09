@@ -77,6 +77,8 @@ impl ow_extensions::OffworkerExtension for MockOffworkerExt {
             return None;
         };
 
+        dbg!("decrpyting weights");
+
         let Some(vec) = encrypted
             .chunks(key.size())
             .map(|chunk| match key.decrypt(Pkcs1v15Encrypt, &chunk) {
@@ -303,7 +305,7 @@ const SUBNET_TEMPO: u64 = 360;
 const PENDING_EMISSION: u64 = to_nano(1000);
 
 #[test]
-#[ignore = "takes too long"]
+#[ignore = "takes long to run"]
 fn test_offchain_worker_behavior() {
     let mock_offworker_ext = MockOffworkerExt::default();
     let (mut ext, pool_state, _offchain_state) = new_test_ext(mock_offworker_ext);
@@ -362,42 +364,37 @@ fn test_offchain_worker_behavior() {
 
             let weights: &Value = &block_weights[SAMPLE_SUBNET_ID];
 
-            // Set encrypted weights instead of inserting them
+            // Set encrypted weights
             if let Some(weight_object) = weights.as_object() {
-                for (uid, weight_data) in weight_object {
-                    if let (Ok(uid), Some(weight_data_object)) =
-                        (uid.parse::<u16>(), weight_data.as_object())
-                    {
-                        let encrypted_weights = encrypt(
-                            decryption_info.public_key.clone(),
-                            weight_data_object
+                for (uid_str, weight_data) in weight_object {
+                    if let Ok(uid) = uid_str.parse::<u16>() {
+                        if let Some(weight_array) = weight_data.as_array() {
+                            let weight_vec: Vec<(u16, u16)> = weight_array
                                 .iter()
-                                .filter_map(|(uid, weight)| {
-                                    uid.parse::<u16>()
-                                        .ok()
-                                        .and_then(|uid| weight.as_u64().map(|w| (uid, w as u16)))
+                                .filter_map(|w| {
+                                    let pair = w.as_array()?;
+                                    Some((pair[0].as_u64()? as u16, pair[1].as_u64()? as u16))
                                 })
-                                .collect(),
-                        );
+                                .collect();
 
-                        let decrypted_weights_hash = hash(
-                            weight_data_object
-                                .iter()
-                                .filter_map(|(uid, weight)| {
-                                    uid.parse::<u16>()
-                                        .ok()
-                                        .and_then(|uid| weight.as_u64().map(|w| (uid, w as u16)))
-                                })
-                                .collect(),
-                        );
+                            if !weight_vec.is_empty()
+                                && weight_vec.iter().any(|(_, value)| *value != 0)
+                            {
+                                let encrypted_weights =
+                                    encrypt(decryption_info.public_key.clone(), weight_vec.clone());
+                                let decrypted_weights_hash = hash(weight_vec.clone());
 
-                        if let Some(key) = SubspaceMod::get_key_for_uid(TEST_SUBNET_ID, uid) {
-                            set_weights_encrypted(
-                                TEST_SUBNET_ID,
-                                key,
-                                encrypted_weights,
-                                decrypted_weights_hash,
-                            );
+                                if let Some(key) = SubspaceMod::get_key_for_uid(TEST_SUBNET_ID, uid)
+                                {
+                                    dbg!(uid, key);
+                                    set_weights_encrypted(
+                                        TEST_SUBNET_ID,
+                                        key,
+                                        encrypted_weights,
+                                        decrypted_weights_hash,
+                                    );
+                                }
+                            }
                         }
                     }
                 }
