@@ -4,8 +4,7 @@ use crate::{
 };
 use core::marker::PhantomData;
 use frame_support::DebugNoBound;
-use pallet_subspace::math::*;
-use sp_std::{collections::btree_map::BTreeMap, vec, vec::Vec};
+use sp_std::vec::Vec;
 
 #[derive(DebugNoBound)]
 pub struct LinearEpoch<T: Config> {
@@ -31,27 +30,6 @@ impl<T: Config> LinearEpoch<T> {
         }
     }
 
-    fn prepare_weights(
-        &self,
-        input_weights: Vec<(u16, Vec<(u16, u16)>)>,
-    ) -> Vec<(u16, Vec<(u16, u16)>)> {
-        let uids: BTreeMap<u16, ()> = self
-            .modules
-            .keys
-            .iter()
-            .enumerate()
-            .map(|(index, _)| (index as u16, ()))
-            .collect();
-
-        // Convert input weights to a BTreeMap for easier manipulation
-        let mut weights: BTreeMap<u16, Vec<(u16, u16)>> = input_weights.into_iter().collect();
-
-        // Map over uids, keeping the uid and collecting weights
-        uids.keys()
-            .map(|&uid| (uid, weights.remove(&uid).unwrap_or_default()))
-            .collect()
-    }
-
     pub fn run(
         self,
         input_weights: Vec<(u16, Vec<(u16, u16)>)>,
@@ -67,7 +45,7 @@ impl<T: Config> LinearEpoch<T> {
             self.subnet_id
         );
 
-        let weights = self.prepare_weights(input_weights);
+        let weights = prepare_weights::<T>(&self.modules, input_weights);
 
         // Stays for linear & yuma
         let (inactive, active) = split_modules_by_activity(
@@ -85,11 +63,8 @@ impl<T: Config> LinearEpoch<T> {
         let stake = StakeVal::unchecked_from_inner(self.modules.stake_normalized.clone());
         log::trace!("final stake: {stake:?}");
 
-        let new_permits: Vec<bool> = if let Some(max) = self.params.max_allowed_validators {
-            is_topk(stake.as_ref(), max as usize)
-        } else {
-            vec![true; stake.as_ref().len()]
-        };
+        let new_permits =
+            calculate_new_permits::<T>(&self.params, &self.modules, &self.modules.stake_original);
 
         log::trace!("new permis: {new_permits:?}");
 
