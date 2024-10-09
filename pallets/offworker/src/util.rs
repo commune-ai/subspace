@@ -22,6 +22,8 @@ where
         delta: I64F64::from_num(0),
     };
 
+    // TODO:
+    // the delta can not be added here, it has to be done upon first retrival
     // Add the delta from the previous run or initialize if not available
     result.simulation_result.cumulative_avg_delegate_divs = result
         .simulation_result
@@ -35,6 +37,7 @@ where
             .modules
             .iter()
             .filter_map(|(key, params)| {
+                // TODO: This has to use consensus params, it can not be acesing runtime storage
                 pallet_subspace::Pallet::<T>::get_uid_for_key(subnet_id, &key.0)
                     .map(|uid| (uid, params))
             })

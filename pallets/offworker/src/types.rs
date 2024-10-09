@@ -32,6 +32,7 @@ impl<T: pallet_subspace::Config + pallet_subnet_emission::Config> ConsensusSimul
         copier_uid: u16,
         delegation_fee: Percent,
     ) {
+
         dbg!("updating");
         let avg_delegate_divs =
             calculate_avg_delegate_divs::<T>(&yuma_output, copier_uid, delegation_fee)
@@ -65,16 +66,6 @@ pub struct ShouldDecryptResult<T: pallet_subspace::Config> {
     pub should_decrypt: bool,
     pub simulation_result: ConsensusSimulationResult<T>,
     pub delta: I64F64,
-}
-
-impl<T: pallet_subspace::Config> Default for ShouldDecryptResult<T> {
-    fn default() -> Self {
-        ShouldDecryptResult {
-            should_decrypt: false,
-            simulation_result: ConsensusSimulationResult::default(),
-            delta: I64F64::from_num(0),
-        }
-    }
 }
 
 pub struct SimulationYumaParams<T: Config> {
