@@ -302,8 +302,8 @@ const TEST_SUBNET_ID: u16 = 0;
 const SUBNET_TEMPO: u64 = 360;
 const PENDING_EMISSION: u64 = to_nano(1000);
 
-// #[ignore = "too long run indivudually"]
 #[test]
+#[ignore = "takes too long"]
 fn test_offchain_worker_behavior() {
     let mock_offworker_ext = MockOffworkerExt::default();
     let (mut ext, pool_state, _offchain_state) = new_test_ext(mock_offworker_ext);
