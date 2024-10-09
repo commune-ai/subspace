@@ -4,7 +4,7 @@ use frame_support::{ensure, DebugNoBound};
 use pallet_subspace::{math::*, vec, BalanceOf, Pallet as PalletSubspace};
 use parity_scale_codec::{Decode, Encode};
 use scale_info::TypeInfo;
-use sp_std::{borrow::Cow, collections::btree_map::BTreeMap, vec::Vec};
+use sp_std::{borrow::Cow, cmp::Ordering, collections::btree_map::BTreeMap, vec::Vec};
 use substrate_fixed::types::{I32F32, I64F64, I96F32};
 
 use crate::Config;
@@ -635,6 +635,69 @@ pub fn process_consensus_output<T: Config>(
 
         params: params.clone(),
     })
+}
+
+pub fn calculate_new_permits<T: Config>(
+    params: &ConsensusParams<T>,
+    modules: &FlattenedModules<T::AccountId>,
+    stake: &[I64F64],
+) -> Vec<bool> {
+    let max_validators = params.max_allowed_validators.unwrap_or(u16::MAX);
+    let current_block = params.current_block;
+
+    let mut indexed_stake: Vec<_> = stake.iter()
+        .enumerate()
+        .map(|(idx, &stake)| (idx, stake))
+        .collect();
+
+    indexed_stake.sort_unstable_by(|(_, a), (_, b)| b.partial_cmp(a).unwrap_or(Ordering::Equal));
+
+    let mut permits = vec![false; stake.len()];
+    let mut validator_count = 0;
+
+    for (idx, stake) in indexed_stake {
+        if validator_count >= max_validators {
+            break;
+        }
+
+        if stake < params.min_val_stake {
+            continue;
+        }
+
+        let tolerance_inactivity = params.activity_cutoff.saturating_mul(2);
+
+        if let Some(&last_update) = modules.last_update.get(idx) {
+            if current_block.saturating_sub(last_update) > tolerance_inactivity {
+                continue;
+            }
+        } else {
+            continue;
+        }
+
+        // Use get_mut to safely access and modify the element
+        if let Some(permit) = permits.get_mut(idx) {
+            *permit = true;
+            validator_count = validator_count.saturating_add(1);
+        }
+    }
+
+    permits
+}
+
+pub fn prepare_weights<T: Config>(
+    modules: &FlattenedModules<T::AccountId>,
+    input_weights: Vec<(u16, Vec<(u16, u16)>)>,
+) -> Vec<(u16, Vec<(u16, u16)>)> {
+    let uids: BTreeMap<u16, ()> =
+        modules.keys.iter().enumerate().map(|(index, _)| (index as u16, ())).collect();
+
+    // Convert input weights to a BTreeMap for easier manipulation
+    let mut weights: BTreeMap<u16, Vec<(u16, u16)>> = input_weights.into_iter().collect();
+
+    // Map over uids, keeping the uid and collecting weights
+    uids.keys()
+        .map(|&uid| (uid, weights.remove(&uid).unwrap_or_default()))
+        .collect()
 }
 
 #[derive(DebugNoBound, Clone, Encode, Decode, TypeInfo)]

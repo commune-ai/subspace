@@ -4,8 +4,8 @@ use crate::{Config, DecryptedWeightHashes, EncryptedWeights};
 use frame_support::DebugNoBound;
 use pallet_subspace::{
     math::*, AlphaValues, BalanceOf, Bonds, BondsMovingAverage, Founder, Kappa, Keys, LastUpdate,
-    MaxAllowedValidators, MaxWeightAge, Pallet as PalletSubspace, UseWeightsEncrytyption,
-    ValidatorPermits, Vec,
+    MaxAllowedValidators, MaxWeightAge, MinValidatorStake, Pallet as PalletSubspace,
+    UseWeightsEncrytyption, ValidatorPermits, Vec,
 };
 use parity_scale_codec::{Decode, Encode};
 use scale_info::TypeInfo;
@@ -36,6 +36,7 @@ pub struct ConsensusParams<T: Config> {
     pub max_allowed_validators: Option<u16>,
     pub bonds_moving_average: u64,
     pub alpha_values: (I32F32, I32F32),
+    pub min_val_stake: I64F64,
 }
 
 #[derive(Clone, Encode, Decode, TypeInfo, Debug)]
@@ -59,6 +60,7 @@ pub struct FlattenedModules<AccountId: Debug> {
     pub validator_permit: Vec<bool>,
     pub validator_forbid: Vec<bool>,
     pub stake_normalized: Vec<I32F32>,
+    pub stake_original: Vec<I64F64>,
     pub bonds: Vec<Vec<(u16, I32F32)>>,
     pub weight_unencrypted_hash: Vec<Vec<u8>>,
     pub weight_encrypted: Vec<Vec<u8>>,
@@ -75,6 +77,7 @@ impl<AccountId: Debug> From<BTreeMap<ModuleKey<AccountId>, ModuleParams>>
             validator_permit: Vec::with_capacity(value.len()),
             validator_forbid: Vec::with_capacity(value.len()),
             stake_normalized: Vec::with_capacity(value.len()),
+            stake_original: Vec::with_capacity(value.len()),
             bonds: Vec::with_capacity(value.len()),
             weight_unencrypted_hash: Vec::with_capacity(value.len()),
             weight_encrypted: Vec::with_capacity(value.len()),
@@ -87,6 +90,7 @@ impl<AccountId: Debug> From<BTreeMap<ModuleKey<AccountId>, ModuleParams>>
             modules.validator_permit.push(module.validator_permit);
             modules.validator_forbid.push(!module.validator_permit);
             modules.stake_normalized.push(module.stake_normalized);
+            modules.stake_original.push(module.stake_original);
             modules
                 .bonds
                 .push(module.bonds.into_iter().map(|(k, m)| (k, I32F32::from_num(m))).collect());
@@ -179,9 +183,12 @@ impl<T: Config> ConsensusParams<T> {
             max_allowed_validators: MaxAllowedValidators::<T>::get(subnet_id),
             bonds_moving_average: BondsMovingAverage::<T>::get(subnet_id),
             alpha_values,
+            min_val_stake: I64F64::from_num(MinValidatorStake::<T>::get(subnet_id)),
         })
     }
 
+    /// This function outputs stake for every uid, if the stake from value is not present, it
+    /// defaults to 0.
     fn compute_stake(uids: &BTreeMap<u16, T::AccountId>) -> (Vec<I64F64>, Vec<I32F32>) {
         // BTreeMap provides natural order, so iterating and collecting
         // will result in a vector with the same order as the uid map.
