@@ -64,53 +64,7 @@ impl<T: Config> YumaEpoch<T> {
         let stake = StakeVal::unchecked_from_inner(self.modules.stake_normalized.clone());
         log::trace!("final stake: {stake:?}");
 
-        log::trace!("new permis: {new_permits:?}");
-
-        let mut sorted_indexed_stake: Vec<(u16, u64)> = (0u16..(stake.as_ref().len() as u16))
-            .map(|idx| {
-                self.weight_counter.read(1);
-                let key = match PalletSubspace::<T>::get_key_for_uid(self.netuid, idx) {
-                    Some(key) => key,
-                    None => return Err(EmissionError::Other("module doesn't have a key")),
-                };
-
-                self.weight_counter.read(1);
-                let stake = PalletSubspace::<T>::get_delegated_stake(&key);
-                Ok((idx, stake))
-            })
-            .collect::<Result<Vec<_>, EmissionError>>()?;
-        sorted_indexed_stake.sort_by_key(|(_, stake)| *stake);
-        sorted_indexed_stake.reverse();
-
-        let current_block = PalletSubspace::<T>::get_current_block_number();
-        self.weight_counter.read(1);
-        let min_stake = pallet_subspace::MinValidatorStake::<T>::get(self.netuid);
-        self.weight_counter.read(1);
-        let mut validator_count = 0;
-        for (idx, stake) in sorted_indexed_stake {
-            if max_validators.is_some_and(|max| max <= validator_count) {
-                break;
-            }
-
-            if stake < min_stake {
-                continue;
-            }
-
-            self.weight_counter.read(1);
-            match pallet_subspace::WeightSetAt::<T>::get(self.netuid, idx) {
-                Some(weight_block) => {
-                    if current_block.saturating_sub(weight_block) > 7200 {
-                        continue;
-                    }
-                }
-                None => continue,
-            }
-
-            if let Some(permit) = new_permits.get_mut(idx as usize) {
-                validator_count = validator_count.saturating_add(1);
-                *permit = true;
-            }
-        }
+        log::trace!("new permits: {new_permits:?}");
 
         let active_stake = compute_active_stake(&self.modules, &self.params, &inactive, &stake);
         log::trace!("final active stake: {active_stake:?}");
