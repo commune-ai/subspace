@@ -55,6 +55,13 @@ impl<T: Config> LinearEpoch<T> {
             self.params.current_block,
         );
 
+        let new_permits = calculate_new_permits::<T>(
+            &self.params,
+            &self.modules,
+            &self.modules.stake_original,
+            &weights,
+        );
+
         // Notice that linear consensus does not have mutable weights
         let weights = compute_weights(&self.modules, &self.params, weights)
             .ok_or(EmissionError::Other("weights are broken"))?;
@@ -62,9 +69,6 @@ impl<T: Config> LinearEpoch<T> {
         // Stays for linear & yuma
         let stake = StakeVal::unchecked_from_inner(self.modules.stake_normalized.clone());
         log::trace!("final stake: {stake:?}");
-
-        let new_permits =
-            calculate_new_permits::<T>(&self.params, &self.modules, &self.modules.stake_original);
 
         log::trace!("new permis: {new_permits:?}");
 
