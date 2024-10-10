@@ -43,7 +43,8 @@ pub fn calculate_avg_delegate_divs<T: pallet_subspace::Config + pallet_subnet_em
             (I64F64::from_num(0), I64F64::from_num(0)),
             |(stake_acc, div_acc), (i, &div)| {
                 // TODO:
-                // This has to go, use only stake from the consensus params output, we can not be acesing runtime storage here
+                // This has to go, use only stake from the consensus params output, we can not be
+                // acesing runtime storage here
                 let stake = I64F64::from_num(get_uid_deleg_stake::<T>(i as u16, subnet_id));
                 let dividend = I64F64::from_num(div);
                 Some((
@@ -60,7 +61,8 @@ pub fn calculate_avg_delegate_divs<T: pallet_subspace::Config + pallet_subnet_em
 }
 
 // TODO:
-// This has to go, use only stake from the consensus params output, we can not be acesing runtime storage here
+// This has to go, use only stake from the consensus params output, we can not be acesing runtime
+// storage here
 #[inline]
 fn get_uid_deleg_stake<T>(module_id: u16, subnet_id: u16) -> u64
 where

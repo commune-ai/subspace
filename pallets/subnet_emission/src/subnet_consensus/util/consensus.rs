@@ -641,43 +641,34 @@ pub fn calculate_new_permits<T: Config>(
     params: &ConsensusParams<T>,
     modules: &FlattenedModules<T::AccountId>,
     stake: &[I64F64],
+    input_weights: &[(u16, Vec<(u16, u16)>)],
 ) -> Vec<bool> {
-    let max_validators = params.max_allowed_validators.unwrap_or(u16::MAX);
+    let max_validators = params.max_allowed_validators.unwrap_or(u16::MAX) as usize;
     let current_block = params.current_block;
+    let tolerance_inactivity = params.activity_cutoff.saturating_mul(2);
 
-    let mut indexed_stake: Vec<_> =
-        stake.iter().enumerate().map(|(idx, &stake)| (idx, stake)).collect();
+    let mut indexed_stake: Vec<_> = stake
+        .iter()
+        .enumerate()
+        .filter(|&(idx, &stake)| {
+            stake >= params.min_val_stake
+                && modules.last_update.get(idx).map_or(false, |&last_update| {
+                    current_block.saturating_sub(last_update) <= tolerance_inactivity
+                })
+                && input_weights
+                    .iter()
+                    .any(|&(uid, ref weights)| uid == idx as u16 && !weights.is_empty())
+        })
+        .collect();
 
     indexed_stake.sort_unstable_by(|(_, a), (_, b)| b.partial_cmp(a).unwrap_or(Ordering::Equal));
 
     let mut permits = vec![false; stake.len()];
-    let mut validator_count = 0;
-
-    for (idx, stake) in indexed_stake {
-        if validator_count >= max_validators {
-            break;
-        }
-
-        if stake < params.min_val_stake {
-            continue;
-        }
-
-        let tolerance_inactivity = params.activity_cutoff.saturating_mul(2);
-
-        if let Some(&last_update) = modules.last_update.get(idx) {
-            if current_block.saturating_sub(last_update) > tolerance_inactivity {
-                continue;
-            }
-        } else {
-            continue;
-        }
-
-        // Use get_mut to safely access and modify the element
+    indexed_stake.into_iter().take(max_validators).for_each(|(idx, _)| {
         if let Some(permit) = permits.get_mut(idx) {
             *permit = true;
-            validator_count = validator_count.saturating_add(1);
         }
-    }
+    });
 
     permits
 }

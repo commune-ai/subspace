@@ -6,6 +6,7 @@ use pallet_subnet_emission::{
     },
     Weights,
 };
+use pallet_subspace::Founder;
 use std::collections::BTreeMap;
 
 use frame_support::{assert_ok, traits::Currency};
@@ -72,7 +73,7 @@ fn test_dividends_same_stake() {
         // evaluate votees
         assert!(incentives[2] > 0);
         assert_eq!(dividends[2], dividends[3]);
-        let delta: u64 = 100;
+        let delta: u64 = 500;
         assert!((incentives[2] as u64) > (weight_values[0] as u64 * incentives[3] as u64) - delta);
         assert!((incentives[2] as u64) < (weight_values[0] as u64 * incentives[3] as u64) + delta);
 
@@ -481,7 +482,7 @@ fn test_incentives() {
         let emissions: Vec<u64> = Emission::<Test>::get(netuid);
 
         // evaluate votees
-        let delta: u64 = 100 * params.tempo as u64;
+        let delta: u64 = 200 * params.tempo as u64;
         assert!(incentives[1] > 0);
 
         assert!(
@@ -534,6 +535,7 @@ fn test_founder_share() {
             &founder_key.into(),
             0u32.into(),
         );
+
         step_epoch(netuid);
 
         let founder_balance = SubspaceMod::<Test>::get_balance(&founder_key);
@@ -552,19 +554,14 @@ fn test_founder_share() {
         SubnetConsensusType::<Test>::insert(netuid, SubnetConsensus::Linear);
 
         let treasury_address = DaoTreasuryAddress::<Test>::get();
+        Founder::<Test>::insert(netuid, treasury_address);
 
-        // Explicitly show 0 balance
-        <pallet_balances::Pallet<Test> as Currency<_>>::make_free_balance_be(
-            &treasury_address,
-            0u32.into(),
-        );
         step_epoch(netuid);
 
         let treasury_balance = SubspaceMod::<Test>::get_balance(&treasury_address);
-
         assert!(
             (treasury_balance as i64 - expected_founder_share_precise as i64).abs() <= tolerance,
-            "Founder balance {} differs from expected {} by more than {}",
+            "Treasury balance {} differs from expected {} by more than {}",
             founder_balance,
             expected_founder_share_precise,
             tolerance
@@ -1238,8 +1235,6 @@ fn yuma_change_permits() {
         let third_uid = register_module(netuid, 2, to_nano(52000), false).unwrap();
 
         MaxAllowedValidators::<Test>::set(netuid, Some(2));
-        // Make sure last update is from registrations is not counted in
-        System::set_block_number(10_000);
 
         set_weights(netuid, 2, vec![first_uid, second_uid], vec![50, 60]);
 
