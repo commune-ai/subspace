@@ -4947,7 +4947,6 @@ dependencies = [
  "pallet-governance-api",
  "pallet-grandpa",
  "pallet-multisig",
- "pallet-offworker",
  "pallet-subnet-emission",
  "pallet-subnet-emission-api",
  "pallet-subspace",

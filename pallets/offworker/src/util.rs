@@ -25,9 +25,11 @@ where
             .modules
             .iter()
             .filter_map(|(key, params)| {
-                // TODO: This has to use consensus params, it can not be acesing runtime storage
-                pallet_subspace::Pallet::<T>::get_uid_for_key(subnet_id, &key.0)
-                    .map(|uid| (uid, params))
+                consensus_params
+                    .modules
+                    .iter()
+                    .find(|(module_key, _)| module_key.0 == key.0)
+                    .map(|(_, module_params)| (module_params.uid, params))
             })
             .filter_map(|(uid, params)| {
                 if params.weight_encrypted.is_empty() {
