@@ -634,6 +634,7 @@ pub fn process_consensus_output<T: Config>(
         emission_map,
         total_emitted,
 
+        modules: modules.clone(),
         params: params.clone(),
     })
 }
@@ -695,6 +696,7 @@ pub fn prepare_weights<T: Config>(
 pub struct ConsensusOutput<T: Config> {
     pub subnet_id: u16,
     pub params: ConsensusParams<T>,
+    pub modules: FlattenedModules<T::AccountId>,
 
     pub active: Vec<bool>,
     pub consensus: Vec<u16>,

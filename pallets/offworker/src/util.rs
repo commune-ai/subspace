@@ -20,16 +20,18 @@ where
 
     log::info!("Processing consensus params for subnet {}", subnet_id);
 
-    for (param_block, params) in consensus_params {
+    for (param_block, params) in &consensus_params {
         let decrypted_weights: Vec<_> = params
             .modules
             .iter()
             .filter_map(|(key, params)| {
-                consensus_params
-                    .modules
-                    .iter()
-                    .find(|(module_key, _)| module_key.0 == key.0)
-                    .map(|(_, module_params)| (module_params.uid, params))
+                consensus_params.iter().find_map(|(_, consensus_param)| {
+                    consensus_param
+                        .modules
+                        .iter()
+                        .find(|(module_key, _)| module_key.0 == key.0)
+                        .map(|(_, module_params)| (module_params.uid, params))
+                })
             })
             .filter_map(|(uid, params)| {
                 if params.weight_encrypted.is_empty() {
@@ -43,16 +45,16 @@ where
 
         let should_decrypt_result = should_decrypt_weights::<T>(
             &decrypted_weights,
-            params,
+            params.clone(),
             subnet_id,
             simulation_result.clone(),
-            param_block,
+            *param_block,
         );
 
         simulation_result = should_decrypt_result.simulation_result.clone();
 
         if should_decrypt_result.should_decrypt {
-            epochs.push((param_block, decrypted_weights));
+            epochs.push((*param_block, decrypted_weights));
             result = should_decrypt_result;
         }
     }
@@ -69,7 +71,6 @@ pub fn should_decrypt_weights<T: Config>(
     mut simulation_result: ConsensusSimulationResult<T>,
     block_number: u64,
 ) -> ShouldDecryptResult<T> {
-    // Now this will return struct X
     let SimulationYumaParams {
         uid: copier_uid,
         params: simulation_yuma_params,
@@ -136,14 +137,28 @@ pub fn compute_simulation_yuma_params<T: Config>(
 }
 
 /// This will mutate ConsensusParams with copier information, ready for simulation
+/// This function should run
 pub fn add_copier_to_yuma_params<T: Config>(
     copier_uid: u16,
     mut runtime_yuma_params: ConsensusParams<T>,
     subnet_id: u16,
 ) -> ConsensusParams<T> {
-    let copier_stake = get_copier_stake::<T>(&runtime_yuma_params);
+    // It is fine to get the permits from the consensus params
+    let total_active_stake: u64 = runtime_yuma_params
+        .modules
+        .values()
+        .filter(|m| m.validator_permit)
+        .map(|m| dbg!(m.stake_original.to_num::<u64>()))
+        .sum();
+
+    dbg!(total_active_stake.clone());
+
+    let copier_stake = get_copier_stake::<T>(total_active_stake);
     let current_block = runtime_yuma_params.current_block;
 
+    dbg!(copier_stake.clone());
+
+    // Collect original stakes, including the copier's stake
     let mut all_stakes: Vec<I64F64> = runtime_yuma_params
         .modules
         .values()
@@ -151,7 +166,10 @@ pub fn add_copier_to_yuma_params<T: Config>(
         .chain(sp_std::iter::once(I64F64::from_num(copier_stake)))
         .collect();
 
+    // Normalize all stakes using the provided function
     inplace_normalize_64(&mut all_stakes);
+
+    // Convert normalized I64F64 stakes to I32F32
     let normalized_stakes = vec_fixed64_to_fixed32(all_stakes.clone());
 
     let copier_module = ModuleParams {
@@ -172,16 +190,15 @@ pub fn add_copier_to_yuma_params<T: Config>(
 
     let copier_key = ModuleKey(copier_account_id);
 
-    runtime_yuma_params.modules.insert(copier_key, copier_module);
-
-    runtime_yuma_params
-        .modules
-        .values_mut()
-        .zip(normalized_stakes.iter().zip(all_stakes.iter()))
-        .for_each(|(module, (&normalized, &original))| {
+    // Update existing modules with new normalized stakes
+    runtime_yuma_params.modules.values_mut().zip(normalized_stakes.iter()).for_each(
+        |(module, &normalized)| {
             module.stake_normalized = normalized;
-            module.stake_original = original;
-        });
+        },
+    );
+
+    // Insert the copier module
+    runtime_yuma_params.modules.insert(copier_key, copier_module);
 
     runtime_yuma_params
 }
