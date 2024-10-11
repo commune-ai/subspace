@@ -148,11 +148,13 @@ pub fn calculate_logistic_params(
     }
 
     let calc_term = |alpha: I32F32| {
-        ln((I32F32::from_num(1) / alpha) - I32F32::from_num(1)).unwrap_or(I32F32::from_num(0.0))
+        ln((I32F32::from_num(1).saturating_div(alpha)).saturating_sub(I32F32::from_num(1)))
+            .unwrap_or(I32F32::from_num(0.0))
     };
 
-    let a = (calc_term(alpha_high) - calc_term(alpha_low)) / (consensus_low - consensus_high);
-    let b = calc_term(alpha_low) + a * consensus_low;
+    let a = (calc_term(alpha_high).saturating_sub(calc_term(alpha_low)))
+        .saturating_div(consensus_low.saturating_sub(consensus_high));
+    let b = calc_term(alpha_low).saturating_add(a).saturating_mul(consensus_low);
 
     (a, b)
 }
@@ -175,7 +177,7 @@ trait Lerp {
 }
 impl Lerp for I32F32 {
     fn lerp(self, other: Self, t: Self) -> Self {
-        self + (other - self) * t
+        self.saturating_add(other.saturating_sub(self)).saturating_mul(t)
     }
 }
 
@@ -186,12 +188,15 @@ pub fn quantile(data: &[I32F32], quantile: f64) -> I32F32 {
     if len == 0 {
         return I32F32::from_num(0);
     }
-    let pos = quantile * (len - 1) as f64;
+    let pos = quantile * (len.saturating_sub(1)) as f64;
     let (low, high) = (pos.floor() as usize, pos.ceil() as usize);
     if low == high {
-        sorted[low]
+        sorted.get(low).cloned().unwrap_or(I32F32::from_num(0))
     } else {
-        sorted[low].lerp(sorted[high], I32F32::from_num(pos.fract()))
+        sorted.get(low).cloned().unwrap_or(I32F32::from_num(0)).lerp(
+            sorted.get(high).cloned().unwrap_or(I32F32::from_num(0)),
+            I32F32::from_num(pos.fract()),
+        )
     }
 }
 
@@ -711,19 +716,17 @@ pub fn vec_max_upscale_to_u16(vec: &[I32F32]) -> Vec<u16> {
                     })
                     .collect();
             }
-            return vec
-                .iter()
+            vec.iter()
                 .map(|e: &I32F32| {
                     e.saturating_mul(u16_max).saturating_div(*val).round().to_num::<u16>()
                 })
-                .collect();
+                .collect()
         }
         None => {
             let sum: I32F32 = vec.iter().sum();
-            return vec
-                .iter()
+            vec.iter()
                 .map(|e: &I32F32| e.saturating_mul(u16_max).saturating_div(sum).to_num::<u16>())
-                .collect();
+                .collect()
         }
     }
 }

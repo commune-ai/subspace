@@ -421,11 +421,11 @@ impl<T: Config> Pallet<T> {
     }
 
     pub fn balance_to_u64(input: BalanceOf<T>) -> u64 {
-        input.try_into().ok().unwrap()
+        input
     }
 
     pub fn u64_to_balance(input: u64) -> Option<BalanceOf<T>> {
-        input.try_into().ok()
+        Some(input)
     }
 
     pub fn get_balance_u64(key: &T::AccountId) -> u64 {

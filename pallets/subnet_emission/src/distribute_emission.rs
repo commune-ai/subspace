@@ -210,7 +210,7 @@ fn run_yuma_consensus<T: Config>(netuid: u16, emission_to_drain: u64) -> Result<
             }
         }
 
-        let _ = DecryptedWeights::<T>::remove(netuid);
+        DecryptedWeights::<T>::remove(netuid);
     };
 
     let block_number = PalletSubspace::<T>::get_current_block_number();
@@ -246,7 +246,7 @@ fn run_treasury_consensus<T: Config>(
         })
 }
 
-/// Runs the treasury consensus algorithm for subnet 1.
+// Runs the treasury consensus algorithm for subnet 1.
 
 // ---------------------------------
 // Epoch utils
@@ -301,8 +301,8 @@ impl<T: Config> Pallet<T> {
             .filter(|(netuid, _)| pallet_subspace::N::<T>::get(netuid) > 0)
             .filter(|(netuid, _)| {
                 ignore_subnet_immunity
-                    || !pallet_subspace::SubnetRegistrationBlock::<T>::get(netuid)
-                        .is_some_and(|block| current_block.saturating_sub(block) < immunity_period)
+                    || pallet_subspace::SubnetRegistrationBlock::<T>::get(netuid)
+                        .is_none_or(|block| current_block.saturating_sub(block) >= immunity_period)
             })
             .min_by_key(|(_, emission)| *emission)
             .map(|(netuid, _)| netuid)

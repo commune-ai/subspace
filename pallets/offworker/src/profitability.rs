@@ -68,10 +68,8 @@ fn get_uid_deleg_stake<T>(module_id: u16, subnet_id: u16) -> u64
 where
     T: pallet_subspace::Config,
 {
-    let deleg_stake = SubspaceModule::<T>::get_key_for_uid(subnet_id, module_id)
-        .map_or(0, |key| SubspaceModule::<T>::get_delegated_stake(&key));
-
-    deleg_stake
+    SubspaceModule::<T>::get_key_for_uid(subnet_id, module_id)
+        .map_or(0, |key| SubspaceModule::<T>::get_delegated_stake(&key))
 }
 
 // TODO:

@@ -27,6 +27,7 @@ pub mod subnet_consensus;
 mod benchmarking;
 
 pub type PublicKey = (Vec<u8>, Vec<u8>);
+pub type BlockWeights = (u64, Vec<(u16, Vec<(u16, u16)>)>);
 
 // TODO:
 // move some import outside of the macro
@@ -306,10 +307,7 @@ pub mod pallet {
             0
         }
 
-        pub fn handle_decrypted_weights(
-            netuid: u16,
-            weights: Vec<(u64, Vec<(u16, Vec<(u16, u16)>)>)>,
-        ) {
+        pub fn handle_decrypted_weights(netuid: u16, weights: Vec<BlockWeights>) {
             Self::do_handle_decrypted_weights(netuid, weights);
         }
 

@@ -52,7 +52,7 @@ where
         input: u64,
     ) -> Option<<<T as Config>::Currency as Currency<<T as SystemConfig>::AccountId>>::Balance>
     {
-        input.try_into().ok()
+        Some(input)
     }
 }
 

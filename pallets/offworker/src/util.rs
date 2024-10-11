@@ -1,15 +1,13 @@
 use super::*;
 use crate::profitability::{get_copier_stake, is_copying_irrational};
+use pallet_subnet_emission::BlockWeights;
 use types::SimulationYumaParams;
 
 pub fn process_consensus_params<T>(
     subnet_id: u16,
     consensus_params: Vec<(u64, ConsensusParams<T>)>,
     mut simulation_result: ConsensusSimulationResult<T>,
-) -> (
-    Vec<(u64, Vec<(u16, Vec<(u16, u16)>)>)>,
-    ShouldDecryptResult<T>,
-)
+) -> (Vec<BlockWeights>, ShouldDecryptResult<T>)
 where
     T: pallet_subspace::Config + pallet_subnet_emission::Config + pallet::Config,
 {

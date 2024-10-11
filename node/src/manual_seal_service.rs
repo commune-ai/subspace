@@ -270,34 +270,24 @@ impl ow_extensions::OffworkerExtension for Decrypter {
             return None;
         };
 
-        let Some(vec) = encrypted
+        let vec = encrypted
             .chunks(key.size())
-            .map(|chunk| match key.decrypt(Pkcs1v15Encrypt, &chunk) {
+            .map(|chunk| match key.decrypt(Pkcs1v15Encrypt, chunk) {
                 Ok(decrypted) => Some(decrypted),
                 Err(_) => None,
             })
-            .collect::<Option<Vec<Vec<u8>>>>()
-        else {
-            return None;
-        };
+            .collect::<Option<Vec<Vec<u8>>>>()?;
 
-        let decrypted = vec.into_iter().flat_map(|vec| vec).collect::<Vec<_>>();
+        let decrypted = vec.into_iter().flatten().collect::<Vec<_>>();
 
         let mut res = Vec::new();
 
         let mut cursor = Cursor::new(&decrypted);
 
-        let Some(length) = read_u32(&mut cursor) else {
-            return None;
-        };
+        let length = read_u32(&mut cursor)?;
         for _ in 0..length {
-            let Some(uid) = read_u16(&mut cursor) else {
-                return None;
-            };
-
-            let Some(weight) = read_u16(&mut cursor) else {
-                return None;
-            };
+            let uid = read_u16(&mut cursor)?;
+            let weight = read_u16(&mut cursor)?;
 
             res.push((uid, weight));
         }
