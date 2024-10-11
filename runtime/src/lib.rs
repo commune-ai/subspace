@@ -7,8 +7,6 @@
 #[cfg(feature = "std")]
 include!(concat!(env!("OUT_DIR"), "/wasm_binary.rs"));
 
-use core::u16;
-
 use frame_support::{
     genesis_builder_helper::{build_config, create_default_config},
     pallet_prelude::Get,
@@ -41,10 +39,12 @@ use sp_api::impl_runtime_apis;
 use sp_consensus_aura::sr25519::AuthorityId as AuraId;
 
 // Substrate core primitives
+use frame_support::pallet_prelude::PhantomData;
 use sp_core::{
     crypto::{ByteArray, KeyTypeId},
     OpaqueMetadata, H160, H256, U256,
 };
+use sp_std::{boxed::Box, collections::btree_set::BTreeSet, vec::Vec};
 
 // Substrate runtime primitives
 use sp_runtime::{
@@ -71,6 +71,8 @@ use fp_rpc::TransactionStatus;
 
 // Transaction payment pallet
 use pallet_transaction_payment::{ConstFeeMultiplier, CurrencyAdapter, Multiplier};
+
+use smallvec::smallvec;
 
 // Re-exports from FRAME support
 pub use frame_support::{
@@ -176,6 +178,7 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
 };
 
 /// This determines the average expected block time that we are targeting.
+///
 /// Blocks will be produced at a minimum duration defined by `SLOT_DURATION`.x
 /// `SLOT_DURATION` is picked up by `pallet_timestamp` which is in turn picked
 /// up by `pallet_aura` to implement `fn slot_duration()`.

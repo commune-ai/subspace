@@ -11,7 +11,6 @@ use frame_support::{
 
 use frame_system::{self as system, ensure_signed};
 pub use pallet::*;
-use scale_info::TypeInfo;
 use sp_std::collections::btree_set::BTreeSet;
 
 pub use self::{network::subnet, params::global};
@@ -38,10 +37,7 @@ pub mod network {
     pub mod staking;
     pub mod subnet;
 }
-pub mod params {
-    pub mod global;
-    pub mod params;
-}
+pub mod params;
 pub mod rpc;
 pub mod selections;
 pub mod signed_extension;
@@ -51,7 +47,7 @@ pub use crate::{
     network::{module::ModuleChangeset, subnet::SubnetChangeset},
     params::{
         global::{BurnType, GeneralBurnConfiguration},
-        params::{DefaultSubnetParams, GlobalParams, ModuleParams, SubnetParams},
+        DefaultSubnetParams, GlobalParams, ModuleParams, SubnetParams,
     },
 };
 use selections::{config, dispatches, errors, events, genesis, hooks};

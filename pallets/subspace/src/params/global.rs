@@ -1,9 +1,9 @@
 use crate::*;
 
 use frame_support::pallet_prelude::{DispatchResult, MaxEncodedLen};
+use scale_info::TypeInfo;
 use sp_core::Get;
 use sp_runtime::DispatchError;
-
 /// This struct is used for both global (Subnet Burn) and MAP parameters (Module Burn)
 #[derive(
     Clone, TypeInfo, Decode, Encode, PartialEq, Eq, frame_support::DebugNoBound, MaxEncodedLen,

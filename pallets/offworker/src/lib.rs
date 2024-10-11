@@ -8,14 +8,16 @@ use frame_system::{
     offchain::{AppCrypto, CreateSignedTransaction, SendSignedTransaction, Signer},
     pallet_prelude::BlockNumberFor,
 };
-use pallet_subnet_emission::subnet_consensus::{
-    util::{
-        consensus::ConsensusOutput,
-        params::{ConsensusParams, ModuleKey, ModuleParams},
+use pallet_subnet_emission::{
+    subnet_consensus::{
+        util::{
+            consensus::ConsensusOutput,
+            params::{ConsensusParams, ModuleKey, ModuleParams},
+        },
+        yuma::YumaEpoch,
     },
-    yuma::YumaEpoch,
+    BlockWeights,
 };
-
 use std::collections::BTreeMap;
 
 use pallet_subnet_emission::{ConsensusParameters, Weights};
@@ -51,8 +53,12 @@ mod util;
 /// The keys can be inserted manually via RPC (see `author_insertKey`).
 pub const KEY_TYPE: KeyTypeId = KeyTypeId(*b"btc!");
 
-/// Based on the above `KeyTypeId` we need to generate a pallet-specific crypto type wrappers.
-/// We can use from supported crypto kinds (`sr25519`, `ed25519` and `ecdsa`) and augment
+/// Cryptography configuration for pallet.
+///
+/// Based on the above `KeyTypeId` we need to generate a
+/// pallet-specific crypto type wrappers.
+/// We can use from supported crypto kinds
+/// (`sr25519`, `ed25519` and `ecdsa`) and augment
 /// the types with this pallet-specific identifier.
 pub mod crypto {
     use super::KEY_TYPE;
@@ -170,7 +176,7 @@ pub mod pallet {
 impl<T: Config> Pallet<T> {
     fn do_send_weights(
         netuid: u16,
-        decrypted_weights: Vec<(u64, Vec<(u16, Vec<(u16, u16)>)>)>,
+        decrypted_weights: Vec<BlockWeights>,
         delta: I64F64,
     ) -> Result<(), &'static str> {
         let signer = Signer::<T, T::AuthorityId>::all_accounts();

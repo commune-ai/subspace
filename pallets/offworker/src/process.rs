@@ -5,7 +5,7 @@ impl<T: Config> Pallet<T> {
         pallet_subnet_emission::SubnetDecryptionData::<T>::iter()
             .filter(|(netuid, data)| {
                 let use_weights = pallet_subspace::UseWeightsEncrytyption::<T>::get(*netuid);
-                let key_match = &data.node_public_key == &public_key;
+                let key_match = data.node_public_key == public_key;
                 use_weights && key_match
             })
             .map(|(netuid, _)| netuid)

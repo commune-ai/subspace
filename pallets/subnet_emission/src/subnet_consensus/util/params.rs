@@ -162,9 +162,6 @@ impl<T: Config> ConsensusParams<T> {
         let (token_emission, founder_emission) =
             PalletSubspace::<T>::calculate_founder_emission(subnet_id, token_emission);
 
-        let token_emission = token_emission.try_into().ok().unwrap_or_default();
-        let founder_emission = founder_emission.try_into().ok().unwrap_or_default();
-
         Ok(Self {
             subnet_id,
             token_emission,
@@ -219,7 +216,7 @@ impl<T: Config> ConsensusParams<T> {
         let (alpha_low, alpha_high) = AlphaValues::<T>::get(netuid);
 
         let result = [alpha_low, alpha_high]
-            .map(|alpha| I32F32::from_num(alpha) / I32F32::from_num(u16::MAX));
+            .map(|alpha| I32F32::from_num(alpha).saturating_div(I32F32::from_num(u16::MAX)));
         (result[0], result[1])
     }
 }

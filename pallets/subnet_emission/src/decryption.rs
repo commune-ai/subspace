@@ -55,14 +55,11 @@ impl<T: Config> Pallet<T> {
                 }),
             );
 
-            DecryptionNodeCursor::<T>::set(current + 1);
+            DecryptionNodeCursor::<T>::set(current.saturating_add(1));
         }
     }
 
-    pub fn do_handle_decrypted_weights(
-        netuid: u16,
-        weights: Vec<(u64, Vec<(u16, Vec<(u16, u16)>)>)>,
-    ) {
+    pub fn do_handle_decrypted_weights(netuid: u16, weights: Vec<BlockWeights>) {
         let Some(info) = SubnetDecryptionData::<T>::get(netuid) else {
             log::error!(
                 "subnet {netuid} received decrypted weights to run but has no decryption data."
@@ -70,7 +67,7 @@ impl<T: Config> Pallet<T> {
             return;
         };
 
-        let mut valid_weights: Vec<(u64, Vec<(u16, Vec<(u16, u16)>)>)> = Vec::new();
+        let mut valid_weights: Vec<BlockWeights> = Vec::new();
 
         for (block, weights) in weights.into_iter() {
             let mut valid_block_weights: Vec<(u16, Vec<(u16, u16)>)> = Vec::new();
@@ -100,7 +97,7 @@ impl<T: Config> Pallet<T> {
                     continue;
                 }
 
-                if let None = Self::validate_weights(uid, &weights, netuid) {
+                if Self::validate_weights(uid, &weights, netuid).is_none() {
                     log::error!("validation failed for module {uid} weights on block {block} in subnet {netuid}");
                     continue;
                 }
@@ -111,13 +108,10 @@ impl<T: Config> Pallet<T> {
             valid_weights.push((block, valid_block_weights));
         }
 
-        match valid_weights.iter().max_by_key(|(key, _)| key) {
-            Some((_, weights)) => {
-                for (uid, weights) in weights {
-                    Weights::<T>::set(netuid, uid, Some(weights.clone()));
-                }
+        if let Some((_, weights)) = valid_weights.iter().max_by_key(|(key, _)| key) {
+            for (uid, weights) in weights {
+                Weights::<T>::set(netuid, uid, Some(weights.clone()));
             }
-            None => {}
         }
 
         match DecryptedWeights::<T>::get(netuid) {
@@ -129,7 +123,9 @@ impl<T: Config> Pallet<T> {
         }
 
         let block_number = pallet_subspace::Pallet::<T>::get_current_block_number();
-        if block_number - info.block_assigned < T::DecryptionNodeRotationInterval::get() {
+        if block_number.saturating_sub(info.block_assigned)
+            < T::DecryptionNodeRotationInterval::get()
+        {
             return;
         }
 
@@ -184,15 +180,13 @@ impl<T: Config> Pallet<T> {
         let mut encoded = Vec::new();
         encoded.extend((weights.len() as u32).to_be_bytes());
         encoded.extend(weights.iter().flat_map(|(uid, weight)| {
-            sp_std::vec![uid.to_be_bytes(), weight.to_be_bytes()]
-                .into_iter()
-                .flat_map(|a| a)
+            sp_std::vec![uid.to_be_bytes(), weight.to_be_bytes()].into_iter().flatten()
         }));
 
         encoded
     }
 
-    fn validate_weights(uid: u16, weights: &Vec<(u16, u16)>, netuid: u16) -> Option<()> {
+    fn validate_weights(uid: u16, weights: &[(u16, u16)], netuid: u16) -> Option<()> {
         let (uids, values) = weights.iter().copied().collect::<(Vec<u16>, Vec<u16>)>();
 
         let len = uids.len();

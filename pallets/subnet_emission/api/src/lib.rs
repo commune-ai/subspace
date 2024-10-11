@@ -15,6 +15,8 @@ pub enum SubnetConsensus {
     Root,
 }
 
+pub type SubnetWeights = Vec<(u16, Vec<(u16, u16)>)>;
+
 pub trait SubnetEmissionApi {
     fn get_unit_emission() -> u64;
 
@@ -63,9 +65,9 @@ pub trait SubnetEmissionApi {
     /// returns the old weights if it's overwritten
     fn set_subnet_weights(
         netuid: u16,
-        weigths: Option<Vec<(u16, Vec<(u16, u16)>)>>,
-    ) -> Option<Vec<(u16, Vec<(u16, u16)>)>>;
+        weigths: Option<SubnetWeights>,
+    ) -> Option<SubnetWeights>;
 
     /// returns the removed weights if any
-    fn clear_subnet_weights(netuid: u16) -> Option<Vec<(u16, Vec<(u16, u16)>)>>;
+    fn clear_subnet_weights(netuid: u16) -> Option<SubnetWeights>;
 }

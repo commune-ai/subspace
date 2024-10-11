@@ -533,6 +533,7 @@ pub fn compute_incentive_and_trust<T: Config>(
     }
 }
 
+#[allow(clippy::too_many_arguments)]
 pub fn process_consensus_output<T: Config>(
     params: &ConsensusParams<T>,
     modules: &FlattenedModules<T::AccountId>,
@@ -555,7 +556,7 @@ pub fn process_consensus_output<T: Config>(
         miner_emisisons,
         combined_emissions,
     } = compute_emissions(
-        params.token_emission.try_into().unwrap_or_default(),
+        params.token_emission,
         &stake,
         &active_stake,
         &incentives,
@@ -592,7 +593,7 @@ pub fn process_consensus_output<T: Config>(
     let bonds = extract_bonds::<T>(
         modules.module_count(),
         &new_permits,
-        &ema_bonds,
+        ema_bonds,
         has_max_validators,
         &modules.validator_permit,
     );
