@@ -1215,7 +1215,7 @@ fn foo() {
         //     cumulative_copier_divs: I64F64::from_num(0.8),
         //     cumulative_avg_delegate_divs: I64F64::from_num(1.0),
         //     min_underperf_threshold: I64F64::from_num(0.1),
-        //     black_box_age: 100,
+        //     encryption_window_len: 100,
         //     max_encryption_period: 1000,
         //     _phantom: PhantomData,
         // };

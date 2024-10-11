@@ -1,3 +1,5 @@
+// TODO:
+// make sure that not only yuma subnets work
 #![cfg_attr(not(feature = "std"), no_std)]
 
 extern crate alloc;
@@ -18,13 +20,13 @@ use pallet_subnet_emission::{
     },
     BlockWeights,
 };
-use std::collections::BTreeMap;
+
+use sp_std::collections::btree_map::BTreeMap;
 
 use pallet_subnet_emission::{ConsensusParameters, Weights};
 use pallet_subspace::{
     math::{inplace_normalize_64, vec_fixed64_to_fixed32},
-    Active, Consensus, CopierMargin, FloorDelegationFee, MaxEncryptionPeriod,
-    Pallet as SubspaceModule, Tempo, N,
+    Consensus, CopierMargin, FloorDelegationFee, MaxEncryptionPeriod,
 };
 use parity_scale_codec::{Decode, Encode};
 use scale_info::prelude::marker::PhantomData;
@@ -70,9 +72,9 @@ pub mod crypto {
     };
     app_crypto!(sr25519, KEY_TYPE);
 
-    pub struct TestAuthId;
+    pub struct AuthId;
 
-    impl frame_system::offchain::AppCrypto<MultiSigner, MultiSignature> for TestAuthId {
+    impl frame_system::offchain::AppCrypto<MultiSigner, MultiSignature> for AuthId {
         type RuntimeAppPublic = Public;
         type GenericSignature = sp_core::sr25519::Signature;
         type GenericPublic = sp_core::sr25519::Public;
@@ -80,7 +82,7 @@ pub mod crypto {
 
     // implemented for mock runtime in test
     impl frame_system::offchain::AppCrypto<<Sr25519Signature as Verify>::Signer, Sr25519Signature>
-        for TestAuthId
+        for AuthId
     {
         type RuntimeAppPublic = Public;
         type GenericSignature = sp_core::sr25519::Signature;
@@ -149,7 +151,7 @@ pub mod pallet {
             };
 
             let subnets = Self::get_valid_subnets(public_key);
-            Self::process_subnets(subnets);
+            Self::process_subnets(subnets, block_number);
         }
     }
 
@@ -196,35 +198,38 @@ impl<T: Config> Pallet<T> {
     }
 
     fn do_send_keep_alive(current_block: u64) -> Result<(), DispatchError> {
-        let public_key =
-            ow_extensions::offworker::get_encryption_key().ok_or("Failed to get encryption key")?;
+        let storage = StorageValueRef::persistent(b"last_keep_alive");
 
-        let storage_key = b"last_keep_alive";
-        let storage = StorageValueRef::persistent(storage_key);
-        let last_keep_alive = storage.get::<u64>().ok().flatten().unwrap_or(0);
-        if last_keep_alive != 0 && current_block.saturating_sub(last_keep_alive) < 50 {
-            return Ok(());
-        }
+        if storage
+            .get::<u64>()
+            .ok()
+            .flatten()
+            .map_or(true, |last| current_block.saturating_sub(last) >= 50)
+        {
+            let public_key = ow_extensions::offworker::get_encryption_key()
+                .ok_or(DispatchError::Other("Failed to get encryption key"))?;
 
-        let signer = Signer::<T, T::AuthorityId>::all_accounts();
-        if !signer.can_sign() {
-            log::error!(
-                "No local accounts available. Consider adding one via `author_insertKey` RPC."
-            );
-            return Err("No local accounts available".into());
-        }
-        let result = signer.send_signed_transaction(|_| Call::send_keep_alive {
-            public_key: public_key.clone(),
-        });
-
-        for (_account, result) in result {
-            if let Err(e) = result {
-                log::error!("Failed to send keep-alive transaction: {:?}", e);
-                return Err("Failed to send keep-alive transaction".into());
+            let signer = Signer::<T, T::AuthorityId>::all_accounts();
+            if !signer.can_sign() {
+                return Err(DispatchError::Other(
+                    "No local accounts available. Consider adding one via `author_insertKey` RPC.",
+                ));
             }
-        }
 
-        storage.set(&current_block);
+            signer
+                .send_signed_transaction(move |_| Call::send_keep_alive {
+                    public_key: public_key.clone(),
+                })
+                .into_iter()
+                .try_for_each(|(_, result)| {
+                    result.map_err(|e| {
+                        log::error!("Failed to send keep-alive transaction: {:?}", e);
+                        DispatchError::Other("Failed to send keep-alive transaction")
+                    })
+                })?;
+
+            storage.set(&current_block);
+        }
         Ok(())
     }
 }
