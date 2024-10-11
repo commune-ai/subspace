@@ -67,7 +67,7 @@ fp-evm = { git = "https://github.com/paritytech/frontier", branch = "polkadot-v1
 ] }
 # Frontier FRAME
 pallet-base-fee = { git = "https://github.com/paritytech/frontier", branch = "polkadot-v1.10.1", default-features = false }
-pallet-dynamic-fee = { git = "https://github.com/gztensor/frontier", branch = "polkadot-v1.10.1", default-features = false }
+pallet-dynamic-fee = { git = "https://github.com/paritytech/frontier", branch = "polkadot-v1.10.1", default-features = false }
 pallet-ethereum = { git = "https://github.com/paritytech/frontier", branch = "polkadot-v1.10.1", default-features = false }
 pallet-evm = { git = "https://github.com/paritytech/frontier", branch = "polkadot-v1.10.1", default-features = false }
 pallet-evm-chain-id = { git = "https://github.com/paritytech/frontier", branch = "polkadot-v1.10.1", default-features = false }
