@@ -59,8 +59,11 @@ parity-scale-codec = { version = "3.6.5", features = [
     "derive",
 ], default-features = false }
 
-# EVM Support
-# Frontier
+
+# Frontier dependencies
+fp-evm = { git = "https://github.com/paritytech/frontier", branch = "polkadot-v1.10.1", default-features = false, features = [
+    "serde",
+] }
 fp-account = { git = "https://github.com/paritytech/frontier", branch = "polkadot-v1.10.1", default-features = false, features = [
     "serde",
 ] }
@@ -68,10 +71,6 @@ fp-rpc = { git = "https://github.com/paritytech/frontier", branch = "polkadot-v1
 fp-self-contained = { git = "https://github.com/paritytech/frontier", branch = "polkadot-v1.10.1", default-features = false, features = [
     "serde",
 ] }
-fp-evm = { git = "https://github.com/paritytech/frontier", branch = "polkadot-v1.10.1", default-features = false, features = [
-    "serde",
-] }
-# Frontier FRAME
 pallet-base-fee = { git = "https://github.com/paritytech/frontier", branch = "polkadot-v1.10.1", default-features = false }
 pallet-dynamic-fee = { git = "https://github.com/gztensor/frontier", branch = "polkadot-v1.10.1", default-features = false }
 pallet-ethereum = { git = "https://github.com/paritytech/frontier", branch = "polkadot-v1.10.1", default-features = false }
@@ -87,6 +86,7 @@ frame-benchmarking-cli = { git = "https://github.com/paritytech/polkadot-sdk", b
 frame-executive = { git = "https://github.com/paritytech/polkadot-sdk", branch = "release-polkadot-v1.10.1", default-features = false }
 frame-support = { git = "https://github.com/paritytech/polkadot-sdk", branch = "release-polkadot-v1.10.1", default-features = false }
 frame-system = { git = "https://github.com/paritytech/polkadot-sdk", branch = "release-polkadot-v1.10.1", default-features = false }
+frame-metadata-hash-extension = { git = "https://github.com/paritytech/polkadot-sdk", branch = "release-polkadot-v1.10.1", default-features = false }
 frame-system-benchmarking = { git = "https://github.com/paritytech/polkadot-sdk", branch = "release-polkadot-v1.10.1", default-features = false }
 frame-system-rpc-runtime-api = { git = "https://github.com/paritytech/polkadot-sdk", branch = "release-polkadot-v1.10.1", default-features = false }
 frame-try-runtime = { git = "https://github.com/paritytech/polkadot-sdk", branch = "release-polkadot-v1.10.1", default-features = false }

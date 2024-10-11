@@ -12,21 +12,11 @@ where
     T: pallet_subspace::Config + pallet_subnet_emission::Config + pallet::Config,
 {
     let mut epochs = Vec::new();
-    dbg!(simulation_result.cumulative_copier_divs);
-    dbg!(simulation_result.cumulative_avg_delegate_divs);
     let mut result = ShouldDecryptResult::<T> {
         should_decrypt: false,
         simulation_result: simulation_result.clone(),
         delta: I64F64::from_num(0),
     };
-
-    // TODO:
-    // the delta can not be added here, it has to be done upon first retrival
-    // Add the delta from the previous run or initialize if not available
-    result.simulation_result.cumulative_avg_delegate_divs = result
-        .simulation_result
-        .cumulative_avg_delegate_divs
-        .saturating_add(IrrationalityDelta::<T>::get(subnet_id));
 
     log::info!("Processing consensus params for subnet {}", subnet_id);
 
@@ -54,6 +44,7 @@ where
             params,
             subnet_id,
             simulation_result.clone(),
+            param_block,
         );
 
         simulation_result = should_decrypt_result.simulation_result.clone();
@@ -74,6 +65,7 @@ pub fn should_decrypt_weights<T: Config>(
     latest_runtime_yuma_params: ConsensusParams<T>,
     subnet_id: u16,
     mut simulation_result: ConsensusSimulationResult<T>,
+    block_number: u64,
 ) -> ShouldDecryptResult<T> {
     // Now this will return struct X
     let SimulationYumaParams {
@@ -86,17 +78,17 @@ pub fn should_decrypt_weights<T: Config>(
         subnet_id,
     );
 
-    // Run simulation
+    // TODO: determine consensus dynamically
     let simulation_yuma_output = YumaEpoch::<T>::new(subnet_id, simulation_yuma_params)
         .run(decrypted_weights_map.into_iter().collect::<Vec<_>>())
         .unwrap();
 
-    // Update the simulation result
-    let tempo = Tempo::<T>::get(subnet_id);
+    // This is fine to get from the runtime
     let delegation_fee = FloorDelegationFee::<T>::get();
-    simulation_result.update(simulation_yuma_output, tempo, copier_uid, delegation_fee);
+    simulation_result.update(simulation_yuma_output, copier_uid, delegation_fee);
 
-    let (is_irrational, delta) = is_copying_irrational::<T>(simulation_result.clone());
+    let (is_irrational, delta) =
+        is_copying_irrational::<T>(simulation_result.clone(), block_number);
 
     ShouldDecryptResult {
         should_decrypt: is_irrational,
@@ -112,8 +104,9 @@ pub fn compute_simulation_yuma_params<T: Config>(
     mut runtime_yuma_params: ConsensusParams<T>,
     subnet_id: u16,
 ) -> SimulationYumaParams<T> {
-    let copier_uid: u16 = N::<T>::get(subnet_id);
+    let copier_uid: u16 = runtime_yuma_params.modules.len() as u16;
 
+    // This **has** to be ontained from the runtime storage
     let consensus_weights = Consensus::<T>::get(subnet_id);
     let copier_weights: Vec<(u16, u16)> = consensus_weights
         .into_iter()
@@ -130,7 +123,7 @@ pub fn compute_simulation_yuma_params<T: Config>(
         decrypted_weights
             .iter()
             .cloned()
-            .chain(std::iter::once((copier_uid, copier_weights))),
+            .chain(sp_std::iter::once((copier_uid, copier_weights))),
     );
 
     SimulationYumaParams {
@@ -146,14 +139,14 @@ pub fn add_copier_to_yuma_params<T: Config>(
     mut runtime_yuma_params: ConsensusParams<T>,
     subnet_id: u16,
 ) -> ConsensusParams<T> {
-    let copier_stake = get_copier_stake::<T>(subnet_id);
+    let copier_stake = get_copier_stake::<T>(&runtime_yuma_params);
     let current_block = runtime_yuma_params.current_block;
 
     let mut all_stakes: Vec<I64F64> = runtime_yuma_params
         .modules
         .values()
         .map(|m| m.stake_original)
-        .chain(std::iter::once(I64F64::from_num(copier_stake)))
+        .chain(sp_std::iter::once(I64F64::from_num(copier_stake)))
         .collect();
 
     inplace_normalize_64(&mut all_stakes);

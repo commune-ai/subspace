@@ -12,23 +12,28 @@ impl<T: Config> Pallet<T> {
             .collect()
     }
 
-    pub fn process_subnets(subnets: Vec<u16>) {
-        for subnet_id in subnets {
-            let params: Vec<(u64, ConsensusParams<T>)> =
-                ConsensusParameters::<T>::iter_prefix(subnet_id).collect();
-
+    pub fn process_subnets(subnets: Vec<u16>, current_block: u64) {
+        subnets.into_iter().for_each(|subnet_id| {
+            let params = ConsensusParameters::<T>::iter_prefix(subnet_id).collect::<Vec<_>>();
             let max_block = params.iter().map(|(block, _)| *block).max().unwrap_or(0);
 
-            let (last_processed_block, simulation_result) = Self::get_subnet_state(subnet_id);
+            let copier_margin = CopierMargin::<T>::get(subnet_id);
+            let max_encryption_period =
+                T::MaxEncryptionTime::get().min(MaxEncryptionPeriod::<T>::get(subnet_id));
 
-            dbg!(last_processed_block);
+            let (last_processed_block, simulation_result) = Self::get_subnet_state(
+                subnet_id,
+                current_block,
+                copier_margin,
+                max_encryption_period,
+            );
 
             if last_processed_block >= max_block {
                 log::info!(
                     "Skipping subnet {} as it has already been processed",
                     subnet_id
                 );
-                continue;
+                return;
             }
 
             log::info!(
@@ -38,47 +43,68 @@ impl<T: Config> Pallet<T> {
                 max_block
             );
 
-            let new_params: Vec<_> =
-                params.into_iter().filter(|(block, _)| *block > last_processed_block).collect();
+            let new_params = params
+                .into_iter()
+                .filter(|(block, _)| *block > last_processed_block)
+                .collect::<Vec<_>>();
 
             let (epochs, result) =
                 process_consensus_params::<T>(subnet_id, new_params, simulation_result);
 
             if !epochs.is_empty() {
-                if let Err(err) = Self::do_send_weights(subnet_id, epochs, result.delta) {
-                    log::error!(
-                        "Couldn't send weights to runtime for subnet {}: {}",
-                        subnet_id,
-                        err
-                    );
-                } else {
-                    // Save, and wait for another round of processing, to try to send weights again
-                    Self::save_subnet_state(subnet_id, max_block, result.simulation_result.clone());
-                }
+                Self::do_send_weights(subnet_id, epochs, result.delta)
+                    .map_err(|err| {
+                        log::error!(
+                            "Couldn't send weights to runtime for subnet {}: {}",
+                            subnet_id,
+                            err
+                        );
+                    })
+                    .ok();
             }
+
             Self::save_subnet_state(subnet_id, max_block, result.simulation_result);
-        }
+        });
     }
 
-    fn get_subnet_state(subnet_id: u16) -> (u64, ConsensusSimulationResult<T>) {
-        let storage_key = format!("subnet_state:{subnet_id}");
+    fn get_subnet_state(
+        subnet_id: u16,
+        current_block: u64,
+        copier_margin: I64F64,
+        max_encryption_period: u64,
+    ) -> (u64, ConsensusSimulationResult<T>) {
+        let storage_key = alloc::format!("subnet_state:{subnet_id}");
         let storage = StorageValueRef::persistent(storage_key.as_bytes());
-        storage
-            .get::<(u64, ConsensusSimulationResult<T>)>()
-            .unwrap_or_else(|_| {
+        let default = || {
+            (
+                0u64,
+                ConsensusSimulationResult {
+                    cumulative_avg_delegate_divs: IrrationalityDelta::<T>::get(subnet_id),
+                    creation_block: current_block,
+                    copier_margin,
+                    max_encryption_period,
+                    ..Default::default()
+                },
+            )
+        };
+        storage.get::<(u64, ConsensusSimulationResult<T>)>().map_or_else(
+            |_| {
                 log::warn!(
                     "Failed to retrieve subnet state for subnet {}. Starting from the beginning.",
                     subnet_id
                 );
-                Some((0, ConsensusSimulationResult::default()))
-            })
-            .unwrap_or_else(|| {
-                log::warn!(
-                    "Subnet state not found for subnet {}. Starting from the beginning.",
-                    subnet_id
-                );
-                (0, ConsensusSimulationResult::default())
-            })
+                default()
+            },
+            |opt| {
+                opt.unwrap_or_else(|| {
+                    log::warn!(
+                        "Subnet state not found for subnet {}. Starting from the beginning.",
+                        subnet_id
+                    );
+                    default()
+                })
+            },
+        )
     }
 
     fn save_subnet_state(
@@ -86,7 +112,7 @@ impl<T: Config> Pallet<T> {
         last_processed_block: u64,
         simulation_result: ConsensusSimulationResult<T>,
     ) {
-        let storage_key = format!("subnet_state:{subnet_id}");
+        let storage_key = alloc::format!("subnet_state:{subnet_id}");
         let storage = StorageValueRef::persistent(storage_key.as_bytes());
         storage.set(&(last_processed_block, simulation_result));
     }
