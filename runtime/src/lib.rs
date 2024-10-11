@@ -421,26 +421,11 @@ impl pallet_governance::Config for Runtime {
     type WeightInfo = pallet_governance::weights::SubstrateWeight<Runtime>;
 }
 
-impl pallet_offworker::Config for Runtime {
-    type AuthorityId = pallet_offworker::crypto::AuthId;
-    type RuntimeEvent = RuntimeEvent;
-    type MaxEncryptionTime = ConstU64<20_880>; // Close to 2 days
-}
-
-impl frame_system::offchain::SigningTypes for Runtime {
-    type Public = <Signature as Verify>::Signer;
-    type Signature = Signature;
-}
-
 #[cfg(feature = "testnet-faucet")]
 impl pallet_faucet::Config for Runtime {
     type RuntimeEvent = RuntimeEvent;
     type Currency = Balances;
 }
-
-// impl pallet_offworker::Config for Runtime {
-//     type RuntimeEvent = RuntimeEvent;
-// }
 
 // Includes emission logic for the runtime
 impl pallet_subnet_emission::Config for Runtime {
