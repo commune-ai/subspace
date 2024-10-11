@@ -30,7 +30,9 @@ use std::{
 };
 
 use pallet_subnet_emission::{
-    decryption::DecryptionNodeInfo, DecryptionNodes, PendingEmission, SubnetConsensusType,
+    decryption::DecryptionNodeInfo,
+    subnet_consensus::{util::params::ConsensusParams, yuma::YumaEpoch},
+    DecryptionNodes, PendingEmission, SubnetConsensusType,
 };
 
 struct MockOffworkerExt {
@@ -185,7 +187,7 @@ fn setup_subnet(netuid: u16, tempo: u64) {
     Tempo::<Test>::insert(netuid, tempo as u16);
 
     BondsMovingAverage::<Test>::insert(netuid, 0);
-    UseWeightsEncrytyption::<Test>::set(netuid, false);
+    UseWeightsEncrytyption::<Test>::set(netuid, true);
 
     MaxWeightAge::<Test>::set(netuid, 50_000);
     MinValidatorStake::<Test>::set(netuid, to_nano(10));
@@ -321,11 +323,6 @@ fn test_offchain_worker_behavior() {
         // Set block number the simulation will start from
         System::set_block_number(first_block - SUBNET_TEMPO);
 
-        // Overwrite last update and registration blocks
-        make_parameter_consensus_overwrites(TEST_SUBNET_ID, first_block, &json, None);
-
-        UseWeightsEncrytyption::<Test>::set(TEST_SUBNET_ID, true);
-
         let Some(public_key) = ow_extensions::offworker::get_encryption_key() else {
             panic!("No encryption key found")
         };
@@ -349,10 +346,6 @@ fn test_offchain_worker_behavior() {
 
         for (block_number, block_weights) in json["weights"].as_object().unwrap() {
             let block_number: u64 = block_number.parse().unwrap();
-            if block_number == first_block {
-                continue;
-            }
-
             dbg!(block_number);
 
             PendingEmission::<Test>::set(TEST_SUBNET_ID, PENDING_EMISSION);
@@ -360,6 +353,8 @@ fn test_offchain_worker_behavior() {
             make_parameter_consensus_overwrites(TEST_SUBNET_ID, block_number, &json, None);
 
             let weights: &Value = &block_weights[SAMPLE_SUBNET_ID];
+
+            let mut input_decrypted_weights: Vec<(u16, Vec<(u16, u16)>)> = Vec::new();
 
             // Set encrypted weights
             if let Some(weight_object) = weights.as_object() {
@@ -390,10 +385,21 @@ fn test_offchain_worker_behavior() {
                                         decrypted_weights_hash,
                                     );
                                 }
+                                input_decrypted_weights.push((uid, weight_vec));
                             }
                         }
                     }
                 }
+            }
+
+            if block_number == first_block {
+                let params =
+                    ConsensusParams::<Test>::new(TEST_SUBNET_ID, PENDING_EMISSION).unwrap();
+                YumaEpoch::<Test>::new(TEST_SUBNET_ID, params)
+                    .run(input_decrypted_weights)
+                    .unwrap()
+                    .apply();
+                continue;
             }
 
             // Run the offchain worker

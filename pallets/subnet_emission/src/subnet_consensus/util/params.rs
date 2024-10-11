@@ -52,7 +52,7 @@ pub struct ModuleParams {
     pub weight_hash: Vec<u8>,
 }
 
-#[derive(DebugNoBound)]
+#[derive(DebugNoBound, Clone)]
 pub struct FlattenedModules<AccountId: Debug> {
     pub keys: Vec<ModuleKey<AccountId>>,
     pub last_update: Vec<u64>,

@@ -590,12 +590,8 @@ pub type SignedExtra = (
     pallet_transaction_payment::ChargeTransactionPayment<Runtime>,
 );
 
-// Unchecked extrinsic type as expected by this runtime.
 pub type UncheckedExtrinsic =
-    fp_self_contained::UncheckedExtrinsic<Address, RuntimeCall, Signature, SignedExtra>;
-/// Extrinsic type that has already been checked.
-pub type CheckedExtrinsic =
-    fp_self_contained::CheckedExtrinsic<AccountId, RuntimeCall, SignedExtra, H160>;
+    generic::UncheckedExtrinsic<Address, RuntimeCall, Signature, SignedExtra>;
 // The payload being signed in transactions.
 pub type SignedPayload = generic::SignedPayload<RuntimeCall, SignedExtra>;
 // Executive: handles dispatch to the various modules.
@@ -607,43 +603,6 @@ pub type Executive = frame_executive::Executive<
     AllPalletsWithSystem,
     Migrations,
 >;
-
-impl fp_self_contained::SelfContainedCall for RuntimeCall {
-    type SignedInfo = H160;
-
-    fn is_self_contained(&self) -> bool {
-        false
-    }
-
-    fn check_self_contained(&self) -> Option<Result<Self::SignedInfo, TransactionValidityError>> {
-        None
-    }
-
-    fn validate_self_contained(
-        &self,
-        _info: &Self::SignedInfo,
-        _dispatch_info: &DispatchInfoOf<RuntimeCall>,
-        _len: usize,
-    ) -> Option<TransactionValidity> {
-        None
-    }
-
-    fn pre_dispatch_self_contained(
-        &self,
-        _info: &Self::SignedInfo,
-        _dispatch_info: &DispatchInfoOf<RuntimeCall>,
-        _len: usize,
-    ) -> Option<Result<(), TransactionValidityError>> {
-        None
-    }
-
-    fn apply_self_contained(
-        self,
-        _info: Self::SignedInfo,
-    ) -> Option<sp_runtime::DispatchResultWithInfo<PostDispatchInfoOf<Self>>> {
-        None
-    }
-}
 
 #[cfg(feature = "runtime-benchmarks")]
 #[macro_use]

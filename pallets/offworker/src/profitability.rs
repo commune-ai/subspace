@@ -35,48 +35,50 @@ where
         .saturating_sub(I64F64::from_num(delegation_fee.deconstruct()))
         .checked_div(I64F64::from_num(100))?;
 
-    let (total_stake, total_dividends) = yuma_output
+    let (total_active_stake, total_dividends) = yuma_output
         .dividends
         .iter()
         .enumerate()
-        .filter(|&(i, &div)| i != copier_uid as usize && div != 0)
+        .filter(|&(i, &div)| i as u16 != copier_uid && div != 0)
         .try_fold(
             (I64F64::from_num(0), I64F64::from_num(0)),
             |(stake_acc, div_acc), (i, &div)| {
-                yuma_output.params.modules.iter().nth(i).map(|(_, module)| {
-                    let stake = module.stake_original;
-                    let dividend = I64F64::from_num(div);
-                    (
-                        stake_acc.saturating_add(stake),
-                        div_acc.saturating_add(dividend),
-                    )
-                })
+                let stake = yuma_output
+                    .modules
+                    .stake_original
+                    .get(i)
+                    .copied()
+                    .unwrap_or(I64F64::from_num(0));
+                let dividend = I64F64::from_num(div);
+
+                Some((
+                    stake_acc.saturating_add(stake),
+                    div_acc.saturating_add(dividend),
+                ))
             },
         )?;
 
-    let average_dividends = total_dividends.checked_div(total_stake)?;
+    dbg!(total_active_stake, total_dividends);
 
-    // Find the copier module
+    if total_active_stake == I64F64::from_num(0) {
+        return Some(I64F64::from_num(0));
+    }
+
+    let average_dividends = total_dividends.checked_div(total_active_stake)?;
+
     let copier_stake = yuma_output
-        .params
         .modules
-        .values()
-        .find(|module| module.uid == copier_uid)
-        .map(|module| module.stake_original)?;
+        .stake_original
+        .get(copier_uid as usize)
+        .copied()
+        .unwrap_or(I64F64::from_num(0));
 
-    Some(average_dividends.saturating_mul(fee_factor).saturating_mul(copier_stake))
+    dbg!(average_dividends.saturating_mul(fee_factor).saturating_mul(copier_stake).into())
 }
 
-pub fn get_copier_stake<T>(consensus_params: &ConsensusParams<T>) -> u64
+pub fn get_copier_stake<T>(active_stake: u64) -> u64
 where
     T: pallet_subspace::Config + pallet::Config,
 {
-    let active_stake: u64 = consensus_params
-        .modules
-        .values()
-        .filter(|module| module.validator_permit)
-        .map(|module| module.stake_original.to_num::<u64>())
-        .sum();
-
     MeasuredStakeAmount::<T>::get().mul_floor(active_stake)
 }
