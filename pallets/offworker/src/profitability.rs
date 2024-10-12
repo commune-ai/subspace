@@ -14,12 +14,14 @@ pub fn is_copying_irrational<T: pallet_subspace::Config>(
 ) -> (bool, I64F64) {
     let encryption_window_len = block_number.saturating_sub(creation_block);
     if encryption_window_len >= max_encryption_period {
+        dbg!("Encryption window length exceeded");
         return (true, I64F64::from_num(0));
     }
 
     let one = I64F64::from_num(1);
     let threshold = one.saturating_add(copier_margin).saturating_mul(cumulative_avg_delegate_divs);
     let delta = cumulative_copier_divs.saturating_sub(threshold);
+    dbg!(delta, cumulative_avg_delegate_divs, cumulative_copier_divs);
     (delta.is_negative(), delta)
 }
 
@@ -58,8 +60,6 @@ where
             },
         )?;
 
-    dbg!(total_active_stake, total_dividends);
-
     if total_active_stake == I64F64::from_num(0) {
         return Some(I64F64::from_num(0));
     }
@@ -73,7 +73,7 @@ where
         .copied()
         .unwrap_or(I64F64::from_num(0));
 
-    dbg!(average_dividends.saturating_mul(fee_factor).saturating_mul(copier_stake).into())
+    average_dividends.saturating_mul(fee_factor).saturating_mul(copier_stake).into()
 }
 
 pub fn get_copier_stake<T>(active_stake: u64) -> u64

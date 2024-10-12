@@ -302,7 +302,7 @@ const SAMPLE_SUBNET_ID: &str = "31";
 const TEST_SUBNET_ID: u16 = 0;
 /// Make sure the tempo 100% matches
 const SUBNET_TEMPO: u64 = 360;
-const PENDING_EMISSION: u64 = to_nano(1000);
+const PENDING_EMISSION: u64 = to_nano(1_000);
 
 #[test]
 fn test_offchain_worker_behavior() {

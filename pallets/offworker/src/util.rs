@@ -148,15 +148,11 @@ pub fn add_copier_to_yuma_params<T: Config>(
         .modules
         .values()
         .filter(|m| m.validator_permit)
-        .map(|m| dbg!(m.stake_original.to_num::<u64>()))
+        .map(|m| m.stake_original.to_num::<u64>())
         .sum();
-
-    dbg!(total_active_stake.clone());
 
     let copier_stake = get_copier_stake::<T>(total_active_stake);
     let current_block = runtime_yuma_params.current_block;
-
-    dbg!(copier_stake.clone());
 
     // Collect original stakes, including the copier's stake
     let mut all_stakes: Vec<I64F64> = runtime_yuma_params
