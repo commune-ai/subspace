@@ -1363,8 +1363,7 @@ where
         use parity_scale_codec::Encode;
         use sp_runtime::traits::StaticLookup;
         // take the biggest period possible.
-        let period =
-            BlockHashCount::get().checked_next_power_of_two().map(|c| c / 2).unwrap_or(2);
+        let period = BlockHashCount::get().checked_next_power_of_two().map(|c| c / 2).unwrap_or(2);
 
         let current_block = System::block_number()
             .saturated_into::<u64>()
