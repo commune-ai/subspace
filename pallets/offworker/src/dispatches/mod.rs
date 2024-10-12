@@ -18,7 +18,9 @@ pub mod dispatches {
             decrypted_weights: Vec<(u64, Vec<(u16, Vec<(u16, u16)>)>)>,
             delta: I64F64,
         ) -> DispatchResultWithPostInfo {
-            ensure_none(origin)?;
+            // TODO:
+            // check if it is the corrent decryption node
+            let _who = ensure_signed(origin)?;
 
             IrrationalityDelta::<T>::set(subnet_id, delta);
 
@@ -42,7 +44,9 @@ pub mod dispatches {
             origin: OriginFor<T>,
             public_key: (Vec<u8>, Vec<u8>),
         ) -> DispatchResultWithPostInfo {
-            ensure_none(origin)?;
+            // TODO:
+            // check if it is the corrent decryption node
+            let _who = ensure_signed(origin)?;
 
             pallet_subnet_emission::Pallet::<T>::handle_authority_node_keep_alive(public_key);
 

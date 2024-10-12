@@ -158,6 +158,12 @@ pub mod pallet {
     #[pallet::event]
     pub enum Event<T: Config> {}
 
+    #[pallet::error]
+    pub enum Error<T> {
+        /// Decryption key is invalid for a given subnet
+        InvalidDecryptionKey,
+    }
+
     // 5 % of total active stake
     #[pallet::type_value]
     pub fn DefaultMeasuredStakeAmount<T: Config>() -> Percent {
@@ -177,7 +183,7 @@ pub mod pallet {
 
 impl<T: Config> Pallet<T> {
     fn do_send_weights(
-        netuid: u16,
+        subnet_id: u16,
         decrypted_weights: Vec<BlockWeights>,
         delta: I64F64,
     ) -> Result<(), &'static str> {
@@ -188,11 +194,33 @@ impl<T: Config> Pallet<T> {
             );
         }
 
-        signer.send_signed_transaction(|_| Call::send_decrypted_weights {
+        log::info!("Sending decrypted weights to subnet {}", subnet_id);
+        // dbg!("Sending decrypted weights to subnet", subnet_id);
+
+        let results = signer.send_signed_transaction(|_account| Call::send_decrypted_weights {
             decrypted_weights: decrypted_weights.clone(),
-            subnet_id: netuid,
+            subnet_id,
             delta,
         });
+
+        for (_acc, res) in &results {
+            match res {
+                Ok(()) => {
+                    log::info!(
+                        "Successfully sent decrypted weights to subnet {}",
+                        subnet_id
+                    );
+                    Self::delete_subnet_state(subnet_id);
+                }
+                Err(e) => {
+                    log::error!(
+                        "Failed to send decrypted weights to subnet {}: {:?}",
+                        subnet_id,
+                        e
+                    );
+                }
+            }
+        }
 
         Ok(())
     }

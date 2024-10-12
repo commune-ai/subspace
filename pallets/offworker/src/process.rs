@@ -116,4 +116,10 @@ impl<T: Config> Pallet<T> {
         let storage = StorageValueRef::persistent(storage_key.as_bytes());
         storage.set(&(last_processed_block, simulation_result));
     }
+
+    pub fn delete_subnet_state(subnet_id: u16) {
+        let storage_key = alloc::format!("subnet_state:{subnet_id}");
+        let mut storage = StorageValueRef::persistent(storage_key.as_bytes());
+        storage.clear();
+    }
 }
