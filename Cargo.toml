@@ -72,7 +72,7 @@ fp-self-contained = { git = "https://github.com/paritytech/frontier", branch = "
     "serde",
 ] }
 pallet-base-fee = { git = "https://github.com/paritytech/frontier", branch = "polkadot-v1.10.1", default-features = false }
-pallet-dynamic-fee = { git = "https://github.com/gztensor/frontier", branch = "polkadot-v1.10.1", default-features = false }
+pallet-dynamic-fee = { git = "https://github.com/paritytech/frontier", branch = "polkadot-v1.10.1", default-features = false }
 pallet-ethereum = { git = "https://github.com/paritytech/frontier", branch = "polkadot-v1.10.1", default-features = false }
 pallet-evm = { git = "https://github.com/paritytech/frontier", branch = "polkadot-v1.10.1", default-features = false }
 pallet-evm-chain-id = { git = "https://github.com/paritytech/frontier", branch = "polkadot-v1.10.1", default-features = false }
@@ -145,4 +145,3 @@ substrate-build-script-utils = { git = "https://github.com/paritytech/polkadot-s
 substrate-frame-rpc-system = { git = "https://github.com/paritytech/polkadot-sdk", branch = "release-polkadot-v1.10.1" }
 substrate-wasm-builder = { git = "https://github.com/paritytech/polkadot-sdk", branch = "release-polkadot-v1.10.1" }
 tokio = "1.17.0"
-

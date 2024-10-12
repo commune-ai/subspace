@@ -63,10 +63,7 @@ pub trait SubnetEmissionApi {
     fn remove_weights(netuid: u16, uid: u16) -> Option<Vec<(u16, u16)>>;
 
     /// returns the old weights if it's overwritten
-    fn set_subnet_weights(
-        netuid: u16,
-        weigths: Option<SubnetWeights>,
-    ) -> Option<SubnetWeights>;
+    fn set_subnet_weights(netuid: u16, weigths: Option<SubnetWeights>) -> Option<SubnetWeights>;
 
     /// returns the removed weights if any
     fn clear_subnet_weights(netuid: u16) -> Option<SubnetWeights>;
