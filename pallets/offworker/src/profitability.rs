@@ -20,7 +20,7 @@ pub fn is_copying_irrational<T: pallet_subspace::Config>(
     let one = I64F64::from_num(1);
     let threshold = one.saturating_add(copier_margin).saturating_mul(cumulative_avg_delegate_divs);
     let delta = cumulative_copier_divs.saturating_sub(threshold);
-    (delta.is_negative(), delta) 
+    (delta.is_negative(), delta)
 }
 
 pub fn calculate_avg_delegate_divs<T>(

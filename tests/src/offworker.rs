@@ -8,13 +8,14 @@ use pallet_subnet_emission_api::SubnetConsensus;
 use parity_scale_codec::Decode;
 use rand::rngs::OsRng;
 use rsa::{traits::PublicKeyParts, BigUint, Pkcs1v15Encrypt, RsaPrivateKey, RsaPublicKey};
-use serde_json::Value;
+use serde::{Deserialize, Serialize};
 use sp_core::{
     offchain::{testing, OffchainDbExt, OffchainWorkerExt, TransactionPoolExt},
     sr25519, Pair,
 };
 use sp_keystore::{testing::MemoryKeystore, Keystore, KeystoreExt};
 use sp_runtime::{testing::TestXt, BuildStorage, KeyTypeId};
+use std::collections::BTreeMap;
 use substrate_fixed::types::I64F64;
 
 use pallet_subspace::{
@@ -200,58 +201,71 @@ fn setup_subnet(netuid: u16, tempo: u64) {
     FounderShare::<Test>::set(netuid, 0);
 }
 
-fn load_json_data() -> Value {
-    let mut path = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
-    path.push("src/data/sn31_weights_stake.json");
-    let mut file = File::open(path).expect("Failed to open weights_stake.json");
-    let mut contents = String::new();
-    file.read_to_string(&mut contents).expect("Failed to read file");
-    serde_json::from_str(&contents).expect("Failed to parse JSON")
+#[derive(Serialize, Deserialize, Debug)]
+struct MsgPackValue {
+    weights: BTreeMap<String, BTreeMap<String, BTreeMap<String, Vec<Vec<u64>>>>>,
+    stake: BTreeMap<String, u64>,
+    last_update: BTreeMap<String, BTreeMap<String, u64>>,
+    registration_blocks: BTreeMap<String, BTreeMap<String, u64>>,
 }
 
-fn register_modules_from_json(json: &Value, netuid: u16) {
-    if let Some(stake_map) = json["stake"].as_object() {
-        let mut sorted_uids: Vec<u16> =
-            stake_map.keys().filter_map(|uid_str| uid_str.parse::<u16>().ok()).collect();
-        sorted_uids.sort_unstable();
+fn load_msgpack_data() -> MsgPackValue {
+    let mut path = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+    path.push("src/data/sn31_sim.msgpack");
+    let mut file = File::open(path).expect("Failed to open sn31_sim.msgpack");
+    let mut buffer = Vec::new();
+    file.read_to_end(&mut buffer).expect("Failed to read file");
 
-        sorted_uids.iter().for_each(|&uid| {
-            if let Some(stake_value) = stake_map.get(&uid.to_string()) {
-                let stake: u64 = stake_value.as_u64().expect("Failed to parse stake value");
-                register_module(netuid, uid as u32, stake, false).unwrap();
-            }
-        });
+    rmp_serde::from_slice(&buffer).expect("Failed to parse msgpack")
+}
+
+fn register_modules_from_msgpack(data: &MsgPackValue, netuid: u16) {
+    let stake_map = &data.stake;
+    let mut sorted_uids: Vec<u16> =
+        stake_map.keys().filter_map(|uid_str| uid_str.parse::<u16>().ok()).collect();
+    sorted_uids.sort_unstable();
+
+    for uid_str in &sorted_uids {
+        if let Some(&stake) = stake_map.get(&uid_str.to_string()) {
+            register_module(netuid, *uid_str as u32, stake, false).unwrap();
+        }
     }
 }
 
 fn make_parameter_consensus_overwrites(
     netuid: u16,
     block: u64,
-    json: &Value,
+    data: &MsgPackValue,
     copier_last_update: Option<u64>,
 ) {
-    let mut last_update_vec = get_value_for_block("last_update", block, &json);
+    let mut last_update_vec = get_value_for_block("last_update", block, data);
     if let Some(copier_last_update) = copier_last_update {
         last_update_vec.push(copier_last_update);
     }
 
     LastUpdate::<Test>::set(netuid, last_update_vec);
 
-    let registration_blocks_vec = get_value_for_block("registration_blocks", block, &json);
+    let registration_blocks_vec = get_value_for_block("registration_blocks", block, data);
     registration_blocks_vec.iter().enumerate().for_each(|(i, &block)| {
         RegistrationBlock::<Test>::set(netuid, i as u16, block);
     });
 }
 
-fn get_value_for_block(module: &str, block_number: u64, json: &Value) -> Vec<u64> {
-    let stuff = json[module].as_object().unwrap();
-    let stuff_vec: Vec<u64> = stuff[&block_number.to_string()]
-        .as_object()
-        .unwrap()
-        .values()
-        .filter_map(|v| v.as_u64())
-        .collect();
-    stuff_vec
+fn get_value_for_block(module: &str, block_number: u64, data: &MsgPackValue) -> Vec<u64> {
+    let block_str = block_number.to_string();
+    match module {
+        "last_update" => data
+            .last_update
+            .get(&block_str)
+            .map(|m| m.values().cloned().collect())
+            .unwrap_or_default(),
+        "registration_blocks" => data
+            .registration_blocks
+            .get(&block_str)
+            .map(|m| m.values().cloned().collect())
+            .unwrap_or_default(),
+        _ => Vec::new(),
+    }
 }
 
 fn hash(data: Vec<(u16, u16)>) -> Vec<u8> {
@@ -310,15 +324,19 @@ fn test_offchain_worker_behavior() {
     let (mut ext, pool_state, _offchain_state) = new_test_ext(mock_offworker_ext);
 
     ext.execute_with(|| {
-        let json = load_json_data();
-        let first_block =
-            json["weights"].as_object().unwrap().keys().next().unwrap().parse().unwrap();
+        let data = load_msgpack_data();
+        let first_block = data
+            .weights
+            .keys()
+            .next()
+            .and_then(|s| s.parse::<u64>().ok())
+            .expect("Failed to parse first block number");
 
         // Register and setup subnet
         setup_subnet(TEST_SUBNET_ID, SUBNET_TEMPO);
 
         // Register all modules from scratch
-        register_modules_from_json(&json, TEST_SUBNET_ID);
+        register_modules_from_msgpack(&data, TEST_SUBNET_ID);
 
         // Set block number the simulation will start from
         System::set_block_number(first_block - SUBNET_TEMPO);
@@ -337,57 +355,49 @@ fn test_offchain_worker_behavior() {
         // Run all important things in on initialize hooks
         PendingEmission::<Test>::set(TEST_SUBNET_ID, PENDING_EMISSION);
         step_block(SUBNET_TEMPO as u16);
-        // TODO:
-        // make sure that the consensus parameters are saved into the runtime storage
-        // `ConsensusParameters`
-
         let mut decryption_count = 0;
         let mut last_block = 0;
 
-        for (block_number, block_weights) in json["weights"].as_object().unwrap() {
-            let block_number: u64 = block_number.parse().unwrap();
+        for (block_number_str, block_weights) in &data.weights {
+            let block_number: u64 = block_number_str.parse().unwrap();
             dbg!(block_number);
 
             PendingEmission::<Test>::set(TEST_SUBNET_ID, PENDING_EMISSION);
             step_block(SUBNET_TEMPO as u16);
-            make_parameter_consensus_overwrites(TEST_SUBNET_ID, block_number, &json, None);
+            make_parameter_consensus_overwrites(TEST_SUBNET_ID, block_number, &data, None);
 
-            let weights: &Value = &block_weights[SAMPLE_SUBNET_ID];
+            let weights = &block_weights[SAMPLE_SUBNET_ID];
 
             let mut input_decrypted_weights: Vec<(u16, Vec<(u16, u16)>)> = Vec::new();
 
             // Set encrypted weights
-            if let Some(weight_object) = weights.as_object() {
-                for (uid_str, weight_data) in weight_object {
-                    if let Ok(uid) = uid_str.parse::<u16>() {
-                        if let Some(weight_array) = weight_data.as_array() {
-                            let weight_vec: Vec<(u16, u16)> = weight_array
-                                .iter()
-                                .filter_map(|w| {
-                                    let pair = w.as_array()?;
-                                    Some((pair[0].as_u64()? as u16, pair[1].as_u64()? as u16))
-                                })
-                                .collect();
-
-                            if !weight_vec.is_empty()
-                                && weight_vec.iter().any(|(_, value)| *value != 0)
-                            {
-                                let encrypted_weights =
-                                    encrypt(decryption_info.public_key.clone(), weight_vec.clone());
-                                let decrypted_weights_hash = hash(weight_vec.clone());
-
-                                if let Some(key) = SubspaceMod::get_key_for_uid(TEST_SUBNET_ID, uid)
-                                {
-                                    set_weights_encrypted(
-                                        TEST_SUBNET_ID,
-                                        key,
-                                        encrypted_weights,
-                                        decrypted_weights_hash,
-                                    );
-                                }
-                                input_decrypted_weights.push((uid, weight_vec));
+            for (uid_str, weight_data) in weights {
+                if let Ok(uid) = uid_str.parse::<u16>() {
+                    let weight_vec: Vec<(u16, u16)> = weight_data
+                        .iter()
+                        .filter_map(|w| {
+                            if w.len() == 2 {
+                                Some((w[0] as u16, w[1] as u16))
+                            } else {
+                                None
                             }
+                        })
+                        .collect();
+
+                    if !weight_vec.is_empty() && weight_vec.iter().any(|(_, value)| *value != 0) {
+                        let encrypted_weights =
+                            encrypt(decryption_info.public_key.clone(), weight_vec.clone());
+                        let decrypted_weights_hash = hash(weight_vec.clone());
+
+                        if let Some(key) = SubspaceMod::get_key_for_uid(TEST_SUBNET_ID, uid) {
+                            set_weights_encrypted(
+                                TEST_SUBNET_ID,
+                                key,
+                                encrypted_weights,
+                                decrypted_weights_hash,
+                            );
                         }
+                        input_decrypted_weights.push((uid, weight_vec));
                     }
                 }
             }
