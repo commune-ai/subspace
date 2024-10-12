@@ -95,7 +95,7 @@ pub fn should_decrypt_weights<T: Config>(
 
     ShouldDecryptResult {
         should_decrypt: is_irrational,
-        delta,
+        delta: delta.abs(), // Make sure to convert to positive
         simulation_result,
     }
 }

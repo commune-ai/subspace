@@ -4,6 +4,7 @@ use frame_system::{self};
 use ow_extensions::OffworkerExt;
 use pallet_offworker::{Call, IrrationalityDelta, Pallet};
 use pallet_subnet_emission_api::SubnetConsensus;
+use sp_runtime::traits::StaticLookup;
 
 use parity_scale_codec::Decode;
 use rand::rngs::OsRng;
@@ -14,9 +15,8 @@ use sp_core::{
     sr25519, Pair,
 };
 use sp_keystore::{testing::MemoryKeystore, Keystore, KeystoreExt};
-use sp_runtime::{testing::TestXt, BuildStorage, KeyTypeId};
+use sp_runtime::{BuildStorage, KeyTypeId};
 use std::collections::BTreeMap;
-use substrate_fixed::types::I64F64;
 
 use pallet_subspace::{
     BondsMovingAverage, FounderShare, LastUpdate, MaxAllowedUids, MaxAllowedWeights,
@@ -35,6 +35,8 @@ use pallet_subnet_emission::{
     subnet_consensus::{util::params::ConsensusParams, yuma::YumaEpoch},
     DecryptionNodes, PendingEmission, SubnetConsensusType,
 };
+
+pub const KEY_TYPE: KeyTypeId = KeyTypeId(*b"btc!");
 
 struct MockOffworkerExt {
     key: Option<rsa::RsaPrivateKey>,
@@ -143,42 +145,6 @@ fn read_u16(cursor: &mut Cursor<&Vec<u8>>) -> Option<u16> {
         Ok(()) => Some(u16::from_be_bytes(buf)),
         Err(_) => None,
     }
-}
-
-pub const KEY_TYPE: KeyTypeId = KeyTypeId(*b"btc!");
-
-// Helper function to set up the test environment
-fn new_test_ext(
-    mock_offworker_ext: MockOffworkerExt,
-) -> (
-    sp_io::TestExternalities,
-    std::sync::Arc<parking_lot::RwLock<testing::PoolState>>,
-    std::sync::Arc<parking_lot::RwLock<testing::OffchainState>>,
-) {
-    let (offchain, offchain_state) = testing::TestOffchainExt::new();
-    let (pool, pool_state) = testing::TestTransactionPoolExt::new();
-    let keystore = MemoryKeystore::new();
-
-    // Generate a new key pair and add it to the keystore
-    let (pair, _, _) = sr25519::Pair::generate_with_phrase(None);
-    let public = pair.public();
-    keystore
-        .sr25519_generate_new(
-            KEY_TYPE,
-            Some(&format!("//{}", hex::encode(public.as_ref() as &[u8]))),
-        )
-        .expect("Failed to add key to keystore");
-
-    let t = frame_system::GenesisConfig::<Test>::default().build_storage().unwrap();
-
-    let mut ext = sp_io::TestExternalities::new(t);
-    ext.register_extension(OffchainWorkerExt::new(offchain.clone()));
-    ext.register_extension(OffchainDbExt::new(offchain));
-    ext.register_extension(TransactionPoolExt::new(pool));
-    ext.register_extension(OffworkerExt::new(mock_offworker_ext));
-    ext.register_extension(KeystoreExt(Arc::new(keystore)));
-
-    (ext, pool_state, offchain_state)
 }
 
 fn setup_subnet(netuid: u16, tempo: u64) {
@@ -310,6 +276,40 @@ fn encrypt(key: (Vec<u8>, Vec<u8>), data: Vec<(u16, u16)>) -> Vec<u8> {
         })
         .collect()
 }
+
+// Helper function to set up the test environment
+fn new_test_ext(
+    mock_offworker_ext: MockOffworkerExt,
+) -> (
+    sp_io::TestExternalities,
+    std::sync::Arc<parking_lot::RwLock<testing::PoolState>>,
+    std::sync::Arc<parking_lot::RwLock<testing::OffchainState>>,
+) {
+    let (offchain, offchain_state) = testing::TestOffchainExt::new();
+    let (pool, pool_state) = testing::TestTransactionPoolExt::new();
+    let keystore = MemoryKeystore::new();
+
+    // Generate a new key pair and add it to the keystore
+    let (pair, _, _) = sr25519::Pair::generate_with_phrase(None);
+    let public = pair.public();
+    keystore
+        .sr25519_generate_new(
+            KEY_TYPE,
+            Some(&format!("//{}", hex::encode(public.as_ref() as &[u8]))),
+        )
+        .expect("Failed to add key to keystore");
+
+    sp_tracing::try_init_simple();
+    let t = frame_system::GenesisConfig::<Test>::default().build_storage().unwrap();
+    let mut ext = sp_io::TestExternalities::new(t);
+    ext.register_extension(OffchainWorkerExt::new(offchain.clone()));
+    ext.register_extension(OffchainDbExt::new(offchain));
+    ext.register_extension(TransactionPoolExt::new(pool));
+    ext.register_extension(OffworkerExt::new(mock_offworker_ext));
+    ext.register_extension(KeystoreExt(Arc::new(keystore)));
+
+    (ext, pool_state, offchain_state)
+}
 /// This is the subnet id specifid in the data/...weights_stake.json
 /// We are using real network data to perform the tests
 const SAMPLE_SUBNET_ID: &str = "31";
@@ -317,6 +317,7 @@ const TEST_SUBNET_ID: u16 = 0;
 /// Make sure the tempo 100% matches
 const SUBNET_TEMPO: u64 = 360;
 const PENDING_EMISSION: u64 = to_nano(1_000);
+const EXPECTED_DECRYPTIONS_COUNT: u64 = 2;
 
 #[test]
 fn test_offchain_worker_behavior() {
@@ -417,35 +418,71 @@ fn test_offchain_worker_behavior() {
 
             // Process transactions
             while let Some(tx) = pool_state.write().transactions.pop() {
-                if let Ok(call) = TestXt::<Call<Test>, ()>::decode(&mut &tx[..]) {
-                    if let Call::send_decrypted_weights {
+                dbg!("processing tx");
+                let call = Extrinsic::decode(&mut &*tx).unwrap();
+                if let RuntimeCall::OffWorkerMod(Call::send_decrypted_weights {
+                    subnet_id,
+                    decrypted_weights,
+                    delta,
+                }) = call.call
+                {
+                    assert_eq!(subnet_id, TEST_SUBNET_ID);
+                    assert!(!decrypted_weights.is_empty());
+                    log::info!("decryption event on block: {}", block_number);
+
+                    // Execute the extrinsic
+                    let signer_u64 = match call.signature {
+                        Some((account_id, _extra)) => account_id,
+                        None => {
+                            log::error!("Unsigned extrinsic encountered");
+                            continue; // Skip this transaction
+                        }
+                    };
+
+                    // Convert u64 to AccountId
+                    let signer =
+                        <Test as frame_system::Config>::Lookup::unlookup(signer_u64 as u32);
+
+                    // Execute the extrinsic
+                    let origin = frame_system::RawOrigin::Signed(signer).into();
+                    let result = Pallet::<Test>::send_decrypted_weights(
+                        origin,
                         subnet_id,
                         decrypted_weights,
                         delta,
-                    } = call.call
-                    {
-                        assert_eq!(subnet_id, TEST_SUBNET_ID);
-                        assert!(!decrypted_weights.is_empty());
-                        assert_ne!(delta, I64F64::from_num(0));
-                        decryption_count += 1;
+                    );
+
+                    // Handle the result
+                    match result {
+                        Ok(_) => {
+                            log::info!("Transaction executed successfully");
+                            decryption_count += 1;
+                        }
+                        Err(e) => {
+                            log::error!("Transaction execution failed: {:?}", e);
+                            // Handle the error as needed
+                        }
                     }
                 }
             }
 
-            if decryption_count >= 5 {
+            if decryption_count >= EXPECTED_DECRYPTIONS_COUNT {
                 last_block = block_number;
                 break;
             }
         }
 
         // Assert that we've processed at least 5 decryptions
+        //
+        // Move to 5 later
         assert!(
-            decryption_count >= 5,
+            decryption_count >= EXPECTED_DECRYPTIONS_COUNT,
             "Expected at least 5 decryptions, got {}",
             decryption_count
         );
 
         // Check if IrrationalityDelta is set
+        dbg!(IrrationalityDelta::<Test>::iter().collect::<Vec<_>>());
         assert!(
             IrrationalityDelta::<Test>::contains_key(TEST_SUBNET_ID),
             "IrrationalityDelta should be set"

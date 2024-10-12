@@ -8,11 +8,11 @@ use frame_support::{
 };
 use frame_system::{
     self as system,
-    offchain::{AppCrypto, CreateSignedTransaction, SigningTypes},
+    offchain::{AppCrypto, SigningTypes},
 };
 use pallet_governance::GlobalGovernanceConfig;
 use pallet_governance_api::*;
-use pallet_offworker::{crypto::Signature, Call as OffworkerCall};
+use pallet_offworker::crypto::Signature;
 use pallet_subnet_emission_api::{SubnetConsensus, SubnetEmissionApi};
 use pallet_subspace::{
     subnet::SubnetChangeset, Address, DefaultKey, DefaultSubnetParams, Dividends, Emission,
@@ -26,8 +26,10 @@ use scale_info::{prelude::collections::BTreeSet, TypeInfo};
 
 use sp_core::{sr25519, ConstU16, ConstU64, H256};
 use sp_runtime::{
-    generic::UncheckedExtrinsic,
-    traits::{AccountIdConversion, BlakeTwo256, IdentifyAccount, IdentityLookup},
+    testing::TestXt,
+    traits::{
+        AccountIdConversion, BlakeTwo256, Extrinsic as ExtrinsicT, IdentifyAccount, IdentityLookup,
+    },
     BuildStorage, DispatchError, DispatchResult, KeyTypeId,
 };
 use std::{
@@ -390,25 +392,34 @@ impl From<CustomPublic> for sr25519::Public {
         custom_public.0
     }
 }
-impl SigningTypes for Test {
+
+pub type Extrinsic = TestXt<RuntimeCall, ()>;
+
+impl frame_system::offchain::SigningTypes for Test {
     type Public = CustomPublic;
     type Signature = Signature;
 }
 
-impl CreateSignedTransaction<OffworkerCall<Test>> for Test {
-    fn create_transaction<C: AppCrypto<Self::Public, Self::Signature>>(
-        _call: OffworkerCall<Test>,
-        _public: Self::Public,
-        _account: AccountId,
-        _nonce: u32,
-    ) -> Option<(OffworkerCall<Test>, <UncheckedExtrinsic<AccountId, OffworkerCall<Test>, Signature, ()> as sp_runtime::traits::Extrinsic>::SignaturePayload)>{
-        None
-    }
+impl<LocalCall> frame_system::offchain::SendTransactionTypes<LocalCall> for Test
+where
+    RuntimeCall: From<LocalCall>,
+{
+    type OverarchingCall = RuntimeCall;
+    type Extrinsic = Extrinsic;
 }
 
-impl frame_system::offchain::SendTransactionTypes<OffworkerCall<Test>> for Test {
-    type Extrinsic = UncheckedExtrinsic<AccountId, OffworkerCall<Test>, Signature, ()>;
-    type OverarchingCall = OffworkerCall<Test>;
+impl<LocalCall> frame_system::offchain::CreateSignedTransaction<LocalCall> for Test
+where
+    RuntimeCall: From<LocalCall>,
+{
+    fn create_transaction<C: frame_system::offchain::AppCrypto<Self::Public, Self::Signature>>(
+        call: RuntimeCall,
+        _public: Self::Public,
+        _account: AccountId,
+        nonce: u64,
+    ) -> Option<(RuntimeCall, <Extrinsic as ExtrinsicT>::SignaturePayload)> {
+        Some((call, (nonce, ())))
+    }
 }
 
 impl pallet_offworker::Config for Test {
@@ -424,7 +435,7 @@ impl system::Config for Test {
     type BlockLength = ();
     type AccountId = AccountId;
     type RuntimeCall = RuntimeCall;
-    type Nonce = u32;
+    type Nonce = u64;
     type Hash = H256;
     type Hashing = BlakeTwo256;
     type Lookup = IdentityLookup<Self::AccountId>;
