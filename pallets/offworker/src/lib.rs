@@ -181,8 +181,10 @@ impl<T: Config> Pallet<T> {
         decrypted_weights: Vec<BlockWeights>,
         delta: I64F64,
     ) -> Result<(), &'static str> {
+        dbg!("Sending decrypted weights FN");
         let signer = Signer::<T, T::AuthorityId>::all_accounts();
         if !signer.can_sign() {
+            dbg!("No local accounts available. Consider adding one via `author_insertKey` RPC.");
             return Err(
                 "No local accounts available. Consider adding one via `author_insertKey` RPC.",
             );

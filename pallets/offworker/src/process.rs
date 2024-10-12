@@ -52,6 +52,7 @@ impl<T: Config> Pallet<T> {
                 process_consensus_params::<T>(subnet_id, new_params, simulation_result);
 
             if !epochs.is_empty() {
+                dbg!("sending weights");
                 Self::do_send_weights(subnet_id, epochs, result.delta)
                     .map_err(|err| {
                         log::error!(
