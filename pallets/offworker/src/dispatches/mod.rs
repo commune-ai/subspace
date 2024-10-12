@@ -18,7 +18,6 @@ pub mod dispatches {
             decrypted_weights: Vec<(u64, Vec<(u16, Vec<(u16, u16)>)>)>,
             delta: I64F64,
         ) -> DispatchResultWithPostInfo {
-            dbg!("received decrypted weights");
             ensure_none(origin)?;
 
             IrrationalityDelta::<T>::set(subnet_id, delta);

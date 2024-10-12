@@ -42,15 +42,15 @@ impl<T: pallet_subspace::Config + pallet_subnet_emission::Config> ConsensusSimul
             .map(|&div| I64F64::from_num(div))
             .unwrap_or_default();
 
-        self.cumulative_copier_divs = dbg!(self
+        self.cumulative_copier_divs = self
             .cumulative_copier_divs
             .checked_add(copier_divs)
-            .unwrap_or(self.cumulative_copier_divs));
+            .unwrap_or(self.cumulative_copier_divs);
 
-        self.cumulative_avg_delegate_divs = dbg!(self
+        self.cumulative_avg_delegate_divs = self
             .cumulative_avg_delegate_divs
             .checked_add(avg_delegate_divs)
-            .unwrap_or(self.cumulative_avg_delegate_divs));
+            .unwrap_or(self.cumulative_avg_delegate_divs);
     }
 }
 
