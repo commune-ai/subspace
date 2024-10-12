@@ -421,11 +421,26 @@ impl pallet_governance::Config for Runtime {
     type WeightInfo = pallet_governance::weights::SubstrateWeight<Runtime>;
 }
 
+impl pallet_offworker::Config for Runtime {
+    type AuthorityId = pallet_offworker::crypto::AuthId;
+    type RuntimeEvent = RuntimeEvent;
+    type MaxEncryptionTime = ConstU64<20_880>; // Close to 2 days
+}
+
+impl frame_system::offchain::SigningTypes for Runtime {
+    type Public = <Signature as Verify>::Signer;
+    type Signature = Signature;
+}
+
 #[cfg(feature = "testnet-faucet")]
 impl pallet_faucet::Config for Runtime {
     type RuntimeEvent = RuntimeEvent;
     type Currency = Balances;
 }
+
+// impl pallet_offworker::Config for Runtime {
+//     type RuntimeEvent = RuntimeEvent;
+// }
 
 // Includes emission logic for the runtime
 impl pallet_subnet_emission::Config for Runtime {
@@ -590,8 +605,12 @@ pub type SignedExtra = (
     pallet_transaction_payment::ChargeTransactionPayment<Runtime>,
 );
 
+// Unchecked extrinsic type as expected by this runtime.
 pub type UncheckedExtrinsic =
-    generic::UncheckedExtrinsic<Address, RuntimeCall, Signature, SignedExtra>;
+    fp_self_contained::UncheckedExtrinsic<Address, RuntimeCall, Signature, SignedExtra>;
+/// Extrinsic type that has already been checked.
+pub type CheckedExtrinsic =
+    fp_self_contained::CheckedExtrinsic<AccountId, RuntimeCall, SignedExtra, H160>;
 // The payload being signed in transactions.
 pub type SignedPayload = generic::SignedPayload<RuntimeCall, SignedExtra>;
 // Executive: handles dispatch to the various modules.
@@ -603,6 +622,43 @@ pub type Executive = frame_executive::Executive<
     AllPalletsWithSystem,
     Migrations,
 >;
+
+impl fp_self_contained::SelfContainedCall for RuntimeCall {
+    type SignedInfo = H160;
+
+    fn is_self_contained(&self) -> bool {
+        false
+    }
+
+    fn check_self_contained(&self) -> Option<Result<Self::SignedInfo, TransactionValidityError>> {
+        None
+    }
+
+    fn validate_self_contained(
+        &self,
+        _info: &Self::SignedInfo,
+        _dispatch_info: &DispatchInfoOf<RuntimeCall>,
+        _len: usize,
+    ) -> Option<TransactionValidity> {
+        None
+    }
+
+    fn pre_dispatch_self_contained(
+        &self,
+        _info: &Self::SignedInfo,
+        _dispatch_info: &DispatchInfoOf<RuntimeCall>,
+        _len: usize,
+    ) -> Option<Result<(), TransactionValidityError>> {
+        None
+    }
+
+    fn apply_self_contained(
+        self,
+        _info: Self::SignedInfo,
+    ) -> Option<sp_runtime::DispatchResultWithInfo<PostDispatchInfoOf<Self>>> {
+        None
+    }
+}
 
 #[cfg(feature = "runtime-benchmarks")]
 #[macro_use]
@@ -1308,7 +1364,7 @@ where
         use sp_runtime::traits::StaticLookup;
         // take the biggest period possible.
         let period =
-            BlockHashCount::get().checked_next_power_of_two().map(|c| c / 2).unwrap_or(2) as u64;
+            BlockHashCount::get().checked_next_power_of_two().map(|c| c / 2).unwrap_or(2);
 
         let current_block = System::block_number()
             .saturated_into::<u64>()
