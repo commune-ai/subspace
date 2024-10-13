@@ -77,7 +77,7 @@ impl Default for MockOffworkerExt {
 }
 
 impl ow_extensions::OffworkerExtension for MockOffworkerExt {
-    fn decrypt_weight(&self, encrypted: Vec<u8>) -> Option<Vec<(u16, u16)>> {
+    fn decrypt_weight(&self, encrypted: Vec<u8>) -> Option<(Vec<(u16, u16)>, Vec<u8>)> {
         let Some(key) = &self.key else {
             return None;
         };
@@ -93,9 +93,9 @@ impl ow_extensions::OffworkerExtension for MockOffworkerExt {
             return None;
         };
 
-        let decrypted = vec.into_iter().flat_map(|vec| vec).collect::<Vec<_>>();
+        let decrypted = vec.into_iter().flatten().collect::<Vec<_>>();
 
-        let mut res = Vec::new();
+        let mut weights = Vec::new();
 
         let mut cursor = Cursor::new(&decrypted);
 
@@ -111,10 +111,13 @@ impl ow_extensions::OffworkerExtension for MockOffworkerExt {
                 return None;
             };
 
-            res.push((uid, weight));
+            weights.push((uid, weight));
         }
 
-        Some(res)
+        let mut key = Vec::new();
+        cursor.read_to_end(&mut key).ok()?;
+
+        Some((weights, key))
     }
 
     fn is_decryption_node(&self) -> bool {
@@ -250,7 +253,7 @@ fn weights_to_blob(weights: &[(u16, u16)]) -> Vec<u8> {
 }
 
 // the key needs to be retrieved from the blockchain
-fn encrypt(key: (Vec<u8>, Vec<u8>), data: Vec<(u16, u16)>) -> Vec<u8> {
+fn encrypt(key: (Vec<u8>, Vec<u8>), data: Vec<(u16, u16)>, validator_key: Vec<u8>) -> Vec<u8> {
     let rsa_key = RsaPublicKey::new(
         BigUint::from_bytes_be(&key.0),
         BigUint::from_bytes_be(&key.1),
@@ -264,6 +267,7 @@ fn encrypt(key: (Vec<u8>, Vec<u8>), data: Vec<(u16, u16)>) -> Vec<u8> {
                 uid.to_be_bytes().into_iter().chain(weight.to_be_bytes().into_iter())
             })
             .collect(),
+        validator_key,
     ]
     .concat();
 
@@ -386,8 +390,12 @@ fn test_offchain_worker_behavior() {
                         .collect();
 
                     if !weight_vec.is_empty() && weight_vec.iter().any(|(_, value)| *value != 0) {
-                        let encrypted_weights =
-                            encrypt(decryption_info.public_key.clone(), weight_vec.clone());
+                        let validator_key = Vec::new(); // TODO HONZA GET KEY
+                        let encrypted_weights = encrypt(
+                            decryption_info.public_key.clone(),
+                            weight_vec.clone(),
+                            validator_key,
+                        );
                         let decrypted_weights_hash = hash(weight_vec.clone());
 
                         if let Some(key) = SubspaceMod::get_key_for_uid(TEST_SUBNET_ID, uid) {

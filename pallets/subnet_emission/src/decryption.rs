@@ -67,12 +67,12 @@ impl<T: Config> Pallet<T> {
             return;
         };
 
-        let mut valid_weights: Vec<BlockWeights> = Vec::new();
+        let mut valid_weights: Vec<(u64, Vec<(u16, Vec<(u16, u16)>)>)> = Vec::new();
 
         for (block, weights) in weights.into_iter() {
             let mut valid_block_weights: Vec<(u16, Vec<(u16, u16)>)> = Vec::new();
 
-            for (uid, weights) in weights {
+            for (uid, weights, received_key) in weights {
                 let Some(params) = ConsensusParameters::<T>::get(netuid, block) else {
                     log::error!("could not find required consensus parameters for block {block} in subnet {netuid}");
                     continue;
@@ -94,6 +94,16 @@ impl<T: Config> Pallet<T> {
 
                 if hash != module.weight_hash {
                     log::error!("incoherent hash received for module {uid} on block {block} in subnet {netuid}");
+                    continue;
+                }
+
+                let Some(key) = pallet_subspace::Pallet::<T>::get_key_for_uid(netuid, uid) else {
+                    log::error!("could not find required key for module {uid}");
+                    continue;
+                };
+
+                if key.encode() != received_key {
+                    log::error!("key received for module {uid} doesn't match.");
                     continue;
                 }
 

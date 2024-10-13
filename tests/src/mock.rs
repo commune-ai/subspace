@@ -953,7 +953,7 @@ impl Default for Decrypter {
 }
 
 impl ow_extensions::OffworkerExtension for Decrypter {
-    fn decrypt_weight(&self, encrypted: Vec<u8>) -> Option<Vec<(u16, u16)>> {
+    fn decrypt_weight(&self, encrypted: Vec<u8>) -> Option<(Vec<(u16, u16)>, Vec<u8>)> {
         let Some(key) = &self.key else {
             return None;
         };
@@ -990,7 +990,10 @@ impl ow_extensions::OffworkerExtension for Decrypter {
             res.push((uid, weight));
         }
 
-        Some(res)
+        let mut key = Vec::new();
+        cursor.read_to_end(&mut key).ok()?;
+
+        Some((res, key))
     }
 
     fn is_decryption_node(&self) -> bool {

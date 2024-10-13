@@ -27,7 +27,7 @@ pub mod subnet_consensus;
 mod benchmarking;
 
 pub type PublicKey = (Vec<u8>, Vec<u8>);
-pub type BlockWeights = (u64, Vec<(u16, Vec<(u16, u16)>)>);
+pub type BlockWeights = (u64, Vec<(u16, Vec<(u16, u16)>, Vec<u8>)>);
 
 // TODO:
 // move some import outside of the macro

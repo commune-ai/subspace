@@ -15,7 +15,7 @@ pub mod dispatches {
         pub fn send_decrypted_weights(
             origin: OriginFor<T>,
             subnet_id: u16,
-            decrypted_weights: Vec<(u64, Vec<(u16, Vec<(u16, u16)>)>)>,
+            decrypted_weights: Vec<BlockWeights>,
             delta: I64F64,
         ) -> DispatchResultWithPostInfo {
             // TODO:
