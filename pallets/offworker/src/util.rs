@@ -35,16 +35,20 @@ where
             })
             .filter_map(|(uid, params)| {
                 if params.weight_encrypted.is_empty() {
-                    Some((uid, Vec::new()))
+                    Some((uid, Vec::new(), Vec::new()))
                 } else {
                     ow_extensions::offworker::decrypt_weight(params.weight_encrypted.clone())
-                        .map(|decrypted| (uid, decrypted))
+                        .map(|(weights, key)| (uid, weights, key))
                 }
             })
             .collect();
 
         let should_decrypt_result = should_decrypt_weights::<T>(
-            &decrypted_weights,
+            &decrypted_weights
+                .iter()
+                .cloned()
+                .map(|(uid, weights, _)| (uid, weights))
+                .collect::<Vec<_>>(),
             params.clone(),
             subnet_id,
             simulation_result.clone(),
@@ -126,7 +130,8 @@ pub fn compute_simulation_yuma_params<T: Config>(
         decrypted_weights
             .iter()
             .cloned()
-            .chain(sp_std::iter::once((copier_uid, copier_weights))),
+            .chain(sp_std::iter::once((copier_uid, copier_weights))), /* HONZA TODO figure out
+                                                                       * this validator key */
     );
 
     SimulationYumaParams {
