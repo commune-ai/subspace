@@ -1,6 +1,7 @@
 #![allow(non_snake_case)]
 #![cfg_attr(not(feature = "std"), no_std)]
 
+use crate::types::{BlockWeights, DecryptionNodeInfo, PublicKey, SubnetDecryptionInfo};
 use core::marker::PhantomData;
 use frame_system::pallet_prelude::OriginFor;
 pub use pallet::*;
@@ -22,22 +23,16 @@ pub mod subnet_pricing {
 
 pub mod set_weights;
 pub mod subnet_consensus;
+pub mod types;
 
 #[cfg(feature = "runtime-benchmarks")]
 mod benchmarking;
-
-pub type PublicKey = (Vec<u8>, Vec<u8>);
-pub type BlockWeights = (u64, Vec<(u16, Vec<(u16, u16)>, Vec<u8>)>);
 
 // TODO:
 // move some import outside of the macro
 #[frame_support::pallet]
 pub mod pallet {
-    use crate::{
-        decryption::{DecryptionNodeInfo, SubnetDecryptionInfo},
-        subnet_consensus::util::params::ConsensusParams,
-        *,
-    };
+    use crate::{subnet_consensus::util::params::ConsensusParams, *};
     use frame_support::{
         pallet_prelude::{ValueQuery, *},
         sp_runtime::SaturatedConversion,
@@ -62,6 +57,7 @@ pub mod pallet {
         frame_system::Config
         + pallet_subspace::Config
         + pallet_governance_api::GovernanceApi<<Self as frame_system::Config>::AccountId>
+        + scale_info::TypeInfo
     {
         /// The events emitted on proposal changes.
         #[pallet::no_default_bounds]
@@ -83,11 +79,49 @@ pub mod pallet {
 
         #[pallet::constant]
         type DecryptionNodeRotationInterval: Get<u64>;
+
+        /// Maximum number of authorities.
+        #[pallet::constant]
+        type MaxAuthorities: Get<u32>;
     }
 
     // Storage
     // ==========
 
+    // Weight Related
+
+    #[pallet::storage]
+    pub type Weights<T> = StorageDoubleMap<_, Identity, u16, Identity, u16, Vec<(u16, u16)>>;
+
+    #[pallet::storage]
+    pub type EncryptedWeights<T> = StorageDoubleMap<_, Identity, u16, Identity, u16, Vec<u8>>;
+
+    // Weight copying preventions
+    #[pallet::storage]
+    pub type DecryptedWeights<T> =
+        StorageMap<_, Identity, u16, Vec<(u64, Vec<(u16, Vec<(u16, u16)>)>)>>;
+
+    #[pallet::storage]
+    pub type DecryptedWeightHashes<T> = StorageDoubleMap<_, Identity, u16, Identity, u16, Vec<u8>>;
+
+    /// Association of signing public keys with associated rsa encryption public keys.
+    #[pallet::storage]
+    pub(super) type Authorities<T: Config> =
+        StorageValue<_, BoundedVec<(T::AccountId, PublicKey), T::MaxAuthorities>, ValueQuery>;
+
+    /// This storage is managed dynamically based on the do_keep_alive offchain worker call
+    /// It is built from the authority keys
+    #[pallet::storage]
+    pub type DecryptionNodes<T> = StorageValue<_, Vec<DecryptionNodeInfo<T>>, ValueQuery>;
+
+    /// Decryption Node Info assigned to subnet
+    #[pallet::storage]
+    pub type SubnetDecryptionData<T> = StorageMap<_, Identity, u16, SubnetDecryptionInfo<T>>;
+
+    #[pallet::storage]
+    pub type DecryptionNodeCursor<T> = StorageValue<_, u16, ValueQuery>;
+
+    // Subnet Pricing & Consensus
     #[pallet::storage]
     pub type UnitEmission<T> = StorageValue<_, u64, ValueQuery, ConstU64<23148148148>>;
 
@@ -104,31 +138,6 @@ pub mod pallet {
     #[pallet::storage]
     pub type ConsensusParameters<T> =
         StorageDoubleMap<_, Identity, u16, Identity, u64, ConsensusParams<T>, OptionQuery>;
-
-    #[pallet::storage]
-    pub type Weights<T> = StorageDoubleMap<_, Identity, u16, Identity, u16, Vec<(u16, u16)>>;
-
-    #[pallet::storage]
-    pub type EncryptedWeights<T> = StorageDoubleMap<_, Identity, u16, Identity, u16, Vec<u8>>;
-
-    #[pallet::storage]
-    pub type DecryptedWeightHashes<T> = StorageDoubleMap<_, Identity, u16, Identity, u16, Vec<u8>>;
-
-    #[pallet::storage]
-    pub type AuthorizedPublicKeys<T> = StorageValue<_, Vec<PublicKey>, ValueQuery>;
-
-    #[pallet::storage]
-    pub type DecryptionNodes<T> = StorageValue<_, Vec<DecryptionNodeInfo>, ValueQuery>;
-
-    #[pallet::storage]
-    pub type SubnetDecryptionData<T> = StorageMap<_, Identity, u16, SubnetDecryptionInfo>;
-
-    #[pallet::storage]
-    pub type DecryptionNodeCursor<T> = StorageValue<_, u16, ValueQuery>;
-
-    #[pallet::storage]
-    pub type DecryptedWeights<T> =
-        StorageMap<_, Identity, u16, Vec<(u64, Vec<(u16, Vec<(u16, u16)>)>)>>;
 
     type BalanceOf<T> =
         <<T as Config>::Currency as Currency<<T as frame_system::Config>::AccountId>>::Balance;

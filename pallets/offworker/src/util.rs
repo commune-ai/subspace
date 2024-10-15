@@ -1,6 +1,5 @@
 use super::*;
 use crate::profitability::{get_copier_stake, is_copying_irrational};
-use pallet_subnet_emission::BlockWeights;
 use types::SimulationYumaParams;
 
 pub fn process_consensus_params<T>(
