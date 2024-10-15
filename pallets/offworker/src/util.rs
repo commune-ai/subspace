@@ -37,7 +37,7 @@ where
                     Some((uid, Vec::new(), Vec::new()))
                 } else {
                     ow_extensions::offworker::decrypt_weight(params.weight_encrypted.clone())
-                        .map(|(weights, key)| (uid, weights, key))
+                        .map(|(decrypted, key)| (uid, decrypted, key))
                 }
             })
             .collect();

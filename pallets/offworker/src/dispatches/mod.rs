@@ -11,6 +11,7 @@ pub mod dispatches {
             payload: DecryptedWeightsPayload<T::Public, BlockNumberFor<T>>,
             _signature: T::Signature,
         ) -> DispatchResultWithPostInfo {
+            // Signature valiadation is performed by the validate unsigned function
             ensure_none(origin)?;
 
             let DecryptedWeightsPayload {
@@ -20,6 +21,17 @@ pub mod dispatches {
                 block_number,
                 public,
             } = payload;
+
+            let decryption_data = SubnetDecryptionData::<T>::get(subnet_id);
+
+            if let Some(decryption_data) = decryption_data {
+                ensure!(
+                    decryption_data.node_id == public.into_account(),
+                    Error::<T>::InvalidDecryptionKey
+                );
+            } else {
+                return Err(Error::<T>::InvalidSubnetId.into());
+            }
 
             // Perform your existing logic here
             IrrationalityDelta::<T>::set(subnet_id, delta);
@@ -42,15 +54,15 @@ pub mod dispatches {
             payload: KeepAlivePayload<T::Public, BlockNumberFor<T>>,
             _signature: T::Signature,
         ) -> DispatchResultWithPostInfo {
+            // Signature valiadation is performed by the validate unsigned function
             ensure_none(origin)?;
 
             let KeepAlivePayload {
                 public_key,
                 block_number,
-                public,
+                public: _,
             } = payload;
 
-            // Perform your existing logic here
             pallet_subnet_emission::Pallet::<T>::handle_authority_node_keep_alive(public_key);
 
             Self::deposit_event(Event::KeepAliveSent { block_number });
