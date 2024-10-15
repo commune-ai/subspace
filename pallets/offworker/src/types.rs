@@ -69,18 +69,18 @@ pub struct SimulationYumaParams<T: Config> {
 
 #[derive(Encode, Decode, Clone, PartialEq, Eq, RuntimeDebug, scale_info::TypeInfo)]
 pub struct DecryptedWeightsPayload<Public, BlockNumber> {
-    subnet_id: u16,
-    decrypted_weights: Vec<BlockWeights>,
-    delta: I64F64,
-    block_number: BlockNumber,
-    public: Public,
+    pub subnet_id: u16,
+    pub decrypted_weights: Vec<BlockWeights>,
+    pub delta: I64F64,
+    pub block_number: BlockNumber,
+    pub public: Public,
 }
 
 #[derive(Encode, Decode, Clone, PartialEq, Eq, RuntimeDebug, scale_info::TypeInfo)]
 pub struct KeepAlivePayload<Public, BlockNumber> {
-    public_key: (Vec<u8>, Vec<u8>),
-    block_number: BlockNumber,
-    public: Public,
+    pub public_key: (Vec<u8>, Vec<u8>),
+    pub block_number: BlockNumber,
+    pub public: Public,
 }
 
 impl<T: SigningTypes> SignedPayload<T> for DecryptedWeightsPayload<T::Public, BlockNumberFor<T>> {

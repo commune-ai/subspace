@@ -106,7 +106,7 @@ pub mod pallet {
 
     /// Association of signing public keys with associated rsa encryption public keys.
     #[pallet::storage]
-    pub(super) type Authorities<T: Config> =
+    pub type Authorities<T: Config> =
         StorageValue<_, BoundedVec<(T::AccountId, PublicKey), T::MaxAuthorities>, ValueQuery>;
 
     /// This storage is managed dynamically based on the do_keep_alive offchain worker call
