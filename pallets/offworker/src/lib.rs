@@ -23,7 +23,7 @@ use pallet_subnet_emission::{
         yuma::YumaEpoch,
     },
     types::BlockWeights,
-    Authorities,
+    Authorities, SubnetDecryptionData,
 };
 
 use sp_std::collections::btree_map::BTreeMap;
@@ -129,6 +129,9 @@ pub mod pallet {
 
         #[pallet::constant]
         type UnsignedPriority: Get<TransactionPriority>;
+
+        #[pallet::constant]
+        type KeepAliveInterval: Get<u64>;
     }
 
     #[pallet::validate_unsigned]
@@ -188,19 +191,21 @@ pub mod pallet {
     #[pallet::event]
     #[pallet::generate_deposit(pub(super) fn deposit_event)]
     pub enum Event<T: Config> {
+        /// Offchain worker sent decrypted weights
         DecryptedWeightsSent {
             subnet_id: u16,
             block_number: BlockNumberFor<T>,
         },
-        KeepAliveSent {
-            block_number: BlockNumberFor<T>,
-        },
+        /// Offchain worker sent keep_alive message
+        KeepAliveSent { block_number: BlockNumberFor<T> },
     }
 
     #[pallet::error]
     pub enum Error<T> {
         /// Decryption key is invalid for a given subnet
         InvalidDecryptionKey,
+        /// Subnet ID is invalid
+        InvalidSubnetId,
     }
 
     // 5 % of total active stake
@@ -307,33 +312,39 @@ impl<T: Config> Pallet<T> {
 
     // Get this from onchain storage, this should not run on every block but `KeepAlive` interval
     fn do_send_keep_alive(current_block: u64) -> Result<(), DispatchError> {
-        let public_key = ow_extensions::offworker::get_encryption_key()
-            .ok_or(DispatchError::Other("Failed to get encryption key"))?;
+        let storage = StorageValueRef::persistent(b"last_keep_alive");
 
-        let signer = Signer::<T, T::AuthorityId>::all_accounts();
-        if !signer.can_sign() {
-            return Err(DispatchError::Other(
-                "No local accounts available. Consider adding one via `author_insertKey` RPC.",
-            ));
+        if storage.get::<u64>().ok().flatten().map_or(true, |last| {
+            current_block.saturating_sub(last) >= T::KeepAliveInterval::get()
+        }) {
+            let public_key = ow_extensions::offworker::get_encryption_key()
+                .ok_or(DispatchError::Other("Failed to get encryption key"))?;
+
+            let signer = Signer::<T, T::AuthorityId>::all_accounts();
+            if !signer.can_sign() {
+                return Err(DispatchError::Other(
+                    "No local accounts available. Consider adding one via `author_insertKey` RPC.",
+                ));
+            }
+
+            signer
+                .send_unsigned_transaction(
+                    |account| KeepAlivePayload {
+                        public_key: public_key.clone(),
+                        block_number: current_block.try_into().ok().unwrap_or_default(),
+                        public: account.public.clone(),
+                    },
+                    |payload, signature| Call::send_keep_alive { payload, signature },
+                )
+                .into_iter()
+                .try_for_each(|(_, result)| {
+                    result.map_err(|e| {
+                        log::error!("Failed to send keep-alive transaction: {:?}", e);
+                        DispatchError::Other("Failed to send keep-alive transaction")
+                    })
+                })?;
+            storage.set(&current_block);
         }
-
-        signer
-            .send_unsigned_transaction(
-                |account| KeepAlivePayload {
-                    public_key: public_key.clone(),
-                    block_number: current_block.try_into().ok().unwrap_or_default(),
-                    public: account.public.clone(),
-                },
-                |payload, signature| Call::send_keep_alive { payload, signature },
-            )
-            .into_iter()
-            .try_for_each(|(_, result)| {
-                result.map_err(|e| {
-                    log::error!("Failed to send keep-alive transaction: {:?}", e);
-                    DispatchError::Other("Failed to send keep-alive transaction")
-                })
-            })?;
-
         Ok(())
     }
 }

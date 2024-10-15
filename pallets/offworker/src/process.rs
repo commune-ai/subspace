@@ -2,7 +2,7 @@ use super::*;
 
 impl<T: Config> Pallet<T> {
     pub fn get_valid_subnets(public_key: (Vec<u8>, Vec<u8>)) -> Vec<u16> {
-        pallet_subnet_emission::SubnetDecryptionData::<T>::iter()
+        SubnetDecryptionData::<T>::iter()
             .filter(|(netuid, data)| {
                 let use_weights = pallet_subspace::UseWeightsEncrytyption::<T>::get(*netuid);
                 let key_match = data.node_public_key == public_key;

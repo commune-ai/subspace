@@ -425,6 +425,8 @@ impl pallet_offworker::Config for Runtime {
     type AuthorityId = pallet_offworker::crypto::AuthId;
     type RuntimeEvent = RuntimeEvent;
     type MaxEncryptionTime = ConstU64<20_880>; // Close to 2 days
+    type UnsignedPriority = ConstU64<100>;
+    type KeepAliveInterval = ConstU64<50>;
 }
 
 impl frame_system::offchain::SigningTypes for Runtime {
@@ -450,6 +452,7 @@ impl pallet_subnet_emission::Config for Runtime {
     type HalvingInterval = ConstU64<250_000_000>;
     type MaxSupply = ConstU64<1_000_000_000>;
     type DecryptionNodeRotationInterval = ConstU64<5_000>;
+    type MaxAuthorities = ConstU32<100>;
 }
 
 pub const WEIGHT_MILLISECS_PER_BLOCK: u64 = 2000;
