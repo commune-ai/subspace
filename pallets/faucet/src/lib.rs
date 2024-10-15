@@ -72,10 +72,6 @@ pub mod pallet {
                 .propagate(true)
                 .build()
         }
-
-        fn pre_dispatch(_: &Self::Call) -> Result<(), TransactionValidityError> {
-            Ok(())
-        }
     }
 
     pub type BalanceOf<T> =
