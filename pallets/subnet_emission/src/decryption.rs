@@ -4,23 +4,10 @@ use subnet_consensus::util::params::ModuleKey;
 
 use super::*;
 
-#[derive(Clone, Encode, Decode, TypeInfo)]
-pub struct DecryptionNodeInfo {
-    pub public_key: PublicKey,
-    pub last_keep_alive: u64,
-}
-
-#[derive(Clone, Encode, Decode, TypeInfo)]
-pub struct SubnetDecryptionInfo {
-    pub node_id: u16,
-    pub node_public_key: PublicKey,
-    pub block_assigned: u64,
-}
-
 impl<T: Config> Pallet<T> {
     pub fn distribute_subnets_to_nodes(block: u64) {
-        let authority_node_count = DecryptionNodes::<T>::get().len();
-        if authority_node_count < 1 {
+        let authority_nodes = DecryptionNodes::<T>::get();
+        if authority_nodes.is_empty() {
             log::warn!("no encryption nodes found");
             return;
         }
@@ -35,103 +22,105 @@ impl<T: Config> Pallet<T> {
                 return;
             }
 
-            let mut current = DecryptionNodeCursor::<T>::get();
-            if current as usize >= authority_node_count {
+            let mut current = DecryptionNodeCursor::<T>::get() as usize;
+            if current >= authority_nodes.len() {
                 current = 0;
             }
 
-            let opt = DecryptionNodes::<T>::get().get(current as usize).cloned();
-            let Some(node_info) = opt else {
-                log::error!("internal error");
-                continue;
-            };
+            if let Some(node_info) = authority_nodes.get(current) {
+                SubnetDecryptionData::<T>::set(
+                    netuid,
+                    Some(SubnetDecryptionInfo {
+                        node_id: node_info.account_id.clone(),
+                        node_public_key: node_info.public_key.clone(),
+                        block_assigned: block,
+                    }),
+                );
 
-            SubnetDecryptionData::<T>::set(
-                netuid,
-                Some(SubnetDecryptionInfo {
-                    node_id: current,
-                    node_public_key: node_info.public_key,
-                    block_assigned: block,
-                }),
-            );
-
-            DecryptionNodeCursor::<T>::set(current.saturating_add(1));
+                DecryptionNodeCursor::<T>::set((current + 1) as u16);
+            }
         }
     }
 
     pub fn do_handle_decrypted_weights(netuid: u16, weights: Vec<BlockWeights>) {
-        let Some(info) = SubnetDecryptionData::<T>::get(netuid) else {
-            log::error!(
-                "subnet {netuid} received decrypted weights to run but has no decryption data."
-            );
-            return;
+        let info = match SubnetDecryptionData::<T>::get(netuid) {
+            Some(info) => info,
+            None => {
+                log::error!(
+                    "subnet {netuid} received decrypted weights to run but has no decryption data."
+                );
+                return;
+            }
         };
 
-        let mut valid_weights: Vec<(u64, Vec<(u16, Vec<(u16, u16)>)>)> = Vec::new();
+        let valid_weights: Vec<(u64, Vec<(u16, Vec<(u16, u16)>)>)> = weights
+            .into_iter()
+            .filter_map(|(block, block_weights)| {
+                let valid_block_weights = block_weights
+                    .into_iter()
+                    .filter_map(|(uid, weights, received_key)| {
+                        Self::validate_weight_entry(netuid, block, uid, &weights, &received_key)
+                            .map(|_| (uid, weights))
+                    })
+                    .collect::<Vec<_>>();
 
-        for (block, weights) in weights.into_iter() {
-            let mut valid_block_weights: Vec<(u16, Vec<(u16, u16)>)> = Vec::new();
-
-            for (uid, weights, received_key) in weights {
-                let Some(params) = ConsensusParameters::<T>::get(netuid, block) else {
-                    log::error!("could not find required consensus parameters for block {block} in subnet {netuid}");
-                    continue;
-                };
-
-                let Some(module_key) = pallet_subspace::Pallet::<T>::get_key_for_uid(netuid, uid)
-                else {
-                    log::error!("could not find module {uid} key in subnet {netuid}");
-                    continue;
-                };
-
-                let Some(module) = params.modules.get(&ModuleKey(module_key)) else {
-                    log::error!("could not find required module {uid} parameter for block {block} in subnet {netuid}");
-                    continue;
-                };
-
-                let hash =
-                    sp_io::hashing::sha2_256(&Self::weights_to_blob(&weights[..])[..]).to_vec();
-
-                if hash != module.weight_hash {
-                    log::error!("incoherent hash received for module {uid} on block {block} in subnet {netuid}");
-                    continue;
+                if valid_block_weights.is_empty() {
+                    None
+                } else {
+                    Some((block, valid_block_weights))
                 }
+            })
+            .collect();
 
-                let Some(key) = pallet_subspace::Pallet::<T>::get_key_for_uid(netuid, uid) else {
-                    log::error!("could not find required key for module {uid}");
-                    continue;
-                };
-
-                if key.encode() != received_key {
-                    log::error!("key received for module {uid} doesn't match.");
-                    continue;
-                }
-
-                if Self::validate_weights(uid, &weights, netuid).is_none() {
-                    log::error!("validation failed for module {uid} weights on block {block} in subnet {netuid}");
-                    continue;
-                }
-
-                valid_block_weights.push((uid, weights));
-            }
-
-            valid_weights.push((block, valid_block_weights));
-        }
-
-        if let Some((_, weights)) = valid_weights.iter().max_by_key(|(key, _)| key) {
-            for (uid, weights) in weights {
+        if let Some((_, weights)) = valid_weights.iter().max_by_key(|&(key, _)| key) {
+            for &(uid, ref weights) in weights {
                 Weights::<T>::set(netuid, uid, Some(weights.clone()));
             }
         }
 
-        match DecryptedWeights::<T>::get(netuid) {
-            Some(mut cached) => {
-                cached.extend(valid_weights);
-                DecryptedWeights::<T>::set(netuid, Some(cached));
-            }
-            None => DecryptedWeights::<T>::set(netuid, Some(valid_weights)),
+        Self::update_decrypted_weights(netuid, valid_weights);
+        Self::rotate_decryption_node_if_needed(netuid, info);
+    }
+
+    fn validate_weight_entry(
+        netuid: u16,
+        block: u64,
+        uid: u16,
+        weights: &[(u16, u16)],
+        received_key: &[u8],
+    ) -> Option<()> {
+        let params = ConsensusParameters::<T>::get(netuid, block)?;
+        let module_key = pallet_subspace::Pallet::<T>::get_key_for_uid(netuid, uid)?;
+        let module = params.modules.get(&ModuleKey(module_key))?;
+
+        let hash = sp_io::hashing::sha2_256(&Self::weights_to_blob(weights)[..]).to_vec();
+        if hash != module.weight_hash {
+            log::error!(
+                "incoherent hash received for module {uid} on block {block} in subnet {netuid}"
+            );
+            return None;
         }
 
+        let key = pallet_subspace::Pallet::<T>::get_key_for_uid(netuid, uid)?;
+        if key.encode() != received_key {
+            log::error!("key received for module {uid} doesn't match.");
+            return None;
+        }
+
+        Self::validate_weights(uid, weights, netuid)
+    }
+
+    fn update_decrypted_weights(
+        netuid: u16,
+        valid_weights: Vec<(u64, Vec<(u16, Vec<(u16, u16)>)>)>,
+    ) {
+        DecryptedWeights::<T>::mutate(netuid, |cached| match cached {
+            Some(cached) => cached.extend(valid_weights),
+            None => *cached = Some(valid_weights),
+        });
+    }
+
+    fn rotate_decryption_node_if_needed(netuid: u16, info: SubnetDecryptionInfo<T>) {
         let block_number = pallet_subspace::Pallet::<T>::get_current_block_number();
         if block_number.saturating_sub(info.block_assigned)
             < T::DecryptionNodeRotationInterval::get()
@@ -139,51 +128,58 @@ impl<T: Config> Pallet<T> {
             return;
         }
 
-        let mut current = DecryptionNodeCursor::<T>::get();
-        if current as usize >= DecryptionNodes::<T>::get().len() {
-            current = 0;
+        let current = DecryptionNodeCursor::<T>::get() as usize;
+        let authority_nodes = DecryptionNodes::<T>::get();
+        let new_node = authority_nodes.get(current % authority_nodes.len()).cloned();
+
+        if let Some(new_node) = new_node {
+            SubnetDecryptionData::<T>::set(
+                netuid,
+                Some(SubnetDecryptionInfo {
+                    node_id: new_node.account_id,
+                    node_public_key: new_node.public_key,
+                    block_assigned: block_number,
+                }),
+            );
+            DecryptionNodeCursor::<T>::set((current + 1) as u16);
         }
-
-        let Some(new_node) = DecryptionNodes::<T>::get().get(current as usize).cloned() else {
-            // shouldn't happen, maybe log
-            return;
-        };
-
-        SubnetDecryptionData::<T>::set(
-            netuid,
-            Some(SubnetDecryptionInfo {
-                node_id: current,
-                node_public_key: new_node.public_key,
-                block_assigned: block_number,
-            }),
-        );
     }
 
+    /// Adds a new active authority node to the list of active authority nodes.
+    /// If the node is already in the list, it will be updated with a new time.
     pub fn do_handle_authority_node_keep_alive(public_key: (Vec<u8>, Vec<u8>)) {
-        if !Self::is_node_authorized(&public_key) {
-            // TODO what to do here?
-            return;
-        }
+        // Get the current list of active authority nodes
+        let mut active_authority_nodes = DecryptionNodes::<T>::get();
 
-        let mut authority_nodes = DecryptionNodes::<T>::get();
+        // Get the current block number
+        let current_block = pallet_subspace::Pallet::<T>::get_current_block_number();
 
-        let index = authority_nodes
+        // Find the matching account id for the given public key
+        let authorities = Authorities::<T>::get();
+        let account_id = authorities
             .iter()
-            .position(|info| info.public_key == public_key)
-            .unwrap_or(authority_nodes.len());
-        authority_nodes.insert(
-            index,
-            DecryptionNodeInfo {
-                public_key,
-                last_keep_alive: pallet_subspace::Pallet::<T>::get_current_block_number(),
-            },
-        );
+            .find(|(_, auth_public_key)| auth_public_key == &public_key)
+            .map(|(account, _)| account.clone());
 
-        DecryptionNodes::<T>::set(authority_nodes);
-    }
+        if let Some(account_id) = account_id {
+            // Update or add the authority node
+            if let Some(node) =
+                active_authority_nodes.iter_mut().find(|node| node.account_id == account_id)
+            {
+                // Update existing node
+                node.last_keep_alive = current_block;
+            } else {
+                // Add new node
+                active_authority_nodes.push(DecryptionNodeInfo {
+                    account_id,
+                    public_key,
+                    last_keep_alive: current_block,
+                });
+            }
 
-    fn is_node_authorized(public_key: &(Vec<u8>, Vec<u8>)) -> bool {
-        AuthorizedPublicKeys::<T>::get().iter().any(|node| node == public_key)
+            // Update the storage
+            DecryptionNodes::<T>::set(active_authority_nodes);
+        }
     }
 
     fn weights_to_blob(weights: &[(u16, u16)]) -> Vec<u8> {

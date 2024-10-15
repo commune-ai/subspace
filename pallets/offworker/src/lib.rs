@@ -7,7 +7,10 @@ extern crate alloc;
 use alloc::vec::Vec;
 use frame_support::{pallet_macros::import_section, sp_runtime::DispatchError, traits::Get};
 use frame_system::{
-    offchain::{AppCrypto, CreateSignedTransaction, SendSignedTransaction, Signer},
+    self as system,
+    offchain::{
+        AppCrypto, CreateSignedTransaction, SendUnsignedTransaction, SignedPayload, Signer,
+    },
     pallet_prelude::BlockNumberFor,
 };
 use pallet_subnet_emission::{
@@ -18,7 +21,7 @@ use pallet_subnet_emission::{
         },
         yuma::YumaEpoch,
     },
-    BlockWeights,
+    types::BlockWeights,
 };
 
 use sp_std::collections::btree_map::BTreeMap;
@@ -34,10 +37,13 @@ use sp_core::crypto::KeyTypeId;
 use sp_runtime::{
     offchain::storage::StorageValueRef,
     traits::{BlakeTwo256, Hash},
+    transaction_validity::{InvalidTransaction, TransactionValidity, ValidTransaction},
     Percent,
 };
 use substrate_fixed::types::I32F32;
-use types::{ConsensusSimulationResult, ShouldDecryptResult};
+use types::{
+    ConsensusSimulationResult, DecryptedWeightsPayload, KeepAlivePayload, ShouldDecryptResult,
+};
 use util::process_consensus_params;
 
 mod dispatches;
@@ -80,7 +86,6 @@ pub mod crypto {
         type GenericPublic = sp_core::sr25519::Public;
     }
 
-    // implemented for mock runtime in test
     impl frame_system::offchain::AppCrypto<<Sr25519Signature as Verify>::Signer, Sr25519Signature>
         for AuthId
     {
@@ -102,7 +107,6 @@ pub mod pallet {
         Identity,
     };
     use frame_system::pallet_prelude::*;
-
     /// This pallet's configuration trait
     #[pallet::config]
     pub trait Config:
@@ -117,7 +121,30 @@ pub mod pallet {
         /// The overarching event type.
         type RuntimeEvent: From<Event<Self>> + IsType<<Self as frame_system::Config>::RuntimeEvent>;
 
+        /// Maximum number of blocks, weights can stay encrypted.
+        #[pallet::constant]
         type MaxEncryptionTime: Get<u64>;
+    }
+
+    #[pallet::validate_unsigned]
+    impl<T: Config> ValidateUnsigned for Pallet<T> {
+        type Call = Call<T>;
+
+        fn validate_unsigned(_source: TransactionSource, call: &Self::Call) -> TransactionValidity {
+            match call {
+                Call::send_decrypted_weights {
+                    subnet_id,
+                    decrypted_weights: _,
+                    delta: _,
+                    block_number,
+                } => Self::validate_unsigned_transaction(block_number),
+                Call::send_keep_alive {
+                    public_key: _,
+                    block_number,
+                } => Self::validate_unsigned_transaction(block_number),
+                _ => InvalidTransaction::Call.into(),
+            }
+        }
     }
 
     #[pallet::pallet]
@@ -179,9 +206,40 @@ pub mod pallet {
     /// The amount of delta between comulative copier dividends and compulative delegator dividends.
     #[pallet::storage]
     pub type IrrationalityDelta<T: Config> = StorageMap<_, Identity, u16, I64F64, ValueQuery>;
+
+    /// Defines the block when next unsigned transaction will be accepted.
+    ///
+    /// To prevent spam of unsigned (and unpaid!) transactions on the network, we only allow one
+    /// transaction every `T::UnsignedInterval` blocks. This storage entry defines when new
+    /// transaction is going to be accepted.
+    #[pallet::storage]
+    pub(super) type NextSubnetUnsignedAt<T: Config> =
+        StorageMap<_, Identity, u16, BlockNumberFor<T>, ValueQuery>;
 }
 
 impl<T: Config> Pallet<T> {
+    fn validate_unsigned_transaction(
+        block_number: &BlockNumberFor<T>,
+        subnet_id: u16,
+    ) -> TransactionValidity {
+        let next_unsigned_at = NextSubnetUnsignedAt::<T>::get(subnet_id);
+        if &next_unsigned_at > block_number {
+            return InvalidTransaction::Stale.into();
+        }
+
+        let current_block = <system::Pallet<T>>::block_number();
+        if &current_block < block_number {
+            return InvalidTransaction::Future.into();
+        }
+
+        ValidTransaction::with_tag_prefix("OffworkerUnsigned")
+            .priority(T::UnsignedPriority::get())
+            .and_provides(next_unsigned_at)
+            .longevity(5)
+            .propagate(true)
+            .build()
+    }
+
     fn do_send_weights(
         subnet_id: u16,
         decrypted_weights: Vec<BlockWeights>,
@@ -195,13 +253,18 @@ impl<T: Config> Pallet<T> {
         }
 
         log::info!("Sending decrypted weights to subnet {}", subnet_id);
-        // dbg!("Sending decrypted weights to subnet", subnet_id);
 
-        let results = signer.send_signed_transaction(|_account| Call::send_decrypted_weights {
-            decrypted_weights: decrypted_weights.clone(),
-            subnet_id,
-            delta,
-        });
+        // Sends unsigned transaction with a signed payload
+        let results = signer.send_unsigned_transaction(
+            |account| DecryptedWeightsPayload {
+                subnet_id,
+                decrypted_weights: decrypted_weights.clone(),
+                delta,
+                block_number: <system::Pallet<T>>::block_number(),
+                public: account.public.clone(),
+            },
+            |payload, signature| Call::send_decrypted_weights { payload, signature },
+        );
 
         for (_acc, res) in &results {
             match res {
@@ -225,39 +288,35 @@ impl<T: Config> Pallet<T> {
         Ok(())
     }
 
+    // Get this from onchain storage, this should not run on every block but `KeepAlive` interval
     fn do_send_keep_alive(current_block: u64) -> Result<(), DispatchError> {
-        let storage = StorageValueRef::persistent(b"last_keep_alive");
+        let public_key = ow_extensions::offworker::get_encryption_key()
+            .ok_or(DispatchError::Other("Failed to get encryption key"))?;
 
-        if storage
-            .get::<u64>()
-            .ok()
-            .flatten()
-            .map_or(true, |last| current_block.saturating_sub(last) >= 50)
-        {
-            let public_key = ow_extensions::offworker::get_encryption_key()
-                .ok_or(DispatchError::Other("Failed to get encryption key"))?;
-
-            let signer = Signer::<T, T::AuthorityId>::all_accounts();
-            if !signer.can_sign() {
-                return Err(DispatchError::Other(
-                    "No local accounts available. Consider adding one via `author_insertKey` RPC.",
-                ));
-            }
-
-            signer
-                .send_signed_transaction(move |_| Call::send_keep_alive {
-                    public_key: public_key.clone(),
-                })
-                .into_iter()
-                .try_for_each(|(_, result)| {
-                    result.map_err(|e| {
-                        log::error!("Failed to send keep-alive transaction: {:?}", e);
-                        DispatchError::Other("Failed to send keep-alive transaction")
-                    })
-                })?;
-
-            storage.set(&current_block);
+        let signer = Signer::<T, T::AuthorityId>::all_accounts();
+        if !signer.can_sign() {
+            return Err(DispatchError::Other(
+                "No local accounts available. Consider adding one via `author_insertKey` RPC.",
+            ));
         }
+
+        signer
+            .send_unsigned_transaction(
+                |account| KeepAlivePayload {
+                    public_key: public_key.clone(),
+                    block_number: current_block.into(),
+                    public: account.public.clone(),
+                },
+                |payload, signature| Call::send_keep_alive { payload, signature },
+            )
+            .into_iter()
+            .try_for_each(|(_, result)| {
+                result.map_err(|e| {
+                    log::error!("Failed to send keep-alive transaction: {:?}", e);
+                    DispatchError::Other("Failed to send keep-alive transaction")
+                })
+            })?;
+
         Ok(())
     }
 }

@@ -1,6 +1,7 @@
 // No changes needed
 use super::*;
 use crate::profitability::calculate_avg_delegate_divs;
+use sp_runtime::RuntimeDebug;
 
 #[derive(Clone, Debug, PartialEq, Encode, Decode)]
 pub struct ConsensusSimulationResult<T: pallet_subspace::Config> {
@@ -64,4 +65,32 @@ pub struct SimulationYumaParams<T: Config> {
     pub uid: u16,
     pub params: ConsensusParams<T>,
     pub decrypted_weights_map: BTreeMap<u16, Vec<(u16, u16)>>,
+}
+
+#[derive(Encode, Decode, Clone, PartialEq, Eq, RuntimeDebug, scale_info::TypeInfo)]
+pub struct DecryptedWeightsPayload<Public, BlockNumber> {
+    subnet_id: u16,
+    decrypted_weights: Vec<BlockWeights>,
+    delta: I64F64,
+    block_number: BlockNumber,
+    public: Public,
+}
+
+#[derive(Encode, Decode, Clone, PartialEq, Eq, RuntimeDebug, scale_info::TypeInfo)]
+pub struct KeepAlivePayload<Public, BlockNumber> {
+    public_key: (Vec<u8>, Vec<u8>),
+    block_number: BlockNumber,
+    public: Public,
+}
+
+impl<T: SigningTypes> SignedPayload<T> for DecryptedWeightsPayload<T::Public, BlockNumberFor<T>> {
+    fn public(&self) -> T::Public {
+        self.public.clone()
+    }
+}
+
+impl<T: SigningTypes> SignedPayload<T> for KeepAlivePayload<T::Public, BlockNumberFor<T>> {
+    fn public(&self) -> T::Public {
+        self.public.clone()
+    }
 }
