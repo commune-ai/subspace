@@ -10,6 +10,7 @@ use frame_system::{
     self as system,
     offchain::{
         AppCrypto, CreateSignedTransaction, SendUnsignedTransaction, SignedPayload, Signer,
+        SigningTypes,
     },
     pallet_prelude::BlockNumberFor,
 };
@@ -22,6 +23,7 @@ use pallet_subnet_emission::{
         yuma::YumaEpoch,
     },
     types::BlockWeights,
+    Authorities,
 };
 
 use sp_std::collections::btree_map::BTreeMap;
@@ -36,7 +38,7 @@ use scale_info::prelude::marker::PhantomData;
 use sp_core::crypto::KeyTypeId;
 use sp_runtime::{
     offchain::storage::StorageValueRef,
-    traits::{BlakeTwo256, Hash},
+    traits::{BlakeTwo256, Hash, IdentifyAccount},
     transaction_validity::{InvalidTransaction, TransactionValidity, ValidTransaction},
     Percent,
 };
@@ -118,12 +120,15 @@ pub mod pallet {
         /// The identifier type for an offchain worker.
         type AuthorityId: AppCrypto<Self::Public, Self::Signature>;
 
-        /// The overarching event type.
+        /// The overarching nevent type.
         type RuntimeEvent: From<Event<Self>> + IsType<<Self as frame_system::Config>::RuntimeEvent>;
 
         /// Maximum number of blocks, weights can stay encrypted.
         #[pallet::constant]
         type MaxEncryptionTime: Get<u64>;
+
+        #[pallet::constant]
+        type UnsignedPriority: Get<TransactionPriority>;
     }
 
     #[pallet::validate_unsigned]
@@ -132,16 +137,14 @@ pub mod pallet {
 
         fn validate_unsigned(_source: TransactionSource, call: &Self::Call) -> TransactionValidity {
             match call {
-                Call::send_decrypted_weights {
-                    subnet_id,
-                    decrypted_weights: _,
-                    delta: _,
-                    block_number,
-                } => Self::validate_unsigned_transaction(block_number),
-                Call::send_keep_alive {
-                    public_key: _,
-                    block_number,
-                } => Self::validate_unsigned_transaction(block_number),
+                Call::send_decrypted_weights { payload, signature } => {
+                    Self::validate_signature_and_authority(payload, signature)?;
+                    Self::validate_unsigned_transaction(&payload.block_number, "DecryptedWeights")
+                }
+                Call::send_keep_alive { payload, signature } => {
+                    Self::validate_signature_and_authority(payload, signature)?;
+                    Self::validate_unsigned_transaction(&payload.block_number, "KeepAlive")
+                }
                 _ => InvalidTransaction::Call.into(),
             }
         }
@@ -183,7 +186,16 @@ pub mod pallet {
     }
 
     #[pallet::event]
-    pub enum Event<T: Config> {}
+    #[pallet::generate_deposit(pub(super) fn deposit_event)]
+    pub enum Event<T: Config> {
+        DecryptedWeightsSent {
+            subnet_id: u16,
+            block_number: BlockNumberFor<T>,
+        },
+        KeepAliveSent {
+            block_number: BlockNumberFor<T>,
+        },
+    }
 
     #[pallet::error]
     pub enum Error<T> {
@@ -206,35 +218,40 @@ pub mod pallet {
     /// The amount of delta between comulative copier dividends and compulative delegator dividends.
     #[pallet::storage]
     pub type IrrationalityDelta<T: Config> = StorageMap<_, Identity, u16, I64F64, ValueQuery>;
-
-    /// Defines the block when next unsigned transaction will be accepted.
-    ///
-    /// To prevent spam of unsigned (and unpaid!) transactions on the network, we only allow one
-    /// transaction every `T::UnsignedInterval` blocks. This storage entry defines when new
-    /// transaction is going to be accepted.
-    #[pallet::storage]
-    pub(super) type NextSubnetUnsignedAt<T: Config> =
-        StorageMap<_, Identity, u16, BlockNumberFor<T>, ValueQuery>;
 }
 
 impl<T: Config> Pallet<T> {
+    fn validate_signature_and_authority<P: SignedPayload<T>>(
+        payload: &P,
+        signature: &T::Signature,
+    ) -> Result<(), InvalidTransaction> {
+        // Verify the signature, this just ensures the signature matches the public key
+        if !SignedPayload::<T>::verify::<T::AuthorityId>(payload, signature.clone()) {
+            return Err(InvalidTransaction::BadProof);
+        }
+
+        // Check if the signer is a valid authority
+        let account_id = payload.public().clone().into_account();
+        let authorities = Authorities::<T>::get();
+        if !authorities.iter().any(|(account, _)| account == &account_id) {
+            return Err(InvalidTransaction::BadSigner);
+        }
+
+        Ok(())
+    }
+
     fn validate_unsigned_transaction(
         block_number: &BlockNumberFor<T>,
-        subnet_id: u16,
+        tag_prefix: &'static str,
     ) -> TransactionValidity {
-        let next_unsigned_at = NextSubnetUnsignedAt::<T>::get(subnet_id);
-        if &next_unsigned_at > block_number {
+        let current_block = <system::Pallet<T>>::block_number();
+        if current_block > *block_number {
             return InvalidTransaction::Stale.into();
         }
 
-        let current_block = <system::Pallet<T>>::block_number();
-        if &current_block < block_number {
-            return InvalidTransaction::Future.into();
-        }
-
-        ValidTransaction::with_tag_prefix("OffworkerUnsigned")
+        ValidTransaction::with_tag_prefix(tag_prefix)
             .priority(T::UnsignedPriority::get())
-            .and_provides(next_unsigned_at)
+            .and_provides(block_number)
             .longevity(5)
             .propagate(true)
             .build()
@@ -304,7 +321,7 @@ impl<T: Config> Pallet<T> {
             .send_unsigned_transaction(
                 |account| KeepAlivePayload {
                     public_key: public_key.clone(),
-                    block_number: current_block.into(),
+                    block_number: current_block.try_into().ok().unwrap_or_default(),
                     public: account.public.clone(),
                 },
                 |payload, signature| Call::send_keep_alive { payload, signature },
