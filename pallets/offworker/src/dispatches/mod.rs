@@ -5,7 +5,7 @@ pub mod dispatches {
     #[pallet::call]
     impl<T: Config> Pallet<T> {
         #[pallet::call_index(0)]
-        #[pallet::weight(Weight::zero())]
+        #[pallet::weight((Weight::zero(), DispatchClass::Normal, Pays::No))]
         pub fn send_decrypted_weights(
             origin: OriginFor<T>,
             payload: DecryptedWeightsPayload<T::Public, BlockNumberFor<T>>,
@@ -48,7 +48,7 @@ pub mod dispatches {
         }
 
         #[pallet::call_index(1)]
-        #[pallet::weight(Weight::zero())]
+        #[pallet::weight((Weight::zero(), DispatchClass::Normal, Pays::No))]
         pub fn send_keep_alive(
             origin: OriginFor<T>,
             payload: KeepAlivePayload<T::Public, BlockNumberFor<T>>,
@@ -70,11 +70,7 @@ pub mod dispatches {
         }
 
         #[pallet::call_index(2)]
-        #[pallet::weight((
-            Weight::zero(),
-            DispatchClass::Operational,
-            Pays::No
-        ))]
+        #[pallet::weight((Weight::zero(), DispatchClass::Normal, Pays::No))]
         pub fn add_authorities(origin: OriginFor<T>) -> DispatchResultWithPostInfo {
             ensure_root(origin)?;
             // TODO:  // add an extrinsic that will insert a new authority
