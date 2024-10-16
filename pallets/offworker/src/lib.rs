@@ -51,7 +51,7 @@ use util::process_consensus_params;
 mod dispatches;
 mod process;
 mod profitability;
-mod types;
+pub mod types;
 mod util;
 
 /// Defines application identifier for crypto keys of this module.
