@@ -4,7 +4,7 @@ use crate::{
         data::{
             load_msgpack_data, make_parameter_consensus_overwrites, register_modules_from_msgpack,
         },
-        encryption::{encrypt, hash, MockOffworkerExt},
+        encryption::{encrypt, hash, MockOffworkerExt, KEY_TYPE},
         util::{initialize_authorities, setup_subnet, update_authority_and_decryption_node},
     },
 };
