@@ -1,21 +1,20 @@
 use crate::mock::*;
-use frame_support::traits::Hooks;
+use frame_support::{pallet_prelude::BoundedVec, traits::Hooks};
 use frame_system::{self};
 use ow_extensions::OffworkerExt;
 use pallet_offworker::{Call, IrrationalityDelta, Pallet};
+use pallet_subnet_emission::Config;
 use pallet_subnet_emission_api::SubnetConsensus;
-use sp_runtime::traits::StaticLookup;
-
-use parity_scale_codec::Decode;
+use parity_scale_codec::{Decode, Encode};
 use rand::rngs::OsRng;
 use rsa::{traits::PublicKeyParts, BigUint, Pkcs1v15Encrypt, RsaPrivateKey, RsaPublicKey};
 use serde::{Deserialize, Serialize};
 use sp_core::{
     offchain::{testing, OffchainDbExt, OffchainWorkerExt, TransactionPoolExt},
-    sr25519, Pair,
+    sr25519, Pair, H256,
 };
 use sp_keystore::{testing::MemoryKeystore, Keystore, KeystoreExt};
-use sp_runtime::{BuildStorage, KeyTypeId};
+use sp_runtime::{traits::StaticLookup, BuildStorage, KeyTypeId};
 use std::collections::BTreeMap;
 
 use pallet_subspace::{
@@ -31,9 +30,9 @@ use std::{
 };
 
 use pallet_subnet_emission::{
-    decryption::DecryptionNodeInfo,
     subnet_consensus::{util::params::ConsensusParams, yuma::YumaEpoch},
-    DecryptionNodes, PendingEmission, SubnetConsensusType,
+    types::{DecryptionNodeInfo, PublicKey},
+    Authorities, DecryptionNodes, PendingEmission, SubnetConsensusType,
 };
 
 pub const KEY_TYPE: KeyTypeId = KeyTypeId(*b"btc!");
@@ -288,6 +287,7 @@ fn new_test_ext(
     sp_io::TestExternalities,
     std::sync::Arc<parking_lot::RwLock<testing::PoolState>>,
     std::sync::Arc<parking_lot::RwLock<testing::OffchainState>>,
+    AccountId,
 ) {
     let (offchain, offchain_state) = testing::TestOffchainExt::new();
     let (pool, pool_state) = testing::TestTransactionPoolExt::new();
@@ -303,6 +303,13 @@ fn new_test_ext(
         )
         .expect("Failed to add key to keystore");
 
+    // ! giga gambiarra alert. is this too much voodoo?
+    let acc_id: AccountId = H256::from(public.0).using_encoded(|e| {
+        let mut buf = [0u8; 4];
+        buf.copy_from_slice(&e[0..4]);
+        u32::from_le_bytes(buf)
+    });
+
     sp_tracing::try_init_simple();
     let t = frame_system::GenesisConfig::<Test>::default().build_storage().unwrap();
     let mut ext = sp_io::TestExternalities::new(t);
@@ -312,7 +319,7 @@ fn new_test_ext(
     ext.register_extension(OffworkerExt::new(mock_offworker_ext));
     ext.register_extension(KeystoreExt(Arc::new(keystore)));
 
-    (ext, pool_state, offchain_state)
+    (ext, pool_state, offchain_state, acc_id)
 }
 /// This is the subnet id specifid in the data/...weights_stake.json
 /// We are using real network data to perform the tests
@@ -326,7 +333,7 @@ const EXPECTED_DECRYPTIONS_COUNT: u64 = 2;
 #[test]
 fn test_offchain_worker_behavior() {
     let mock_offworker_ext = MockOffworkerExt::default();
-    let (mut ext, pool_state, _offchain_state) = new_test_ext(mock_offworker_ext);
+    let (mut ext, pool_state, _offchain_state, acc_id) = new_test_ext(mock_offworker_ext);
 
     ext.execute_with(|| {
         let data = load_msgpack_data();
@@ -350,7 +357,15 @@ fn test_offchain_worker_behavior() {
             panic!("No encryption key found")
         };
 
+        let authorities: BoundedVec<(AccountId, PublicKey), <Test as Config>::MaxAuthorities> =
+            vec![(acc_id, (public_key.0.to_vec(), public_key.1.to_vec()))]
+                .try_into()
+                .expect("Should not exceed max authorities");
+
+        Authorities::<Test>::put(authorities);
+
         let decryption_info = DecryptionNodeInfo {
+            account_id: acc_id,
             public_key,
             last_keep_alive: first_block,
         };
@@ -390,7 +405,8 @@ fn test_offchain_worker_behavior() {
                         .collect();
 
                     if !weight_vec.is_empty() && weight_vec.iter().any(|(_, value)| *value != 0) {
-                        let validator_key = Vec::new(); // TODO HONZA GET KEY
+                        let validator_key =
+                            SubspaceMod::get_key_for_uid(TEST_SUBNET_ID, uid).unwrap().encode();
                         let encrypted_weights = encrypt(
                             decryption_info.public_key.clone(),
                             weight_vec.clone(),
@@ -429,13 +445,12 @@ fn test_offchain_worker_behavior() {
                 dbg!("processing tx");
                 let call = Extrinsic::decode(&mut &*tx).unwrap();
                 if let RuntimeCall::OffWorkerMod(Call::send_decrypted_weights {
-                    subnet_id,
-                    decrypted_weights,
-                    delta,
+                    payload,
+                    signature,
                 }) = call.call
                 {
-                    assert_eq!(subnet_id, TEST_SUBNET_ID);
-                    assert!(!decrypted_weights.is_empty());
+                    assert_eq!(payload.subnet_id, TEST_SUBNET_ID);
+                    assert!(!payload.decrypted_weights.is_empty());
                     log::info!("decryption event on block: {}", block_number);
 
                     // Execute the extrinsic
@@ -453,12 +468,7 @@ fn test_offchain_worker_behavior() {
 
                     // Execute the extrinsic
                     let origin = frame_system::RawOrigin::Signed(signer).into();
-                    let result = Pallet::<Test>::send_decrypted_weights(
-                        origin,
-                        subnet_id,
-                        decrypted_weights,
-                        delta,
-                    );
+                    let result = Pallet::<Test>::send_decrypted_weights(origin, payload, signature);
 
                     // Handle the result
                     match result {

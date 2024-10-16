@@ -2,7 +2,9 @@
 
 use core::panic;
 use frame_support::{
-    ensure, parameter_types,
+    ensure,
+    pallet_prelude::ConstU32,
+    parameter_types,
     traits::{Currency, Everything, Get, Hooks},
     PalletId,
 };
@@ -332,7 +334,6 @@ impl pallet_subnet_emission::Config for Test {
     type MaxSupply = MaxSupply;
     type DecryptionNodeRotationInterval = ConstU64<5_000>;
     type MaxAuthorities = ConstU32<100>;
-    type KeepAliveInterval = ConstU64<50>;
 }
 
 impl pallet_governance::Config for Test {
@@ -429,6 +430,7 @@ impl pallet_offworker::Config for Test {
     type RuntimeEvent = RuntimeEvent;
     type MaxEncryptionTime = ConstU64<10_800>;
     type UnsignedPriority = ConstU64<100>;
+    type KeepAliveInterval = ConstU64<50>;
 }
 
 impl system::Config for Test {
