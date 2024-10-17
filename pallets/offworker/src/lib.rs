@@ -22,7 +22,7 @@ use pallet_subnet_emission::{
         },
         yuma::YumaEpoch,
     },
-    types::BlockWeights,
+    types::{BlockWeights, PublicKey},
     Authorities, SubnetDecryptionData,
 };
 
@@ -198,6 +198,8 @@ pub mod pallet {
         },
         /// Offchain worker sent keep_alive message
         KeepAliveSent { block_number: BlockNumberFor<T> },
+        /// New authorities were successfully added
+        AuthoritiesAdded,
     }
 
     #[pallet::error]
@@ -206,6 +208,8 @@ pub mod pallet {
         InvalidDecryptionKey,
         /// Subnet ID is invalid
         InvalidSubnetId,
+        /// Attempted to add more authorities than the maximum allowed
+        TooManyAuthorities,
     }
 
     // 5 % of total active stake
