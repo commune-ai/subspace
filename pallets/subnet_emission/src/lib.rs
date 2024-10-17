@@ -2,7 +2,6 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 
 use crate::types::{BlockWeights, DecryptionNodeInfo, PublicKey, SubnetDecryptionInfo};
-use core::marker::PhantomData;
 use frame_system::pallet_prelude::OriginFor;
 pub use pallet::*;
 use parity_scale_codec::{Decode, Encode};
@@ -298,23 +297,6 @@ pub mod pallet {
 
             priced_subnets
         }
-        // --- Returns the transaction priority for setting weights.
-        pub fn get_priority_set_weights(key: &T::AccountId, netuid: u16) -> u64 {
-            if let Some(uid) = pallet_subspace::Uids::<T>::get(netuid, key) {
-                let last_update =
-                    pallet_subspace::Pallet::<T>::get_last_update_for_uid(netuid, uid);
-                pallet_subspace::Pallet::<T>::get_current_block_number().saturating_add(last_update)
-            } else {
-                0
-            }
-        }
-        // --- Returns the transaction priority for setting weights.
-        pub fn get_priority_stake(key: &T::AccountId, netuid: u16) -> u64 {
-            if pallet_subspace::Uids::<T>::contains_key(netuid, key) {
-                return pallet_subspace::Pallet::<T>::get_delegated_stake(key);
-            }
-            0
-        }
 
         pub fn handle_decrypted_weights(netuid: u16, weights: Vec<BlockWeights>) {
             Self::do_handle_decrypted_weights(netuid, weights);
@@ -364,153 +346,5 @@ pub mod pallet {
         ) -> DispatchResult {
             Self::do_delegate_rootnet_control(origin, target)
         }
-    }
-}
-
-#[derive(Debug, PartialEq, Default)]
-pub enum CallType {
-    SetWeights,
-    SetEncryptedWeights,
-    DelegateRootnetControl,
-    #[default]
-    Other,
-}
-
-use frame_support::{
-    dispatch,
-    dispatch::{DispatchInfo, PostDispatchInfo},
-    traits::{Currency, IsSubType},
-};
-use sp_runtime::{
-    traits::{DispatchInfoOf, Dispatchable, PostDispatchInfoOf, SignedExtension},
-    transaction_validity::{TransactionValidity, TransactionValidityError, ValidTransaction},
-};
-
-#[derive(Encode, Decode, Clone, Eq, PartialEq, TypeInfo)]
-pub struct SubnetEmissionSignedExtension<T: Config + Send + Sync + TypeInfo>(pub PhantomData<T>);
-
-impl<T: Config + Send + Sync + TypeInfo> Default for SubnetEmissionSignedExtension<T>
-where
-    T::RuntimeCall: Dispatchable<Info = DispatchInfo, PostInfo = PostDispatchInfo>,
-    <T as frame_system::Config>::RuntimeCall: IsSubType<Call<T>>,
-{
-    fn default() -> Self {
-        Self::new()
-    }
-}
-
-impl<T: Config + Send + Sync + TypeInfo> SubnetEmissionSignedExtension<T>
-where
-    T::RuntimeCall: Dispatchable<Info = DispatchInfo, PostInfo = PostDispatchInfo>,
-    <T as frame_system::Config>::RuntimeCall: IsSubType<Call<T>>,
-{
-    pub fn new() -> Self {
-        Self(Default::default())
-    }
-
-    pub fn get_priority_vanilla(who: &T::AccountId) -> u64 {
-        // Return high priority so that every extrinsic except set_weights function will
-        // have a higher priority than the set_weights call
-        // get the current block number
-        let current_block_number = pallet_subspace::Pallet::<T>::get_current_block_number();
-        let balance = pallet_subspace::Pallet::<T>::get_balance_u64(who);
-
-        // this is the current block number minus the last update block number
-        current_block_number.saturating_add(balance)
-    }
-
-    pub fn get_priority_set_weights(who: &T::AccountId, netuid: u16) -> u64 {
-        // Return the non vanilla priority for a set weights call.
-        Pallet::<T>::get_priority_set_weights(who, netuid)
-    }
-
-    #[must_use]
-    pub fn u64_to_balance(
-        input: u64,
-    ) -> Option<
-        <<T as Config>::Currency as Currency<<T as frame_system::Config>::AccountId>>::Balance,
-    > {
-        input.try_into().ok()
-    }
-}
-
-impl<T: Config + Send + Sync + TypeInfo> sp_std::fmt::Debug for SubnetEmissionSignedExtension<T> {
-    fn fmt(&self, f: &mut sp_std::fmt::Formatter) -> sp_std::fmt::Result {
-        write!(f, "SubspaceSignedExtension")
-    }
-}
-
-impl<T: Config + Send + Sync + TypeInfo> SignedExtension for SubnetEmissionSignedExtension<T>
-where
-    T::RuntimeCall: Dispatchable<Info = DispatchInfo, PostInfo = PostDispatchInfo>,
-    <T as frame_system::Config>::RuntimeCall: IsSubType<Call<T>>,
-{
-    const IDENTIFIER: &'static str = "SubspaceSignedExtension";
-
-    type AccountId = T::AccountId;
-    type Call = T::RuntimeCall;
-    type AdditionalSigned = ();
-    type Pre = (CallType, u64, Self::AccountId);
-
-    fn additional_signed(&self) -> Result<Self::AdditionalSigned, TransactionValidityError> {
-        Ok(())
-    }
-
-    fn validate(
-        &self,
-        who: &Self::AccountId,
-        call: &Self::Call,
-        _info: &DispatchInfoOf<Self::Call>,
-        _len: usize,
-    ) -> TransactionValidity {
-        match call.is_sub_type() {
-            Some(Call::set_weights { netuid, .. }) => {
-                let priority: u64 = Self::get_priority_set_weights(who, *netuid);
-                Ok(ValidTransaction {
-                    priority,
-                    longevity: 1,
-                    ..Default::default()
-                })
-            }
-            _ => Ok(ValidTransaction {
-                priority: Self::get_priority_vanilla(who),
-                ..Default::default()
-            }),
-        }
-    }
-
-    // NOTE: Add later when we put in a pre and post dispatch step.
-    fn pre_dispatch(
-        self,
-        who: &Self::AccountId,
-        call: &Self::Call,
-        _info: &DispatchInfoOf<Self::Call>,
-        _len: usize,
-    ) -> Result<Self::Pre, TransactionValidityError> {
-        let who = who.clone();
-        match call.is_sub_type() {
-            Some(Call::set_weights { .. }) => Ok((CallType::SetWeights, 0, who)),
-            _ => Ok((CallType::Other, 0, who)),
-        }
-    }
-
-    fn post_dispatch(
-        maybe_pre: Option<Self::Pre>,
-        _info: &DispatchInfoOf<Self::Call>,
-        _post_info: &PostDispatchInfoOf<Self::Call>,
-        _len: usize,
-        _result: &dispatch::DispatchResult,
-    ) -> Result<(), TransactionValidityError> {
-        if let Some((call_type, _transaction_fee, _who)) = maybe_pre {
-            match call_type {
-                CallType::SetWeights => {
-                    log::debug!("Not Implemented!");
-                }
-                _ => {
-                    log::debug!("Not Implemented!");
-                }
-            }
-        }
-        Ok(())
     }
 }

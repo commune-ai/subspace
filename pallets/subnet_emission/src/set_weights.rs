@@ -4,7 +4,7 @@ use frame_system::ensure_signed;
 use pallet_subnet_emission_api::SubnetConsensus;
 
 impl<T: Config> Pallet<T> {
-    /// Sets weights for a node in a specific subnet.   
+    /// Sets weights for a node in a specific subnet.
     /// # Arguments
     ///
     /// * `origin` - The origin of the call, must be a signed account.
@@ -50,7 +50,7 @@ impl<T: Config> Pallet<T> {
         netuid: u16,
         uids: Vec<u16>,
         values: Vec<u16>,
-    ) -> dispatch::DispatchResult {
+    ) -> DispatchResult {
         let key = ensure_signed(origin)?;
 
         if pallet_subspace::UseWeightsEncrytyption::<T>::get(netuid) {
@@ -173,7 +173,7 @@ impl<T: Config> Pallet<T> {
     // Rate limiting
     // ----------------
 
-    fn handle_rate_limiting(uid: u16, netuid: u16, key: &T::AccountId) -> dispatch::DispatchResult {
+    fn handle_rate_limiting(uid: u16, netuid: u16, key: &T::AccountId) -> DispatchResult {
         if let Some(max_set_weights) =
             pallet_subspace::MaximumSetWeightCallsPerEpoch::<T>::get(netuid).filter(|r| *r > 0)
         {
