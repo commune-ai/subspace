@@ -108,7 +108,6 @@ fn test_offchain_worker_behavior() {
         PendingEmission::<Test>::set(TEST_SUBNET_ID, PENDING_EMISSION);
         step_block(SUBNET_TEMPO as u16);
         let mut decryption_count = 0;
-        let mut last_block = 0;
 
         for (block_number_str, block_weights) in &data.weights {
             let block_number: u64 = block_number_str.parse().unwrap();
@@ -176,7 +175,7 @@ fn test_offchain_worker_behavior() {
             // ! This is not actually running the validate unsigned function
             // we need to do all verification, and transaction processing manually
             while let Some(tx) = pool_state.write().transactions.pop() {
-                dbg!("processing tx");
+                log::info!("processing tx");
                 let call = Extrinsic::decode(&mut &*tx).unwrap();
                 if let RuntimeCall::OffWorkerMod(Call::send_decrypted_weights {
                     payload,
@@ -197,7 +196,6 @@ fn test_offchain_worker_behavior() {
                     log::info!("decryption event on block: {}", block_number);
 
                     let new_acc_id: AccountId = payload.public.clone().into_account().into();
-                    dbg!(new_acc_id);
                     update_authority_and_decryption_node::<Test>(TEST_SUBNET_ID, new_acc_id);
 
                     // Execute the extrinsic
@@ -219,7 +217,6 @@ fn test_offchain_worker_behavior() {
             }
 
             if decryption_count >= EXPECTED_DECRYPTIONS_COUNT {
-                last_block = block_number;
                 break;
             }
         }
@@ -234,24 +231,22 @@ fn test_offchain_worker_behavior() {
         );
 
         // Check if IrrationalityDelta is set
-        dbg!(IrrationalityDelta::<Test>::iter().collect::<Vec<_>>());
         assert!(
             IrrationalityDelta::<Test>::contains_key(TEST_SUBNET_ID),
             "IrrationalityDelta should be set"
         );
 
-        // Verify the last processed block in offchain storage
-        let storage_key = format!("last_processed_block:{}", TEST_SUBNET_ID).into_bytes();
-        let last_processed_block = sp_io::offchain::local_storage_get(
+        // we actually want this **not** to be set, as whenever weights are sent, the subnet state
+        // is **nuked**
+        let storage_key = format!("subnet_state:{}", TEST_SUBNET_ID).into_bytes();
+        let subnet_state = sp_io::offchain::local_storage_get(
             sp_core::offchain::StorageKind::PERSISTENT,
             &storage_key,
-        )
-        .and_then(|v| u64::decode(&mut &v[..]).ok())
-        .unwrap_or(0);
+        );
 
-        assert_eq!(
-            last_processed_block, last_block,
-            "Last processed block should match"
+        assert!(
+            subnet_state.is_none(),
+            "Subnet state should not be set in offchain storage"
         );
 
         // Verify keep-alive functionality
