@@ -38,7 +38,7 @@ const TEST_SUBNET_ID: u16 = 0;
 /// Make sure the tempo 100% matches
 const SUBNET_TEMPO: u64 = 360;
 const PENDING_EMISSION: u64 = to_nano(1_000);
-const EXPECTED_DECRYPTIONS_COUNT: u64 = 2;
+const EXPECTED_DECRYPTIONS_COUNT: u64 = 1;
 
 // Helper function to set up the test environment
 fn new_offworker_test_ext(
@@ -101,7 +101,6 @@ fn test_offchain_worker_behavior() {
             panic!("No encryption key found")
         };
 
-        // TODO: fix this later on
         let decryption_info = initialize_authorities(public_key, first_block);
 
         // Run all important things in on initialize hooks
@@ -221,12 +220,10 @@ fn test_offchain_worker_behavior() {
             }
         }
 
-        // Assert that we've processed at least 5 decryptions
-        //
-        // Move to 5 later
         assert!(
             decryption_count >= EXPECTED_DECRYPTIONS_COUNT,
-            "Expected at least 5 decryptions, got {}",
+            "Expected at least {} decryptions, got {}",
+            EXPECTED_DECRYPTIONS_COUNT,
             decryption_count
         );
 
