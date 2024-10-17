@@ -36,17 +36,7 @@ impl<T: Config> Pallet<T> {
 
     #[must_use]
     fn can_add_application_status_based(key: &T::AccountId) -> bool {
-        // check if there's an application with the given key
-        CuratorApplications::<T>::iter().find(|(_, app)| app.user_id == *key).map_or(
-            true,
-            |(_, app)| {
-                // if the application exists, check its status
-                !matches!(
-                    app.status,
-                    ApplicationStatus::Pending | ApplicationStatus::Accepted
-                )
-            },
-        )
+        !CuratorApplications::<T>::iter().any(|(_, app)| app.user_id == *key)
     }
 
     pub fn add_application(
@@ -54,28 +44,29 @@ impl<T: Config> Pallet<T> {
         application_key: T::AccountId,
         data: Vec<u8>,
     ) -> DispatchResult {
+        // make sure application isnt already whitelisted
         ensure!(
             !Self::is_in_legit_whitelist(&application_key),
             Error::<T>::AlreadyWhitelisted
         );
-
+        // make sure application does not already exist
         ensure!(
             Self::can_add_application_status_based(&application_key),
             Error::<T>::ApplicationKeyAlreadyUsed
         );
-
+        // check if the key has enough funds to file the application
         let application_cost = GeneralSubnetApplicationCost::<T>::get();
         ensure!(
             PalletSubspace::<T>::has_enough_balance(&key, application_cost),
             Error::<T>::NotEnoughBalanceToApply
         );
-
+        // 1. a remove the balance from the account
         let Some(removed_balance_as_currency) =
             PalletSubspace::<T>::u64_to_balance(application_cost)
         else {
             return Err(Error::<T>::InvalidCurrencyConversionValue.into());
         };
-
+        // add the application
         let application_id = Self::get_next_application_id();
         let current_block = PalletSubspace::<T>::get_current_block_number();
 
@@ -89,6 +80,7 @@ impl<T: Config> Pallet<T> {
             block_number: current_block,
         };
 
+        // 1. b remove the balance from the account
         PalletSubspace::<T>::remove_balance_from_account(&key, removed_balance_as_currency)?;
 
         CuratorApplications::<T>::insert(application_id, application);
@@ -163,6 +155,12 @@ impl<T: Config> Pallet<T> {
         let key = ensure_signed(origin)?;
         ensure!(Curator::<T>::get() == key, Error::<T>::NotCurator);
 
+        // make sure application isnt already whitelisted
+        ensure!(
+            !Self::is_in_legit_whitelist(&module_key),
+            Error::<T>::AlreadyWhitelisted
+        );
+
         let application = CuratorApplications::<T>::iter_values()
             .find(|app| app.user_id == module_key)
             .ok_or(Error::<T>::ApplicationNotFound)?;
@@ -170,11 +168,6 @@ impl<T: Config> Pallet<T> {
         ensure!(
             application.status == ApplicationStatus::Pending,
             Error::<T>::ApplicationNotPending
-        );
-
-        ensure!(
-            !Self::is_in_legit_whitelist(&module_key),
-            Error::<T>::AlreadyWhitelisted
         );
 
         LegitWhitelist::<T>::insert(&module_key, ());

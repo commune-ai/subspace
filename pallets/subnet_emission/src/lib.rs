@@ -10,7 +10,6 @@ use sp_std::collections::btree_map::BTreeMap;
 
 pub mod distribute_emission;
 pub mod migrations;
-pub mod post_runtime;
 pub mod subnet_pricing {
     pub mod demo;
     pub mod root;
@@ -108,11 +107,6 @@ pub mod pallet {
                 log::error!("Error in on_initialize emission: {err:?}, skipping...");
             }
             Weight::zero()
-        }
-
-        fn on_idle(_n: BlockNumberFor<T>, remaining: Weight) -> Weight {
-            log::info!("on_idle: {remaining:?}");
-            Self::deregister_excess_modules(remaining)
         }
     }
 
