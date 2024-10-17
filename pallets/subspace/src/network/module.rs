@@ -285,11 +285,6 @@ impl<T: Config> Pallet<T> {
         Address::<T>::remove(netuid, replace_uid);
 
         // HANDLE THE METADATA
-        Metadata::<T>::insert(
-            netuid,
-            &module_key,
-            Metadata::<T>::get(netuid, &replace_key).unwrap_or_default(),
-        );
         Metadata::<T>::remove(netuid, &replace_key);
 
         // HANDLE THE NAMES
