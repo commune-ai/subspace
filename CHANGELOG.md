@@ -1,6 +1,10 @@
 # Changelog
 
- spec version 122
+spec version `123`
+
+fix metadata removal upon module registration
+
+spec version `122`
 
 ## Subnet 2 Changes
 
@@ -29,7 +33,7 @@ Storages:
 - `TargetRegistrationsPerInterval` storage map removed: Integrated into ModuleBurnConfig.
 - `AdjustmentAlpha` storage map removed: Integrated into ModuleBurnConfig.
 - `MaxRegistrationsPerInterval` storage map removed: Integrated into ModuleBurnConfig.
-- `DelegationFee` storage map is now bounded to a key and is global (does not take the netuid parameter)  
+- `DelegationFee` storage map is now bounded to a key and is global (does not take the netuid parameter)
 
 Extrinsics:
 
