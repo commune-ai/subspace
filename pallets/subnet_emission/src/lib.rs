@@ -27,8 +27,6 @@ pub mod types;
 #[cfg(feature = "runtime-benchmarks")]
 mod benchmarking;
 
-// TODO:
-// move some import outside of the macro
 #[frame_support::pallet]
 pub mod pallet {
     use crate::{subnet_consensus::util::params::ConsensusParams, *};
@@ -307,6 +305,8 @@ pub mod pallet {
         }
     }
 
+    // TODO:
+    // add benchmarks
     #[pallet::call]
     impl<T: Config> Pallet<T> {
         #[pallet::call_index(0)]
@@ -320,8 +320,6 @@ pub mod pallet {
             Self::do_set_weights(origin, netuid, uids, weights)
         }
 
-        // TODO:
-        // add benchmark
         #[pallet::call_index(1)]
         #[pallet::weight((0, DispatchClass::Normal, Pays::No))]
         pub fn set_weights_encrypted(

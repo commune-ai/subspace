@@ -71,9 +71,21 @@ pub mod dispatches {
 
         #[pallet::call_index(2)]
         #[pallet::weight((Weight::zero(), DispatchClass::Normal, Pays::No))]
-        pub fn add_authorities(origin: OriginFor<T>) -> DispatchResultWithPostInfo {
+        pub fn add_authorities(
+            origin: OriginFor<T>,
+            new_authorities: Vec<(T::AccountId, PublicKey)>,
+        ) -> DispatchResultWithPostInfo {
             ensure_root(origin)?;
-            // TODO:  // add an extrinsic that will insert a new authority
+
+            Authorities::<T>::try_mutate(|authorities| {
+                new_authorities.into_iter().try_for_each(|(account_id, public_key)| {
+                    authorities
+                        .try_push((account_id, public_key))
+                        .map_err(|_| Error::<T>::TooManyAuthorities)
+                })
+            })?;
+
+            Self::deposit_event(Event::AuthoritiesAdded);
             Ok(().into())
         }
     }
