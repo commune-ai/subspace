@@ -51,19 +51,20 @@ impl<T: Config> Pallet<T> {
             let (epochs, result) =
                 process_consensus_params::<T>(subnet_id, new_params, simulation_result);
 
-            if !epochs.is_empty() {
-                Self::do_send_weights(subnet_id, epochs, result.delta)
-                    .map_err(|err| {
+            match epochs.is_empty() {
+                true => {
+                    Self::save_subnet_state(subnet_id, max_block, result.simulation_result);
+                }
+                false => {
+                    if let Err(err) = Self::do_send_weights(subnet_id, epochs, result.delta) {
                         log::error!(
                             "Couldn't send weights to runtime for subnet {}: {}",
                             subnet_id,
                             err
                         );
-                    })
-                    .ok();
+                    }
+                }
             }
-
-            Self::save_subnet_state(subnet_id, max_block, result.simulation_result);
         });
     }
 

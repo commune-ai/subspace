@@ -121,6 +121,7 @@ fn read_u16(cursor: &mut Cursor<&Vec<u8>>) -> Option<u16> {
 
 pub fn hash(data: Vec<(u16, u16)>) -> Vec<u8> {
     //can be any sha256 lib, this one is used by substrate.
+    // dbg!(data.clone());
     sp_io::hashing::sha2_256(&weights_to_blob(&data.clone()[..])[..]).to_vec()
 }
 

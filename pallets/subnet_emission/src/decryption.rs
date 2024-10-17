@@ -89,6 +89,10 @@ impl<T: Config> Pallet<T> {
         weights: &[(u16, u16)],
         received_key: &[u8],
     ) -> Option<()> {
+        if weights.is_empty() {
+            return Some(());
+        }
+
         let params = ConsensusParameters::<T>::get(netuid, block)?;
         let module_key = pallet_subspace::Pallet::<T>::get_key_for_uid(netuid, uid)?;
         let module = params.modules.get(&ModuleKey(module_key))?;
@@ -103,7 +107,7 @@ impl<T: Config> Pallet<T> {
 
         let key = pallet_subspace::Pallet::<T>::get_key_for_uid(netuid, uid)?;
         if key.encode() != received_key {
-            log::error!("key received for module {uid} doesn't match.");
+            log::error!("Key mismatch for module {uid}");
             return None;
         }
 
