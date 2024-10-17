@@ -2481,7 +2481,7 @@ version = "1.0.0-dev"
 source = "git+https://github.com/paritytech/frontier?branch=polkadot-v1.10.1#6b68b4321e0065adb2c1f1a41e4961e506493763"
 dependencies = [
  "ethereum",
- "ethereum-types 0.14.1",
+ "ethereum-types",
  "fp-evm",
  "frame-support",
  "parity-scale-codec",
@@ -2510,7 +2510,7 @@ version = "3.0.0-dev"
 source = "git+https://github.com/paritytech/frontier?branch=polkadot-v1.10.1#6b68b4321e0065adb2c1f1a41e4961e506493763"
 dependencies = [
  "ethereum",
- "ethereum-types 0.14.1",
+ "ethereum-types",
  "fp-evm",
  "parity-scale-codec",
  "scale-info",
@@ -4919,7 +4919,7 @@ dependencies = [
 
 [[package]]
 name = "node-subspace-runtime"
-version = "1.8.2"
+version = "1.8.4"
 dependencies = [
  "fp-account",
  "fp-evm",
@@ -5570,7 +5570,7 @@ dependencies = [
 
 [[package]]
 name = "pallet-subspace"
-version = "1.8.2"
+version = "1.8.4"
 dependencies = [
  "bty",
  "frame-benchmarking",
