@@ -334,6 +334,7 @@ impl pallet_subnet_emission::Config for Test {
     type MaxSupply = MaxSupply;
     type DecryptionNodeRotationInterval = ConstU64<5_000>;
     type MaxAuthorities = ConstU32<100>;
+    type MaxKeepAlive = ConstU64<250>;
 }
 
 impl pallet_governance::Config for Test {

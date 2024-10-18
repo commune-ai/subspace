@@ -5,12 +5,33 @@ use subnet_consensus::util::params::ModuleKey;
 use super::*;
 
 impl<T: Config> Pallet<T> {
-    pub fn distribute_subnets_to_nodes(block: u64) {
+    #[must_use = "Check if active nodes list is empty before proceeding"]
+    fn get_active_nodes(block: u64) -> Option<Vec<DecryptionNodeInfo<T>>> {
         let authority_nodes = DecryptionNodes::<T>::get();
-        if authority_nodes.is_empty() {
-            log::warn!("no encryption nodes found");
-            return;
+        let keep_alive_interval = T::MaxKeepAlive::get();
+
+        let active_nodes: Vec<_> = authority_nodes
+            .into_iter()
+            .filter(|node| block.saturating_sub(node.last_keep_alive) <= keep_alive_interval)
+            .collect();
+
+        if active_nodes.is_empty() {
+            log::warn!(
+                "No active encryption nodes found within the last {} blocks",
+                keep_alive_interval
+            );
+            None
+        } else {
+            Some(active_nodes)
         }
+    }
+
+    pub fn distribute_subnets_to_nodes(block: u64) {
+        // Filter out nodes that haven't sent a keep-alive within the keep_alive_intervals
+        let active_nodes = match Self::get_active_nodes(block) {
+            Some(nodes) => nodes,
+            None => return,
+        };
 
         for netuid in pallet_subspace::N::<T>::iter_keys() {
             if !UseWeightsEncrytyption::<T>::get(netuid) {
@@ -23,11 +44,11 @@ impl<T: Config> Pallet<T> {
             }
 
             let mut current = DecryptionNodeCursor::<T>::get() as usize;
-            if current >= authority_nodes.len() {
+            if current >= active_nodes.len() {
                 current = 0;
             }
 
-            if let Some(node_info) = authority_nodes.get(current) {
+            if let Some(node_info) = active_nodes.get(current) {
                 SubnetDecryptionData::<T>::set(
                     netuid,
                     Some(SubnetDecryptionInfo {
@@ -133,8 +154,12 @@ impl<T: Config> Pallet<T> {
         }
 
         let current = DecryptionNodeCursor::<T>::get() as usize;
-        let authority_nodes = DecryptionNodes::<T>::get();
-        let new_node = authority_nodes.get(current % authority_nodes.len()).cloned();
+        let active_nodes = match Self::get_active_nodes(block_number) {
+            Some(nodes) => nodes,
+            None => return,
+        };
+
+        let new_node = active_nodes.get(current % active_nodes.len()).cloned();
 
         if let Some(new_node) = new_node {
             SubnetDecryptionData::<T>::set(
