@@ -157,6 +157,7 @@ pub mod pallet {
                 block_number.try_into().ok().expect("blockchain won't pass 2 ^ 64 blocks");
 
             Self::distribute_subnets_to_nodes(block_number);
+            // TODO: Self::cancel_expired_offchain_workers
 
             let emission_per_block = Self::get_total_emission_per_block();
             // Make sure to use storage layer,
@@ -170,7 +171,6 @@ pub mod pallet {
             }
 
             Self::copy_delegated_weights(block_number);
-
             for netuid in pallet_subspace::N::<T>::iter_keys() {
                 if pallet_subspace::Pallet::<T>::blocks_until_next_epoch(netuid, block_number) > 0 {
                     continue;
@@ -232,7 +232,6 @@ pub mod pallet {
 
         // Halving occurs every 250 million minted tokens, until reaching a maximum supply of 1
         // billion tokens.
-        #[must_use]
         pub fn get_total_emission_per_block() -> u64 {
             let total_issuance = Self::get_total_issuence_as_u64();
             let unit_emission = UnitEmission::<T>::get();
@@ -278,10 +277,7 @@ pub mod pallet {
         // Emission Distribution per Subnet
         // =================================
 
-        // Returns emisison for every network
-        // TODO
-        // later
-        // change this to also have the governacne processes, of picking the right subnet pricing
+        /// Returns emisison for every subnet
         #[must_use]
         pub fn get_subnet_pricing(token_emission: u64) -> PricedSubnets {
             let rootnet_id = Self::get_consensus_netuid(SubnetConsensus::Root).unwrap_or(0);
