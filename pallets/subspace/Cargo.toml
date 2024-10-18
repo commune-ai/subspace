@@ -1,6 +1,6 @@
 [package]
 name = "pallet-subspace"
-version = "1.8.5"
+version = "1.8.6"
 description = "FRAME pallet for runtime logic of Subspace Blockchain."
 authors = ["Commune Community"]
 homepage = "https://commune.com"
