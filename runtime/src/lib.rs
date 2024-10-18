@@ -162,7 +162,7 @@ pub mod opaque {
     }
 }
 
-pub type Migrations = pallet_governance::migrations::v2::MigrateToV2<Runtime>;
+pub type Migrations = pallet_subspace::migrations::v14::MigrateToV14<Runtime>;
 
 // To learn more about runtime versioning, see:
 // https://docs.substrate.io/main-docs/build/upgrade#runtime-versioning
@@ -176,7 +176,7 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
     //   `spec_version`, and `authoring_version` are the same between Wasm and native.
     // This value is set to 100 to notify Polkadot-JS App (https://polkadot.js.org/apps) to use
     //   the compatible custom types.
-    spec_version: 123,
+    spec_version: 124,
     impl_version: 1,
     apis: RUNTIME_API_VERSIONS,
     transaction_version: 1,
@@ -415,6 +415,7 @@ impl pallet_subspace::Config for Runtime {
     type DefaultSubnetMinBurn = ConstU64<2_000_000_000_000>;
     type WeightInfo = pallet_subspace::weights::SubstrateWeight<Runtime>;
     type DefaultMinValidatorStake = ConstU64<50_000_000_000_000>;
+    type EnforceWhitelist = ConstBool<true>;
 }
 
 impl pallet_governance::Config for Runtime {
