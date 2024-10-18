@@ -249,3 +249,104 @@ impl<T: Config> Pallet<T> {
         Some(())
     }
 }
+
+// TODO: integrate
+
+// #[pallet::storage]
+// pub type BannedOffchainWorkers<T: Config> =
+//     StorageMap<_, Blake2_128Concat, T::AccountId, u64>;
+
+// #[pallet::storage]
+// pub type PendingEmissionIncrease<T: Config> = StorageValue<_, u64, ValueQuery>;
+
+// #[pallet::config]
+// pub trait Config: frame_system::Config {
+//     // ... other config items ...
+
+//     /// The maximum number of blocks an offchain worker can be inactive before being cancelled
+//     type MaxOffchainWorkerInactivity: Get<u64>;
+
+//     /// The duration (in blocks) for which an offchain worker is banned after being cancelled
+//     type OffchainWorkerBanDuration: Get<u64>;
+// }
+
+// fn cancel_expired_offchain_workers(block_number: u64) {
+//        let max_inactivity_blocks = T::MaxOffchainWorkerInactivity::get();
+//        let pending_emission_increase = PendingEmissionIncrease::<T>::get();
+
+//        for netuid in pallet_subspace::N::<T>::iter_keys() {
+//            if !pallet_subspace::UseWeightsEncrytyption::<T>::get(netuid) {
+//                continue;
+//            }
+
+//            if let Some(info) = SubnetDecryptionData::<T>::get(netuid) {
+//                if block_number.saturating_sub(info.block_assigned) > max_inactivity_blocks {
+//                    // Cancel the offchain worker
+//                    Self::cancel_offchain_worker(netuid, &info, pending_emission_increase);
+//                }
+//            }
+//        }
+//    }
+
+//    fn cancel_offchain_worker(
+//        netuid: u16,
+//        info: &SubnetDecryptionInfo<T>,
+//        pending_emission_increase: u64,
+//    ) {
+//        // Clear encrypted weights
+//        DecryptedWeights::<T>::remove(netuid);
+
+//        // Clear hashes (assuming they're stored in a separate storage item)
+//        WeightHashes::<T>::remove(netuid);
+
+//        // Clear ConsensusParameters
+//        let block_number = pallet_subspace::Pallet::<T>::get_current_block_number();
+//        ConsensusParameters::<T>::remove(netuid, block_number);
+
+//        // Add tokens back to pending emission
+//        PendingEmission::<T>::mutate(netuid, |emission| {
+//            *emission = emission.saturating_add(pending_emission_increase);
+//        });
+
+//        // Ban the offchain worker
+//        Self::ban_offchain_worker(&info.node_id);
+
+//        // Reassign the subnet to a different offchain worker
+//        Self::reassign_subnet(netuid, block_number);
+
+//        // Emit an event
+//        Self::deposit_event(Event::<T>::OffchainWorkerCancelled(netuid, info.node_id.clone()));
+//    }
+
+//    fn ban_offchain_worker(node_id: &T::AccountId) {
+//        let ban_duration = T::OffchainWorkerBanDuration::get();
+//        let current_block = pallet_subspace::Pallet::<T>::get_current_block_number();
+//        let ban_expiry = current_block.saturating_add(ban_duration);
+
+//        BannedOffchainWorkers::<T>::insert(node_id, ban_expiry);
+//    }
+
+//    fn reassign_subnet(netuid: u16, block_number: u64) {
+//        let active_nodes = match Self::get_active_nodes(block_number) {
+//            Some(nodes) => nodes,
+//            None => return,
+//        };
+
+//        let mut current = DecryptionNodeCursor::<T>::get() as usize;
+//        if current >= active_nodes.len() {
+//            current = 0;
+//        }
+
+//        if let Some(node_info) = active_nodes.get(current) {
+//            SubnetDecryptionData::<T>::set(
+//                netuid,
+//                Some(SubnetDecryptionInfo {
+//                    node_id: node_info.account_id.clone(),
+//                    node_public_key: node_info.public_key.clone(),
+//                    block_assigned: block_number,
+//                }),
+//            );
+
+//            DecryptionNodeCursor::<T>::set((current + 1) as u16);
+//        }
+//    }
