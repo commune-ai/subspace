@@ -80,6 +80,11 @@ pub mod pallet {
         /// Maximum number of authorities.
         #[pallet::constant]
         type MaxAuthorities: Get<u32>;
+
+        /// The number of blocks within which a node must have sent a keep-alive to be considered
+        /// active.
+        #[pallet::constant]
+        type MaxKeepAlive: Get<u64>;
     }
 
     // Storage

@@ -453,6 +453,7 @@ impl pallet_subnet_emission::Config for Runtime {
     type MaxSupply = ConstU64<1_000_000_000>;
     type DecryptionNodeRotationInterval = ConstU64<5_000>;
     type MaxAuthorities = ConstU32<100>;
+    type MaxKeepAlive = ConstU64<250>;
 }
 
 pub const WEIGHT_MILLISECS_PER_BLOCK: u64 = 2000;
