@@ -65,7 +65,7 @@ pub mod pallet {
     use sp_core::{ConstU16, ConstU64, ConstU8};
     pub use sp_std::{vec, vec::Vec};
 
-    const STORAGE_VERSION: StorageVersion = StorageVersion::new(13);
+    const STORAGE_VERSION: StorageVersion = StorageVersion::new(14);
 
     #[pallet::pallet]
     #[pallet::storage_version(STORAGE_VERSION)]
@@ -102,6 +102,8 @@ pub mod pallet {
 
         /// The weight information of this pallet.
         type WeightInfo: WeightInfo;
+        /// Should enforce legit whitelist on general subnet
+        type EnforceWhitelist: Get<bool>;
     }
 
     pub type BalanceOf<T> =
@@ -706,6 +708,8 @@ pub mod pallet {
         InvalidMinValidatorStake,
         /// The maximum allowed validators value is invalid, minimum is 10.
         InvalidMaxAllowedValidators,
+        /// Uid is not in general subnet legit whitelist
+        UidNotWhitelisted,
     }
 
     // ---------------------------------
@@ -1046,22 +1050,5 @@ impl<T: Config> Pallet<T> {
     #[inline]
     pub fn get_delegated_stake(staked: &T::AccountId) -> u64 {
         StakeFrom::<T>::iter_prefix_values(staked).sum()
-    }
-
-    // --- Returns the transaction priority for setting weights.
-    pub fn get_priority_set_weights(key: &T::AccountId, netuid: u16) -> u64 {
-        if let Some(uid) = Uids::<T>::get(netuid, key) {
-            let last_update = Self::get_last_update_for_uid(netuid, uid);
-            Self::get_current_block_number().saturating_add(last_update)
-        } else {
-            0
-        }
-    }
-    // --- Returns the transaction priority for setting weights.
-    pub fn get_priority_stake(key: &T::AccountId, netuid: u16) -> u64 {
-        if Uids::<T>::contains_key(netuid, key) {
-            return Self::get_delegated_stake(key);
-        }
-        0
     }
 }
