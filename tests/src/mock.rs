@@ -2,7 +2,7 @@
 
 use frame_support::{
     ensure, parameter_types,
-    traits::{Currency, Everything, Get, Hooks},
+    traits::{ConstBool, Currency, Everything, Get, Hooks},
     PalletId,
 };
 use frame_system as system;
@@ -121,6 +121,7 @@ impl pallet_subspace::Config for Test {
     type DefaultSubnetMinBurn = SubnetMinBurnConfig;
     type DefaultMinValidatorStake = MinValidatorStake;
     type PalletId = SubspacePalletId;
+    type EnforceWhitelist = ConstBool<false>;
 }
 
 impl GovernanceApi<<Test as frame_system::Config>::AccountId> for Test {

@@ -410,11 +410,13 @@ impl<T: Config> Pallet<T> {
     pub fn get_netuid_for_name(name: &[u8]) -> Option<u16> {
         SubnetNames::<T>::iter().find(|(_, n)| n == name).map(|(id, _)| id)
     }
-    // Returs the key under the network uid as a Result. Ok if the uid is taken.
+    /// Returs the key under the network uid as a Result. Ok if the uid is taken.
+    #[inline]
     pub fn get_key_for_uid(netuid: u16, module_uid: u16) -> Option<T::AccountId> {
         Keys::<T>::get(netuid, module_uid)
     }
-    // Returns the uid of the key in the network as a Result. Ok if the key has a slot.
+    /// Returns the uid of the key in the network as a Result. Ok if the key has a slot.
+    #[inline]
     pub fn get_uid_for_key(netuid: u16, key: &T::AccountId) -> Option<u16> {
         Uids::<T>::get(netuid, key)
     }
