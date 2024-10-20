@@ -5,7 +5,7 @@ use frame_support::{
     ensure,
     pallet_prelude::ConstU32,
     parameter_types,
-    traits::{Currency, Everything, Get, Hooks},
+    traits::{ConstU8, Currency, Everything, Get, Hooks},
     PalletId,
 };
 use frame_system::{
@@ -334,7 +334,10 @@ impl pallet_subnet_emission::Config for Test {
     type MaxSupply = MaxSupply;
     type DecryptionNodeRotationInterval = ConstU64<5_000>;
     type MaxAuthorities = ConstU32<100>;
-    type MaxKeepAlive = ConstU64<250>;
+    type OffchainWorkerBanDuration = ConstU64<10_800>;
+    type MaxFailedPings = ConstU8<20>;
+    type MissedPingsForInactivity = ConstU8<5>;
+    type PingInterval = ConstU64<50>;
 }
 
 impl pallet_governance::Config for Test {
@@ -431,7 +434,6 @@ impl pallet_offworker::Config for Test {
     type RuntimeEvent = RuntimeEvent;
     type MaxEncryptionTime = ConstU64<10_800>;
     type UnsignedPriority = ConstU64<100>;
-    type KeepAliveInterval = ConstU64<50>;
 }
 
 impl system::Config for Test {

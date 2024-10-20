@@ -81,10 +81,22 @@ pub mod pallet {
         #[pallet::constant]
         type MaxAuthorities: Get<u32>;
 
-        /// The number of blocks within which a node must have sent a keep-alive to be considered
-        /// active.
+        /// The duration (in blocks) for which an offchain worker is banned after being cancelled
         #[pallet::constant]
-        type MaxKeepAlive: Get<u64>;
+        type OffchainWorkerBanDuration: Get<u64>;
+
+        /// Maximum number of failed pings before a decryption node is banned
+        #[pallet::constant]
+        type MaxFailedPings: Get<u8>;
+
+        /// The number of consecutive missed pings after which a decryption node is considered
+        /// inactive
+        #[pallet::constant]
+        type MissedPingsForInactivity: Get<u8>;
+
+        /// The interval (in blocks) at which the decryption node should send a keep-alive
+        #[pallet::constant]
+        type PingInterval: Get<u64>;
     }
 
     // Storage
@@ -115,6 +127,11 @@ pub mod pallet {
     /// It is built from the authority keys
     #[pallet::storage]
     pub type DecryptionNodes<T> = StorageValue<_, Vec<DecryptionNodeInfo<T>>, ValueQuery>;
+
+    /// Stores non responsive decryption nodes
+    #[pallet::storage]
+    pub type BannedDecryptionNodes<T: Config> =
+        StorageMap<_, Identity, T::AccountId, u64, ValueQuery>;
 
     /// Decryption Node Info assigned to subnet
     #[pallet::storage]
@@ -157,7 +174,7 @@ pub mod pallet {
                 block_number.try_into().ok().expect("blockchain won't pass 2 ^ 64 blocks");
 
             Self::distribute_subnets_to_nodes(block_number);
-            // TODO: Self::cancel_expired_offchain_workers
+            Self::cancel_expired_offchain_workers(block_number);
 
             let emission_per_block = Self::get_total_emission_per_block();
             // Make sure to use storage layer,
@@ -189,6 +206,11 @@ pub mod pallet {
     pub enum Event<T: Config> {
         /// Subnets tempo has finished
         EpochFinished(u16),
+        /// Weight copying decryption was canceled
+        DecryptionNodeCanceled {
+            subnet_id: u16,
+            node_id: T::AccountId,
+        },
     }
 
     #[derive(Debug)]
@@ -301,8 +323,8 @@ pub mod pallet {
             Self::do_handle_decrypted_weights(netuid, weights);
         }
 
-        pub fn handle_authority_node_keep_alive(public_key: (Vec<u8>, Vec<u8>)) {
-            Self::do_handle_authority_node_keep_alive(public_key);
+        pub fn handle_authority_node_ping(public_key: (Vec<u8>, Vec<u8>)) {
+            Self::do_handle_authority_node_ping(public_key);
         }
     }
 
