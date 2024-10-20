@@ -49,7 +49,7 @@ pub mod dispatches {
 
         #[pallet::call_index(1)]
         #[pallet::weight((Weight::zero(), DispatchClass::Normal, Pays::No))]
-        pub fn send_keep_alive(
+        pub fn send_ping(
             origin: OriginFor<T>,
             payload: KeepAlivePayload<T::Public, BlockNumberFor<T>>,
             _signature: T::Signature,
@@ -63,7 +63,7 @@ pub mod dispatches {
                 public: _,
             } = payload;
 
-            pallet_subnet_emission::Pallet::<T>::handle_authority_node_keep_alive(public_key);
+            pallet_subnet_emission::Pallet::<T>::handle_authority_node_ping(public_key);
 
             Self::deposit_event(Event::KeepAliveSent { block_number });
             Ok(().into())

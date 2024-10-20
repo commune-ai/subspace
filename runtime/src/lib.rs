@@ -426,7 +426,6 @@ impl pallet_offworker::Config for Runtime {
     type RuntimeEvent = RuntimeEvent;
     type MaxEncryptionTime = ConstU64<20_880>; // Close to 2 days
     type UnsignedPriority = ConstU64<100>;
-    type KeepAliveInterval = ConstU64<50>;
 }
 
 impl frame_system::offchain::SigningTypes for Runtime {
@@ -434,26 +433,35 @@ impl frame_system::offchain::SigningTypes for Runtime {
     type Signature = Signature;
 }
 
-#[cfg(feature = "testnet-faucet")]
-impl pallet_faucet::Config for Runtime {
-    type RuntimeEvent = RuntimeEvent;
-    type Currency = Balances;
-}
-
-// impl pallet_offworker::Config for Runtime {
-//     type RuntimeEvent = RuntimeEvent;
-// }
-
 // Includes emission logic for the runtime
 impl pallet_subnet_emission::Config for Runtime {
     type RuntimeEvent = RuntimeEvent;
     type Currency = Balances;
-    type Decimals = ConstU8<9>; // The runtime has 9 token decimals
+    // The runtime has 9 token decimals
+    type Decimals = ConstU8<9>;
     type HalvingInterval = ConstU64<250_000_000>;
     type MaxSupply = ConstU64<1_000_000_000>;
     type DecryptionNodeRotationInterval = ConstU64<5_000>;
     type MaxAuthorities = ConstU32<100>;
-    type MaxKeepAlive = ConstU64<250>;
+    // Represented in number of blocks, defines how long decryption node will be banned for.
+    // Ban presists even if ping are being sent.
+    // 10_800 is one day, assume 8 second block time
+    type OffchainWorkerBanDuration = ConstU64<10_800>;
+    // Number of failed pings before a node is banned, and it's operations are canceled.
+    // 20 represents 1_000 blocks
+    type MaxFailedPings = ConstU8<20>;
+    // After these many missed pings, node will be kept out of rotation, and it's signing avoided.
+    // Node won't be fully banned yet.
+    // 5 represents 250 blocks
+    type MissedPingsForInactivity = ConstU8<5>;
+    // Represented in number of blocks, defines how often node sends keep-alive ping
+    type PingInterval = ConstU64<50>;
+}
+
+#[cfg(feature = "testnet-faucet")]
+impl pallet_faucet::Config for Runtime {
+    type RuntimeEvent = RuntimeEvent;
+    type Currency = Balances;
 }
 
 pub const WEIGHT_MILLISECS_PER_BLOCK: u64 = 2000;

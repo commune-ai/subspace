@@ -129,9 +129,6 @@ pub mod pallet {
 
         #[pallet::constant]
         type UnsignedPriority: Get<TransactionPriority>;
-
-        #[pallet::constant]
-        type KeepAliveInterval: Get<u64>;
     }
 
     #[pallet::validate_unsigned]
@@ -144,7 +141,7 @@ pub mod pallet {
                     Self::validate_signature_and_authority(payload, signature)?;
                     Self::validate_unsigned_transaction(&payload.block_number, "DecryptedWeights")
                 }
-                Call::send_keep_alive { payload, signature } => {
+                Call::send_ping { payload, signature } => {
                     Self::validate_signature_and_authority(payload, signature)?;
                     Self::validate_unsigned_transaction(&payload.block_number, "KeepAlive")
                 }
@@ -174,7 +171,7 @@ pub mod pallet {
             let block_number =
                 block_number.try_into().ok().expect("blockchain won't pass 2^64 blocks");
 
-            if let Err(e) = Self::do_send_keep_alive(block_number) {
+            if let Err(e) = Self::do_send_ping(block_number) {
                 log::error!("Error sending keep alive: {:?}", e);
                 return;
             }
@@ -315,11 +312,11 @@ impl<T: Config> Pallet<T> {
     }
 
     // Get this from onchain storage, this should not run on every block but `KeepAlive` interval
-    fn do_send_keep_alive(current_block: u64) -> Result<(), DispatchError> {
+    fn do_send_ping(current_block: u64) -> Result<(), DispatchError> {
         let storage = StorageValueRef::persistent(b"last_keep_alive");
 
         if storage.get::<u64>().ok().flatten().map_or(true, |last| {
-            current_block.saturating_sub(last) >= T::KeepAliveInterval::get()
+            current_block.saturating_sub(last) >= T::PingInterval::get()
         }) {
             let public_key = ow_extensions::offworker::get_encryption_key()
                 .ok_or(DispatchError::Other("Failed to get encryption key"))?;
@@ -338,7 +335,7 @@ impl<T: Config> Pallet<T> {
                         block_number: current_block.try_into().ok().unwrap_or_default(),
                         public: account.public.clone(),
                     },
-                    |payload, signature| Call::send_keep_alive { payload, signature },
+                    |payload, signature| Call::send_ping { payload, signature },
                 )
                 .into_iter()
                 .try_for_each(|(_, result)| {
