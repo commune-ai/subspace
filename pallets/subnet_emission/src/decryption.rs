@@ -9,7 +9,7 @@ impl<T: Config> Pallet<T> {
     fn get_active_nodes(block: u64) -> Option<Vec<DecryptionNodeInfo<T>>> {
         let authority_nodes = DecryptionNodes::<T>::get();
         let keep_alive_interval =
-            T::PingInterval::get() * T::MissedPingsForInactivity::get() as u64;
+            T::PingInterval::get().saturating_mul(T::MissedPingsForInactivity::get() as u64);
 
         let active_nodes: Vec<_> = authority_nodes
             .into_iter()
@@ -68,11 +68,12 @@ impl<T: Config> Pallet<T> {
                     }),
                 );
 
-                DecryptionNodeCursor::<T>::set((current + 1) as u16);
+                DecryptionNodeCursor::<T>::set((current.saturating_add(1)) as u16);
             }
         }
     }
 
+    #[allow(clippy::type_complexity)]
     pub fn do_handle_decrypted_weights(netuid: u16, weights: Vec<BlockWeights>) {
         let info = match SubnetDecryptionData::<T>::get(netuid) {
             Some(info) => info,
@@ -173,6 +174,7 @@ impl<T: Config> Pallet<T> {
         Some(())
     }
 
+    #[allow(clippy::type_complexity)]
     fn update_decrypted_weights(
         netuid: u16,
         valid_weights: Vec<(u64, Vec<(u16, Vec<(u16, u16)>)>)>,
@@ -197,7 +199,8 @@ impl<T: Config> Pallet<T> {
             None => return,
         };
 
-        let new_node = active_nodes.get(current % active_nodes.len()).cloned();
+        let new_node =
+            active_nodes.get(current.checked_rem(active_nodes.len()).unwrap_or(0)).cloned();
 
         if let Some(new_node) = new_node {
             SubnetDecryptionData::<T>::set(
@@ -208,7 +211,7 @@ impl<T: Config> Pallet<T> {
                     block_assigned: block_number,
                 }),
             );
-            DecryptionNodeCursor::<T>::set((current + 1) as u16);
+            DecryptionNodeCursor::<T>::set((current.saturating_add(1)) as u16);
         }
     }
 

@@ -335,8 +335,10 @@ impl pallet_subnet_emission::Config for Test {
     type DecryptionNodeRotationInterval = ConstU64<5_000>;
     type MaxAuthorities = ConstU32<100>;
     type OffchainWorkerBanDuration = ConstU64<10_800>;
-    type MaxFailedPings = ConstU8<20>;
-    type MissedPingsForInactivity = ConstU8<5>;
+    // setting high value because of testing (this should never be reached in practice)
+    type MaxFailedPings = ConstU8<{ u8::MAX }>;
+    // setting high value because of testing (this should never be reached in practice)
+    type MissedPingsForInactivity = ConstU8<{ u8::MAX }>;
     type PingInterval = ConstU64<50>;
 }
 
