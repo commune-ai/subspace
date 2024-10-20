@@ -17,6 +17,7 @@ impl OffworkerExt {
 
 #[cfg(feature = "std")]
 pub trait OffworkerExtension: Send + 'static {
+    #[allow(clippy::type_complexity)]
     fn decrypt_weight(&self, encrypted: Vec<u8>) -> Option<(Vec<(u16, u16)>, Vec<u8>)>;
 
     fn is_decryption_node(&self) -> bool;
@@ -26,6 +27,7 @@ pub trait OffworkerExtension: Send + 'static {
 
 #[sp_runtime_interface::runtime_interface]
 pub trait Offworker {
+    #[allow(clippy::type_complexity)]
     fn decrypt_weight(
         &mut self,
         encrypted: sp_std::vec::Vec<u8>,
