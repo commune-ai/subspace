@@ -5,7 +5,7 @@ use frame_support::{
     ensure,
     pallet_prelude::ConstU32,
     parameter_types,
-    traits::{ConstU8, Currency, Everything, Get, Hooks},
+    traits::{ConstBool, ConstU8, Currency, Everything, Get, Hooks},
     PalletId,
 };
 use frame_system::{

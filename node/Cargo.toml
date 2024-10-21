@@ -23,10 +23,11 @@ name = "node-subspace"
 async-trait.workspace = true
 hex.workspace = true
 rsa.workspace = true
-sha2.workspace = true
 serde.workspace = true
+log.workspace = true
 
-# Commune
+# Commune Local Dependencies
+ow_extensions.path = "../ow_extensions"
 node-subspace-runtime = { path = "../runtime" }
 pallet-subspace-genesis-config = { path = "../pallets/subspace/genesis-config" }
 subspace-rpc = { path = "../pallets/subspace/rpc" }
@@ -34,13 +35,11 @@ subspace-rpc = { path = "../pallets/subspace/rpc" }
 # Frontier
 fc-api.workspace = true
 fc-cli.workspace = true
-fc-consensus.workspace = true
 fc-db.workspace = true
 fc-mapping-sync.workspace = true
 fc-rpc.workspace = true
 fc-rpc-core.workspace = true
 fc-storage.workspace = true
-fp-account.workspace = true
 fp-dynamic-fee = { workspace = true, features = ["default"] }
 fp-rpc.workspace = true
 
@@ -49,12 +48,10 @@ clap = { workspace = true, features = ["derive"] }
 frame-benchmarking.workspace = true
 frame-benchmarking-cli.workspace = true
 frame-system.workspace = true
-frame-system-rpc-runtime-api.workspace = true
 futures = { workspace = true, features = ["thread-pool"] }
 jsonrpsee = { workspace = true, features = ["server"] }
 pallet-transaction-payment.workspace = true
 pallet-transaction-payment-rpc.workspace = true
-pallet-transaction-payment-rpc-runtime-api.workspace = true
 prometheus-endpoint = { package = "substrate-prometheus-endpoint", workspace = true }
 sc-basic-authorship.workspace = true
 sc-cli.workspace = true
@@ -75,7 +72,6 @@ sc-telemetry.workspace = true
 sc-transaction-pool.workspace = true
 sc-transaction-pool-api.workspace = true
 scale-codec.workspace = true
-serde.workspace = true
 serde_json.workspace = true
 sp-api.workspace = true
 sp-block-builder.workspace = true
@@ -92,19 +88,6 @@ sp-session.workspace = true
 sp-timestamp.workspace = true
 sp-transaction-pool.workspace = true
 substrate-frame-rpc-system.workspace = true
-pallet-transaction-payment-rpc.workspace = true
-
-# These dependencies are used for runtime benchmarking
-frame-benchmarking.workspace = true
-frame-benchmarking-cli.workspace = true
-
-# Local Dependencies
-node-subspace-runtime.path = "../runtime"
-
-ow_extensions.path = "../ow_extensions"
-
-pallet-subspace-genesis-config.path = "../pallets/subspace/genesis-config"
-subspace-rpc.path = "../pallets/subspace/rpc"
 
 [build-dependencies]
 substrate-build-script-utils.workspace = true

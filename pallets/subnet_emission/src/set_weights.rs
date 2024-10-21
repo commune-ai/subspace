@@ -2,6 +2,7 @@ use super::*;
 use frame_support::{ensure, pallet_prelude::DispatchResult};
 use frame_system::ensure_signed;
 use pallet_subnet_emission_api::SubnetConsensus;
+use pallet_subspace::{Error, Pallet as PalletSubspace};
 use sp_core::Get;
 
 impl<T: Config> Pallet<T> {
@@ -55,16 +56,16 @@ impl<T: Config> Pallet<T> {
         let key = ensure_signed(origin)?;
 
         if pallet_subspace::UseWeightsEncrytyption::<T>::get(netuid) {
-            return Err(pallet_subspace::Error::<T>::SubnetEncrypted.into());
+            return Err(Error::<T>::SubnetEncrypted.into());
         }
 
         let Some(uid) = pallet_subspace::Pallet::<T>::get_uid_for_key(netuid, &key) else {
-            return Err(pallet_subspace::Error::<T>::ModuleDoesNotExist.into());
+            return Err(Error::<T>::ModuleDoesNotExist.into());
         };
         if pallet_subspace::Pallet::<T>::get_delegated_stake(&key)
             < pallet_subspace::MinValidatorStake::<T>::get(netuid)
         {
-            return Err(pallet_subspace::Error::<T>::NotEnoughStakeToSetWeights.into());
+            return Err(Error::<T>::NotEnoughStakeToSetWeights.into());
         }
         Self::validate_input(uid, &uids, &values, netuid)?;
         Self::handle_rate_limiting(uid, netuid, &key)?;
@@ -78,21 +79,18 @@ impl<T: Config> Pallet<T> {
     fn validate_input(uid: u16, uids: &[u16], values: &[u16], netuid: u16) -> DispatchResult {
         ensure!(
             uids.len() == values.len(),
-            pallet_subspace::Error::<T>::WeightVecNotEqualSize
+            Error::<T>::WeightVecNotEqualSize
         );
         ensure!(
             pallet_subspace::Pallet::<T>::if_subnet_exist(netuid),
-            pallet_subspace::Error::<T>::NetworkDoesNotExist
+            Error::<T>::NetworkDoesNotExist
         );
-        ensure!(
-            !Self::contains_duplicates(uids),
-            pallet_subspace::Error::<T>::DuplicateUids
-        );
+        ensure!(!Self::contains_duplicates(uids), Error::<T>::DuplicateUids);
         Self::validate_uids_length(uids.len(), netuid)?;
         Self::perform_uid_validity_check(uids, netuid)?;
         ensure!(
             pallet_subspace::Pallet::<T>::is_rootnet(netuid) || !uids.contains(&uid),
-            pallet_subspace::Error::<T>::NoSelfWeight
+            Error::<T>::NoSelfWeight
         );
         Ok(())
     }
@@ -103,12 +101,9 @@ impl<T: Config> Pallet<T> {
         let min_stake_for_weights = min_stake_per_weight.checked_mul(uids_len as u64).unwrap_or(0);
         ensure!(
             stake >= min_stake_for_weights,
-            pallet_subspace::Error::<T>::NotEnoughStakePerWeight
+            Error::<T>::NotEnoughStakePerWeight
         );
-        ensure!(
-            stake > 0,
-            pallet_subspace::Error::<T>::NotEnoughStakeToSetWeights
-        );
+        ensure!(stake > 0, Error::<T>::NotEnoughStakeToSetWeights);
         Ok(())
     }
 
@@ -118,7 +113,7 @@ impl<T: Config> Pallet<T> {
         let max_allowed_length = pallet_subspace::MaxAllowedWeights::<T>::get(netuid) as usize; //.min(N::<T>::get(netuid)) as usize;
         ensure!(
             len >= min_allowed_length && len <= max_allowed_length,
-            pallet_subspace::Error::<T>::InvalidUidsLength
+            Error::<T>::InvalidUidsLength
         );
         Ok(())
     }
@@ -136,7 +131,8 @@ impl<T: Config> Pallet<T> {
             let whitelisted = T::whitelisted_keys();
 
             uids.iter().try_for_each(|&uid| {
-                let key = Self::get_key_for_uid(netuid, uid).ok_or(Error::<T>::InvalidUid)?;
+                let key = PalletSubspace::<T>::get_key_for_uid(netuid, uid)
+                    .ok_or(Error::<T>::InvalidUid)?;
 
                 if !whitelisted.contains(&key) {
                     return Err(Error::<T>::UidNotWhitelisted.into());
@@ -183,7 +179,7 @@ impl<T: Config> Pallet<T> {
     pub fn perform_uid_validity_check(uids: &[u16], netuid: u16) -> DispatchResult {
         ensure!(
             uids.iter().all(|&uid| Self::uid_exist_on_network(netuid, uid)),
-            pallet_subspace::Error::<T>::InvalidUid
+            Error::<T>::InvalidUid
         );
         Ok(())
     }
@@ -211,7 +207,7 @@ impl<T: Config> Pallet<T> {
                 });
             ensure!(
                 set_weight_uses <= max_set_weights,
-                pallet_subspace::Error::<T>::MaxSetWeightsPerEpochReached
+                Error::<T>::MaxSetWeightsPerEpochReached
             );
         }
         Self::check_rootnet_daily_limit(netuid, uid)
@@ -221,7 +217,7 @@ impl<T: Config> Pallet<T> {
         if pallet_subspace::Pallet::<T>::is_rootnet(netuid) {
             ensure!(
                 pallet_subspace::RootNetWeightCalls::<T>::get(module_id).is_none(),
-                pallet_subspace::Error::<T>::MaxSetWeightsPerEpochReached
+                Error::<T>::MaxSetWeightsPerEpochReached
             );
             pallet_subspace::RootNetWeightCalls::<T>::set(module_id, Some(()));
         }
@@ -267,19 +263,19 @@ impl<T: Config> Pallet<T> {
         let key = ensure_signed(origin)?;
 
         let rootnet_id = T::get_consensus_netuid(SubnetConsensus::Root)
-            .ok_or(pallet_subspace::Error::<T>::RootnetSubnetNotFound)?;
+            .ok_or(Error::<T>::RootnetSubnetNotFound)?;
 
         let Some(origin_uid) = pallet_subspace::Pallet::<T>::get_uid_for_key(rootnet_id, &key)
         else {
-            return Err(pallet_subspace::Error::<T>::ModuleDoesNotExist.into());
+            return Err(Error::<T>::ModuleDoesNotExist.into());
         };
 
         if pallet_subspace::Pallet::<T>::get_uid_for_key(rootnet_id, &target).is_none() {
-            return Err(pallet_subspace::Error::<T>::ModuleDoesNotExist.into());
+            return Err(Error::<T>::ModuleDoesNotExist.into());
         };
 
         if pallet_subspace::RootnetControlDelegation::<T>::get(&target).is_some() {
-            return Err(pallet_subspace::Error::<T>::TargetIsDelegatingControl.into());
+            return Err(Error::<T>::TargetIsDelegatingControl.into());
         }
 
         Self::check_rootnet_daily_limit(rootnet_id, origin_uid)?;
@@ -326,11 +322,11 @@ impl<T: Config> Pallet<T> {
         let key = ensure_signed(origin)?;
 
         if !pallet_subspace::UseWeightsEncrytyption::<T>::get(netuid) {
-            return Err(pallet_subspace::Error::<T>::SubnetNotEncrypted.into());
+            return Err(Error::<T>::SubnetNotEncrypted.into());
         }
 
         let Some(uid) = pallet_subspace::Pallet::<T>::get_uid_for_key(netuid, &key) else {
-            return Err(pallet_subspace::Error::<T>::ModuleDoesNotExist.into());
+            return Err(Error::<T>::ModuleDoesNotExist.into());
         };
 
         Self::handle_rate_limiting(uid, netuid, &key)?;
