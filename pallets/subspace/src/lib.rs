@@ -82,7 +82,7 @@ pub mod pallet {
     pub use sp_std::{vec, vec::Vec};
     use substrate_fixed::types::I64F64;
 
-    const STORAGE_VERSION: StorageVersion = StorageVersion::new(13);
+    const STORAGE_VERSION: StorageVersion = StorageVersion::new(14);
 
     #[pallet::pallet]
     #[pallet::storage_version(STORAGE_VERSION)]

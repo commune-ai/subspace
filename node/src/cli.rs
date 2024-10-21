@@ -1,23 +1,33 @@
-use sc_cli::RunCmd;
+use crate::service::EthConfiguration;
+
+/// Available Sealing methods.
+#[derive(Copy, Clone, Debug, Default, clap::ValueEnum)]
+pub enum Sealing {
+    /// Seal using rpc method.
+    #[default]
+    Manual,
+    /// Seal when transaction is executed.
+    Instant,
+}
 
 #[derive(Debug, clap::Parser)]
 pub struct Cli {
     #[command(subcommand)]
     pub subcommand: Option<Subcommand>,
 
-    #[clap(flatten)]
-    pub run: RunCmd,
+    #[allow(missing_docs)]
+    #[command(flatten)]
+    pub run: sc_cli::RunCmd,
 
-    /// Runs the node simulating AURA and GRANDPA using Manual Seal. This makes the node
-    /// incompatible with any network.
-    ///
-    /// https://github.com/paritytech/polkadot-sdk/tree/master/substrate/client/consensus/manual-seal
-    #[arg(long)]
-    pub local_seal: bool,
+    /// Choose sealing method.
+    #[arg(long, value_enum, ignore_case = true)]
+    pub sealing: Option<Sealing>,
+
+    #[command(flatten)]
+    pub eth: EthConfiguration,
 }
 
 #[derive(Debug, clap::Subcommand)]
-#[allow(clippy::large_enum_variant)]
 pub enum Subcommand {
     /// Key management cli utilities
     #[command(subcommand)]
@@ -45,14 +55,14 @@ pub enum Subcommand {
     Revert(sc_cli::RevertCmd),
 
     /// Sub-commands concerned with benchmarking.
+    #[cfg(feature = "runtime-benchmarks")]
     #[command(subcommand)]
     Benchmark(frame_benchmarking_cli::BenchmarkCmd),
 
-    /// Try-runtime has migrated to a standalone CLI
-    /// (<https://github.com/paritytech/try-runtime-cli>). The subcommand exists as a stub and
-    /// deprecation notice. It will be removed entirely some time after Janurary 2024.
-    TryRuntime,
+    /// Sub-commands concerned with benchmarking.
+    #[cfg(not(feature = "runtime-benchmarks"))]
+    Benchmark,
 
     /// Db meta columns information.
-    ChainInfo(sc_cli::ChainInfoCmd),
+    FrontierDb(fc_cli::FrontierDbCmd),
 }

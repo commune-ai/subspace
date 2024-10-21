@@ -8,9 +8,10 @@
 include!(concat!(env!("OUT_DIR"), "/wasm_binary.rs"));
 
 use frame_support::{
-    genesis_builder_helper::{build_config, create_default_config},
+    genesis_builder_helper::{build_state, get_preset},
     pallet_prelude::Get,
 };
+use sp_genesis_builder::PresetId;
 
 use sp_runtime::SaturatedConversion;
 
@@ -59,6 +60,8 @@ use sp_runtime::{
     ApplyExtrinsicResult, ConsensusEngineId, DispatchResult, MultiSignature,
 };
 
+use parity_scale_codec::{Decode, Encode};
+
 // Substrate versioning
 #[cfg(feature = "std")]
 use sp_version::NativeVersion;
@@ -72,7 +75,7 @@ use fp_evm::weight_per_gas;
 use fp_rpc::TransactionStatus;
 
 // Transaction payment pallet
-use pallet_transaction_payment::{ConstFeeMultiplier, CurrencyAdapter, Multiplier};
+use pallet_transaction_payment::{ConstFeeMultiplier, FungibleAdapter, Multiplier};
 
 use smallvec::smallvec;
 
@@ -113,25 +116,29 @@ pub use pallet_subspace;
 mod precompiles;
 use precompiles::FrontierPrecompiles;
 
-// An index to a block.
+/// An index to a block.
 pub type BlockNumber = u64;
 
-// Alias to 512-bit hash when used in the context of a transaction signature on the chain.
+/// Alias to 512-bit hash when used in the context of a transaction signature on the chain.
 pub type Signature = MultiSignature;
 
-// Some way of identifying an account on the chain. We intentionally make it equivalent
-// to the public key of our transaction signing scheme.
+/// Some way of identifying an account on the chain. We intentionally make it equivalent
+/// to the public key of our transaction signing scheme.
 pub type AccountId = <<Signature as Verify>::Signer as IdentifyAccount>::AccountId;
 
-// Balance of an account.
+/// Balance of an account.
 pub type Balance = u64;
 
-// Index of a transaction in the chain.
+/// Index of a transaction in the chain.
 pub type Index = u64;
 
-// A hash of some data used by the chain.
+/// A hash of some data used by the chain.
 pub type Hash = sp_core::H256;
 
+/// The hashing algorithm used by the chain.
+pub type Hashing = BlakeTwo256;
+
+/// Index of a transaction in the chain.
 pub type Nonce = u32;
 
 // Opaque types. These are used by the CLI to instantiate machinery that don't need to know
@@ -158,7 +165,7 @@ pub mod opaque {
     }
 }
 
-pub type Migrations = pallet_governance::migrations::v2::MigrateToV2<Runtime>;
+pub type Migrations = pallet_subspace::migrations::v14::MigrateToV14<Runtime>;
 
 // To learn more about runtime versioning, see:
 // https://docs.substrate.io/main-docs/build/upgrade#runtime-versioning
@@ -172,7 +179,7 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
     //   `spec_version`, and `authoring_version` are the same between Wasm and native.
     // This value is set to 100 to notify Polkadot-JS App (https://polkadot.js.org/apps) to use
     //   the compatible custom types.
-    spec_version: 123,
+    spec_version: 125,
     impl_version: 1,
     apis: RUNTIME_API_VERSIONS,
     transaction_version: 1,
@@ -363,7 +370,7 @@ parameter_types! {
 
 impl pallet_transaction_payment::Config for Runtime {
     type RuntimeEvent = RuntimeEvent;
-    type OnChargeTransaction = CurrencyAdapter<Balances, ()>;
+    type OnChargeTransaction = FungibleAdapter<Balances, ()>;
     type OperationalFeeMultiplier = ConstU8<1>;
     type WeightToFee = LinearWeightToFee<FeeWeightRatio>;
     type LengthToFee = IdentityFee<Balance>;
@@ -412,6 +419,7 @@ impl pallet_subspace::Config for Runtime {
     type DefaultSubnetMinBurn = ConstU64<2_000_000_000_000>;
     type WeightInfo = pallet_subspace::weights::SubstrateWeight<Runtime>;
     type DefaultMinValidatorStake = ConstU64<50_000_000_000_000>;
+    type EnforceWhitelist = ConstBool<true>;
 }
 
 impl pallet_governance::Config for Runtime {
@@ -471,6 +479,10 @@ pub const MAXIMUM_BLOCK_WEIGHT: Weight = Weight::from_parts(
 );
 pub const MAXIMUM_BLOCK_LENGTH: u32 = 5 * 1024 * 1024;
 
+parameter_types! {
+    pub EthereumChainId: u64 = 9461;
+}
+
 // EVM
 impl pallet_evm_chain_id::Config for Runtime {}
 
@@ -512,7 +524,7 @@ impl pallet_evm::Config for Runtime {
     type RuntimeEvent = RuntimeEvent;
     type PrecompilesType = FrontierPrecompiles<Self>;
     type PrecompilesValue = PrecompilesValue;
-    type ChainId = EVMChainId;
+    type ChainId = EthereumChainId;
     type BlockGasLimit = BlockGasLimit;
     type Runner = pallet_evm::runner::stack::Runner<Self>;
     type OnChargeTransaction = ();
@@ -590,7 +602,6 @@ construct_runtime!(
         // EVM Support
         EVM: pallet_evm,
         Ethereum: pallet_ethereum,
-        EVMChainId: pallet_evm_chain_id,
         BaseFee: pallet_base_fee,
         DynamicFee: pallet_dynamic_fee,
     }
@@ -598,6 +609,28 @@ construct_runtime!(
 
 #[derive(Clone)]
 pub struct TransactionConverter;
+
+impl fp_rpc::ConvertTransaction<UncheckedExtrinsic> for TransactionConverter {
+    fn convert_transaction(&self, transaction: pallet_ethereum::Transaction) -> UncheckedExtrinsic {
+        UncheckedExtrinsic::new_unsigned(
+            pallet_ethereum::Call::<Runtime>::transact { transaction }.into(),
+        )
+    }
+}
+
+impl fp_rpc::ConvertTransaction<opaque::UncheckedExtrinsic> for TransactionConverter {
+    fn convert_transaction(
+        &self,
+        transaction: pallet_ethereum::Transaction,
+    ) -> opaque::UncheckedExtrinsic {
+        let extrinsic = UncheckedExtrinsic::new_unsigned(
+            pallet_ethereum::Call::<Runtime>::transact { transaction }.into(),
+        );
+        let encoded = extrinsic.encode();
+        opaque::UncheckedExtrinsic::decode(&mut &encoded[..])
+            .expect("Encoded extrinsic is always valid")
+    }
+}
 
 // The address format for describing accounts.
 pub type Address = sp_runtime::MultiAddress<AccountId, ()>;
@@ -1146,12 +1179,16 @@ impl_runtime_apis! {
     }
 
     impl sp_genesis_builder::GenesisBuilder<Block> for Runtime {
-        fn create_default_config() -> Vec<u8> {
-            create_default_config::<RuntimeGenesisConfig>()
+        fn build_state(config: Vec<u8>) -> sp_genesis_builder::Result {
+            build_state::<RuntimeGenesisConfig>(config)
         }
 
-        fn build_config(config: Vec<u8>) -> sp_genesis_builder::Result {
-            build_config::<RuntimeGenesisConfig>(config)
+        fn get_preset(id: &Option<PresetId>) -> Option<Vec<u8>> {
+            get_preset::<RuntimeGenesisConfig>(id, |_| None)
+        }
+
+        fn preset_names() -> Vec<sp_genesis_builder::PresetId> {
+            vec![]
         }
     }
 }

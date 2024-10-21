@@ -31,5 +31,6 @@ pub mod config {
 
         /// The weight information of this pallet.
         type WeightInfo: WeightInfo;
+        type EnforceWhitelist: Get<bool>;
     }
 }

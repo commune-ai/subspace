@@ -1,10 +1,11 @@
-use node_subspace_runtime::{AccountId, RuntimeGenesisConfig, WASM_BINARY};
+use node_subspace_runtime::{AccountId, RuntimeGenesisConfig, Signature, WASM_BINARY};
 use pallet_subspace_genesis_config::{ConfigModule, ConfigSubnet};
 use sc_service::ChainType;
 use serde::Deserialize;
 use sp_consensus_aura::sr25519::AuthorityId as AuraId;
 use sp_consensus_grandpa::AuthorityId as GrandpaId;
 use sp_core::{crypto::Ss58Codec, sr25519, Pair, Public};
+use sp_runtime::traits::{IdentifyAccount, Verify};
 use std::fs::File;
 
 // Specialized `ChainSpec`. This is a specialization of the general Substrate ChainSpec type.
@@ -15,6 +16,19 @@ pub fn get_from_seed<TPublic: Public>(seed: &str) -> <TPublic::Pair as Pair>::Pu
     TPublic::Pair::from_string(&format!("//{}", seed), None)
         .expect("static values are valid; qed")
         .public()
+}
+
+#[allow(dead_code)]
+type AccountPublic = <Signature as Verify>::Signer;
+
+/// Generate an account ID from seed.
+/// For use with `AccountId32`, `dead_code` if `AccountId20`.
+#[allow(dead_code)]
+pub fn get_account_id_from_seed<TPublic: Public>(seed: &str) -> AccountId
+where
+    AccountPublic: From<<TPublic::Pair as Pair>::Public>,
+{
+    AccountPublic::from(get_from_seed::<TPublic>(seed)).into_account()
 }
 
 /// Generate an Aura authority key.

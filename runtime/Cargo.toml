@@ -1,6 +1,6 @@
 [package]
 name = "node-subspace-runtime"
-version = "1.8.4"
+version = "1.8.6"
 description = "A Substrate node for commune-ai"
 authors = ["Commune Community"]
 homepage = "https://substrate.io/"
@@ -148,6 +148,8 @@ runtime-benchmarks = [
     "sp-runtime/runtime-benchmarks",
     "pallet-subspace/runtime-benchmarks",
     "pallet-governance/runtime-benchmarks",
+    "pallet-ethereum/runtime-benchmarks",
+    "pallet-evm/runtime-benchmarks",
 ]
 try-runtime = [
     "frame-executive/try-runtime",

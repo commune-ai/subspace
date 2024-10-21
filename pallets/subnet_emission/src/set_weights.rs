@@ -2,6 +2,7 @@ use super::*;
 use frame_support::{ensure, pallet_prelude::DispatchResult};
 use frame_system::ensure_signed;
 use pallet_subnet_emission_api::SubnetConsensus;
+use sp_core::Get;
 
 impl<T: Config> Pallet<T> {
     /// Sets weights for a node in a specific subnet.
@@ -68,6 +69,7 @@ impl<T: Config> Pallet<T> {
         Self::validate_input(uid, &uids, &values, netuid)?;
         Self::handle_rate_limiting(uid, netuid, &key)?;
         Self::validate_stake(&key, uids.len())?;
+        Self::check_whitelisted(netuid, &uids)?;
         Self::finalize_weights(netuid, uid, &uids, &values)?;
         Self::remove_rootnet_delegation(netuid, key);
         Ok(())
@@ -121,6 +123,33 @@ impl<T: Config> Pallet<T> {
         Ok(())
     }
 
+    fn check_whitelisted(netuid: u16, uids: &[u16]) -> DispatchResult {
+        // Only perform the whitelist check if EnforceWhitelist is true
+        if T::EnforceWhitelist::get() {
+            let consensus_netuid = T::get_consensus_netuid(SubnetConsensus::Linear);
+
+            // Early return if consensus_netuid is None or doesn't match the given netuid
+            if consensus_netuid.map_or(true, |cn| cn != netuid) {
+                return Ok(());
+            }
+
+            let whitelisted = T::whitelisted_keys();
+
+            uids.iter().try_for_each(|&uid| {
+                let key = Self::get_key_for_uid(netuid, uid).ok_or(Error::<T>::InvalidUid)?;
+
+                if !whitelisted.contains(&key) {
+                    return Err(Error::<T>::UidNotWhitelisted.into());
+                }
+
+                Ok(())
+            })
+        } else {
+            // If EnforceWhitelist is false, always return Ok
+            Ok(())
+        }
+    }
+
     fn finalize_weights(netuid: u16, uid: u16, uids: &[u16], values: &[u16]) -> DispatchResult {
         let normalized_values = Self::normalize_weights(values);
         let zipped_weights: Vec<(u16, u16)> = uids.iter().copied().zip(normalized_values).collect();
@@ -137,16 +166,14 @@ impl<T: Config> Pallet<T> {
         ));
         Ok(())
     }
-
+    // ----------
+    // Utils
+    // ----------
     fn remove_rootnet_delegation(netuid: u16, key: T::AccountId) {
         if pallet_subspace::Pallet::<T>::is_rootnet(netuid) {
             pallet_subspace::RootnetControlDelegation::<T>::remove(key);
         }
     }
-
-    // ----------
-    // Utils
-    // ----------
 
     fn contains_duplicates(items: &[u16]) -> bool {
         let mut seen = sp_std::collections::btree_set::BTreeSet::new();
