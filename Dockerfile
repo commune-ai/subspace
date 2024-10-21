@@ -16,11 +16,13 @@ RUN apt update && apt install -y --no-install-recommends \
     build-essential \
     protobuf-compiler \
     libclang-dev \
-    git
+    git \
+    pkg-config \
+    libssl-dev
 
 ENV PATH=/root/.cargo/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
 
-# Installs rust with a minimal footprint and adds the WASM chain. 
+# Installs rust with a minimal footprint and adds the WASM chain.
 RUN curl https://sh.rustup.rs -sSf | \
     sh -s -- -y --profile=minimal --default-toolchain=nightly-2024-02-01
 

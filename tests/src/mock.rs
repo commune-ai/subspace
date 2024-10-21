@@ -137,6 +137,7 @@ impl pallet_subspace::Config for Test {
     type DefaultSubnetMinBurn = SubnetMinBurnConfig;
     type DefaultMinValidatorStake = MinValidatorStake;
     type PalletId = SubspacePalletId;
+    type EnforceWhitelist = ConstBool<false>;
 }
 
 impl GovernanceApi<<Test as frame_system::Config>::AccountId> for Test {

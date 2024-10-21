@@ -1,5 +1,13 @@
 # Changelog
 
+spec version `125`
+
+updated metadata removal variable
+
+spec version `124`
+
+enforcing whitelist on genral subnet, lowering the min weights to 1
+
 spec version `123`
 
 fix metadata removal upon module registration
