@@ -16,22 +16,31 @@ impl OffworkerExt {
 }
 
 #[cfg(feature = "std")]
+/// (Decrypted Weights, Key)
+pub type DecryptedWeights = (Vec<(u16, u16)>, Vec<u8>);
+
+#[cfg(feature = "std")]
+pub type EncryptionKey = (Vec<u8>, Vec<u8>);
+
+#[cfg(not(feature = "std"))]
+/// (Decrypted Weights, Key)
+pub type DecryptedWeights = (sp_std::vec::Vec<(u16, u16)>, sp_std::vec::Vec<u8>);
+
+#[cfg(not(feature = "std"))]
+pub type EncryptionKey = (sp_std::vec::Vec<u8>, sp_std::vec::Vec<u8>);
+
+#[cfg(feature = "std")]
 pub trait OffworkerExtension: Send + 'static {
-    #[allow(clippy::type_complexity)]
-    fn decrypt_weight(&self, encrypted: Vec<u8>) -> Option<(Vec<(u16, u16)>, Vec<u8>)>;
+    fn decrypt_weight(&self, encrypted: Vec<u8>) -> Option<DecryptedWeights>;
 
     fn is_decryption_node(&self) -> bool;
 
-    fn get_encryption_key(&self) -> Option<(Vec<u8>, Vec<u8>)>;
+    fn get_encryption_key(&self) -> Option<EncryptionKey>;
 }
 
 #[sp_runtime_interface::runtime_interface]
 pub trait Offworker {
-    #[allow(clippy::type_complexity)]
-    fn decrypt_weight(
-        &mut self,
-        encrypted: sp_std::vec::Vec<u8>,
-    ) -> Option<(sp_std::vec::Vec<(u16, u16)>, sp_std::vec::Vec<u8>)> {
+    fn decrypt_weight(&mut self, encrypted: sp_std::vec::Vec<u8>) -> Option<DecryptedWeights> {
         self.extension::<OffworkerExt>()
             .expect("missing offworker ext")
             .decrypt_weight(encrypted)
@@ -43,7 +52,7 @@ pub trait Offworker {
             .is_decryption_node()
     }
 
-    fn get_encryption_key(&mut self) -> Option<(sp_std::vec::Vec<u8>, sp_std::vec::Vec<u8>)> {
+    fn get_encryption_key(&mut self) -> Option<EncryptionKey> {
         self.extension::<OffworkerExt>()
             .expect("missing offworker ext")
             .get_encryption_key()

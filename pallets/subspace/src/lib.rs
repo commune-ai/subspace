@@ -59,12 +59,7 @@ use selections::{config, dispatches, errors, events, genesis, hooks};
 #[import_section(config::config)]
 #[frame_support::pallet]
 pub mod pallet {
-    #![allow(
-        deprecated,
-        clippy::let_unit_value,
-        clippy::too_many_arguments,
-        clippy::type_complexity
-    )]
+    #![allow(deprecated, clippy::let_unit_value, clippy::too_many_arguments)]
 
     use super::*;
     pub use crate::weights::WeightInfo;

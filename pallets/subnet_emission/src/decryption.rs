@@ -1,6 +1,7 @@
 use pallet_subspace::UseWeightsEncrytyption;
 use sp_runtime::traits::Get;
 use subnet_consensus::util::params::ModuleKey;
+use types::KeylessBlockWeights;
 
 use super::*;
 
@@ -73,7 +74,6 @@ impl<T: Config> Pallet<T> {
         }
     }
 
-    #[allow(clippy::type_complexity)]
     pub fn do_handle_decrypted_weights(netuid: u16, weights: Vec<BlockWeights>) {
         let info = match SubnetDecryptionData::<T>::get(netuid) {
             Some(info) => info,
@@ -85,7 +85,7 @@ impl<T: Config> Pallet<T> {
             }
         };
 
-        let valid_weights: Vec<(u64, Vec<(u16, Vec<(u16, u16)>)>)> = weights
+        let valid_weights: Vec<KeylessBlockWeights> = weights
             .into_iter()
             .filter_map(|(block, block_weights)| {
                 let valid_block_weights = block_weights
@@ -174,11 +174,7 @@ impl<T: Config> Pallet<T> {
         Some(())
     }
 
-    #[allow(clippy::type_complexity)]
-    fn update_decrypted_weights(
-        netuid: u16,
-        valid_weights: Vec<(u64, Vec<(u16, Vec<(u16, u16)>)>)>,
-    ) {
+    fn update_decrypted_weights(netuid: u16, valid_weights: Vec<KeylessBlockWeights>) {
         DecryptedWeights::<T>::mutate(netuid, |cached| match cached {
             Some(cached) => cached.extend(valid_weights),
             None => *cached = Some(valid_weights),
