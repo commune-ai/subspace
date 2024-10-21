@@ -178,5 +178,7 @@ pub mod errors {
         SubnetEncrypted,
         /// Subnet is not using encrypted weight calls
         SubnetNotEncrypted,
+        /// Uid is not present in LegitWhitelist, it needs to be whitelisted by DAO
+        UidNotWhitelisted,
     }
 }

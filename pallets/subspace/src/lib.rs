@@ -30,7 +30,6 @@ mod benchmarking;
 // Pallet Imports
 // ---------------------------------
 pub mod math;
-pub mod migrations;
 pub mod network {
     pub mod module;
     pub mod registration;

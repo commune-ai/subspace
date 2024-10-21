@@ -165,7 +165,7 @@ pub mod opaque {
     }
 }
 
-pub type Migrations = pallet_subspace::migrations::v14::MigrateToV14<Runtime>;
+pub type Migrations = ();
 
 // To learn more about runtime versioning, see:
 // https://docs.substrate.io/main-docs/build/upgrade#runtime-versioning
@@ -1188,7 +1188,7 @@ impl_runtime_apis! {
         }
 
         fn preset_names() -> Vec<sp_genesis_builder::PresetId> {
-            vec![]
+            sp_std::vec![]
         }
     }
 }
