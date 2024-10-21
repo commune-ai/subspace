@@ -30,7 +30,6 @@ runtime-benchmarks = ["frame-benchmarking/runtime-benchmarks"]
 try-runtime = ["frame-support/try-runtime"]
 
 [dependencies]
-bty = { workspace = true }
 frame-benchmarking = { workspace = true, optional = true }
 frame-support = { workspace = true }
 frame-system = { workspace = true }
@@ -38,12 +37,10 @@ log = { workspace = true }
 num-traits = { version = "0.2.19", default-features = false, features = [
     "libm",
 ] }
-pallet-balances = { workspace = true }
 pallet-governance-api = { path = "../governance/api", default-features = false }
 pallet-subnet-emission-api = { path = "../subnet_emission/api", default-features = false }
-
 pallet-subspace-genesis-config = { path = "./genesis-config" }
-pallet-transaction-payment = { workspace = true }
+
 parity-scale-codec = { workspace = true }
 scale-info = { workspace = true }
 sp-arithmetic = { workspace = true }

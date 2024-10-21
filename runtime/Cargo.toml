@@ -12,6 +12,9 @@ repository = "https://github.com/commune-ai/subspace"
 [package.metadata.docs.rs]
 targets = ["x86_64-unknown-linux-gnu"]
 
+[package.metadata.cargo-machete]
+ignored = ["scale-info"]
+
 [dependencies]
 pallet-faucet = { path = "../pallets/faucet", optional = true, default-features = false }
 pallet-governance = { path = "../pallets/governance", default-features = false }
@@ -60,7 +63,6 @@ frame-system-benchmarking = { workspace = true, optional = true }
 # EVM Support
 
 # Frontier
-fp-account = { workspace = true }
 fp-evm = { workspace = true, features = ["serde"] }
 fp-rpc = { workspace = true }
 fp-self-contained = { workspace = true, features = ["serde"] }
@@ -94,7 +96,7 @@ std = [
     "frame-executive/std",
     "frame-support/std",
     "frame-system-rpc-runtime-api/std",
-    "frame-system/std", 
+    "frame-system/std",
     "frame-try-runtime/std",
     "pallet-subspace/std",
     "pallet-governance/std",
@@ -123,18 +125,17 @@ std = [
     "substrate-wasm-builder",
     "pallet-base-fee/std",
     "subspace-runtime-api/std",
-	"fp-account/std",
-	"fp-evm/std",
-	"fp-rpc/std",
-	"fp-self-contained/std",
-	"pallet-base-fee/std",
-	"pallet-dynamic-fee/std",
-	"pallet-ethereum/std",
-	"pallet-evm/std",
-	"pallet-evm-chain-id/std",
-	"pallet-evm-precompile-modexp/std",
-	"pallet-evm-precompile-sha3fips/std",
-	"pallet-evm-precompile-simple/std",
+    "fp-evm/std",
+    "fp-rpc/std",
+    "fp-self-contained/std",
+    "pallet-base-fee/std",
+    "pallet-dynamic-fee/std",
+    "pallet-ethereum/std",
+    "pallet-evm/std",
+    "pallet-evm-chain-id/std",
+    "pallet-evm-precompile-modexp/std",
+    "pallet-evm-precompile-sha3fips/std",
+    "pallet-evm-precompile-simple/std",
 ]
 runtime-benchmarks = [
     "frame-benchmarking/runtime-benchmarks",

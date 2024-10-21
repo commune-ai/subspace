@@ -13,7 +13,6 @@ targets = ["x86_64-unknown-linux-gnu"]
 
 [dependencies]
 jsonrpsee = { workspace = true, features = ["server", "macros"] }
-tokio = { workspace = true, optional = true }
 serde.workspace = true
 sp-blockchain.workspace = true
 
@@ -26,8 +25,4 @@ subspace-runtime-api = { path = "./runtime-api", default-features = false }
 
 [features]
 default = ["std"]
-std = [
-  "sp-api/std",
-  "sp-runtime/std",
-  "subspace-runtime-api/std",
-]
+std = ["sp-api/std", "sp-runtime/std", "subspace-runtime-api/std"]
