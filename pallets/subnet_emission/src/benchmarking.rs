@@ -52,7 +52,7 @@ benchmarks! {
         register_mock::<T>(module_key.clone(), module_key.clone(), "test".as_bytes().to_vec())?;
         register_mock::<T>(module_key2.clone(), module_key2.clone(), "test1".as_bytes().to_vec())?;
         let netuid = SubspaceMod::<T>::get_netuid_for_name("testnet".as_bytes()).unwrap();
-        pallet_subspace::UseWeightsEncrytyption::<T>::set(netuid, true);
+        pallet_subspace::UseWeightsEncryption::<T>::set(netuid, true);
 
         let weights = vec![10u8];
         let hash = vec![10u8];

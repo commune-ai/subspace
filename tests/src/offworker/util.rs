@@ -7,7 +7,7 @@ use pallet_subnet_emission::{
 use pallet_subnet_emission_api::SubnetConsensus;
 use pallet_subspace::{
     BondsMovingAverage, FounderShare, MaxAllowedUids, MaxAllowedWeights, MaxEncryptionPeriod,
-    MaxRegistrationsPerBlock, MaxWeightAge, MinValidatorStake, Tempo, UseWeightsEncrytyption,
+    MaxRegistrationsPerBlock, MaxWeightAge, MinValidatorStake, Tempo, UseWeightsEncryption,
 };
 
 pub fn setup_subnet(netuid: u16, tempo: u64) {
@@ -17,7 +17,7 @@ pub fn setup_subnet(netuid: u16, tempo: u64) {
     Tempo::<Test>::insert(netuid, tempo as u16);
 
     BondsMovingAverage::<Test>::insert(netuid, 0);
-    UseWeightsEncrytyption::<Test>::set(netuid, true);
+    UseWeightsEncryption::<Test>::set(netuid, true);
 
     MaxWeightAge::<Test>::set(netuid, 50_000);
     MinValidatorStake::<Test>::set(netuid, to_nano(10));

@@ -9,6 +9,7 @@ use sp_std::vec::Vec;
 use frame_support::{pallet_prelude::*, BoundedVec};
 use pallet_governance_api::GovernanceConfiguration;
 use sp_arithmetic::per_things::Percent;
+use substrate_fixed::types::I64F64;
 
 #[derive(
     Decode, Encode, PartialEq, Eq, Clone, TypeInfo, frame_support::DebugNoBound, MaxEncodedLen,
@@ -66,6 +67,9 @@ pub struct SubnetParams<T: Config> {
     pub min_validator_stake: u64,
     pub max_allowed_validators: Option<u16>,
     pub governance_config: GovernanceConfiguration,
+    // weight copying
+    pub use_weights_encryption: bool,
+    pub copier_margin: I64F64,
 }
 
 #[derive(Decode, Encode, PartialEq, Eq, Clone, Debug, TypeInfo)]
@@ -107,6 +111,8 @@ impl<T: Config> DefaultSubnetParams<T> {
                 ..Default::default()
             },
             metadata: None,
+            use_weights_encryption: T::DefaultUseWeightsEncryption::get(),
+            copier_margin: I64F64::from_num(0),
         }
     }
 }

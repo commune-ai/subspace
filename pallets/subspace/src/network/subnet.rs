@@ -59,6 +59,9 @@ impl<T: Config> SubnetChangeset<T> {
             SubnetMetadata::<T>::insert(netuid, metadata);
         }
         MaxAllowedValidators::<T>::insert(netuid, self.params.max_allowed_validators);
+        UseWeightsEncryption::<T>::insert(netuid, self.params.use_weights_encryption);
+        CopierMargin::<T>::insert(netuid, self.params.copier_margin);
+
         Pallet::<T>::deposit_event(Event::SubnetParamsUpdated(netuid));
 
         Ok(())
@@ -129,6 +132,8 @@ impl<T: Config> SubnetChangeset<T> {
             Error::<T>::InvalidMinValidatorStake
         );
 
+        ensure!(params.copier_margin <= 1, Error::<T>::InvalidCopierMargin);
+
         if let Some(max_allowed_validators) = params.max_allowed_validators {
             ensure!(
                 max_allowed_validators >= 10,
@@ -177,6 +182,8 @@ impl<T: Config> Pallet<T> {
             max_allowed_validators: MaxAllowedValidators::<T>::get(netuid),
             governance_config: T::get_subnet_governance_configuration(netuid),
             metadata: SubnetMetadata::<T>::get(netuid),
+            use_weights_encryption: UseWeightsEncryption::<T>::get(netuid),
+            copier_margin: CopierMargin::<T>::get(netuid),
         }
     }
 
