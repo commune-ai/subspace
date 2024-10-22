@@ -150,30 +150,39 @@ pub fn run_linear_consensus<T: Config>(
 ///
 /// This function creates and runs a new YumaEpoch, logging any errors that occur.
 fn run_yuma_consensus<T: Config>(netuid: u16, emission_to_drain: u64) -> Result<(), &'static str> {
-    let params = ConsensusParams::<T>::new(netuid, emission_to_drain)?;
+    // TODO: we do not delete these params after running ?
+    // is that correct
+    let mut params = ConsensusParams::<T>::new(netuid, emission_to_drain)?;
 
-    if !pallet_subspace::UseWeightsEncrytyption::<T>::get(netuid) {
-        let output =
-            match YumaEpoch::new(netuid, params).run(Weights::<T>::iter_prefix(netuid).collect()) {
-                Ok(output) => output,
-                Err(err) => {
-                    log::error!("could not run yuma consensus for {netuid}: {err:?}");
-                    return Err("could not run yuma consensus");
-                }
-            };
+    let run_default_consensus = || {
+        YumaEpoch::new(netuid, params.clone())
+            .run(Weights::<T>::iter_prefix(netuid).collect())
+            .map_err(|err| {
+                log::error!("could not run yuma consensus for {netuid}: {err:?}");
+                "could not run yuma consensus"
+            })
+            .map(|output| output.apply())
+    };
 
-        output.apply();
+    if !pallet_subspace::UseWeightsEncryption::<T>::get(netuid) {
+        return run_default_consensus();
+    }
 
-        return Ok(());
+    let block = PalletSubspace::<T>::get_current_block_number();
+    let active_nodes = Pallet::<T>::get_active_nodes(block);
+
+    if active_nodes.is_none() {
+        return run_default_consensus();
     }
 
     let mut accumulated_emission: u64 = 0;
-    if let Some(mut weights) = DecryptedWeights::<T>::get(netuid) {
-        weights.sort_by_key(|(block, _)| *block);
+    if let Some(weights) = DecryptedWeights::<T>::get(netuid) {
+        let mut sorted_weights = weights;
+        sorted_weights.sort_by_key(|(block, _)| *block);
 
-        let last = weights.last().cloned();
+        let last_weights = sorted_weights.last().cloned();
 
-        for (block, weights) in weights {
+        for (block, weights) in sorted_weights {
             let consensus_type =
                 SubnetConsensusType::<T>::get(netuid).ok_or("Invalid network ID")?;
 
@@ -181,41 +190,39 @@ fn run_yuma_consensus<T: Config>(netuid: u16, emission_to_drain: u64) -> Result<
                 return Err("Unsupported consensus type");
             }
 
-            let Some(mut params) = ConsensusParameters::<T>::get(netuid, block) else {
+            let current_params = ConsensusParameters::<T>::get(netuid, block).ok_or_else(|| {
                 log::error!("no params found for netuid {netuid} block {block}");
-                continue;
-            };
+                "Missing consensus parameters"
+            })?;
 
             ConsensusParameters::<T>::remove(netuid, block);
 
-            params.token_emission = params.token_emission.saturating_add(accumulated_emission);
+            params.token_emission =
+                current_params.token_emission.saturating_add(accumulated_emission);
             let new_emission = params.token_emission;
             accumulated_emission = 0;
 
-            let output = match YumaEpoch::new(netuid, params).run(weights) {
-                Ok(output) => output,
+            match YumaEpoch::new(netuid, params.clone()).run(weights) {
+                Ok(output) => output.apply(),
                 Err(err) => {
                     log::error!("could not run yuma consensus for {netuid} block {block}: {err:?}");
                     accumulated_emission = new_emission;
-                    continue;
                 }
-            };
-
-            output.apply();
+            }
         }
 
-        if let Some((_, last)) = last {
+        if let Some((_, last)) = last_weights {
             for (uid, weights) in last {
                 Weights::<T>::set(netuid, uid, Some(weights));
             }
         }
 
         DecryptedWeights::<T>::remove(netuid);
-    };
+    }
 
     let block_number = PalletSubspace::<T>::get_current_block_number();
-
     ConsensusParameters::<T>::insert(netuid, block_number, params);
+
     Ok(())
 }
 

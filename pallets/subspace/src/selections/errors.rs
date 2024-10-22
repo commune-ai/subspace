@@ -180,5 +180,7 @@ pub mod errors {
         SubnetNotEncrypted,
         /// Uid is not present in LegitWhitelist, it needs to be whitelisted by DAO
         UidNotWhitelisted,
+        /// The copier margin must be between 0 and 1
+        InvalidCopierMargin,
     }
 }

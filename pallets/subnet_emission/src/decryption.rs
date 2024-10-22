@@ -1,4 +1,4 @@
-use pallet_subspace::UseWeightsEncrytyption;
+use pallet_subspace::UseWeightsEncryption;
 use sp_runtime::traits::Get;
 use subnet_consensus::util::params::ModuleKey;
 use types::KeylessBlockWeights;
@@ -7,7 +7,7 @@ use super::*;
 
 impl<T: Config> Pallet<T> {
     #[must_use = "Check if active nodes list is empty before proceeding"]
-    fn get_active_nodes(block: u64) -> Option<Vec<DecryptionNodeInfo<T>>> {
+    pub fn get_active_nodes(block: u64) -> Option<Vec<DecryptionNodeInfo<T>>> {
         let authority_nodes = DecryptionNodes::<T>::get();
         let keep_alive_interval =
             T::PingInterval::get().saturating_mul(T::MissedPingsForInactivity::get() as u64);
@@ -45,7 +45,7 @@ impl<T: Config> Pallet<T> {
         };
 
         for netuid in pallet_subspace::N::<T>::iter_keys() {
-            if !UseWeightsEncrytyption::<T>::get(netuid) {
+            if !UseWeightsEncryption::<T>::get(netuid) {
                 continue;
             }
 
@@ -263,7 +263,7 @@ impl<T: Config> Pallet<T> {
             T::PingInterval::get().saturating_mul(T::MaxFailedPings::get() as u64);
 
         pallet_subspace::N::<T>::iter_keys()
-            .filter(|subnet_id| pallet_subspace::UseWeightsEncrytyption::<T>::get(subnet_id))
+            .filter(|subnet_id| pallet_subspace::UseWeightsEncryption::<T>::get(subnet_id))
             .filter_map(|subnet_id| {
                 SubnetDecryptionData::<T>::get(subnet_id).map(|info| (subnet_id, info))
             })

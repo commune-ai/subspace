@@ -11,7 +11,7 @@ pub fn do_set_weights_encrypted(
 ) -> DispatchResult {
     let key = ensure_signed(origin)?;
 
-    if !pallet_subspace::UseWeightsEncrytyption::<T>::get(netuid) {
+    if !pallet_subspace::UseWeightsEncryption::<T>::get(netuid) {
         return Err(pallet_subspace::Error::<T>::SubnetNotEncrypted.into());
     }
 

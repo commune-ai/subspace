@@ -420,6 +420,7 @@ impl pallet_subspace::Config for Runtime {
     type WeightInfo = pallet_subspace::weights::SubstrateWeight<Runtime>;
     type DefaultMinValidatorStake = ConstU64<50_000_000_000_000>;
     type EnforceWhitelist = ConstBool<true>;
+    type DefaultUseWeightsEncryption = ConstBool<true>;
 }
 
 impl pallet_governance::Config for Runtime {

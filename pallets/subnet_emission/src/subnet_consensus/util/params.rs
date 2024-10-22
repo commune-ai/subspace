@@ -5,7 +5,7 @@ use frame_support::DebugNoBound;
 use pallet_subspace::{
     math::*, AlphaValues, BalanceOf, Bonds, BondsMovingAverage, Founder, Kappa, Keys, LastUpdate,
     MaxAllowedValidators, MaxWeightAge, MinValidatorStake, Pallet as PalletSubspace,
-    UseWeightsEncrytyption, ValidatorPermits, Vec,
+    UseWeightsEncryption, ValidatorPermits, Vec,
 };
 use parity_scale_codec::{Decode, Encode};
 use scale_info::TypeInfo;
@@ -174,7 +174,7 @@ impl<T: Config> ConsensusParams<T> {
             founder_key,
             founder_emission,
 
-            use_weights_encryption: UseWeightsEncrytyption::<T>::get(subnet_id),
+            use_weights_encryption: UseWeightsEncryption::<T>::get(subnet_id),
             current_block: PalletSubspace::<T>::get_current_block_number(),
             activity_cutoff: MaxWeightAge::<T>::get(subnet_id),
             max_allowed_validators: MaxAllowedValidators::<T>::get(subnet_id),

@@ -266,7 +266,7 @@ pub mod pallet {
         StorageMap<_, Identity, u16, u64, ValueQuery, ConstU64<2_000>>;
 
     #[pallet::type_value]
-    pub fn DefaultMinUnderperformanceThreshold() -> I64F64 {
+    pub fn DefaultCopierMargin() -> I64F64 {
         I64F64::from_num(0)
     }
 
@@ -274,10 +274,11 @@ pub mod pallet {
     /// above full irrationality for the weight copying strategy.
     #[pallet::storage]
     pub type CopierMargin<T: Config> =
-        StorageMap<_, Identity, u16, I64F64, ValueQuery, DefaultMinUnderperformanceThreshold>;
+        StorageMap<_, Identity, u16, I64F64, ValueQuery, DefaultCopierMargin>;
 
+    /// Determines if subnet uses weights encryption, as weight copying protection.
     #[pallet::storage]
-    pub type UseWeightsEncrytyption<T: Config> = StorageMap<_, Identity, u16, bool, ValueQuery>;
+    pub type UseWeightsEncryption<T: Config> = StorageMap<_, Identity, u16, bool, ValueQuery>;
 
     #[pallet::type_value]
     pub fn DefaultAlphaValues<T: Config>() -> (u16, u16) {

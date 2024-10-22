@@ -5,6 +5,7 @@ use pallet_governance::{GovernanceConfiguration, SubnetGovernanceConfig, VoteMod
 use pallet_subspace::*;
 use sp_runtime::Percent;
 use subnet::SubnetChangeset;
+use substrate_fixed::types::I64F64;
 
 #[test]
 fn adds_and_removes_subnets() {
@@ -78,6 +79,8 @@ fn subnet_update_changes_all_parameter_values() {
                 adjustment_alpha: 28,
                 ..Default::default()
             },
+            use_weights_encryption: true,
+            copier_margin: I64F64::from_num(0),
         };
 
         let SubnetParams {
@@ -98,6 +101,8 @@ fn subnet_update_changes_all_parameter_values() {
             min_validator_stake,
             max_allowed_validators,
             governance_config,
+            use_weights_encryption,
+            copier_margin,
         } = params.clone();
 
         SubnetChangeset::<Test>::update(netuid, params).unwrap().apply(netuid).unwrap();
@@ -132,6 +137,11 @@ fn subnet_update_changes_all_parameter_values() {
         assert_eq!(SubspaceMod::get_total_subnets(), 1);
         assert_eq!(N::<Test>::get(netuid), 1);
         assert_eq!(SubnetMetadata::<Test>::get(netuid), metadata);
+        assert_eq!(
+            UseWeightsEncryption::<Test>::get(netuid),
+            use_weights_encryption
+        );
+        assert_eq!(CopierMargin::<Test>::get(netuid), copier_margin);
     });
 }
 
@@ -235,6 +245,8 @@ fn update_subnet_verifies_names_uniquiness_integrity() {
                 params.module_burn_config,
                 params.min_validator_stake,
                 params.max_allowed_validators,
+                params.use_weights_encryption,
+                params.copier_margin,
             )
         };
 
