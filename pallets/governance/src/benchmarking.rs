@@ -127,7 +127,9 @@ benchmarks! {
             params.bonds_ma,
             params.module_burn_config.clone(),
             params.min_validator_stake,
-            params.max_allowed_validators
+            params.max_allowed_validators,
+            params.use_weights_encryption,
+            params.copier_margin
         )?;
 
         // add balance to submit the proposal
@@ -157,7 +159,9 @@ benchmarks! {
         params.bonds_ma,
         params.module_burn_config,
         params.min_validator_stake,
-        params.max_allowed_validators
+        params.max_allowed_validators,
+        params.use_weights_encryption,
+        params.copier_margin
     )
 
     // 2
