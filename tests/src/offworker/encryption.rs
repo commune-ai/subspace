@@ -5,7 +5,7 @@ use sp_keystore::{testing::MemoryKeystore, Keystore};
 use sp_runtime::KeyTypeId;
 use std::io::{Cursor, Read};
 
-pub const KEY_TYPE: KeyTypeId = KeyTypeId(*b"btc!");
+pub const KEY_TYPE: KeyTypeId = KeyTypeId(*b"wcs!");
 
 pub struct MockOffworkerExt {
     pub key: Option<rsa::RsaPrivateKey>,

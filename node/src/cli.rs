@@ -1,3 +1,5 @@
+use std::path::PathBuf;
+
 use crate::service::EthConfiguration;
 
 /// Available Sealing methods.
@@ -18,6 +20,10 @@ pub struct Cli {
     #[allow(missing_docs)]
     #[command(flatten)]
     pub run: sc_cli::RunCmd,
+
+    /// Defines the RSA key path.
+    #[arg(long, value_name = "PATH")]
+    pub rsa_path: Option<PathBuf>,
 
     /// Choose sealing method.
     #[arg(long, value_enum, ignore_case = true)]

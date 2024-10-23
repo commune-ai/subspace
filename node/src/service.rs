@@ -3,7 +3,7 @@
 use std::{
     cell::RefCell,
     io::{Cursor, Read},
-    path::Path,
+    path::{Path, PathBuf},
     sync::Arc,
     time::Duration,
 };
@@ -242,6 +242,7 @@ pub async fn new_full<N>(
     mut config: Configuration,
     eth_config: EthConfiguration,
     sealing: Option<Sealing>,
+    rsa_key: Option<PathBuf>,
 ) -> Result<TaskManager, ServiceError>
 where
     N: sc_network::NetworkBackend<Block, <Block as BlockT>::Hash>,
@@ -329,8 +330,10 @@ where
                 )),
                 network_provider: Arc::new(network.clone()),
                 enable_http_requests: true,
-                custom_extensions: |_| {
-                    vec![Box::new(ow_extensions::OffworkerExt::new(Decrypter::default())) as Box<_>]
+                custom_extensions: move |_| {
+                    vec![Box::new(ow_extensions::OffworkerExt::new(Decrypter::new(
+                        rsa_key.clone(),
+                    ))) as Box<_>]
                 },
             })
             .run(client.clone(), task_manager.spawn_handle())
@@ -689,8 +692,9 @@ pub async fn build_full(
     config: Configuration,
     eth_config: EthConfiguration,
     sealing: Option<Sealing>,
+    rsa_key: Option<PathBuf>,
 ) -> Result<TaskManager, ServiceError> {
-    new_full::<sc_network::NetworkWorker<_, _>>(config, eth_config, sealing).await
+    new_full::<sc_network::NetworkWorker<_, _>>(config, eth_config, sealing, rsa_key).await
 }
 
 pub fn new_chain_ops(
@@ -722,25 +726,34 @@ struct Decrypter {
     key: Option<rsa::RsaPrivateKey>,
 }
 
-impl Default for Decrypter {
-    fn default() -> Self {
-        let decryption_key_path = std::path::Path::new("decryption.pem");
+impl Decrypter {
+    fn new(rsa_key_path: Option<PathBuf>) -> Self {
+        let decryption_key_path = if let Some(rsa_key_path) = rsa_key_path {
+            rsa_key_path
+        } else {
+            Path::new("decryption.pem").to_path_buf()
+        };
 
         if !decryption_key_path.exists() {
+            eprintln!("node does not have a decryption key configured");
             return Self { key: None };
         }
 
         let Ok(content) = std::fs::read_to_string(decryption_key_path) else {
-            // log::error!("could not read key file contents");
+            eprintln!("node does not have a decryption key configured");
             return Self { key: None };
         };
 
-        let Ok(key) = rsa::RsaPrivateKey::from_pkcs1_pem(&content) else {
-            // log::error!("could not read key from file contents");
-            return Self { key: None };
-        };
-
-        Self { key: Some(key) }
+        match rsa::RsaPrivateKey::from_pkcs1_pem(&content) {
+            Ok(key) => {
+                eprintln!("node started with decryption key configured");
+                Self { key: Some(key) }
+            }
+            Err(err) => {
+                eprintln!("failed to load decryption key for node: {err:?}");
+                Self { key: None }
+            }
+        }
     }
 }
 
