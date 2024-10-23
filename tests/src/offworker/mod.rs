@@ -1,4 +1,4 @@
 mod data;
-mod encryption;
+pub mod encryption;
 mod offworker;
 mod util;

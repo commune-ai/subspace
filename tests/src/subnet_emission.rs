@@ -1,15 +1,22 @@
-use crate::mock::*;
+use crate::{encryption, mock::*, offworker};
+use frame_system::extrinsics_data_root;
+use pallet_offworker::types::DecryptedWeightsPayload;
 use pallet_subnet_emission::{
     subnet_consensus::util::{
         consensus::EmissionMap,
         params::{AccountKey, ModuleKey},
     },
-    Weights,
+    types::SubnetDecryptionInfo,
+    ConsensusParameters, EncryptedWeights, Weights,
 };
-use pallet_subspace::Founder;
+use pallet_subspace::{Active, Consensus, Founder, PruningScores, Rank, Trust, ValidatorTrust};
+use parity_scale_codec::Encode;
+use rand::rngs::OsRng;
+use rsa::{traits::PublicKeyParts, RsaPrivateKey};
+use serde::de::Expected;
 use std::collections::BTreeMap;
 
-use frame_support::{assert_ok, traits::Currency};
+use frame_support::{assert_ok, storage::Key, traits::Currency};
 use log::info;
 use pallet_governance::DaoTreasuryAddress;
 use pallet_subnet_emission::{
@@ -1289,5 +1296,182 @@ fn yuma_change_permits() {
             ValidatorPermits::<Test>::get(netuid)[fourth_uid as usize],
             true
         );
+    });
+}
+
+#[test]
+fn decrypted_weights_are_stored() {
+    new_test_ext().execute_with(|| {
+        let netuid = 0;
+
+        let key = RsaPrivateKey::new(&mut OsRng, 2048).unwrap().to_public_key();
+        let key = (key.n().to_bytes_be(), key.e().to_bytes_be());
+
+        pallet_subnet_emission::SubnetDecryptionData::<Test>::set(
+            netuid,
+            Some(SubnetDecryptionInfo {
+                block_assigned: 0,
+                node_id: 0,
+                node_public_key: key.clone(),
+            }),
+        );
+
+        pallet_subspace::UseWeightsEncrytyption::<Test>::set(netuid, true);
+
+        let first_uid = register_module(netuid, 1, 10000, false).unwrap();
+        let second_uid = register_module(netuid, 2, 10000, false).unwrap();
+        let third_uid = register_module(netuid, 3, 10000, false).unwrap();
+
+        let first_uid_weights = vec![(second_uid, 50u16)];
+        let second_uid_weights = vec![(first_uid, 100u16)];
+
+        PendingEmission::<Test>::set(netuid, 100000000);
+
+        // first
+        pallet_subnet_emission::Pallet::<Test>::set_weights_encrypted(
+            get_origin(1),
+            netuid,
+            offworker::encryption::encrypt(key.clone(), first_uid_weights.clone(), 1.encode()),
+            offworker::encryption::hash(first_uid_weights.clone()),
+        )
+        .unwrap();
+
+        // second
+        pallet_subnet_emission::Pallet::<Test>::set_weights_encrypted(
+            get_origin(2),
+            netuid,
+            offworker::encryption::encrypt(key.clone(), second_uid_weights.clone(), 2.encode()),
+            offworker::encryption::hash(second_uid_weights.clone()),
+        )
+        .unwrap();
+
+        // third
+        pallet_subnet_emission::Pallet::<Test>::set_weights_encrypted(
+            get_origin(3),
+            netuid,
+            offworker::encryption::encrypt(key.clone(), second_uid_weights.clone(), 2.encode()),
+            offworker::encryption::hash(second_uid_weights.clone()),
+        )
+        .unwrap();
+
+        step_epoch(netuid);
+
+        let weights = vec![(
+            pallet_subspace::Tempo::<Test>::get(netuid) as u64,
+            vec![
+                (first_uid, first_uid_weights.clone(), 1.encode()),
+                (second_uid, second_uid_weights.clone(), 2.encode()),
+                (third_uid, second_uid_weights.clone(), 2.encode()),
+            ],
+        )];
+
+        pallet_subnet_emission::Pallet::<Test>::handle_decrypted_weights(netuid, weights);
+
+        let expected = vec![(
+            pallet_subspace::Tempo::<Test>::get(netuid) as u64,
+            vec![
+                (first_uid, first_uid_weights),
+                (second_uid, second_uid_weights),
+            ],
+        )];
+
+        assert_eq!(
+            pallet_subnet_emission::DecryptedWeights::<Test>::get(netuid),
+            Some(expected)
+        );
+    });
+}
+
+#[test]
+fn decrypted_weight_run_result_is_applied_and_cleaned_up() {
+    new_test_ext().execute_with(|| {
+        let netuid = 0;
+
+        let key = RsaPrivateKey::new(&mut OsRng, 2048).unwrap().to_public_key();
+        let key = (key.n().to_bytes_be(), key.e().to_bytes_be());
+
+        pallet_subnet_emission::SubnetDecryptionData::<Test>::set(
+            netuid,
+            Some(SubnetDecryptionInfo {
+                block_assigned: 0,
+                node_id: 0,
+                node_public_key: key.clone(),
+            }),
+        );
+
+        pallet_subspace::UseWeightsEncrytyption::<Test>::set(netuid, true);
+
+        let first_uid = register_module(netuid, 1, 10000, false).unwrap();
+        let second_uid = register_module(netuid, 2, 10000, false).unwrap();
+
+        let first_uid_weights = vec![(second_uid, 50u16)];
+        let second_uid_weights = vec![(first_uid, 100u16)];
+
+        PendingEmission::<Test>::set(netuid, 100000000);
+
+        // first
+        pallet_subnet_emission::Pallet::<Test>::set_weights_encrypted(
+            get_origin(1),
+            netuid,
+            offworker::encryption::encrypt(key.clone(), first_uid_weights.clone(), 1.encode()),
+            offworker::encryption::hash(first_uid_weights.clone()),
+        )
+        .unwrap();
+
+        // second
+        pallet_subnet_emission::Pallet::<Test>::set_weights_encrypted(
+            get_origin(2),
+            netuid,
+            offworker::encryption::encrypt(key.clone(), second_uid_weights.clone(), 2.encode()),
+            offworker::encryption::hash(second_uid_weights.clone()),
+        )
+        .unwrap();
+
+        step_epoch(netuid);
+
+        let weights = vec![(
+            pallet_subspace::Tempo::<Test>::get(netuid) as u64,
+            vec![
+                (first_uid, first_uid_weights.clone(), 1.encode()),
+                (second_uid, second_uid_weights.clone(), 2.encode()),
+            ],
+        )];
+
+        pallet_subnet_emission::Pallet::<Test>::handle_decrypted_weights(netuid, weights);
+
+        let params = ConsensusParameters::<Test>::get(
+            netuid,
+            pallet_subspace::Tempo::<Test>::get(netuid) as u64,
+        )
+        .unwrap();
+        step_epoch(netuid);
+
+        let res = YumaEpoch::run(
+            YumaEpoch::new(netuid, params),
+            vec![
+                (first_uid, first_uid_weights),
+                (second_uid, second_uid_weights),
+            ],
+        )
+        .unwrap();
+
+        assert_eq!(Active::<Test>::get(netuid), res.active);
+        assert_eq!(Consensus::<Test>::get(netuid), res.consensus);
+        assert_eq!(Dividends::<Test>::get(netuid), res.dividends);
+        assert_eq!(Emission::<Test>::get(netuid), res.combined_emissions);
+        assert_eq!(Incentive::<Test>::get(netuid), res.incentives);
+        assert_eq!(PruningScores::<Test>::get(netuid), res.pruning_scores);
+        assert_eq!(Rank::<Test>::get(netuid), res.ranks);
+        assert_eq!(Trust::<Test>::get(netuid), res.trust);
+        assert_eq!(ValidatorPermits::<Test>::get(netuid), res.validator_permits);
+        assert_eq!(ValidatorTrust::<Test>::get(netuid), res.validator_trust);
+
+        assert!(ConsensusParameters::<Test>::get(
+            netuid,
+            pallet_subspace::Tempo::<Test>::get(netuid) as u64
+        )
+        .is_none());
+
+        // assert!(EncryptedWeights::<Test>::iter_prefix(netuid).collect::<Vec<_>>().is_empty())
     });
 }
