@@ -52,7 +52,7 @@ futures = { workspace = true, features = ["thread-pool"] }
 jsonrpsee = { workspace = true, features = ["server"] }
 pallet-transaction-payment.workspace = true
 pallet-transaction-payment-rpc.workspace = true
-prometheus-endpoint = { package = "substrate-prometheus-endpoint", workspace = true }
+prometheus-endpoint.workspace = true
 sc-basic-authorship.workspace = true
 sc-cli.workspace = true
 sc-client-api.workspace = true
