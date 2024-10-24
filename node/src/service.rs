@@ -1,5 +1,4 @@
-//! Service and ServiceFactory implementation. Specialized wrapper over substrate service.
-
+use sp_api::ConstructRuntimeApi;
 use std::{
     cell::RefCell,
     io::{Cursor, Read},
@@ -21,13 +20,12 @@ use sp_consensus_aura::sr25519::AuthorityPair as AuraPair;
 use sp_core::U256;
 use sp_runtime::traits::Block as BlockT;
 
-// Runtime
 use node_subspace_runtime::{opaque::Block, Hash, TransactionConverter};
 
-pub use crate::eth::{db_config_dir, EthConfiguration};
+pub use crate::eth::{db_config_dir, EthCompatRuntimeApiCollection, EthConfiguration};
 use crate::{
     cli::Sealing,
-    client::{FullBackend, WasmClient},
+    client::{BaseRuntimeApiCollection, Client, FullBackend, RuntimeApiCollection, WasmClient},
     eth::{
         new_frontier_partial, spawn_frontier_tasks, BackendType, FrontierBackend,
         FrontierPartialComponents, StorageOverride, StorageOverrideHandler,
@@ -47,35 +45,38 @@ type BoxBlockImport = sc_consensus::BoxBlockImport<Block>;
 /// imported and generated.
 const GRANDPA_JUSTIFICATION_PERIOD: u32 = 512;
 
-pub fn new_partial<BIQ>(
+pub fn new_partial<RuntimeApi, BIQ>(
     config: &Configuration,
     eth_config: &EthConfiguration,
     build_import_queue: BIQ,
 ) -> Result<
     PartialComponents<
-        WasmClient,
+        WasmClient<RuntimeApi>,
         FullBackend,
         FullSelectChain,
         BasicImportQueue,
-        FullPool<WasmClient>,
+        FullPool<WasmClient<RuntimeApi>>,
         (
             Option<Telemetry>,
             BoxBlockImport,
-            GrandpaLinkHalf<WasmClient>,
-            FrontierBackend<WasmClient>,
+            GrandpaLinkHalf<WasmClient<RuntimeApi>>,
+            FrontierBackend<WasmClient<RuntimeApi>>,
             Arc<dyn StorageOverride<Block>>,
         ),
     >,
     ServiceError,
 >
 where
+    RuntimeApi: ConstructRuntimeApi<Block, WasmClient<RuntimeApi>>,
+    RuntimeApi: Send + Sync + 'static,
+    RuntimeApi::RuntimeApi: BaseRuntimeApiCollection + EthCompatRuntimeApiCollection,
     BIQ: FnOnce(
-        Arc<WasmClient>,
+        Arc<WasmClient<RuntimeApi>>,
         &Configuration,
         &EthConfiguration,
         &TaskManager,
         Option<TelemetryHandle>,
-        GrandpaBlockImport<WasmClient>,
+        GrandpaBlockImport<WasmClient<RuntimeApi>>,
     ) -> Result<(BasicImportQueue, BoxBlockImport), ServiceError>,
 {
     let telemetry = config
@@ -92,7 +93,7 @@ where
     let executor = sc_service::new_wasm_executor(config);
 
     let (client, backend, keystore_container, task_manager) =
-        sc_service::new_full_parts::<Block, _, _>(
+        sc_service::new_full_parts::<Block, RuntimeApi, _>(
             config,
             telemetry.as_ref().map(|(_, telemetry)| telemetry.handle()),
             executor,
@@ -179,14 +180,19 @@ where
 }
 
 /// Build the import queue for the template runtime (aura + grandpa).
-pub fn build_aura_grandpa_import_queue(
-    client: Arc<WasmClient>,
+pub fn build_aura_grandpa_import_queue<RuntimeApi>(
+    client: Arc<WasmClient<RuntimeApi>>,
     config: &Configuration,
     eth_config: &EthConfiguration,
     task_manager: &TaskManager,
     telemetry: Option<TelemetryHandle>,
-    grandpa_block_import: GrandpaBlockImport<WasmClient>,
-) -> Result<(BasicImportQueue, BoxBlockImport), ServiceError> {
+    grandpa_block_import: GrandpaBlockImport<WasmClient<RuntimeApi>>,
+) -> Result<(BasicImportQueue, BoxBlockImport), ServiceError>
+where
+    RuntimeApi: ConstructRuntimeApi<Block, WasmClient<RuntimeApi>>,
+    RuntimeApi: Send + Sync + 'static,
+    RuntimeApi::RuntimeApi: RuntimeApiCollection,
+{
     let slot_duration = sc_consensus_aura::slot_duration(&*client)?;
     let target_gas_price = eth_config.target_gas_price;
     let create_inherent_data_providers = move |_, ()| async move {
@@ -219,14 +225,19 @@ pub fn build_aura_grandpa_import_queue(
 }
 
 /// Build the import queue for the template runtime (manual seal).
-pub fn build_manual_seal_import_queue(
-    client: Arc<WasmClient>,
+pub fn build_manual_seal_import_queue<RuntimeApi>(
+    client: Arc<WasmClient<RuntimeApi>>,
     config: &Configuration,
     _eth_config: &EthConfiguration,
     task_manager: &TaskManager,
     _telemetry: Option<TelemetryHandle>,
-    _grandpa_block_import: GrandpaBlockImport<WasmClient>,
-) -> Result<(BasicImportQueue, BoxBlockImport), ServiceError> {
+    _grandpa_block_import: GrandpaBlockImport<WasmClient<RuntimeApi>>,
+) -> Result<(BasicImportQueue, BoxBlockImport), ServiceError>
+where
+    RuntimeApi: ConstructRuntimeApi<Block, WasmClient<RuntimeApi>>,
+    RuntimeApi: Send + Sync + 'static,
+    RuntimeApi::RuntimeApi: RuntimeApiCollection,
+{
     Ok((
         sc_consensus_manual_seal::import_queue(
             Box::new(client.clone()),
@@ -238,19 +249,21 @@ pub fn build_manual_seal_import_queue(
 }
 
 /// Builds a new service for a full client.
-pub async fn new_full<N>(
+pub async fn new_full<RuntimeApi, N>(
     mut config: Configuration,
     eth_config: EthConfiguration,
     sealing: Option<Sealing>,
     rsa_key: Option<PathBuf>,
 ) -> Result<TaskManager, ServiceError>
 where
+    RuntimeApi: ConstructRuntimeApi<Block, WasmClient<RuntimeApi>> + Send + Sync + 'static,
+    RuntimeApi::RuntimeApi: RuntimeApiCollection,
     N: sc_network::NetworkBackend<Block, <Block as BlockT>::Hash>,
 {
     let build_import_queue = if sealing.is_some() {
-        build_manual_seal_import_queue
+        build_manual_seal_import_queue::<RuntimeApi>
     } else {
-        build_aura_grandpa_import_queue
+        build_aura_grandpa_import_queue::<RuntimeApi>
     };
 
     let PartialComponents {
@@ -352,10 +365,6 @@ where
     let (command_sink, commands_stream) = mpsc::channel(1000);
 
     // Sinks for pubsub notifications.
-    // Everytime a new subscription is created, a new mpsc channel is added to the sink pool.
-    // The MappingSyncWorker sends through the channel on block import and the subscription emits a
-    // notification to the subscriber on receiving a message through this channel. This way we
-    // avoid race conditions when using native substrate block import notification stream.
     let pubsub_notification_sinks: fc_mapping_sync::EthereumBlockNotificationSinks<
         fc_mapping_sync::EthereumBlockNotification<Block>,
     > = Default::default();
@@ -512,9 +521,9 @@ where
         let create_inherent_data_providers = move |_, ()| async move {
             let timestamp = sp_timestamp::InherentDataProvider::from_system_time();
             let slot = sp_consensus_aura::inherents::InherentDataProvider::from_timestamp_and_slot_duration(
-				*timestamp,
-				slot_duration,
-			);
+                *timestamp,
+                slot_duration,
+            );
             let dynamic_fee = fp_dynamic_fee::InherentDataProvider(U256::from(target_gas_price));
             Ok((slot, timestamp, dynamic_fee))
         };
@@ -597,18 +606,23 @@ where
     Ok(task_manager)
 }
 
-fn run_manual_seal_authorship(
+fn run_manual_seal_authorship<RuntimeApi>(
     eth_config: &EthConfiguration,
     sealing: Sealing,
-    client: Arc<WasmClient>,
-    transaction_pool: Arc<FullPool<WasmClient>>,
+    client: Arc<WasmClient<RuntimeApi>>,
+    transaction_pool: Arc<FullPool<WasmClient<RuntimeApi>>>,
     select_chain: FullSelectChain,
     block_import: BoxBlockImport,
     task_manager: &TaskManager,
     prometheus_registry: Option<&Registry>,
     telemetry: Option<&Telemetry>,
     commands_stream: mpsc::Receiver<sc_consensus_manual_seal::rpc::EngineCommand<Hash>>,
-) -> Result<(), ServiceError> {
+) -> Result<(), ServiceError>
+where
+    RuntimeApi: ConstructRuntimeApi<Block, WasmClient<RuntimeApi>>,
+    RuntimeApi: Send + Sync + 'static,
+    RuntimeApi::RuntimeApi: RuntimeApiCollection,
+{
     let proposer_factory = sc_basic_authorship::ProposerFactory::new(
         task_manager.spawn_handle(),
         client.clone(),
@@ -694,7 +708,10 @@ pub async fn build_full(
     sealing: Option<Sealing>,
     rsa_key: Option<PathBuf>,
 ) -> Result<TaskManager, ServiceError> {
-    new_full::<sc_network::NetworkWorker<_, _>>(config, eth_config, sealing, rsa_key).await
+    new_full::<node_subspace_runtime::RuntimeApi, sc_network::NetworkWorker<_, _>>(
+        config, eth_config, sealing, rsa_key,
+    )
+    .await
 }
 
 pub fn new_chain_ops(
@@ -702,11 +719,11 @@ pub fn new_chain_ops(
     eth_config: &EthConfiguration,
 ) -> Result<
     (
-        Arc<WasmClient>,
+        Arc<Client>,
         Arc<FullBackend>,
         BasicQueue<Block>,
         TaskManager,
-        FrontierBackend<WasmClient>,
+        FrontierBackend<Client>,
     ),
     ServiceError,
 > {
@@ -718,7 +735,11 @@ pub fn new_chain_ops(
         task_manager,
         other,
         ..
-    } = new_partial(config, eth_config, build_aura_grandpa_import_queue)?;
+    } = new_partial::<node_subspace_runtime::RuntimeApi, _>(
+        config,
+        eth_config,
+        build_aura_grandpa_import_queue,
+    )?;
     Ok((client, backend, import_queue, task_manager, other.3))
 }
 
