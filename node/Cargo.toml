@@ -40,6 +40,7 @@ fc-mapping-sync.workspace = true
 fc-rpc.workspace = true
 fc-rpc-core.workspace = true
 fc-storage.workspace = true
+fc-consensus.workspace = true
 fp-dynamic-fee = { workspace = true, features = ["default"] }
 fp-rpc.workspace = true
 
@@ -48,6 +49,8 @@ clap = { workspace = true, features = ["derive"] }
 frame-benchmarking.workspace = true
 frame-benchmarking-cli.workspace = true
 frame-system.workspace = true
+frame-system-rpc-runtime-api.workspace = true
+pallet-transaction-payment-rpc-runtime-api.workspace = true
 futures = { workspace = true, features = ["thread-pool"] }
 jsonrpsee = { workspace = true, features = ["server"] }
 pallet-transaction-payment.workspace = true
@@ -72,6 +75,9 @@ sc-transaction-pool.workspace = true
 sc-transaction-pool-api.workspace = true
 scale-codec.workspace = true
 serde_json.workspace = true
+sp-offchain.workspace = true
+sp-session.workspace = true
+sp-transaction-pool.workspace = true
 sp-api.workspace = true
 sp-block-builder.workspace = true
 sp-blockchain.workspace = true
