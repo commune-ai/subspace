@@ -1,6 +1,6 @@
 #![cfg(feature = "runtime-benchmarks")]
 
-use crate::{Pallet as SubnetEmissionMod, *};
+use crate::*;
 use frame_benchmarking::{account, benchmarks};
 use frame_system::RawOrigin;
 pub use pallet::*;
