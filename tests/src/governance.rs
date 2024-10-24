@@ -328,6 +328,8 @@ fn subnet_params_proposal_accepted() {
             min_validator_stake,
             max_allowed_validators,
             mut governance_config,
+            use_weights_encryption,
+            copier_margin,
             ..
         } = SubspaceMod::subnet_params(0);
 
@@ -354,6 +356,8 @@ fn subnet_params_proposal_accepted() {
             module_burn_config,
             min_validator_stake,
             max_allowed_validators,
+            use_weights_encryption,
+            copier_margin,
         )
         .unwrap();
 

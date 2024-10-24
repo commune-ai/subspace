@@ -137,11 +137,14 @@ fn test_offchain_worker_behavior() {
                     if !weight_vec.is_empty() && weight_vec.iter().any(|(_, value)| *value != 0) {
                         let validator_key =
                             SubspaceMod::get_key_for_uid(TEST_SUBNET_ID, uid).unwrap().encode();
+
+                        // Pring all encrpyt inputs
                         let encrypted_weights = encrypt(
                             decryption_info.public_key.clone(),
                             weight_vec.clone(),
                             validator_key,
                         );
+                        // Pring all encrpyt outputs
                         let decrypted_weights_hash = hash(weight_vec.clone());
 
                         if let Some(key) = SubspaceMod::get_key_for_uid(TEST_SUBNET_ID, uid) {
