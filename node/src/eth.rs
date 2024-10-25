@@ -10,7 +10,6 @@ use futures::{future, prelude::*};
 use sc_client_api::BlockchainEvents;
 use sc_network_sync::SyncingService;
 use sc_service::{error::Error as ServiceError, Configuration, TaskManager};
-use sp_api::ConstructRuntimeApi;
 // Frontier
 use fc_rpc::EthTask;
 pub use fc_rpc_core::types::{FeeHistoryCache, FeeHistoryCacheLimit, FilterPool};
@@ -18,10 +17,10 @@ pub use fc_storage::{StorageOverride, StorageOverrideHandler};
 // Local
 use node_subspace_runtime::opaque::Block;
 
-use crate::client::{FullBackend, WasmClient};
+use crate::client::{Client, FullBackend};
 
 /// Frontier DB backend type.
-pub type FrontierBackend<C> = fc_db::Backend<Block, C>;
+pub type FrontierBackend = fc_db::Backend<Block, Client>;
 
 pub fn db_config_dir(config: &Configuration) -> PathBuf {
     config.base_path.config_dir(config.chain_spec.id())
@@ -106,26 +105,11 @@ pub fn new_frontier_partial(
     })
 }
 
-/// A set of APIs that ethereum-compatible runtimes must implement.
-pub trait EthCompatRuntimeApiCollection:
-    sp_api::ApiExt<Block>
-    + fp_rpc::ConvertTransactionRuntimeApi<Block>
-    + fp_rpc::EthereumRuntimeRPCApi<Block>
-{
-}
-
-impl<Api> EthCompatRuntimeApiCollection for Api where
-    Api: sp_api::ApiExt<Block>
-        + fp_rpc::ConvertTransactionRuntimeApi<Block>
-        + fp_rpc::EthereumRuntimeRPCApi<Block>
-{
-}
-
-pub async fn spawn_frontier_tasks<RuntimeApi>(
+pub async fn spawn_frontier_tasks(
     task_manager: &TaskManager,
-    client: Arc<WasmClient<RuntimeApi>>,
+    client: Arc<Client>,
     backend: Arc<FullBackend>,
-    frontier_backend: Arc<FrontierBackend<WasmClient<RuntimeApi>>>,
+    frontier_backend: Arc<FrontierBackend>,
     filter_pool: Option<FilterPool>,
     storage_override: Arc<dyn StorageOverride<Block>>,
     fee_history_cache: FeeHistoryCache,
@@ -136,10 +120,7 @@ pub async fn spawn_frontier_tasks<RuntimeApi>(
             fc_mapping_sync::EthereumBlockNotification<Block>,
         >,
     >,
-) where
-    RuntimeApi: ConstructRuntimeApi<Block, WasmClient<RuntimeApi>> + Send + Sync + 'static,
-    RuntimeApi::RuntimeApi: EthCompatRuntimeApiCollection,
-{
+) {
     // Spawn main mapping sync worker background task.
     match &*frontier_backend {
         fc_db::Backend::KeyValue(b) => {
