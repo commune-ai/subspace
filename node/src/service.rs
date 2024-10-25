@@ -1,3 +1,6 @@
+use sc_consensus_manual_seal::consensus::{
+    aura::AuraConsensusDataProvider, timestamp::SlotTimestampProvider,
+};
 use sp_api::ConstructRuntimeApi;
 use std::{
     cell::RefCell,
@@ -414,6 +417,7 @@ where
             Ok((slot, timestamp, dynamic_fee))
         };
 
+        let command_sink = command_sink.clone();
         Box::new(move |deny_unsafe, subscription_task_executor| {
             let eth_deps = crate::rpc::EthDeps {
                 client: client.clone(),
@@ -501,6 +505,7 @@ where
                 prometheus_registry.as_ref(),
                 telemetry.as_ref(),
                 commands_stream,
+                command_sink,
             )?;
 
             network_starter.start_network();
@@ -617,12 +622,28 @@ fn run_manual_seal_authorship<RuntimeApi>(
     prometheus_registry: Option<&Registry>,
     telemetry: Option<&Telemetry>,
     commands_stream: mpsc::Receiver<sc_consensus_manual_seal::rpc::EngineCommand<Hash>>,
+    command_sink: mpsc::Sender<sc_consensus_manual_seal::rpc::EngineCommand<Hash>>,
 ) -> Result<(), ServiceError>
 where
     RuntimeApi: ConstructRuntimeApi<Block, WasmClient<RuntimeApi>>,
     RuntimeApi: Send + Sync + 'static,
     RuntimeApi::RuntimeApi: RuntimeApiCollection,
 {
+    if matches!(sealing, Sealing::Localnet) {
+        return run_localnet_seal_authorship(
+            eth_config,
+            client,
+            transaction_pool,
+            select_chain,
+            block_import,
+            task_manager,
+            prometheus_registry,
+            telemetry,
+            commands_stream,
+            command_sink,
+        );
+    }
+
     let proposer_factory = sc_basic_authorship::ProposerFactory::new(
         task_manager.spawn_handle(),
         client.clone(),
@@ -634,7 +655,8 @@ where
     thread_local!(static TIMESTAMP: RefCell<u64> = const { RefCell::new(0) });
 
     /// Provide a mock duration starting at 0 in millisecond for timestamp inherent.
-    /// Each call will increment timestamp by slot_duration making Aura think time has passed.
+    /// Each call will increment timestamp by slot_duration making Aura think time has
+    /// passed.
     struct MockTimestampInherentDataProvider;
 
     #[async_trait::async_trait]
@@ -643,12 +665,11 @@ where
             &self,
             inherent_data: &mut sp_inherents::InherentData,
         ) -> Result<(), sp_inherents::Error> {
-            TIMESTAMP.with(|x| {
-                *x.borrow_mut() = x
-                    .borrow()
+            TIMESTAMP.with_borrow_mut(|x| {
+                *x = x
                     .checked_add(node_subspace_runtime::SLOT_DURATION)
                     .expect("Overflow when adding slot duration");
-                inherent_data.put_data(sp_timestamp::INHERENT_IDENTIFIER, &*x.borrow())
+                inherent_data.put_data(sp_timestamp::INHERENT_IDENTIFIER, &*x)
             })
         }
 
@@ -693,12 +714,94 @@ where
                 create_inherent_data_providers,
             },
         )),
+        _ => unreachable!(),
     };
 
     // we spawn the future on a background thread managed by service.
     task_manager
         .spawn_essential_handle()
         .spawn_blocking("manual-seal", None, manual_seal);
+    Ok(())
+}
+
+fn run_localnet_seal_authorship<RuntimeApi>(
+    eth_config: &EthConfiguration,
+    client: Arc<WasmClient<RuntimeApi>>,
+    transaction_pool: Arc<FullPool<WasmClient<RuntimeApi>>>,
+    select_chain: FullSelectChain,
+    block_import: BoxBlockImport,
+    task_manager: &TaskManager,
+    prometheus_registry: Option<&Registry>,
+    telemetry: Option<&Telemetry>,
+    commands_stream: mpsc::Receiver<sc_consensus_manual_seal::rpc::EngineCommand<Hash>>,
+    mut command_sink: mpsc::Sender<sc_consensus_manual_seal::rpc::EngineCommand<Hash>>,
+) -> Result<(), ServiceError>
+where
+    RuntimeApi: ConstructRuntimeApi<Block, WasmClient<RuntimeApi>>,
+    RuntimeApi: Send + Sync + 'static,
+    RuntimeApi::RuntimeApi: RuntimeApiCollection,
+{
+    let proposer_factory = sc_basic_authorship::ProposerFactory::new(
+        task_manager.spawn_handle(),
+        client.clone(),
+        transaction_pool.clone(),
+        prometheus_registry,
+        telemetry.as_ref().map(|x| x.handle()),
+    );
+
+    task_manager.spawn_handle().spawn("localnet-block-authoring", None, async move {
+        #[allow(clippy::infinite_loop)]
+        loop {
+            jsonrpsee::tokio::time::sleep(std::time::Duration::from_millis(
+                node_subspace_runtime::SLOT_DURATION,
+            ))
+            .await;
+
+            command_sink
+                .try_send(sc_consensus_manual_seal::EngineCommand::SealNewBlock {
+                    create_empty: true,
+                    finalize: true,
+                    parent_hash: None,
+                    sender: None,
+                })
+                .unwrap();
+        }
+    });
+
+    let target_gas_price = eth_config.target_gas_price;
+    let create_inherent_data_providers = {
+        let client = client.clone();
+        move |_, ()| {
+            let client = client.clone();
+            async move {
+                let timestamp = SlotTimestampProvider::new_aura(client.clone())
+                    .map_err(|err| format!("{err:?}"))?;
+                let aura =
+                    sp_consensus_aura::inherents::InherentDataProvider::new(timestamp.slot());
+                let dynamic_fee =
+                    fp_dynamic_fee::InherentDataProvider(U256::from(target_gas_price));
+                Ok((timestamp, aura, dynamic_fee))
+            }
+        }
+    };
+
+    let manual_seal =
+        sc_consensus_manual_seal::run_manual_seal(sc_consensus_manual_seal::ManualSealParams {
+            block_import,
+            env: proposer_factory,
+            client: client.clone(),
+            pool: transaction_pool,
+            commands_stream,
+            select_chain,
+            consensus_data_provider: Some(Box::new(AuraConsensusDataProvider::new(client.clone()))),
+            create_inherent_data_providers,
+        });
+
+    // we spawn the future on a background thread managed by service.
+    task_manager
+        .spawn_essential_handle()
+        .spawn_blocking("manual-seal", None, manual_seal);
+
     Ok(())
 }
 
