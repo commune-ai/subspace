@@ -81,6 +81,7 @@ sp-transaction-pool.workspace = true
 sp-api.workspace = true
 sp-block-builder.workspace = true
 sp-blockchain.workspace = true
+sp-consensus.workspace = true
 sp-consensus-aura.workspace = true
 sp-consensus-grandpa.workspace = true
 sp-core.workspace = true

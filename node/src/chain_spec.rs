@@ -1,4 +1,4 @@
-use node_subspace_runtime::{AccountId, RuntimeGenesisConfig, Signature, WASM_BINARY};
+use node_subspace_runtime::{AccountId, Signature, WASM_BINARY};
 use pallet_subspace_genesis_config::{ConfigModule, ConfigSubnet};
 use sc_service::ChainType;
 use serde::Deserialize;
@@ -9,7 +9,7 @@ use sp_runtime::traits::{IdentifyAccount, Verify};
 use std::fs::File;
 
 // Specialized `ChainSpec`. This is a specialization of the general Substrate ChainSpec type.
-pub type ChainSpec = sc_service::GenericChainSpec<RuntimeGenesisConfig>;
+pub type ChainSpec = sc_service::GenericChainSpec;
 
 // Generate a crypto pair from seed.
 pub fn get_from_seed<TPublic: Public>(seed: &str) -> <TPublic::Pair as Pair>::Public {

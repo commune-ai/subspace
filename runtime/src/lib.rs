@@ -47,7 +47,7 @@ use sp_core::{
     crypto::{ByteArray, KeyTypeId},
     OpaqueMetadata, H160, H256, U256,
 };
-use sp_std::{boxed::Box, collections::btree_set::BTreeSet, vec::Vec};
+use sp_std::{collections::btree_set::BTreeSet, vec::Vec};
 
 // Substrate runtime primitives
 use sp_runtime::{
@@ -516,6 +516,7 @@ parameter_types! {
 impl pallet_evm::Config for Runtime {
     type FeeCalculator = BaseFee;
     type GasWeightMapping = pallet_evm::FixedGasWeightMapping<Self>;
+    type BalanceConverter = ();
     type WeightPerGas = WeightPerGas;
     type BlockHashMapping = pallet_ethereum::EthereumBlockHashMapping<Self>;
     type CallOrigin = pallet_evm::EnsureAddressTruncated;
@@ -1121,6 +1122,10 @@ impl_runtime_apis! {
                 pallet_ethereum::CurrentBlock::<Runtime>::get(),
                 pallet_ethereum::CurrentTransactionStatuses::<Runtime>::get()
             )
+        }
+
+        fn initialize_pending_block(header: &<Block as BlockT>::Header) {
+            Executive::initialize_block(header);
         }
     }
 
