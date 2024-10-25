@@ -419,7 +419,7 @@ where
                 client: client.clone(),
                 pool: pool.clone(),
                 graph: pool.pool().clone(),
-                converter: Some(TransactionConverter),
+                converter: Some(TransactionConverter::<Block>::default()),
                 is_authority,
                 enable_dev_signer,
                 network: network.clone(),

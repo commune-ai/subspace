@@ -238,7 +238,7 @@ pub fn run() -> sc_cli::Result<()> {
                 cmd.run(client, frontier_backend)
             })
         }
-        None => {
+        _ => {
             let runner = cli.create_runner(&cli.run)?;
             runner.run_node_until_exit(|config| async move {
                 service::build_full(config, cli.eth, cli.sealing, cli.rsa_path)

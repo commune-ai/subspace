@@ -13,7 +13,7 @@ use frame_support::{
 };
 use sp_genesis_builder::PresetId;
 
-use sp_runtime::SaturatedConversion;
+use sp_runtime::{traits::Dispatchable, SaturatedConversion};
 
 // Consensus pallets
 use pallet_aura::MinimumPeriodTimesTwo;
@@ -609,26 +609,24 @@ construct_runtime!(
 );
 
 #[derive(Clone)]
-pub struct TransactionConverter;
+pub struct TransactionConverter<B>(PhantomData<B>);
 
-impl fp_rpc::ConvertTransaction<UncheckedExtrinsic> for TransactionConverter {
-    fn convert_transaction(&self, transaction: pallet_ethereum::Transaction) -> UncheckedExtrinsic {
-        UncheckedExtrinsic::new_unsigned(
-            pallet_ethereum::Call::<Runtime>::transact { transaction }.into(),
-        )
+impl<B> Default for TransactionConverter<B> {
+    fn default() -> Self {
+        Self(PhantomData)
     }
 }
 
-impl fp_rpc::ConvertTransaction<opaque::UncheckedExtrinsic> for TransactionConverter {
+impl<B: BlockT> fp_rpc::ConvertTransaction<<B as BlockT>::Extrinsic> for TransactionConverter<B> {
     fn convert_transaction(
         &self,
         transaction: pallet_ethereum::Transaction,
-    ) -> opaque::UncheckedExtrinsic {
+    ) -> <B as BlockT>::Extrinsic {
         let extrinsic = UncheckedExtrinsic::new_unsigned(
             pallet_ethereum::Call::<Runtime>::transact { transaction }.into(),
         );
         let encoded = extrinsic.encode();
-        opaque::UncheckedExtrinsic::decode(&mut &encoded[..])
+        <B as BlockT>::Extrinsic::decode(&mut &encoded[..])
             .expect("Encoded extrinsic is always valid")
     }
 }
@@ -673,36 +671,57 @@ impl fp_self_contained::SelfContainedCall for RuntimeCall {
     type SignedInfo = H160;
 
     fn is_self_contained(&self) -> bool {
-        false
+        match self {
+            RuntimeCall::Ethereum(call) => call.is_self_contained(),
+            _ => false,
+        }
     }
 
     fn check_self_contained(&self) -> Option<Result<Self::SignedInfo, TransactionValidityError>> {
-        None
+        match self {
+            RuntimeCall::Ethereum(call) => call.check_self_contained(),
+            _ => None,
+        }
     }
 
     fn validate_self_contained(
         &self,
-        _info: &Self::SignedInfo,
-        _dispatch_info: &DispatchInfoOf<RuntimeCall>,
-        _len: usize,
+        info: &Self::SignedInfo,
+        dispatch_info: &DispatchInfoOf<RuntimeCall>,
+        len: usize,
     ) -> Option<TransactionValidity> {
-        None
+        match self {
+            RuntimeCall::Ethereum(call) => call.validate_self_contained(info, dispatch_info, len),
+            _ => None,
+        }
     }
 
     fn pre_dispatch_self_contained(
         &self,
-        _info: &Self::SignedInfo,
-        _dispatch_info: &DispatchInfoOf<RuntimeCall>,
-        _len: usize,
+        info: &Self::SignedInfo,
+        dispatch_info: &DispatchInfoOf<RuntimeCall>,
+        len: usize,
     ) -> Option<Result<(), TransactionValidityError>> {
-        None
+        match self {
+            RuntimeCall::Ethereum(call) => {
+                call.pre_dispatch_self_contained(info, dispatch_info, len)
+            }
+            _ => None,
+        }
     }
 
     fn apply_self_contained(
         self,
-        _info: Self::SignedInfo,
+        info: Self::SignedInfo,
     ) -> Option<sp_runtime::DispatchResultWithInfo<PostDispatchInfoOf<Self>>> {
-        None
+        match self {
+            call @ RuntimeCall::Ethereum(pallet_ethereum::Call::transact { .. }) => {
+                Some(call.dispatch(RuntimeOrigin::from(
+                    pallet_ethereum::RawOrigin::EthereumTransaction(info),
+                )))
+            }
+            _ => None,
+        }
     }
 }
 
