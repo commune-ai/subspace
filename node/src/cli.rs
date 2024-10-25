@@ -8,6 +8,8 @@ pub enum Sealing {
     /// Seal using rpc method.
     #[default]
     Manual,
+    /// Seal every 8 seconds.
+    Localnet,
     /// Seal when transaction is executed.
     Instant,
 }
