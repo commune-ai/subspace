@@ -30,7 +30,9 @@ use pallet_ethereum::{
     Call::transact, PostLogContent, Transaction as EthereumTransaction, TransactionAction,
     TransactionData,
 };
-use pallet_evm::{Account as EVMAccount, FeeCalculator, HashedAddressMapping, Runner};
+use pallet_evm::{
+    Account as EVMAccount, BalanceConverter, FeeCalculator, HashedAddressMapping, Runner,
+};
 
 // Subnet emission API
 use pallet_subnet_emission_api::SubnetConsensus;
@@ -516,7 +518,7 @@ parameter_types! {
 impl pallet_evm::Config for Runtime {
     type FeeCalculator = BaseFee;
     type GasWeightMapping = pallet_evm::FixedGasWeightMapping<Self>;
-    type BalanceConverter = ();
+    type BalanceConverter = EvmBalanceConverter;
     type WeightPerGas = WeightPerGas;
     type BlockHashMapping = pallet_ethereum::EthereumBlockHashMapping<Self>;
     type CallOrigin = pallet_evm::EnsureAddressTruncated;
@@ -629,6 +631,25 @@ impl<B: BlockT> fp_rpc::ConvertTransaction<<B as BlockT>::Extrinsic> for Transac
         let encoded = extrinsic.encode();
         <B as BlockT>::Extrinsic::decode(&mut &encoded[..])
             .expect("Encoded extrinsic is always valid")
+    }
+}
+
+const EVM_DECIMALS_FACTOR: u64 = 1_000_000_000_u64;
+
+pub struct EvmBalanceConverter;
+
+impl BalanceConverter for EvmBalanceConverter {
+    fn into_evm_balance(value: U256) -> Option<U256> {
+        U256::from(UniqueSaturatedInto::<u128>::unique_saturated_into(value))
+            .checked_mul(U256::from(EVM_DECIMALS_FACTOR))
+    }
+
+    fn into_substrate_balance(value: U256) -> Option<U256> {
+        if value <= U256::from(u64::MAX) {
+            value.checked_div(U256::from(EVM_DECIMALS_FACTOR))
+        } else {
+            None
+        }
     }
 }
 
