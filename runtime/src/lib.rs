@@ -118,6 +118,10 @@ pub use pallet_subspace;
 mod precompiles;
 use precompiles::FrontierPrecompiles;
 
+use frame_system::RawOrigin;
+use pallet_evm::EnsureAddressOrigin;
+use sp_runtime::AccountId32;
+
 /// An index to a block.
 pub type BlockNumber = u64;
 
@@ -521,8 +525,8 @@ impl pallet_evm::Config for Runtime {
     type BalanceConverter = EvmBalanceConverter;
     type WeightPerGas = WeightPerGas;
     type BlockHashMapping = pallet_ethereum::EthereumBlockHashMapping<Self>;
-    type CallOrigin = pallet_evm::EnsureAddressTruncated;
-    type WithdrawOrigin = pallet_evm::EnsureAddressTruncated;
+    type CallOrigin = EnsureCuratorAddressTruncated;
+    type WithdrawOrigin = EnsureCuratorAddressTruncated;
     type AddressMapping = HashedAddressMapping<BlakeTwo256>;
     type Currency = Balances;
     type RuntimeEvent = RuntimeEvent;
@@ -650,6 +654,36 @@ impl BalanceConverter for EvmBalanceConverter {
         } else {
             None
         }
+    }
+}
+
+pub struct EnsureCuratorAddressTruncated;
+
+impl EnsureAddressOrigin<RuntimeOrigin> for EnsureCuratorAddressTruncated {
+    type Success = AccountId32;
+
+    fn try_address_origin(
+        address: &H160,
+        origin: RuntimeOrigin,
+    ) -> Result<AccountId32, RuntimeOrigin> {
+        <RuntimeOrigin as Into<Result<RawOrigin<AccountId32>, RuntimeOrigin>>>::into(origin)
+            .and_then(|o| match o {
+                RawOrigin::Signed(who) => {
+                    let address_matches = AsRef::<[u8; 32]>::as_ref(&who)[0..20] == address[0..20];
+
+                    if !address_matches {
+                        return Err(RuntimeOrigin::from(RawOrigin::Signed(who)));
+                    }
+
+                    if pallet_governance::RestrictContractDeploy::<Runtime>::get()
+                        && Some(who.clone()) != Some(pallet_governance::Curator::<Runtime>::get()) {
+                        return Err(RuntimeOrigin::from(RawOrigin::Signed(who)));
+                    }
+
+                    Ok(who)
+                }
+                r => Err(RuntimeOrigin::from(r)),
+            })
     }
 }
 

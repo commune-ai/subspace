@@ -166,6 +166,9 @@ pub mod pallet {
     #[pallet::storage]
     pub type Curator<T: Config> = StorageValue<_, T::AccountId, ValueQuery, DefaultKey<T>>;
 
+    /// Determines whether smart contract can be deployed by everyone or only by the curator
+    #[pallet::storage]
+    pub type RestrictContractDeploy<T: Config> = StorageValue<_, bool, ValueQuery>;
     // ---------------------------------
     // Extrinsics
     // ---------------------------------
