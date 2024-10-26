@@ -85,6 +85,8 @@ impl<T: Config> Pallet<T> {
             }
         };
 
+        dbg!("hehe");
+
         let valid_weights: Vec<KeylessBlockWeights> = weights
             .into_iter()
             .filter_map(|(block, block_weights)| {
@@ -189,16 +191,22 @@ impl<T: Config> Pallet<T> {
             return;
         }
 
+        dbg!("gay");
+
         let current = DecryptionNodeCursor::<T>::get() as usize;
         let active_nodes = match Self::get_active_nodes(block_number) {
             Some(nodes) => nodes,
             None => return,
         };
 
+        dbg!("gay2");
+
         let new_node =
             active_nodes.get(current.checked_rem(active_nodes.len()).unwrap_or(0)).cloned();
 
+        dbg!("gay3");
         if let Some(new_node) = new_node {
+            dbg!(&new_node.account_id);
             SubnetDecryptionData::<T>::set(
                 netuid,
                 Some(SubnetDecryptionInfo {
@@ -208,7 +216,10 @@ impl<T: Config> Pallet<T> {
                 }),
             );
             DecryptionNodeCursor::<T>::set((current.saturating_add(1)) as u16);
+            dbg!("set");
         }
+
+        dbg!("gay4");
     }
 
     /// Adds a new active authority node to the list of active authority nodes.
