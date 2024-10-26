@@ -6,7 +6,7 @@ use pallet_subnet_emission::{
         consensus::EmissionMap,
         params::{AccountKey, ModuleKey},
     },
-    types::SubnetDecryptionInfo,
+    types::{DecryptionNodeInfo, SubnetDecryptionInfo},
     ConsensusParameters, EncryptedWeights, Weights,
 };
 use pallet_subspace::{Active, Consensus, Founder, PruningScores, Rank, Trust, ValidatorTrust};
@@ -1473,5 +1473,58 @@ fn decrypted_weight_run_result_is_applied_and_cleaned_up() {
         .is_none());
 
         // assert!(EncryptedWeights::<Test>::iter_prefix(netuid).collect::<Vec<_>>().is_empty())
+    });
+}
+
+#[test]
+fn rotate_decryption_node() {
+    use sp_core::Get;
+    new_test_ext().execute_with(|| {
+        let netuid = 0;
+
+        let dn_1 = 1001;
+        let key_1 = RsaPrivateKey::new(&mut OsRng, 2048).unwrap().to_public_key();
+        let key_1 = (key_1.n().to_bytes_be(), key_1.e().to_bytes_be());
+        let dn_2 = 1002;
+        let key_2 = RsaPrivateKey::new(&mut OsRng, 2048).unwrap().to_public_key();
+        let key_2 = (key_2.n().to_bytes_be(), key_2.e().to_bytes_be());
+
+        let decryption_node_interval: u64 =
+            <Test as pallet_subnet_emission::Config>::DecryptionNodeRotationInterval::get();
+
+        step_block(decryption_node_interval as u16);
+
+        pallet_subnet_emission::DecryptionNodes::<Test>::put(vec![
+            DecryptionNodeInfo::<Test> {
+                account_id: dn_1,
+                last_keep_alive: decryption_node_interval,
+                public_key: key_1.clone(),
+            },
+            DecryptionNodeInfo::<Test> {
+                account_id: dn_2,
+                last_keep_alive: decryption_node_interval,
+                public_key: key_2,
+            },
+        ]);
+
+        pallet_subnet_emission::SubnetDecryptionData::<Test>::set(
+            netuid,
+            Some(SubnetDecryptionInfo {
+                block_assigned: 0,
+                node_id: dn_1,
+                node_public_key: key_1,
+            }),
+        );
+
+        // one subnet with decryption node set
+        pallet_subnet_emission::DecryptionNodeCursor::<Test>::set(1);
+
+        pallet_subnet_emission::Pallet::<Test>::do_handle_decrypted_weights(netuid, vec![]);
+
+        assert_eq!(
+            pallet_subnet_emission::SubnetDecryptionData::<Test>::get(netuid)
+                .map(|info| info.node_id),
+            Some(dn_2)
+        );
     });
 }
