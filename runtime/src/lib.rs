@@ -676,7 +676,8 @@ impl EnsureAddressOrigin<RuntimeOrigin> for EnsureCuratorAddressTruncated {
                     }
 
                     if pallet_governance::RestrictContractDeploy::<Runtime>::get()
-                        && Some(who.clone()) != Some(pallet_governance::Curator::<Runtime>::get()) {
+                        && Some(who.clone()) != Some(pallet_governance::Curator::<Runtime>::get())
+                    {
                         return Err(RuntimeOrigin::from(RawOrigin::Signed(who)));
                     }
 
