@@ -25,6 +25,8 @@ pallet-offworker = { path = "../pallets/offworker", default-features = false }
 smallvec.workspace = true
 parity-scale-codec.workspace = true
 scale-info.workspace = true
+ed25519-dalek.workspace = true
+log.workspace = true
 
 frame-executive.workspace = true
 frame-support.workspace = true
@@ -123,7 +125,6 @@ std = [
     "sp-transaction-pool/std",
     "sp-version/std",
     "substrate-wasm-builder",
-    "pallet-base-fee/std",
     "subspace-runtime-api/std",
     "fp-evm/std",
     "fp-rpc/std",
@@ -171,4 +172,9 @@ try-runtime = [
     "pallet-timestamp/try-runtime",
     "pallet-transaction-payment/try-runtime",
     "pallet-utility/try-runtime",
+    "pallet-dynamic-fee/try-runtime",
+    "pallet-ethereum/try-runtime",
+    "pallet-evm/try-runtime",
+    "pallet-evm-chain-id/try-runtime",
+    "fp-self-contained/try-runtime",
 ]
