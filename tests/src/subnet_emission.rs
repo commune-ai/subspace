@@ -1310,11 +1310,17 @@ fn decrypted_weights_are_stored() {
         let key = RsaPrivateKey::new(&mut OsRng, 2048).unwrap().to_public_key();
         let key = (key.n().to_bytes_be(), key.e().to_bytes_be());
 
+        pallet_subnet_emission::DecryptionNodes::<Test>::set(vec![DecryptionNodeInfo {
+            account_id: 1001,
+            public_key: key.clone(),
+            last_keep_alive: pallet_subspace::Tempo::<Test>::get(netuid) as u64,
+        }]);
+
         pallet_subnet_emission::SubnetDecryptionData::<Test>::set(
             netuid,
             Some(SubnetDecryptionInfo {
                 block_assigned: 0,
-                node_id: 0,
+                node_id: 1001,
                 node_public_key: key.clone(),
             }),
         );
@@ -1390,11 +1396,17 @@ fn decrypted_weight_run_result_is_applied_and_cleaned_up() {
         let key = RsaPrivateKey::new(&mut OsRng, 2048).unwrap().to_public_key();
         let key = (key.n().to_bytes_be(), key.e().to_bytes_be());
 
+        pallet_subnet_emission::DecryptionNodes::<Test>::set(vec![DecryptionNodeInfo {
+            account_id: 1001,
+            public_key: key.clone(),
+            last_keep_alive: pallet_subspace::Tempo::<Test>::get(netuid) as u64,
+        }]);
+
         pallet_subnet_emission::SubnetDecryptionData::<Test>::set(
             netuid,
             Some(SubnetDecryptionInfo {
                 block_assigned: 0,
-                node_id: 0,
+                node_id: 1001,
                 node_public_key: key.clone(),
             }),
         );
