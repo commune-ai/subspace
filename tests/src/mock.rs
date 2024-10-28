@@ -436,7 +436,7 @@ where
 impl pallet_offworker::Config for Test {
     type AuthorityId = TestAuthId;
     type RuntimeEvent = RuntimeEvent;
-    type MaxEncryptionTime = ConstU64<10_800>;
+    type MaxEncryptionDuration = ConstU64<10_800>;
     type UnsignedPriority = ConstU64<100>;
 }
 
