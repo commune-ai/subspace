@@ -126,7 +126,7 @@ pub mod pallet {
 
         /// Maximum number of blocks, weights can stay encrypted.
         #[pallet::constant]
-        type MaxEncryptionTime: Get<u64>;
+        type MaxEncryptionDuration: Get<u64>;
 
         #[pallet::constant]
         type UnsignedPriority: Get<TransactionPriority>;
@@ -217,7 +217,6 @@ pub mod pallet {
     }
 
     /// The amount of actual consensus sum stake. Used for a simulated consensus.
-    /// Weight copying representant
     #[pallet::storage]
     pub type MeasuredStakeAmount<T: Config> =
         StorageValue<_, Percent, ValueQuery, DefaultMeasuredStakeAmount<T>>;

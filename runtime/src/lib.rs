@@ -439,7 +439,7 @@ impl pallet_governance::Config for Runtime {
 impl pallet_offworker::Config for Runtime {
     type AuthorityId = pallet_offworker::crypto::AuthId;
     type RuntimeEvent = RuntimeEvent;
-    type MaxEncryptionTime = ConstU64<20_880>; // Close to 2 days
+    type MaxEncryptionDuration = ConstU64<20_880>; // Close to 2 days
     type UnsignedPriority = ConstU64<100>;
 }
 

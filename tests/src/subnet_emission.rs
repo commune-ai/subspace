@@ -1480,8 +1480,6 @@ fn decrypted_weight_run_result_is_applied_and_cleaned_up() {
             pallet_subspace::Tempo::<Test>::get(netuid) as u64
         )
         .is_none());
-
-        // assert!(EncryptedWeights::<Test>::iter_prefix(netuid).collect::<Vec<_>>().is_empty())
     });
 }
 
