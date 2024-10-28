@@ -11,7 +11,6 @@ impl<T: Config> Pallet<T> {
         let authority_nodes = DecryptionNodes::<T>::get();
         let keep_alive_interval =
             T::PingInterval::get().saturating_mul(T::MissedPingsForInactivity::get() as u64);
-
         let active_nodes: Vec<_> = authority_nodes
             .into_iter()
             .filter(|node| {
@@ -170,7 +169,6 @@ impl<T: Config> Pallet<T> {
         if !(min_allowed_length..=max_allowed_length).contains(&uids.len()) {
             return None;
         }
-
         Some(())
     }
 
