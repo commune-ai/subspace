@@ -39,7 +39,6 @@ pub mod network {
 pub mod params;
 pub mod rpc;
 pub mod selections;
-pub mod signed_extension;
 pub mod weights;
 
 pub use crate::{
