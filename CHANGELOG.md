@@ -35,7 +35,7 @@ Subnet Emission Module:
   - Default: None (empty map)
 
 - `DecryptedWeights`:
-  - Description: The decrypted weights of the network. (temporary storage, to hold the delta between onchain weights and freshly decrypted weights)
+  - Description: Stores decrypted weights, that are yet to be processed by the consensus.
   - Type: StorageMap<u16, Vec<(u64, Vec<(u16, Vec<(u16, u16)>)>)>>
   - Default: None (empty map)
 
@@ -74,16 +74,19 @@ Subspace Module:
   - Description: The maximum amount of blocks weights can stay encrypted for, a specific subnet.
   - Type: StorageMap<u16, u64>
   - Default: 2000
+  - <span style="color: red;">• Part of `SubnetParams` struct, can be updated by the subnet owner</span>
 
 - `CopierMargin`:
   - Description: Allowed percentage profit margin of rationality above full irrationality for the weight copying strategy.
   - Type: StorageMap<u16, I64F64>
   - Default: 0
+  - <span style="color: red;">• Part of `SubnetParams` struct, can be updated by the subnet owner</span>
 
 - `UseWeightsEncryption`:
   - Description: A flag to enable or disable weights encryption for a specific subnet.
   - Type: StorageMap<u16, bool>
   - Default: None (empty map)
+  - <span style="color: red;">• Part of `SubnetParams` struct, can be updated by the subnet owner</span>
 
 - `AlphaValues`:
   - Description: The alpha values for liquid alpha.
