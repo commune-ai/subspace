@@ -1303,6 +1303,9 @@ fn yuma_change_permits() {
 fn decrypted_weights_are_stored() {
     new_test_ext().execute_with(|| {
         let netuid = 0;
+        let first_uid = register_module(netuid, 1, 10000, false).unwrap();
+        let second_uid = register_module(netuid, 2, 10000, false).unwrap();
+        let third_uid = register_module(netuid, 3, 10000, false).unwrap();
 
         let key = RsaPrivateKey::new(&mut OsRng, 2048).unwrap().to_public_key();
         let key = (key.n().to_bytes_be(), key.e().to_bytes_be());
@@ -1315,12 +1318,7 @@ fn decrypted_weights_are_stored() {
                 node_public_key: key.clone(),
             }),
         );
-
-        pallet_subspace::UseWeightsEncrytyption::<Test>::set(netuid, true);
-
-        let first_uid = register_module(netuid, 1, 10000, false).unwrap();
-        let second_uid = register_module(netuid, 2, 10000, false).unwrap();
-        let third_uid = register_module(netuid, 3, 10000, false).unwrap();
+        pallet_subspace::UseWeightsEncryption::<Test>::set(netuid, true);
 
         let first_uid_weights = vec![(second_uid, 50u16)];
         let second_uid_weights = vec![(first_uid, 100u16)];
@@ -1386,6 +1384,8 @@ fn decrypted_weights_are_stored() {
 fn decrypted_weight_run_result_is_applied_and_cleaned_up() {
     new_test_ext().execute_with(|| {
         let netuid = 0;
+        let first_uid = register_module(netuid, 1, 10000, false).unwrap();
+        let second_uid = register_module(netuid, 2, 10000, false).unwrap();
 
         let key = RsaPrivateKey::new(&mut OsRng, 2048).unwrap().to_public_key();
         let key = (key.n().to_bytes_be(), key.e().to_bytes_be());
@@ -1399,10 +1399,7 @@ fn decrypted_weight_run_result_is_applied_and_cleaned_up() {
             }),
         );
 
-        pallet_subspace::UseWeightsEncrytyption::<Test>::set(netuid, true);
-
-        let first_uid = register_module(netuid, 1, 10000, false).unwrap();
-        let second_uid = register_module(netuid, 2, 10000, false).unwrap();
+        pallet_subspace::UseWeightsEncryption::<Test>::set(netuid, true);
 
         let first_uid_weights = vec![(second_uid, 50u16)];
         let second_uid_weights = vec![(first_uid, 100u16)];
