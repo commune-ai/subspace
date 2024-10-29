@@ -26,7 +26,7 @@
         ];
         buildInputs = with pkgs;
           if pkgs.stdenv.isLinux
-          then generalBuildInputs ++ [ jemalloc gcc-unwrapped stdenv.cc.cc.lib ]
+          then generalBuildInputs ++ [ jemalloc ]
           else generalBuildInputs;
         nativeBuildInputs = with pkgs; [ git rust clang protobuf ];
 
