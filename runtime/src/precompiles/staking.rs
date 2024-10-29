@@ -54,11 +54,10 @@ impl StakingPrecompile {
 
     fn remove_stake(handle: &mut impl PrecompileHandle, data: Vec<u8>) -> PrecompileResult {
         let key = Self::extract_key(&data)?;
-        let amount = data.get(56..64).map(U256::from_big_endian).ok_or_else(|| {
-            PrecompileFailure::Error {
+        let amount =
+            data.get(56..64).map(U256::from_big_endian).ok_or(PrecompileFailure::Error {
                 exit_status: ExitError::OutOfFund,
-            }
-        })?;
+            })?;
         let amount = Self::convert_amount(amount)?;
 
         Self::dispatch(
@@ -79,12 +78,12 @@ impl StakingPrecompile {
     fn convert_amount(amount: U256) -> StakingResult<u128> {
         let balance =
             <Runtime as pallet_evm::Config>::BalanceConverter::into_substrate_balance(amount)
-                .ok_or_else(|| PrecompileFailure::Error {
+                .ok_or(PrecompileFailure::Error {
                     exit_status: ExitError::OutOfFund,
                 })?;
-        Ok(balance.try_into().map_err(|_| PrecompileFailure::Error {
+        balance.try_into().map_err(|_| PrecompileFailure::Error {
             exit_status: ExitError::OutOfFund,
-        })?)
+        })
     }
 
     fn dispatch(handle: &mut impl PrecompileHandle, call: RuntimeCall) -> PrecompileResult {
