@@ -70,6 +70,7 @@ pub struct SubnetParams<T: Config> {
     // weight copying
     pub use_weights_encryption: bool,
     pub copier_margin: I64F64,
+    pub max_encryption_period: Option<u64>,
 }
 
 #[derive(Decode, Encode, PartialEq, Eq, Clone, Debug, TypeInfo)]
@@ -113,6 +114,7 @@ impl<T: Config> DefaultSubnetParams<T> {
             metadata: None,
             use_weights_encryption: T::DefaultUseWeightsEncryption::get(),
             copier_margin: I64F64::from_num(0),
+            max_encryption_period: None,
         }
     }
 }

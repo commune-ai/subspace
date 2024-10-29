@@ -139,6 +139,7 @@ impl pallet_subspace::Config for Test {
     type PalletId = SubspacePalletId;
     type EnforceWhitelist = ConstBool<false>;
     type DefaultUseWeightsEncryption = ConstBool<false>;
+    type MaxEncryptionDuration = ConstU64<10_800>;
 }
 
 impl GovernanceApi<<Test as frame_system::Config>::AccountId> for Test {
@@ -436,7 +437,6 @@ where
 impl pallet_offworker::Config for Test {
     type AuthorityId = TestAuthId;
     type RuntimeEvent = RuntimeEvent;
-    type MaxEncryptionDuration = ConstU64<10_800>;
     type UnsignedPriority = ConstU64<100>;
 }
 

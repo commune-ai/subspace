@@ -174,6 +174,8 @@ pub mod errors {
         InvalidMinValidatorStake,
         /// The maximum allowed validators value is invalid, minimum is 10.
         InvalidMaxAllowedValidators,
+        /// The encryption period is too short or long, minimum is 360 blocks max is 20_880 blocks
+        InvalidMaxEncryptionPeriod,
         /// Subnet is using encrypted weight calls
         SubnetEncrypted,
         /// Subnet is not using encrypted weight calls

@@ -427,6 +427,8 @@ impl pallet_subspace::Config for Runtime {
     type DefaultMinValidatorStake = ConstU64<50_000_000_000_000>;
     type EnforceWhitelist = ConstBool<true>;
     type DefaultUseWeightsEncryption = ConstBool<true>;
+    // TODO: consider making this lower
+    type MaxEncryptionDuration = ConstU64<20_880>; // Close to 2 days
 }
 
 impl pallet_governance::Config for Runtime {
@@ -439,7 +441,6 @@ impl pallet_governance::Config for Runtime {
 impl pallet_offworker::Config for Runtime {
     type AuthorityId = pallet_offworker::crypto::AuthId;
     type RuntimeEvent = RuntimeEvent;
-    type MaxEncryptionDuration = ConstU64<20_880>; // Close to 2 days
     type UnsignedPriority = ConstU64<100>;
 }
 

@@ -246,6 +246,7 @@ pub mod pallet {
             max_allowed_validators: Option<u16>,
             use_weights_encryption: bool,
             copier_margin: I64F64,
+            max_encryption_period: Option<u64>,
         ) -> DispatchResult {
             let mut params = pallet_subspace::Pallet::subnet_params(netuid);
             params.founder = founder;
@@ -267,6 +268,7 @@ pub mod pallet {
             params.max_allowed_validators = max_allowed_validators;
             params.use_weights_encryption = use_weights_encryption;
             params.copier_margin = copier_margin;
+            params.max_encryption_period = max_encryption_period;
             Self::do_add_subnet_params_proposal(origin, netuid, data, params)
         }
 

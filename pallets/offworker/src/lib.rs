@@ -124,10 +124,6 @@ pub mod pallet {
         /// The overarching nevent type.
         type RuntimeEvent: From<Event<Self>> + IsType<<Self as frame_system::Config>::RuntimeEvent>;
 
-        /// Maximum number of blocks, weights can stay encrypted.
-        #[pallet::constant]
-        type MaxEncryptionDuration: Get<u64>;
-
         #[pallet::constant]
         type UnsignedPriority: Get<TransactionPriority>;
     }

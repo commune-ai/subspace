@@ -259,10 +259,8 @@ pub mod pallet {
     #[pallet::storage] // --- ITEM ( subnet_burn )
     pub type SubnetBurn<T: Config> = StorageValue<_, u64, ValueQuery, DefaultSubnetBurn<T>>;
 
-    // TODO: make these a subnet params
     #[pallet::storage]
-    pub type MaxEncryptionPeriod<T: Config> =
-        StorageMap<_, Identity, u16, u64, ValueQuery, ConstU64<2_000>>;
+    pub type MaxEncryptionPeriod<T: Config> = StorageMap<_, Identity, u16, Option<u64>, ValueQuery>;
 
     #[pallet::type_value]
     pub fn DefaultCopierMargin() -> I64F64 {

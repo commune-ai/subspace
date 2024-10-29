@@ -22,11 +22,11 @@
           rocksdb
           zstd.dev
           bashInteractive
-          openssl.dev  
+          openssl.dev
         ];
         buildInputs = with pkgs;
           if pkgs.stdenv.isLinux
-          then generalBuildInputs ++ [ jemalloc ]
+          then generalBuildInputs ++ [ jemalloc gcc-unwrapped stdenv.cc.cc.lib ]
           else generalBuildInputs;
         nativeBuildInputs = with pkgs; [ git rust clang protobuf ];
 
@@ -46,7 +46,7 @@
             ZSTD_SYS_USE_PKG_CONFIG = "true";
             OPENSSL_DIR = "${pkgs.openssl.dev}";
             OPENSSL_LIB_DIR = "${pkgs.openssl.out}/lib";
-            OPENSSL_INCLUDE_DIR = "${pkgs.openssl.dev}/include"; 
+            OPENSSL_INCLUDE_DIR = "${pkgs.openssl.dev}/include";
           } // nixpkgs.lib.optionalAttrs pkgs.stdenv.isLinux { JEMALLOC_OVERRIDE = "${pkgs.jemalloc}/lib/libjemalloc.so"; };
         };
 

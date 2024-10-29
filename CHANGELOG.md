@@ -74,19 +74,19 @@ Subspace Module:
   - Description: The maximum amount of blocks weights can stay encrypted for, a specific subnet.
   - Type: StorageMap<u16, u64>
   - Default: 2000
-  - <span style="color: red;">• Part of `SubnetParams` struct, can be updated by the subnet owner</span>
+  - • Part of `SubnetParams` struct, can be updated by the subnet owner
 
 - `CopierMargin`:
   - Description: Allowed percentage profit margin of rationality above full irrationality for the weight copying strategy.
   - Type: StorageMap<u16, I64F64>
   - Default: 0
-  - <span style="color: red;">• Part of `SubnetParams` struct, can be updated by the subnet owner</span>
+  - • Part of `SubnetParams` struct, can be updated by the subnet owner
 
 - `UseWeightsEncryption`:
   - Description: A flag to enable or disable weights encryption for a specific subnet.
   - Type: StorageMap<u16, bool>
   - Default: None (empty map)
-  - <span style="color: red;">• Part of `SubnetParams` struct, can be updated by the subnet owner</span>
+  - • Part of `SubnetParams` struct, can be updated by the subnet owner
 
 - `AlphaValues`:
   - Description: The alpha values for liquid alpha.
