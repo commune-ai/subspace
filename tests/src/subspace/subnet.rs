@@ -81,6 +81,7 @@ fn subnet_update_changes_all_parameter_values() {
             },
             use_weights_encryption: true,
             copier_margin: I64F64::from_num(0),
+            max_encryption_period: Some(20),
         };
 
         let SubnetParams {
@@ -103,6 +104,7 @@ fn subnet_update_changes_all_parameter_values() {
             governance_config,
             use_weights_encryption,
             copier_margin,
+            max_encryption_period,
         } = params.clone();
 
         SubnetChangeset::<Test>::update(netuid, params).unwrap().apply(netuid).unwrap();
@@ -142,6 +144,10 @@ fn subnet_update_changes_all_parameter_values() {
             use_weights_encryption
         );
         assert_eq!(CopierMargin::<Test>::get(netuid), copier_margin);
+        assert_eq!(
+            MaxEncryptionPeriod::<Test>::get(netuid),
+            max_encryption_period
+        );
     });
 }
 
@@ -247,6 +253,7 @@ fn update_subnet_verifies_names_uniquiness_integrity() {
                 params.max_allowed_validators,
                 params.use_weights_encryption,
                 params.copier_margin,
+                params.max_encryption_period,
             )
         };
 

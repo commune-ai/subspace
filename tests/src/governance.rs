@@ -330,6 +330,7 @@ fn subnet_params_proposal_accepted() {
             mut governance_config,
             use_weights_encryption,
             copier_margin,
+            max_encryption_period,
             ..
         } = SubspaceMod::subnet_params(0);
 
@@ -358,6 +359,7 @@ fn subnet_params_proposal_accepted() {
             max_allowed_validators,
             use_weights_encryption,
             copier_margin,
+            max_encryption_period,
         )
         .unwrap();
 

@@ -23,7 +23,6 @@ pub fn setup_subnet(netuid: u16, tempo: u64) {
     MinValidatorStake::<Test>::set(netuid, to_nano(10));
 
     // Things that should never expire / exceed
-    MaxEncryptionPeriod::<Test>::set(netuid, u64::MAX);
     MaxRegistrationsPerBlock::<Test>::set(u16::MAX);
     MaxAllowedUids::<Test>::set(netuid, u16::MAX);
     MaxAllowedWeights::<Test>::set(netuid, u16::MAX);

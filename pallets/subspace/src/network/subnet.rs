@@ -4,6 +4,7 @@ use frame_support::{
     pallet_prelude::DispatchResult, storage::IterableStorageMap, IterableStorageDoubleMap,
 };
 use pallet_subnet_emission_api::SubnetConsensus;
+use sp_core::Get;
 
 use sp_runtime::{BoundedVec, DispatchError};
 use sp_std::vec::Vec;
@@ -59,6 +60,7 @@ impl<T: Config> SubnetChangeset<T> {
             SubnetMetadata::<T>::insert(netuid, metadata);
         }
         MaxAllowedValidators::<T>::insert(netuid, self.params.max_allowed_validators);
+        MaxEncryptionPeriod::<T>::insert(netuid, self.params.max_encryption_period);
         UseWeightsEncryption::<T>::insert(netuid, self.params.use_weights_encryption);
         CopierMargin::<T>::insert(netuid, self.params.copier_margin);
 
@@ -141,6 +143,14 @@ impl<T: Config> SubnetChangeset<T> {
             );
         }
 
+        if let Some(max_encryption_period) = params.max_encryption_period {
+            ensure!(
+                max_encryption_period >= 360
+                    && max_encryption_period <= T::MaxEncryptionDuration::get(),
+                Error::<T>::InvalidMaxEncryptionPeriod
+            );
+        }
+
         match Pallet::<T>::get_netuid_for_name(&params.name) {
             Some(id) if netuid.is_some_and(|netuid| netuid == id) => { /* subnet kept same name */ }
             Some(_) => return Err(Error::<T>::SubnetNameAlreadyExists.into()),
@@ -184,6 +194,7 @@ impl<T: Config> Pallet<T> {
             metadata: SubnetMetadata::<T>::get(netuid),
             use_weights_encryption: UseWeightsEncryption::<T>::get(netuid),
             copier_margin: CopierMargin::<T>::get(netuid),
+            max_encryption_period: MaxEncryptionPeriod::<T>::get(netuid),
         }
     }
 
