@@ -99,7 +99,7 @@ impl ow_extensions::OffworkerExtension for MockOffworkerExt {
         };
 
         let public = rsa::RsaPublicKey::from(key);
-        Some((public.n().to_bytes_be(), public.e().to_bytes_le()))
+        Some((public.n().to_bytes_be(), public.e().to_bytes_be()))
     }
 }
 
