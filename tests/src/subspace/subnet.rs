@@ -81,7 +81,7 @@ fn subnet_update_changes_all_parameter_values() {
             },
             use_weights_encryption: true,
             copier_margin: I64F64::from_num(0),
-            max_encryption_period: Some(20),
+            max_encryption_period: Some(1000),
         };
 
         let SubnetParams {
