@@ -40,4 +40,9 @@
     "rust-analyzer.server.extraEnv": {
         "SKIP_WASM_BUILD": "1",
     },
+    "cSpell.words": [
+        "netuid",
+        "offchain",
+        "offworker"
+    ],
 }
