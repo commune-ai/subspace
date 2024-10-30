@@ -7,7 +7,7 @@ use pallet_subnet_emission::{
         params::{AccountKey, ModuleKey},
     },
     types::{DecryptionNodeInfo, SubnetDecryptionInfo},
-    ConsensusParameters, EncryptedWeights, Weights,
+    BannedDecryptionNodes, ConsensusParameters, EncryptedWeights, Weights,
 };
 use pallet_subspace::{Active, Consensus, Founder, PruningScores, Rank, Trust, ValidatorTrust};
 use parity_scale_codec::Encode;
@@ -1533,5 +1533,48 @@ fn rotate_decryption_node() {
                 .map(|info| info.node_id),
             Some(dn_2)
         );
+    });
+}
+
+#[test]
+fn ban_decryption_node() {
+    use sp_core::Get;
+    new_test_ext().execute_with(|| {
+        let netuid = 0;
+
+        let dn_1 = 1001;
+        let key_1 = RsaPrivateKey::new(&mut OsRng, 2048).unwrap().to_public_key();
+        let key_1 = (key_1.n().to_bytes_be(), key_1.e().to_bytes_be());
+
+        let first_uid = register_module(netuid, 1, 10000, false).unwrap();
+
+        let decryption_node_interval: u64 =
+            <Test as pallet_subnet_emission::Config>::DecryptionNodeRotationInterval::get();
+
+        pallet_subnet_emission::DecryptionNodes::<Test>::put(vec![DecryptionNodeInfo::<Test> {
+            account_id: dn_1,
+            last_keep_alive: 0,
+            public_key: key_1.clone(),
+        }]);
+
+        pallet_subnet_emission::SubnetDecryptionData::<Test>::set(
+            netuid,
+            Some(SubnetDecryptionInfo {
+                block_assigned: 0,
+                node_id: dn_1,
+                node_public_key: key_1,
+            }),
+        );
+
+        pallet_subspace::UseWeightsEncryption::<Test>::set(netuid, true);
+
+        let ping_interval: u64 = <Test as pallet_subnet_emission::Config>::PingInterval::get();
+        let max_failed_pings: u8 = <Test as pallet_subnet_emission::Config>::MaxFailedPings::get();
+        step_block((ping_interval * max_failed_pings as u64 + 1) as u16);
+
+        // one subnet with decryption node set
+        pallet_subnet_emission::DecryptionNodeCursor::<Test>::set(1);
+
+        assert_ne!(BannedDecryptionNodes::<Test>::get(dn_1), 0);
     });
 }
