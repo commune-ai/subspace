@@ -7,7 +7,8 @@ pub use pallet::*;
 use parity_scale_codec::{Decode, Encode};
 use scale_info::TypeInfo;
 use sp_std::{collections::btree_map::BTreeMap, vec::Vec};
-// ! Pallet that handles the emisson distribution amongs subnets
+
+// ! Pallet that handles the emission distribution amongst subnets
 
 // Pallet Imports
 // ==============
@@ -302,7 +303,7 @@ pub mod pallet {
         // Emission Distribution per Subnet
         // =================================
 
-        /// Returns emisison for every subnet
+        /// Returns emission for every subnet
         #[must_use]
         pub fn get_subnet_pricing(token_emission: u64) -> PricedSubnets {
             let rootnet_id = Self::get_consensus_netuid(SubnetConsensus::Root).unwrap_or(0);

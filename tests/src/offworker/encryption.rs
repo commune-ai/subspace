@@ -1,5 +1,9 @@
+use ow_extensions::OffworkerExtension;
 use rand::rngs::OsRng;
-use rsa::{traits::PublicKeyParts, BigUint, Pkcs1v15Encrypt, RsaPrivateKey, RsaPublicKey};
+use rsa::{
+    pkcs1::EncodeRsaPrivateKey, traits::PublicKeyParts, BigUint, Pkcs1v15Encrypt, RsaPrivateKey,
+    RsaPublicKey,
+};
 use sp_core::{sr25519, Pair};
 use sp_keystore::{testing::MemoryKeystore, Keystore};
 use sp_runtime::KeyTypeId;
@@ -162,4 +166,43 @@ pub fn encrypt(key: (Vec<u8>, Vec<u8>), data: Vec<(u16, u16)>, validator_key: Ve
             rsa_key.encrypt(&mut OsRng, Pkcs1v15Encrypt, chunk).expect("Encryption failed")
         })
         .collect()
+}
+
+#[test]
+fn encrypt_and_decrypt() {
+    // use rsa::traits::PrivateKeyParts;
+
+    let weights = vec![(1, 2), (3, 4)];
+    let validator_key = vec![11, 22, 33, 44];
+
+    let rsa_key = RsaPrivateKey::new(&mut OsRng, 1024).unwrap();
+    let mock_offworker_ext = MockOffworkerExt {
+        key: Some(rsa_key.clone()),
+    };
+
+    let rsa_key_pem = rsa_key.to_pkcs1_pem(rsa::pkcs8::LineEnding::LF).unwrap().to_string();
+
+    let pub_key = rsa_key.to_public_key();
+    let pub_key_tp = (pub_key.n().to_bytes_be(), pub_key.e().to_bytes_be());
+
+    let pub_key_n_hex = hex::encode(&pub_key_tp.0);
+    let pub_key_e_hex = hex::encode(&pub_key_tp.1);
+
+    println!("weights = {:?}", weights);
+    println!("validator_key = {:?}", validator_key);
+
+    println!("pub_key_n_hex = {:?}", pub_key_n_hex);
+    println!("pub_key_e_hex = {:?}", pub_key_e_hex);
+
+    println!("rsa_key_pem = {:?}", rsa_key_pem);
+
+    let encrypted = encrypt(pub_key_tp, weights.clone(), validator_key.clone());
+
+    let encrypted_hex = hex::encode(&encrypted);
+    println!("encrypted_hex = {:?}", encrypted_hex);
+
+    let (decrypted_weights, decrypted_key) = mock_offworker_ext.decrypt_weight(encrypted).unwrap();
+
+    assert_eq!(decrypted_weights, weights.clone());
+    assert_eq!(decrypted_key, validator_key.clone());
 }
