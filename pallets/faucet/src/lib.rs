@@ -53,6 +53,12 @@ pub mod pallet {
                 return InvalidTransaction::Call.into();
             };
 
+            let current_block = <system::Pallet<T>>::block_number();
+            let target_block = BlockNumberFor::<T>::from(*block_number as u32);
+            if current_block < target_block {
+                return InvalidTransaction::Future.into();
+            }
+
             let key = T::Lookup::lookup(key.clone())?;
 
             let key_balance = PalletSubspace::<T>::get_balance_u64(&key);

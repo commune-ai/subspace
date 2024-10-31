@@ -135,12 +135,14 @@ pub mod pallet {
         fn validate_unsigned(_source: TransactionSource, call: &Self::Call) -> TransactionValidity {
             match call {
                 Call::send_decrypted_weights { payload, signature } => {
-                    Self::validate_signature_and_authority(payload, signature)?;
-                    Self::validate_unsigned_transaction(&payload.block_number, "DecryptedWeights")
+                    let block_number = payload.block_number;
+                    Self::validate_signature_and_authority(&block_number, payload, signature)?;
+                    Self::validate_unsigned_transaction(&block_number, "DecryptedWeights")
                 }
                 Call::send_ping { payload, signature } => {
-                    Self::validate_signature_and_authority(payload, signature)?;
-                    Self::validate_unsigned_transaction(&payload.block_number, "KeepAlive")
+                    let block_number = payload.block_number;
+                    Self::validate_signature_and_authority(&block_number, payload, signature)?;
+                    Self::validate_unsigned_transaction(&block_number, "KeepAlive")
                 }
                 _ => InvalidTransaction::Call.into(),
             }
@@ -224,11 +226,19 @@ pub mod pallet {
 
 impl<T: Config> Pallet<T> {
     fn validate_signature_and_authority<P: SignedPayload<T>>(
+        block_number: &BlockNumberFor<T>,
         payload: &P,
         signature: &T::Signature,
     ) -> Result<(), InvalidTransaction> {
+        let current_block = <system::Pallet<T>>::block_number();
+        if &current_block < block_number {
+            return Err(InvalidTransaction::Future);
+        }
+
+        log::info!("Validating signature and authority");
         // Verify the signature, this just ensures the signature matches the public key
         if !SignedPayload::<T>::verify::<T::AuthorityId>(payload, signature.clone()) {
+            log::info!("Authority Signature is invalid");
             return Err(InvalidTransaction::BadProof);
         }
 
@@ -236,6 +246,7 @@ impl<T: Config> Pallet<T> {
         let account_id = payload.public().clone().into_account();
         let authorities = Authorities::<T>::get();
         if !authorities.iter().any(|(account, _)| account == &account_id) {
+            log::info!("Signer is not an authority");
             return Err(InvalidTransaction::BadSigner);
         }
 
@@ -246,11 +257,6 @@ impl<T: Config> Pallet<T> {
         block_number: &BlockNumberFor<T>,
         tag_prefix: &'static str,
     ) -> TransactionValidity {
-        let current_block = <system::Pallet<T>>::block_number();
-        if current_block > *block_number {
-            return InvalidTransaction::Stale.into();
-        }
-
         ValidTransaction::with_tag_prefix(tag_prefix)
             .priority(T::UnsignedPriority::get())
             .and_provides(block_number)
