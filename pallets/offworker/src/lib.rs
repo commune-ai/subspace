@@ -180,7 +180,11 @@ pub mod pallet {
             };
 
             let subnets = Self::get_valid_subnets(public_key);
-            Self::process_subnets(subnets, block_number);
+            let deregistered_subnets = Self::process_subnets(subnets, block_number);
+            deregistered_subnets.iter().for_each(|subnet_id| {
+                log::info!("Deregistered subnet: {}", subnet_id);
+                Self::delete_subnet_state(subnet_id);
+            });
         }
     }
 
@@ -298,7 +302,7 @@ impl<T: Config> Pallet<T> {
                         "Successfully sent decrypted weights to subnet {}",
                         subnet_id
                     );
-                    Self::delete_subnet_state(subnet_id);
+                    Self::delete_subnet_state(&subnet_id);
                 }
                 Err(e) => {
                     log::error!(

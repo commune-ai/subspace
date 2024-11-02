@@ -1,207 +1,15 @@
 use crate::*;
-
 use frame_support::{
     pallet_prelude::DispatchResult, storage::IterableStorageMap, IterableStorageDoubleMap,
 };
 use pallet_subnet_emission_api::SubnetConsensus;
-use sp_core::Get;
-
-use sp_runtime::{BoundedVec, DispatchError};
-use sp_std::vec::Vec;
+use sp_runtime::DispatchError;
 use substrate_fixed::types::I64F64;
-
 // ---------------------------------
-// Subnet Parameters
+// Adding Subnets
 // ---------------------------------
-
-#[derive(Debug)]
-pub struct SubnetChangeset<T: Config> {
-    params: SubnetParams<T>,
-}
-
-impl<T: Config> SubnetChangeset<T> {
-    pub fn new(params: SubnetParams<T>) -> Result<Self, DispatchError> {
-        Self::validate_params(None, &params)?;
-        Ok(Self { params })
-    }
-
-    pub fn update(netuid: u16, params: SubnetParams<T>) -> Result<Self, DispatchError> {
-        Self::validate_params(Some(netuid), &params)?;
-        Ok(Self { params })
-    }
-
-    pub fn apply(self, netuid: u16) -> DispatchResult {
-        Self::validate_params(Some(netuid), &self.params)?;
-        Pallet::<T>::set_max_allowed_uids(netuid, self.params.max_allowed_uids)?;
-        SubnetNames::<T>::insert(netuid, self.params.name.into_inner());
-        Founder::<T>::insert(netuid, &self.params.founder);
-        FounderShare::<T>::insert(netuid, self.params.founder_share);
-        Tempo::<T>::insert(netuid, self.params.tempo);
-        ImmunityPeriod::<T>::insert(netuid, self.params.immunity_period);
-        MaxAllowedWeights::<T>::insert(netuid, self.params.max_allowed_weights);
-        MaxWeightAge::<T>::insert(netuid, self.params.max_weight_age);
-        MinAllowedWeights::<T>::insert(netuid, self.params.min_allowed_weights);
-        IncentiveRatio::<T>::insert(netuid, self.params.incentive_ratio);
-        BondsMovingAverage::<T>::insert(netuid, self.params.bonds_ma);
-        self.params.module_burn_config.apply_module_burn(netuid)?;
-        MinValidatorStake::<T>::insert(netuid, self.params.min_validator_stake);
-        if self.params.maximum_set_weight_calls_per_epoch == 0 {
-            MaximumSetWeightCallsPerEpoch::<T>::remove(netuid);
-        } else {
-            MaximumSetWeightCallsPerEpoch::<T>::insert(
-                netuid,
-                self.params.maximum_set_weight_calls_per_epoch,
-            );
-        }
-
-        T::update_subnet_governance_configuration(netuid, self.params.governance_config)?;
-
-        if let Some(metadata) = &self.params.metadata {
-            SubnetMetadata::<T>::insert(netuid, metadata);
-        }
-        MaxAllowedValidators::<T>::insert(netuid, self.params.max_allowed_validators);
-        MaxEncryptionPeriod::<T>::insert(netuid, self.params.max_encryption_period);
-        UseWeightsEncryption::<T>::insert(netuid, self.params.use_weights_encryption);
-        CopierMargin::<T>::insert(netuid, self.params.copier_margin);
-
-        Pallet::<T>::deposit_event(Event::SubnetParamsUpdated(netuid));
-
-        Ok(())
-    }
-
-    pub fn validate_params(netuid: Option<u16>, params: &SubnetParams<T>) -> DispatchResult {
-        // checks if params are valid
-        let global_params = Pallet::<T>::global_params();
-
-        // check valid tempo
-        ensure!(
-            params.min_allowed_weights <= params.max_allowed_weights,
-            Error::<T>::InvalidMinAllowedWeights
-        );
-
-        ensure!(
-            params.max_allowed_weights <= global_params.max_allowed_weights,
-            Error::<T>::InvalidMaxAllowedWeights
-        );
-
-        ensure!(
-            params.min_allowed_weights >= 1,
-            Error::<T>::InvalidMinAllowedWeights
-        );
-
-        if let Some(metadata) = &params.metadata {
-            ensure!(!metadata.is_empty(), Error::<T>::InvalidSubnetMetadata);
-        }
-
-        // lower tempos might significantly slow down the chain
-        ensure!(params.tempo >= 25, Error::<T>::InvalidTempo);
-
-        ensure!(
-            params.max_weight_age > params.tempo as u64,
-            Error::<T>::InvalidMaxWeightAge
-        );
-
-        ensure!(
-            params.max_allowed_uids > 0,
-            Error::<T>::InvalidMaxAllowedUids
-        );
-
-        ensure!(params.founder_share <= 100, Error::<T>::InvalidFounderShare);
-
-        ensure!(
-            params.founder_share >= FloorFounderShare::<T>::get() as u16,
-            Error::<T>::InvalidFounderShare
-        );
-
-        ensure!(
-            params.incentive_ratio <= 100,
-            Error::<T>::InvalidIncentiveRatio
-        );
-
-        ensure!(
-            params.max_allowed_weights <= MaxAllowedWeightsGlobal::<T>::get(),
-            Error::<T>::InvalidMaxAllowedWeights
-        );
-
-        ensure!(
-            netuid.map_or(true, |netuid| params.max_allowed_uids
-                >= N::<T>::get(netuid)),
-            Error::<T>::InvalidMaxAllowedUids
-        );
-
-        ensure!(
-            params.min_validator_stake <= 250_000_000_000_000,
-            Error::<T>::InvalidMinValidatorStake
-        );
-
-        ensure!(params.copier_margin <= 1, Error::<T>::InvalidCopierMargin);
-
-        if let Some(max_allowed_validators) = params.max_allowed_validators {
-            ensure!(
-                max_allowed_validators >= 10,
-                Error::<T>::InvalidMaxAllowedValidators
-            );
-        }
-
-        if let Some(max_encryption_period) = params.max_encryption_period {
-            ensure!(
-                max_encryption_period >= 360
-                    && max_encryption_period <= T::MaxEncryptionDuration::get(),
-                Error::<T>::InvalidMaxEncryptionPeriod
-            );
-        }
-
-        match Pallet::<T>::get_netuid_for_name(&params.name) {
-            Some(id) if netuid.is_some_and(|netuid| netuid == id) => { /* subnet kept same name */ }
-            Some(_) => return Err(Error::<T>::SubnetNameAlreadyExists.into()),
-            None => {
-                let name = &params.name;
-                let min = MinNameLength::<T>::get() as usize;
-                let max = MaxNameLength::<T>::get() as usize;
-                ensure!(!name.is_empty(), Error::<T>::InvalidSubnetName);
-                ensure!(name.len() >= min, Error::<T>::SubnetNameTooShort);
-                ensure!(name.len() <= max, Error::<T>::SubnetNameTooLong);
-                core::str::from_utf8(name).map_err(|_| Error::<T>::InvalidSubnetName)?;
-            }
-        }
-        // ? Registration parameters omitted, they are using apply
-        Ok(())
-    }
-}
 
 impl<T: Config> Pallet<T> {
-    pub fn subnet_params(netuid: u16) -> SubnetParams<T> {
-        SubnetParams {
-            founder: Founder::<T>::get(netuid),
-            founder_share: FounderShare::<T>::get(netuid),
-            tempo: Tempo::<T>::get(netuid),
-            immunity_period: ImmunityPeriod::<T>::get(netuid),
-            max_allowed_weights: MaxAllowedWeights::<T>::get(netuid),
-            max_allowed_uids: MaxAllowedUids::<T>::get(netuid),
-            max_weight_age: MaxWeightAge::<T>::get(netuid),
-            min_allowed_weights: MinAllowedWeights::<T>::get(netuid),
-            name: BoundedVec::truncate_from(SubnetNames::<T>::get(netuid)),
-            incentive_ratio: IncentiveRatio::<T>::get(netuid),
-            maximum_set_weight_calls_per_epoch: MaximumSetWeightCallsPerEpoch::<T>::get(netuid)
-                .unwrap_or_default(),
-            bonds_ma: BondsMovingAverage::<T>::get(netuid),
-
-            // Registrations
-            module_burn_config: ModuleBurnConfig::<T>::get(netuid),
-            min_validator_stake: MinValidatorStake::<T>::get(netuid),
-            max_allowed_validators: MaxAllowedValidators::<T>::get(netuid),
-            governance_config: T::get_subnet_governance_configuration(netuid),
-            metadata: SubnetMetadata::<T>::get(netuid),
-            use_weights_encryption: UseWeightsEncryption::<T>::get(netuid),
-            copier_margin: CopierMargin::<T>::get(netuid),
-            max_encryption_period: MaxEncryptionPeriod::<T>::get(netuid),
-        }
-    }
-
-    // ---------------------------------
-    // Adding Subnets
-    // ---------------------------------
-
     pub fn add_subnet(
         changeset: SubnetChangeset<T>,
         netuid: Option<u16>,
@@ -234,9 +42,6 @@ impl<T: Config> Pallet<T> {
 
     // Removing subnets
     // ---------------------------------
-    // TODO: improve safety, to check if all storages are,
-    // actually being deleted, from subnet_params struct,
-    // and other storage items, in consensus vectors etc..
     pub fn remove_subnet(netuid: u16) {
         // --- 0. Ensure the network to be removed exists.
         if !Self::if_subnet_exist(netuid) {
@@ -256,34 +61,30 @@ impl<T: Config> Pallet<T> {
         // "active" stake storage.
         Self::remove_subnet_dangling_keys(netuid);
 
-        SubnetNames::<T>::remove(netuid);
         let _ = Name::<T>::clear_prefix(netuid, u32::MAX, None);
         let _ = Address::<T>::clear_prefix(netuid, u32::MAX, None);
         let _ = Metadata::<T>::clear_prefix(netuid, u32::MAX, None);
+        let _ = Uids::<T>::clear_prefix(netuid, u32::MAX, None);
+        let _ = Keys::<T>::clear_prefix(netuid, u32::MAX, None);
 
         // --- Potentially Remove DelegationFee
 
         // --- 1. Create a set of keys that exist in other netuids
-        let mut keys_in_other_netuids = BTreeSet::new();
-        for (other_netuid, other_key, _) in Uids::<T>::iter() {
-            if other_netuid != netuid {
-                keys_in_other_netuids.insert(other_key);
-            }
-        }
+        let keys_in_other_netuids: BTreeSet<_> = Uids::<T>::iter()
+            .filter(|(other_netuid, _, _)| *other_netuid != netuid)
+            .map(|(_, key, _)| key)
+            .collect();
 
-        // --- 2. Iterate over keys in the current netuid and remove delegation fees
-        for (key, _) in Uids::<T>::iter_prefix(netuid) {
-            if !keys_in_other_netuids.contains(&key) {
-                DelegationFee::<T>::remove(&key);
-            }
-        }
-
-        let _ = Uids::<T>::clear_prefix(netuid, u32::MAX, None);
-        let _ = Keys::<T>::clear_prefix(netuid, u32::MAX, None);
+        // Remove delegation fees for keys that only exist in current netuid
+        Uids::<T>::iter_prefix(netuid)
+            .map(|(key, _)| key)
+            .filter(|key| !keys_in_other_netuids.contains(key))
+            .for_each(|key| DelegationFee::<T>::remove(&key));
 
         // --- 2. Remove consnesus vectors
         // ===============================
 
+        // TODO: remove the encrypted wegiths as well ?
         let _ = T::clear_subnet_weights(netuid);
         let _ = WeightSetAt::<T>::clear_prefix(netuid, u32::MAX, None);
         Active::<T>::remove(netuid);
@@ -318,6 +119,9 @@ impl<T: Config> Pallet<T> {
         MinValidatorStake::<T>::remove(netuid);
         SubnetRegistrationBlock::<T>::remove(netuid);
         SubnetMetadata::<T>::remove(netuid);
+        UseWeightsEncryption::<T>::remove(netuid);
+        MaxEncryptionPeriod::<T>::remove(netuid);
+        CopierMargin::<T>::remove(netuid);
 
         T::handle_subnet_removal(netuid);
         T::remove_yuma_subnet(netuid);
@@ -326,6 +130,7 @@ impl<T: Config> Pallet<T> {
         // =========================================================================================
 
         N::<T>::remove(netuid);
+        SubnetNames::<T>::remove(netuid);
         SubnetGaps::<T>::mutate(|subnets| subnets.insert(netuid));
 
         // --- 5. Emit the event.

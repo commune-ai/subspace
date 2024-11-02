@@ -36,6 +36,7 @@ frame-benchmarking = { workspace = true, optional = true }
 frame-support = { workspace = true }
 frame-system = { workspace = true }
 
+
 pallet-governance-api = { path = "../governance/api", default-features = false }
 pallet-subnet-emission-api = { path = "../subnet_emission/api", default-features = false }
 pallet-subspace = { path = "../subspace", default-features = false }

@@ -185,7 +185,7 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
     //   `spec_version`, and `authoring_version` are the same between Wasm and native.
     // This value is set to 100 to notify Polkadot-JS App (https://polkadot.js.org/apps) to use
     //   the compatible custom types.
-    spec_version: 125,
+    spec_version: 431,
     impl_version: 1,
     apis: RUNTIME_API_VERSIONS,
     transaction_version: 1,
@@ -1388,6 +1388,8 @@ impl pallet_subnet_emission_api::SubnetEmissionApi for Runtime {
         }
     }
 
+    // TODO:
+    // we should probably clear the encrypted weights as well
     fn clear_subnet_weights(netuid: u16) -> Option<Vec<(u16, Vec<(u16, u16)>)>> {
         let old_weights = pallet_subnet_emission::Weights::<Runtime>::iter_prefix(netuid)
             .collect::<Vec<(_, Vec<_>)>>();
