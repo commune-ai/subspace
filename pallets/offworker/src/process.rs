@@ -12,10 +12,21 @@ impl<T: Config> Pallet<T> {
             .collect()
     }
 
-    pub fn process_subnets(subnets: Vec<u16>, current_block: u64) {
+    pub fn process_subnets(subnets: Vec<u16>, current_block: u64) -> Vec<u16> {
+        let mut deregistered_subnets = Vec::new();
+
         subnets.into_iter().for_each(|subnet_id| {
             let params = ConsensusParameters::<T>::iter_prefix(subnet_id).collect::<Vec<_>>();
             let max_block = params.iter().map(|(block, _)| *block).max().unwrap_or(0);
+            let subnet_registration_block =
+                pallet_subspace::SubnetRegistrationBlock::<T>::get(subnet_id).unwrap_or(0);
+
+            // check if subnet wasn't deregistered in the meantime
+            if subnet_registration_block > current_block {
+                log::info!("Skipping subnet {} as it has been deregistered", subnet_id);
+                deregistered_subnets.push(subnet_id);
+                return;
+            }
 
             let copier_margin = CopierMargin::<T>::get(subnet_id);
             let max_encryption_period = MaxEncryptionPeriod::<T>::get(subnet_id)
@@ -63,6 +74,8 @@ impl<T: Config> Pallet<T> {
                 );
             }
         });
+
+        deregistered_subnets
     }
 
     fn get_subnet_state(
@@ -115,7 +128,7 @@ impl<T: Config> Pallet<T> {
         storage.set(&(last_processed_block, simulation_result));
     }
 
-    pub fn delete_subnet_state(subnet_id: u16) {
+    pub fn delete_subnet_state(subnet_id: &u16) {
         let storage_key = alloc::format!("subnet_state:{subnet_id}");
         let mut storage = StorageValueRef::persistent(storage_key.as_bytes());
         storage.clear();

@@ -58,12 +58,12 @@ pub mod dispatches {
             ensure_none(origin)?;
 
             let KeepAlivePayload {
-                public_key,
+                public_key: _,
                 block_number,
-                public: _,
+                public,
             } = payload;
 
-            pallet_subnet_emission::Pallet::<T>::handle_authority_node_ping(public_key);
+            pallet_subnet_emission::Pallet::<T>::handle_authority_node_ping(public.into_account());
 
             Self::deposit_event(Event::KeepAliveSent { block_number });
             Ok(().into())

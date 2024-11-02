@@ -211,38 +211,71 @@ impl<T: Config> Pallet<T> {
 
     /// Adds a new active authority node to the list of active authority nodes.
     /// If the node is already in the list, it will be updated with a new time.
-    pub fn do_handle_authority_node_ping(public_key: (Vec<u8>, Vec<u8>)) {
+    pub fn handle_authority_node_ping(account_id: T::AccountId) {
+        log::info!(
+            "Starting authority node ping handling for account: {:?}",
+            account_id
+        );
+
         // Get the current list of active authority nodes
         let mut active_authority_nodes = DecryptionNodes::<T>::get();
+        log::info!(
+            "Current active authority nodes count: {}",
+            active_authority_nodes.len()
+        );
 
         // Get the current block number
         let current_block = pallet_subspace::Pallet::<T>::get_current_block_number();
+        log::info!("Current block number: {:?}", current_block);
 
-        // Find the matching account id for the given public key
+        // Find the matching public key for the given account id
         let authorities = Authorities::<T>::get();
-        let account_id = authorities
-            .iter()
-            .find(|(_, auth_public_key)| auth_public_key == &public_key)
-            .map(|(account, _)| account.clone());
+        log::info!("Total authorities count: {}", authorities.len());
 
-        if let Some(account_id) = account_id {
+        let public_key = authorities
+            .iter()
+            .find(|(auth_account_id, _)| auth_account_id == &account_id)
+            .map(|(_, pub_key)| pub_key.clone());
+
+        match &public_key {
+            Some(key) => {
+                log::info!("Found matching public key for account {:?}", account_id);
+                log::info!("Public key: {:?}", key);
+            }
+            None => {
+                log::info!("No matching public key found for account {:?}", account_id);
+                return;
+            }
+        }
+
+        if let Some(public_key) = public_key {
             // Update or add the authority node
             if let Some(node) =
                 active_authority_nodes.iter_mut().find(|node| node.account_id == account_id)
             {
                 // Update existing node
+                log::info!("Updating existing authority node's last_keep_alive");
+                log::info!("Previous last_keep_alive: {:?}", node.last_keep_alive);
                 node.last_keep_alive = current_block;
+                log::info!("Updated last_keep_alive to: {:?}", current_block);
             } else {
                 // Add new node
+                log::info!("Adding new authority node to active nodes list");
                 active_authority_nodes.push(DecryptionNodeInfo {
-                    account_id,
+                    account_id: account_id.clone(),
                     public_key,
                     last_keep_alive: current_block,
                 });
+                log::info!(
+                    "New total active nodes count: {}",
+                    active_authority_nodes.len()
+                );
             }
 
             // Update the storage
+            log::info!("Updating DecryptionNodes storage");
             DecryptionNodes::<T>::set(active_authority_nodes);
+            log::info!("Authority node ping handling completed successfully");
         }
     }
 
@@ -257,6 +290,7 @@ impl<T: Config> Pallet<T> {
     }
 
     pub fn cancel_expired_offchain_workers(block_number: u64) {
+        // TODO: flawed logic, should be fixed
         let max_inactivity_blocks =
             T::PingInterval::get().saturating_mul(T::MaxFailedPings::get() as u64);
 
@@ -265,9 +299,12 @@ impl<T: Config> Pallet<T> {
             .filter_map(|subnet_id| {
                 SubnetDecryptionData::<T>::get(subnet_id).map(|info| (subnet_id, info))
             })
+            // This should instead check for the last sent ming, not assigned block
             .filter(|(_, info)| {
                 block_number.saturating_sub(info.block_assigned) > max_inactivity_blocks
             })
+            // Todo: add further filter that compares assinged with max encryption duration (s owe
+            // have ping based and static based cancelation)
             .for_each(|(subnet_id, info)| Self::cancel_offchain_worker(subnet_id, &info));
     }
 

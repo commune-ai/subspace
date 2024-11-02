@@ -42,7 +42,7 @@ pub mod pallet {
     use pallet_subspace::TotalStake;
     use subnet_pricing::root::RootPricing;
 
-    const STORAGE_VERSION: StorageVersion = StorageVersion::new(0);
+    const STORAGE_VERSION: StorageVersion = StorageVersion::new(1);
 
     #[pallet::pallet]
     #[pallet::storage_version(STORAGE_VERSION)]
@@ -99,10 +99,14 @@ pub mod pallet {
         type PingInterval: Get<u64>;
     }
 
-    // Storage
-    // ==========
+    type BalanceOf<T> =
+        <<T as Config>::Currency as Currency<<T as frame_system::Config>::AccountId>>::Balance;
 
-    // Weight Related
+    // Output of every subnet pricing mechanism
+    pub type PricedSubnets = BTreeMap<u16, u64>;
+
+    // --- Subnet Related Storage ---
+    // ! This storage has to be removed upon subnet removal
 
     #[pallet::storage]
     pub type Weights<T> = StorageDoubleMap<_, Identity, u16, Identity, u16, Vec<(u16, u16)>>;
@@ -110,7 +114,7 @@ pub mod pallet {
     #[pallet::storage]
     pub type EncryptedWeights<T> = StorageDoubleMap<_, Identity, u16, Identity, u16, Vec<u8>>;
 
-    // Weight copying preventions
+    // TODO: refactor the `Vec<(u64, Vec<(u16, Vec<(u16, u16)>)>)>`
     #[pallet::storage]
     pub type DecryptedWeights<T> =
         StorageMap<_, Identity, u16, Vec<(u64, Vec<(u16, Vec<(u16, u16)>)>)>>;
@@ -118,31 +122,20 @@ pub mod pallet {
     #[pallet::storage]
     pub type DecryptedWeightHashes<T> = StorageDoubleMap<_, Identity, u16, Identity, u16, Vec<u8>>;
 
-    /// Association of signing public keys with associated rsa encryption public keys.
-    #[pallet::storage]
-    pub type Authorities<T: Config> =
-        StorageValue<_, BoundedVec<(T::AccountId, PublicKey), T::MaxAuthorities>, ValueQuery>;
-
-    /// This storage is managed dynamically based on the do_keep_alive offchain worker call
-    /// It is built from the authority keys
-    #[pallet::storage]
-    pub type DecryptionNodes<T> = StorageValue<_, Vec<DecryptionNodeInfo<T>>, ValueQuery>;
-
-    /// Stores non responsive decryption nodes
-    #[pallet::storage]
-    pub type BannedDecryptionNodes<T: Config> =
-        StorageMap<_, Identity, T::AccountId, u64, ValueQuery>;
-
     /// Decryption Node Info assigned to subnet
     #[pallet::storage]
     pub type SubnetDecryptionData<T> = StorageMap<_, Identity, u16, SubnetDecryptionInfo<T>>;
 
     #[pallet::storage]
-    pub type DecryptionNodeCursor<T> = StorageValue<_, u16, ValueQuery>;
+    pub type SubnetConsensusType<T> = StorageMap<_, Identity, u16, SubnetConsensus>;
 
-    // Subnet Pricing & Consensus
+    // --- Storage Maps ---
+    // ? Does not have to be removed upon subnet removal
+
+    /// Stores non responsive decryption nodes
     #[pallet::storage]
-    pub type UnitEmission<T> = StorageValue<_, u64, ValueQuery, ConstU64<23148148148>>;
+    pub type BannedDecryptionNodes<T: Config> =
+        StorageMap<_, Identity, T::AccountId, u64, ValueQuery>;
 
     #[pallet::storage]
     pub type PendingEmission<T> = StorageMap<_, Identity, u16, u64, ValueQuery>;
@@ -150,19 +143,29 @@ pub mod pallet {
     #[pallet::storage]
     pub type SubnetEmission<T> = StorageMap<_, Identity, u16, u64, ValueQuery>;
 
+    // --- Storage Values ---
+
+    /// This storage is managed dynamically based on the do_keep_alive offchain worker call
+    /// It is built from the authority keys
     #[pallet::storage]
-    pub type SubnetConsensusType<T> = StorageMap<_, Identity, u16, SubnetConsensus>;
+    pub type DecryptionNodes<T> = StorageValue<_, Vec<DecryptionNodeInfo<T>>, ValueQuery>;
+
+    #[pallet::storage]
+    pub type DecryptionNodeCursor<T> = StorageValue<_, u16, ValueQuery>;
+
+    /// Association of signing public keys with associated rsa encryption public keys.
+    #[pallet::storage]
+    pub type Authorities<T: Config> =
+        StorageValue<_, BoundedVec<(T::AccountId, PublicKey), T::MaxAuthorities>, ValueQuery>;
+
+    // Subnet Pricing & Consensus
+    #[pallet::storage]
+    pub type UnitEmission<T> = StorageValue<_, u64, ValueQuery, ConstU64<23148148148>>;
 
     /// Netuid, to block number to consensus parameters
     #[pallet::storage]
     pub type ConsensusParameters<T> =
         StorageDoubleMap<_, Identity, u16, Identity, u64, ConsensusParams<T>, OptionQuery>;
-
-    type BalanceOf<T> =
-        <<T as Config>::Currency as Currency<<T as frame_system::Config>::AccountId>>::Balance;
-
-    // Output of every subnet pricing mechanism
-    pub type PricedSubnets = BTreeMap<u16, u64>;
 
     // Emission Allocation per Block step
     // ==================================
@@ -321,10 +324,6 @@ pub mod pallet {
 
         pub fn handle_decrypted_weights(netuid: u16, weights: Vec<BlockWeights>) {
             Self::do_handle_decrypted_weights(netuid, weights);
-        }
-
-        pub fn handle_authority_node_ping(public_key: (Vec<u8>, Vec<u8>)) {
-            Self::do_handle_authority_node_ping(public_key);
         }
     }
 
