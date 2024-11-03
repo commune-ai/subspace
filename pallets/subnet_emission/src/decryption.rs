@@ -309,12 +309,12 @@ impl<T: Config> Pallet<T> {
             .filter_map(|subnet_id| {
                 SubnetDecryptionData::<T>::get(subnet_id).map(|info| (subnet_id, info))
             })
-            // This should instead check for the last sent ming, not assigned block
             .filter(|(_, info)| {
-                block_number.saturating_sub(info.last_keep_alive) > max_inactivity_blocks
+                block_number.saturating_sub(info.last_keep_alive) > max_inactivity_blocks // this allows us to catch "exploded" offchain workers much faster
+                    || block_number.saturating_sub(info.block_assigned)
+                        > T::MaxEncryptionDuration::get() + 100 // add some extra space for the
+                                                                // offchain worker to finish send
             })
-            // Todo: add further filter that compares assinged with max encryption duration (s owe
-            // have ping based and static based cancelation)
             .for_each(|(subnet_id, info)| Self::cancel_offchain_worker(subnet_id, &info));
     }
 
