@@ -391,9 +391,8 @@ pub mod pallet {
         /// A new application has been created.
         ApplicationCreated(u64),
     }
-    // ---------------------------------
-    // Errors
-    // ---------------------------------
+
+    // ---  Errors ---
 
     #[pallet::error]
     pub enum Error<T> {
