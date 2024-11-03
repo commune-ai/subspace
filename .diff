@@ -5,24 +5,24 @@ index 944a429d..4c9b2365 100644
 @@ -48,8 +48,9 @@ impl<T: Config> Pallet<T> {
                  continue;
              }
- 
+
 -            let encrypted_weights: Vec<Vec<u8>> =
 -                EncryptedWeights::<T>::iter_prefix(netuid).map(|(_, value)| value).collect();
 +            let encrypted_weights: Vec<Vec<u8>> = WeightEncryptionData::<T>::iter_prefix(netuid)
 +                .map(|(_, value)| value.encrypted)
 +                .collect();
- 
+
              if encrypted_weights.is_empty() {
                  continue;
 @@ -333,8 +334,8 @@ impl<T: Config> Pallet<T> {
          // Clear encrypted weights
          DecryptedWeights::<T>::remove(subnet_id);
- 
+
 -        // Clear hashes
 -        let _ = DecryptedWeightHashes::<T>::clear_prefix(subnet_id, u32::MAX, None);
 +        // Clear hashes & encrypted weights
 +        let _ = WeightEncryptionData::<T>::clear_prefix(subnet_id, u32::MAX, None);
- 
+
          // Clear ConsensusParameters and sum up token emission
          let current_block = pallet_subspace::Pallet::<T>::get_current_block_number();
 diff --git a/pallets/subnet_emission/src/lib.rs b/pallets/subnet_emission/src/lib.rs
@@ -34,13 +34,13 @@ index 0c2b6a33..baa69dd1 100644
      use pallet_subspace::TotalStake;
      use subnet_pricing::root::RootPricing;
 +    use types::KeylessBlockWeights;
- 
+
      const STORAGE_VERSION: StorageVersion = StorageVersion::new(1);
- 
+
 @@ -112,16 +113,18 @@ pub mod pallet {
      #[pallet::storage]
      pub type Weights<T> = StorageDoubleMap<_, Identity, u16, Identity, u16, Vec<(u16, u16)>>;
- 
+
 -    #[pallet::storage]
 -    pub type EncryptedWeights<T> = StorageDoubleMap<_, Identity, u16, Identity, u16, Vec<u8>>;
 +    #[derive(Encode, Decode, RuntimeDebug)]
@@ -48,18 +48,18 @@ index 0c2b6a33..baa69dd1 100644
 +        pub encrypted: Vec<u8>,
 +        pub decrypted_hashes: Vec<u8>,
 +    }
- 
+
 -    // TODO: refactor the `Vec<(u64, Vec<(u16, Vec<(u16, u16)>)>)>`
      #[pallet::storage]
 -    pub type DecryptedWeights<T> =
 -        StorageMap<_, Identity, u16, Vec<(u64, Vec<(u16, Vec<(u16, u16)>)>)>>;
 +    pub type WeightEncryptionData<T> =
 +        StorageDoubleMap<_, Identity, u16, Identity, u16, EncryptionMechanism>;
- 
+
      #[pallet::storage]
 -    pub type DecryptedWeightHashes<T> = StorageDoubleMap<_, Identity, u16, Identity, u16, Vec<u8>>;
 +    pub type DecryptedWeights<T> = StorageMap<_, Identity, u16, Vec<KeylessBlockWeights>>;
- 
+
      /// Decryption Node Info assigned to subnet
      #[pallet::storage]
 diff --git a/pallets/subnet_emission/src/subnet_consensus/util/params.rs b/pallets/subnet_emission/src/subnet_consensus/util/params.rs
@@ -68,7 +68,7 @@ index 49adc0f8..435845e5 100644
 +++ b/pallets/subnet_emission/src/subnet_consensus/util/params.rs
 @@ -1,6 +1,6 @@
  use core::fmt::Debug;
- 
+
 -use crate::{Config, DecryptedWeightHashes, EncryptedWeights};
 +use crate::{Config, WeightEncryptionData};
  use frame_support::DebugNoBound;
@@ -92,12 +92,12 @@ index 4597c5c6..93ddb354 100644
  use sp_keystore::{testing::MemoryKeystore, Keystore};
 @@ -234,9 +235,7 @@ fvRuW5JF+WZtGddyU4751JNNNhmwbwGmsmphy7EOHHaC
  -----END RSA PRIVATE KEY-----";
- 
+
      let rsa_key = RsaPrivateKey::from_pkcs1_pem(rsa_key_pem).unwrap();
 -    let mock_offworker_ext = MockOffworkerExt {
 -        key: Some(rsa_key),
 -    };
 +    let mock_offworker_ext = MockOffworkerExt { key: Some(rsa_key) };
- 
+
      println!("weights = {:?}", weights);
      println!("validator_key = {:?}", validator_key);
