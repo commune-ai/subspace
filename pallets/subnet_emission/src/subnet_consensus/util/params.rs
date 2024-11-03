@@ -1,6 +1,6 @@
 use core::fmt::Debug;
 
-use crate::{Config, DecryptedWeightHashes, EncryptedWeights};
+use crate::{Config, WeightEncryptionData};
 use frame_support::DebugNoBound;
 use pallet_subspace::{
     math::*, AlphaValues, BalanceOf, Bonds, BondsMovingAverage, Founder, Kappa, Keys, LastUpdate,
@@ -139,6 +139,9 @@ impl<T: Config> ConsensusParams<T> {
                         .copied()
                         .ok_or("ValidatorPermits storage is broken")?;
 
+                    let encryption_data =
+                        WeightEncryptionData::<T>::get(subnet_id, uid as u16).unwrap_or_default();
+
                     let module = ModuleParams {
                         uid: uid as u16,
                         last_update,
@@ -147,12 +150,9 @@ impl<T: Config> ConsensusParams<T> {
                         stake_normalized,
                         stake_original,
                         bonds,
-                        weight_encrypted: EncryptedWeights::<T>::get(subnet_id, uid as u16)
-                            .unwrap_or_default(), // TODO CHECK THIS
-                        weight_hash: DecryptedWeightHashes::<T>::get(subnet_id, uid as u16)
-                            .unwrap_or_default(), // TODO CHECK THIS
+                        weight_encrypted: encryption_data.encrypted,
+                        weight_hash: encryption_data.decrypted_hashes,
                     };
-
                     Result::<_, &'static str>::Ok((ModuleKey(key), module))
                 },
             )

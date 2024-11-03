@@ -332,8 +332,14 @@ impl<T: Config> Pallet<T> {
         Self::handle_rate_limiting(uid, netuid, &key)?;
         Self::remove_rootnet_delegation(netuid, key);
 
-        EncryptedWeights::<T>::set(netuid, uid, Some(encrypted_weights));
-        DecryptedWeightHashes::<T>::set(netuid, uid, Some(decrypted_weights_hash));
+        WeightEncryptionData::<T>::insert(
+            netuid,
+            uid,
+            EncryptionMechanism {
+                encrypted: encrypted_weights,
+                decrypted_hashes: decrypted_weights_hash,
+            },
+        );
 
         Ok(())
     }

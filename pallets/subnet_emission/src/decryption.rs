@@ -48,8 +48,9 @@ impl<T: Config> Pallet<T> {
                 continue;
             }
 
-            let encrypted_weights: Vec<Vec<u8>> =
-                EncryptedWeights::<T>::iter_prefix(netuid).map(|(_, value)| value).collect();
+            let encrypted_weights: Vec<Vec<u8>> = WeightEncryptionData::<T>::iter_prefix(netuid)
+                .map(|(_, value)| value.encrypted)
+                .collect();
 
             if encrypted_weights.is_empty() {
                 continue;
@@ -300,7 +301,6 @@ impl<T: Config> Pallet<T> {
     }
 
     pub fn cancel_expired_offchain_workers(block_number: u64) {
-        // TODO: flawed logic, should be fixed
         let max_inactivity_blocks =
             T::PingInterval::get().saturating_mul(T::MaxFailedPings::get() as u64);
 
@@ -334,8 +334,8 @@ impl<T: Config> Pallet<T> {
         // Clear encrypted weights
         DecryptedWeights::<T>::remove(subnet_id);
 
-        // Clear hashes
-        let _ = DecryptedWeightHashes::<T>::clear_prefix(subnet_id, u32::MAX, None);
+        // Clear hashes & encrypted weights
+        let _ = WeightEncryptionData::<T>::clear_prefix(subnet_id, u32::MAX, None);
 
         // Clear ConsensusParameters and sum up token emission
         let current_block = pallet_subspace::Pallet::<T>::get_current_block_number();

@@ -7,6 +7,7 @@ pub use pallet::*;
 use parity_scale_codec::{Decode, Encode};
 use scale_info::TypeInfo;
 use sp_std::{collections::btree_map::BTreeMap, vec::Vec};
+use strum::EnumIter;
 
 // ! Pallet that handles the emission distribution amongst subnets
 
@@ -42,6 +43,7 @@ pub mod pallet {
     use pallet_subnet_emission_api::SubnetConsensus;
     use pallet_subspace::TotalStake;
     use subnet_pricing::root::RootPricing;
+    use types::KeylessBlockWeights;
 
     const STORAGE_VERSION: StorageVersion = StorageVersion::new(1);
 
@@ -107,21 +109,65 @@ pub mod pallet {
     pub type PricedSubnets = BTreeMap<u16, u64>;
 
     // --- Subnet Related Storage ---
-    // ! This storage has to be removed upon subnet removal
+    // ! DO NOT FORGET TO ADD NEW SUBNET RELATED STORAGE TO THE ENUM BELOW !!!
+    // (this is the maximum we can do with substrate)
+
+    /// Stores subnet specific data that has to be removed upon a subnet removal
+    #[derive(EnumIter)]
+    pub enum SubnetIncludes {
+        Weights,
+        WeightEncryptionData,
+        DecryptedWeights,
+        SubnetDecryptionData,
+        SubnetConsensusType,
+        ConsensusParameters,
+    }
+
+    impl SubnetIncludes {
+        pub fn remove_storage<T: pallet::Config>(self, netuid: u16) {
+            match self {
+                SubnetIncludes::Weights => {
+                    let _ = Weights::<T>::clear_prefix(netuid, u32::MAX, None);
+                }
+                SubnetIncludes::WeightEncryptionData => {
+                    let _ = WeightEncryptionData::<T>::clear_prefix(netuid, u32::MAX, None);
+                }
+                SubnetIncludes::ConsensusParameters => {
+                    let _ = ConsensusParameters::<T>::clear_prefix(netuid, u32::MAX, None);
+                }
+                SubnetIncludes::DecryptedWeights => {
+                    DecryptedWeights::<T>::remove(netuid);
+                }
+                SubnetIncludes::SubnetDecryptionData => {
+                    SubnetDecryptionData::<T>::remove(netuid);
+                }
+                SubnetIncludes::SubnetConsensusType => {
+                    SubnetConsensusType::<T>::remove(netuid);
+                }
+            }
+        }
+
+        pub fn all() -> sp_std::vec::Vec<Self> {
+            use strum::IntoEnumIterator;
+            Self::iter().collect()
+        }
+    }
 
     #[pallet::storage]
     pub type Weights<T> = StorageDoubleMap<_, Identity, u16, Identity, u16, Vec<(u16, u16)>>;
 
-    #[pallet::storage]
-    pub type EncryptedWeights<T> = StorageDoubleMap<_, Identity, u16, Identity, u16, Vec<u8>>;
-
-    // TODO: refactor the `Vec<(u64, Vec<(u16, Vec<(u16, u16)>)>)>`
-    #[pallet::storage]
-    pub type DecryptedWeights<T> =
-        StorageMap<_, Identity, u16, Vec<(u64, Vec<(u16, Vec<(u16, u16)>)>)>>;
+    #[derive(Encode, Decode, RuntimeDebug, Default, TypeInfo)]
+    pub struct EncryptionMechanism {
+        pub encrypted: Vec<u8>,
+        pub decrypted_hashes: Vec<u8>,
+    }
 
     #[pallet::storage]
-    pub type DecryptedWeightHashes<T> = StorageDoubleMap<_, Identity, u16, Identity, u16, Vec<u8>>;
+    pub type WeightEncryptionData<T> =
+        StorageDoubleMap<_, Identity, u16, Identity, u16, EncryptionMechanism>;
+
+    #[pallet::storage]
+    pub type DecryptedWeights<T> = StorageMap<_, Identity, u16, Vec<KeylessBlockWeights>>;
 
     /// Decryption Node Info assigned to subnet
     #[pallet::storage]
@@ -129,6 +175,11 @@ pub mod pallet {
 
     #[pallet::storage]
     pub type SubnetConsensusType<T> = StorageMap<_, Identity, u16, SubnetConsensus>;
+
+    /// Netuid, to block number to consensus parameters
+    #[pallet::storage]
+    pub type ConsensusParameters<T> =
+        StorageDoubleMap<_, Identity, u16, Identity, u64, ConsensusParams<T>, OptionQuery>;
 
     // --- Storage Maps ---
     // ? Does not have to be removed upon subnet removal
@@ -162,11 +213,6 @@ pub mod pallet {
     // Subnet Pricing & Consensus
     #[pallet::storage]
     pub type UnitEmission<T> = StorageValue<_, u64, ValueQuery, ConstU64<23148148148>>;
-
-    /// Netuid, to block number to consensus parameters
-    #[pallet::storage]
-    pub type ConsensusParameters<T> =
-        StorageDoubleMap<_, Identity, u16, Identity, u64, ConsensusParams<T>, OptionQuery>;
 
     // Emission Allocation per Block step
     // ==================================

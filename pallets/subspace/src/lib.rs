@@ -77,6 +77,7 @@ pub mod pallet {
     use sp_arithmetic::per_things::Percent;
     use sp_core::{ConstU16, ConstU64, ConstU8};
     pub use sp_std::{vec, vec::Vec};
+    use strum::EnumIter;
     use substrate_fixed::types::I64F64;
 
     const STORAGE_VERSION: StorageVersion = StorageVersion::new(31);
@@ -91,6 +92,92 @@ pub mod pallet {
     pub type AccountIdOf<T> = <T as frame_system::Config>::AccountId;
 
     // --- Subnet Storage ---
+
+    macro_rules! define_subnet_includes {
+        (
+            double_maps: { $($d_variant:ident),* $(,)? },
+            maps: { $($m_variant:ident),* $(,)? }
+        ) => {
+            #[derive(EnumIter)]
+            pub enum SubnetIncludes {
+                $($d_variant,)*
+                $($m_variant,)*
+            }
+
+            impl SubnetIncludes {
+                pub fn remove_storage<T: pallet::Config>(self, netuid: u16) {
+                    match self {
+                        $(
+                            SubnetIncludes::$d_variant => {
+                                let _ = $d_variant::<T>::clear_prefix(netuid, u32::MAX, None);
+                            }
+                        )*
+                        $(
+                            SubnetIncludes::$m_variant => {
+                                $m_variant::<T>::remove(netuid);
+                            }
+                        )*
+                    }
+                }
+
+                pub fn all() -> sp_std::vec::Vec<Self> {
+                    use strum::IntoEnumIterator;
+                    Self::iter().collect()
+                }
+            }
+        };
+    }
+
+    define_subnet_includes!(
+        double_maps: {
+            Bonds,
+            SetWeightCallsPerEpoch,
+            Uids,
+            Keys,
+            Name,
+            Address,
+            Metadata,
+            RegistrationBlock,
+            WeightSetAt
+        },
+        maps: {
+            BondsMovingAverage,
+            ValidatorPermits,
+            ValidatorTrust,
+            PruningScores,
+            MaxAllowedValidators,
+            Consensus,
+            Active,
+            Rank,
+            Burn,
+            MaximumSetWeightCallsPerEpoch,
+            SubnetNames,
+            SubnetMetadata,
+            N,
+            Founder,
+            IncentiveRatio,
+            ModuleBurnConfig,
+            RegistrationsThisInterval,
+            MaxEncryptionPeriod,
+            CopierMargin,
+            UseWeightsEncryption,
+            AlphaValues,
+            MinValidatorStake,
+            MaxAllowedUids,
+            ImmunityPeriod,
+            MinAllowedWeights,
+            MaxWeightAge,
+            MaxAllowedWeights,
+            Tempo,
+            FounderShare,
+            Incentive,
+            Trust,
+            Dividends,
+            Emission,
+            LastUpdate,
+            SubnetRegistrationBlock
+        }
+    );
 
     #[pallet::storage]
     pub type Bonds<T: Config> =

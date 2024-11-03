@@ -1,8 +1,9 @@
 use ow_extensions::OffworkerExtension;
 use rand::rngs::OsRng;
 use rsa::{
-    pkcs1::{DecodeRsaPrivateKey, EncodeRsaPrivateKey}, traits::PublicKeyParts, BigUint, Pkcs1v15Encrypt, RsaPrivateKey,
-    RsaPublicKey,
+    pkcs1::{DecodeRsaPrivateKey, EncodeRsaPrivateKey},
+    traits::PublicKeyParts,
+    BigUint, Pkcs1v15Encrypt, RsaPrivateKey, RsaPublicKey,
 };
 use sp_core::{sr25519, Pair};
 use sp_keystore::{testing::MemoryKeystore, Keystore};
@@ -234,9 +235,7 @@ fvRuW5JF+WZtGddyU4751JNNNhmwbwGmsmphy7EOHHaC
 -----END RSA PRIVATE KEY-----";
 
     let rsa_key = RsaPrivateKey::from_pkcs1_pem(rsa_key_pem).unwrap();
-    let mock_offworker_ext = MockOffworkerExt {
-        key: Some(rsa_key),
-    };
+    let mock_offworker_ext = MockOffworkerExt { key: Some(rsa_key) };
 
     println!("weights = {:?}", weights);
     println!("validator_key = {:?}", validator_key);
