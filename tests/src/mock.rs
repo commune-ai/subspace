@@ -174,10 +174,6 @@ impl GovernanceApi<<Test as frame_system::Config>::AccountId> for Test {
         pallet_governance::Pallet::<Test>::update_subnet_governance_configuration(subnet_id, config)
     }
 
-    fn handle_subnet_removal(subnet_id: u16) {
-        pallet_governance::Pallet::<Test>::handle_subnet_removal(subnet_id)
-    }
-
     fn execute_application(user_id: &AccountId) -> DispatchResult {
         pallet_governance::Pallet::<Test>::execute_application(user_id)
     }
@@ -201,6 +197,12 @@ impl GovernanceApi<<Test as frame_system::Config>::AccountId> for Test {
     fn set_curator(_key: &<Test as frame_system::Config>::AccountId) {}
 
     fn set_general_subnet_application_cost(_amount: u64) {}
+
+    fn clear_subnet_includes(netuid: u16) {
+        for storage_type in pallet_governance::SubnetIncludes::all() {
+            storage_type.remove_storage::<Test>(netuid);
+        }
+    }
 }
 
 impl SubnetEmissionApi for Test {
@@ -226,10 +228,6 @@ impl SubnetEmissionApi for Test {
 
     fn create_yuma_subnet(netuid: u16) {
         pallet_subnet_emission::Pallet::<Test>::create_yuma_subnet(netuid)
-    }
-
-    fn remove_yuma_subnet(netuid: u16) {
-        pallet_subnet_emission::Pallet::<Test>::remove_yuma_subnet(netuid)
     }
 
     fn can_remove_subnet(netuid: u16) -> bool {
@@ -316,15 +314,9 @@ impl SubnetEmissionApi for Test {
         }
     }
 
-    fn clear_subnet_weights(netuid: u16) -> Option<Vec<(u16, Vec<(u16, u16)>)>> {
-        let old_weights = pallet_subnet_emission::Weights::<Test>::iter_prefix(netuid)
-            .collect::<Vec<(_, Vec<_>)>>();
-        let _ =
-            pallet_subnet_emission::Weights::<Test>::clear_prefix(netuid, u16::MAX as u32, None);
-        if old_weights.is_empty() {
-            None
-        } else {
-            Some(old_weights)
+    fn clear_subnet_includes(netuid: u16) {
+        for storage_type in pallet_subnet_emission::SubnetIncludes::all() {
+            storage_type.remove_storage::<Test>(netuid);
         }
     }
 }

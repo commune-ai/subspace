@@ -30,8 +30,6 @@ pub trait SubnetEmissionApi {
 
     fn create_yuma_subnet(netuid: u16);
 
-    fn remove_yuma_subnet(netuid: u16);
-
     fn can_remove_subnet(netuid: u16) -> bool;
 
     fn is_mineable_subnet(netuid: u16) -> bool;
@@ -65,6 +63,5 @@ pub trait SubnetEmissionApi {
     /// returns the old weights if it's overwritten
     fn set_subnet_weights(netuid: u16, weigths: Option<SubnetWeights>) -> Option<SubnetWeights>;
 
-    /// returns the removed weights if any
-    fn clear_subnet_weights(netuid: u16) -> Option<SubnetWeights>;
+    fn clear_subnet_includes(netuid: u16);
 }

@@ -1300,10 +1300,6 @@ impl pallet_subnet_emission_api::SubnetEmissionApi for Runtime {
         SubnetEmissionModule::create_yuma_subnet(netuid)
     }
 
-    fn remove_yuma_subnet(netuid: u16) {
-        SubnetEmissionModule::remove_yuma_subnet(netuid)
-    }
-
     fn can_remove_subnet(netuid: u16) -> bool {
         SubnetEmissionModule::can_remove_subnet(netuid)
     }
@@ -1388,17 +1384,9 @@ impl pallet_subnet_emission_api::SubnetEmissionApi for Runtime {
         }
     }
 
-    // TODO:
-    // we should probably clear the encrypted weights as well
-    fn clear_subnet_weights(netuid: u16) -> Option<Vec<(u16, Vec<(u16, u16)>)>> {
-        let old_weights = pallet_subnet_emission::Weights::<Runtime>::iter_prefix(netuid)
-            .collect::<Vec<(_, Vec<_>)>>();
-        let _ =
-            pallet_subnet_emission::Weights::<Runtime>::clear_prefix(netuid, u16::MAX as u32, None);
-        if old_weights.is_empty() {
-            None
-        } else {
-            Some(old_weights)
+    fn clear_subnet_includes(netuid: u16) {
+        for storage_type in pallet_subnet_emission::SubnetIncludes::all() {
+            storage_type.remove_storage::<Runtime>(netuid);
         }
     }
 }
@@ -1439,10 +1427,6 @@ impl pallet_governance_api::GovernanceApi<<Runtime as frame_system::Config>::Acc
         GovernanceModule::update_subnet_governance_configuration(subnet_id, governance_config)
     }
 
-    fn handle_subnet_removal(subnet_id: u16) {
-        GovernanceModule::handle_subnet_removal(subnet_id);
-    }
-
     fn execute_application(user_id: &AccountId) -> DispatchResult {
         GovernanceModule::execute_application(user_id)
     }
@@ -1469,6 +1453,12 @@ impl pallet_governance_api::GovernanceApi<<Runtime as frame_system::Config>::Acc
 
     fn set_general_subnet_application_cost(amount: u64) {
         GeneralSubnetApplicationCost::<Runtime>::put(amount)
+    }
+
+    fn clear_subnet_includes(netuid: u16) {
+        for storage_type in pallet_governance::SubnetIncludes::all() {
+            storage_type.remove_storage::<Runtime>(netuid);
+        }
     }
 }
 
