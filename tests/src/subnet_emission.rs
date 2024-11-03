@@ -7,7 +7,7 @@ use pallet_subnet_emission::{
         params::{AccountKey, ModuleKey},
     },
     types::SubnetDecryptionInfo,
-    BannedDecryptionNodes, ConsensusParameters, EncryptedWeights, Weights,
+    BannedDecryptionNodes, ConsensusParameters, Weights,
 };
 use pallet_subspace::{Active, Consensus, Founder, PruningScores, Rank, Trust, ValidatorTrust};
 use parity_scale_codec::Encode;
