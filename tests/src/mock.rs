@@ -17,7 +17,7 @@ use pallet_governance_api::*;
 use pallet_offworker::crypto::Signature;
 use pallet_subnet_emission_api::{SubnetConsensus, SubnetEmissionApi};
 use pallet_subspace::{
-    subnet::SubnetChangeset, Address, DefaultKey, DefaultSubnetParams, Dividends, Emission,
+    params::subnet::SubnetChangeset, Address, DefaultKey, DefaultSubnetParams, Dividends, Emission,
     Incentive, LastUpdate, MaxRegistrationsPerBlock, Name, StakeFrom, StakeTo, SubnetBurn,
     SubnetParams, Tempo, TotalStake, N,
 };
@@ -914,7 +914,7 @@ macro_rules! update_params {
             $($f: $v),+,
             ..SubspaceMod::subnet_params($netuid)
         };
-        ::pallet_subspace::subnet::SubnetChangeset::<Test>::update($netuid, params).unwrap().apply($netuid).unwrap();
+        ::pallet_subspace::params::subnet::SubnetChangeset::<Test>::update($netuid, params).unwrap().apply($netuid).unwrap();
     }};
     ($netuid:expr => $params:expr) => {{
         ::pallet_subspace::subnet::SubnetChangeset::<Test>::update($netuid, $params).unwrap().apply($netuid).unwrap();

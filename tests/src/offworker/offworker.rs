@@ -140,7 +140,7 @@ fn test_offchain_worker_behavior() {
 
                         // Pring all encrpyt inputs
                         let encrypted_weights = encrypt(
-                            decryption_info.public_key.clone(),
+                            decryption_info.node_public_key.clone(),
                             weight_vec.clone(),
                             validator_key,
                         );

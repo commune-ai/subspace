@@ -36,17 +36,22 @@ pub mod network {
     pub mod staking;
     pub mod subnet;
 }
-pub mod params;
+pub mod params {
+    pub mod burn;
+    pub mod global;
+    pub mod module;
+    pub mod subnet;
+}
+
 pub mod rpc;
 pub mod selections;
 pub mod weights;
 
-pub use crate::{
-    network::{module::ModuleChangeset, params::SubnetChangeset},
-    params::{
-        global::{BurnType, GeneralBurnConfiguration},
-        DefaultSubnetParams, GlobalParams, ModuleParams, SubnetParams,
-    },
+pub use crate::params::{
+    burn::{BurnType, GeneralBurnConfiguration},
+    global::GlobalParams,
+    module::{ModuleChangeset, ModuleParams},
+    subnet::{DefaultSubnetParams, SubnetChangeset, SubnetParams},
 };
 use selections::{config, dispatches, errors, events, genesis, hooks};
 

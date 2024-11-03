@@ -7,7 +7,7 @@ use super::*;
 
 impl<T: Config> Pallet<T> {
     #[must_use = "Check if active nodes list is empty before proceeding"]
-    pub fn get_active_nodes(block: u64) -> Option<Vec<DecryptionNodeInfo<T>>> {
+    pub fn get_active_nodes(block: u64) -> Option<Vec<SubnetDecryptionInfo<T>>> {
         let authority_nodes = DecryptionNodes::<T>::get();
         let keep_alive_interval =
             T::PingInterval::get().saturating_mul(T::MissedPingsForInactivity::get() as u64);
@@ -18,7 +18,7 @@ impl<T: Config> Pallet<T> {
                 let is_alive = block.saturating_sub(node.last_keep_alive) <= keep_alive_interval;
 
                 // Check if the node is not in the banned list
-                let is_not_banned = !BannedDecryptionNodes::<T>::contains_key(&node.account_id);
+                let is_not_banned = !BannedDecryptionNodes::<T>::contains_key(&node.node_id);
 
                 // Node is considered active if it's both alive and not banned
                 is_alive && is_not_banned
@@ -48,6 +48,13 @@ impl<T: Config> Pallet<T> {
                 continue;
             }
 
+            let encrypted_weights: Vec<Vec<u8>> =
+                EncryptedWeights::<T>::iter_prefix(netuid).map(|(_, value)| value).collect();
+
+            if encrypted_weights.is_empty() {
+                continue;
+            }
+
             let data = SubnetDecryptionData::<T>::get(netuid);
             if data.is_some_and(|_data| true) {
                 return;
@@ -62,9 +69,10 @@ impl<T: Config> Pallet<T> {
                 SubnetDecryptionData::<T>::set(
                     netuid,
                     Some(SubnetDecryptionInfo {
-                        node_id: node_info.account_id.clone(),
-                        node_public_key: node_info.public_key.clone(),
+                        node_id: node_info.node_id.clone(),
+                        node_public_key: node_info.node_public_key.clone(),
                         block_assigned: block,
+                        last_keep_alive: block,
                     }),
                 );
 
@@ -200,9 +208,10 @@ impl<T: Config> Pallet<T> {
             SubnetDecryptionData::<T>::set(
                 netuid,
                 Some(SubnetDecryptionInfo {
-                    node_id: new_node.account_id,
-                    node_public_key: new_node.public_key,
+                    node_id: new_node.node_id,
+                    node_public_key: new_node.node_public_key,
                     block_assigned: block_number,
+                    last_keep_alive: block_number,
                 }),
             );
             DecryptionNodeCursor::<T>::set((current.saturating_add(1)) as u16);
@@ -251,7 +260,7 @@ impl<T: Config> Pallet<T> {
         if let Some(public_key) = public_key {
             // Update or add the authority node
             if let Some(node) =
-                active_authority_nodes.iter_mut().find(|node| node.account_id == account_id)
+                active_authority_nodes.iter_mut().find(|node| node.node_id == account_id)
             {
                 // Update existing node
                 log::info!("Updating existing authority node's last_keep_alive");
@@ -261,10 +270,11 @@ impl<T: Config> Pallet<T> {
             } else {
                 // Add new node
                 log::info!("Adding new authority node to active nodes list");
-                active_authority_nodes.push(DecryptionNodeInfo {
-                    account_id: account_id.clone(),
-                    public_key,
+                active_authority_nodes.push(SubnetDecryptionInfo {
+                    node_id: account_id.clone(),
+                    node_public_key: public_key,
                     last_keep_alive: current_block,
+                    block_assigned: current_block,
                 });
                 log::info!(
                     "New total active nodes count: {}",
@@ -301,7 +311,7 @@ impl<T: Config> Pallet<T> {
             })
             // This should instead check for the last sent ming, not assigned block
             .filter(|(_, info)| {
-                block_number.saturating_sub(info.block_assigned) > max_inactivity_blocks
+                block_number.saturating_sub(info.last_keep_alive) > max_inactivity_blocks
             })
             // Todo: add further filter that compares assinged with max encryption duration (s owe
             // have ping based and static based cancelation)

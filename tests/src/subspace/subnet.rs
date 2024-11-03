@@ -1,10 +1,9 @@
 use crate::mock::*;
 use frame_support::assert_err;
-use global::GeneralBurnConfiguration;
 use pallet_governance::{GovernanceConfiguration, SubnetGovernanceConfig, VoteMode};
 use pallet_subspace::*;
+use params::{burn::GeneralBurnConfiguration, subnet::SubnetChangeset};
 use sp_runtime::Percent;
-use subnet::SubnetChangeset;
 use substrate_fixed::types::I64F64;
 
 #[test]

@@ -1,22 +1,85 @@
 use crate::*;
 
-use frame_support::{
-    pallet_prelude::DispatchResult, storage::IterableStorageMap, IterableStorageDoubleMap,
-};
-use pallet_subnet_emission_api::SubnetConsensus;
+use frame_support::pallet_prelude::DispatchResult;
+use pallet_governance_api::VoteMode;
 use sp_core::Get;
-
 use sp_runtime::{BoundedVec, DispatchError};
-use sp_std::vec::Vec;
+
+use frame_support::pallet_prelude::*;
+use pallet_governance_api::GovernanceConfiguration;
 use substrate_fixed::types::I64F64;
 
-// ---------------------------------
-// Subnet Parameters
-// ---------------------------------
+#[derive(
+    Decode, Encode, PartialEq, Eq, Clone, frame_support::DebugNoBound, TypeInfo, MaxEncodedLen,
+)]
+#[scale_info(skip_type_params(T))]
+pub struct SubnetParams<T: Config> {
+    // --- parameters
+    pub founder: T::AccountId,
+    pub founder_share: u16,    // out of 100
+    pub immunity_period: u16,  // immunity period
+    pub incentive_ratio: u16,  // out of 100
+    pub max_allowed_uids: u16, // Max allowed modules on a subnet
+    pub max_allowed_weights: u16, /* max number of weights allowed to be registered in this
+                                * pub max_allowed_uids: u16, // max number of uids
+                                * allowed to be registered in this subnet */
+    pub min_allowed_weights: u16, // min number of weights allowed to be registered in this
+    pub max_weight_age: u64,      // max age of a weight
+    pub name: BoundedVec<u8, ConstU32<256>>,
+    pub metadata: Option<BoundedVec<u8, ConstU32<120>>>,
+    pub tempo: u16, // how many blocks to wait before rewarding models
+    pub maximum_set_weight_calls_per_epoch: u16,
+    // consensus
+    pub bonds_ma: u64,
+    pub module_burn_config: GeneralBurnConfiguration<T>,
+    pub min_validator_stake: u64,
+    pub max_allowed_validators: Option<u16>,
+    pub governance_config: GovernanceConfiguration,
+    // weight copying
+    pub use_weights_encryption: bool,
+    pub copier_margin: I64F64,
+    pub max_encryption_period: Option<u64>,
+}
+
+pub struct DefaultSubnetParams<T: Config>(sp_std::marker::PhantomData<((), T)>);
+
+impl<T: Config> DefaultSubnetParams<T> {
+    // TODO: not hardcode values here, get them from the storages instead,
+    // if they implement default already.
+    pub fn get() -> SubnetParams<T> {
+        SubnetParams {
+            name: BoundedVec::default(),
+            tempo: 100,
+            immunity_period: 0,
+            min_allowed_weights: 1,
+            max_allowed_weights: 420,
+            max_allowed_uids: 420,
+            max_weight_age: 3_600,
+            founder_share: FloorFounderShare::<T>::get() as u16,
+            incentive_ratio: 50,
+            founder: DefaultKey::<T>::get(),
+            maximum_set_weight_calls_per_epoch: 0,
+            bonds_ma: 900_000,
+
+            // registrations
+            module_burn_config: GeneralBurnConfiguration::<T>::default_for(BurnType::Module),
+            min_validator_stake: T::DefaultMinValidatorStake::get(),
+            max_allowed_validators: None,
+            governance_config: GovernanceConfiguration {
+                vote_mode: VoteMode::Authority,
+                ..Default::default()
+            },
+            metadata: None,
+            use_weights_encryption: T::DefaultUseWeightsEncryption::get(),
+            copier_margin: I64F64::from_num(0),
+            max_encryption_period: None,
+        }
+    }
+}
 
 #[derive(Debug)]
 pub struct SubnetChangeset<T: Config> {
-    params: SubnetParams<T>,
+    pub params: SubnetParams<T>,
 }
 
 impl<T: Config> SubnetChangeset<T> {

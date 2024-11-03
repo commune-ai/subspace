@@ -5,9 +5,6 @@ use frame_support::{
 use pallet_subnet_emission_api::SubnetConsensus;
 use sp_runtime::DispatchError;
 use substrate_fixed::types::I64F64;
-// ---------------------------------
-// Adding Subnets
-// ---------------------------------
 
 impl<T: Config> Pallet<T> {
     pub fn add_subnet(
@@ -40,8 +37,6 @@ impl<T: Config> Pallet<T> {
         Ok(netuid)
     }
 
-    // Removing subnets
-    // ---------------------------------
     pub fn remove_subnet(netuid: u16) {
         // --- 0. Ensure the network to be removed exists.
         if !Self::if_subnet_exist(netuid) {
@@ -53,7 +48,6 @@ impl<T: Config> Pallet<T> {
         }
 
         // --- 1. Erase all subnet module data.
-        // ====================================
 
         // --- Potentially Remove Stake
         // Automatically removed the stake of modules that are only registered on this subnet.
@@ -139,10 +133,6 @@ impl<T: Config> Pallet<T> {
         Self::deposit_event(Event::NetworkRemoved(netuid));
     }
 
-    // ---------------------------------
-    // Updating Subnets
-    // ---------------------------------
-
     pub fn do_update_subnet(
         origin: T::RuntimeOrigin,
         netuid: u16,
@@ -166,11 +156,9 @@ impl<T: Config> Pallet<T> {
         Ok(())
     }
 
-    // ---------------------------------
-    // Setters
-    // ---------------------------------
+    // --- Setters ---
 
-    fn set_max_allowed_uids(netuid: u16, max_allowed_uids: u16) -> DispatchResult {
+    pub fn set_max_allowed_uids(netuid: u16, max_allowed_uids: u16) -> DispatchResult {
         let n: u16 = N::<T>::get(netuid);
         ensure!(n <= max_allowed_uids, Error::<T>::InvalidMaxAllowedUids);
         MaxAllowedUids::<T>::insert(netuid, max_allowed_uids);
@@ -185,9 +173,7 @@ impl<T: Config> Pallet<T> {
         });
     }
 
-    // ---------------------------------
-    // Getters
-    // ---------------------------------
+    // --- Getters ---
 
     pub fn get_min_allowed_weights(netuid: u16) -> u16 {
         let min_allowed_weights = MinAllowedWeights::<T>::get(netuid);
@@ -259,9 +245,8 @@ impl<T: Config> Pallet<T> {
         LastUpdate::<T>::get(netuid).get(uid as usize).copied().unwrap_or_default()
     }
 
-    // ---------------------------------
-    // Utility
-    // ---------------------------------
+    // --- Util ---
+    //
     pub fn calculate_founder_emission(netuid: u16, mut token_emission: u64) -> (u64, u64) {
         let founder_share: u16 = FounderShare::<T>::get(netuid).min(100);
         if founder_share == 0u16 {
@@ -363,7 +348,7 @@ impl<T: Config> Pallet<T> {
     ///
     /// # Returns
     ///
-    /// The number of blocks until the next epoch, or 1000 if the tempo is 0.
+    /// The number of blocks until the next epoch
     pub fn blocks_until_next_epoch(netuid: u16, block_number: u64) -> u64 {
         let tempo = Tempo::<T>::get(netuid);
 

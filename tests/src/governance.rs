@@ -9,7 +9,7 @@ use pallet_governance::{
     ProposalStatus, Proposals, SubnetGovernanceConfig, VoteMode,
 };
 use pallet_governance_api::GovernanceConfiguration;
-use pallet_subspace::{subnet::SubnetChangeset, GlobalParams, SubnetParams};
+use pallet_subspace::{params::subnet::SubnetChangeset, GlobalParams, SubnetParams};
 use substrate_fixed::{types::extra::U32, FixedI128};
 
 fn register(account: AccountId, subnet_id: u16, module: AccountId, stake: u64) {

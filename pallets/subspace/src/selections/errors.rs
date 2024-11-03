@@ -184,5 +184,13 @@ pub mod errors {
         UidNotWhitelisted,
         /// The copier margin must be between 0 and 1
         InvalidCopierMargin,
+        /// Floor Founder Share must be between 0 and 100
+        InvalidFloorFounderShare,
+        /// Subnet Immunity Period has to be more than 0
+        InvalidSubnetImmunityPeriod,
+        /// Kappa has to be more than 0
+        InvalidKappa,
+        /// Rho must be more than 0
+        InvalidRho,
     }
 }

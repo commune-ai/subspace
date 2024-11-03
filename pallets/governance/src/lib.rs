@@ -23,7 +23,9 @@ use substrate_fixed::types::I64F64;
 pub use pallet::*;
 pub use pallet_governance_api::*;
 use pallet_subspace::{
-    self, network::subnet::SubnetChangeset, params::global::GeneralBurnConfiguration, DefaultKey,
+    self,
+    params::{burn::GeneralBurnConfiguration, subnet::SubnetChangeset},
+    DefaultKey,
 };
 
 pub use proposal::{Proposal, ProposalData, ProposalId, ProposalStatus, UnrewardedProposal};
