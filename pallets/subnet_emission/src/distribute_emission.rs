@@ -339,12 +339,6 @@ impl<T: Config> Pallet<T> {
         SubnetConsensusType::<T>::set(netuid, Some(SubnetConsensus::Yuma));
     }
 
-    pub fn remove_yuma_subnet(netuid: u16) {
-        if Self::can_remove_subnet(netuid) {
-            SubnetConsensusType::<T>::remove(netuid);
-        }
-    }
-
     pub fn can_remove_subnet(netuid: u16) -> bool {
         matches!(
             SubnetConsensusType::<T>::get(netuid),

@@ -23,7 +23,7 @@ use substrate_fixed::types::I64F64;
 pub use pallet::*;
 pub use pallet_governance_api::*;
 use pallet_subspace::{
-    self,
+    self, define_subnet_includes,
     params::{burn::GeneralBurnConfiguration, subnet::SubnetChangeset},
     DefaultKey,
 };
@@ -45,6 +45,7 @@ pub mod pallet {
     };
     use frame_system::pallet_prelude::{ensure_signed, BlockNumberFor};
     use sp_runtime::traits::AccountIdConversion;
+    use strum::EnumIter;
 
     const STORAGE_VERSION: StorageVersion = StorageVersion::new(4);
 
@@ -90,21 +91,12 @@ pub mod pallet {
         }
     }
 
-    // ---------------------------------
-    // Proposals
-    // ---------------------------------
+    // --- Subnet Related Storage ---
 
-    #[pallet::storage]
-    pub type GlobalGovernanceConfig<T: Config> =
-        StorageValue<_, GovernanceConfiguration, ValueQuery>;
-
-    #[pallet::type_value]
-    pub fn DefaultSubnetGovernanceConfig<T: Config>() -> GovernanceConfiguration {
-        GovernanceConfiguration {
-            vote_mode: VoteMode::Authority,
-            ..Default::default()
-        }
-    }
+    define_subnet_includes!(
+        double_maps: {},
+        maps: { SubnetGovernanceConfig, }
+    );
 
     #[pallet::storage]
     pub type SubnetGovernanceConfig<T: Config> = StorageMap<
@@ -116,9 +108,25 @@ pub mod pallet {
         DefaultSubnetGovernanceConfig<T>,
     >;
 
+    #[pallet::type_value]
+    pub fn DefaultSubnetGovernanceConfig<T: Config>() -> GovernanceConfiguration {
+        GovernanceConfiguration {
+            vote_mode: VoteMode::Authority,
+            ..Default::default()
+        }
+    }
+
+    // --- Proposal Related Storage ---
+
     /// A map of all proposals, indexed by their IDs.
     #[pallet::storage]
     pub type Proposals<T: Config> = StorageMap<_, Identity, ProposalId, Proposal<T>>;
+
+    #[pallet::storage]
+    pub type UnrewardedProposals<T: Config> =
+        StorageMap<_, Identity, ProposalId, UnrewardedProposal<T>>;
+
+    // --- Storage Items ---
 
     /// A map relating all modules and the stakers that are currently **NOT** delegating their
     /// voting power.
@@ -130,12 +138,8 @@ pub mod pallet {
         StorageValue<_, BoundedBTreeSet<T::AccountId, ConstU32<{ u32::MAX }>>, ValueQuery>;
 
     #[pallet::storage]
-    pub type UnrewardedProposals<T: Config> =
-        StorageMap<_, Identity, ProposalId, UnrewardedProposal<T>>;
-
-    // ---------------------------------
-    // Treasury
-    // ---------------------------------
+    pub type GlobalGovernanceConfig<T: Config> =
+        StorageValue<_, GovernanceConfiguration, ValueQuery>;
 
     #[pallet::type_value] // This has to be different than DefaultKey, so we are not conflicting in tests.
     pub fn DefaultDaoTreasuryAddress<T: Config>() -> T::AccountId {
@@ -146,10 +150,6 @@ pub mod pallet {
     pub type DaoTreasuryAddress<T: Config> =
         StorageValue<_, T::AccountId, ValueQuery, DefaultDaoTreasuryAddress<T>>;
 
-    // ---------------------------------
-    // Dao
-    // ---------------------------------
-
     #[pallet::type_value]
     pub fn DefaultGeneralSubnetApplicationCost<T: Config>() -> u64 {
         1_000_000_000_000 // 1_000 $COMAI
@@ -158,6 +158,12 @@ pub mod pallet {
     #[pallet::storage]
     pub type GeneralSubnetApplicationCost<T: Config> =
         StorageValue<_, u64, ValueQuery, DefaultGeneralSubnetApplicationCost<T>>;
+
+    /// Determines whether smart contract can be deployed by everyone or only by the curator
+    #[pallet::storage]
+    pub type RestrictContractDeploy<T: Config> = StorageValue<_, bool, ValueQuery>;
+
+    // --- Curator Related Storage ---
 
     #[pallet::storage]
     pub type CuratorApplications<T: Config> = StorageMap<_, Identity, u64, CuratorApplication<T>>;
@@ -168,18 +174,11 @@ pub mod pallet {
     #[pallet::storage]
     pub type Curator<T: Config> = StorageValue<_, T::AccountId, ValueQuery, DefaultKey<T>>;
 
-    /// Determines whether smart contract can be deployed by everyone or only by the curator
-    #[pallet::storage]
-    pub type RestrictContractDeploy<T: Config> = StorageValue<_, bool, ValueQuery>;
-    // ---------------------------------
-    // Extrinsics
-    // ---------------------------------
+    // --- Extrinsics ---
 
     #[pallet::call]
     impl<T: Config> Pallet<T> {
-        //---------------------------------
-        // Adding proposals
-        //---------------------------------
+        // ---  Adding Proposals ---
 
         #[pallet::call_index(0)]
         #[pallet::weight((<T as pallet::Config>::WeightInfo::add_global_params_proposal(), DispatchClass::Normal, Pays::No))]
@@ -301,9 +300,7 @@ pub mod pallet {
             Self::do_add_transfer_dao_treasury_proposal(origin, data, value, dest)
         }
 
-        // ---------------------------------
-        // Voting / Unvoting proposals
-        // ---------------------------------
+        // --- Voting / Unvoting proposals ---
 
         // This has to pay fee, so very low stake keys don't spam the voting system.
         #[pallet::call_index(5)]
@@ -336,9 +333,7 @@ pub mod pallet {
             Self::update_delegating_voting_power(&key, false)
         }
 
-        // ---------------------------------
-        // Subnet 0 DAO
-        // ---------------------------------
+        // --- General Subnet DAO ---
 
         #[pallet::call_index(9)]
         #[pallet::weight((<T as pallet::Config>::WeightInfo::add_dao_application(), DispatchClass::Normal, Pays::No))]
@@ -372,9 +367,7 @@ pub mod pallet {
         }
     }
 
-    // ---------------------------------
-    // Events
-    // ---------------------------------
+    // --- Events ---
 
     #[pallet::event]
     #[pallet::generate_deposit(pub(crate) fn deposit_event)]
@@ -472,9 +465,7 @@ pub mod pallet {
     }
 }
 
-// ---------------------------------
-// Pallet Implementation
-// ---------------------------------
+// --- Pallet Implementation ---
 
 impl<T: Config> Pallet<T> {
     pub fn validate(
@@ -526,9 +517,5 @@ impl<T: Config> Pallet<T> {
         let config = Self::validate(config)?;
         SubnetGovernanceConfig::<T>::set(subnet_id, config);
         Ok(())
-    }
-
-    pub fn handle_subnet_removal(subnet_id: u16) {
-        SubnetGovernanceConfig::<T>::remove(subnet_id);
     }
 }

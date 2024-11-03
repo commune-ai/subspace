@@ -2,7 +2,8 @@ use crate::*;
 use frame_support::{
     pallet_prelude::DispatchResult, storage::IterableStorageMap, IterableStorageDoubleMap,
 };
-use pallet_subnet_emission_api::SubnetConsensus;
+use pallet_governance_api::GovernanceApi;
+use pallet_subnet_emission_api::{SubnetConsensus, SubnetEmissionApi};
 use sp_runtime::DispatchError;
 use substrate_fixed::types::I64F64;
 
@@ -37,8 +38,13 @@ impl<T: Config> Pallet<T> {
         Ok(netuid)
     }
 
+    fn clear_subnet_includes(netuid: u16) {
+        for storage_type in SubnetIncludes::all() {
+            storage_type.remove_storage::<T>(netuid)
+        }
+    }
+
     pub fn remove_subnet(netuid: u16) {
-        // --- 0. Ensure the network to be removed exists.
         if !Self::if_subnet_exist(netuid) {
             return;
         }
@@ -47,88 +53,24 @@ impl<T: Config> Pallet<T> {
             return;
         }
 
-        // --- 1. Erase all subnet module data.
+        // --- Delete Global-Subnet Storage ---
 
-        // --- Potentially Remove Stake
-        // Automatically removed the stake of modules that are only registered on this subnet.
-        // This is because it's not desirable for module to be **globally** unregistered with
-        // "active" stake storage.
-        Self::remove_subnet_dangling_keys(netuid);
+        // Potentially Remove Stake & Delegation Fee
+        // Automatically remove the stake & delegation fee of modules that are only registered on
+        // this subnet. This is because it's not desirable for module to be **globally**
+        // unregistered with "active" stake storage or "active" delegation fee storage.
+        Self::clear_stakes_for_subnet_only_accounts(netuid);
+        Self::clear_delegation_fees_for_subnet_only_accounts(netuid);
 
-        let _ = Name::<T>::clear_prefix(netuid, u32::MAX, None);
-        let _ = Address::<T>::clear_prefix(netuid, u32::MAX, None);
-        let _ = Metadata::<T>::clear_prefix(netuid, u32::MAX, None);
-        let _ = Uids::<T>::clear_prefix(netuid, u32::MAX, None);
-        let _ = Keys::<T>::clear_prefix(netuid, u32::MAX, None);
+        // --- Delete Subnet Includes Storage For All Pallets ---
 
-        // --- Potentially Remove DelegationFee
+        Self::clear_subnet_includes(netuid);
+        <T as GovernanceApi<T::AccountId>>::clear_subnet_includes(netuid);
+        <T as SubnetEmissionApi>::clear_subnet_includes(netuid);
 
-        // --- 1. Create a set of keys that exist in other netuids
-        let keys_in_other_netuids: BTreeSet<_> = Uids::<T>::iter()
-            .filter(|(other_netuid, _, _)| *other_netuid != netuid)
-            .map(|(_, key, _)| key)
-            .collect();
+        // --- Mutate Subnet Gaps & Emit The Event ---
 
-        // Remove delegation fees for keys that only exist in current netuid
-        Uids::<T>::iter_prefix(netuid)
-            .map(|(key, _)| key)
-            .filter(|key| !keys_in_other_netuids.contains(key))
-            .for_each(|key| DelegationFee::<T>::remove(&key));
-
-        // --- 2. Remove consnesus vectors
-        // ===============================
-
-        // TODO: remove the encrypted wegiths as well ?
-        let _ = T::clear_subnet_weights(netuid);
-        let _ = WeightSetAt::<T>::clear_prefix(netuid, u32::MAX, None);
-        Active::<T>::remove(netuid);
-        Consensus::<T>::remove(netuid);
-        Dividends::<T>::remove(netuid);
-        Emission::<T>::remove(netuid);
-        Incentive::<T>::remove(netuid);
-        LastUpdate::<T>::remove(netuid);
-        PruningScores::<T>::remove(netuid);
-        Rank::<T>::remove(netuid);
-        Trust::<T>::remove(netuid);
-        ValidatorPermits::<T>::remove(netuid);
-        ValidatorTrust::<T>::remove(netuid);
-        let _ = RegistrationBlock::<T>::clear_prefix(netuid, u32::MAX, None);
-        T::remove_subnet_emission_storage(netuid);
-
-        // --- 3. Erase subnet parameters.
-        // ===============================
-
-        Founder::<T>::remove(netuid);
-        FounderShare::<T>::remove(netuid);
-        Tempo::<T>::remove(netuid);
-        ImmunityPeriod::<T>::remove(netuid);
-        MaxAllowedWeights::<T>::remove(netuid);
-        MaxAllowedUids::<T>::remove(netuid);
-        MaxWeightAge::<T>::remove(netuid);
-        MinAllowedWeights::<T>::remove(netuid);
-        IncentiveRatio::<T>::remove(netuid);
-        MaximumSetWeightCallsPerEpoch::<T>::remove(netuid);
-        BondsMovingAverage::<T>::remove(netuid);
-        ModuleBurnConfig::<T>::remove(netuid);
-        MinValidatorStake::<T>::remove(netuid);
-        SubnetRegistrationBlock::<T>::remove(netuid);
-        SubnetMetadata::<T>::remove(netuid);
-        UseWeightsEncryption::<T>::remove(netuid);
-        MaxEncryptionPeriod::<T>::remove(netuid);
-        CopierMargin::<T>::remove(netuid);
-
-        T::handle_subnet_removal(netuid);
-        T::remove_yuma_subnet(netuid);
-
-        // --- 4 Adjust the total number of subnets. and remove the subnet from the list of subnets.
-        // =========================================================================================
-
-        N::<T>::remove(netuid);
-        SubnetNames::<T>::remove(netuid);
         SubnetGaps::<T>::mutate(|subnets| subnets.insert(netuid));
-
-        // --- 5. Emit the event.
-        // ======================
 
         Self::deposit_event(Event::NetworkRemoved(netuid));
     }
@@ -322,16 +264,35 @@ impl<T: Config> Pallet<T> {
             .collect()
     }
 
-    pub fn remove_subnet_dangling_keys(netuid: u16) {
-        let netuid_keys: BTreeSet<AccountIdOf<T>> =
-            Uids::<T>::iter_prefix(netuid).map(|(key, _)| key).collect();
-        let global_keys: BTreeSet<AccountIdOf<T>> = Uids::<T>::iter()
-            .filter(|(n, _, _)| n != &netuid)
-            .map(|(_, key, _)| key)
+    pub fn clear_stakes_for_subnet_only_accounts(subnet_id: u16) {
+        // Get all accounts in the specified subnet
+        let subnet_accounts: BTreeSet<AccountIdOf<T>> =
+            Uids::<T>::iter_prefix(subnet_id).map(|(account, _)| account).collect();
+
+        // Get all accounts from other subnets
+        let accounts_in_other_subnets: BTreeSet<AccountIdOf<T>> = Uids::<T>::iter()
+            .filter(|(net_id, _, _)| net_id != &subnet_id)
+            .map(|(_, account, _)| account)
             .collect();
-        for dangling in netuid_keys.difference(&global_keys) {
-            Self::remove_stake_from_storage(dangling);
-        }
+
+        // Clear stakes for accounts that exist only in this subnet
+        subnet_accounts
+            .difference(&accounts_in_other_subnets)
+            .for_each(|subnet_only_account| Self::remove_stake_from_storage(subnet_only_account));
+    }
+
+    pub fn clear_delegation_fees_for_subnet_only_accounts(subnet_id: u16) {
+        // Get all accounts from other subnets
+        let accounts_in_other_subnets: BTreeSet<AccountIdOf<T>> = Uids::<T>::iter()
+            .filter(|(other_subnet_id, _, _)| other_subnet_id != &subnet_id)
+            .map(|(_, account, _)| account)
+            .collect();
+
+        // Clear delegation fees for accounts that exist only in this subnet
+        Uids::<T>::iter_prefix(subnet_id)
+            .map(|(account, _)| account)
+            .filter(|account| !accounts_in_other_subnets.contains(account))
+            .for_each(|subnet_only_account| DelegationFee::<T>::remove(&subnet_only_account));
     }
 
     pub fn get_total_subnets() -> u16 {
