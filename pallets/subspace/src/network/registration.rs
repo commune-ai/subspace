@@ -10,22 +10,9 @@ use sp_core::Get;
 use sp_runtime::BoundedVec;
 use substrate_fixed::types::I110F18;
 
-// TODO: later, once legit whitelist has been filled up, turn on the code below
-// Put this into the `do_register` code
-// We also have to declear a migration, of modules on netuid 0 that are not whitelisted.
-
-// --- 4.1 Ensure that the module_key is in the whitelist, if netuid is 0.
-
-// ensure!(
-//     netuid != 0 || Self::is_in_legit_whitelist(&module_key),
-//     Error::<T>::NotWhitelisted
-// );
-
 impl<T: Config> Pallet<T> {
-    // --------------------------
-    // Extrinsic follow-ups
-    // --------------------------
-
+    /// Default Rootnetwork subnet id
+    const ROOTNET_ID: u16 = 0;
     /// Registers a module in a subnet.
     ///
     /// # Arguments
@@ -396,11 +383,7 @@ impl<T: Config> Pallet<T> {
         }
     }
 
-    // --------------------------
-    // Rootnet utils
-    // --------------------------
-
-    const ROOTNET_ID: u16 = 0;
+    // --- Rootnet utils ---
 
     fn reserve_rootnet_slot(rootnet_id: u16, key: &T::AccountId) -> DispatchResult {
         if Uids::<T>::iter_prefix(rootnet_id).count()
@@ -425,9 +408,7 @@ impl<T: Config> Pallet<T> {
         Self::remove_module(rootnet_id, lower_stake_validator_uid, true)
     }
 
-    // --------------------------
-    // Registration Burn
-    // --------------------------
+    // --- Registration Burn ---
 
     // This code is running under the `on_initialize` hook
     pub fn adjust_registration_parameters(block_number: u64) {
@@ -543,9 +524,7 @@ impl<T: Config> Pallet<T> {
         }
     }
 
-    // --------------------------
-    // UTILITY FUNCTIONS
-    // --------------------------
+    // --- Util ---
 
     pub fn get_block_at_registration(netuid: u16) -> Vec<u64> {
         let n = N::<T>::get(netuid) as usize;

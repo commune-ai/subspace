@@ -6,7 +6,7 @@ use pallet_subnet_emission::{
         consensus::EmissionMap,
         params::{AccountKey, ModuleKey},
     },
-    types::{DecryptionNodeInfo, SubnetDecryptionInfo},
+    types::SubnetDecryptionInfo,
     BannedDecryptionNodes, ConsensusParameters, EncryptedWeights, Weights,
 };
 use pallet_subspace::{Active, Consensus, Founder, PruningScores, Rank, Trust, ValidatorTrust};
@@ -1310,20 +1310,20 @@ fn decrypted_weights_are_stored() {
         let key = RsaPrivateKey::new(&mut OsRng, 2048).unwrap().to_public_key();
         let key = (key.n().to_bytes_be(), key.e().to_bytes_be());
 
-        pallet_subnet_emission::DecryptionNodes::<Test>::set(vec![DecryptionNodeInfo {
-            account_id: 1001,
-            public_key: key.clone(),
+        let subnet_decryption_data = SubnetDecryptionInfo {
+            block_assigned: 0,
+            node_id: 1001,
+            node_public_key: key.clone(),
             last_keep_alive: pallet_subspace::Tempo::<Test>::get(netuid) as u64,
-        }]);
+        };
+
+        pallet_subnet_emission::DecryptionNodes::<Test>::set(vec![subnet_decryption_data.clone()]);
 
         pallet_subnet_emission::SubnetDecryptionData::<Test>::set(
             netuid,
-            Some(SubnetDecryptionInfo {
-                block_assigned: 0,
-                node_id: 1001,
-                node_public_key: key.clone(),
-            }),
+            Some(subnet_decryption_data),
         );
+
         pallet_subspace::UseWeightsEncryption::<Test>::set(netuid, true);
 
         let first_uid_weights = vec![(second_uid, 50u16)];
@@ -1396,19 +1396,18 @@ fn decrypted_weight_run_result_is_applied_and_cleaned_up() {
         let key = RsaPrivateKey::new(&mut OsRng, 2048).unwrap().to_public_key();
         let key = (key.n().to_bytes_be(), key.e().to_bytes_be());
 
-        pallet_subnet_emission::DecryptionNodes::<Test>::set(vec![DecryptionNodeInfo {
-            account_id: 1001,
-            public_key: key.clone(),
+        let subnet_decryption_data = SubnetDecryptionInfo {
+            block_assigned: 0,
+            node_id: 1001,
+            node_public_key: key.clone(),
             last_keep_alive: pallet_subspace::Tempo::<Test>::get(netuid) as u64,
-        }]);
+        };
+
+        pallet_subnet_emission::DecryptionNodes::<Test>::set(vec![subnet_decryption_data.clone()]);
 
         pallet_subnet_emission::SubnetDecryptionData::<Test>::set(
             netuid,
-            Some(SubnetDecryptionInfo {
-                block_assigned: 0,
-                node_id: 1001,
-                node_public_key: key.clone(),
-            }),
+            Some(subnet_decryption_data),
         );
 
         pallet_subspace::UseWeightsEncryption::<Test>::set(netuid, true);
@@ -1501,25 +1500,23 @@ fn rotate_decryption_node() {
 
         step_block(decryption_node_interval as u16);
 
-        pallet_subnet_emission::DecryptionNodes::<Test>::put(vec![
-            DecryptionNodeInfo::<Test> {
-                account_id: dn_1,
-                last_keep_alive: decryption_node_interval,
-                public_key: key_1.clone(),
-            },
-            DecryptionNodeInfo::<Test> {
-                account_id: dn_2,
-                last_keep_alive: decryption_node_interval,
-                public_key: key_2,
-            },
-        ]);
-
         pallet_subnet_emission::SubnetDecryptionData::<Test>::set(
             netuid,
             Some(SubnetDecryptionInfo {
                 block_assigned: 0,
                 node_id: dn_1,
                 node_public_key: key_1,
+                last_keep_alive: decryption_node_interval,
+            }),
+        );
+
+        pallet_subnet_emission::SubnetDecryptionData::<Test>::set(
+            netuid,
+            Some(SubnetDecryptionInfo {
+                block_assigned: 0,
+                node_id: dn_2,
+                node_public_key: key_2,
+                last_keep_alive: decryption_node_interval,
             }),
         );
 
@@ -1546,16 +1543,7 @@ fn ban_decryption_node() {
         let key_1 = RsaPrivateKey::new(&mut OsRng, 2048).unwrap().to_public_key();
         let key_1 = (key_1.n().to_bytes_be(), key_1.e().to_bytes_be());
 
-        let first_uid = register_module(netuid, 1, 10000, false).unwrap();
-
-        let decryption_node_interval: u64 =
-            <Test as pallet_subnet_emission::Config>::DecryptionNodeRotationInterval::get();
-
-        pallet_subnet_emission::DecryptionNodes::<Test>::put(vec![DecryptionNodeInfo::<Test> {
-            account_id: dn_1,
-            last_keep_alive: 0,
-            public_key: key_1.clone(),
-        }]);
+        let _ = register_module(netuid, 1, 10000, false).unwrap();
 
         pallet_subnet_emission::SubnetDecryptionData::<Test>::set(
             netuid,
@@ -1563,6 +1551,7 @@ fn ban_decryption_node() {
                 block_assigned: 0,
                 node_id: dn_1,
                 node_public_key: key_1,
+                last_keep_alive: 0,
             }),
         );
 

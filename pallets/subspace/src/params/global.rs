@@ -1,106 +1,37 @@
 use crate::*;
-
 use frame_support::pallet_prelude::{DispatchResult, MaxEncodedLen};
+use pallet_governance_api::GovernanceConfiguration;
 use scale_info::TypeInfo;
-use sp_core::Get;
-use sp_runtime::DispatchError;
-/// This struct is used for both global (Subnet Burn) and MAP parameters (Module Burn)
+use sp_arithmetic::per_things::Percent;
+
 #[derive(
-    Clone, TypeInfo, Decode, Encode, PartialEq, Eq, frame_support::DebugNoBound, MaxEncodedLen,
+    Decode, Encode, PartialEq, Eq, Clone, TypeInfo, frame_support::DebugNoBound, MaxEncodedLen,
 )]
 #[scale_info(skip_type_params(T))]
-pub struct GeneralBurnConfiguration<T> {
-    /// min burn the adjustment algorithm can set
-    pub min_burn: u64,
-    /// max burn the adjustment algorithm can set
-    pub max_burn: u64,
-    /// the steepness with which the burn curve will increase
-    /// every interval
-    pub adjustment_alpha: u64,
-    /// interval in blocks for the burn to be adjusted
-    pub target_registrations_interval: u16,
-    /// the number of registrations expected per interval, if
-    /// below, burn gets decreased, it is increased otherwise
-    pub target_registrations_per_interval: u16,
-    /// the maximum number of registrations accepted per interval
-    pub max_registrations_per_interval: u16,
-    pub _pd: PhantomData<T>,
-}
+pub struct GlobalParams<T: Config> {
+    // max
+    pub max_name_length: u16,             // max length of a network name
+    pub min_name_length: u16,             // min length of a network name
+    pub max_allowed_subnets: u16,         // max number of subnets allowed
+    pub max_allowed_modules: u16,         // max number of modules allowed per subnet
+    pub max_registrations_per_block: u16, // max number of registrations per block
+    pub max_allowed_weights: u16,         // max number of weights per module
 
-pub enum BurnType {
-    Subnet,
-    Module,
-}
+    // mins
+    pub floor_delegation_fee: Percent, // min delegation fee
+    pub floor_founder_share: u8,       // min founder share
+    pub min_weight_stake: u64,         // min weight stake required
 
-impl<T: Config> Default for GeneralBurnConfiguration<T> {
-    fn default() -> Self {
-        Self::module_burn_default()
-    }
-}
+    // S0 governance
+    pub curator: T::AccountId,
+    pub general_subnet_application_cost: u64,
 
-impl<T: Config> GeneralBurnConfiguration<T> {
-    fn subnet_burn_default() -> Self {
-        Self {
-            min_burn: T::DefaultSubnetMinBurn::get(),
-            max_burn: 100_000_000_000_000,
-            adjustment_alpha: u64::MAX / 2,
-            target_registrations_interval: 5_400,
-            target_registrations_per_interval: 1,
-            max_registrations_per_interval: T::DefaultMaxSubnetRegistrationsPerInterval::get(),
-            _pd: PhantomData,
-        }
-    }
+    // Other
+    pub subnet_immunity_period: u64,
+    pub governance_config: GovernanceConfiguration,
 
-    pub fn module_burn_default() -> Self {
-        Self {
-            min_burn: T::DefaultModuleMinBurn::get(),
-            max_burn: 150_000_000_000,
-            adjustment_alpha: u64::MAX / 2,
-            target_registrations_interval: 142,
-            target_registrations_per_interval: 3,
-            max_registrations_per_interval: T::DefaultMaxRegistrationsPerInterval::get(),
-            _pd: PhantomData,
-        }
-    }
-
-    pub fn default_for(burn_type: BurnType) -> Self {
-        match burn_type {
-            BurnType::Subnet => Self::subnet_burn_default(),
-            BurnType::Module => Self::module_burn_default(),
-        }
-    }
-
-    pub fn apply_module_burn(self, netuid: u16) -> Result<(), DispatchError> {
-        ensure!(
-            self.min_burn >= T::DefaultModuleMinBurn::get(),
-            Error::<T>::InvalidMinBurn
-        );
-        ensure!(self.max_burn > self.min_burn, Error::<T>::InvalidMaxBurn);
-        ensure!(
-            self.adjustment_alpha > 0,
-            Error::<T>::InvalidAdjustmentAlpha
-        );
-        ensure!(
-            self.target_registrations_interval >= 10,
-            Error::<T>::InvalidTargetRegistrationsInterval
-        );
-        ensure!(
-            self.target_registrations_per_interval >= 1,
-            Error::<T>::InvalidTargetRegistrationsPerInterval
-        );
-        ensure!(
-            self.max_registrations_per_interval >= 1,
-            Error::<T>::InvalidMaxRegistrationsPerInterval
-        );
-        ensure!(
-            self.max_registrations_per_interval >= self.target_registrations_per_interval,
-            Error::<T>::InvalidMaxRegistrationsPerInterval
-        );
-
-        ModuleBurnConfig::<T>::set(netuid, self);
-
-        Ok(())
-    }
+    pub kappa: u16,
+    pub rho: u16,
 }
 
 impl<T: Config> Pallet<T> {
@@ -130,91 +61,135 @@ impl<T: Config> Pallet<T> {
         }
     }
 
+    #[deny(unused_variables)]
     pub fn set_global_params(params: GlobalParams<T>) -> DispatchResult {
-        // Check if the params are valid
         Self::check_global_params(&params)?;
 
-        // Network
-        MaxNameLength::<T>::put(params.max_name_length);
-        MaxAllowedSubnets::<T>::put(params.max_allowed_subnets);
-        MaxAllowedModules::<T>::put(params.max_allowed_modules);
-        FloorDelegationFee::<T>::put(params.floor_delegation_fee);
+        let GlobalParams {
+            max_name_length,
+            min_name_length,
+            max_allowed_subnets,
+            max_allowed_modules,
+            max_registrations_per_block,
+            max_allowed_weights,
+            floor_delegation_fee,
+            floor_founder_share,
+            min_weight_stake,
+            curator,
+            general_subnet_application_cost,
+            subnet_immunity_period,
+            governance_config,
+            kappa,
+            rho,
+        } = params.clone();
 
-        // burn & registrations
-        MaxRegistrationsPerBlock::<T>::set(params.max_registrations_per_block);
-        MinWeightStake::<T>::put(params.min_weight_stake);
-        FloorDelegationFee::<T>::put(params.floor_delegation_fee);
+        // Network parameters
+        MaxNameLength::<T>::put(max_name_length);
+        MinNameLength::<T>::put(min_name_length);
+        MaxAllowedSubnets::<T>::put(max_allowed_subnets);
+        MaxAllowedModules::<T>::put(max_allowed_modules);
+        FloorDelegationFee::<T>::put(floor_delegation_fee);
 
-        // TODO: update curator
-        T::set_curator(&params.curator);
+        // Registration and weight parameters
+        MaxRegistrationsPerBlock::<T>::set(max_registrations_per_block);
+        MaxAllowedWeightsGlobal::<T>::put(max_allowed_weights);
+        MinWeightStake::<T>::put(min_weight_stake);
 
-        FloorFounderShare::<T>::put(params.floor_founder_share);
-
-        // weights
-        MaxAllowedWeightsGlobal::<T>::put(params.max_allowed_weights);
-        MinWeightStake::<T>::put(params.min_weight_stake);
-
-        T::update_global_governance_configuration(params.governance_config)
+        // Governance and administrative parameters
+        T::set_curator(&curator);
+        FloorFounderShare::<T>::put(floor_founder_share);
+        SubnetImmunityPeriod::<T>::put(subnet_immunity_period);
+        T::update_global_governance_configuration(governance_config)
             .expect("invalid governance configuration");
 
-        // Update the general subnet application cost
-        T::set_general_subnet_application_cost(params.general_subnet_application_cost);
-        Kappa::<T>::set(params.kappa);
-        Rho::<T>::set(params.rho);
+        // Cost and operational parameters
+        T::set_general_subnet_application_cost(general_subnet_application_cost);
+        Kappa::<T>::set(kappa);
+        Rho::<T>::set(rho);
 
+        Self::deposit_event(Event::GlobalParamsUpdated(params));
         Ok(())
     }
 
+    #[deny(unused_variables)]
     pub fn check_global_params(params: &GlobalParams<T>) -> DispatchResult {
-        // checks if params are valid
+        let GlobalParams {
+            max_name_length,
+            min_name_length,
+            max_allowed_subnets,
+            max_allowed_modules,
+            max_registrations_per_block,
+            max_allowed_weights,
+            floor_delegation_fee,
+            floor_founder_share,
+            min_weight_stake: _,
+            curator: _,
+            general_subnet_application_cost,
+            subnet_immunity_period,
+            governance_config,
+            kappa,
+            rho,
+        } = params;
+
         let old_params = Self::global_params();
 
-        // check if the name already exists
-        ensure!(params.max_name_length > 0, Error::<T>::InvalidMaxNameLength);
-
+        // Name length validations
+        ensure!(*max_name_length > 0, Error::<T>::InvalidMaxNameLength);
         ensure!(
-            params.min_name_length < params.max_name_length,
+            *min_name_length < *max_name_length,
             Error::<T>::InvalidMinNameLenght
         );
 
-        // we need to ensure that the delegation fee floor is only moven up, moving it down would
-        // require a storage migration
+        // Delegation fee validation
         ensure!(
-            params.floor_delegation_fee.deconstruct() <= 100
-                && params.floor_delegation_fee.deconstruct()
+            floor_delegation_fee.deconstruct() <= 100
+                && floor_delegation_fee.deconstruct()
                     >= old_params.floor_delegation_fee.deconstruct(),
             Error::<T>::InvalidMinDelegationFee
         );
 
+        // Subnet and module validations
         ensure!(
-            params.max_allowed_subnets > 0,
+            *max_allowed_subnets > 0,
             Error::<T>::InvalidMaxAllowedSubnets
         );
-
         ensure!(
-            params.max_allowed_modules > 0,
+            *max_allowed_modules > 0,
             Error::<T>::InvalidMaxAllowedModules
         );
 
+        // Registration and weight validations
         ensure!(
-            params.max_registrations_per_block > 0,
+            *max_registrations_per_block > 0,
             Error::<T>::InvalidMaxRegistrationsPerBlock
         );
-
         ensure!(
-            params.max_allowed_weights > 0,
+            *max_allowed_weights > 0,
             Error::<T>::InvalidMaxAllowedWeights
         );
 
+        // Cost and stake validations
         ensure!(
-            params.general_subnet_application_cost > 0,
+            *general_subnet_application_cost > 0,
             Error::<T>::InvalidGeneralSubnetApplicationCost
         );
 
+        // Governance validations
         ensure!(
-            params.governance_config.proposal_expiration > 100,
+            governance_config.proposal_expiration > 100,
             Error::<T>::InvalidProposalExpiration
         );
+
+        ensure!(
+            *floor_founder_share > 0 && *floor_founder_share <= 100,
+            Error::<T>::InvalidFloorFounderShare
+        );
+        ensure!(
+            *subnet_immunity_period > 0,
+            Error::<T>::InvalidSubnetImmunityPeriod
+        );
+        ensure!(*kappa > 0, Error::<T>::InvalidKappa);
+        ensure!(*rho > 0, Error::<T>::InvalidRho);
 
         Ok(())
     }

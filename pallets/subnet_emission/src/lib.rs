@@ -1,7 +1,7 @@
 #![allow(non_snake_case)]
 #![cfg_attr(not(feature = "std"), no_std)]
 
-use crate::types::{BlockWeights, DecryptionNodeInfo, PublicKey, SubnetDecryptionInfo};
+use crate::types::{BlockWeights, PublicKey, SubnetDecryptionInfo};
 use frame_system::pallet_prelude::OriginFor;
 pub use pallet::*;
 use parity_scale_codec::{Decode, Encode};
@@ -148,7 +148,7 @@ pub mod pallet {
     /// This storage is managed dynamically based on the do_keep_alive offchain worker call
     /// It is built from the authority keys
     #[pallet::storage]
-    pub type DecryptionNodes<T> = StorageValue<_, Vec<DecryptionNodeInfo<T>>, ValueQuery>;
+    pub type DecryptionNodes<T> = StorageValue<_, Vec<SubnetDecryptionInfo<T>>, ValueQuery>;
 
     #[pallet::storage]
     pub type DecryptionNodeCursor<T> = StorageValue<_, u16, ValueQuery>;

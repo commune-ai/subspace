@@ -1,13 +1,13 @@
 use crate::mock::*;
 use frame_support::pallet_prelude::BoundedVec;
 use pallet_subnet_emission::{
-    types::{DecryptionNodeInfo, PublicKey},
+    types::{PublicKey, SubnetDecryptionInfo},
     Authorities, Config, DecryptionNodes, SubnetConsensusType, SubnetDecryptionData,
 };
 use pallet_subnet_emission_api::SubnetConsensus;
 use pallet_subspace::{
-    BondsMovingAverage, FounderShare, MaxAllowedUids, MaxAllowedWeights, MaxEncryptionPeriod,
-    MaxRegistrationsPerBlock, MaxWeightAge, MinValidatorStake, Tempo, UseWeightsEncryption,
+    BondsMovingAverage, FounderShare, MaxAllowedUids, MaxAllowedWeights, MaxRegistrationsPerBlock,
+    MaxWeightAge, MinValidatorStake, Tempo, UseWeightsEncryption,
 };
 
 pub fn setup_subnet(netuid: u16, tempo: u64) {
@@ -41,7 +41,7 @@ pub fn update_authority_and_decryption_node<T: Config>(subnet_id: u16, new_acc_i
     // Update DecryptionNodes
     DecryptionNodes::<T>::mutate(|nodes| {
         if let Some(node) = nodes.iter_mut().next() {
-            node.account_id = new_acc_id.clone();
+            node.node_id = new_acc_id.clone();
         }
     });
 
@@ -63,7 +63,7 @@ pub fn update_authority_and_decryption_node<T: Config>(subnet_id: u16, new_acc_i
 pub fn initialize_authorities(
     public_key: PublicKey,
     first_block: BlockNumber,
-) -> DecryptionNodeInfo<Test> {
+) -> SubnetDecryptionInfo<Test> {
     let acc_id = u32::MAX;
 
     let authorities: BoundedVec<(AccountId, PublicKey), <Test as Config>::MaxAuthorities> =
@@ -73,10 +73,11 @@ pub fn initialize_authorities(
 
     Authorities::<Test>::put(authorities);
 
-    let decryption_info = DecryptionNodeInfo {
-        account_id: acc_id,
-        public_key,
+    let decryption_info = SubnetDecryptionInfo {
+        node_id: acc_id,
+        node_public_key: public_key,
         last_keep_alive: first_block,
+        block_assigned: first_block,
     };
     let decryption_nodes = vec![decryption_info.clone()];
     DecryptionNodes::<Test>::set(decryption_nodes);
