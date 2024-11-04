@@ -1,4 +1,3 @@
-// # FUCK SUBSTRATE BRO ! 😭
 #[macro_export]
 macro_rules! define_subnet_includes {
       (

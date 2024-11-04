@@ -311,8 +311,7 @@ fn subnet_is_replaced_on_reaching_max_allowed_modules() {
         assert_eq!(subnet_amount, expected_subnet_amount);
         assert_eq!(total_module_amount, expected_subnet_amount);
 
-        let netuids = SubspaceMod::netuids();
-        let max_netuid = netuids.iter().max().unwrap();
-        assert_eq!(*max_netuid, 5);
+        let max_netuid = N::<Test>::iter().map(|(netuid, _)| netuid).max().unwrap();
+        assert_eq!(max_netuid, 5);
     });
 }

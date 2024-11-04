@@ -19,7 +19,7 @@ use pallet_subnet_emission_api::{SubnetConsensus, SubnetEmissionApi};
 use pallet_subspace::{
     params::subnet::SubnetChangeset, Address, DefaultKey, DefaultSubnetParams, Dividends, Emission,
     Incentive, LastUpdate, MaxRegistrationsPerBlock, Name, StakeFrom, StakeTo, SubnetBurn,
-    SubnetParams, Tempo, TotalStake, N,
+    SubnetParams, Tempo, TotalStake, Uids, N,
 };
 use parity_scale_codec::{Decode, Encode};
 use rand::rngs::OsRng;
@@ -542,7 +542,7 @@ pub fn delegate(account: u32) {
 
 #[allow(dead_code)]
 pub fn get_stakes(netuid: u16) -> Vec<u64> {
-    SubspaceMod::get_uid_key_tuples(netuid)
+    get_uid_key_tuples(netuid)
         .into_iter()
         .map(|(_, key)| SubspaceMod::get_delegated_stake(&key))
         .collect()
@@ -610,7 +610,7 @@ pub fn get_origin(key: AccountId) -> RuntimeOrigin {
 
 #[allow(dead_code)]
 pub fn get_total_subnet_balance(netuid: u16) -> u64 {
-    let keys = SubspaceMod::get_keys(netuid);
+    let keys = get_keys(netuid);
     keys.iter().map(SubspaceMod::get_balance_u64).sum()
 }
 
@@ -678,7 +678,40 @@ pub fn get_stake_for_uid(netuid: u16, module_uid: u16) -> u64 {
 #[allow(dead_code)]
 pub fn get_emission_for_key(netuid: u16, key: &AccountId) -> u64 {
     let uid = SubspaceMod::get_uid_for_key(netuid, key).unwrap();
-    SubspaceMod::get_emission_for_uid(netuid, uid)
+    SubspaceMod::get_emission_for(netuid)
+        .get(uid as usize)
+        .copied()
+        .unwrap_or_default()
+}
+
+#[allow(dead_code)]
+pub fn get_uids(netuid: u16) -> Vec<u16> {
+    (0..N::<Test>::get(netuid)).collect()
+}
+
+#[allow(dead_code)]
+pub fn get_keys(netuid: u16) -> Vec<AccountId> {
+    get_uids(netuid)
+        .into_iter()
+        .map(|uid| SubspaceMod::get_key_for_uid(netuid, uid).unwrap())
+        .collect()
+}
+
+#[allow(dead_code)]
+pub fn get_uid_key_tuples(netuid: u16) -> Vec<(u16, AccountId)> {
+    (0..N::<Test>::get(netuid))
+        .map(|uid| (uid, SubspaceMod::get_key_for_uid(netuid, uid).unwrap()))
+        .collect()
+}
+
+#[allow(dead_code)]
+pub fn get_names(netuid: u16) -> Vec<Vec<u8>> {
+    Name::<Test>::iter_prefix(netuid).map(|(_, name)| name).collect()
+}
+
+#[allow(dead_code)]
+pub fn get_addresses(netuid: u16) -> Vec<AccountId> {
+    Uids::<Test>::iter_prefix(netuid).map(|(key, _)| key).collect()
 }
 
 pub fn delegate_register_module(
@@ -716,10 +749,10 @@ pub fn delegate_register_module(
 #[allow(dead_code)]
 pub fn check_subnet_storage(netuid: u16) -> bool {
     let n = N::<Test>::get(netuid);
-    let uids = SubspaceMod::get_uids(netuid);
-    let keys = SubspaceMod::get_keys(netuid);
-    let names = SubspaceMod::get_names(netuid);
-    let addresses = SubspaceMod::get_addresses(netuid);
+    let uids = get_uids(netuid);
+    let keys = get_keys(netuid);
+    let names = get_names(netuid);
+    let addresses = get_addresses(netuid);
     let emissions = Emission::<Test>::get(netuid);
     let incentives = Incentive::<Test>::get(netuid);
     let dividends = Dividends::<Test>::get(netuid);
