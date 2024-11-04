@@ -1,5 +1,8 @@
 use frame_support::pallet_macros::pallet_section;
 
+// TODO: 2. For a doc comment specifically, you can use intra-doc links:
+// ```rust
+// /// The encryption period is too short or long, minimum is [`MIN_ENCRYPTION_PERIOD`] blocks max is [`MAX_ENCRYPTION_PERIOD`] blocks
 #[pallet_section]
 pub mod errors {
     #[pallet::error]
@@ -192,5 +195,7 @@ pub mod errors {
         InvalidKappa,
         /// Rho must be more than 0
         InvalidRho,
+        /// The maximum allowed set weight calls per epoch must be more than 0
+        InvalidMaximumSetWeightCallsPerEpoch,
     }
 }

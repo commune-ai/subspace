@@ -57,7 +57,7 @@ fn subnet_update_changes_all_parameter_values() {
             name: b"test".to_vec().try_into().unwrap(),
             metadata: Some(b"metadata".to_vec().try_into().unwrap()),
             tempo: 300,
-            maximum_set_weight_calls_per_epoch: 12,
+            maximum_set_weight_calls_per_epoch: Some(12),
             bonds_ma: 13,
             min_validator_stake: to_nano(50_000),
             max_allowed_validators: Some(18),
@@ -119,7 +119,7 @@ fn subnet_update_changes_all_parameter_values() {
         assert_eq!(Tempo::<Test>::get(netuid), tempo);
         assert_eq!(
             MaximumSetWeightCallsPerEpoch::<Test>::get(netuid),
-            Some(maximum_set_weight_calls_per_epoch)
+            maximum_set_weight_calls_per_epoch
         );
         assert_eq!(BondsMovingAverage::<Test>::get(netuid), bonds_ma);
         assert_eq!(ModuleBurnConfig::<Test>::get(netuid), module_burn_config);

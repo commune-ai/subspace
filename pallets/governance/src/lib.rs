@@ -45,7 +45,6 @@ pub mod pallet {
     };
     use frame_system::pallet_prelude::{ensure_signed, BlockNumberFor};
     use sp_runtime::traits::AccountIdConversion;
-    use strum::EnumIter;
 
     const STORAGE_VERSION: StorageVersion = StorageVersion::new(4);
 
@@ -239,7 +238,7 @@ pub mod pallet {
             min_allowed_weights: u16,
             max_weight_age: u64,
             tempo: u16,
-            maximum_set_weight_calls_per_epoch: u16,
+            maximum_set_weight_calls_per_epoch: Option<u16>,
             vote_mode: VoteMode,
             bonds_ma: u64,
             module_burn_config: GeneralBurnConfiguration<T>,

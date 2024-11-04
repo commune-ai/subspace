@@ -1,9 +1,7 @@
 use crate::*;
 // use frame_support::storage::with_storage_layer;
 
-use frame_support::{
-    pallet_prelude::DispatchResult, sp_runtime::DispatchError, IterableStorageMap,
-};
+use frame_support::{pallet_prelude::DispatchResult, sp_runtime::DispatchError};
 use frame_system::ensure_signed;
 use pallet_subnet_emission_api::SubnetConsensus;
 use sp_core::Get;
@@ -543,7 +541,7 @@ impl<T: Config> Pallet<T> {
 
     /// returns the amount of total modules on the network
     pub fn global_n_modules() -> u16 {
-        <N<T> as IterableStorageMap<u16, u16>>::iter().map(|(_, value)| value).sum()
+        N::<T>::iter().map(|(_, value)| value).sum()
     }
 
     pub fn clear_rootnet_daily_weight_calls(block: u64) {

@@ -78,7 +78,6 @@ pub mod pallet {
     use sp_arithmetic::per_things::Percent;
     use sp_core::{ConstU16, ConstU64, ConstU8};
     pub use sp_std::{vec, vec::Vec};
-    use strum::EnumIter;
     use substrate_fixed::types::I64F64;
 
     const STORAGE_VERSION: StorageVersion = StorageVersion::new(31);
@@ -93,7 +92,6 @@ pub mod pallet {
     pub type AccountIdOf<T> = <T as frame_system::Config>::AccountId;
 
     // --- Subnet Storage ---
-
     define_subnet_includes!(
         double_maps: {
             Bonds,
@@ -107,7 +105,7 @@ pub mod pallet {
             WeightSetAt
         },
         maps: {
-            BondsMovingAverage,
+            BondsMovingAverage: u64 = 900_000,
             ValidatorPermits,
             ValidatorTrust,
             PruningScores,
@@ -121,20 +119,20 @@ pub mod pallet {
             SubnetMetadata,
             N,
             Founder,
-            IncentiveRatio,
+            IncentiveRatio: u16 = 50,
             ModuleBurnConfig,
             RegistrationsThisInterval,
             MaxEncryptionPeriod,
-            CopierMargin,
+            CopierMargin: I64F64 = I64F64::from_num(0),
             UseWeightsEncryption,
-            AlphaValues,
+            AlphaValues: (u16, u16) = (45875, 58982),
             MinValidatorStake,
-            MaxAllowedUids,
-            ImmunityPeriod,
-            MinAllowedWeights,
-            MaxWeightAge,
-            MaxAllowedWeights,
-            Tempo,
+            MaxAllowedUids: u16 = 420,
+            ImmunityPeriod: u16 = 1_000,
+            MinAllowedWeights: u16 = 1,
+            MaxWeightAge: u64 = 3_600,
+            MaxAllowedWeights: u16 = 420,
+            Tempo: u16 = 100,
             FounderShare,
             Incentive,
             Trust,
@@ -151,7 +149,7 @@ pub mod pallet {
 
     #[pallet::storage]
     pub type BondsMovingAverage<T> =
-        StorageMap<_, Identity, u16, u64, ValueQuery, ConstU64<900_000>>;
+        StorageMap<_, Identity, u16, u64, ValueQuery, BondsMovingAverageDefaultValue>;
 
     #[pallet::storage]
     pub type ValidatorPermits<T: Config> = StorageMap<_, Identity, u16, Vec<bool>, ValueQuery>;
@@ -211,7 +209,7 @@ pub mod pallet {
 
     #[pallet::storage]
     pub type IncentiveRatio<T: Config> =
-        StorageMap<_, Identity, u16, u16, ValueQuery, ConstU16<50>>;
+        StorageMap<_, Identity, u16, u16, ValueQuery, IncentiveRatioDefaultValue>;
 
     #[pallet::storage]
     pub type ModuleBurnConfig<T: Config> =
@@ -223,48 +221,43 @@ pub mod pallet {
     #[pallet::storage]
     pub type MaxEncryptionPeriod<T: Config> = StorageMap<_, Identity, u16, Option<u64>, ValueQuery>;
 
-    #[pallet::type_value]
-    pub fn DefaultCopierMargin() -> I64F64 {
-        I64F64::from_num(0)
-    }
-
     #[pallet::storage]
     pub type CopierMargin<T: Config> =
-        StorageMap<_, Identity, u16, I64F64, ValueQuery, DefaultCopierMargin>;
+        StorageMap<_, Identity, u16, I64F64, ValueQuery, CopierMarginDefaultValue>;
 
     #[pallet::storage]
     pub type UseWeightsEncryption<T: Config> = StorageMap<_, Identity, u16, bool, ValueQuery>;
 
-    #[pallet::type_value]
-    pub fn DefaultAlphaValues<T: Config>() -> (u16, u16) {
-        (45875, 58982)
-    }
-
     #[pallet::storage]
     pub type AlphaValues<T: Config> =
-        StorageMap<_, Identity, u16, (u16, u16), ValueQuery, DefaultAlphaValues<T>>;
+        StorageMap<_, Identity, u16, (u16, u16), ValueQuery, AlphaValuesDefaultValue>;
 
     #[pallet::storage]
     pub type MinValidatorStake<T: Config> =
         StorageMap<_, Identity, u16, u64, ValueQuery, T::DefaultMinValidatorStake>;
 
     #[pallet::storage]
-    pub type MaxAllowedUids<T> = StorageMap<_, Identity, u16, u16, ValueQuery, ConstU16<420>>;
+    pub type MaxAllowedUids<T> =
+        StorageMap<_, Identity, u16, u16, ValueQuery, MaxAllowedUidsDefaultValue>;
 
     #[pallet::storage]
-    pub type ImmunityPeriod<T> = StorageMap<_, Identity, u16, u16, ValueQuery, ConstU16<0>>;
+    pub type ImmunityPeriod<T> =
+        StorageMap<_, Identity, u16, u16, ValueQuery, ImmunityPeriodDefaultValue>;
 
     #[pallet::storage]
-    pub type MinAllowedWeights<T> = StorageMap<_, Identity, u16, u16, ValueQuery, ConstU16<1>>;
+    pub type MinAllowedWeights<T> =
+        StorageMap<_, Identity, u16, u16, ValueQuery, MinAllowedWeightsDefaultValue>;
 
     #[pallet::storage]
-    pub type MaxWeightAge<T> = StorageMap<_, Identity, u16, u64, ValueQuery, ConstU64<3600>>;
+    pub type MaxWeightAge<T> =
+        StorageMap<_, Identity, u16, u64, ValueQuery, MaxWeightAgeDefaultValue>;
 
     #[pallet::storage]
-    pub type MaxAllowedWeights<T> = StorageMap<_, Identity, u16, u16, ValueQuery, ConstU16<420>>;
+    pub type MaxAllowedWeights<T> =
+        StorageMap<_, Identity, u16, u16, ValueQuery, MaxAllowedWeightsDefaultValue>;
 
     #[pallet::storage]
-    pub type Tempo<T> = StorageMap<_, Identity, u16, u16, ValueQuery, ConstU16<100>>;
+    pub type Tempo<T> = StorageMap<_, Identity, u16, u16, ValueQuery, TempoDefaultValue>;
 
     #[pallet::storage]
     pub type FounderShare<T: Config> =
