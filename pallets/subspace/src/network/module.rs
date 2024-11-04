@@ -3,6 +3,8 @@ use crate::*;
 use frame_support::pallet_prelude::DispatchResult;
 pub struct SubnetDistributionParameters;
 
+// TODO: refactor whole file
+
 impl<T: Config> Pallet<T> {
     pub fn do_update_module(
         origin: T::RuntimeOrigin,

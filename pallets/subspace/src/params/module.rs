@@ -61,15 +61,8 @@ impl ModuleChangeset {
         }
     }
 
-    /// Checks whether the module params are valid. Name and address must be non-empty and below the
-    /// max name length allowed.
     #[deny(unused_variables)]
-    pub fn apply<T: Config>(
-        self,
-        netuid: u16,
-        key: T::AccountId,
-        uid: u16,
-    ) -> Result<(), sp_runtime::DispatchError> {
+    pub fn validate<T: Config>(&self, netuid: u16) -> Result<(), sp_runtime::DispatchError> {
         let Self {
             name,
             address,
@@ -80,27 +73,58 @@ impl ModuleChangeset {
         let max_length = MaxNameLength::<T>::get() as usize;
         let min_length = MinNameLength::<T>::get() as usize;
 
-        // Validate and apply name changes
+        if let Some(name) = name {
+            Self::validate_name::<T>(name, min_length, max_length, netuid)?;
+        }
+
+        if let Some(address) = address {
+            Self::validate_address::<T>(address, max_length)?;
+        }
+
+        if let Some(fee) = delegation_fee {
+            Self::validate_delegation_fee::<T>(fee)?;
+        }
+
+        if let Some(metadata) = metadata {
+            Self::validate_metadata::<T>(metadata)?;
+        }
+
+        Ok(())
+    }
+
+    /// Checks whether the module params are valid. Name and address must be non-empty and below the
+    /// max name length allowed.
+    #[deny(unused_variables)]
+    pub fn apply<T: Config>(
+        self,
+        netuid: u16,
+        key: T::AccountId,
+        uid: u16,
+    ) -> Result<(), sp_runtime::DispatchError> {
+        // First validate all changes
+        self.validate::<T>(netuid)?;
+
+        let Self {
+            name,
+            address,
+            delegation_fee,
+            metadata,
+        } = self;
+
+        // Apply validated changes
         if let Some(new_name) = name {
-            Self::validate_name::<T>(&new_name, min_length, max_length, netuid)?;
             Name::<T>::insert(netuid, uid, new_name);
         }
 
-        // Validate and apply address changes
         if let Some(new_address) = address {
-            Self::validate_address::<T>(&new_address, max_length)?;
             Address::<T>::insert(netuid, uid, new_address);
         }
 
-        // Validate and apply delegation fee changes
         if let Some(new_fee) = delegation_fee {
-            Self::validate_delegation_fee::<T>(&new_fee)?;
             DelegationFee::<T>::insert(&key, new_fee);
         }
 
-        // Validate and apply metadata changes
         if let Some(new_metadata) = metadata {
-            Self::validate_metadata::<T>(&new_metadata)?;
             Metadata::<T>::insert(netuid, &key, new_metadata);
         }
 

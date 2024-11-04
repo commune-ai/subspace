@@ -15,7 +15,7 @@ impl<T: Config> Pallet<T> {
             None => Self::get_total_subnets(),
         });
 
-        let name = changeset.params.name.clone();
+        let name = (*changeset.params()).name.clone();
         changeset.apply(netuid)?;
         N::<T>::insert(netuid, 0);
         T::set_subnet_emission_storage(netuid, 0);

@@ -123,7 +123,7 @@ pub mod dispatches {
             min_allowed_weights: u16,
             max_weight_age: u64,
             tempo: u16,
-            maximum_set_weight_calls_per_epoch: u16,
+            maximum_set_weight_calls_per_epoch: Option<u16>,
             vote_mode: VoteMode,
             bonds_ma: u64,
             module_burn_config: GeneralBurnConfiguration<T>,

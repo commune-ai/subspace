@@ -41,7 +41,6 @@ pub mod pallet {
     use frame_system::pallet_prelude::BlockNumberFor;
     use pallet_subnet_emission_api::SubnetConsensus;
     use pallet_subspace::{define_subnet_includes, TotalStake};
-    use strum::EnumIter;
     use subnet_pricing::root::RootPricing;
     use types::KeylessBlockWeights;
 

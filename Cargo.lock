@@ -6225,6 +6225,7 @@ dependencies = [
  "pallet-subspace-genesis-config",
  "parity-scale-codec",
  "parity-util-mem",
+ "paste",
  "rand",
  "scale-info",
  "sp-arithmetic",
