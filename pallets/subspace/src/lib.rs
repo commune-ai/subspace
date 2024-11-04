@@ -292,18 +292,22 @@ pub mod pallet {
         StorageDoubleMap<_, Twox64Concat, u16, Twox64Concat, T::AccountId, Vec<u8>>;
 
     #[pallet::storage]
+    #[pallet::getter(fn get_incentive_for)]
     pub type Incentive<T: Config> = StorageMap<_, Identity, u16, Vec<u16>, ValueQuery>;
 
     #[pallet::storage]
     pub type Trust<T: Config> = StorageMap<_, Identity, u16, Vec<u16>, ValueQuery>;
 
     #[pallet::storage]
+    #[pallet::getter(fn get_dividends_for)]
     pub type Dividends<T: Config> = StorageMap<_, Identity, u16, Vec<u16>, ValueQuery>;
 
     #[pallet::storage]
+    #[pallet::getter(fn get_emission_for)]
     pub type Emission<T: Config> = StorageMap<_, Identity, u16, Vec<u64>, ValueQuery>;
 
     #[pallet::storage]
+    #[pallet::getter(fn get_last_update_for)]
     pub type LastUpdate<T: Config> = StorageMap<_, Identity, u16, Vec<u64>, ValueQuery>;
 
     #[pallet::storage]

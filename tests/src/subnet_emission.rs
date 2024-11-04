@@ -60,7 +60,7 @@ fn test_dividends_same_stake() {
         // Set rootnet weight
         set_weights(0, u32::MAX, vec![netuid], vec![1]);
 
-        let keys = SubspaceMod::<Test>::get_keys(netuid);
+        let keys = get_keys(netuid);
 
         // do a list of ones for weights
         let weight_uids: Vec<u16> = [2, 3].to_vec();
@@ -158,7 +158,7 @@ fn test_dividends_diff_stake() {
         // Set rootnet weight
         set_weights(0, u32::MAX, vec![netuid], vec![1]);
 
-        let keys = SubspaceMod::<Test>::get_keys(netuid);
+        let keys = get_keys(netuid);
 
         // Make sure the consensus does not think we are deregistered
         step_block(1);
@@ -322,8 +322,20 @@ fn test_pruning() {
         RegistrationBlock::<Test>::insert(new_netuid, 0, 1);
         RegistrationBlock::<Test>::insert(new_netuid, 1, 0);
 
-        assert_eq!(SubspaceMod::<Test>::get_emission_for_uid(new_netuid, 0), 0);
-        assert_eq!(SubspaceMod::<Test>::get_emission_for_uid(new_netuid, 1), 0);
+        assert_eq!(
+            SubspaceMod::<Test>::get_emission_for(new_netuid)
+                .get(0)
+                .copied()
+                .unwrap_or_default(),
+            0
+        );
+        assert_eq!(
+            SubspaceMod::<Test>::get_emission_for(new_netuid)
+                .get(1)
+                .copied()
+                .unwrap_or_default(),
+            0
+        );
         assert_eq!(
             SubspaceMod::<Test>::get_lowest_uid(new_netuid, false),
             Some(1)
@@ -357,7 +369,7 @@ fn test_lowest_priority_mechanism() {
         // Set rootnet weight
         set_weights(0, u32::MAX, vec![netuid], vec![1]);
 
-        let keys = SubspaceMod::<Test>::get_keys(netuid);
+        let keys = get_keys(netuid);
         let voter_idx = 0;
 
         // Create a list of UIDs excluding the voter_idx
@@ -459,7 +471,7 @@ fn test_incentives() {
         params.max_allowed_weights = n;
         params.tempo = 100;
 
-        let keys = SubspaceMod::<Test>::get_keys(netuid);
+        let keys = get_keys(netuid);
         let weight_uids: Vec<u16> = [1, 2].to_vec();
         let weight_values: Vec<u16> = [1, 1].to_vec();
 
@@ -596,15 +608,15 @@ mod utils {
         Consensus::<Test>::get(netuid).get(uid as usize).copied().unwrap_or_default()
     }
 
-    pub fn get_incentive_for_uid(netuid: u16, uid: u16) -> u16 {
+    pub fn get_incentive_for(netuid: u16, uid: u16) -> u16 {
         Incentive::<Test>::get(netuid).get(uid as usize).copied().unwrap_or_default()
     }
 
-    pub fn get_dividends_for_uid(netuid: u16, uid: u16) -> u16 {
+    pub fn get_dividends_for(netuid: u16, uid: u16) -> u16 {
         Dividends::<Test>::get(netuid).get(uid as usize).copied().unwrap_or_default()
     }
 
-    pub fn get_emission_for_uid(netuid: u16, uid: u16) -> u64 {
+    pub fn get_emission_for(netuid: u16, uid: u16) -> u64 {
         Emission::<Test>::get(netuid).get(uid as usize).copied().unwrap_or_default()
     }
 }
@@ -670,9 +682,9 @@ fn test_1_graph() {
         assert_eq!(utils::get_rank_for_uid(netuid, uid), 0);
         assert_eq!(utils::get_trust_for_uid(netuid, uid), 0);
         assert_eq!(utils::get_consensus_for_uid(netuid, uid), 0);
-        assert_eq!(utils::get_incentive_for_uid(netuid, uid), 0);
-        assert_eq!(utils::get_dividends_for_uid(netuid, uid), 0);
-        assert_eq!(utils::get_emission_for_uid(netuid, uid), ONE - offset);
+        assert_eq!(utils::get_incentive_for(netuid, uid), 0);
+        assert_eq!(utils::get_dividends_for(netuid, uid), 0);
+        assert_eq!(utils::get_emission_for(netuid, uid), ONE - offset);
     });
 }
 
@@ -760,9 +772,9 @@ fn test_10_graph() {
             assert_eq!(utils::get_rank_for_uid(netuid, i), 0);
             assert_eq!(utils::get_trust_for_uid(netuid, i), 0);
             assert_eq!(utils::get_consensus_for_uid(netuid, i), 0);
-            assert_eq!(utils::get_incentive_for_uid(netuid, i), 0);
-            assert_eq!(utils::get_dividends_for_uid(netuid, i), 0);
-            assert_eq!(utils::get_emission_for_uid(netuid, i), 99999999);
+            assert_eq!(utils::get_incentive_for(netuid, i), 0);
+            assert_eq!(utils::get_dividends_for(netuid, i), 0);
+            assert_eq!(utils::get_emission_for(netuid, i), 99999999);
         }
     });
 }
@@ -846,12 +858,22 @@ fn yuma_weights_older_than_max_age_are_discarded() {
         step_block(100);
 
         // Make sure we have incentive and dividends
-        let miner_incentive = SubspaceMod::<Test>::get_incentive_for_uid(yuma_netuid, miner_uid);
-        let miner_dividends = SubspaceMod::<Test>::get_dividends_for_uid(yuma_netuid, miner_uid);
-        let validator_incentive =
-            SubspaceMod::<Test>::get_incentive_for_uid(yuma_netuid, validator_uid);
-        let validator_dividends =
-            SubspaceMod::<Test>::get_dividends_for_uid(yuma_netuid, validator_uid);
+        let miner_incentive = SubspaceMod::<Test>::get_incentive_for(yuma_netuid)
+            .get(miner_uid as usize)
+            .copied()
+            .unwrap_or_default();
+        let miner_dividends = SubspaceMod::<Test>::get_dividends_for(yuma_netuid)
+            .get(miner_uid as usize)
+            .copied()
+            .unwrap_or_default();
+        let validator_incentive = SubspaceMod::<Test>::get_incentive_for(yuma_netuid)
+            .get(validator_uid as usize)
+            .copied()
+            .unwrap_or_default();
+        let validator_dividends = SubspaceMod::<Test>::get_dividends_for(yuma_netuid)
+            .get(validator_uid as usize)
+            .copied()
+            .unwrap_or_default();
 
         assert!(miner_incentive > 0);
         assert_eq!(miner_dividends, 0);
@@ -862,12 +884,22 @@ fn yuma_weights_older_than_max_age_are_discarded() {
         step_block(MAX_WEIGHT_AGE as u16);
 
         // Make sure we have no incentive and dividends
-        let miner_incentive = SubspaceMod::<Test>::get_incentive_for_uid(yuma_netuid, miner_uid);
-        let miner_dividends = SubspaceMod::<Test>::get_dividends_for_uid(yuma_netuid, miner_uid);
-        let validator_incentive =
-            SubspaceMod::<Test>::get_incentive_for_uid(yuma_netuid, validator_uid);
-        let validator_dividends =
-            SubspaceMod::<Test>::get_dividends_for_uid(yuma_netuid, validator_uid);
+        let miner_incentive = SubspaceMod::<Test>::get_incentive_for(yuma_netuid)
+            .get(miner_uid as usize)
+            .copied()
+            .unwrap_or_default();
+        let miner_dividends = SubspaceMod::<Test>::get_dividends_for(yuma_netuid)
+            .get(miner_uid as usize)
+            .copied()
+            .unwrap_or_default();
+        let validator_incentive = SubspaceMod::<Test>::get_incentive_for(yuma_netuid)
+            .get(validator_uid as usize)
+            .copied()
+            .unwrap_or_default();
+        let validator_dividends = SubspaceMod::<Test>::get_dividends_for(yuma_netuid)
+            .get(validator_uid as usize)
+            .copied()
+            .unwrap_or_default();
 
         assert_eq!(miner_incentive, 0);
         assert_eq!(miner_dividends, 0);
@@ -875,7 +907,6 @@ fn yuma_weights_older_than_max_age_are_discarded() {
         assert_eq!(validator_incentive, 0);
 
         // But make sure there are emissions
-
         let subnet_emission_sum = Emission::<Test>::get(yuma_netuid).iter().sum::<u64>();
         assert!(subnet_emission_sum > 0);
     });

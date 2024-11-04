@@ -1,7 +1,5 @@
 use crate::*;
-use frame_support::{
-    pallet_prelude::DispatchResult, storage::IterableStorageMap, IterableStorageDoubleMap,
-};
+use frame_support::pallet_prelude::DispatchResult;
 use pallet_governance_api::GovernanceApi;
 use pallet_subnet_emission_api::{SubnetConsensus, SubnetEmissionApi};
 use sp_runtime::DispatchError;
@@ -122,35 +120,6 @@ impl<T: Config> Pallet<T> {
         min_allowed_weights.min(N::<T>::get(netuid))
     }
 
-    pub fn get_uids(netuid: u16) -> Vec<u16> {
-        (0..N::<T>::get(netuid)).collect()
-    }
-
-    pub fn get_keys(netuid: u16) -> Vec<T::AccountId> {
-        Self::get_uids(netuid)
-            .into_iter()
-            .map(|uid| Self::get_key_for_uid(netuid, uid).unwrap())
-            .collect()
-    }
-
-    pub fn get_uid_key_tuples(netuid: u16) -> Vec<(u16, T::AccountId)> {
-        (0..N::<T>::get(netuid))
-            .map(|uid| (uid, Self::get_key_for_uid(netuid, uid).unwrap()))
-            .collect()
-    }
-
-    pub fn get_names(netuid: u16) -> Vec<Vec<u8>> {
-        <Name<T> as IterableStorageDoubleMap<u16, u16, Vec<u8>>>::iter_prefix(netuid)
-            .map(|(_, name)| name)
-            .collect()
-    }
-
-    pub fn get_addresses(netuid: u16) -> Vec<T::AccountId> {
-        <Uids<T> as IterableStorageDoubleMap<u16, T::AccountId, u16>>::iter_prefix(netuid)
-            .map(|(key, _)| key)
-            .collect()
-    }
-
     pub fn get_netuid_for_name(name: &[u8]) -> Option<u16> {
         SubnetNames::<T>::iter().find(|(_, n)| n == name).map(|(id, _)| id)
     }
@@ -171,24 +140,7 @@ impl<T: Config> Pallet<T> {
             .expect("blockchain will not exceed 2^64 blocks; QED.")
     }
 
-    pub fn get_emission_for_uid(netuid: u16, uid: u16) -> u64 {
-        Emission::<T>::get(netuid).get(uid as usize).copied().unwrap_or_default()
-    }
-
-    pub fn get_incentive_for_uid(netuid: u16, uid: u16) -> u16 {
-        Incentive::<T>::get(netuid).get(uid as usize).copied().unwrap_or_default()
-    }
-
-    pub fn get_dividends_for_uid(netuid: u16, uid: u16) -> u16 {
-        Dividends::<T>::get(netuid).get(uid as usize).copied().unwrap_or_default()
-    }
-
-    pub fn get_last_update_for_uid(netuid: u16, uid: u16) -> u64 {
-        LastUpdate::<T>::get(netuid).get(uid as usize).copied().unwrap_or_default()
-    }
-
     // --- Util ---
-    //
     pub fn calculate_founder_emission(netuid: u16, mut token_emission: u64) -> (u64, u64) {
         let founder_share: u16 = FounderShare::<T>::get(netuid).min(100);
         if founder_share == 0u16 {
@@ -238,10 +190,6 @@ impl<T: Config> Pallet<T> {
         ownership_vector
     }
 
-    pub fn is_key_registered_on_any_network(key: &T::AccountId) -> bool {
-        Self::netuids().iter().any(|&netuid| Uids::<T>::contains_key(netuid, key))
-    }
-
     pub fn is_registered(network: Option<u16>, key: &T::AccountId) -> bool {
         match network {
             Some(netuid) => Uids::<T>::contains_key(netuid, key),
@@ -256,12 +204,6 @@ impl<T: Config> Pallet<T> {
     pub fn key_registered(netuid: u16, key: &T::AccountId) -> bool {
         Uids::<T>::contains_key(netuid, key)
             || Keys::<T>::iter_prefix_values(netuid).any(|k| &k == key)
-    }
-
-    pub fn netuids() -> Vec<u16> {
-        <N<T> as IterableStorageMap<u16, u16>>::iter()
-            .map(|(netuid, _)| netuid)
-            .collect()
     }
 
     pub fn clear_stakes_for_subnet_only_accounts(subnet_id: u16) {
