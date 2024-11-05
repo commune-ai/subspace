@@ -171,3 +171,15 @@ impl ModuleChangeset {
         Ok(())
     }
 }
+
+impl<T: Config> Pallet<T> {
+    pub fn module_params(netuid: u16, key: &T::AccountId, uid: u16) -> ModuleParams<T> {
+        ModuleParams {
+            name: Name::<T>::get(netuid, uid),
+            address: Address::<T>::get(netuid, uid),
+            delegation_fee: DelegationFee::<T>::get(key),
+            metadata: Metadata::<T>::get(netuid, key),
+            _pd: PhantomData,
+        }
+    }
+}

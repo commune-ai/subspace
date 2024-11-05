@@ -100,7 +100,9 @@ pub mod dispatches {
                 Error::<T>::ModuleDoesNotExist
             );
 
-            let params = Self::module_params(netuid, &key);
+            let uid = Self::get_uid_for_key(netuid, &key).ok_or(Error::<T>::ModuleDoesNotExist)?;
+
+            let params = Self::module_params(netuid, &key, uid);
 
             let changeset =
                 ModuleChangeset::update(&params, name, address, delegation_fee, metadata);

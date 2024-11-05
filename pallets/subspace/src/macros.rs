@@ -141,14 +141,14 @@ macro_rules! define_subnet_includes {
 macro_rules! define_module_includes {
     (
         vectors: {
-            $( $vec:ident $(: $vec_type:ty = $vec_default:expr)? ),* $(,)?
+            $( $vec:ident: $vec_type:ty = $vec_default:expr ),* $(,)?
         },
         swap_storages: {
             optional: {
-                $( $opt_swap:ident $(: $opt_type:ty = $opt_default:expr)? ),* $(,)?
+                $( $opt_swap:ident: $opt_type:ty = $opt_default:expr ),* $(,)?
             },
             required: {
-                $( $req_swap:ident $(: $req_type:ty = $req_default:expr)? ),* $(,)?
+                $( $req_swap:ident: $req_type:ty = $req_default:expr ),* $(,)?
             }
         },
         key_storages: {
@@ -158,20 +158,7 @@ macro_rules! define_module_includes {
     ) => {
         pub mod custom_storage_types {
             use super::*;
-
-            // Generate default value implementations for vectors
-            $(
-                paste::paste! {
-                    $(
-                        pub struct [<$vec DefaultValue>];
-                        impl Get<$vec_type> for [<$vec DefaultValue>] {
-                            fn get() -> $vec_type {
-                                $vec_default
-                            }
-                        }
-                    )?
-                }
-            )*
+            use core::marker::PhantomData;
 
             #[derive(strum::EnumIter)]
             pub enum ModuleVectors {
@@ -190,13 +177,14 @@ macro_rules! define_module_includes {
                         $(
                             Self::$vec => {
                                 let mut vec = $vec::<T>::get(netuid);
-                                *vec.get_mut(uid as usize)
-                                    .ok_or(concat!("failed to access uid for array ", stringify!($vec)))? =
-                                    vec.get(replace_uid as usize)
-                                    .copied()
-                                    .ok_or(concat!("failed to access replace_uid for array ", stringify!($vec)))?;
-                                vec.pop();
-                                $vec::<T>::insert(netuid, vec);
+                                if let (Some(replace_value), Some(entry)) = (
+                                    vec.get(replace_uid as usize).copied(),
+                                    vec.get_mut(uid as usize)
+                                ) {
+                                    *entry = replace_value;
+                                    vec.pop();
+                                    $vec::<T>::insert(netuid, vec);
+                                }
                             },
                         )*
                     }
@@ -208,9 +196,8 @@ macro_rules! define_module_includes {
                         $(
                             Self::$vec => {
                                 let mut vec = $vec::<T>::get(netuid);
-                                $(
-                                    vec.push($vec_default);
-                                )?
+                                let phantom = PhantomData::<T>;
+                                vec.push(($vec_default)(phantom));
                                 $vec::<T>::insert(netuid, vec);
                             },
                         )*
@@ -250,16 +237,16 @@ macro_rules! define_module_includes {
                     match self {
                         $(
                             Self::$opt_swap => {
-                                $(
-                                    $opt_swap::<T>::insert(netuid, uid, $opt_default);
-                                )?
+                                let phantom = PhantomData::<T>;
+                                let value = ($opt_default)(phantom);
+                                $opt_swap::<T>::insert(netuid, uid, value);
                             },
                         )*
                         $(
                             Self::$req_swap => {
-                                $(
-                                    $req_swap::<T>::insert(netuid, uid, $req_default);
-                                )?
+                                let phantom = PhantomData::<T>;
+                                let value = ($req_default)(phantom);
+                                $req_swap::<T>::insert(netuid, uid, value);
                             },
                         )*
                     }
@@ -301,7 +288,6 @@ macro_rules! define_module_includes {
             }
         }
 
-        // Re-export the types at the module level
         pub use custom_storage_types::*;
     };
 }
