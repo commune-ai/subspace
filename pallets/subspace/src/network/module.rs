@@ -23,55 +23,36 @@ impl<T: Config> Pallet<T> {
         Name::<T>::iter_prefix_values(netuid).any(|existing| existing == name)
     }
 
-    pub fn module_params(netuid: u16, key: &T::AccountId) -> ModuleParams<T> {
-        let uid = Uids::<T>::get(netuid, key).unwrap_or(u16::MAX);
-
-        ModuleParams {
-            name: Name::<T>::get(netuid, uid),
-            address: Address::<T>::get(netuid, uid),
-            delegation_fee: DelegationFee::<T>::get(key),
-            metadata: Metadata::<T>::get(netuid, key),
-            _pd: PhantomData,
-        }
-    }
-
     /// Appends the uid to the network (without increasing stake).
     pub fn append_module(
         netuid: u16,
         key: &T::AccountId,
         changeset: ModuleChangeset,
     ) -> Result<u16, sp_runtime::DispatchError> {
-        // 1. Get the next uid and current block number
+        // 1. Get the next uid
         let uid: u16 = N::<T>::get(netuid);
-        let block_number = Self::get_current_block_number();
 
         log::debug!("append_module( netuid: {netuid:?} | uid: {key:?} | new_key: {uid:?})");
 
-        // 3. Initialize key storages and required swap storages
+        // 2. Initialize key storages and required swap storages
         KeyStorageHandler::initialize::<T>(netuid, uid, key)?;
-        RegistrationBlock::<T>::insert(netuid, uid, block_number);
-        ModuleSwapStorages::Address.initialize::<T>(netuid, uid)?;
-        ModuleSwapStorages::Name.initialize::<T>(netuid, uid)?;
 
-        // 4. Expand consensus parameters with new position using ModuleVectors
-        for vector in ModuleVectors::all() {
-            match vector {
-                ModuleVectors::LastUpdate => {
-                    let mut vec = LastUpdate::<T>::get(netuid);
-                    vec.push(block_number);
-                    LastUpdate::<T>::insert(netuid, vec);
-                }
-                _ => {
-                    vector.append::<T>(netuid)?;
-                }
-            }
+        for storage in ModuleSwapStorages::all() {
+            storage.initialize::<T>(netuid, uid)?;
         }
+
+        // 3. Expand consensus parameters with new position using ModuleVectors
+        // LastUpdate will now use its dynamic default value automatically
+        for vector in ModuleVectors::all() {
+            vector.append::<T>(netuid)?;
+        }
+
         changeset.apply::<T>(netuid, key.clone(), uid)?;
 
-        // 5. Increase the number of modules in the network.
+        // 4. Increase the number of modules in the network.
         N::<T>::mutate(netuid, |n| *n = n.saturating_add(1));
 
-        // increase the stake of the new key
+        // 5. increase the stake of the new key
         Self::increase_stake(key, key, 0);
 
         Ok(uid)
@@ -130,6 +111,7 @@ impl<T: Config> Pallet<T> {
         T::set_weights(netuid, uid, weights);
 
         // 7. Handle Metadata (special case as it only needs removal)
+        // Move this to the macro as well
         Metadata::<T>::remove(netuid, &module_key);
 
         // 8. Handle delegation and stake
@@ -146,7 +128,7 @@ impl<T: Config> Pallet<T> {
 
         // 10. Handle rootnet deregistration
         if let Some(key) = Self::get_key_for_uid(uid, netuid) {
-            Self::handle_rootnet_module_deregistration(key, netuid);
+            Self::handle_rootnet_power_delegation(key, netuid);
         }
 
         // 11. Remove subnet if empty
@@ -157,7 +139,7 @@ impl<T: Config> Pallet<T> {
         Ok(())
     }
 
-    fn handle_rootnet_module_deregistration(key: T::AccountId, netuid: u16) {
+    fn handle_rootnet_power_delegation(key: T::AccountId, netuid: u16) {
         if Self::is_rootnet(netuid) {
             // Remove the direct delegation for the key
             RootnetControlDelegation::<T>::remove(&key);

@@ -350,7 +350,8 @@ mod module_validation {
             assert_ok!(update_module(b"test2", b"0.0.0.0:2"));
             assert_ok!(update_module(b"test3", b"0.0.0.0:3"));
 
-            let params = SubspaceMod::module_params(0, &key_1);
+            let uid = SubspaceMod::get_uid_for_key(subnet, &key_1).unwrap();
+            let params = SubspaceMod::module_params(0, &key_1, uid);
             assert_eq!(params.name, b"test3");
             assert_eq!(params.address, b"0.0.0.0:3");
 

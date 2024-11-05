@@ -146,25 +146,25 @@ pub mod pallet {
     // --- Module Storage ---
     define_module_includes!(
         vectors: {
-            Active: bool = true,
-            Consensus: u64 = 0,
-            Emission: u64 = 0,
-            Incentive: u64 = 0,
-            Dividends: u64 = 0,
-            LastUpdate: u64 = 0,
-            Rank: u64 = 0,
-            Trust: u64 = 0,
-            ValidatorPermits: bool = false,
-            ValidatorTrust: u64 = 0,
+            Active: bool = |_: PhantomData<T>| true,
+            Consensus: u64 = |_: PhantomData<T>| 0,
+            Emission: u64 = |_: PhantomData<T>| 0,
+            Incentive: u64 = |_: PhantomData<T>| 0,
+            Dividends: u64 = |_: PhantomData<T>| 0,
+            LastUpdate: u64 = |_: PhantomData<T>| Pallet::<T>::get_current_block_number(),
+            Rank: u64 = |_: PhantomData<T>| 0,
+            Trust: u64 = |_: PhantomData<T>| 0,
+            ValidatorPermits: bool = |_: PhantomData<T>| false,
+            ValidatorTrust: u64 = |_: PhantomData<T>| 0,
         },
         swap_storages: {
             optional: {
-                WeightSetAt: BlockNumber = 0,
+                WeightSetAt: u64 = |_: PhantomData<T>| 0,
             },
             required: {
-                RegistrationBlock: BlockNumber = 0,
-                Address: Vec<u8> = Vec::<u8>::new(),
-                Name: Vec<u8> = Vec::<u8>::new(),
+                RegistrationBlock: u64 = |_: PhantomData<T>| Pallet::<T>::get_current_block_number(),
+                Address: Vec<u8> = |_: PhantomData<T>| Vec::<u8>::new(),
+                Name: Vec<u8> = |_: PhantomData<T>| Vec::<u8>::new(),
             }
         },
         key_storages: {

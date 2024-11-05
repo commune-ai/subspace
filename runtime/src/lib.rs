@@ -972,7 +972,8 @@ impl_runtime_apis! {
     impl subspace_runtime_api::SubspaceRuntimeApi<Block> for Runtime {
         fn get_module_info(key: AccountId, netuid: u16) -> ModuleInfo {
             let stats = SubspaceModule::get_module_stats(netuid, &key);
-            let params = SubspaceModule::module_params(netuid, &key);
+            let uid = SubspaceModule::get_uid_for_key(netuid, &key).unwrap_or_default();
+            let params = SubspaceModule::module_params(netuid, &key, uid);
 
             ModuleInfo {
                 stats: ModuleStats {
