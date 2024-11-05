@@ -9,7 +9,7 @@ pub struct ModuleParams<T: Config> {
     pub address: Vec<u8>,
     pub delegation_fee: Percent,
     pub metadata: Option<Vec<u8>>,
-    pub controller: T::AccountId,
+    pub _pd: PhantomData<T>,
 }
 
 #[derive(Debug)]
@@ -48,9 +48,9 @@ impl ModuleChangeset {
         let ModuleParams {
             name: old_name,
             address: old_address,
-            delegation_fee: _, // Not used for comparison
-            metadata: _,       // Not used for comparison
-            controller: _,     // Not used for comparison
+            delegation_fee: _,
+            metadata: _,
+            _pd: _,
         } = params;
 
         Self {
@@ -92,8 +92,6 @@ impl ModuleChangeset {
         Ok(())
     }
 
-    /// Checks whether the module params are valid. Name and address must be non-empty and below the
-    /// max name length allowed.
     #[deny(unused_variables)]
     pub fn apply<T: Config>(
         self,
@@ -101,7 +99,6 @@ impl ModuleChangeset {
         key: T::AccountId,
         uid: u16,
     ) -> Result<(), sp_runtime::DispatchError> {
-        // First validate all changes
         self.validate::<T>(netuid)?;
 
         let Self {
@@ -111,7 +108,6 @@ impl ModuleChangeset {
             metadata,
         } = self;
 
-        // Apply validated changes
         if let Some(new_name) = name {
             Name::<T>::insert(netuid, uid, new_name);
         }

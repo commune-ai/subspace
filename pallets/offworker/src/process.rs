@@ -6,7 +6,10 @@ impl<T: Config> Pallet<T> {
             .filter(|(netuid, data)| {
                 let use_weights = pallet_subspace::UseWeightsEncryption::<T>::get(*netuid);
                 let key_match = data.node_public_key == public_key;
-                use_weights && key_match
+                let has_encrypted_weights = WeightEncryptionData::<T>::iter_prefix(*netuid)
+                    .any(|(_, value)| !value.encrypted.is_empty());
+
+                use_weights && key_match && has_encrypted_weights
             })
             .map(|(netuid, _)| netuid)
             .collect()

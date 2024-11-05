@@ -48,14 +48,6 @@ impl<T: Config> Pallet<T> {
                 continue;
             }
 
-            let encrypted_weights: Vec<Vec<u8>> = WeightEncryptionData::<T>::iter_prefix(netuid)
-                .map(|(_, value)| value.encrypted)
-                .collect();
-
-            if encrypted_weights.is_empty() {
-                continue;
-            }
-
             let data = SubnetDecryptionData::<T>::get(netuid);
             if data.is_some_and(|_data| true) {
                 return;
@@ -312,8 +304,10 @@ impl<T: Config> Pallet<T> {
             .filter(|(_, info)| {
                 block_number.saturating_sub(info.last_keep_alive) > max_inactivity_blocks // this allows us to catch "exploded" offchain workers much faster
                     || block_number.saturating_sub(info.block_assigned)
-                        > T::MaxEncryptionDuration::get() + 100 // add some extra space for the
-                                                                // offchain worker to finish send
+                        > T::MaxEncryptionDuration::get().saturating_add(100) // add some extra
+                                                                              // space for the
+                                                                              // offchain worker to
+                                                                              // finish send
             })
             .for_each(|(subnet_id, info)| Self::cancel_offchain_worker(subnet_id, &info));
     }

@@ -23,7 +23,7 @@ use pallet_subnet_emission::{
         yuma::YumaEpoch,
     },
     types::{BlockWeights, PublicKey},
-    Authorities, SubnetDecryptionData,
+    Authorities, SubnetDecryptionData, WeightEncryptionData,
 };
 
 use sp_std::collections::btree_map::BTreeMap;

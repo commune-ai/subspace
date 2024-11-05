@@ -128,7 +128,7 @@ pub mod pallet {
             AlphaValues: (u16, u16) = (45875, 58982),
             MinValidatorStake,
             MaxAllowedUids: u16 = 420,
-            ImmunityPeriod: u16 = 1_000,
+            ImmunityPeriod: u16 = 0,
             MinAllowedWeights: u16 = 1,
             MaxWeightAge: u64 = 3_600,
             MaxAllowedWeights: u16 = 420,
@@ -140,6 +140,36 @@ pub mod pallet {
             Emission,
             LastUpdate,
             SubnetRegistrationBlock
+        }
+    );
+
+    // --- Module Storage ---
+    define_module_includes!(
+        vectors: {
+            Active: bool = true,
+            Consensus: u64 = 0,
+            Emission: u64 = 0,
+            Incentive: u64 = 0,
+            Dividends: u64 = 0,
+            LastUpdate: u64 = 0,
+            Rank: u64 = 0,
+            Trust: u64 = 0,
+            ValidatorPermits: bool = false,
+            ValidatorTrust: u64 = 0,
+        },
+        swap_storages: {
+            optional: {
+                WeightSetAt: BlockNumber = 0,
+            },
+            required: {
+                RegistrationBlock: BlockNumber = 0,
+                Address: Vec<u8> = Vec::<u8>::new(),
+                Name: Vec<u8> = Vec::<u8>::new(),
+            }
+        },
+        key_storages: {
+            uid_key: Uids,
+            key_uid: Keys
         }
     );
 
@@ -446,17 +476,4 @@ pub mod pallet {
     #[pallet::storage]
     pub type RootnetControlDelegation<T: Config> =
         StorageMap<_, Identity, T::AccountId, T::AccountId>;
-}
-impl<T: Config> Pallet<T> {
-    /// Returns the total amount staked by the given key to other keys.
-    #[inline]
-    pub fn get_owned_stake(staker: &T::AccountId) -> u64 {
-        StakeTo::<T>::iter_prefix_values(staker).sum()
-    }
-
-    /// Returns the total amount staked into the given key by other keys.
-    #[inline]
-    pub fn get_delegated_stake(staked: &T::AccountId) -> u64 {
-        StakeFrom::<T>::iter_prefix_values(staked).sum()
-    }
 }
