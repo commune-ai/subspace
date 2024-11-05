@@ -197,5 +197,7 @@ pub mod errors {
         InvalidRho,
         /// The maximum allowed set weight calls per epoch must be more than 0
         InvalidMaximumSetWeightCallsPerEpoch,
+        /// Some module parameter is invalid
+        InvalidModuleParams,
     }
 }

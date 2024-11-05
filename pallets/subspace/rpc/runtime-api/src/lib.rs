@@ -4,6 +4,7 @@ use parity_scale_codec::{Decode, Encode};
 use scale_info::TypeInfo;
 use serde::{Deserialize, Serialize};
 use sp_arithmetic::per_things::Percent;
+
 use sp_runtime::{
     sp_std::{collections::btree_map::BTreeMap, prelude::Vec},
     traits::{IdentifyAccount, Verify},
@@ -30,8 +31,8 @@ pub struct ModuleStats {
 pub struct ModuleParams {
     pub name: Vec<u8>,
     pub address: Vec<u8>,
-    pub delegation_fee: Percent, // delegate_fee
-    pub controller: AccountId,
+    pub delegation_fee: Percent,
+    pub metadata: Option<Vec<u8>>,
 }
 
 #[derive(Decode, Encode, PartialEq, Eq, Clone, Debug, TypeInfo, Serialize, Deserialize)]

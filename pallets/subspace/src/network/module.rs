@@ -3,8 +3,6 @@ use crate::*;
 use frame_support::pallet_prelude::DispatchResult;
 pub struct SubnetDistributionParameters;
 
-// TODO: refactor whole file
-
 impl<T: Config> Pallet<T> {
     pub fn do_update_module(
         origin: T::RuntimeOrigin,
@@ -31,9 +29,9 @@ impl<T: Config> Pallet<T> {
         ModuleParams {
             name: Name::<T>::get(netuid, uid),
             address: Address::<T>::get(netuid, uid),
-            metadata: Metadata::<T>::get(netuid, key),
             delegation_fee: DelegationFee::<T>::get(key),
-            controller: key.clone(),
+            metadata: Metadata::<T>::get(netuid, key),
+            _pd: PhantomData,
         }
     }
 
@@ -43,32 +41,32 @@ impl<T: Config> Pallet<T> {
         key: &T::AccountId,
         changeset: ModuleChangeset,
     ) -> Result<u16, sp_runtime::DispatchError> {
-        // 1. Get the next uid. This is always equal to subnetwork_n.
+        // 1. Get the next uid and current block number
         let uid: u16 = N::<T>::get(netuid);
         let block_number = Self::get_current_block_number();
 
         log::debug!("append_module( netuid: {netuid:?} | uid: {key:?} | new_key: {uid:?})");
 
-        // 2. Apply the changeset
+        // 3. Initialize key storages and required swap storages
+        KeyStorageHandler::initialize::<T>(netuid, uid, key)?;
+        RegistrationBlock::<T>::insert(netuid, uid, block_number);
+        ModuleSwapStorages::Address.initialize::<T>(netuid, uid)?;
+        ModuleSwapStorages::Name.initialize::<T>(netuid, uid)?;
+
+        // 4. Expand consensus parameters with new position using ModuleVectors
+        for vector in ModuleVectors::all() {
+            match vector {
+                ModuleVectors::LastUpdate => {
+                    let mut vec = LastUpdate::<T>::get(netuid);
+                    vec.push(block_number);
+                    LastUpdate::<T>::insert(netuid, vec);
+                }
+                _ => {
+                    vector.append::<T>(netuid)?;
+                }
+            }
+        }
         changeset.apply::<T>(netuid, key.clone(), uid)?;
-
-        // 3. Insert new account information.
-        Keys::<T>::insert(netuid, uid, key); // Make key - uid association.
-        Uids::<T>::insert(netuid, key, uid); // Make uid - key association.
-        RegistrationBlock::<T>::insert(netuid, uid, block_number); // Fill block at registration.
-
-        // 4. Expand consensus parameters with new position.
-        Active::<T>::append(netuid, true);
-        Consensus::<T>::append(netuid, 0);
-        Emission::<T>::append(netuid, 0);
-        Incentive::<T>::append(netuid, 0);
-        Dividends::<T>::append(netuid, 0);
-        LastUpdate::<T>::append(netuid, block_number);
-        PruningScores::<T>::append(netuid, 0);
-        Rank::<T>::append(netuid, 0);
-        Trust::<T>::append(netuid, 0);
-        ValidatorPermits::<T>::append(netuid, false);
-        ValidatorTrust::<T>::append(netuid, 0);
 
         // 5. Increase the number of modules in the network.
         N::<T>::mutate(netuid, |n| *n = n.saturating_add(1));
@@ -85,13 +83,13 @@ impl<T: Config> Pallet<T> {
         uid: u16,
         deregister_subnet_if_empty: bool,
     ) -> DispatchResult {
-        // 1. Get the old key under this position.
+        // 1. Check if network has any modules
         let n = N::<T>::get(netuid);
         if n == 0 {
-            // No modules in the network.
             return Ok(());
         }
 
+        // 2. Get the keys for the current and replacement positions
         let module_key: T::AccountId =
             Keys::<T>::get(netuid, uid).ok_or(Error::<T>::ModuleDoesNotExist)?;
         let replace_uid = n.saturating_sub(1);
@@ -105,119 +103,53 @@ impl<T: Config> Pallet<T> {
             module_key
         );
 
-        // HANDLE THE KEY AND UID ASSOCIATIONS
-        Uids::<T>::insert(netuid, &replace_key, uid); // Replace UID related to the replaced key.
-        Uids::<T>::remove(netuid, &module_key); // Remove old key - uid association.
+        // 3. Handle key-related storage swaps
+        KeyStorageHandler::swap_and_remove::<T>(
+            netuid,
+            uid,
+            replace_uid,
+            &module_key,
+            &replace_key,
+        )?;
 
-        Keys::<T>::insert(netuid, uid, &replace_key); // Make key - uid association.
-        Keys::<T>::remove(netuid, replace_uid); // Remove key - uid association.
-
-        // pop frm incentive vector and push to new key
-        let mut active = Active::<T>::get(netuid);
-        let mut consensus = Consensus::<T>::get(netuid);
-        let mut dividends = Dividends::<T>::get(netuid);
-        let mut emission = Emission::<T>::get(netuid);
-        let mut incentive = Incentive::<T>::get(netuid);
-        let mut last_update = LastUpdate::<T>::get(netuid);
-        let mut pruning_scores = PruningScores::<T>::get(netuid);
-        let mut rank = Rank::<T>::get(netuid);
-        let mut trust = Trust::<T>::get(netuid);
-        let mut validator_permit = ValidatorPermits::<T>::get(netuid);
-        let mut validator_trust = ValidatorTrust::<T>::get(netuid);
-
-        macro_rules! update_vectors {
-            ($a:expr) => {
-                *($a.get_mut(uid as usize)
-                    .ok_or(concat!("failed to access uid for array ", stringify!($a)))?) =
-                    $a.get(replace_uid as usize).copied().ok_or(concat!(
-                        "failed to access replace_uid for array ",
-                        stringify!($a)
-                    ))?;
-            };
+        // 4. Handle vector storage items
+        for vector in ModuleVectors::all() {
+            vector.swap_and_remove::<T>(netuid, uid, replace_uid)?;
         }
 
-        update_vectors![active];
-        update_vectors![consensus];
-        update_vectors![dividends];
-        update_vectors![emission];
-        update_vectors![incentive];
-        update_vectors![last_update];
-        update_vectors![pruning_scores];
-        update_vectors![rank];
-        update_vectors![trust];
-        update_vectors![validator_permit];
-        update_vectors![validator_trust];
+        // 5. Handle swap storage items
+        for storage in ModuleSwapStorages::all() {
+            storage.swap_and_remove::<T>(netuid, uid, replace_uid)?;
+        }
 
-        // pop the last element (which is now a duplicate)
-        active.pop();
-        consensus.pop();
-        dividends.pop();
-        emission.pop();
-        incentive.pop();
-        last_update.pop();
-        pruning_scores.pop();
-        rank.pop();
-        trust.pop();
-        validator_permit.pop();
-        validator_trust.pop();
+        // TODO: move this to the macro as well
 
-        // update the vectors
-        Active::<T>::insert(netuid, active);
-        Consensus::<T>::insert(netuid, consensus);
-        Dividends::<T>::insert(netuid, dividends);
-        Emission::<T>::insert(netuid, emission);
-        Incentive::<T>::insert(netuid, incentive);
-        LastUpdate::<T>::insert(netuid, last_update);
-        PruningScores::<T>::insert(netuid, pruning_scores);
-        Rank::<T>::insert(netuid, rank);
-        Trust::<T>::insert(netuid, trust);
-        ValidatorPermits::<T>::insert(netuid, validator_permit);
-        ValidatorTrust::<T>::insert(netuid, validator_trust);
-
-        WeightSetAt::<T>::set(netuid, uid, WeightSetAt::<T>::get(netuid, replace_uid));
-        WeightSetAt::<T>::remove(netuid, replace_uid);
-
-        // SWAP WEIGHTS
+        // 6. Handle weights (this might need its own macro category if there are more similar
+        //    cases)
         let weights = T::remove_weights(netuid, replace_uid);
         T::set_weights(netuid, uid, weights);
 
-        // HANDLE THE REGISTRATION BLOCK
-        RegistrationBlock::<T>::insert(
-            netuid,
-            uid,
-            RegistrationBlock::<T>::get(netuid, replace_uid),
-        ); // Fill block at registration.
-        RegistrationBlock::<T>::remove(netuid, replace_uid);
-
-        // HANDLE THE ADDRESS
-        Address::<T>::insert(netuid, uid, Address::<T>::get(netuid, replace_uid));
-        Address::<T>::remove(netuid, replace_uid);
-
-        // HANDLE THE METADATA
+        // 7. Handle Metadata (special case as it only needs removal)
         Metadata::<T>::remove(netuid, &module_key);
 
-        // HANDLE THE NAMES
-        Name::<T>::insert(netuid, uid, Name::<T>::get(netuid, replace_uid));
-        Name::<T>::remove(netuid, replace_uid);
-
-        // HANDLE THE DELEGATION FEE
+        // 8. Handle delegation and stake
         if Uids::<T>::iter().all(|(_, key, _)| key != module_key) {
             DelegationFee::<T>::remove(&module_key);
-            // Remove stake from old key and add to new key
             Self::remove_stake_from_storage(&module_key);
         }
 
-        // 3. Remove the network if it is empty.
+        // 9. Update network size
         let module_count = N::<T>::mutate(netuid, |v| {
             *v = v.saturating_sub(1);
             *v
-        }); // Decrease the number of modules in the network.
+        });
 
+        // 10. Handle rootnet deregistration
         if let Some(key) = Self::get_key_for_uid(uid, netuid) {
             Self::handle_rootnet_module_deregistration(key, netuid);
         }
 
-        // remove the network if it is empty
+        // 11. Remove subnet if empty
         if deregister_subnet_if_empty && module_count == 0 {
             Self::remove_subnet(netuid);
         }

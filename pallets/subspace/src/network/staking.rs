@@ -440,6 +440,18 @@ impl<T: Config> Pallet<T> {
         }
     }
 
+    /// Returns the total amount staked by the given key to other keys.
+    #[inline]
+    pub fn get_owned_stake(staker: &T::AccountId) -> u64 {
+        StakeTo::<T>::iter_prefix_values(staker).sum()
+    }
+
+    /// Returns the total amount staked into the given key by other keys.
+    #[inline]
+    pub fn get_delegated_stake(staked: &T::AccountId) -> u64 {
+        StakeFrom::<T>::iter_prefix_values(staked).sum()
+    }
+
     pub fn remove_balance_from_account(
         key: &T::AccountId,
         amount: BalanceOf<T>,

@@ -75,6 +75,8 @@ impl<T: Config> DefaultSubnetParams<T> {
     }
 }
 
+/// Wrapper for enhanced type safety.
+/// This exists to make sure we always validate the parameters before using them.
 #[derive(Clone, Debug)]
 pub struct ValidatedSubnetParams<T: Config> {
     inner: SubnetParams<T>,
@@ -118,6 +120,7 @@ impl<T: Config> ValidatedSubnetParams<T> {
     fn validate(netuid: Option<u16>, params: &SubnetParams<T>) -> DispatchResult {
         let global_params = Pallet::<T>::global_params();
 
+        // ! Keep It Written Like This To Enhance Safety Of Unused
         let SubnetParams {
             founder: _, // complete freedom
             founder_share,
