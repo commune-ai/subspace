@@ -110,7 +110,7 @@ impl<T: Config> Pallet<T> {
     fn validate_uids_length(len: usize, netuid: u16) -> DispatchResult {
         let min_allowed_length =
             pallet_subspace::Pallet::<T>::get_min_allowed_weights(netuid) as usize;
-        let max_allowed_length = pallet_subspace::MaxAllowedWeights::<T>::get(netuid) as usize; //.min(N::<T>::get(netuid)) as usize;
+        let max_allowed_length = pallet_subspace::MaxAllowedWeights::<T>::get(netuid) as usize;
         ensure!(
             len >= min_allowed_length && len <= max_allowed_length,
             Error::<T>::InvalidUidsLength
@@ -192,9 +192,7 @@ impl<T: Config> Pallet<T> {
         }
     }
 
-    // ----------------
-    // Rate limiting
-    // ----------------
+    // --- Rate limiting ---
 
     fn handle_rate_limiting(uid: u16, netuid: u16, key: &T::AccountId) -> DispatchResult {
         if let Some(max_set_weights) =
@@ -224,9 +222,7 @@ impl<T: Config> Pallet<T> {
         Ok(())
     }
 
-    // ----------------
-    // Normalization
-    // ----------------
+    // --- Normalization ---
     pub fn normalize_weights(weights: &[u16]) -> Vec<u16> {
         let sum: u64 = weights.iter().map(|&x| u64::from(x)).sum();
         if sum == 0 {
