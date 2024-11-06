@@ -290,17 +290,20 @@ impl<T: Config> Pallet<T> {
             T::PingInterval::get().saturating_mul(T::MaxFailedPings::get() as u64);
 
         pallet_subspace::N::<T>::iter_keys()
+            // Check if subnet uses weight encryption
             .filter(|subnet_id| pallet_subspace::UseWeightsEncryption::<T>::get(subnet_id))
+            // Check if there are any encrypted weights for this subnet
+            .filter(|subnet_id| {
+                WeightEncryptionData::<T>::iter_prefix(subnet_id)
+                    .any(|(_, value)| !value.encrypted.is_empty())
+            })
             .filter_map(|subnet_id| {
                 SubnetDecryptionData::<T>::get(subnet_id).map(|info| (subnet_id, info))
             })
             .filter(|(_, info)| {
-                block_number.saturating_sub(info.last_keep_alive) > max_inactivity_blocks // this allows us to catch "exploded" offchain workers much faster
+                block_number.saturating_sub(info.last_keep_alive) > max_inactivity_blocks
                     || block_number.saturating_sub(info.block_assigned)
-                        > T::MaxEncryptionDuration::get().saturating_add(100) // add some extra
-                                                                              // space for the
-                                                                              // offchain worker to
-                                                                              // finish send
+                        > T::MaxEncryptionDuration::get().saturating_add(100)
             })
             .for_each(|(subnet_id, info)| Self::cancel_offchain_worker(subnet_id, &info));
     }

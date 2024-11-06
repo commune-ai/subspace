@@ -1,7 +1,7 @@
 use crate::*;
 use frame_support::{
-    pallet_prelude::{ValueQuery, Weight},
-    traits::{ConstU32, Get, OnRuntimeUpgrade, StorageVersion},
+    pallet_prelude::Weight,
+    traits::{Get, OnRuntimeUpgrade, StorageVersion},
 };
 
 pub mod v3 {

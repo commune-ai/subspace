@@ -138,7 +138,6 @@ macro_rules! define_subnet_includes {
 ///   - `swap_and_remove`: Handles swapping and removing items
 ///   - `all`: Returns a vector of all variants
 #[macro_export]
-#[macro_export]
 macro_rules! define_module_includes {
     (
         vectors: {
