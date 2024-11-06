@@ -3,6 +3,12 @@ use sp_runtime::traits::Get;
 use subnet_consensus::util::params::ModuleKey;
 use types::KeylessBlockWeights;
 
+// TODO: all logic of canceling has to completelly match what is in the offchain worker code !!
+// We can not cancel if offchain worker is not explicityl "aware it should have send weights"
+// We also have to make sure that the block of assigning is handeled correctly when offchain worker
+// sends the weights We need to completelly clear the subnet decryption data once weights are
+// received
+
 use super::*;
 
 impl<T: Config> Pallet<T> {
@@ -219,67 +225,54 @@ impl<T: Config> Pallet<T> {
             account_id
         );
 
-        // Get the current list of active authority nodes
-        let mut active_authority_nodes = DecryptionNodes::<T>::get();
-        log::info!(
-            "Current active authority nodes count: {}",
-            active_authority_nodes.len()
-        );
-
-        // Get the current block number
         let current_block = pallet_subspace::Pallet::<T>::get_current_block_number();
-        log::info!("Current block number: {:?}", current_block);
 
-        // Find the matching public key for the given account id
-        let authorities = Authorities::<T>::get();
-        log::info!("Total authorities count: {}", authorities.len());
+        // Find matching public key using functional approach
+        let public_key = Authorities::<T>::get()
+            .into_iter()
+            .find_map(|(auth_id, pub_key)| (auth_id == account_id).then_some(pub_key));
 
-        let public_key = authorities
-            .iter()
-            .find(|(auth_account_id, _)| auth_account_id == &account_id)
-            .map(|(_, pub_key)| pub_key.clone());
+        let Some(public_key) = public_key else {
+            log::info!("No matching public key found for account {:?}", account_id);
+            return;
+        };
 
-        match &public_key {
-            Some(key) => {
-                log::info!("Found matching public key for account {:?}", account_id);
-                log::info!("Public key: {:?}", key);
+        // Update active nodes list
+        DecryptionNodes::<T>::mutate(|nodes| {
+            match nodes.iter_mut().find(|node| node.node_id == account_id) {
+                Some(node) => {
+                    log::info!(
+                        "Updating existing node's last_keep_alive from {} to {}",
+                        node.last_keep_alive,
+                        current_block
+                    );
+                    node.last_keep_alive = current_block;
+                }
+                None => {
+                    log::info!("Adding new authority node to active nodes list");
+                    nodes.push(SubnetDecryptionInfo {
+                        node_id: account_id.clone(),
+                        node_public_key: public_key,
+                        last_keep_alive: current_block,
+                        block_assigned: current_block,
+                    });
+                }
             }
-            None => {
-                log::info!("No matching public key found for account {:?}", account_id);
-                return;
-            }
-        }
+        });
 
-        if let Some(public_key) = public_key {
-            // Update or add the authority node
-            if let Some(node) =
-                active_authority_nodes.iter_mut().find(|node| node.node_id == account_id)
-            {
-                // Update existing node
-                log::info!("Updating existing authority node's last_keep_alive");
-                log::info!("Previous last_keep_alive: {:?}", node.last_keep_alive);
-                node.last_keep_alive = current_block;
-                log::info!("Updated last_keep_alive to: {:?}", current_block);
-            } else {
-                // Add new node
-                log::info!("Adding new authority node to active nodes list");
-                active_authority_nodes.push(SubnetDecryptionInfo {
-                    node_id: account_id.clone(),
-                    node_public_key: public_key,
-                    last_keep_alive: current_block,
-                    block_assigned: current_block,
-                });
+        // Update subnet decryption data directly from storage
+        SubnetDecryptionData::<T>::iter()
+            .filter(|(_, info)| info.node_id == account_id)
+            .for_each(|(netuid, mut info)| {
                 log::info!(
-                    "New total active nodes count: {}",
-                    active_authority_nodes.len()
+                    "Updating last_keep_alive for subnet {} decryption node",
+                    netuid
                 );
-            }
+                info.last_keep_alive = current_block;
+                SubnetDecryptionData::<T>::insert(netuid, info);
+            });
 
-            // Update the storage
-            log::info!("Updating DecryptionNodes storage");
-            DecryptionNodes::<T>::set(active_authority_nodes);
-            log::info!("Authority node ping handling completed successfully");
-        }
+        log::info!("Authority node ping handling completed successfully");
     }
 
     fn weights_to_blob(weights: &[(u16, u16)]) -> Vec<u8> {

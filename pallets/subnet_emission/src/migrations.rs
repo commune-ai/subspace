@@ -1,8 +1,7 @@
-
 use crate::*;
 use frame_support::{
-    pallet_prelude::ValueQuery,
-    traits::{ConstU32, Get, StorageVersion},
+    pallet_prelude::{ValueQuery, Weight},
+    traits::{ConstU32, Get, OnRuntimeUpgrade, StorageVersion},
 };
 
 pub mod v3 {
@@ -10,7 +9,7 @@ pub mod v3 {
 
     pub struct MigrateToV3<T>(sp_std::marker::PhantomData<T>);
 
-    impl<T: Config> OnRuntimeUpgrade for MigrateToV2<T> {
+    impl<T: Config> OnRuntimeUpgrade for MigrateToV3<T> {
         fn on_runtime_upgrade() -> frame_support::weights::Weight {
             let on_chain_version = StorageVersion::get::<Pallet<T>>();
             if on_chain_version != 2 {
@@ -20,7 +19,7 @@ pub mod v3 {
 
             StorageVersion::new(3).put::<Pallet<T>>();
 
-            BannedDecryptionNodes::<T>::clear
+            let _ = BannedDecryptionNodes::<T>::clear(u32::MAX, None);
             log::info!("Migrated to v2");
 
             T::DbWeight::get().reads_writes(2, 2)
