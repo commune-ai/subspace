@@ -179,11 +179,11 @@ macro_rules! define_module_includes {
                                 *entry = replace_value;
                                 vec.pop();
                                 $vec::<T>::insert(netuid, vec);
-                            }
+                            };
+                            Ok(())
                         },
                     )*
                 }
-                Ok(())
             }
 
             pub fn append<T: Config>(self, netuid: u16) -> DispatchResult {
@@ -195,10 +195,10 @@ macro_rules! define_module_includes {
                                 vec.push($vec_default(PhantomData::<T>));
                             )?
                             $vec::<T>::insert(netuid, vec);
+                            Ok(())
                         },
                     )*
                 }
-                Ok(())
             }
 
             pub fn all() -> sp_std::vec::Vec<Self> {
@@ -224,6 +224,7 @@ macro_rules! define_module_includes {
                                 $opt_swap::<T>::insert(netuid, uid, value);
                                 $opt_swap::<T>::remove(netuid, replace_uid);
                             }
+                            Ok(())
                         },
                     )*
                     $(
@@ -232,10 +233,10 @@ macro_rules! define_module_includes {
                                 $req_swap::<T>::insert(netuid, uid, value);
                                 $req_swap::<T>::remove(netuid, replace_uid);
                             }
+                            Ok(())
                         },
                     )*
                 }
-                Ok(())
             }
 
             pub fn initialize<T: Config>(self, netuid: u16, uid: u16) -> DispatchResult {
@@ -243,15 +244,16 @@ macro_rules! define_module_includes {
                     $(
                         Self::$opt_swap => {
                             $($opt_swap::<T>::insert(netuid, uid, $opt_default(PhantomData::<T>));)?
+                            Ok(())
                         },
                     )*
                     $(
                         Self::$req_swap => {
                             $($req_swap::<T>::insert(netuid, uid, $req_default(PhantomData::<T>));)?
+                            Ok(())
                         },
                     )*
                 }
-                Ok(())
             }
 
             pub fn all() -> sp_std::vec::Vec<Self> {
@@ -273,10 +275,10 @@ macro_rules! define_module_includes {
                     $(
                         Self::$key_only => {
                             $key_only::<T>::remove(netuid, key);
+                            Ok(())
                         },
                     )*
                 }
-                Ok(())
             }
 
             pub fn all() -> sp_std::vec::Vec<Self> {
