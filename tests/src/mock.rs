@@ -205,7 +205,7 @@ impl GovernanceApi<<Test as frame_system::Config>::AccountId> for Test {
     }
 }
 
-impl SubnetEmissionApi for Test {
+impl SubnetEmissionApi<<Test as frame_system::Config>::AccountId> for Test {
     fn get_unit_emission() -> u64 {
         pallet_subnet_emission::UnitEmission::<Test>::get()
     }
@@ -275,7 +275,12 @@ impl SubnetEmissionApi for Test {
         pallet_subnet_emission::Weights::<Test>::get(netuid, uid)
     }
 
-    /// returns the old weights if it's overwritten
+    fn clear_subnet_includes(netuid: u16) {
+        for storage_type in pallet_subnet_emission::SubnetIncludes::all() {
+            storage_type.remove_storage::<Test>(netuid);
+        }
+    }
+
     fn set_weights(
         netuid: u16,
         uid: u16,
@@ -286,38 +291,21 @@ impl SubnetEmissionApi for Test {
         old_weights
     }
 
-    /// returns the removed weights if any
-    fn remove_weights(netuid: u16, uid: u16) -> Option<Vec<(u16, u16)>> {
-        let old_weights = pallet_subnet_emission::Weights::<Test>::get(netuid, uid);
-        pallet_subnet_emission::Weights::<Test>::remove(netuid, uid);
-        old_weights
-    }
-
-    fn set_subnet_weights(
+    fn clear_module_includes(
         netuid: u16,
-        weights: Option<Vec<(u16, Vec<(u16, u16)>)>>,
-    ) -> Option<Vec<(u16, Vec<(u16, u16)>)>> {
-        let old_weights = pallet_subnet_emission::Weights::<Test>::iter_prefix(netuid)
-            .collect::<Vec<(_, Vec<_>)>>();
-        let _ =
-            pallet_subnet_emission::Weights::<Test>::clear_prefix(netuid, u16::MAX as u32, None);
-        if let Some(weights) = weights {
-            for (uid, weights) in weights.into_iter() {
-                pallet_subnet_emission::Weights::<Test>::insert(netuid, uid, weights);
-            }
-        }
-
-        if old_weights.is_empty() {
-            None
-        } else {
-            Some(old_weights)
-        }
-    }
-
-    fn clear_subnet_includes(netuid: u16) {
-        for storage_type in pallet_subnet_emission::SubnetIncludes::all() {
-            storage_type.remove_storage::<Test>(netuid);
-        }
+        uid: u16,
+        replace_uid: u16,
+        module_key: &<Test as frame_system::Config>::AccountId,
+        replace_key: &<Test as frame_system::Config>::AccountId,
+    ) -> DispatchResult {
+        pallet_subnet_emission::StorageHandler::remove_all::<Test>(
+            netuid,
+            uid,
+            replace_uid,
+            &module_key,
+            &replace_key,
+        )?;
+        Ok(())
     }
 }
 

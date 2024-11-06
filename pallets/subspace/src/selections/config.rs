@@ -6,7 +6,7 @@ pub mod config {
     pub trait Config:
         frame_system::Config
         + pallet_governance_api::GovernanceApi<<Self as frame_system::Config>::AccountId>
-        + pallet_subnet_emission_api::SubnetEmissionApi
+        + pallet_subnet_emission_api::SubnetEmissionApi<<Self as frame_system::Config>::AccountId>
     {
         /// This pallet's ID, used for generating the treasury account ID.
         #[pallet::constant]
