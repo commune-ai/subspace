@@ -1,6 +1,7 @@
 use crate::*;
 
 use frame_support::pallet_prelude::DispatchResult;
+use pallet_subnet_emission_api::SubnetEmissionApi;
 pub struct SubnetDistributionParameters;
 
 impl<T: Config> Pallet<T> {
@@ -9,50 +10,30 @@ impl<T: Config> Pallet<T> {
         netuid: u16,
         changeset: ModuleChangeset,
     ) -> DispatchResult {
-        // 1. We check the callers (key) signature.
         let key = ensure_signed(origin)?;
         let uid: u16 = Self::get_uid_for_key(netuid, &key).ok_or(Error::<T>::ModuleDoesNotExist)?;
-
-        // 2. Apply the changeset
         changeset.apply::<T>(netuid, key, uid)?;
-
         Ok(())
     }
 
-    pub fn does_module_name_exist(netuid: u16, name: &[u8]) -> bool {
-        Name::<T>::iter_prefix_values(netuid).any(|existing| existing == name)
-    }
-
-    /// Appends the uid to the network (without increasing stake).
     pub fn append_module(
         netuid: u16,
         key: &T::AccountId,
         changeset: ModuleChangeset,
     ) -> Result<u16, sp_runtime::DispatchError> {
-        // 1. Get the next uid
+        // --- Get The Next Uid ---
         let uid: u16 = N::<T>::get(netuid);
-
         log::debug!("append_module( netuid: {netuid:?} | uid: {key:?} | new_key: {uid:?})");
 
-        // 2. Initialize key storages and required swap storages
-        KeyStorageHandler::initialize::<T>(netuid, uid, key)?;
-
-        for storage in ModuleSwapStorages::all() {
-            storage.initialize::<T>(netuid, uid)?;
-        }
-
-        // 3. Expand consensus parameters with new position using ModuleVectors
-        // LastUpdate will now use its dynamic default value automatically
-        for vector in ModuleVectors::all() {
-            vector.append::<T>(netuid)?;
-        }
-
+        // -- Initialize All Storages ---
+        StorageHandler::initialize_all::<T>(netuid, uid, &key)?;
+        // Make sure this overwrites the defaults (keep it second)
         changeset.apply::<T>(netuid, key.clone(), uid)?;
 
-        // 4. Increase the number of modules in the network.
+        // --- Update The Network Module Size ---
         N::<T>::mutate(netuid, |n| *n = n.saturating_add(1));
 
-        // 5. increase the stake of the new key
+        // --- Initilaize Stake Storage ---
         Self::increase_stake(key, key, 0);
 
         Ok(uid)
@@ -70,7 +51,7 @@ impl<T: Config> Pallet<T> {
             return Ok(());
         }
 
-        // 2. Get the keys for the current and replacement positions
+        // --- Get the keys for the current and replacement positions ---
         let module_key: T::AccountId =
             Keys::<T>::get(netuid, uid).ok_or(Error::<T>::ModuleDoesNotExist)?;
         let replace_uid = n.saturating_sub(1);
@@ -84,8 +65,9 @@ impl<T: Config> Pallet<T> {
             module_key
         );
 
-        // 3. Handle key-related storage swaps
-        KeyStorageHandler::swap_and_remove::<T>(
+        // --- Remove All Module Related Storage ---
+        StorageHandler::remove_all::<T>(netuid, uid, replace_uid, &module_key, &replace_key)?;
+        <T as SubnetEmissionApi<T::AccountId>>::clear_module_includes(
             netuid,
             uid,
             replace_uid,
@@ -93,28 +75,10 @@ impl<T: Config> Pallet<T> {
             &replace_key,
         )?;
 
-        // 4. Handle vector storage items
-        for vector in ModuleVectors::all() {
-            vector.swap_and_remove::<T>(netuid, uid, replace_uid)?;
-        }
-
-        // 5. Handle swap storage items
-        for storage in ModuleSwapStorages::all() {
-            storage.swap_and_remove::<T>(netuid, uid, replace_uid)?;
-        }
-
-        // TODO: move this to the macro as well
-
-        // 6. Handle weights (this might need its own macro category if there are more similar
-        //    cases)
-        let weights = T::remove_weights(netuid, replace_uid);
-        T::set_weights(netuid, uid, weights);
-
-        // 7. Handle Metadata (special case as it only needs removal)
-        // Move this to the macro as well
-        Metadata::<T>::remove(netuid, &module_key);
-
-        // 8. Handle delegation and stake
+        // --- Delete Global-Module Storage ---
+        // This will remove storages if the module is only registered on this network.
+        // So the values are not "just hanging around" in the storage. Without module actually being
+        // registered on any subnet.
         if Uids::<T>::iter().all(|(_, key, _)| key != module_key) {
             DelegationFee::<T>::remove(&module_key);
             Self::remove_stake_from_storage(&module_key);

@@ -6205,6 +6205,7 @@ dependencies = [
 name = "pallet-subnet-emission-api"
 version = "1.0.0"
 dependencies = [
+ "frame-support",
  "parity-scale-codec",
  "scale-info",
 ]

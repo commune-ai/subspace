@@ -20,6 +20,7 @@ pub mod genesis {
         }
     }
 
+    // TODO: move it completelly out of the subspace pallet to a dedicated one
     #[pallet::genesis_build]
     impl<T: Config> BuildGenesisConfig for GenesisConfig<T> {
         fn build(&self) {

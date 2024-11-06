@@ -42,6 +42,8 @@ pub struct SubnetParams<T: Config> {
 pub struct DefaultSubnetParams<T: Config>(sp_std::marker::PhantomData<((), T)>);
 
 impl<T: Config> DefaultSubnetParams<T> {
+    /// Returns default subnet parameters.
+    /// Default values are generated from constants defined in the subnet_includes macro.
     pub fn get() -> SubnetParams<T> {
         SubnetParams {
             name: BoundedVec::default(),

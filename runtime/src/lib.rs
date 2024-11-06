@@ -1276,7 +1276,9 @@ impl_runtime_apis! {
     }
 }
 
-impl pallet_subnet_emission_api::SubnetEmissionApi for Runtime {
+impl pallet_subnet_emission_api::SubnetEmissionApi<<Runtime as frame_system::Config>::AccountId>
+    for Runtime
+{
     fn get_unit_emission() -> u64 {
         pallet_subnet_emission::UnitEmission::<Runtime>::get()
     }
@@ -1346,7 +1348,29 @@ impl pallet_subnet_emission_api::SubnetEmissionApi for Runtime {
         pallet_subnet_emission::Weights::<Runtime>::get(netuid, uid)
     }
 
-    /// returns the old weights if it's overwritten
+    fn clear_subnet_includes(netuid: u16) {
+        for storage_type in pallet_subnet_emission::SubnetIncludes::all() {
+            storage_type.remove_storage::<Runtime>(netuid);
+        }
+    }
+
+    fn clear_module_includes(
+        netuid: u16,
+        uid: u16,
+        replace_uid: u16,
+        module_key: &AccountId,
+        replace_key: &AccountId,
+    ) -> DispatchResult {
+        pallet_subnet_emission::StorageHandler::remove_all::<Runtime>(
+            netuid,
+            uid,
+            replace_uid,
+            &module_key,
+            &replace_key,
+        )?;
+        Ok(())
+    }
+
     fn set_weights(
         netuid: u16,
         uid: u16,
@@ -1355,40 +1379,6 @@ impl pallet_subnet_emission_api::SubnetEmissionApi for Runtime {
         let old_weights = pallet_subnet_emission::Weights::<Runtime>::get(netuid, uid);
         pallet_subnet_emission::Weights::<Runtime>::set(netuid, uid, weights);
         old_weights
-    }
-
-    /// returns the removed weights if any
-    fn remove_weights(netuid: u16, uid: u16) -> Option<Vec<(u16, u16)>> {
-        let old_weights = pallet_subnet_emission::Weights::<Runtime>::get(netuid, uid);
-        pallet_subnet_emission::Weights::<Runtime>::remove(netuid, uid);
-        old_weights
-    }
-
-    fn set_subnet_weights(
-        netuid: u16,
-        weights: Option<Vec<(u16, Vec<(u16, u16)>)>>,
-    ) -> Option<Vec<(u16, Vec<(u16, u16)>)>> {
-        let old_weights = pallet_subnet_emission::Weights::<Runtime>::iter_prefix(netuid)
-            .collect::<Vec<(_, Vec<_>)>>();
-        let _ =
-            pallet_subnet_emission::Weights::<Runtime>::clear_prefix(netuid, u16::MAX as u32, None);
-        if let Some(weights) = weights {
-            for (uid, weights) in weights.into_iter() {
-                pallet_subnet_emission::Weights::<Runtime>::insert(netuid, uid, weights);
-            }
-        }
-
-        if old_weights.is_empty() {
-            None
-        } else {
-            Some(old_weights)
-        }
-    }
-
-    fn clear_subnet_includes(netuid: u16) {
-        for storage_type in pallet_subnet_emission::SubnetIncludes::all() {
-            storage_type.remove_storage::<Runtime>(netuid);
-        }
     }
 }
 

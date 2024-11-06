@@ -64,7 +64,7 @@ impl<T: Config> Pallet<T> {
 
         Self::clear_subnet_includes(netuid);
         <T as GovernanceApi<T::AccountId>>::clear_subnet_includes(netuid);
-        <T as SubnetEmissionApi>::clear_subnet_includes(netuid);
+        <T as SubnetEmissionApi<T::AccountId>>::clear_subnet_includes(netuid);
 
         // --- Mutate Subnet Gaps & Emit The Event ---
 

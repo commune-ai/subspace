@@ -3,6 +3,8 @@
 use parity_scale_codec::{Decode, Encode, MaxEncodedLen};
 use scale_info::{prelude::vec::Vec, TypeInfo};
 
+use frame_support::dispatch::DispatchResult;
+
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, TypeInfo, Decode, Encode, MaxEncodedLen)]
 pub enum SubnetConsensus {
     // Default
@@ -17,7 +19,7 @@ pub enum SubnetConsensus {
 
 pub type SubnetWeights = Vec<(u16, Vec<(u16, u16)>)>;
 
-pub trait SubnetEmissionApi {
+pub trait SubnetEmissionApi<AccountId> {
     fn get_unit_emission() -> u64;
 
     fn set_unit_emission(unit_emission: u64);
@@ -50,18 +52,19 @@ pub trait SubnetEmissionApi {
 
     fn get_weights(netuid: u16, uid: u16) -> Option<Vec<(u16, u16)>>;
 
-    /// returns the old weights if it's overwritten
     fn set_weights(
         netuid: u16,
         uid: u16,
-        weigths: Option<Vec<(u16, u16)>>,
+        weights: Option<Vec<(u16, u16)>>,
     ) -> Option<Vec<(u16, u16)>>;
 
-    /// returns the removed weights if any
-    fn remove_weights(netuid: u16, uid: u16) -> Option<Vec<(u16, u16)>>;
-
-    /// returns the old weights if it's overwritten
-    fn set_subnet_weights(netuid: u16, weigths: Option<SubnetWeights>) -> Option<SubnetWeights>;
-
     fn clear_subnet_includes(netuid: u16);
+
+    fn clear_module_includes(
+        netuid: u16,
+        uid: u16,
+        replace_uid: u16,
+        module_key: &AccountId,
+        replace_key: &AccountId,
+    ) -> DispatchResult;
 }

@@ -145,6 +145,7 @@ pub mod pallet {
 
     // --- Module Storage ---
     define_module_includes!(
+        // Put here every module-related storage map that has netuid as a key and holds a vector of values. The vector has to be indexed by the module uid.
         vectors: {
             Active: bool = |_: PhantomData<T>| true,
             Consensus: u64 = |_: PhantomData<T>| 0,
@@ -157,6 +158,7 @@ pub mod pallet {
             ValidatorPermits: bool = |_: PhantomData<T>| false,
             ValidatorTrust: u64 = |_: PhantomData<T>| 0,
         },
+        // Put here every module-related double map, where the first key is netuid, second key is module uid. These storages holds some value for each module ie. name, address, etc.
         swap_storages: {
             optional: {
                 WeightSetAt: u64 = |_: PhantomData<T>| 0,
@@ -167,9 +169,14 @@ pub mod pallet {
                 Name: Vec<u8> = |_: PhantomData<T>| Vec::<u8>::new(),
             }
         },
+        // Specifically for uids and keys
         key_storages: {
             uid_key: Uids,
             key_uid: Keys
+        },
+        // Put here every module-related double map, that has no uid association. first key is netuid, second key is key of module (not uid!)
+        key_only_storages: {
+            Metadata: Vec<u8>
         }
     );
 

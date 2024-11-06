@@ -40,7 +40,7 @@ pub mod pallet {
     };
     use frame_system::pallet_prelude::BlockNumberFor;
     use pallet_subnet_emission_api::SubnetConsensus;
-    use pallet_subspace::{define_subnet_includes, TotalStake};
+    use pallet_subspace::{define_module_includes, define_subnet_includes, TotalStake};
     use subnet_pricing::root::RootPricing;
     use types::KeylessBlockWeights;
 
@@ -120,6 +120,18 @@ pub mod pallet {
             SubnetDecryptionData,
             SubnetConsensusType
         }
+    );
+
+    define_module_includes!(
+        vectors: { },
+        swap_storages: {
+            optional: { },
+            required: {
+                Weights: Vec<(u16, u16)> = |_: PhantomData<T>| Vec::<(u16, u16)>::new(),
+            }
+        },
+        key_storages: { },
+        key_only_storages: { }
     );
 
     #[pallet::storage]

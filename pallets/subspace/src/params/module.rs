@@ -74,19 +74,19 @@ impl ModuleChangeset {
         let min_length = MinNameLength::<T>::get() as usize;
 
         if let Some(name) = name {
-            Self::validate_name::<T>(name, min_length, max_length, netuid)?;
+            ModuleValidator::validate_name::<T>(name, min_length, max_length, netuid)?;
         }
 
         if let Some(address) = address {
-            Self::validate_address::<T>(address, max_length)?;
+            ModuleValidator::validate_address::<T>(address, max_length)?;
         }
 
         if let Some(fee) = delegation_fee {
-            Self::validate_delegation_fee::<T>(fee)?;
+            ModuleValidator::validate_delegation_fee::<T>(fee)?;
         }
 
         if let Some(metadata) = metadata {
-            Self::validate_metadata::<T>(metadata)?;
+            ModuleValidator::validate_metadata::<T>(metadata)?;
         }
 
         Ok(())
@@ -127,8 +127,12 @@ impl ModuleChangeset {
         Pallet::<T>::deposit_event(Event::ModuleUpdated(netuid, key));
         Ok(())
     }
+}
 
-    fn validate_name<T: Config>(
+pub struct ModuleValidator;
+
+impl ModuleValidator {
+    pub fn validate_name<T: Config>(
         name: &[u8],
         min_length: usize,
         max_length: usize,
@@ -139,13 +143,13 @@ impl ModuleChangeset {
         ensure!(name.len() >= min_length, Error::<T>::ModuleNameTooShort);
         core::str::from_utf8(name).map_err(|_| Error::<T>::InvalidModuleName)?;
         ensure!(
-            !Pallet::<T>::does_module_name_exist(netuid, name),
+            !Name::<T>::iter_prefix_values(netuid).any(|existing| existing == name),
             Error::<T>::ModuleNameAlreadyExists
         );
         Ok(())
     }
 
-    fn validate_address<T: Config>(
+    pub fn validate_address<T: Config>(
         address: &[u8],
         max_length: usize,
     ) -> Result<(), sp_runtime::DispatchError> {
@@ -158,13 +162,17 @@ impl ModuleChangeset {
         Ok(())
     }
 
-    fn validate_delegation_fee<T: Config>(fee: &Percent) -> Result<(), sp_runtime::DispatchError> {
-        let floor = FloorDelegationFee::<T>::get();
-        ensure!(*fee >= floor, Error::<T>::InvalidMinDelegationFee);
+    pub fn validate_delegation_fee<T: Config>(
+        fee: &Percent,
+    ) -> Result<(), sp_runtime::DispatchError> {
+        ensure!(
+            *fee >= FloorDelegationFee::<T>::get(),
+            Error::<T>::InvalidMinDelegationFee
+        );
         Ok(())
     }
 
-    fn validate_metadata<T: Config>(metadata: &[u8]) -> Result<(), sp_runtime::DispatchError> {
+    pub fn validate_metadata<T: Config>(metadata: &[u8]) -> Result<(), sp_runtime::DispatchError> {
         ensure!(!metadata.is_empty(), Error::<T>::InvalidModuleMetadata);
         ensure!(metadata.len() <= 120, Error::<T>::ModuleMetadataTooLong);
         core::str::from_utf8(metadata).map_err(|_| Error::<T>::InvalidModuleMetadata)?;
