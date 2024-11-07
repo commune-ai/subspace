@@ -200,7 +200,7 @@ Rootnet validators are capable of calling this extrinsic. The weight setting of 
 
 `spec_version: 117`
 
-This version delivers on the [GovernanceProposal](https://governance.communeai.org/proposal/4).
+This version delivers on the [GovernanceProposal](https://governance.communeai.org/proposal/4).f
 
 ### Introducing the new `GovernanceModule` pallet
 
