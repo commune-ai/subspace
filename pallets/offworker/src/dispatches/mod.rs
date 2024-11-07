@@ -32,8 +32,6 @@ pub mod dispatches {
             } else {
                 return Err(Error::<T>::InvalidSubnetId.into());
             }
-
-            // Perform your existing logic here
             IrrationalityDelta::<T>::set(subnet_id, delta);
             pallet_subnet_emission::Pallet::<T>::handle_decrypted_weights(
                 subnet_id,
@@ -79,8 +77,9 @@ pub mod dispatches {
 
             Authorities::<T>::try_mutate(|authorities| {
                 new_authorities.into_iter().try_for_each(|(account_id, public_key)| {
+                    let (modulus, exponent) = public_key;
                     authorities
-                        .try_push((account_id, public_key))
+                        .try_push((account_id, (modulus, exponent)))
                         .map_err(|_| Error::<T>::TooManyAuthorities)
                 })
             })?;

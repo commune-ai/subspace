@@ -92,7 +92,7 @@ impl<T: Config> Pallet<T> {
 
         // 10. Handle rootnet deregistration
         if let Some(key) = Self::get_key_for_uid(uid, netuid) {
-            Self::handle_rootnet_power_delegation(key, netuid);
+            Self::handle_weight_setting_delegation(key, netuid);
         }
 
         // 11. Remove subnet if empty
@@ -103,21 +103,15 @@ impl<T: Config> Pallet<T> {
         Ok(())
     }
 
-    fn handle_rootnet_power_delegation(key: T::AccountId, netuid: u16) {
-        if Self::is_rootnet(netuid) {
-            // Remove the direct delegation for the key
-            RootnetControlDelegation::<T>::remove(&key);
+    fn handle_weight_setting_delegation(key: T::AccountId, netuid: u16) {
+        WeightSettingDelegation::<T>::remove(netuid, &key);
 
-            // Remove all delegations to the key
-            RootnetControlDelegation::<T>::translate(
-                |_, v: T::AccountId| {
-                    if v == key {
-                        None
-                    } else {
-                        Some(v)
-                    }
-                },
-            );
-        }
+        WeightSettingDelegation::<T>::translate(|nuid, _, v: DelegationInfo<T::AccountId>| {
+            if nuid == netuid && v.delegate == key {
+                None
+            } else {
+                Some(v)
+            }
+        });
     }
 }

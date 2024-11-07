@@ -1574,7 +1574,8 @@ fn ban_decryption_node() {
         let key_1 = RsaPrivateKey::new(&mut OsRng, 2048).unwrap().to_public_key();
         let key_1 = (key_1.n().to_bytes_be(), key_1.e().to_bytes_be());
 
-        let _ = register_module(netuid, 1, 10000, false).unwrap();
+        let acc_id = 1;
+        let _ = register_module(netuid, acc_id, 10000, false).unwrap();
 
         pallet_subnet_emission::SubnetDecryptionData::<Test>::set(
             netuid,
@@ -1587,6 +1588,18 @@ fn ban_decryption_node() {
         );
 
         pallet_subspace::UseWeightsEncryption::<Test>::set(netuid, true);
+
+        let uid = SubspaceMod::<Test>::get_uid_for_key(netuid, &acc_id).unwrap();
+
+        // make sure there are some weights present
+        pallet_subnet_emission::WeightEncryptionData::<Test>::set(
+            netuid,
+            uid,
+            Some(pallet_subnet_emission::EncryptionMechanism {
+                encrypted: vec![42],
+                decrypted_hashes: vec![123],
+            }),
+        );
 
         let ping_interval: u64 = <Test as pallet_subnet_emission::Config>::PingInterval::get();
         let max_failed_pings: u8 = <Test as pallet_subnet_emission::Config>::MaxFailedPings::get();
