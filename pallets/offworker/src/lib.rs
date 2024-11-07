@@ -180,6 +180,7 @@ pub mod pallet {
             };
 
             let subnets = Self::get_valid_subnets(public_key);
+            log::info!("Valid subnets: {:?}", subnets);
             let deregistered_subnets = Self::process_subnets(subnets, block_number);
             deregistered_subnets.iter().for_each(|subnet_id| {
                 log::info!("Deregistered subnet: {}", subnet_id);
