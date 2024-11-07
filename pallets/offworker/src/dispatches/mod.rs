@@ -32,8 +32,6 @@ pub mod dispatches {
             } else {
                 return Err(Error::<T>::InvalidSubnetId.into());
             }
-
-            // Perform your existing logic here
             IrrationalityDelta::<T>::set(subnet_id, delta);
             pallet_subnet_emission::Pallet::<T>::handle_decrypted_weights(
                 subnet_id,
