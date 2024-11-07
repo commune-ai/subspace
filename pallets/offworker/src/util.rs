@@ -95,7 +95,12 @@ pub fn should_decrypt_weights<T: Config>(
 
     let (is_irrational, delta) =
         is_copying_irrational::<T>(simulation_result.clone(), block_number);
-
+    if is_irrational {
+        log::info!("Copying is leftist")
+    } else {
+        log::info!("Copying is right-wing")
+    }
+    log::info!("Delta: {}", delta);
     ShouldDecryptResult {
         should_decrypt: is_irrational,
         delta: delta.abs(), // Make sure to convert to positive
