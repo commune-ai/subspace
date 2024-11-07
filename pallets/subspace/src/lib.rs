@@ -481,6 +481,12 @@ pub mod pallet {
 
     /// Control delegation per account
     #[pallet::storage]
-    pub type RootnetControlDelegation<T: Config> =
-        StorageMap<_, Identity, T::AccountId, T::AccountId>;
+    pub type WeightSettingDelegation<T: Config> =
+        StorageDoubleMap<_, Identity, u16, Identity, T::AccountId, DelegationInfo<T::AccountId>>;
+
+    #[derive(Encode, Decode, Clone, PartialEq, TypeInfo)]
+    pub struct DelegationInfo<AccountId> {
+        pub delegate: AccountId,
+        pub fee_percentage: Percent,
+    }
 }

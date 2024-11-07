@@ -100,6 +100,8 @@ fn run_consensus_algorithm<T: Config>(
             return Ok(());
         };
 
+        Pallet::<T>::copy_delegated_weights(netuid);
+
         match consensus_type {
             SubnetConsensus::Root => Ok(()),
             SubnetConsensus::Treasury => run_treasury_consensus::<T>(netuid, emission_to_drain),

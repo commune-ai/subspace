@@ -319,8 +319,9 @@ fn delegate_weight_control() {
             vec![1],
             vec![u16::MAX]
         ));
-        assert_ok!(SubnetEmissionMod::delegate_rootnet_control(
+        assert_ok!(SubnetEmissionMod::delegate_weight_control(
             get_origin(val2_id),
+            0,
             val1_id
         ));
         step_block(5401);

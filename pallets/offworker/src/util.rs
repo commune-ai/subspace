@@ -172,13 +172,14 @@ pub fn add_copier_to_yuma_params<T: Config>(
     // Convert normalized I64F64 stakes to I32F32
     let normalized_stakes = vec_fixed64_to_fixed32(all_stakes.clone());
 
-    let copier_module = ModuleParams {
+    let copier_module = ModuleParams::<T::AccountId> {
         uid: copier_uid,
         last_update: current_block,
         block_at_registration: current_block.saturating_sub(1),
         validator_permit: true,
         stake_normalized: *normalized_stakes.last().unwrap_or(&I32F32::from_num(0)),
         stake_original: I64F64::from_num(copier_stake),
+        delegated_to: None,
         bonds: Vec::new(),
         weight_encrypted: Vec::new(),
         weight_hash: Vec::new(),
