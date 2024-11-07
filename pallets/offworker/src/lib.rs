@@ -154,7 +154,6 @@ pub mod pallet {
 
     #[pallet::hooks]
     impl<T: Config> Hooks<BlockNumberFor<T>> for Pallet<T> {
-        #[cfg(test)]
         fn on_initialize(_block_number: BlockNumberFor<T>) -> Weight {
             Weight::zero()
         }
@@ -296,22 +295,27 @@ impl<T: Config> Pallet<T> {
         );
 
         for (_acc, res) in &results {
-            match res {
+            let status = match res {
                 Ok(()) => {
                     log::info!(
                         "Successfully sent decrypted weights to subnet {}",
                         subnet_id
                     );
-                    Self::delete_subnet_state(&subnet_id);
+                    "Successfully"
                 }
                 Err(e) => {
+                    // This case hopefully never happens, the runtime should just accept it
                     log::error!(
                         "Failed to send decrypted weights to subnet {}: {:?}",
                         subnet_id,
                         e
                     );
+                    "Failed"
                 }
-            }
+            };
+
+            log::info!("{} sent decrypted weights to subnet {}", status, subnet_id);
+            Self::delete_subnet_state(&subnet_id);
         }
 
         Ok(())
