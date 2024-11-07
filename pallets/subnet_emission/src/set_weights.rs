@@ -2,8 +2,11 @@ use super::*;
 use frame_support::{ensure, pallet_prelude::DispatchResult};
 use frame_system::ensure_signed;
 use pallet_subnet_emission_api::SubnetConsensus;
-use pallet_subspace::{Error, Pallet as PalletSubspace};
+use pallet_subspace::{
+    DelegationInfo, Error, ModuleParams, Pallet as PalletSubspace, WeightSettingDelegation,
+};
 use sp_core::Get;
+use sp_runtime::Percent;
 
 impl<T: Config> Pallet<T> {
     /// Sets weights for a node in a specific subnet.
@@ -72,7 +75,7 @@ impl<T: Config> Pallet<T> {
         Self::validate_stake(&key, uids.len())?;
         Self::check_whitelisted(netuid, &uids)?;
         Self::finalize_weights(netuid, uid, &uids, &values)?;
-        Self::remove_rootnet_delegation(netuid, key);
+        Self::remove_weight_setting_delegation(netuid, key);
         Ok(())
     }
 
@@ -110,7 +113,7 @@ impl<T: Config> Pallet<T> {
     fn validate_uids_length(len: usize, netuid: u16) -> DispatchResult {
         let min_allowed_length =
             pallet_subspace::Pallet::<T>::get_min_allowed_weights(netuid) as usize;
-        let max_allowed_length = pallet_subspace::MaxAllowedWeights::<T>::get(netuid) as usize; //.min(N::<T>::get(netuid)) as usize;
+        let max_allowed_length = pallet_subspace::MaxAllowedWeights::<T>::get(netuid) as usize;
         ensure!(
             len >= min_allowed_length && len <= max_allowed_length,
             Error::<T>::InvalidUidsLength
@@ -165,10 +168,8 @@ impl<T: Config> Pallet<T> {
     // ----------
     // Utils
     // ----------
-    fn remove_rootnet_delegation(netuid: u16, key: T::AccountId) {
-        if pallet_subspace::Pallet::<T>::is_rootnet(netuid) {
-            pallet_subspace::RootnetControlDelegation::<T>::remove(key);
-        }
+    fn remove_weight_setting_delegation(netuid: u16, key: T::AccountId) {
+        pallet_subspace::WeightSettingDelegation::<T>::remove(netuid, key);
     }
 
     fn contains_duplicates(items: &[u16]) -> bool {
@@ -192,9 +193,7 @@ impl<T: Config> Pallet<T> {
         }
     }
 
-    // ----------------
-    // Rate limiting
-    // ----------------
+    // --- Rate limiting ---
 
     fn handle_rate_limiting(uid: u16, netuid: u16, key: &T::AccountId) -> DispatchResult {
         if let Some(max_set_weights) =
@@ -224,9 +223,7 @@ impl<T: Config> Pallet<T> {
         Ok(())
     }
 
-    // ----------------
-    // Normalization
-    // ----------------
+    // --- Normalization ---
     pub fn normalize_weights(weights: &[u16]) -> Vec<u16> {
         let sum: u64 = weights.iter().map(|&x| u64::from(x)).sum();
         if sum == 0 {
@@ -256,59 +253,66 @@ impl<T: Config> Pallet<T> {
         let _ = pallet_subspace::SetWeightCallsPerEpoch::<T>::clear_prefix(netuid, u32::MAX, None);
     }
 
-    pub fn do_delegate_rootnet_control(
+    pub fn do_delegate_weight_control(
         origin: T::RuntimeOrigin,
+        netuid: u16,
         target: T::AccountId,
     ) -> DispatchResult {
         let key = ensure_signed(origin)?;
 
-        let rootnet_id = T::get_consensus_netuid(SubnetConsensus::Root)
-            .ok_or(Error::<T>::RootnetSubnetNotFound)?;
+        let Some(origin_uid) = pallet_subspace::Pallet::<T>::get_uid_for_key(netuid, &key) else {
+            return Err(Error::<T>::ModuleDoesNotExist.into());
+        };
 
-        let Some(origin_uid) = pallet_subspace::Pallet::<T>::get_uid_for_key(rootnet_id, &key)
+        let Some(target_uid) = pallet_subspace::Pallet::<T>::get_uid_for_key(netuid, &target)
         else {
             return Err(Error::<T>::ModuleDoesNotExist.into());
         };
 
-        if pallet_subspace::Pallet::<T>::get_uid_for_key(rootnet_id, &target).is_none() {
+        if pallet_subspace::Pallet::<T>::get_uid_for_key(netuid, &target).is_none() {
             return Err(Error::<T>::ModuleDoesNotExist.into());
         };
 
-        if pallet_subspace::RootnetControlDelegation::<T>::get(&target).is_some() {
+        if pallet_subspace::WeightSettingDelegation::<T>::get(netuid, &target).is_some() {
             return Err(Error::<T>::TargetIsDelegatingControl.into());
         }
 
-        Self::check_rootnet_daily_limit(rootnet_id, origin_uid)?;
-
-        pallet_subspace::RootnetControlDelegation::<T>::set(key, Some(target));
+        pallet_subspace::WeightSettingDelegation::<T>::set(
+            netuid,
+            key.clone(),
+            Some(DelegationInfo::<T::AccountId> {
+                delegate: target.clone(),
+                fee_percentage: pallet_subspace::Pallet::<T>::module_params(
+                    netuid, &target, target_uid,
+                )
+                .delegation_fee,
+            }),
+        );
 
         Ok(())
     }
 
-    pub fn copy_delegated_weights(block: u64) {
-        use core::ops::Rem;
-        if block.rem(5400) == 0 {
-            let Some(rootnet_id) = T::get_consensus_netuid(SubnetConsensus::Root) else {
-                return;
+    pub fn copy_delegated_weights(netuid: u16) {
+        for (origin, info) in
+            pallet_subspace::WeightSettingDelegation::<T>::iter_prefix(netuid).collect::<Vec<_>>()
+        {
+            let Some(target_uid) =
+                pallet_subspace::Pallet::<T>::get_uid_for_key(netuid, &info.delegate)
+            else {
+                continue;
             };
 
-            for (origin, target) in
-                pallet_subspace::RootnetControlDelegation::<T>::iter().collect::<Vec<_>>()
-            {
-                let Some(target_uid) =
-                    pallet_subspace::Pallet::<T>::get_uid_for_key(rootnet_id, &target)
-                else {
-                    continue;
-                };
+            let Some(origin_uid) = pallet_subspace::Pallet::<T>::get_uid_for_key(netuid, &origin)
+            else {
+                continue;
+            };
 
-                let Some(origin_uid) =
-                    pallet_subspace::Pallet::<T>::get_uid_for_key(rootnet_id, &origin)
-                else {
-                    continue;
-                };
-
-                let weights = Weights::<T>::get(rootnet_id, target_uid);
-                Weights::<T>::set(rootnet_id, origin_uid, weights);
+            if pallet_subspace::UseWeightsEncryption::<T>::get(netuid) {
+                let encrypted_weights = WeightEncryptionData::<T>::get(netuid, target_uid);
+                WeightEncryptionData::<T>::set(netuid, origin_uid, encrypted_weights);
+            } else {
+                let weights = Weights::<T>::get(netuid, target_uid);
+                Weights::<T>::set(netuid, origin_uid, weights);
             }
         }
     }
@@ -330,7 +334,7 @@ impl<T: Config> Pallet<T> {
         };
 
         Self::handle_rate_limiting(uid, netuid, &key)?;
-        Self::remove_rootnet_delegation(netuid, key);
+        Self::remove_weight_setting_delegation(netuid, key);
 
         WeightEncryptionData::<T>::insert(
             netuid,

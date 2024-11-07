@@ -5,10 +5,11 @@ use frame_support::DebugNoBound;
 use pallet_subspace::{
     math::*, AlphaValues, BalanceOf, Bonds, BondsMovingAverage, Founder, Kappa, Keys, LastUpdate,
     MaxAllowedValidators, MaxWeightAge, MinValidatorStake, Pallet as PalletSubspace,
-    UseWeightsEncryption, ValidatorPermits, Vec,
+    UseWeightsEncryption, ValidatorPermits, Vec, WeightSettingDelegation,
 };
 use parity_scale_codec::{Decode, Encode};
 use scale_info::TypeInfo;
+use sp_runtime::Percent;
 use sp_std::collections::btree_map::BTreeMap;
 use substrate_fixed::types::{I32F32, I64F64};
 
@@ -24,7 +25,7 @@ pub struct ConsensusParams<T: Config> {
     pub subnet_id: u16,
     pub token_emission: BalanceOf<T>,
 
-    pub modules: BTreeMap<ModuleKey<T::AccountId>, ModuleParams>,
+    pub modules: BTreeMap<ModuleKey<T::AccountId>, ModuleParams<T::AccountId>>,
     pub kappa: I32F32,
 
     pub founder_key: AccountKey<T::AccountId>,
@@ -39,14 +40,15 @@ pub struct ConsensusParams<T: Config> {
     pub min_val_stake: I64F64,
 }
 
-#[derive(Clone, Encode, Decode, TypeInfo, Debug)]
-pub struct ModuleParams {
+#[derive(Clone, Encode, Decode, TypeInfo, DebugNoBound)]
+pub struct ModuleParams<AccountId: Debug> {
     pub uid: u16,
     pub last_update: u64,
     pub block_at_registration: u64,
     pub validator_permit: bool,
     pub stake_normalized: I32F32,
     pub stake_original: I64F64, // Use for WC simulation purposes
+    pub delegated_to: Option<(AccountId, Percent)>,
     pub bonds: Vec<(u16, u16)>,
     pub weight_encrypted: Vec<u8>,
     pub weight_hash: Vec<u8>,
@@ -66,10 +68,10 @@ pub struct FlattenedModules<AccountId: Debug> {
     pub weight_encrypted: Vec<Vec<u8>>,
 }
 
-impl<AccountId: Debug> From<BTreeMap<ModuleKey<AccountId>, ModuleParams>>
+impl<AccountId: Debug> From<BTreeMap<ModuleKey<AccountId>, ModuleParams<AccountId>>>
     for FlattenedModules<AccountId>
 {
-    fn from(value: BTreeMap<ModuleKey<AccountId>, ModuleParams>) -> Self {
+    fn from(value: BTreeMap<ModuleKey<AccountId>, ModuleParams<AccountId>>) -> Self {
         let mut modules = FlattenedModules {
             keys: Vec::with_capacity(value.len()),
             last_update: Vec::with_capacity(value.len()),
@@ -142,7 +144,7 @@ impl<T: Config> ConsensusParams<T> {
                     let encryption_data =
                         WeightEncryptionData::<T>::get(subnet_id, uid as u16).unwrap_or_default();
 
-                    let module = ModuleParams {
+                    let module = ModuleParams::<T::AccountId> {
                         uid: uid as u16,
                         last_update,
                         block_at_registration,
@@ -150,6 +152,8 @@ impl<T: Config> ConsensusParams<T> {
                         stake_normalized,
                         stake_original,
                         bonds,
+                        delegated_to: WeightSettingDelegation::<T>::get(subnet_id, &key)
+                            .map(|info| (info.delegate, info.fee_percentage)),
                         weight_encrypted: encryption_data.encrypted,
                         weight_hash: encryption_data.decrypted_hashes,
                     };

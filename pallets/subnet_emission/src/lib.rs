@@ -44,7 +44,7 @@ pub mod pallet {
     use subnet_pricing::root::RootPricing;
     use types::KeylessBlockWeights;
 
-    const STORAGE_VERSION: StorageVersion = StorageVersion::new(3);
+    const STORAGE_VERSION: StorageVersion = StorageVersion::new(4);
 
     #[pallet::pallet]
     #[pallet::storage_version(STORAGE_VERSION)]
@@ -218,7 +218,6 @@ pub mod pallet {
                 log::error!("Error in on_initialize emission: {err:?}, skipping...");
             }
 
-            Self::copy_delegated_weights(block_number);
             for netuid in pallet_subspace::N::<T>::iter_keys() {
                 if pallet_subspace::Pallet::<T>::blocks_until_next_epoch(netuid, block_number) > 0 {
                     continue;
@@ -386,13 +385,14 @@ pub mod pallet {
             )
         }
 
-        #[pallet::call_index(2)]
+        #[pallet::call_index(2)] // TODO: change if needed
         #[pallet::weight((0, DispatchClass::Normal, Pays::No))]
-        pub fn delegate_rootnet_control(
+        pub fn delegate_weight_control(
             origin: OriginFor<T>,
+            netuid: u16,
             target: T::AccountId,
         ) -> DispatchResult {
-            Self::do_delegate_rootnet_control(origin, target)
+            Self::do_delegate_weight_control(origin, netuid, target)
         }
     }
 }

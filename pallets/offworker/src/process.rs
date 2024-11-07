@@ -23,7 +23,11 @@ impl<T: Config> Pallet<T> {
 
         subnets.into_iter().for_each(|subnet_id| {
             let params = ConsensusParameters::<T>::iter_prefix(subnet_id).collect::<Vec<_>>();
-            let max_block = params.iter().map(|(block, _)| *block).max().unwrap_or(0);
+            let (min_block, max_block) =
+                params.iter().fold((u64::MAX, 0), |(min, max), (block, _)| {
+                    (min.min(*block), max.max(*block))
+                });
+            let min_block = if min_block == u64::MAX { 0 } else { min_block };
             let subnet_registration_block =
                 pallet_subspace::SubnetRegistrationBlock::<T>::get(subnet_id).unwrap_or(0);
 
@@ -46,6 +50,18 @@ impl<T: Config> Pallet<T> {
                 copier_margin,
                 max_encryption_period,
             );
+
+            // This case should never happen, it just provides additional level of security
+            // against potential very rare timing issue or race condition. Ultimately it ensures
+            // that the caching system can never go into broken states.
+            if simulation_result.creation_block < min_block {
+                log::warn!(
+                    "Skipping subnet {} due to race condition, don't worry ! deleting cache",
+                    subnet_id
+                );
+                Self::delete_subnet_state(&subnet_id);
+                return;
+            }
 
             if last_processed_block >= max_block {
                 log::info!(
