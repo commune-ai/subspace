@@ -77,9 +77,8 @@ pub mod dispatches {
 
             Authorities::<T>::try_mutate(|authorities| {
                 new_authorities.into_iter().try_for_each(|(account_id, public_key)| {
-                    let (modulus, exponent) = public_key;
                     authorities
-                        .try_push((account_id, (modulus, exponent)))
+                        .try_push((account_id, public_key))
                         .map_err(|_| Error::<T>::TooManyAuthorities)
                 })
             })?;

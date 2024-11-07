@@ -105,6 +105,16 @@ impl<T: Config> DerefMut for ValidatedSubnetParams<T> {
     }
 }
 
+const MIN_TEMPO: u16 = 100; // consider allowing lower values
+const MAX_FOUNDER_SHARE: u16 = 100;
+const MAX_INCENTIVE_RATIO: u16 = 100;
+const MIN_ALLOWED_WEIGHTS: u16 = 1;
+const MAX_VALIDATOR_STAKE: u64 = 250_000_000_000_000;
+const MAX_COPIER_MARGIN: f64 = 1.0;
+const MIN_ALLOWED_VALIDATORS: u16 = 10;
+const MIN_ENCRYPTION_PERIOD: u64 = 360;
+const MIN_SET_WEIGHT_CALLS: u16 = 1;
+
 impl<T: Config> ValidatedSubnetParams<T> {
     pub fn new(params: SubnetParams<T>, netuid: Option<u16>) -> Result<Self, DispatchError> {
         Self::validate(netuid, &params)?;
@@ -158,7 +168,7 @@ impl<T: Config> ValidatedSubnetParams<T> {
         );
 
         ensure!(
-            *min_allowed_weights >= 1,
+            *min_allowed_weights >= MIN_ALLOWED_WEIGHTS,
             Error::<T>::InvalidMinAllowedWeights
         );
 
@@ -168,7 +178,7 @@ impl<T: Config> ValidatedSubnetParams<T> {
         }
 
         // Validate tempo and weight age
-        ensure!(*tempo >= 25, Error::<T>::InvalidTempo);
+        ensure!(*tempo >= MIN_TEMPO, Error::<T>::InvalidTempo);
         ensure!(
             *max_weight_age > *tempo as u64,
             Error::<T>::InvalidMaxWeightAge
@@ -178,12 +188,18 @@ impl<T: Config> ValidatedSubnetParams<T> {
         ensure!(*max_allowed_uids > 0, Error::<T>::InvalidMaxAllowedUids);
 
         // Validate shares and ratios
-        ensure!(*founder_share <= 100, Error::<T>::InvalidFounderShare);
+        ensure!(
+            *founder_share <= MAX_FOUNDER_SHARE,
+            Error::<T>::InvalidFounderShare
+        );
         ensure!(
             *founder_share >= FloorFounderShare::<T>::get() as u16,
             Error::<T>::InvalidFounderShare
         );
-        ensure!(*incentive_ratio <= 100, Error::<T>::InvalidIncentiveRatio);
+        ensure!(
+            *incentive_ratio <= MAX_INCENTIVE_RATIO,
+            Error::<T>::InvalidIncentiveRatio
+        );
 
         // Validate weights
         ensure!(
@@ -197,32 +213,35 @@ impl<T: Config> ValidatedSubnetParams<T> {
         );
 
         // Validate stakes and margins
+
         ensure!(
-            *min_validator_stake <= 250_000_000_000_000,
+            *min_validator_stake <= MAX_VALIDATOR_STAKE,
             Error::<T>::InvalidMinValidatorStake
         );
 
-        ensure!(*copier_margin <= 1, Error::<T>::InvalidCopierMargin);
+        ensure!(
+            *copier_margin <= MAX_COPIER_MARGIN,
+            Error::<T>::InvalidCopierMargin
+        );
 
-        // Validate optional validators
         if let Some(max_validators) = max_allowed_validators {
             ensure!(
-                *max_validators >= 10,
+                *max_validators >= MIN_ALLOWED_VALIDATORS,
                 Error::<T>::InvalidMaxAllowedValidators
             );
         }
 
-        // Validate encryption period
         if let Some(encryption_period) = max_encryption_period {
             ensure!(
-                *encryption_period >= 360 && *encryption_period <= T::MaxEncryptionDuration::get(),
+                *encryption_period >= MIN_ENCRYPTION_PERIOD
+                    && *encryption_period <= T::MaxEncryptionDuration::get(),
                 Error::<T>::InvalidMaxEncryptionPeriod
             );
         }
 
         if let Some(max_calls) = maximum_set_weight_calls_per_epoch {
             ensure!(
-                *max_calls > 0,
+                *max_calls >= MIN_SET_WEIGHT_CALLS,
                 Error::<T>::InvalidMaximumSetWeightCallsPerEpoch
             );
         }

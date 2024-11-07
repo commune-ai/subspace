@@ -44,7 +44,7 @@ pub mod pallet {
     use subnet_pricing::root::RootPricing;
     use types::KeylessBlockWeights;
 
-    const STORAGE_VERSION: StorageVersion = StorageVersion::new(4);
+    const STORAGE_VERSION: StorageVersion = StorageVersion::new(6);
 
     #[pallet::pallet]
     #[pallet::storage_version(STORAGE_VERSION)]
@@ -204,10 +204,16 @@ pub mod pallet {
             let block_number: u64 =
                 block_number.try_into().ok().expect("blockchain won't pass 2 ^ 64 blocks");
 
+            log::info!(
+                "Running on_initialize at block: {:?}, subnet_emission module",
+                block_number
+            );
             Self::distribute_subnets_to_nodes(block_number);
+            log::info!("Distributed subnets to nodes");
             Self::cancel_expired_offchain_workers(block_number);
-
+            log::info!("Cancelled expired offchain workers");
             let emission_per_block = Self::get_total_emission_per_block();
+            log::info!("Emission per block: {:?}", emission_per_block);
             // Make sure to use storage layer,
             // so runtime can never panic in initialization hook
             let res: Result<(), DispatchError> = with_storage_layer(|| {
