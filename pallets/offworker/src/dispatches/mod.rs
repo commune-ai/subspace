@@ -32,6 +32,18 @@ pub mod dispatches {
             } else {
                 return Err(Error::<T>::InvalidSubnetId.into());
             }
+
+            ensure!(
+                !decrypted_weights.is_empty(),
+                Error::<T>::EmptyDecryptedWeights
+            );
+
+            let has_weights = decrypted_weights.iter().any(|(_, inner_vec)| {
+                inner_vec.iter().any(|(_, weight_vec, _)| !weight_vec.is_empty())
+            });
+
+            ensure!(has_weights, Error::<T>::EmptyDecryptedWeights);
+
             IrrationalityDelta::<T>::set(subnet_id, delta);
             pallet_subnet_emission::Pallet::<T>::handle_decrypted_weights(
                 subnet_id,

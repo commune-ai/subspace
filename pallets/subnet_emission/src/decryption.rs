@@ -80,7 +80,8 @@ impl<T: Config> Pallet<T> {
         }
     }
 
-    pub fn do_handle_decrypted_weights(netuid: u16, weights: Vec<BlockWeights>) {
+    pub fn handle_decrypted_weights(netuid: u16, weights: Vec<BlockWeights>) {
+        log::info!("Received decrypted weights for subnet {netuid}");
         let info = match SubnetDecryptionData::<T>::get(netuid) {
             Some(info) => info,
             None => {
@@ -90,7 +91,6 @@ impl<T: Config> Pallet<T> {
                 return;
             }
         };
-
         let valid_weights: Vec<KeylessBlockWeights> = weights
             .into_iter()
             .filter_map(|(block, block_weights)| {
@@ -110,6 +110,14 @@ impl<T: Config> Pallet<T> {
             })
             .collect();
 
+        log::info!(
+            "Received {} valid decrypted weights for subnet {}",
+            valid_weights.len(),
+            netuid
+        );
+
+        // TODO: use the actual weight setting function here, we have to be using united logic, not
+        // this kind of stuff
         if let Some((_, weights)) = valid_weights.iter().max_by_key(|&(key, _)| key) {
             for &(uid, ref weights) in weights {
                 Weights::<T>::set(netuid, uid, Some(weights.clone()));

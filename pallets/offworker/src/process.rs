@@ -4,11 +4,12 @@ impl<T: Config> Pallet<T> {
     // TODO:
     // take the account id here instead of the public key, and move it to subnet emission
     // decryption.rs so it is united with offchain worker banning
-    pub fn get_valid_subnets(public_key: (Vec<u8>, Vec<u8>)) -> Vec<u16> {
+    pub fn get_valid_subnets(acc_id: &T::AccountId) -> Vec<u16> {
         SubnetDecryptionData::<T>::iter()
             .filter(|(netuid, data)| {
                 let use_weights = pallet_subspace::UseWeightsEncryption::<T>::get(*netuid);
-                let key_match = data.node_public_key == public_key;
+                let key_match = &data.node_id == acc_id;
+
                 let has_encrypted_weights = WeightEncryptionData::<T>::iter_prefix(*netuid)
                     .any(|(_, value)| !value.encrypted.is_empty());
 

@@ -61,6 +61,16 @@ pub struct ShouldDecryptResult<T: pallet_subspace::Config> {
     pub delta: I64F64,
 }
 
+impl<T: pallet_subspace::Config> Default for ShouldDecryptResult<T> {
+    fn default() -> Self {
+        Self {
+            should_decrypt: false,
+            simulation_result: ConsensusSimulationResult::default(),
+            delta: I64F64::from_num(0),
+        }
+    }
+}
+
 pub struct SimulationYumaParams<T: Config> {
     pub uid: u16,
     pub params: ConsensusParams<T>,
