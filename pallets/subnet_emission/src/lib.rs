@@ -44,7 +44,7 @@ pub mod pallet {
     use subnet_pricing::root::RootPricing;
     use types::KeylessBlockWeights;
 
-    const STORAGE_VERSION: StorageVersion = StorageVersion::new(6);
+    const STORAGE_VERSION: StorageVersion = StorageVersion::new(8);
 
     #[pallet::pallet]
     #[pallet::storage_version(STORAGE_VERSION)]
@@ -353,10 +353,6 @@ pub mod pallet {
             }
 
             priced_subnets
-        }
-
-        pub fn handle_decrypted_weights(netuid: u16, weights: Vec<BlockWeights>) {
-            Self::do_handle_decrypted_weights(netuid, weights);
         }
     }
 

@@ -173,12 +173,22 @@ pub mod pallet {
                 log::error!("Error sending keep alive: {:?}", e);
                 return;
             }
-
-            let Some(public_key) = ow_extensions::offworker::get_encryption_key() else {
+            // Make sure that we have encryption key
+            let Some(_) = ow_extensions::offworker::get_encryption_key() else {
                 return;
             };
-
-            let subnets = Self::get_valid_subnets(public_key);
+            let account_id = match Signer::<T, T::AuthorityId>::any_account()
+                .accounts_from_keys()
+                .next()
+                .map(|account| account.id)
+            {
+                Some(id) => id,
+                None => {
+                    log::error!("No local accounts available");
+                    return;
+                }
+            };
+            let subnets = Self::get_valid_subnets(&account_id);
             log::info!("Valid subnets: {:?}", subnets);
             let deregistered_subnets = Self::process_subnets(subnets, block_number);
             deregistered_subnets.iter().for_each(|subnet_id| {
@@ -210,6 +220,8 @@ pub mod pallet {
         InvalidSubnetId,
         /// Attempted to add more authorities than the maximum allowed
         TooManyAuthorities,
+        /// Attempted to send empty decrypted weights
+        EmptyDecryptedWeights,
     }
 
     // 5 % of total active stake

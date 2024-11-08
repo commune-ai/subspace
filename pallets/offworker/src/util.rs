@@ -18,49 +18,112 @@ where
     };
 
     log::info!("Processing consensus params for subnet {}", subnet_id);
+    log::info!("Number of consensus params entries: {}", consensus_params.len());
 
     for (param_block, params) in &consensus_params {
+        log::info!("Processing block {}", param_block);
+        log::info!("Number of modules in params: {}", params.modules.len());
+
         let decrypted_weights: Vec<_> = params
             .modules
             .iter()
+            .inspect(|(key, params)| {
+                log::debug!(
+                    "Processing module key: {:?}, encrypted weight length: {}",
+                    key.0,
+                    params.weight_encrypted.len()
+                );
+            })
             .filter_map(|(key, params)| {
-                consensus_params.iter().find_map(|(_, consensus_param)| {
+                let found_param = consensus_params.iter().find_map(|(_, consensus_param)| {
                     consensus_param
                         .modules
                         .iter()
                         .find(|(module_key, _)| module_key.0 == key.0)
                         .map(|(_, module_params)| (module_params.uid, params))
-                })
+                });
+
+                if found_param.is_none() {
+                    log::warn!("No matching consensus param found for module key: {:?}", key.0);
+                }
+                found_param
             })
             .filter_map(|(uid, params)| {
+                log::debug!(
+                    "Attempting decryption for UID: {}, encrypted weight length: {}",
+                    uid,
+                    params.weight_encrypted.len()
+                );
+
                 if params.weight_encrypted.is_empty() {
+                    log::warn!("Empty encrypted weights for UID: {}", uid);
                     Some((uid, Vec::new(), Vec::new()))
                 } else {
-                    ow_extensions::offworker::decrypt_weight(params.weight_encrypted.clone())
-                        .map(|(decrypted, key)| (uid, decrypted, key))
+                    match ow_extensions::offworker::decrypt_weight(params.weight_encrypted.clone()) {
+                        Some((decrypted, key)) => {
+                            log::info!(
+                                "Successfully decrypted weights for UID: {}, decrypted length: {}",
+                                uid,
+                                decrypted.len()
+                            );
+                            Some((uid, decrypted, key))
+                        }
+                        None => {
+                            log::error!("Failed to decrypt weights for UID: {}", uid);
+                            None
+                        }
+                    }
                 }
             })
             .collect();
 
+        log::info!(
+            "Number of successfully decrypted weights: {}",
+            decrypted_weights.len()
+        );
+
+        let weights_for_should_decrypt: Vec<_> = decrypted_weights
+            .iter()
+            .cloned()
+            .map(|(uid, weights, _)| (uid, weights))
+            .collect();
+
+        log::debug!(
+            "Preparing should_decrypt check with {} weight entries",
+            weights_for_should_decrypt.len()
+        );
+
         let should_decrypt_result = should_decrypt_weights::<T>(
-            &decrypted_weights
-                .iter()
-                .cloned()
-                .map(|(uid, weights, _)| (uid, weights))
-                .collect::<Vec<_>>(),
+            &weights_for_should_decrypt,
             params.clone(),
             subnet_id,
             simulation_result.clone(),
             *param_block,
         );
 
+        log::info!(
+            "should_decrypt result: {}, delta: {}",
+            should_decrypt_result.should_decrypt,
+            should_decrypt_result.delta
+        );
+
         simulation_result = should_decrypt_result.simulation_result.clone();
 
         if should_decrypt_result.should_decrypt {
+            log::info!(
+                "Adding decrypted weights for block {} to epochs",
+                param_block
+            );
             epochs.push((*param_block, decrypted_weights));
             result = should_decrypt_result;
         }
     }
+
+    log::info!(
+        "Final processing result: {} epochs processed, should_decrypt: {}",
+        epochs.len(),
+        result.should_decrypt
+    );
 
     (epochs, result)
 }
@@ -84,26 +147,38 @@ pub fn should_decrypt_weights<T: Config>(
         subnet_id,
     );
 
-    // TODO: determine consensus dynamically
-    let simulation_yuma_output = YumaEpoch::<T>::new(subnet_id, simulation_yuma_params)
+    // Run consensus simulation with error handling
+    let simulation_yuma_output = match YumaEpoch::<T>::new(subnet_id, simulation_yuma_params)
         .run(decrypted_weights_map.into_iter().collect::<Vec<_>>())
-        .unwrap();
+    {
+        Ok(output) => output,
+        Err(e) => {
+            log::error!("Failed to run consensus simulation: {:?}", e);
+            return ShouldDecryptResult::default();
+        }
+    };
 
-    // This is fine to get from the runtime
+    // Get delegation fee (this is not a Result type)
     let delegation_fee = FloorDelegationFee::<T>::get();
+
+    // Update simulation result
     simulation_result.update(simulation_yuma_output, copier_uid, delegation_fee);
 
+    // Check if copying is irrational (this returns a tuple, not a Result)
     let (is_irrational, delta) =
         is_copying_irrational::<T>(simulation_result.clone(), block_number);
+
+    // Log results
     if is_irrational {
-        log::info!("Copying is leftist")
+        log::info!("Copying is leftist");
     } else {
-        log::info!("Copying is right-wing")
+        log::info!("Copying is right-wing");
     }
     log::info!("Delta: {}", delta);
+
     ShouldDecryptResult {
         should_decrypt: is_irrational,
-        delta: delta.abs(), // Make sure to convert to positive
+        delta: delta.abs(),
         simulation_result,
     }
 }

@@ -324,7 +324,6 @@ impl<T: Config> Pallet<T> {
         encrypted_weights: Vec<u8>,
         decrypted_weights_hash: Vec<u8>,
     ) -> DispatchResult {
-        // TODO: unite the logic with "normal" weight setting here
         let key = ensure_signed(origin)?;
 
         if !pallet_subspace::UseWeightsEncryption::<T>::get(netuid) {

@@ -1554,7 +1554,7 @@ fn rotate_decryption_node() {
         // one subnet with decryption node set
         pallet_subnet_emission::DecryptionNodeCursor::<Test>::set(1);
 
-        pallet_subnet_emission::Pallet::<Test>::do_handle_decrypted_weights(netuid, vec![]);
+        pallet_subnet_emission::Pallet::<Test>::handle_decrypted_weights(netuid, vec![]);
 
         assert_eq!(
             pallet_subnet_emission::SubnetDecryptionData::<Test>::get(netuid)

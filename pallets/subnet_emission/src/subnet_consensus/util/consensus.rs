@@ -62,6 +62,19 @@ pub fn extract_bonds<T: Config>(
         .collect()
 }
 
+// TODO: add the `EmittedMoreThanExpected` err
+// previous impl can be found here https://github.com/renlabs-dev/subspace-network/blob/main/pallets/subnet_emission/src/subnet_consensus/yuma.rs#L348
+//
+//
+// it will look something like this
+//
+// ensure!(
+//     self.total_emitted <= self.founder_emission.saturating_add(params.token_emission),
+//     EmissionError::EmittedMoreThanExpected {
+//         emitted,
+//         expected: self.params.founder_emission.saturating_add(self.params.token_emission)
+//     }
+// );
 pub fn calculate_final_emissions<T: Config>(
     founder_emission: u64,
     subnet_id: u16,
@@ -796,15 +809,6 @@ impl<T: Config> ConsensusOutput<T> {
             Bonds::<T>::insert(subnet_id, module_uid as u16, bonds);
         }
 
-        // TODO:  why is this commented out ?
-        // ensure!(
-        //     self.total_emitted <= self.founder_emission.saturating_add(params.token_emission),
-        //     EmissionError::EmittedMoreThanExpected {
-        //         emitted,
-        //         expected: self.params.founder_emission.saturating_add(self.params.token_emission)
-        //     }
-        // );
-
         log::trace!("emitted {:?} tokens in total", self.total_emitted);
 
         PalletSubspace::<T>::add_balance_to_account(
@@ -812,6 +816,10 @@ impl<T: Config> ConsensusOutput<T> {
             self.founder_emission,
         );
 
+        // TODO: Check if all of the keys, that you are increasing the stake for, are actually
+        // registered on the `subnet_id`, if they are not registerd on the subnet (because  they got
+        // deregistered in the parameter collection period), you do not increase stake, but you
+        // increase their balance using the funciton `add_balance_to_account`
         for (module_key, emitted_to) in self.emission_map {
             for (account_key, emission) in emitted_to {
                 PalletSubspace::<T>::increase_stake(&account_key.0, &module_key.0, emission);

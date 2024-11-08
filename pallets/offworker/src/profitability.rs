@@ -14,6 +14,11 @@ pub fn is_copying_irrational<T: pallet_subspace::Config>(
 ) -> (bool, I64F64) {
     let encryption_window_len = block_number.saturating_sub(creation_block);
     if encryption_window_len >= max_encryption_period {
+        log::info!(
+            "Encryption window length {} exceeds max encryption period {}",
+            encryption_window_len,
+            max_encryption_period
+        );
         return (true, I64F64::from_num(0));
     }
 
