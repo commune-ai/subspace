@@ -20,7 +20,7 @@ impl<T: pallet_subspace::Config> Default for ConsensusSimulationResult<T> {
             cumulative_avg_delegate_divs: I64F64::from_num(0),
             copier_margin: I64F64::from_num(0),
             max_encryption_period: 0,
-            creation_block: 0,
+            creation_block: pallet_subspace::Pallet::<T>::get_current_block_number(),
             _phantom: PhantomData,
         }
     }

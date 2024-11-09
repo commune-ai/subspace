@@ -74,6 +74,8 @@ fn new_offworker_test_ext(
     (ext, pool_state, offchain_state)
 }
 
+// cargo test --package tests --features testing-offworker test_offchain_worker_behavior --
+// --nocapture
 #[test]
 fn test_offchain_worker_behavior() {
     let mock_offworker_ext = MockOffworkerExt::default();
@@ -236,8 +238,8 @@ fn test_offchain_worker_behavior() {
             "IrrationalityDelta should be set"
         );
 
-        // we actually want this **not** to be set, as whenever weights are sent, the subnet state
-        // is **nuked**
+        // we actually want this **not** to be set, as whenever weights are sent, the subnet
+        // state is **nuked**
         let storage_key = format!("subnet_state:{}", TEST_SUBNET_ID).into_bytes();
         let subnet_state = sp_io::offchain::local_storage_get(
             sp_core::offchain::StorageKind::PERSISTENT,
