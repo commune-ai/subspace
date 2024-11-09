@@ -317,7 +317,6 @@ impl<T: Config> Pallet<T> {
         }
     }
 
-    // TODO: if the key delegates power to another key just throw an error
     pub fn do_set_weights_encrypted(
         origin: T::RuntimeOrigin,
         netuid: u16,

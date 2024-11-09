@@ -19,7 +19,6 @@ rmp-serde = "1.1.1"
 serde = { version = "1.0", features = ["derive"] }
 parking_lot = "0.12.0"
 
-
 sha2.workspace = true
 rsa.workspace = true
 bty = { workspace = true }
@@ -36,7 +35,10 @@ pallet-balances = { workspace = true }
 pallet-governance = { path = "../pallets/governance", features = ["std"] }
 
 pallet-governance-api = { path = "../pallets/governance/api" }
-pallet-offworker = { path = "../pallets/offworker" }
+pallet-offworker = { path = "../pallets/offworker", features = [
+    "std",
+    "testing-offworker",
+] }
 pallet-subnet-emission = { path = "../pallets/subnet_emission", features = [
     "std",
 ] }
@@ -62,3 +64,6 @@ sp-keystore = { workspace = true }
 sp-std = { workspace = true }
 sp-tracing = { workspace = true }
 substrate-fixed = { workspace = true }
+
+[features]
+testing-offworker = ["pallet-offworker/testing-offworker"]

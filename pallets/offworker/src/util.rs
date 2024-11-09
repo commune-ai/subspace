@@ -18,7 +18,10 @@ where
     };
 
     log::info!("Processing consensus params for subnet {}", subnet_id);
-    log::info!("Number of consensus params entries: {}", consensus_params.len());
+    log::info!(
+        "Number of consensus params entries: {}",
+        consensus_params.len()
+    );
 
     for (param_block, params) in &consensus_params {
         log::info!("Processing block {}", param_block);
@@ -44,7 +47,10 @@ where
                 });
 
                 if found_param.is_none() {
-                    log::warn!("No matching consensus param found for module key: {:?}", key.0);
+                    log::warn!(
+                        "No matching consensus param found for module key: {:?}",
+                        key.0
+                    );
                 }
                 found_param
             })
@@ -59,7 +65,8 @@ where
                     log::warn!("Empty encrypted weights for UID: {}", uid);
                     Some((uid, Vec::new(), Vec::new()))
                 } else {
-                    match ow_extensions::offworker::decrypt_weight(params.weight_encrypted.clone()) {
+                    match ow_extensions::offworker::decrypt_weight(params.weight_encrypted.clone())
+                    {
                         Some((decrypted, key)) => {
                             log::info!(
                                 "Successfully decrypted weights for UID: {}, decrypted length: {}",

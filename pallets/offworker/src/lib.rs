@@ -177,6 +177,7 @@ pub mod pallet {
             let Some(_) = ow_extensions::offworker::get_encryption_key() else {
                 return;
             };
+            #[cfg(not(feature = "testing-offworker"))]
             let account_id = match Signer::<T, T::AuthorityId>::any_account()
                 .accounts_from_keys()
                 .next()
@@ -188,7 +189,24 @@ pub mod pallet {
                     return;
                 }
             };
+
+            #[cfg(feature = "testing-offworker")]
+            let subnets = {
+                // Test version logic
+                SubnetDecryptionData::<T>::iter()
+                    .filter(|(netuid, _)| {
+                        let use_weights = pallet_subspace::UseWeightsEncryption::<T>::get(*netuid);
+                        let has_encrypted_weights = WeightEncryptionData::<T>::iter_prefix(*netuid)
+                            .any(|(_, value)| !value.encrypted.is_empty());
+                        use_weights && has_encrypted_weights
+                    })
+                    .map(|(netuid, _)| netuid)
+                    .collect()
+            };
+
+            #[cfg(not(feature = "testing-offworker"))]
             let subnets = Self::get_valid_subnets(&account_id);
+
             log::info!("Valid subnets: {:?}", subnets);
             let deregistered_subnets = Self::process_subnets(subnets, block_number);
             deregistered_subnets.iter().for_each(|subnet_id| {

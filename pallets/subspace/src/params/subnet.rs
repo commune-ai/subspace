@@ -105,7 +105,7 @@ impl<T: Config> DerefMut for ValidatedSubnetParams<T> {
     }
 }
 
-const MIN_TEMPO: u16 = 100; // consider allowing lower values
+const MIN_TEMPO: u16 = 25;
 const MAX_FOUNDER_SHARE: u16 = 100;
 const MAX_INCENTIVE_RATIO: u16 = 100;
 const MIN_ALLOWED_WEIGHTS: u16 = 1;
