@@ -26,7 +26,7 @@ impl<T: Config> Pallet<T> {
         log::debug!("append_module( netuid: {netuid:?} | uid: {key:?} | new_key: {uid:?})");
 
         // -- Initialize All Storages ---
-        StorageHandler::initialize_all::<T>(netuid, uid, &key)?;
+        StorageHandler::initialize_all::<T>(netuid, uid, key)?;
         // Make sure this overwrites the defaults (keep it second)
         changeset.apply::<T>(netuid, key.clone(), uid)?;
 

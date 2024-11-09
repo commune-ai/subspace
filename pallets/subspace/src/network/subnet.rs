@@ -113,6 +113,16 @@ impl<T: Config> Pallet<T> {
         });
     }
 
+    pub fn copy_last_update_for_uid(netuid: u16, origin: u16, target: u16) {
+        LastUpdate::<T>::mutate(netuid, |vec| {
+            if let Some(val) = vec.get(target as usize).cloned() {
+                if let Some(idx) = vec.get_mut(origin as usize) {
+                    *idx = val;
+                }
+            }
+        });
+    }
+
     // --- Getters ---
 
     pub fn get_min_allowed_weights(netuid: u16) -> u16 {

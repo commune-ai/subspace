@@ -40,6 +40,19 @@ pub struct ConsensusParams<T: Config> {
     pub min_val_stake: I64F64,
 }
 
+impl<T: Config> ConsensusParams<T> {
+    pub fn get_module_by_uid(&self, uid: u16) -> Option<&ModuleParams<T::AccountId>> {
+        self.modules.values().find(|module| module.uid == uid)
+    }
+
+    pub fn get_module_key_by_uid(&self, uid: u16) -> Option<T::AccountId> {
+        self.modules
+            .iter()
+            .find(|(_key, module)| module.uid == uid)
+            .map(|(key, _module)| key.0.clone())
+    }
+}
+
 #[derive(Clone, Encode, Decode, TypeInfo, DebugNoBound)]
 pub struct ModuleParams<AccountId: Debug> {
     pub uid: u16,
