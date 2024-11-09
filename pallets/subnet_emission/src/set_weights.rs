@@ -2,11 +2,8 @@ use super::*;
 use frame_support::{ensure, pallet_prelude::DispatchResult};
 use frame_system::ensure_signed;
 use pallet_subnet_emission_api::SubnetConsensus;
-use pallet_subspace::{
-    DelegationInfo, Error, ModuleParams, Pallet as PalletSubspace, WeightSettingDelegation,
-};
+use pallet_subspace::{DelegationInfo, Error, Pallet as PalletSubspace};
 use sp_core::Get;
-use sp_runtime::Percent;
 
 impl<T: Config> Pallet<T> {
     /// Sets weights for a node in a specific subnet.
@@ -260,7 +257,7 @@ impl<T: Config> Pallet<T> {
     ) -> DispatchResult {
         let key = ensure_signed(origin)?;
 
-        let Some(origin_uid) = pallet_subspace::Pallet::<T>::get_uid_for_key(netuid, &key) else {
+        let Some(_) = pallet_subspace::Pallet::<T>::get_uid_for_key(netuid, &key) else {
             return Err(Error::<T>::ModuleDoesNotExist.into());
         };
 
@@ -314,6 +311,16 @@ impl<T: Config> Pallet<T> {
                 let weights = Weights::<T>::get(netuid, target_uid);
                 Weights::<T>::set(netuid, origin_uid, weights);
             }
+
+            pallet_subspace::WeightSetAt::<T>::set(
+                netuid,
+                origin_uid,
+                pallet_subspace::WeightSetAt::<T>::get(netuid, target_uid),
+            );
+            pallet_subspace::Pallet::<T>::copy_last_update_for_uid(netuid, origin_uid, target_uid);
+            pallet_subspace::Pallet::<T>::deposit_event(pallet_subspace::Event::WeightsSet(
+                netuid, origin_uid,
+            ));
         }
     }
 
@@ -344,6 +351,13 @@ impl<T: Config> Pallet<T> {
                 decrypted_hashes: decrypted_weights_hash,
             },
         );
+
+        let current_block = pallet_subspace::Pallet::<T>::get_current_block_number();
+        pallet_subspace::WeightSetAt::<T>::insert(netuid, uid, current_block);
+        pallet_subspace::Pallet::<T>::set_last_update_for_uid(netuid, uid, current_block);
+        pallet_subspace::Pallet::<T>::deposit_event(pallet_subspace::Event::WeightsSet(
+            netuid, uid,
+        ));
 
         Ok(())
     }

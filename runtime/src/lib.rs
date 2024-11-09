@@ -1365,8 +1365,8 @@ impl pallet_subnet_emission_api::SubnetEmissionApi<<Runtime as frame_system::Con
             netuid,
             uid,
             replace_uid,
-            &module_key,
-            &replace_key,
+            module_key,
+            replace_key,
         )?;
         Ok(())
     }

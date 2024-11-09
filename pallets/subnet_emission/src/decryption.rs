@@ -141,8 +141,8 @@ impl<T: Config> Pallet<T> {
         }
 
         let params = ConsensusParameters::<T>::get(netuid, block)?;
-        let module_key = pallet_subspace::Pallet::<T>::get_key_for_uid(netuid, uid)?;
-        let module = params.modules.get(&ModuleKey(module_key))?;
+        let module_key = params.get_module_key_by_uid(uid)?;
+        let module = params.modules.get(&ModuleKey(module_key.clone()))?;
 
         let hash = sp_io::hashing::sha2_256(&Self::weights_to_blob(weights)[..]).to_vec();
         if hash != module.weight_hash {
@@ -152,7 +152,10 @@ impl<T: Config> Pallet<T> {
             return None;
         }
 
-        let key = pallet_subspace::Pallet::<T>::get_key_for_uid(netuid, uid)?;
+        let key = match &module.delegated_to {
+            Some((key, _fee)) => key,
+            None => &module_key,
+        };
         if key.encode() != received_key {
             log::error!("Key mismatch for module {uid}");
             return None;
