@@ -65,6 +65,7 @@ where
                     log::warn!("Empty encrypted weights for UID: {}", uid);
                     Some((uid, Vec::new(), Vec::new()))
                 } else {
+                    log::info!("encrypted weights are: {:?}", params.weight_encrypted);
                     match ow_extensions::offworker::decrypt_weight(params.weight_encrypted.clone())
                     {
                         Some((decrypted, key)) => {
@@ -88,6 +89,8 @@ where
             "Number of successfully decrypted weights: {}",
             decrypted_weights.len()
         );
+
+        log::info!("decrypted weights are: {:?}", decrypted_weights);
 
         let weights_for_should_decrypt: Vec<_> = decrypted_weights
             .iter()
@@ -161,7 +164,10 @@ pub fn should_decrypt_weights<T: Config>(
         Ok(output) => output,
         Err(e) => {
             log::error!("Failed to run consensus simulation: {:?}", e);
-            return ShouldDecryptResult::default();
+            return ShouldDecryptResult::default(); // this just has to send the weights back to
+                                                   // runtime, we immidiately declare the copying as
+                                                   // irrational and let all weights to be returned
+                                                   // and handeled by the runtime
         }
     };
 
