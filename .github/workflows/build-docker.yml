@@ -2,7 +2,7 @@ name: Build and push Docker image
 
 on:
   push:
-    branches: [main]
+    branches: [main, feat/merged-weight-copying]
     tags:
       - '*'
 
@@ -44,4 +44,3 @@ jobs:
           push: true
           tags: |
             ghcr.io/renlabs-dev/subspace:${{ steps.commit.outputs.short }}
-            ghcr.io/renlabs-dev/subspace:${{ github.ref_name }}
