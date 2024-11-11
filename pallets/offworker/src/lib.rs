@@ -35,7 +35,7 @@ use pallet_subspace::{
 };
 use parity_scale_codec::{Decode, Encode};
 use scale_info::prelude::marker::PhantomData;
-use sp_core::crypto::KeyTypeId;
+use sp_core::{crypto::KeyTypeId, hexdisplay::HexDisplay};
 use sp_runtime::{
     offchain::storage::StorageValueRef,
     traits::{BlakeTwo256, Hash, IdentifyAccount},
@@ -173,10 +173,31 @@ pub mod pallet {
                 log::error!("Error sending keep alive: {:?}", e);
                 return;
             }
-            // Make sure that we have encryption key
-            let Some(_) = ow_extensions::offworker::get_encryption_key() else {
+            // Make sure that we have encryption key available
+            let Some(public) = ow_extensions::offworker::get_encryption_key() else {
                 return;
             };
+
+            log::info!(
+                "Node public key - modulus: {}, exponent: {}",
+                HexDisplay::from(&public.0),
+                HexDisplay::from(&public.1)
+            );
+
+            #[cfg(feature = "testing-offworker")]
+            let subnets = {
+                // Test will just take any subnet with encrypted weights
+                SubnetDecryptionData::<T>::iter()
+                    .filter(|(netuid, _)| {
+                        let use_weights = pallet_subspace::UseWeightsEncryption::<T>::get(*netuid);
+                        let has_encrypted_weights = WeightEncryptionData::<T>::iter_prefix(*netuid)
+                            .any(|(_, value)| !value.encrypted.is_empty());
+                        use_weights && has_encrypted_weights
+                    })
+                    .map(|(netuid, _)| netuid)
+                    .collect()
+            };
+
             #[cfg(not(feature = "testing-offworker"))]
             let account_id = match Signer::<T, T::AuthorityId>::any_account()
                 .accounts_from_keys()
@@ -188,20 +209,6 @@ pub mod pallet {
                     log::error!("No local accounts available");
                     return;
                 }
-            };
-
-            #[cfg(feature = "testing-offworker")]
-            let subnets = {
-                // Test version logic
-                SubnetDecryptionData::<T>::iter()
-                    .filter(|(netuid, _)| {
-                        let use_weights = pallet_subspace::UseWeightsEncryption::<T>::get(*netuid);
-                        let has_encrypted_weights = WeightEncryptionData::<T>::iter_prefix(*netuid)
-                            .any(|(_, value)| !value.encrypted.is_empty());
-                        use_weights && has_encrypted_weights
-                    })
-                    .map(|(netuid, _)| netuid)
-                    .collect()
             };
 
             #[cfg(not(feature = "testing-offworker"))]
