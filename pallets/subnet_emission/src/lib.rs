@@ -387,7 +387,7 @@ pub mod pallet {
             )
         }
 
-        #[pallet::call_index(2)] // TODO: change if needed
+        #[pallet::call_index(2)]
         #[pallet::weight((0, DispatchClass::Normal, Pays::No))]
         pub fn delegate_weight_control(
             origin: OriginFor<T>,
@@ -395,6 +395,12 @@ pub mod pallet {
             target: T::AccountId,
         ) -> DispatchResult {
             Self::do_delegate_weight_control(origin, netuid, target)
+        }
+
+        #[pallet::call_index(3)]
+        #[pallet::weight((0, DispatchClass::Normal, Pays::No))]
+        pub fn remove_weight_control(origin: OriginFor<T>, netuid: u16) -> DispatchResult {
+            Self::do_remove_weight_control(origin, netuid)
         }
     }
 }

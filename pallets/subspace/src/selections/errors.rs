@@ -169,8 +169,10 @@ pub mod errors {
         StepPanicked,
         /// The stake amount to add or remove is too small. Minimum is 0.5 unit.
         StakeTooSmall,
-        /// The target rootnet validator is delegating weights to another validator
-        TargetIsDelegatingControl,
+        /// The validator is delegating weights to another validator
+        DelegatingControl,
+        /// The validator is not delegating weights to another validator
+        NotDelegatingControl,
         /// There is no subnet that is running with the Rootnet consensus
         RootnetSubnetNotFound,
         /// MinValidatorStake must be lower than 250k
