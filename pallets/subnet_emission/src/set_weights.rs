@@ -62,17 +62,19 @@ impl<T: Config> Pallet<T> {
         let Some(uid) = pallet_subspace::Pallet::<T>::get_uid_for_key(netuid, &key) else {
             return Err(Error::<T>::ModuleDoesNotExist.into());
         };
+
         if pallet_subspace::Pallet::<T>::get_delegated_stake(&key)
             < pallet_subspace::MinValidatorStake::<T>::get(netuid)
         {
             return Err(Error::<T>::NotEnoughStakeToSetWeights.into());
         }
+
+        Self::check_weight_setting_delegation(netuid, &key)?;
         Self::validate_input(uid, &uids, &values, netuid)?;
         Self::handle_rate_limiting(uid, netuid, &key)?;
         Self::validate_stake(&key, uids.len())?;
         Self::check_whitelisted(netuid, &uids)?;
-        Self::finalize_weights(netuid, uid, &uids, &values)?;
-        Self::remove_weight_setting_delegation(netuid, key);
+        Self::finalize_weights(netuid, uid, key, &uids, &values)?;
         Ok(())
     }
 
@@ -146,27 +148,43 @@ impl<T: Config> Pallet<T> {
         }
     }
 
-    fn finalize_weights(netuid: u16, uid: u16, uids: &[u16], values: &[u16]) -> DispatchResult {
+    fn finalize_weights(
+        netuid: u16,
+        uid: u16,
+        origin: T::AccountId,
+        uids: &[u16],
+        values: &[u16],
+    ) -> DispatchResult {
         let normalized_values = Self::normalize_weights(values);
         let zipped_weights: Vec<(u16, u16)> = uids.iter().copied().zip(normalized_values).collect();
-        Weights::<T>::insert(netuid, uid, zipped_weights);
-        pallet_subspace::WeightSetAt::<T>::insert(
-            netuid,
-            uid,
-            pallet_subspace::Pallet::<T>::get_current_block_number(),
-        );
         let current_block = pallet_subspace::Pallet::<T>::get_current_block_number();
+        Weights::<T>::insert(netuid, uid, zipped_weights.clone());
+        pallet_subspace::WeightSetAt::<T>::insert(netuid, uid, current_block);
         pallet_subspace::Pallet::<T>::set_last_update_for_uid(netuid, uid, current_block);
         pallet_subspace::Pallet::<T>::deposit_event(pallet_subspace::Event::WeightsSet(
             netuid, uid,
         ));
+
+        Self::for_each_delegated(netuid, &origin, |_target, uid| {
+            Weights::<T>::insert(netuid, uid, zipped_weights.clone());
+            pallet_subspace::WeightSetAt::<T>::insert(netuid, uid, current_block);
+            pallet_subspace::Pallet::<T>::set_last_update_for_uid(netuid, uid, current_block);
+            pallet_subspace::Pallet::<T>::deposit_event(pallet_subspace::Event::WeightsSet(
+                netuid, uid,
+            ));
+        });
+
         Ok(())
     }
     // ----------
     // Utils
     // ----------
-    fn remove_weight_setting_delegation(netuid: u16, key: T::AccountId) {
-        pallet_subspace::WeightSettingDelegation::<T>::remove(netuid, key);
+    fn check_weight_setting_delegation(netuid: u16, key: &T::AccountId) -> DispatchResult {
+        if pallet_subspace::WeightSettingDelegation::<T>::get(netuid, key).is_some() {
+            return Err(pallet_subspace::Error::<T>::DelegatingControl.into());
+        }
+
+        Ok(())
     }
 
     fn contains_duplicates(items: &[u16]) -> bool {
@@ -271,7 +289,7 @@ impl<T: Config> Pallet<T> {
         };
 
         if pallet_subspace::WeightSettingDelegation::<T>::get(netuid, &target).is_some() {
-            return Err(Error::<T>::TargetIsDelegatingControl.into());
+            return Err(Error::<T>::DelegatingControl.into());
         }
 
         pallet_subspace::WeightSettingDelegation::<T>::set(
@@ -289,38 +307,36 @@ impl<T: Config> Pallet<T> {
         Ok(())
     }
 
-    pub fn copy_delegated_weights(netuid: u16) {
+    pub fn do_remove_weight_control(origin: T::RuntimeOrigin, netuid: u16) -> DispatchResult {
+        let key = ensure_signed(origin)?;
+
+        let Some(_) = pallet_subspace::Pallet::<T>::get_uid_for_key(netuid, &key) else {
+            return Err(Error::<T>::ModuleDoesNotExist.into());
+        };
+
+        if pallet_subspace::WeightSettingDelegation::<T>::get(netuid, &key).is_none() {
+            return Err(Error::<T>::NotDelegatingControl.into());
+        }
+
+        pallet_subspace::WeightSettingDelegation::<T>::remove(netuid, &key);
+
+        Ok(())
+    }
+
+    pub fn for_each_delegated<F>(netuid: u16, key: &T::AccountId, f: F)
+    where
+        F: for<'a> Fn(T::AccountId, u16),
+    {
         for (origin, info) in
             pallet_subspace::WeightSettingDelegation::<T>::iter_prefix(netuid).collect::<Vec<_>>()
         {
-            let Some(target_uid) =
-                pallet_subspace::Pallet::<T>::get_uid_for_key(netuid, &info.delegate)
-            else {
+            let Some(uid) = pallet_subspace::Pallet::<T>::get_uid_for_key(netuid, &origin) else {
                 continue;
             };
 
-            let Some(origin_uid) = pallet_subspace::Pallet::<T>::get_uid_for_key(netuid, &origin)
-            else {
-                continue;
-            };
-
-            if pallet_subspace::UseWeightsEncryption::<T>::get(netuid) {
-                let encrypted_weights = WeightEncryptionData::<T>::get(netuid, target_uid);
-                WeightEncryptionData::<T>::set(netuid, origin_uid, encrypted_weights);
-            } else {
-                let weights = Weights::<T>::get(netuid, target_uid);
-                Weights::<T>::set(netuid, origin_uid, weights);
+            if &info.delegate == key {
+                f(origin, uid)
             }
-
-            pallet_subspace::WeightSetAt::<T>::set(
-                netuid,
-                origin_uid,
-                pallet_subspace::WeightSetAt::<T>::get(netuid, target_uid),
-            );
-            pallet_subspace::Pallet::<T>::copy_last_update_for_uid(netuid, origin_uid, target_uid);
-            pallet_subspace::Pallet::<T>::deposit_event(pallet_subspace::Event::WeightsSet(
-                netuid, origin_uid,
-            ));
         }
     }
 
@@ -330,7 +346,7 @@ impl<T: Config> Pallet<T> {
         encrypted_weights: Vec<u8>,
         decrypted_weights_hash: Vec<u8>,
     ) -> DispatchResult {
-        let key = ensure_signed(origin)?;
+        let key = ensure_signed(origin.clone())?;
 
         if !pallet_subspace::UseWeightsEncryption::<T>::get(netuid) {
             return Err(Error::<T>::SubnetNotEncrypted.into());
@@ -340,15 +356,24 @@ impl<T: Config> Pallet<T> {
             return Err(Error::<T>::ModuleDoesNotExist.into());
         };
 
+        if pallet_subspace::Pallet::<T>::get_delegated_stake(&key)
+            < pallet_subspace::MinValidatorStake::<T>::get(netuid)
+        {
+            return Err(Error::<T>::NotEnoughStakeToSetWeights.into());
+        }
+
+        let stake = pallet_subspace::Pallet::<T>::get_delegated_stake(&key);
+        ensure!(stake > 0, Error::<T>::NotEnoughStakeToSetWeights);
+
+        Self::check_weight_setting_delegation(netuid, &key)?;
         Self::handle_rate_limiting(uid, netuid, &key)?;
-        Self::remove_weight_setting_delegation(netuid, key);
 
         WeightEncryptionData::<T>::insert(
             netuid,
             uid,
             EncryptionMechanism {
-                encrypted: encrypted_weights,
-                decrypted_hashes: decrypted_weights_hash,
+                encrypted: encrypted_weights.clone(),
+                decrypted_hashes: decrypted_weights_hash.clone(),
             },
         );
 
@@ -358,6 +383,24 @@ impl<T: Config> Pallet<T> {
         pallet_subspace::Pallet::<T>::deposit_event(pallet_subspace::Event::WeightsSet(
             netuid, uid,
         ));
+
+        Self::for_each_delegated(netuid, &key, |_target, uid| {
+            WeightEncryptionData::<T>::insert(
+                netuid,
+                uid,
+                EncryptionMechanism {
+                    encrypted: encrypted_weights.clone(),
+                    decrypted_hashes: decrypted_weights_hash.clone(),
+                },
+            );
+
+            let current_block = pallet_subspace::Pallet::<T>::get_current_block_number();
+            pallet_subspace::WeightSetAt::<T>::insert(netuid, uid, current_block);
+            pallet_subspace::Pallet::<T>::set_last_update_for_uid(netuid, uid, current_block);
+            pallet_subspace::Pallet::<T>::deposit_event(pallet_subspace::Event::WeightsSet(
+                netuid, uid,
+            ));
+        });
 
         Ok(())
     }
