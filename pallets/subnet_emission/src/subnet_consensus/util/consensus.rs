@@ -62,20 +62,8 @@ pub fn extract_bonds<T: Config>(
         .collect()
 }
 
-// TODO: add the `EmittedMoreThanExpected` err
-// previous impl can be found here https://github.com/renlabs-dev/subspace-network/blob/main/pallets/subnet_emission/src/subnet_consensus/yuma.rs#L348
-//
-//
-// it will look something like this
-//
-// ensure!(
-//     self.total_emitted <= self.founder_emission.saturating_add(params.token_emission),
-//     EmissionError::EmittedMoreThanExpected {
-//         emitted,
-//         expected: self.params.founder_emission.saturating_add(self.params.token_emission)
-//     }
-// );
 pub fn calculate_final_emissions<T: Config>(
+    token_emission: u64,
     founder_emission: u64,
     subnet_id: u16,
     result: Vec<(ModuleKey<T::AccountId>, u64, u64)>,
@@ -127,6 +115,13 @@ pub fn calculate_final_emissions<T: Config>(
         if remaining_emission > 0 {
             increase_stake(AccountKey(module_key.0.clone()), remaining_emission);
         }
+    }
+
+    if emitted > founder_emission.saturating_add(token_emission) {
+        return Err(EmissionError::EmittedMoreThanExpected {
+            emitted,
+            expected: founder_emission.saturating_add(token_emission),
+        });
     }
 
     Ok((emissions, emitted))
@@ -644,8 +639,12 @@ pub fn process_consensus_output<T: Config>(
         ));
     }
 
-    let (emission_map, total_emitted) =
-        calculate_final_emissions::<T>(params.founder_emission, subnet_id, result)?;
+    let (emission_map, total_emitted) = calculate_final_emissions::<T>(
+        params.token_emission,
+        params.founder_emission,
+        subnet_id,
+        result,
+    )?;
     log::debug!(
         "finished yuma for {} with distributed: {emission_map:?}",
         subnet_id
