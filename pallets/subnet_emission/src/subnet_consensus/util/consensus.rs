@@ -1,6 +1,6 @@
 use super::params::{AccountKey, ConsensusParams, FlattenedModules, ModuleKey};
 use crate::EmissionError;
-use frame_support::{ensure, DebugNoBound};
+use frame_support::{ensure, DebugNoBound, StorageMap};
 use pallet_subspace::{math::*, vec, BalanceOf, Pallet as PalletSubspace};
 use parity_scale_codec::{Decode, Encode};
 use scale_info::TypeInfo;
@@ -796,13 +796,13 @@ impl<T: Config> ConsensusOutput<T> {
             self.founder_emission,
         );
 
-        // TODO: Check if all of the keys, that you are increasing the stake for, are actually
-        // registered on the `subnet_id`, if they are not registerd on the subnet (because  they got
-        // deregistered in the parameter collection period), you do not increase stake, but you
-        // increase their balance using the funciton `add_balance_to_account`
         for (module_key, emitted_to) in self.emission_map {
             for (account_key, emission) in emitted_to {
-                PalletSubspace::<T>::increase_stake(&account_key.0, &module_key.0, emission);
+                if PalletSubspace::<T>::is_registered(Some(subnet_id), &account_key.0) {
+                    PalletSubspace::<T>::increase_stake(&account_key.0, &module_key.0, emission);
+                } else {
+                    PalletSubspace::<T>::add_balance_to_account(&account_key.0, emission);
+                }
             }
         }
     }
