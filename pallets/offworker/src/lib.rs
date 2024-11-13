@@ -23,7 +23,7 @@ use pallet_subnet_emission::{
         yuma::YumaEpoch,
     },
     types::{BlockWeights, PublicKey},
-    Authorities, SubnetDecryptionData, WeightEncryptionData,
+    Authorities, SubnetDecryptionData,
 };
 
 use sp_std::collections::btree_map::BTreeMap;
@@ -185,10 +185,11 @@ pub mod pallet {
             );
 
             #[cfg(feature = "testing-offworker")]
-            let (valid_subnets, hanging_subnets) = Self::get_valid_subnets(None);
+            let (valid_subnets, hanging_subnets) =
+                pallet_subnet_emission::Pallet::<T>::get_valid_subnets(None);
 
             #[cfg(not(feature = "testing-offworker"))]
-            let account_id = match Signer::<T, T::AuthorityId>::any_account()
+            let acc_id = match Signer::<T, T::AuthorityId>::any_account()
                 .accounts_from_keys()
                 .next()
                 .map(|account| account.id)
@@ -204,9 +205,15 @@ pub mod pallet {
             // offchain worker. The hanging, are potential subnets that have turned off the
             // encryption in the middle of offchain worker process
             #[cfg(not(feature = "testing-offworker"))]
-            let (valid_subnets, hanging_subnets) = Self::get_valid_subnets(Some(acc_id));
+            let (valid_subnets, hanging_subnets) =
+                pallet_subnet_emission::Pallet::<T>::get_valid_subnets(Some(&acc_id));
 
-            Self::discard_hanging_subnets(hanging_subnets);
+            // The runtime mimics this logic, by deleting all storages related to consenus
+            // parameters and weights
+            hanging_subnets.iter().for_each(|subnet_id| {
+                log::info!("Deleting subnet: {}", subnet_id);
+                Self::delete_subnet_state(subnet_id);
+            });
 
             log::info!("Valid subnets: {:?}", valid_subnets);
             let deregistered_subnets = Self::process_subnets(valid_subnets, block_number);
@@ -298,13 +305,6 @@ impl<T: Config> Pallet<T> {
             .longevity(5)
             .propagate(true)
             .build()
-    }
-
-    fn discard_hanging_subnets(hanging_subnets: Vec<u16>) {
-        hanging_subnets.iter().for_each(|subnet_id| {
-            log::info!("Deleting subnet: {}", subnet_id);
-            Self::delete_subnet_state(subnet_id);
-        });
     }
 
     fn do_send_weights(

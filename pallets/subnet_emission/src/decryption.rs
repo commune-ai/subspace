@@ -159,7 +159,7 @@ impl<T: Config> Pallet<T> {
             None => &module_key,
         };
         if key.encode() != received_key {
-            log::error!("Key mismatch for module {uid}");
+            log::warn!("Key mismatch for module {uid}");
             return None;
         }
 
@@ -298,19 +298,37 @@ impl<T: Config> Pallet<T> {
         encoded
     }
 
+    /// Returns a tuple of subnet UIDs (with_encryption, without_encryption) where:
+    /// - First vector contains subnets that use weight encryption and have matching keys (if acc_id
+    ///   is Some)
+    /// - Second vector contains subnets that don't use encryption but still have matching keys (if
+    ///   acc_id is Some)
+    /// Both require the subnet to have existing encrypted weights.
+    pub fn get_valid_subnets(acc_id: Option<&T::AccountId>) -> (Vec<u16>, Vec<u16>) {
+        let (with_encryption, without_encryption): (Vec<_>, Vec<_>) =
+            SubnetDecryptionData::<T>::iter()
+                .filter(|(netuid, data)| {
+                    let key_match = acc_id.map_or(true, |id| &data.node_id == id);
+                    let has_encrypted_weights = WeightEncryptionData::<T>::iter_prefix(*netuid)
+                        .any(|(_, value)| !value.encrypted.is_empty());
+
+                    key_match && has_encrypted_weights
+                })
+                .map(|(netuid, _)| netuid)
+                .partition(|netuid| pallet_subspace::UseWeightsEncryption::<T>::get(*netuid));
+
+        (with_encryption, without_encryption)
+    }
+
     pub fn cancel_expired_offchain_workers(block_number: u64) {
         let max_inactivity_blocks =
             T::PingInterval::get().saturating_mul(T::MaxFailedPings::get() as u64);
 
-        // TODO: unite the logic with get valid subnets function from offworker
-        pallet_subspace::N::<T>::iter_keys()
-            // Check if subnet uses weight encryption
-            .filter(|subnet_id| pallet_subspace::UseWeightsEncryption::<T>::get(subnet_id))
-            // Check if there are any encrypted weights for this subnet
-            .filter(|subnet_id| {
-                WeightEncryptionData::<T>::iter_prefix(subnet_id)
-                    .any(|(_, value)| !value.encrypted.is_empty())
-            })
+        // Get only subnets that use encryption and have encrypted weights
+        let (with_encryption, _) = Self::get_valid_subnets(None);
+
+        with_encryption
+            .into_iter()
             .filter_map(|subnet_id| {
                 SubnetDecryptionData::<T>::get(subnet_id).map(|info| (subnet_id, info))
             })
