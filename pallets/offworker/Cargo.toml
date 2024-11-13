@@ -28,6 +28,7 @@ std = [
 ]
 try-runtime = ["frame-support/try-runtime"]
 testing-offworker = []
+testnet = []
 
 [dependencies]
 pallet-subnet-emission = { path = "../subnet_emission", default-features = false }

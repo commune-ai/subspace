@@ -56,19 +56,12 @@ pub use crate::params::{
 };
 use selections::{config, dispatches, errors, events, genesis, hooks};
 
-#[cfg(not(feature = "testnet"))]
-use selections::storage_v_mainnet as storage_v;
-
-#[cfg(feature = "testnet")]
-use selections::storage_v_testnet as storage_v;
-
 #[import_section(genesis::genesis)]
 #[import_section(errors::errors)]
 #[import_section(events::events)]
 #[import_section(dispatches::dispatches)]
 #[import_section(hooks::hooks)]
 #[import_section(config::config)]
-#[import_section(storage_v::storage_version)]
 #[frame_support::pallet]
 pub mod pallet {
     #![allow(deprecated, clippy::let_unit_value, clippy::too_many_arguments)]
@@ -91,6 +84,17 @@ pub mod pallet {
         <<T as Config>::Currency as Currency<<T as system::Config>::AccountId>>::Balance;
 
     pub type AccountIdOf<T> = <T as frame_system::Config>::AccountId;
+
+    #[cfg(feature = "testnet")]
+    const STORAGE_VERSION: StorageVersion = StorageVersion::new(31);
+
+    #[cfg(not(feature = "testnet"))]
+    const STORAGE_VERSION: StorageVersion = StorageVersion::new(14);
+
+    #[pallet::pallet]
+    #[pallet::storage_version(STORAGE_VERSION)]
+    #[pallet::without_storage_info]
+    pub struct Pallet<T>(_);
 
     // --- Subnet Storage ---
     define_subnet_includes!(

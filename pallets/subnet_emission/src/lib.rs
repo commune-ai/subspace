@@ -49,8 +49,11 @@ pub mod pallet {
     use subnet_pricing::root::RootPricing;
     use types::KeylessBlockWeights;
 
-    pub const STORAGE_VERSION: frame_support::traits::StorageVersion =
-        frame_support::traits::StorageVersion::new(0);
+    #[cfg(feature = "testnet")]
+    const STORAGE_VERSION: StorageVersion = StorageVersion::new(12);
+
+    #[cfg(not(feature = "testnet"))]
+    const STORAGE_VERSION: StorageVersion = StorageVersion::new(0);
 
     #[pallet::pallet]
     #[pallet::storage_version(STORAGE_VERSION)]
