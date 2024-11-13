@@ -105,7 +105,6 @@ impl<T: Config> Pallet<T> {
             stake >= min_stake_for_weights,
             Error::<T>::NotEnoughStakePerWeight
         );
-        ensure!(stake > 0, Error::<T>::NotEnoughStakeToSetWeights);
         Ok(())
     }
 
@@ -361,9 +360,6 @@ impl<T: Config> Pallet<T> {
         {
             return Err(Error::<T>::NotEnoughStakeToSetWeights.into());
         }
-
-        let stake = pallet_subspace::Pallet::<T>::get_delegated_stake(&key);
-        ensure!(stake > 0, Error::<T>::NotEnoughStakeToSetWeights);
 
         Self::check_weight_setting_delegation(netuid, &key)?;
         Self::handle_rate_limiting(uid, netuid, &key)?;
