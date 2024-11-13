@@ -302,6 +302,7 @@ impl<T: Config> Pallet<T> {
         let max_inactivity_blocks =
             T::PingInterval::get().saturating_mul(T::MaxFailedPings::get() as u64);
 
+        // TODO: unite the logic with get valid subnets function from offworker
         pallet_subspace::N::<T>::iter_keys()
             // Check if subnet uses weight encryption
             .filter(|subnet_id| pallet_subspace::UseWeightsEncryption::<T>::get(subnet_id))

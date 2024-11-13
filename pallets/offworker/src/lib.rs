@@ -185,18 +185,7 @@ pub mod pallet {
             );
 
             #[cfg(feature = "testing-offworker")]
-            let subnets = {
-                // Test will just take any subnet with encrypted weights
-                SubnetDecryptionData::<T>::iter()
-                    .filter(|(netuid, _)| {
-                        let use_weights = pallet_subspace::UseWeightsEncryption::<T>::get(*netuid);
-                        let has_encrypted_weights = WeightEncryptionData::<T>::iter_prefix(*netuid)
-                            .any(|(_, value)| !value.encrypted.is_empty());
-                        use_weights && has_encrypted_weights
-                    })
-                    .map(|(netuid, _)| netuid)
-                    .collect()
-            };
+            let (valid_subnets, hanging_subnets) = Self::get_valid_subnets(None);
 
             #[cfg(not(feature = "testing-offworker"))]
             let account_id = match Signer::<T, T::AuthorityId>::any_account()
@@ -211,11 +200,16 @@ pub mod pallet {
                 }
             };
 
+            // The valid subnets are ones that have encrypted weights, with matching key of the
+            // offchain worker. The hanging, are potential subnets that have turned off the
+            // encryption in the middle of offchain worker process
             #[cfg(not(feature = "testing-offworker"))]
-            let subnets = Self::get_valid_subnets(&account_id);
+            let (valid_subnets, hanging_subnets) = Self::get_valid_subnets(Some(acc_id));
 
-            log::info!("Valid subnets: {:?}", subnets);
-            let deregistered_subnets = Self::process_subnets(subnets, block_number);
+            Self::discard_hanging_subnets(hanging_subnets);
+
+            log::info!("Valid subnets: {:?}", valid_subnets);
+            let deregistered_subnets = Self::process_subnets(valid_subnets, block_number);
             deregistered_subnets.iter().for_each(|subnet_id| {
                 log::info!("Deregistered subnet: {}", subnet_id);
                 Self::delete_subnet_state(subnet_id);
@@ -304,6 +298,13 @@ impl<T: Config> Pallet<T> {
             .longevity(5)
             .propagate(true)
             .build()
+    }
+
+    fn discard_hanging_subnets(hanging_subnets: Vec<u16>) {
+        hanging_subnets.iter().for_each(|subnet_id| {
+            log::info!("Deleting subnet: {}", subnet_id);
+            Self::delete_subnet_state(subnet_id);
+        });
     }
 
     fn do_send_weights(

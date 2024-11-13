@@ -150,14 +150,26 @@ pub fn run_linear_consensus<T: Config>(
 ///
 /// This function creates and runs a new YumaEpoch, logging any errors that occur.
 fn run_yuma_consensus<T: Config>(netuid: u16, emission_to_drain: u64) -> Result<(), &'static str> {
-    let mut params = ConsensusParams::<T>::new(netuid, emission_to_drain)?;
     log::trace!("running yuma consensus for subnet {netuid}");
 
     let should_run_encrypted_consensus = pallet_subspace::UseWeightsEncryption::<T>::get(netuid);
     if !should_run_encrypted_consensus {
+        let params = ConsensusParams::<T>::new(netuid, emission_to_drain)?;
         return run_default_consensus(netuid, params);
     }
+    // This means, that subnet uses weight encryption. Create the parameters, only if subnet has
+    // some encrypted weights present
+    let encrypted_weights = WeightEncryptionData::<T>::iter_prefix(netuid).collect::<Vec<_>>();
 
+    if encrypted_weights.is_empty() {
+        log::warn!("No encrypted weights found for subnet {netuid}");
+        return Ok(());
+    }
+
+    // If subnet has some weights, create the parameters
+    let mut params = ConsensusParams::<T>::new(netuid, emission_to_drain)?;
+    // Computes only if there are decrypted weights present, that have been send by an offchain
+    // worker. Otherwise returns ok
     process_encrypted_consensus(netuid, &mut params)?;
 
     log::info!("Yuma consensus for subnet {netuid} completed successfully");
