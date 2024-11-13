@@ -51,6 +51,7 @@ impl Default for MockOffworkerExt {
 }
 
 impl ow_extensions::OffworkerExtension for MockOffworkerExt {
+    // 1. Here we switch the RSA for elgamal
     fn decrypt_weight(&self, encrypted: Vec<u8>) -> Option<(Vec<(u16, u16)>, Vec<u8>)> {
         let Some(key) = &self.key else {
             return None;

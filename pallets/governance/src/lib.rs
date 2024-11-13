@@ -46,7 +46,11 @@ pub mod pallet {
     use frame_system::pallet_prelude::{ensure_signed, BlockNumberFor};
     use sp_runtime::traits::AccountIdConversion;
 
+    #[cfg(feature = "testnet")]
     const STORAGE_VERSION: StorageVersion = StorageVersion::new(4);
+
+    #[cfg(not(feature = "testnet"))]
+    const STORAGE_VERSION: StorageVersion = StorageVersion::new(2);
 
     #[pallet::pallet]
     #[pallet::storage_version(STORAGE_VERSION)]

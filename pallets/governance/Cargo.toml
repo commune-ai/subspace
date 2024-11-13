@@ -28,6 +28,7 @@ std = [
 ]
 try-runtime = ["frame-support/try-runtime"]
 runtime-benchmarks = ["frame-benchmarking/runtime-benchmarks"]
+testnet = []
 
 [dependencies]
 log.workspace = true

@@ -56,12 +56,19 @@ pub use crate::params::{
 };
 use selections::{config, dispatches, errors, events, genesis, hooks};
 
+#[cfg(not(feature = "testnet"))]
+use selections::storage_v_mainnet as storage_v;
+
+#[cfg(feature = "testnet")]
+use selections::storage_v_testnet as storage_v;
+
 #[import_section(genesis::genesis)]
 #[import_section(errors::errors)]
 #[import_section(events::events)]
 #[import_section(dispatches::dispatches)]
 #[import_section(hooks::hooks)]
 #[import_section(config::config)]
+#[import_section(storage_v::storage_version)]
 #[frame_support::pallet]
 pub mod pallet {
     #![allow(deprecated, clippy::let_unit_value, clippy::too_many_arguments)]
@@ -79,12 +86,6 @@ pub mod pallet {
     use sp_core::{ConstU16, ConstU64, ConstU8};
     pub use sp_std::{vec, vec::Vec};
     use substrate_fixed::types::I64F64;
-
-    const STORAGE_VERSION: StorageVersion = StorageVersion::new(31);
-    #[pallet::pallet]
-    #[pallet::storage_version(STORAGE_VERSION)]
-    #[pallet::without_storage_info]
-    pub struct Pallet<T>(_);
 
     pub type BalanceOf<T> =
         <<T as Config>::Currency as Currency<<T as system::Config>::AccountId>>::Balance;
@@ -157,6 +158,7 @@ pub mod pallet {
             Trust: u64 = |_: PhantomData<T>| 0,
             ValidatorPermits: bool = |_: PhantomData<T>| false,
             ValidatorTrust: u64 = |_: PhantomData<T>| 0,
+            PruningScores: u16 = |_: PhantomData<T>| 0,
         },
         // Put here every module-related double map, where the first key is netuid, second key is module uid. These storages holds some value for each module ie. name, address, etc.
         swap_storages: {
@@ -167,6 +169,7 @@ pub mod pallet {
                 RegistrationBlock: u64 = |_: PhantomData<T>| Pallet::<T>::get_current_block_number(),
                 Address: Vec<u8> = |_: PhantomData<T>| Vec::<u8>::new(),
                 Name: Vec<u8> = |_: PhantomData<T>| Vec::<u8>::new(),
+                Bonds: Vec<(u16, u16)> = |_: PhantomData<T>| Vec::<(u16, u16)>::new(),
             }
         },
         // Specifically for uids and keys

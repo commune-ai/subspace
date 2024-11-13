@@ -80,6 +80,8 @@ impl<T: Config> Pallet<T> {
         }
     }
 
+    // TODO: step 4. verify the zk proofs, if only one zk proof is invalid, you will ban the
+    // offchain worker
     pub fn handle_decrypted_weights(netuid: u16, weights: Vec<BlockWeights>) {
         log::info!("Received decrypted weights for subnet {netuid}");
         let info = match SubnetDecryptionData::<T>::get(netuid) {

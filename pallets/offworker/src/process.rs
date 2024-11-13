@@ -16,6 +16,7 @@ impl<T: Config> Pallet<T> {
             .collect()
     }
 
+    // TODO: cancled everythign when weight encryption was cancled
     pub fn process_subnets(subnets: Vec<u16>, current_block: u64) -> Vec<u16> {
         let mut deregistered_subnets = Vec::new();
 
