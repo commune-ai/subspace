@@ -209,6 +209,7 @@ pub mod pallet {
 
     #[pallet::hooks]
     impl<T: Config> Hooks<BlockNumberFor<T>> for Pallet<T> {
+        // TODO: add a function that discards hanging subnets
         fn on_initialize(block_number: BlockNumberFor<T>) -> Weight {
             let block_number: u64 =
                 block_number.try_into().ok().expect("blockchain won't pass 2 ^ 64 blocks");
