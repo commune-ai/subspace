@@ -4,6 +4,28 @@ use frame_support::{
     traits::{Get, OnRuntimeUpgrade, StorageVersion},
 };
 
+// pub mod v1 {
+//     use super::*;
+
+//     pub struct MigrateToV8<T>(sp_std::marker::PhantomData<T>);
+
+//     impl<T: Config> OnRuntimeUpgrade for MigrateToV8<T> {
+//         fn on_runtime_upgrade() -> frame_support::weights::Weight {
+//             let on_chain_version = StorageVersion::get::<Pallet<T>>();
+//             if on_chain_version != 0 {
+//                 log::info!("Storage v1 already updated");
+//                 return Weight::zero();
+//             }
+
+//             StorageVersion::new(1).put::<Pallet<T>>();
+
+//             log::info!("Migrated to v1");
+
+//             T::DbWeight::get().reads_writes(2, 2)
+//         }
+//     }
+// }
+
 pub mod v8 {
     use super::*;
 

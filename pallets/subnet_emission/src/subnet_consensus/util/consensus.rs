@@ -1,6 +1,6 @@
 use super::params::{AccountKey, ConsensusParams, FlattenedModules, ModuleKey};
 use crate::EmissionError;
-use frame_support::{ensure, DebugNoBound, StorageMap};
+use frame_support::{ensure, DebugNoBound};
 use pallet_subspace::{math::*, vec, BalanceOf, Pallet as PalletSubspace};
 use parity_scale_codec::{Decode, Encode};
 use scale_info::TypeInfo;

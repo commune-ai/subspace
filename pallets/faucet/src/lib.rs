@@ -21,6 +21,10 @@ pub mod pallet {
     use pallet_subspace::N;
     pub use sp_std::{vec, vec::Vec};
 
+    #[cfg(feature = "testnet")]
+    const STORAGE_VERSION: StorageVersion = StorageVersion::new(0);
+
+    #[cfg(not(feature = "testnet"))]
     const STORAGE_VERSION: StorageVersion = StorageVersion::new(0);
 
     #[pallet::pallet]

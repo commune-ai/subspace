@@ -28,6 +28,11 @@ pub mod types;
 #[cfg(feature = "runtime-benchmarks")]
 mod benchmarking;
 
+// #[cfg(feature = "testnet")]
+// const VERSION_NUMBER: u16 = 12;
+// #[cfg(not(feature = "testnet"))]
+// const VERSION_NUMBER: u16 = 0;
+
 #[frame_support::pallet]
 pub mod pallet {
     use crate::{subnet_consensus::util::params::ConsensusParams, *};
@@ -44,7 +49,8 @@ pub mod pallet {
     use subnet_pricing::root::RootPricing;
     use types::KeylessBlockWeights;
 
-    const STORAGE_VERSION: StorageVersion = StorageVersion::new(12);
+    pub const STORAGE_VERSION: frame_support::traits::StorageVersion =
+        frame_support::traits::StorageVersion::new(0);
 
     #[pallet::pallet]
     #[pallet::storage_version(STORAGE_VERSION)]

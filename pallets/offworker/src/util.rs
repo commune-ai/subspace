@@ -77,8 +77,13 @@ where
                             Some((uid, decrypted, key))
                         }
                         None => {
+                            // TODO:
                             log::error!("Failed to decrypt weights for UID: {}", uid);
                             None
+                            // if this ever happens, we need to make a zk proof of encryption
+                            // correctness (that it was not done correctly)
+                            // and then send this proof back to the runtime together with the
+                            // decrypted weights
                         }
                     }
                 }

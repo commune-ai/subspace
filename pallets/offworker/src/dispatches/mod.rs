@@ -4,7 +4,7 @@ use frame_support::pallet_macros::pallet_section;
 pub mod dispatches {
     #[pallet::call]
     impl<T: Config> Pallet<T> {
-        // TODO: v2 of DEW will involve offworker sending potential zk proofs of encryption
+        // TODO: step 3 v2 of DEW will involve offworker sending potential zk proofs of encryption
         // correctness (proof that he can not decrypt certain weights)
 
         // # References
@@ -22,7 +22,7 @@ pub mod dispatches {
         #[pallet::weight((Weight::zero(), DispatchClass::Normal, Pays::No))]
         pub fn send_decrypted_weights(
             origin: OriginFor<T>,
-            payload: DecryptedWeightsPayload<T::Public, BlockNumberFor<T>>,
+            payload: DecryptedWeightsPayload<T::Public, BlockNumberFor<T>>, /* make payload accept zk proofs of wrong encryption */
             _signature: T::Signature,
         ) -> DispatchResultWithPostInfo {
             // Signature valiadation is performed by the validate unsigned function
