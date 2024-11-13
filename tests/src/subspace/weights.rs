@@ -313,16 +313,16 @@ fn delegate_weight_control() {
 
         let val1_uid = assert_ok!(register_root_validator(val1_id, universal_stake));
         let val2_uid = assert_ok!(register_root_validator(val2_id, universal_stake));
+        assert_ok!(SubnetEmissionMod::delegate_weight_control(
+            get_origin(val2_id),
+            0,
+            val1_id
+        ));
         assert_ok!(SubnetEmissionMod::set_weights(
             get_origin(val1_id),
             0,
             vec![1],
             vec![u16::MAX]
-        ));
-        assert_ok!(SubnetEmissionMod::delegate_weight_control(
-            get_origin(val2_id),
-            0,
-            val1_id
         ));
         step_block(5401);
         assert_eq!(
