@@ -4,7 +4,3 @@ pub mod errors;
 pub mod events;
 pub mod genesis;
 pub mod hooks;
-#[cfg(not(feature = "testnet"))]
-pub mod storage_v_mainnet;
-#[cfg(feature = "testnet")]
-pub mod storage_v_testnet;

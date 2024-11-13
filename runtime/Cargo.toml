@@ -89,7 +89,13 @@ substrate-wasm-builder = { workspace = true, optional = true }
 [features]
 default = ["std"]
 testnet-faucet = ["pallet-faucet"]
-testnet = []
+testnet = [
+    "pallet-subspace/testnet",
+    "pallet-governance/testnet",
+    "pallet-offworker/testnet",
+    "pallet-subnet-emission/testnet",
+    "pallet-faucet/testnet",
+]
 std = [
     "frame-try-runtime?/std",
     "frame-system-benchmarking?/std",
