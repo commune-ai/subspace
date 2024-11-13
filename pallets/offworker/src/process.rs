@@ -1,29 +1,6 @@
 use super::*;
 
 impl<T: Config> Pallet<T> {
-    /// Returns a tuple of subnet UIDs (with_encryption, without_encryption) where:
-    /// - First vector contains subnets that use weight encryption and have matching keys (if acc_id
-    ///   is Some)
-    /// - Second vector contains subnets that don't use encryption but still have matching keys (if
-    ///   acc_id is Some)
-    /// Both require the subnet to have existing encrypted weights.
-    pub fn get_valid_subnets(acc_id: Option<&T::AccountId>) -> (Vec<u16>, Vec<u16>) {
-        let (with_encryption, without_encryption): (Vec<_>, Vec<_>) =
-            SubnetDecryptionData::<T>::iter()
-                .filter(|(netuid, data)| {
-                    let key_match = acc_id.map_or(true, |id| &data.node_id == id);
-                    let has_encrypted_weights = WeightEncryptionData::<T>::iter_prefix(*netuid)
-                        .any(|(_, value)| !value.encrypted.is_empty());
-
-                    key_match && has_encrypted_weights
-                })
-                .map(|(netuid, _)| netuid)
-                .partition(|netuid| pallet_subspace::UseWeightsEncryption::<T>::get(*netuid));
-
-        (with_encryption, without_encryption)
-    }
-
-    // TODO: cancled everythign when weight encryption was cancled
     pub fn process_subnets(subnets: Vec<u16>, current_block: u64) -> Vec<u16> {
         let mut deregistered_subnets = Vec::new();
 
