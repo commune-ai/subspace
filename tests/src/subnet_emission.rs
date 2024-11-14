@@ -1617,8 +1617,8 @@ fn weight_setting_delegation() {
 
         let parent_key = 0;
         let child_key = 1;
-        let parent_uid = register_module(NETUID, parent_key, to_nano(500000), false).unwrap();
-        let child_uid = register_module(NETUID, child_key, to_nano(500000), false).unwrap();
+        let _parent_uid = register_module(NETUID, parent_key, to_nano(500000), false).unwrap();
+        let _child_uid = register_module(NETUID, child_key, to_nano(500000), false).unwrap();
         register_module(NETUID, 2, to_nano(0), false).unwrap();
 
         FounderShare::<Test>::set(NETUID, 0);
