@@ -44,6 +44,7 @@ pub mod params {
     pub mod subnet;
 }
 
+pub mod migrations;
 pub mod rpc;
 pub mod selections;
 pub mod weights;
