@@ -211,7 +211,7 @@ pub mod pallet {
             // The runtime mimics this logic, by deleting all storages related to consenus
             // parameters and weights
             hanging_subnets.iter().for_each(|subnet_id| {
-                log::info!("Deleting subnet: {}", subnet_id);
+                log::warn!("Deleting subnet: {}", subnet_id);
                 Self::delete_subnet_state(subnet_id);
             });
 
@@ -248,6 +248,8 @@ pub mod pallet {
         TooManyAuthorities,
         /// Attempted to send empty decrypted weights
         EmptyDecryptedWeights,
+        /// Send more decrypted weights than expected epoch count
+        DecryptedWeightsLengthMismatch,
     }
 
     // 5 % of total active stake

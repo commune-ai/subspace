@@ -118,14 +118,15 @@ impl<T: Config> Pallet<T> {
             netuid
         );
 
-        // TODO: use the actual weight setting function here, we have to be using united logic, not
-        // this kind of stuff
+        // It is fine to inset the weights directly here. as the subnet is obviously using weights
+        // encryption, we do not need to bother with additional checks. these weights are primarly
+        // just stored for conseistency between subnets that use the weight encryption and those
+        // that do not
         if let Some((_, weights)) = valid_weights.iter().max_by_key(|&(key, _)| key) {
             for &(uid, ref weights) in weights {
                 Weights::<T>::set(netuid, uid, Some(weights.clone()));
             }
         }
-
         Self::update_decrypted_weights(netuid, valid_weights);
         Self::rotate_decryption_node_if_needed(netuid, info);
     }
@@ -353,7 +354,7 @@ impl<T: Config> Pallet<T> {
     /// 8. Reassigns the subnet to a different offchain worker.
     /// 9. Emits a `DecryptionNodeCanceled` event.
     fn cancel_offchain_worker(subnet_id: u16, info: &SubnetDecryptionInfo<T>) {
-        // Clear encrypted weights
+        // Decrypted Weights (there should not be any, but make sure)
         DecryptedWeights::<T>::remove(subnet_id);
 
         // Clear hashes & encrypted weights

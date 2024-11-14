@@ -159,12 +159,12 @@ fn run_yuma_consensus<T: Config>(netuid: u16, emission_to_drain: u64) -> Result<
     }
     // This means, that subnet uses weight encryption. Create the parameters, only if subnet has
     // some encrypted weights present
-    let encrypted_weights = WeightEncryptionData::<T>::iter_prefix(netuid).collect::<Vec<_>>();
+    // let encrypted_weights = WeightEncryptionData::<T>::iter_prefix(netuid).collect::<Vec<_>>();
 
-    if encrypted_weights.is_empty() {
-        log::warn!("No encrypted weights found for subnet {netuid}");
-        return Ok(());
-    }
+    // if encrypted_weights.is_empty() {
+    //     log::warn!("No encrypted weights found for subnet {netuid}");
+    //     return Ok(());
+    // }
 
     // If subnet has some weights, create the parameters
     let mut params = ConsensusParams::<T>::new(netuid, emission_to_drain)?;
