@@ -1,8 +1,8 @@
 use crate::*;
-use frame_support::{
-    pallet_prelude::ValueQuery,
-    traits::{Get, StorageVersion},
-};
+use frame_support::{pallet_prelude::ValueQuery, traits::StorageVersion, Blake2_128Concat};
+use sp_runtime::Percent;
+
+use frame_system::Config as SystemConfig;
 
 pub mod v15 {
     use frame_support::{traits::OnRuntimeUpgrade, weights::Weight};
@@ -11,10 +11,19 @@ pub mod v15 {
 
     pub mod old_storage {
         use super::*;
-        use frame_support::{pallet_prelude::TypeInfo, storage_alias, Identity};
+        use frame_support::{storage_alias, Identity};
 
         #[storage_alias]
-        pub type Weights<T: Config> = StorageMap<Pallet<T>, u16, Identity, u16, Vec<(u16, u16)>>;
+        pub type Weights<T: Config> = StorageMap<Pallet<T>, Identity, u16, Vec<(u16, u16)>>;
+
+        #[storage_alias]
+        pub type DelegationFee<T: Config> = StorageMap<
+            Pallet<T>,
+            Blake2_128Concat,
+            <T as SystemConfig>::AccountId,
+            Percent,
+            ValueQuery,
+        >;
     }
 
     pub struct MigrateToV15<T>(sp_std::marker::PhantomData<T>);
@@ -23,33 +32,18 @@ pub mod v15 {
         fn on_runtime_upgrade() -> Weight {
             let on_chain_version = StorageVersion::get::<Pallet<T>>();
             if on_chain_version != 14 {
-                log::info!("Storage v15  already updated");
+                log::info!("Storage v15 already updated");
                 return Weight::zero();
             }
 
-            // let general_subnet_netuid = 2;
-            // let onchain_netuid = T::get_consensus_netuid(SubnetConsensus::Linear).unwrap_or(2);
+            for (account, fee) in old_storage::DelegationFee::<T>::iter() {
+                let mut fee_config = ValidatorFees::default();
+                fee_config.stake_delegation_fee = fee;
 
-            // // return early if there is not a match
-            // if general_subnet_netuid != onchain_netuid {
-            //     log::info!("General subnet netuid does not match onchain netuid");
-            //     return Weight::zero();
-            // }
+                ValidatorFeeConfig::<T>::insert(account, fee_config);
+            }
 
-            // // Clear all of the current weights on subnet 2
-            // let _ = Weights::<T>::clear_prefix(general_subnet_netuid, u32::MAX, None);
-            // log::info!("Cleared all weights for subnet 2");
-
-            // // Make sure we allow just one weight for the general subnet
-            // MinAllowedWeights::<T>::set(general_subnet_netuid, 1);
-            // log::info!("Set min allowed weights for subnet 2");
-
-            // // Make sure max allowed weights are same as max allowed uids
-            // let max_allowed_uids = MaxAllowedUids::<T>::get(general_subnet_netuid);
-            // MaxAllowedWeights::<T>::set(general_subnet_netuid, max_allowed_uids);
-            // log::info!("Set max allowed weights for subnet 2");
-
-            log::info!("Migrating storage to v14");
+            log::info!("Migrating storage to v15");
             StorageVersion::new(15).put::<Pallet<T>>();
             Weight::zero()
         }

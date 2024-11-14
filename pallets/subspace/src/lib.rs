@@ -87,10 +87,10 @@ pub mod pallet {
     pub type AccountIdOf<T> = <T as frame_system::Config>::AccountId;
 
     #[cfg(feature = "testnet")]
-    const STORAGE_VERSION: StorageVersion = StorageVersion::new(31);
+    const STORAGE_VERSION: StorageVersion = StorageVersion::new(32);
 
     #[cfg(not(feature = "testnet"))]
-    const STORAGE_VERSION: StorageVersion = StorageVersion::new(14);
+    const STORAGE_VERSION: StorageVersion = StorageVersion::new(15);
 
     #[pallet::pallet]
     #[pallet::storage_version(STORAGE_VERSION)]
