@@ -52,6 +52,15 @@ pub mod dispatches {
                 Error::<T>::EmptyDecryptedWeights
             );
 
+            // Get all epochs for this subnet
+            let epoch_count = ConsensusParameters::<T>::iter_prefix(subnet_id).count();
+
+            // Check if the length matches
+            ensure!(
+                decrypted_weights.len() == epoch_count,
+                Error::<T>::DecryptedWeightsLengthMismatch
+            );
+
             let has_weights = decrypted_weights.iter().any(|(_, inner_vec)| {
                 inner_vec.iter().any(|(_, weight_vec, _)| !weight_vec.is_empty())
             });

@@ -27,6 +27,7 @@ pub fn setup_subnet(netuid: u16, tempo: u64) {
     MaxAllowedUids::<Test>::set(netuid, u16::MAX);
     MaxAllowedWeights::<Test>::set(netuid, u16::MAX);
     FounderShare::<Test>::set(netuid, 0);
+    MinValidatorStake::<Test>::insert(netuid, 0);
 }
 
 /// Updates all authority nodes with new account id

@@ -364,6 +364,8 @@ impl<T: Config> Pallet<T> {
         Self::check_weight_setting_delegation(netuid, &key)?;
         Self::handle_rate_limiting(uid, netuid, &key)?;
 
+        log::warn!("setting encrypted weights for uid: {}", uid);
+
         WeightEncryptionData::<T>::insert(
             netuid,
             uid,
