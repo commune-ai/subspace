@@ -194,7 +194,8 @@ pub mod pallet {
             max_allowed_modules: u16,
             max_registrations_per_block: u16,
             max_allowed_weights: u16,
-            floor_delegation_fee: Percent,
+            floor_stake_delegation_fee: Percent,
+            floor_validator_weight_fee: Percent,
             floor_founder_share: u8,
             min_weight_stake: u64,
             curator: T::AccountId,
@@ -212,7 +213,8 @@ pub mod pallet {
             params.max_allowed_modules = max_allowed_modules;
             params.max_registrations_per_block = max_registrations_per_block;
             params.max_allowed_weights = max_allowed_weights;
-            params.floor_delegation_fee = floor_delegation_fee;
+            params.floor_stake_delegation_fee = floor_stake_delegation_fee;
+            params.floor_validator_weight_fee = floor_validator_weight_fee;
             params.floor_founder_share = floor_founder_share;
             params.min_weight_stake = min_weight_stake;
             params.curator = curator;

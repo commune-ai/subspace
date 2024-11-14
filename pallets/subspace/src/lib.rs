@@ -183,7 +183,8 @@ pub mod pallet {
         },
         // Put here every module-related double map, that has no uid association. first key is netuid, second key is key of module (not uid!)
         key_only_storages: {
-            Metadata: Vec<u8>
+            Metadata: Vec<u8>,
+            WeightSettingDelegation: DelegationInfo<T::AccountId>
         }
     );
 
@@ -384,16 +385,6 @@ pub mod pallet {
     #[pallet::storage]
     pub type MaxAllowedModules<T: Config> = StorageValue<_, u16, ValueQuery, ConstU16<10_000>>;
 
-    #[pallet::type_value]
-    pub fn DefaultFloorDelegationFee<T: Config>() -> Percent {
-        Percent::from_percent(5)
-    }
-
-    /// Minimum delegation fee
-    #[pallet::storage]
-    pub type FloorDelegationFee<T> =
-        StorageValue<_, Percent, ValueQuery, DefaultFloorDelegationFee<T>>;
-
     /// Minimum stake weight
     #[pallet::storage]
     pub type MinWeightStake<T> = StorageValue<_, u64, ValueQuery>;
@@ -476,24 +467,105 @@ pub mod pallet {
     #[pallet::storage]
     pub type SubnetImmunityPeriod<T: Config> = StorageValue<_, u64, ValueQuery, ConstU64<32400>>;
 
-    #[pallet::type_value]
-    pub fn DefaultDelegationFee<T: Config>() -> Percent {
-        Percent::from_percent(5u8)
-    }
-
-    /// Delegation fee per account
-    #[pallet::storage]
-    pub type DelegationFee<T: Config> =
-        StorageMap<_, Blake2_128Concat, T::AccountId, Percent, ValueQuery, DefaultDelegationFee<T>>;
-
     /// Control delegation per account
     #[pallet::storage]
     pub type WeightSettingDelegation<T: Config> =
         StorageDoubleMap<_, Identity, u16, Identity, T::AccountId, DelegationInfo<T::AccountId>>;
 
-    #[derive(Encode, Decode, Clone, PartialEq, TypeInfo)]
+    #[derive(Encode, Decode, Clone, PartialEq, TypeInfo, Debug)]
     pub struct DelegationInfo<AccountId> {
         pub delegate: AccountId,
         pub fee_percentage: Percent,
+    }
+
+    // --- Module Fees ---
+
+    /// Default values for fees used throughout the module
+    pub struct FeeDefaults;
+    impl FeeDefaults {
+        pub const STAKE_DELEGATION: Percent = Percent::from_percent(5);
+        pub const VALIDATOR_WEIGHT: Percent = Percent::from_percent(4);
+    }
+
+    /// Contains the minimum allowed values for delegation fees
+    #[derive(Encode, Decode, Clone, PartialEq, TypeInfo, Debug, Eq)]
+    pub struct MinimumFees {
+        /// Minimum fee for stake delegation
+        pub stake_delegation_fee: Percent,
+        /// Minimum fee for validator weight delegation
+        pub validator_weight_fee: Percent,
+    }
+
+    #[pallet::type_value]
+    pub fn DefaultMinimumFees<T: Config>() -> MinimumFees {
+        MinimumFees {
+            stake_delegation_fee: FeeDefaults::STAKE_DELEGATION,
+            validator_weight_fee: FeeDefaults::VALIDATOR_WEIGHT,
+        }
+    }
+
+    /// Storage for minimum fees that can be updated via runtime
+    #[pallet::storage]
+    pub type MinFees<T> = StorageValue<_, MinimumFees, ValueQuery, DefaultMinimumFees<T>>;
+
+    /// A fee structure containing delegation fees for both stake and validator weight
+    #[derive(Encode, Decode, Clone, PartialEq, TypeInfo, Debug, Eq)]
+    pub struct ValidatorFees {
+        /// Fee charged when delegators delegate their stake
+        pub stake_delegation_fee: Percent,
+        /// Fee charged when validators delegate their weight-setting authority
+        pub validator_weight_fee: Percent,
+    }
+
+    impl Default for ValidatorFees {
+        fn default() -> Self {
+            Self {
+                stake_delegation_fee: FeeDefaults::STAKE_DELEGATION,
+                validator_weight_fee: FeeDefaults::VALIDATOR_WEIGHT,
+            }
+        }
+    }
+
+    #[pallet::type_value]
+    pub fn DefaultValidatorFees<T: Config>() -> ValidatorFees {
+        ValidatorFees::default()
+    }
+
+    /// Maps validator accounts to their fee configuration
+    #[pallet::storage]
+    pub type ValidatorFeeConfig<T: Config> =
+        StorageMap<_, Identity, T::AccountId, ValidatorFees, ValueQuery, DefaultValidatorFees<T>>;
+
+    impl ValidatorFees {
+        /// Creates a new ValidatorFees instance with validation against minimum fees
+        pub fn new<T: Config>(
+            stake_delegation_fee: Percent,
+            validator_weight_fee: Percent,
+        ) -> Result<Self, &'static str> {
+            let min_fees = MinFees::<T>::get();
+            if stake_delegation_fee < min_fees.stake_delegation_fee {
+                return Err("Stake delegation fee is below minimum threshold");
+            }
+            if validator_weight_fee < min_fees.validator_weight_fee {
+                return Err("Validator weight fee is below minimum threshold");
+            }
+
+            Ok(Self {
+                stake_delegation_fee,
+                validator_weight_fee,
+            })
+        }
+
+        /// Validates that the fees meet minimum requirements
+        pub fn validate<T: Config>(&self) -> Result<(), &'static str> {
+            let min_fees = MinFees::<T>::get();
+            if self.stake_delegation_fee < min_fees.stake_delegation_fee {
+                return Err("Stake delegation fee is below minimum threshold");
+            }
+            if self.validator_weight_fee < min_fees.validator_weight_fee {
+                return Err("Validator weight fee is below minimum threshold");
+            }
+            Ok(())
+        }
     }
 }

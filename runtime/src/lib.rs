@@ -998,7 +998,7 @@ impl_runtime_apis! {
                 params: ModuleParams {
                     name: params.name,
                     address: params.address,
-                    delegation_fee: params.delegation_fee,
+                    delegation_fee: params.fees.stake_delegation_fee,
                     metadata: params.metadata,
                 }
             }

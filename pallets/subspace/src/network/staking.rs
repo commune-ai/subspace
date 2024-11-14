@@ -314,12 +314,14 @@ impl<T: Config> Pallet<T> {
             .sum()
     }
 
-    // Returns the delegation fee of a module
-    pub fn get_delegation_fee(module_key: &T::AccountId) -> Percent {
-        let min_deleg_fee_global = FloorDelegationFee::<T>::get();
-        let delegation_fee = DelegationFee::<T>::get(module_key);
+    /// Returns staking delegation fee of a module
+    pub fn get_stake_delegation_fee(module_key: &T::AccountId) -> Percent {
+        // Get the validator's fee configuration
+        let validator_fees = ValidatorFeeConfig::<T>::get(module_key);
 
-        delegation_fee.max(min_deleg_fee_global)
+        // Return the stake delegation fee, which will already be at or above
+        // MIN_STAKE_DELEGATION_FEE due to the ValidatorFees validation
+        validator_fees.stake_delegation_fee
     }
 
     pub fn has_enough_stake(key: &T::AccountId, module_key: &T::AccountId, amount: u64) -> bool {

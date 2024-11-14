@@ -31,7 +31,7 @@ use sp_std::collections::btree_map::BTreeMap;
 use pallet_subnet_emission::{ConsensusParameters, Weights};
 use pallet_subspace::{
     math::{inplace_normalize_64, vec_fixed64_to_fixed32},
-    Consensus, CopierMargin, FloorDelegationFee, MaxEncryptionPeriod,
+    Consensus, CopierMargin, MaxEncryptionPeriod, MinFees,
 };
 use parity_scale_codec::{Decode, Encode};
 use scale_info::prelude::marker::PhantomData;

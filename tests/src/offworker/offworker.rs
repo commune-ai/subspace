@@ -155,6 +155,8 @@ fn test_offchain_worker_behavior() {
                                 key,
                                 encrypted_weights,
                                 decrypted_weights_hash,
+                                false, /* The last update is manually overwriten based on the
+                                        * dataset */
                             );
                         }
                         input_decrypted_weights.push((uid, weight_vec));

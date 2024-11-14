@@ -198,8 +198,8 @@ impl<T: Config> Pallet<T> {
         address: Vec<u8>,
         metadata: Option<Vec<u8>>,
     ) -> Result<u16, DispatchError> {
-        let fee = DefaultDelegationFee::<T>::get();
-        let module_changeset = ModuleChangeset::new(name, address, fee, metadata);
+        let fees = DefaultValidatorFees::<T>::get();
+        let module_changeset = ModuleChangeset::new(name, address, fees, metadata, None);
         Self::append_module(netuid, module_key, module_changeset)
     }
 

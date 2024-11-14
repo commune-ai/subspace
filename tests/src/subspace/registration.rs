@@ -325,6 +325,7 @@ mod module_validation {
                     addr.to_vec(),
                     None,
                     None,
+                    None,
                 )
             });
 
@@ -332,13 +333,19 @@ mod module_validation {
             let origin_1 = get_origin(key_1);
             assert_ok!(register_custom(0, key_1, b"test2", b"0.0.0.0:2"));
 
+            let fees = pallet_subspace::ValidatorFees {
+                stake_delegation_fee: Percent::from_percent(5),
+                validator_weight_fee: Percent::from_percent(5),
+            };
+
             let update_module = |name: &[u8], addr: &[u8]| {
                 SubspaceMod::update_module(
                     origin_1.clone(),
                     subnet,
                     name.to_vec(),
                     addr.to_vec(),
-                    Some(Percent::from_percent(5)),
+                    Some(fees.clone()),
+                    None,
                     None,
                 )
             };
@@ -355,15 +362,37 @@ mod module_validation {
             assert_eq!(params.name, b"test3");
             assert_eq!(params.address, b"0.0.0.0:3");
 
-            FloorDelegationFee::<Test>::put(Percent::from_percent(10));
+            // Set higher minimum fees
+            MinFees::<Test>::put(MinimumFees {
+                stake_delegation_fee: Percent::from_percent(10),
+                validator_weight_fee: Percent::from_percent(10),
+            });
+
+            // Should fail now because fees are too low
             assert_err!(
                 update_module(b"test3", b"0.0.0.0:3"),
-                Error::<Test>::InvalidMinDelegationFee
+                Error::<Test>::InvalidMinFees
             );
+
+            // Update fees to valid values
+            let valid_fees = pallet_subspace::ValidatorFees {
+                stake_delegation_fee: Percent::from_percent(10),
+                validator_weight_fee: Percent::from_percent(10),
+            };
+
+            // Should work with valid fees
+            assert_ok!(SubspaceMod::update_module(
+                origin_1.clone(),
+                subnet,
+                b"test3".to_vec(),
+                b"0.0.0.0:3".to_vec(),
+                Some(valid_fees),
+                None,
+                None,
+            ));
         });
     }
 }
-
 mod subnet_validation {
     use super::*;
 

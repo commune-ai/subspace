@@ -201,5 +201,13 @@ pub mod errors {
         InvalidMaximumSetWeightCallsPerEpoch,
         /// Some module parameter is invalid
         InvalidModuleParams,
+        /// The provided minimum fees are invalid. This can happen when:
+        /// - Stake delegation fee is below the system minimum
+        /// - Validator weight fee is below the system minimum
+        /// - Either fee exceeds 100%
+        InvalidMinFees,
+        /// Cannot decrease fees below their current values.
+        /// Fees can only be increased to prevent economic attacks.
+        CannotDecreaseFee,
     }
 }

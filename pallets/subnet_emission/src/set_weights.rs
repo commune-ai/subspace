@@ -299,7 +299,8 @@ impl<T: Config> Pallet<T> {
                 fee_percentage: pallet_subspace::Pallet::<T>::module_params(
                     netuid, &target, target_uid,
                 )
-                .delegation_fee,
+                .fees
+                .validator_weight_fee,
             }),
         );
 
@@ -344,6 +345,7 @@ impl<T: Config> Pallet<T> {
         netuid: u16,
         encrypted_weights: Vec<u8>,
         decrypted_weights_hash: Vec<u8>,
+        set_last_updated: bool,
     ) -> DispatchResult {
         let key = ensure_signed(origin.clone())?;
 
@@ -377,7 +379,9 @@ impl<T: Config> Pallet<T> {
 
         let current_block = pallet_subspace::Pallet::<T>::get_current_block_number();
         pallet_subspace::WeightSetAt::<T>::insert(netuid, uid, current_block);
-        pallet_subspace::Pallet::<T>::set_last_update_for_uid(netuid, uid, current_block);
+        if set_last_updated {
+            pallet_subspace::Pallet::<T>::set_last_update_for_uid(netuid, uid, current_block);
+        }
         pallet_subspace::Pallet::<T>::deposit_event(pallet_subspace::Event::WeightsSet(
             netuid, uid,
         ));

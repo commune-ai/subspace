@@ -91,8 +91,9 @@ pub mod dispatches {
             netuid: u16,
             name: Vec<u8>,
             address: Vec<u8>,
-            delegation_fee: Option<Percent>,
+            fees: Option<ValidatorFees>,
             metadata: Option<Vec<u8>>,
+            weight_setting_delegation: Option<DelegationInfo<T::AccountId>>,
         ) -> DispatchResult {
             let key = ensure_signed(origin.clone())?;
             ensure!(
@@ -104,8 +105,14 @@ pub mod dispatches {
 
             let params = Self::module_params(netuid, &key, uid);
 
-            let changeset =
-                ModuleChangeset::update(&params, name, address, delegation_fee, metadata);
+            let changeset = ModuleChangeset::update(
+                &params,
+                name,
+                address,
+                fees,
+                metadata,
+                weight_setting_delegation,
+            );
             Self::do_update_module(origin, netuid, changeset)
         }
 
