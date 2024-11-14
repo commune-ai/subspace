@@ -366,21 +366,27 @@ pub fn compute_emissions<'a>(
     }
 }
 
-pub fn apply_delegation_fee<T: Config>(params: &ConsensusParams<T>, dividends: &mut [I32F32]) {
-    for (index, dividend) in dividends.iter_mut().enumerate() {
-        let Some(module_params) = params.get_module_by_uid(index as u16) else {
+pub fn apply_delegation_fee<T: Config>(
+    dividends: &mut [I32F32],
+    modules: &FlattenedModules<T::AccountId>,
+) {
+    for (index, option) in modules.delegated_to.iter().enumerate() {
+        let Some((parent_key, fee)) = option else {
             continue;
         };
 
-        let Some((_, fee)) = module_params.delegated_to else {
+        let Some((parent_uid, _)) =
+            modules.keys.iter().enumerate().find(|(_, key)| &key.0 == parent_key)
+        else {
             continue;
         };
 
-        *dividend = dividend.saturating_sub(
-            dividend
-                .checked_div(I32F32::from_num(fee.deconstruct() as f32 / 100f32))
-                .unwrap_or(I32F32::from_num(0)),
-        );
+        let fee = dividends[index]
+            .checked_mul(I32F32::from_num(fee.deconstruct() as f32 / 100f32))
+            .unwrap_or(I32F32::from_num(0));
+
+        dividends[index] -= fee;
+        dividends[parent_uid] += fee;
     }
 }
 
@@ -422,7 +428,7 @@ pub fn compute_bonds_and_dividends_linear<T: Config>(
     let mut dividends = matmul_transpose_sparse(&bonds_delta, incentives.as_ref());
     log::trace!("  original dividends: {dividends:?}");
 
-    apply_delegation_fee(params, &mut dividends);
+    apply_delegation_fee::<T>(&mut dividends, &modules);
 
     inplace_normalize(&mut dividends);
     log::trace!("  normalized dividends: {dividends:?}");
@@ -485,7 +491,7 @@ pub fn compute_bonds_and_dividends_yuma<T: Config>(
     let mut dividends = matmul_transpose_sparse(&ema_bonds, incentives.as_ref());
     log::trace!("  original dividends: {dividends:?}");
 
-    apply_delegation_fee(params, &mut dividends);
+    apply_delegation_fee::<T>(&mut dividends, &modules);
 
     inplace_normalize(&mut dividends);
     log::trace!("  normalized dividends: {dividends:?}");
