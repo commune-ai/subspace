@@ -371,7 +371,7 @@ mod module_validation {
             // Should fail now because fees are too low
             assert_err!(
                 update_module(b"test3", b"0.0.0.0:3"),
-                Error::<Test>::InvalidMinFees
+                Error::<Test>::InvalidMinDelegationFee
             );
 
             // Update fees to valid values
