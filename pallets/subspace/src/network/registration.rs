@@ -199,7 +199,7 @@ impl<T: Config> Pallet<T> {
         metadata: Option<Vec<u8>>,
     ) -> Result<u16, DispatchError> {
         let fees = DefaultValidatorFees::<T>::get();
-        let module_changeset = ModuleChangeset::new(name, address, fees, metadata, None);
+        let module_changeset = ModuleChangeset::new(name, address, fees, metadata);
         Self::append_module(netuid, module_key, module_changeset)
     }
 

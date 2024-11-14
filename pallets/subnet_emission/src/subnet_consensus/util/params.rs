@@ -166,7 +166,7 @@ impl<T: Config> ConsensusParams<T> {
                         stake_original,
                         bonds,
                         delegated_to: WeightSettingDelegation::<T>::get(subnet_id, &key)
-                            .map(|info| (info.delegate, info.fee_percentage)),
+                            .map(|delegate| (delegate, Percent::from_percent(0))),
                         weight_encrypted: encryption_data.encrypted,
                         weight_hash: encryption_data.decrypted_hashes,
                     };

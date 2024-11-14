@@ -87,7 +87,7 @@ pub mod pallet {
     pub type AccountIdOf<T> = <T as frame_system::Config>::AccountId;
 
     #[cfg(feature = "testnet")]
-    const STORAGE_VERSION: StorageVersion = StorageVersion::new(32);
+    const STORAGE_VERSION: StorageVersion = StorageVersion::new(33);
 
     #[cfg(not(feature = "testnet"))]
     const STORAGE_VERSION: StorageVersion = StorageVersion::new(15);
@@ -471,13 +471,7 @@ pub mod pallet {
     /// Control delegation per account
     #[pallet::storage]
     pub type WeightSettingDelegation<T: Config> =
-        StorageDoubleMap<_, Identity, u16, Identity, T::AccountId, DelegationInfo<T::AccountId>>;
-
-    #[derive(Encode, Decode, Clone, PartialEq, TypeInfo, Debug)]
-    pub struct DelegationInfo<AccountId> {
-        pub delegate: AccountId,
-        pub fee_percentage: Percent,
-    }
+        StorageDoubleMap<_, Identity, u16, Identity, T::AccountId, T::AccountId>;
 
     // --- Module Fees ---
 

@@ -65,7 +65,6 @@ pub mod genesis {
                         module.address.clone(),
                         fees,
                         None,
-                        None,
                     );
                     self::Pallet::<T>::append_module(netuid, &module.key, changeset)
                         .expect("genesis modules are valid");
