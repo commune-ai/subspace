@@ -91,7 +91,8 @@ pub mod dispatches {
             netuid: u16,
             name: Vec<u8>,
             address: Vec<u8>,
-            fees: Option<ValidatorFees>,
+            stake_delegation_fee: Option<Percent>,
+            validator_weight_fee: Option<Percent>,
             metadata: Option<Vec<u8>>,
             weight_setting_delegation: Option<DelegationInfo<T::AccountId>>,
         ) -> DispatchResult {
@@ -102,8 +103,20 @@ pub mod dispatches {
             );
 
             let uid = Self::get_uid_for_key(netuid, &key).ok_or(Error::<T>::ModuleDoesNotExist)?;
-
             let params = Self::module_params(netuid, &key, uid);
+
+            let fees = match (stake_delegation_fee, validator_weight_fee) {
+                (None, None) => None,
+                (stake_fee, weight_fee) => {
+                    let current_fees = ValidatorFeeConfig::<T>::get(&key);
+                    Some(ValidatorFees {
+                        stake_delegation_fee: stake_fee
+                            .unwrap_or(current_fees.stake_delegation_fee),
+                        validator_weight_fee: weight_fee
+                            .unwrap_or(current_fees.validator_weight_fee),
+                    })
+                }
+            };
 
             let changeset = ModuleChangeset::update(
                 &params,

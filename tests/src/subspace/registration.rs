@@ -311,7 +311,7 @@ mod module_validation {
             let subnet = 0;
             let key_0 = 0;
             let origin_0 = get_origin(0);
-            // make sure that the results won´t get affected by burn
+            // make sure that the results won't get affected by burn
             zero_min_burn();
             MinimumAllowedStake::<Test>::set(0);
 
@@ -323,9 +323,10 @@ mod module_validation {
                     subnet,
                     name.to_vec(),
                     addr.to_vec(),
-                    None,
-                    None,
-                    None,
+                    None, // stake_delegation_fee
+                    None, // validator_weight_fee
+                    None, // metadata
+                    None, // weight_setting_delegation
                 )
             });
 
@@ -333,10 +334,8 @@ mod module_validation {
             let origin_1 = get_origin(key_1);
             assert_ok!(register_custom(0, key_1, b"test2", b"0.0.0.0:2"));
 
-            let fees = pallet_subspace::ValidatorFees {
-                stake_delegation_fee: Percent::from_percent(5),
-                validator_weight_fee: Percent::from_percent(5),
-            };
+            let stake_fee = Percent::from_percent(5);
+            let weight_fee = Percent::from_percent(5);
 
             let update_module = |name: &[u8], addr: &[u8]| {
                 SubspaceMod::update_module(
@@ -344,9 +343,10 @@ mod module_validation {
                     subnet,
                     name.to_vec(),
                     addr.to_vec(),
-                    Some(fees.clone()),
-                    None,
-                    None,
+                    Some(stake_fee),
+                    Some(weight_fee),
+                    None, // metadata
+                    None, // weight_setting_delegation
                 )
             };
 
@@ -374,19 +374,38 @@ mod module_validation {
                 Error::<Test>::InvalidMinDelegationFee
             );
 
-            // Update fees to valid values
-            let valid_fees = pallet_subspace::ValidatorFees {
-                stake_delegation_fee: Percent::from_percent(10),
-                validator_weight_fee: Percent::from_percent(10),
-            };
-
-            // Should work with valid fees
+            // Update with valid fees
             assert_ok!(SubspaceMod::update_module(
                 origin_1.clone(),
                 subnet,
                 b"test3".to_vec(),
                 b"0.0.0.0:3".to_vec(),
-                Some(valid_fees),
+                Some(Percent::from_percent(10)), // valid stake_delegation_fee
+                Some(Percent::from_percent(10)), // valid validator_weight_fee
+                None,                            // metadata
+                None,                            // weight_setting_delegation
+            ));
+
+            // Test updating only stake delegation fee
+            assert_ok!(SubspaceMod::update_module(
+                origin_1.clone(),
+                subnet,
+                b"test3".to_vec(),
+                b"0.0.0.0:3".to_vec(),
+                Some(Percent::from_percent(15)), // update only stake fee
+                None,                            // keep existing weight fee
+                None,
+                None,
+            ));
+
+            // Test updating only validator weight fee
+            assert_ok!(SubspaceMod::update_module(
+                origin_1.clone(),
+                subnet,
+                b"test3".to_vec(),
+                b"0.0.0.0:3".to_vec(),
+                None,                            // keep existing stake fee
+                Some(Percent::from_percent(15)), // update only weight fee
                 None,
                 None,
             ));
