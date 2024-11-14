@@ -2,7 +2,7 @@ use super::*;
 use frame_support::{ensure, pallet_prelude::DispatchResult};
 use frame_system::ensure_signed;
 use pallet_subnet_emission_api::SubnetConsensus;
-use pallet_subspace::{DelegationInfo, Error, Pallet as PalletSubspace};
+use pallet_subspace::{Error, Pallet as PalletSubspace, WeightSettingDelegation};
 use sp_core::Get;
 
 impl<T: Config> Pallet<T> {
@@ -274,35 +274,22 @@ impl<T: Config> Pallet<T> {
     ) -> DispatchResult {
         let key = ensure_signed(origin)?;
 
-        let Some(_) = pallet_subspace::Pallet::<T>::get_uid_for_key(netuid, &key) else {
+        // Check if the sender is registered in the network
+        if !pallet_subspace::Pallet::<T>::is_registered(Some(netuid), &key) {
             return Err(Error::<T>::ModuleDoesNotExist.into());
-        };
+        }
 
-        let Some(target_uid) = pallet_subspace::Pallet::<T>::get_uid_for_key(netuid, &target)
-        else {
+        // Check if the target is registered in the network
+        if !pallet_subspace::Pallet::<T>::is_registered(Some(netuid), &target) {
             return Err(Error::<T>::ModuleDoesNotExist.into());
-        };
+        }
 
-        if pallet_subspace::Pallet::<T>::get_uid_for_key(netuid, &target).is_none() {
-            return Err(Error::<T>::ModuleDoesNotExist.into());
-        };
-
+        // Check if target is already delegating their control
         if pallet_subspace::WeightSettingDelegation::<T>::get(netuid, &target).is_some() {
             return Err(Error::<T>::DelegatingControl.into());
         }
 
-        pallet_subspace::WeightSettingDelegation::<T>::set(
-            netuid,
-            key.clone(),
-            Some(DelegationInfo::<T::AccountId> {
-                delegate: target.clone(),
-                fee_percentage: pallet_subspace::Pallet::<T>::module_params(
-                    netuid, &target, target_uid,
-                )
-                .fees
-                .validator_weight_fee,
-            }),
-        );
+        pallet_subspace::WeightSettingDelegation::<T>::insert(netuid, key.clone(), target.clone());
 
         Ok(())
     }
@@ -327,14 +314,14 @@ impl<T: Config> Pallet<T> {
     where
         F: for<'a> Fn(T::AccountId, u16),
     {
-        for (origin, info) in
-            pallet_subspace::WeightSettingDelegation::<T>::iter_prefix(netuid).collect::<Vec<_>>()
+        for (origin, delegate) in
+            WeightSettingDelegation::<T>::iter_prefix(netuid).collect::<Vec<_>>()
         {
             let Some(uid) = pallet_subspace::Pallet::<T>::get_uid_for_key(netuid, &origin) else {
                 continue;
             };
 
-            if &info.delegate == key {
+            if &delegate == key {
                 f(origin, uid)
             }
         }

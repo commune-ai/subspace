@@ -17,7 +17,7 @@ pub struct ModuleChangeset<T: Config> {
     pub address: Option<Vec<u8>>,
     pub fees: Option<ValidatorFees>,
     pub metadata: Option<Vec<u8>>,
-    pub weight_setting_delegation: Option<DelegationInfo<T::AccountId>>,
+    pub _pd: PhantomData<T>,
 }
 
 impl<T: Config> ModuleChangeset<T> {
@@ -27,14 +27,13 @@ impl<T: Config> ModuleChangeset<T> {
         address: Vec<u8>,
         fees: ValidatorFees,
         metadata: Option<Vec<u8>>,
-        weight_setting_delegation: Option<DelegationInfo<T::AccountId>>,
     ) -> Self {
         Self {
             name: Some(name),
             address: Some(address),
             fees: Some(fees),
             metadata,
-            weight_setting_delegation,
+            _pd: PhantomData,
         }
     }
 
@@ -46,7 +45,6 @@ impl<T: Config> ModuleChangeset<T> {
         address: Vec<u8>,
         fees: Option<ValidatorFees>,
         metadata: Option<Vec<u8>>,
-        weight_setting_delegation: Option<DelegationInfo<T::AccountId>>,
     ) -> Self {
         let ModuleParams {
             name: old_name,
@@ -61,7 +59,7 @@ impl<T: Config> ModuleChangeset<T> {
             address: (address != *old_address).then_some(address),
             fees,
             metadata,
-            weight_setting_delegation,
+            _pd: PhantomData,
         }
     }
 
@@ -72,7 +70,7 @@ impl<T: Config> ModuleChangeset<T> {
             address,
             fees,
             metadata,
-            weight_setting_delegation,
+            _pd: _,
         } = self;
 
         let max_length = MaxNameLength::<T>::get() as usize;
@@ -94,10 +92,6 @@ impl<T: Config> ModuleChangeset<T> {
             ModuleValidator::validate_metadata::<T>(metadata)?;
         }
 
-        if let Some(delegation_info) = weight_setting_delegation {
-            ModuleValidator::validate_weight_setting_delegation::<T>(delegation_info)?;
-        }
-
         Ok(())
     }
 
@@ -115,7 +109,7 @@ impl<T: Config> ModuleChangeset<T> {
             address,
             fees,
             metadata,
-            weight_setting_delegation,
+            _pd: _,
         } = self;
 
         if let Some(new_name) = name {
@@ -132,10 +126,6 @@ impl<T: Config> ModuleChangeset<T> {
 
         if let Some(new_metadata) = metadata {
             Metadata::<T>::insert(netuid, &key, new_metadata);
-        }
-
-        if let Some(delegation_info) = weight_setting_delegation {
-            WeightSettingDelegation::<T>::insert(netuid, &key, delegation_info);
         }
 
         Pallet::<T>::deposit_event(Event::ModuleUpdated(netuid, key));
@@ -185,16 +175,6 @@ impl ModuleValidator {
 
     pub fn validate_fees<T: Config>(fees: &ValidatorFees) -> Result<(), sp_runtime::DispatchError> {
         fees.validate::<T>().map_err(|_| Error::<T>::InvalidMinDelegationFee)?;
-        Ok(())
-    }
-
-    pub fn validate_weight_setting_delegation<T: Config>(
-        delegation_info: &DelegationInfo<T::AccountId>,
-    ) -> Result<(), sp_runtime::DispatchError> {
-        ensure!(
-            delegation_info.fee_percentage >= MinFees::<T>::get().validator_weight_fee,
-            Error::<T>::InvalidMinDelegationFee
-        );
         Ok(())
     }
 }

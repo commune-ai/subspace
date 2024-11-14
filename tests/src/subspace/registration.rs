@@ -326,7 +326,6 @@ mod module_validation {
                     None, // stake_delegation_fee
                     None, // validator_weight_fee
                     None, // metadata
-                    None, // weight_setting_delegation
                 )
             });
 
@@ -346,7 +345,6 @@ mod module_validation {
                     Some(stake_fee),
                     Some(weight_fee),
                     None, // metadata
-                    None, // weight_setting_delegation
                 )
             };
 
@@ -383,7 +381,6 @@ mod module_validation {
                 Some(Percent::from_percent(10)), // valid stake_delegation_fee
                 Some(Percent::from_percent(10)), // valid validator_weight_fee
                 None,                            // metadata
-                None,                            // weight_setting_delegation
             ));
 
             // Test updating only stake delegation fee
@@ -395,7 +392,6 @@ mod module_validation {
                 Some(Percent::from_percent(15)), // update only stake fee
                 None,                            // keep existing weight fee
                 None,
-                None,
             ));
 
             // Test updating only validator weight fee
@@ -406,7 +402,6 @@ mod module_validation {
                 b"0.0.0.0:3".to_vec(),
                 None,                            // keep existing stake fee
                 Some(Percent::from_percent(15)), // update only weight fee
-                None,
                 None,
             ));
         });

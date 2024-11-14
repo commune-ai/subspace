@@ -94,7 +94,6 @@ pub mod dispatches {
             stake_delegation_fee: Option<Percent>,
             validator_weight_fee: Option<Percent>,
             metadata: Option<Vec<u8>>,
-            weight_setting_delegation: Option<DelegationInfo<T::AccountId>>,
         ) -> DispatchResult {
             let key = ensure_signed(origin.clone())?;
             ensure!(
@@ -118,14 +117,7 @@ pub mod dispatches {
                 }
             };
 
-            let changeset = ModuleChangeset::update(
-                &params,
-                name,
-                address,
-                fees,
-                metadata,
-                weight_setting_delegation,
-            );
+            let changeset = ModuleChangeset::update(&params, name, address, fees, metadata);
             Self::do_update_module(origin, netuid, changeset)
         }
 
