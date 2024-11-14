@@ -18,9 +18,10 @@ pub struct GlobalParams<T: Config> {
     pub max_allowed_weights: u16,         // max number of weights per module
 
     // mins
-    pub floor_delegation_fee: Percent, // min delegation fee
-    pub floor_founder_share: u8,       // min founder share
-    pub min_weight_stake: u64,         // min weight stake required
+    pub floor_stake_delegation_fee: Percent, // min delegation fee
+    pub floor_validator_weight_fee: Percent, // min weight-setting delegation fee
+    pub floor_founder_share: u8,             // min founder share
+    pub min_weight_stake: u64,               // min weight stake required
 
     // S0 governance
     pub curator: T::AccountId,
@@ -44,7 +45,8 @@ impl<T: Config> Pallet<T> {
             max_allowed_modules: MaxAllowedModules::<T>::get(),
             curator: T::get_curator(),
             floor_founder_share: FloorFounderShare::<T>::get(),
-            floor_delegation_fee: FloorDelegationFee::<T>::get(),
+            floor_stake_delegation_fee: MinFees::<T>::get().stake_delegation_fee,
+            floor_validator_weight_fee: MinFees::<T>::get().validator_weight_fee,
             // registrations
             max_registrations_per_block: MaxRegistrationsPerBlock::<T>::get(),
             // weights
@@ -72,7 +74,8 @@ impl<T: Config> Pallet<T> {
             max_allowed_modules,
             max_registrations_per_block,
             max_allowed_weights,
-            floor_delegation_fee,
+            floor_stake_delegation_fee,
+            floor_validator_weight_fee,
             floor_founder_share,
             min_weight_stake,
             curator,
@@ -88,7 +91,12 @@ impl<T: Config> Pallet<T> {
         MinNameLength::<T>::put(min_name_length);
         MaxAllowedSubnets::<T>::put(max_allowed_subnets);
         MaxAllowedModules::<T>::put(max_allowed_modules);
-        FloorDelegationFee::<T>::put(floor_delegation_fee);
+
+        // Update minimum fees
+        MinFees::<T>::put(MinimumFees {
+            stake_delegation_fee: floor_stake_delegation_fee,
+            validator_weight_fee: floor_validator_weight_fee,
+        });
 
         // Registration and weight parameters
         MaxRegistrationsPerBlock::<T>::set(max_registrations_per_block);
@@ -120,7 +128,8 @@ impl<T: Config> Pallet<T> {
             max_allowed_modules,
             max_registrations_per_block,
             max_allowed_weights,
-            floor_delegation_fee,
+            floor_stake_delegation_fee,
+            floor_validator_weight_fee,
             floor_founder_share,
             min_weight_stake: _,
             curator: _,
@@ -140,14 +149,19 @@ impl<T: Config> Pallet<T> {
             Error::<T>::InvalidMinNameLenght
         );
 
-        // Delegation fee validation
-        ensure!(
-            floor_delegation_fee.deconstruct() <= 100
-                && floor_delegation_fee.deconstruct()
-                    >= old_params.floor_delegation_fee.deconstruct(),
-            Error::<T>::InvalidMinDelegationFee
-        );
+        // Fee validations using ValidatorFees validation
+        ValidatorFees::new::<T>(*floor_stake_delegation_fee, *floor_validator_weight_fee)
+            .map_err(|_| Error::<T>::InvalidMinFees)?;
 
+        // Additional validation to ensure fees don't decrease
+        ensure!(
+            floor_stake_delegation_fee >= &old_params.floor_stake_delegation_fee,
+            Error::<T>::CannotDecreaseFee
+        );
+        ensure!(
+            floor_validator_weight_fee >= &old_params.floor_validator_weight_fee,
+            Error::<T>::CannotDecreaseFee
+        );
         // Subnet and module validations
         ensure!(
             *max_allowed_subnets > 0,

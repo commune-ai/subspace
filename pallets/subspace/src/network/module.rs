@@ -8,18 +8,18 @@ impl<T: Config> Pallet<T> {
     pub fn do_update_module(
         origin: T::RuntimeOrigin,
         netuid: u16,
-        changeset: ModuleChangeset,
+        changeset: ModuleChangeset<T>,
     ) -> DispatchResult {
         let key = ensure_signed(origin)?;
         let uid: u16 = Self::get_uid_for_key(netuid, &key).ok_or(Error::<T>::ModuleDoesNotExist)?;
-        changeset.apply::<T>(netuid, key, uid)?;
+        changeset.apply(netuid, key, uid)?;
         Ok(())
     }
 
     pub fn append_module(
         netuid: u16,
         key: &T::AccountId,
-        changeset: ModuleChangeset,
+        changeset: ModuleChangeset<T>,
     ) -> Result<u16, sp_runtime::DispatchError> {
         // --- Get The Next Uid ---
         let uid: u16 = N::<T>::get(netuid);
@@ -28,7 +28,7 @@ impl<T: Config> Pallet<T> {
         // -- Initialize All Storages ---
         StorageHandler::initialize_all::<T>(netuid, uid, key)?;
         // Make sure this overwrites the defaults (keep it second)
-        changeset.apply::<T>(netuid, key.clone(), uid)?;
+        changeset.apply(netuid, key.clone(), uid)?;
 
         // --- Update The Network Module Size ---
         N::<T>::mutate(netuid, |n| *n = n.saturating_add(1));
@@ -80,7 +80,7 @@ impl<T: Config> Pallet<T> {
         // So the values are not "just hanging around" in the storage. Without module actually being
         // registered on any subnet.
         if Uids::<T>::iter().all(|(_, key, _)| key != module_key) {
-            DelegationFee::<T>::remove(&module_key);
+            ValidatorFeeConfig::<T>::remove(&module_key);
             Self::remove_stake_from_storage(&module_key);
         }
 
@@ -90,28 +90,11 @@ impl<T: Config> Pallet<T> {
             *v
         });
 
-        // 10. Handle rootnet deregistration
-        if let Some(key) = Self::get_key_for_uid(uid, netuid) {
-            Self::handle_weight_setting_delegation(key, netuid);
-        }
-
         // 11. Remove subnet if empty
         if deregister_subnet_if_empty && module_count == 0 {
             Self::remove_subnet(netuid);
         }
 
         Ok(())
-    }
-
-    fn handle_weight_setting_delegation(key: T::AccountId, netuid: u16) {
-        WeightSettingDelegation::<T>::remove(netuid, &key);
-
-        WeightSettingDelegation::<T>::translate(|nuid, _, v: DelegationInfo<T::AccountId>| {
-            if nuid == netuid && v.delegate == key {
-                None
-            } else {
-                Some(v)
-            }
-        });
     }
 }

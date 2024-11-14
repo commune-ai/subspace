@@ -645,12 +645,14 @@ pub fn set_weights_encrypted(
     key: AccountId,
     encrypted_weights: Vec<u8>,
     decrypted_weights_hash: Vec<u8>,
+    set_last_updated: bool,
 ) {
-    SubnetEmissionMod::set_weights_encrypted(
+    SubnetEmissionMod::do_set_weights_encrypted(
         get_origin(key),
         netuid,
         encrypted_weights,
         decrypted_weights_hash,
+        set_last_updated,
     )
     .unwrap();
 }

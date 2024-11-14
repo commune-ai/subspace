@@ -177,7 +177,7 @@ pub fn should_decrypt_weights<T: Config>(
     };
 
     // Get delegation fee (this is not a Result type)
-    let delegation_fee = FloorDelegationFee::<T>::get();
+    let delegation_fee = MinFees::<T>::get().stake_delegation_fee;
 
     // Update simulation result
     simulation_result.update(simulation_yuma_output, copier_uid, delegation_fee);

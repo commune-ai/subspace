@@ -394,6 +394,7 @@ pub mod pallet {
                 netuid,
                 encrypted_weights,
                 decrypted_weights_hash,
+                true,
             )
         }
 

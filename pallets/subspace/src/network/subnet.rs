@@ -240,11 +240,11 @@ impl<T: Config> Pallet<T> {
             .map(|(_, account, _)| account)
             .collect();
 
-        // Clear delegation fees for accounts that exist only in this subnet
+        // Clear validator fees for accounts that exist only in this subnet
         Uids::<T>::iter_prefix(subnet_id)
             .map(|(account, _)| account)
             .filter(|account| !accounts_in_other_subnets.contains(account))
-            .for_each(|subnet_only_account| DelegationFee::<T>::remove(&subnet_only_account));
+            .for_each(|subnet_only_account| ValidatorFeeConfig::<T>::remove(&subnet_only_account));
     }
 
     pub fn get_total_subnets() -> u16 {

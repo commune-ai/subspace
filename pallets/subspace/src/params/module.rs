@@ -1,54 +1,57 @@
 use crate::*;
 use scale_info::TypeInfo;
-use sp_arithmetic::per_things::Percent;
 
 #[derive(Decode, Encode, PartialEq, Eq, Clone, Debug, TypeInfo)]
 #[scale_info(skip_type_params(T))]
 pub struct ModuleParams<T: Config> {
     pub name: Vec<u8>,
     pub address: Vec<u8>,
-    pub delegation_fee: Percent,
+    pub fees: ValidatorFees,
     pub metadata: Option<Vec<u8>>,
     pub _pd: PhantomData<T>,
 }
 
 #[derive(Debug)]
-pub struct ModuleChangeset {
+pub struct ModuleChangeset<T: Config> {
     pub name: Option<Vec<u8>>,
     pub address: Option<Vec<u8>>,
-    pub delegation_fee: Option<Percent>,
+    pub fees: Option<ValidatorFees>,
     pub metadata: Option<Vec<u8>>,
+    pub weight_setting_delegation: Option<DelegationInfo<T::AccountId>>,
 }
 
-impl ModuleChangeset {
+impl<T: Config> ModuleChangeset<T> {
     #[must_use]
     pub fn new(
         name: Vec<u8>,
         address: Vec<u8>,
-        delegation_fee: Percent,
+        fees: ValidatorFees,
         metadata: Option<Vec<u8>>,
+        weight_setting_delegation: Option<DelegationInfo<T::AccountId>>,
     ) -> Self {
         Self {
             name: Some(name),
             address: Some(address),
-            delegation_fee: Some(delegation_fee),
+            fees: Some(fees),
             metadata,
+            weight_setting_delegation,
         }
     }
 
     #[deny(unused_variables)]
     #[must_use]
-    pub fn update<T: Config>(
+    pub fn update(
         params: &ModuleParams<T>,
         name: Vec<u8>,
         address: Vec<u8>,
-        delegation_fee: Option<Percent>,
+        fees: Option<ValidatorFees>,
         metadata: Option<Vec<u8>>,
+        weight_setting_delegation: Option<DelegationInfo<T::AccountId>>,
     ) -> Self {
         let ModuleParams {
             name: old_name,
             address: old_address,
-            delegation_fee: _,
+            fees: _,
             metadata: _,
             _pd: _,
         } = params;
@@ -56,18 +59,20 @@ impl ModuleChangeset {
         Self {
             name: (name != *old_name).then_some(name),
             address: (address != *old_address).then_some(address),
-            delegation_fee,
+            fees,
             metadata,
+            weight_setting_delegation,
         }
     }
 
     #[deny(unused_variables)]
-    pub fn validate<T: Config>(&self, netuid: u16) -> Result<(), sp_runtime::DispatchError> {
+    pub fn validate(&self, netuid: u16) -> Result<(), sp_runtime::DispatchError> {
         let Self {
             name,
             address,
-            delegation_fee,
+            fees,
             metadata,
+            weight_setting_delegation,
         } = self;
 
         let max_length = MaxNameLength::<T>::get() as usize;
@@ -81,31 +86,36 @@ impl ModuleChangeset {
             ModuleValidator::validate_address::<T>(address, max_length)?;
         }
 
-        if let Some(fee) = delegation_fee {
-            ModuleValidator::validate_delegation_fee::<T>(fee)?;
+        if let Some(fees) = fees {
+            ModuleValidator::validate_fees::<T>(fees)?;
         }
 
         if let Some(metadata) = metadata {
             ModuleValidator::validate_metadata::<T>(metadata)?;
         }
 
+        if let Some(delegation_info) = weight_setting_delegation {
+            ModuleValidator::validate_weight_setting_delegation::<T>(delegation_info)?;
+        }
+
         Ok(())
     }
 
     #[deny(unused_variables)]
-    pub fn apply<T: Config>(
+    pub fn apply(
         self,
         netuid: u16,
         key: T::AccountId,
         uid: u16,
     ) -> Result<(), sp_runtime::DispatchError> {
-        self.validate::<T>(netuid)?;
+        self.validate(netuid)?;
 
         let Self {
             name,
             address,
-            delegation_fee,
+            fees,
             metadata,
+            weight_setting_delegation,
         } = self;
 
         if let Some(new_name) = name {
@@ -116,12 +126,16 @@ impl ModuleChangeset {
             Address::<T>::insert(netuid, uid, new_address);
         }
 
-        if let Some(new_fee) = delegation_fee {
-            DelegationFee::<T>::insert(&key, new_fee);
+        if let Some(new_fees) = fees {
+            ValidatorFeeConfig::<T>::insert(&key, new_fees);
         }
 
         if let Some(new_metadata) = metadata {
             Metadata::<T>::insert(netuid, &key, new_metadata);
+        }
+
+        if let Some(delegation_info) = weight_setting_delegation {
+            WeightSettingDelegation::<T>::insert(netuid, &key, delegation_info);
         }
 
         Pallet::<T>::deposit_event(Event::ModuleUpdated(netuid, key));
@@ -162,20 +176,25 @@ impl ModuleValidator {
         Ok(())
     }
 
-    pub fn validate_delegation_fee<T: Config>(
-        fee: &Percent,
-    ) -> Result<(), sp_runtime::DispatchError> {
-        ensure!(
-            *fee >= FloorDelegationFee::<T>::get(),
-            Error::<T>::InvalidMinDelegationFee
-        );
-        Ok(())
-    }
-
     pub fn validate_metadata<T: Config>(metadata: &[u8]) -> Result<(), sp_runtime::DispatchError> {
         ensure!(!metadata.is_empty(), Error::<T>::InvalidModuleMetadata);
         ensure!(metadata.len() <= 120, Error::<T>::ModuleMetadataTooLong);
         core::str::from_utf8(metadata).map_err(|_| Error::<T>::InvalidModuleMetadata)?;
+        Ok(())
+    }
+
+    pub fn validate_fees<T: Config>(fees: &ValidatorFees) -> Result<(), sp_runtime::DispatchError> {
+        fees.validate::<T>().map_err(|_| Error::<T>::InvalidMinDelegationFee)?;
+        Ok(())
+    }
+
+    pub fn validate_weight_setting_delegation<T: Config>(
+        delegation_info: &DelegationInfo<T::AccountId>,
+    ) -> Result<(), sp_runtime::DispatchError> {
+        ensure!(
+            delegation_info.fee_percentage >= MinFees::<T>::get().validator_weight_fee,
+            Error::<T>::InvalidMinDelegationFee
+        );
         Ok(())
     }
 }
@@ -185,7 +204,7 @@ impl<T: Config> Pallet<T> {
         ModuleParams {
             name: Name::<T>::get(netuid, uid),
             address: Address::<T>::get(netuid, uid),
-            delegation_fee: DelegationFee::<T>::get(key),
+            fees: ValidatorFeeConfig::<T>::get(key),
             metadata: Metadata::<T>::get(netuid, key),
             _pd: PhantomData,
         }
