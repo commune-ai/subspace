@@ -47,17 +47,6 @@ pub mod dispatches {
                 return Err(Error::<T>::InvalidSubnetId.into());
             }
 
-            // TODO: take this check away
-            //
-            // the runtime has to deal with this case
-            // expected behaivor from the runtime is: it just notices this / consensus breaks down,
-            // and it sets these token emission that were ment for those empty epochs
-            // back to the pending emission
-            ensure!(
-                !decrypted_weights.is_empty(),
-                Error::<T>::EmptyDecryptedWeights
-            );
-
             // Get all epochs for this subnet
             let epoch_count = ConsensusParameters::<T>::iter_prefix(subnet_id).count();
 

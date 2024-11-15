@@ -391,7 +391,6 @@ pub fn apply_delegation_fee<T: Config>(
 }
 
 pub fn compute_bonds_and_dividends_linear<T: Config>(
-    params: &ConsensusParams<T>,
     modules: &FlattenedModules<T::AccountId>,
     weights: &WeightsVal,
     active_stake: &ActiveStake,
