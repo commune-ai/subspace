@@ -5,9 +5,11 @@ use pallet_subnet_emission::{
         params::{AccountKey, ModuleKey},
     },
     types::SubnetDecryptionInfo,
-    BannedDecryptionNodes, ConsensusParameters, Weights,
+    BannedDecryptionNodes, ConsensusParameters, SubnetDecryptionData, Weights,
 };
-use pallet_subspace::{Active, Consensus, Founder, PruningScores, Rank, Trust, ValidatorTrust};
+use pallet_subspace::{
+    Active, Consensus, Founder, PruningScores, Rank, Trust, UseWeightsEncryption, ValidatorTrust,
+};
 use parity_scale_codec::Encode;
 use rand::rngs::OsRng;
 use rsa::{traits::PublicKeyParts, RsaPrivateKey};
@@ -1660,5 +1662,25 @@ fn weight_setting_delegation() {
             ((to_nano(1000) as f32 * 0.25) * 0.95) as u64,
             10000
         );
+    });
+}
+
+#[test]
+fn receive_empty_weights() {
+    new_test_ext().execute_with(|| {
+        use sp_runtime::Percent;
+        const NETUID: u16 = 0;
+
+        let _uid = register_module(NETUID, 0, to_nano(500000), false).unwrap();
+
+        let result = YumaEpoch::<Test>::new(
+            NETUID,
+            ConsensusParams::<Test>::new(NETUID, to_nano(1000)).unwrap(),
+        )
+        .run(vec![])
+        .unwrap();
+
+        dbg!(&result);
+        panic!("a");
     });
 }

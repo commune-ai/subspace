@@ -99,7 +99,6 @@ impl<T: Config> LinearEpoch<T> {
             ema_bonds,
             dividends,
         } = compute_bonds_and_dividends_linear::<T>(
-            &self.params,
             &self.modules,
             &weights,
             &active_stake,

@@ -321,6 +321,39 @@ impl<T: Config> Pallet<T> {
         (with_encryption, without_encryption)
     }
 
+    pub fn clear_hanging_subnet_state() -> usize {
+        let (_, hanging_subnets) = Self::get_valid_subnets(None);
+
+        for netuid in &hanging_subnets {
+            DecryptedWeights::<T>::remove(netuid);
+
+            // Clear hashes & encrypted weights
+            let _ = WeightEncryptionData::<T>::clear_prefix(netuid, u32::MAX, None);
+
+            // Clear ConsensusParameters and sum up token emission
+            let mut total_emission = 0u64;
+
+            // We need to iterate through all ConsensusParameters to sum up the token emission
+            // before clearing
+            for (_, params) in ConsensusParameters::<T>::iter_prefix(netuid) {
+                total_emission = total_emission.saturating_add(params.token_emission);
+            }
+
+            // Now clear the ConsensusParameters
+            let _ = ConsensusParameters::<T>::clear_prefix(netuid, u32::MAX, None);
+
+            // Add tokens back to pending emission
+            PendingEmission::<T>::mutate(netuid, |emission| {
+                *emission = emission.saturating_add(total_emission);
+            });
+
+            // Remove the subnet's decryption data
+            SubnetDecryptionData::<T>::remove(netuid);
+        }
+
+        hanging_subnets.len()
+    }
+
     pub fn cancel_expired_offchain_workers(block_number: u64) {
         let max_inactivity_blocks =
             T::PingInterval::get().saturating_mul(T::MaxFailedPings::get() as u64);

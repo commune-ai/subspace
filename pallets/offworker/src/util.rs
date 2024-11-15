@@ -162,26 +162,20 @@ pub fn should_decrypt_weights<T: Config>(
         subnet_id,
     );
 
+    let decrypted_weights = decrypted_weights_map.into_iter().collect::<Vec<_>>();
+    if decrypted_weights.is_empty() {
+        return ShouldDecryptResult::<T>::default();
+    }
+
     // Run consensus simulation with error handling
-    let simulation_yuma_output = match YumaEpoch::<T>::new(subnet_id, simulation_yuma_params)
-        .run(decrypted_weights_map.into_iter().collect::<Vec<_>>())
-    {
-        Ok(output) => output,
-        // 3. TODO: this is the scenario that occours when the weights are empty usually. the
-        //    consenus will return an error broken weights. The offchain worker has to keep working,
-        //    even if it has empty weights, so probably do an early check, before running this
-        //    consensus, to make sure the consensus is supplied with weights. And if it has empty
-        //    weights, just skip the yuma, and make sure that it will send these empty weights, back
-        //    to the runtime, with the potential correct weights that it might encounter in the
-        //    future.
-        Err(e) => {
-            log::error!("Failed to run consensus simulation: {:?}", e);
-            return ShouldDecryptResult::default(); // this just has to send the weights back to
-                                                   // runtime, we immidiately declare the copying as
-                                                   // irrational and let all weights to be returned
-                                                   // and handeled by the runtime
-        }
-    };
+    let simulation_yuma_output =
+        match YumaEpoch::<T>::new(subnet_id, simulation_yuma_params).run(decrypted_weights) {
+            Ok(output) => output,
+            Err(e) => {
+                log::error!("Failed to run consensus simulation: {:?}", e);
+                return ShouldDecryptResult::default();
+            }
+        };
 
     // Get delegation fee (this is not a Result type)
     let delegation_fee = MinFees::<T>::get().stake_delegation_fee;

@@ -218,6 +218,10 @@ pub mod pallet {
                 "Running on_initialize at block: {:?}, subnet_emission module",
                 block_number
             );
+
+            let cleared = Self::clear_hanging_subnet_state();
+            log::info!("Cleared state of {cleared}");
+
             Self::distribute_subnets_to_nodes(block_number);
             log::info!("Distributed subnets to nodes");
             Self::cancel_expired_offchain_workers(block_number);
