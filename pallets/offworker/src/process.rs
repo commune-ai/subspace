@@ -37,15 +37,14 @@ impl<T: Config> Pallet<T> {
             // This case should never happen, it just provides additional level of security
             // against potential very rare timing issue or race condition. Ultimately it ensures
             // that the caching system can never go into broken states.
-
-            // if simulation_result.creation_block < min_block {
-            //     log::warn!(
-            //         "Skipping subnet {} due to race condition, don't worry ! deleting cache",
-            //         subnet_id
-            //     );
-            //     Self::delete_subnet_state(&subnet_id);
-            //     return;
-            // }
+            if simulation_result.creation_block < min_block {
+                log::warn!(
+                    "Skipping subnet {} due to race condition, don't worry ! deleting cache",
+                    subnet_id
+                );
+                Self::delete_subnet_state(&subnet_id);
+                return;
+            }
 
             if last_processed_block >= max_block {
                 log::info!(
@@ -72,7 +71,7 @@ impl<T: Config> Pallet<T> {
 
             if epochs.is_empty() {
                 Self::save_subnet_state(subnet_id, max_block, result.simulation_result);
-            } else if let Err(err) = Self::do_send_weights(subnet_id, epochs, result.delta) {
+            } else if let Err(err) = Self::do_send_weights(subnet_id, result.delta) {
                 log::error!(
                     "Couldn't send weights to runtime for subnet {}: {}",
                     subnet_id,

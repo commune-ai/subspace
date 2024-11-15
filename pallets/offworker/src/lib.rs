@@ -309,11 +309,44 @@ impl<T: Config> Pallet<T> {
             .build()
     }
 
-    fn do_send_weights(
-        subnet_id: u16,
-        decrypted_weights: Vec<BlockWeights>,
-        delta: I64F64,
-    ) -> Result<(), &'static str> {
+    // TODO: make more efficient in v2, we can be just caching this
+    pub(crate) fn decrypt_all_subnet_weighs(netuid: u16) -> Vec<BlockWeights> {
+        ConsensusParameters::<T>::iter_prefix(netuid)
+            .filter_map(|(block_number, consensus_params)| {
+                // Get all modules with encrypted weights
+                let uid_weights = consensus_params
+                    .modules
+                    .iter()
+                    .filter_map(|(_, module_params)| {
+                        if !module_params.weight_encrypted.is_empty() {
+                            ow_extensions::offworker::decrypt_weight(
+                                module_params.weight_encrypted.clone(),
+                            )
+                            .map(|(weights, key)| (module_params.uid, weights, key))
+                            .or_else(|| {
+                                log::error!(
+                                    "Failed to decrypt weights for UID: {} at block: {}",
+                                    module_params.uid,
+                                    block_number
+                                );
+                                None
+                            })
+                        } else {
+                            None
+                        }
+                    })
+                    .collect::<Vec<_>>();
+
+                if uid_weights.is_empty() {
+                    None
+                } else {
+                    Some((block_number, uid_weights))
+                }
+            })
+            .collect()
+    }
+
+    fn do_send_weights(subnet_id: u16, delta: I64F64) -> Result<(), &'static str> {
         let signer = Signer::<T, T::AuthorityId>::all_accounts();
         if !signer.can_sign() {
             return Err(
@@ -321,8 +354,7 @@ impl<T: Config> Pallet<T> {
             );
         }
 
-        // get the weights again ( send all of them )
-        // -----
+        let decrypted_weights = Self::decrypt_all_subnet_weighs(subnet_id);
 
         log::info!("Sending decrypted weights to subnet {}", subnet_id);
 
