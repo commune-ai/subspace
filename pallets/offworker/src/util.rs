@@ -167,6 +167,13 @@ pub fn should_decrypt_weights<T: Config>(
         .run(decrypted_weights_map.into_iter().collect::<Vec<_>>())
     {
         Ok(output) => output,
+        // 3. TODO: this is the scenario that occours when the weights are empty usually. the
+        //    consenus will return an error broken weights. The offchain worker has to keep working,
+        //    even if it has empty weights, so probably do an early check, before running this
+        //    consensus, to make sure the consensus is supplied with weights. And if it has empty
+        //    weights, just skip the yuma, and make sure that it will send these empty weights, back
+        //    to the runtime, with the potential correct weights that it might encounter in the
+        //    future.
         Err(e) => {
             log::error!("Failed to run consensus simulation: {:?}", e);
             return ShouldDecryptResult::default(); // this just has to send the weights back to

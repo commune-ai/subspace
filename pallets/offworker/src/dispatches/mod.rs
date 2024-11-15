@@ -47,6 +47,12 @@ pub mod dispatches {
                 return Err(Error::<T>::InvalidSubnetId.into());
             }
 
+            // TODO: take this check away
+            //
+            // the runtime has to deal with this case
+            // expected behaivor from the runtime is: it just notices this / consensus breaks down,
+            // and it sets these token emission that were ment for those empty epochs
+            // back to the pending emission
             ensure!(
                 !decrypted_weights.is_empty(),
                 Error::<T>::EmptyDecryptedWeights
@@ -56,12 +62,10 @@ pub mod dispatches {
             let epoch_count = ConsensusParameters::<T>::iter_prefix(subnet_id).count();
 
             // Check if the length matches
-
-            // TODO: get this back to life later
-            // ensure!(
-            //     decrypted_weights.len() == epoch_count,
-            //     Error::<T>::DecryptedWeightsLengthMismatch
-            // );
+            ensure!(
+                decrypted_weights.len() == epoch_count,
+                Error::<T>::DecryptedWeightsLengthMismatch
+            );
 
             let has_weights = decrypted_weights.iter().any(|(_, inner_vec)| {
                 inner_vec.iter().any(|(_, weight_vec, _)| !weight_vec.is_empty())
