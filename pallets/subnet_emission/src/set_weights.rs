@@ -275,14 +275,15 @@ impl<T: Config> Pallet<T> {
         let key = ensure_signed(origin)?;
 
         // Check if the sender is registered in the network
-        if !pallet_subspace::Pallet::<T>::is_registered(Some(netuid), &key) {
+        let Some(uid) = pallet_subspace::Pallet::<T>::get_uid_for_key(netuid, &key) else {
             return Err(Error::<T>::ModuleDoesNotExist.into());
-        }
+        };
 
         // Check if the target is registered in the network
-        if !pallet_subspace::Pallet::<T>::is_registered(Some(netuid), &target) {
+        let Some(target_uid) = pallet_subspace::Pallet::<T>::get_uid_for_key(netuid, &target)
+        else {
             return Err(Error::<T>::ModuleDoesNotExist.into());
-        }
+        };
 
         // Check if target is already delegating their control
         if pallet_subspace::WeightSettingDelegation::<T>::get(netuid, &target).is_some() {
@@ -290,6 +291,29 @@ impl<T: Config> Pallet<T> {
         }
 
         pallet_subspace::WeightSettingDelegation::<T>::insert(netuid, key.clone(), target.clone());
+
+        if pallet_subspace::UseWeightsEncryption::<T>::get(netuid) {
+            let Some(parent_weights) = WeightEncryptionData::<T>::get(netuid, target_uid) else {
+                return Ok(());
+            };
+
+            WeightEncryptionData::<T>::insert(netuid, uid, parent_weights);
+        } else {
+            let Some(parent_weights) = Weights::<T>::get(netuid, target_uid) else {
+                return Ok(());
+            };
+
+            Weights::<T>::insert(netuid, uid, parent_weights);
+        }
+
+        if let Some(weight_set_at) = pallet_subspace::WeightSetAt::<T>::get(netuid, target_uid) {
+            pallet_subspace::WeightSetAt::<T>::insert(netuid, uid, weight_set_at);
+        }
+
+        pallet_subspace::Pallet::<T>::copy_last_update_for_uid(netuid, uid, target_uid);
+        pallet_subspace::Pallet::<T>::deposit_event(pallet_subspace::Event::WeightsSet(
+            netuid, uid,
+        ));
 
         Ok(())
     }
