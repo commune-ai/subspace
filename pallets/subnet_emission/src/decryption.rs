@@ -1,3 +1,4 @@
+use crate::subnet_consensus::util::params::ConsensusParams;
 use pallet_subspace::UseWeightsEncryption;
 use sp_runtime::traits::Get;
 use subnet_consensus::util::params::ModuleKey;
@@ -93,21 +94,33 @@ impl<T: Config> Pallet<T> {
                 return;
             }
         };
+        // we should allow empty vector here
         let valid_weights: Vec<KeylessBlockWeights> = weights
             .into_iter()
             .filter_map(|(block, block_weights)| {
-                let valid_block_weights = block_weights
-                    .into_iter()
-                    .filter_map(|(uid, weights, received_key)| {
-                        Self::validate_weight_entry(netuid, block, uid, &weights, &received_key)
+                if let Some(params) = ConsensusParameters::<T>::get(netuid, block) {
+                    let valid_block_weights = block_weights
+                        .into_iter()
+                        .filter_map(|(uid, weights, received_key)| {
+                            Self::validate_weight_entry(
+                                netuid,
+                                &params,
+                                block,
+                                uid,
+                                &weights,
+                                &received_key,
+                            )
                             .map(|_| (uid, weights))
-                    })
-                    .collect::<Vec<_>>();
+                        })
+                        .collect::<Vec<_>>();
 
-                if valid_block_weights.is_empty() {
-                    None
+                    if valid_block_weights.is_empty() {
+                        None
+                    } else {
+                        Some((block, valid_block_weights))
+                    }
                 } else {
-                    Some((block, valid_block_weights))
+                    None
                 }
             })
             .collect();
@@ -134,6 +147,7 @@ impl<T: Config> Pallet<T> {
     #[inline]
     fn validate_weight_entry(
         netuid: u16,
+        params: &ConsensusParams<T>,
         block: u64,
         uid: u16,
         weights: &[(u16, u16)],
@@ -143,7 +157,6 @@ impl<T: Config> Pallet<T> {
             return Some(());
         }
 
-        let params = ConsensusParameters::<T>::get(netuid, block)?;
         let module_key = params.get_module_key_by_uid(uid)?;
         let module = params.modules.get(&ModuleKey(module_key.clone()))?;
 
@@ -155,42 +168,25 @@ impl<T: Config> Pallet<T> {
             return None;
         }
 
+        // It is not possible to somehow "time the delegation" and then successfully weight copy,
+        // because all of the consensus parameters are essentially "snapshotted" at one time, so the
+        // person was either delegating to someone, and uses their weights, paying the fee, or they
+        // were not delegating, and they use their own weights.
         let key = match &module.delegated_to {
             Some((key, _fee)) => key,
             None => &module_key,
         };
+        // In the scenario where someone would just try to copy the encrypted weights of other
+        // validator, his weights would be discarded, because the key would not match the key of the
+        // module
         if key.encode() != received_key {
             log::warn!("Key mismatch for module {uid}");
             return None;
         }
 
-        Self::validate_weights(uid, weights, netuid)
-    }
-
-    #[inline]
-    fn validate_weights(uid: u16, weights: &[(u16, u16)], netuid: u16) -> Option<()> {
         let (uids, values): (Vec<_>, Vec<_>) = weights.iter().copied().unzip();
 
-        // Early return if lengths don't match
-        if uids.len() != values.len() {
-            return None;
-        }
-
-        // Check for duplicates and self-referencing
-        let unique_uids = uids.iter().collect::<sp_std::collections::btree_set::BTreeSet<_>>();
-        if unique_uids.len() != uids.len() || uids.contains(&uid) {
-            return None;
-        }
-
-        // Check length constraints
-        let min_allowed_length =
-            pallet_subspace::Pallet::<T>::get_min_allowed_weights(netuid) as usize;
-        let max_allowed_length = pallet_subspace::MaxAllowedWeights::<T>::get(netuid) as usize;
-
-        if !(min_allowed_length..=max_allowed_length).contains(&uids.len()) {
-            return None;
-        }
-        Some(())
+        Self::validate_input(uid, &uids, &values, netuid).ok()
     }
 
     fn update_decrypted_weights(netuid: u16, valid_weights: Vec<KeylessBlockWeights>) {

@@ -115,7 +115,6 @@ macro_rules! define_subnet_includes {
 ///     },
 ///     swap_storages: {
 ///         optional: {
-///             WeightSetAt: u64 = 0
 ///         },
 ///         required: {
 ///             RegistrationBlock: u64 = 0,

@@ -1665,22 +1665,22 @@ fn weight_setting_delegation() {
     });
 }
 
-#[test]
-fn receive_empty_weights() {
-    new_test_ext().execute_with(|| {
-        use sp_runtime::Percent;
-        const NETUID: u16 = 0;
+// #[test]
+// fn receive_empty_weights() {
+//     new_test_ext().execute_with(|| {
+//         use sp_runtime::Percent;
+//         const NETUID: u16 = 0;
 
-        let _uid = register_module(NETUID, 0, to_nano(500000), false).unwrap();
+//         let _uid = register_module(NETUID, 0, to_nano(500000), false).unwrap();
 
-        let result = YumaEpoch::<Test>::new(
-            NETUID,
-            ConsensusParams::<Test>::new(NETUID, to_nano(1000)).unwrap(),
-        )
-        .run(vec![])
-        .unwrap();
+//         let result = YumaEpoch::<Test>::new(
+//             NETUID,
+//             ConsensusParams::<Test>::new(NETUID, to_nano(1000)).unwrap(),
+//         )
+//         .run(vec![])
+//         .unwrap();
 
-        dbg!(&result);
-        panic!("a");
-    });
-}
+//         dbg!(&result);
+//         panic!("a");
+//     });
+// }

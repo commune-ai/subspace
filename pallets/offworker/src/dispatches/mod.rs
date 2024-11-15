@@ -37,7 +37,6 @@ pub mod dispatches {
             } = payload;
 
             let decryption_data = SubnetDecryptionData::<T>::get(subnet_id);
-
             if let Some(decryption_data) = decryption_data {
                 ensure!(
                     decryption_data.node_id == public.into_account(),
@@ -50,19 +49,14 @@ pub mod dispatches {
             // Get all epochs for this subnet
             let epoch_count = ConsensusParameters::<T>::iter_prefix(subnet_id).count();
 
-            dbg!("lenght check", decrypted_weights.len(), epoch_count);
+            // dbg!("lenght check", decrypted_weights.len(), epoch_count);
             // Check if the length matches
             ensure!(
                 decrypted_weights.len() == epoch_count,
                 Error::<T>::DecryptedWeightsLengthMismatch
             );
 
-            let has_weights = decrypted_weights.iter().any(|(_, inner_vec)| {
-                inner_vec.iter().any(|(_, weight_vec, _)| !weight_vec.is_empty())
-            });
-
-            ensure!(has_weights, Error::<T>::EmptyDecryptedWeights);
-
+            // TODO: make a periodical irrationality delta reseter that subnet owner can control
             IrrationalityDelta::<T>::set(subnet_id, delta);
             pallet_subnet_emission::Pallet::<T>::handle_decrypted_weights(
                 subnet_id,
