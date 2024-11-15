@@ -321,6 +321,9 @@ impl<T: Config> Pallet<T> {
             );
         }
 
+        // get the weights again ( send all of them )
+        // -----
+
         log::info!("Sending decrypted weights to subnet {}", subnet_id);
 
         // Sends unsigned transaction with a signed payload
