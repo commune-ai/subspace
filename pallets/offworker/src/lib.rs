@@ -309,39 +309,36 @@ impl<T: Config> Pallet<T> {
             .build()
     }
 
-    // TODO: make more efficient in v2, we can be just caching this
+    /// Decrypts all subnet weights for a given netuid. Returns a vector of block weights,
+    /// maintaining the length of consensus parameters. Failed decryptions result in empty vectors.
+    /// V2 TODO: make more efficient in v2, we can be just caching this
     pub(crate) fn decrypt_all_subnet_weighs(netuid: u16) -> Vec<BlockWeights> {
         ConsensusParameters::<T>::iter_prefix(netuid)
-            .filter_map(|(block_number, consensus_params)| {
-                // Get all modules with encrypted weights
-                let uid_weights = consensus_params
+            .map(|(block_number, consensus_params)| {
+                let uid_weights: Vec<_> = consensus_params
                     .modules
                     .iter()
-                    .filter_map(|(_, module_params)| {
+                    .map(|(_, module_params)| {
                         if !module_params.weight_encrypted.is_empty() {
                             ow_extensions::offworker::decrypt_weight(
                                 module_params.weight_encrypted.clone(),
                             )
                             .map(|(weights, key)| (module_params.uid, weights, key))
-                            .or_else(|| {
-                                log::error!(
+                            .unwrap_or_else(|| {
+                                log::warn!(
                                     "Failed to decrypt weights for UID: {} at block: {}",
                                     module_params.uid,
                                     block_number
                                 );
-                                None
+                                (module_params.uid, Vec::new(), Vec::new())
                             })
                         } else {
-                            None
+                            (module_params.uid, Vec::new(), Vec::new())
                         }
                     })
-                    .collect::<Vec<_>>();
+                    .collect();
 
-                if uid_weights.is_empty() {
-                    None
-                } else {
-                    Some((block_number, uid_weights))
-                }
+                (block_number, uid_weights)
             })
             .collect()
     }
@@ -357,6 +354,7 @@ impl<T: Config> Pallet<T> {
         let decrypted_weights = Self::decrypt_all_subnet_weighs(subnet_id);
 
         log::info!("Sending decrypted weights to subnet {}", subnet_id);
+        dbg!("sending decrypted weights");
 
         // Sends unsigned transaction with a signed payload
         let results = signer.send_unsigned_transaction(

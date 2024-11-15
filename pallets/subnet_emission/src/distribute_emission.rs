@@ -165,6 +165,7 @@ fn run_yuma_consensus<T: Config>(netuid: u16, emission_to_drain: u64) -> Result<
         log::warn!("No encrypted weights found for subnet {netuid}");
         return Ok(());
     }
+    dbg!("found encrypted weights of lenght", encrypted_weights.len());
 
     // If subnet has some weights, create the parameters
     let mut params = ConsensusParams::<T>::new(netuid, emission_to_drain)?;

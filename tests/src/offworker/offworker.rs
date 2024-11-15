@@ -16,6 +16,7 @@ use frame_system::{
 };
 use ow_extensions::OffworkerExt;
 use pallet_offworker::{types::DecryptedWeightsPayload, Call, IrrationalityDelta, Pallet};
+use pallet_subnet_emission::types::PublicKey;
 use parity_scale_codec::{Decode, Encode};
 use sp_core::{
     offchain::{testing, OffchainDbExt, OffchainWorkerExt, TransactionPoolExt},
@@ -74,6 +75,17 @@ fn new_offworker_test_ext(
     (ext, pool_state, offchain_state)
 }
 
+pub fn generate_test_public_key() -> PublicKey {
+    let n = vec![
+        0x00, 0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77, 0x88, 0x99, 0xAA, 0xBB, 0xCC, 0xDD, 0xEE,
+        0xFF,
+    ];
+
+    let e = vec![0x01, 0x00, 0x01];
+
+    (n, e)
+}
+
 // cargo test --package tests --features testing-offworker test_offchain_worker_behavior --
 // --nocapture
 #[test]
@@ -104,6 +116,8 @@ fn test_offchain_worker_behavior() {
         };
 
         let decryption_info = initialize_authorities(public_key, first_block);
+
+        let wrong_public_key = generate_test_public_key();
 
         // Run all important things in on initialize hooks
         PendingEmission::<Test>::set(TEST_SUBNET_ID, PENDING_EMISSION);
@@ -140,13 +154,18 @@ fn test_offchain_worker_behavior() {
                         let validator_key =
                             SubspaceMod::get_key_for_uid(TEST_SUBNET_ID, uid).unwrap().encode();
 
-                        // Pring all encrpyt inputs
-                        let encrypted_weights = encrypt(
-                            decryption_info.node_public_key.clone(),
-                            weight_vec.clone(),
-                            validator_key,
-                        );
-                        // Pring all encrpyt outputs
+                        // Use wrong public key for the first epoch the offchain worker should not
+                        // break down under this scenario, it should just leave empty vector of
+                        // decrypted weights for this period and then send it with the rest of
+                        // correctly decrypted weights
+                        let encryption_key = if block_number == first_block {
+                            wrong_public_key.clone()
+                        } else {
+                            decryption_info.node_public_key.clone()
+                        };
+
+                        let encrypted_weights =
+                            encrypt(encryption_key, weight_vec.clone(), validator_key);
                         let decrypted_weights_hash = hash(weight_vec.clone());
 
                         if let Some(key) = SubspaceMod::get_key_for_uid(TEST_SUBNET_ID, uid) {
@@ -155,8 +174,7 @@ fn test_offchain_worker_behavior() {
                                 key,
                                 encrypted_weights,
                                 decrypted_weights_hash,
-                                false, /* The last update is manually overwriten based on the
-                                        * dataset */
+                                false,
                             );
                         }
                         input_decrypted_weights.push((uid, weight_vec));
