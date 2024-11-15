@@ -1608,3 +1608,57 @@ fn ban_decryption_node() {
         assert_ne!(BannedDecryptionNodes::<Test>::get(dn_1), 0);
     });
 }
+
+#[test]
+fn weight_setting_delegation() {
+    new_test_ext().execute_with(|| {
+        use sp_runtime::Percent;
+        const NETUID: u16 = 0;
+
+        let parent_key = 0;
+        let child_key = 1;
+        let _parent_uid = register_module(NETUID, parent_key, to_nano(500000), false).unwrap();
+        let _child_uid = register_module(NETUID, child_key, to_nano(500000), false).unwrap();
+        register_module(NETUID, 2, to_nano(0), false).unwrap();
+
+        FounderShare::<Test>::set(NETUID, 0);
+
+        dbg!(pallet_subnet_emission::SubnetConsensusType::<Test>::get(
+            NETUID
+        ));
+
+        PendingEmission::<Test>::set(NETUID, to_nano(1000));
+
+        pallet_subspace::Pallet::<Test>::update_module(
+            get_origin(parent_key),
+            NETUID,
+            "test".as_bytes().to_vec(),
+            "test:2020".as_bytes().to_vec(),
+            None,
+            Some(Percent::from_percent(5)),
+            None,
+        )
+        .unwrap();
+
+        pallet_subspace::WeightSettingDelegation::<Test>::set(NETUID, child_key, Some(parent_key));
+
+        step_block(1);
+
+        set_weights(NETUID, parent_key, vec![2], vec![2000]);
+
+        step_epoch(NETUID);
+
+        let emissions = Emission::<Test>::get(NETUID);
+
+        assert_in_range!(
+            emissions[0],
+            ((to_nano(1000) as f32 * 0.25) * 1.05) as u64,
+            10000
+        );
+        assert_in_range!(
+            emissions[1],
+            ((to_nano(1000) as f32 * 0.25) * 0.95) as u64,
+            10000
+        );
+    });
+}

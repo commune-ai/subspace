@@ -76,6 +76,7 @@ pub struct FlattenedModules<AccountId: Debug> {
     pub validator_forbid: Vec<bool>,
     pub stake_normalized: Vec<I32F32>,
     pub stake_original: Vec<I64F64>,
+    pub delegated_to: Vec<Option<(AccountId, Percent)>>,
     pub bonds: Vec<Vec<(u16, I32F32)>>,
     pub weight_unencrypted_hash: Vec<Vec<u8>>,
     pub weight_encrypted: Vec<Vec<u8>>,
@@ -93,6 +94,7 @@ impl<AccountId: Debug> From<BTreeMap<ModuleKey<AccountId>, ModuleParams<AccountI
             validator_forbid: Vec::with_capacity(value.len()),
             stake_normalized: Vec::with_capacity(value.len()),
             stake_original: Vec::with_capacity(value.len()),
+            delegated_to: Vec::with_capacity(value.len()),
             bonds: Vec::with_capacity(value.len()),
             weight_unencrypted_hash: Vec::with_capacity(value.len()),
             weight_encrypted: Vec::with_capacity(value.len()),
@@ -106,6 +108,7 @@ impl<AccountId: Debug> From<BTreeMap<ModuleKey<AccountId>, ModuleParams<AccountI
             modules.validator_forbid.push(!module.validator_permit);
             modules.stake_normalized.push(module.stake_normalized);
             modules.stake_original.push(module.stake_original);
+            modules.delegated_to.push(module.delegated_to);
             modules
                 .bonds
                 .push(module.bonds.into_iter().map(|(k, m)| (k, I32F32::from_num(m))).collect());
@@ -165,8 +168,15 @@ impl<T: Config> ConsensusParams<T> {
                         stake_normalized,
                         stake_original,
                         bonds,
-                        delegated_to: WeightSettingDelegation::<T>::get(subnet_id, &key)
-                            .map(|delegate| (delegate, Percent::from_percent(0))),
+                        delegated_to: WeightSettingDelegation::<T>::get(subnet_id, &key).map(
+                            |delegate| {
+                                (
+                                    delegate.clone(),
+                                    pallet_subspace::ValidatorFeeConfig::<T>::get(delegate)
+                                        .validator_weight_fee,
+                                )
+                            },
+                        ),
                         weight_encrypted: encryption_data.encrypted,
                         weight_hash: encryption_data.decrypted_hashes,
                     };
