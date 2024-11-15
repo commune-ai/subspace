@@ -108,7 +108,6 @@ pub mod pallet {
             Address,
             Metadata,
             RegistrationBlock,
-            WeightSetAt
         },
         maps: {
             BondsMovingAverage: u64 = 900_000,
@@ -168,7 +167,6 @@ pub mod pallet {
         // Put here every module-related double map, where the first key is netuid, second key is module uid. These storages holds some value for each module ie. name, address, etc.
         swap_storages: {
             optional: {
-                WeightSetAt: u64 = |_: PhantomData<T>| 0,
             },
             required: {
                 RegistrationBlock: u64 = |_: PhantomData<T>| Pallet::<T>::get_current_block_number(),
@@ -355,9 +353,6 @@ pub mod pallet {
     #[pallet::storage]
     pub type RegistrationBlock<T: Config> =
         StorageDoubleMap<_, Identity, u16, Identity, u16, u64, ValueQuery>;
-
-    #[pallet::storage]
-    pub type WeightSetAt<T: Config> = StorageDoubleMap<_, Identity, u16, Identity, u16, u64>;
 
     // --- Rootnet ---
 

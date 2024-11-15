@@ -324,14 +324,7 @@ impl<T: Config> Pallet<T> {
                                 module_params.weight_encrypted.clone(),
                             )
                             .map(|(weights, key)| (module_params.uid, weights, key))
-                            .unwrap_or_else(|| {
-                                log::warn!(
-                                    "Failed to decrypt weights for UID: {} at block: {}",
-                                    module_params.uid,
-                                    block_number
-                                );
-                                (module_params.uid, Vec::new(), Vec::new())
-                            })
+                            .unwrap_or_else(|| (module_params.uid, Vec::new(), Vec::new()))
                         } else {
                             (module_params.uid, Vec::new(), Vec::new())
                         }
@@ -354,7 +347,6 @@ impl<T: Config> Pallet<T> {
         let decrypted_weights = Self::decrypt_all_subnet_weighs(subnet_id);
 
         log::info!("Sending decrypted weights to subnet {}", subnet_id);
-        dbg!("sending decrypted weights");
 
         // Sends unsigned transaction with a signed payload
         let results = signer.send_unsigned_transaction(

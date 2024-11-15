@@ -165,7 +165,6 @@ fn run_yuma_consensus<T: Config>(netuid: u16, emission_to_drain: u64) -> Result<
         log::warn!("No encrypted weights found for subnet {netuid}");
         return Ok(());
     }
-    dbg!("found encrypted weights of lenght", encrypted_weights.len());
 
     // If subnet has some weights, create the parameters
     let mut params = ConsensusParams::<T>::new(netuid, emission_to_drain)?;
@@ -248,9 +247,7 @@ fn process_encrypted_consensus<T: Config>(
         }
 
         if accumulated_emission > 0 {
-            PendingEmission::<T>::mutate(netuid, |pending| {
-                *pending = pending.saturating_add(accumulated_emission);
-            });
+            update_pending_emission::<T>(netuid, &accumulated_emission);
         }
 
         DecryptedWeights::<T>::remove(netuid);

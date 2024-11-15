@@ -78,7 +78,11 @@ where
                         }
                         None => {
                             // V2 TODO:
-                            log::warn!("Failed to decrypt weights for UID: {}", uid);
+                            log::warn!(
+                                "Failed to decrypt weights for UID: {} on subnet {}",
+                                uid,
+                                subnet_id
+                            );
                             None
                             // if this ever happens, we need to make a zk proof of encryption
                             // correctness (that it was not done correctly)

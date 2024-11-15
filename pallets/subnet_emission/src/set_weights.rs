@@ -73,12 +73,16 @@ impl<T: Config> Pallet<T> {
         Self::validate_input(uid, &uids, &values, netuid)?;
         Self::handle_rate_limiting(uid, netuid, &key)?;
         Self::validate_stake(&key, uids.len())?;
-        Self::check_whitelisted(netuid, &uids)?;
         Self::finalize_weights(netuid, uid, key, &uids, &values)?;
         Ok(())
     }
 
-    fn validate_input(uid: u16, uids: &[u16], values: &[u16], netuid: u16) -> DispatchResult {
+    pub(crate) fn validate_input(
+        uid: u16,
+        uids: &[u16],
+        values: &[u16],
+        netuid: u16,
+    ) -> DispatchResult {
         ensure!(
             uids.len() == values.len(),
             Error::<T>::WeightVecNotEqualSize
@@ -94,6 +98,7 @@ impl<T: Config> Pallet<T> {
             pallet_subspace::Pallet::<T>::is_rootnet(netuid) || !uids.contains(&uid),
             Error::<T>::NoSelfWeight
         );
+        Self::check_whitelisted(netuid, &uids)?;
         Ok(())
     }
 
@@ -158,7 +163,6 @@ impl<T: Config> Pallet<T> {
         let zipped_weights: Vec<(u16, u16)> = uids.iter().copied().zip(normalized_values).collect();
         let current_block = pallet_subspace::Pallet::<T>::get_current_block_number();
         Weights::<T>::insert(netuid, uid, zipped_weights.clone());
-        pallet_subspace::WeightSetAt::<T>::insert(netuid, uid, current_block);
         pallet_subspace::Pallet::<T>::set_last_update_for_uid(netuid, uid, current_block);
         pallet_subspace::Pallet::<T>::deposit_event(pallet_subspace::Event::WeightsSet(
             netuid, uid,
@@ -166,7 +170,6 @@ impl<T: Config> Pallet<T> {
 
         Self::for_each_delegated(netuid, &origin, |_target, uid| {
             Weights::<T>::insert(netuid, uid, zipped_weights.clone());
-            pallet_subspace::WeightSetAt::<T>::insert(netuid, uid, current_block);
             pallet_subspace::Pallet::<T>::set_last_update_for_uid(netuid, uid, current_block);
             pallet_subspace::Pallet::<T>::deposit_event(pallet_subspace::Event::WeightsSet(
                 netuid, uid,
@@ -296,18 +299,12 @@ impl<T: Config> Pallet<T> {
             let Some(parent_weights) = WeightEncryptionData::<T>::get(netuid, target_uid) else {
                 return Ok(());
             };
-
             WeightEncryptionData::<T>::insert(netuid, uid, parent_weights);
         } else {
             let Some(parent_weights) = Weights::<T>::get(netuid, target_uid) else {
                 return Ok(());
             };
-
             Weights::<T>::insert(netuid, uid, parent_weights);
-        }
-
-        if let Some(weight_set_at) = pallet_subspace::WeightSetAt::<T>::get(netuid, target_uid) {
-            pallet_subspace::WeightSetAt::<T>::insert(netuid, uid, weight_set_at);
         }
 
         pallet_subspace::Pallet::<T>::copy_last_update_for_uid(netuid, uid, target_uid);
@@ -389,7 +386,6 @@ impl<T: Config> Pallet<T> {
         );
 
         let current_block = pallet_subspace::Pallet::<T>::get_current_block_number();
-        pallet_subspace::WeightSetAt::<T>::insert(netuid, uid, current_block);
         if set_last_updated {
             pallet_subspace::Pallet::<T>::set_last_update_for_uid(netuid, uid, current_block);
         }
@@ -408,7 +404,6 @@ impl<T: Config> Pallet<T> {
             );
 
             let current_block = pallet_subspace::Pallet::<T>::get_current_block_number();
-            pallet_subspace::WeightSetAt::<T>::insert(netuid, uid, current_block);
             pallet_subspace::Pallet::<T>::set_last_update_for_uid(netuid, uid, current_block);
             pallet_subspace::Pallet::<T>::deposit_event(pallet_subspace::Event::WeightsSet(
                 netuid, uid,
