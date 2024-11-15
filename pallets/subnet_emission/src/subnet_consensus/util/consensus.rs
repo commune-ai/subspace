@@ -467,18 +467,18 @@ pub fn compute_bonds_and_dividends_yuma<T: Config>(
         |updated, registered| updated <= registered,
     )?;
 
-    log::trace!("  no deregistered modules bonds: {bonds:?}");
+    log::trace!("no deregistered modules bonds: {bonds:?}");
 
     // Normalize remaining bonds: sum_i b_ij = 1.
     inplace_col_normalize_sparse(&mut bonds, modules.module_count());
-    log::trace!("  normalized bonds: {bonds:?}");
+    log::trace!("normalized bonds: {bonds:?}");
 
     let mut bonds_delta = row_hadamard_sparse(weights.as_ref(), active_stake.as_ref()); // ΔB = W◦S (outdated W masked)
-    log::trace!("  original bonds delta: {bonds_delta:?}");
+    log::trace!("original bonds delta: {bonds_delta:?}");
 
     // Normalize bonds delta.
     inplace_col_normalize_sparse(&mut bonds_delta, modules.module_count()); // sum_i b_ij = 1
-    log::trace!("  normalized bonds delta: {bonds_delta:?}");
+    log::trace!("normalized bonds delta: {bonds_delta:?}");
 
     // Compute bonds moving average.
     let mut ema_bonds = calculate_ema_bonds(
@@ -488,25 +488,25 @@ pub fn compute_bonds_and_dividends_yuma<T: Config>(
         &consensus.clone().into_inner(),
     );
 
-    log::trace!("  original ema bonds: {ema_bonds:?}");
+    log::trace!("original ema bonds: {ema_bonds:?}");
 
     // Normalize EMA bonds.
     inplace_col_normalize_sparse(&mut ema_bonds, modules.module_count()); // sum_i b_ij = 1
-    log::trace!("  normalized ema bonds: {ema_bonds:?}");
+    log::trace!("normalized ema bonds: {ema_bonds:?}");
 
     // Compute dividends: d_i = SUM(j) b_ij * inc_j.
     // range: I32F32(0, 1)
     let mut dividends = matmul_transpose_sparse(&ema_bonds, incentives.as_ref());
-    log::trace!("  original dividends: {dividends:?}");
+    log::trace!("original dividends: {dividends:?}");
 
     apply_delegation_fee::<T>(&mut dividends, modules);
 
     inplace_normalize(&mut dividends);
-    log::trace!("  normalized dividends: {dividends:?}");
+    log::trace!("normalized dividends: {dividends:?}");
 
     // Column max-upscale EMA bonds for storage: max_i w_ij = 1.
     inplace_col_max_upscale_sparse(&mut ema_bonds, modules.module_count());
-    log::trace!("  upscaled ema bonds: {ema_bonds:?}");
+    log::trace!("upscaled ema bonds: {ema_bonds:?}");
 
     Some(BondsAndDividends {
         ema_bonds,
@@ -566,10 +566,10 @@ pub fn compute_incentive_and_trust<T: Config>(
     log::trace!("final trust: {ranks:?}");
 
     let mut incentives = ranks.clone();
-    log::trace!("  original incentives: {incentives:?}");
+    log::trace!("original incentives: {incentives:?}");
 
     inplace_normalize(&mut incentives); // range: I32F32(0, 1)
-    log::trace!("  normalized incentives: {incentives:?}");
+    log::trace!("normalized incentives: {incentives:?}");
 
     IncentivesAndTrust {
         incentives: IncentivesVal::unchecked_from_inner(incentives),

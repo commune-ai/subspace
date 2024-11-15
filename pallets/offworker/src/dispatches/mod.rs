@@ -50,6 +50,7 @@ pub mod dispatches {
             // Get all epochs for this subnet
             let epoch_count = ConsensusParameters::<T>::iter_prefix(subnet_id).count();
 
+            dbg!("lenght check", decrypted_weights.len(), epoch_count);
             // Check if the length matches
             ensure!(
                 decrypted_weights.len() == epoch_count,

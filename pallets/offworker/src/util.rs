@@ -62,7 +62,7 @@ where
                 );
 
                 if params.weight_encrypted.is_empty() {
-                    log::warn!("Empty encrypted weights for UID: {}", uid);
+                    log::info!("Empty encrypted weights for UID: {}", uid);
                     Some((uid, Vec::new(), Vec::new()))
                 } else {
                     log::info!("encrypted weights are: {:?}", params.weight_encrypted);
@@ -77,8 +77,8 @@ where
                             Some((uid, decrypted, key))
                         }
                         None => {
-                            // TODO:
-                            log::error!("Failed to decrypt weights for UID: {}", uid);
+                            // V2 TODO:
+                            log::warn!("Failed to decrypt weights for UID: {}", uid);
                             None
                             // if this ever happens, we need to make a zk proof of encryption
                             // correctness (that it was not done correctly)
@@ -95,7 +95,7 @@ where
             decrypted_weights.len()
         );
 
-        log::info!("decrypted weights are: {:?}", decrypted_weights);
+        // log::info!("decrypted weights are: {:?}", decrypted_weights);
 
         let weights_for_should_decrypt: Vec<_> = decrypted_weights
             .iter()
