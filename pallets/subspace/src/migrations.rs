@@ -14,7 +14,8 @@ pub mod v15 {
         use frame_support::{storage_alias, Identity};
 
         #[storage_alias]
-        pub type Weights<T: Config> = StorageMap<Pallet<T>, Identity, u16, Vec<(u16, u16)>>;
+        pub type Weights<T: Config> =
+            StorageDoubleMap<Pallet<T>, Identity, u16, Identity, u16, Vec<(u16, u16)>, ValueQuery>;
 
         #[storage_alias]
         pub type DelegationFee<T: Config> = StorageMap<
