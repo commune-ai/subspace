@@ -220,7 +220,7 @@ pub mod pallet {
             );
 
             let cleared = Self::clear_hanging_subnet_state();
-            log::info!("Cleared state of {cleared}");
+            log::info!("Cleared state of {cleared} subnets");
 
             Self::distribute_subnets_to_nodes(block_number);
             log::info!("Distributed subnets to nodes");

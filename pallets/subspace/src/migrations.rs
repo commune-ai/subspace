@@ -38,8 +38,10 @@ pub mod v15 {
             }
 
             for (account, fee) in old_storage::DelegationFee::<T>::iter() {
-                let mut fee_config = ValidatorFees::default();
-                fee_config.stake_delegation_fee = fee;
+                let fee_config = ValidatorFees {
+                    stake_delegation_fee: fee,
+                    ..Default::default()
+                };
 
                 ValidatorFeeConfig::<T>::insert(account, fee_config);
             }

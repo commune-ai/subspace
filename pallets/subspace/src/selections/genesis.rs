@@ -46,7 +46,7 @@ pub mod genesis {
 
                 log::info!("registering subnet {netuid} with params: {params:?}");
 
-                let fee = crate::Pallet::<T>::get_stake_delegation_fee(&params.founder);
+                let fee = Pallet::<T>::get_stake_delegation_fee(&params.founder);
                 let changeset: SubnetChangeset<T> =
                     SubnetChangeset::new(params).expect("genesis subnets are valid");
                 let _ = self::Pallet::<T>::add_subnet(changeset, Some(netuid))
