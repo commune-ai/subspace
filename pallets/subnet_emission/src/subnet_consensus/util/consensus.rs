@@ -381,12 +381,21 @@ pub fn apply_delegation_fee<T: Config>(
             continue;
         };
 
-        let fee = dividends[index]
-            .checked_mul(I32F32::from_num(fee.deconstruct() as f32 / 100f32))
-            .unwrap_or(I32F32::from_num(0));
+        // Get the values first
+        let child_dividend = match dividends.get(index) {
+            Some(val) => *val,
+            None => continue,
+        };
 
-        dividends[index] -= fee;
-        dividends[parent_uid] += fee;
+        let fee_ratio = I32F32::from_num(fee.deconstruct() as f32 / 100f32);
+        let fee = child_dividend.checked_mul(fee_ratio).unwrap_or(I32F32::from_num(0));
+
+        if let Some(child) = dividends.get_mut(index) {
+            *child = child.saturating_sub(fee);
+        }
+        if let Some(parent) = dividends.get_mut(parent_uid) {
+            *parent = parent.saturating_add(fee);
+        }
     }
 }
 
@@ -427,7 +436,7 @@ pub fn compute_bonds_and_dividends_linear<T: Config>(
     let mut dividends = matmul_transpose_sparse(&bonds_delta, incentives.as_ref());
     log::trace!("  original dividends: {dividends:?}");
 
-    apply_delegation_fee::<T>(&mut dividends, &modules);
+    apply_delegation_fee::<T>(&mut dividends, modules);
 
     inplace_normalize(&mut dividends);
     log::trace!("  normalized dividends: {dividends:?}");
@@ -490,7 +499,7 @@ pub fn compute_bonds_and_dividends_yuma<T: Config>(
     let mut dividends = matmul_transpose_sparse(&ema_bonds, incentives.as_ref());
     log::trace!("  original dividends: {dividends:?}");
 
-    apply_delegation_fee::<T>(&mut dividends, &modules);
+    apply_delegation_fee::<T>(&mut dividends, modules);
 
     inplace_normalize(&mut dividends);
     log::trace!("  normalized dividends: {dividends:?}");

@@ -303,8 +303,7 @@ impl<T: Config> Pallet<T> {
     /// - First vector contains subnets that use weight encryption and have matching keys (if acc_id
     ///   is Some)
     /// - Second vector contains subnets that don't use encryption but still have matching keys (if
-    ///   acc_id is Some)
-    /// Both require the subnet to have existing encrypted weights.
+    ///   acc_id is Some). Both require the subnet to have existing encrypted weights.
     pub fn get_valid_subnets(acc_id: Option<&T::AccountId>) -> (Vec<u16>, Vec<u16>) {
         let (with_encryption, without_encryption): (Vec<_>, Vec<_>) =
             SubnetDecryptionData::<T>::iter()
