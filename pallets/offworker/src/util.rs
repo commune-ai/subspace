@@ -215,7 +215,8 @@ pub fn compute_simulation_yuma_params<T: Config>(
 ) -> SimulationYumaParams<T> {
     let copier_uid: u16 = runtime_yuma_params.modules.len() as u16;
 
-    // This **has** to be ontained from the runtime storage
+    // This **has** to be ontained from the runtime storage. So it sees the publicly know consensus
+    // on decrypted weights
     let consensus_weights = Consensus::<T>::get(subnet_id);
     let copier_weights: Vec<(u16, u16)> = consensus_weights
         .into_iter()

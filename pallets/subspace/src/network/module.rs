@@ -75,6 +75,9 @@ impl<T: Config> Pallet<T> {
             &replace_key,
         )?;
 
+        // --- Delete Rate Limit ---
+        RootNetWeightCalls::<T>::remove(&uid);
+
         // --- Delete Global-Module Storage ---
         // This will remove storages if the module is only registered on this network.
         // So the values are not "just hanging around" in the storage. Without module actually being

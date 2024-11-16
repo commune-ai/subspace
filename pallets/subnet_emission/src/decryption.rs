@@ -1,4 +1,6 @@
-use crate::subnet_consensus::util::params::ConsensusParams;
+use crate::{
+    distribute_emission::update_pending_emission, subnet_consensus::util::params::ConsensusParams,
+};
 use pallet_subspace::UseWeightsEncryption;
 use sp_runtime::traits::Get;
 use subnet_consensus::util::params::ModuleKey;
@@ -81,8 +83,11 @@ impl<T: Config> Pallet<T> {
         }
     }
 
-    // TODO: step 4. verify the zk proofs, if only one zk proof is invalid, you will ban the
-    // offchain worker
+    /// 1. TODO: step 4. verify the zk proofs, if only one zk proof is invalid, you will ban the
+    /// offchain worker
+    ///
+    /// 2. TODO: add a test where some of the decrypted weights will be empty, and expect everything
+    ///    to be handeled correctly
     pub fn handle_decrypted_weights(netuid: u16, weights: Vec<BlockWeights>) {
         log::info!("Received decrypted weights for subnet {netuid}");
         let info = match SubnetDecryptionData::<T>::get(netuid) {
@@ -94,7 +99,7 @@ impl<T: Config> Pallet<T> {
                 return;
             }
         };
-        // we should allow empty vector here
+
         let valid_weights: Vec<KeylessBlockWeights> = weights
             .into_iter()
             .filter_map(|(block, block_weights)| {
@@ -114,11 +119,8 @@ impl<T: Config> Pallet<T> {
                         })
                         .collect::<Vec<_>>();
 
-                    if valid_block_weights.is_empty() {
-                        None
-                    } else {
-                        Some((block, valid_block_weights))
-                    }
+                    // We allow empty vectors
+                    Some((block, valid_block_weights))
                 } else {
                     None
                 }
@@ -131,9 +133,9 @@ impl<T: Config> Pallet<T> {
             netuid
         );
 
-        // It is fine to inset the weights directly here. as the subnet is obviously using weights
-        // encryption, we do not need to bother with additional checks. these weights are primarly
-        // just stored for conseistency between subnets that use the weight encryption and those
+        // It is fine to insert the weights directly here as the subnet is obviously using weights
+        // encryption, we do not need to bother with additional checks. these weights are primarily
+        // just stored for consistency between subnets that use the weight encryption and those
         // that do not
         if let Some((_, weights)) = valid_weights.iter().max_by_key(|&(key, _)| key) {
             for &(uid, ref weights) in weights {
@@ -160,6 +162,8 @@ impl<T: Config> Pallet<T> {
         let module_key = params.get_module_key_by_uid(uid)?;
         let module = params.modules.get(&ModuleKey(module_key.clone()))?;
 
+        // --- Veify the hash ---
+
         let hash = sp_io::hashing::sha2_256(&Self::weights_to_blob(weights)[..]).to_vec();
         if hash != module.weight_hash {
             log::error!(
@@ -167,6 +171,8 @@ impl<T: Config> Pallet<T> {
             );
             return None;
         }
+
+        // --- Veify the validator key ---
 
         // It is not possible to somehow "time the delegation" and then successfully weight copy,
         // because all of the consensus parameters are essentially "snapshotted" at one time, so the
@@ -190,6 +196,7 @@ impl<T: Config> Pallet<T> {
     }
 
     fn update_decrypted_weights(netuid: u16, valid_weights: Vec<KeylessBlockWeights>) {
+        // Extends cached weights with new weights, including blocks with empty weight vectors
         DecryptedWeights::<T>::mutate(netuid, |cached| match cached {
             Some(cached) => cached.extend(valid_weights),
             None => *cached = Some(valid_weights),
@@ -357,9 +364,7 @@ impl<T: Config> Pallet<T> {
 
         // Add tokens back to pending emission if requested
         if increase_pending_emission {
-            PendingEmission::<T>::mutate(subnet_id, |emission| {
-                *emission = emission.saturating_add(total_emission);
-            });
+            update_pending_emission::<T>(subnet_id, &total_emission)
         }
 
         // Remove the subnet's decryption data
