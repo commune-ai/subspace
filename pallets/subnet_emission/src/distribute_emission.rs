@@ -37,7 +37,7 @@ fn process_subnets<T: Config>(block_number: u64, subnets_emission_distribution: 
 ///
 /// This function adds the new emission value to the existing pending emission
 /// for the specified subnet, and logs the updated total.
-fn update_pending_emission<T: Config>(netuid: u16, new_queued_emission: &u64) {
+pub(crate) fn update_pending_emission<T: Config>(netuid: u16, new_queued_emission: &u64) {
     let emission_to_drain = PendingEmission::<T>::mutate(netuid, |queued: &mut u64| {
         *queued = queued.saturating_add(*new_queued_emission);
         *queued
@@ -150,7 +150,7 @@ pub fn run_linear_consensus<T: Config>(
 ///
 /// This function creates and runs a new YumaEpoch, logging any errors that occur.
 fn run_yuma_consensus<T: Config>(netuid: u16, emission_to_drain: u64) -> Result<(), &'static str> {
-    log::trace!("running yuma consensus for subnet {netuid}");
+    log::info!("Running Yuma consensus for subnet {netuid}");
 
     let should_run_encrypted_consensus = pallet_subspace::UseWeightsEncryption::<T>::get(netuid);
     if !should_run_encrypted_consensus {

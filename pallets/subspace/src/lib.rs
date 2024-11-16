@@ -87,7 +87,7 @@ pub mod pallet {
     pub type AccountIdOf<T> = <T as frame_system::Config>::AccountId;
 
     #[cfg(feature = "testnet")]
-    const STORAGE_VERSION: StorageVersion = StorageVersion::new(33);
+    const STORAGE_VERSION: StorageVersion = StorageVersion::new(34);
 
     #[cfg(not(feature = "testnet"))]
     const STORAGE_VERSION: StorageVersion = StorageVersion::new(15);
@@ -182,6 +182,7 @@ pub mod pallet {
         },
         // Put here every module-related double map, that has no uid association. first key is netuid, second key is key of module (not uid!)
         key_only_storages: {
+            SetWeightCallsPerEpoch: u16,
             Metadata: Vec<u8>,
             WeightSettingDelegation: DelegationInfo<T::AccountId>
         }
