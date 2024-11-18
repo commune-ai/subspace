@@ -7,6 +7,8 @@ use pallet_subnet_emission_api::SubnetConsensus;
 use pallet_subspace::{Pallet as PalletSubspace, N};
 use subnet_consensus::yuma::YumaEpoch;
 
+const NO_WEIGHTS: &'static str = "no weights";
+
 /// Processes subnets by updating pending emissions and running epochs when due.
 ///
 /// # Arguments
@@ -61,7 +63,11 @@ fn run_epoch<T: Config>(netuid: u16) {
     if emission_to_drain > 0 {
         match run_consensus_algorithm::<T>(netuid, emission_to_drain) {
             Ok(_) => {
-                finalize_epoch::<T>(netuid);
+                finalize_epoch::<T>(netuid, true);
+            }
+            Err(NO_WEIGHTS) => {
+                log::warn!("no weights set on subnet {netuid}");
+                finalize_epoch::<T>(netuid, false);
             }
             Err(e) => {
                 log::error!(
@@ -131,7 +137,12 @@ pub fn run_linear_consensus<T: Config>(
 
     let uids = pallet_subspace::Keys::<T>::iter_prefix(netuid).collect::<BTreeMap<_, _>>();
     let mut weights: BTreeMap<_, _> = Weights::<T>::iter_prefix(netuid).collect();
-    let weights = uids.keys().map(|uid| (*uid, weights.remove(uid).unwrap_or_default())).collect();
+    let weights: Vec<(u16, Vec<(u16, u16)>)> =
+        uids.keys().map(|uid| (*uid, weights.remove(uid).unwrap_or_default())).collect();
+
+    if weights.is_empty() {
+        return Err(NO_WEIGHTS);
+    }
 
     let consensus_output = run.run(weights).map_err(|_| "Failed to run consensus")?;
     consensus_output.apply();
@@ -162,8 +173,7 @@ fn run_yuma_consensus<T: Config>(netuid: u16, emission_to_drain: u64) -> Result<
     let encrypted_weights = WeightEncryptionData::<T>::iter_prefix(netuid).collect::<Vec<_>>();
 
     if encrypted_weights.is_empty() {
-        log::warn!("No encrypted weights found for subnet {netuid}");
-        return Ok(());
+        return Err(NO_WEIGHTS);
     }
 
     // If subnet has some weights, create the parameters
@@ -183,8 +193,15 @@ fn run_default_consensus<T: Config>(
     params: ConsensusParams<T>,
 ) -> Result<(), &'static str> {
     log::trace!("running default consensus for subnet {netuid}");
+
+    let weights: Vec<(u16, Vec<(u16, u16)>)> = Weights::<T>::iter_prefix(netuid).collect();
+
+    if weights.is_empty() {
+        return Err(NO_WEIGHTS);
+    }
+
     YumaEpoch::new(netuid, params)
-        .run(Weights::<T>::iter_prefix(netuid).collect())
+        .run(weights)
         .map_err(|err| {
             log::error!("could not run yuma consensus for {netuid}: {err:?}");
             "could not run yuma consensus"
@@ -302,8 +319,11 @@ fn run_treasury_consensus<T: Config>(
 ///
 /// This function resets the pending emission for the subnet to 0 and
 /// emits an EpochFinished event.
-fn finalize_epoch<T: Config>(netuid: u16) {
-    PendingEmission::<T>::insert(netuid, 0);
+fn finalize_epoch<T: Config>(netuid: u16, clear_emission: bool) {
+    if clear_emission {
+        PendingEmission::<T>::insert(netuid, 0);
+    }
+
     Pallet::<T>::deposit_event(Event::<T>::EpochFinished(netuid));
 }
 
