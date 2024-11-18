@@ -163,24 +163,29 @@ pub fn run_linear_consensus<T: Config>(
 fn run_yuma_consensus<T: Config>(netuid: u16, emission_to_drain: u64) -> Result<(), &'static str> {
     log::info!("Running Yuma consensus for subnet {netuid}");
 
+    let params = ConsensusParams::<T>::new(netuid, emission_to_drain)?;
     let should_run_encrypted_consensus = pallet_subspace::UseWeightsEncryption::<T>::get(netuid);
     if !should_run_encrypted_consensus {
-        let params = ConsensusParams::<T>::new(netuid, emission_to_drain)?;
         return run_default_consensus(netuid, params);
     }
     // This means, that subnet uses weight encryption. Create the parameters, only if subnet has
     // some encrypted weights present
     let encrypted_weights = WeightEncryptionData::<T>::iter_prefix(netuid).collect::<Vec<_>>();
-
     if encrypted_weights.is_empty() {
         return Err(NO_WEIGHTS);
     }
 
-    // If subnet has some weights, create the parameters
-    let mut params = ConsensusParams::<T>::new(netuid, emission_to_drain)?;
+    let block = PalletSubspace::<T>::get_current_block_number();
+    let active_nodes = Pallet::<T>::get_active_nodes(block);
+
+    if active_nodes.is_none() {
+        log::error!("no active nodes found for block {block}");
+        return run_default_consensus(netuid, params.clone());
+    }
+
     // Computes only if there are decrypted weights present, that have been send by an offchain
-    // worker. Otherwise returns ok
-    process_encrypted_consensus(netuid, &mut params)?;
+    // worker. Otherwise recycles emmission
+    // process_encrypted_consensus(netuid, params)?;
 
     log::info!("Yuma consensus for subnet {netuid} completed successfully");
     let block = PalletSubspace::<T>::get_current_block_number();
@@ -207,75 +212,6 @@ fn run_default_consensus<T: Config>(
             "could not run yuma consensus"
         })
         .map(|output| output.apply())
-}
-
-fn process_encrypted_consensus<T: Config>(
-    netuid: u16,
-    params: &mut ConsensusParams<T>,
-) -> Result<(), &'static str> {
-    let block = PalletSubspace::<T>::get_current_block_number();
-    let active_nodes = Pallet::<T>::get_active_nodes(block);
-
-    if active_nodes.is_none() {
-        log::error!("no active nodes found for block {block}");
-        return run_default_consensus(netuid, params.clone());
-    }
-
-    let weights = DecryptedWeights::<T>::get(netuid);
-
-    if let Some(weights) = weights {
-        let mut sorted_weights = weights;
-        sorted_weights.sort_by_key(|(block, _)| *block);
-
-        let last_weights = sorted_weights.last().cloned();
-        let mut accumulated_emission: u64 = 0;
-
-        for (block, weights) in sorted_weights {
-            let consensus_type =
-                SubnetConsensusType::<T>::get(netuid).ok_or("Invalid network ID")?;
-            if consensus_type != pallet_subnet_emission_api::SubnetConsensus::Yuma {
-                return Err("Unsupported consensus type");
-            }
-
-            let current_params = ConsensusParameters::<T>::get(netuid, block).ok_or_else(|| {
-                log::error!("no params found for netuid {netuid} block {block}");
-                "Missing consensus parameters"
-            })?;
-            ConsensusParameters::<T>::remove(netuid, block);
-
-            params.token_emission =
-                current_params.token_emission.saturating_add(accumulated_emission);
-            let new_emission = params.token_emission;
-            accumulated_emission = 0;
-
-            match YumaEpoch::new(netuid, params.clone()).run(weights) {
-                Ok(output) => output.apply(),
-                Err(err) => {
-                    log::error!("could not run yuma consensus for {netuid} block {block}: {err:?}");
-                    accumulated_emission = new_emission;
-                }
-            }
-        }
-
-        if let Some((_, last)) = last_weights {
-            for (uid, weights) in last {
-                Weights::<T>::set(netuid, uid, Some(weights));
-            }
-        }
-
-        if accumulated_emission > 0 {
-            update_pending_emission::<T>(netuid, &accumulated_emission);
-        }
-
-        DecryptedWeights::<T>::remove(netuid);
-        // Clear all of the parameters (they should be already empty, but we do this just in case,
-        // to avoid running into some potential race conditions)
-        let _ = ConsensusParameters::<T>::clear_prefix(netuid, u32::MAX, None);
-        Ok(())
-    } else {
-        log::info!("No decrypted weights");
-        Ok(())
-    }
 }
 
 /// Runs the treasury consensus algorithm for a given network and emission amount.
@@ -321,7 +257,7 @@ fn run_treasury_consensus<T: Config>(
 /// emits an EpochFinished event.
 fn finalize_epoch<T: Config>(netuid: u16, clear_emission: bool) {
     if clear_emission {
-        PendingEmission::<T>::insert(netuid, 0);
+        PendingEmission::<T>::set(netuid, 0);
     }
 
     Pallet::<T>::deposit_event(Event::<T>::EpochFinished(netuid));
