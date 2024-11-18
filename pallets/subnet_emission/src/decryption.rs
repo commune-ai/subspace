@@ -158,20 +158,15 @@ impl<T: Config> Pallet<T> {
         Self::rotate_decryption_node_if_needed(netuid, info);
     }
 
-    /// This has to run in on_initialize so we do not wait for epoch to run with the decrypted
-    /// weights. but process them right away after we get theme
-    /// TODO: it also has to clear the weight encryption data, and we have to make sure that the
-    /// decrypted weights just extend the `Weights` storage
-    ///
-    /// TODO: go back to how are th decrypted weights
-    /// constructed and see if there can not be any race condition by matching onto the exact block
+    /// TODO: For this fn to work properely make sure that the decrypted weights extend their first
+    /// weights by the `Weights` and then "continue extending themselves"
     fn process_decrypted_weights(netuid: u16) -> Result<(), &'static str> {
         let weights = DecryptedWeights::<T>::get(netuid);
         if let Some(weights) = weights {
+            // Sorts from oldest weights to newest
             let mut sorted_weights = weights;
             sorted_weights.sort_by_key(|(block, _)| *block);
 
-            let last_weights = sorted_weights.last().cloned();
             let mut accumulated_emission: u64 = 0;
 
             for (block, weights) in sorted_weights {
@@ -180,6 +175,12 @@ impl<T: Config> Pallet<T> {
                 if consensus_type != pallet_subnet_emission_api::SubnetConsensus::Yuma {
                     return Err("Unsupported consensus type");
                 }
+
+                // Extend the weight storage of the subnet with the new weights
+                for (uid, weights) in weights.clone() {
+                    Weights::<T>::set(netuid, uid, Some(weights));
+                }
+
                 let mut params = ConsensusParameters::<T>::get(netuid, block).ok_or_else(|| {
                     log::error!("no params found for netuid {netuid} block {block}");
                     "Missing consensus parameters"
@@ -202,15 +203,6 @@ impl<T: Config> Pallet<T> {
                 }
             }
 
-            // TODO: check if the logic is not flawed, as if we are going to do it this way,
-            // the last weights would need to be an extension of the valid weights, extended on to
-            // of each other in ascending order by their block number
-            if let Some((_, last)) = last_weights {
-                for (uid, weights) in last {
-                    Weights::<T>::set(netuid, uid, Some(weights));
-                }
-            }
-
             // If the last consensus that we were processing had an error we directly update the
             // pending emision storage of the subnet
             if accumulated_emission > 0 {
@@ -220,13 +212,23 @@ impl<T: Config> Pallet<T> {
             // --- Clear All Of the Relevant Storages ---
             // We avoid subnet decryption data, as node rotation has to handle that
 
-            Self::cleanup_subnet_wc_state(netuid, false, false);
+            Self::cleanup_subnet_wc_state(netuid, false, false); // don't increase pending emisison, don't deletete node assignement
 
             Ok(())
         } else {
             log::info!("No decrypted weights");
             Ok(())
         }
+    }
+
+    fn weights_to_blob(weights: &[(u16, u16)]) -> Vec<u8> {
+        let mut encoded = Vec::new();
+        encoded.extend((weights.len() as u32).to_be_bytes());
+        encoded.extend(weights.iter().flat_map(|(uid, weight)| {
+            sp_std::vec![uid.to_be_bytes(), weight.to_be_bytes()].into_iter().flatten()
+        }));
+
+        encoded
     }
 
     #[inline]
@@ -382,16 +384,6 @@ impl<T: Config> Pallet<T> {
         log::info!("Authority node ping handling completed successfully");
     }
 
-    fn weights_to_blob(weights: &[(u16, u16)]) -> Vec<u8> {
-        let mut encoded = Vec::new();
-        encoded.extend((weights.len() as u32).to_be_bytes());
-        encoded.extend(weights.iter().flat_map(|(uid, weight)| {
-            sp_std::vec![uid.to_be_bytes(), weight.to_be_bytes()].into_iter().flatten()
-        }));
-
-        encoded
-    }
-
     /// Returns a tuple of subnet UIDs (with_encryption, without_encryption) where:
     /// - First vector contains subnets that use weight encryption and have matching keys (if acc_id
     ///   is Some)
@@ -471,12 +463,14 @@ impl<T: Config> Pallet<T> {
 
     /// Cleans up all hanging subnets (subnets that have turned their weight encryption off)
     /// by removing their weight copying state.
-    /// Returns the number of subnets that were cleaned up.
+    /// Recycles / Burns the pending emission, this aims to disincentivize subnet owners from
+    /// switching the parameter, unless absolutelly neccessary Returns the number of subnets
+    /// that were cleaned up.
     pub fn clear_hanging_subnet_state() -> usize {
         let (_, hanging_subnets) = Self::get_valid_subnets(None);
 
         for netuid in &hanging_subnets {
-            let _ = Self::cleanup_subnet_wc_state(*netuid, true, true);
+            let _ = Self::cleanup_subnet_wc_state(*netuid, false, true);
         }
 
         hanging_subnets.len()
