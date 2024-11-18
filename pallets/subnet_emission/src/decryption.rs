@@ -1,5 +1,8 @@
+use core::u32;
+
 use crate::{
-    distribute_emission::update_pending_emission, subnet_consensus::util::params::ConsensusParams,
+    distribute_emission::update_pending_emission,
+    subnet_consensus::{util::params::ConsensusParams, yuma::YumaEpoch},
 };
 use pallet_subspace::UseWeightsEncryption;
 use sp_runtime::traits::Get;
@@ -133,17 +136,97 @@ impl<T: Config> Pallet<T> {
             netuid
         );
 
-        // It is fine to insert the weights directly here as the subnet is obviously using weights
-        // encryption, we do not need to bother with additional checks. these weights are primarily
-        // just stored for consistency between subnets that use the weight encryption and those
-        // that do not
-        if let Some((_, weights)) = valid_weights.iter().max_by_key(|&(key, _)| key) {
-            for &(uid, ref weights) in weights {
-                Weights::<T>::set(netuid, uid, Some(weights.clone()));
+        // // It is fine to insert the weights directly here as the subnet is obviously using
+        // weights // encryption, we do not need to bother with additional checks. these
+        // weights are primarily // just stored for consistency between subnets that use the
+        // weight encryption and those // that do not
+        // if let Some((_, weights)) = valid_weights.iter().max_by_key(|&(key, _)| key) {
+        //     for &(uid, ref weights) in weights {
+        //         Weights::<T>::set(netuid, uid, Some(weights.clone()));
+        //     }
+        // }
+
+        Self::update_decrypted_weights(netuid, valid_weights);
+        match Self::process_decrypted_weights(netuid) {
+            Ok(()) => {
+                log::info!("decrypted weights have been processed for {netuid}")
+            }
+            Err(err) => {
+                log::error!("error: {err:?} in processing decrypted weights for subnet {netuid} ")
             }
         }
-        Self::update_decrypted_weights(netuid, valid_weights);
         Self::rotate_decryption_node_if_needed(netuid, info);
+    }
+
+    /// This has to run in on_initialize so we do not wait for epoch to run with the decrypted
+    /// weights. but process them right away after we get theme
+    /// TODO: it also has to clear the weight encryption data, and we have to make sure that the
+    /// decrypted weights just extend the `Weights` storage
+    ///
+    /// TODO: go back to how are th decrypted weights
+    /// constructed and see if there can not be any race condition by matching onto the exact block
+    fn process_decrypted_weights(netuid: u16) -> Result<(), &'static str> {
+        let weights = DecryptedWeights::<T>::get(netuid);
+        if let Some(weights) = weights {
+            let mut sorted_weights = weights;
+            sorted_weights.sort_by_key(|(block, _)| *block);
+
+            let last_weights = sorted_weights.last().cloned();
+            let mut accumulated_emission: u64 = 0;
+
+            for (block, weights) in sorted_weights {
+                let consensus_type =
+                    SubnetConsensusType::<T>::get(netuid).ok_or("Invalid network ID")?;
+                if consensus_type != pallet_subnet_emission_api::SubnetConsensus::Yuma {
+                    return Err("Unsupported consensus type");
+                }
+                let mut params = ConsensusParameters::<T>::get(netuid, block).ok_or_else(|| {
+                    log::error!("no params found for netuid {netuid} block {block}");
+                    "Missing consensus parameters"
+                })?;
+
+                params.token_emission = params.token_emission.saturating_add(accumulated_emission);
+                let new_emission = params.token_emission;
+
+                match YumaEpoch::new(netuid, params.clone()).run(weights) {
+                    Ok(output) => {
+                        accumulated_emission = 0;
+                        output.apply()
+                    }
+                    Err(err) => {
+                        log::error!(
+                            "could not run yuma consensus for {netuid} block {block}: {err:?}"
+                        );
+                        accumulated_emission = new_emission;
+                    }
+                }
+            }
+
+            // TODO: check if the logic is not flawed, as if we are going to do it this way,
+            // the last weights would need to be an extension of the valid weights, extended on to
+            // of each other in ascending order by their block number
+            if let Some((_, last)) = last_weights {
+                for (uid, weights) in last {
+                    Weights::<T>::set(netuid, uid, Some(weights));
+                }
+            }
+
+            // If the last consensus that we were processing had an error we directly update the
+            // pending emision storage of the subnet
+            if accumulated_emission > 0 {
+                update_pending_emission::<T>(netuid, &accumulated_emission);
+            }
+
+            // --- Clear All Of the Relevant Storages ---
+            // We avoid subnet decryption data, as node rotation has to handle that
+
+            Self::cleanup_subnet_wc_state(netuid, false, false);
+
+            Ok(())
+        } else {
+            log::info!("No decrypted weights");
+            Ok(())
+        }
     }
 
     #[inline]
@@ -195,6 +278,13 @@ impl<T: Config> Pallet<T> {
         Self::validate_input(uid, &uids, &values, netuid).ok()
     }
 
+    /// TODO: we should be able to get rid of the `DecryptedWeights` and return the result directly
+    /// for processing. if we extend with the `Weights` storage, everything should work as expected
+    ///
+    /// TODO: the first decrypted weights here need to be extended by the
+    /// `Weights` storage. This should not be a problem even for activity cutoff, as the last
+    /// updates are "cached" in the consensus parameters, therefore the consensus is able to
+    /// determine which of those standalone extended weights would still be valid
     fn update_decrypted_weights(netuid: u16, valid_weights: Vec<KeylessBlockWeights>) {
         // Extends cached weights with new weights, including blocks with empty weight vectors
         DecryptedWeights::<T>::mutate(netuid, |cached| match cached {
@@ -346,29 +436,35 @@ impl<T: Config> Pallet<T> {
     /// Cleans up weight copying state of a subnet by removing weights and parameters.
     /// If increase_pending_emission is true, returns tokens to pending emissions.
     /// Returns the total emission amount that was processed.
-    fn cleanup_subnet_wc_state(subnet_id: u16, increase_pending_emission: bool) -> u64 {
+    fn cleanup_subnet_wc_state(
+        subnet_id: u16,
+        increase_pending_emission: bool,
+        clear_node_assing: bool,
+    ) -> u64 {
+        // --- Cleanup The Core ---
+
         // Clear decrypted weights
         DecryptedWeights::<T>::remove(subnet_id);
-
         // Clear hashes & encrypted weights
         let _ = WeightEncryptionData::<T>::clear_prefix(subnet_id, u32::MAX, None);
-
         // Sum up and clear ConsensusParameters
         let total_emission = ConsensusParameters::<T>::iter_prefix(subnet_id)
             .fold(0u64, |acc, (_, params)| {
                 acc.saturating_add(params.token_emission)
             });
-
         // Clear ConsensusParameters
         let _ = ConsensusParameters::<T>::clear_prefix(subnet_id, u32::MAX, None);
+
+        // --- Cleanup The Conditionals ---
 
         // Add tokens back to pending emission if requested
         if increase_pending_emission {
             update_pending_emission::<T>(subnet_id, &total_emission)
         }
-
-        // Remove the subnet's decryption data
-        SubnetDecryptionData::<T>::remove(subnet_id);
+        if clear_node_assing {
+            // Remove the subnet's decryption data
+            SubnetDecryptionData::<T>::remove(subnet_id);
+        }
 
         total_emission
     }
@@ -380,7 +476,7 @@ impl<T: Config> Pallet<T> {
         let (_, hanging_subnets) = Self::get_valid_subnets(None);
 
         for netuid in &hanging_subnets {
-            let _ = Self::cleanup_subnet_wc_state(*netuid, true);
+            let _ = Self::cleanup_subnet_wc_state(*netuid, true, true);
         }
 
         hanging_subnets.len()
@@ -389,7 +485,7 @@ impl<T: Config> Pallet<T> {
     /// Cancels an offchain worker for a subnet by cleaning up its weight copying state,
     /// banning the worker, and reassigning the subnet to a different worker.
     fn cancel_offchain_worker(subnet_id: u16, info: &SubnetDecryptionInfo<T>) {
-        let _ = Self::cleanup_subnet_wc_state(subnet_id, true);
+        let _ = Self::cleanup_subnet_wc_state(subnet_id, true, true);
 
         // Additional operations specific to canceling offchain worker
         let current_block = pallet_subspace::Pallet::<T>::get_current_block_number();
