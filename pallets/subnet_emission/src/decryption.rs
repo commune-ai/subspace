@@ -136,16 +136,6 @@ impl<T: Config> Pallet<T> {
             netuid
         );
 
-        // // It is fine to insert the weights directly here as the subnet is obviously using
-        // weights // encryption, we do not need to bother with additional checks. these
-        // weights are primarily // just stored for consistency between subnets that use the
-        // weight encryption and those // that do not
-        // if let Some((_, weights)) = valid_weights.iter().max_by_key(|&(key, _)| key) {
-        //     for &(uid, ref weights) in weights {
-        //         Weights::<T>::set(netuid, uid, Some(weights.clone()));
-        //     }
-        // }
-
         Self::update_decrypted_weights(netuid, valid_weights);
         match Self::process_decrypted_weights(netuid) {
             Ok(()) => {
@@ -406,6 +396,9 @@ impl<T: Config> Pallet<T> {
     }
 
     pub fn cancel_expired_offchain_workers(block_number: u64) {
+        // TODO: make sure that this is the boundry even for the subnet owner
+        // / the offchain worker has max lenght this exact interval present in the
+        // `is_copying_irrational` otherwise we could run into race conditions
         let max_inactivity_blocks =
             T::PingInterval::get().saturating_mul(T::MaxFailedPings::get() as u64);
 
@@ -420,7 +413,10 @@ impl<T: Config> Pallet<T> {
             .filter(|(_, info)| {
                 block_number.saturating_sub(info.last_keep_alive) > max_inactivity_blocks
                     || block_number.saturating_sub(info.block_assigned)
-                        > T::MaxEncryptionDuration::get().saturating_add(100)
+                        > T::MaxEncryptionDuration::get().saturating_add(100) // TODO: the buffer
+                                                                              // has to be a
+                                                                              // constant defined in
+                                                                              // the runtime
             })
             .for_each(|(subnet_id, info)| Self::cancel_offchain_worker(subnet_id, &info));
     }

@@ -28,11 +28,6 @@ pub mod types;
 #[cfg(feature = "runtime-benchmarks")]
 mod benchmarking;
 
-// #[cfg(feature = "testnet")]
-// const VERSION_NUMBER: u16 = 12;
-// #[cfg(not(feature = "testnet"))]
-// const VERSION_NUMBER: u16 = 0;
-
 #[frame_support::pallet]
 pub mod pallet {
     use crate::{subnet_consensus::util::params::ConsensusParams, *};
@@ -41,7 +36,6 @@ pub mod pallet {
         sp_runtime::SaturatedConversion,
         storage::with_storage_layer,
         traits::{ConstU64, Currency},
-        // Identity,
     };
     use frame_system::pallet_prelude::BlockNumberFor;
     use pallet_subnet_emission_api::SubnetConsensus;
