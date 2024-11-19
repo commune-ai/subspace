@@ -1058,6 +1058,8 @@ fn test_tempo_compound() {
         let fast = SubspaceMod::<Test>::get_delegated_stake(&f_key);
         let slow = SubspaceMod::<Test>::get_delegated_stake(&s_key);
 
+        dbg!(fast, slow);
+
         // faster tempo should have quicker compound rate
         assert!(fast > slow);
     });
