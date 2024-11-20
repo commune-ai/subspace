@@ -168,8 +168,11 @@ pub fn should_decrypt_weights<T: Config>(
 
     let decrypted_weights = decrypted_weights_map.into_iter().collect::<Vec<_>>();
     if decrypted_weights.is_empty() {
+        log::info!("subnet {subnet_id} does not have any decrypted weights");
         return ShouldDecryptResult::<T>::default();
     }
+
+    log::info!("simulation yuma params for subnet {subnet_id} are {simulation_yuma_params:?}");
 
     // Run consensus simulation with error handling
     let simulation_yuma_output =
@@ -183,6 +186,8 @@ pub fn should_decrypt_weights<T: Config>(
 
     // Get delegation fee (this is not a Result type)
     let delegation_fee = MinFees::<T>::get().stake_delegation_fee;
+
+    log::info!("simulation yuma output for subnet {subnet_id} is {simulation_yuma_output:?}");
 
     // Update simulation result
     simulation_result.update(simulation_yuma_output, copier_uid, delegation_fee);

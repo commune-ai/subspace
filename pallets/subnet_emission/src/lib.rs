@@ -43,7 +43,7 @@ pub mod pallet {
     use subnet_pricing::root::RootPricing;
 
     #[cfg(feature = "testnet")]
-    const STORAGE_VERSION: StorageVersion = StorageVersion::new(13);
+    const STORAGE_VERSION: StorageVersion = StorageVersion::new(14);
 
     #[cfg(not(feature = "testnet"))]
     const STORAGE_VERSION: StorageVersion = StorageVersion::new(1);
@@ -59,6 +59,7 @@ pub mod pallet {
         + pallet_subspace::Config
         + pallet_governance_api::GovernanceApi<<Self as frame_system::Config>::AccountId>
         + scale_info::TypeInfo
+        + sp_std::fmt::Debug
     {
         /// The events emitted on proposal changes.
         #[pallet::no_default_bounds]
@@ -89,10 +90,6 @@ pub mod pallet {
         #[pallet::constant]
         type OffchainWorkerBanDuration: Get<u64>;
 
-        /// Maximum number of failed pings before a decryption node is banned
-        #[pallet::constant]
-        type MaxFailedPings: Get<u8>;
-
         /// The number of consecutive missed pings after which a decryption node is considered
         /// inactive
         #[pallet::constant]
@@ -101,6 +98,11 @@ pub mod pallet {
         /// The interval (in blocks) at which the decryption node should send a keep-alive
         #[pallet::constant]
         type PingInterval: Get<u64>;
+
+        /// The extra buffer period in blocks that runtime will wait before banning a decryption
+        /// node. So the final count is `MaxEncryptionPeriod + EncryptionPeriodBuffer`
+        #[pallet::constant]
+        type EncryptionPeriodBuffer: Get<u64>;
     }
 
     type BalanceOf<T> =
@@ -213,6 +215,7 @@ pub mod pallet {
 
             Self::distribute_subnets_to_nodes(block_number);
             log::info!("Distributed subnets to nodes");
+            Self::assign_activation_blocks(block_number);
             Self::cancel_expired_offchain_workers(block_number);
             log::info!("Cancelled expired offchain workers");
             let emission_per_block = Self::get_total_emission_per_block();

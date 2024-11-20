@@ -139,7 +139,6 @@ impl pallet_subspace::Config for Test {
     type PalletId = SubspacePalletId;
     type EnforceWhitelist = ConstBool<false>;
     type DefaultUseWeightsEncryption = ConstBool<false>;
-    type MaxEncryptionDuration = ConstU64<10_800>;
 }
 
 impl GovernanceApi<<Test as frame_system::Config>::AccountId> for Test {
@@ -318,8 +317,6 @@ impl pallet_subnet_emission::Config for Test {
     type DecryptionNodeRotationInterval = ConstU64<5_000>;
     type MaxAuthorities = ConstU32<100>;
     type OffchainWorkerBanDuration = ConstU64<10_800>;
-    // setting high value because of testing (this should never be reached in practice)
-    type MaxFailedPings = ConstU8<{ u8::MAX }>;
     // setting high value because of testing (this should never be reached in practice)
     type MissedPingsForInactivity = ConstU8<{ u8::MAX }>;
     type PingInterval = ConstU64<50>;

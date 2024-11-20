@@ -127,7 +127,7 @@ pub mod pallet {
             IncentiveRatio: u16 = 50,
             ModuleBurnConfig,
             RegistrationsThisInterval,
-            MaxEncryptionPeriod,
+            MaxEncryptionPeriod: Option<u64> = Some(10_800),
             CopierMargin: I64F64 = I64F64::from_num(0),
             UseWeightsEncryption,
             AlphaValues: (u16, u16) = (45875, 58982),
