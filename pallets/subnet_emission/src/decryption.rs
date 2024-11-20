@@ -464,10 +464,6 @@ impl<T: Config> Pallet<T> {
         increase_pending_emission: bool,
         clear_node_assing: bool,
     ) -> u64 {
-        // --- Cleanup The Core ---
-
-        // Clear hashes & encrypted weights
-        let _ = WeightEncryptionData::<T>::clear_prefix(subnet_id, u32::MAX, None);
         // Sum up and clear ConsensusParameters
         let total_emission = ConsensusParameters::<T>::iter_prefix(subnet_id)
             .fold(0u64, |acc, (_, params)| {
