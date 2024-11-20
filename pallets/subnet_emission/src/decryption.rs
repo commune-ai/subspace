@@ -6,6 +6,8 @@ use crate::{
 };
 use pallet_subspace::UseWeightsEncryption;
 use sp_runtime::traits::Get;
+use sp_std::collections::btree_map::BTreeMap;
+
 use subnet_consensus::util::params::ModuleKey;
 use types::KeylessBlockWeights;
 
@@ -136,8 +138,8 @@ impl<T: Config> Pallet<T> {
             netuid
         );
 
-        Self::update_decrypted_weights(netuid, valid_weights);
-        match Self::process_decrypted_weights(netuid) {
+        let weights = Self::update_decrypted_weights(netuid, valid_weights);
+        match Self::process_decrypted_weights(netuid, weights) {
             Ok(()) => {
                 log::info!("decrypted weights have been processed for {netuid}")
             }
@@ -150,8 +152,10 @@ impl<T: Config> Pallet<T> {
 
     /// TODO: For this fn to work properely make sure that the decrypted weights extend their first
     /// weights by the `Weights` and then "continue extending themselves"
-    fn process_decrypted_weights(netuid: u16) -> Result<(), &'static str> {
-        let weights = DecryptedWeights::<T>::get(netuid);
+    fn process_decrypted_weights(
+        netuid: u16,
+        weights: Option<Vec<KeylessBlockWeights>>,
+    ) -> Result<(), &'static str> {
         if let Some(weights) = weights {
             // Sorts from oldest weights to newest
             let mut sorted_weights = weights;
@@ -270,19 +274,50 @@ impl<T: Config> Pallet<T> {
         Self::validate_input(uid, &uids, &values, netuid).ok()
     }
 
-    /// TODO: we should be able to get rid of the `DecryptedWeights` and return the result directly
-    /// for processing. if we extend with the `Weights` storage, everything should work as expected
+    /// Updates and combines weights from storage with newly validated weights.
     ///
-    /// TODO: the first decrypted weights here need to be extended by the
-    /// `Weights` storage. This should not be a problem even for activity cutoff, as the last
-    /// updates are "cached" in the consensus parameters, therefore the consensus is able to
-    /// determine which of those standalone extended weights would still be valid
-    fn update_decrypted_weights(netuid: u16, valid_weights: Vec<KeylessBlockWeights>) {
-        // Extends cached weights with new weights, including blocks with empty weight vectors
-        DecryptedWeights::<T>::mutate(netuid, |cached| match cached {
-            Some(cached) => cached.extend(valid_weights),
-            None => *cached = Some(valid_weights),
-        });
+    /// For a given network UID, this function:
+    /// 1. Collects existing weights from storage
+    /// 2. For each validator in valid_weights, either:
+    ///    - Overwrites their existing weights if they already set weights
+    ///    - Adds new weights if they haven't set weights before
+    ///
+    /// # Arguments
+    /// * `netuid` - The network UID to update weights for
+    /// * `valid_weights` - New validated weights in format (block_number, vec[(validator, vec[(src,
+    ///   dst)])])
+    ///
+    /// # Returns
+    /// * `Option<Vec<KeylessBlockWeights>>` - Combined weights organized by block number
+    pub fn update_decrypted_weights(
+        netuid: u16,
+        valid_weights: Vec<KeylessBlockWeights>,
+    ) -> Option<Vec<KeylessBlockWeights>> {
+        // Collect baseline weights from storage
+        let baseline_weights: Vec<(u16, Vec<(u16, u16)>)> =
+            Weights::<T>::iter_prefix(netuid).map(|(dst, weights)| (dst, weights)).collect();
+
+        // Process each block's weights
+        let result: Vec<KeylessBlockWeights> = valid_weights
+            .into_iter()
+            .map(|(block, new_weights)| {
+                // Convert baseline weights to a BTreeMap for easier merging
+                let mut weight_map: BTreeMap<u16, Vec<(u16, u16)>> =
+                    baseline_weights.iter().cloned().collect();
+
+                // Update or insert new weights
+                for (uid, weights) in new_weights {
+                    weight_map.insert(uid, weights);
+                }
+
+                // Convert back to vec
+                let block_weights: Vec<(u16, Vec<(u16, u16)>)> = weight_map.into_iter().collect();
+
+                (block, block_weights)
+            })
+            .collect();
+
+        Some(result)
     }
 
     fn rotate_decryption_node_if_needed(netuid: u16, info: SubnetDecryptionInfo<T>) {
@@ -431,8 +466,6 @@ impl<T: Config> Pallet<T> {
     ) -> u64 {
         // --- Cleanup The Core ---
 
-        // Clear decrypted weights
-        DecryptedWeights::<T>::remove(subnet_id);
         // Clear hashes & encrypted weights
         let _ = WeightEncryptionData::<T>::clear_prefix(subnet_id, u32::MAX, None);
         // Sum up and clear ConsensusParameters
