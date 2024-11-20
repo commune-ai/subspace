@@ -41,7 +41,6 @@ pub mod pallet {
     use pallet_subnet_emission_api::SubnetConsensus;
     use pallet_subspace::{define_module_includes, define_subnet_includes, TotalStake};
     use subnet_pricing::root::RootPricing;
-    use types::KeylessBlockWeights;
 
     #[cfg(feature = "testnet")]
     const STORAGE_VERSION: StorageVersion = StorageVersion::new(13);
@@ -119,7 +118,6 @@ pub mod pallet {
             ConsensusParameters
         },
         maps: {
-            DecryptedWeights,
             SubnetDecryptionData,
             SubnetConsensusType
         }
@@ -149,9 +147,6 @@ pub mod pallet {
     #[pallet::storage]
     pub type WeightEncryptionData<T> =
         StorageDoubleMap<_, Identity, u16, Identity, u16, EncryptionMechanism>;
-
-    #[pallet::storage]
-    pub type DecryptedWeights<T> = StorageMap<_, Identity, u16, Vec<KeylessBlockWeights>>;
 
     /// Decryption Node Info assigned to subnet
     #[pallet::storage]

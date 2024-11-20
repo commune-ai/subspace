@@ -5,11 +5,9 @@ use pallet_subnet_emission::{
         params::{AccountKey, ModuleKey},
     },
     types::SubnetDecryptionInfo,
-    BannedDecryptionNodes, ConsensusParameters, SubnetDecryptionData, Weights,
+    BannedDecryptionNodes, ConsensusParameters, Weights,
 };
-use pallet_subspace::{
-    Active, Consensus, Founder, PruningScores, Rank, Trust, UseWeightsEncryption, ValidatorTrust,
-};
+use pallet_subspace::{Active, Consensus, Founder, PruningScores, Rank, Trust, ValidatorTrust};
 use parity_scale_codec::Encode;
 use rand::rngs::OsRng;
 use rsa::{traits::PublicKeyParts, RsaPrivateKey};
@@ -1332,92 +1330,92 @@ fn yuma_change_permits() {
 }
 
 #[test]
-fn decrypted_weights_are_stored() {
-    new_test_ext().execute_with(|| {
-        let netuid = 0;
-        let first_uid = register_module(netuid, 1, 1000000000000000000, false).unwrap();
-        let second_uid = register_module(netuid, 2, 1000000000000000000, false).unwrap();
-        let third_uid = register_module(netuid, 3, 1000000000000000000, false).unwrap();
+// fn decrypted_weights_are_stored() {
+//     new_test_ext().execute_with(|| {
+//         let netuid = 0;
+//         let first_uid = register_module(netuid, 1, 1000000000000000000, false).unwrap();
+//         let second_uid = register_module(netuid, 2, 1000000000000000000, false).unwrap();
+//         let third_uid = register_module(netuid, 3, 1000000000000000000, false).unwrap();
 
-        let key = RsaPrivateKey::new(&mut OsRng, 2048).unwrap().to_public_key();
-        let key = (key.n().to_bytes_be(), key.e().to_bytes_be());
+//         let key = RsaPrivateKey::new(&mut OsRng, 2048).unwrap().to_public_key();
+//         let key = (key.n().to_bytes_be(), key.e().to_bytes_be());
 
-        let subnet_decryption_data = SubnetDecryptionInfo {
-            block_assigned: 0,
-            node_id: 1001,
-            node_public_key: key.clone(),
-            last_keep_alive: pallet_subspace::Tempo::<Test>::get(netuid) as u64,
-        };
+//         let subnet_decryption_data = SubnetDecryptionInfo {
+//             block_assigned: 0,
+//             node_id: 1001,
+//             node_public_key: key.clone(),
+//             last_keep_alive: pallet_subspace::Tempo::<Test>::get(netuid) as u64,
+//         };
 
-        pallet_subnet_emission::DecryptionNodes::<Test>::set(vec![subnet_decryption_data.clone()]);
+//         pallet_subnet_emission::DecryptionNodes::<Test>::set(vec![subnet_decryption_data.
+// clone()]);
 
-        pallet_subnet_emission::SubnetDecryptionData::<Test>::set(
-            netuid,
-            Some(subnet_decryption_data),
-        );
+//         pallet_subnet_emission::SubnetDecryptionData::<Test>::set(
+//             netuid,
+//             Some(subnet_decryption_data),
+//         );
 
-        pallet_subspace::UseWeightsEncryption::<Test>::set(netuid, true);
+//         pallet_subspace::UseWeightsEncryption::<Test>::set(netuid, true);
 
-        let first_uid_weights = vec![(second_uid, 50u16)];
-        let second_uid_weights = vec![(first_uid, 100u16)];
+//         let first_uid_weights = vec![(second_uid, 50u16)];
+//         let second_uid_weights = vec![(first_uid, 100u16)];
 
-        PendingEmission::<Test>::set(netuid, 100000000);
+//         PendingEmission::<Test>::set(netuid, 100000000);
 
-        // first
-        pallet_subnet_emission::Pallet::<Test>::set_weights_encrypted(
-            get_origin(1),
-            netuid,
-            offworker::encryption::encrypt(key.clone(), first_uid_weights.clone(), 1.encode()),
-            offworker::encryption::hash(first_uid_weights.clone()),
-        )
-        .unwrap();
+//         // first
+//         pallet_subnet_emission::Pallet::<Test>::set_weights_encrypted(
+//             get_origin(1),
+//             netuid,
+//             offworker::encryption::encrypt(key.clone(), first_uid_weights.clone(), 1.encode()),
+//             offworker::encryption::hash(first_uid_weights.clone()),
+//         )
+//         .unwrap();
 
-        // second
-        pallet_subnet_emission::Pallet::<Test>::set_weights_encrypted(
-            get_origin(2),
-            netuid,
-            offworker::encryption::encrypt(key.clone(), second_uid_weights.clone(), 2.encode()),
-            offworker::encryption::hash(second_uid_weights.clone()),
-        )
-        .unwrap();
+//         // second
+//         pallet_subnet_emission::Pallet::<Test>::set_weights_encrypted(
+//             get_origin(2),
+//             netuid,
+//             offworker::encryption::encrypt(key.clone(), second_uid_weights.clone(), 2.encode()),
+//             offworker::encryption::hash(second_uid_weights.clone()),
+//         )
+//         .unwrap();
 
-        // third
-        pallet_subnet_emission::Pallet::<Test>::set_weights_encrypted(
-            get_origin(3),
-            netuid,
-            offworker::encryption::encrypt(key.clone(), second_uid_weights.clone(), 2.encode()),
-            offworker::encryption::hash(second_uid_weights.clone()),
-        )
-        .unwrap();
+//         // third
+//         pallet_subnet_emission::Pallet::<Test>::set_weights_encrypted(
+//             get_origin(3),
+//             netuid,
+//             offworker::encryption::encrypt(key.clone(), second_uid_weights.clone(), 2.encode()),
+//             offworker::encryption::hash(second_uid_weights.clone()),
+//         )
+//         .unwrap();
 
-        step_epoch(netuid);
+//         step_epoch(netuid);
 
-        let weights = vec![(
-            pallet_subspace::Tempo::<Test>::get(netuid) as u64,
-            vec![
-                (first_uid, first_uid_weights.clone(), 1.encode()),
-                (second_uid, second_uid_weights.clone(), 2.encode()),
-                (third_uid, second_uid_weights.clone(), 2.encode()),
-            ],
-        )];
+//         let weights = vec![(
+//             pallet_subspace::Tempo::<Test>::get(netuid) as u64,
+//             vec![
+//                 (first_uid, first_uid_weights.clone(), 1.encode()),
+//                 (second_uid, second_uid_weights.clone(), 2.encode()),
+//                 (third_uid, second_uid_weights.clone(), 2.encode()),
+//             ],
+//         )];
 
-        pallet_subnet_emission::Pallet::<Test>::handle_decrypted_weights(netuid, weights);
+//         pallet_subnet_emission::Pallet::<Test>::handle_decrypted_weights(netuid, weights);
 
-        let expected = vec![(
-            pallet_subspace::Tempo::<Test>::get(netuid) as u64,
-            vec![
-                (first_uid, first_uid_weights),
-                (second_uid, second_uid_weights),
-            ],
-        )];
+//         let expected = vec![(
+//             pallet_subspace::Tempo::<Test>::get(netuid) as u64,
+//             vec![
+//                 (first_uid, first_uid_weights),
+//                 (second_uid, second_uid_weights),
+//             ],
+//         )];
 
-        assert_eq!(
-            pallet_subnet_emission::DecryptedWeights::<Test>::get(netuid),
-            Some(expected)
-        );
-    });
-}
-
+//         assert_eq!(
+//             pallet_subnet_emission::DecryptedWeights::<Test>::get(netuid),
+//             Some(expected)
+//         );
+//     });
+// }
 #[test]
 fn decrypted_weight_run_result_is_applied_and_cleaned_up() {
     new_test_ext().execute_with(|| {
