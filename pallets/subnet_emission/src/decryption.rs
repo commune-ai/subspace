@@ -4,7 +4,7 @@ use crate::{
     distribute_emission::update_pending_emission,
     subnet_consensus::{util::params::ConsensusParams, yuma::YumaEpoch},
 };
-use pallet_subspace::UseWeightsEncryption;
+use pallet_subspace::{MaxEncryptionPeriod, MaxEncryptionPeriodDefaultValue, UseWeightsEncryption};
 use sp_runtime::traits::Get;
 use sp_std::collections::btree_map::BTreeMap;
 
@@ -52,19 +52,27 @@ impl<T: Config> Pallet<T> {
 
     pub fn distribute_subnets_to_nodes(block: u64) {
         // Filter out nodes that haven't sent a ping within required interval
+        log::info!("running distribution to nodes at block {block}");
         let active_nodes = match Self::get_active_nodes(block) {
             Some(nodes) => nodes,
-            None => return,
+            None => {
+                log::info!("no active nodes found in distributing to nodes");
+                return;
+            }
         };
+        log::info!("active nodes are: {active_nodes:?}");
 
         for netuid in pallet_subspace::N::<T>::iter_keys() {
+            log::info!("decryption process for subnet {netuid:?}");
             if !UseWeightsEncryption::<T>::get(netuid) {
+                log::info!("there is no use weights encryption for subnet {netuid:?}");
                 continue;
             }
 
             let data = SubnetDecryptionData::<T>::get(netuid);
             if data.is_some_and(|_data| true) {
-                return;
+                log::info!("subnet {netuid:?} has some decryption data");
+                continue;
             }
 
             let mut current = DecryptionNodeCursor::<T>::get() as usize;
@@ -73,17 +81,22 @@ impl<T: Config> Pallet<T> {
             }
 
             if let Some(node_info) = active_nodes.get(current) {
+                log::info!("found node info at cursor position {current}");
                 SubnetDecryptionData::<T>::set(
                     netuid,
                     Some(SubnetDecryptionInfo {
                         node_id: node_info.node_id.clone(),
                         node_public_key: node_info.node_public_key.clone(),
-                        block_assigned: block,
+                        activation_block: None, /* will be set based on the first encrypted
+                                                 * weight
+                                                 * occurrence */
                         last_keep_alive: block,
                     }),
                 );
 
                 DecryptionNodeCursor::<T>::set((current.saturating_add(1)) as u16);
+            } else {
+                log::info!("no node info found at cursor position {current}");
             }
         }
     }
@@ -322,8 +335,12 @@ impl<T: Config> Pallet<T> {
 
     fn rotate_decryption_node_if_needed(netuid: u16, info: SubnetDecryptionInfo<T>) {
         let block_number = pallet_subspace::Pallet::<T>::get_current_block_number();
-        if block_number.saturating_sub(info.block_assigned)
-            < T::DecryptionNodeRotationInterval::get()
+        let activation_block = match info.activation_block {
+            Some(block) => block,
+            None => return,
+        };
+
+        if block_number.saturating_sub(activation_block) < T::DecryptionNodeRotationInterval::get()
         {
             return;
         }
@@ -343,7 +360,8 @@ impl<T: Config> Pallet<T> {
                 Some(SubnetDecryptionInfo {
                     node_id: new_node.node_id,
                     node_public_key: new_node.node_public_key,
-                    block_assigned: block_number,
+                    activation_block: None, /* This will get updated based on the first encrypted
+                                             * weights */
                     last_keep_alive: block_number,
                 }),
             );
@@ -388,7 +406,7 @@ impl<T: Config> Pallet<T> {
                         node_id: account_id.clone(),
                         node_public_key: public_key,
                         last_keep_alive: current_block,
-                        block_assigned: current_block,
+                        activation_block: None,
                     });
                 }
             }
@@ -430,12 +448,14 @@ impl<T: Config> Pallet<T> {
         (with_encryption, without_encryption)
     }
 
+    pub fn get_max_encryption_interval(netuid: &u16) -> u64 {
+        MaxEncryptionPeriod::<T>::get(netuid)
+            .unwrap_or_else(|| MaxEncryptionPeriodDefaultValue::get().unwrap_or(10_800))
+    }
+
     pub fn cancel_expired_offchain_workers(block_number: u64) {
-        // TODO: make sure that this is the boundry even for the subnet owner
-        // / the offchain worker has max lenght this exact interval present in the
-        // `is_copying_irrational` otherwise we could run into race conditions
         let max_inactivity_blocks =
-            T::PingInterval::get().saturating_mul(T::MaxFailedPings::get() as u64);
+            T::PingInterval::get().saturating_mul(T::MissedPingsForInactivity::get() as u64);
 
         // Get only subnets that use encryption and have encrypted weights
         let (with_encryption, _) = Self::get_valid_subnets(None);
@@ -445,13 +465,11 @@ impl<T: Config> Pallet<T> {
             .filter_map(|subnet_id| {
                 SubnetDecryptionData::<T>::get(subnet_id).map(|info| (subnet_id, info))
             })
-            .filter(|(_, info)| {
+            .filter(|(subnet_id, info)| {
                 block_number.saturating_sub(info.last_keep_alive) > max_inactivity_blocks
-                    || block_number.saturating_sub(info.block_assigned)
-                        > T::MaxEncryptionDuration::get().saturating_add(100) // TODO: the buffer
-                                                                              // has to be a
-                                                                              // constant defined in
-                                                                              // the runtime
+                    || block_number.saturating_sub(info.activation_block.unwrap_or(u64::MAX))
+                        > Self::get_max_encryption_interval(subnet_id)
+                            .saturating_add(T::EncryptionPeriodBuffer::get())
             })
             .for_each(|(subnet_id, info)| Self::cancel_offchain_worker(subnet_id, &info));
     }
@@ -464,6 +482,7 @@ impl<T: Config> Pallet<T> {
         increase_pending_emission: bool,
         clear_node_assing: bool,
     ) -> u64 {
+        let _ = WeightEncryptionData::<T>::clear_prefix(subnet_id, u32::MAX, None);
         // Sum up and clear ConsensusParameters
         let total_emission = ConsensusParameters::<T>::iter_prefix(subnet_id)
             .fold(0u64, |acc, (_, params)| {
@@ -528,5 +547,31 @@ impl<T: Config> Pallet<T> {
         let ban_expiry = current_block.saturating_add(ban_duration);
 
         BannedDecryptionNodes::<T>::insert(node_id, ban_expiry);
+    }
+
+    /// Assigns activation blocks to subnets when they first receive encrypted weight data.
+    /// This function runs on every block and sets the activation_block field in
+    /// SubnetDecryptionInfo when weight encryption data is first detected for a subnet. The
+    /// activation block is only set once per subnet and remains unchanged afterwards.
+    ///
+    /// # Arguments
+    /// * `block_number` - The current block number when this function is called
+    pub(crate) fn assign_activation_blocks(block_number: u64) {
+        // Iterate through all subnets in SubnetDecryptionData
+        for (subnet_id, mut subnet_info) in SubnetDecryptionData::<T>::iter() {
+            // Check if subnet doesn't already have an activation block
+            if subnet_info.activation_block.is_none() {
+                // Check if there's any weight encryption data for this subnet
+                let has_encrypted_weights =
+                    WeightEncryptionData::<T>::iter_prefix(subnet_id).next().is_some();
+
+                // If there's encrypted weight data and no activation block set yet,
+                // set the current block as the activation block
+                if has_encrypted_weights {
+                    subnet_info.activation_block = Some(block_number);
+                    SubnetDecryptionData::<T>::insert(subnet_id, subnet_info);
+                }
+            }
+        }
     }
 }

@@ -18,10 +18,8 @@ impl<T: Config> Pallet<T> {
             }
 
             let copier_margin = CopierMargin::<T>::get(subnet_id);
-            let max_encryption_period = MaxEncryptionPeriod::<T>::get(subnet_id)
-                .map_or(T::MaxEncryptionDuration::get(), |period| {
-                    T::MaxEncryptionDuration::get().min(period)
-                });
+            let max_encryption_period =
+                pallet_subnet_emission::Pallet::<T>::get_max_encryption_interval(&subnet_id);
 
             let (last_processed_block, simulation_result) = Self::get_subnet_state(
                 subnet_id,

@@ -12,6 +12,15 @@ pub fn is_copying_irrational<T: pallet_subspace::Config>(
     }: ConsensusSimulationResult<T>,
     block_number: u64,
 ) -> (bool, I64F64) {
+    log::info!(
+        "Checking if copying is irrational: creation_block: {}, max_encryption_period: {}, copier_margin: {}, cumulative_avg_delegate_divs: {}, cumulative_copier_divs: {}, block_number: {}",
+        creation_block,
+        max_encryption_period,
+        copier_margin,
+        cumulative_avg_delegate_divs,
+        cumulative_copier_divs,
+        block_number
+    );
     let encryption_window_len = block_number.saturating_sub(creation_block);
     if encryption_window_len >= max_encryption_period {
         log::info!(
@@ -25,6 +34,7 @@ pub fn is_copying_irrational<T: pallet_subspace::Config>(
     let one = I64F64::from_num(1);
     let threshold = one.saturating_add(copier_margin).saturating_mul(cumulative_avg_delegate_divs);
     let delta = cumulative_copier_divs.saturating_sub(threshold);
+    log::info!("the delta is {:?}", delta);
     (delta.is_negative(), delta)
 }
 

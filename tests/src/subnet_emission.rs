@@ -1329,7 +1329,7 @@ fn yuma_change_permits() {
     });
 }
 
-#[test]
+// #[test]
 // fn decrypted_weights_are_stored() {
 //     new_test_ext().execute_with(|| {
 //         let netuid = 0;
@@ -1601,7 +1601,6 @@ fn ban_decryption_node() {
         );
 
         let ping_interval: u64 = <Test as pallet_subnet_emission::Config>::PingInterval::get();
-        let max_failed_pings: u8 = <Test as pallet_subnet_emission::Config>::MaxFailedPings::get();
         step_block((ping_interval * max_failed_pings as u64 + 1) as u16);
 
         // one subnet with decryption node set

@@ -172,7 +172,7 @@ pub mod opaque {
 }
 
 #[cfg(feature = "testnet")]
-pub type Migrations = (pallet_subspace::migrations::v15::MigrateToV15<Runtime>);
+pub type Migrations = (pallet_subnet_emission::migrations::v1::MigrateToV1<Runtime>,);
 
 #[cfg(not(feature = "testnet"))]
 pub type Migrations = (
@@ -186,7 +186,7 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
     spec_name: create_runtime_str!("node-subspace"),
     impl_name: create_runtime_str!("node-subspace"),
     authoring_version: 1,
-    spec_version: 471,
+    spec_version: 482,
     impl_version: 1,
     apis: RUNTIME_API_VERSIONS,
     transaction_version: 1,
@@ -440,8 +440,6 @@ impl pallet_subspace::Config for Runtime {
     type DefaultMinValidatorStake = ConstU64<50_000_000_000_000>;
     type EnforceWhitelist = ConstBool<true>;
     type DefaultUseWeightsEncryption = ConstBool<true>;
-    // TODO: consider making this lower
-    type MaxEncryptionDuration = ConstU64<20_880>; // Close to 2 days
 }
 
 impl pallet_governance::Config for Runtime {
@@ -476,15 +474,13 @@ impl pallet_subnet_emission::Config for Runtime {
     // Ban presists even if ping are being sent.
     // 10_800 is one day, assume 8 second block time
     type OffchainWorkerBanDuration = ConstU64<10_800>;
-    // Number of failed pings before a node is banned, and it's operations are canceled.
-    // 20 represents 1_000 blocks
-    type MaxFailedPings = ConstU8<20>;
     // After these many missed pings, node will be kept out of rotation, and it's signing avoided.
     // Node won't be fully banned yet.
     // 5 represents 250 blocks
     type MissedPingsForInactivity = ConstU8<5>;
     // Represented in number of blocks, defines how often node sends keep-alive ping
     type PingInterval = ConstU64<50>;
+    type EncryptionPeriodBuffer = ConstU64<100>;
 }
 
 #[cfg(feature = "testnet-faucet")]

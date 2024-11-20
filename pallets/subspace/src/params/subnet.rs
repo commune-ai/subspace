@@ -72,7 +72,7 @@ impl<T: Config> DefaultSubnetParams<T> {
             // --- Weight Encryption ---
             use_weights_encryption: T::DefaultUseWeightsEncryption::get(),
             copier_margin: CopierMarginDefaultValue::get(),
-            max_encryption_period: None,
+            max_encryption_period: MaxEncryptionPeriodDefaultValue::get(),
         }
     }
 }
@@ -112,8 +112,8 @@ const MIN_ALLOWED_WEIGHTS: u16 = 1;
 const MAX_VALIDATOR_STAKE: u64 = 250_000_000_000_000;
 const MAX_COPIER_MARGIN: f64 = 1.0;
 const MIN_ALLOWED_VALIDATORS: u16 = 10;
-const MIN_ENCRYPTION_PERIOD: u64 = 360;
 const MIN_SET_WEIGHT_CALLS: u16 = 1;
+const MAX_ENCRYPTION_DURATION: u64 = 10_800 * 2; // 2 days
 
 impl<T: Config> ValidatedSubnetParams<T> {
     pub fn new(params: SubnetParams<T>, netuid: Option<u16>) -> Result<Self, DispatchError> {
@@ -178,9 +178,9 @@ impl<T: Config> ValidatedSubnetParams<T> {
         }
 
         // Validate tempo and weight age
-        ensure!(*tempo >= MIN_TEMPO, Error::<T>::InvalidTempo);
+        ensure!(tempo >= &MIN_TEMPO, Error::<T>::InvalidTempo);
         ensure!(
-            *max_weight_age > *tempo as u64,
+            *max_weight_age > u64::from(*tempo),
             Error::<T>::InvalidMaxWeightAge
         );
 
@@ -233,8 +233,8 @@ impl<T: Config> ValidatedSubnetParams<T> {
 
         if let Some(encryption_period) = max_encryption_period {
             ensure!(
-                *encryption_period >= MIN_ENCRYPTION_PERIOD
-                    && *encryption_period <= T::MaxEncryptionDuration::get(),
+                *encryption_period >= u64::from(*tempo)
+                    && *encryption_period <= MAX_ENCRYPTION_DURATION,
                 Error::<T>::InvalidMaxEncryptionPeriod
             );
         }

@@ -33,10 +33,5 @@ pub mod config {
         type WeightInfo: WeightInfo;
         type EnforceWhitelist: Get<bool>;
         type DefaultUseWeightsEncryption: Get<bool>;
-
-        /// Maximum number of blocks, weights can stay encrypted for. Controls boundaries of subnet
-        /// param: `max_encryption_period`
-        #[pallet::constant]
-        type MaxEncryptionDuration: Get<u64>;
     }
 }
