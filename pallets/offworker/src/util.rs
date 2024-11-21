@@ -156,15 +156,25 @@ pub fn should_decrypt_weights<T: Config>(
     mut simulation_result: ConsensusSimulationResult<T>,
     block_number: u64,
 ) -> ShouldDecryptResult<T> {
+    let simulation_params = match compute_simulation_yuma_params::<T>(
+        decrypted_weights,
+        latest_runtime_yuma_params,
+        subnet_id,
+    ) {
+        Some(params) => params,
+        None => {
+            return ShouldDecryptResult {
+                should_decrypt: true,
+                ..Default::default()
+            }
+        }
+    };
+
     let SimulationYumaParams {
         uid: copier_uid,
         params: simulation_yuma_params,
         decrypted_weights_map,
-    } = compute_simulation_yuma_params::<T>(
-        decrypted_weights,
-        latest_runtime_yuma_params,
-        subnet_id,
-    );
+    } = simulation_params;
 
     let decrypted_weights = decrypted_weights_map.into_iter().collect::<Vec<_>>();
     if decrypted_weights.is_empty() {
@@ -217,12 +227,20 @@ pub fn compute_simulation_yuma_params<T: Config>(
     decrypted_weights: &[(u16, Vec<(u16, u16)>)],
     mut runtime_yuma_params: ConsensusParams<T>,
     subnet_id: u16,
-) -> SimulationYumaParams<T> {
+) -> Option<SimulationYumaParams<T>> {
     let copier_uid: u16 = runtime_yuma_params.modules.len() as u16;
 
     // This **has** to be ontained from the runtime storage. So it sees the publicly know consensus
     // on decrypted weights
     let consensus_weights = Consensus::<T>::get(subnet_id);
+
+    // If the consensus is empty or just all zeros, return None
+
+    if consensus_weights.iter().all(|x| *x == 0) || consensus_weights.is_empty() {
+        log::warn!("Consensus is empty for subnet {}", subnet_id);
+        return None;
+    }
+
     let copier_weights: Vec<(u16, u16)> = consensus_weights
         .into_iter()
         .enumerate()
@@ -242,11 +260,11 @@ pub fn compute_simulation_yuma_params<T: Config>(
                                                                        * this validator key */
     );
 
-    SimulationYumaParams {
+    Some(SimulationYumaParams {
         uid: copier_uid,
         params: runtime_yuma_params,
         decrypted_weights_map: onchain_weights,
-    }
+    })
 }
 
 /// This will mutate ConsensusParams with copier information, ready for simulation

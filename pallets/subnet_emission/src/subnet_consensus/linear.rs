@@ -45,7 +45,7 @@ impl<T: Config> LinearEpoch<T> {
             self.subnet_id
         );
 
-        let weights = prepare_weights::<T>(&self.modules, input_weights);
+        let weights = prepare_weights::<T>(self.subnet_id, &self.modules, input_weights);
 
         // Stays for linear & yuma
         let (inactive, active) = split_modules_by_activity(

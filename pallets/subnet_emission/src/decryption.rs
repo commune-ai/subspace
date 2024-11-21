@@ -497,9 +497,19 @@ impl<T: Config> Pallet<T> {
         if increase_pending_emission {
             update_pending_emission::<T>(subnet_id, &total_emission)
         }
+
+        // Combined logic with match
         if clear_node_assing {
-            // Remove the subnet's decryption data
+            // If we're going to remove it anyway, just remove it
             SubnetDecryptionData::<T>::remove(subnet_id);
+        } else {
+            // Only mutate if we're not removing
+            SubnetDecryptionData::<T>::mutate(subnet_id, |maybe_info| {
+                if let Some(mut info) = maybe_info.clone() {
+                    info.activation_block = None;
+                    *maybe_info = Some(info);
+                }
+            });
         }
 
         total_emission

@@ -725,6 +725,7 @@ pub fn calculate_new_permits<T: Config>(
 }
 
 pub fn prepare_weights<T: Config>(
+    subnet_id: u16,
     modules: &FlattenedModules<T::AccountId>,
     input_weights: Vec<(u16, Vec<(u16, u16)>)>,
 ) -> Vec<(u16, Vec<(u16, u16)>)> {
@@ -733,7 +734,9 @@ pub fn prepare_weights<T: Config>(
 
     // Convert input weights to a BTreeMap for easier manipulation
     let mut weights: BTreeMap<u16, Vec<(u16, u16)>> = input_weights.into_iter().collect();
-
+    log::info!("yuma input weights for subnet {subnet_id} are {weights:?}");
+    log::info!("yuma uids for subnet {subnet_id} are {uids:?}");
+    log::info!("yuma modules for subnet {subnet_id} are {modules:?}");
     // Map over uids, keeping the uid and collecting weights
     uids.keys()
         .map(|&uid| (uid, weights.remove(&uid).unwrap_or_default()))

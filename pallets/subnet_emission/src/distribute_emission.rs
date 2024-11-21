@@ -63,11 +63,11 @@ fn run_epoch<T: Config>(netuid: u16) {
     if emission_to_drain > 0 {
         match run_consensus_algorithm::<T>(netuid, emission_to_drain) {
             Ok(_) => {
-                finalize_epoch::<T>(netuid, true);
+                finalize_epoch::<T>(netuid, true); // clear emission
             }
             Err(NO_WEIGHTS) => {
                 log::warn!("no weights set on subnet {netuid}");
-                finalize_epoch::<T>(netuid, false);
+                finalize_epoch::<T>(netuid, false); // do not clear emission, just deposit event
             }
             Err(e) => {
                 log::error!(
