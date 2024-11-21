@@ -190,6 +190,16 @@ fn run_yuma_consensus<T: Config>(netuid: u16, emission_to_drain: u64) -> Result<
     log::info!("Yuma consensus for subnet {netuid} completed successfully");
     let block = PalletSubspace::<T>::get_current_block_number();
     ConsensusParameters::<T>::insert(netuid, block, params);
+
+    // Rotate the nodes if needed
+    if let Some(info) = SubnetDecryptionData::<T>::get(netuid) {
+        log::info!("checking rotation for subnet {netuid}");
+        crate::Pallet::<T>::rotate_decryption_node_if_needed(netuid, info);
+    } else {
+        log::error!(
+            "subnet {netuid} received decrypted weights to run but has no decryption data."
+        );
+    }
     Ok(())
 }
 

@@ -112,16 +112,6 @@ impl<T: Config> Pallet<T> {
             "Received decrypted weights: {:?}, for subnet {netuid}",
             weights
         );
-        let info = match SubnetDecryptionData::<T>::get(netuid) {
-            Some(info) => info,
-            None => {
-                log::error!(
-                    "subnet {netuid} received decrypted weights to run but has no decryption data."
-                );
-                return;
-            }
-        };
-
         log::info!("before processing valid weights");
 
         let valid_weights: Vec<KeylessBlockWeights> = weights
@@ -177,11 +167,8 @@ impl<T: Config> Pallet<T> {
                 log::error!("error: {err:?} in processing decrypted weights for subnet {netuid} ")
             }
         }
-        Self::rotate_decryption_node_if_needed(netuid, info);
     }
 
-    /// TODO: For this fn to work properely make sure that the decrypted weights extend their first
-    /// weights by the `Weights` and then "continue extending themselves"
     fn process_decrypted_weights(
         netuid: u16,
         weights: Option<Vec<KeylessBlockWeights>>,
@@ -365,42 +352,6 @@ impl<T: Config> Pallet<T> {
         Some(result)
     }
 
-    fn rotate_decryption_node_if_needed(netuid: u16, info: SubnetDecryptionInfo<T>) {
-        let block_number = pallet_subspace::Pallet::<T>::get_current_block_number();
-        let activation_block = match info.activation_block {
-            Some(block) => block,
-            None => return,
-        };
-
-        if block_number.saturating_sub(activation_block) < T::DecryptionNodeRotationInterval::get()
-        {
-            return;
-        }
-
-        let current = DecryptionNodeCursor::<T>::get() as usize;
-        let active_nodes = match Self::get_active_nodes(block_number) {
-            Some(nodes) => nodes,
-            None => return,
-        };
-
-        let new_node =
-            active_nodes.get(current.checked_rem(active_nodes.len()).unwrap_or(0)).cloned();
-
-        if let Some(new_node) = new_node {
-            SubnetDecryptionData::<T>::set(
-                netuid,
-                Some(SubnetDecryptionInfo {
-                    node_id: new_node.node_id,
-                    node_public_key: new_node.node_public_key,
-                    activation_block: None, /* This will get updated based on the first encrypted
-                                             * weights */
-                    last_keep_alive: block_number,
-                }),
-            );
-            DecryptionNodeCursor::<T>::set((current.saturating_add(1)) as u16);
-        }
-    }
-
     /// Adds a new active authority node to the list of active authority nodes.
     /// If the node is already in the list, it will be updated with a new time.
     pub fn handle_authority_node_ping(account_id: T::AccountId) {
@@ -506,6 +457,10 @@ impl<T: Config> Pallet<T> {
             .for_each(|(subnet_id, info)| Self::cancel_offchain_worker(subnet_id, &info));
     }
 
+    pub fn cleanup_weight_encryption_data(subnet_id: u16) {
+        let _ = WeightEncryptionData::<T>::clear_prefix(subnet_id, u32::MAX, None);
+    }
+
     /// Cleans up weight copying state of a subnet by removing weights and parameters.
     /// If increase_pending_emission is true, returns tokens to pending emissions.
     /// Returns the total emission amount that was processed.
@@ -514,7 +469,6 @@ impl<T: Config> Pallet<T> {
         increase_pending_emission: bool,
         clear_node_assing: bool,
     ) -> u64 {
-        let _ = WeightEncryptionData::<T>::clear_prefix(subnet_id, u32::MAX, None);
         // Sum up and clear ConsensusParameters
         let total_emission = ConsensusParameters::<T>::iter_prefix(subnet_id)
             .fold(0u64, |acc, (_, params)| {
@@ -555,8 +509,9 @@ impl<T: Config> Pallet<T> {
     pub fn clear_hanging_subnet_state() -> usize {
         let (_, hanging_subnets) = Self::get_valid_subnets(None);
 
-        for netuid in &hanging_subnets {
-            let _ = Self::cleanup_subnet_wc_state(*netuid, false, true);
+        for subnet_id in hanging_subnets.clone() {
+            let _ = Self::cleanup_subnet_wc_state(subnet_id, false, true);
+            Self::cleanup_weight_encryption_data(subnet_id);
         }
 
         hanging_subnets.len()
@@ -566,6 +521,7 @@ impl<T: Config> Pallet<T> {
     /// banning the worker, and reassigning the subnet to a different worker.
     fn cancel_offchain_worker(subnet_id: u16, info: &SubnetDecryptionInfo<T>) {
         let _ = Self::cleanup_subnet_wc_state(subnet_id, true, true);
+        Self::cleanup_weight_encryption_data(subnet_id);
 
         // Additional operations specific to canceling offchain worker
         let current_block = pallet_subspace::Pallet::<T>::get_current_block_number();
@@ -614,6 +570,44 @@ impl<T: Config> Pallet<T> {
                     SubnetDecryptionData::<T>::insert(subnet_id, subnet_info);
                 }
             }
+        }
+    }
+
+    pub(crate) fn rotate_decryption_node_if_needed(subnet_id: u16, info: SubnetDecryptionInfo<T>) {
+        let block_number = pallet_subspace::Pallet::<T>::get_current_block_number();
+        let activation_block = match info.activation_block {
+            Some(block) => block,
+            None => return,
+        };
+
+        if block_number.saturating_sub(activation_block) < T::DecryptionNodeRotationInterval::get()
+        {
+            return;
+        }
+
+        let current = DecryptionNodeCursor::<T>::get() as usize;
+        let active_nodes = match Self::get_active_nodes(block_number) {
+            Some(nodes) => nodes,
+            None => return,
+        };
+
+        let new_node =
+            active_nodes.get(current.checked_rem(active_nodes.len()).unwrap_or(0)).cloned();
+
+        if let Some(new_node) = new_node {
+            SubnetDecryptionData::<T>::set(
+                subnet_id,
+                Some(SubnetDecryptionInfo {
+                    node_id: new_node.node_id,
+                    node_public_key: new_node.node_public_key,
+                    activation_block: None, /* This will get updated based on the first encrypted
+                                             * weights */
+                    last_keep_alive: block_number,
+                }),
+            );
+            DecryptionNodeCursor::<T>::set((current.saturating_add(1)) as u16);
+            // After rotation we have to clear the weight encryption data
+            Self::cleanup_weight_encryption_data(subnet_id);
         }
     }
 }
