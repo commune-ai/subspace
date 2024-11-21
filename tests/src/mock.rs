@@ -320,6 +320,7 @@ impl pallet_subnet_emission::Config for Test {
     // setting high value because of testing (this should never be reached in practice)
     type MissedPingsForInactivity = ConstU8<{ u8::MAX }>;
     type PingInterval = ConstU64<50>;
+    type EncryptionPeriodBuffer = ConstU64<100>;
 }
 
 impl pallet_governance::Config for Test {
