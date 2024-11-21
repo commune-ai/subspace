@@ -34,15 +34,17 @@ impl<T: Config> YumaEpoch<T> {
         self,
         input_weights: Vec<(u16, Vec<(u16, u16)>)>,
     ) -> Result<ConsensusOutput<T>, EmissionError> {
-        log::debug!(
+        log::info!(
             "running yuma for subnet_id {}, will emit {:?} modules and {:?} to founder",
             self.subnet_id,
             self.params.token_emission,
             self.params.founder_emission
         );
-        log::trace!("yuma for subnet_id {} parameters: {self:?}", self.subnet_id);
+        log::info!("yuma for subnet_id {} parameters: {self:?}", self.subnet_id);
 
-        let weights = prepare_weights::<T>(&self.modules, input_weights);
+        let weights = prepare_weights::<T>(self.subnet_id, &self.modules, input_weights);
+
+        log::info!("weights for: {} are: {weights:?}", self.subnet_id);
 
         let (inactive, active) = split_modules_by_activity(
             &self.modules.last_update,
@@ -62,12 +64,12 @@ impl<T: Config> YumaEpoch<T> {
             .ok_or(EmissionError::Other("weights are broken"))?;
 
         let stake = StakeVal::unchecked_from_inner(self.modules.stake_normalized.clone());
-        log::trace!("final stake: {stake:?}");
+        log::info!("final stake: {stake:?}");
 
-        log::trace!("new permits: {new_permits:?}");
+        log::info!("new permits: {new_permits:?}");
 
         let active_stake = compute_active_stake(&self.modules, &self.params, &inactive, &stake);
-        log::trace!("final active stake: {active_stake:?}");
+        log::info!("final active stake: {active_stake:?}");
 
         let ConsensusAndTrust {
             consensus,
