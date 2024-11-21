@@ -1341,7 +1341,7 @@ fn yuma_change_permits() {
 //         let key = (key.n().to_bytes_be(), key.e().to_bytes_be());
 
 //         let subnet_decryption_data = SubnetDecryptionInfo {
-//             block_assigned: 0,
+//             activation_block: 0,
 //             node_id: 1001,
 //             node_public_key: key.clone(),
 //             last_keep_alive: pallet_subspace::Tempo::<Test>::get(netuid) as u64,
@@ -1427,7 +1427,7 @@ fn decrypted_weight_run_result_is_applied_and_cleaned_up() {
         let key = (key.n().to_bytes_be(), key.e().to_bytes_be());
 
         let subnet_decryption_data = SubnetDecryptionInfo {
-            block_assigned: 0,
+            activation_block: Some(0),
             node_id: 1001,
             node_public_key: key.clone(),
             last_keep_alive: pallet_subspace::Tempo::<Test>::get(netuid) as u64,
@@ -1533,7 +1533,7 @@ fn rotate_decryption_node() {
         pallet_subnet_emission::SubnetDecryptionData::<Test>::set(
             netuid,
             Some(SubnetDecryptionInfo {
-                block_assigned: 0,
+                activation_block: Some(0),
                 node_id: dn_1,
                 node_public_key: key_1,
                 last_keep_alive: decryption_node_interval,
@@ -1543,7 +1543,7 @@ fn rotate_decryption_node() {
         pallet_subnet_emission::SubnetDecryptionData::<Test>::set(
             netuid,
             Some(SubnetDecryptionInfo {
-                block_assigned: 0,
+                activation_block: Some(0),
                 node_id: dn_2,
                 node_public_key: key_2,
                 last_keep_alive: decryption_node_interval,
@@ -1565,7 +1565,6 @@ fn rotate_decryption_node() {
 
 #[test]
 fn ban_decryption_node() {
-    use sp_core::Get;
     new_test_ext().execute_with(|| {
         let netuid = 0;
 
@@ -1579,7 +1578,7 @@ fn ban_decryption_node() {
         pallet_subnet_emission::SubnetDecryptionData::<Test>::set(
             netuid,
             Some(SubnetDecryptionInfo {
-                block_assigned: 0,
+                activation_block: Some(0),
                 node_id: dn_1,
                 node_public_key: key_1,
                 last_keep_alive: 0,
@@ -1599,9 +1598,9 @@ fn ban_decryption_node() {
                 decrypted_hashes: vec![123],
             }),
         );
-
-        let ping_interval: u64 = <Test as pallet_subnet_emission::Config>::PingInterval::get();
-        step_block((ping_interval * max_failed_pings as u64 + 1) as u16);
+        let max_encryption_inteval =
+            pallet_subnet_emission::Pallet::<Test>::get_max_encryption_interval(&netuid);
+        step_block((max_encryption_inteval + 1) as u16);
 
         // one subnet with decryption node set
         pallet_subnet_emission::DecryptionNodeCursor::<Test>::set(1);
