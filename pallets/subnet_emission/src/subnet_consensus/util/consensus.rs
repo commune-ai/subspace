@@ -17,12 +17,49 @@ pub fn split_modules_by_activity(
     activity_cutoff: u64,
     current_block: u64,
 ) -> (Vec<bool>, Vec<bool>) {
+    log::info!("split modules by activity input is: last_update: {:?}, block_at_registration: {:?}, activity_cutoff: {}, current_block: {}", last_update, block_at_registration, activity_cutoff, current_block);
+    log::info!(
+        "Starting module activity split with activity_cutoff: {}, current_block: {}",
+        activity_cutoff,
+        current_block
+    );
+
     last_update
         .iter()
         .zip(block_at_registration)
-        .map(|(updated, block_at_registration)| {
-            let is_inactive = *updated <= *block_at_registration
-                || updated.saturating_add(activity_cutoff) < current_block;
+        .enumerate()
+        .map(|(index, (updated, block_at_registration))| {
+            log::info!(
+                "Module {}: last_update: {}, block_at_registration: {}",
+                index,
+                updated,
+                block_at_registration
+            );
+
+            let condition1 = *updated <= *block_at_registration;
+            let condition2 = updated.saturating_add(activity_cutoff) < current_block;
+
+            log::info!(
+                "Module {}: condition1 (updated <= block_at_registration): {}",
+                index,
+                condition1
+            );
+            log::info!(
+                "Module {}: condition2 (updated + cutoff < current): {} (updated + cutoff = {})",
+                index,
+                condition2,
+                updated.saturating_add(activity_cutoff)
+            );
+
+            let is_inactive = condition1 || condition2;
+
+            log::info!(
+                "Module {}: is_inactive: {}, is_active: {}",
+                index,
+                is_inactive,
+                !is_inactive
+            );
+
             (is_inactive, !is_inactive)
         })
         .unzip()
@@ -786,6 +823,8 @@ impl<T: Config> ConsensusOutput<T> {
             bonds,
             ..
         } = self;
+
+        log::info!("subnet_id {subnet_id} has active {active:?}, consensus {consensus:?}, dividends {dividends:?}, combined_emissions {combined_emissions:?}, incentives {incentives:?}, pruning_scores {pruning_scores:?}, ranks {ranks:?}, trust {trust:?}, validator_permits {validator_permits:?}, validator_trust {validator_trust:?}, bonds {bonds:?}");
 
         Active::<T>::insert(subnet_id, active);
         Consensus::<T>::insert(subnet_id, consensus);
