@@ -201,10 +201,6 @@ fn run_default_consensus<T: Config>(
 
     let weights: Vec<(u16, Vec<(u16, u16)>)> = Weights::<T>::iter_prefix(netuid).collect();
 
-    // if weights.is_empty() {
-    //     return Err(NO_WEIGHTS);
-    // }
-
     YumaEpoch::new(netuid, params)
         .run(weights)
         .map_err(|err| {

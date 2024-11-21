@@ -8,6 +8,7 @@ use pallet_subspace::{MaxEncryptionPeriod, MaxEncryptionPeriodDefaultValue, UseW
 use sp_runtime::traits::Get;
 use sp_std::collections::btree_map::BTreeMap;
 
+use sp_core::hexdisplay::HexDisplay;
 use subnet_consensus::util::params::ModuleKey;
 use types::KeylessBlockWeights;
 
@@ -107,7 +108,10 @@ impl<T: Config> Pallet<T> {
     /// 2. TODO: add a test where some of the decrypted weights will be empty, and expect everything
     ///    to be handeled correctly
     pub fn handle_decrypted_weights(netuid: u16, weights: Vec<BlockWeights>) {
-        log::info!("Received decrypted weights for subnet {netuid}");
+        log::info!(
+            "Received decrypted weights: {:?}, for subnet {netuid}",
+            weights
+        );
         let info = match SubnetDecryptionData::<T>::get(netuid) {
             Some(info) => info,
             None => {
@@ -117,6 +121,8 @@ impl<T: Config> Pallet<T> {
                 return;
             }
         };
+
+        log::info!("before processing valid weights");
 
         let valid_weights: Vec<KeylessBlockWeights> = weights
             .into_iter()
@@ -146,12 +152,23 @@ impl<T: Config> Pallet<T> {
             .collect();
 
         log::info!(
+            "valid weights for subnet {} are {:?}",
+            netuid,
+            valid_weights
+        );
+
+        log::info!(
             "Received {} valid decrypted weights for subnet {}",
             valid_weights.len(),
             netuid
         );
 
         let weights = Self::update_decrypted_weights(netuid, valid_weights);
+
+        log::info!(
+            "Updated decrypted weights for subnet {netuid} are {:?}",
+            weights
+        );
         match Self::process_decrypted_weights(netuid, weights) {
             Ok(()) => {
                 log::info!("decrypted weights have been processed for {netuid}")
@@ -196,9 +213,12 @@ impl<T: Config> Pallet<T> {
                 params.token_emission = params.token_emission.saturating_add(accumulated_emission);
                 let new_emission = params.token_emission;
 
+                log::info!("final weights before running decrypted yuma are {weights:?}");
+
                 match YumaEpoch::new(netuid, params.clone()).run(weights) {
                     Ok(output) => {
                         accumulated_emission = 0;
+                        log::info!("applying yuma for {netuid}");
                         output.apply()
                     }
                     Err(err) => {
@@ -256,10 +276,22 @@ impl<T: Config> Pallet<T> {
 
         // --- Veify the hash ---
 
+        log::info!(
+            "weights for subnet {} are being hashed with the input {:?}",
+            netuid,
+            weights
+        );
         let hash = sp_io::hashing::sha2_256(&Self::weights_to_blob(weights)[..]).to_vec();
+        log::info!(
+            "hash for module {uid} on block {block} in subnet {netuid} is {:?}",
+            HexDisplay::from(&hash)
+        );
         if hash != module.weight_hash {
             log::error!(
-                "incoherent hash received for module {uid} on block {block} in subnet {netuid}"
+                "incoherent hash received for module {uid} on block {block} in subnet {netuid}. \
+                     Received: 0x{}, Expected: 0x{}",
+                HexDisplay::from(&hash),
+                HexDisplay::from(&module.weight_hash)
             );
             return None;
         }

@@ -86,21 +86,27 @@ impl<AccountId: Debug> From<BTreeMap<ModuleKey<AccountId>, ModuleParams<AccountI
     for FlattenedModules<AccountId>
 {
     fn from(value: BTreeMap<ModuleKey<AccountId>, ModuleParams<AccountId>>) -> Self {
+        let len = value.len();
         let mut modules = FlattenedModules {
-            keys: Vec::with_capacity(value.len()),
-            last_update: Vec::with_capacity(value.len()),
-            block_at_registration: Vec::with_capacity(value.len()),
-            validator_permit: Vec::with_capacity(value.len()),
-            validator_forbid: Vec::with_capacity(value.len()),
-            stake_normalized: Vec::with_capacity(value.len()),
-            stake_original: Vec::with_capacity(value.len()),
-            delegated_to: Vec::with_capacity(value.len()),
-            bonds: Vec::with_capacity(value.len()),
-            weight_unencrypted_hash: Vec::with_capacity(value.len()),
-            weight_encrypted: Vec::with_capacity(value.len()),
+            keys: Vec::with_capacity(len),
+            last_update: Vec::with_capacity(len),
+            block_at_registration: Vec::with_capacity(len),
+            validator_permit: Vec::with_capacity(len),
+            validator_forbid: Vec::with_capacity(len),
+            stake_normalized: Vec::with_capacity(len),
+            stake_original: Vec::with_capacity(len),
+            delegated_to: Vec::with_capacity(len),
+            bonds: Vec::with_capacity(len),
+            weight_unencrypted_hash: Vec::with_capacity(len),
+            weight_encrypted: Vec::with_capacity(len),
         };
 
-        for (key, module) in value {
+        // First, collect all entries and sort them by UID
+        let mut sorted_entries: Vec<_> = value.into_iter().collect();
+        sorted_entries.sort_by_key(|(_key, module)| module.uid);
+
+        // Now push values in order of UIDs
+        for (key, module) in sorted_entries {
             modules.keys.push(key);
             modules.last_update.push(module.last_update);
             modules.block_at_registration.push(module.block_at_registration);
