@@ -84,6 +84,7 @@ pub struct DecryptedWeightsPayload<Public, BlockNumber> {
     pub delta: I64F64,
     pub block_number: BlockNumber,
     pub public: Public,
+    pub forced_send_by_rotation: bool,
 }
 
 #[derive(Encode, Decode, Clone, PartialEq, Eq, RuntimeDebug, scale_info::TypeInfo)]

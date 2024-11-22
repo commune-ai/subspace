@@ -22,7 +22,7 @@ pub mod dispatches {
         #[pallet::weight((Weight::zero(), DispatchClass::Normal, Pays::No))]
         pub fn send_decrypted_weights(
             origin: OriginFor<T>,
-            payload: DecryptedWeightsPayload<T::Public, BlockNumberFor<T>>, /* make payload accept zk proofs of wrong encryption */
+            payload: DecryptedWeightsPayload<T::Public, BlockNumberFor<T>>,
             _signature: T::Signature,
         ) -> DispatchResultWithPostInfo {
             // Signature valiadation is performed by the validate unsigned function
@@ -31,35 +31,45 @@ pub mod dispatches {
             let DecryptedWeightsPayload {
                 subnet_id,
                 decrypted_weights,
-                delta,
+                delta: _,
                 block_number,
                 public,
+                forced_send_by_rotation,
             } = payload;
 
-            let decryption_data = SubnetDecryptionData::<T>::get(subnet_id);
-            if let Some(decryption_data) = decryption_data {
+            let acc_id = public.into_account();
+
+            // Modify this section to handle the forced rotation case
+            SubnetDecryptionData::<T>::try_mutate(subnet_id, |maybe_data| -> DispatchResult {
+                let decryption_data = maybe_data.as_mut().ok_or(Error::<T>::InvalidSubnetId)?;
+
                 ensure!(
-                    decryption_data.node_id == public.into_account(),
+                    decryption_data.node_id == acc_id,
                     Error::<T>::InvalidDecryptionKey
                 );
-            } else {
-                return Err(Error::<T>::InvalidSubnetId.into());
-            }
 
-            // Get all epochs for this subnet
+                // If this was a forced rotation send, clear the rotating_from field
+                if forced_send_by_rotation {
+                    decryption_data.rotating_from = None;
+                }
+
+                Ok(())
+            })?;
+
+            // Rest of the function remains the same
             let epoch_count = ConsensusParameters::<T>::iter_prefix(subnet_id).count();
 
-            // dbg!("lenght check", decrypted_weights.len(), epoch_count);
-            // Check if the length matches
             ensure!(
                 decrypted_weights.len() == epoch_count,
                 Error::<T>::DecryptedWeightsLengthMismatch
             );
 
             // TODO: make a periodical irrationality delta reseter that subnet owner can control
-            IrrationalityDelta::<T>::mutate(subnet_id, |current| {
-                *current = current.saturating_add(delta)
-            });
+            // IrrationalityDelta::<T>::mutate(subnet_id, |current| {
+            //     *current = current.saturating_add(delta)
+            // });
+            IrrationalityDelta::<T>::set(subnet_id, I64F64::from_num(0));
+
             pallet_subnet_emission::Pallet::<T>::handle_decrypted_weights(
                 subnet_id,
                 decrypted_weights,

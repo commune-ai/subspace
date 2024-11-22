@@ -339,7 +339,11 @@ impl<T: Config> Pallet<T> {
             .collect()
     }
 
-    fn do_send_weights(subnet_id: u16, delta: I64F64) -> Result<(), &'static str> {
+    fn do_send_weights(
+        subnet_id: u16,
+        delta: I64F64,
+        forced_send_by_rotation: bool,
+    ) -> Result<(), &'static str> {
         let signer = Signer::<T, T::AuthorityId>::all_accounts();
         if !signer.can_sign() {
             return Err(
@@ -359,6 +363,7 @@ impl<T: Config> Pallet<T> {
                 delta,
                 block_number: <system::Pallet<T>>::block_number(),
                 public: account.public.clone(),
+                forced_send_by_rotation,
             },
             |payload, signature| Call::send_decrypted_weights { payload, signature },
         );
