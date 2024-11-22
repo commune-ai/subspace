@@ -1431,6 +1431,7 @@ fn decrypted_weight_run_result_is_applied_and_cleaned_up() {
             node_id: 1001,
             node_public_key: key.clone(),
             last_keep_alive: pallet_subspace::Tempo::<Test>::get(netuid) as u64,
+            rotating_from: None,
         };
 
         pallet_subnet_emission::DecryptionNodes::<Test>::set(vec![subnet_decryption_data.clone()]);
@@ -1537,6 +1538,7 @@ fn rotate_decryption_node() {
                 node_id: dn_1,
                 node_public_key: key_1,
                 last_keep_alive: decryption_node_interval,
+                rotating_from: None,
             }),
         );
 
@@ -1547,6 +1549,7 @@ fn rotate_decryption_node() {
                 node_id: dn_2,
                 node_public_key: key_2,
                 last_keep_alive: decryption_node_interval,
+                rotating_from: None,
             }),
         );
 
@@ -1582,6 +1585,7 @@ fn ban_decryption_node() {
                 node_id: dn_1,
                 node_public_key: key_1,
                 last_keep_alive: 0,
+                rotating_from: None,
             }),
         );
 

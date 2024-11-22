@@ -91,6 +91,7 @@ impl<T: Config> Pallet<T> {
                         activation_block: None, /* will be set based on the first encrypted
                                                  * weight
                                                  * occurrence */
+                        rotating_from: None,
                         last_keep_alive: block,
                     }),
                 );
@@ -390,6 +391,7 @@ impl<T: Config> Pallet<T> {
                         node_public_key: public_key,
                         last_keep_alive: current_block,
                         activation_block: None,
+                        rotating_from: None,
                     });
                 }
             }
@@ -573,6 +575,7 @@ impl<T: Config> Pallet<T> {
         }
     }
 
+    /// TODO: delete the wc state
     pub(crate) fn rotate_decryption_node_if_needed(subnet_id: u16, info: SubnetDecryptionInfo<T>) {
         let block_number = pallet_subspace::Pallet::<T>::get_current_block_number();
         let activation_block = match info.activation_block {
@@ -591,6 +594,8 @@ impl<T: Config> Pallet<T> {
             None => return,
         };
 
+        let previous_node_id = SubnetDecryptionData::<T>::get(subnet_id).unwrap_or(info).node_id;
+
         let new_node =
             active_nodes.get(current.checked_rem(active_nodes.len()).unwrap_or(0)).cloned();
 
@@ -602,6 +607,7 @@ impl<T: Config> Pallet<T> {
                     node_public_key: new_node.node_public_key,
                     activation_block: None, /* This will get updated based on the first encrypted
                                              * weights */
+                    rotating_from: Some((previous_node_id, block_number)),
                     last_keep_alive: block_number,
                 }),
             );

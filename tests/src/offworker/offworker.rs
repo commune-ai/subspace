@@ -126,6 +126,7 @@ fn test_offchain_worker_behavior() {
 
         for (block_number_str, block_weights) in &data.weights {
             let block_number: u64 = block_number_str.parse().unwrap();
+
             dbg!(block_number);
 
             PendingEmission::<Test>::set(TEST_SUBNET_ID, PENDING_EMISSION);

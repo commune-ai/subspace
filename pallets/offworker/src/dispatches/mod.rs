@@ -57,7 +57,9 @@ pub mod dispatches {
             );
 
             // TODO: make a periodical irrationality delta reseter that subnet owner can control
-            IrrationalityDelta::<T>::set(subnet_id, delta);
+            IrrationalityDelta::<T>::mutate(subnet_id, |current| {
+                *current = current.saturating_add(delta)
+            });
             pallet_subnet_emission::Pallet::<T>::handle_decrypted_weights(
                 subnet_id,
                 decrypted_weights,

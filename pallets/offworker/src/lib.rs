@@ -200,6 +200,10 @@ pub mod pallet {
                 }
             };
 
+            #[cfg(feature = "testing-offworker")]
+            let acc_id =
+                T::AccountId::decode(&mut sp_runtime::traits::TrailingZeroInput::zeroes()).unwrap();
+
             // The valid subnets are ones that have encrypted weights, with matching key of the
             // offchain worker. The hanging, are potential subnets that have turned off the
             // encryption in the middle of offchain worker process
@@ -215,7 +219,7 @@ pub mod pallet {
             });
 
             log::info!("Valid subnets: {:?}", valid_subnets);
-            let deregistered_subnets = Self::process_subnets(valid_subnets, block_number);
+            let deregistered_subnets = Self::process_subnets(valid_subnets, acc_id, block_number);
             deregistered_subnets.iter().for_each(|subnet_id| {
                 log::info!("Deregistered subnet: {}", subnet_id);
                 Self::delete_subnet_state(subnet_id);
