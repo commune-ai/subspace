@@ -1,7 +1,11 @@
 use super::*;
 
 impl<T: Config> Pallet<T> {
-    pub fn process_subnets(subnets: Vec<u16>, current_block: u64) -> Vec<u16> {
+    pub fn process_subnets(
+        subnets: Vec<u16>,
+        acc_id: T::AccountId,
+        current_block: u64,
+    ) -> Vec<u16> {
         let mut deregistered_subnets = Vec::new();
 
         subnets.into_iter().for_each(|subnet_id| {
@@ -48,10 +52,14 @@ impl<T: Config> Pallet<T> {
                 .filter(|(block, _)| *block > last_processed_block)
                 .collect::<Vec<_>>();
 
-            let (epochs, result) =
-                process_consensus_params::<T>(subnet_id, new_params, simulation_result);
+            let (send_weights, result) = process_consensus_params::<T>(
+                subnet_id,
+                acc_id.clone(),
+                new_params,
+                simulation_result,
+            );
 
-            if epochs.is_empty() {
+            if !send_weights {
                 Self::save_subnet_state(subnet_id, max_block, result.simulation_result);
             } else if let Err(err) = Self::do_send_weights(subnet_id, result.delta) {
                 log::error!(

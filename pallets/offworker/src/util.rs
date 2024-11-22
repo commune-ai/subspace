@@ -2,20 +2,42 @@ use super::*;
 use crate::profitability::{get_copier_stake, is_copying_irrational};
 use types::SimulationYumaParams;
 
-pub fn process_consensus_params<T>(
-    subnet_id: u16,
-    consensus_params: Vec<(u64, ConsensusParams<T>)>,
-    mut simulation_result: ConsensusSimulationResult<T>,
-) -> (Vec<BlockWeights>, ShouldDecryptResult<T>)
+fn should_send_rotation_weights<T>(subnet_id: u16, acc_id: &T::AccountId) -> bool
 where
     T: pallet_subspace::Config + pallet_subnet_emission::Config + pallet::Config,
 {
-    let mut epochs = Vec::new();
+    // Get subnet decryption data and return early if None
+    let decryption_info = match SubnetDecryptionData::<T>::get(subnet_id) {
+        Some(data) => data,
+        None => return false,
+    };
+
+    // If there's rotation info and we're the one rotating from, return true
+    if let Some((rotating_from_id, _block)) = decryption_info.rotating_from {
+        if &rotating_from_id == acc_id {
+            return true;
+        }
+    }
+
+    false
+}
+
+pub fn process_consensus_params<T>(
+    subnet_id: u16,
+    acc_id: T::AccountId,
+    consensus_params: Vec<(u64, ConsensusParams<T>)>,
+    simulation_result: ConsensusSimulationResult<T>,
+) -> (bool, ShouldDecryptResult<T>)
+where
+    T: pallet_subspace::Config + pallet_subnet_emission::Config + pallet::Config,
+{
     let mut result = ShouldDecryptResult::<T> {
         should_decrypt: false,
         simulation_result: simulation_result.clone(),
         delta: I64F64::from_num(0),
     };
+
+    let mut final_should_send = false;
 
     log::info!("Processing consensus params for subnet {}", subnet_id);
     log::info!(
@@ -112,7 +134,7 @@ where
             weights_for_should_decrypt.len()
         );
 
-        let should_decrypt_result = should_decrypt_weights::<T>(
+        let mut should_decrypt_result = should_decrypt_weights::<T>(
             &weights_for_should_decrypt,
             params.clone(),
             subnet_id,
@@ -126,25 +148,28 @@ where
             should_decrypt_result.delta
         );
 
-        simulation_result = should_decrypt_result.simulation_result.clone();
+        let current_should_send = if !should_decrypt_result.should_decrypt {
+            let rotation_should_send = should_send_rotation_weights::<T>(subnet_id, &acc_id);
+            if rotation_should_send {
+                should_decrypt_result.delta = I64F64::from_num(0);
+            }
+            rotation_should_send
+        } else {
+            true
+        };
 
-        if should_decrypt_result.should_decrypt {
+        if current_should_send {
             log::info!(
                 "Adding decrypted weights for block {} to epochs",
                 param_block
             );
-            epochs.push((*param_block, decrypted_weights));
             result = should_decrypt_result;
         }
+
+        final_should_send = current_should_send;
     }
-
-    log::info!(
-        "Final processing result: {} epochs processed, should_decrypt: {}",
-        epochs.len(),
-        result.should_decrypt
-    );
-
-    (epochs, result)
+    log::info!("should_decrypt: {}", result.should_decrypt);
+    (final_should_send, result)
 }
 
 /// Returns
