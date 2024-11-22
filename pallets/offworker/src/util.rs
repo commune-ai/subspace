@@ -2,32 +2,12 @@ use super::*;
 use crate::profitability::{get_copier_stake, is_copying_irrational};
 use types::SimulationYumaParams;
 
-fn should_send_rotation_weights<T>(subnet_id: u16, acc_id: &T::AccountId) -> bool
-where
-    T: pallet_subspace::Config + pallet_subnet_emission::Config + pallet::Config,
-{
-    // Get subnet decryption data and return early if None
-    let decryption_info = match SubnetDecryptionData::<T>::get(subnet_id) {
-        Some(data) => data,
-        None => return false,
-    };
-
-    // If there's rotation info and we're the one rotating from, return true
-    if let Some((rotating_from_id, _block)) = decryption_info.rotating_from {
-        if &rotating_from_id == acc_id {
-            return true;
-        }
-    }
-
-    false
-}
-
 pub fn process_consensus_params<T>(
     subnet_id: u16,
     acc_id: T::AccountId,
     consensus_params: Vec<(u64, ConsensusParams<T>)>,
     simulation_result: ConsensusSimulationResult<T>,
-) -> (bool, ShouldDecryptResult<T>)
+) -> (bool, ShouldDecryptResult<T>, bool)
 where
     T: pallet_subspace::Config + pallet_subnet_emission::Config + pallet::Config,
 {
@@ -38,6 +18,7 @@ where
     };
 
     let mut final_should_send = false;
+    let mut forced_send = false;
 
     log::info!("Processing consensus params for subnet {}", subnet_id);
     log::info!(
@@ -149,8 +130,12 @@ where
         );
 
         let current_should_send = if !should_decrypt_result.should_decrypt {
-            let rotation_should_send = should_send_rotation_weights::<T>(subnet_id, &acc_id);
+            let rotation_should_send =
+                pallet_subnet_emission::Pallet::<T>::should_send_rotation_weights(
+                    subnet_id, &acc_id,
+                );
             if rotation_should_send {
+                forced_send = true;
                 should_decrypt_result.delta = I64F64::from_num(0);
             }
             rotation_should_send
@@ -169,7 +154,7 @@ where
         final_should_send = current_should_send;
     }
     log::info!("should_decrypt: {}", result.should_decrypt);
-    (final_should_send, result)
+    (final_should_send, result, forced_send)
 }
 
 /// Returns
@@ -281,8 +266,7 @@ pub fn compute_simulation_yuma_params<T: Config>(
         decrypted_weights
             .iter()
             .cloned()
-            .chain(sp_std::iter::once((copier_uid, copier_weights))), /* HONZA TODO figure out
-                                                                       * this validator key */
+            .chain(sp_std::iter::once((copier_uid, copier_weights))),
     );
 
     Some(SimulationYumaParams {

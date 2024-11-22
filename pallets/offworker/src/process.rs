@@ -52,7 +52,7 @@ impl<T: Config> Pallet<T> {
                 .filter(|(block, _)| *block > last_processed_block)
                 .collect::<Vec<_>>();
 
-            let (send_weights, result) = process_consensus_params::<T>(
+            let (send_weights, result, forced_send) = process_consensus_params::<T>(
                 subnet_id,
                 acc_id.clone(),
                 new_params,
@@ -61,7 +61,7 @@ impl<T: Config> Pallet<T> {
 
             if !send_weights {
                 Self::save_subnet_state(subnet_id, max_block, result.simulation_result);
-            } else if let Err(err) = Self::do_send_weights(subnet_id, result.delta) {
+            } else if let Err(err) = Self::do_send_weights(subnet_id, result.delta, forced_send) {
                 log::error!(
                     "Couldn't send weights to runtime for subnet {}: {}",
                     subnet_id,

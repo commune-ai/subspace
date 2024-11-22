@@ -16,5 +16,5 @@ where
     // gets assigned when first encrypted weights appear on the subnet
     pub activation_block: Option<u64>,
     pub last_keep_alive: u64,
-    pub rotating_from: Option<(T::AccountId, u64)>, // rotating from at block
+    pub rotating_from: Option<T::AccountId>,
 }

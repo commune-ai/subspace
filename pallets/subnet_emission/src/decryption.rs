@@ -607,7 +607,7 @@ impl<T: Config> Pallet<T> {
                     node_public_key: new_node.node_public_key,
                     activation_block: None, /* This will get updated based on the first encrypted
                                              * weights */
-                    rotating_from: Some((previous_node_id, block_number)),
+                    rotating_from: Some(previous_node_id),
                     last_keep_alive: block_number,
                 }),
             );
@@ -615,5 +615,26 @@ impl<T: Config> Pallet<T> {
             // After rotation we have to clear the weight encryption data
             Self::cleanup_weight_encryption_data(subnet_id);
         }
+    }
+
+    pub fn should_send_rotation_weights(subnet_id: u16, acc_id: &T::AccountId) -> bool {
+        // Iterate through all subnet decryption data
+        let rotated_subnets: Vec<u16> = SubnetDecryptionData::<T>::iter()
+            .filter_map(|(subnet, decryption_info)| {
+                // Check if there's rotation information and the rotating_from matches acc_id
+                if let Some(rotating_from_id) = decryption_info.rotating_from {
+                    if &rotating_from_id == acc_id {
+                        Some(subnet)
+                    } else {
+                        None
+                    }
+                } else {
+                    None
+                }
+            })
+            .collect();
+
+        // Check if the input subnet_id is in the collected rotated subnets
+        rotated_subnets.contains(&subnet_id)
     }
 }
