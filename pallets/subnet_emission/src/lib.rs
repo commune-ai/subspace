@@ -43,7 +43,7 @@ pub mod pallet {
     use subnet_pricing::root::RootPricing;
 
     #[cfg(feature = "testnet")]
-    const STORAGE_VERSION: StorageVersion = StorageVersion::new(14);
+    const STORAGE_VERSION: StorageVersion = StorageVersion::new(15);
 
     #[cfg(not(feature = "testnet"))]
     const STORAGE_VERSION: StorageVersion = StorageVersion::new(1);
@@ -252,6 +252,12 @@ pub mod pallet {
         DecryptionNodeCanceled {
             subnet_id: u16,
             node_id: T::AccountId,
+        },
+        /// Weight copying decryption node was rotated
+        DecryptionNodeRotated {
+            subnet_id: u16,
+            previous_node_id: T::AccountId,
+            new_node_id: T::AccountId,
         },
     }
 

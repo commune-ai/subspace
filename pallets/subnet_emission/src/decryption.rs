@@ -421,11 +421,20 @@ impl<T: Config> Pallet<T> {
         let (with_encryption, without_encryption): (Vec<_>, Vec<_>) =
             SubnetDecryptionData::<T>::iter()
                 .filter(|(netuid, data)| {
-                    let key_match = acc_id.map_or(true, |id| &data.node_id == id);
+                    let is_rotating_from = acc_id
+                        .and_then(|id| {
+                            data.rotating_from.as_ref().map(|rotating_from| rotating_from == id)
+                        })
+                        .unwrap_or(false);
+
                     let has_encrypted_weights = WeightEncryptionData::<T>::iter_prefix(*netuid)
                         .any(|(_, value)| !value.encrypted.is_empty());
 
-                    key_match && has_encrypted_weights
+                    let is_current_node = acc_id
+                        .map(|id| &data.node_id == id && has_encrypted_weights)
+                        .unwrap_or(has_encrypted_weights);
+
+                    is_rotating_from || is_current_node
                 })
                 .map(|(netuid, _)| netuid)
                 .partition(|netuid| pallet_subspace::UseWeightsEncryption::<T>::get(*netuid));
@@ -603,17 +612,23 @@ impl<T: Config> Pallet<T> {
             SubnetDecryptionData::<T>::set(
                 subnet_id,
                 Some(SubnetDecryptionInfo {
-                    node_id: new_node.node_id,
+                    node_id: new_node.node_id.clone(),
                     node_public_key: new_node.node_public_key,
                     activation_block: None, /* This will get updated based on the first encrypted
                                              * weights */
-                    rotating_from: Some(previous_node_id),
+                    rotating_from: Some(previous_node_id.clone()),
                     last_keep_alive: block_number,
                 }),
             );
             DecryptionNodeCursor::<T>::set((current.saturating_add(1)) as u16);
             // After rotation we have to clear the weight encryption data
             Self::cleanup_weight_encryption_data(subnet_id);
+
+            Self::deposit_event(Event::<T>::DecryptionNodeRotated {
+                subnet_id,
+                previous_node_id,
+                new_node_id: new_node.node_id,
+            });
         }
     }
 

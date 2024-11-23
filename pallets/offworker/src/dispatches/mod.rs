@@ -37,17 +37,43 @@ pub mod dispatches {
                 forced_send_by_rotation,
             } = payload;
 
+            log::info!(
+                "Decrypted weights for subnet {} received at block {:?}",
+                subnet_id,
+                block_number
+            );
+
             let acc_id = public.into_account();
 
             // Modify this section to handle the forced rotation case
             SubnetDecryptionData::<T>::try_mutate(subnet_id, |maybe_data| -> DispatchResult {
                 let decryption_data = maybe_data.as_mut().ok_or(Error::<T>::InvalidSubnetId)?;
 
-                ensure!(
-                    decryption_data.node_id == acc_id,
-                    Error::<T>::InvalidDecryptionKey
+                log::info!(
+                    "checking if decryption key is correct at subnet {}",
+                    subnet_id
                 );
 
+                // If this was a forced rotation send, clear the rotating_from field
+                match forced_send_by_rotation {
+                    true => {
+                        ensure!(
+                            matches!(decryption_data.rotating_from, Some(ref rotating_from) if acc_id == *rotating_from),
+                            Error::<T>::InvalidDecryptionKey
+                        );
+                    }
+                    false => {
+                        ensure!(
+                            decryption_data.node_id == acc_id,
+                            Error::<T>::InvalidDecryptionKey
+                        );
+                    }
+                }
+
+                log::info!(
+                    "checking if decryption key is rotating at subnet {}",
+                    subnet_id
+                );
                 // If this was a forced rotation send, clear the rotating_from field
                 if forced_send_by_rotation {
                     decryption_data.rotating_from = None;
@@ -55,6 +81,8 @@ pub mod dispatches {
 
                 Ok(())
             })?;
+
+            log::info!("checking epoch count at subnet {subnet_id}");
 
             // Rest of the function remains the same
             let epoch_count = ConsensusParameters::<T>::iter_prefix(subnet_id).count();
@@ -64,12 +92,14 @@ pub mod dispatches {
                 Error::<T>::DecryptedWeightsLengthMismatch
             );
 
+            log::info!("setting irrationality delta to 0 at subnet {}", subnet_id);
             // TODO: make a periodical irrationality delta reseter that subnet owner can control
             // IrrationalityDelta::<T>::mutate(subnet_id, |current| {
             //     *current = current.saturating_add(delta)
             // });
             IrrationalityDelta::<T>::set(subnet_id, I64F64::from_num(0));
 
+            log::info!("setting decrypted weights at subnet {}", subnet_id);
             pallet_subnet_emission::Pallet::<T>::handle_decrypted_weights(
                 subnet_id,
                 decrypted_weights,

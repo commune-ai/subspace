@@ -255,10 +255,10 @@ pub mod pallet {
         DecryptedWeightsLengthMismatch,
     }
 
-    // 5 % of total active stake
+    // 10 % of total active stake
     #[pallet::type_value]
     pub fn DefaultMeasuredStakeAmount<T: Config>() -> Percent {
-        Percent::from_percent(5u8)
+        Percent::from_percent(10u8)
     }
 
     /// The amount of actual consensus sum stake. Used for a simulated consensus.
