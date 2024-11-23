@@ -447,12 +447,64 @@ impl<T: Config> Pallet<T> {
             .unwrap_or_else(|| MaxEncryptionPeriodDefaultValue::get().unwrap_or(10_800))
     }
 
+    fn put_offworker_to_ban_queue(subnet_id: u16, info: &SubnetDecryptionInfo<T>, buffer: u64) {
+        let current_block = pallet_subspace::Pallet::<T>::get_current_block_number();
+        let ban_block = current_block.saturating_add(buffer);
+
+        // Add the node to the ban queue with the calculated ban block
+        DecryptionNodeBanQueue::<T>::insert(subnet_id, &info.node_id, ban_block);
+
+        // Emit an event
+        Self::deposit_event(Event::<T>::DecryptionNodeBanQueued {
+            subnet_id,
+            node_id: info.node_id.clone(),
+            ban_block,
+        });
+
+        log::info!(
+            "Offchain worker queued for ban: subnet {}, node {:?}, ban at block {}",
+            subnet_id,
+            info.node_id,
+            ban_block
+        );
+    }
+
+    pub(crate) fn process_ban_queue(block_number: &u64) {
+        DecryptionNodeBanQueue::<T>::iter()
+            .filter(|(_, _, ban_block)| ban_block <= block_number)
+            .for_each(|(subnet_id, node_id, _ban_block)| {
+                // Get the node info before removing from queue
+                if let Some(info) = SubnetDecryptionData::<T>::get(subnet_id) {
+                    // Remove from ban queue first
+                    DecryptionNodeBanQueue::<T>::remove(subnet_id, &node_id);
+
+                    // Cancel and then ban
+                    Self::cancel_offchain_worker(subnet_id, &info);
+                    Self::ban_offchain_worker(&node_id);
+
+                    Self::deposit_event(Event::<T>::DecryptionNodeBanned {
+                        subnet_id,
+                        node_id: node_id.clone(),
+                    });
+
+                    log::info!(
+                        "Offchain worker banned at block {}: subnet {}, node {:?}",
+                        block_number,
+                        subnet_id,
+                        node_id
+                    );
+                }
+            });
+    }
+
     pub fn cancel_expired_offchain_workers(block_number: u64) {
         let max_inactivity_blocks =
             T::PingInterval::get().saturating_mul(T::MissedPingsForInactivity::get() as u64);
 
         // Get only subnets that use encryption and have encrypted weights
         let (with_encryption, _) = Self::get_valid_subnets(None);
+
+        let buffer = T::EncryptionPeriodBuffer::get();
 
         with_encryption
             .into_iter()
@@ -463,9 +515,10 @@ impl<T: Config> Pallet<T> {
                 block_number.saturating_sub(info.last_keep_alive) > max_inactivity_blocks
                     || block_number.saturating_sub(info.activation_block.unwrap_or(u64::MAX))
                         > Self::get_max_encryption_interval(subnet_id)
-                            .saturating_add(T::EncryptionPeriodBuffer::get())
             })
-            .for_each(|(subnet_id, info)| Self::cancel_offchain_worker(subnet_id, &info));
+            .for_each(|(subnet_id, info)| {
+                Self::put_offworker_to_ban_queue(subnet_id, &info, buffer)
+            });
     }
 
     pub fn cleanup_weight_encryption_data(subnet_id: u16) {

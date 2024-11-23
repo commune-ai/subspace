@@ -233,7 +233,7 @@ impl<T: Config> ValidatedSubnetParams<T> {
 
         if let Some(encryption_period) = max_encryption_period {
             ensure!(
-                *encryption_period >= u64::from(*tempo)
+                *encryption_period > u64::from(*tempo)
                     && *encryption_period <= MAX_ENCRYPTION_DURATION,
                 Error::<T>::InvalidMaxEncryptionPeriod
             );

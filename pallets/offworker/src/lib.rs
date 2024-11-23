@@ -211,6 +211,7 @@ pub mod pallet {
             let (valid_subnets, hanging_subnets) =
                 pallet_subnet_emission::Pallet::<T>::get_valid_subnets(Some(&acc_id));
 
+            log::info!("Valid subnets: {:?}", valid_subnets);
             // The runtime mimics this logic, by deleting all storages related to consenus
             // parameters and weights
             hanging_subnets.iter().for_each(|subnet_id| {
@@ -218,8 +219,14 @@ pub mod pallet {
                 Self::delete_subnet_state(subnet_id);
             });
 
-            log::info!("Valid subnets: {:?}", valid_subnets);
-            let deregistered_subnets = Self::process_subnets(valid_subnets, acc_id, block_number);
+            let (queued_for_ban, remaining_valid_subnets) =
+                Self::handle_banned_subnets(&valid_subnets, &acc_id);
+
+            log::info!("Subnets queued for ban: {:?}", queued_for_ban);
+            log::info!("Valid subnets: {:?}", remaining_valid_subnets);
+
+            let deregistered_subnets =
+                Self::process_subnets(remaining_valid_subnets, acc_id, block_number);
             deregistered_subnets.iter().for_each(|subnet_id| {
                 log::info!("Deregistered subnet: {}", subnet_id);
                 Self::delete_subnet_state(subnet_id);
@@ -310,6 +317,28 @@ impl<T: Config> Pallet<T> {
             .longevity(5)
             .propagate(true)
             .build()
+    }
+
+    fn handle_banned_subnets(valid_subnets: &[u16], acc_id: &T::AccountId) -> (Vec<u16>, Vec<u16>) {
+        valid_subnets.iter().cloned().partition(|&subnet_id| {
+            if DecryptionNodeBanQueue::<T>::contains_key(subnet_id, acc_id) {
+                log::info!(
+                    "Node is in ban queue for subnet {} - sending weights early",
+                    subnet_id
+                );
+
+                if let Err(e) = Self::do_send_weights(subnet_id, I64F64::from_num(0), false) {
+                    log::error!(
+                        "Error sending early weights for subnet {}: {:?}",
+                        subnet_id,
+                        e
+                    );
+                }
+                true
+            } else {
+                false
+            }
+        })
     }
 
     /// Decrypts all subnet weights for a given netuid. Returns a vector of block weights,
