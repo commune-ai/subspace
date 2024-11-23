@@ -134,6 +134,7 @@ where
                 pallet_subnet_emission::Pallet::<T>::should_send_rotation_weights(
                     subnet_id, &acc_id,
                 );
+            log::info!("rotation_should_send: {}", rotation_should_send);
             if rotation_should_send {
                 forced_send = true;
                 should_decrypt_result.delta = I64F64::from_num(0);
@@ -240,12 +241,11 @@ pub fn compute_simulation_yuma_params<T: Config>(
 ) -> Option<SimulationYumaParams<T>> {
     let copier_uid: u16 = runtime_yuma_params.modules.len() as u16;
 
-    // This **has** to be ontained from the runtime storage. So it sees the publicly know consensus
+    // This **has** to be obtained from the runtime storage. So it sees the publicly known consensus
     // on decrypted weights
     let consensus_weights = Consensus::<T>::get(subnet_id);
 
     // If the consensus is empty or just all zeros, return None
-
     if consensus_weights.iter().all(|x| *x == 0) || consensus_weights.is_empty() {
         log::warn!("Consensus is empty for subnet {}", subnet_id);
         return None;
@@ -257,6 +257,12 @@ pub fn compute_simulation_yuma_params<T: Config>(
         .map(|(index, value)| (index as u16, value))
         .collect();
 
+    log::info!(
+        "copier weights on subnet {} are: {:?}",
+        subnet_id,
+        copier_weights
+    );
+
     runtime_yuma_params = add_copier_to_yuma_params(copier_uid, runtime_yuma_params, subnet_id);
 
     let mut onchain_weights: BTreeMap<u16, Vec<(u16, u16)>> =
@@ -267,6 +273,12 @@ pub fn compute_simulation_yuma_params<T: Config>(
             .iter()
             .cloned()
             .chain(sp_std::iter::once((copier_uid, copier_weights))),
+    );
+
+    log::info!(
+        "final weights for subnet {} are: {:?}",
+        subnet_id,
+        onchain_weights
     );
 
     Some(SimulationYumaParams {
@@ -283,7 +295,10 @@ pub fn add_copier_to_yuma_params<T: Config>(
     mut runtime_yuma_params: ConsensusParams<T>,
     subnet_id: u16,
 ) -> ConsensusParams<T> {
-    // It is fine to get the permits from the consensus params
+    // Clear all existing bonds in the modules using for_each
+    runtime_yuma_params.modules.values_mut().for_each(|module| module.bonds.clear());
+
+    // Calculate total active stake
     let total_active_stake: u64 = runtime_yuma_params
         .modules
         .values()
@@ -336,6 +351,9 @@ pub fn add_copier_to_yuma_params<T: Config>(
 
     // Insert the copier module
     runtime_yuma_params.modules.insert(copier_key, copier_module);
+
+    // Set the bonds moving average to 0
+    // runtime_yuma_params.bonds_moving_average = 0;
 
     runtime_yuma_params
 }

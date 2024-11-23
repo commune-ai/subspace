@@ -172,7 +172,7 @@ pub mod opaque {
 }
 
 #[cfg(feature = "testnet")]
-pub type Migrations = (pallet_subnet_emission::migrations::v1::MigrateToV1<Runtime>,);
+pub type Migrations = ();
 
 #[cfg(not(feature = "testnet"))]
 pub type Migrations = (
@@ -186,7 +186,7 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
     spec_name: create_runtime_str!("node-subspace"),
     impl_name: create_runtime_str!("node-subspace"),
     authoring_version: 1,
-    spec_version: 497,
+    spec_version: 508,
     impl_version: 1,
     apis: RUNTIME_API_VERSIONS,
     transaction_version: 1,
@@ -468,8 +468,8 @@ impl pallet_subnet_emission::Config for Runtime {
     type Decimals = ConstU8<9>;
     type HalvingInterval = ConstU64<250_000_000>;
     type MaxSupply = ConstU64<1_000_000_000>;
-    // type DecryptionNodeRotationInterval = ConstU64<5_000>;
-    type DecryptionNodeRotationInterval = ConstU64<5_0>;
+    type DecryptionNodeRotationInterval = ConstU64<5_000>;
+    // type DecryptionNodeRotationInterval = ConstU64<5_0>;
 
     type MaxAuthorities = ConstU32<100>;
     // Represented in number of blocks, defines how long decryption node will be banned for.

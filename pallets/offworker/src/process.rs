@@ -32,6 +32,12 @@ impl<T: Config> Pallet<T> {
                 max_encryption_period,
             );
 
+            log::info!(
+                "subnet state for subnet {} is {:?}",
+                subnet_id,
+                simulation_result
+            );
+
             if last_processed_block >= max_block {
                 log::info!(
                     "Skipping subnet {} as it has already been processed",
