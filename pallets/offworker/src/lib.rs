@@ -13,6 +13,7 @@ use frame_system::{
     },
     pallet_prelude::BlockNumberFor,
 };
+
 use pallet_subnet_emission::{
     subnet_consensus::{
         util::{
@@ -22,7 +23,7 @@ use pallet_subnet_emission::{
         yuma::YumaEpoch,
     },
     types::{BlockWeights, PublicKey},
-    Authorities, SubnetDecryptionData,
+    Authorities, DecryptionNodeBanQueue, SubnetDecryptionData,
 };
 
 use sp_std::collections::btree_map::BTreeMap;
