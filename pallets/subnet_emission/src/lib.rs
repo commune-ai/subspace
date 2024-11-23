@@ -170,6 +170,13 @@ pub mod pallet {
     pub type BannedDecryptionNodes<T: Config> =
         StorageMap<_, Identity, T::AccountId, u64, ValueQuery>;
 
+    /// Stores offchain workers that are going to be banned, if their weights aren't received within
+    /// the buffer period
+    /// Subnet: u16 , Decryption Node: AccountId, Buffer: BlockNumber (current block + buffer)
+    #[pallet::storage]
+    pub type DecryptionNodeBanQueue<T: Config> =
+        StorageDoubleMap<_, Identity, u16, Identity, T::AccountId, u64, ValueQuery>;
+
     #[pallet::storage]
     pub type PendingEmission<T> = StorageMap<_, Identity, u16, u64, ValueQuery>;
 
@@ -217,6 +224,7 @@ pub mod pallet {
             log::info!("Distributed subnets to nodes");
             Self::assign_activation_blocks(block_number);
             Self::cancel_expired_offchain_workers(block_number);
+            Self::process_ban_queue(block_number);
             log::info!("Cancelled expired offchain workers");
             let emission_per_block = Self::get_total_emission_per_block();
             log::info!("Emission per block: {:?}", emission_per_block);
@@ -258,6 +266,15 @@ pub mod pallet {
             subnet_id: u16,
             previous_node_id: T::AccountId,
             new_node_id: T::AccountId,
+        },
+        DecryptionNodeBanQueued {
+            subnet_id: u16,
+            node_id: T::AccountId,
+            ban_block: u64,
+        },
+        DecryptionNodeBanned {
+            subnet_id: u16,
+            node_id: T::AccountId,
         },
     }
 

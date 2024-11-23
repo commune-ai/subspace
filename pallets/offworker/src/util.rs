@@ -102,8 +102,6 @@ where
             decrypted_weights.len()
         );
 
-        // log::info!("decrypted weights are: {:?}", decrypted_weights);
-
         let weights_for_should_decrypt: Vec<_> = decrypted_weights
             .iter()
             .cloned()
