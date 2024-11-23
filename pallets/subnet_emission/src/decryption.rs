@@ -469,9 +469,9 @@ impl<T: Config> Pallet<T> {
         );
     }
 
-    pub(crate) fn process_ban_queue(block_number: &u64) {
+    pub(crate) fn process_ban_queue(block_number: u64) {
         DecryptionNodeBanQueue::<T>::iter()
-            .filter(|(_, _, ban_block)| ban_block <= block_number)
+            .filter(|(_, _, ban_block)| *ban_block <= block_number)
             .for_each(|(subnet_id, node_id, _ban_block)| {
                 // Get the node info before removing from queue
                 if let Some(info) = SubnetDecryptionData::<T>::get(subnet_id) {
