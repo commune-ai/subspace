@@ -14,7 +14,7 @@ where
     pub node_id: T::AccountId,
     pub node_public_key: PublicKey,
     // gets assigned when first encrypted weights appear on the subnet
-    pub activation_block: Option<u64>,
+    pub validity_block: Option<u64>,
     pub last_keep_alive: u64,
     pub rotating_from: Option<T::AccountId>,
 }

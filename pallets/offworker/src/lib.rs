@@ -247,6 +247,11 @@ pub mod pallet {
         KeepAliveSent { block_number: BlockNumberFor<T> },
         /// New authorities were successfully added
         AuthoritiesAdded,
+        /// Decryption node successfully sent decrypted weights back to the runtime on time
+        DecryptionNodeCallbackSuccess {
+            subnet_id: u16,
+            node_id: T::AccountId,
+        },
     }
 
     #[pallet::error]

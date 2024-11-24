@@ -1341,7 +1341,7 @@ fn yuma_change_permits() {
 //         let key = (key.n().to_bytes_be(), key.e().to_bytes_be());
 
 //         let subnet_decryption_data = SubnetDecryptionInfo {
-//             activation_block: 0,
+//             validity_block: 0,
 //             node_id: 1001,
 //             node_public_key: key.clone(),
 //             last_keep_alive: pallet_subspace::Tempo::<Test>::get(netuid) as u64,
@@ -1427,7 +1427,7 @@ fn decrypted_weight_run_result_is_applied_and_cleaned_up() {
         let key = (key.n().to_bytes_be(), key.e().to_bytes_be());
 
         let subnet_decryption_data = SubnetDecryptionInfo {
-            activation_block: Some(0),
+            validity_block: Some(0),
             node_id: 1001,
             node_public_key: key.clone(),
             last_keep_alive: pallet_subspace::Tempo::<Test>::get(netuid) as u64,
@@ -1534,7 +1534,7 @@ fn rotate_decryption_node() {
         pallet_subnet_emission::SubnetDecryptionData::<Test>::set(
             netuid,
             Some(SubnetDecryptionInfo {
-                activation_block: Some(0),
+                validity_block: Some(0),
                 node_id: dn_1,
                 node_public_key: key_1,
                 last_keep_alive: decryption_node_interval,
@@ -1545,7 +1545,7 @@ fn rotate_decryption_node() {
         pallet_subnet_emission::SubnetDecryptionData::<Test>::set(
             netuid,
             Some(SubnetDecryptionInfo {
-                activation_block: Some(0),
+                validity_block: Some(0),
                 node_id: dn_2,
                 node_public_key: key_2,
                 last_keep_alive: decryption_node_interval,
@@ -1581,7 +1581,7 @@ fn ban_decryption_node() {
         pallet_subnet_emission::SubnetDecryptionData::<Test>::set(
             netuid,
             Some(SubnetDecryptionInfo {
-                activation_block: Some(0),
+                validity_block: Some(0),
                 node_id: dn_1,
                 node_public_key: key_1,
                 last_keep_alive: 0,

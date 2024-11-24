@@ -43,7 +43,7 @@ pub mod pallet {
     use subnet_pricing::root::RootPricing;
 
     #[cfg(feature = "testnet")]
-    const STORAGE_VERSION: StorageVersion = StorageVersion::new(15);
+    const STORAGE_VERSION: StorageVersion = StorageVersion::new(16);
 
     #[cfg(not(feature = "testnet"))]
     const STORAGE_VERSION: StorageVersion = StorageVersion::new(1);
@@ -254,8 +254,8 @@ pub mod pallet {
     #[pallet::event]
     #[pallet::generate_deposit(pub fn deposit_event)]
     pub enum Event<T: Config> {
-        /// Subnets tempo has finished
-        EpochFinished(u16),
+        /// Subnets tempo has finished or Snapshot has been taken
+        EpochFinalized(u16),
         /// Weight copying decryption was canceled
         DecryptionNodeCanceled {
             subnet_id: u16,
@@ -267,11 +267,14 @@ pub mod pallet {
             previous_node_id: T::AccountId,
             new_node_id: T::AccountId,
         },
-        DecryptionNodeBanQueued {
+        /// Decryption node was called by the runtime to send decrypted weights back, if node fails
+        /// to do so on time, it will get banned
+        DecryptionNodeCallbackScheduled {
             subnet_id: u16,
             node_id: T::AccountId,
             ban_block: u64,
         },
+        /// Decryption node was banned, as it failed to send decrypted weights back to the runtime
         DecryptionNodeBanned {
             subnet_id: u16,
             node_id: T::AccountId,

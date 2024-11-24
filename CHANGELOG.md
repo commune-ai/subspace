@@ -168,7 +168,7 @@ Extrinsics:
 - `add_global_params_proposal` no longer takes `min_burn` and `max_burn`
 - `update_subnet` now takes `min_burn` and `max_burn`
 
-spec_version `118-119`
+'spec_version' `118-119`
 
 This branch starts off of the commit hash `95e5d26b550839c24fd367090e02abaa37df3d32`.
 diff [here](https://github.com/agicommies/subspace-network/compare/db8a19b1d2155d3ecda4172aaf72cdeea1feda2b...agicommies:subspace-network:feat/global-stake)

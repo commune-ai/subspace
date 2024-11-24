@@ -74,6 +74,11 @@ pub mod dispatches {
                     "checking if decryption key is rotating at subnet {}",
                     subnet_id
                 );
+
+                // we get a fresh one, as the one in payload can be outdated
+                let current_block = pallet_subspace::Pallet::<T>::get_current_block_number();
+                decryption_data.validity_block = Some(current_block);
+
                 // If this was a forced rotation send, clear the rotating_from field
                 if forced_send_by_rotation {
                     decryption_data.rotating_from = None;
@@ -93,11 +98,21 @@ pub mod dispatches {
             );
 
             log::info!("setting irrationality delta to 0 at subnet {}", subnet_id);
-            // TODO: make a periodical irrationality delta reseter that subnet owner can control
-            // IrrationalityDelta::<T>::mutate(subnet_id, |current| {
-            //     *current = current.saturating_add(delta)
-            // });
             IrrationalityDelta::<T>::set(subnet_id, I64F64::from_num(0));
+
+            if DecryptionNodeBanQueue::<T>::contains_key(subnet_id, &acc_id) {
+                DecryptionNodeBanQueue::<T>::remove(subnet_id, &acc_id);
+                log::info!(
+                    "Removed node from ban queue: subnet {}, node {:?}",
+                    subnet_id,
+                    acc_id
+                );
+
+                Self::deposit_event(Event::DecryptionNodeCallbackSuccess {
+                    subnet_id,
+                    node_id: acc_id,
+                });
+            }
 
             log::info!("setting decrypted weights at subnet {}", subnet_id);
             pallet_subnet_emission::Pallet::<T>::handle_decrypted_weights(
