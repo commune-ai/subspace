@@ -260,13 +260,13 @@ fn run_treasury_consensus<T: Config>(
 /// * `netuid` - The ID of the subnet.
 ///
 /// This function resets the pending emission for the subnet to 0 and
-/// emits an EpochFinished event.
+/// emits an EpochFinalized event.
 fn finalize_epoch<T: Config>(netuid: u16, clear_emission: bool) {
     if clear_emission {
         PendingEmission::<T>::set(netuid, 0);
     }
 
-    Pallet::<T>::deposit_event(Event::<T>::EpochFinished(netuid));
+    Pallet::<T>::deposit_event(Event::<T>::EpochFinalized(netuid));
 }
 
 impl<T: Config> Pallet<T> {

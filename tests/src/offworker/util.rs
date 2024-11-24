@@ -78,7 +78,7 @@ pub fn initialize_authorities(
         node_id: acc_id,
         node_public_key: public_key,
         last_keep_alive: first_block,
-        activation_block: None,
+        validity_block: None,
         rotating_from: None,
     };
     let decryption_nodes = vec![decryption_info.clone()];

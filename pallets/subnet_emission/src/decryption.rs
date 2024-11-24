@@ -88,9 +88,10 @@ impl<T: Config> Pallet<T> {
                     Some(SubnetDecryptionInfo {
                         node_id: node_info.node_id.clone(),
                         node_public_key: node_info.node_public_key.clone(),
-                        activation_block: None, /* will be set based on the first encrypted
-                                                 * weight
-                                                 * occurrence */
+                        validity_block: None, /* will be set based on the first encrypted
+                                               * weight
+                                               * occurrence and restarted on decrypted weights
+                                               * receival */
                         rotating_from: None,
                         last_keep_alive: block,
                     }),
@@ -390,7 +391,7 @@ impl<T: Config> Pallet<T> {
                         node_id: account_id.clone(),
                         node_public_key: public_key,
                         last_keep_alive: current_block,
-                        activation_block: None,
+                        validity_block: None,
                         rotating_from: None,
                     });
                 }
@@ -448,6 +449,17 @@ impl<T: Config> Pallet<T> {
     }
 
     fn put_offworker_to_ban_queue(subnet_id: u16, info: &SubnetDecryptionInfo<T>, buffer: u64) {
+        // Check if the node is already in the ban queue for this subnet
+        if DecryptionNodeBanQueue::<T>::contains_key(subnet_id, &info.node_id) {
+            // Node is already in the ban queue, return early
+            log::info!(
+                "Node already in ban queue: subnet {}, node {:?}",
+                subnet_id,
+                info.node_id
+            );
+            return;
+        }
+
         let current_block = pallet_subspace::Pallet::<T>::get_current_block_number();
         let ban_block = current_block.saturating_add(buffer);
 
@@ -455,7 +467,7 @@ impl<T: Config> Pallet<T> {
         DecryptionNodeBanQueue::<T>::insert(subnet_id, &info.node_id, ban_block);
 
         // Emit an event
-        Self::deposit_event(Event::<T>::DecryptionNodeBanQueued {
+        Self::deposit_event(Event::<T>::DecryptionNodeCallbackScheduled {
             subnet_id,
             node_id: info.node_id.clone(),
             ban_block,
@@ -513,7 +525,7 @@ impl<T: Config> Pallet<T> {
             })
             .filter(|(subnet_id, info)| {
                 block_number.saturating_sub(info.last_keep_alive) > max_inactivity_blocks
-                    || block_number.saturating_sub(info.activation_block.unwrap_or(u64::MAX))
+                    || block_number.saturating_sub(info.validity_block.unwrap_or(u64::MAX))
                         > Self::get_max_encryption_interval(subnet_id)
             })
             .for_each(|(subnet_id, info)| {
@@ -540,26 +552,14 @@ impl<T: Config> Pallet<T> {
             });
         // Clear ConsensusParameters
         let _ = ConsensusParameters::<T>::clear_prefix(subnet_id, u32::MAX, None);
-
         // --- Cleanup The Conditionals ---
 
         // Add tokens back to pending emission if requested
         if increase_pending_emission {
             update_pending_emission::<T>(subnet_id, &total_emission)
         }
-
-        // Combined logic with match
         if clear_node_assing {
-            // If we're going to remove it anyway, just remove it
             SubnetDecryptionData::<T>::remove(subnet_id);
-        } else {
-            // Only mutate if we're not removing
-            SubnetDecryptionData::<T>::mutate(subnet_id, |maybe_info| {
-                if let Some(mut info) = maybe_info.clone() {
-                    info.activation_block = None;
-                    *maybe_info = Some(info);
-                }
-            });
         }
 
         total_emission
@@ -612,7 +612,7 @@ impl<T: Config> Pallet<T> {
     }
 
     /// Assigns activation blocks to subnets when they first receive encrypted weight data.
-    /// This function runs on every block and sets the activation_block field in
+    /// This function runs on every block and sets the validity_block field in
     /// SubnetDecryptionInfo when weight encryption data is first detected for a subnet. The
     /// activation block is only set once per subnet and remains unchanged afterwards.
     ///
@@ -622,7 +622,7 @@ impl<T: Config> Pallet<T> {
         // Iterate through all subnets in SubnetDecryptionData
         for (subnet_id, mut subnet_info) in SubnetDecryptionData::<T>::iter() {
             // Check if subnet doesn't already have an activation block
-            if subnet_info.activation_block.is_none() {
+            if subnet_info.validity_block.is_none() {
                 // Check if there's any weight encryption data for this subnet
                 let has_encrypted_weights =
                     WeightEncryptionData::<T>::iter_prefix(subnet_id).next().is_some();
@@ -630,7 +630,7 @@ impl<T: Config> Pallet<T> {
                 // If there's encrypted weight data and no activation block set yet,
                 // set the current block as the activation block
                 if has_encrypted_weights {
-                    subnet_info.activation_block = Some(block_number);
+                    subnet_info.validity_block = Some(block_number);
                     SubnetDecryptionData::<T>::insert(subnet_id, subnet_info);
                 }
             }
@@ -640,13 +640,12 @@ impl<T: Config> Pallet<T> {
     /// TODO: delete the wc state
     pub(crate) fn rotate_decryption_node_if_needed(subnet_id: u16, info: SubnetDecryptionInfo<T>) {
         let block_number = pallet_subspace::Pallet::<T>::get_current_block_number();
-        let activation_block = match info.activation_block {
+        let validity_block = match info.validity_block {
             Some(block) => block,
             None => return,
         };
 
-        if block_number.saturating_sub(activation_block) < T::DecryptionNodeRotationInterval::get()
-        {
+        if block_number.saturating_sub(validity_block) < T::DecryptionNodeRotationInterval::get() {
             return;
         }
 
@@ -667,8 +666,8 @@ impl<T: Config> Pallet<T> {
                 Some(SubnetDecryptionInfo {
                     node_id: new_node.node_id.clone(),
                     node_public_key: new_node.node_public_key,
-                    activation_block: None, /* This will get updated based on the first encrypted
-                                             * weights */
+                    validity_block: None, /* This will get updated based on the first encrypted
+                                           * weights */
                     rotating_from: Some(previous_node_id.clone()),
                     last_keep_alive: block_number,
                 }),

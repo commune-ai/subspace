@@ -172,7 +172,7 @@ pub mod opaque {
 }
 
 #[cfg(feature = "testnet")]
-pub type Migrations = ();
+pub type Migrations = (pallet_subnet_emission::migrations::v1::MigrateToV1<Runtime>,);
 
 #[cfg(not(feature = "testnet"))]
 pub type Migrations = (
@@ -186,7 +186,7 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
     spec_name: create_runtime_str!("node-subspace"),
     impl_name: create_runtime_str!("node-subspace"),
     authoring_version: 1,
-    spec_version: 509,
+    spec_version: 511,
     impl_version: 1,
     apis: RUNTIME_API_VERSIONS,
     transaction_version: 1,
