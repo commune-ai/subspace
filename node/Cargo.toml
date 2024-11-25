@@ -105,5 +105,6 @@ runtime-benchmarks = [
     "sc-service/runtime-benchmarks",
     "node-subspace-runtime/runtime-benchmarks",
 ]
+testnet = ["node-subspace-runtime/testnet"]
 try-runtime = ["node-subspace-runtime/try-runtime"]
 testnet-faucet = ["node-subspace-runtime/testnet-faucet"]

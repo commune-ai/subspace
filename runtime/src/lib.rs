@@ -13,8 +13,10 @@ use frame_support::{
 };
 use sp_genesis_builder::PresetId;
 
-use sp_runtime::{traits::Dispatchable, SaturatedConversion};
+use sp_runtime::SaturatedConversion;
 
+#[cfg(feature = "testnet")]
+use sp_runtime::traits::Dispatchable;
 // Consensus pallets
 use pallet_aura::MinimumPeriodTimesTwo;
 use pallet_grandpa::{
@@ -26,10 +28,12 @@ use pallet_governance::{Curator, GeneralSubnetApplicationCost, LegitWhitelist};
 use pallet_governance_api::GovernanceConfiguration;
 
 // EVM pallets
+#[cfg(feature = "testnet")]
 use pallet_ethereum::{
     Call::transact, PostLogContent, Transaction as EthereumTransaction, TransactionAction,
     TransactionData,
 };
+#[cfg(feature = "testnet")]
 use pallet_evm::{
     Account as EVMAccount, BalanceConverter, FeeCalculator, HashedAddressMapping, Runner,
 };
@@ -47,21 +51,31 @@ use sp_consensus_aura::sr25519::AuthorityId as AuraId;
 use frame_support::pallet_prelude::PhantomData;
 use sp_core::{
     crypto::{ByteArray, KeyTypeId},
-    OpaqueMetadata, H160, H256, U256,
+    OpaqueMetadata, H160,
 };
+
+#[cfg(feature = "testnet")]
+use sp_core::{H256, U256};
+
 use sp_std::{collections::btree_set::BTreeSet, vec::Vec};
 
 // Substrate runtime primitives
 use sp_runtime::{
     create_runtime_str, generic, impl_opaque_keys,
     traits::{
-        AccountIdLookup, BlakeTwo256, Block as BlockT, DispatchInfoOf, IdentifyAccount, NumberFor,
-        One, PostDispatchInfoOf, UniqueSaturatedInto, Verify,
+        AccountIdLookup, BlakeTwo256, Block as BlockT, IdentifyAccount, NumberFor, One, Verify,
     },
-    transaction_validity::{TransactionSource, TransactionValidity, TransactionValidityError},
+    transaction_validity::{TransactionSource, TransactionValidity},
     ApplyExtrinsicResult, ConsensusEngineId, DispatchResult, MultiSignature,
 };
 
+#[cfg(feature = "testnet")]
+use sp_runtime::{
+    traits::{DispatchInfoOf, PostDispatchInfoOf, UniqueSaturatedInto},
+    transaction_validity::TransactionValidityError,
+};
+
+#[cfg(feature = "testnet")]
 use parity_scale_codec::{Decode, Encode};
 
 // Substrate versioning
@@ -73,7 +87,9 @@ use sp_version::RuntimeVersion;
 use subspace_runtime_api::{ModuleInfo, ModuleParams, ModuleStats};
 
 // Frontier EVM imports
+#[cfg(feature = "testnet")]
 use fp_evm::weight_per_gas;
+#[cfg(feature = "testnet")]
 use fp_rpc::TransactionStatus;
 
 // Transaction payment pallet
@@ -115,7 +131,9 @@ pub use sp_runtime::BuildStorage;
 pub use pallet_subspace;
 
 // Precompiles module (for EVM precompiles)
+#[cfg(feature = "testnet")]
 mod precompiles;
+#[cfg(feature = "testnet")]
 use precompiles::FrontierPrecompiles;
 
 use frame_system::RawOrigin;
@@ -186,7 +204,7 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
     spec_name: create_runtime_str!("node-subspace"),
     impl_name: create_runtime_str!("node-subspace"),
     authoring_version: 1,
-    spec_version: 511,
+    spec_version: 512,
     impl_version: 1,
     apis: RUNTIME_API_VERSIONS,
     transaction_version: 1,
@@ -520,9 +538,12 @@ impl<F: FindAuthor<u32>> FindAuthor<H160> for FindAuthorTruncated<F> {
     }
 }
 
+#[cfg(feature = "testnet")]
 const BLOCK_GAS_LIMIT: u64 = 75_000_000;
+#[cfg(feature = "testnet")]
 const MAX_POV_SIZE: u64 = 5 * 1024 * 1024;
 
+#[cfg(feature = "testnet")]
 parameter_types! {
     pub BlockGasLimit: U256 = U256::from(BLOCK_GAS_LIMIT);
     pub const GasLimitPovSizeRatio: u64 = BLOCK_GAS_LIMIT.saturating_div(MAX_POV_SIZE);
@@ -531,6 +552,7 @@ parameter_types! {
     pub SuicideQuickClearLimit: u32 = 0;
 }
 
+#[cfg(feature = "testnet")]
 impl pallet_evm::Config for Runtime {
     type FeeCalculator = BaseFee;
     type GasWeightMapping = pallet_evm::FixedGasWeightMapping<Self>;
@@ -556,10 +578,12 @@ impl pallet_evm::Config for Runtime {
     type WeightInfo = pallet_evm::weights::SubstrateWeight<Runtime>;
 }
 
+#[cfg(feature = "testnet")]
 parameter_types! {
     pub const PostBlockAndTxnHashes: PostLogContent = PostLogContent::BlockAndTxnHashes;
 }
 
+#[cfg(feature = "testnet")]
 impl pallet_ethereum::Config for Runtime {
     type RuntimeEvent = RuntimeEvent;
     type StateRoot = pallet_ethereum::IntermediateStateRoot<Self>;
@@ -567,19 +591,24 @@ impl pallet_ethereum::Config for Runtime {
     type ExtraDataLength = ConstU32<30>;
 }
 
+#[cfg(feature = "testnet")]
 parameter_types! {
     pub BoundDivision: U256 = U256::from(1024);
 }
 
+#[cfg(feature = "testnet")]
 impl pallet_dynamic_fee::Config for Runtime {
     type MinGasPriceBoundDivisor = BoundDivision;
 }
 
+#[cfg(feature = "testnet")]
 parameter_types! {
     pub DefaultBaseFeePerGas: U256 = U256::from(1_000_000_000);
     pub DefaultElasticity: Permill = Permill::from_parts(125_000);
 }
+#[cfg(feature = "testnet")]
 pub struct BaseFeeThreshold;
+#[cfg(feature = "testnet")]
 impl pallet_base_fee::BaseFeeThreshold for BaseFeeThreshold {
     fn lower() -> Permill {
         Permill::zero()
@@ -591,6 +620,8 @@ impl pallet_base_fee::BaseFeeThreshold for BaseFeeThreshold {
         Permill::from_parts(1_000_000)
     }
 }
+
+#[cfg(feature = "testnet")]
 impl pallet_base_fee::Config for Runtime {
     type RuntimeEvent = RuntimeEvent;
     type Threshold = BaseFeeThreshold;
@@ -619,10 +650,14 @@ construct_runtime!(
         #[cfg(feature = "testnet-faucet")]
         FaucetModule: pallet_faucet,
 
-        // EVM Support
+        // EVM Support, for now only on testnet
+        #[cfg(feature = "testnet")]
         EVM: pallet_evm,
+        #[cfg(feature = "testnet")]
         Ethereum: pallet_ethereum,
+        #[cfg(feature = "testnet")]
         BaseFee: pallet_base_fee,
+        #[cfg(feature = "testnet")]
         DynamicFee: pallet_dynamic_fee,
     }
 );
@@ -636,6 +671,7 @@ impl<B> Default for TransactionConverter<B> {
     }
 }
 
+#[cfg(feature = "testnet")]
 impl<B: BlockT> fp_rpc::ConvertTransaction<<B as BlockT>::Extrinsic> for TransactionConverter<B> {
     fn convert_transaction(
         &self,
@@ -650,10 +686,13 @@ impl<B: BlockT> fp_rpc::ConvertTransaction<<B as BlockT>::Extrinsic> for Transac
     }
 }
 
+#[cfg(feature = "testnet")]
 const EVM_DECIMALS_FACTOR: u64 = 1_000_000_000_u64;
 
+#[cfg(feature = "testnet")]
 pub struct EvmBalanceConverter;
 
+#[cfg(feature = "testnet")]
 impl BalanceConverter for EvmBalanceConverter {
     fn into_evm_balance(value: U256) -> Option<U256> {
         U256::from(UniqueSaturatedInto::<u128>::unique_saturated_into(value))
@@ -719,9 +758,16 @@ pub type SignedExtra = (
 );
 
 // Unchecked extrinsic type as expected by this runtime.
+#[cfg(feature = "testnet")]
 pub type UncheckedExtrinsic =
     fp_self_contained::UncheckedExtrinsic<Address, RuntimeCall, Signature, SignedExtra>;
+
+#[cfg(not(feature = "testnet"))]
+pub type UncheckedExtrinsic =
+    generic::UncheckedExtrinsic<Address, RuntimeCall, Signature, SignedExtra>;
+
 /// Extrinsic type that has already been checked.
+#[cfg(feature = "testnet")]
 pub type CheckedExtrinsic =
     fp_self_contained::CheckedExtrinsic<AccountId, RuntimeCall, SignedExtra, H160>;
 // The payload being signed in transactions.
@@ -736,6 +782,7 @@ pub type Executive = frame_executive::Executive<
     Migrations,
 >;
 
+#[cfg(feature = "testnet")]
 impl fp_self_contained::SelfContainedCall for RuntimeCall {
     type SignedInfo = H160;
 
@@ -1007,6 +1054,7 @@ impl_runtime_apis! {
     }
 
 
+    #[cfg(feature = "testnet")]
     impl fp_rpc::EthereumRuntimeRPCApi<Block> for Runtime {
         fn chain_id() -> u64 {
             <Runtime as pallet_evm::Config>::ChainId::get()
@@ -1198,6 +1246,7 @@ impl_runtime_apis! {
         }
     }
 
+    #[cfg(feature = "testnet")]
     impl fp_rpc::ConvertTransactionRuntimeApi<Block> for Runtime {
         fn convert_transaction(transaction: EthereumTransaction) -> <Block as BlockT>::Extrinsic {
             UncheckedExtrinsic::new_unsigned(

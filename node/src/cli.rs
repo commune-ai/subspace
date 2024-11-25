@@ -1,5 +1,6 @@
 use std::path::PathBuf;
 
+#[cfg(feature = "testnet")]
 use crate::service::EthConfiguration;
 
 /// Available Sealing methods.
@@ -31,6 +32,7 @@ pub struct Cli {
     #[arg(long, value_enum, ignore_case = true)]
     pub sealing: Option<Sealing>,
 
+    #[cfg(feature = "testnet")]
     #[command(flatten)]
     pub eth: EthConfiguration,
 }
