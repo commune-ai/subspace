@@ -9,14 +9,21 @@ use sc_consensus_manual_seal::consensus::{
 };
 use sc_service::Error;
 use sp_consensus::DisableProofRecording;
-use sp_core::{traits::SpawnEssentialNamed, U256};
+use sp_core::traits::SpawnEssentialNamed;
+
+#[cfg(feature = "testnet")]
+use sp_core::U256;
 
 use crate::{cli::Sealing, client::Client};
 
-use super::{BoxBlockImport, EthConfiguration, FullPool, FullSelectChain};
+use super::{BoxBlockImport, FullPool, FullSelectChain};
+
+#[cfg(feature = "testnet")]
+use super::EthConfiguration;
 
 pub struct ManualSealComponents {
     pub sealing: Sealing,
+    #[cfg(feature = "testnet")]
     pub eth_config: EthConfiguration,
     pub client: Arc<Client>,
     pub transaction_pool: Arc<FullPool>,
@@ -29,11 +36,17 @@ pub struct ManualSealComponents {
 }
 
 pub fn run_manual_seal_authorship(components: ManualSealComponents) -> Result<(), Error> {
+    #[cfg(feature = "testnet")]
     let target_gas_price = components.eth_config.target_gas_price;
     let create_inherent_data_providers = move |_, ()| async move {
         let timestamp = MockTimestampInherentDataProvider;
+        #[cfg(feature = "testnet")]
         let dynamic_fee = fp_dynamic_fee::InherentDataProvider(U256::from(target_gas_price));
-        Ok((timestamp, dynamic_fee))
+        Ok((
+            timestamp,
+            #[cfg(feature = "testnet")]
+            dynamic_fee,
+        ))
     };
 
     let spawn_handle = components.spawn_handle.clone();
@@ -99,6 +112,7 @@ fn localnet_seal(
         .boxed(),
     );
 
+    #[cfg(feature = "testnet")]
     let target_gas_price = components.eth_config.target_gas_price;
     let create_inherent_data_providers = {
         let client = components.client.clone();
@@ -109,9 +123,15 @@ fn localnet_seal(
                     .map_err(|err| format!("{:?}", err))?;
                 let aura =
                     sp_consensus_aura::inherents::InherentDataProvider::new(timestamp.slot());
+                #[cfg(feature = "testnet")]
                 let dynamic_fee =
                     fp_dynamic_fee::InherentDataProvider(U256::from(target_gas_price));
-                Ok((timestamp, aura, dynamic_fee))
+                Ok((
+                    timestamp,
+                    aura,
+                    #[cfg(feature = "testnet")]
+                    dynamic_fee,
+                ))
             }
         }
     };

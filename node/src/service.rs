@@ -1,5 +1,9 @@
 use futures::{channel::mpsc, prelude::*};
-use node_subspace_runtime::{opaque::Block, RuntimeApi, TransactionConverter};
+use node_subspace_runtime::{opaque::Block, RuntimeApi};
+
+#[cfg(feature = "testnet")]
+use node_subspace_runtime::TransactionConverter;
+
 use sc_client_api::{Backend, BlockBackend};
 use sc_network_sync::strategy::warp::WarpSyncProvider;
 use sc_service::{
@@ -10,22 +14,24 @@ use sc_transaction_pool_api::OffchainTransactionPoolFactory;
 use sp_consensus_aura::sr25519::AuthorityPair as AuraPair;
 use sp_core::U256;
 use sp_runtime::traits::Block as BlockT;
-use std::{
-    path::{Path, PathBuf},
-    sync::Arc,
-    time::Duration,
-};
+use std::{path::PathBuf, sync::Arc, time::Duration};
+
+#[cfg(feature = "testnet")]
+use std::path::Path;
+
+#[cfg(feature = "testnet")]
+use sp_core::H256;
 
 use crate::{
     cli::Sealing,
     client::{Client, FullBackend},
-    eth::{
-        new_frontier_partial, spawn_frontier_tasks, BackendType, FrontierBackend,
-        FrontierPartialComponents, StorageOverride, StorageOverrideHandler,
-    },
 };
 
-pub use crate::eth::{db_config_dir, EthConfiguration};
+#[cfg(feature = "testnet")]
+pub use crate::eth::{
+    db_config_dir, new_frontier_partial, spawn_frontier_tasks, BackendType, EthConfiguration,
+    FrontierBackend, FrontierPartialComponents, StorageOverride, StorageOverrideHandler,
+};
 
 mod decrypter;
 mod manual_seal;
@@ -41,11 +47,14 @@ type BoxBlockImport = sc_consensus::BoxBlockImport<Block>;
 
 pub struct Other {
     pub config: Configuration,
+    #[cfg(feature = "testnet")]
     pub eth_config: EthConfiguration,
     pub telemetry: Option<Telemetry>,
     pub block_import: BoxBlockImport,
     pub grandpa_link: GrandpaLinkHalf,
+    #[cfg(feature = "testnet")]
     pub frontier_backend: FrontierBackend,
+    #[cfg(feature = "testnet")]
     pub storage_override: Arc<dyn StorageOverride<Block>>,
 }
 
@@ -56,6 +65,89 @@ type Components =
 /// imported and generated.
 const GRANDPA_JUSTIFICATION_PERIOD: u32 = 512;
 
+#[cfg(not(feature = "testnet"))]
+pub fn new_partial<BIQ>(
+    config: Configuration,
+    build_import_queue: BIQ,
+) -> Result<Components, ServiceError>
+where
+    BIQ: FnOnce(
+        Arc<Client>,
+        &Configuration,
+        &TaskManager,
+        Option<TelemetryHandle>,
+        GrandpaBlockImport,
+    ) -> Result<(BasicImportQueue, BoxBlockImport), ServiceError>,
+{
+    let telemetry = config
+        .telemetry_endpoints
+        .clone()
+        .filter(|x| !x.is_empty())
+        .map(|endpoints| -> Result<_, sc_telemetry::Error> {
+            let worker = TelemetryWorker::new(16)?;
+            let telemetry = worker.handle().new_telemetry(endpoints);
+            Ok((worker, telemetry))
+        })
+        .transpose()?;
+
+    let executor = sc_service::new_wasm_executor(&config.executor);
+
+    let (client, backend, keystore_container, task_manager) =
+        sc_service::new_full_parts::<Block, RuntimeApi, _>(
+            &config,
+            telemetry.as_ref().map(|(_, telemetry)| telemetry.handle()),
+            executor,
+        )?;
+    let client = Arc::new(client);
+
+    let telemetry = telemetry.map(|(worker, telemetry)| {
+        task_manager.spawn_handle().spawn("telemetry", None, worker.run());
+        telemetry
+    });
+
+    let select_chain = sc_consensus::LongestChain::new(backend.clone());
+    let (grandpa_block_import, grandpa_link) = sc_consensus_grandpa::block_import(
+        client.clone(),
+        GRANDPA_JUSTIFICATION_PERIOD,
+        &client,
+        select_chain.clone(),
+        telemetry.as_ref().map(|x| x.handle()),
+    )?;
+
+    let (import_queue, block_import) = build_import_queue(
+        client.clone(),
+        &config,
+        &task_manager,
+        telemetry.as_ref().map(|x| x.handle()),
+        grandpa_block_import,
+    )?;
+
+    let transaction_pool = sc_transaction_pool::BasicPool::new_full(
+        config.transaction_pool.clone(),
+        config.role.is_authority().into(),
+        config.prometheus_registry(),
+        task_manager.spawn_essential_handle(),
+        client.clone(),
+    );
+
+    Ok(PartialComponents {
+        client,
+        backend,
+        keystore_container,
+        task_manager,
+        select_chain,
+        import_queue,
+        transaction_pool,
+        other: Other {
+            config,
+            telemetry,
+            block_import,
+            grandpa_link,
+        },
+    })
+}
+
+#[cfg(feature = "testnet")]
 pub fn new_partial<BIQ>(
     config: Configuration,
     eth_config: EthConfiguration,
@@ -177,13 +269,21 @@ where
 pub fn build_aura_grandpa_import_queue(
     client: Arc<Client>,
     config: &Configuration,
-    eth_config: &EthConfiguration,
+
+    #[cfg(feature = "testnet")] eth_config: &EthConfiguration,
+
     task_manager: &TaskManager,
     telemetry: Option<TelemetryHandle>,
     grandpa_block_import: GrandpaBlockImport,
 ) -> Result<(BasicImportQueue, BoxBlockImport), ServiceError> {
     let slot_duration = sc_consensus_aura::slot_duration(&*client)?;
+
+    #[cfg(feature = "testnet")]
     let target_gas_price = eth_config.target_gas_price;
+
+    #[cfg(not(feature = "testnet"))]
+    let target_gas_price = 0;
+
     let create_inherent_data_providers = move |_, ()| async move {
         let timestamp = sp_timestamp::InherentDataProvider::from_system_time();
         let slot =
@@ -217,7 +317,9 @@ pub fn build_aura_grandpa_import_queue(
 pub fn build_manual_seal_import_queue(
     client: Arc<Client>,
     config: &Configuration,
-    _eth_config: &EthConfiguration,
+
+    #[cfg(feature = "testnet")] _eth_config: &EthConfiguration,
+
     task_manager: &TaskManager,
     _telemetry: Option<TelemetryHandle>,
     _grandpa_block_import: GrandpaBlockImport,
@@ -235,7 +337,9 @@ pub fn build_manual_seal_import_queue(
 /// Builds a new service for a full client.
 pub async fn new_full<N>(
     config: Configuration,
-    eth_config: EthConfiguration,
+
+    #[cfg(feature = "testnet")] eth_config: EthConfiguration,
+
     sealing: Option<Sealing>,
     rsa_key: Option<PathBuf>,
 ) -> Result<TaskManager, ServiceError>
@@ -257,8 +361,14 @@ where
         select_chain,
         transaction_pool,
         mut other,
-    } = new_partial(config, eth_config, build_import_queue)?;
+    } = new_partial(
+        config,
+        #[cfg(feature = "testnet")]
+        eth_config,
+        build_import_queue,
+    )?;
 
+    #[cfg(feature = "testnet")]
     let FrontierPartialComponents {
         filter_pool,
         fee_history_cache,
@@ -343,6 +453,7 @@ where
     let role = other.config.role;
     let force_authoring = other.config.force_authoring;
     let name = other.config.network.node_name.clone();
+    #[cfg(feature = "testnet")]
     let frontier_backend = Arc::new(other.frontier_backend);
     let enable_grandpa = !other.config.disable_grandpa && sealing.is_none();
     let prometheus_registry = other.config.prometheus_registry().cloned();
@@ -351,9 +462,12 @@ where
     let (command_sink, commands_stream) = mpsc::channel(1000);
 
     // Sinks for pubsub notifications.
+    #[cfg(feature = "testnet")]
     let pubsub_notification_sinks: fc_mapping_sync::EthereumBlockNotificationSinks<
         fc_mapping_sync::EthereumBlockNotification<Block>,
     > = Default::default();
+
+    #[cfg(feature = "testnet")]
     let pubsub_notification_sinks = Arc::new(pubsub_notification_sinks);
 
     // for ethereum-compatibility rpc.
@@ -362,18 +476,29 @@ where
     let rpc_builder = {
         let client = client.clone();
         let pool = transaction_pool.clone();
+        #[cfg(feature = "testnet")]
         let network = network.clone();
+        #[cfg(feature = "testnet")]
         let sync_service = sync_service.clone();
-
+        #[cfg(feature = "testnet")]
         let is_authority = role.is_authority();
+        #[cfg(feature = "testnet")]
         let enable_dev_signer = other.eth_config.enable_dev_signer;
+        #[cfg(feature = "testnet")]
         let max_past_logs = other.eth_config.max_past_logs;
+        #[cfg(feature = "testnet")]
         let execute_gas_limit_multiplier = other.eth_config.execute_gas_limit_multiplier;
+        #[cfg(feature = "testnet")]
         let filter_pool = filter_pool.clone();
+        #[cfg(feature = "testnet")]
         let frontier_backend = frontier_backend.clone();
+        #[cfg(feature = "testnet")]
         let pubsub_notification_sinks = pubsub_notification_sinks.clone();
+        #[cfg(feature = "testnet")]
         let storage_override = other.storage_override.clone();
+        #[cfg(feature = "testnet")]
         let fee_history_cache = fee_history_cache.clone();
+        #[cfg(feature = "testnet")]
         let block_data_cache = Arc::new(fc_rpc::EthBlockDataCacheTask::new(
             task_manager.spawn_handle(),
             storage_override.clone(),
@@ -382,9 +507,20 @@ where
             prometheus_registry.clone(),
         ));
 
+        #[cfg(feature = "testnet")]
         let slot_duration = sc_consensus_aura::slot_duration(&*client)?;
+        #[cfg(feature = "testnet")]
         let target_gas_price = other.eth_config.target_gas_price;
-        let pending_create_inherent_data_providers = move |_, ()| async move {
+
+        #[cfg(feature = "testnet")]
+        type InherentDataProviders = (
+            sp_consensus_aura::inherents::InherentDataProvider,
+            sp_timestamp::InherentDataProvider,
+            fp_dynamic_fee::InherentDataProvider,
+        );
+
+        #[cfg(feature = "testnet")]
+        let pending_create_inherent_data_providers = move |_: H256, _: ()| async move {
             let current = sp_timestamp::InherentDataProvider::from_system_time();
             let next_slot = current
                 .timestamp()
@@ -393,57 +529,70 @@ where
                 .expect("Overflow when calculating next slot");
             let timestamp = sp_timestamp::InherentDataProvider::new(next_slot.into());
             let slot = sp_consensus_aura::inherents::InherentDataProvider::from_timestamp_and_slot_duration(
-				*timestamp,
-				slot_duration,
-			);
+                *timestamp,
+                slot_duration,
+            );
             let dynamic_fee = fp_dynamic_fee::InherentDataProvider(U256::from(target_gas_price));
-            Ok((slot, timestamp, dynamic_fee))
+
+            Ok::<InherentDataProviders, Box<dyn std::error::Error + Send + Sync>>((
+                slot,
+                timestamp,
+                #[cfg(feature = "testnet")]
+                dynamic_fee,
+            ))
         };
 
         let command_sink = command_sink.clone();
-        Box::new(move |subscription_task_executor| {
-            let eth_deps = crate::rpc::EthDeps {
-                client: client.clone(),
-                pool: pool.clone(),
-                graph: pool.pool().clone(),
-                converter: Some(TransactionConverter::<Block>::default()),
-                is_authority,
-                enable_dev_signer,
-                network: network.clone(),
-                sync: sync_service.clone(),
-                frontier_backend: match &*frontier_backend {
-                    fc_db::Backend::KeyValue(b) => b.clone(),
-                    fc_db::Backend::Sql(b) => b.clone(),
-                },
-                storage_override: storage_override.clone(),
-                block_data_cache: block_data_cache.clone(),
-                filter_pool: filter_pool.clone(),
-                max_past_logs,
-                fee_history_cache: fee_history_cache.clone(),
-                fee_history_cache_limit,
-                execute_gas_limit_multiplier,
-                forced_parent_hashes: None,
-                pending_create_inherent_data_providers,
-            };
+        Box::new(
+            move |#[cfg(feature = "testnet")] subscription_task_executor,
+                  #[cfg(not(feature = "testnet"))] _| {
+                #[cfg(feature = "testnet")]
+                let eth_deps = crate::rpc::EthDeps {
+                    client: client.clone(),
+                    pool: pool.clone(),
+                    graph: pool.pool().clone(),
+                    converter: Some(TransactionConverter::<Block>::default()),
+                    is_authority,
+                    enable_dev_signer,
+                    network: network.clone(),
+                    sync: sync_service.clone(),
+                    frontier_backend: match &*frontier_backend {
+                        fc_db::Backend::KeyValue(b) => b.clone(),
+                        fc_db::Backend::Sql(b) => b.clone(),
+                    },
+                    storage_override: storage_override.clone(),
+                    block_data_cache: block_data_cache.clone(),
+                    filter_pool: filter_pool.clone(),
+                    max_past_logs,
+                    fee_history_cache: fee_history_cache.clone(),
+                    fee_history_cache_limit,
+                    execute_gas_limit_multiplier,
+                    forced_parent_hashes: None,
+                    pending_create_inherent_data_providers,
+                };
 
-            let deps = crate::rpc::FullDeps {
-                client: client.clone(),
-                pool: pool.clone(),
-                command_sink: if sealing.is_some() {
-                    Some(command_sink.clone())
-                } else {
-                    None
-                },
-                eth: eth_deps,
-            };
+                let deps = crate::rpc::FullDeps {
+                    client: client.clone(),
+                    pool: pool.clone(),
+                    command_sink: if sealing.is_some() {
+                        Some(command_sink.clone())
+                    } else {
+                        None
+                    },
+                    #[cfg(feature = "testnet")]
+                    eth: eth_deps,
+                };
 
-            crate::rpc::create_full(
-                deps,
-                subscription_task_executor,
-                pubsub_notification_sinks.clone(),
-            )
-            .map_err(Into::into)
-        })
+                crate::rpc::create_full(
+                    deps,
+                    #[cfg(feature = "testnet")]
+                    subscription_task_executor,
+                    #[cfg(feature = "testnet")]
+                    pubsub_notification_sinks.clone(),
+                )
+                .map_err(Into::into)
+            },
+        )
     };
 
     let _rpc_handlers = sc_service::spawn_tasks(sc_service::SpawnTasksParams {
@@ -461,6 +610,7 @@ where
         telemetry: other.telemetry.as_mut(),
     })?;
 
+    #[cfg(feature = "testnet")]
     spawn_frontier_tasks(
         &task_manager,
         client.clone(),
@@ -488,6 +638,7 @@ where
         if let Some(sealing) = sealing {
             let components = manual_seal::ManualSealComponents {
                 sealing,
+                #[cfg(feature = "testnet")]
                 eth_config: other.eth_config,
                 client,
                 transaction_pool,
@@ -516,15 +667,24 @@ where
         );
 
         let slot_duration = sc_consensus_aura::slot_duration(&*client)?;
+
+        #[cfg(feature = "testnet")]
         let target_gas_price = other.eth_config.target_gas_price;
+
         let create_inherent_data_providers = move |_, ()| async move {
             let timestamp = sp_timestamp::InherentDataProvider::from_system_time();
             let slot = sp_consensus_aura::inherents::InherentDataProvider::from_timestamp_and_slot_duration(
                 *timestamp,
                 slot_duration,
             );
+            #[cfg(feature = "testnet")]
             let dynamic_fee = fp_dynamic_fee::InherentDataProvider(U256::from(target_gas_price));
-            Ok((slot, timestamp, dynamic_fee))
+            Ok((
+                slot,
+                timestamp,
+                #[cfg(feature = "testnet")]
+                dynamic_fee,
+            ))
         };
 
         let aura = sc_consensus_aura::start_aura::<AuraPair, _, _, _, _, _, _, _, _, _, _>(
@@ -607,17 +767,32 @@ where
 
 pub async fn build_full(
     config: Configuration,
-    eth_config: EthConfiguration,
+
+    #[cfg(feature = "testnet")] eth_config: EthConfiguration,
+
     sealing: Option<Sealing>,
     rsa_key: Option<PathBuf>,
 ) -> Result<TaskManager, ServiceError> {
-    new_full::<sc_network::NetworkWorker<_, _>>(config, eth_config, sealing, rsa_key).await
+    new_full::<sc_network::NetworkWorker<_, _>>(
+        config,
+        #[cfg(feature = "testnet")]
+        eth_config,
+        sealing,
+        rsa_key,
+    )
+    .await
 }
 
 pub fn new_chain_ops(
     mut config: Configuration,
-    eth_config: EthConfiguration,
+
+    #[cfg(feature = "testnet")] eth_config: EthConfiguration,
 ) -> Result<Components, ServiceError> {
     config.keystore = sc_service::config::KeystoreConfig::InMemory;
-    new_partial::<_>(config, eth_config, build_aura_grandpa_import_queue)
+    new_partial::<_>(
+        config,
+        #[cfg(feature = "testnet")]
+        eth_config,
+        build_aura_grandpa_import_queue,
+    )
 }

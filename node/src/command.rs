@@ -1,15 +1,22 @@
 use futures::TryFutureExt;
 // Substrate
 use sc_cli::SubstrateCli;
-use sc_service::{DatabaseSource, PartialComponents};
+use sc_service::PartialComponents;
+
+#[cfg(feature = "testnet")]
+use sc_service::DatabaseSource;
 // Frontier
+#[cfg(feature = "testnet")]
 use fc_db::kv::frontier_database_dir;
 
 use crate::{
     chain_spec,
     cli::{Cli, Subcommand},
-    service::{self, db_config_dir, Other},
+    service::{self, Other},
 };
+
+#[cfg(feature = "testnet")]
+use crate::service::db_config_dir;
 
 #[cfg(feature = "runtime-benchmarks")]
 use crate::chain_spec::get_account_id_from_seed;
@@ -85,7 +92,11 @@ pub fn run() -> sc_cli::Result<()> {
                     import_queue,
                     task_manager,
                     ..
-                } = service::new_chain_ops(config, cli.eth)?;
+                } = service::new_chain_ops(
+                    config,
+                    #[cfg(feature = "testnet")]
+                    cli.eth,
+                )?;
 
                 Ok((cmd.run(client, import_queue), task_manager))
             })
@@ -98,7 +109,11 @@ pub fn run() -> sc_cli::Result<()> {
                     task_manager,
                     other: Other { config, .. },
                     ..
-                } = service::new_chain_ops(config, cli.eth)?;
+                } = service::new_chain_ops(
+                    config,
+                    #[cfg(feature = "testnet")]
+                    cli.eth,
+                )?;
 
                 Ok((cmd.run(client, config.database), task_manager))
             })
@@ -111,7 +126,11 @@ pub fn run() -> sc_cli::Result<()> {
                     task_manager,
                     other: Other { config, .. },
                     ..
-                } = service::new_chain_ops(config, cli.eth)?;
+                } = service::new_chain_ops(
+                    config,
+                    #[cfg(feature = "testnet")]
+                    cli.eth,
+                )?;
 
                 Ok((cmd.run(client, config.chain_spec), task_manager))
             })
@@ -124,7 +143,11 @@ pub fn run() -> sc_cli::Result<()> {
                     import_queue,
                     task_manager,
                     ..
-                } = service::new_chain_ops(config, cli.eth)?;
+                } = service::new_chain_ops(
+                    config,
+                    #[cfg(feature = "testnet")]
+                    cli.eth,
+                )?;
 
                 Ok((cmd.run(client, import_queue), task_manager))
             })
@@ -133,7 +156,9 @@ pub fn run() -> sc_cli::Result<()> {
             let runner = cli.create_runner(cmd)?;
             runner.sync_run(|config| {
                 // Remove Frontier offchain db
+                #[cfg(feature = "testnet")]
                 let db_config_dir = db_config_dir(&config);
+                #[cfg(feature = "testnet")]
                 match cli.eth.frontier_backend_type {
                     crate::eth::BackendType::KeyValue => {
                         let frontier_database_config = match config.database {
@@ -154,6 +179,7 @@ pub fn run() -> sc_cli::Result<()> {
                         };
                         cmd.run(frontier_database_config)?;
                     }
+                    #[cfg(feature = "testnet")]
                     crate::eth::BackendType::Sql => {
                         let db_path = db_config_dir.join("sql");
                         match std::fs::remove_dir_all(&db_path) {
@@ -184,7 +210,11 @@ pub fn run() -> sc_cli::Result<()> {
                     backend,
                     task_manager,
                     ..
-                } = service::new_chain_ops(config, cli.eth)?;
+                } = service::new_chain_ops(
+                    config,
+                    #[cfg(feature = "testnet")]
+                    cli.eth,
+                )?;
 
                 let aux_revert = Box::new(move |client, _, blocks| {
                     sc_consensus_grandpa::revert(client, blocks)?;
@@ -264,6 +294,7 @@ pub fn run() -> sc_cli::Result<()> {
         Some(Subcommand::Benchmark) => Err("Benchmarking wasn't enabled when building the node. \
 			You can enable it with `--features runtime-benchmarks`."
             .into()),
+        #[cfg(feature = "testnet")]
         Some(Subcommand::FrontierDb(cmd)) => {
             let runner = cli.create_runner(cmd)?;
             runner.sync_run(|config| {
@@ -280,15 +311,22 @@ pub fn run() -> sc_cli::Result<()> {
                     fc_db::Backend::KeyValue(kv) => kv,
                     _ => panic!("Only fc_db::Backend::KeyValue supported"),
                 };
+                #[cfg(feature = "testnet")]
                 cmd.run(client, frontier_backend)
             })
         }
         _ => {
             let runner = cli.create_runner(&cli.run)?;
             runner.run_node_until_exit(|config| async move {
-                service::build_full(config, cli.eth, cli.sealing, cli.rsa_path)
-                    .map_err(Into::into)
-                    .await
+                service::build_full(
+                    config,
+                    #[cfg(feature = "testnet")]
+                    cli.eth,
+                    cli.sealing,
+                    cli.rsa_path,
+                )
+                .map_err(Into::into)
+                .await
             })
         }
     }
