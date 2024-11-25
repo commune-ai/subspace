@@ -34,7 +34,7 @@ RUN if [ -n "$AWS_ACCESS_KEY_ID" ]; then \
         ./sccache --start-server && \
         export RUSTC_WRAPPER="/app/sccache"; \
     fi && \
-    cargo build -p node-subspace --release --locked
+    cargo build -p node-subspace --release --features testnet --locked
 
 RUN if [ -n "$AWS_ACCESS_KEY_ID" ]; then \
         ./sccache --show-stats; \
