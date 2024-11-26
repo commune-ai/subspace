@@ -30,7 +30,12 @@ try-runtime-upgrade-testnet:
 
 try-runtime-upgrade-mainnet:
 	cargo build --release --features try-runtime
-	RUST_BACKTRACE=1; RUST_LOG="${RUST_LOG}"; try-runtime --runtime target/release/wbuild/node-subspace-runtime/node_subspace_runtime.compact.compressed.wasm on-runtime-upgrade --blocktime 8000 live --uri wss://mainnet.api.communeai.net:443
+	RUST_BACKTRACE=1; RUST_LOG="${RUST_LOG}"; try-runtime --runtime target/release/wbuild/node-subspace-runtime/node_subspace_runtime.compact.compressed.wasm on-runtime-upgrade --blocktime 8000 live --uri wss://api.communeai.net:443
+
+try-runtime-upgrade-devnet:
+	cargo build --release --features try-runtime
+	RUST_BACKTRACE=1; RUST_LOG="${RUST_LOG}"; try-runtime --runtime target/release/wbuild/node-subspace-runtime/node_subspace_runtime.compact.compressed.wasm on-runtime-upgrade --blocktime 8000 live --uri wss://devnet-commune-api-node-0.communeai.net:443
+
 
 run-benchmarking:
 	cargo build -r --features runtime-benchmarks
