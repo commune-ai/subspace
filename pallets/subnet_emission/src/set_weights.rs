@@ -98,7 +98,7 @@ impl<T: Config> Pallet<T> {
             pallet_subspace::Pallet::<T>::is_rootnet(netuid) || !uids.contains(&uid),
             Error::<T>::NoSelfWeight
         );
-        Self::check_whitelisted(netuid, &uids)?;
+        Self::check_whitelisted(netuid, uids)?;
         Ok(())
     }
 
