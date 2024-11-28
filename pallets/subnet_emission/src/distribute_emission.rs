@@ -7,7 +7,7 @@ use pallet_subnet_emission_api::SubnetConsensus;
 use pallet_subspace::{Pallet as PalletSubspace, N};
 use subnet_consensus::yuma::YumaEpoch;
 
-const NO_WEIGHTS: &'static str = "no weights";
+const NO_WEIGHTS: &str = "no weights";
 
 /// Processes subnets by updating pending emissions and running epochs when due.
 ///

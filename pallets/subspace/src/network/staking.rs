@@ -382,7 +382,7 @@ impl<T: Config> Pallet<T> {
         TotalStake::<T>::mutate(|total_stake| *total_stake = total_stake.saturating_sub(amount));
     }
 
-    // Decreases the stake by the amount while decreasing other counters.
+    /// Decreases the stake by the amount while decreasing other counters.
     pub fn remove_stake_from_storage(staked: &T::AccountId) {
         // Get all stakers for this staked account
         let stakers: Vec<T::AccountId> =

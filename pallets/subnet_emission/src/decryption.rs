@@ -1,5 +1,3 @@
-use core::u32;
-
 use crate::{
     distribute_emission::update_pending_emission,
     subnet_consensus::{util::params::ConsensusParams, yuma::YumaEpoch},
@@ -105,7 +103,7 @@ impl<T: Config> Pallet<T> {
     }
 
     /// 1. TODO: step 4. verify the zk proofs, if only one zk proof is invalid, you will ban the
-    /// offchain worker
+    ///    offchain worker
     ///
     /// 2. TODO: add a test where some of the decrypted weights will be empty, and expect everything
     ///    to be handeled correctly
@@ -329,7 +327,7 @@ impl<T: Config> Pallet<T> {
     ) -> Option<Vec<KeylessBlockWeights>> {
         // Collect baseline weights from storage
         let baseline_weights: Vec<(u16, Vec<(u16, u16)>)> =
-            Weights::<T>::iter_prefix(netuid).map(|(dst, weights)| (dst, weights)).collect();
+            Weights::<T>::iter_prefix(netuid).collect();
 
         // Process each block's weights
         let result: Vec<KeylessBlockWeights> = valid_weights

@@ -152,7 +152,7 @@ pub mod pallet {
     define_module_includes!(
         // Put here every module-related storage map that has netuid as a key and holds a vector of values. The vector has to be indexed by the module uid.
         vectors: {
-            Active: bool = |_: PhantomData<T>| true,
+            Active: bool = |_: PhantomData<T>| false,
             Consensus: u64 = |_: PhantomData<T>| 0,
             Emission: u64 = |_: PhantomData<T>| 0,
             Incentive: u64 = |_: PhantomData<T>| 0,

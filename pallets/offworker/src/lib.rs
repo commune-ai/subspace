@@ -355,8 +355,9 @@ impl<T: Config> Pallet<T> {
             .map(|(block_number, consensus_params)| {
                 let uid_weights: Vec<_> = consensus_params
                     .modules
-                    .iter()
-                    .map(|(_, module_params)| {
+                    .values()
+                    .map(|module_params| {
+                        // Removed the (_, module_params) pattern
                         if !module_params.weight_encrypted.is_empty() {
                             ow_extensions::offworker::decrypt_weight(
                                 module_params.weight_encrypted.clone(),
