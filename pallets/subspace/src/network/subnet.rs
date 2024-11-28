@@ -42,6 +42,28 @@ impl<T: Config> Pallet<T> {
         }
     }
 
+    pub fn clear_subnet_only_accounts_data(subnet_id: u16) {
+        // Get all accounts in the specified subnet
+        let subnet_accounts: BTreeSet<AccountIdOf<T>> =
+            Uids::<T>::iter_prefix(subnet_id).map(|(account, _)| account).collect();
+
+        // Get all accounts from other subnets
+        let accounts_in_other_subnets: BTreeSet<AccountIdOf<T>> = Uids::<T>::iter()
+            .filter(|(net_id, _, _)| net_id != &subnet_id)
+            .map(|(_, account, _)| account)
+            .collect();
+
+        // Clear data for accounts that exist only in this subnet
+        subnet_accounts
+            .difference(&accounts_in_other_subnets)
+            .for_each(|subnet_only_account| {
+                // Clear stakes
+                Self::remove_stake_from_storage(subnet_only_account);
+                // Clear validator fees
+                ValidatorFeeConfig::<T>::remove(subnet_only_account);
+            });
+    }
+
     pub fn remove_subnet(netuid: u16) {
         if !Self::if_subnet_exist(netuid) {
             return;
@@ -57,8 +79,7 @@ impl<T: Config> Pallet<T> {
         // Automatically remove the stake & delegation fee of modules that are only registered on
         // this subnet. This is because it's not desirable for module to be **globally**
         // unregistered with "active" stake storage or "active" delegation fee storage.
-        Self::clear_stakes_for_subnet_only_accounts(netuid);
-        Self::clear_delegation_fees_for_subnet_only_accounts(netuid);
+        Self::clear_subnet_only_accounts_data(netuid);
 
         // --- Delete Subnet Includes Storage For All Pallets ---
 
@@ -214,37 +235,6 @@ impl<T: Config> Pallet<T> {
     pub fn key_registered(netuid: u16, key: &T::AccountId) -> bool {
         Uids::<T>::contains_key(netuid, key)
             || Keys::<T>::iter_prefix_values(netuid).any(|k| &k == key)
-    }
-
-    pub fn clear_stakes_for_subnet_only_accounts(subnet_id: u16) {
-        // Get all accounts in the specified subnet
-        let subnet_accounts: BTreeSet<AccountIdOf<T>> =
-            Uids::<T>::iter_prefix(subnet_id).map(|(account, _)| account).collect();
-
-        // Get all accounts from other subnets
-        let accounts_in_other_subnets: BTreeSet<AccountIdOf<T>> = Uids::<T>::iter()
-            .filter(|(net_id, _, _)| net_id != &subnet_id)
-            .map(|(_, account, _)| account)
-            .collect();
-
-        // Clear stakes for accounts that exist only in this subnet
-        subnet_accounts
-            .difference(&accounts_in_other_subnets)
-            .for_each(|subnet_only_account| Self::remove_stake_from_storage(subnet_only_account));
-    }
-
-    pub fn clear_delegation_fees_for_subnet_only_accounts(subnet_id: u16) {
-        // Get all accounts from other subnets
-        let accounts_in_other_subnets: BTreeSet<AccountIdOf<T>> = Uids::<T>::iter()
-            .filter(|(other_subnet_id, _, _)| other_subnet_id != &subnet_id)
-            .map(|(_, account, _)| account)
-            .collect();
-
-        // Clear validator fees for accounts that exist only in this subnet
-        Uids::<T>::iter_prefix(subnet_id)
-            .map(|(account, _)| account)
-            .filter(|account| !accounts_in_other_subnets.contains(account))
-            .for_each(|subnet_only_account| ValidatorFeeConfig::<T>::remove(&subnet_only_account));
     }
 
     pub fn get_total_subnets() -> u16 {
