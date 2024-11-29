@@ -804,7 +804,6 @@ pub struct ConsensusOutput<T: Config> {
     pub total_emitted: u64,
 }
 
-// TODO: write a test on this
 impl<T: Config> ConsensusOutput<T> {
     pub fn apply(self) {
         use pallet_subspace::*;

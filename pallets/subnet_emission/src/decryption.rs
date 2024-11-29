@@ -208,9 +208,7 @@ impl<T: Config> Pallet<T> {
         netuid: u16,
         weights: Vec<KeylessBlockWeights>,
     ) -> Result<u64, &'static str> {
-        weights.into_iter().fold(Ok(0u64), |acc_emission, (block, block_weights)| {
-            let acc_emission = acc_emission?;
-
+        weights.into_iter().try_fold(0u64, |acc_emission, (block, block_weights)| {
             // Update weights storage
             for (uid, weights) in block_weights.clone() {
                 Weights::<T>::set(netuid, uid, Some(weights));
