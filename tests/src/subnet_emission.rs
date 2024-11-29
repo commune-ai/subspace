@@ -1478,11 +1478,7 @@ fn decrypted_weight_run_result_is_applied_and_cleaned_up() {
 
         pallet_subnet_emission::Pallet::<Test>::handle_decrypted_weights(netuid, weights);
 
-        let params = ConsensusParameters::<Test>::get(
-            netuid,
-            pallet_subspace::Tempo::<Test>::get(netuid) as u64,
-        )
-        .unwrap();
+        let params = ConsensusParams::<Test>::new(netuid, 100000000).unwrap();
         step_epoch(netuid);
 
         let res = YumaEpoch::run(
@@ -1606,6 +1602,7 @@ fn ban_decryption_node() {
             pallet_subnet_emission::Pallet::<Test>::get_max_encryption_interval(&netuid);
         step_block((max_encryption_inteval + 1) as u16);
         step_epoch(netuid);
+        dbg!(&pallet_subnet_emission::DecryptionNodeBanQueue::<Test>::iter().collect::<Vec<_>>());
 
         // one subnet with decryption node set
         pallet_subnet_emission::DecryptionNodeCursor::<Test>::set(1);
