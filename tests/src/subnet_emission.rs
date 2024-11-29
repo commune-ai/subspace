@@ -2,7 +2,7 @@ use crate::{mock::*, offworker};
 use pallet_subnet_emission::{
     subnet_consensus::util::{
         consensus::EmissionMap,
-        params::{AccountKey, ModuleKey},
+        params::{self, AccountKey, ModuleKey},
     },
     types::SubnetDecryptionInfo,
     BannedDecryptionNodes, ConsensusParameters, Weights,
@@ -1421,7 +1421,11 @@ fn decrypted_weight_run_result_is_applied_and_cleaned_up() {
     new_test_ext().execute_with(|| {
         let netuid = 0;
         let first_uid = register_module(netuid, 1, 100000000000000000, false).unwrap();
-        let second_uid = register_module(netuid, 2, 100000000000000000, false).unwrap();
+        let first_miner = register_module(netuid, 2, 100000000, false).unwrap();
+        let second_miner = register_module(netuid, 3, 100000000, false).unwrap();
+        let founder_key = 100;
+
+        step_block(1);
 
         let key = RsaPrivateKey::new(&mut OsRng, 2048).unwrap().to_public_key();
         let key = (key.n().to_bytes_be(), key.e().to_bytes_be());
@@ -1434,6 +1438,8 @@ fn decrypted_weight_run_result_is_applied_and_cleaned_up() {
             rotating_from: None,
         };
 
+        pallet_subspace::Founder::<Test>::insert(netuid, 3);
+
         pallet_subnet_emission::DecryptionNodes::<Test>::set(vec![subnet_decryption_data.clone()]);
 
         pallet_subnet_emission::SubnetDecryptionData::<Test>::set(
@@ -1443,8 +1449,7 @@ fn decrypted_weight_run_result_is_applied_and_cleaned_up() {
 
         pallet_subspace::UseWeightsEncryption::<Test>::set(netuid, true);
 
-        let first_uid_weights = vec![(second_uid, 50u16)];
-        let second_uid_weights = vec![(first_uid, 100u16)];
+        let first_uid_weights = vec![(first_miner, 50u16), (second_miner, 50u16)];
 
         PendingEmission::<Test>::set(netuid, 100000000);
 
@@ -1458,35 +1463,24 @@ fn decrypted_weight_run_result_is_applied_and_cleaned_up() {
         .unwrap();
 
         // second
-        pallet_subnet_emission::Pallet::<Test>::set_weights_encrypted(
-            get_origin(2),
-            netuid,
-            offworker::encryption::encrypt(key.clone(), second_uid_weights.clone(), 2.encode()),
-            offworker::encryption::hash(second_uid_weights.clone()),
-        )
-        .unwrap();
-
-        step_epoch(netuid);
 
         let weights = vec![(
             pallet_subspace::Tempo::<Test>::get(netuid) as u64,
-            vec![
-                (first_uid, first_uid_weights.clone(), 1.encode()),
-                (second_uid, second_uid_weights.clone(), 2.encode()),
-            ],
+            vec![(first_uid, first_uid_weights.clone(), 1.encode())],
         )];
+
+        // pallet_subspace::Pallet::<Test>::remove_module(netuid, second_miner, false).unwrap();
+
+        let params = ConsensusParams::<Test>::new(netuid, 100000000).unwrap();
 
         pallet_subnet_emission::Pallet::<Test>::handle_decrypted_weights(netuid, weights);
 
-        let params = ConsensusParams::<Test>::new(netuid, 100000000).unwrap();
-        step_epoch(netuid);
+        dbg!(pallet_subspace::LastUpdate::<Test>::iter().collect::<Vec<_>>());
+        dbg!(pallet_subspace::RegistrationBlock::<Test>::iter().collect::<Vec<_>>());
 
         let res = YumaEpoch::run(
             YumaEpoch::new(netuid, params),
-            vec![
-                (first_uid, first_uid_weights),
-                (second_uid, second_uid_weights),
-            ],
+            vec![(first_uid, first_uid_weights.clone())],
         )
         .unwrap();
 
@@ -1506,6 +1500,20 @@ fn decrypted_weight_run_result_is_applied_and_cleaned_up() {
             pallet_subspace::Tempo::<Test>::get(netuid) as u64
         )
         .is_none());
+
+        dbg!(&Incentive::<Test>::get(netuid));
+
+        assert_in_range!(
+            pallet_subspace::Pallet::<Test>::get_balance(&founder_key),
+            (100000000 as f64 * (FounderShare::<Test>::get(netuid) as f64 / 100f64)) as u64,
+            10
+        );
+
+        assert_in_range!(
+            pallet_subspace::Pallet::<Test>::get_delegated_stake(&1),
+            (100000000000000000u64 as f64 + (100000000 as f64 * 0.5 as f64)) as u64,
+            100
+        );
     });
 }
 
