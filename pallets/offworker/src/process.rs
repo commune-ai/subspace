@@ -14,13 +14,6 @@ impl<T: Config> Pallet<T> {
             let subnet_registration_block =
                 pallet_subspace::SubnetRegistrationBlock::<T>::get(subnet_id).unwrap_or(0);
 
-            // check if subnet wasn't deregistered in the meantime
-            if subnet_registration_block > current_block {
-                log::info!("Skipping subnet {} as it has been deregistered", subnet_id);
-                deregistered_subnets.push(subnet_id);
-                return;
-            }
-
             let copier_margin = CopierMargin::<T>::get(subnet_id);
             let max_encryption_period =
                 pallet_subnet_emission::Pallet::<T>::get_max_encryption_interval(&subnet_id);
@@ -31,6 +24,13 @@ impl<T: Config> Pallet<T> {
                 copier_margin,
                 max_encryption_period,
             );
+
+            // check if the subnet has been deregistered
+            if subnet_registration_block > current_block {
+                log::info!("Skipping subnet {} as it has been deregistered", subnet_id);
+                deregistered_subnets.push(subnet_id);
+                return;
+            }
 
             log::info!(
                 "subnet state for subnet {} is {:?}",
