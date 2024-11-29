@@ -1339,20 +1339,8 @@ impl_runtime_apis! {
 impl pallet_subnet_emission_api::SubnetEmissionApi<<Runtime as frame_system::Config>::AccountId>
     for Runtime
 {
-    fn get_unit_emission() -> u64 {
-        pallet_subnet_emission::UnitEmission::<Runtime>::get()
-    }
-
-    fn set_unit_emission(unit_emission: u64) {
-        pallet_subnet_emission::UnitEmission::<Runtime>::set(unit_emission);
-    }
-
     fn get_lowest_emission_netuid(ignore_subnet_immunity: bool) -> Option<u16> {
         SubnetEmissionModule::get_lowest_emission_netuid(ignore_subnet_immunity)
-    }
-
-    fn remove_subnet_emission_storage(netuid: u16) {
-        SubnetEmissionModule::remove_subnet_emission_storage(netuid)
     }
 
     fn set_subnet_emission_storage(netuid: u16, emission: u64) {
@@ -1373,22 +1361,6 @@ impl pallet_subnet_emission_api::SubnetEmissionApi<<Runtime as frame_system::Con
 
     fn get_consensus_netuid(subnet_consensus: SubnetConsensus) -> Option<u16> {
         SubnetEmissionModule::get_consensus_netuid(subnet_consensus)
-    }
-
-    fn get_pending_emission(netuid: u16) -> u64 {
-        pallet_subnet_emission::PendingEmission::<Runtime>::get(netuid)
-    }
-
-    fn set_pending_emission(netuid: u16, pending_emission: u64) {
-        pallet_subnet_emission::PendingEmission::<Runtime>::set(netuid, pending_emission);
-    }
-
-    fn get_subnet_emission(netuid: u16) -> u64 {
-        pallet_subnet_emission::SubnetEmission::<Runtime>::get(netuid)
-    }
-
-    fn set_subnet_emission(netuid: u16, subnet_emission: u64) {
-        pallet_subnet_emission::SubnetEmission::<Runtime>::set(netuid, subnet_emission);
     }
 
     fn get_subnet_consensus_type(

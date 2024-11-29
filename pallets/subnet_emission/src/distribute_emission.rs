@@ -313,14 +313,6 @@ impl<T: Config> Pallet<T> {
             .min_by_key(|(_, emission)| *emission)
             .map(|(netuid, _)| netuid)
     }
-    /// Removes the emission storage for a given subnet.
-    ///
-    /// # Arguments
-    ///
-    /// * `netuid` - The ID of the subnet to remove from storage.
-    pub fn remove_subnet_emission_storage(netuid: u16) {
-        SubnetEmission::<T>::remove(netuid);
-    }
 
     /// Sets the emission storage for a given subnet.
     ///
