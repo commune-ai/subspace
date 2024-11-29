@@ -1605,6 +1605,7 @@ fn ban_decryption_node() {
         let max_encryption_inteval =
             pallet_subnet_emission::Pallet::<Test>::get_max_encryption_interval(&netuid);
         step_block((max_encryption_inteval + 1) as u16);
+        step_epoch(netuid);
 
         // one subnet with decryption node set
         pallet_subnet_emission::DecryptionNodeCursor::<Test>::set(1);

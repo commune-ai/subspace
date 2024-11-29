@@ -299,7 +299,6 @@ fn set_weights_on_non_existent_subnets() {
 }
 
 #[test]
-#[ignore = "todo joao fix this"]
 fn delegate_weight_control() {
     new_test_ext().execute_with(|| {
         zero_min_validator_stake();
