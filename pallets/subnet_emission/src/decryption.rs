@@ -173,66 +173,73 @@ impl<T: Config> Pallet<T> {
         netuid: u16,
         weights: Option<Vec<KeylessBlockWeights>>,
     ) -> Result<(), &'static str> {
-        if let Some(weights) = weights {
-            // Sorts from oldest weights to newest
-            let mut sorted_weights = weights;
-            sorted_weights.sort_by_key(|(block, _)| *block);
-
-            let mut accumulated_emission: u64 = 0;
-
-            for (block, weights) in sorted_weights {
-                let consensus_type =
-                    SubnetConsensusType::<T>::get(netuid).ok_or("Invalid network ID")?;
-                if consensus_type != pallet_subnet_emission_api::SubnetConsensus::Yuma {
-                    return Err("Unsupported consensus type");
-                }
-
-                // Extend the weight storage of the subnet with the new weights
-                for (uid, weights) in weights.clone() {
-                    Weights::<T>::set(netuid, uid, Some(weights));
-                }
-
-                let mut params = ConsensusParameters::<T>::get(netuid, block).ok_or_else(|| {
-                    log::error!("no params found for netuid {netuid} block {block}");
-                    "Missing consensus parameters"
-                })?;
-
-                params.token_emission = params.token_emission.saturating_add(accumulated_emission);
-                let new_emission = params.token_emission;
-
-                log::info!("final weights before running decrypted yuma are {weights:?}");
-
-                match YumaEpoch::new(netuid, params.clone()).run(weights) {
-                    Ok(output) => {
-                        accumulated_emission = 0;
-                        log::info!("applying yuma for {netuid}");
-                        output.apply()
-                    }
-                    Err(err) => {
-                        log::error!(
-                            "could not run yuma consensus for {netuid} block {block}: {err:?}"
-                        );
-                        accumulated_emission = new_emission;
-                    }
-                }
+        let weights = match weights {
+            Some(w) => w,
+            None => {
+                log::info!("No decrypted weights");
+                return Ok(());
             }
+        };
 
-            // If the last consensus that we were processing had an error we directly update the
-            // pending emision storage of the subnet
-            if accumulated_emission > 0 {
-                update_pending_emission::<T>(netuid, &accumulated_emission);
-            }
-
-            // --- Clear All Of the Relevant Storages ---
-            // We avoid subnet decryption data, as node rotation has to handle that
-
-            Self::cleanup_subnet_wc_state(netuid, false, false); // don't increase pending emisison, don't deletete node assignement
-
-            Ok(())
-        } else {
-            log::info!("No decrypted weights");
-            Ok(())
+        // Ensure consensus type is Yuma
+        let consensus_type = SubnetConsensusType::<T>::get(netuid).ok_or("Invalid network ID")?;
+        if consensus_type != pallet_subnet_emission_api::SubnetConsensus::Yuma {
+            return Err("Unsupported consensus type");
         }
+
+        // Process weights in chronological order
+        let mut sorted_weights = weights;
+        sorted_weights.sort_by_key(|(block, _)| *block);
+
+        let final_emission = Self::process_weights_sequence(netuid, sorted_weights)?;
+
+        // Update pending emission if there's any accumulated
+        if final_emission > 0 {
+            update_pending_emission::<T>(netuid, &final_emission);
+        }
+
+        // Cleanup subnet state (excluding decryption data)
+        Self::cleanup_subnet_wc_state(netuid, false, false);
+
+        Ok(())
+    }
+
+    fn process_weights_sequence(
+        netuid: u16,
+        weights: Vec<KeylessBlockWeights>,
+    ) -> Result<u64, &'static str> {
+        weights.into_iter().fold(Ok(0u64), |acc_emission, (block, block_weights)| {
+            let acc_emission = acc_emission?;
+
+            // Update weights storage
+            for (uid, weights) in block_weights.clone() {
+                Weights::<T>::set(netuid, uid, Some(weights));
+            }
+
+            // Get and update consensus parameters
+            let mut params = ConsensusParameters::<T>::get(netuid, block).ok_or_else(|| {
+                log::error!("no params found for netuid {netuid} block {block}");
+                "Missing consensus parameters"
+            })?;
+
+            params.token_emission = params.token_emission.saturating_add(acc_emission);
+            let new_emission = params.token_emission;
+
+            log::info!("final weights before running decrypted yuma are {block_weights:?}");
+
+            // Run Yuma consensus
+            match YumaEpoch::new(netuid, params).run(block_weights) {
+                Ok(output) => {
+                    log::info!("applying yuma for {netuid}");
+                    output.apply();
+                    Ok(0) // Reset accumulated emission on success
+                }
+                Err(err) => {
+                    log::error!("could not run yuma consensus for {netuid} block {block}: {err:?}");
+                    Ok(new_emission) // Keep accumulating on error
+                }
+            }
+        })
     }
 
     fn weights_to_blob(weights: &[(u16, u16)]) -> Vec<u8> {
@@ -543,6 +550,7 @@ impl<T: Config> Pallet<T> {
         increase_pending_emission: bool,
         clear_node_assing: bool,
     ) -> u64 {
+        // TODO: take this out of the function enirely
         // Sum up and clear ConsensusParameters
         let total_emission = ConsensusParameters::<T>::iter_prefix(subnet_id)
             .fold(0u64, |acc, (_, params)| {
@@ -635,7 +643,6 @@ impl<T: Config> Pallet<T> {
         }
     }
 
-    /// TODO: delete the wc state
     pub(crate) fn rotate_decryption_node_if_needed(subnet_id: u16, info: SubnetDecryptionInfo<T>) {
         let block_number = pallet_subspace::Pallet::<T>::get_current_block_number();
         let validity_block = match info.validity_block {
