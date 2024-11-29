@@ -7,7 +7,9 @@ spec version `126`
 Moved:
 - `set_weights` extrinsic has been moved to `SubnetEmissionModule` from `SubspaceModule`.
 - `delegate_rootnet_control` extrinsic has been moved to `SubnetEmissionModule` from `SubspaceModule`.
-- `Weights` have been moved to `SubnetEmissionModule` from `SubspaceModule`.
+- Some storages have been moved to `SubnetEmissionModule` from `SubspaceModule`:
+  - WeightEncryptionMap
+  - 
 Deleted:
 - `TrustRatio`
 
@@ -31,16 +33,6 @@ Subnet Emission Module:
 
 - `EncryptedWeights`:
   - Description: The encrypted weights of the network.
-  - Type: StorageDoubleMap<u16, u16, Vec<u8>>
-  - Default: None (empty map)
-
-- `DecryptedWeights`:
-  - Description: Stores decrypted weights, that are yet to be processed by the consensus.
-  - Type: StorageMap<u16, Vec<(u64, Vec<(u16, Vec<(u16, u16)>)>)>>
-  - Default: None (empty map)
-
-- `DecryptedWeightHashes`:
-  - Description: The hashes of the decrypted weights.
   - Type: StorageDoubleMap<u16, u16, Vec<u8>>
   - Default: None (empty map)
 
@@ -68,6 +60,16 @@ Subnet Emission Module:
   - Description: Stores all data needed to run consensus.
   - Type: StorageDoubleMap<u16, u64, ConsensusParams<T>>
   - Default: None (empty map)
+
+- `WeightEncryptionData`:
+  - Description: Stores both the encrypted weight and hash of a validator on a subnet.
+  - Type: StorageDoubleMap<u16, u16, EncryptionMechanism>
+  - Default: None (empty double map)
+
+- `DecryptionNodeBanQueue`:
+  - Description: Queue of decryption nodes that will be banned next epoch.
+  - Type: StorageDoubleMap<u16, T::AccountId, u64> 
+  - Default: None (empty double map)
 
 Subspace Module:
 - `MaxEncryptionPeriod`:
