@@ -6146,6 +6146,7 @@ dependencies = [
  "frame-support",
  "frame-system",
  "log",
+ "num-traits",
  "ow_extensions",
  "pallet-subnet-emission",
  "pallet-subspace",

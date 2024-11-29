@@ -1,5 +1,7 @@
 use super::*;
 use crate::profitability::{get_copier_stake, is_copying_irrational};
+#[allow(unused_imports)]
+use num_traits::float::Float;
 use types::SimulationYumaParams;
 
 pub fn process_consensus_params<T>(
@@ -196,7 +198,11 @@ pub fn should_decrypt_weights<T: Config>(
     // Run consensus simulation with error handling
     let simulation_yuma_output =
         match YumaEpoch::<T>::new(subnet_id, simulation_yuma_params).run(decrypted_weights) {
-            Ok(output) => output,
+            Ok(output) => {
+                // Save the copier bonds for future use
+                save_copier_bonds::<T>(subnet_id, &output);
+                output
+            }
             Err(e) => {
                 log::error!("Failed to run consensus simulation: {:?}", e);
                 return ShouldDecryptResult::default();
@@ -293,8 +299,7 @@ pub fn add_copier_to_yuma_params<T: Config>(
     mut runtime_yuma_params: ConsensusParams<T>,
     subnet_id: u16,
 ) -> ConsensusParams<T> {
-    // Clear all existing bonds in the modules using for_each
-    runtime_yuma_params.modules.values_mut().for_each(|module| module.bonds.clear());
+    let copier_bonds = get_copier_bonds::<T>(subnet_id, &runtime_yuma_params);
 
     // Calculate total active stake
     let total_active_stake: u64 = runtime_yuma_params
@@ -329,7 +334,7 @@ pub fn add_copier_to_yuma_params<T: Config>(
         stake_normalized: *normalized_stakes.last().unwrap_or(&I32F32::from_num(0)),
         stake_original: I64F64::from_num(copier_stake),
         delegated_to: None,
-        bonds: Vec::new(),
+        bonds: copier_bonds,
         weight_encrypted: Vec::new(),
         weight_hash: Vec::new(),
     };
@@ -354,4 +359,104 @@ pub fn add_copier_to_yuma_params<T: Config>(
     // runtime_yuma_params.bonds_moving_average = 0;
 
     runtime_yuma_params
+}
+
+fn get_copier_bonds<T: Config>(
+    subnet_id: u16,
+    consensus_params: &ConsensusParams<T>,
+) -> Vec<(u16, u16)> {
+    let storage_key = alloc::format!("copier_bonds:{subnet_id}");
+    let storage = StorageValueRef::persistent(storage_key.as_bytes());
+
+    // Try to get bonds from storage
+    match storage.get::<Vec<(u16, u16)>>() {
+        Ok(Some(bonds)) => bonds,
+        _ => {
+            // If no bonds in storage, calculate average bonds
+            calculate_average_bonds(consensus_params)
+        }
+    }
+}
+
+pub fn save_copier_bonds<T: Config>(subnet_id: u16, consensus_output: &ConsensusOutput<T>) {
+    let storage_key = alloc::format!("copier_bonds:{subnet_id}");
+    let storage = StorageValueRef::persistent(storage_key.as_bytes());
+
+    if let Some(Some(bonds)) = consensus_output.bonds.last() {
+        storage.set(bonds);
+    }
+}
+
+/// Calculates the weighted average bonds across all active validators.
+///
+/// # Arguments
+///
+/// * `consensus_params` - A reference to the consensus parameters containing validator information
+///
+/// # Returns
+///
+/// Returns a vector of tuples `(target, value)` where:
+/// * `target` - The bond target identifier
+/// * `value` - The weighted average bond value
+///
+/// # Details
+///
+/// The function:
+/// 1. Filters for active validators with validator permits
+/// 2. Handles special cases:
+///    - Returns empty vector if no active validators
+///    - Returns bonds of single validator if only one exists
+/// 3. Calculates total stake across all validators
+/// 4. For multiple validators:
+///    - Computes weighted bond values based on each validator's stake proportion
+///    - Aggregates weighted bonds by target
+///
+/// # Notes
+///
+/// - Weights are calculated as: validator_stake / total_stake
+/// - Bond values are rounded to nearest integer
+/// - Handles potential arithmetic overflow using saturating addition
+/// - Returns empty vector if total stake is zero
+///
+/// # Type Parameters
+///
+/// * `T` - Must implement the `Config` trait
+fn calculate_average_bonds<T: Config>(consensus_params: &ConsensusParams<T>) -> Vec<(u16, u16)> {
+    let active_validators: Vec<&ModuleParams<T::AccountId>> =
+        consensus_params.modules.values().filter(|m| m.validator_permit).collect();
+
+    match active_validators.len() {
+        0 => return Vec::new(),
+        1 => return active_validators.first().map(|v| v.bonds.clone()).unwrap_or_default(),
+        _ => {}
+    }
+
+    let total_stake = active_validators.iter().fold(I64F64::from_num(0), |acc, v| {
+        acc.checked_add(v.stake_original).unwrap_or(acc)
+    });
+
+    if total_stake == I64F64::from_num(0) {
+        return Vec::new();
+    }
+
+    let bond_sums =
+        active_validators
+            .iter()
+            .fold(BTreeMap::new(), |mut acc: BTreeMap<u16, u16>, validator| {
+                let weight = validator
+                    .stake_original
+                    .checked_div(total_stake)
+                    .unwrap_or(I64F64::from_num(0));
+
+                validator.bonds.iter().for_each(|&(target, value)| {
+                    let weighted_value = (value as f64 * weight.to_num::<f64>()).round() as u16;
+                    acc.entry(target)
+                        .and_modify(|e| *e = e.saturating_add(weighted_value))
+                        .or_insert(weighted_value);
+                });
+
+                acc
+            });
+
+    bond_sums.into_iter().collect()
 }
