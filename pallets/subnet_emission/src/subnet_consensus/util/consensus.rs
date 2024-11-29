@@ -144,7 +144,7 @@ pub fn calculate_final_emissions<T: Config>(
 
                 validator_emission = validator_emission
                     .checked_sub(to_delegate)
-                    .ok_or("more validator emissions were done than expected")?;
+                    .ok_or("more validator emissions were processed than expected")?;
             }
         }
 
@@ -804,10 +804,12 @@ pub struct ConsensusOutput<T: Config> {
     pub total_emitted: u64,
 }
 
+// TODO: write a test on this
 impl<T: Config> ConsensusOutput<T> {
     pub fn apply(self) {
         use pallet_subspace::*;
 
+        #[deny(unused_variables)]
         let Self {
             subnet_id,
             active,
@@ -852,6 +854,7 @@ impl<T: Config> ConsensusOutput<T> {
             self.founder_emission,
         );
 
+        // especially make sure this is correct, hasn't been tested yet
         for (module_key, emitted_to) in self.emission_map {
             for (account_key, emission) in emitted_to {
                 if PalletSubspace::<T>::is_registered(Some(subnet_id), &account_key.0) {
