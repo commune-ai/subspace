@@ -39,12 +39,12 @@ pub fn split_modules_by_activity(
             let condition1 = *updated <= *block_at_registration;
             let condition2 = updated.saturating_add(activity_cutoff) < current_block;
 
-            dbg!(
+            log::info!(
                 "Module {}: condition1 (updated <= block_at_registration): {}",
                 index,
                 condition1
             );
-            dbg!(
+            log::info!(
                 "Module {}: condition2 (updated + cutoff < current): {} (updated + cutoff = {})",
                 index,
                 condition2,
@@ -171,15 +171,12 @@ pub fn compute_weights<T: Config>(
 ) -> Option<WeightsVal> {
     weights.sort_by_key(|(uid, _)| *uid);
 
-    println!("aaa");
-
     let mut weights = weights
         .into_iter()
         .map(|(_, vec)| vec.into_iter().map(|(key, value)| (key, I32F32::from(value))).collect())
         .collect::<Vec<_>>();
     log::trace!("  original weights: {weights:?}");
 
-    println!("bbb");
     let validator_forbids: Vec<bool> = modules.validator_permit.iter().map(|&b| !b).collect();
 
     if params.max_allowed_validators.is_some() {

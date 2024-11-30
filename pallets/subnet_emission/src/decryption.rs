@@ -102,11 +102,6 @@ impl<T: Config> Pallet<T> {
         }
     }
 
-    /// 1. TODO: step 4. verify the zk proofs, if only one zk proof is invalid, you will ban the
-    ///    offchain worker
-    ///
-    /// 2. TODO: add a test where some of the decrypted weights will be empty, and expect everything
-    ///    to be handeled correctly
     pub fn handle_decrypted_weights(netuid: u16, weights: Vec<BlockWeights>) {
         log::info!(
             "Received decrypted weights: {:?}, for subnet {netuid}",
@@ -308,7 +303,7 @@ impl<T: Config> Pallet<T> {
 
         let (uids, values): (Vec<_>, Vec<_>) = weights.iter().copied().unzip();
 
-        Self::validate_input(uid, &uids, &values, netuid).ok()
+        Self::validate_input_with_params(uid, &uids, &values, netuid, params).ok()
     }
 
     /// Updates and combines weights from storage with newly validated weights.

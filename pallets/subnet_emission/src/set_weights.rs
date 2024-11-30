@@ -1,4 +1,5 @@
 use super::*;
+use crate::subnet_consensus::util::params::ConsensusParams;
 use frame_support::{ensure, pallet_prelude::DispatchResult};
 use frame_system::ensure_signed;
 use pallet_subnet_emission_api::SubnetConsensus;
@@ -77,7 +78,23 @@ impl<T: Config> Pallet<T> {
         Ok(())
     }
 
-    pub(crate) fn validate_input(
+    pub(crate) fn validate_input_with_params(
+        uid: u16,
+        uids: &[u16],
+        values: &[u16],
+        netuid: u16,
+        params: &ConsensusParams<T>,
+    ) -> DispatchResult {
+        Self::validate_input_general(uid, uids, values, netuid)?;
+        ensure!(
+            uids.iter().all(|&uid| params.get_module_by_uid(uid).is_some()),
+            Error::<T>::InvalidUid
+        );
+
+        Ok(())
+    }
+
+    fn validate_input_general(
         uid: u16,
         uids: &[u16],
         values: &[u16],
@@ -93,12 +110,22 @@ impl<T: Config> Pallet<T> {
         );
         ensure!(!Self::contains_duplicates(uids), Error::<T>::DuplicateUids);
         Self::validate_uids_length(uids.len(), netuid)?;
-        Self::perform_uid_validity_check(uids, netuid)?;
+
         ensure!(
             pallet_subspace::Pallet::<T>::is_rootnet(netuid) || !uids.contains(&uid),
             Error::<T>::NoSelfWeight
         );
+
+        // This is querying on-chain data, and still used in `validate_input_with_params`, but this
+        // should be ok, as we do not support weight encryption for linear consensus yet.
         Self::check_whitelisted(netuid, uids)?;
+
+        Ok(())
+    }
+
+    fn validate_input(uid: u16, uids: &[u16], values: &[u16], netuid: u16) -> DispatchResult {
+        Self::validate_input_general(uid, uids, values, netuid)?;
+        Self::perform_uid_validity_check(uids, netuid)?;
         Ok(())
     }
 
