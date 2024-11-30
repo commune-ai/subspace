@@ -1,12 +1,15 @@
-use std::collections::BTreeSet;
-
 use super::params::{AccountKey, ConsensusParams, FlattenedModules, ModuleKey};
 use crate::EmissionError;
 use frame_support::{ensure, DebugNoBound};
 use pallet_subspace::{math::*, vec, BalanceOf, Pallet as PalletSubspace};
 use parity_scale_codec::{Decode, Encode};
 use scale_info::TypeInfo;
-use sp_std::{borrow::Cow, cmp::Ordering, collections::btree_map::BTreeMap, vec::Vec};
+use sp_std::{
+    borrow::Cow,
+    cmp::Ordering,
+    collections::{btree_map::BTreeMap, btree_set::BTreeSet},
+    vec::Vec,
+};
 use substrate_fixed::types::{I32F32, I64F64, I96F32};
 
 use crate::Config;
@@ -861,8 +864,10 @@ impl<T: Config> ConsensusOutput<T> {
 
         // especially make sure this is correct, hasn't been tested yet
         for (module_key, emitted_to) in self.emission_map {
+            // module key has to be registered onchain
             for (account_key, emission) in emitted_to {
-                if PalletSubspace::<T>::is_registered(Some(subnet_id), &account_key.0) {
+                // account key can be offchain, it is the one in charge of the funds
+                if PalletSubspace::<T>::is_registered(Some(subnet_id), &module_key.0) {
                     PalletSubspace::<T>::increase_stake(&account_key.0, &module_key.0, emission);
                 } else {
                     PalletSubspace::<T>::add_balance_to_account(&account_key.0, emission);

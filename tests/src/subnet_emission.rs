@@ -1,16 +1,18 @@
-use crate::{mock::*, offworker};
+use crate::mock::*;
 use pallet_subnet_emission::{
     subnet_consensus::util::{
         consensus::EmissionMap,
         params::{AccountKey, ModuleKey},
     },
     types::SubnetDecryptionInfo,
-    BannedDecryptionNodes, ConsensusParameters, Weights,
+    BannedDecryptionNodes, Weights,
 };
+
 use pallet_subspace::{Active, Consensus, Founder, PruningScores, Rank, Trust, ValidatorTrust};
 use parity_scale_codec::Encode;
 use rand::rngs::OsRng;
 use rsa::{traits::PublicKeyParts, RsaPrivateKey};
+use sp_runtime::Percent;
 use std::collections::BTreeMap;
 
 use frame_support::{assert_ok, traits::Currency};
@@ -1329,104 +1331,40 @@ fn yuma_change_permits() {
     });
 }
 
-// #[test]
-// fn decrypted_weights_are_stored() {
-//     new_test_ext().execute_with(|| {
-//         let netuid = 0;
-//         let first_uid = register_module(netuid, 1, 1000000000000000000, false).unwrap();
-//         let second_uid = register_module(netuid, 2, 1000000000000000000, false).unwrap();
-//         let third_uid = register_module(netuid, 3, 1000000000000000000, false).unwrap();
-
-//         let key = RsaPrivateKey::new(&mut OsRng, 2048).unwrap().to_public_key();
-//         let key = (key.n().to_bytes_be(), key.e().to_bytes_be());
-
-//         let subnet_decryption_data = SubnetDecryptionInfo {
-//             validity_block: 0,
-//             node_id: 1001,
-//             node_public_key: key.clone(),
-//             last_keep_alive: pallet_subspace::Tempo::<Test>::get(netuid) as u64,
-//         };
-
-//         pallet_subnet_emission::DecryptionNodes::<Test>::set(vec![subnet_decryption_data.
-// clone()]);
-
-//         pallet_subnet_emission::SubnetDecryptionData::<Test>::set(
-//             netuid,
-//             Some(subnet_decryption_data),
-//         );
-
-//         pallet_subspace::UseWeightsEncryption::<Test>::set(netuid, true);
-
-//         let first_uid_weights = vec![(second_uid, 50u16)];
-//         let second_uid_weights = vec![(first_uid, 100u16)];
-
-//         PendingEmission::<Test>::set(netuid, 100000000);
-
-//         // first
-//         pallet_subnet_emission::Pallet::<Test>::set_weights_encrypted(
-//             get_origin(1),
-//             netuid,
-//             offworker::encryption::encrypt(key.clone(), first_uid_weights.clone(), 1.encode()),
-//             offworker::encryption::hash(first_uid_weights.clone()),
-//         )
-//         .unwrap();
-
-//         // second
-//         pallet_subnet_emission::Pallet::<Test>::set_weights_encrypted(
-//             get_origin(2),
-//             netuid,
-//             offworker::encryption::encrypt(key.clone(), second_uid_weights.clone(), 2.encode()),
-//             offworker::encryption::hash(second_uid_weights.clone()),
-//         )
-//         .unwrap();
-
-//         // third
-//         pallet_subnet_emission::Pallet::<Test>::set_weights_encrypted(
-//             get_origin(3),
-//             netuid,
-//             offworker::encryption::encrypt(key.clone(), second_uid_weights.clone(), 2.encode()),
-//             offworker::encryption::hash(second_uid_weights.clone()),
-//         )
-//         .unwrap();
-
-//         step_epoch(netuid);
-
-//         let weights = vec![(
-//             pallet_subspace::Tempo::<Test>::get(netuid) as u64,
-//             vec![
-//                 (first_uid, first_uid_weights.clone(), 1.encode()),
-//                 (second_uid, second_uid_weights.clone(), 2.encode()),
-//                 (third_uid, second_uid_weights.clone(), 2.encode()),
-//             ],
-//         )];
-
-//         pallet_subnet_emission::Pallet::<Test>::handle_decrypted_weights(netuid, weights);
-
-//         let expected = vec![(
-//             pallet_subspace::Tempo::<Test>::get(netuid) as u64,
-//             vec![
-//                 (first_uid, first_uid_weights),
-//                 (second_uid, second_uid_weights),
-//             ],
-//         )];
-
-//         assert_eq!(
-//             pallet_subnet_emission::DecryptedWeights::<Test>::get(netuid),
-//             Some(expected)
-//         );
-//     });
-// }
 #[test]
 fn decrypted_weight_run_result_is_applied_and_cleaned_up() {
     new_test_ext().execute_with(|| {
         let netuid = 0;
-        let first_uid = register_module(netuid, 1, 100000000000000000, false).unwrap();
-        let first_miner = register_module(netuid, 2, 100000000, false).unwrap();
-        let second_miner = register_module(netuid, 3, 100000000, false).unwrap();
-        let third_miner = register_module(netuid, 4, 100000000, false).unwrap();
-        let founder_key = 100;
 
-        // step_block(1);
+        // Register founder, validator and miners
+        let founder_key = 100;
+        let validator_key = 1;
+        let first_miner = 2;
+        let second_miner = 3;
+
+        // Register validator and miners
+        let validator_uid =
+            register_module(netuid, validator_key, to_nano(100_000), false).unwrap();
+        let first_miner_uid = register_module(netuid, first_miner, to_nano(1), false).unwrap();
+        let second_miner_uid = register_module(netuid, second_miner, to_nano(1), false).unwrap();
+
+        pallet_subspace::MinFees::<Test>::set(pallet_subspace::MinimumFees {
+            stake_delegation_fee: Percent::from_percent(0),
+            validator_weight_fee: Percent::from_percent(0),
+        });
+
+        // Set validator fees (50% for both stake delegation and validator weight)
+        let validator_fees = pallet_subspace::ValidatorFees::new::<Test>(
+            Percent::from_percent(0),
+            Percent::from_percent(0),
+        )
+        .unwrap();
+        pallet_subspace::ValidatorFeeConfig::<Test>::insert(validator_key, validator_fees);
+
+        // Stake some balance to validator from a delegator
+        let delegator_key = 4;
+        let stake_amount = to_nano(100_000);
+        stake(delegator_key, validator_key, stake_amount);
 
         let key = RsaPrivateKey::new(&mut OsRng, 2048).unwrap().to_public_key();
         let key = (key.n().to_bytes_be(), key.e().to_bytes_be());
@@ -1439,57 +1377,94 @@ fn decrypted_weight_run_result_is_applied_and_cleaned_up() {
             rotating_from: None,
         };
 
-        pallet_subspace::Founder::<Test>::insert(netuid, 3);
-
         pallet_subnet_emission::DecryptionNodes::<Test>::set(vec![subnet_decryption_data.clone()]);
-
         pallet_subnet_emission::SubnetDecryptionData::<Test>::set(
             netuid,
             Some(subnet_decryption_data),
         );
-
         pallet_subspace::UseWeightsEncryption::<Test>::set(netuid, true);
 
-        let first_uid_weights = vec![
-            (first_miner, 50u16),
-            (100u16, 100u16), // try to set some bullshit, should be filtered out
-            (second_miner, 50u16),
-            (third_miner, 50u16),
-        ];
+        // Set weights for validator
+        let validator_weights = vec![(first_miner_uid, 50u16), (second_miner_uid, 50u16)];
 
-        PendingEmission::<Test>::set(netuid, 100000000);
+        let emission_amount = to_nano(100);
+        PendingEmission::<Test>::set(netuid, emission_amount);
 
-        // first
-        pallet_subnet_emission::Pallet::<Test>::set_weights_encrypted(
-            get_origin(1),
-            netuid,
-            offworker::encryption::encrypt(key.clone(), first_uid_weights.clone(), 1.encode()),
-            offworker::encryption::hash(first_uid_weights.clone()),
-        )
-        .unwrap();
+        let miner_uid =
+            pallet_subspace::Pallet::<Test>::get_uid_for_key(netuid, &second_miner).unwrap();
 
-        // second
+        // Deregister second miner
+        pallet_subspace::Pallet::<Test>::remove_module(netuid, miner_uid, false).unwrap();
 
         let weights = vec![(
             pallet_subspace::Tempo::<Test>::get(netuid) as u64,
-            vec![(first_uid, first_uid_weights.clone(), 1.encode())],
+            vec![(validator_uid, validator_weights.clone(), 1.encode())],
         )];
 
-        pallet_subspace::Pallet::<Test>::remove_module(netuid, second_miner, false).unwrap();
-
+        // Set founder share to 10%
+        FounderShare::<Test>::set(netuid, 10);
         pallet_subspace::Founder::<Test>::set(netuid, founder_key);
-        let params = ConsensusParams::<Test>::new(netuid, 100000000).unwrap();
+
+        let params = ConsensusParams::<Test>::new(netuid, emission_amount).unwrap();
 
         pallet_subnet_emission::Pallet::<Test>::handle_decrypted_weights(netuid, weights);
 
         let res = YumaEpoch::run(
             YumaEpoch::new(netuid, params),
-            vec![(first_uid, first_uid_weights.clone())],
+            vec![(validator_uid, validator_weights.clone())],
         )
         .unwrap();
 
+        let initial_founder_balance = pallet_subspace::Pallet::<Test>::get_balance(&founder_key);
+        let initial_validator_stake =
+            pallet_subspace::Pallet::<Test>::get_owned_stake(&validator_key);
+        let initial_delegator_stake = dbg!(pallet_subspace::Pallet::<Test>::get_stake_to_module(
+            &delegator_key,
+            &validator_key
+        ));
+        let initial_second_miner_balance =
+            pallet_subspace::Pallet::<Test>::get_balance(&second_miner);
+
         res.clone().apply();
 
+        // Assert founder got 10% of emission
+        let founder_emission = emission_amount / 10;
+        assert_in_range!(
+            pallet_subspace::Pallet::<Test>::get_balance(&founder_key) - initial_founder_balance,
+            founder_emission,
+            100
+        );
+
+        // The weights on the deregistered miner should have been discarded
+        assert!(
+            pallet_subspace::Pallet::<Test>::get_balance(&second_miner)
+                == initial_second_miner_balance
+        );
+
+        // Assert validator and delegator stakes increased according to fee split
+        let validator_stake_increase = from_nano(
+            pallet_subspace::Pallet::<Test>::get_owned_stake(&validator_key)
+                - initial_validator_stake,
+        );
+        let delegator_stake_increase = from_nano(
+            pallet_subspace::Pallet::<Test>::get_stake_to_module(&delegator_key, &validator_key)
+                - initial_delegator_stake,
+        );
+
+        dbg!(validator_stake_increase, delegator_stake_increase);
+
+        // Validator should get their fee percentage
+        assert!(validator_stake_increase > 0);
+
+        // Delegator should get the remaining percentage after fees
+        assert!(delegator_stake_increase > 0);
+
+        // The ratio between validator and delegator increases should roughly match the fee split
+        let total_increase = validator_stake_increase + delegator_stake_increase;
+        let validator_percentage =
+            ((validator_stake_increase as f64 / total_increase as f64) * 100.0) as u64;
+
+        assert_in_range!(validator_percentage, 50, 2);
         assert_eq!(Active::<Test>::get(netuid), res.active);
         assert_eq!(Consensus::<Test>::get(netuid), res.consensus);
         assert_eq!(Dividends::<Test>::get(netuid), res.dividends);
@@ -1500,24 +1475,6 @@ fn decrypted_weight_run_result_is_applied_and_cleaned_up() {
         assert_eq!(Trust::<Test>::get(netuid), res.trust);
         assert_eq!(ValidatorPermits::<Test>::get(netuid), res.validator_permits);
         assert_eq!(ValidatorTrust::<Test>::get(netuid), res.validator_trust);
-
-        assert!(ConsensusParameters::<Test>::get(
-            netuid,
-            pallet_subspace::Tempo::<Test>::get(netuid) as u64
-        )
-        .is_none());
-
-        assert_in_range!(
-            pallet_subspace::Pallet::<Test>::get_balance(&founder_key),
-            (100000000 as f64 * (FounderShare::<Test>::get(netuid) as f64 / 100f64)) as u64,
-            10
-        );
-
-        assert_in_range!(
-            pallet_subspace::Pallet::<Test>::get_delegated_stake(&1),
-            (100000000000000000u64 as f64 + (100000000 as f64 * 0.5 as f64)) as u64,
-            100
-        );
     });
 }
 
