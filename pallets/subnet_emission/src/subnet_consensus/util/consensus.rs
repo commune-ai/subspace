@@ -769,14 +769,27 @@ pub fn prepare_weights<T: Config>(
     let uids: BTreeMap<u16, ()> =
         modules.keys.iter().enumerate().map(|(index, _)| (index as u16, ())).collect();
 
-    // Convert input weights to a BTreeMap for easier manipulation
-    let mut weights: BTreeMap<u16, Vec<(u16, u16)>> = input_weights.into_iter().collect();
+    let weights: BTreeMap<u16, Vec<(u16, u16)>> = input_weights
+        .into_iter()
+        // Only collect weights for UIDs that exist in the modules
+        .filter(|(uid, _)| uids.contains_key(uid))
+        .map(|(uid, weights)| {
+            // Filter out weights that reference non-existent UIDs
+            let filtered_weights = weights
+                .into_iter()
+                .filter(|(target_uid, _)| uids.contains_key(target_uid))
+                .collect();
+            (uid, filtered_weights)
+        })
+        .collect();
+
     log::info!("yuma input weights for subnet {subnet_id} are {weights:?}");
     log::info!("yuma uids for subnet {subnet_id} are {uids:?}");
     log::info!("yuma modules for subnet {subnet_id} are {modules:?}");
+
     // Map over uids, keeping the uid and collecting weights
     uids.keys()
-        .map(|&uid| (uid, weights.remove(&uid).unwrap_or_default()))
+        .map(|&uid| (uid, weights.get(&uid).cloned().unwrap_or_default()))
         .collect()
 }
 

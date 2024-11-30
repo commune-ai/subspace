@@ -83,13 +83,19 @@ impl<T: Config> Pallet<T> {
         uids: &[u16],
         values: &[u16],
         netuid: u16,
-        params: &ConsensusParams<T>,
+        _params: &ConsensusParams<T>,
     ) -> DispatchResult {
         Self::validate_input_general(uid, uids, values, netuid)?;
-        ensure!(
-            uids.iter().all(|&uid| params.get_module_by_uid(uid).is_some()),
-            Error::<T>::InvalidUid
-        );
+
+        // we actually can not do the validation below becase the snapshot can be taken after the
+        // weights are set, we would need to validate this in a state of the exact block of the
+        // weights. what do we do instead, is cutof invalid weights in the weight
+        // precomputation for consensus.
+
+        // ensure!(
+        //     uids.iter().all(|&uid| params.get_module_by_uid(uid).is_some()),
+        //     Error::<T>::InvalidUid
+        // );
 
         Ok(())
     }
