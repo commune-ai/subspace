@@ -42,7 +42,7 @@ impl<T: Config> YumaEpoch<T> {
         );
         log::info!("yuma for subnet_id {} parameters: {self:?}", self.subnet_id);
 
-        let weights = prepare_weights::<T>(self.subnet_id, &self.modules, input_weights);
+        let weights = prepare_weights::<T>(&self.modules, input_weights);
 
         log::info!("weights for: {} are: {weights:?}", self.subnet_id);
 

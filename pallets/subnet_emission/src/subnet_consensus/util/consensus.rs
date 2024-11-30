@@ -1,3 +1,5 @@
+use std::collections::BTreeSet;
+
 use super::params::{AccountKey, ConsensusParams, FlattenedModules, ModuleKey};
 use crate::EmissionError;
 use frame_support::{ensure, DebugNoBound};
@@ -762,34 +764,25 @@ pub fn calculate_new_permits<T: Config>(
 }
 
 pub fn prepare_weights<T: Config>(
-    subnet_id: u16,
     modules: &FlattenedModules<T::AccountId>,
     input_weights: Vec<(u16, Vec<(u16, u16)>)>,
 ) -> Vec<(u16, Vec<(u16, u16)>)> {
-    let uids: BTreeMap<u16, ()> =
-        modules.keys.iter().enumerate().map(|(index, _)| (index as u16, ())).collect();
+    let uids: BTreeSet<u16> =
+        modules.keys.iter().enumerate().map(|(index, _)| index as u16).collect();
+    let weights: BTreeMap<u16, Vec<(u16, u16)>> = input_weights.into_iter().collect();
 
-    let weights: BTreeMap<u16, Vec<(u16, u16)>> = input_weights
-        .into_iter()
-        // Only collect weights for UIDs that exist in the modules
-        .filter(|(uid, _)| uids.contains_key(uid))
-        .map(|(uid, weights)| {
+    uids.iter()
+        .map(|&uid| {
             // Filter out weights that reference non-existent UIDs
             let filtered_weights = weights
+                .get(&uid)
+                .cloned()
+                .unwrap_or_default()
                 .into_iter()
-                .filter(|(target_uid, _)| uids.contains_key(target_uid))
+                .filter(|(target_uid, _)| uids.contains(target_uid))
                 .collect();
             (uid, filtered_weights)
         })
-        .collect();
-
-    log::info!("yuma input weights for subnet {subnet_id} are {weights:?}");
-    log::info!("yuma uids for subnet {subnet_id} are {uids:?}");
-    log::info!("yuma modules for subnet {subnet_id} are {modules:?}");
-
-    // Map over uids, keeping the uid and collecting weights
-    uids.keys()
-        .map(|&uid| (uid, weights.get(&uid).cloned().unwrap_or_default()))
         .collect()
 }
 
