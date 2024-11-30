@@ -1477,18 +1477,18 @@ fn decrypted_weight_run_result_is_applied_and_cleaned_up() {
 
         pallet_subspace::Pallet::<Test>::remove_module(netuid, second_miner, false).unwrap();
 
+        pallet_subspace::Founder::<Test>::set(netuid, founder_key);
         let params = ConsensusParams::<Test>::new(netuid, 100000000).unwrap();
 
         pallet_subnet_emission::Pallet::<Test>::handle_decrypted_weights(netuid, weights);
-
-        dbg!(pallet_subspace::LastUpdate::<Test>::iter().collect::<Vec<_>>());
-        dbg!(pallet_subspace::RegistrationBlock::<Test>::iter().collect::<Vec<_>>());
 
         let res = YumaEpoch::run(
             YumaEpoch::new(netuid, params),
             vec![(first_uid, first_uid_weights.clone())],
         )
         .unwrap();
+
+        res.clone().apply();
 
         assert_eq!(Active::<Test>::get(netuid), res.active);
         assert_eq!(Consensus::<Test>::get(netuid), res.consensus);
