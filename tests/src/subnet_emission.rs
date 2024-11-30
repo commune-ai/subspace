@@ -1423,9 +1423,10 @@ fn decrypted_weight_run_result_is_applied_and_cleaned_up() {
         let first_uid = register_module(netuid, 1, 100000000000000000, false).unwrap();
         let first_miner = register_module(netuid, 2, 100000000, false).unwrap();
         let second_miner = register_module(netuid, 3, 100000000, false).unwrap();
+        let third_miner = register_module(netuid, 4, 100000000, false).unwrap();
         let founder_key = 100;
 
-        step_block(1);
+        // step_block(1);
 
         let key = RsaPrivateKey::new(&mut OsRng, 2048).unwrap().to_public_key();
         let key = (key.n().to_bytes_be(), key.e().to_bytes_be());
@@ -1449,7 +1450,11 @@ fn decrypted_weight_run_result_is_applied_and_cleaned_up() {
 
         pallet_subspace::UseWeightsEncryption::<Test>::set(netuid, true);
 
-        let first_uid_weights = vec![(first_miner, 50u16), (second_miner, 50u16)];
+        let first_uid_weights = vec![
+            (first_miner, 50u16),
+            (second_miner, 50u16),
+            (third_miner, 50u16),
+        ];
 
         PendingEmission::<Test>::set(netuid, 100000000);
 
@@ -1469,7 +1474,7 @@ fn decrypted_weight_run_result_is_applied_and_cleaned_up() {
             vec![(first_uid, first_uid_weights.clone(), 1.encode())],
         )];
 
-        // pallet_subspace::Pallet::<Test>::remove_module(netuid, second_miner, false).unwrap();
+        pallet_subspace::Pallet::<Test>::remove_module(netuid, second_miner, false).unwrap();
 
         let params = ConsensusParams::<Test>::new(netuid, 100000000).unwrap();
 
