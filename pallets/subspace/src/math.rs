@@ -514,10 +514,7 @@ pub fn vec_mask_sparse_matrix(
 
     for (i, sparse_row) in sparse_matrix.iter().enumerate() {
         for (j, value) in sparse_row.iter() {
-            if !mask_fn(
-                *dbg!(first_vector.get(i))?,
-                *dbg!(second_vector.get(*j as usize))?,
-            ) {
+            if !mask_fn(*first_vector.get(i)?, *second_vector.get(*j as usize)?) {
                 let Some(result_i) = result.get_mut(i) else {
                     continue;
                 };
