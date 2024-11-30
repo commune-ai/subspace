@@ -2,7 +2,7 @@ use crate::{mock::*, offworker};
 use pallet_subnet_emission::{
     subnet_consensus::util::{
         consensus::EmissionMap,
-        params::{self, AccountKey, ModuleKey},
+        params::{AccountKey, ModuleKey},
     },
     types::SubnetDecryptionInfo,
     BannedDecryptionNodes, ConsensusParameters, Weights,
