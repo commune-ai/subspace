@@ -1452,6 +1452,7 @@ fn decrypted_weight_run_result_is_applied_and_cleaned_up() {
 
         let first_uid_weights = vec![
             (first_miner, 50u16),
+            (100u16, 100u16), // try to set some bullshit, should be filtered out
             (second_miner, 50u16),
             (third_miner, 50u16),
         ];
@@ -1505,8 +1506,6 @@ fn decrypted_weight_run_result_is_applied_and_cleaned_up() {
             pallet_subspace::Tempo::<Test>::get(netuid) as u64
         )
         .is_none());
-
-        dbg!(&Incentive::<Test>::get(netuid));
 
         assert_in_range!(
             pallet_subspace::Pallet::<Test>::get_balance(&founder_key),
