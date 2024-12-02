@@ -8,7 +8,7 @@ impl<T: Config> Pallet<T> {
     ) -> Vec<u16> {
         let mut deregistered_subnets = Vec::new();
 
-        subnets.into_iter().for_each(|subnet_id| {
+        for subnet_id in subnets {
             let params = ConsensusParameters::<T>::iter_prefix(subnet_id).collect::<Vec<_>>();
             let max_block = params.iter().fold(0, |max, (block, _)| max.max(*block));
             let subnet_registration_block =
@@ -29,7 +29,7 @@ impl<T: Config> Pallet<T> {
             if subnet_registration_block > current_block {
                 log::info!("Skipping subnet {} as it has been deregistered", subnet_id);
                 deregistered_subnets.push(subnet_id);
-                return;
+                continue;
             }
 
             log::info!(
@@ -43,7 +43,7 @@ impl<T: Config> Pallet<T> {
                     "Skipping subnet {} as it has already been processed",
                     subnet_id
                 );
-                return;
+                continue;
             }
 
             log::info!(
@@ -74,7 +74,7 @@ impl<T: Config> Pallet<T> {
                     err
                 );
             }
-        });
+        }
 
         deregistered_subnets
     }
