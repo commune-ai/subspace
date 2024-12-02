@@ -82,7 +82,8 @@ benchmarks! {
             params.max_allowed_modules,            // max_allowed_modules: max number of modules allowed per subnet
             params.max_registrations_per_block,    // max_registrations_per_block: max number of registrations per block
             params.max_allowed_weights,            // max_allowed_weights: max number of weights per module
-            params.floor_delegation_fee,           // floor_delegation_fee: min delegation fee
+            params.floor_stake_delegation_fee,           // floor_delegation_fee: min delegation fee
+            params.floor_validator_weight_fee,           // floor_validator_weight_fee: min validator weight fee
             params.floor_founder_share,            // floor_founder_share: min founder share
             params.min_weight_stake,               // min_weight_stake: min weight stake required
             params.curator,                            // curator: subnet 0 dao multisig
