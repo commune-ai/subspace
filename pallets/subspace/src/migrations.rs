@@ -9,6 +9,9 @@ pub mod v15 {
 
     use super::*;
 
+    /// rootnet contrrol delegation id
+    const ROOT_SUBNET_ID: u16 = 0;
+
     pub mod old_storage {
         use super::*;
         use frame_support::{storage_alias, Identity};
@@ -24,6 +27,14 @@ pub mod v15 {
             <T as SystemConfig>::AccountId,
             Percent,
             ValueQuery,
+        >;
+
+        #[storage_alias]
+        pub type RootnetControlDelegation<T: Config> = StorageMap<
+            Pallet<T>,
+            Identity,
+            <T as SystemConfig>::AccountId,
+            <T as SystemConfig>::AccountId,
         >;
     }
 
@@ -44,6 +55,10 @@ pub mod v15 {
                 };
 
                 ValidatorFeeConfig::<T>::insert(account, fee_config);
+            }
+
+            for (from, to) in old_storage::RootnetControlDelegation::<T>::iter() {
+                WeightSettingDelegation::<T>::insert(ROOT_SUBNET_ID, from, to);
             }
 
             log::info!("Migrating storage to v15");
