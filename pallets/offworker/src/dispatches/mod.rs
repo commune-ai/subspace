@@ -4,20 +4,6 @@ use frame_support::pallet_macros::pallet_section;
 pub mod dispatches {
     #[pallet::call]
     impl<T: Config> Pallet<T> {
-        // TODO: step 3 v2 of DEW will involve offworker sending potential zk proofs of encryption
-        // correctness (proof that he can not decrypt certain weights)
-
-        // # References
-        // - [CS03] Practical Verifiable Encryption and Decryption of Discrete Logarithms
-        //   Jan Camenisch and Victor Shoup, CRYPTO 2003
-        //   https://link.springer.com/content/pdf/10.1007/978-3-540-45146-4_8.pdf
-
-        // - [BBBPWM] Bulletproofs: Short Proofs for Confidential Transactions and More
-        //   Benedikt Bünz, Jonathan Bootle, Dan Boneh, Andrew Poelstra, Pieter Wuille and Greg Maxwell, IEEE
-        //   https://eprint.iacr.org/2017/1066.pdf
-
-        // # Implementation
-        // S&P 2018 validaity https://github.com/ZenGo-X/dlog-verifiable-enc
         #[pallet::call_index(0)]
         #[pallet::weight((Weight::zero(), DispatchClass::Normal, Pays::No))]
         pub fn send_decrypted_weights(
@@ -55,19 +41,16 @@ pub mod dispatches {
                 );
 
                 // If this was a forced rotation send, clear the rotating_from field
-                match forced_send_by_rotation {
-                    true => {
-                        ensure!(
-                            matches!(decryption_data.rotating_from, Some(ref rotating_from) if acc_id == *rotating_from),
-                            Error::<T>::InvalidDecryptionKey
-                        );
-                    }
-                    false => {
-                        ensure!(
-                            decryption_data.node_id == acc_id,
-                            Error::<T>::InvalidDecryptionKey
-                        );
-                    }
+                if forced_send_by_rotation {
+                    ensure!(
+                        matches!(decryption_data.rotating_from, Some(ref rotating_from) if acc_id == *rotating_from),
+                        Error::<T>::InvalidDecryptionKey
+                    );
+                } else {
+                    ensure!(
+                        decryption_data.node_id == acc_id,
+                        Error::<T>::InvalidDecryptionKey
+                    );
                 }
 
                 log::info!(
