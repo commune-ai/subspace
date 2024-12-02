@@ -191,7 +191,7 @@ macro_rules! define_module_includes {
                         Self::$vec => {
                             let mut vec = $vec::<T>::get(netuid);
                             $(
-                                vec.push($vec_default(PhantomData::<T>));
+                                vec.push($vec_default);
                             )?
                             $vec::<T>::insert(netuid, vec);
                             Ok(())
@@ -242,13 +242,13 @@ macro_rules! define_module_includes {
                 match self {
                     $(
                         Self::$opt_swap => {
-                            $($opt_swap::<T>::insert(netuid, uid, $opt_default(PhantomData::<T>));)?
+                            $($opt_swap::<T>::insert(netuid, uid, $opt_default);)?
                             Ok(())
                         },
                     )*
                     $(
                         Self::$req_swap => {
-                            $($req_swap::<T>::insert(netuid, uid, $req_default(PhantomData::<T>));)?
+                            $($req_swap::<T>::insert(netuid, uid, $req_default);)?
                             Ok(())
                         },
                     )*

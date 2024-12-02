@@ -152,27 +152,27 @@ pub mod pallet {
     define_module_includes!(
         // Put here every module-related storage map that has netuid as a key and holds a vector of values. The vector has to be indexed by the module uid.
         vectors: {
-            Active: bool = |_: PhantomData<T>| false,
-            Consensus: u64 = |_: PhantomData<T>| 0,
-            Emission: u64 = |_: PhantomData<T>| 0,
-            Incentive: u64 = |_: PhantomData<T>| 0,
-            Dividends: u64 = |_: PhantomData<T>| 0,
-            LastUpdate: u64 = |_: PhantomData<T>| Pallet::<T>::get_current_block_number(),
-            Rank: u64 = |_: PhantomData<T>| 0,
-            Trust: u64 = |_: PhantomData<T>| 0,
-            ValidatorPermits: bool = |_: PhantomData<T>| false,
-            ValidatorTrust: u64 = |_: PhantomData<T>| 0,
-            PruningScores: u16 = |_: PhantomData<T>| 0,
+            Active: bool = false,
+            Consensus: u64 = 0,
+            Emission: u64 = 0,
+            Incentive: u64 = 0,
+            Dividends: u64 = 0,
+            LastUpdate: u64 = Pallet::<T>::get_current_block_number(),
+            Rank: u64 = 0,
+            Trust: u64 = 0,
+            ValidatorPermits: bool = false,
+            ValidatorTrust: u64 = 0,
+            PruningScores: u16 = 0,
         },
         // Put here every module-related double map, where the first key is netuid, second key is module uid. These storages holds some value for each module ie. name, address, etc.
         swap_storages: {
             optional: {
             },
             required: {
-                RegistrationBlock: u64 = |_: PhantomData<T>| Pallet::<T>::get_current_block_number(),
-                Address: Vec<u8> = |_: PhantomData<T>| Vec::<u8>::new(),
-                Name: Vec<u8> = |_: PhantomData<T>| Vec::<u8>::new(),
-                Bonds: Vec<(u16, u16)> = |_: PhantomData<T>| Vec::<(u16, u16)>::new(),
+                RegistrationBlock: u64 = Pallet::<T>::get_current_block_number(),
+                Address: Vec<u8> = Vec::<u8>::new(),
+                Name: Vec<u8> = Vec::<u8>::new(),
+                Bonds: Vec<(u16, u16)> = Vec::<(u16, u16)>::new(),
             }
         },
         // Specifically for uids and keys

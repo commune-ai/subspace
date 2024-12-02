@@ -134,7 +134,7 @@ pub mod pallet {
         swap_storages: {
             optional: { },
             required: {
-                Weights: Vec<(u16, u16)> = |_: PhantomData<T>| Vec::<(u16, u16)>::new(),
+                Weights: Vec<(u16, u16)> = Vec::<(u16, u16)>::new(),
             }
         },
         key_storages: { },
