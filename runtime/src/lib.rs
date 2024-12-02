@@ -501,6 +501,7 @@ impl pallet_subnet_emission::Config for Runtime {
     // Represented in number of blocks, defines how often node sends keep-alive ping
     type PingInterval = ConstU64<50>;
     type EncryptionPeriodBuffer = ConstU64<100>;
+    type WeightInfo = pallet_subnet_emission::weights::SubstrateWeight<Runtime>;
 }
 
 #[cfg(feature = "testnet-faucet")]

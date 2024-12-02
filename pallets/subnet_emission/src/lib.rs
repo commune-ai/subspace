@@ -42,6 +42,7 @@ pub mod pallet {
     use pallet_subnet_emission_api::SubnetConsensus;
     use pallet_subspace::{define_module_includes, define_subnet_includes, TotalStake};
     use subnet_pricing::root::RootPricing;
+    pub use crate::weights::WeightInfo;
 
     #[cfg(feature = "testnet")]
     const STORAGE_VERSION: StorageVersion = StorageVersion::new(16);
@@ -104,6 +105,8 @@ pub mod pallet {
         /// node. So the final count is `MaxEncryptionPeriod + EncryptionPeriodBuffer`
         #[pallet::constant]
         type EncryptionPeriodBuffer: Get<u64>;
+
+        type WeightInfo: WeightInfo;
     }
 
     type BalanceOf<T> =
@@ -389,12 +392,11 @@ pub mod pallet {
         }
     }
 
-    // TODO:
     // add benchmarks
     #[pallet::call]
     impl<T: Config> Pallet<T> {
         #[pallet::call_index(0)]
-        #[pallet::weight((0, DispatchClass::Normal, Pays::No))]
+        #[pallet::weight((<T as pallet::Config>::WeightInfo::set_weights(), DispatchClass::Normal, Pays::No))]
         pub fn set_weights(
             origin: OriginFor<T>,
             netuid: u16,
@@ -405,7 +407,7 @@ pub mod pallet {
         }
 
         #[pallet::call_index(1)]
-        #[pallet::weight((0, DispatchClass::Normal, Pays::No))]
+        #[pallet::weight((<T as pallet::Config>::WeightInfo::set_weights_encrypted(), DispatchClass::Normal, Pays::No))]
         pub fn set_weights_encrypted(
             origin: OriginFor<T>,
             netuid: u16,
@@ -422,7 +424,7 @@ pub mod pallet {
         }
 
         #[pallet::call_index(2)]
-        #[pallet::weight((0, DispatchClass::Normal, Pays::No))]
+        #[pallet::weight((<T as pallet::Config>::WeightInfo::set_weights_encrypted(), DispatchClass::Normal, Pays::No))]
         pub fn delegate_weight_control(
             origin: OriginFor<T>,
             netuid: u16,
@@ -432,7 +434,7 @@ pub mod pallet {
         }
 
         #[pallet::call_index(3)]
-        #[pallet::weight((0, DispatchClass::Normal, Pays::No))]
+        #[pallet::weight((<T as pallet::Config>::WeightInfo::set_weights_encrypted(), DispatchClass::Normal, Pays::No))]
         pub fn remove_weight_control(origin: OriginFor<T>, netuid: u16) -> DispatchResult {
             Self::do_remove_weight_control(origin, netuid)
         }

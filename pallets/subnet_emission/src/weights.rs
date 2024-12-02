@@ -37,6 +37,8 @@ use core::marker::PhantomData;
 pub trait WeightInfo {
 	fn set_weights() -> Weight;
 	fn set_weights_encrypted() -> Weight;
+	fn delegate_weight_control() -> Weight;
+	fn remove_weight_control() -> Weight;
 }
 
 /// Weights for `pallet_subnet_emission` using the Substrate node and recommended hardware.
@@ -74,8 +76,8 @@ impl<T: frame_system::Config> WeightInfo for SubstrateWeight<T> {
 		// Proof Size summary in bytes:
 		//  Measured:  `2481`
 		//  Estimated: `18321`
-		// Minimum execution time: 164_911_000 picoseconds.
-		Weight::from_parts(168_457_000, 18321)
+		// Minimum execution time: 169_260_000 picoseconds.
+		Weight::from_parts(174_900_000, 18321)
 			.saturating_add(T::DbWeight::get().reads(20_u64))
 			.saturating_add(T::DbWeight::get().writes(2_u64))
 	}
@@ -101,10 +103,40 @@ impl<T: frame_system::Config> WeightInfo for SubstrateWeight<T> {
 		// Proof Size summary in bytes:
 		//  Measured:  `1742`
 		//  Estimated: `7682`
-		// Minimum execution time: 100_870_000 picoseconds.
-		Weight::from_parts(103_245_000, 7682)
+		// Minimum execution time: 95_751_000 picoseconds.
+		Weight::from_parts(97_594_000, 7682)
 			.saturating_add(T::DbWeight::get().reads(10_u64))
 			.saturating_add(T::DbWeight::get().writes(2_u64))
+	}
+	/// Storage: `SubspaceModule::Uids` (r:2 w:0)
+	/// Proof: `SubspaceModule::Uids` (`max_values`: None, `max_size`: None, mode: `Measured`)
+	/// Storage: `SubspaceModule::WeightSettingDelegation` (r:1 w:1)
+	/// Proof: `SubspaceModule::WeightSettingDelegation` (`max_values`: None, `max_size`: None, mode: `Measured`)
+	/// Storage: `SubspaceModule::UseWeightsEncryption` (r:1 w:0)
+	/// Proof: `SubspaceModule::UseWeightsEncryption` (`max_values`: None, `max_size`: None, mode: `Measured`)
+	/// Storage: `SubnetEmissionModule::WeightEncryptionData` (r:1 w:0)
+	/// Proof: `SubnetEmissionModule::WeightEncryptionData` (`max_values`: None, `max_size`: None, mode: `Measured`)
+	fn delegate_weight_control() -> Weight {
+		// Proof Size summary in bytes:
+		//  Measured:  `1200`
+		//  Estimated: `7140`
+		// Minimum execution time: 47_329_000 picoseconds.
+		Weight::from_parts(48_051_000, 7140)
+			.saturating_add(T::DbWeight::get().reads(5_u64))
+			.saturating_add(T::DbWeight::get().writes(1_u64))
+	}
+	/// Storage: `SubspaceModule::Uids` (r:1 w:0)
+	/// Proof: `SubspaceModule::Uids` (`max_values`: None, `max_size`: None, mode: `Measured`)
+	/// Storage: `SubspaceModule::WeightSettingDelegation` (r:1 w:1)
+	/// Proof: `SubspaceModule::WeightSettingDelegation` (`max_values`: None, `max_size`: None, mode: `Measured`)
+	fn remove_weight_control() -> Weight {
+		// Proof Size summary in bytes:
+		//  Measured:  `967`
+		//  Estimated: `4432`
+		// Minimum execution time: 28_353_000 picoseconds.
+		Weight::from_parts(29_045_000, 4432)
+			.saturating_add(T::DbWeight::get().reads(2_u64))
+			.saturating_add(T::DbWeight::get().writes(1_u64))
 	}
 }
 
@@ -142,8 +174,8 @@ impl WeightInfo for () {
 		// Proof Size summary in bytes:
 		//  Measured:  `2481`
 		//  Estimated: `18321`
-		// Minimum execution time: 164_911_000 picoseconds.
-		Weight::from_parts(168_457_000, 18321)
+		// Minimum execution time: 169_260_000 picoseconds.
+		Weight::from_parts(174_900_000, 18321)
 			.saturating_add(RocksDbWeight::get().reads(20_u64))
 			.saturating_add(RocksDbWeight::get().writes(2_u64))
 	}
@@ -169,9 +201,39 @@ impl WeightInfo for () {
 		// Proof Size summary in bytes:
 		//  Measured:  `1742`
 		//  Estimated: `7682`
-		// Minimum execution time: 100_870_000 picoseconds.
-		Weight::from_parts(103_245_000, 7682)
+		// Minimum execution time: 95_751_000 picoseconds.
+		Weight::from_parts(97_594_000, 7682)
 			.saturating_add(RocksDbWeight::get().reads(10_u64))
 			.saturating_add(RocksDbWeight::get().writes(2_u64))
+	}
+	/// Storage: `SubspaceModule::Uids` (r:2 w:0)
+	/// Proof: `SubspaceModule::Uids` (`max_values`: None, `max_size`: None, mode: `Measured`)
+	/// Storage: `SubspaceModule::WeightSettingDelegation` (r:1 w:1)
+	/// Proof: `SubspaceModule::WeightSettingDelegation` (`max_values`: None, `max_size`: None, mode: `Measured`)
+	/// Storage: `SubspaceModule::UseWeightsEncryption` (r:1 w:0)
+	/// Proof: `SubspaceModule::UseWeightsEncryption` (`max_values`: None, `max_size`: None, mode: `Measured`)
+	/// Storage: `SubnetEmissionModule::WeightEncryptionData` (r:1 w:0)
+	/// Proof: `SubnetEmissionModule::WeightEncryptionData` (`max_values`: None, `max_size`: None, mode: `Measured`)
+	fn delegate_weight_control() -> Weight {
+		// Proof Size summary in bytes:
+		//  Measured:  `1200`
+		//  Estimated: `7140`
+		// Minimum execution time: 47_329_000 picoseconds.
+		Weight::from_parts(48_051_000, 7140)
+			.saturating_add(RocksDbWeight::get().reads(5_u64))
+			.saturating_add(RocksDbWeight::get().writes(1_u64))
+	}
+	/// Storage: `SubspaceModule::Uids` (r:1 w:0)
+	/// Proof: `SubspaceModule::Uids` (`max_values`: None, `max_size`: None, mode: `Measured`)
+	/// Storage: `SubspaceModule::WeightSettingDelegation` (r:1 w:1)
+	/// Proof: `SubspaceModule::WeightSettingDelegation` (`max_values`: None, `max_size`: None, mode: `Measured`)
+	fn remove_weight_control() -> Weight {
+		// Proof Size summary in bytes:
+		//  Measured:  `967`
+		//  Estimated: `4432`
+		// Minimum execution time: 28_353_000 picoseconds.
+		Weight::from_parts(29_045_000, 4432)
+			.saturating_add(RocksDbWeight::get().reads(2_u64))
+			.saturating_add(RocksDbWeight::get().writes(1_u64))
 	}
 }
