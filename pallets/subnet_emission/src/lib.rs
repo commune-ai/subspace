@@ -24,6 +24,7 @@ pub mod subnet_pricing {
 pub mod set_weights;
 pub mod subnet_consensus;
 pub mod types;
+pub mod weights;
 
 #[cfg(feature = "runtime-benchmarks")]
 mod benchmarking;

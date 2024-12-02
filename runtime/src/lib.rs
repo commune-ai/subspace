@@ -855,7 +855,8 @@ mod benches {
         [pallet_governance, GovernanceModule]
         [pallet_timestamp, Timestamp]
         [pallet_utility, Utility]
-        [pallet_evm, EVM]
+        [pallet_subnet_emission, SubnetEmissionModule]
+        // [pallet_evm, EVM]
     );
 }
 

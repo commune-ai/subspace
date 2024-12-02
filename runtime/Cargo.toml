@@ -157,6 +157,7 @@ runtime-benchmarks = [
     "sp-runtime/runtime-benchmarks",
     "pallet-subspace/runtime-benchmarks",
     "pallet-governance/runtime-benchmarks",
+    "pallet-subnet-emission/runtime-benchmarks",
     "pallet-ethereum/runtime-benchmarks",
     "pallet-evm/runtime-benchmarks",
 ]

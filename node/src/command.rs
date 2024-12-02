@@ -48,7 +48,7 @@ impl SubstrateCli for Cli {
 
     fn load_spec(&self, id: &str) -> Result<Box<dyn sc_service::ChainSpec>, String> {
         Ok(match id {
-            "local" => Box::new(chain_spec::generate_config("./specs/local.json")?),
+            "local" | "dev" => Box::new(chain_spec::generate_config("./specs/local.json")?),
             "test" => Box::new(chain_spec::ChainSpec::from_json_bytes(
                 include_bytes!("../chain-specs/test.json").as_ref(),
             )?),
@@ -236,10 +236,13 @@ pub fn run() -> sc_cli::Result<()> {
 
             let runner = cli.create_runner(cmd)?;
             match cmd {
-                BenchmarkCmd::Pallet(cmd) => runner
-                    .sync_run(|config| cmd.run_with_spec::<Hashing, ()>(Some(config.chain_spec))),
+                BenchmarkCmd::Pallet(cmd) => runner.sync_run(|config| {
+                    cmd.run_with_spec::<Hashing, crate::client::HostFunctions>(Some(
+                        config.chain_spec,
+                    ))
+                }),
                 BenchmarkCmd::Block(cmd) => runner.sync_run(|mut config| {
-                    let PartialComponents { client, .. } = service::new_chain_ops(config, cli.eth)?;
+                    let PartialComponents { client, .. } = service::new_chain_ops(config)?;
                     cmd.run(client)
                 }),
                 BenchmarkCmd::Storage(cmd) => runner.sync_run(|mut config| {
@@ -248,7 +251,7 @@ pub fn run() -> sc_cli::Result<()> {
                         backend,
                         other: Other { config, .. },
                         ..
-                    } = service::new_chain_ops(config, cli.eth)?;
+                    } = service::new_chain_ops(config)?;
 
                     let db = backend.expose_db();
                     let storage = backend.expose_storage();
@@ -259,7 +262,7 @@ pub fn run() -> sc_cli::Result<()> {
                         client,
                         other: Other { config, .. },
                         ..
-                    } = service::new_chain_ops(config, cli.eth)?;
+                    } = service::new_chain_ops(config)?;
 
                     let ext_builder = RemarkBuilder::new(client.clone());
                     cmd.run(
@@ -271,7 +274,7 @@ pub fn run() -> sc_cli::Result<()> {
                     )
                 }),
                 BenchmarkCmd::Extrinsic(cmd) => runner.sync_run(|mut config| {
-                    let PartialComponents { client, .. } = service::new_chain_ops(config, cli.eth)?;
+                    let PartialComponents { client, .. } = service::new_chain_ops(config)?;
 
                     // Register the *Remark* and *TKA* builders.
                     let ext_factory = ExtrinsicFactory(vec![
