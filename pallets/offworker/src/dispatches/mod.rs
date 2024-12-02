@@ -110,7 +110,7 @@ pub mod dispatches {
 
                 Self::deposit_event(Event::DecryptionNodeCallbackSuccess {
                     subnet_id,
-                    node_id: acc_id,
+                    node_id: acc_id.clone(),
                 });
             }
 
@@ -123,6 +123,7 @@ pub mod dispatches {
             Self::deposit_event(Event::DecryptedWeightsSent {
                 subnet_id,
                 block_number,
+                worker: acc_id,
             });
             Ok(().into())
         }
@@ -143,9 +144,14 @@ pub mod dispatches {
                 public,
             } = payload;
 
-            pallet_subnet_emission::Pallet::<T>::handle_authority_node_ping(public.into_account());
+            let acc_id = public.into_account();
 
-            Self::deposit_event(Event::KeepAliveSent { block_number });
+            pallet_subnet_emission::Pallet::<T>::handle_authority_node_ping(acc_id.clone());
+
+            Self::deposit_event(Event::KeepAliveSent {
+                block_number,
+                worker: acc_id,
+            });
             Ok(().into())
         }
 

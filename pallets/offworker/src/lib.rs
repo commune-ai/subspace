@@ -242,9 +242,13 @@ pub mod pallet {
         DecryptedWeightsSent {
             subnet_id: u16,
             block_number: BlockNumberFor<T>,
+            worker: T::AccountId,
         },
         /// Offchain worker sent keep_alive message
-        KeepAliveSent { block_number: BlockNumberFor<T> },
+        KeepAliveSent {
+            block_number: BlockNumberFor<T>,
+            worker: T::AccountId,
+        },
         /// New authorities were successfully added
         AuthoritiesAdded,
         /// Decryption node successfully sent decrypted weights back to the runtime on time
