@@ -1,12 +1,10 @@
 use std::{
     collections::{BTreeMap, HashMap},
-    hash::Hasher,
     io::Cursor,
 };
 
-use bytes::BufMut;
 use frame_remote_externalities::OnlineConfig;
-use parity_scale_codec::{Compact, Encode};
+use parity_scale_codec::Encode;
 use sc_client_api::StateBackend;
 
 use sc_service::ChainSpec;
@@ -14,7 +12,7 @@ use serde_json::Value;
 use sp_runtime::{
     generic::{Block, Header},
     traits::BlakeTwo256,
-    BuildStorage, OpaqueExtrinsic, Storage,
+    OpaqueExtrinsic,
 };
 
 use crate::flags::MainnetSpec;
@@ -72,11 +70,11 @@ fn aura(genesis: &mut Value) {
     genesis[&key] = Value::String(format!("0x{}", hex::encode(written)));
 }
 
-fn balance(genesis: &mut Value) {
-    let mut key = key_name(b"System", b"Account");
-    key.push_str(&hex::encode(sp_crypto_hashing::blake2_128(&KEYS[0])));
-    dbg!(&key);
-}
+// fn balance(genesis: &mut Value) {
+//     let mut key = key_name(b"System", b"Account");
+//     key.push_str(&hex::encode(sp_crypto_hashing::blake2_128(&KEYS[0])));
+//     dbg!(&key);
+// }
 
 fn key_name(pallet: &[u8], key: &[u8]) -> String {
     let mut res = [0; 32];
@@ -87,21 +85,19 @@ fn key_name(pallet: &[u8], key: &[u8]) -> String {
 
 type OpaqueBlock = Block<Header<u32, BlakeTwo256>, OpaqueExtrinsic>;
 
-#[derive(serde::Deserialize, serde::Serialize)]
-struct DummyStorage;
-impl BuildStorage for DummyStorage {
-    fn assimilate_storage(&self, _: &mut sp_core::storage::Storage) -> Result<(), String> {
-        Ok(())
-    }
-}
+// #[derive(serde::Deserialize, serde::Serialize)]
+// struct DummyStorage;
+// impl BuildStorage for DummyStorage {
+//     fn assimilate_storage(&self, _: &mut sp_core::storage::Storage) -> Result<(), String> {
+//         Ok(())
+//     }
+// }
 
 async fn create_mainnet_spec() -> Box<dyn ChainSpec> {
-    let mut chain_spec: Box<dyn ChainSpec> = Box::new(
-        sc_service::GenericChainSpec::<DummyStorage>::from_json_bytes(include_bytes!(
-            "../../node/chain-specs/main.json"
-        ))
-        .unwrap(),
-    );
+    let mut chain_spec = sc_service::GenericChainSpec::<Option<()>>::from_json_bytes(
+        include_bytes!("../../node/chain-specs/main.json"),
+    )
+    .unwrap();
 
     let api = "wss://api.communeai.net".to_string();
 
@@ -130,10 +126,10 @@ async fn create_mainnet_spec() -> Box<dyn ChainSpec> {
         last_key = key;
     }
 
-    chain_spec.set_storage(Storage {
+    chain_spec.set_storage(sp_runtime::Storage {
         top,
         children_default,
     });
 
-    chain_spec
+    Box::new(chain_spec)
 }
