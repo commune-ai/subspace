@@ -1348,6 +1348,8 @@ fn decrypted_weight_run_result_is_applied_and_cleaned_up() {
         let first_miner_uid = register_module(netuid, first_miner, to_nano(1), false).unwrap();
         let second_miner_uid = register_module(netuid, second_miner, to_nano(1), false).unwrap();
 
+        SubnetConsensusType::<Test>::insert(netuid, SubnetConsensus::Yuma);
+
         pallet_subspace::MinFees::<Test>::set(pallet_subspace::MinimumFees {
             stake_delegation_fee: Percent::from_percent(0),
             validator_weight_fee: Percent::from_percent(0),
@@ -1520,6 +1522,7 @@ fn rotate_decryption_node() {
 
         // one subnet with decryption node set
         pallet_subnet_emission::DecryptionNodeCursor::<Test>::set(1);
+        SubnetConsensusType::<Test>::insert(netuid, SubnetConsensus::Yuma);
 
         pallet_subnet_emission::Pallet::<Test>::handle_decrypted_weights(netuid, vec![]);
 
