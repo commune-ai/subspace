@@ -94,9 +94,9 @@ type OpaqueBlock = Block<Header<u32, BlakeTwo256>, OpaqueExtrinsic>;
 // }
 
 async fn create_mainnet_spec() -> Box<dyn ChainSpec> {
-    let mut chain_spec = sc_service::GenericChainSpec::<Option<()>>::from_json_bytes(
-        include_bytes!("../../node/chain-specs/main.json"),
-    )
+    let mut chain_spec = sc_service::GenericChainSpec::<sc_service::NoExtension>::from_json_bytes(include_bytes!(
+        "../../node/chain-specs/main.json"
+    ))
     .unwrap();
 
     let api = "wss://api.communeai.net".to_string();
