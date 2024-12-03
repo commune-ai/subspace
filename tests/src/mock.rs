@@ -293,6 +293,7 @@ impl pallet_subnet_emission::Config for Test {
     type MissedPingsForInactivity = ConstU8<{ u8::MAX }>;
     type PingInterval = ConstU64<50>;
     type EncryptionPeriodBuffer = ConstU64<100>;
+    type WeightInfo = ();
 }
 
 impl pallet_governance::Config for Test {
