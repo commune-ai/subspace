@@ -17,6 +17,7 @@ use sp_runtime::SaturatedConversion;
 
 #[cfg(feature = "testnet")]
 use sp_runtime::traits::Dispatchable;
+use sp_std::boxed::Box;
 // Consensus pallets
 use pallet_aura::MinimumPeriodTimesTwo;
 use pallet_grandpa::{
