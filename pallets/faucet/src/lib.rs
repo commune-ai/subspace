@@ -21,6 +21,10 @@ pub mod pallet {
     use pallet_subspace::N;
     pub use sp_std::{vec, vec::Vec};
 
+    #[cfg(feature = "testnet")]
+    const STORAGE_VERSION: StorageVersion = StorageVersion::new(0);
+
+    #[cfg(not(feature = "testnet"))]
     const STORAGE_VERSION: StorageVersion = StorageVersion::new(0);
 
     #[pallet::pallet]
@@ -52,6 +56,12 @@ pub mod pallet {
             else {
                 return InvalidTransaction::Call.into();
             };
+
+            let current_block = <system::Pallet<T>>::block_number();
+            let target_block = BlockNumberFor::<T>::from(*block_number as u32);
+            if current_block < target_block {
+                return InvalidTransaction::Future.into();
+            }
 
             let key = T::Lookup::lookup(key.clone())?;
 

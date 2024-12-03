@@ -17,10 +17,10 @@ pub use fc_storage::{StorageOverride, StorageOverrideHandler};
 // Local
 use node_subspace_runtime::opaque::Block;
 
-use crate::client::{FullBackend, WasmClient};
+use crate::client::{Client, FullBackend};
 
 /// Frontier DB backend type.
-pub type FrontierBackend<C> = fc_db::Backend<Block, C>;
+pub type FrontierBackend = fc_db::Backend<Block, Client>;
 
 pub fn db_config_dir(config: &Configuration) -> PathBuf {
     config.base_path.config_dir(config.chain_spec.id())
@@ -107,9 +107,9 @@ pub fn new_frontier_partial(
 
 pub async fn spawn_frontier_tasks(
     task_manager: &TaskManager,
-    client: Arc<WasmClient>,
+    client: Arc<Client>,
     backend: Arc<FullBackend>,
-    frontier_backend: Arc<FrontierBackend<WasmClient>>,
+    frontier_backend: Arc<FrontierBackend>,
     filter_pool: Option<FilterPool>,
     storage_override: Arc<dyn StorageOverride<Block>>,
     fee_history_cache: FeeHistoryCache,
