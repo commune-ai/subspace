@@ -37,7 +37,12 @@ xflags::xflags! {
             optional --rpc-port rpc_port: u16
             /// Overrides the default bootnode list.
             repeated --bootnodes bootnodes: String
+        }
 
+        /// Generates a spec file with the mainnet state.
+        cmd mainnet-spec {
+            /// The output path to where the spec file will be written.
+            required -o, --output output: PathBuf
         }
     }
 }
@@ -53,6 +58,7 @@ pub struct Localnet {
 #[derive(Debug)]
 pub enum LocalnetCmd {
     Run(Run),
+    MainnetSpec(MainnetSpec),
 }
 
 #[derive(Debug)]
@@ -69,6 +75,11 @@ pub struct Run {
     pub tcp_port: Option<u16>,
     pub rpc_port: Option<u16>,
     pub bootnodes: Vec<String>,
+}
+
+#[derive(Debug)]
+pub struct MainnetSpec {
+    pub output: PathBuf,
 }
 
 impl Localnet {
