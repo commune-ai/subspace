@@ -1,0 +1,60 @@
+[package]
+name = "pallet-offworker"
+version = "1.0.0"
+description = "FRAME pallet for runtime logic of Subspace Blockchain."
+authors = ["Commune Community"]
+homepage = "https://communeai.org/"
+edition = "2021"
+license = "Unlicense"
+publish = false
+repository = "https://github.com/commune-ai/subspace"
+
+[lints]
+workspace = true
+
+[features]
+default = ["std"]
+std = [
+    "frame-support/std",
+    "frame-system/std",
+    "parity-scale-codec/std",
+    "scale-info/std",
+    "sp-std/std",
+    "sp-runtime/std",
+    "sp-core/std",
+    "pallet-subnet-emission/std",
+    "pallet-subspace/std",
+    "ow_extensions/std",
+    "num-traits/std",
+]
+try-runtime = ["frame-support/try-runtime"]
+testing-offworker = []
+testnet = []
+
+[dependencies]
+pallet-subnet-emission = { path = "../subnet_emission", default-features = false }
+pallet-subspace = { path = "../subspace", default-features = false }
+ow_extensions = { path = "../../ow_extensions", default-features = false }
+log.workspace = true
+
+frame-support.workspace = true
+frame-system.workspace = true
+
+sp-core.workspace = true
+sp-runtime.workspace = true
+sp-std.workspace = true
+
+substrate-fixed.workspace = true
+
+parity-scale-codec = { workspace = true, default-features = false, features = [
+    "derive",
+] }
+scale-info = { workspace = true, default-features = false, features = [
+    "derive",
+] }
+num-traits = { version = "0.2.19", default-features = false, features = [
+    "libm",
+] }
+
+[dev-dependencies]
+sp-tracing.workspace = true

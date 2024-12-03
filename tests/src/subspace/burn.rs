@@ -2,8 +2,8 @@ use std::u32;
 
 use crate::mock::*;
 use frame_support::assert_ok;
-use global::GeneralBurnConfiguration;
 use pallet_subspace::*;
+use params::burn::GeneralBurnConfiguration;
 
 #[test]
 fn module_registration_burn_increases() {

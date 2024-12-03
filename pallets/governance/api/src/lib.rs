@@ -65,9 +65,6 @@ pub trait GovernanceApi<AccountId> {
     /// global.
     fn update_delegating_voting_power(delegator: &AccountId, delegating: bool) -> DispatchResult;
 
-    /// Handles the deregistration of a subnet.
-    fn handle_subnet_removal(subnet_id: u16);
-
     /// Executes the application in DAO.
     fn execute_application(user_id: &AccountId) -> DispatchResult;
 
@@ -84,4 +81,6 @@ pub trait GovernanceApi<AccountId> {
     fn set_curator(key: &AccountId);
 
     fn set_general_subnet_application_cost(amount: u64);
+
+    fn clear_subnet_includes(netuid: u16);
 }

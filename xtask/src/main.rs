@@ -84,7 +84,7 @@ struct Node<'a> {
     validator: bool,
 }
 
-impl<'a> Node<'a> {
+impl Node<'_> {
     fn bootnode_uri(&self, addr: IpAddr) -> String {
         format!(
             "/{}/{addr}/tcp/{}/p2p/{}",
@@ -269,7 +269,8 @@ mod ops {
             "--rpc-port", node.rpc_port.to_string(),
             "--allow-private-ipv4",
             "--discover-local",
-            "--force-authoring"
+            "--force-authoring",
+            "--sealing=localnet"
         );
 
         if !bootnodes.is_empty() {

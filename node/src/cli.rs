@@ -1,3 +1,6 @@
+use std::path::PathBuf;
+
+#[cfg(feature = "testnet")]
 use crate::service::EthConfiguration;
 
 /// Available Sealing methods.
@@ -6,6 +9,8 @@ pub enum Sealing {
     /// Seal using rpc method.
     #[default]
     Manual,
+    /// Seal every 8 seconds.
+    Localnet,
     /// Seal when transaction is executed.
     Instant,
 }
@@ -19,10 +24,15 @@ pub struct Cli {
     #[command(flatten)]
     pub run: sc_cli::RunCmd,
 
+    /// Defines the RSA key path.
+    #[arg(long, value_name = "PATH")]
+    pub rsa_path: Option<PathBuf>,
+
     /// Choose sealing method.
     #[arg(long, value_enum, ignore_case = true)]
     pub sealing: Option<Sealing>,
 
+    #[cfg(feature = "testnet")]
     #[command(flatten)]
     pub eth: EthConfiguration,
 }

@@ -171,7 +171,7 @@ fn test_ownership_ratio() {
 
         register_n_modules(netuid, num_modules, 10, false);
 
-        let keys = SubspaceMod::get_keys(netuid);
+        let keys = get_keys(netuid);
 
         for k in &keys {
             let delegate_keys: Vec<u32> =

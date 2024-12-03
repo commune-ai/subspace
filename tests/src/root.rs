@@ -143,7 +143,7 @@ fn test_emission() {
             let key_origin = get_origin(key_id);
             let uids: Vec<u16> = vec![i];
             let values: Vec<u16> = vec![1];
-            assert_ok!(SubspaceMod::set_weights(
+            assert_ok!(SubnetEmissionMod::set_weights(
                 key_origin,
                 ROOT_NETUID,
                 uids,

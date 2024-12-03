@@ -14,6 +14,7 @@ mod chain_spec;
 mod cli;
 mod client;
 mod command;
+#[cfg(feature = "testnet")]
 mod eth;
 mod rpc;
 mod service;

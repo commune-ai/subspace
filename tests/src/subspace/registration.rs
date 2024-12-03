@@ -311,7 +311,7 @@ mod module_validation {
             let subnet = 0;
             let key_0 = 0;
             let origin_0 = get_origin(0);
-            // make sure that the results won´t get affected by burn
+            // make sure that the results won't get affected by burn
             zero_min_burn();
             MinimumAllowedStake::<Test>::set(0);
 
@@ -323,8 +323,9 @@ mod module_validation {
                     subnet,
                     name.to_vec(),
                     addr.to_vec(),
-                    None,
-                    None,
+                    None, // stake_delegation_fee
+                    None, // validator_weight_fee
+                    None, // metadata
                 )
             });
 
@@ -332,14 +333,18 @@ mod module_validation {
             let origin_1 = get_origin(key_1);
             assert_ok!(register_custom(0, key_1, b"test2", b"0.0.0.0:2"));
 
+            let stake_fee = Percent::from_percent(5);
+            let weight_fee = Percent::from_percent(5);
+
             let update_module = |name: &[u8], addr: &[u8]| {
                 SubspaceMod::update_module(
                     origin_1.clone(),
                     subnet,
                     name.to_vec(),
                     addr.to_vec(),
-                    Some(Percent::from_percent(5)),
-                    None,
+                    Some(stake_fee),
+                    Some(weight_fee),
+                    None, // metadata
                 )
             };
 
@@ -350,19 +355,58 @@ mod module_validation {
             assert_ok!(update_module(b"test2", b"0.0.0.0:2"));
             assert_ok!(update_module(b"test3", b"0.0.0.0:3"));
 
-            let params = SubspaceMod::module_params(0, &key_1);
+            let uid = SubspaceMod::get_uid_for_key(subnet, &key_1).unwrap();
+            let params = SubspaceMod::module_params(0, &key_1, uid);
             assert_eq!(params.name, b"test3");
             assert_eq!(params.address, b"0.0.0.0:3");
 
-            FloorDelegationFee::<Test>::put(Percent::from_percent(10));
+            // Set higher minimum fees
+            MinFees::<Test>::put(MinimumFees {
+                stake_delegation_fee: Percent::from_percent(10),
+                validator_weight_fee: Percent::from_percent(10),
+            });
+
+            // Should fail now because fees are too low
             assert_err!(
                 update_module(b"test3", b"0.0.0.0:3"),
                 Error::<Test>::InvalidMinDelegationFee
             );
+
+            // Update with valid fees
+            assert_ok!(SubspaceMod::update_module(
+                origin_1.clone(),
+                subnet,
+                b"test3".to_vec(),
+                b"0.0.0.0:3".to_vec(),
+                Some(Percent::from_percent(10)), // valid stake_delegation_fee
+                Some(Percent::from_percent(10)), // valid validator_weight_fee
+                None,                            // metadata
+            ));
+
+            // Test updating only stake delegation fee
+            assert_ok!(SubspaceMod::update_module(
+                origin_1.clone(),
+                subnet,
+                b"test3".to_vec(),
+                b"0.0.0.0:3".to_vec(),
+                Some(Percent::from_percent(15)), // update only stake fee
+                None,                            // keep existing weight fee
+                None,
+            ));
+
+            // Test updating only validator weight fee
+            assert_ok!(SubspaceMod::update_module(
+                origin_1.clone(),
+                subnet,
+                b"test3".to_vec(),
+                b"0.0.0.0:3".to_vec(),
+                None,                            // keep existing stake fee
+                Some(Percent::from_percent(15)), // update only weight fee
+                None,
+            ));
         });
     }
 }
-
 mod subnet_validation {
     use super::*;
 
@@ -434,7 +478,6 @@ fn new_subnet_reutilized_removed_netuid_if_total_is_bigger_than_removed() {
         for i in 0..10 {
             N::<Test>::set(i, 0);
         }
-        dbg!(SubspaceMod::get_total_subnets());
 
         SubnetGaps::<Test>::set(BTreeSet::from([5]));
 

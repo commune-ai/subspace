@@ -640,8 +640,8 @@ fn test_active_stake() {
         assert_eq!(N::<Test>::get(9), 3 + n);
         step_block(100);
 
-        let uid_zero_dividends = SubspaceMod::get_dividends_for_uid(9, 0);
-        let uid_two_dividends = SubspaceMod::get_dividends_for_uid(9, 2);
+        let uid_zero_dividends = SubspaceMod::get_dividends_for(9, 0);
+        let uid_two_dividends = SubspaceMod::get_dividends_for(9, 2);
         let total_dividends_sum = Dividends::<Test>::get(9).iter().sum::<u16>();
         let active_dividends = uid_zero_dividends + uid_two_dividends;
 
