@@ -31,6 +31,7 @@ mod benchmarking;
 
 #[frame_support::pallet]
 pub mod pallet {
+    pub use crate::weights::WeightInfo;
     use crate::{subnet_consensus::util::params::ConsensusParams, *};
     use frame_support::{
         pallet_prelude::{ValueQuery, *},
@@ -42,7 +43,6 @@ pub mod pallet {
     use pallet_subnet_emission_api::SubnetConsensus;
     use pallet_subspace::{define_module_includes, define_subnet_includes, TotalStake};
     use subnet_pricing::root::RootPricing;
-    pub use crate::weights::WeightInfo;
 
     #[cfg(feature = "testnet")]
     const STORAGE_VERSION: StorageVersion = StorageVersion::new(16);
