@@ -1,6 +1,7 @@
 use std::{
     collections::{BTreeMap, HashMap},
     io::Cursor,
+    path::{Path, PathBuf},
 };
 
 use frame_remote_externalities::OnlineConfig;
@@ -9,26 +10,14 @@ use sc_client_api::StateBackend;
 
 use sc_service::ChainSpec;
 use serde_json::Value;
+use sp_core::crypto::Ss58Codec;
 use sp_runtime::{
     generic::{Block, Header},
     traits::BlakeTwo256,
     OpaqueExtrinsic,
 };
 
-use crate::flags::MainnetSpec;
-
-pub fn mainnet_spec(flags: MainnetSpec) {
-    let mut key = key_name(b"System", b"Account");
-    let foo = hex_literal::hex!("a2b6e3b1089b8e233fe38bb9d8028a4b728c4b984f5b07507f2b198192c6e760");
-    key.push_str(&hex::encode(
-        [
-            sp_crypto_hashing::blake2_128(&foo).as_slice(),
-            foo.as_slice(),
-        ]
-        .concat(),
-    ));
-    dbg!(&key);
-
+pub fn mainnet_spec(flags: &crate::flags::Replica, dir: &Path) -> PathBuf {
     let spec = tokio::runtime::Builder::new_multi_thread()
         .enable_all()
         .build()
@@ -41,11 +30,16 @@ pub fn mainnet_spec(flags: MainnetSpec) {
     let genesis = &mut js["genesis"]["raw"]["top"];
 
     aura(genesis);
+    grandpa(genesis);
     sudo(genesis);
-    // balance(genesis);
+    balance(genesis, flags.sudo.as_ref());
 
     let js = serde_json::to_string_pretty(&js).unwrap();
-    std::fs::write(flags.output, js).unwrap();
+
+    let chain_path = flags.output.clone().unwrap_or_else(|| dir.join("spec.json"));
+    std::fs::write(&chain_path, js).unwrap();
+
+    chain_path
 }
 
 fn sudo(genesis: &mut Value) {
@@ -66,15 +60,68 @@ fn aura(genesis: &mut Value) {
     let mut buf = Cursor::new(vec![0; KEYS.size_hint()]);
     KEYS.encode_to(&mut buf);
 
-    let written = &buf.get_ref()[..buf.position() as usize];
-    genesis[&key] = Value::String(format!("0x{}", hex::encode(written)));
+    let buf = &buf.get_ref()[..buf.position() as usize];
+    genesis[&key] = Value::String(format!("0x{}", hex::encode(buf)));
 }
 
-// fn balance(genesis: &mut Value) {
-//     let mut key = key_name(b"System", b"Account");
-//     key.push_str(&hex::encode(sp_crypto_hashing::blake2_128(&KEYS[0])));
-//     dbg!(&key);
-// }
+fn grandpa(genesis: &mut Value) {
+    // Alice
+    let grandpa = vec![(
+        sp_core::ed25519::Public::from_ss58check(
+            "5FA9nQDVg267DEd8m1ZypXLBnvN7SFxYwV7ndqSYGiN9TTpu",
+        )
+        .expect("invalid SS58 sudo address")
+        .0,
+        1u64,
+    )];
+
+    let key = key_name(b"Grandpa", b"Authorities");
+    dbg!(&key);
+
+    let mut buf = Cursor::new(vec![0; grandpa.size_hint()]);
+    grandpa.encode_to(&mut buf);
+
+    let buf = &buf.get_ref()[..buf.position() as usize];
+    genesis[&key] = Value::String(format!("0x{}", hex::encode(buf)));
+}
+
+fn balance(genesis: &mut Value, sudo: Option<&String>) {
+    let sudo = sudo
+        .map(|sudo| {
+            sp_core::ed25519::Public::from_ss58check(&sudo)
+                .expect("invalid SS58 sudo address")
+                .0
+        })
+        .unwrap_or(KEYS[0]);
+
+    let mut key = key_name(b"System", b"Account");
+    key.push_str(&hex::encode(
+        [
+            sp_crypto_hashing::blake2_128(&sudo).as_slice(),
+            sudo.as_slice(),
+        ]
+        .concat(),
+    ));
+
+    let info = AccountInfo {
+        nonce: 0,
+        consumers: 0,
+        providers: 0,
+        sufficients: 0,
+        data: AccountData {
+            free: 1_000_000_000_000_000,
+            reserved: 0,
+            frozen: 0,
+            flags: ExtraFlags(IS_NEW_LOGIC),
+        },
+    };
+
+    let mut buf = Cursor::new(vec![0; KEYS.size_hint()]);
+    info.encode_to(&mut buf);
+
+    let buf = &buf.get_ref()[..buf.position() as usize];
+    genesis[&key] = Value::String(format!("0x{}", hex::encode(buf)));
+}
 
 fn key_name(pallet: &[u8], key: &[u8]) -> String {
     let mut res = [0; 32];
@@ -85,18 +132,12 @@ fn key_name(pallet: &[u8], key: &[u8]) -> String {
 
 type OpaqueBlock = Block<Header<u32, BlakeTwo256>, OpaqueExtrinsic>;
 
-// #[derive(serde::Deserialize, serde::Serialize)]
-// struct DummyStorage;
-// impl BuildStorage for DummyStorage {
-//     fn assimilate_storage(&self, _: &mut sp_core::storage::Storage) -> Result<(), String> {
-//         Ok(())
-//     }
-// }
+const IS_NEW_LOGIC: u128 = 0x80000000_00000000_00000000_00000000u128;
 
 async fn create_mainnet_spec() -> Box<dyn ChainSpec> {
-    let mut chain_spec = sc_service::GenericChainSpec::<sc_service::NoExtension>::from_json_bytes(include_bytes!(
-        "../../node/chain-specs/main.json"
-    ))
+    let mut chain_spec = sc_service::GenericChainSpec::<sc_service::NoExtension>::from_json_bytes(
+        include_bytes!("../../node/chain-specs/main.json"),
+    )
     .unwrap();
 
     let api = "wss://api.communeai.net".to_string();
@@ -133,3 +174,50 @@ async fn create_mainnet_spec() -> Box<dyn ChainSpec> {
 
     Box::new(chain_spec)
 }
+
+pub type Balance = u64;
+pub type Nonce = u32;
+pub type RefCount = u32;
+
+/// Information of an account.
+#[derive(Debug, parity_scale_codec::Decode, parity_scale_codec::Encode)]
+pub struct AccountInfo {
+    /// The number of transactions this account has sent.
+    pub nonce: Nonce,
+    /// The number of other modules that currently depend on this account's existence. The account
+    /// cannot be reaped until this is zero.
+    pub consumers: RefCount,
+    /// The number of other modules that allow this account to exist. The account may not be reaped
+    /// until this and `sufficients` are both zero.
+    pub providers: RefCount,
+    /// The number of modules that allow this account to exist for their own purposes only. The
+    /// account may not be reaped until this and `providers` are both zero.
+    pub sufficients: RefCount,
+    /// The additional data that belongs to this account. Used to store the balance(s) in a lot of
+    /// chains.
+    pub data: AccountData,
+}
+
+/// All balance information for an account.
+#[derive(Debug, parity_scale_codec::Decode, parity_scale_codec::Encode)]
+pub struct AccountData {
+    /// Non-reserved part of the balance which the account holder may be able to control.
+    ///
+    /// This is the only balance that matters in terms of most operations on tokens.
+    pub free: Balance,
+    /// Balance which is has active holds on it and may not be used at all.
+    ///
+    /// This is the sum of all individual holds together with any sums still under the (deprecated)
+    /// reserves API.
+    pub reserved: Balance,
+    /// The amount that `free + reserved` may not drop below when reducing the balance, except for
+    /// actions where the account owner cannot reasonably benefit from the balance reduction, such
+    /// as slashing.
+    pub frozen: Balance,
+    /// Extra information about this account. The MSB is a flag indicating whether the new ref-
+    /// counting logic is in place for this account.
+    pub flags: ExtraFlags,
+}
+
+#[derive(Debug, parity_scale_codec::Decode, parity_scale_codec::Encode)]
+pub struct ExtraFlags(pub(crate) u128);
