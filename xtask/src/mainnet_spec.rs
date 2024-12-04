@@ -31,7 +31,7 @@ pub fn mainnet_spec(flags: &crate::flags::Replica, dir: &Path) -> PathBuf {
 
     aura(genesis);
     grandpa(genesis);
-    sudo(genesis);
+    sudo(genesis, flags.sudo.as_ref());
     balance(genesis, flags.sudo.as_ref());
 
     let js = serde_json::to_string_pretty(&js).unwrap();
@@ -42,9 +42,18 @@ pub fn mainnet_spec(flags: &crate::flags::Replica, dir: &Path) -> PathBuf {
     chain_path
 }
 
-fn sudo(genesis: &mut Value) {
+fn sudo(genesis: &mut Value, sudo: Option<&String>) {
     let key = key_name(b"Sudo", b"Key");
-    genesis[&key] = "0xd43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da27d".into();
+
+    let sudo = sudo
+        .map(|sudo| {
+            sp_core::ed25519::Public::from_ss58check(&sudo)
+                .expect("invalid SS58 sudo address")
+                .0
+        })
+        .unwrap_or(KEYS[0]);
+
+    genesis[&key] = format!("0x", hex::encode(&sudo));
 }
 
 const KEYS: &[[u8; 32]] = &[
