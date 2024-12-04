@@ -28,5 +28,9 @@ pub mod events {
         GlobalParamsUpdated(GlobalParams<T>),
         /// Event created when subnet parameters are updated
         SubnetParamsUpdated(u16),
+        /// Event created when assets were returned from the bridge
+        BridgeWithdrawn(T::AccountId, u64),
+        /// Event created when user bridged tokens
+        Bridged(T::AccountId, u64),
     }
 }

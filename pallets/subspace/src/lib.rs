@@ -469,6 +469,8 @@ pub mod pallet {
     pub type WeightSettingDelegation<T: Config> =
         StorageDoubleMap<_, Identity, u16, Identity, T::AccountId, T::AccountId>;
 
+    #[pallet::storage]
+    pub type Bridged<T: Config> = StorageMap<_, Identity, T::AccountId, u64, ValueQuery>;
     // --- Module Fees ---
 
     /// Default values for fees used throughout the module

@@ -209,5 +209,9 @@ pub mod errors {
         /// Cannot decrease fees below their current values.
         /// Fees can only be increased to prevent economic attacks.
         CannotDecreaseFee,
+        /// General error for not having enough balance
+        NotEnoughBalance,
+        /// Not having enough tokens to bridge back
+        NotEnoughBridgedTokens,
     }
 }
