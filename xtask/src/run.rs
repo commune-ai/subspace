@@ -2,7 +2,7 @@ use std::{borrow::Cow, net::Ipv4Addr};
 
 use super::*;
 
-pub(super) fn localnet_run(mut r: flags::Run) {
+pub(super) fn run(mut r: flags::Run) {
     let (mut node, mut account) = match (r.alice, r.bob) {
         (true, false) => {
             if r.bootnodes.is_empty() {
@@ -30,8 +30,6 @@ pub(super) fn localnet_run(mut r: flags::Run) {
         node.id = Some(node_id.into());
     }
 
-    account.suri = r.account_suri.map(Into::into).unwrap_or(account.suri);
-
     let path = r.path.unwrap_or_else(|| {
         tempfile::Builder::new()
             .prefix("commune-node-data")
@@ -47,20 +45,39 @@ pub(super) fn localnet_run(mut r: flags::Run) {
         _ => {}
     }
 
-    let chain_path = r
-        .chain_spec
-        .unwrap_or_else(|| std::env::current_dir().unwrap().join("specs/local.json"));
-    if !chain_path.exists() {
-        panic!("Missing spec.json file. Define it with --chain-spec path/to/spec.json");
-    }
+    let (chain_spec, local_seal) = match &r.subcommand {
+        flags::RunCmd::Local(local) => {
+            let chain_path = local
+                .chain_spec
+                .clone()
+                .unwrap_or_else(|| std::env::current_dir().unwrap().join("specs/local.json"));
+            if !chain_path.exists() {
+                panic!("Missing spec.json file. Define it with --chain-spec path/to/spec.json");
+            }
 
-    ops::key_insert_cmd(&path, &chain_path, &account.suri, "aura");
-    ops::key_insert_cmd(&path, &chain_path, &account.suri, "gran");
+            account.suri = local.account_suri.as_ref().map(Into::into).unwrap_or(account.suri);
 
-    let _run = ops::run_node(&path, &chain_path, &node, &r.bootnodes, r.isolated)
-        .spawn()
-        .unwrap()
-        .wait();
+            (chain_path, true)
+        }
+        flags::RunCmd::Replica(replica) => {
+            (crate::mainnet_spec::mainnet_spec(&replica, &path), false)
+        }
+    };
+
+    ops::key_insert_cmd(&path, &chain_spec, &account.suri, "aura");
+    ops::key_insert_cmd(&path, &chain_spec, &account.suri, "gran");
+
+    let _run = ops::run_node(
+        &path,
+        &chain_spec,
+        &node,
+        &r.bootnodes,
+        r.isolated,
+        local_seal,
+    )
+    .spawn()
+    .unwrap()
+    .wait();
 }
 
 #[allow(dead_code)]
@@ -162,6 +179,7 @@ mod ops {
         node: &Node<'_>,
         bootnodes: &[String],
         isolated: bool,
+        local_seal: bool,
     ) -> Command {
         #[rustfmt::skip]
         let mut cmd = node_subspace!(
@@ -172,17 +190,19 @@ mod ops {
             "--port", node.tcp_port.to_string(),
             "--rpc-port", node.rpc_port.to_string(),
             "--allow-private-ipv4",
-            "--discover-local",
-            "--force-authoring",
-            "--sealing=localnet"
+            "--discover-local"
         );
+
+        if local_seal {
+            cmd.arg("--sealing=localnet");
+        }
 
         if !bootnodes.is_empty() {
             cmd.arg("--bootnodes").args(bootnodes);
         }
 
         if node.validator {
-            cmd.arg("--validator");
+            cmd.args(["--validator", "--force-authoring"]);
         }
 
         if let Some(name) = &node.name {
@@ -194,7 +214,7 @@ mod ops {
         }
 
         if isolated {
-            cmd.args(["--in-peers", "0", "--out-peers", "0", "--local-seal"]);
+            cmd.args(["--in-peers", "0", "--out-peers", "0"]);
         }
 
         cmd

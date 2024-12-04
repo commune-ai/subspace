@@ -1,8 +1,13 @@
 use std::{borrow::Cow, net::IpAddr};
 
 mod flags;
-mod localnet_run;
 mod mainnet_spec;
+mod run;
+
+fn main() {
+    let flags = flags::Run::from_env_or_exit();
+    run::run(flags);
+}
 
 #[derive(Clone)]
 pub(crate) struct Node<'a> {
@@ -90,11 +95,3 @@ static BOB_ACCOUNT: Account<'static> = Account {
     aura_address: Cow::Borrowed("5FHneW46xGXgs5mUiveU4sbTyGBzmstUspZC92UhjJM694ty"),
     grandpa_address: Cow::Borrowed("5GoNkf6WdbxCFnPdAnYYQyCjAKPJgLNxXwPjwTh6DGg6gN3E"),
 };
-fn main() {
-    let flags = flags::Localnet::from_env_or_exit();
-
-    match flags.subcommand {
-        flags::LocalnetCmd::Run(r) => localnet_run::localnet_run(r),
-        flags::LocalnetCmd::MainnetSpec(r) => mainnet_spec::mainnet_spec(r),
-    }
-}
