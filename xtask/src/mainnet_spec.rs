@@ -32,7 +32,7 @@ pub fn mainnet_spec(flags: &crate::flags::Replica, dir: &Path) -> PathBuf {
     aura(genesis);
     grandpa(genesis);
     sudo(genesis, flags.sudo.as_ref());
-    balance(genesis, flags.sudo.as_ref());
+    // balance(genesis, flags.sudo.as_ref());
 
     let js = serde_json::to_string_pretty(&js).unwrap();
 
@@ -53,7 +53,7 @@ fn sudo(genesis: &mut Value, sudo: Option<&String>) {
         })
         .unwrap_or(KEYS[0]);
 
-    genesis[&key] = format!("0x", hex::encode(&sudo));
+    genesis[&key] = Value::String(format!("0x{}", hex::encode(&sudo)));
 }
 
 const KEYS: &[[u8; 32]] = &[
@@ -94,43 +94,43 @@ fn grandpa(genesis: &mut Value) {
     genesis[&key] = Value::String(format!("0x{}", hex::encode(buf)));
 }
 
-fn balance(genesis: &mut Value, sudo: Option<&String>) {
-    let sudo = sudo
-        .map(|sudo| {
-            sp_core::ed25519::Public::from_ss58check(&sudo)
-                .expect("invalid SS58 sudo address")
-                .0
-        })
-        .unwrap_or(KEYS[0]);
+// fn balance(genesis: &mut Value, sudo: Option<&String>) {
+//     let sudo = sudo
+//         .map(|sudo| {
+//             sp_core::ed25519::Public::from_ss58check(&sudo)
+//                 .expect("invalid SS58 sudo address")
+//                 .0
+//         })
+//         .unwrap_or(KEYS[0]);
 
-    let mut key = key_name(b"System", b"Account");
-    key.push_str(&hex::encode(
-        [
-            sp_crypto_hashing::blake2_128(&sudo).as_slice(),
-            sudo.as_slice(),
-        ]
-        .concat(),
-    ));
+//     let mut key = key_name(b"System", b"Account");
+//     key.push_str(&hex::encode(
+//         [
+//             sp_crypto_hashing::blake2_128(&sudo).as_slice(),
+//             sudo.as_slice(),
+//         ]
+//         .concat(),
+//     ));
 
-    let info = AccountInfo {
-        nonce: 0,
-        consumers: 0,
-        providers: 0,
-        sufficients: 0,
-        data: AccountData {
-            free: 1_000_000_000_000_000,
-            reserved: 0,
-            frozen: 0,
-            flags: ExtraFlags(IS_NEW_LOGIC),
-        },
-    };
+//     let info = AccountInfo {
+//         nonce: 0,
+//         consumers: 0,
+//         providers: 0,
+//         sufficients: 0,
+//         data: AccountData {
+//             free: 1_000_000_000_000_000,
+//             reserved: 0,
+//             frozen: 0,
+//             flags: ExtraFlags(IS_NEW_LOGIC),
+//         },
+//     };
 
-    let mut buf = Cursor::new(vec![0; KEYS.size_hint()]);
-    info.encode_to(&mut buf);
+//     let mut buf = Cursor::new(vec![0; KEYS.size_hint()]);
+//     info.encode_to(&mut buf);
 
-    let buf = &buf.get_ref()[..buf.position() as usize];
-    genesis[&key] = Value::String(format!("0x{}", hex::encode(buf)));
-}
+//     let buf = &buf.get_ref()[..buf.position() as usize];
+//     genesis[&key] = Value::String(format!("0x{}", hex::encode(buf)));
+// }
 
 fn key_name(pallet: &[u8], key: &[u8]) -> String {
     let mut res = [0; 32];
