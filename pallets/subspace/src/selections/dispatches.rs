@@ -186,5 +186,57 @@ pub mod dispatches {
         ) -> DispatchResult {
             Self::do_register_subnet(origin, name, metadata)
         }
+
+        #[pallet::call_index(13)]
+        #[pallet::weight((Weight::zero(), DispatchClass::Normal, Pays::No))]
+        pub fn bridge(origin: OriginFor<T>, amount: u64) -> DispatchResult {
+            let key = ensure_signed(origin)?;
+
+            ensure!(
+                Self::has_enough_balance(&key, amount),
+                Error::<T>::NotEnoughBalance
+            );
+
+            // 1. Remove the balance from the account
+            let Some(removed_balance_as_currency) = Self::u64_to_balance(amount) else {
+                return Err(Error::<T>::CouldNotConvertToBalance.into());
+            };
+
+            Self::remove_balance_from_account(&key, removed_balance_as_currency)?;
+
+            Bridged::<T>::mutate(&key, |bridged| *bridged = bridged.saturating_add(amount));
+
+            Self::deposit_event(Event::Bridged(key, amount));
+
+            Ok(())
+        }
+
+        #[pallet::call_index(14)]
+        #[pallet::weight((Weight::zero(), DispatchClass::Normal, Pays::No))]
+        pub fn bridge_withdraw(origin: OriginFor<T>, amount: u64) -> DispatchResult {
+            let key = ensure_signed(origin)?;
+
+            // Check if user has enough bridged tokens
+            let bridged_amount = Bridged::<T>::get(&key);
+            ensure!(
+                bridged_amount >= amount && amount > 0,
+                Error::<T>::NotEnoughBridgedTokens
+            );
+
+            // Convert amount to balance
+            let Some(amount_as_currency) = Self::u64_to_balance(amount) else {
+                return Err(Error::<T>::CouldNotConvertToBalance.into());
+            };
+
+            // Add balance back to account
+            Self::add_balance_to_account(&key, amount_as_currency);
+
+            // Reduce bridged amount
+            Bridged::<T>::mutate(&key, |bridged| *bridged = bridged.saturating_sub(amount));
+
+            Self::deposit_event(Event::BridgeWithdrawn(key, amount));
+
+            Ok(())
+        }
     }
 }
