@@ -557,7 +557,7 @@ impl<T: Config> Pallet<T> {
         let (_, hanging_subnets) = Self::get_valid_subnets(None);
 
         for subnet_id in hanging_subnets.clone() {
-            let _ = Self::cleanup_subnet_wc_state(subnet_id, true);
+            Self::cleanup_subnet_wc_state(subnet_id, true);
             Self::cleanup_weight_encryption_data(subnet_id);
         }
 

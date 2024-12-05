@@ -47,13 +47,13 @@ fn sudo(genesis: &mut Value, sudo: Option<&String>) {
 
     let sudo = sudo
         .map(|sudo| {
-            sp_core::ed25519::Public::from_ss58check(&sudo)
+            sp_core::ed25519::Public::from_ss58check(sudo)
                 .expect("invalid SS58 sudo address")
                 .0
         })
         .unwrap_or(KEYS[0]);
 
-    genesis[&key] = Value::String(format!("0x{}", hex::encode(&sudo)));
+    genesis[&key] = Value::String(format!("0x{}", hex::encode(sudo)));
 }
 
 const KEYS: &[[u8; 32]] = &[
@@ -141,7 +141,7 @@ fn key_name(pallet: &[u8], key: &[u8]) -> String {
 
 type OpaqueBlock = Block<Header<u32, BlakeTwo256>, OpaqueExtrinsic>;
 
-const IS_NEW_LOGIC: u128 = 0x80000000_00000000_00000000_00000000u128;
+// const IS_NEW_LOGIC: u128 = 0x80000000_00000000_00000000_00000000u128;
 
 async fn create_mainnet_spec() -> Box<dyn ChainSpec> {
     let mut chain_spec = sc_service::GenericChainSpec::<sc_service::NoExtension>::from_json_bytes(
