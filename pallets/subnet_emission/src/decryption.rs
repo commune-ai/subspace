@@ -194,7 +194,7 @@ impl<T: Config> Pallet<T> {
         }
 
         // Cleanup subnet state (excluding decryption data)
-        Self::cleanup_subnet_wc_state(netuid, false, false);
+        Self::cleanup_subnet_wc_state(netuid, false);
 
         Ok(())
     }
@@ -538,30 +538,14 @@ impl<T: Config> Pallet<T> {
     /// Cleans up weight copying state of a subnet by removing weights and parameters.
     /// If increase_pending_emission is true, returns tokens to pending emissions.
     /// Returns the total emission amount that was processed.
-    fn cleanup_subnet_wc_state(
-        subnet_id: u16,
-        increase_pending_emission: bool,
-        clear_node_assing: bool,
-    ) -> u64 {
-        // TODO: take this out of the function enirely
-        // Sum up and clear ConsensusParameters
-        let total_emission = ConsensusParameters::<T>::iter_prefix(subnet_id)
-            .fold(0u64, |acc, (_, params)| {
-                acc.saturating_add(params.token_emission)
-            });
+    fn cleanup_subnet_wc_state(subnet_id: u16, clear_node_assing: bool) {
         // Clear ConsensusParameters
         let _ = ConsensusParameters::<T>::clear_prefix(subnet_id, u32::MAX, None);
-        // --- Cleanup The Conditionals ---
 
-        // Add tokens back to pending emission if requested
-        if increase_pending_emission {
-            update_pending_emission::<T>(subnet_id, &total_emission)
-        }
+        // --- Cleanup The Conditionals ---
         if clear_node_assing {
             SubnetDecryptionData::<T>::remove(subnet_id);
         }
-
-        total_emission
     }
 
     /// Cleans up all hanging subnets (subnets that have turned their weight encryption off)
@@ -573,7 +557,7 @@ impl<T: Config> Pallet<T> {
         let (_, hanging_subnets) = Self::get_valid_subnets(None);
 
         for subnet_id in hanging_subnets.clone() {
-            let _ = Self::cleanup_subnet_wc_state(subnet_id, false, true);
+            let _ = Self::cleanup_subnet_wc_state(subnet_id, true);
             Self::cleanup_weight_encryption_data(subnet_id);
         }
 
@@ -583,7 +567,14 @@ impl<T: Config> Pallet<T> {
     /// Cancels an offchain worker for a subnet by cleaning up its weight copying state,
     /// banning the worker, and reassigning the subnet to a different worker.
     fn cancel_offchain_worker(subnet_id: u16, info: &SubnetDecryptionInfo<T>) {
-        let _ = Self::cleanup_subnet_wc_state(subnet_id, true, true);
+        // sum up emission of subnet before deleting
+        let total_emission = ConsensusParameters::<T>::iter_prefix(subnet_id)
+            .fold(0u64, |acc, (_, params)| {
+                acc.saturating_add(params.token_emission)
+            });
+        // Add tokens back to pending emission if requested
+        update_pending_emission::<T>(subnet_id, &total_emission);
+        Self::cleanup_subnet_wc_state(subnet_id, true);
         Self::cleanup_weight_encryption_data(subnet_id);
 
         // Additional operations specific to canceling offchain worker
