@@ -60,7 +60,7 @@ pub(super) fn run(mut r: flags::Run) {
             (chain_path, true)
         }
         flags::RunCmd::Replica(replica) => {
-            (crate::mainnet_spec::mainnet_spec(&replica, &path), false)
+            (crate::mainnet_spec::mainnet_spec(replica, &path), false)
         }
     };
 
