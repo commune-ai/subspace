@@ -867,7 +867,7 @@ impl<T: Config> ConsensusOutput<T> {
             // module key has to be registered onchain
             for (account_key, emission) in emitted_to {
                 // account key can be offchain, it is the one in charge of the funds
-                if PalletSubspace::<T>::is_registered(Some(subnet_id), &module_key.0) {
+                if PalletSubspace::<T>::key_registered(subnet_id, &module_key.0) {
                     PalletSubspace::<T>::increase_stake(&account_key.0, &module_key.0, emission);
                 } else {
                     PalletSubspace::<T>::add_balance_to_account(&account_key.0, emission);
