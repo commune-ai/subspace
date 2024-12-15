@@ -109,6 +109,7 @@ std = [
     "frame-try-runtime/std",
     "pallet-subspace/std",
     "pallet-governance/std",
+    "pallet-offworker/std",
     "pallet-faucet/std",
     "pallet-aura/std",
     "pallet-balances/std",
