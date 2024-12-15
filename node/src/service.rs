@@ -12,7 +12,6 @@ use sc_service::{
 use sc_telemetry::{Telemetry, TelemetryHandle, TelemetryWorker};
 use sc_transaction_pool_api::OffchainTransactionPoolFactory;
 use sp_consensus_aura::sr25519::AuthorityPair as AuraPair;
-use sp_core::U256;
 use sp_runtime::traits::Block as BlockT;
 use std::{path::PathBuf, sync::Arc, time::Duration};
 
@@ -281,9 +280,6 @@ pub fn build_aura_grandpa_import_queue(
     #[cfg(feature = "testnet")]
     let target_gas_price = eth_config.target_gas_price;
 
-    #[cfg(not(feature = "testnet"))]
-    let target_gas_price = 0;
-
     let create_inherent_data_providers = move |_, ()| async move {
         let timestamp = sp_timestamp::InherentDataProvider::from_system_time();
         let slot =
@@ -291,8 +287,15 @@ pub fn build_aura_grandpa_import_queue(
                 *timestamp,
                 slot_duration,
             );
-        let dynamic_fee = fp_dynamic_fee::InherentDataProvider(U256::from(target_gas_price));
-        Ok((slot, timestamp, dynamic_fee))
+
+        #[cfg(feature = "testnet")]
+        {
+            let dynamic_fee = fp_dynamic_fee::InherentDataProvider(U256::from(target_gas_price));
+            Ok((slot, timestamp, dynamic_fee))
+        }
+
+        #[cfg(not(feature = "testnet"))]
+        Ok((slot, timestamp))
     };
 
     let import_queue = sc_consensus_aura::import_queue::<AuraPair, _, _, _, _, _>(
