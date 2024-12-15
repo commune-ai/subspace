@@ -2,11 +2,11 @@ use crate::EmissionError;
 use core::marker::PhantomData;
 use pallet_subspace::{Config, Pallet as PalletSubspace};
 
-use super::yuma::AccountKey;
+use crate::subnet_consensus::util::params::AccountKey;
 // Code structure to reflect other consensus types, this code is ready for additional features.
 // Whenever needed.
 pub struct TreasuryEpoch<T: Config> {
-    founder_key: AccountKey<T>,
+    founder_key: AccountKey<T::AccountId>,
     founder_emission: u64,
     _pd: PhantomData<T>,
 }

@@ -38,6 +38,11 @@ fn register_mock<T: Config>(
         SubspaceMod::<T>::u64_to_balance(SubnetBurn::<T>::get() + enough_stake).unwrap(),
     );
     let metadata = Some("metadata".as_bytes().to_vec());
+    let _ = SubspaceMod::<T>::register_subnet(
+        RawOrigin::Signed(key.clone()).into(),
+        network.clone(),
+        None,
+    );
     SubspaceMod::<T>::register(
         RawOrigin::Signed(key.clone()).into(),
         network,
@@ -77,7 +82,8 @@ benchmarks! {
             params.max_allowed_modules,            // max_allowed_modules: max number of modules allowed per subnet
             params.max_registrations_per_block,    // max_registrations_per_block: max number of registrations per block
             params.max_allowed_weights,            // max_allowed_weights: max number of weights per module
-            params.floor_delegation_fee,           // floor_delegation_fee: min delegation fee
+            params.floor_stake_delegation_fee,           // floor_delegation_fee: min delegation fee
+            params.floor_validator_weight_fee,           // floor_validator_weight_fee: min validator weight fee
             params.floor_founder_share,            // floor_founder_share: min founder share
             params.min_weight_stake,               // min_weight_stake: min weight stake required
             params.curator,                            // curator: subnet 0 dao multisig
@@ -117,13 +123,15 @@ benchmarks! {
             params.min_allowed_weights,
             params.max_weight_age,
             params.tempo,
-            params.trust_ratio,
             params.maximum_set_weight_calls_per_epoch,
             VoteMode::Vote,
             params.bonds_ma,
             params.module_burn_config.clone(),
             params.min_validator_stake,
-            params.max_allowed_validators
+            params.max_allowed_validators,
+            params.use_weights_encryption,
+            params.copier_margin,
+            params.max_encryption_period
         )?;
 
         // add balance to submit the proposal
@@ -148,13 +156,15 @@ benchmarks! {
         params.min_allowed_weights,
         params.max_weight_age,
         params.tempo,
-        params.trust_ratio,
         params.maximum_set_weight_calls_per_epoch,
         VoteMode::Vote,
         params.bonds_ma,
         params.module_burn_config,
         params.min_validator_stake,
-        params.max_allowed_validators
+        params.max_allowed_validators,
+        params.use_weights_encryption,
+        params.copier_margin,
+        params.max_encryption_period
     )
 
     // 2

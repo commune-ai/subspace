@@ -28,9 +28,11 @@ std = [
 ]
 try-runtime = ["frame-support/try-runtime"]
 runtime-benchmarks = ["frame-benchmarking/runtime-benchmarks"]
+testnet = []
 
 [dependencies]
 log.workspace = true
+strum = { workspace = true }
 
 pallet-governance-api = { path = "../governance/api", default-features = false }
 pallet-subspace = { path = "../subspace", default-features = false }

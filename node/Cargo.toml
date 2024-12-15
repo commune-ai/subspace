@@ -20,69 +20,91 @@ targets = ["x86_64-unknown-linux-gnu"]
 name = "node-subspace"
 
 [dependencies]
-clap = { workspace = true, features = ["derive"] }
-futures = { workspace = true, features = ["thread-pool"] }
+async-trait.workspace = true
 hex.workspace = true
+rsa.workspace = true
 serde.workspace = true
+log.workspace = true
 
-serde_json.workspace = true
+# Commune Local Dependencies
+ow_extensions.path = "../ow_extensions"
+node-subspace-runtime = { path = "../runtime" }
+pallet-subspace-genesis-config = { path = "../pallets/subspace/genesis-config" }
+subspace-rpc = { path = "../pallets/subspace/rpc" }
 
+# Frontier
+fc-api.workspace = true
+fc-cli.workspace = true
+fc-db.workspace = true
+fc-mapping-sync.workspace = true
+fc-rpc.workspace = true
+fc-rpc-core.workspace = true
+fc-storage.workspace = true
+fc-consensus.workspace = true
+fp-dynamic-fee = { workspace = true, features = ["default"] }
+fp-rpc.workspace = true
+
+# Parity
+clap = { workspace = true, features = ["derive"] }
+frame-benchmarking.workspace = true
+frame-benchmarking-cli.workspace = true
+frame-system.workspace = true
+frame-system-rpc-runtime-api.workspace = true
+pallet-transaction-payment-rpc-runtime-api.workspace = true
+futures = { workspace = true, features = ["thread-pool"] }
+jsonrpsee = { workspace = true, features = ["server"] }
+pallet-transaction-payment.workspace = true
+pallet-transaction-payment-rpc.workspace = true
+prometheus-endpoint.workspace = true
+sc-basic-authorship.workspace = true
 sc-cli.workspace = true
-sp-core.workspace = true
+sc-client-api.workspace = true
+sc-consensus.workspace = true
+sc-consensus-aura.workspace = true
+sc-consensus-grandpa.workspace = true
+sc-consensus-manual-seal.workspace = true
 sc-executor.workspace = true
 sc-network.workspace = true
+sc-network-sync.workspace = true
+sc-offchain.workspace = true
+sc-rpc.workspace = true
+sc-rpc-api.workspace = true
 sc-service.workspace = true
 sc-telemetry.workspace = true
 sc-transaction-pool.workspace = true
 sc-transaction-pool-api.workspace = true
-sc-offchain.workspace = true
-sc-consensus-aura.workspace = true
-sp-consensus-aura.workspace = true
-sc-consensus-grandpa.workspace = true
-sp-consensus-grandpa.workspace = true
-sc-consensus-manual-seal.workspace = true
-sc-consensus.workspace = true
-sc-client-api.workspace = true
-sp-runtime.workspace = true
-sp-io.workspace = true
-sp-timestamp.workspace = true
-sp-inherents.workspace = true
-sp-keyring.workspace = true
-frame-system.workspace = true
-pallet-transaction-payment.workspace = true
-
-# These dependencies are used for the subspace's RPCs
-jsonrpsee = { workspace = true, features = ["server"] }
+scale-codec.workspace = true
+serde_json.workspace = true
+sp-offchain.workspace = true
+sp-session.workspace = true
+sp-transaction-pool.workspace = true
 sp-api.workspace = true
-sc-rpc-api.workspace = true
-sp-blockchain.workspace = true
 sp-block-builder.workspace = true
-sc-basic-authorship.workspace = true
+sp-blockchain.workspace = true
+sp-consensus.workspace = true
+sp-consensus-aura.workspace = true
+sp-consensus-grandpa.workspace = true
+sp-core.workspace = true
+sp-inherents.workspace = true
+sp-io.workspace = true
+sp-runtime.workspace = true
+sp-timestamp.workspace = true
 substrate-frame-rpc-system.workspace = true
-pallet-transaction-payment-rpc.workspace = true
-
-# These dependencies are used for runtime benchmarking
-frame-benchmarking.workspace = true
-frame-benchmarking-cli.workspace = true
-
-# Local Dependencies
-node-subspace-runtime.path = "../runtime"
-
-pallet-subspace-genesis-config.path = "../pallets/subspace/genesis-config"
-subspace-rpc.path = "../pallets/subspace/rpc"
 
 [build-dependencies]
 substrate-build-script-utils.workspace = true
 
 [features]
-default = []
-# Dependencies that are only required if runtime benchmarking should be build.
+default = ["rocksdb", "sql", "txpool"]
+sql = ["fc-db/sql", "fc-mapping-sync/sql"]
+rocksdb = ["sc-service/rocksdb", "fc-db/rocksdb", "fc-mapping-sync/rocksdb"]
+txpool = ["fc-rpc/txpool"]
 runtime-benchmarks = [
-	"node-subspace-runtime/runtime-benchmarks",
-	"frame-benchmarking/runtime-benchmarks",
-	"frame-benchmarking-cli/runtime-benchmarks",
+    "frame-benchmarking/runtime-benchmarks",
+    "frame-benchmarking-cli/runtime-benchmarks",
+    "sc-service/runtime-benchmarks",
+    "node-subspace-runtime/runtime-benchmarks",
 ]
-# Enable features that allow the runtime to be tried and debugged. Name might be subject to change
-# in the near future.
+testnet = ["node-subspace-runtime/testnet"]
 try-runtime = ["node-subspace-runtime/try-runtime"]
 testnet-faucet = ["node-subspace-runtime/testnet-faucet"]

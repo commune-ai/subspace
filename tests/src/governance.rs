@@ -9,7 +9,7 @@ use pallet_governance::{
     ProposalStatus, Proposals, SubnetGovernanceConfig, VoteMode,
 };
 use pallet_governance_api::GovernanceConfiguration;
-use pallet_subspace::{subnet::SubnetChangeset, GlobalParams, SubnetParams};
+use pallet_subspace::{params::subnet::SubnetChangeset, GlobalParams, SubnetParams};
 use substrate_fixed::{types::extra::U32, FixedI128};
 
 fn register(account: AccountId, subnet_id: u16, module: AccountId, stake: u64) {
@@ -72,7 +72,8 @@ fn global_proposal_validates_parameters() {
                 max_allowed_modules,
                 max_registrations_per_block,
                 max_allowed_weights,
-                floor_delegation_fee,
+                floor_stake_delegation_fee,
+                floor_validator_weight_fee,
                 floor_founder_share,
                 min_weight_stake,
                 curator,
@@ -92,7 +93,8 @@ fn global_proposal_validates_parameters() {
                 max_allowed_modules,
                 max_registrations_per_block,
                 max_allowed_weights,
-                floor_delegation_fee,
+                floor_stake_delegation_fee,
+                floor_validator_weight_fee,
                 floor_founder_share,
                 min_weight_stake,
                 curator,
@@ -247,7 +249,8 @@ fn global_params_proposal_accepted() {
             max_allowed_modules,
             max_registrations_per_block,
             max_allowed_weights,
-            floor_delegation_fee,
+            floor_stake_delegation_fee,
+            floor_validator_weight_fee,
             floor_founder_share,
             min_weight_stake,
             curator,
@@ -269,7 +272,8 @@ fn global_params_proposal_accepted() {
             max_allowed_modules,
             max_registrations_per_block,
             max_allowed_weights,
-            floor_delegation_fee,
+            floor_stake_delegation_fee,
+            floor_validator_weight_fee,
             floor_founder_share,
             min_weight_stake,
             curator,
@@ -322,13 +326,15 @@ fn subnet_params_proposal_accepted() {
             name,
             metadata,
             tempo,
-            trust_ratio,
             maximum_set_weight_calls_per_epoch,
             bonds_ma,
             module_burn_config,
             min_validator_stake,
             max_allowed_validators,
             mut governance_config,
+            use_weights_encryption,
+            copier_margin,
+            max_encryption_period,
             ..
         } = SubspaceMod::subnet_params(0);
 
@@ -349,13 +355,15 @@ fn subnet_params_proposal_accepted() {
             min_allowed_weights,
             max_weight_age,
             tempo,
-            trust_ratio,
             maximum_set_weight_calls_per_epoch,
             governance_config.vote_mode,
             bonds_ma,
             module_burn_config,
             min_validator_stake,
             max_allowed_validators,
+            use_weights_encryption,
+            copier_margin,
+            max_encryption_period,
         )
         .unwrap();
 
