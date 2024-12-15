@@ -1,30 +1,34 @@
-//! Setup code for [`super::command`] which would otherwise bloat that module.
-//!
-//! Should only be used for benchmarking as it may break in other contexts.
-
-use crate::service::FullClient;
-
-use node_subspace_runtime as runtime;
-use runtime::{AccountId, Balance, BalancesCall, SystemCall};
-use sc_cli::Result;
-use sc_client_api::BlockBackend;
-use sp_core::{Encode, Pair};
-use sp_inherents::{InherentData, InherentDataProvider};
-use sp_keyring::Sr25519Keyring;
-use sp_runtime::{OpaqueExtrinsic, SaturatedConversion};
+//! Contains code to setup the command invocations in [`super::command`] which would
+//! otherwise bloat that module.
 
 use std::{sync::Arc, time::Duration};
 
-// Generates extrinsics for the `benchmark overhead` command.
-//
-// Note: Should only be used for benchmarking.
+use std::convert::TryFrom;
+
+use scale_codec::Encode;
+// Substrate
+use sc_cli::Result;
+use sc_client_api::BlockBackend;
+use sp_core::{ecdsa, Pair};
+
+use sp_inherents::{InherentData, InherentDataProvider};
+use sp_runtime::{generic::Era, OpaqueExtrinsic, SaturatedConversion};
+// Frontier
+use node_subspace_runtime::{self as runtime, AccountId, Balance, BalancesCall, SystemCall};
+use sp_runtime::MultiAddress;
+
+use crate::client::Client;
+
+/// Generates extrinsics for the `benchmark overhead` command.
+///
+/// Note: Should only be used for benchmarking.
 pub struct RemarkBuilder {
-    client: Arc<FullClient>,
+    client: Arc<Client>,
 }
 
 impl RemarkBuilder {
-    // Creates a new [`Self`] from the given client.
-    pub fn new(client: Arc<FullClient>) -> Self {
+    /// Creates a new [`Self`] from the given client.
+    pub fn new(client: Arc<Client>) -> Self {
         Self { client }
     }
 }
@@ -39,7 +43,7 @@ impl frame_benchmarking_cli::ExtrinsicBuilder for RemarkBuilder {
     }
 
     fn build(&self, nonce: u32) -> std::result::Result<OpaqueExtrinsic, &'static str> {
-        let acc = Sr25519Keyring::Bob.pair();
+        let acc = ecdsa::Pair::from_string("//Bob", None).expect("static values are valid; qed");
         let extrinsic: OpaqueExtrinsic = create_benchmark_extrinsic(
             self.client.as_ref(),
             acc,
@@ -52,21 +56,21 @@ impl frame_benchmarking_cli::ExtrinsicBuilder for RemarkBuilder {
     }
 }
 
-// Generates `Balances::TransferKeepAlive` extrinsics for the benchmarks.
-//
-// Note: Should only be used for benchmarking.
+/// Generates `Balances::TransferKeepAlive` extrinsics for the benchmarks.
+///
+/// Note: Should only be used for benchmarking.
 pub struct TransferKeepAliveBuilder {
-    client: Arc<FullClient>,
-    dest: AccountId,
+    client: Arc<Client>,
+    dest: MultiAddress<AccountId, ()>,
     value: Balance,
 }
 
 impl TransferKeepAliveBuilder {
-    // Creates a new [`Self`] from the given client.
-    pub fn new(client: Arc<FullClient>, dest: AccountId, value: Balance) -> Self {
+    /// Creates a new [`Self`] from the given client.
+    pub fn new(client: Arc<Client>, dest: AccountId, value: Balance) -> Self {
         Self {
             client,
-            dest,
+            dest: MultiAddress::Id(dest),
             value,
         }
     }
@@ -80,14 +84,13 @@ impl frame_benchmarking_cli::ExtrinsicBuilder for TransferKeepAliveBuilder {
     fn extrinsic(&self) -> &str {
         "transfer_keep_alive"
     }
-
     fn build(&self, nonce: u32) -> std::result::Result<OpaqueExtrinsic, &'static str> {
-        let acc = Sr25519Keyring::Bob.pair();
+        let acc = ecdsa::Pair::from_string("//Bob", None).expect("static values are valid; qed");
         let extrinsic: OpaqueExtrinsic = create_benchmark_extrinsic(
             self.client.as_ref(),
             acc,
             BalancesCall::transfer_keep_alive {
-                dest: self.dest.clone().into(),
+                dest: self.dest.clone(),
                 value: self.value,
             }
             .into(),
@@ -99,12 +102,12 @@ impl frame_benchmarking_cli::ExtrinsicBuilder for TransferKeepAliveBuilder {
     }
 }
 
-// Create a transaction using the given `call`.
-//
-// Note: Should only be used for benchmarking.
+/// Create a transaction using the given `call`.
+///
+/// Note: Should only be used for benchmarking.
 pub fn create_benchmark_extrinsic(
-    client: &FullClient,
-    sender: sp_core::sr25519::Pair,
+    client: &Client,
+    sender: ecdsa::Pair,
     call: runtime::RuntimeCall,
     nonce: u32,
 ) -> runtime::UncheckedExtrinsic {
@@ -115,13 +118,13 @@ pub fn create_benchmark_extrinsic(
     let period = runtime::BlockHashCount::get()
         .checked_next_power_of_two()
         .map(|c| c / 2)
-        .unwrap_or(2);
+        .unwrap_or(2) as u64;
     let extra: runtime::SignedExtra = (
         frame_system::CheckNonZeroSender::<runtime::Runtime>::new(),
         frame_system::CheckSpecVersion::<runtime::Runtime>::new(),
         frame_system::CheckTxVersion::<runtime::Runtime>::new(),
         frame_system::CheckGenesis::<runtime::Runtime>::new(),
-        frame_system::CheckEra::<runtime::Runtime>::from(sp_runtime::generic::Era::mortal(
+        frame_system::CheckMortality::<runtime::Runtime>::from(Era::mortal(
             period,
             best_block.saturated_into(),
         )),
@@ -145,18 +148,20 @@ pub fn create_benchmark_extrinsic(
         ),
     );
     let signature = raw_payload.using_encoded(|e| sender.sign(e));
-
+    let sender_public = sender.public();
+    let sender_account =
+        AccountId::try_from(sender_public.as_ref()).expect("65-byte public key should be valid");
     runtime::UncheckedExtrinsic::new_signed(
-        call.clone(),
-        sp_runtime::AccountId32::from(sender.public()).into(),
-        runtime::Signature::Sr25519(signature),
-        extra.clone(),
+        call,
+        MultiAddress::Id(sender_account),
+        runtime::Signature::Ecdsa(signature),
+        extra,
     )
 }
 
-// Generates inherent data for the `benchmark overhead` command.
-//
-// Note: Should only be used for benchmarking.
+/// Generates inherent data for the `benchmark overhead` command.
+///
+/// Note: Should only be used for benchmarking.
 pub fn inherent_benchmark_data() -> Result<InherentData> {
     let mut inherent_data = InherentData::new();
     let d = Duration::from_millis(0);

@@ -1,9 +1,13 @@
 use super::*;
-use crate::subnet_consensus::{linear::LinearEpoch, treasury::TreasuryEpoch, yuma::YumaEpoch};
+use crate::subnet_consensus::{linear::LinearEpoch, treasury::TreasuryEpoch};
 
-use frame_support::{storage::with_storage_layer, traits::Get, weights::Weight};
+use crate::subnet_consensus::util::params::ConsensusParams;
+use frame_support::storage::with_storage_layer;
 use pallet_subnet_emission_api::SubnetConsensus;
-use pallet_subspace::N;
+use pallet_subspace::{Pallet as PalletSubspace, N};
+use subnet_consensus::yuma::YumaEpoch;
+
+const NO_WEIGHTS: &str = "no weights";
 
 /// Processes subnets by updating pending emissions and running epochs when due.
 ///
@@ -14,27 +18,18 @@ use pallet_subspace::N;
 ///
 /// This function iterates through all subnets, updates their pending emissions,
 /// and runs an epoch if it's time for that subnet.
-fn process_subnets<T: Config>(
-    block_number: u64,
-    subnets_emission_distribution: PricedSubnets,
-) -> Weight {
-    let total_weight = N::<T>::iter_keys().fold(Weight::zero(), |acc_weight, netuid| {
+fn process_subnets<T: Config>(block_number: u64, subnets_emission_distribution: PricedSubnets) {
+    for netuid in N::<T>::iter_keys() {
         update_pending_emission::<T>(
             netuid,
             subnets_emission_distribution.get(&netuid).unwrap_or(&0),
         );
-        let mut weight = acc_weight.saturating_add(T::DbWeight::get().writes(1));
 
         if pallet_subspace::Pallet::<T>::blocks_until_next_epoch(netuid, block_number) == 0 {
-            weight = weight.saturating_add(run_epoch::<T>(netuid));
+            run_epoch::<T>(netuid);
         }
-
-        weight
-    });
-
-    total_weight
+    }
 }
-
 /// Updates the pending emission for a given subnet.
 ///
 /// # Arguments
@@ -44,7 +39,7 @@ fn process_subnets<T: Config>(
 ///
 /// This function adds the new emission value to the existing pending emission
 /// for the specified subnet, and logs the updated total.
-fn update_pending_emission<T: Config>(netuid: u16, new_queued_emission: &u64) {
+pub(crate) fn update_pending_emission<T: Config>(netuid: u16, new_queued_emission: &u64) {
     let emission_to_drain = PendingEmission::<T>::mutate(netuid, |queued: &mut u64| {
         *queued = queued.saturating_add(*new_queued_emission);
         *queued
@@ -61,18 +56,18 @@ fn update_pending_emission<T: Config>(netuid: u16, new_queued_emission: &u64) {
 /// This function clears the set weight rate limiter, retrieves the pending emission,
 /// and if there's emission to distribute, runs the consensus algorithm. If successful,
 /// it finalizes the epoch. If an error occurs during consensus, it logs the error
-fn run_epoch<T: Config>(netuid: u16) -> Weight {
+fn run_epoch<T: Config>(netuid: u16) {
     log::trace!("running epoch for subnet {netuid}");
-
-    let mut weight = T::DbWeight::get().reads(1);
 
     let emission_to_drain = PendingEmission::<T>::get(netuid);
     if emission_to_drain > 0 {
         match run_consensus_algorithm::<T>(netuid, emission_to_drain) {
-            Ok(consensus_weight) => {
-                weight = weight.saturating_add(consensus_weight);
-                finalize_epoch::<T>(netuid);
-                weight
+            Ok(_) => {
+                finalize_epoch::<T>(netuid, true); // clear emission
+            }
+            Err(NO_WEIGHTS) => {
+                log::warn!("no weights set on subnet {netuid}");
+                finalize_epoch::<T>(netuid, false); // do not clear emission, just deposit event
             }
             Err(e) => {
                 log::error!(
@@ -80,11 +75,8 @@ fn run_epoch<T: Config>(netuid: u16) -> Weight {
                     netuid,
                     e
                 );
-                Weight::zero()
             }
         }
-    } else {
-        weight
     }
 }
 
@@ -108,14 +100,14 @@ fn run_epoch<T: Config>(netuid: u16) -> Weight {
 fn run_consensus_algorithm<T: Config>(
     netuid: u16,
     emission_to_drain: u64,
-) -> Result<Weight, &'static str> {
+) -> Result<(), &'static str> {
     with_storage_layer(|| {
         let Some(consensus_type) = SubnetConsensusType::<T>::get(netuid) else {
-            return Ok(T::DbWeight::get().reads(1));
+            return Ok(());
         };
 
         match consensus_type {
-            SubnetConsensus::Root => Ok(T::DbWeight::get().reads(1)),
+            SubnetConsensus::Root => Ok(()),
             SubnetConsensus::Treasury => run_treasury_consensus::<T>(netuid, emission_to_drain),
             SubnetConsensus::Linear => run_linear_consensus::<T>(netuid, emission_to_drain),
             SubnetConsensus::Yuma => run_yuma_consensus::<T>(netuid, emission_to_drain),
@@ -134,22 +126,28 @@ fn run_consensus_algorithm<T: Config>(
 /// A Result indicating success or failure of the linear consensus algorithm.
 ///
 /// This function creates and runs a new LinearEpoch, logging any errors that occur.
-fn run_linear_consensus<T: Config>(
+pub fn run_linear_consensus<T: Config>(
     netuid: u16,
     emission_to_drain: u64,
-) -> Result<Weight, &'static str> {
-    LinearEpoch::<T>::new(netuid, emission_to_drain)
-        .run()
-        .map(|(_, weight)| weight)
-        .map_err(|err| {
-            log::error!(
-                "Failed to run linear consensus algorithm: {err:?}, skipping this block. \
-                {emission_to_drain} tokens will be emitted on the next epoch."
-            );
-            "linear failed"
-        })
-}
+) -> Result<(), &'static str> {
+    let params = ConsensusParams::<T>::new(netuid, emission_to_drain)
+        .map_err(|_| "Failed to create ConsensusParams")?;
 
+    let run = LinearEpoch::<T>::new(netuid, params);
+
+    let uids = pallet_subspace::Keys::<T>::iter_prefix(netuid).collect::<BTreeMap<_, _>>();
+    let mut weights: BTreeMap<_, _> = Weights::<T>::iter_prefix(netuid).collect();
+    let weights: Vec<(u16, Vec<(u16, u16)>)> =
+        uids.keys().map(|uid| (*uid, weights.remove(uid).unwrap_or_default())).collect();
+
+    if weights.is_empty() {
+        return Err(NO_WEIGHTS);
+    }
+
+    let consensus_output = run.run(weights).map_err(|_| "Failed to run consensus")?;
+    consensus_output.apply();
+    Ok(())
+}
 /// Runs the Yuma consensus algorithm for subnets other than 0.
 ///
 /// # Arguments
@@ -162,20 +160,64 @@ fn run_linear_consensus<T: Config>(
 /// A Result indicating success or failure of the Yuma consensus algorithm.
 ///
 /// This function creates and runs a new YumaEpoch, logging any errors that occur.
-fn run_yuma_consensus<T: Config>(
+fn run_yuma_consensus<T: Config>(netuid: u16, emission_to_drain: u64) -> Result<(), &'static str> {
+    log::info!("Running Yuma consensus for subnet {netuid}");
+
+    let params = ConsensusParams::<T>::new(netuid, emission_to_drain)?;
+    let should_run_encrypted_consensus = pallet_subspace::UseWeightsEncryption::<T>::get(netuid);
+    if !should_run_encrypted_consensus {
+        return run_default_consensus(netuid, params);
+    }
+    // This means, that subnet uses weight encryption. Create the parameters, only if subnet has
+    // some encrypted weights present
+    let encrypted_weights = WeightEncryptionData::<T>::iter_prefix(netuid).collect::<Vec<_>>();
+    if encrypted_weights.is_empty() {
+        return Err(NO_WEIGHTS);
+    }
+
+    let block = PalletSubspace::<T>::get_current_block_number();
+    let active_nodes = Pallet::<T>::get_active_nodes(block);
+
+    if active_nodes.is_none() {
+        log::error!("no active nodes found for block {block}");
+        return run_default_consensus(netuid, params.clone());
+    }
+
+    // Computes only if there are decrypted weights present, that have been send by an offchain
+    // worker. Otherwise recycles emmission
+    // process_encrypted_consensus(netuid, params)?;
+
+    log::info!("Yuma consensus for subnet {netuid} completed successfully");
+    let block = PalletSubspace::<T>::get_current_block_number();
+    ConsensusParameters::<T>::insert(netuid, block, params);
+
+    // Rotate the nodes if needed
+    if let Some(info) = SubnetDecryptionData::<T>::get(netuid) {
+        log::info!("checking rotation for subnet {netuid}");
+        crate::Pallet::<T>::rotate_decryption_node_if_needed(netuid, info);
+    } else {
+        log::error!(
+            "subnet {netuid} received decrypted weights to run but has no decryption data."
+        );
+    }
+    Ok(())
+}
+
+fn run_default_consensus<T: Config>(
     netuid: u16,
-    emission_to_drain: u64,
-) -> Result<Weight, &'static str> {
-    YumaEpoch::<T>::new(netuid, emission_to_drain)
-        .run()
-        .map(|(_, weight)| weight)
+    params: ConsensusParams<T>,
+) -> Result<(), &'static str> {
+    log::trace!("running default consensus for subnet {netuid}");
+
+    let weights: Vec<(u16, Vec<(u16, u16)>)> = Weights::<T>::iter_prefix(netuid).collect();
+
+    YumaEpoch::new(netuid, params)
+        .run(weights)
         .map_err(|err| {
-            log::error!(
-                "Failed to run yuma consensus algorithm: {err:?}, skipping this block. \
-            {emission_to_drain} tokens will be emitted on the next epoch."
-            );
-            "yuma failed"
+            log::error!("could not run yuma consensus for {netuid}: {err:?}");
+            "could not run yuma consensus"
         })
+        .map(|output| output.apply())
 }
 
 /// Runs the treasury consensus algorithm for a given network and emission amount.
@@ -192,10 +234,10 @@ fn run_yuma_consensus<T: Config>(
 fn run_treasury_consensus<T: Config>(
     netuid: u16,
     emission_to_drain: u64,
-) -> Result<Weight, &'static str> {
+) -> Result<(), &'static str> {
     TreasuryEpoch::<T>::new(netuid, emission_to_drain)
         .run()
-        .map(|_| T::DbWeight::get().reads_writes(1, 1))
+        .map(|_| ())
         .map_err(|err| {
             log::error!(
                 "Failed to run treasury consensus algorithm: {err:?}, skipping this block. \
@@ -205,7 +247,7 @@ fn run_treasury_consensus<T: Config>(
         })
 }
 
-/// Runs the treasury consensus algorithm for subnet 1.
+// Runs the treasury consensus algorithm for subnet 1.
 
 // ---------------------------------
 // Epoch utils
@@ -218,10 +260,13 @@ fn run_treasury_consensus<T: Config>(
 /// * `netuid` - The ID of the subnet.
 ///
 /// This function resets the pending emission for the subnet to 0 and
-/// emits an EpochFinished event.
-fn finalize_epoch<T: Config>(netuid: u16) {
-    PendingEmission::<T>::insert(netuid, 0);
-    Pallet::<T>::deposit_event(Event::<T>::EpochFinished(netuid));
+/// emits an EpochFinalized event.
+fn finalize_epoch<T: Config>(netuid: u16, clear_emission: bool) {
+    if clear_emission {
+        PendingEmission::<T>::set(netuid, 0);
+    }
+
+    Pallet::<T>::deposit_event(Event::<T>::EpochFinalized(netuid));
 }
 
 impl<T: Config> Pallet<T> {
@@ -234,11 +279,11 @@ impl<T: Config> Pallet<T> {
     ///
     /// This function calculates the emission distribution across subnets and
     /// processes each subnet accordingly.
-    pub fn process_emission_distribution(block_number: u64, emission_per_block: u64) -> Weight {
+    pub fn process_emission_distribution(block_number: u64, emission_per_block: u64) {
         log::debug!("stepping block {block_number:?}");
 
         let subnets_emission_distribution = Self::get_subnet_pricing(emission_per_block);
-        process_subnets::<T>(block_number, subnets_emission_distribution)
+        process_subnets::<T>(block_number, subnets_emission_distribution);
     }
 
     // ---------------------------------
@@ -260,19 +305,13 @@ impl<T: Config> Pallet<T> {
             .filter(|(netuid, _)| pallet_subspace::N::<T>::get(netuid) > 0)
             .filter(|(netuid, _)| {
                 ignore_subnet_immunity
-                    || !pallet_subspace::SubnetRegistrationBlock::<T>::get(netuid)
-                        .is_some_and(|block| current_block.saturating_sub(block) < immunity_period)
+                    || pallet_subspace::SubnetRegistrationBlock::<T>::get(netuid)
+                        .map_or(true, |block| {
+                            current_block.saturating_sub(block) >= immunity_period
+                        })
             })
             .min_by_key(|(_, emission)| *emission)
             .map(|(netuid, _)| netuid)
-    }
-    /// Removes the emission storage for a given subnet.
-    ///
-    /// # Arguments
-    ///
-    /// * `netuid` - The ID of the subnet to remove from storage.
-    pub fn remove_subnet_emission_storage(netuid: u16) {
-        SubnetEmission::<T>::remove(netuid);
     }
 
     /// Sets the emission storage for a given subnet.
@@ -287,12 +326,6 @@ impl<T: Config> Pallet<T> {
 
     pub fn create_yuma_subnet(netuid: u16) {
         SubnetConsensusType::<T>::set(netuid, Some(SubnetConsensus::Yuma));
-    }
-
-    pub fn remove_yuma_subnet(netuid: u16) {
-        if Self::can_remove_subnet(netuid) {
-            SubnetConsensusType::<T>::remove(netuid);
-        }
     }
 
     pub fn can_remove_subnet(netuid: u16) -> bool {

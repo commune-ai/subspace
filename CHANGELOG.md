@@ -1,5 +1,118 @@
 # Changelog
 
+spec version `126`
+
+**Breaking Changes**
+
+Moved:
+- `set_weights` extrinsic has been moved to `SubnetEmissionModule` from `SubspaceModule`.
+- `delegate_rootnet_control` extrinsic has been moved to `SubnetEmissionModule` from `SubspaceModule`.
+- Some storages have been moved to `SubnetEmissionModule` from `SubspaceModule`:
+  - WeightEncryptionMap
+  - 
+Deleted:
+- `TrustRatio`
+
+**New Storages**
+Offchain Worker Module:
+- `MeasuredStakeAmount`:
+  - Description: The amount of actual consensus sum stake. Used for a simulated consensus.
+  - Type: StorageValue<Percent>
+  - Default: 5%
+
+- `IrrationalityDelta`:
+  - Description: The amount of delta between cumulative copier dividends and cumulative delegator dividends.
+  - Type: StorageMap<u16, I64F64>
+  - Default: None (empty map)
+
+Subnet Emission Module:
+- `BannedDecryptionNodes`:
+  - Description: A list of nodes that are banned from decrypting the network weights.
+  - Type: StorageMap<T::AccountId, u64>
+  - Default: None (empty map)
+
+- `EncryptedWeights`:
+  - Description: The encrypted weights of the network.
+  - Type: StorageDoubleMap<u16, u16, Vec<u8>>
+  - Default: None (empty map)
+
+- `Authorities`:
+  - Description: Association of signing public keys with associated rsa encryption public keys.
+  - Type: StorageValue<BoundedVec<(T::AccountId, PublicKey), T::MaxAuthorities>>
+  - Default: Empty BoundedVec
+
+- `DecryptionNodes`:
+  - Description: This storage is managed dynamically based on the do_keep_alive offchain worker call. It is built from the authorities storage.
+  - Type: StorageValue<Vec<DecryptionNodeInfo<T>>>
+  - Default: Empty Vec
+
+- `SubnetDecryptionData`:
+  - Description: Decryption Node Info assigned to subnet, includes information about the decryption node responsible for the subnet.
+  - Type: StorageMap<u16, SubnetDecryptionInfo<T>>
+  - Default: None (empty map)
+
+- `DecryptionNodeCursor`:
+  - Description: Cursor for the decryption node rotation.
+  - Type: StorageValue<u16>
+  - Default: 0
+
+- `ConsensusParameters`:
+  - Description: Stores all data needed to run consensus.
+  - Type: StorageDoubleMap<u16, u64, ConsensusParams<T>>
+  - Default: None (empty map)
+
+- `WeightEncryptionData`:
+  - Description: Stores both the encrypted weight and hash of a validator on a subnet.
+  - Type: StorageDoubleMap<u16, u16, EncryptionMechanism>
+  - Default: None (empty double map)
+
+- `DecryptionNodeBanQueue`:
+  - Description: Queue of decryption nodes that will be banned next epoch.
+  - Type: StorageDoubleMap<u16, T::AccountId, u64> 
+  - Default: None (empty double map)
+
+Subspace Module:
+- `MaxEncryptionPeriod`:
+  - Description: The maximum amount of blocks weights can stay encrypted for, a specific subnet.
+  - Type: StorageMap<u16, u64>
+  - Default: 2000
+  - • Part of `SubnetParams` struct, can be updated by the subnet owner
+
+- `CopierMargin`:
+  - Description: Allowed percentage profit margin of rationality above full irrationality for the weight copying strategy.
+  - Type: StorageMap<u16, I64F64>
+  - Default: 0
+  - • Part of `SubnetParams` struct, can be updated by the subnet owner
+
+- `UseWeightsEncryption`:
+  - Description: A flag to enable or disable weights encryption for a specific subnet.
+  - Type: StorageMap<u16, bool>
+  - Default: None (empty map)
+  - • Part of `SubnetParams` struct, can be updated by the subnet owner
+
+- `AlphaValues`:
+  - Description: The alpha values for liquid alpha.
+  - Type: StorageMap<u16, (u16, u16)>
+  - Default: (45875, 58982)
+
+**New Extrinsics**
+- `set_weights_encrypted` in `SubnetEmissionModule`
+
+**New Offchain Worker Extrinsics**
+These extrinsics are meant to be called by offchain workers only and should not be invoked directly:
+- `send_decrypted_weights` in `OffworkerModule`
+- `send_ping` in `OffworkerModule`
+
+**New Root-Only Extrinsic**
+- `add_authorities` in `OffworkerModule`
+
+**Other Changes**
+- introducing weight copying prevention
+- evm functionality was fixed
+- linear consensus and yuma consensus were refactored to reuse parts of the same code
+- migration of weights to subnet emission module
+- general codebase refactor
+
 spec version `125`
 
 updated metadata removal variable
@@ -57,7 +170,7 @@ Extrinsics:
 - `add_global_params_proposal` no longer takes `min_burn` and `max_burn`
 - `update_subnet` now takes `min_burn` and `max_burn`
 
-spec_version `118-119`
+'spec_version' `118-119`
 
 This branch starts off of the commit hash `95e5d26b550839c24fd367090e02abaa37df3d32`.
 diff [here](https://github.com/agicommies/subspace-network/compare/db8a19b1d2155d3ecda4172aaf72cdeea1feda2b...agicommies:subspace-network:feat/global-stake)
@@ -89,7 +202,7 @@ Rootnet validators are capable of calling this extrinsic. The weight setting of 
 
 `spec_version: 117`
 
-This version delivers on the [GovernanceProposal](https://governance.communeai.org/proposal/4).
+This version delivers on the [GovernanceProposal](https://governance.communeai.org/proposal/4).f
 
 ### Introducing the new `GovernanceModule` pallet
 

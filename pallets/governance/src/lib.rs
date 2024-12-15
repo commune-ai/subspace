@@ -18,9 +18,16 @@ use frame_support::{
 };
 use frame_system::pallet_prelude::OriginFor;
 use sp_std::vec::Vec;
+use substrate_fixed::types::I64F64;
 
 pub use pallet::*;
 pub use pallet_governance_api::*;
+use pallet_subspace::{
+    self, define_subnet_includes,
+    params::{burn::GeneralBurnConfiguration, subnet::SubnetChangeset},
+    DefaultKey,
+};
+
 pub use proposal::{Proposal, ProposalData, ProposalId, ProposalStatus, UnrewardedProposal};
 
 type SubnetId = u16;
@@ -37,9 +44,12 @@ pub mod pallet {
         PalletId,
     };
     use frame_system::pallet_prelude::{ensure_signed, BlockNumberFor};
-    use pallet_subspace::{global::GeneralBurnConfiguration, DefaultKey};
     use sp_runtime::traits::AccountIdConversion;
 
+    #[cfg(feature = "testnet")]
+    const STORAGE_VERSION: StorageVersion = StorageVersion::new(4);
+
+    #[cfg(not(feature = "testnet"))]
     const STORAGE_VERSION: StorageVersion = StorageVersion::new(2);
 
     #[pallet::pallet]
@@ -84,21 +94,12 @@ pub mod pallet {
         }
     }
 
-    // ---------------------------------
-    // Proposals
-    // ---------------------------------
+    // --- Subnet Related Storage ---
 
-    #[pallet::storage]
-    pub type GlobalGovernanceConfig<T: Config> =
-        StorageValue<_, GovernanceConfiguration, ValueQuery>;
-
-    #[pallet::type_value]
-    pub fn DefaultSubnetGovernanceConfig<T: Config>() -> GovernanceConfiguration {
-        GovernanceConfiguration {
-            vote_mode: VoteMode::Authority,
-            ..Default::default()
-        }
-    }
+    define_subnet_includes!(
+        double_maps: {},
+        maps: { SubnetGovernanceConfig, }
+    );
 
     #[pallet::storage]
     pub type SubnetGovernanceConfig<T: Config> = StorageMap<
@@ -110,9 +111,25 @@ pub mod pallet {
         DefaultSubnetGovernanceConfig<T>,
     >;
 
+    #[pallet::type_value]
+    pub fn DefaultSubnetGovernanceConfig<T: Config>() -> GovernanceConfiguration {
+        GovernanceConfiguration {
+            vote_mode: VoteMode::Authority,
+            ..Default::default()
+        }
+    }
+
+    // --- Proposal Related Storage ---
+
     /// A map of all proposals, indexed by their IDs.
     #[pallet::storage]
     pub type Proposals<T: Config> = StorageMap<_, Identity, ProposalId, Proposal<T>>;
+
+    #[pallet::storage]
+    pub type UnrewardedProposals<T: Config> =
+        StorageMap<_, Identity, ProposalId, UnrewardedProposal<T>>;
+
+    // --- Storage Items ---
 
     /// A map relating all modules and the stakers that are currently **NOT** delegating their
     /// voting power.
@@ -124,12 +141,8 @@ pub mod pallet {
         StorageValue<_, BoundedBTreeSet<T::AccountId, ConstU32<{ u32::MAX }>>, ValueQuery>;
 
     #[pallet::storage]
-    pub type UnrewardedProposals<T: Config> =
-        StorageMap<_, Identity, ProposalId, UnrewardedProposal<T>>;
-
-    // ---------------------------------
-    // Treasury
-    // ---------------------------------
+    pub type GlobalGovernanceConfig<T: Config> =
+        StorageValue<_, GovernanceConfiguration, ValueQuery>;
 
     #[pallet::type_value] // This has to be different than DefaultKey, so we are not conflicting in tests.
     pub fn DefaultDaoTreasuryAddress<T: Config>() -> T::AccountId {
@@ -140,10 +153,6 @@ pub mod pallet {
     pub type DaoTreasuryAddress<T: Config> =
         StorageValue<_, T::AccountId, ValueQuery, DefaultDaoTreasuryAddress<T>>;
 
-    // ---------------------------------
-    // Dao
-    // ---------------------------------
-
     #[pallet::type_value]
     pub fn DefaultGeneralSubnetApplicationCost<T: Config>() -> u64 {
         1_000_000_000_000 // 1_000 $COMAI
@@ -152,6 +161,12 @@ pub mod pallet {
     #[pallet::storage]
     pub type GeneralSubnetApplicationCost<T: Config> =
         StorageValue<_, u64, ValueQuery, DefaultGeneralSubnetApplicationCost<T>>;
+
+    /// Determines whether smart contract can be deployed by everyone or only by the curator
+    #[pallet::storage]
+    pub type RestrictContractDeploy<T: Config> = StorageValue<_, bool, ValueQuery>;
+
+    // --- Curator Related Storage ---
 
     #[pallet::storage]
     pub type CuratorApplications<T: Config> = StorageMap<_, Identity, u64, CuratorApplication<T>>;
@@ -162,15 +177,11 @@ pub mod pallet {
     #[pallet::storage]
     pub type Curator<T: Config> = StorageValue<_, T::AccountId, ValueQuery, DefaultKey<T>>;
 
-    // ---------------------------------
-    // Extrinsics
-    // ---------------------------------
+    // --- Extrinsics ---
 
     #[pallet::call]
     impl<T: Config> Pallet<T> {
-        //---------------------------------
-        // Adding proposals
-        //---------------------------------
+        // ---  Adding Proposals ---
 
         #[pallet::call_index(0)]
         #[pallet::weight((<T as pallet::Config>::WeightInfo::add_global_params_proposal(), DispatchClass::Normal, Pays::No))]
@@ -183,7 +194,8 @@ pub mod pallet {
             max_allowed_modules: u16,
             max_registrations_per_block: u16,
             max_allowed_weights: u16,
-            floor_delegation_fee: Percent,
+            floor_stake_delegation_fee: Percent,
+            floor_validator_weight_fee: Percent,
             floor_founder_share: u8,
             min_weight_stake: u64,
             curator: T::AccountId,
@@ -201,7 +213,8 @@ pub mod pallet {
             params.max_allowed_modules = max_allowed_modules;
             params.max_registrations_per_block = max_registrations_per_block;
             params.max_allowed_weights = max_allowed_weights;
-            params.floor_delegation_fee = floor_delegation_fee;
+            params.floor_stake_delegation_fee = floor_stake_delegation_fee;
+            params.floor_validator_weight_fee = floor_validator_weight_fee;
             params.floor_founder_share = floor_founder_share;
             params.min_weight_stake = min_weight_stake;
             params.curator = curator;
@@ -231,13 +244,15 @@ pub mod pallet {
             min_allowed_weights: u16,
             max_weight_age: u64,
             tempo: u16,
-            trust_ratio: u16,
-            maximum_set_weight_calls_per_epoch: u16,
+            maximum_set_weight_calls_per_epoch: Option<u16>,
             vote_mode: VoteMode,
             bonds_ma: u64,
             module_burn_config: GeneralBurnConfiguration<T>,
             min_validator_stake: u64,
             max_allowed_validators: Option<u16>,
+            use_weights_encryption: bool,
+            copier_margin: I64F64,
+            max_encryption_period: Option<u64>,
         ) -> DispatchResult {
             let mut params = pallet_subspace::Pallet::subnet_params(netuid);
             params.founder = founder;
@@ -251,13 +266,15 @@ pub mod pallet {
             params.min_allowed_weights = min_allowed_weights;
             params.max_weight_age = max_weight_age;
             params.tempo = tempo;
-            params.trust_ratio = trust_ratio;
             params.maximum_set_weight_calls_per_epoch = maximum_set_weight_calls_per_epoch;
             params.governance_config.vote_mode = vote_mode;
             params.bonds_ma = bonds_ma;
             params.module_burn_config = module_burn_config;
             params.min_validator_stake = min_validator_stake;
             params.max_allowed_validators = max_allowed_validators;
+            params.use_weights_encryption = use_weights_encryption;
+            params.copier_margin = copier_margin;
+            params.max_encryption_period = max_encryption_period;
             Self::do_add_subnet_params_proposal(origin, netuid, data, params)
         }
 
@@ -288,9 +305,7 @@ pub mod pallet {
             Self::do_add_transfer_dao_treasury_proposal(origin, data, value, dest)
         }
 
-        // ---------------------------------
-        // Voting / Unvoting proposals
-        // ---------------------------------
+        // --- Voting / Unvoting proposals ---
 
         // This has to pay fee, so very low stake keys don't spam the voting system.
         #[pallet::call_index(5)]
@@ -323,9 +338,7 @@ pub mod pallet {
             Self::update_delegating_voting_power(&key, false)
         }
 
-        // ---------------------------------
-        // Subnet 0 DAO
-        // ---------------------------------
+        // --- General Subnet DAO ---
 
         #[pallet::call_index(9)]
         #[pallet::weight((<T as pallet::Config>::WeightInfo::add_dao_application(), DispatchClass::Normal, Pays::No))]
@@ -359,9 +372,7 @@ pub mod pallet {
         }
     }
 
-    // ---------------------------------
-    // Events
-    // ---------------------------------
+    // --- Events ---
 
     #[pallet::event]
     #[pallet::generate_deposit(pub(crate) fn deposit_event)]
@@ -385,9 +396,8 @@ pub mod pallet {
         /// A new application has been created.
         ApplicationCreated(u64),
     }
-    // ---------------------------------
-    // Errors
-    // ---------------------------------
+
+    // ---  Errors ---
 
     #[pallet::error]
     pub enum Error<T> {
@@ -459,9 +469,7 @@ pub mod pallet {
     }
 }
 
-// ---------------------------------
-// Pallet Implementation
-// ---------------------------------
+// --- Pallet Implementation ---
 
 impl<T: Config> Pallet<T> {
     pub fn validate(
@@ -513,9 +521,5 @@ impl<T: Config> Pallet<T> {
         let config = Self::validate(config)?;
         SubnetGovernanceConfig::<T>::set(subnet_id, config);
         Ok(())
-    }
-
-    pub fn handle_subnet_removal(subnet_id: u16) {
-        SubnetGovernanceConfig::<T>::remove(subnet_id);
     }
 }

@@ -1,6 +1,5 @@
+use crate::{Config, Weights};
 use core::marker::PhantomData;
-
-use frame_system::Config;
 use pallet_subspace::Uids;
 use substrate_fixed::transcendental::exp;
 
@@ -9,7 +8,7 @@ use sp_std::{vec, vec::Vec};
 use crate::PricedSubnets;
 use substrate_fixed::types::{I32F32, I64F64};
 
-pub struct RootPricing<T: Config + pallet_subspace::Config> {
+pub struct RootPricing<T: Config> {
     rootnet_id: u16,
     to_be_emitted: u64,
     _pd: PhantomData<T>,
@@ -172,7 +171,7 @@ impl<T: Config + pallet_subspace::Config> RootPricing<T> {
         let mut weights: Vec<Vec<I64F64>> =
             vec![vec![I64F64::from_num(0.0); num_subnet_ids]; num_modules];
 
-        for (uid_i, weights_i) in pallet_subspace::Weights::<T>::iter_prefix(rootnet_id) {
+        for (uid_i, weights_i) in Weights::<T>::iter_prefix(rootnet_id) {
             for (netuid, weight_ij) in &weights_i {
                 let idx = (uid_i as usize).saturating_sub(num_modules.saturating_sub(num_modules));
                 if let Some(weight) = weights.get_mut(idx) {
