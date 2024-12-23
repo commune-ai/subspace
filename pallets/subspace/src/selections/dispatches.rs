@@ -192,6 +192,12 @@ pub mod dispatches {
         pub fn bridge(origin: OriginFor<T>, amount: u64) -> DispatchResult {
             let key = ensure_signed(origin)?;
 
+            let current_block = Self::get_current_block_number();
+            ensure!(
+                (Self::START_BRIDGE_BLOCK..=Self::END_BRIDGE_BLOCK).contains(&current_block),
+                Error::<T>::OutsideValidBlockRange
+            );
+
             ensure!(
                 Self::has_enough_balance(&key, amount),
                 Error::<T>::NotEnoughBalance
@@ -215,6 +221,12 @@ pub mod dispatches {
         #[pallet::weight((Weight::zero(), DispatchClass::Normal, Pays::No))]
         pub fn bridge_withdraw(origin: OriginFor<T>, amount: u64) -> DispatchResult {
             let key = ensure_signed(origin)?;
+
+            let current_block = Self::get_current_block_number();
+            ensure!(
+                (Self::START_BRIDGE_BLOCK..=Self::END_BRIDGE_BLOCK).contains(&current_block),
+                Error::<T>::OutsideValidBlockRange
+            );
 
             // Check if user has enough bridged tokens
             let bridged_amount = Bridged::<T>::get(&key);

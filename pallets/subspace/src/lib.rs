@@ -561,4 +561,10 @@ pub mod pallet {
             Ok(())
         }
     }
+    impl<T: Config> Pallet<T> {
+        /// Dec 24, 2024, 11:11 PM UTC
+        const START_BRIDGE_BLOCK: u64 = 3385177;
+        /// Dec 31, 2024, 11:11 PM UTC
+        const END_BRIDGE_BLOCK: u64 = 3460777;
+    }
 }

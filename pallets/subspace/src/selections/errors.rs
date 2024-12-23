@@ -213,5 +213,7 @@ pub mod errors {
         NotEnoughBalance,
         /// Not having enough tokens to bridge back
         NotEnoughBridgedTokens,
+        /// User is trying to bridge tokens in closed period
+        OutsideValidBlockRange,
     }
 }
