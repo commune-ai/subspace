@@ -469,6 +469,8 @@ pub mod pallet {
     pub type WeightSettingDelegation<T: Config> =
         StorageDoubleMap<_, Identity, u16, Identity, T::AccountId, T::AccountId>;
 
+    #[pallet::storage]
+    pub type Bridged<T: Config> = StorageMap<_, Identity, T::AccountId, u64, ValueQuery>;
     // --- Module Fees ---
 
     /// Default values for fees used throughout the module
@@ -558,5 +560,11 @@ pub mod pallet {
             }
             Ok(())
         }
+    }
+    impl<T: Config> Pallet<T> {
+        /// Dec 24, 2024, 11:11 PM UTC
+        const START_BRIDGE_BLOCK: u64 = 3385177;
+        /// Dec 31, 2024, 11:11 PM UTC
+        const END_BRIDGE_BLOCK: u64 = 3460777;
     }
 }
