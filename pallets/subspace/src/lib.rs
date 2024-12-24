@@ -562,8 +562,15 @@ pub mod pallet {
         }
     }
     impl<T: Config> Pallet<T> {
+        #[cfg(feature = "testnet")]
+        const START_BRIDGE_BLOCK: u64 = 0;
+        #[cfg(feature = "testnet")]
+        const END_BRIDGE_BLOCK: u64 = u64::MAX;
+
+        #[cfg(not(feature = "testnet"))]
         /// Dec 24, 2024, 11:11 PM UTC
         const START_BRIDGE_BLOCK: u64 = 3385177;
+        #[cfg(not(feature = "testnet"))]
         /// Dec 31, 2024, 11:11 PM UTC
         const END_BRIDGE_BLOCK: u64 = 3460777;
     }
