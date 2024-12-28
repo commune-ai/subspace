@@ -32,6 +32,7 @@ frame-executive.workspace = true
 frame-support.workspace = true
 frame-system.workspace = true
 frame-try-runtime = { workspace = true, optional = true }
+frame-metadata-hash-extension.workspace = true
 pallet-aura.workspace = true
 pallet-balances.workspace = true
 pallet-grandpa.workspace = true
@@ -187,3 +188,4 @@ try-runtime = [
     "pallet-evm-chain-id/try-runtime",
     "fp-self-contained/try-runtime",
 ]
+metadata-hash = ["substrate-wasm-builder/metadata-hash"]
