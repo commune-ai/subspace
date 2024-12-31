@@ -25,11 +25,11 @@ compose:
 	docker-compose up -d ${service}
 
 try-runtime-upgrade-testnet:
-	cargo build --release --features "try-runtime,testnet"
+	cargo build --release --features "try-runtime,testnet,runtime-metadata-hash-extension"
 	RUST_BACKTRACE=1; RUST_LOG="${RUST_LOG}"; try-runtime --runtime target/release/wbuild/node-subspace-runtime/node_subspace_runtime.compact.compressed.wasm on-runtime-upgrade --blocktime 8000 live --uri wss://testnet.api.communeai.net:443
 
 try-runtime-upgrade-mainnet:
-	cargo build --release --features try-runtime
+	cargo build --release --features "try-runtime,runtime-metadata-hash-extension"
 	RUST_BACKTRACE=1; RUST_LOG="${RUST_LOG}"; try-runtime --runtime target/release/wbuild/node-subspace-runtime/node_subspace_runtime.compact.compressed.wasm on-runtime-upgrade --blocktime 8000 live --uri wss://api.communeai.net:443
 
 try-runtime-upgrade-devnet:
