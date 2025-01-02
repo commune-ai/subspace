@@ -217,7 +217,7 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
     spec_name: create_runtime_str!("node-subspace"),
     impl_name: create_runtime_str!("node-subspace"),
     authoring_version: 1,
-    spec_version: 130,
+    spec_version: 131,
     impl_version: 1,
     apis: RUNTIME_API_VERSIONS,
     transaction_version: 1,
@@ -747,6 +747,7 @@ pub type Header = generic::Header<BlockNumber, BlakeTwo256>;
 // Block type as expected by this runtime.
 pub type Block = generic::Block<Header, UncheckedExtrinsic>;
 // The SignedExtension to the basic transaction logic.
+#[cfg(feature = "metadata-hash")]
 pub type SignedExtra = (
     frame_system::CheckNonZeroSender<Runtime>,
     frame_system::CheckSpecVersion<Runtime>,
@@ -757,6 +758,18 @@ pub type SignedExtra = (
     frame_system::CheckWeight<Runtime>,
     pallet_transaction_payment::ChargeTransactionPayment<Runtime>,
     frame_metadata_hash_extension::CheckMetadataHash<Runtime>,
+);
+
+#[cfg(not(feature = "metadata-hash"))]
+pub type SignedExtra = (
+    frame_system::CheckNonZeroSender<Runtime>,
+    frame_system::CheckSpecVersion<Runtime>,
+    frame_system::CheckTxVersion<Runtime>,
+    frame_system::CheckGenesis<Runtime>,
+    frame_system::CheckEra<Runtime>,
+    frame_system::CheckNonce<Runtime>,
+    frame_system::CheckWeight<Runtime>,
+    pallet_transaction_payment::ChargeTransactionPayment<Runtime>,
 );
 
 // Unchecked extrinsic type as expected by this runtime.
@@ -1532,6 +1545,7 @@ where
             frame_system::CheckNonce::<Runtime>::from(nonce),
             frame_system::CheckWeight::<Runtime>::new(),
             pallet_transaction_payment::ChargeTransactionPayment::<Runtime>::from(tip),
+            #[cfg(feature = "metadata-hash")]
             frame_metadata_hash_extension::CheckMetadataHash::<Runtime>::new(true),
         );
 
