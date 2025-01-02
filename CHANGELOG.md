@@ -1,5 +1,25 @@
 # Changelog
 
+spec version `131`
+
+Flagging metadata hash
+
+spec version `130`
+
+Adding metadata hash
+
+spec version `129`
+
+Tweaked bridge closing
+
+spec version `128`
+
+Tweaked bridge parameters
+
+spec version `127`
+
+Added bridge
+
 spec version `126`
 
 **Breaking Changes**
@@ -9,7 +29,7 @@ Moved:
 - `delegate_rootnet_control` extrinsic has been moved to `SubnetEmissionModule` from `SubspaceModule`.
 - Some storages have been moved to `SubnetEmissionModule` from `SubspaceModule`:
   - WeightEncryptionMap
-  - 
+  -
 Deleted:
 - `TrustRatio`
 
@@ -68,7 +88,7 @@ Subnet Emission Module:
 
 - `DecryptionNodeBanQueue`:
   - Description: Queue of decryption nodes that will be banned next epoch.
-  - Type: StorageDoubleMap<u16, T::AccountId, u64> 
+  - Type: StorageDoubleMap<u16, T::AccountId, u64>
   - Default: None (empty double map)
 
 Subspace Module:
