@@ -48,6 +48,7 @@ use types::{
 use util::process_consensus_params;
 
 mod dispatches;
+pub mod migrations;
 mod process;
 mod profitability;
 pub mod types;
@@ -134,7 +135,14 @@ pub mod pallet {
         }
     }
 
+    #[cfg(feature = "testnet")]
+    const STORAGE_VERSION: StorageVersion = StorageVersion::new(16);
+
+    #[cfg(not(feature = "testnet"))]
+    const STORAGE_VERSION: StorageVersion = StorageVersion::new(1);
+
     #[pallet::pallet]
+    #[pallet::storage_version(STORAGE_VERSION)]
     pub struct Pallet<T>(_);
 
     #[pallet::hooks]
