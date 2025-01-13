@@ -1,5 +1,9 @@
 # Changelog
 
+spec version `132`
+
+adding a storage migration to remove authorities
+
 spec version `131`
 
 Flagging metadata hash
