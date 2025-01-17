@@ -204,7 +204,7 @@ pub mod pallet {
 
     // Subnet Pricing & Consensus
     #[pallet::storage]
-    pub type UnitEmission<T> = StorageValue<_, u64, ValueQuery, ConstU64<23148148148>>;
+    pub type UnitEmission<T> = StorageValue<_, u64, ValueQuery, ConstU64<6427777777>>;
 
     // Emission Allocation per Block step
     // ==================================
