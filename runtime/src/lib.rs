@@ -484,8 +484,8 @@ impl pallet_subnet_emission::Config for Runtime {
     type Currency = Balances;
     // The runtime has 9 token decimals
     type Decimals = ConstU8<9>;
-    type HalvingInterval = ConstU64<{ u64::MAX }>; // never halve
-    type MaxSupply = ConstU64<{ u64::MAX }>;
+    type HalvingInterval = ConstU64<84_710_000>; // half way through max supply
+    type MaxSupply = ConstU64<169_420_000>;
     type DecryptionNodeRotationInterval = ConstU64<5_000>;
     // type DecryptionNodeRotationInterval = ConstU64<5_0>;
 
