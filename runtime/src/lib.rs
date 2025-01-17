@@ -193,7 +193,10 @@ pub mod opaque {
 pub type Migrations = ();
 
 #[cfg(not(feature = "testnet"))]
-pub type Migrations = (pallet_offworker::migrations::v1::MigrateToV1<Runtime>);
+pub type Migrations = (
+    pallet_offworker::migrations::v1::MigrateToV1<Runtime>,
+    pallet_subnet_emission::migrations::v2::MigrateToV2<Runtime>, // set lower block emission
+);
 
 #[sp_version::runtime_version]
 #[cfg(feature = "testnet")]
@@ -481,8 +484,8 @@ impl pallet_subnet_emission::Config for Runtime {
     type Currency = Balances;
     // The runtime has 9 token decimals
     type Decimals = ConstU8<9>;
-    type HalvingInterval = ConstU64<250_000_000>;
-    type MaxSupply = ConstU64<1_000_000_000>;
+    type HalvingInterval = ConstU64<{ u64::MAX }>; // never halve
+    type MaxSupply = ConstU64<{ u64::MAX }>;
     type DecryptionNodeRotationInterval = ConstU64<5_000>;
     // type DecryptionNodeRotationInterval = ConstU64<5_0>;
 

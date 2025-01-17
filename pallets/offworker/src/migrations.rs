@@ -19,7 +19,7 @@ pub mod v1 {
 
             StorageVersion::new(1).put::<Pallet<T>>();
 
-            let _ = Authorities::<T>::kill();
+            Authorities::<T>::kill();
 
             log::info!("Migrated to v1");
 
