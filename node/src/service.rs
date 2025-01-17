@@ -15,16 +15,15 @@ use sp_consensus_aura::sr25519::AuthorityPair as AuraPair;
 use sp_runtime::traits::Block as BlockT;
 use std::{path::PathBuf, sync::Arc, time::Duration};
 
-#[cfg(feature = "testnet")]
-use std::path::Path;
-
-#[cfg(feature = "testnet")]
-use sp_core::H256;
-
 use crate::{
     cli::Sealing,
     client::{Client, FullBackend},
 };
+#[cfg(feature = "testnet")]
+use std::path::Path;
+
+#[cfg(feature = "testnet")]
+use sp_core::{H256, U256};
 
 #[cfg(feature = "testnet")]
 pub use crate::eth::{

@@ -190,12 +190,12 @@ pub mod opaque {
 }
 
 #[cfg(feature = "testnet")]
-pub type Migrations = (pallet_subnet_emission::migrations::v1::MigrateToV1<Runtime>,);
+pub type Migrations = ();
 
 #[cfg(not(feature = "testnet"))]
 pub type Migrations = (
-    pallet_subspace::migrations::v15::MigrateToV15<Runtime>,
-    pallet_subnet_emission::migrations::v1::MigrateToV1<Runtime>,
+    pallet_offworker::migrations::v1::MigrateToV1<Runtime>,
+    pallet_subnet_emission::migrations::v2::MigrateToV2<Runtime>, // set lower block emission
 );
 
 #[sp_version::runtime_version]
@@ -204,7 +204,7 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
     spec_name: create_runtime_str!("node-subspace"),
     impl_name: create_runtime_str!("node-subspace"),
     authoring_version: 1,
-    spec_version: 512,
+    spec_version: 515,
     impl_version: 1,
     apis: RUNTIME_API_VERSIONS,
     transaction_version: 1,
@@ -217,7 +217,7 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
     spec_name: create_runtime_str!("node-subspace"),
     impl_name: create_runtime_str!("node-subspace"),
     authoring_version: 1,
-    spec_version: 126,
+    spec_version: 132,
     impl_version: 1,
     apis: RUNTIME_API_VERSIONS,
     transaction_version: 1,
@@ -484,8 +484,8 @@ impl pallet_subnet_emission::Config for Runtime {
     type Currency = Balances;
     // The runtime has 9 token decimals
     type Decimals = ConstU8<9>;
-    type HalvingInterval = ConstU64<250_000_000>;
-    type MaxSupply = ConstU64<1_000_000_000>;
+    type HalvingInterval = ConstU64<84_710_000>; // half way through max supply
+    type MaxSupply = ConstU64<169_420_000>;
     type DecryptionNodeRotationInterval = ConstU64<5_000>;
     // type DecryptionNodeRotationInterval = ConstU64<5_0>;
 
@@ -747,6 +747,20 @@ pub type Header = generic::Header<BlockNumber, BlakeTwo256>;
 // Block type as expected by this runtime.
 pub type Block = generic::Block<Header, UncheckedExtrinsic>;
 // The SignedExtension to the basic transaction logic.
+#[cfg(feature = "metadata-hash")]
+pub type SignedExtra = (
+    frame_system::CheckNonZeroSender<Runtime>,
+    frame_system::CheckSpecVersion<Runtime>,
+    frame_system::CheckTxVersion<Runtime>,
+    frame_system::CheckGenesis<Runtime>,
+    frame_system::CheckEra<Runtime>,
+    frame_system::CheckNonce<Runtime>,
+    frame_system::CheckWeight<Runtime>,
+    pallet_transaction_payment::ChargeTransactionPayment<Runtime>,
+    frame_metadata_hash_extension::CheckMetadataHash<Runtime>,
+);
+
+#[cfg(not(feature = "metadata-hash"))]
 pub type SignedExtra = (
     frame_system::CheckNonZeroSender<Runtime>,
     frame_system::CheckSpecVersion<Runtime>,
@@ -1531,7 +1545,8 @@ where
             frame_system::CheckNonce::<Runtime>::from(nonce),
             frame_system::CheckWeight::<Runtime>::new(),
             pallet_transaction_payment::ChargeTransactionPayment::<Runtime>::from(tip),
-            // frame_metadata_hash_extension::CheckMetadataHash::new(true), TODO
+            #[cfg(feature = "metadata-hash")]
+            frame_metadata_hash_extension::CheckMetadataHash::<Runtime>::new(true),
         );
 
         let raw_payload = SignedPayload::new(call, extra)
