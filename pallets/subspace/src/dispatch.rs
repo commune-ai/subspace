@@ -92,8 +92,6 @@ pub mod dispatches {
             origin: OriginFor<T>,
             name: Vec<u8>,
             url: Vec<u8>,
-            stake_delegation_fee: Option<Percent>,
-            validator_weight_fee: Option<Percent>,
             metadata: Option<Vec<u8>>,
         ) -> DispatchResult {
             let key = ensure_signed(origin.clone())?;
@@ -102,21 +100,7 @@ pub mod dispatches {
                 Error::<T>::ModuleDoesNotExist
             );
             let params = Self::module_params(&key, uid);
-
-            let fees = match (stake_delegation_fee, validator_weight_fee) {
-                (None, None) => None,
-                (stake_fee, weight_fee) => {
-                    let current_fees = ValidatorFeeConfig::<T>::get(&key);
-                    Some(ModuleFees {
-                        stake_delegation_fee: stake_fee
-                            .unwrap_or(current_fees.stake_delegation_fee),
-                        validator_weight_fee: weight_fee
-                            .unwrap_or(current_fees.validator_weight_fee),
-                    })
-                }
-            };
-
-            let changeset = ModuleParams::update(&params, name, url, fees, metadata);
+            let changeset = ModuleParams::update(&params, name, url, metadata);
             Self::do_update_module(origin, changeset)
         }
 

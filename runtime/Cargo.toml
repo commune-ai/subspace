@@ -18,7 +18,6 @@ ignored = ["scale-info"]
 [dependencies]
 pallet-faucet = { path = "../pallets/faucet", optional = true, default-features = false }
 pallet-governance = { path = "../pallets/governance", default-features = false }
-pallet-subnet-emission = { path = "../pallets/subnet_emission", default-features = false }
 pallet-subspace = { path = "../pallets/subspace", default-features = false }
 pallet-offworker = { path = "../pallets/offworker", default-features = false }
 

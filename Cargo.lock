@@ -5738,9 +5738,6 @@ dependencies = [
  "pallet-governance-api",
  "pallet-grandpa",
  "pallet-multisig",
- "pallet-offworker",
- "pallet-subnet-emission",
- "pallet-subnet-emission-api",
  "pallet-subspace",
  "pallet-sudo",
  "pallet-timestamp",
@@ -6348,7 +6345,6 @@ dependencies = [
  "log",
  "num-traits",
  "ow_extensions",
- "pallet-subnet-emission",
  "pallet-subspace",
  "parity-scale-codec",
  "scale-info",
@@ -6381,37 +6377,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "pallet-subnet-emission"
-version = "1.0.1"
-dependencies = [
- "bty",
- "frame-benchmarking",
- "frame-support",
- "frame-system",
- "log",
- "pallet-governance-api",
- "pallet-subnet-emission-api",
- "pallet-subspace",
- "parity-scale-codec",
- "scale-info",
- "sp-core",
- "sp-io",
- "sp-runtime",
- "sp-std",
- "strum 0.25.0",
- "substrate-fixed",
-]
-
-[[package]]
-name = "pallet-subnet-emission-api"
-version = "1.0.0"
-dependencies = [
- "frame-support",
- "parity-scale-codec",
- "scale-info",
-]
-
-[[package]]
 name = "pallet-subspace"
 version = "1.8.6"
 dependencies = [
@@ -6423,7 +6388,6 @@ dependencies = [
  "num-traits",
  "pallet-balances",
  "pallet-governance-api",
- "pallet-subnet-emission-api",
  "pallet-subspace-genesis-config",
  "parity-scale-codec",
  "parity-util-mem",
@@ -10920,9 +10884,6 @@ dependencies = [
  "pallet-balances",
  "pallet-governance",
  "pallet-governance-api",
- "pallet-offworker",
- "pallet-subnet-emission",
- "pallet-subnet-emission-api",
  "pallet-subspace",
  "parity-scale-codec",
  "parking_lot 0.12.3",

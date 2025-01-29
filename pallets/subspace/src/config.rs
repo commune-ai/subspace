@@ -21,8 +21,6 @@ pub mod config {
         /// The default number of modules that can be registered per interval.
         type DefaultMaxRegistrationsPerInterval: Get<u16>;
         /// The default minimum burn amount required for module registration.
-        type DefaultModuleMinBurn: Get<u64>;
-        /// The default minimum burn amount required for module registration.
         type DefaultMinValidatorStake: Get<u64>;
 
         /// The weight information of this pallet.

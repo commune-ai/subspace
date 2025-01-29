@@ -48,7 +48,7 @@ xflags::xflags! {
             /// Also write the generated spec file to disk.
             optional -o, --output output: PathBuf
 
-            /// The Sudo address to use. SS58 Address.
+            /// The Sudo address to use. SS58 Url.
             optional --sudo sudo: String
         }
     }

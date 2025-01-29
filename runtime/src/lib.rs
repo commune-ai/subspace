@@ -493,8 +493,6 @@ impl pallet_subnet_emission::Config for Runtime {
     // Represented in number of blocks, defines how long decryption node will be banned for.
     // Ban presists even if ping are being sent.
     // 10_800 is one day, assume 8 second block time
-    type OffchainWorkerBanDuration = ConstU64<10_800>;
-    // After these many missed pings, node will be kept out of rotation, and it's signing avoided.
     // Node won't be fully banned yet.
     // 5 represents 250 blocks
     type MissedPingsForInactivity = ConstU8<5>;
@@ -645,12 +643,8 @@ construct_runtime!(
         Utility: pallet_utility,
         SubspaceModule: pallet_subspace,
         GovernanceModule: pallet_governance,
-        SubnetEmissionModule: pallet_subnet_emission,
-        Offworker: pallet_offworker,
-
         #[cfg(feature = "testnet-faucet")]
         FaucetModule: pallet_faucet,
-
         // EVM Support, for now only on testnet
         #[cfg(feature = "testnet")]
         EVM: pallet_evm,
@@ -741,7 +735,7 @@ impl EnsureAddressOrigin<RuntimeOrigin> for EnsureCuratorAddressTruncated {
 }
 
 // The address format for describing accounts.
-pub type Address = sp_runtime::MultiAddress<AccountId, ()>;
+pub type Url = sp_runtime::MultiAddress<AccountId, ()>;
 // Block header type as expected by this runtime.
 pub type Header = generic::Header<BlockNumber, BlakeTwo256>;
 // Block type as expected by this runtime.
@@ -761,11 +755,11 @@ pub type SignedExtra = (
 // Unchecked extrinsic type as expected by this runtime.
 #[cfg(feature = "testnet")]
 pub type UncheckedExtrinsic =
-    fp_self_contained::UncheckedExtrinsic<Address, RuntimeCall, Signature, SignedExtra>;
+    fp_self_contained::UncheckedExtrinsic<Url, RuntimeCall, Signature, SignedExtra>;
 
 #[cfg(not(feature = "testnet"))]
 pub type UncheckedExtrinsic =
-    generic::UncheckedExtrinsic<Address, RuntimeCall, Signature, SignedExtra>;
+    generic::UncheckedExtrinsic<Url, RuntimeCall, Signature, SignedExtra>;
 
 /// Extrinsic type that has already been checked.
 #[cfg(feature = "testnet")]
@@ -918,12 +912,6 @@ impl_runtime_apis! {
             block_hash: <Block as BlockT>::Hash,
         ) -> TransactionValidity {
             Executive::validate_transaction(source, tx, block_hash)
-        }
-    }
-
-    impl sp_offchain::OffchainWorkerApi<Block> for Runtime {
-        fn offchain_worker(header: &<Block as BlockT>::Header) {
-            Executive::offchain_worker(header)
         }
     }
 
@@ -1476,15 +1464,6 @@ impl pallet_governance_api::GovernanceApi<<Runtime as frame_system::Config>::Acc
         Curator::<Runtime>::put(curator)
     }
 
-    fn set_general_subnet_application_cost(amount: u64) {
-        GeneralSubnetApplicationCost::<Runtime>::put(amount)
-    }
-
-    fn clear_subnet_includes(netuid: u16) {
-        for storage_type in pallet_governance::SubnetIncludes::all() {
-            storage_type.remove_storage::<Runtime>(netuid);
-        }
-    }
 }
 
 impl<C> frame_system::offchain::SendTransactionTypes<C> for Runtime

@@ -8,7 +8,7 @@
 use frame_support::{traits::Get, weights::{Weight, constants::RocksDbWeight}};
 use core::marker::PhantomData;
 
-/// Weight functions needed for `pallet_subspace`.
+/// Weight dispatches needed for `pallet_subspace`.
 pub trait WeightInfo {
 	fn add_stake() -> Weight;
 	fn remove_stake() -> Weight;

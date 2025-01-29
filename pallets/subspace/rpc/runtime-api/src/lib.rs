@@ -31,7 +31,6 @@ pub struct ModuleStats {
 pub struct ModuleParams {
     pub name: Vec<u8>,
     pub url: Vec<u8>,
-    pub delegation_fee: Percent,
     pub metadata: Option<Vec<u8>>,
 }
 

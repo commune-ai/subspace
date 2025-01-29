@@ -15,42 +15,19 @@ pub struct GlobalParams<T: Config> {
     pub max_allowed_modules: u16,         // max number of modules allowed per subnet
     pub max_registrations_per_block: u16, // max number of registrations per block
     pub max_allowed_weights: u16,         // max number of weights per module
-
-    // mins
-    pub floor_stake_delegation_fee: Percent, // min delegation fee
-    pub floor_validator_weight_fee: Percent, // min weight-setting delegation fee
     pub floor_founder_share: u8,             // min founder share
     pub min_weight_stake: u64,               // min weight stake required
-
-    // S0 governance
     pub curator: T::AccountId,
     pub governance_config: GovernanceConfiguration,
-
-    pub kappa: u16,
-    pub rho: u16,
-}
 
 impl<T: Config> Pallet<T> {
     pub fn global_params() -> GlobalParams<T> {
         GlobalParams {
             // network
             max_name_length: MaxNameLength::<T>::get(),
-            min_name_length: MinNameLength::<T>::get(),
             max_allowed_modules: MaxAllowedModules::<T>::get(),
             curator: T::get_curator(),
-            floor_founder_share: FloorFounderShare::<T>::get(),
-            floor_stake_delegation_fee: MinFees::<T>::get().stake_delegation_fee,
-            floor_validator_weight_fee: MinFees::<T>::get().validator_weight_fee,
-            // registrations
             max_registrations_per_block: MaxRegistrationsPerBlock::<T>::get(),
-            // weights
-            max_allowed_weights: MaxAllowedWeightsGlobal::<T>::get(),
-            min_weight_stake: MinWeightStake::<T>::get(),
-
-            // s0 config
-            kappa: Kappa::<T>::get(),
-            rho: Rho::<T>::get(),
-
             governance_config: T::get_global_governance_configuration(),
         }
     }
@@ -65,14 +42,10 @@ impl<T: Config> Pallet<T> {
             max_allowed_modules,
             max_registrations_per_block,
             max_allowed_weights,
-            floor_stake_delegation_fee,
-            floor_validator_weight_fee,
             floor_founder_share,
             min_weight_stake,
             curator,
             governance_config,
-            kappa,
-            rho,
         } = params.clone();
 
         // Network parameters
@@ -80,20 +53,10 @@ impl<T: Config> Pallet<T> {
         MinNameLength::<T>::put(min_name_length);
         MaxAllowedModules::<T>::put(max_allowed_modules);
 
-        // Update minimum fees
-        MinFees::<T>::put(MinimumFees {
-            stake_delegation_fee: floor_stake_delegation_fee,
-            validator_weight_fee: floor_validator_weight_fee,
-        });
-
         // Registration and weight parameters
         MaxRegistrationsPerBlock::<T>::set(max_registrations_per_block);
-        MaxAllowedWeightsGlobal::<T>::put(max_allowed_weights);
-        MinWeightStake::<T>::put(min_weight_stake);
-
         // Governance and administrative parameters
         T::set_curator(&curator);
-        FloorFounderShare::<T>::put(floor_founder_share);
         T::update_global_governance_configuration(governance_config)
             .expect("invalid governance configuration");
 
@@ -113,8 +76,6 @@ impl<T: Config> Pallet<T> {
             max_allowed_modules,
             max_registrations_per_block,
             max_allowed_weights,
-            floor_stake_delegation_fee,
-            floor_validator_weight_fee,
             floor_founder_share,
             min_weight_stake: _,
             curator: _,
@@ -132,20 +93,6 @@ impl<T: Config> Pallet<T> {
             Error::<T>::InvalidMinNameLenght
         );
 
-        // Fee validations using ModuleFees validation
-        ModuleFees::new::<T>(*floor_stake_delegation_fee, *floor_validator_weight_fee)
-            .map_err(|_| Error::<T>::InvalidMinFees)?;
-
-        // Additional validation to ensure fees don't decrease
-        ensure!(
-            floor_stake_delegation_fee >= &old_params.floor_stake_delegation_fee,
-            Error::<T>::CannotDecreaseFee
-        );
-        ensure!(
-            floor_validator_weight_fee >= &old_params.floor_validator_weight_fee,
-            Error::<T>::CannotDecreaseFee
-        );
-
         ensure!(
             *max_allowed_modules > 0,
             Error::<T>::InvalidMaxAllowedModules
@@ -156,10 +103,6 @@ impl<T: Config> Pallet<T> {
             *max_registrations_per_block > 0,
             Error::<T>::InvalidMaxRegistrationsPerBlock
         );
-        ensure!(
-            *max_allowed_weights > 0,
-            Error::<T>::InvalidMaxAllowedWeights
-        );
 
         // Governance validations
         ensure!(
@@ -167,12 +110,6 @@ impl<T: Config> Pallet<T> {
             Error::<T>::InvalidProposalExpiration
         );
 
-        ensure!(
-            *floor_founder_share > 0 && *floor_founder_share <= 100,
-            Error::<T>::InvalidFloorFounderShare
-        );
-        ensure!(*kappa > 0, Error::<T>::InvalidKappa);
-        ensure!(*rho > 0, Error::<T>::InvalidRho);
 
         Ok(())
     }

@@ -78,7 +78,6 @@ benchmarks! {
             data,
             params.max_name_length,                // max_name_length: max length of a network name
             params.min_name_length,                // min_name_length: min length of a network name
-            params.max_allowed_subnets,            // max_allowed_subnets: max number of subnets allowed
             params.max_allowed_modules,            // max_allowed_modules: max number of modules allowed per subnet
             params.max_registrations_per_block,    // max_registrations_per_block: max number of registrations per block
             params.max_allowed_weights,            // max_allowed_weights: max number of weights per module

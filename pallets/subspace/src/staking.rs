@@ -24,7 +24,6 @@ impl<T: Config> Pallet<T> {
         ensure!(!amounts.is_empty(), Error::<T>::EmptyKeys);
 
         // -- 2.2 Make sure they are not above 100
-        // the reason for this check at staking is that it has no fee,
         // in transfer multiple, this is not needed, as user pays gass
         ensure!(amounts.len() <= 100, Error::<T>::TooManyKeys);
 
@@ -306,16 +305,6 @@ impl<T: Config> Pallet<T> {
 
         // --- 10. Done and ok.
         Ok(())
-    }
-
-    /// Returns staking delegation fee of a module
-    pub fn get_stake_delegation_fee(module_key: &T::AccountId) -> Percent {
-        // Get the validator's fee configuration
-        let validator_fees = ValidatorFeeConfig::<T>::get(module_key);
-
-        // Return the stake delegation fee, which will already be at or above
-        // MIN_STAKE_DELEGATION_FEE due to the ModuleFees validation
-        validator_fees.stake_delegation_fee
     }
 
     pub fn has_enough_stake(key: &T::AccountId, module_key: &T::AccountId, amount: u64) -> bool {

@@ -13,18 +13,10 @@ pub mod errors {
         ModuleDoesNotExist,
         /// The network is immune to changes.
         NetworkIsImmuned,
-        /// Insufficient balance to register a subnet.
-        NotEnoughStakeToWithdraw,
         /// Insufficient balance in the cold key account to stake the requested amount.
         NotEnoughBalanceToStake,
         /// The weight vectors for keys and values have different sizes.
         WeightVecNotEqualSize,
-        /// Duplicate UIDs detected in the weight matrix.
-        DuplicateUids,
-        /// At least one UID in the weight matrix does not exist in the metagraph.
-        InvalidUid,
-        /// The number of UIDs in the weight matrix is different from the allowed amount.
-        InvalidUidsLength,
         /// The number of registrations in this block exceeds the allowed limit.
         TooManyRegistrationsPerBlock,
         /// The number of registrations in this interval exceeds the allowed limit.
@@ -47,8 +39,6 @@ pub mod errors {
         TooManyKeys,
         /// Invalid shares distribution.
         InvalidShares,
-        /// The caller is not the founder of the subnet.
-        NotFounder,
         /// Insufficient stake to set weights.
         NotEnoughStakeToSetWeights,
         /// Insufficient stake to start a network.
@@ -79,8 +69,6 @@ pub mod errors {
         /// The system is not in vote mode.
         NotVoteMode,
         /// The maximum allowed weights value is invalid.
-        InvalidMinDelegationFee,
-        /// The module metadata is invalid.
         InvalidModuleMetadata,
         /// The module metadata is too long.
         ModuleMetadataTooLong,
@@ -92,10 +80,6 @@ pub mod errors {
         InvalidMaxAllowedModules,
         /// The maximum registrations per block value is invalid.
         InvalidMaxRegistrationsPerBlock,
-        /// The minimum burn value is invalid, likely too small.
-        InvalidMinBurn,
-        /// The maximum burn value is invalid.
-        InvalidMaxBurn,
         /// The module name is too long.
         ModuleNameTooLong,
         /// The module name is too short.
@@ -108,8 +92,6 @@ pub mod errors {
         InvalidModuleUrl,
         /// A module with this name already exists in the subnet.
         ModuleNameAlreadyExists,
-        /// The founder share is invalid.
-        InvalidFounderShare,
         /// The incentive ratio is invalid.
         InvalidProposalExpiration,
         /// The maximum weight age is invalid.
@@ -138,17 +120,8 @@ pub mod errors {
         DelegatingControl,
         /// The validator is not delegating weights to another validator
         NotDelegatingControl,
-        /// Uid is not present in LegitWhitelist, it needs to be whitelisted by DAO
-        UidNotWhitelisted,
-        /// Floor Founder Share must be between 0 and 100
-        InvalidFloorFounderShare,
         /// Some module parameter is invalid
         InvalidModuleParams,
-        /// The provided minimum fees are invalid. This can happen when:
-        /// - Either fee exceeds 100%
-        InvalidMinFees,
-        /// Cannot decrease fees below their current values.
-        /// Fees can only be increased to prevent economic attacks.
-        CannotDecreaseFee,
+  
     }
 }
