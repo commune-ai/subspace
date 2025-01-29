@@ -24,13 +24,12 @@ pub use pallet::*;
 pub use pallet_governance_api::*;
 use pallet_subspace::{
     self, define_subnet_includes,
-    params::{burn::GeneralBurnConfiguration, subnet::SubnetChangeset},
+    params::{burn::GeneralBurnConfiguration},
     DefaultKey,
 };
 
 pub use proposal::{Proposal, ProposalData, ProposalId, ProposalStatus, UnrewardedProposal};
 
-type SubnetId = u16;
 
 #[frame_support::pallet]
 pub mod pallet {
@@ -94,33 +93,6 @@ pub mod pallet {
         }
     }
 
-    // --- Subnet Related Storage ---
-
-    define_subnet_includes!(
-        double_maps: {},
-        maps: { SubnetGovernanceConfig, }
-    );
-
-    #[pallet::storage]
-    pub type SubnetGovernanceConfig<T: Config> = StorageMap<
-        _,
-        Identity,
-        SubnetId,
-        GovernanceConfiguration,
-        ValueQuery,
-        DefaultSubnetGovernanceConfig<T>,
-    >;
-
-    #[pallet::type_value]
-    pub fn DefaultSubnetGovernanceConfig<T: Config>() -> GovernanceConfiguration {
-        GovernanceConfiguration {
-            vote_mode: VoteMode::Authority,
-            ..Default::default()
-        }
-    }
-
-    // --- Proposal Related Storage ---
-
     /// A map of all proposals, indexed by their IDs.
     #[pallet::storage]
     pub type Proposals<T: Config> = StorageMap<_, Identity, ProposalId, Proposal<T>>;
@@ -153,14 +125,6 @@ pub mod pallet {
     pub type DaoTreasuryAddress<T: Config> =
         StorageValue<_, T::AccountId, ValueQuery, DefaultDaoTreasuryAddress<T>>;
 
-    #[pallet::type_value]
-    pub fn DefaultGeneralSubnetApplicationCost<T: Config>() -> u64 {
-        1_000_000_000_000 // 1_000 $COMAI
-    }
-
-    #[pallet::storage]
-    pub type GeneralSubnetApplicationCost<T: Config> =
-        StorageValue<_, u64, ValueQuery, DefaultGeneralSubnetApplicationCost<T>>;
 
     /// Determines whether smart contract can be deployed by everyone or only by the curator
     #[pallet::storage]
@@ -227,72 +191,12 @@ pub mod pallet {
             Self::do_add_global_params_proposal(origin, data, params)
         }
 
-        #[pallet::call_index(1)]
-        #[pallet::weight((<T as pallet::Config>::WeightInfo::add_subnet_params_proposal(), DispatchClass::Normal, Pays::No))]
-        pub fn add_subnet_params_proposal(
-            origin: OriginFor<T>,
-            netuid: u16,
-            data: Vec<u8>,
-            founder: T::AccountId,
-            founder_share: u16,
-            name: BoundedVec<u8, ConstU32<256>>,
-            metadata: Option<BoundedVec<u8, ConstU32<120>>>,
-            immunity_period: u16,
-            incentive_ratio: u16,
-            max_allowed_uids: u16,
-            max_allowed_weights: u16,
-            min_allowed_weights: u16,
-            max_weight_age: u64,
-            tempo: u16,
-            maximum_set_weight_calls_per_epoch: Option<u16>,
-            vote_mode: VoteMode,
-            bonds_ma: u64,
-            module_burn_config: GeneralBurnConfiguration<T>,
-            min_validator_stake: u64,
-            max_allowed_validators: Option<u16>,
-            use_weights_encryption: bool,
-            copier_margin: I64F64,
-            max_encryption_period: Option<u64>,
-        ) -> DispatchResult {
-            let mut params = pallet_subspace::Pallet::subnet_params(netuid);
-            params.founder = founder;
-            params.founder_share = founder_share;
-            params.name = name;
-            params.metadata = metadata;
-            params.immunity_period = immunity_period;
-            params.incentive_ratio = incentive_ratio;
-            params.max_allowed_uids = max_allowed_uids;
-            params.max_allowed_weights = max_allowed_weights;
-            params.min_allowed_weights = min_allowed_weights;
-            params.max_weight_age = max_weight_age;
-            params.tempo = tempo;
-            params.maximum_set_weight_calls_per_epoch = maximum_set_weight_calls_per_epoch;
-            params.governance_config.vote_mode = vote_mode;
-            params.bonds_ma = bonds_ma;
-            params.module_burn_config = module_burn_config;
-            params.min_validator_stake = min_validator_stake;
-            params.max_allowed_validators = max_allowed_validators;
-            params.use_weights_encryption = use_weights_encryption;
-            params.copier_margin = copier_margin;
-            params.max_encryption_period = max_encryption_period;
-            Self::do_add_subnet_params_proposal(origin, netuid, data, params)
-        }
-
         #[pallet::call_index(2)]
         #[pallet::weight((<T as pallet::Config>::WeightInfo::add_global_custom_proposal(), DispatchClass::Normal, Pays::No))]
         pub fn add_global_custom_proposal(origin: OriginFor<T>, data: Vec<u8>) -> DispatchResult {
             Self::do_add_global_custom_proposal(origin, data)
         }
 
-        #[pallet::call_index(3)]
-        #[pallet::weight((<T as pallet::Config>::WeightInfo::add_subnet_custom_proposal(), DispatchClass::Normal, Pays::No))]
-        pub fn add_subnet_custom_proposal(
-            origin: OriginFor<T>,
-            netuid: u16,
-            data: Vec<u8>,
-        ) -> DispatchResult {
-            Self::do_add_subnet_custom_proposal(origin, netuid, data)
-        }
 
         #[pallet::call_index(4)]
         #[pallet::weight((<T as pallet::Config>::WeightInfo::add_transfer_dao_treasury_proposal(), DispatchClass::Normal, Pays::No))]
@@ -338,7 +242,6 @@ pub mod pallet {
             Self::update_delegating_voting_power(&key, false)
         }
 
-        // --- General Subnet DAO ---
 
         #[pallet::call_index(9)]
         #[pallet::weight((<T as pallet::Config>::WeightInfo::add_dao_application(), DispatchClass::Normal, Pays::No))]
@@ -429,7 +332,6 @@ pub mod pallet {
         InvalidCurrencyConversionValue,
         /// Dao Treasury doesn't have enough funds to be transferred.
         InsufficientDaoTreasuryFunds,
-        /// Subnet is on Authority Mode.
         NotVoteMode,
         /// Key has already voted on given Proposal.
         AlreadyVoted,
@@ -514,12 +416,4 @@ impl<T: Config> Pallet<T> {
         Ok(())
     }
 
-    pub fn update_subnet_governance_configuration(
-        subnet_id: u16,
-        config: GovernanceConfiguration,
-    ) -> DispatchResult {
-        let config = Self::validate(config)?;
-        SubnetGovernanceConfig::<T>::set(subnet_id, config);
-        Ok(())
-    }
 }

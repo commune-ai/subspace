@@ -1,37 +1,30 @@
 use crate::*;
 
 use frame_support::pallet_prelude::DispatchResult;
-use pallet_subnet_emission_api::SubnetEmissionApi;
-pub struct SubnetDistributionParameters;
 
 impl<T: Config> Pallet<T> {
+
+
     pub fn do_update_module(
         origin: T::RuntimeOrigin,
-        netuid: u16,
-        changeset: ModuleChangeset<T>,
+        module_params: ModuleParams<T>,
     ) -> DispatchResult {
         let key = ensure_signed(origin)?;
-        let uid: u16 = Self::get_uid_for_key(netuid, &key).ok_or(Error::<T>::ModuleDoesNotExist)?;
-        changeset.apply(netuid, key, uid)?;
         Ok(())
     }
 
     pub fn append_module(
-        netuid: u16,
         key: &T::AccountId,
-        changeset: ModuleChangeset<T>,
+        changeset: ModuleParams<T>,
     ) -> Result<u16, sp_runtime::DispatchError> {
         // --- Get The Next Uid ---
-        let uid: u16 = N::<T>::get(netuid);
-        log::debug!("append_module( netuid: {netuid:?} | uid: {key:?} | new_key: {uid:?})");
 
         // -- Initialize All Storages ---
-        StorageHandler::initialize_all::<T>(netuid, uid, key)?;
         // Make sure this overwrites the defaults (keep it second)
-        changeset.apply(netuid, key.clone(), uid)?;
+        changeset.apply(key.clone(), uid)?;
 
         // --- Update The Network Module Size ---
-        N::<T>::mutate(netuid, |n| *n = n.saturating_add(1));
+        N::<T>::mutate(|n| *n = n.saturating_add(1));
 
         // --- Initilaize Stake Storage ---
         Self::increase_stake(key, key, 0);
@@ -40,64 +33,90 @@ impl<T: Config> Pallet<T> {
     }
 
     /// Replace the module under this uid.
-    pub fn remove_module(
-        netuid: u16,
-        uid: u16,
-        deregister_subnet_if_empty: bool,
-    ) -> DispatchResult {
+    pub fn remove_module( key: &T::AccountId,,) -> DispatchResult {
         // 1. Check if network has any modules
-        let n = N::<T>::get(netuid);
+        let n = N::<T>::get();
         if n == 0 {
             return Ok(());
         }
-
-        // --- Get the keys for the current and replacement positions ---
-        let module_key: T::AccountId =
-            Keys::<T>::get(netuid, uid).ok_or(Error::<T>::ModuleDoesNotExist)?;
-        let replace_uid = n.saturating_sub(1);
-        let replace_key: T::AccountId =
-            Keys::<T>::get(netuid, replace_uid).expect("this is infallible");
-
         log::debug!(
-            "remove_module( netuid: {:?} | uid : {:?} | key: {:?} ) ",
-            netuid,
-            uid,
-            module_key
+            "remove_module(| key: {:?} ) ",
+            key
         );
 
-        // --- Remove All Module Related Storage ---
-        StorageHandler::remove_all::<T>(netuid, uid, replace_uid, &module_key, &replace_key)?;
-        <T as SubnetEmissionApi<T::AccountId>>::clear_module_includes(
-            netuid,
-            uid,
-            replace_uid,
-            &module_key,
-            &replace_key,
-        )?;
-
-        // --- Delete Rate Limit ---
-        RootNetWeightCalls::<T>::remove(uid);
-
-        // --- Delete Global-Module Storage ---
-        // This will remove storages if the module is only registered on this network.
-        // So the values are not "just hanging around" in the storage. Without module actually being
-        // registered on any subnet.
-        if Uids::<T>::iter().all(|(_, key, _)| key != module_key) {
-            ValidatorFeeConfig::<T>::remove(&module_key);
-            Self::remove_stake_from_storage(&module_key);
-        }
-
         // 9. Update network size
-        let module_count = N::<T>::mutate(netuid, |v| {
+        let module_count = N::<T>::mutate(|v| {
             *v = v.saturating_sub(1);
             *v
         });
 
-        // 11. Remove subnet if empty
-        if deregister_subnet_if_empty && module_count == 0 {
-            Self::remove_subnet(netuid);
-        }
+        Ok(())
+    }
+    /// Registers a module in a subnet.
+    /// 5. Emit a `ModuleRegistered` event.
+    pub fn do_register(
+        origin: T::RuntimeOrigin,
+        network_name: Vec<u8>,
+        name: Vec<u8>,
+        url: Vec<u8>,
+        module_key: T::AccountId,
+        metadata: Option<Vec<u8>>,
+    ) -> DispatchResult {
+        let key = ensure_signed(origin.clone())?;
+
+        ensure!(
+            RegistrationsPerBlock::<T>::get() < MaxRegistrationsPerBlock::<T>::get(),
+            Error::<T>::TooManyRegistrationsPerBlock
+        );
+        Self::register_module( &module_key, name, url, metadata)?;
+        Ok(())
+    }
+    ///
+    /// Emits a `ModuleDeregistered` event when successful.
+    pub fn do_deregister(origin: T::RuntimeOrigin) -> DispatchResult {
+        // --- 1. Check that the caller has signed the transaction.
+        let key = ensure_signed(origin)?;
+        // --- 2. Check that the module exists in the subnet.
+        // --- 3. Remove the module from the subnet.
+        Self::remove_module( uid, true)?;
+        ensure!(
+            !Self::key_registered( &key),
+            Error::<T>::StillRegistered
+        );
+
+        // --- 4. Deposit the event
+        Self::deposit_event(Event::ModuleDeregistered( key));
+        // --- 5. Ok and done.
+        Ok(())
+    }
+
+    // --------------------------
+    // Registration Utils
+    // --------------------------
+
+    fn register_module(
+        key: &T::AccountId,
+        name: Vec<u8>,
+        url: Vec<u8>,
+        metadata: Option<Vec<u8>>,
+    ) -> Result<u16, DispatchError> {
+        let fees = DefaultValidatorFees::<T>::get();
+        let module_changeset = ModuleParams::new(name, url, fees, metadata);
+        Self::append_module(key, module_changeset)
+    }
+
+    fn finalize_registration( module_key: &T::AccountId) -> DispatchResult {
+        ensure!(
+            Self::key_registered(module_key),
+            Error::<T>::ModuleDoesNotExist
+        );
+
+        Self::deposit_event(Event::ModuleRegistered(uid, module_key.clone()));
 
         Ok(())
     }
+
+    // --- Util ---
+
+
 }

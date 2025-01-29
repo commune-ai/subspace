@@ -27,7 +27,6 @@ pub trait SubspaceApi<BlockHash> {
     fn get_module_info(
         &self,
         key: AccountId,
-        netuid: u16,
         at: Option<BlockHash>,
     ) -> RpcResult<ModuleInfo>;
 }
@@ -55,13 +54,12 @@ where
     fn get_module_info(
         &self,
         key: AccountId,
-        netuid: u16,
         at: Option<<Block as BlockT>::Hash>,
     ) -> RpcResult<ModuleInfo> {
         let api = self.client.runtime_api();
         let at = at.unwrap_or_else(|| self.client.info().best_hash);
 
-        let value = api.get_module_info(at, key, netuid).map_err(runtime_error_into_rpc_err);
+        let value = api.get_module_info(at, key).map_err(runtime_error_into_rpc_err);
         Ok(value.unwrap())
     }
 }

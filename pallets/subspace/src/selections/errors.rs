@@ -14,8 +14,6 @@ pub mod errors {
         /// The network is immune to changes.
         NetworkIsImmuned,
         /// Insufficient balance to register a subnet.
-        NotEnoughBalanceToRegisterSubnet,
-        /// Insufficient stake to withdraw the requested amount.
         NotEnoughStakeToWithdraw,
         /// Insufficient balance in the cold key account to stake the requested amount.
         NotEnoughBalanceToStake,
@@ -31,30 +29,13 @@ pub mod errors {
         TooManyRegistrationsPerBlock,
         /// The number of registrations in this interval exceeds the allowed limit.
         TooManyRegistrationsPerInterval,
-        /// The number of subnet registrations in this interval exceeds the allowed limit.
-        TooManySubnetRegistrationsPerInterval,
         /// The module is already registered in the active set.
         AlreadyRegistered,
         /// Failed to convert between u64 and T::Balance.
         CouldNotConvertToBalance,
         /// The specified tempo (epoch) is not valid.
-        InvalidTempo,
-        /// Attempted to set weights twice within net_epoch/2 blocks.
-        SettingWeightsTooFast,
-        /// Attempted to set max allowed UIDs to a value less than the current number of registered
-        /// UIDs.
-        InvalidMaxAllowedUids,
+
         /// The specified netuid does not exist.
-        NetuidDoesNotExist,
-        /// A subnet with the given name already exists.
-        SubnetNameAlreadyExists,
-        /// The subnet name is too short.
-        SubnetNameTooShort,
-        /// The subnet name is too long.
-        SubnetNameTooLong,
-        /// The subnet name contains invalid characters.
-        InvalidSubnetName,
-        /// Failed to add balance to the account.
         BalanceNotAdded,
         /// Failed to remove stake from the account.
         StakeNotRemoved,
@@ -97,28 +78,16 @@ pub mod errors {
         NotEnoughBalanceToTransfer,
         /// The system is not in vote mode.
         NotVoteMode,
-        /// The trust ratio is invalid.
-        InvalidTrustRatio,
-        /// The minimum allowed weights value is invalid.
-        InvalidMinAllowedWeights,
         /// The maximum allowed weights value is invalid.
-        InvalidMaxAllowedWeights,
-        /// The minimum delegation fee is invalid.
         InvalidMinDelegationFee,
         /// The module metadata is invalid.
         InvalidModuleMetadata,
         /// The module metadata is too long.
         ModuleMetadataTooLong,
         /// The module metadata is invalid.
-        InvalidSubnetMetadata,
-        /// The module metadata is too long.
-        SubnetMetadataTooLong,
-        /// The maximum name length is invalid.
         InvalidMaxNameLength,
         /// The minimum name length is invalid.
         InvalidMinNameLenght,
-        /// The maximum allowed subnets value is invalid.
-        InvalidMaxAllowedSubnets,
         /// The maximum allowed modules value is invalid.
         InvalidMaxAllowedModules,
         /// The maximum registrations per block value is invalid.
@@ -133,19 +102,15 @@ pub mod errors {
         ModuleNameTooShort,
         /// The module name is invalid. It must be a UTF-8 encoded string.
         InvalidModuleName,
-        /// The module address is too long.
-        ModuleAddressTooLong,
-        /// The module address is invalid.
-        InvalidModuleAddress,
+        /// The module url is too long.
+        ModuleUrlTooLong,
+        /// The module url is invalid.
+        InvalidModuleUrl,
         /// A module with this name already exists in the subnet.
         ModuleNameAlreadyExists,
         /// The founder share is invalid.
         InvalidFounderShare,
         /// The incentive ratio is invalid.
-        InvalidIncentiveRatio,
-        /// The general subnet application cost is invalid.
-        InvalidGeneralSubnetApplicationCost,
-        /// The proposal expiration is invalid.
         InvalidProposalExpiration,
         /// The maximum weight age is invalid.
         InvalidMaxWeightAge,
@@ -173,37 +138,13 @@ pub mod errors {
         DelegatingControl,
         /// The validator is not delegating weights to another validator
         NotDelegatingControl,
-        /// There is no subnet that is running with the Rootnet consensus
-        RootnetSubnetNotFound,
-        /// MinValidatorStake must be lower than 250k
-        InvalidMinValidatorStake,
-        /// The maximum allowed validators value is invalid, minimum is 10.
-        InvalidMaxAllowedValidators,
-        /// The encryption period is too short or long, minimum is 360 blocks max is 20_880 blocks
-        InvalidMaxEncryptionPeriod,
-        /// Subnet is using encrypted weight calls
-        SubnetEncrypted,
-        /// Subnet is not using encrypted weight calls
-        SubnetNotEncrypted,
         /// Uid is not present in LegitWhitelist, it needs to be whitelisted by DAO
         UidNotWhitelisted,
-        /// The copier margin must be between 0 and 1
-        InvalidCopierMargin,
         /// Floor Founder Share must be between 0 and 100
         InvalidFloorFounderShare,
-        /// Subnet Immunity Period has to be more than 0
-        InvalidSubnetImmunityPeriod,
-        /// Kappa has to be more than 0
-        InvalidKappa,
-        /// Rho must be more than 0
-        InvalidRho,
-        /// The maximum allowed set weight calls per epoch must be more than 0
-        InvalidMaximumSetWeightCallsPerEpoch,
         /// Some module parameter is invalid
         InvalidModuleParams,
         /// The provided minimum fees are invalid. This can happen when:
-        /// - Stake delegation fee is below the system minimum
-        /// - Validator weight fee is below the system minimum
         /// - Either fee exceeds 100%
         InvalidMinFees,
         /// Cannot decrease fees below their current values.

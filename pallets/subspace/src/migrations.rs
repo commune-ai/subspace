@@ -49,7 +49,7 @@ pub mod v15 {
             }
 
             for (account, fee) in old_storage::DelegationFee::<T>::iter() {
-                let fee_config = ValidatorFees {
+                let fee_config = ModuleFees {
                     stake_delegation_fee: fee,
                     ..Default::default()
                 };

@@ -308,19 +308,13 @@ impl<T: Config> Pallet<T> {
         Ok(())
     }
 
-    pub fn get_total_subnet_stake(netuid: u16) -> u64 {
-        Keys::<T>::iter_prefix(netuid)
-            .map(|(_, account_id)| Self::get_delegated_stake(&account_id))
-            .sum()
-    }
-
     /// Returns staking delegation fee of a module
     pub fn get_stake_delegation_fee(module_key: &T::AccountId) -> Percent {
         // Get the validator's fee configuration
         let validator_fees = ValidatorFeeConfig::<T>::get(module_key);
 
         // Return the stake delegation fee, which will already be at or above
-        // MIN_STAKE_DELEGATION_FEE due to the ValidatorFees validation
+        // MIN_STAKE_DELEGATION_FEE due to the ModuleFees validation
         validator_fees.stake_delegation_fee
     }
 

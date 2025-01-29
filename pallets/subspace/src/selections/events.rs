@@ -27,6 +27,5 @@ pub mod events {
         /// Event created when global parameters are updated
         GlobalParamsUpdated(GlobalParams<T>),
         /// Event created when subnet parameters are updated
-        SubnetParamsUpdated(u16),
     }
 }

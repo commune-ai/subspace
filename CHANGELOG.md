@@ -95,9 +95,6 @@ Subspace Module:
   - Type: StorageMap<u16, (u16, u16)>
   - Default: (45875, 58982)
 
-**New Extrinsics**
-- `set_weights_encrypted` in `SubnetEmissionModule`
-
 **New Offchain Worker Extrinsics**
 These extrinsics are meant to be called by offchain workers only and should not be invoked directly:
 - `send_decrypted_weights` in `OffworkerModule`

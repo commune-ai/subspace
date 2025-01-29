@@ -55,6 +55,8 @@ pub mod dispatches {
             Self::do_transfer_stake(origin, module_key, new_module_key, amount)
         }
 
+        // todo transfer stake multiple
+
         #[pallet::call_index(6)]
         #[pallet::weight((T::WeightInfo::transfer_multiple(), DispatchClass::Normal, Pays::No))]
         pub fn transfer_multiple(
@@ -71,44 +73,41 @@ pub mod dispatches {
             origin: OriginFor<T>,
             network_name: Vec<u8>,
             name: Vec<u8>,
-            address: Vec<u8>,
+            url: Vec<u8>,
             module_key: T::AccountId,
             metadata: Option<Vec<u8>>,
         ) -> DispatchResult {
-            Self::do_register(origin, network_name, name, address, module_key, metadata)
+            Self::do_register(origin, network_name, name, url, module_key, metadata)
         }
 
         #[pallet::call_index(8)]
         #[pallet::weight((T::WeightInfo::deregister(), DispatchClass::Normal, Pays::No))]
-        pub fn deregister(origin: OriginFor<T>, netuid: u16) -> DispatchResult {
-            Self::do_deregister(origin, netuid)
+        pub fn deregister(origin: OriginFor<T>) -> DispatchResult {
+            Self::do_deregister(origin)
         }
 
         #[pallet::call_index(9)]
         #[pallet::weight((T::WeightInfo::deregister(), DispatchClass::Normal, Pays::No))]
         pub fn update_module(
             origin: OriginFor<T>,
-            netuid: u16,
             name: Vec<u8>,
-            address: Vec<u8>,
+            url: Vec<u8>,
             stake_delegation_fee: Option<Percent>,
             validator_weight_fee: Option<Percent>,
             metadata: Option<Vec<u8>>,
         ) -> DispatchResult {
             let key = ensure_signed(origin.clone())?;
             ensure!(
-                Self::is_registered(Some(netuid), &key),
+                Self::is_registered(&key),
                 Error::<T>::ModuleDoesNotExist
             );
-
-            let uid = Self::get_uid_for_key(netuid, &key).ok_or(Error::<T>::ModuleDoesNotExist)?;
-            let params = Self::module_params(netuid, &key, uid);
+            let params = Self::module_params(&key, uid);
 
             let fees = match (stake_delegation_fee, validator_weight_fee) {
                 (None, None) => None,
                 (stake_fee, weight_fee) => {
                     let current_fees = ValidatorFeeConfig::<T>::get(&key);
-                    Some(ValidatorFees {
+                    Some(ModuleFees {
                         stake_delegation_fee: stake_fee
                             .unwrap_or(current_fees.stake_delegation_fee),
                         validator_weight_fee: weight_fee
@@ -117,74 +116,10 @@ pub mod dispatches {
                 }
             };
 
-            let changeset = ModuleChangeset::update(&params, name, address, fees, metadata);
-            Self::do_update_module(origin, netuid, changeset)
+            let changeset = ModuleParams::update(&params, name, url, fees, metadata);
+            Self::do_update_module(origin, changeset)
         }
 
-        #[pallet::call_index(10)]
-        #[pallet::weight((T::WeightInfo::update_subnet(), DispatchClass::Normal, Pays::No))]
-        pub fn update_subnet(
-            origin: OriginFor<T>,
-            netuid: u16,
-            founder: T::AccountId,
-            founder_share: u16,
-            name: BoundedVec<u8, ConstU32<256>>,
-            metadata: Option<BoundedVec<u8, ConstU32<120>>>,
-            immunity_period: u16,
-            incentive_ratio: u16,
-            max_allowed_uids: u16,
-            max_allowed_weights: u16,
-            min_allowed_weights: u16,
-            max_weight_age: u64,
-            tempo: u16,
-            maximum_set_weight_calls_per_epoch: Option<u16>,
-            vote_mode: VoteMode,
-            bonds_ma: u64,
-            module_burn_config: GeneralBurnConfiguration<T>,
-            min_validator_stake: u64,
-            max_allowed_validators: Option<u16>,
-            use_weights_encryption: bool,
-            copier_margin: I64F64,
-            max_encryption_period: Option<u64>,
-        ) -> DispatchResult {
-            let params = SubnetParams {
-                founder,
-                founder_share,
-                immunity_period,
-                incentive_ratio,
-                max_allowed_uids,
-                max_allowed_weights,
-                min_allowed_weights,
-                max_weight_age,
-                name,
-                tempo,
-                maximum_set_weight_calls_per_epoch,
-                bonds_ma,
-                module_burn_config,
-                min_validator_stake,
-                max_allowed_validators,
-                governance_config: GovernanceConfiguration {
-                    vote_mode,
-                    ..T::get_subnet_governance_configuration(netuid)
-                },
-                metadata,
-                use_weights_encryption,
-                copier_margin,
-                max_encryption_period,
-            };
 
-            let changeset = SubnetChangeset::update(netuid, params)?;
-            Self::do_update_subnet(origin, netuid, changeset)
-        }
-
-        #[pallet::call_index(12)]
-        #[pallet::weight((T::WeightInfo::register(), DispatchClass::Normal, Pays::No))]
-        pub fn register_subnet(
-            origin: OriginFor<T>,
-            name: Vec<u8>,
-            metadata: Option<Vec<u8>>,
-        ) -> DispatchResult {
-            Self::do_register_subnet(origin, name, metadata)
-        }
-    }
+}
 }

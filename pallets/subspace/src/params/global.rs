@@ -12,7 +12,6 @@ pub struct GlobalParams<T: Config> {
     // max
     pub max_name_length: u16,             // max length of a network name
     pub min_name_length: u16,             // min length of a network name
-    pub max_allowed_subnets: u16,         // max number of subnets allowed
     pub max_allowed_modules: u16,         // max number of modules allowed per subnet
     pub max_registrations_per_block: u16, // max number of registrations per block
     pub max_allowed_weights: u16,         // max number of weights per module
@@ -25,10 +24,6 @@ pub struct GlobalParams<T: Config> {
 
     // S0 governance
     pub curator: T::AccountId,
-    pub general_subnet_application_cost: u64,
-
-    // Other
-    pub subnet_immunity_period: u64,
     pub governance_config: GovernanceConfiguration,
 
     pub kappa: u16,
@@ -41,7 +36,6 @@ impl<T: Config> Pallet<T> {
             // network
             max_name_length: MaxNameLength::<T>::get(),
             min_name_length: MinNameLength::<T>::get(),
-            max_allowed_subnets: MaxAllowedSubnets::<T>::get(),
             max_allowed_modules: MaxAllowedModules::<T>::get(),
             curator: T::get_curator(),
             floor_founder_share: FloorFounderShare::<T>::get(),
@@ -54,8 +48,6 @@ impl<T: Config> Pallet<T> {
             min_weight_stake: MinWeightStake::<T>::get(),
 
             // s0 config
-            subnet_immunity_period: SubnetImmunityPeriod::<T>::get(),
-            general_subnet_application_cost: T::get_general_subnet_application_cost(),
             kappa: Kappa::<T>::get(),
             rho: Rho::<T>::get(),
 
@@ -70,7 +62,6 @@ impl<T: Config> Pallet<T> {
         let GlobalParams {
             max_name_length,
             min_name_length,
-            max_allowed_subnets,
             max_allowed_modules,
             max_registrations_per_block,
             max_allowed_weights,
@@ -79,8 +70,6 @@ impl<T: Config> Pallet<T> {
             floor_founder_share,
             min_weight_stake,
             curator,
-            general_subnet_application_cost,
-            subnet_immunity_period,
             governance_config,
             kappa,
             rho,
@@ -89,7 +78,6 @@ impl<T: Config> Pallet<T> {
         // Network parameters
         MaxNameLength::<T>::put(max_name_length);
         MinNameLength::<T>::put(min_name_length);
-        MaxAllowedSubnets::<T>::put(max_allowed_subnets);
         MaxAllowedModules::<T>::put(max_allowed_modules);
 
         // Update minimum fees
@@ -106,12 +94,10 @@ impl<T: Config> Pallet<T> {
         // Governance and administrative parameters
         T::set_curator(&curator);
         FloorFounderShare::<T>::put(floor_founder_share);
-        SubnetImmunityPeriod::<T>::put(subnet_immunity_period);
         T::update_global_governance_configuration(governance_config)
             .expect("invalid governance configuration");
 
         // Cost and operational parameters
-        T::set_general_subnet_application_cost(general_subnet_application_cost);
         Kappa::<T>::set(kappa);
         Rho::<T>::set(rho);
 
@@ -124,7 +110,6 @@ impl<T: Config> Pallet<T> {
         let GlobalParams {
             max_name_length,
             min_name_length,
-            max_allowed_subnets,
             max_allowed_modules,
             max_registrations_per_block,
             max_allowed_weights,
@@ -133,8 +118,6 @@ impl<T: Config> Pallet<T> {
             floor_founder_share,
             min_weight_stake: _,
             curator: _,
-            general_subnet_application_cost,
-            subnet_immunity_period,
             governance_config,
             kappa,
             rho,
@@ -149,8 +132,8 @@ impl<T: Config> Pallet<T> {
             Error::<T>::InvalidMinNameLenght
         );
 
-        // Fee validations using ValidatorFees validation
-        ValidatorFees::new::<T>(*floor_stake_delegation_fee, *floor_validator_weight_fee)
+        // Fee validations using ModuleFees validation
+        ModuleFees::new::<T>(*floor_stake_delegation_fee, *floor_validator_weight_fee)
             .map_err(|_| Error::<T>::InvalidMinFees)?;
 
         // Additional validation to ensure fees don't decrease
@@ -162,11 +145,7 @@ impl<T: Config> Pallet<T> {
             floor_validator_weight_fee >= &old_params.floor_validator_weight_fee,
             Error::<T>::CannotDecreaseFee
         );
-        // Subnet and module validations
-        ensure!(
-            *max_allowed_subnets > 0,
-            Error::<T>::InvalidMaxAllowedSubnets
-        );
+
         ensure!(
             *max_allowed_modules > 0,
             Error::<T>::InvalidMaxAllowedModules
@@ -182,12 +161,6 @@ impl<T: Config> Pallet<T> {
             Error::<T>::InvalidMaxAllowedWeights
         );
 
-        // Cost and stake validations
-        ensure!(
-            *general_subnet_application_cost > 0,
-            Error::<T>::InvalidGeneralSubnetApplicationCost
-        );
-
         // Governance validations
         ensure!(
             governance_config.proposal_expiration > 100,
@@ -197,10 +170,6 @@ impl<T: Config> Pallet<T> {
         ensure!(
             *floor_founder_share > 0 && *floor_founder_share <= 100,
             Error::<T>::InvalidFloorFounderShare
-        );
-        ensure!(
-            *subnet_immunity_period > 0,
-            Error::<T>::InvalidSubnetImmunityPeriod
         );
         ensure!(*kappa > 0, Error::<T>::InvalidKappa);
         ensure!(*rho > 0, Error::<T>::InvalidRho);

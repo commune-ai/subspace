@@ -6,7 +6,6 @@ pub mod config {
     pub trait Config:
         frame_system::Config
         + pallet_governance_api::GovernanceApi<<Self as frame_system::Config>::AccountId>
-        + pallet_subnet_emission_api::SubnetEmissionApi<<Self as frame_system::Config>::AccountId>
     {
         /// This pallet's ID, used for generating the treasury account ID.
         #[pallet::constant]
@@ -21,12 +20,9 @@ pub mod config {
 
         /// The default number of modules that can be registered per interval.
         type DefaultMaxRegistrationsPerInterval: Get<u16>;
-        /// The default number of subnets that can be registered per interval.
-        type DefaultMaxSubnetRegistrationsPerInterval: Get<u16>;
         /// The default minimum burn amount required for module registration.
         type DefaultModuleMinBurn: Get<u64>;
         /// The default minimum burn amount required for module registration.
-        type DefaultSubnetMinBurn: Get<u64>;
         type DefaultMinValidatorStake: Get<u64>;
 
         /// The weight information of this pallet.

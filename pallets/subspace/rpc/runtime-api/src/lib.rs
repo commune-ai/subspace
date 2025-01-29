@@ -30,7 +30,7 @@ pub struct ModuleStats {
 #[derive(Decode, Encode, PartialEq, Eq, Clone, Debug, TypeInfo, Serialize, Deserialize)]
 pub struct ModuleParams {
     pub name: Vec<u8>,
-    pub address: Vec<u8>,
+    pub url: Vec<u8>,
     pub delegation_fee: Percent,
     pub metadata: Option<Vec<u8>>,
 }
@@ -43,6 +43,6 @@ pub struct ModuleInfo {
 
 sp_api::decl_runtime_apis! {
     pub trait SubspaceRuntimeApi {
-        fn get_module_info(key: AccountId, netuid: u16) -> ModuleInfo;
+        fn get_module_info(key: AccountId) -> ModuleInfo;
     }
 }

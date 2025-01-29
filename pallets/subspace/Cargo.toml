@@ -42,7 +42,6 @@ strum = { workspace = true }
 paste = "1.0"
 macro_rules_attribute = "0.1.3"
 pallet-governance-api = { path = "../governance/api", default-features = false }
-pallet-subnet-emission-api = { path = "../subnet_emission/api", default-features = false }
 pallet-subspace-genesis-config = { path = "./genesis-config" }
 
 parity-scale-codec = { workspace = true }
