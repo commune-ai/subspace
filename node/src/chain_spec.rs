@@ -124,7 +124,6 @@ pub fn generate_config(path: &str) -> Result<ChainSpec, String> {
         ],
         sudo_key,
         processed_balances,
-        subnets,
         state.block,
     );
 
@@ -159,7 +158,6 @@ fn genesis_patch(
     initial_authorities: &[(AuraId, GrandpaId)],
     sudo_key: AccountId,
     balances: Vec<(AccountId, u64)>,
-    subnets: Subnets,
     block: u32,
 ) -> serde_json::Value {
     serde_json::json!({

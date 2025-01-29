@@ -23,7 +23,7 @@ use substrate_fixed::types::I64F64;
 pub use pallet::*;
 pub use pallet_governance_api::*;
 use pallet_subspace::{
-    self, define_subnet_includes,
+    self,
     params::{burn::GeneralBurnConfiguration},
     DefaultKey,
 };
@@ -154,10 +154,8 @@ pub mod pallet {
             data: Vec<u8>,
             max_name_length: u16,
             min_name_length: u16,
-            max_allowed_subnets: u16,
             max_allowed_modules: u16,
             max_registrations_per_block: u16,
-            max_allowed_weights: u16,
             floor_stake_delegation_fee: Percent,
             floor_validator_weight_fee: Percent,
             floor_founder_share: u8,
@@ -166,17 +164,13 @@ pub mod pallet {
             proposal_cost: u64,
             proposal_expiration: u32,
             general_subnet_application_cost: u64,
-            kappa: u16,
-            rho: u16,
             subnet_immunity_period: u64,
         ) -> DispatchResult {
             let mut params = pallet_subspace::Pallet::<T>::global_params();
             params.max_name_length = max_name_length;
             params.min_name_length = min_name_length;
-            params.max_allowed_subnets = max_allowed_subnets;
             params.max_allowed_modules = max_allowed_modules;
             params.max_registrations_per_block = max_registrations_per_block;
-            params.max_allowed_weights = max_allowed_weights;
             params.floor_stake_delegation_fee = floor_stake_delegation_fee;
             params.floor_validator_weight_fee = floor_validator_weight_fee;
             params.floor_founder_share = floor_founder_share;
@@ -185,8 +179,6 @@ pub mod pallet {
             params.governance_config.proposal_cost = proposal_cost;
             params.governance_config.proposal_expiration = proposal_expiration;
             params.general_subnet_application_cost = general_subnet_application_cost;
-            params.kappa = kappa;
-            params.rho = rho;
             params.subnet_immunity_period = subnet_immunity_period;
             Self::do_add_global_params_proposal(origin, data, params)
         }
@@ -332,6 +324,7 @@ pub mod pallet {
         InvalidCurrencyConversionValue,
         /// Dao Treasury doesn't have enough funds to be transferred.
         InsufficientDaoTreasuryFunds,
+        /// Subnet is on Authority Mode.
         NotVoteMode,
         /// Key has already voted on given Proposal.
         AlreadyVoted,
