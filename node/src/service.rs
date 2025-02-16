@@ -441,11 +441,7 @@ where
                 network_provider: Arc::new(network.clone()),
                 enable_http_requests: true,
                 custom_extensions: move |_| {
-                    vec![
-                        Box::new(ow_extensions::OffworkerExt::new(decrypter::Decrypter::new(
-                            rsa_key.clone(),
-                        ))) as Box<_>,
-                    ]
+                    vec![]
                 },
             })
             .run(client.clone(), task_manager.spawn_handle())

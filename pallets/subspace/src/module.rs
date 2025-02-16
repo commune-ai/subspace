@@ -1,17 +1,20 @@
 use crate::*;
-use scale_info::TypeInfo;
-use frame_support::{pallet_prelude::DispatchResult, sp_runtime::DispatchError};
+use frame_support::{
+    pallet_prelude::*,
+    traits::{Currency, ExistenceRequirement},
+};
 use frame_system::ensure_signed;
-use sp_core::Get;
+use scale_info::TypeInfo;
 use sp_runtime::BoundedVec;
-use substrate_fixed::types::I110F18;
-
-
+use sp_std::marker::PhantomData;
+//. import config
+use frame_system::Config;
+use frame_support::traits::Get;
 #[derive(Decode, Encode, PartialEq, Eq, Clone, Debug, TypeInfo)]
 #[scale_info(skip_type_params(T))]
 pub struct ModuleParams<T: Config> {
-    pub name: Vec<u8>,
-    pub url: Vec<u8>,
+    pub name: Option<Vec<u8>>,
+    pub url: Option<Vec<u8>>,
     pub metadata: Option<Vec<u8>>,
     pub _pd: PhantomData<T>,
 }
@@ -35,8 +38,8 @@ impl<T: Config> ModuleParams<T> {
     #[must_use]
     pub fn update(
         params: &ModuleParams<T>,
-        name: Vec<u8>,
-        url: Vec<u8>,
+        name: Option<Vec<u8>>,
+        url: Option<Vec<u8>>,
         metadata: Option<Vec<u8>>,
     ) -> Self {
         let ModuleParams {
@@ -47,15 +50,15 @@ impl<T: Config> ModuleParams<T> {
         } = params;
 
         Self {
-            name: (name != *old_name).then_some(name),
-            url: (url != *old_url).then_some(url),
+            name: name.filter(|n| n != old_name.as_ref().unwrap()),
+            url: url.filter(|u| u != old_url.as_ref().unwrap()),
             metadata,
             _pd: PhantomData,
         }
     }
 
     #[deny(unused_variables)]
-    pub fn validate(&self, netuid: u16) -> Result<(), sp_runtime::DispatchError> {
+    pub fn validate(&self) -> Result<(), sp_runtime::DispatchError> {
         let Self {
             name,
             url,
@@ -153,26 +156,42 @@ impl ModuleValidator {
 }
 
 impl<T: Config> Pallet<T> {
-    pub fn module_params( key: &T::AccountId) -> ModuleParams<T> {
 
-    }
-}
-    pub fn do_update_module(
-        origin: T::RuntimeOrigin,
-        module_params: ModuleParams<T>,
+
+    pub fn update_module(
+        origin: OriginFor<T>,
+        name: Vec<u8>,
+        url: Vec<u8>, 
+        metadata: Option<Vec<u8>>,
     ) -> DispatchResult {
-        let key = ensure_signed(origin)?;
+        let key = ensure_signed(origin.clone())?;
+        ensure!(
+            Self::is_registered(&key),
+            Error::<T>::ModuleDoesNotExist
+        );
+        let params = Self::module_params(&key);
+        let changeset = ModuleParams::update(&params, name, url, metadata);
+        Self::do_update_module(origin, changeset)
+    }
+
+    pub fn do_update_module(
+        origin: OriginFor<T>,
+        changeset: ModuleParams<T>,
+    ) -> DispatchResult {
+        let key = ensure_signed(origin.clone())?;
+        changeset.validate()?;
+        changeset.apply(key)?;
         Ok(())
     }
 
     pub fn append_module(
         key: &T::AccountId,
         changeset: ModuleParams<T>,
-    ) -> Result<u16, sp_runtime::DispatchError> {
+    ) -> Result<u64, sp_runtime::DispatchError> {
 
         // -- Initialize All Storages ---
         // Make sure this overwrites the defaults (keep it second)
-        changeset.apply(key.clone(), uid)?;
+        changeset.apply(key.clone())?;
 
         // --- Update The Network Module Size ---
         N::<T>::mutate(|n| *n = n.saturating_add(1));
@@ -180,11 +199,11 @@ impl<T: Config> Pallet<T> {
         // --- Initilaize Stake Storage ---
         Self::increase_stake(key, key, 0);
 
-        Ok(uid)
+        Ok(N::<T>::get())
     }
 
     /// Replace the module under this uid.
-    pub fn remove_module( key: &T::AccountId,,) -> DispatchResult {
+    pub fn remove_module( key: &T::AccountId) -> DispatchResult {
         // 1. Check if network has any modules
         let n = N::<T>::get();
         if n == 0 {
@@ -328,10 +347,9 @@ impl<T: Config> Pallet<T> {
     }
 
     // --- Util ---
-
     pub fn get_block_at_registration() -> Vec<u64> {
+        Vec::new() // Return empty vector for now
     }
-
     /// returns the amount of total modules on the network
     pub fn n_modules() -> u16 {
         N::<T>::get()

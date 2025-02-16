@@ -467,11 +467,6 @@ impl pallet_governance::Config for Runtime {
     type WeightInfo = pallet_governance::weights::SubstrateWeight<Runtime>;
 }
 
-impl pallet_offworker::Config for Runtime {
-    type AuthorityId = pallet_offworker::crypto::AuthId;
-    type RuntimeEvent = RuntimeEvent;
-    type UnsignedPriority = ConstU64<100>;
-}
 
 impl frame_system::offchain::SigningTypes for Runtime {
     type Public = <Signature as Verify>::Signer;

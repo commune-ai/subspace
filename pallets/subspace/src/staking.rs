@@ -1,10 +1,11 @@
 use crate::*;
 
+use frame_system::Config;
 use sp_arithmetic::per_things::Percent;
 use sp_runtime::DispatchError;
 use sp_std::{collections::btree_map::BTreeMap, vec::Vec};
 
-impl<T: Config> Pallet<T> {
+impl<T: Config + Currency<T::AccountId>> Pallet<T> {
     /// Adds stake to multiple modules in a single transaction
     pub fn do_add_stake_multiple(
         origin: T::RuntimeOrigin,

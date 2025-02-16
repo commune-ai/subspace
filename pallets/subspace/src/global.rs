@@ -3,31 +3,34 @@ use frame_support::pallet_prelude::{DispatchResult, MaxEncodedLen};
 use pallet_governance_api::GovernanceConfiguration;
 use scale_info::TypeInfo;
 use sp_arithmetic::per_things::Percent;
+use frame_system::Config;
 
 #[derive(
     Decode, Encode, PartialEq, Eq, Clone, TypeInfo, frame_support::DebugNoBound, MaxEncodedLen,
 )]
 #[scale_info(skip_type_params(T))]
 pub struct GlobalParams<T: Config> {
-    // max
-    pub max_name_length: u16,             // max length of a network name
-    pub min_name_length: u16,             // min length of a network name
-    pub max_allowed_modules: u16,         // max number of modules allowed per subnet
-    pub max_registrations_per_block: u16, // max number of registrations per block
-    pub max_allowed_weights: u16,         // max number of weights per module
-    pub floor_founder_share: u8,             // min founder share
-    pub min_weight_stake: u64,               // min weight stake required
+    pub max_name_length: u16,
+    pub min_name_length: u16, 
+    pub max_allowed_modules: u16,
+    pub max_registrations_per_block: u16,
+    pub max_allowed_weights: u16,
+    pub floor_founder_share: u8,
+    pub min_weight_stake: u64,
     pub curator: T::AccountId,
     pub governance_config: GovernanceConfiguration,
-
-impl<T: Config> Pallet<T> {
+}
+impl<T: Config + GovernanceApi> Pallet<T> {
     pub fn global_params() -> GlobalParams<T> {
         GlobalParams {
-            // network
             max_name_length: MaxNameLength::<T>::get(),
+            min_name_length: MinNameLength::<T>::get(),
             max_allowed_modules: MaxAllowedModules::<T>::get(),
-            curator: T::get_curator(),
             max_registrations_per_block: MaxRegistrationsPerBlock::<T>::get(),
+            max_allowed_weights: MaxAllowedWeights::<T>::get(),
+            floor_founder_share: FloorFounderShare::<T>::get(),
+            min_weight_stake: MinWeightStake::<T>::get(),
+            curator: T::get_curator(),
             governance_config: T::get_global_governance_configuration(),
         }
     }
@@ -61,8 +64,6 @@ impl<T: Config> Pallet<T> {
             .expect("invalid governance configuration");
 
         // Cost and operational parameters
-        Kappa::<T>::set(kappa);
-        Rho::<T>::set(rho);
 
         Self::deposit_event(Event::GlobalParamsUpdated(params));
         Ok(())
@@ -80,8 +81,6 @@ impl<T: Config> Pallet<T> {
             min_weight_stake: _,
             curator: _,
             governance_config,
-            kappa,
-            rho,
         } = params;
 
         let old_params = Self::global_params();

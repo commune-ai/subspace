@@ -19,7 +19,6 @@ ignored = ["scale-info"]
 pallet-faucet = { path = "../pallets/faucet", optional = true, default-features = false }
 pallet-governance = { path = "../pallets/governance", default-features = false }
 pallet-subspace = { path = "../pallets/subspace", default-features = false }
-pallet-offworker = { path = "../pallets/offworker", default-features = false }
 
 smallvec.workspace = true
 parity-scale-codec.workspace = true
@@ -80,7 +79,6 @@ pallet-evm-precompile-simple = { workspace = true }
 # Pallets' APIs
 subspace-runtime-api = { path = "../pallets/subspace/rpc/runtime-api", default-features = false }
 pallet-governance-api = { path = "../pallets/governance/api", default-features = false }
-pallet-subnet-emission-api = { path = "../pallets/subnet_emission/api", default-features = false }
 
 [build-dependencies]
 substrate-wasm-builder = { workspace = true, optional = true }
@@ -91,8 +89,6 @@ testnet-faucet = ["pallet-faucet"]
 testnet = [
     "pallet-subspace/testnet",
     "pallet-governance/testnet",
-    "pallet-offworker/testnet",
-    "pallet-subnet-emission/testnet",
     "pallet-faucet/testnet",
 ]
 std = [
@@ -108,7 +104,6 @@ std = [
     "frame-try-runtime/std",
     "pallet-subspace/std",
     "pallet-governance/std",
-    "pallet-offworker/std",
     "pallet-faucet/std",
     "pallet-aura/std",
     "pallet-balances/std",
@@ -157,7 +152,6 @@ runtime-benchmarks = [
     "sp-runtime/runtime-benchmarks",
     "pallet-subspace/runtime-benchmarks",
     "pallet-governance/runtime-benchmarks",
-    "pallet-subnet-emission/runtime-benchmarks",
     "pallet-ethereum/runtime-benchmarks",
     "pallet-evm/runtime-benchmarks",
 ]
@@ -172,8 +166,6 @@ try-runtime = [
     "pallet-grandpa/try-runtime",
     "pallet-multisig/try-runtime",
     "pallet-governance/try-runtime",
-    "pallet-subnet-emission/try-runtime",
-    "pallet-offworker/try-runtime",
     "pallet-faucet/try-runtime",
     "pallet-subspace/try-runtime",
     "pallet-sudo/try-runtime",

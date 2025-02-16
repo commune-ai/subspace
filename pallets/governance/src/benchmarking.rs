@@ -89,8 +89,6 @@ benchmarks! {
             params.governance_config.proposal_cost,                      // proposal_cost: amount of $COMAI to create a proposal, returned if proposal gets accepted
             params.governance_config.proposal_expiration,                // proposal_expiration: the block number, proposal expires at
             params.general_subnet_application_cost,     // general_subnet_application_cost
-            params.kappa,
-            params.rho,
             params.subnet_immunity_period
         )
 

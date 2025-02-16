@@ -27,7 +27,6 @@ serde.workspace = true
 log.workspace = true
 
 # Commune Local Dependencies
-ow_extensions.path = "../ow_extensions"
 node-subspace-runtime = { path = "../runtime" }
 pallet-subspace-genesis-config = { path = "../pallets/subspace/genesis-config" }
 subspace-rpc = { path = "../pallets/subspace/rpc" }
