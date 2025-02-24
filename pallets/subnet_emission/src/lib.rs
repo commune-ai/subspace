@@ -21,8 +21,8 @@ pub mod subnet_pricing {
     pub mod root;
 }
 
-pub mod set_weights;
 pub mod consensus;
+pub mod set_weights;
 pub mod types;
 pub mod weights;
 
