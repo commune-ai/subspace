@@ -1,9 +1,9 @@
 use frame_support::assert_err;
-use pallet_subnet_emission::{
-    subnet_pricing::root::RootPricing, PendingEmission, SubnetConsensusType, SubnetEmission,
+use pallet_emission::{
+    pricing::root::RootPricing, PendingEmission, SubnetConsensusType, SubnetEmission,
     UnitEmission,
 };
-use pallet_subnet_emission_api::{SubnetConsensus, SubnetEmissionApi};
+use pallet_emission_api::{SubnetConsensus, SubnetEmissionApi};
 use pallet_subspace::{
     Error, Kappa, Keys, MaxAllowedUids, MaxAllowedValidators, MaxRegistrationsPerBlock,
     MinimumAllowedStake, ModuleBurnConfig, Rho, StakeFrom, Tempo,
@@ -153,7 +153,7 @@ fn test_emission() {
 
         Tempo::<Test>::set(0, 1);
 
-        let _ = SubnetEmissionMod::get_subnet_pricing(1_000_000_000);
+        let _ = SubnetEmissionMod::get_pricing(1_000_000_000);
         for netuid in 1..n {
             let emission = SubnetEmission::<Test>::get(netuid);
             println!(

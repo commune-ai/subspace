@@ -2,7 +2,7 @@ use super::*;
 use crate::consensus::util::params::ConsensusParams;
 use frame_support::{ensure, pallet_prelude::DispatchResult};
 use frame_system::ensure_signed;
-use pallet_subnet_emission_api::SubnetConsensus;
+use pallet_emission_api::SubnetConsensus;
 use pallet_subspace::{Error, Pallet as PalletSubspace, WeightSettingDelegation};
 use sp_core::Get;
 

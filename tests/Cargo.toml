@@ -34,10 +34,10 @@ pallet-balances = { workspace = true }
 pallet-governance = { path = "../pallets/governance", features = ["std"] }
 
 pallet-governance-api = { path = "../pallets/governance/api" }
-pallet-subnet-emission = { path = "../pallets/subnet_emission", features = [
+pallet-emission = { path = "../pallets/emission", features = [
     "std",
 ] }
-pallet-subnet-emission-api = { path = "../pallets/subnet_emission/api" }
+pallet-emission-api = { path = "../pallets/emission/api" }
 pallet-subspace = { path = "../pallets/subspace", features = ["std"] }
 
 parity-scale-codec = { workspace = true, default-features = false, features = [

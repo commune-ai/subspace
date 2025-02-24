@@ -1,7 +1,7 @@
 use crate::mock::*;
 use frame_support::assert_err;
-use pallet_subnet_emission::*;
-use pallet_subnet_emission_api::{SubnetConsensus, SubnetEmissionApi};
+use pallet_emission::*;
+use pallet_emission_api::{SubnetConsensus, SubnetEmissionApi};
 use pallet_subspace::*;
 use sp_runtime::DispatchError;
 

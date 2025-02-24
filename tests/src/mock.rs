@@ -14,7 +14,7 @@ use frame_system::{
 };
 use pallet_governance::GlobalGovernanceConfig;
 use pallet_governance_api::*;
-use pallet_subnet_emission_api::{SubnetConsensus, SubnetEmissionApi};
+use pallet_emission_api::{SubnetConsensus, SubnetEmissionApi};
 use pallet_subspace::{
     params::subnet::SubnetChangeset, Address, DefaultKey, DefaultSubnetParams, Dividends, Emission,
     Incentive, LastUpdate, MaxRegistrationsPerBlock, Name, StakeFrom, StakeTo, SubnetBurn,
@@ -42,7 +42,7 @@ frame_support::construct_runtime!(
     pub enum Test {
         System: frame_system,
         Balances: pallet_balances,
-        SubnetEmissionMod: pallet_subnet_emission,
+        SubnetEmissionMod: pallet_emission,
         SubspaceMod: pallet_subspace,
         GovernanceMod: pallet_governance,
     }
@@ -204,48 +204,48 @@ impl GovernanceApi<<Test as frame_system::Config>::AccountId> for Test {
 
 impl SubnetEmissionApi<<Test as frame_system::Config>::AccountId> for Test {
     fn get_lowest_emission_netuid(ignore_subnet_immunity: bool) -> Option<u16> {
-        pallet_subnet_emission::Pallet::<Test>::get_lowest_emission_netuid(ignore_subnet_immunity)
+        pallet_emission::Pallet::<Test>::get_lowest_emission_netuid(ignore_subnet_immunity)
     }
 
-    fn set_subnet_emission_storage(subnet_id: u16, emission: u64) {
-        pallet_subnet_emission::Pallet::<Test>::set_subnet_emission_storage(subnet_id, emission)
+    fn set_emission_storage(subnet_id: u16, emission: u64) {
+        pallet_emission::Pallet::<Test>::set_emission_storage(subnet_id, emission)
     }
 
     fn create_yuma_subnet(netuid: u16) {
-        pallet_subnet_emission::Pallet::<Test>::create_yuma_subnet(netuid)
+        pallet_emission::Pallet::<Test>::create_yuma_subnet(netuid)
     }
 
     fn can_remove_subnet(netuid: u16) -> bool {
-        pallet_subnet_emission::Pallet::<Test>::can_remove_subnet(netuid)
+        pallet_emission::Pallet::<Test>::can_remove_subnet(netuid)
     }
 
     fn is_mineable_subnet(netuid: u16) -> bool {
-        pallet_subnet_emission::Pallet::<Test>::is_mineable_subnet(netuid)
+        pallet_emission::Pallet::<Test>::is_mineable_subnet(netuid)
     }
 
     fn get_consensus_netuid(subnet_consensus: SubnetConsensus) -> Option<u16> {
-        pallet_subnet_emission::Pallet::<Test>::get_consensus_netuid(subnet_consensus)
+        pallet_emission::Pallet::<Test>::get_consensus_netuid(subnet_consensus)
     }
 
     fn get_subnet_consensus_type(
         netuid: u16,
-    ) -> Option<pallet_subnet_emission_api::SubnetConsensus> {
-        pallet_subnet_emission::SubnetConsensusType::<Test>::get(netuid)
+    ) -> Option<pallet_emission_api::SubnetConsensus> {
+        pallet_emission::SubnetConsensusType::<Test>::get(netuid)
     }
 
     fn set_subnet_consensus_type(
         netuid: u16,
-        subnet_consensus: Option<pallet_subnet_emission_api::SubnetConsensus>,
+        subnet_consensus: Option<pallet_emission_api::SubnetConsensus>,
     ) {
-        pallet_subnet_emission::SubnetConsensusType::<Test>::set(netuid, subnet_consensus)
+        pallet_emission::SubnetConsensusType::<Test>::set(netuid, subnet_consensus)
     }
 
     fn get_weights(netuid: u16, uid: u16) -> Option<Vec<(u16, u16)>> {
-        pallet_subnet_emission::Weights::<Test>::get(netuid, uid)
+        pallet_emission::Weights::<Test>::get(netuid, uid)
     }
 
     fn clear_subnet_includes(netuid: u16) {
-        for storage_type in pallet_subnet_emission::SubnetIncludes::all() {
+        for storage_type in pallet_emission::SubnetIncludes::all() {
             storage_type.remove_storage::<Test>(netuid);
         }
     }
@@ -255,8 +255,8 @@ impl SubnetEmissionApi<<Test as frame_system::Config>::AccountId> for Test {
         uid: u16,
         weights: Option<Vec<(u16, u16)>>,
     ) -> Option<Vec<(u16, u16)>> {
-        let old_weights = pallet_subnet_emission::Weights::<Test>::get(netuid, uid);
-        pallet_subnet_emission::Weights::<Test>::set(netuid, uid, weights);
+        let old_weights = pallet_emission::Weights::<Test>::get(netuid, uid);
+        pallet_emission::Weights::<Test>::set(netuid, uid, weights);
         old_weights
     }
 
@@ -267,7 +267,7 @@ impl SubnetEmissionApi<<Test as frame_system::Config>::AccountId> for Test {
         module_key: &<Test as frame_system::Config>::AccountId,
         replace_key: &<Test as frame_system::Config>::AccountId,
     ) -> DispatchResult {
-        pallet_subnet_emission::StorageHandler::remove_all::<Test>(
+        pallet_emission::StorageHandler::remove_all::<Test>(
             netuid,
             uid,
             replace_uid,
@@ -278,7 +278,7 @@ impl SubnetEmissionApi<<Test as frame_system::Config>::AccountId> for Test {
     }
 }
 
-impl pallet_subnet_emission::Config for Test {
+impl pallet_emission::Config for Test {
     type RuntimeEvent = RuntimeEvent;
     type Currency = Balances;
     type Decimals = Decimals;
@@ -802,7 +802,7 @@ pub fn register_module(
 
     if increase_emission {
         Emission::<Test>::mutate(netuid, |v| v[uid as usize] = stake);
-        pallet_subnet_emission::SubnetEmission::<Test>::mutate(netuid, |s| *s += stake);
+        pallet_emission::SubnetEmission::<Test>::mutate(netuid, |s| *s += stake);
     }
 
     Ok(uid)

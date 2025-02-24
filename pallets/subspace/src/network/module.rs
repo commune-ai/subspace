@@ -1,7 +1,7 @@
 use crate::*;
 
 use frame_support::pallet_prelude::DispatchResult;
-use pallet_subnet_emission_api::SubnetEmissionApi;
+use pallet_emission_api::SubnetEmissionApi;
 pub struct SubnetDistributionParameters;
 
 impl<T: Config> Pallet<T> {

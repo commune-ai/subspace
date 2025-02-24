@@ -22,7 +22,7 @@ pub type SubnetWeights = Vec<(u16, Vec<(u16, u16)>)>;
 pub trait SubnetEmissionApi<AccountId> {
     fn get_lowest_emission_netuid(ignore_subnet_immunity: bool) -> Option<u16>;
 
-    fn set_subnet_emission_storage(netuid: u16, emission: u64);
+    fn set_emission_storage(netuid: u16, emission: u64);
 
     fn create_yuma_subnet(netuid: u16);
 

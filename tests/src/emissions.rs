@@ -1,5 +1,5 @@
 use crate::mock::*;
-use pallet_subnet_emission::{
+use pallet_emission::{
     consensus::util::{
         consensus::EmissionMap,
         params::{AccountKey, ModuleKey},
@@ -18,12 +18,12 @@ use std::collections::BTreeMap;
 use frame_support::{assert_ok, traits::Currency};
 use log::info;
 use pallet_governance::DaoTreasuryAddress;
-use pallet_subnet_emission::{
+use pallet_emission::{
     consensus::{util::params::ConsensusParams, yuma::YumaEpoch},
     PendingEmission, SubnetConsensusType, SubnetEmission, UnitEmission,
 };
 
-use pallet_subnet_emission_api::SubnetConsensus;
+use pallet_emission_api::SubnetConsensus;
 use pallet_subspace::{
     Dividends, Emission, FloorFounderShare, FounderShare, ImmunityPeriod, Incentive,
     MaxAllowedModules, MaxAllowedSubnets, MaxAllowedValidators, MaxRegistrationsPerBlock,
@@ -906,8 +906,8 @@ fn yuma_weights_older_than_max_age_are_discarded() {
         assert_eq!(validator_incentive, 0);
 
         // But make sure there are emissions
-        let subnet_emission_sum = Emission::<Test>::get(yuma_netuid).iter().sum::<u64>();
-        assert!(subnet_emission_sum > 0);
+        let emission_sum = Emission::<Test>::get(yuma_netuid).iter().sum::<u64>();
+        assert!(emission_sum > 0);
     });
 }
 
@@ -1379,8 +1379,8 @@ fn decrypted_weight_run_result_is_applied_and_cleaned_up() {
             rotating_from: None,
         };
 
-        pallet_subnet_emission::DecryptionNodes::<Test>::set(vec![subnet_decryption_data.clone()]);
-        pallet_subnet_emission::SubnetDecryptionData::<Test>::set(
+        pallet_emission::DecryptionNodes::<Test>::set(vec![subnet_decryption_data.clone()]);
+        pallet_emission::SubnetDecryptionData::<Test>::set(
             netuid,
             Some(subnet_decryption_data),
         );
@@ -1409,7 +1409,7 @@ fn decrypted_weight_run_result_is_applied_and_cleaned_up() {
 
         let params = ConsensusParams::<Test>::new(netuid, emission_amount).unwrap();
 
-        pallet_subnet_emission::Pallet::<Test>::handle_decrypted_weights(netuid, weights);
+        pallet_emission::Pallet::<Test>::handle_decrypted_weights(netuid, weights);
 
         let res = YumaEpoch::run(
             YumaEpoch::new(netuid, params),
@@ -1494,11 +1494,11 @@ fn rotate_decryption_node() {
         let key_2 = (key_2.n().to_bytes_be(), key_2.e().to_bytes_be());
 
         let decryption_node_interval: u64 =
-            <Test as pallet_subnet_emission::Config>::DecryptionNodeRotationInterval::get();
+            <Test as pallet_emission::Config>::DecryptionNodeRotationInterval::get();
 
         step_block(decryption_node_interval as u16);
 
-        pallet_subnet_emission::SubnetDecryptionData::<Test>::set(
+        pallet_emission::SubnetDecryptionData::<Test>::set(
             netuid,
             Some(SubnetDecryptionInfo {
                 validity_block: Some(0),
@@ -1509,7 +1509,7 @@ fn rotate_decryption_node() {
             }),
         );
 
-        pallet_subnet_emission::SubnetDecryptionData::<Test>::set(
+        pallet_emission::SubnetDecryptionData::<Test>::set(
             netuid,
             Some(SubnetDecryptionInfo {
                 validity_block: Some(0),
@@ -1521,13 +1521,13 @@ fn rotate_decryption_node() {
         );
 
         // one subnet with decryption node set
-        pallet_subnet_emission::DecryptionNodeCursor::<Test>::set(1);
+        pallet_emission::DecryptionNodeCursor::<Test>::set(1);
         SubnetConsensusType::<Test>::insert(netuid, SubnetConsensus::Yuma);
 
-        pallet_subnet_emission::Pallet::<Test>::handle_decrypted_weights(netuid, vec![]);
+        pallet_emission::Pallet::<Test>::handle_decrypted_weights(netuid, vec![]);
 
         assert_eq!(
-            pallet_subnet_emission::SubnetDecryptionData::<Test>::get(netuid)
+            pallet_emission::SubnetDecryptionData::<Test>::get(netuid)
                 .map(|info| info.node_id),
             Some(dn_2)
         );
@@ -1546,7 +1546,7 @@ fn ban_decryption_node() {
         let acc_id = 1;
         let _ = register_module(netuid, acc_id, 10000, false).unwrap();
 
-        pallet_subnet_emission::SubnetDecryptionData::<Test>::set(
+        pallet_emission::SubnetDecryptionData::<Test>::set(
             netuid,
             Some(SubnetDecryptionInfo {
                 validity_block: Some(0),
@@ -1562,22 +1562,22 @@ fn ban_decryption_node() {
         let uid = SubspaceMod::<Test>::get_uid_for_key(netuid, &acc_id).unwrap();
 
         // make sure there are some weights present
-        pallet_subnet_emission::WeightEncryptionData::<Test>::set(
+        pallet_emission::WeightEncryptionData::<Test>::set(
             netuid,
             uid,
-            Some(pallet_subnet_emission::EncryptionMechanism {
+            Some(pallet_emission::EncryptionMechanism {
                 encrypted: vec![42],
                 decrypted_hashes: vec![123],
             }),
         );
         let max_encryption_inteval =
-            pallet_subnet_emission::Pallet::<Test>::get_max_encryption_interval(&netuid);
+            pallet_emission::Pallet::<Test>::get_max_encryption_interval(&netuid);
         step_block((max_encryption_inteval + 1) as u16);
         step_epoch(netuid);
-        dbg!(&pallet_subnet_emission::DecryptionNodeBanQueue::<Test>::iter().collect::<Vec<_>>());
+        dbg!(&pallet_emission::DecryptionNodeBanQueue::<Test>::iter().collect::<Vec<_>>());
 
         // one subnet with decryption node set
-        pallet_subnet_emission::DecryptionNodeCursor::<Test>::set(1);
+        pallet_emission::DecryptionNodeCursor::<Test>::set(1);
 
         assert_ne!(BannedDecryptionNodes::<Test>::get(dn_1), 0);
     });
@@ -1597,7 +1597,7 @@ fn weight_setting_delegation() {
 
         FounderShare::<Test>::set(NETUID, 0);
 
-        dbg!(pallet_subnet_emission::SubnetConsensusType::<Test>::get(
+        dbg!(pallet_emission::SubnetConsensusType::<Test>::get(
             NETUID
         ));
 

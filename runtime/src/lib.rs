@@ -39,7 +39,7 @@ use pallet_evm::{
 };
 
 // Subnet emission API
-use pallet_subnet_emission_api::SubnetConsensus;
+use pallet_emission_api::SubnetConsensus;
 
 // Substrate API
 use sp_api::impl_runtime_apis;
@@ -194,7 +194,7 @@ pub type Migrations = ();
 
 #[cfg(not(feature = "testnet"))]
 pub type Migrations = (
-    pallet_subnet_emission::migrations::v2::MigrateToV2<Runtime>, // set lower block emission
+    pallet_emission::migrations::v2::MigrateToV2<Runtime>, // set lower block emission
 );
 
 #[sp_version::runtime_version]
@@ -472,7 +472,7 @@ impl frame_system::offchain::SigningTypes for Runtime {
 }
 
 // Includes emission logic for the runtime
-impl pallet_subnet_emission::Config for Runtime {
+impl pallet_emission::Config for Runtime {
     type RuntimeEvent = RuntimeEvent;
     type Currency = Balances;
     // The runtime has 9 token decimals
@@ -494,7 +494,7 @@ impl pallet_subnet_emission::Config for Runtime {
     // Represented in number of blocks, defines how often node sends keep-alive ping
     type PingInterval = ConstU64<50>;
     type EncryptionPeriodBuffer = ConstU64<100>;
-    type WeightInfo = pallet_subnet_emission::weights::SubstrateWeight<Runtime>;
+    type WeightInfo = pallet_emission::weights::SubstrateWeight<Runtime>;
 }
 
 #[cfg(feature = "testnet-faucet")]
@@ -638,7 +638,7 @@ construct_runtime!(
         Utility: pallet_utility,
         SubspaceModule: pallet_subspace,
         GovernanceModule: pallet_governance,
-        SubnetEmissionModule: pallet_subnet_emission,
+        SubnetEmissionModule: pallet_emission,
 
         #[cfg(feature = "testnet-faucet")]
         FaucetModule: pallet_faucet,
@@ -862,7 +862,7 @@ mod benches {
         [pallet_governance, GovernanceModule]
         [pallet_timestamp, Timestamp]
         [pallet_utility, Utility]
-        [pallet_subnet_emission, SubnetEmissionModule]
+        [pallet_emission, SubnetEmissionModule]
         // [pallet_evm, EVM]
     );
 }
@@ -1344,15 +1344,15 @@ impl_runtime_apis! {
     }
 }
 
-impl pallet_subnet_emission_api::SubnetEmissionApi<<Runtime as frame_system::Config>::AccountId>
+impl pallet_emission_api::SubnetEmissionApi<<Runtime as frame_system::Config>::AccountId>
     for Runtime
 {
     fn get_lowest_emission_netuid(ignore_subnet_immunity: bool) -> Option<u16> {
         SubnetEmissionModule::get_lowest_emission_netuid(ignore_subnet_immunity)
     }
 
-    fn set_subnet_emission_storage(netuid: u16, emission: u64) {
-        SubnetEmissionModule::set_subnet_emission_storage(netuid, emission)
+    fn set_emission_storage(netuid: u16, emission: u64) {
+        SubnetEmissionModule::set_emission_storage(netuid, emission)
     }
 
     fn create_yuma_subnet(netuid: u16) {
@@ -1373,23 +1373,23 @@ impl pallet_subnet_emission_api::SubnetEmissionApi<<Runtime as frame_system::Con
 
     fn get_subnet_consensus_type(
         netuid: u16,
-    ) -> Option<pallet_subnet_emission_api::SubnetConsensus> {
-        pallet_subnet_emission::SubnetConsensusType::<Runtime>::get(netuid)
+    ) -> Option<pallet_emission_api::SubnetConsensus> {
+        pallet_emission::SubnetConsensusType::<Runtime>::get(netuid)
     }
 
     fn set_subnet_consensus_type(
         netuid: u16,
-        subnet_consensus: Option<pallet_subnet_emission_api::SubnetConsensus>,
+        subnet_consensus: Option<pallet_emission_api::SubnetConsensus>,
     ) {
-        pallet_subnet_emission::SubnetConsensusType::<Runtime>::set(netuid, subnet_consensus)
+        pallet_emission::SubnetConsensusType::<Runtime>::set(netuid, subnet_consensus)
     }
 
     fn get_weights(netuid: u16, uid: u16) -> Option<Vec<(u16, u16)>> {
-        pallet_subnet_emission::Weights::<Runtime>::get(netuid, uid)
+        pallet_emission::Weights::<Runtime>::get(netuid, uid)
     }
 
     fn clear_subnet_includes(netuid: u16) {
-        for storage_type in pallet_subnet_emission::SubnetIncludes::all() {
+        for storage_type in pallet_emission::SubnetIncludes::all() {
             storage_type.remove_storage::<Runtime>(netuid);
         }
     }
@@ -1401,7 +1401,7 @@ impl pallet_subnet_emission_api::SubnetEmissionApi<<Runtime as frame_system::Con
         module_key: &AccountId,
         replace_key: &AccountId,
     ) -> DispatchResult {
-        pallet_subnet_emission::StorageHandler::remove_all::<Runtime>(
+        pallet_emission::StorageHandler::remove_all::<Runtime>(
             netuid,
             uid,
             replace_uid,
@@ -1416,8 +1416,8 @@ impl pallet_subnet_emission_api::SubnetEmissionApi<<Runtime as frame_system::Con
         uid: u16,
         weights: Option<Vec<(u16, u16)>>,
     ) -> Option<Vec<(u16, u16)>> {
-        let old_weights = pallet_subnet_emission::Weights::<Runtime>::get(netuid, uid);
-        pallet_subnet_emission::Weights::<Runtime>::set(netuid, uid, weights);
+        let old_weights = pallet_emission::Weights::<Runtime>::get(netuid, uid);
+        pallet_emission::Weights::<Runtime>::set(netuid, uid, weights);
         old_weights
     }
 }

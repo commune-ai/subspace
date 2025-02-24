@@ -16,7 +16,7 @@ use sp_std::{collections::btree_map::BTreeMap, vec::Vec};
 pub mod decryption;
 pub mod distribute_emission;
 pub mod migrations;
-pub mod subnet_pricing {
+pub mod pricing {
     pub mod demo;
     pub mod root;
 }
@@ -40,9 +40,9 @@ pub mod pallet {
         traits::{ConstU64, Currency},
     };
     use frame_system::pallet_prelude::BlockNumberFor;
-    use pallet_subnet_emission_api::SubnetConsensus;
+    use pallet_emission_api::SubnetConsensus;
     use pallet_subspace::{define_module_includes, define_subnet_includes, TotalStake};
-    use subnet_pricing::root::RootPricing;
+    use pricing::root::RootPricing;
 
     #[cfg(feature = "testnet")]
     const STORAGE_VERSION: StorageVersion = StorageVersion::new(16);
@@ -217,7 +217,7 @@ pub mod pallet {
                 block_number.try_into().ok().expect("blockchain won't pass 2 ^ 64 blocks");
 
             log::info!(
-                "Running on_initialize at block: {:?}, subnet_emission module",
+                "Running on_initialize at block: {:?}, emission module",
                 block_number
             );
 
@@ -373,7 +373,7 @@ pub mod pallet {
 
         /// Returns emission for every subnet
         #[must_use]
-        pub fn get_subnet_pricing(token_emission: u64) -> PricedSubnets {
+        pub fn get_pricing(token_emission: u64) -> PricedSubnets {
             let rootnet_id = Self::get_consensus_netuid(SubnetConsensus::Root).unwrap_or(0);
             let pricing = RootPricing::<T>::new(rootnet_id, token_emission);
             let priced_subnets = match pricing.run() {

@@ -5756,6 +5756,8 @@ dependencies = [
  "pallet-balances",
  "pallet-base-fee",
  "pallet-dynamic-fee",
+ "pallet-emission",
+ "pallet-emission-api",
  "pallet-ethereum",
  "pallet-evm",
  "pallet-evm-chain-id",
@@ -5767,8 +5769,6 @@ dependencies = [
  "pallet-governance-api",
  "pallet-grandpa",
  "pallet-multisig",
- "pallet-subnet-emission",
- "pallet-subnet-emission-api",
  "pallet-subspace",
  "pallet-sudo",
  "pallet-timestamp",
@@ -6189,6 +6189,37 @@ dependencies = [
 ]
 
 [[package]]
+name = "pallet-emission"
+version = "1.0.1"
+dependencies = [
+ "bty",
+ "frame-benchmarking",
+ "frame-support",
+ "frame-system",
+ "log",
+ "pallet-emission-api",
+ "pallet-governance-api",
+ "pallet-subspace",
+ "parity-scale-codec",
+ "scale-info",
+ "sp-core",
+ "sp-io",
+ "sp-runtime",
+ "sp-std",
+ "strum 0.25.0",
+ "substrate-fixed",
+]
+
+[[package]]
+name = "pallet-emission-api"
+version = "1.0.0"
+dependencies = [
+ "frame-support",
+ "parity-scale-codec",
+ "scale-info",
+]
+
+[[package]]
 name = "pallet-ethereum"
 version = "4.0.0-dev"
 source = "git+https://github.com/renlabs-dev/frontier?branch=feat%2Fadjustable-decimals#4c4dbbd8101ffaa318398e318529ec60637202b9"
@@ -6380,37 +6411,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "pallet-subnet-emission"
-version = "1.0.1"
-dependencies = [
- "bty",
- "frame-benchmarking",
- "frame-support",
- "frame-system",
- "log",
- "pallet-governance-api",
- "pallet-subnet-emission-api",
- "pallet-subspace",
- "parity-scale-codec",
- "scale-info",
- "sp-core",
- "sp-io",
- "sp-runtime",
- "sp-std",
- "strum 0.25.0",
- "substrate-fixed",
-]
-
-[[package]]
-name = "pallet-subnet-emission-api"
-version = "1.0.0"
-dependencies = [
- "frame-support",
- "parity-scale-codec",
- "scale-info",
-]
-
-[[package]]
 name = "pallet-subspace"
 version = "1.8.6"
 dependencies = [
@@ -6421,8 +6421,8 @@ dependencies = [
  "macro_rules_attribute",
  "num-traits",
  "pallet-balances",
+ "pallet-emission-api",
  "pallet-governance-api",
- "pallet-subnet-emission-api",
  "pallet-subspace-genesis-config",
  "parity-scale-codec",
  "parity-util-mem",
@@ -10954,10 +10954,10 @@ dependencies = [
  "hex",
  "log",
  "pallet-balances",
+ "pallet-emission",
+ "pallet-emission-api",
  "pallet-governance",
  "pallet-governance-api",
- "pallet-subnet-emission",
- "pallet-subnet-emission-api",
  "pallet-subspace",
  "parity-scale-codec",
  "parking_lot 0.12.3",

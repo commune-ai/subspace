@@ -1,7 +1,7 @@
 use crate::*;
 use frame_support::pallet_prelude::DispatchResult;
 use pallet_governance_api::GovernanceApi;
-use pallet_subnet_emission_api::{SubnetConsensus, SubnetEmissionApi};
+use pallet_emission_api::{SubnetConsensus, SubnetEmissionApi};
 use sp_runtime::DispatchError;
 use substrate_fixed::types::I64F64;
 
@@ -18,7 +18,7 @@ impl<T: Config> Pallet<T> {
         let name = changeset.params().name.clone();
         changeset.apply(netuid)?;
         N::<T>::insert(netuid, 0);
-        T::set_subnet_emission_storage(netuid, 0);
+        T::set_emission_storage(netuid, 0);
         SubnetRegistrationsThisInterval::<T>::mutate(|value| *value = value.saturating_add(1));
         SubnetRegistrationBlock::<T>::set(netuid, Some(Self::get_current_block_number()));
 

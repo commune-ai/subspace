@@ -2,8 +2,8 @@ use std::collections::BTreeSet;
 
 use crate::mock::*;
 use frame_support::{assert_err, assert_noop, dispatch::DispatchResult};
-use pallet_subnet_emission::SubnetConsensusType;
-use pallet_subnet_emission_api::SubnetConsensus;
+use pallet_emission::SubnetConsensusType;
+use pallet_emission_api::SubnetConsensus;
 use pallet_subspace::*;
 use sp_runtime::Percent;
 
@@ -555,7 +555,7 @@ fn new_subnets_on_removed_uids_register_modules_to_the_correct_netuids() {
         let uid = pallet_subspace::Uids::<Test>::get(netuid, key).unwrap();
 
         Emission::<Test>::mutate(netuid, |v| v[uid as usize] = stake);
-        pallet_subnet_emission::SubnetEmission::<Test>::mutate(netuid, |s| *s += stake);
+        pallet_emission::SubnetEmission::<Test>::mutate(netuid, |s| *s += stake);
     }
 
     new_test_ext().execute_with(|| {
@@ -567,7 +567,7 @@ fn new_subnets_on_removed_uids_register_modules_to_the_correct_netuids() {
             Emission::<Test>::mutate(netuid, |v| {
                 v[Uids::<Test>::get(netuid, id).unwrap() as usize] = emission
             });
-            pallet_subnet_emission::SubnetEmission::<Test>::mutate(netuid, |s| *s += emission);
+            pallet_emission::SubnetEmission::<Test>::mutate(netuid, |s| *s += emission);
         };
 
         MaxAllowedSubnets::<Test>::put(4);

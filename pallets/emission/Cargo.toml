@@ -1,5 +1,5 @@
 [package]
-name = "pallet-subnet-emission"
+name = "pallet-emission"
 version = "1.0.1"
 description = "FRAME pallet for runtime logic of Subspace Blockchain."
 authors = ["Commune Community"]
@@ -40,7 +40,7 @@ frame-system = { workspace = true }
 
 
 pallet-governance-api = { path = "../governance/api", default-features = false }
-pallet-subnet-emission-api = { path = "../subnet_emission/api", default-features = false }
+pallet-emission-api = { path = "../emission/api", default-features = false }
 pallet-subspace = { path = "../subspace", default-features = false }
 
 substrate-fixed = { workspace = true }

@@ -4,7 +4,7 @@ use crate::consensus::{linear::LinearEpoch, treasury::TreasuryEpoch};
 use crate::consensus::util::params::ConsensusParams;
 use consensus::yuma::YumaEpoch;
 use frame_support::storage::with_storage_layer;
-use pallet_subnet_emission_api::SubnetConsensus;
+use pallet_emission_api::SubnetConsensus;
 use pallet_subspace::{Pallet as PalletSubspace, N};
 
 const NO_WEIGHTS: &str = "no weights";
@@ -282,7 +282,7 @@ impl<T: Config> Pallet<T> {
     pub fn process_emission_distribution(block_number: u64, emission_per_block: u64) {
         log::debug!("stepping block {block_number:?}");
 
-        let subnets_emission_distribution = Self::get_subnet_pricing(emission_per_block);
+        let subnets_emission_distribution = Self::get_pricing(emission_per_block);
         process_subnets::<T>(block_number, subnets_emission_distribution);
     }
 
@@ -320,7 +320,7 @@ impl<T: Config> Pallet<T> {
     ///
     /// * `netuid` - The ID of the subnet.
     /// * `emission` - The emission value to set for the subnet.
-    pub fn set_subnet_emission_storage(netuid: u16, emission: u64) {
+    pub fn set_emission_storage(netuid: u16, emission: u64) {
         SubnetEmission::<T>::insert(netuid, emission);
     }
 

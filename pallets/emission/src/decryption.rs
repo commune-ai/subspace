@@ -178,7 +178,7 @@ impl<T: Config> Pallet<T> {
 
         // Ensure consensus type is Yuma
         let consensus_type = SubnetConsensusType::<T>::get(netuid).ok_or("Invalid network ID")?;
-        if consensus_type != pallet_subnet_emission_api::SubnetConsensus::Yuma {
+        if consensus_type != pallet_emission_api::SubnetConsensus::Yuma {
             return Err("Unsupported consensus type");
         }
 

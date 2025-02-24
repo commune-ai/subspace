@@ -3,7 +3,7 @@ use crate::*;
 
 use frame_support::{pallet_prelude::DispatchResult, sp_runtime::DispatchError};
 use frame_system::ensure_signed;
-use pallet_subnet_emission_api::SubnetConsensus;
+use pallet_emission_api::SubnetConsensus;
 use sp_core::Get;
 use sp_runtime::BoundedVec;
 use substrate_fixed::types::I110F18;

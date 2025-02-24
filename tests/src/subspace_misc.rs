@@ -227,28 +227,28 @@ fn test_emission_ratio() {
             let netuid = netuids[i];
             register_n_modules(netuid, 1, stake_per_module);
             let threshold = SubnetStakeThreshold::<Test>::get();
-            let subnet_emission: u64 = SubspaceMod::calculate_network_emission(netuid, threshold);
-            emissions_per_subnet.push(subnet_emission);
+            let emission: u64 = SubspaceMod::calculate_network_emission(netuid, threshold);
+            emissions_per_subnet.push(emission);
             let _expected_emission_factor: f64 = 1.0 / (netuids.len() as f64);
             let emission_per_block = SubspaceMod::get_total_emission_per_block();
             let expected_emission: u64 = emission_per_block / (i as u64 + 1);
 
             let block = block_number();
             // magnitude of difference between expected and actual emission
-            let delta = if subnet_emission > expected_emission {
-                subnet_emission - expected_emission
+            let delta = if emission > expected_emission {
+                emission - expected_emission
             } else {
-                expected_emission - subnet_emission
+                expected_emission - emission
             } as f64;
 
             assert!(
                 delta <= max_delta,
                 "emission {} is too far from expected emission {} ",
-                subnet_emission,
+                emission,
                 expected_emission
             );
             assert!(block == 0, "block {} is not 0", block);
-            info!("block {} subnet_emission {} ", block, subnet_emission);
+            info!("block {} emission {} ", block, emission);
         }
     });
 }
