@@ -1,5 +1,5 @@
 use crate::{
-    subnet_consensus::util::{consensus::*, params},
+    consensus::util::{consensus::*, params},
     Config, EmissionError,
 };
 use core::marker::PhantomData;

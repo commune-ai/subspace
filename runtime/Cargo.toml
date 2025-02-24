@@ -20,7 +20,6 @@ pallet-faucet = { path = "../pallets/faucet", optional = true, default-features 
 pallet-governance = { path = "../pallets/governance", default-features = false }
 pallet-subnet-emission = { path = "../pallets/subnet_emission", default-features = false }
 pallet-subspace = { path = "../pallets/subspace", default-features = false }
-pallet-offworker = { path = "../pallets/offworker", default-features = false }
 
 smallvec.workspace = true
 parity-scale-codec.workspace = true
@@ -93,7 +92,6 @@ testnet-faucet = ["pallet-faucet"]
 testnet = [
     "pallet-subspace/testnet",
     "pallet-governance/testnet",
-    "pallet-offworker/testnet",
     "pallet-subnet-emission/testnet",
     "pallet-faucet/testnet",
 ]
@@ -110,7 +108,6 @@ std = [
     "frame-try-runtime/std",
     "pallet-subspace/std",
     "pallet-governance/std",
-    "pallet-offworker/std",
     "pallet-faucet/std",
     "pallet-aura/std",
     "pallet-balances/std",
@@ -175,7 +172,6 @@ try-runtime = [
     "pallet-multisig/try-runtime",
     "pallet-governance/try-runtime",
     "pallet-subnet-emission/try-runtime",
-    "pallet-offworker/try-runtime",
     "pallet-faucet/try-runtime",
     "pallet-subspace/try-runtime",
     "pallet-sudo/try-runtime",

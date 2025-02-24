@@ -14,7 +14,6 @@ use frame_system::{
 };
 use pallet_governance::GlobalGovernanceConfig;
 use pallet_governance_api::*;
-use pallet_offworker::crypto::Signature;
 use pallet_subnet_emission_api::{SubnetConsensus, SubnetEmissionApi};
 use pallet_subspace::{
     params::subnet::SubnetChangeset, Address, DefaultKey, DefaultSubnetParams, Dividends, Emission,
@@ -46,7 +45,6 @@ frame_support::construct_runtime!(
         SubnetEmissionMod: pallet_subnet_emission,
         SubspaceMod: pallet_subspace,
         GovernanceMod: pallet_governance,
-        OffWorkerMod: pallet_offworker,
     }
 );
 
@@ -326,12 +324,6 @@ pub const KEY_TYPE: KeyTypeId = KeyTypeId(*b"offw");
 
 pub struct TestAuthId;
 
-impl AppCrypto<<Test as SigningTypes>::Public, <Test as SigningTypes>::Signature> for TestAuthId {
-    type RuntimeAppPublic = pallet_offworker::crypto::Public;
-    type GenericSignature = sp_core::sr25519::Signature;
-    type GenericPublic = sp_core::sr25519::Public;
-}
-
 #[derive(Clone, Debug, PartialEq, Eq, Ord, PartialOrd, Encode, Decode, TypeInfo)]
 pub struct CustomPublic(sr25519::Public);
 
@@ -360,7 +352,7 @@ pub type Extrinsic = TestXt<RuntimeCall, ()>;
 
 impl frame_system::offchain::SigningTypes for Test {
     type Public = CustomPublic;
-    type Signature = Signature;
+    type Signature = sp_core::sr25519::Signature;
 }
 
 impl<LocalCall> frame_system::offchain::SendTransactionTypes<LocalCall> for Test
@@ -383,12 +375,6 @@ where
     ) -> Option<(RuntimeCall, <Extrinsic as ExtrinsicT>::SignaturePayload)> {
         Some((call, (nonce, ())))
     }
-}
-
-impl pallet_offworker::Config for Test {
-    type AuthorityId = TestAuthId;
-    type RuntimeEvent = RuntimeEvent;
-    type UnsignedPriority = ConstU64<100>;
 }
 
 impl system::Config for Test {

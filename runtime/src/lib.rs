@@ -194,7 +194,6 @@ pub type Migrations = ();
 
 #[cfg(not(feature = "testnet"))]
 pub type Migrations = (
-    pallet_offworker::migrations::v1::MigrateToV1<Runtime>,
     pallet_subnet_emission::migrations::v2::MigrateToV2<Runtime>, // set lower block emission
 );
 
@@ -467,12 +466,6 @@ impl pallet_governance::Config for Runtime {
     type WeightInfo = pallet_governance::weights::SubstrateWeight<Runtime>;
 }
 
-impl pallet_offworker::Config for Runtime {
-    type AuthorityId = pallet_offworker::crypto::AuthId;
-    type RuntimeEvent = RuntimeEvent;
-    type UnsignedPriority = ConstU64<100>;
-}
-
 impl frame_system::offchain::SigningTypes for Runtime {
     type Public = <Signature as Verify>::Signer;
     type Signature = Signature;
@@ -646,7 +639,6 @@ construct_runtime!(
         SubspaceModule: pallet_subspace,
         GovernanceModule: pallet_governance,
         SubnetEmissionModule: pallet_subnet_emission,
-        Offworker: pallet_offworker,
 
         #[cfg(feature = "testnet-faucet")]
         FaucetModule: pallet_faucet,

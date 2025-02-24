@@ -1,11 +1,11 @@
 use super::*;
-use crate::subnet_consensus::{linear::LinearEpoch, treasury::TreasuryEpoch};
+use crate::consensus::{linear::LinearEpoch, treasury::TreasuryEpoch};
 
-use crate::subnet_consensus::util::params::ConsensusParams;
+use crate::consensus::util::params::ConsensusParams;
+use consensus::yuma::YumaEpoch;
 use frame_support::storage::with_storage_layer;
 use pallet_subnet_emission_api::SubnetConsensus;
 use pallet_subspace::{Pallet as PalletSubspace, N};
-use subnet_consensus::yuma::YumaEpoch;
 
 const NO_WEIGHTS: &str = "no weights";
 
