@@ -9,7 +9,6 @@ members = [
     "pallets/subspace/genesis-config",
     "runtime",
     "tests",
-    "ow_extensions",
     "xtask",
 ]
 resolver = "2"

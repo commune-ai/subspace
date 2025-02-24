@@ -536,7 +536,6 @@ pub fn new_test_ext() -> sp_io::TestExternalities {
     sp_tracing::try_init_simple();
     let t = frame_system::GenesisConfig::<Test>::default().build_storage().unwrap();
     let mut ext = sp_io::TestExternalities::new(t);
-    ext.register_extension(ow_extensions::OffworkerExt::new(Decrypter::default()));
     ext.execute_with(|| {});
     ext
 }
@@ -936,63 +935,7 @@ impl Default for Decrypter {
     }
 }
 
-impl ow_extensions::OffworkerExtension for Decrypter {
-    fn decrypt_weight(&self, encrypted: Vec<u8>) -> Option<(Vec<(u16, u16)>, Vec<u8>)> {
-        let Some(key) = &self.key else {
-            return None;
-        };
 
-        let Some(vec) = encrypted
-            .chunks(dbg!(key.size()))
-            .map(|chunk| match key.decrypt(Pkcs1v15Encrypt, &chunk) {
-                Ok(decrypted) => Some(decrypted),
-                Err(_) => None,
-            })
-            .collect::<Option<Vec<Vec<u8>>>>()
-        else {
-            return None;
-        };
-
-        let decrypted = vec.into_iter().flat_map(|vec| vec).collect::<Vec<_>>();
-
-        let mut res = Vec::new();
-
-        let mut cursor = Cursor::new(&decrypted);
-
-        let Some(length) = read_u32(&mut cursor) else {
-            return None;
-        };
-        for _ in 0..length {
-            let Some(uid) = read_u16(&mut cursor) else {
-                return None;
-            };
-
-            let Some(weight) = read_u16(&mut cursor) else {
-                return None;
-            };
-
-            res.push((uid, weight));
-        }
-
-        let mut key = Vec::new();
-        cursor.read_to_end(&mut key).ok()?;
-
-        Some((res, key))
-    }
-
-    fn is_decryption_node(&self) -> bool {
-        true
-    }
-
-    fn get_encryption_key(&self) -> Option<(Vec<u8>, Vec<u8>)> {
-        let Some(key) = &self.key else {
-            return None;
-        };
-
-        let public = rsa::RsaPublicKey::from(key);
-        Some((public.n().to_bytes_be(), public.e().to_bytes_be()))
-    }
-}
 
 fn read_u32(cursor: &mut Cursor<&Vec<u8>>) -> Option<u32> {
     let mut buf: [u8; 4] = [0u8; 4];
