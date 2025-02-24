@@ -1,6 +1,6 @@
 use crate::mock::*;
 use pallet_subnet_emission::{
-    subnet_consensus::util::{
+    consensus::util::{
         consensus::EmissionMap,
         params::{AccountKey, ModuleKey},
     },
@@ -19,7 +19,7 @@ use frame_support::{assert_ok, traits::Currency};
 use log::info;
 use pallet_governance::DaoTreasuryAddress;
 use pallet_subnet_emission::{
-    subnet_consensus::{util::params::ConsensusParams, yuma::YumaEpoch},
+    consensus::{util::params::ConsensusParams, yuma::YumaEpoch},
     PendingEmission, SubnetConsensusType, SubnetEmission, UnitEmission,
 };
 

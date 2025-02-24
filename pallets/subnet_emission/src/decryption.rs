@@ -1,13 +1,13 @@
 use crate::{
     distribute_emission::update_pending_emission,
-    subnet_consensus::{util::params::ConsensusParams, yuma::YumaEpoch},
+    consensus::{util::params::ConsensusParams, yuma::YumaEpoch},
 };
 use pallet_subspace::{MaxEncryptionPeriod, MaxEncryptionPeriodDefaultValue, UseWeightsEncryption};
 use sp_runtime::traits::Get;
 use sp_std::collections::btree_map::BTreeMap;
 
 use sp_core::hexdisplay::HexDisplay;
-use subnet_consensus::util::params::ModuleKey;
+use consensus::util::params::ModuleKey;
 use types::KeylessBlockWeights;
 
 // TODO: all logic of canceling has to completelly match what is in the offchain worker code !!

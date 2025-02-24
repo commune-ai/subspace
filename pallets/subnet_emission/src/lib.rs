@@ -22,7 +22,7 @@ pub mod subnet_pricing {
 }
 
 pub mod set_weights;
-pub mod subnet_consensus;
+pub mod consensus;
 pub mod types;
 pub mod weights;
 
@@ -32,7 +32,7 @@ mod benchmarking;
 #[frame_support::pallet]
 pub mod pallet {
     pub use crate::weights::WeightInfo;
-    use crate::{subnet_consensus::util::params::ConsensusParams, *};
+    use crate::{consensus::util::params::ConsensusParams, *};
     use frame_support::{
         pallet_prelude::{ValueQuery, *},
         sp_runtime::SaturatedConversion,

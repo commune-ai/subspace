@@ -1,5 +1,5 @@
 use super::*;
-use crate::subnet_consensus::util::params::ConsensusParams;
+use crate::consensus::util::params::ConsensusParams;
 use frame_support::{ensure, pallet_prelude::DispatchResult};
 use frame_system::ensure_signed;
 use pallet_subnet_emission_api::SubnetConsensus;
