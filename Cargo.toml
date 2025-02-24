@@ -4,7 +4,6 @@ members = [
     "pallets/faucet",
     "pallets/governance",
     "pallets/governance/api",
-    "pallets/offworker",
     "pallets/subnet_emission",
     "pallets/subspace",
     "pallets/subspace/genesis-config",

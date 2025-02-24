@@ -5768,7 +5768,6 @@ dependencies = [
  "pallet-governance-api",
  "pallet-grandpa",
  "pallet-multisig",
- "pallet-offworker",
  "pallet-subnet-emission",
  "pallet-subnet-emission-api",
  "pallet-subspace",
@@ -6367,26 +6366,6 @@ dependencies = [
  "scale-info",
  "sp-io",
  "sp-runtime",
-]
-
-[[package]]
-name = "pallet-offworker"
-version = "1.0.0"
-dependencies = [
- "frame-support",
- "frame-system",
- "log",
- "num-traits",
- "ow_extensions",
- "pallet-subnet-emission",
- "pallet-subspace",
- "parity-scale-codec",
- "scale-info",
- "sp-core",
- "sp-runtime",
- "sp-std",
- "sp-tracing",
- "substrate-fixed",
 ]
 
 [[package]]
@@ -10988,7 +10967,6 @@ dependencies = [
  "pallet-balances",
  "pallet-governance",
  "pallet-governance-api",
- "pallet-offworker",
  "pallet-subnet-emission",
  "pallet-subnet-emission-api",
  "pallet-subspace",

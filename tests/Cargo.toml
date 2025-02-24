@@ -35,10 +35,6 @@ pallet-balances = { workspace = true }
 pallet-governance = { path = "../pallets/governance", features = ["std"] }
 
 pallet-governance-api = { path = "../pallets/governance/api" }
-pallet-offworker = { path = "../pallets/offworker", features = [
-    "std",
-    "testing-offworker",
-] }
 pallet-subnet-emission = { path = "../pallets/subnet_emission", features = [
     "std",
 ] }
@@ -66,4 +62,3 @@ sp-tracing = { workspace = true }
 substrate-fixed = { workspace = true }
 
 [features]
-testing-offworker = ["pallet-offworker/testing-offworker"]
