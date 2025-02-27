@@ -1425,9 +1425,6 @@ class Subspace(c.Module):
         params["netuid"] = subnet
         params['vote_mode'] = params.pop('governance_configuration')['vote_mode']
         params["metadata"] = params.pop("metadata", None)
-        params["use_weights_encryption"] = params.pop("use_weights_encryption", False)
-        params['copier_margin'] = params.pop('copier_margin', 0)
-        params["max_encryption_period"] = params.pop("max_encryption_period", params["tempo"]+1)
         return self.compose_call(fn="update_subnet",params=params,key=key)
 
     def metadata(self) -> str:
@@ -2452,10 +2449,18 @@ class Subspace(c.Module):
                     "proposal_reward_interval": int(global_config["proposal_reward_interval"]),
                 },
             }
-            c.put(path, result)
-        return result
 
-    
+
+            
+            c.put(path, result)
+
+        result['min_weight_stake'] = result['min_weight_stake']/10**9
+        result['general_subnet_application_cost'] = result['general_subnet_application_cost']/10**9
+        result['subnet_registration_cost'] = result['subnet_registration_cost']/10**9
+        result['governance_config']['proposal_cost'] = result['governance_config']['proposal_cost']/10**9
+        result['governance_config']['proposal_reward_treasury_allocation'] = result['governance_config']['proposal_reward_treasury_allocation']/10**9
+        result['governance_config']['max_proposal_reward_treasury_allocation'] = result['governance_config']['max_proposal_reward_treasury_allocation']//10**9
+        return result
 
     def founders(self):
         return self.query_map("Founder", module="SubspaceModule")

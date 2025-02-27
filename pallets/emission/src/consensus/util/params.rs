@@ -33,7 +33,6 @@ pub struct ConsensusParams<T: Config> {
 
     pub current_block: u64,
     pub activity_cutoff: u64,
-    pub use_weights_encryption: bool,
     pub max_allowed_validators: Option<u16>,
     pub bonds_moving_average: u64,
     pub alpha_values: (I32F32, I32F32),
@@ -63,8 +62,6 @@ pub struct ModuleParams<AccountId: Debug> {
     pub stake_original: I64F64, // Use for WC simulation purposes
     pub delegated_to: Option<(AccountId, Percent)>,
     pub bonds: Vec<(u16, u16)>,
-    pub weight_encrypted: Vec<u8>,
-    pub weight_hash: Vec<u8>,
 }
 
 #[derive(DebugNoBound, Clone)]
@@ -78,8 +75,6 @@ pub struct FlattenedModules<AccountId: Debug> {
     pub stake_original: Vec<I64F64>,
     pub delegated_to: Vec<Option<(AccountId, Percent)>>,
     pub bonds: Vec<Vec<(u16, I32F32)>>,
-    pub weight_unencrypted_hash: Vec<Vec<u8>>,
-    pub weight_encrypted: Vec<Vec<u8>>,
 }
 
 impl<AccountId: Debug> From<BTreeMap<ModuleKey<AccountId>, ModuleParams<AccountId>>>
@@ -97,8 +92,6 @@ impl<AccountId: Debug> From<BTreeMap<ModuleKey<AccountId>, ModuleParams<AccountI
             stake_original: Vec::with_capacity(len),
             delegated_to: Vec::with_capacity(len),
             bonds: Vec::with_capacity(len),
-            weight_unencrypted_hash: Vec::with_capacity(len),
-            weight_encrypted: Vec::with_capacity(len),
         };
 
         // First, collect all entries and sort them by UID
@@ -118,7 +111,6 @@ impl<AccountId: Debug> From<BTreeMap<ModuleKey<AccountId>, ModuleParams<AccountI
             modules
                 .bonds
                 .push(module.bonds.into_iter().map(|(k, m)| (k, I32F32::from_num(m))).collect());
-            modules.weight_encrypted.push(module.weight_encrypted);
         }
 
         modules
@@ -135,10 +127,8 @@ impl<AccountId: Debug> FlattenedModules<AccountId> {
 impl<T: Config> ConsensusParams<T> {
     pub fn new(subnet_id: u16, token_emission: u64) -> Result<Self, &'static str> {
         let uids: BTreeMap<_, _> = Keys::<T>::iter_prefix(subnet_id).collect();
-
         let (stake_original, stake_normalized) = Self::compute_stake(&uids);
         let bonds = Self::compute_bonds(subnet_id, &uids);
-
         let last_update = LastUpdate::<T>::get(subnet_id);
         let block_at_registration = PalletSubspace::<T>::get_block_at_registration(subnet_id);
         let validator_permits = ValidatorPermits::<T>::get(subnet_id);
@@ -163,9 +153,6 @@ impl<T: Config> ConsensusParams<T> {
                         .copied()
                         .ok_or("ValidatorPermits storage is broken")?;
 
-                    let encryption_data =
-                        WeightEncryptionData::<T>::get(subnet_id, uid as u16).unwrap_or_default();
-
                     let module = ModuleParams::<T::AccountId> {
                         uid: uid as u16,
                         last_update,
@@ -182,10 +169,7 @@ impl<T: Config> ConsensusParams<T> {
                                         .validator_weight_fee,
                                 )
                             },
-                        ),
-                        weight_encrypted: encryption_data.encrypted,
-                        weight_hash: encryption_data.decrypted_hashes,
-                    };
+                        )                    };
                     Result::<_, &'static str>::Ok((ModuleKey(key), module))
                 },
             )
@@ -207,7 +191,6 @@ impl<T: Config> ConsensusParams<T> {
             founder_key,
             founder_emission,
 
-            use_weights_encryption: UseWeightsEncryption::<T>::get(subnet_id),
             current_block: PalletSubspace::<T>::get_current_block_number(),
             activity_cutoff: MaxWeightAge::<T>::get(subnet_id),
             max_allowed_validators: MaxAllowedValidators::<T>::get(subnet_id),
@@ -238,6 +221,7 @@ impl<T: Config> ConsensusParams<T> {
 
         (original, normalized_32)
     }
+
     fn compute_bonds(subnet_id: u16, uids: &BTreeMap<u16, T::AccountId>) -> Vec<Vec<(u16, u16)>> {
         let mut bonds: BTreeMap<_, _> = Bonds::<T>::iter_prefix(subnet_id).collect();
         // BTreeMap provides natural order, so iterating and collecting

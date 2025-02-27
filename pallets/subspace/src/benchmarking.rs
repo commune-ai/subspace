@@ -222,9 +222,6 @@ benchmarks! {
         params.module_burn_config,
         params.min_validator_stake,
         params.max_allowed_validators,
-        params.use_weights_encryption,
-        params.copier_margin,
-        params.max_encryption_period
     )
     // 11
 

@@ -70,11 +70,6 @@ Subnet Emission Module:
   - Type: StorageValue<Vec<DecryptionNodeInfo<T>>>
   - Default: Empty Vec
 
-- `SubnetDecryptionData`:
-  - Description: Decryption Node Info assigned to subnet, includes information about the decryption node responsible for the subnet.
-  - Type: StorageMap<u16, SubnetDecryptionInfo<T>>
-  - Default: None (empty map)
-
 - `DecryptionNodeCursor`:
   - Description: Cursor for the decryption node rotation.
   - Type: StorageValue<u16>
@@ -96,23 +91,6 @@ Subnet Emission Module:
   - Default: None (empty double map)
 
 Subspace Module:
-- `MaxEncryptionPeriod`:
-  - Description: The maximum amount of blocks weights can stay encrypted for, a specific subnet.
-  - Type: StorageMap<u16, u64>
-  - Default: 2000
-  - • Part of `SubnetParams` struct, can be updated by the subnet owner
-
-- `CopierMargin`:
-  - Description: Allowed percentage profit margin of rationality above full irrationality for the weight copying strategy.
-  - Type: StorageMap<u16, I64F64>
-  - Default: 0
-  - • Part of `SubnetParams` struct, can be updated by the subnet owner
-
-- `UseWeightsEncryption`:
-  - Description: A flag to enable or disable weights encryption for a specific subnet.
-  - Type: StorageMap<u16, bool>
-  - Default: None (empty map)
-  - • Part of `SubnetParams` struct, can be updated by the subnet owner
 
 - `AlphaValues`:
   - Description: The alpha values for liquid alpha.

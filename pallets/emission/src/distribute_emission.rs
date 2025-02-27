@@ -176,13 +176,6 @@ fn run_yuma_consensus<T: Config>(netuid: u16, emission_to_drain: u64) -> Result<
     }
 
     let block = PalletSubspace::<T>::get_current_block_number();
-    let active_nodes = Pallet::<T>::get_active_nodes(block);
-
-    if active_nodes.is_none() {
-        log::error!("no active nodes found for block {block}");
-        return run_default_consensus(netuid, params.clone());
-    }
-
     // Computes only if there are decrypted weights present, that have been send by an offchain
     // worker. Otherwise recycles emmission
     // process_encrypted_consensus(netuid, params)?;
@@ -191,15 +184,6 @@ fn run_yuma_consensus<T: Config>(netuid: u16, emission_to_drain: u64) -> Result<
     let block = PalletSubspace::<T>::get_current_block_number();
     ConsensusParameters::<T>::insert(netuid, block, params);
 
-    // Rotate the nodes if needed
-    if let Some(info) = SubnetDecryptionData::<T>::get(netuid) {
-        log::info!("checking rotation for subnet {netuid}");
-        crate::Pallet::<T>::rotate_decryption_node_if_needed(netuid, info);
-    } else {
-        log::error!(
-            "subnet {netuid} received decrypted weights to run but has no decryption data."
-        );
-    }
     Ok(())
 }
 

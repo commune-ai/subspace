@@ -1,7 +1,7 @@
 #![allow(non_snake_case)]
 #![cfg_attr(not(feature = "std"), no_std)]
 
-use crate::types::{BlockWeights, PublicKey, SubnetDecryptionInfo};
+use crate::types::{BlockWeights, PublicKey};
 use frame_system::pallet_prelude::OriginFor;
 pub use pallet::*;
 use parity_scale_codec::{Decode, Encode};
@@ -13,11 +13,9 @@ use sp_std::{collections::btree_map::BTreeMap, vec::Vec};
 // Pallet Imports
 // ==============
 
-pub mod decryption;
 pub mod distribute_emission;
 pub mod migrations;
 pub mod pricing {
-    pub mod demo;
     pub mod root;
 }
 
@@ -124,7 +122,6 @@ pub mod pallet {
             ConsensusParameters
         },
         maps: {
-            SubnetDecryptionData,
             SubnetConsensusType
         }
     );
@@ -154,9 +151,6 @@ pub mod pallet {
     pub type WeightEncryptionData<T> =
         StorageDoubleMap<_, Identity, u16, Identity, u16, EncryptionMechanism>;
 
-    /// Decryption Node Info assigned to subnet
-    #[pallet::storage]
-    pub type SubnetDecryptionData<T> = StorageMap<_, Identity, u16, SubnetDecryptionInfo<T>>;
 
     #[pallet::storage]
     pub type SubnetConsensusType<T> = StorageMap<_, Identity, u16, SubnetConsensus>;
@@ -169,18 +163,6 @@ pub mod pallet {
     // --- Storage Maps ---
     // ? Does not have to be removed upon subnet removal
 
-    /// Stores non responsive decryption nodes
-    #[pallet::storage]
-    pub type BannedDecryptionNodes<T: Config> =
-        StorageMap<_, Identity, T::AccountId, u64, ValueQuery>;
-
-    /// Stores offchain workers that are going to be banned, if their weights aren't received within
-    /// the buffer period
-    /// Subnet: u16 , Decryption Node: AccountId, Buffer: BlockNumber (current block + buffer)
-    #[pallet::storage]
-    pub type DecryptionNodeBanQueue<T: Config> =
-        StorageDoubleMap<_, Identity, u16, Identity, T::AccountId, u64, ValueQuery>;
-
     #[pallet::storage]
     pub type PendingEmission<T> = StorageMap<_, Identity, u16, u64, ValueQuery>;
 
@@ -188,15 +170,6 @@ pub mod pallet {
     pub type SubnetEmission<T> = StorageMap<_, Identity, u16, u64, ValueQuery>;
 
     // --- Storage Values ---
-
-    /// This storage is managed dynamically based on the do_keep_alive offchain worker call
-    /// It is built from the authority keys
-    #[pallet::storage]
-    pub type DecryptionNodes<T> = StorageValue<_, Vec<SubnetDecryptionInfo<T>>, ValueQuery>;
-
-    #[pallet::storage]
-    pub type DecryptionNodeCursor<T> = StorageValue<_, u16, ValueQuery>;
-
     /// Association of signing public keys with associated rsa encryption public keys.
     #[pallet::storage]
     pub type Authorities<T: Config> =
@@ -221,15 +194,7 @@ pub mod pallet {
                 block_number
             );
 
-            let cleared = Self::clear_hanging_subnet_state();
-            log::info!("Cleared state of {cleared} subnets");
 
-            Self::distribute_subnets_to_nodes(block_number);
-            log::info!("Distributed subnets to nodes");
-            Self::assign_activation_blocks(block_number);
-            Self::cancel_expired_offchain_workers(block_number);
-            Self::process_ban_queue(block_number);
-            log::info!("Cancelled expired offchain workers");
             let emission_per_block = Self::get_total_emission_per_block();
             log::info!("Emission per block: {:?}", emission_per_block);
             // Make sure to use storage layer,
@@ -260,29 +225,7 @@ pub mod pallet {
     pub enum Event<T: Config> {
         /// Subnets tempo has finished or Snapshot has been taken
         EpochFinalized(u16),
-        /// Weight copying decryption was canceled
-        DecryptionNodeCanceled {
-            subnet_id: u16,
-            node_id: T::AccountId,
-        },
-        /// Weight copying decryption node was rotated
-        DecryptionNodeRotated {
-            subnet_id: u16,
-            previous_node_id: T::AccountId,
-            new_node_id: T::AccountId,
-        },
-        /// Decryption node was called by the runtime to send decrypted weights back, if node fails
-        /// to do so on time, it will get banned
-        DecryptionNodeCallbackScheduled {
-            subnet_id: u16,
-            node_id: T::AccountId,
-            ban_block: u64,
-        },
-        /// Decryption node was banned, as it failed to send decrypted weights back to the runtime
-        DecryptionNodeBanned {
-            subnet_id: u16,
-            node_id: T::AccountId,
-        },
+
     }
 
     #[derive(Debug)]

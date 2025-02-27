@@ -59,10 +59,10 @@ pub fn split_modules_by_activity(
             let is_inactive = condition1 || condition2;
 
             log::info!(
-                "Module {}: is_inactive: {}, is_active: {}",
+                "Module {}: is_inactive: {}",
                 index,
                 is_inactive,
-                !is_inactive
+
             );
 
             (is_inactive, !is_inactive)
@@ -567,26 +567,8 @@ pub fn calculate_ema_bonds<T: Config>(
         .unwrap_or_default();
     let default_alpha = I32F32::from_num(1).saturating_sub(I32F32::from_num(bonds_moving_average));
 
-    if !params.use_weights_encryption {
-        return mat_ema_sparse(bonds_delta, bonds, default_alpha);
-    }
+    return mat_ema_sparse(bonds_delta, bonds, default_alpha);
 
-    let consensus_high = quantile(consensus, 0.75);
-    let consensus_low = quantile(consensus, 0.25);
-
-    if consensus_high <= consensus_low && consensus_high == 0 && consensus_low >= 0 {
-        return mat_ema_sparse(bonds_delta, bonds, default_alpha);
-    }
-    log::trace!("Using Liquid Alpha");
-    let (alpha_low, alpha_high) = params.alpha_values;
-    log::trace!("alpha_low: {:?} alpha_high: {:?}", alpha_low, alpha_high);
-
-    let (a, b) = calculate_logistic_params(alpha_high, alpha_low, consensus_high, consensus_low);
-    let alpha = compute_alpha_values(consensus, a, b);
-    let clamped_alpha: Vec<I32F32> =
-        alpha.into_iter().map(|a| a.clamp(alpha_low, alpha_high)).collect();
-
-    mat_ema_alpha_vec_sparse(bonds_delta, bonds, &clamped_alpha)
 }
 
 pub fn compute_incentive_and_trust<T: Config>(

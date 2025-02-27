@@ -1,20 +1,7 @@
 import csv
 from typing import List, Dict, Union
 
-def calculate_average_black_box_age(file_path: str) -> float:
-    black_box_ages: List[int] = []
 
-    with open(file_path, 'r') as csvfile:
-        csv_reader = csv.DictReader(csvfile)
-        for row in csv_reader:
-            encryption_window_len: int = int(row['Black Box Age'])
-            black_box_ages.append(encryption_window_len)
-
-    if not black_box_ages:
-        raise ValueError("No data found in the CSV file")
-
-    average_age: float = sum(black_box_ages) / len(black_box_ages)
-    return average_age
 
 def main() -> None:
     file_path: str = '/root/subspace/tests/simulation_results.csv'

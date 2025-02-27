@@ -34,9 +34,6 @@ pub struct SubnetParams<T: Config> {
     pub max_allowed_validators: Option<u16>,
     pub governance_config: GovernanceConfiguration,
     // ---  Weight Encryption ---
-    pub use_weights_encryption: bool,
-    pub copier_margin: I64F64,
-    pub max_encryption_period: Option<u64>,
 }
 
 pub struct DefaultSubnetParams<T: Config>(sp_std::marker::PhantomData<((), T)>);
@@ -69,10 +66,6 @@ impl<T: Config> DefaultSubnetParams<T> {
             },
             metadata: None,
 
-            // --- Weight Encryption ---
-            use_weights_encryption: T::DefaultUseWeightsEncryption::get(),
-            copier_margin: CopierMarginDefaultValue::get(),
-            max_encryption_period: MaxEncryptionPeriodDefaultValue::get(),
         }
     }
 }
@@ -151,9 +144,6 @@ impl<T: Config> ValidatedSubnetParams<T> {
             min_validator_stake,
             max_allowed_validators,
             governance_config: _,      // TODO: validate
-            use_weights_encryption: _, // complete freedom
-            copier_margin,
-            max_encryption_period,
         } = params;
 
         // Validate min/max weights relationship
@@ -219,23 +209,10 @@ impl<T: Config> ValidatedSubnetParams<T> {
             Error::<T>::InvalidMinValidatorStake
         );
 
-        ensure!(
-            *copier_margin <= MAX_COPIER_MARGIN,
-            Error::<T>::InvalidCopierMargin
-        );
-
         if let Some(max_validators) = max_allowed_validators {
             ensure!(
                 *max_validators >= MIN_ALLOWED_VALIDATORS,
                 Error::<T>::InvalidMaxAllowedValidators
-            );
-        }
-
-        if let Some(encryption_period) = max_encryption_period {
-            ensure!(
-                *encryption_period > u64::from(*tempo)
-                    && *encryption_period <= MAX_ENCRYPTION_DURATION,
-                Error::<T>::InvalidMaxEncryptionPeriod
             );
         }
 
@@ -303,9 +280,6 @@ impl<T: Config> SubnetChangeset<T> {
             min_validator_stake,
             max_allowed_validators,
             governance_config,
-            use_weights_encryption,
-            copier_margin,
-            max_encryption_period,
         } = self.params.into_inner();
 
         Pallet::<T>::set_max_allowed_uids(netuid, max_allowed_uids)?;
@@ -333,10 +307,6 @@ impl<T: Config> SubnetChangeset<T> {
             SubnetMetadata::<T>::insert(netuid, meta);
         }
         MaxAllowedValidators::<T>::insert(netuid, max_allowed_validators);
-        MaxEncryptionPeriod::<T>::insert(netuid, max_encryption_period);
-        UseWeightsEncryption::<T>::insert(netuid, use_weights_encryption);
-        CopierMargin::<T>::insert(netuid, copier_margin);
-
         Pallet::<T>::deposit_event(Event::SubnetParamsUpdated(netuid));
 
         Ok(())
@@ -366,10 +336,6 @@ impl<T: Config> Pallet<T> {
             governance_config: T::get_subnet_governance_configuration(netuid),
             metadata: SubnetMetadata::<T>::get(netuid),
 
-            // --- Weight Encryption ---
-            use_weights_encryption: UseWeightsEncryption::<T>::get(netuid),
-            copier_margin: CopierMargin::<T>::get(netuid),
-            max_encryption_period: MaxEncryptionPeriod::<T>::get(netuid),
         }
     }
 }

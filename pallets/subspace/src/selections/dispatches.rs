@@ -143,9 +143,6 @@ pub mod dispatches {
             module_burn_config: GeneralBurnConfiguration<T>,
             min_validator_stake: u64,
             max_allowed_validators: Option<u16>,
-            use_weights_encryption: bool,
-            copier_margin: I64F64,
-            max_encryption_period: Option<u64>,
         ) -> DispatchResult {
             let params = SubnetParams {
                 founder,
@@ -167,10 +164,7 @@ pub mod dispatches {
                     vote_mode,
                     ..T::get_subnet_governance_configuration(netuid)
                 },
-                metadata,
-                use_weights_encryption,
-                copier_margin,
-                max_encryption_period,
+                metadata
             };
 
             let changeset = SubnetChangeset::update(netuid, params)?;
