@@ -11,6 +11,11 @@ pub mod proposal;
 pub mod voting;
 pub mod weights; // Weight benchmarks
 
+#[cfg(test)]
+mod mock;
+#[cfg(test)]
+mod tests;
+
 use frame_support::{
     dispatch::DispatchResult,
     ensure,
