@@ -400,6 +400,15 @@ pub mod pallet {
         WhitelistModuleRemoved(T::AccountId),
         /// A new application has been created.
         ApplicationCreated(u64),
+        /// The treasury address has been updated during migration.
+        /// This event is emitted when the treasury address is changed as part of a runtime upgrade.
+        /// It provides an on-chain audit trail of the treasury address change.
+        TreasuryAddressUpdated {
+            /// The previous treasury address
+            old_address: T::AccountId,
+            /// The new treasury address
+            new_address: T::AccountId,
+        },
     }
 
     // ---  Errors ---
