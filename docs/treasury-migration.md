@@ -23,12 +23,40 @@ The migration will be implemented as a runtime upgrade that updates the `DaoTrea
 The migration is implemented in the governance pallet as a storage migration from V2 to V3. The migration code performs the following steps:
 
 1. Converts the new treasury address from SS58 format to an AccountId
-2. Updates the `DaoTreasuryAddress` storage item with the new address
-3. Increments the storage version to V3
+2. Validates the public key format to ensure it's correct
+3. Updates the `DaoTreasuryAddress` storage item with the new address
+4. Emits an event for the treasury address update (on-chain audit trail)
+5. Increments the storage version to V3
 
 The runtime spec version has been incremented to trigger the migration:
 - Non-testnet version: 132 -> 133
 - Testnet version: 515 -> 516
+
+### Weight Calculation
+
+The migration code includes a careful analysis of weight calculations to ensure proper resource accounting:
+
+- **Reads (1)**: Reading the `DaoTreasuryAddress` storage item
+- **Writes (2)**: Writing to `DaoTreasuryAddress` and updating the `StorageVersion`
+
+Note that `PalletId::get()` is a constant access (not a storage read), and event emission is not counted as a separate write in the benchmarking system as events are collected in a buffer and only written at the end of the block.
+
+### Validation Tool
+
+A validation tool has been created to ensure the correctness of the treasury address migration. The tool verifies that the public key bytes in the migration code match the actual bytes for the SS58 address.
+
+```bash
+# Run the validation tool
+uv run scripts/python/crypto/validate_replacement_key.py
+
+# Update the migration code with the correct bytes
+uv run scripts/python/crypto/validate_replacement_key.py --write
+
+# Show help
+uv run scripts/python/crypto/validate_replacement_key.py --help
+```
+
+The tool provides a visual comparison of the bytes in the migration code and the actual bytes for the SS58 address, ensuring that the migration will correctly redirect emissions to the intended treasury address.
 
 ## Building the Runtime
 
