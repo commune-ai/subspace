@@ -13,8 +13,22 @@
 
 # direnv cache
 .direnv
+.env
 
 .idea
 
+pyproject.toml
+uv.lock
+.python-version
+.erasmus
+.ctx*
+.windsurfrules
+erasmus.py
+erasmus.sh
+
 # scripts
 __pycache__
+
+# runtime upgrade
+runtime_upgrade_wasm/*
+!runtime_upgrade_wasm/.gitkeep
