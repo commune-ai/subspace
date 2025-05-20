@@ -390,15 +390,3 @@ Spec version: `110`
 
 - Introducing minimum founder share.
 - DAO treasury.
-
-## Version 1.7.1
-
-Spec version: 
-  - Mainnet: `133`
-  - Testnet: `515`
-
-- Migrating treasury address to a new account
-- Added key testing tool
-
-A comprehensive review of the update can be found [here](docs/treasurey-migration/tm-overview.md)
-

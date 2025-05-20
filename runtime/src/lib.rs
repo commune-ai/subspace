@@ -189,26 +189,13 @@ pub mod opaque {
     }
 }
 
-/// Migrations to be applied for the testnet runtime.
-/// Currently includes:
-/// - Treasury address migration to update the DAO treasury address to a new key
-///   due to the original multi-sig holders forking the network.
 #[cfg(feature = "testnet")]
-pub type Migrations = (
-    pallet_governance::migrations::v3::MigrateToV3<Runtime>, // update treasury address
-);
+pub type Migrations = ();
 
-/// Migrations to be applied for the mainnet runtime.
-/// Currently includes:
-/// - Offworker pallet migration
-/// - Subnet emission migration to set lower block emission
-/// - Treasury address migration to update the DAO treasury address to a new key
-///   due to the original multi-sig holders forking the network.
 #[cfg(not(feature = "testnet"))]
 pub type Migrations = (
     pallet_offworker::migrations::v1::MigrateToV1<Runtime>,
     pallet_subnet_emission::migrations::v2::MigrateToV2<Runtime>, // set lower block emission
-    pallet_governance::migrations::v3::MigrateToV3<Runtime>, // update treasury address
 );
 
 #[sp_version::runtime_version]
@@ -217,10 +204,7 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
     spec_name: create_runtime_str!("node-subspace"),
     impl_name: create_runtime_str!("node-subspace"),
     authoring_version: 1,
-    // Incremented from 515 to 516 for the treasury address migration
-    // This triggers the MigrateToV3 migration which updates the DAO treasury address
-    // to 5GZfkfjD46SmDrnWZbrzkxkYzeJUWKTAB1HvHBurrPc7XcEj
-    spec_version: 516,
+    spec_version: 515,
     impl_version: 1,
     apis: RUNTIME_API_VERSIONS,
     transaction_version: 1,
@@ -233,7 +217,7 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
     spec_name: create_runtime_str!("node-subspace"),
     impl_name: create_runtime_str!("node-subspace"),
     authoring_version: 1,
-    spec_version: 133, // Incremented for treasury address migration
+    spec_version: 132,
     impl_version: 1,
     apis: RUNTIME_API_VERSIONS,
     transaction_version: 1,
