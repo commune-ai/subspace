@@ -1,4 +1,4 @@
-use crate::{proposal::ProposalStatus, *};
+use crate::{proposal::{ProposalStatus, check_senate_approval}, *};
 use frame_support::pallet_prelude::DispatchResult;
 use frame_system::ensure_signed;
 
@@ -56,9 +56,14 @@ impl<T: Config> Pallet<T> {
                 .map_err(|_| Error::<T>::InvalidProposalVotingParameters)?;
         }
 
-        Proposals::<T>::insert(proposal_id, proposal);
+        Proposals::<T>::insert(proposal_id, &proposal);
         Self::deposit_event(Event::<T>::ProposalVoted(proposal_id, key, agree));
-        Ok(())
+
+        if is_senate {
+            check_senate_approval(proposal)
+        } else {
+            Ok(())
+        }
     }
 
     /// Unregister the vote on a proposal
