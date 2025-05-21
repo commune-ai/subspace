@@ -66,6 +66,22 @@ impl<T: Config> Proposal<T> {
         Ok(())
     }
 
+    /// Marks a proposal as accepted by the senate
+    pub fn senate_accept(mut self, block: u64) -> DispatchResult {
+        ensure!(self.is_active(), Error::<T>::ProposalIsFinished);
+
+        self.status = ProposalStatus::AcceptedBySenate {
+            block,
+        };
+
+        Proposals::<T>::insert(self.id, &self);
+        Pallet::<T>::deposit_event(Event::ProposalAcceptedBySenate(self.id));
+
+        self.execute_proposal()?;
+
+        Ok(())
+    }
+
     fn execute_proposal(self) -> DispatchResult {
         PalletSubspace::<T>::add_balance_to_account(
             &self.proposer,
@@ -114,6 +130,20 @@ impl<T: Config> Proposal<T> {
         Ok(())
     }
 
+    /// Marks a proposal as accepted by the senate
+    pub fn senate_refuse(mut self, block: u64) -> DispatchResult {
+        ensure!(self.is_active(), Error::<T>::ProposalIsFinished);
+
+        self.status = ProposalStatus::RefusedBySenate {
+            block,
+        };
+
+        Proposals::<T>::insert(self.id, &self);
+        Pallet::<T>::deposit_event(Event::ProposalRefusedBySenate(self.id));
+
+        Ok(())
+    }
+
     /// Marks a proposal as expired and overrides the storage value.
     pub fn expire(mut self, block_number: u64) -> DispatchResult {
         ensure!(self.is_active(), Error::<T>::ProposalIsFinished);
@@ -145,10 +175,16 @@ pub enum ProposalStatus<T: Config> {
         stake_for: u64,
         stake_against: u64,
     },
+    AcceptedBySenate {
+        block: u64,
+    },
     Refused {
         block: u64,
         stake_for: u64,
         stake_against: u64,
+    },
+    RefusedBySenate {
+        block: u64,
     },
     Expired,
 }
@@ -410,21 +446,53 @@ fn tick_proposal<T: Config>(
         .iter()
         .cloned()
         .map(|id| {
-            let stake = calc_stake::<T>(not_delegating, &id);
-            (id, stake)
+            if SenateMembers::<T>::contains_key(id.clone()) {
+                (id, 0u64)
+            } else {
+                let stake = calc_stake::<T>(not_delegating, &id);
+                (id, stake)
+            }
         })
         .collect();
     let votes_against: Vec<(T::AccountId, u64)> = votes_against
         .iter()
         .cloned()
         .map(|id| {
-            let stake = calc_stake::<T>(not_delegating, &id);
-            (id, stake)
+            if SenateMembers::<T>::contains_key(id.clone()) {
+                (id, 0u64)
+            } else {
+                let stake = calc_stake::<T>(not_delegating, &id);
+                (id, stake)
+            }
         })
         .collect();
 
-    let stake_for_sum: u64 = votes_for.iter().map(|(_, stake)| stake).sum();
-    let stake_against_sum: u64 = votes_against.iter().map(|(_, stake)| stake).sum();
+    let senate_for = votes_for
+        .iter()
+        .filter(|(id, _)| SenateMembers::<T>::contains_key(id))
+        .collect::<Vec<_>>()
+        .len() as u32;
+    let senate_against = votes_against
+        .iter()
+        .filter(|(id, _)| SenateMembers::<T>::contains_key(id))
+        .collect::<Vec<_>>()
+        .len() as u32;
+    let total_senate_members = SenateMembers::<T>::iter().count() as u32;
+
+    // Check if the senate_for count meets the 4/7 ratio of total senate members
+    let senate_threshold = total_senate_members.saturating_mul(4).saturating_div(7);
+    let senate_approval = senate_for >= senate_threshold;
+    let senate_rejection = senate_against >= senate_threshold;
+    // Senate agreement overrides DAO (for now)
+    if senate_approval {
+        return proposal.senate_accept(block_number)
+    }
+    if senate_rejection {
+        return proposal.senate_refuse(block_number)
+    }
+
+    let stake_for_sum: u64 = votes_for.iter().map(|(_, stake)| *stake).sum();
+    let stake_against_sum: u64 = votes_against.iter().map(|(_, stake)| *stake).sum();
 
     if block_number < proposal.expiration_block {
         if let ProposalStatus::Open {
@@ -441,10 +509,10 @@ fn tick_proposal<T: Config>(
     }
 
     let total_stake = stake_for_sum.saturating_add(stake_against_sum);
-    let minimal_stake_to_execute = get_minimal_stake_to_execute_with_percentage::<T>(
-        proposal.data.required_stake(),
-        subnet_id,
-    );
+    // let minimal_stake_to_execute = get_minimal_stake_to_execute_with_percentage::<T>(
+    //     proposal.data.required_stake(),
+    //     subnet_id,
+    // );
 
     let mut reward_votes_for = BoundedBTreeMap::new();
     for (key, value) in votes_for {
@@ -469,15 +537,16 @@ fn tick_proposal<T: Config>(
         },
     );
 
-    if total_stake >= minimal_stake_to_execute {
-        if stake_against_sum > stake_for_sum {
-            proposal.refuse(block_number, stake_for_sum, stake_against_sum)
-        } else {
-            proposal.accept(block_number, stake_for_sum, stake_against_sum)
-        }
+    if stake_against_sum > stake_for_sum {
+        proposal.refuse(block_number, stake_for_sum, stake_against_sum)
     } else {
-        proposal.expire(block_number)
+        proposal.accept(block_number, stake_for_sum, stake_against_sum)
     }
+
+    // if total_stake >= minimal_stake_to_execute {
+    // } else {
+    //     proposal.expire(block_number)
+    // }
 }
 
 pub fn tick_proposal_rewards<T: Config>(block_number: u64) {

@@ -6,6 +6,7 @@
 mod benchmarking;
 
 pub mod dao;
+pub mod senate;
 pub mod migrations;
 pub mod proposal;
 pub mod voting;
@@ -176,6 +177,10 @@ pub mod pallet {
 
     #[pallet::storage]
     pub type Curator<T: Config> = StorageValue<_, T::AccountId, ValueQuery, DefaultKey<T>>;
+
+    // --- Senate Members ---
+    #[pallet::storage]
+    pub type SenateMembers<T: Config> = StorageMap<_, Identity, T::AccountId, (), ValueQuery>;
 
     // --- Extrinsics ---
 
@@ -370,6 +375,24 @@ pub mod pallet {
         ) -> DispatchResult {
             Self::do_remove_from_whitelist(origin, module_key)
         }
+
+        #[pallet::call_index(13)]
+        #[pallet::weight({0})]
+        pub fn add_senate_member(
+            origin: OriginFor<T>,
+            senate_member_key: T::AccountId,
+        ) -> DispatchResult {
+            Self::do_add_senate_member(origin, senate_member_key)
+        }
+
+        #[pallet::call_index(14)]
+        #[pallet::weight({0})]
+        pub fn remove_senate_member(
+            origin: OriginFor<T>,
+            senate_member_key: T::AccountId,
+        ) -> DispatchResult {
+            Self::do_remove_senate_member(origin, senate_member_key)
+        }
     }
 
     // --- Events ---
@@ -381,8 +404,12 @@ pub mod pallet {
         ProposalCreated(ProposalId),
         /// A proposal has been accepted.
         ProposalAccepted(ProposalId),
+        /// A proposal has been accepted by the Senate.
+        ProposalAcceptedBySenate(ProposalId),
         /// A proposal has been refused.
         ProposalRefused(ProposalId),
+        /// A proposal has been refused by the Senate
+        ProposalRefusedBySenate(ProposalId),
         /// A proposal has expired.
         ProposalExpired(ProposalId),
         /// A vote has been cast on a proposal.
@@ -395,6 +422,11 @@ pub mod pallet {
         WhitelistModuleRemoved(T::AccountId),
         /// A new application has been created.
         ApplicationCreated(u64),
+
+        /// A new senate member has been added
+        SenateMemberAdded(T::AccountId),
+        /// A senate member was removed
+        SenateMemberRemoved(T::AccountId),
     }
 
     // ---  Errors ---
@@ -466,6 +498,10 @@ pub mod pallet {
         NotWhitelisted,
         /// Failed to convert the given value to a balance.
         CouldNotConvertToBalance,
+        /// Senate Member already exists so can't be added
+        SenateMemberExists,
+        /// Senate Member doesn't exist so can't be removed
+        SenateMemberNotFound,
     }
 }
 

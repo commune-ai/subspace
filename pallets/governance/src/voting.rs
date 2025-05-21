@@ -10,6 +10,7 @@ impl<T: Config> Pallet<T> {
         agree: bool,
     ) -> DispatchResult {
         let key = ensure_signed(origin)?;
+        let is_senate = Self::is_senate_member(key.clone());
 
         let Ok(mut proposal) = Proposals::<T>::try_get(proposal_id) else {
             return Err(Error::<T>::ProposalNotFound.into());
@@ -29,16 +30,20 @@ impl<T: Config> Pallet<T> {
             Error::<T>::AlreadyVoted
         );
 
-        let voter_delegated_stake = pallet_subspace::Pallet::<T>::get_delegated_stake(&key);
-        let voter_owned_stake = pallet_subspace::Pallet::<T>::get_owned_stake(&key);
+        if !is_senate {
+            // Skip stake requirements for senate
 
-        ensure!(
-            voter_delegated_stake > 0 || voter_owned_stake > 0,
-            Error::<T>::InsufficientStake
-        );
+            let voter_delegated_stake = pallet_subspace::Pallet::<T>::get_delegated_stake(&key);
+            let voter_owned_stake = pallet_subspace::Pallet::<T>::get_owned_stake(&key);
 
-        if !NotDelegatingVotingPower::<T>::get().contains(&key) && voter_delegated_stake == 0 {
-            return Err(Error::<T>::VoterIsDelegatingVotingPower.into());
+            ensure!(
+                voter_delegated_stake > 0 || voter_owned_stake > 0,
+                Error::<T>::InsufficientStake
+            );
+
+            if !NotDelegatingVotingPower::<T>::get().contains(&key) && voter_delegated_stake == 0 {
+                return Err(Error::<T>::VoterIsDelegatingVotingPower.into());
+            }
         }
 
         if agree {
