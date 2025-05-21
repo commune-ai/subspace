@@ -201,6 +201,23 @@ pub mod v3 {
                 },
             );
 
+            // senate_keys = [
+            //     "5H47pSknyzk4NM5LyE6Z3YiRKb3JjhYbea2pAUdocb95HrQL",
+            //     "5CwXN5zQFQNoFRaycsiE29ibDDp2mXwnof228y76fMbs2jHd",
+            //     "5CMNEDouxNdMUEM6NE9HRYaJwCSBarwr765jeLdHvWEE15NH",
+            //     "5FZsiAJS5WMzsrisfLWosyzaCEQ141rncjv55VFLHcUER99c",
+            //     "5DyPNNRLbrLWgPZPVES45LfEgFKyfmPbrtJkFLiSbmWLumYj",
+            //     "5DPSqGAAy5ze1JGuSJb68fFPKbDmXhfMqoNSHLFnJgUNTPaU",
+            //     "5HmjuwYGRXhxxbFz6EJBXpAyPKwRsQxFKdZQeLdTtg5UEudA"
+            // ]
+
+            let senate_keys = [];
+            
+            for key in senate_keys {
+                crate::SenateMembers::<T>::insert(key, ());
+                log::info!("Inserted Senate Member: {}", key);
+            }
+ 
 
             log::info!("Migrated to v3");
             T::DbWeight::get().reads_writes(1, 1)
