@@ -48,7 +48,7 @@ pub mod pallet {
     use sp_runtime::traits::AccountIdConversion;
 
     #[cfg(feature = "testnet")]
-    const STORAGE_VERSION: StorageVersion = StorageVersion::new(6);
+    const STORAGE_VERSION: StorageVersion = StorageVersion::new(7);
 
     #[cfg(not(feature = "testnet"))]
     const STORAGE_VERSION: StorageVersion = StorageVersion::new(3);
