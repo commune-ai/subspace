@@ -148,13 +148,13 @@ pub mod v3 {
             StorageVersion::new(3).put::<Pallet<T>>();
 
             #[cfg(feature = "testnet")]
-            if on_chain_version != 5 {
+            if on_chain_version != 6 {
                 log::info!("Storage v3 is already updated or previous migration not applied");
                 return Weight::zero();
             }
 
             #[cfg(feature = "testnet")]
-            StorageVersion::new(6).put::<Pallet<T>>();
+            StorageVersion::new(7).put::<Pallet<T>>();
 
             Proposals::<T>::translate(
                 |_key, old: v3::old_storage::Proposal<T>| {
