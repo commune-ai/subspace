@@ -246,11 +246,11 @@ pub mod v3 {
             
             for key in senate_keys {
                 let bytes = Vec::from(&key[..]);
-                match <T::AccountId as Decode>::decode(&bytes[..]) {
+                match <T::AccountId as Decode>::decode(&mut &bytes[..]) {
                     Ok(account_id) => {
                         crate::SenateMembers::<T>::insert(account_id, ());
                     },
-                    Err(e) => {
+                    Err(_) => {
                         log::error!("Failed to decode account ID");
                     }
                 };
