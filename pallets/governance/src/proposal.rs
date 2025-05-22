@@ -409,14 +409,14 @@ pub fn check_senate_approval<T: Config>(proposal: Proposal<T>) -> DispatchResult
 
     let senate_for: u32 = votes_for
         .iter()
-        .cloned()
         .filter(|id| SenateMembers::<T>::contains_key(id))
+        .cloned()
         .collect::<Vec<_>>()
         .len() as u32;
     let senate_against: u32 = votes_against
         .iter()
-        .cloned()
         .filter(|id| SenateMembers::<T>::contains_key(id))
+        .cloned()
         .collect::<Vec<_>>()
         .len() as u32;
     let total_senate_members = SenateMembers::<T>::iter().count() as u32;
@@ -424,7 +424,7 @@ pub fn check_senate_approval<T: Config>(proposal: Proposal<T>) -> DispatchResult
     // Check if the senate_for count meets the 4/7 ratio of total senate members
     let mut senate_threshold = total_senate_members.saturating_mul(4).saturating_div(7);
     // If the threshold is exactly 50% of the total, increase by 1
-    if senate_threshold * 2 == total_senate_members {
+    if senate_threshold.saturating_mul(2) == total_senate_members {
         senate_threshold = senate_threshold.saturating_add(1);
     }
     // Senate agreement overrides DAO (for now)
