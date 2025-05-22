@@ -258,7 +258,7 @@ pub mod v3 {
  
 
             log::info!("Migrated to v3");
-            T::DbWeight::get().reads_writes(1, 1)
+            T::DbWeight::get().reads_writes(1, 8)
         }
     }
 
