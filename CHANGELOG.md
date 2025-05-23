@@ -1,5 +1,15 @@
 # Changelog
 
+spec version `134`
+
+*Note: Offset spec version by 1 due to initial testnet upgrade.*
+- Adds SenateMembers StorageMap, managed by sudo:
+  - `governanceModule.addSenateMember(senateMemberKey)`
+  - `governanceModule.removeSenateMember(senateMemberKey)`
+- Updates Proposal voting logic:
+  - Senate can instantly approve/reject Proposals with a 4/7 vote condition.
+  - Proposals now no longer require 40 or 50 percent of all stake in the network to be approved. Instead, it tracks whether the total voter participant stake at the end of the Proposal expiry period is majority approval.
+
 spec version `132`
 
 adding a storage migration to remove authorities
@@ -390,15 +400,3 @@ Spec version: `110`
 
 - Introducing minimum founder share.
 - DAO treasury.
-
-## Version 1.7.1
-
-Spec version: 
-  - Mainnet: `133`
-  - Testnet: `515`
-
-- Migrating treasury address to a new account
-- Added key testing tool
-
-A comprehensive review of the update can be found [here](docs/treasurey-migration/tm-overview.md)
-
