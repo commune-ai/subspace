@@ -6,9 +6,9 @@
 mod benchmarking;
 
 pub mod dao;
-pub mod senate;
 pub mod migrations;
 pub mod proposal;
+pub mod senate;
 pub mod voting;
 pub mod weights; // Weight benchmarks
 
