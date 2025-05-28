@@ -1,4 +1,7 @@
-use crate::{proposal::{ProposalStatus, check_senate_approval}, *};
+use crate::{
+    proposal::{check_senate_approval, ProposalStatus},
+    *,
+};
 use frame_support::pallet_prelude::DispatchResult;
 use frame_system::ensure_signed;
 

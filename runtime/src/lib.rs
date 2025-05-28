@@ -190,14 +190,10 @@ pub mod opaque {
 }
 
 #[cfg(feature = "testnet")]
-pub type Migrations = (
-    pallet_governance::migrations::v3::MigrateToV3<Runtime>,
-);
+pub type Migrations = (pallet_governance::migrations::v3::MigrateToV3<Runtime>,);
 
 #[cfg(not(feature = "testnet"))]
-pub type Migrations = (
-    pallet_governance::migrations::v3::MigrateToV3<Runtime>,
-);
+pub type Migrations = (pallet_governance::migrations::v3::MigrateToV3<Runtime>,);
 
 #[sp_version::runtime_version]
 #[cfg(feature = "testnet")]

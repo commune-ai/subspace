@@ -294,7 +294,7 @@ benchmarks! {
         GovernanceMod::<T>::add_to_whitelist(RawOrigin::Signed(caller.clone()).into(),
     application_key.clone())?; }: remove_from_whitelist(RawOrigin::Signed(caller),
     application_key)
-    
+
     // 13
     add_senate_member {
         let senate_member_key: T::AccountId = account("Alice", 0, 1);
