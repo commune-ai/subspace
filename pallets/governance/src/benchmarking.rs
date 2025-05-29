@@ -295,4 +295,16 @@ benchmarks! {
     application_key.clone())?; }: remove_from_whitelist(RawOrigin::Signed(caller),
     application_key)
 
+    // 13
+    add_senate_member {
+        let senate_member_key: T::AccountId = account("Alice", 0, 1);
+        GovernanceMod::<T>::add_senate_member(RawOrigin::Root.into(), senate_member_key.clone())?;
+    }: add_senate_member(RawOrigin::Root, senate_member_key)
+
+    // 14
+    remove_senate_member {
+        let senate_member_key: T::AccountId = account("Alice", 0, 1);
+        GovernanceMod::<T>::add_senate_member(RawOrigin::Root.into(), senate_member_key.clone())?;
+        GovernanceMod::<T>::remove_senate_member(RawOrigin::Root.into(), senate_member_key.clone())?;
+    }: remove_senate_member(RawOrigin::Root, senate_member_key)
 }

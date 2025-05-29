@@ -233,6 +233,44 @@ fn global_proposal_is_refused_correctly() {
 }
 
 #[test]
+fn global_proposal_is_accepted_based_on_voter_participant_stake_instead_of_total_network_stake() {
+    new_test_ext().execute_with(|| {
+        zero_min_burn();
+
+        const FOR: u32 = 0;
+        const AGAINST: u32 = 1;
+        const NOT_PARTICIPATING: u32 = 2;
+
+        let origin = get_origin(0);
+
+        register(FOR, 0, 0, to_nano(10));
+        register(AGAINST, 0, 1, to_nano(5));
+        register(NOT_PARTICIPATING, 0, 2, to_nano(50000000));
+
+        config(1, 100);
+
+        assert_ok!(GovernanceMod::do_add_global_custom_proposal(
+            origin,
+            vec![b'0'; 64]
+        ));
+
+        vote(FOR, 0, true);
+        vote(AGAINST, 0, false);
+
+        step_block(100);
+
+        assert_eq!(
+            Proposals::<Test>::get(0).unwrap().status,
+            ProposalStatus::Accepted {
+                block: 100,
+                stake_for: 10_000_000_000,
+                stake_against: 5_000_000_000,
+            }
+        );
+    });
+}
+
+#[test]
 fn global_params_proposal_accepted() {
     new_test_ext().execute_with(|| {
         zero_min_burn();
@@ -629,4 +667,72 @@ fn whitelist_curator_must_be_a_valid_key() {
         );
         assert!(!GovernanceMod::is_in_legit_whitelist(&module_key));
     });
+}
+
+#[test]
+fn senate_can_instantly_approve_proposals() {
+    new_test_ext().execute_with(|| {
+        System::set_block_number(1);
+        // Establish senate members
+        let senate_members: [u32; 7] = [0, 1, 2, 3, 4, 5, 6];
+        let voters: [u32; 4] = [0, 1, 2, 3];
+        for i in senate_members {
+            assert_ok!(GovernanceMod::add_senate_member(RuntimeOrigin::root(), i));
+        }
+
+        // Create Proposal
+        zero_min_burn();
+        register(0, 0, 0, to_nano(5));
+        config(1, 100);
+        assert_ok!(GovernanceMod::do_add_global_custom_proposal(
+            get_origin(0),
+            vec![b'0'; 64]
+        ));
+
+        // 4 out of 7 senate members vote
+        for i in voters {
+            assert_ok!(GovernanceMod::vote_proposal(get_origin(i), 0, true));
+        }
+
+        // Validate the Proposal's acceptance condition
+        let proposal = Proposals::<Test>::get(0).unwrap();
+        assert_eq!(
+            proposal.status,
+            ProposalStatus::AcceptedBySenate { block: 1u64 },
+        );
+    })
+}
+
+#[test]
+fn senate_can_instantly_refuse_proposals() {
+    new_test_ext().execute_with(|| {
+        System::set_block_number(1);
+        // Establish senate members
+        let senate_members: [u32; 7] = [0, 1, 2, 3, 4, 5, 6];
+        let voters: [u32; 4] = [0, 1, 2, 3];
+        for i in senate_members {
+            assert_ok!(GovernanceMod::add_senate_member(RuntimeOrigin::root(), i));
+        }
+
+        // Create Proposal
+        zero_min_burn();
+        register(0, 0, 0, to_nano(5));
+        config(1, 100);
+        assert_ok!(GovernanceMod::do_add_global_custom_proposal(
+            get_origin(0),
+            vec![b'0'; 64]
+        ));
+
+        // 4 out of 7 senate members vote
+        for i in voters {
+            assert_ok!(GovernanceMod::vote_proposal(get_origin(i), 0, false));
+        }
+
+        // Validate the Proposal's acceptance condition
+        let proposal = Proposals::<Test>::get(0).unwrap();
+        assert_eq!(
+            proposal.status,
+            ProposalStatus::RefusedBySenate { block: 1u64 },
+        );
+    })
 }

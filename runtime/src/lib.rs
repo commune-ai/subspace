@@ -190,13 +190,10 @@ pub mod opaque {
 }
 
 #[cfg(feature = "testnet")]
-pub type Migrations = ();
+pub type Migrations = (pallet_governance::migrations::v3::MigrateToV3<Runtime>,);
 
 #[cfg(not(feature = "testnet"))]
-pub type Migrations = (
-    pallet_offworker::migrations::v1::MigrateToV1<Runtime>,
-    pallet_subnet_emission::migrations::v2::MigrateToV2<Runtime>, // set lower block emission
-);
+pub type Migrations = (pallet_governance::migrations::v3::MigrateToV3<Runtime>,);
 
 #[sp_version::runtime_version]
 #[cfg(feature = "testnet")]
@@ -204,7 +201,7 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
     spec_name: create_runtime_str!("node-subspace"),
     impl_name: create_runtime_str!("node-subspace"),
     authoring_version: 1,
-    spec_version: 515,
+    spec_version: 518,
     impl_version: 1,
     apis: RUNTIME_API_VERSIONS,
     transaction_version: 1,
@@ -217,7 +214,7 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
     spec_name: create_runtime_str!("node-subspace"),
     impl_name: create_runtime_str!("node-subspace"),
     authoring_version: 1,
-    spec_version: 132,
+    spec_version: 134,
     impl_version: 1,
     apis: RUNTIME_API_VERSIONS,
     transaction_version: 1,
