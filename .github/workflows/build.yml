@@ -10,23 +10,27 @@ jobs:
     name: Build, Test & Security Audit
     runs-on: ubuntu-22.04
     steps:
-      - name: Checkout Source Code
-        uses: actions/checkout@v4
-        
-      - name: Install Rust Toolchain
-        uses: actions-rs/toolchain@v1
-        with:
-          toolchain: stable
-          components: rustfmt
-          override: true
-          
-      - name: Cache Rust Dependencies
-        uses: Swatinem/rust-cache@v2
+      - uses: actions/checkout@v4
       
+      - name: Setup Rust cache
+        uses: Swatinem/rust-cache@v2
+
+      - name: Install Rust toolchain
+        run: |
+          rustup set profile minimal
+          rustup show
+
+      - name: Install Protoc
+        uses: arduino/setup-protoc@v1
+        with:
+          version: 3.20.1
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
+
+
       # TODO: uncomment when vulnerability audit updated
       # - name: Security Vulnerability Audit
       #   run: cargo audit -D warnings --ignore RUSTSEC-2021-0145
-        
+
       - name: Static Code Analysis (Clippy)
         uses: actions-rs/clippy-check@v1
         continue-on-error: true
