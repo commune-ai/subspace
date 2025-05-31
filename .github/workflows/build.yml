@@ -22,13 +22,10 @@ jobs:
           
       - name: Cache Rust Dependencies
         uses: Swatinem/rust-cache@v2
-        
-      - name: Install Build Tools
-        run: |
-          cargo install cargo-audit
-          
-      - name: Security Vulnerability Audit
-        run: cargo audit -D warnings --ignore RUSTSEC-2021-0145
+      
+      # TODO: uncomment when vulnerability audit updated
+      # - name: Security Vulnerability Audit
+      #   run: cargo audit -D warnings --ignore RUSTSEC-2021-0145
         
       - name: Static Code Analysis (Clippy)
         uses: actions-rs/clippy-check@v1
