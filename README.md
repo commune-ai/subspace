@@ -1,9 +1,11 @@
-# Subspace
+<p align="center">
+  <picture>
+    <img alt="subspace" src="https://raw.githubusercontent.com/LVivona/subspace/refs/heads/chore/LVivona/readme-banner/.github/assets/subspace.png" style="max-width: 100%;">
+  </picture>
+</p>
 
-[![Discord Chat](https://img.shields.io/discord/308323056592486420.svg)](https://discord.gg/communeai)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Build Status](https://img.shields.io/travis/com/paritytech/substrate/master?label=stable)](https://travis-ci.com/paritytech/substrate)
-[![Coverage Status](https://img.shields.io/codecov/c/gh/paritytech/substrate?label=coverage)](https://codecov.io/gh/paritytech/substrate)
+<p align="center"> <a href="https://github.com/commune-ai/subspace/blob/main/LICENSE"> <img src="https://img.shields.io/badge/license-MIT-blue.svg" alt="License: MIT"> </a><a href="https://discord.gg/communeai"> <img src="https://img.shields.io/discord/308323056592486420?label=discord&logo=discord" alt="Discord"> </a> </p>
+
 
 Subspace is a FRAME-based [Substrate](https://substrate.io/) blockchain node
 that provides the foundation for [Commune's](https://www.communeai.org/)
