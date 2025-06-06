@@ -298,25 +298,49 @@ impl<T: Config> Pallet<T> {
             .map(|(uid, _, _)| *uid)
     }
 
+    /// Adds a new subnet from a registration request, removing the lowest emission subnet if needed.
+    ///
+    /// # Arguments
+    /// * `changeset` - The changeset containing the new subnet parameters
+    ///
+    /// # Returns
+    /// * `DispatchResult` - Ok(()) if successful, or an error if the operation fails
+    ///
+    /// # Errors
+    /// * Returns `SubnetRegistryFull` if the registry is full and no removable subnet is found
     pub fn add_subnet_from_registration(changeset: SubnetChangeset<T>) -> DispatchResult {
         let num_subnets: u16 = Self::get_total_subnets();
         let max_subnets: u16 = MaxAllowedSubnets::<T>::get();
 
-        // RESERVE SUBNET SLOT
-        // if we have not reached the max number of subnets, then we can start a new one
+        // If we've reached max subnets, try to remove the lowest emission subnet
         let target_subnet = if num_subnets >= max_subnets {
-            let lowest_emission_netuid = T::get_lowest_emission_netuid(false);
-            let netuid = lowest_emission_netuid.ok_or(sp_runtime::DispatchError::Other(
-                "No valid netuid to deregister",
-            ))?;
-
-            // if the stake is greater than the least staked network, then we can start a new one
-            Self::remove_subnet(netuid);
-            Some(netuid)
+            // Try to find the lowest emission subnet to remove
+            if let Some(netuid) = T::get_lowest_emission_netuid(false) {
+                // Verify we can remove this subnet
+                if T::can_remove_subnet(netuid) {
+                    log::info!("Removing subnet {} to make room for new subnet", netuid);
+                    Self::remove_subnet(netuid);
+                    Some(netuid)
+                } else {
+                    log::warn!(
+                        "Cannot remove subnet {} - wrong consensus type. Only Yuma subnets can be removed.",
+                        netuid
+                    );
+                    return Err(Error::<T>::InvalidMaxAllowedSubnets.into());
+                }
+            } else {
+                log::warn!(
+                    "No removable subnets found. All {} subnets are at max capacity with protected consensus types.",
+                    num_subnets
+                );
+                return Err(Error::<T>::InvalidMaxAllowedSubnets.into());
+            }
         } else {
+            // If we haven't reached max subnets, no need to remove any
             None
         };
 
+        // Proceed with adding the new subnet
         Self::add_subnet(changeset, target_subnet)?;
         Ok(())
     }

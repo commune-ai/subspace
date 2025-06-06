@@ -6,6 +6,8 @@ use pallet_subnet_emission::SubnetConsensusType;
 use pallet_subnet_emission_api::SubnetConsensus;
 use pallet_subspace::*;
 use sp_runtime::Percent;
+use frame_support::assert_ok;
+use sp_runtime::traits::Zero;
 
 #[test]
 fn module_is_registered_correctly() {
