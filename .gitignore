@@ -18,3 +18,9 @@
 
 # scripts
 __pycache__
+
+.ctx*
+.erasmus/
+*erasmus
+erasmus*
+
