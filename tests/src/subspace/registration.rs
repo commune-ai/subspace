@@ -1,13 +1,11 @@
 use std::collections::BTreeSet;
 
 use crate::mock::*;
-use frame_support::{assert_err, assert_noop, dispatch::DispatchResult};
+use frame_support::{assert_err, assert_noop, assert_ok, dispatch::DispatchResult};
 use pallet_subnet_emission::SubnetConsensusType;
 use pallet_subnet_emission_api::SubnetConsensus;
 use pallet_subspace::*;
-use sp_runtime::Percent;
-use frame_support::assert_ok;
-use sp_runtime::traits::Zero;
+use sp_runtime::{traits::Zero, Percent};
 
 #[test]
 fn module_is_registered_correctly() {

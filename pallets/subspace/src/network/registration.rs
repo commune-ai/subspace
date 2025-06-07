@@ -298,7 +298,8 @@ impl<T: Config> Pallet<T> {
             .map(|(uid, _, _)| *uid)
     }
 
-    /// Adds a new subnet from a registration request, removing the lowest emission subnet if needed.
+    /// Adds a new subnet from a registration request, removing the lowest emission subnet if
+    /// needed.
     ///
     /// # Arguments
     /// * `changeset` - The changeset containing the new subnet parameters
