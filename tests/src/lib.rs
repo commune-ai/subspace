@@ -13,6 +13,8 @@ pub mod mock;
 #[cfg(test)]
 pub mod offworker;
 #[cfg(test)]
+pub mod registration_eviction_tests;
+#[cfg(test)]
 pub mod root;
 #[cfg(test)]
 pub mod subnet_emission;
