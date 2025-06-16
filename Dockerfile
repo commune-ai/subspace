@@ -1,4 +1,4 @@
-FROM debian:12-slim AS builder
+FROM ubuntu:24.04 AS builder
 
 ARG AWS_ACCESS_KEY_ID
 ARG AWS_SECRET_ACCESS_KEY
@@ -40,7 +40,7 @@ RUN if [ -n "$AWS_ACCESS_KEY_ID" ]; then \
         ./sccache --show-stats; \
     fi
 
-FROM debian:12-slim
+FROM ubuntu:24.04
 
 RUN apt update && apt install -y zlib1g && \
     rm -rf /var/cache/apt/archives /var/lib/apt/lists/*

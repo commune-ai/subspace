@@ -1,0 +1,23 @@
+services:
+  subspace-node:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    volumes:
+      - ./node/chain-specs/main.json:/app/chain_spec.json:ro
+      - node-data:/data
+      - ./target/release:/app/target/release
+    ports:
+      - "30333:30333"  # P2P port
+      - "9933:9933"    # RPC port
+      - "9944:9944"    # WebSocket port
+    command: 
+      - /app/target/release/node-subspace
+      - --chain 
+      - /app/chain_spec.json
+      - --base-path
+      - /app/node-data
+    restart: unless-stopped
+
+volumes:
+  node-data:
