@@ -48,11 +48,19 @@ pub trait WeightInfo {
 	fn refuse_dao_application() -> Weight;
 	fn add_to_whitelist() -> Weight;
 	fn remove_from_whitelist() -> Weight;
+	fn cancel_payment_schedule() -> Weight;
 }
 
 /// Weights for `pallet_governance` using the Substrate node and recommended hardware.
 pub struct SubstrateWeight<T>(PhantomData<T>);
 impl<T: frame_system::Config> WeightInfo for SubstrateWeight<T> {
+	fn cancel_payment_schedule() -> Weight {
+		// Storage: PaymentSchedules (r:1 w:1)
+		// Proof: PaymentSchedules (`max_values`: None, `max_size`: Some(4294967295), added: 2474, mode: `MaxEncodedLen`)
+		Weight::from_parts(20_000_000, 2474)
+			.saturating_add(T::DbWeight::get().reads(1_u64))
+			.saturating_add(T::DbWeight::get().writes(1_u64))
+	}
 	/// Storage: `SubspaceModule::MaxNameLength` (r:1 w:0)
 	/// Proof: `SubspaceModule::MaxNameLength` (`max_values`: Some(1), `max_size`: None, mode: `Measured`)
 	/// Storage: `SubspaceModule::MinNameLength` (r:1 w:0)
@@ -344,6 +352,13 @@ impl<T: frame_system::Config> WeightInfo for SubstrateWeight<T> {
 
 // For backwards compatibility and tests.
 impl WeightInfo for () {
+	fn cancel_payment_schedule() -> Weight {
+		// Storage: PaymentSchedules (r:1 w:1)
+		// Proof: PaymentSchedules (`max_values`: None, `max_size`: Some(4294967295), added: 2474, mode: `MaxEncodedLen`)
+		Weight::from_parts(20_000_000, 2474)
+			.saturating_add(RocksDbWeight::get().reads(1_u64))
+			.saturating_add(RocksDbWeight::get().writes(1_u64))
+	}
 	/// Storage: `SubspaceModule::MaxNameLength` (r:1 w:0)
 	/// Proof: `SubspaceModule::MaxNameLength` (`max_values`: Some(1), `max_size`: None, mode: `Measured`)
 	/// Storage: `SubspaceModule::MinNameLength` (r:1 w:0)
