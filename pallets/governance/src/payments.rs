@@ -1,18 +1,14 @@
 use frame_support::{
     pallet_prelude::*,
-    traits::Currency,
+    traits::{Currency, ExistenceRequirement, DefensiveSaturating},
 };
 use frame_system::pallet_prelude::BlockNumberFor;
-use sp_runtime::traits::Zero;
-use crate::Config;
+use crate::{Config, Event};
 
-/// Number of blocks per day (assuming ~12 second block time)
-pub const BLOCKS_PER_DAY: u32 = 7200;
+/// Default payment interval in blocks (10 days worth of blocks at ~8s block time)
+pub const BLOCKS_PER_PAYMENT_CYCLE: u32 = 108000;
 
-/// Payment window in blocks (±2 hours)
-pub const PAYMENT_WINDOW: u32 = 600;
-
-/// A scheduled payment that will be executed on a specific day of each month
+/// A scheduled payment that will be executed at regular block intervals
 #[derive(Clone, Encode, Decode, Eq, PartialEq, RuntimeDebug, MaxEncodedLen, TypeInfo)]
 #[scale_info(skip_type_params(T))]
 pub struct ScheduledPayment<T: Config> {
@@ -20,12 +16,12 @@ pub struct ScheduledPayment<T: Config> {
     pub recipient: T::AccountId,
     /// Amount to be paid
     pub amount: u64,
-    /// Day of the month to execute payment (1-30)
-    pub target_day: u8,
+    /// Block number when the next payment should be made
+    pub next_payment_block: BlockNumberFor<T>,
+    /// Number of blocks between payments
+    pub payment_interval: BlockNumberFor<T>,
     /// Number of payments remaining (0 means indefinite)
     pub remaining_payments: u32,
-    /// Block number when the last payment was made
-    pub last_payment_block: BlockNumberFor<T>,
 }
 
 impl<T: Config> ScheduledPayment<T> {
@@ -33,40 +29,29 @@ impl<T: Config> ScheduledPayment<T> {
     pub fn new(
         recipient: T::AccountId,
         amount: u64,
-        target_day: u8,
+        first_payment_in_blocks: BlockNumberFor<T>,
+        payment_interval: BlockNumberFor<T>,
         remaining_payments: u32,
+        current_block: BlockNumberFor<T>,
     ) -> Self {
         Self {
             recipient,
             amount,
-            target_day,
+            next_payment_block: current_block.defensive_saturating_add(first_payment_in_blocks),
+            payment_interval,
             remaining_payments,
-            last_payment_block: Zero::zero(),
         }
     }
 
-    /// Check if payment is due based on current block number
-    pub fn is_payment_due(&self, current_block: BlockNumberFor<T>) -> bool {
-        // Only check if we're at least a day from last check
-        if current_block <= self.last_payment_block + BLOCKS_PER_DAY.into() {
-            return false;
-        }
-
-        // Estimate current day (1-30)
-        let estimated_day = ((current_block / BLOCKS_PER_DAY.into()) % 30u32.into()) + 1u32.into();
-        
-        // Check if we're within payment window
-        self.target_day == estimated_day.try_into().unwrap_or(0)
-    }
-
-    /// Process payment if due, returns true if payment was processed
-    pub fn try_process_payment(
+    /// Process payment if due, returns Some(Event) if payment was processed
+    pub fn process_if_due(
         &mut self,
         current_block: BlockNumberFor<T>,
         treasury: &T::AccountId,
-    ) -> Result<bool, DispatchError> {
-        if !self.is_payment_due(current_block) {
-            return Ok(false);
+        schedule_id: u64,
+    ) -> Result<Option<Event<T>>, DispatchError> {
+        if current_block < self.next_payment_block {
+            return Ok(None);
         }
 
         // Execute payment from treasury to recipient
@@ -74,16 +59,28 @@ impl<T: Config> ScheduledPayment<T> {
             treasury,
             &self.recipient,
             self.amount.into(),
-            frame_support::traits::ExistenceRequirement::KeepAlive,
+            ExistenceRequirement::KeepAlive,
         )?;
 
-        // Update payment tracking
-        self.last_payment_block = current_block;
+        // Update next payment block
+        self.next_payment_block = current_block.defensive_saturating_add(self.payment_interval);
+
+        // Update remaining payments
         if self.remaining_payments > 0 {
             self.remaining_payments = self.remaining_payments.saturating_sub(1);
         }
 
-        Ok(true)
+        Ok(Some(Event::PaymentExecuted { 
+            schedule_id,
+            recipient: self.recipient.clone(),
+            amount: self.amount,
+            next_payment_block: self.next_payment_block,
+        }))
+    }
+
+    /// Returns true if this schedule should be removed (all payments completed)
+    pub fn is_completed(&self) -> bool {
+        self.remaining_payments == 0
     }
 }
 

@@ -58,5 +58,7 @@ frame-benchmarking = { workspace = true, optional = true }
 [dev-dependencies]
 pallet-balances = { workspace = true, features = ["std"] }
 pallet-governance-api = { path = "./api", default-features = false }
+pallet-subnet-emission-api = { path = "../subnet_emission/api", default-features = false }
+sp-core = { workspace = true, features = ["std"] }
 sp-io.workspace = true
 sp-tracing.workspace = true

@@ -27,7 +27,7 @@ pub use pallet_governance_api::*;
 use pallet_subspace::{
     self, define_subnet_includes,
     params::{burn::GeneralBurnConfiguration, subnet::SubnetChangeset},
-    DefaultKey, BalanceOf
+    DefaultKey
 };
 
 pub use payments::ScheduledPayment;
@@ -43,10 +43,11 @@ pub mod pallet {
     use crate::{dao::CuratorApplication, *};
     use frame_support::{
         pallet_prelude::{ValueQuery, *},
-        traits::{Currency, StorageInstance},
+        traits::StorageInstance,
         PalletId,
     };
     use frame_system::pallet_prelude::{ensure_signed, BlockNumberFor};
+use sp_runtime::traits::Zero;
     use sp_runtime::traits::AccountIdConversion;
 
     #[cfg(feature = "testnet")]
@@ -62,7 +63,7 @@ pub mod pallet {
     #[pallet::config(with_default)]
     pub trait Config: frame_system::Config + pallet_subspace::Config {
         /// The balance type must support conversion from u64
-        type Currency: frame_support::traits::Currency<Self::AccountId, Balance: From<u64>> + Send + Sync;
+        type Currency: frame_support::traits::Currency<Self::AccountId, Balance: From<u64> + Zero + Send + Sync>;
 
         /// This pallet's ID, used for generating the treasury account ID.
         #[pallet::constant]
@@ -84,54 +85,40 @@ pub mod pallet {
             proposal::tick_proposals::<T>(block_number_u64);
             proposal::tick_proposal_rewards::<T>(block_number_u64);
 
-            // Only process payments if we're at a block interval
-            if block_number_u64 % payments::BLOCKS_PER_DAY as u64 == 0 {
-                let treasury = DaoTreasuryAddress::<T>::get();
-                let mut total_weight = Weight::zero();
+            let treasury = DaoTreasuryAddress::<T>::get();
+            let mut total_weight = Weight::zero();
 
-                // Process each payment schedule
-                PaymentSchedules::<T>::iter().for_each(|(schedule_id, mut schedule)| {
-                    if let Ok(true) = schedule.try_process_payment(block_number, &treasury) {
-                        // Execute the payment
-                        match <T as Config>::Currency::transfer(
-                            &treasury,
-                            &schedule.recipient,
-                            schedule.amount.into(),
-                            frame_support::traits::ExistenceRequirement::KeepAlive,
-                        ) {
-                            Ok(()) => {
-                                // Emit payment execution event
-                                Self::deposit_event(Event::PaymentExecuted {
-                                    schedule_id,
-                                    amount: schedule.amount,
-                                    recipient: schedule.recipient.clone(),
-                                });
+            // Process each payment schedule
+            PaymentSchedules::<T>::iter().for_each(|(schedule_id, mut schedule)| {
+                match schedule.process_if_due(block_number, &treasury, schedule_id) {
+                    Ok(Some(event)) => {
+                        // Payment was processed successfully
+                        Self::deposit_event(event);
 
-                                // Update or remove the schedule
-                                if schedule.remaining_payments == 0 {
-                                    PaymentSchedules::<T>::remove(schedule_id);
-                                } else {
-                                    PaymentSchedules::<T>::insert(schedule_id, schedule);
-                                }
-                            }
-                            Err(e) => {
-                                // Emit payment failure event
-                                Self::deposit_event(Event::PaymentFailed {
-                                    schedule_id,
-                                    amount: schedule.amount,
-                                    recipient: schedule.recipient.clone(),
-                                    error: e,
-                                });
-                            }
+                        // Update or remove the schedule
+                        if schedule.is_completed() {
+                            PaymentSchedules::<T>::remove(schedule_id);
+                        } else {
+                            PaymentSchedules::<T>::insert(schedule_id, schedule);
                         }
                         total_weight = total_weight.saturating_add(T::DbWeight::get().reads_writes(2, 1));
                     }
-                });
+                    Ok(None) => {
+                        // No payment was due
+                        total_weight = total_weight.saturating_add(T::DbWeight::get().reads(1));
+                    }
+                    Err(e) => {
+                        // Payment failed
+                        Self::deposit_event(Event::PaymentFailed {
+                            schedule_id,
+                            error: e,
+                        });
+                        total_weight = total_weight.saturating_add(T::DbWeight::get().reads(1));
+                    }
+                }
+            });
 
-                total_weight
-            } else {
-                Weight::zero()
-            }
+            total_weight
         }
     }
 
@@ -455,14 +442,22 @@ pub mod pallet {
         pub fn create_payment_schedule(
             origin: OriginFor<T>,
             recipient: T::AccountId,
-            amount: BalanceOf<T>,
-            target_day: u8,
+            amount: u64,
+            first_payment_in_blocks: BlockNumberFor<T>,
+            payment_interval: BlockNumberFor<T>,
             remaining_payments: u32,
         ) -> DispatchResult {
             ensure_root(origin)?;
-            ensure!(target_day > 0 && target_day <= 30, Error::<T>::InvalidPaymentDay);
+            ensure!(!payment_interval.is_zero(), Error::<T>::InvalidPaymentInterval);
 
-            let schedule = ScheduledPayment::new(recipient, amount, target_day, remaining_payments);
+            let schedule = ScheduledPayment::new(
+                recipient.clone(),
+                amount,
+                first_payment_in_blocks,
+                payment_interval,
+                remaining_payments,
+                frame_system::Pallet::<T>::block_number(),
+            );
             let schedule_id = NextPaymentScheduleId::<T>::mutate(|id| {
                 let current = *id;
                 *id = id.saturating_add(1);
@@ -512,15 +507,13 @@ pub mod pallet {
             recipient: T::AccountId,
             /// Amount that was paid
             amount: u64,
+            /// Next payment block
+            next_payment_block: BlockNumberFor<T>,
         },
         /// A scheduled payment failed to execute
         PaymentFailed {
             /// ID of the schedule
             schedule_id: u64,
-            /// Recipient that would have received the payment
-            recipient: T::AccountId,
-            /// Amount that would have been paid
-            amount: u64,
             /// Error that caused the payment to fail
             error: DispatchError,
         },
@@ -557,8 +550,8 @@ pub mod pallet {
 
     #[pallet::error]
     pub enum Error<T> {
-        /// The specified payment day must be between 1 and 30
-        InvalidPaymentDay,
+        /// The payment interval must be greater than zero
+        InvalidPaymentInterval,
         /// The payment schedule with the given ID was not found
         PaymentScheduleNotFound,
         /// The proposal is already finished. Do not retry.
