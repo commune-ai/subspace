@@ -27,7 +27,7 @@ pub use pallet_governance_api::*;
 use pallet_subspace::{
     self, define_subnet_includes,
     params::{burn::GeneralBurnConfiguration, subnet::SubnetChangeset},
-    DefaultKey
+    DefaultKey,
 };
 
 pub use payments::ScheduledPayment;
@@ -47,8 +47,7 @@ pub mod pallet {
         PalletId,
     };
     use frame_system::pallet_prelude::{ensure_signed, BlockNumberFor};
-use sp_runtime::traits::Zero;
-    use sp_runtime::traits::AccountIdConversion;
+    use sp_runtime::traits::{AccountIdConversion, Zero};
 
     #[cfg(feature = "testnet")]
     const STORAGE_VERSION: StorageVersion = StorageVersion::new(7);
@@ -63,7 +62,10 @@ use sp_runtime::traits::Zero;
     #[pallet::config(with_default)]
     pub trait Config: frame_system::Config + pallet_subspace::Config {
         /// The balance type must support conversion from u64
-        type Currency: frame_support::traits::Currency<Self::AccountId, Balance: From<u64> + Zero + Send + Sync>;
+        type Currency: frame_support::traits::Currency<
+            Self::AccountId,
+            Balance: From<u64> + Zero + Send + Sync,
+        >;
 
         /// This pallet's ID, used for generating the treasury account ID.
         #[pallet::constant]
@@ -80,7 +82,8 @@ use sp_runtime::traits::Zero;
     #[pallet::hooks]
     impl<T: Config> Hooks<BlockNumberFor<T>> for Pallet<T> {
         fn on_initialize(block_number: BlockNumberFor<T>) -> Weight {
-            let block_number_u64 = block_number.try_into().ok().expect("blockchain won't pass 2 ^ 64 blocks");
+            let block_number_u64 =
+                block_number.try_into().ok().expect("blockchain won't pass 2 ^ 64 blocks");
 
             proposal::tick_proposals::<T>(block_number_u64);
             proposal::tick_proposal_rewards::<T>(block_number_u64);
@@ -101,7 +104,8 @@ use sp_runtime::traits::Zero;
                         } else {
                             PaymentSchedules::<T>::insert(schedule_id, schedule);
                         }
-                        total_weight = total_weight.saturating_add(T::DbWeight::get().reads_writes(2, 1));
+                        total_weight =
+                            total_weight.saturating_add(T::DbWeight::get().reads_writes(2, 1));
                     }
                     Ok(None) => {
                         // No payment was due
@@ -191,7 +195,8 @@ use sp_runtime::traits::Zero;
 
     /// Storage for payment schedules, indexed by a unique identifier
     #[pallet::storage]
-    pub type PaymentSchedules<T: Config> = StorageMap<_, Blake2_128Concat, u64, ScheduledPayment<T>>;
+    pub type PaymentSchedules<T: Config> =
+        StorageMap<_, Blake2_128Concat, u64, ScheduledPayment<T>>;
 
     /// Counter for generating unique payment schedule IDs
     #[pallet::storage]
@@ -448,7 +453,10 @@ use sp_runtime::traits::Zero;
             remaining_payments: u32,
         ) -> DispatchResult {
             ensure_root(origin)?;
-            ensure!(!payment_interval.is_zero(), Error::<T>::InvalidPaymentInterval);
+            ensure!(
+                !payment_interval.is_zero(),
+                Error::<T>::InvalidPaymentInterval
+            );
 
             let schedule = ScheduledPayment::new(
                 recipient.clone(),
@@ -471,12 +479,12 @@ use sp_runtime::traits::Zero;
 
         #[pallet::call_index(31)]
         #[pallet::weight(<T as Config>::WeightInfo::cancel_payment_schedule())]
-        pub fn cancel_payment_schedule(
-            origin: OriginFor<T>,
-            schedule_id: u64,
-        ) -> DispatchResult {
+        pub fn cancel_payment_schedule(origin: OriginFor<T>, schedule_id: u64) -> DispatchResult {
             ensure_root(origin)?;
-            ensure!(PaymentSchedules::<T>::contains_key(schedule_id), Error::<T>::PaymentScheduleNotFound);
+            ensure!(
+                PaymentSchedules::<T>::contains_key(schedule_id),
+                Error::<T>::PaymentScheduleNotFound
+            );
 
             PaymentSchedules::<T>::remove(schedule_id);
             Self::deposit_event(Event::PaymentScheduleCancelled { schedule_id });

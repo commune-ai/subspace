@@ -1,15 +1,14 @@
-use frame_support::{
-    parameter_types,
-    traits::ConstU32,
-    dispatch::DispatchResult,
-};
-use pallet_subspace;
+use frame_support::{dispatch::DispatchResult, parameter_types, traits::ConstU32};
 use frame_system as system;
-use sp_core::H256;
-use sp_runtime::{traits::{BlakeTwo256, IdentityLookup, AccountIdConversion}, BuildStorage};
-use pallet_subnet_emission_api::{SubnetConsensus, SubnetEmissionApi};
-use pallet_governance_api::{GovernanceApi, GovernanceConfiguration};
 use pallet_balances;
+use pallet_governance_api::{GovernanceApi, GovernanceConfiguration};
+use pallet_subnet_emission_api::{SubnetConsensus, SubnetEmissionApi};
+use pallet_subspace;
+use sp_core::H256;
+use sp_runtime::{
+    traits::{AccountIdConversion, BlakeTwo256, IdentityLookup},
+    BuildStorage,
+};
 
 type Block = frame_system::mocking::MockBlock<Test>;
 
@@ -118,9 +117,7 @@ impl pallet_governance::Config for Test {
 pub type BlockNumber = u64;
 
 pub fn new_test_ext() -> sp_io::TestExternalities {
-    let mut t = frame_system::GenesisConfig::<Test>::default()
-        .build_storage()
-        .unwrap();
+    let mut t = frame_system::GenesisConfig::<Test>::default().build_storage().unwrap();
 
     // Get the treasury account ID from the PalletId
     let treasury = GovernancePalletId::get().into_account_truncating();
@@ -205,11 +202,16 @@ impl GovernanceApi<u64> for Test {
         GovernanceConfiguration::default()
     }
 
-    fn update_global_governance_configuration(_config: GovernanceConfiguration) -> Result<(), sp_runtime::DispatchError> {
+    fn update_global_governance_configuration(
+        _config: GovernanceConfiguration,
+    ) -> Result<(), sp_runtime::DispatchError> {
         Ok(())
     }
 
-    fn update_subnet_governance_configuration(_subnet_id: u16, _config: GovernanceConfiguration) -> Result<(), sp_runtime::DispatchError> {
+    fn update_subnet_governance_configuration(
+        _subnet_id: u16,
+        _config: GovernanceConfiguration,
+    ) -> Result<(), sp_runtime::DispatchError> {
         Ok(())
     }
 
@@ -217,7 +219,10 @@ impl GovernanceApi<u64> for Test {
         false
     }
 
-    fn update_delegating_voting_power(_account: &u64, _delegating: bool) -> Result<(), sp_runtime::DispatchError> {
+    fn update_delegating_voting_power(
+        _account: &u64,
+        _delegating: bool,
+    ) -> Result<(), sp_runtime::DispatchError> {
         Ok(())
     }
 
@@ -241,12 +246,9 @@ impl GovernanceApi<u64> for Test {
         1
     }
 
-    fn set_curator(_account: &u64) {
-    }
+    fn set_curator(_account: &u64) {}
 
-    fn set_general_subnet_application_cost(_cost: u64) {
-    }
+    fn set_general_subnet_application_cost(_cost: u64) {}
 
-    fn clear_subnet_includes(_subnet_id: u16) {
-    }
+    fn clear_subnet_includes(_subnet_id: u16) {}
 }

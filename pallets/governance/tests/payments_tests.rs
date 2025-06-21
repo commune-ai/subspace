@@ -1,6 +1,6 @@
 mod mock;
 use mock::*;
-use pallet_governance::{Event, ScheduledPayment, payments::BLOCKS_PER_PAYMENT_CYCLE};
+use pallet_governance::{payments::BLOCKS_PER_PAYMENT_CYCLE, Event, ScheduledPayment};
 
 #[test]
 fn test_scheduled_payment_creation() {
@@ -23,7 +23,10 @@ fn test_scheduled_payment_creation() {
 
         assert_eq!(schedule.recipient, recipient);
         assert_eq!(schedule.amount, amount);
-        assert_eq!(schedule.next_payment_block, current_block + first_payment_in);
+        assert_eq!(
+            schedule.next_payment_block,
+            current_block + first_payment_in
+        );
         assert_eq!(schedule.payment_interval, payment_interval);
         assert_eq!(schedule.remaining_payments, remaining_payments);
     });
@@ -63,7 +66,10 @@ fn test_payment_processing() {
         ));
 
         // Verify schedule state after payment
-        assert_eq!(schedule.next_payment_block, payment_block + payment_interval);
+        assert_eq!(
+            schedule.next_payment_block,
+            payment_block + payment_interval
+        );
         assert_eq!(schedule.remaining_payments, remaining_payments - 1);
     });
 }

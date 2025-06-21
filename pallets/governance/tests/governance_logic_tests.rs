@@ -1,7 +1,7 @@
 mod mock;
+use frame_support::{assert_err, assert_ok, traits::Hooks};
 use mock::*;
-use frame_support::{assert_ok, assert_err, traits::Hooks};
-use pallet_governance::{Error, PaymentSchedules, payments::BLOCKS_PER_PAYMENT_CYCLE};
+use pallet_governance::{payments::BLOCKS_PER_PAYMENT_CYCLE, Error, PaymentSchedules};
 
 fn run_to_block(n: BlockNumber) {
     while System::block_number() < n {
@@ -151,11 +151,17 @@ fn test_payment_processing_in_on_initialize() {
         assert_eq!(schedule.remaining_payments, remaining_payments - 2);
         assert_eq!(
             schedule.next_payment_block,
-            start_block.saturating_add(first_payment_in).saturating_add(payment_interval.saturating_mul(2))
+            start_block
+                .saturating_add(first_payment_in)
+                .saturating_add(payment_interval.saturating_mul(2))
         );
 
         // Run to final payment
-        run_to_block(start_block.saturating_add(first_payment_in).saturating_add(payment_interval.saturating_mul(2)));
+        run_to_block(
+            start_block
+                .saturating_add(first_payment_in)
+                .saturating_add(payment_interval.saturating_mul(2)),
+        );
 
         // Verify schedule was removed after final payment
         assert!(PaymentSchedules::<Test>::get(schedule_id).is_none());
@@ -190,6 +196,9 @@ fn test_payment_failure_in_on_initialize() {
         // Verify schedule still exists but payment failed
         let schedule = PaymentSchedules::<Test>::get(schedule_id).unwrap();
         assert_eq!(schedule.remaining_payments, remaining_payments); // Unchanged
-        assert_eq!(schedule.next_payment_block, start_block.saturating_add(first_payment_in)); // Unchanged
+        assert_eq!(
+            schedule.next_payment_block,
+            start_block.saturating_add(first_payment_in)
+        ); // Unchanged
     });
 }

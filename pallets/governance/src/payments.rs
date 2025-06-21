@@ -1,7 +1,9 @@
 // # Governance Proposal: Automated Payment System Implementation
 
 // ## Summary
-// This proposal implements an automated payment system within the governance pallet, enabling scheduled, recurring payments from the DAO treasury. The implementation uses block-based timing for deterministic execution and provides flexible configuration options for payment schedules.
+// This proposal implements an automated payment system within the governance pallet, enabling
+// scheduled, recurring payments from the DAO treasury. The implementation uses block-based timing
+// for deterministic execution and provides flexible configuration options for payment schedules.
 
 // ## Technical Changes
 
@@ -69,12 +71,12 @@
 
 // All tests pass successfully, demonstrating the system's reliability and correctness.
 
+use crate::{Config, Event};
 use frame_support::{
     pallet_prelude::*,
-    traits::{Currency, ExistenceRequirement, DefensiveSaturating},
+    traits::{Currency, DefensiveSaturating, ExistenceRequirement},
 };
 use frame_system::pallet_prelude::BlockNumberFor;
-use crate::{Config, Event};
 
 /// Default payment interval in blocks (10 days worth of blocks at ~8s block time)
 pub const BLOCKS_PER_PAYMENT_CYCLE: u32 = 108000;
@@ -141,7 +143,7 @@ impl<T: Config> ScheduledPayment<T> {
             self.remaining_payments = self.remaining_payments.saturating_sub(1);
         }
 
-        Ok(Some(Event::PaymentExecuted { 
+        Ok(Some(Event::PaymentExecuted {
             schedule_id,
             recipient: self.recipient.clone(),
             amount: self.amount,
@@ -156,4 +158,5 @@ impl<T: Config> ScheduledPayment<T> {
 }
 
 /// Type alias for the Currency balance type
-pub type BalanceOf<T> = <<T as Config>::Currency as Currency<<T as frame_system::Config>::AccountId>>::Balance;
+pub type BalanceOf<T> =
+    <<T as Config>::Currency as Currency<<T as frame_system::Config>::AccountId>>::Balance;
