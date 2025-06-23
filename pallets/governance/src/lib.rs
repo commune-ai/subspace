@@ -7,6 +7,7 @@ mod benchmarking;
 
 pub mod dao;
 pub mod migrations;
+pub mod payments;
 pub mod proposal;
 pub mod senate;
 pub mod voting;
@@ -17,7 +18,7 @@ use frame_support::{
     ensure,
     sp_runtime::{DispatchError, Percent},
 };
-use frame_system::pallet_prelude::OriginFor;
+use frame_system::{ensure_root, pallet_prelude::OriginFor};
 use sp_std::vec::Vec;
 use substrate_fixed::types::I64F64;
 
@@ -29,6 +30,7 @@ use pallet_subspace::{
     DefaultKey,
 };
 
+pub use payments::ScheduledPayment;
 pub use proposal::{Proposal, ProposalData, ProposalId, ProposalStatus, UnrewardedProposal};
 
 type SubnetId = u16;
@@ -41,11 +43,11 @@ pub mod pallet {
     use crate::{dao::CuratorApplication, *};
     use frame_support::{
         pallet_prelude::{ValueQuery, *},
-        traits::{Currency, StorageInstance},
+        traits::StorageInstance,
         PalletId,
     };
     use frame_system::pallet_prelude::{ensure_signed, BlockNumberFor};
-    use sp_runtime::traits::AccountIdConversion;
+    use sp_runtime::traits::{AccountIdConversion, Zero};
 
     #[cfg(feature = "testnet")]
     const STORAGE_VERSION: StorageVersion = StorageVersion::new(7);
@@ -59,6 +61,12 @@ pub mod pallet {
 
     #[pallet::config(with_default)]
     pub trait Config: frame_system::Config + pallet_subspace::Config {
+        /// The balance type must support conversion from u64
+        type Currency: frame_support::traits::Currency<
+            Self::AccountId,
+            Balance: From<u64> + Zero + Send + Sync,
+        >;
+
         /// This pallet's ID, used for generating the treasury account ID.
         #[pallet::constant]
         type PalletId: Get<PalletId>;
@@ -67,9 +75,6 @@ pub mod pallet {
         #[pallet::no_default_bounds]
         type RuntimeEvent: From<Event<Self>> + IsType<<Self as frame_system::Config>::RuntimeEvent>;
 
-        /// Currency type that will be used to place deposits on modules
-        type Currency: Currency<Self::AccountId> + Send + Sync;
-
         /// The weight information of this pallet.
         type WeightInfo: WeightInfo;
     }
@@ -77,13 +82,47 @@ pub mod pallet {
     #[pallet::hooks]
     impl<T: Config> Hooks<BlockNumberFor<T>> for Pallet<T> {
         fn on_initialize(block_number: BlockNumberFor<T>) -> Weight {
-            let block_number: u64 =
+            let block_number_u64 =
                 block_number.try_into().ok().expect("blockchain won't pass 2 ^ 64 blocks");
 
-            proposal::tick_proposals::<T>(block_number);
-            proposal::tick_proposal_rewards::<T>(block_number);
+            proposal::tick_proposals::<T>(block_number_u64);
+            proposal::tick_proposal_rewards::<T>(block_number_u64);
 
-            Weight::zero()
+            let treasury = DaoTreasuryAddress::<T>::get();
+            let mut total_weight = Weight::zero();
+
+            // Process each payment schedule
+            PaymentSchedules::<T>::iter().for_each(|(schedule_id, mut schedule)| {
+                match schedule.process_if_due(block_number, &treasury, schedule_id) {
+                    Ok(Some(event)) => {
+                        // Payment was processed successfully
+                        Self::deposit_event(event);
+
+                        // Update or remove the schedule
+                        if schedule.is_completed() {
+                            PaymentSchedules::<T>::remove(schedule_id);
+                        } else {
+                            PaymentSchedules::<T>::insert(schedule_id, schedule);
+                        }
+                        total_weight =
+                            total_weight.saturating_add(T::DbWeight::get().reads_writes(2, 1));
+                    }
+                    Ok(None) => {
+                        // No payment was due
+                        total_weight = total_weight.saturating_add(T::DbWeight::get().reads(1));
+                    }
+                    Err(e) => {
+                        // Payment failed
+                        Self::deposit_event(Event::PaymentFailed {
+                            schedule_id,
+                            error: e,
+                        });
+                        total_weight = total_weight.saturating_add(T::DbWeight::get().reads(1));
+                    }
+                }
+            });
+
+            total_weight
         }
     }
 
@@ -153,6 +192,15 @@ pub mod pallet {
     #[pallet::storage]
     pub type DaoTreasuryAddress<T: Config> =
         StorageValue<_, T::AccountId, ValueQuery, DefaultDaoTreasuryAddress<T>>;
+
+    /// Storage for payment schedules, indexed by a unique identifier
+    #[pallet::storage]
+    pub type PaymentSchedules<T: Config> =
+        StorageMap<_, Blake2_128Concat, u64, ScheduledPayment<T>>;
+
+    /// Counter for generating unique payment schedule IDs
+    #[pallet::storage]
+    pub type NextPaymentScheduleId<T: Config> = StorageValue<_, u64, ValueQuery>;
 
     #[pallet::type_value]
     pub fn DefaultGeneralSubnetApplicationCost<T: Config>() -> u64 {
@@ -393,6 +441,55 @@ pub mod pallet {
         ) -> DispatchResult {
             Self::do_remove_senate_member(origin, senate_member_key)
         }
+
+        #[pallet::call_index(30)]
+        #[pallet::weight(<T as Config>::WeightInfo::add_transfer_dao_treasury_proposal())]
+        pub fn create_payment_schedule(
+            origin: OriginFor<T>,
+            recipient: T::AccountId,
+            amount: u64,
+            first_payment_in_blocks: BlockNumberFor<T>,
+            payment_interval: BlockNumberFor<T>,
+            remaining_payments: u32,
+        ) -> DispatchResult {
+            ensure_root(origin)?;
+            ensure!(
+                !payment_interval.is_zero(),
+                Error::<T>::InvalidPaymentInterval
+            );
+
+            let schedule = ScheduledPayment::new(
+                recipient.clone(),
+                amount,
+                first_payment_in_blocks,
+                payment_interval,
+                remaining_payments,
+                frame_system::Pallet::<T>::block_number(),
+            );
+            let schedule_id = NextPaymentScheduleId::<T>::mutate(|id| {
+                let current = *id;
+                *id = id.saturating_add(1);
+                current
+            });
+
+            PaymentSchedules::<T>::insert(schedule_id, schedule);
+            Self::deposit_event(Event::PaymentScheduleCreated { schedule_id });
+            Ok(())
+        }
+
+        #[pallet::call_index(31)]
+        #[pallet::weight(<T as Config>::WeightInfo::cancel_payment_schedule())]
+        pub fn cancel_payment_schedule(origin: OriginFor<T>, schedule_id: u64) -> DispatchResult {
+            ensure_root(origin)?;
+            ensure!(
+                PaymentSchedules::<T>::contains_key(schedule_id),
+                Error::<T>::PaymentScheduleNotFound
+            );
+
+            PaymentSchedules::<T>::remove(schedule_id);
+            Self::deposit_event(Event::PaymentScheduleCancelled { schedule_id });
+            Ok(())
+        }
     }
 
     // --- Events ---
@@ -400,6 +497,34 @@ pub mod pallet {
     #[pallet::event]
     #[pallet::generate_deposit(pub(crate) fn deposit_event)]
     pub enum Event<T: Config> {
+        /// A new payment schedule was created
+        PaymentScheduleCreated {
+            /// ID of the created schedule
+            schedule_id: u64,
+        },
+        /// A payment schedule was cancelled
+        PaymentScheduleCancelled {
+            /// ID of the cancelled schedule
+            schedule_id: u64,
+        },
+        /// A scheduled payment was executed
+        PaymentExecuted {
+            /// ID of the schedule
+            schedule_id: u64,
+            /// Recipient of the payment
+            recipient: T::AccountId,
+            /// Amount that was paid
+            amount: u64,
+            /// Next payment block
+            next_payment_block: BlockNumberFor<T>,
+        },
+        /// A scheduled payment failed to execute
+        PaymentFailed {
+            /// ID of the schedule
+            schedule_id: u64,
+            /// Error that caused the payment to fail
+            error: DispatchError,
+        },
         /// A new proposal has been created.
         ProposalCreated(ProposalId),
         /// A proposal has been accepted.
@@ -433,6 +558,10 @@ pub mod pallet {
 
     #[pallet::error]
     pub enum Error<T> {
+        /// The payment interval must be greater than zero
+        InvalidPaymentInterval,
+        /// The payment schedule with the given ID was not found
+        PaymentScheduleNotFound,
         /// The proposal is already finished. Do not retry.
         ProposalIsFinished,
         /// Invalid parameters were provided to the finalization process.
