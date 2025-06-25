@@ -52,7 +52,7 @@ fn test_payment_processing() {
         let payment_interval: BlockNumber = BLOCKS_PER_PAYMENT_CYCLE.into();
         let remaining_payments = 3;
         let current_block: BlockNumber = 500;
-        
+
         // Create treasury address with 100,000 Tokens
         let treasury_address = DaoTreasuryAddress::<Test>::get();
         SubspaceMod::add_balance_to_account(&treasury_address, 100_000_000_000_000);
@@ -260,7 +260,7 @@ fn test_payment_processing_in_on_initialize() {
         let first_payment_in: BlockNumber = 1000;
         let payment_interval: BlockNumber = BLOCKS_PER_PAYMENT_CYCLE.into();
         let remaining_payments = 3;
-        
+
         // Create treasury address with 100,000 Tokens
         let treasury_address = DaoTreasuryAddress::<Test>::get();
         SubspaceMod::add_balance_to_account(&treasury_address, 100_000_000_000_000);
