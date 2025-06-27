@@ -44,7 +44,7 @@ jobs:
             
             - name: Compile Testnet Subspace Runtime WebAssembly
               run: |
-                  cargo build --release --package node-subspace-runtime --feature testnet
+                  cargo build --release --package node-subspace-runtime --features testnet
                   mv target/release/wbuild/node-subspace-runtime/node_subspace_runtime.compact.compressed.wasm release-artifacts/testnet.node_subspace_runtime.compact.compressed.wasm
 
             - name: Compile Mainet Subspace Runtime WebAssembly
