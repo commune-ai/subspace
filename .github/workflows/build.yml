@@ -45,20 +45,20 @@ jobs:
             - name: Compile Testnet Subspace Runtime WebAssembly
               run: |
                   cargo build --release --package node-subspace-runtime --features testnet
-                  mv target/release/wbuild/node-subspace-runtime/node_subspace_runtime.compact.compressed.wasm release-artifacts/testnet.node_subspace_runtime.compact.compressed.wasm
+                  mkdir -p out
+                  mv target/release/wbuild/node-subspace-runtime/node_subspace_runtime.compact.compressed.wasm out/testnet.node_subspace_runtime.compact.compressed.wasm
 
             - name: Compile Mainet Subspace Runtime WebAssembly
               run: |
                   cargo build --release --package node-subspace-runtime
-                  mkdir -p release-artifacts
-                  mv target/release/wbuild/node-subspace-runtime/node_subspace_runtime.compact.compressed.wasm release-artifacts/node_subspace_runtime.compact.compressed.wasm
+                  mv target/release/wbuild/node-subspace-runtime/node_subspace_runtime.compact.compressed.wasm out/node_subspace_runtime.compact.compressed.wasm
 
 
             - name: Upload Build Artifacts
               uses: actions/upload-artifact@v4
               with:
-                  name: subspace-runtime-artifacts
-                  path: release-artifacts
+                  name: subspace-artifacts
+                  path: out
                   retention-days: 1
 
     create-release:
@@ -78,14 +78,14 @@ jobs:
               uses: actions/download-artifact@v4
               with:
                   name: subspace-runtime-artifacts
-                  path: ./release-artifacts
+                  path: ./out
 
             - name: Publish GitHub Release
               uses: softprops/action-gh-release@v1
               with:
                   files: |
-                      release-artifacts/node_subspace_runtime.compact.compressed.wasm
-                      release-artifacts/testnet.node_subspace_runtime.compact.compressed.wasm
+                      out/node_subspace_runtime.compact.compressed.wasm
+                      out/testnet.node_subspace_runtime.compact.compressed.wasm
                   body: |
                     # Subspace Runtime WebAssembly Release
 
