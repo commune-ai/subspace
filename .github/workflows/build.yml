@@ -106,7 +106,7 @@ jobs:
 
                     **Linux/macOS:**
                     ```bash
-                    echo "CHECKSUM_HERE <file>.wasm" | sha256sum -c
+                    sha256sum <file>.wasm
                     ```
 
                     **Windows:**
