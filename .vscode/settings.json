@@ -38,9 +38,11 @@
         "**/.repos": true
     },
     "rust-analyzer.cargo.extraEnv": {
-        "SKIP_WASM_BUILD": "1"
+        "SKIP_WASM_BUILD": "1",
+        "CXXFLAGS": "-include cstdint"
     },
     "rust-analyzer.server.extraEnv": {
-        "SKIP_WASM_BUILD": "1"
+        "SKIP_WASM_BUILD": "1",
+        "CXXFLAGS": "-include cstdint"
     }
 }
