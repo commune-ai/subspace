@@ -12,6 +12,7 @@ pub mod proposal;
 pub mod senate;
 pub mod voting;
 pub mod weights; // Weight benchmarks
+pub mod modbridge;
 
 use frame_support::{
     dispatch::DispatchResult,
@@ -43,7 +44,7 @@ pub mod pallet {
     use crate::{dao::CuratorApplication, *};
     use frame_support::{
         pallet_prelude::{ValueQuery, *},
-        traits::StorageInstance,
+        traits::{ReservableCurrency, StorageInstance},
         PalletId,
     };
     use frame_system::pallet_prelude::{ensure_signed, BlockNumberFor};
@@ -63,9 +64,10 @@ pub mod pallet {
     pub trait Config: frame_system::Config + pallet_subspace::Config {
         /// The balance type must support conversion from u64
         type Currency: frame_support::traits::Currency<
-            Self::AccountId,
-            Balance: From<u64> + Zero + Send + Sync,
-        >;
+                Self::AccountId,
+                Balance: From<u64> + Zero + Send + Sync,
+            >
+            + ReservableCurrency<Self::AccountId>;
 
         /// This pallet's ID, used for generating the treasury account ID.
         #[pallet::constant]
@@ -229,6 +231,22 @@ pub mod pallet {
     // --- Senate Members ---
     #[pallet::storage]
     pub type SenateMembers<T: Config> = StorageMap<_, Identity, T::AccountId, (), ValueQuery>;
+
+    // --- Bridge Lockup Storage ---
+
+    /// All lockup positions for an account that will vest after the bridge event is triggered.
+    #[pallet::storage]
+    pub type BridgeLockups<T: Config> = StorageMap<
+        _,
+        Identity,
+        T::AccountId,
+        BoundedVec<modbridge::BridgeLockup<BlockNumberFor<T>>, ConstU32<64>>,
+        ValueQuery,
+    >;
+
+    /// The block when the bridge event was triggered. None means not yet.
+    #[pallet::storage]
+    pub type BridgeEventBlock<T: Config> = StorageValue<_, BlockNumberFor<T>>;
 
     // --- Extrinsics ---
 
@@ -490,6 +508,47 @@ pub mod pallet {
             Self::deposit_event(Event::PaymentScheduleCancelled { schedule_id });
             Ok(())
         }
+
+        // --- Bridge Lockup Extrinsics ---
+
+        /// Lock tokens for vesting after the bridge event. Can be undone until the event.
+        #[pallet::call_index(40)]
+        #[pallet::weight({0})]
+        pub fn bridge_lock(
+            origin: OriginFor<T>,
+            amount: u64,
+            vesting_period: BlockNumberFor<T>,
+        ) -> DispatchResult {
+            let who = ensure_signed(origin)?;
+            Self::do_bridge_lock(&who, amount, vesting_period)?;
+            Self::deposit_event(Event::BridgeLocked { who, amount, vesting_period });
+            Ok(())
+        }
+
+        /// Unlock all tokens previously locked for the bridge. Only before the event.
+        #[pallet::call_index(41)]
+        #[pallet::weight({0})]
+        pub fn bridge_unlock_all(origin: OriginFor<T>) -> DispatchResult {
+            let who = ensure_signed(origin)?;
+            let total_before: u64 = BridgeLockups::<T>::get(&who)
+                .into_iter()
+                .fold(0u64, |acc, p| acc.saturating_add(p.amount));
+            Self::do_bridge_unlock_all(&who)?;
+            Self::deposit_event(Event::BridgeUnlockedAll { who, amount: total_before });
+            Ok(())
+        }
+
+        /// Trigger the bridge event (freezing further lock/unlock). Root only.
+        #[pallet::call_index(42)]
+        #[pallet::weight({0})]
+        pub fn trigger_bridge_event(origin: OriginFor<T>) -> DispatchResult {
+            ensure_root(origin)?;
+            let at = Self::do_trigger_bridge_event()?;
+            Self::deposit_event(Event::BridgeEventTriggered { at });
+            Ok(())
+        }
+
+        // No claim extrinsic on this chain. Claiming/vesting will happen on the new chain.
     }
 
     // --- Events ---
@@ -552,6 +611,19 @@ pub mod pallet {
         SenateMemberAdded(T::AccountId),
         /// A senate member was removed
         SenateMemberRemoved(T::AccountId),
+
+        // --- Bridge Lockup Events ---
+        /// A user locked tokens for the bridge
+        BridgeLocked {
+            who: T::AccountId,
+            amount: u64,
+            vesting_period: BlockNumberFor<T>,
+        },
+        /// A user unlocked all tokens before the bridge
+        BridgeUnlockedAll { who: T::AccountId, amount: u64 },
+        /// Sudo/Root triggered the bridge event
+        BridgeEventTriggered { at: BlockNumberFor<T> },
+        // Claiming happens on the new chain; no claim event here
     }
 
     // ---  Errors ---
@@ -631,6 +703,15 @@ pub mod pallet {
         SenateMemberExists,
         /// Senate Member doesn't exist so can't be removed
         SenateMemberNotFound,
+
+        // --- Bridge Lockup Errors ---
+        /// Bridge event already triggered; locking/unlocking is frozen
+        BridgeAlreadyTriggered,
+        /// Bridge event not yet triggered
+        BridgeNotTriggered,
+        /// No bridge lockups found for this account
+        NoBridgeLockups,
+        // Nothing claimable error removed (no local claiming)
     }
 }
 
