@@ -424,6 +424,7 @@ parameter_types! {
     pub const DepositFactor: Balance = (0) as Balance * 2_000 * 10_000 + (32 as Balance) * 100 * 10_000;
     pub const MaxSignatories: u32 = 100;
     pub const SubspacePalletId: PalletId = PalletId(*b"py/subsp");
+    pub const BridgeOutPalletId: PalletId = PalletId(*b"py/brout");
 }
 
 impl pallet_multisig::Config for Runtime {
@@ -462,6 +463,13 @@ impl pallet_governance::Config for Runtime {
     type RuntimeEvent = RuntimeEvent;
     type Currency = Balances;
     type WeightInfo = pallet_governance::weights::SubstrateWeight<Runtime>;
+}
+
+impl pallet_bridge_out::Config for Runtime {
+    type RuntimeEvent = RuntimeEvent;
+    type Currency = Balances;
+    type PalletId = BridgeOutPalletId;
+    type Nonce = u64;
 }
 
 impl pallet_offworker::Config for Runtime {
@@ -644,6 +652,8 @@ construct_runtime!(
         GovernanceModule: pallet_governance,
         SubnetEmissionModule: pallet_subnet_emission,
         Offworker: pallet_offworker,
+
+        BridgeOut: pallet_bridge_out,
 
         #[cfg(feature = "testnet-faucet")]
         FaucetModule: pallet_faucet,

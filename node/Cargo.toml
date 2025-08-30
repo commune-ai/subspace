@@ -90,6 +90,7 @@ sp-io.workspace = true
 sp-runtime.workspace = true
 sp-timestamp.workspace = true
 substrate-frame-rpc-system.workspace = true
+pallet-bridge-out = { path = "../pallets/bridge-out" }
 
 [build-dependencies]
 substrate-build-script-utils.workspace = true

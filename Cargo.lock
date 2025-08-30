@@ -5691,6 +5691,7 @@ dependencies = [
  "log",
  "node-subspace-runtime",
  "ow_extensions",
+ "pallet-bridge-out",
  "pallet-subspace-genesis-config",
  "pallet-transaction-payment",
  "pallet-transaction-payment-rpc",
@@ -5756,6 +5757,7 @@ dependencies = [
  "pallet-aura",
  "pallet-balances",
  "pallet-base-fee",
+ "pallet-bridge-out",
  "pallet-dynamic-fee",
  "pallet-ethereum",
  "pallet-evm",
@@ -6182,6 +6184,19 @@ dependencies = [
  "scale-info",
  "sp-core",
  "sp-runtime",
+]
+
+[[package]]
+name = "pallet-bridge-out"
+version = "0.1.0"
+dependencies = [
+ "frame-support",
+ "frame-system",
+ "parity-scale-codec",
+ "scale-info",
+ "sp-core",
+ "sp-runtime",
+ "sp-std",
 ]
 
 [[package]]
