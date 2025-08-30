@@ -5,7 +5,7 @@ use futures::StreamExt;
 use scale_codec::Decode;
 use sp_core::{twox_128, keccak_256, H256};
 use sp_core::storage::StorageKey;
-use sp_runtime::traits::Block as BlockT;
+// use sp_runtime::traits::Block as BlockT; // unused
 use std::process::{Command, Stdio};
 use sc_service::SpawnTaskHandle;
 
@@ -90,12 +90,14 @@ pub fn maybe_spawn(spawn: SpawnTaskHandle, client: Arc<Client>, cfg: RelayerConf
                         match <Vec<EventRecord>>::decode(&mut bytes) {
                             Ok(records) => {
                                 for rec in records {
-                                    if let node_subspace_runtime::RuntimeEvent::BridgeOut(ev) = rec.event {
-                                        if let pallet_bridge_out::Event::BridgeToL1Locked { who: _, amount_native, l2_recipient, nonce } = ev {
-                                            let Some(ref l1_url) = cfg.bridge_l1_rpc else { log::warn!(target: "bridge", "BRIDGE_L1_RPC unset; skip event"); continue; };
-                                            let Some(ref pk) = cfg.bridge_pk else { log::warn!(target: "bridge", "BRIDGE_PK unset; skip event"); continue; };
-                                            let Some(ref minter) = cfg.bridge_minter else { log::warn!(target: "bridge", "BRIDGE_MINTER unset; skip event"); continue; };
-
+                                    if let node_subspace_runtime::RuntimeEvent::BridgeOut(
+                                        pallet_bridge_out::Event::BridgeToL1Locked { who: _, amount_native, l2_recipient, nonce }
+                                    ) = rec.event {
+                                        if let (Some(l1_url), Some(pk), Some(minter)) = (
+                                            cfg.bridge_l1_rpc.as_ref(),
+                                            cfg.bridge_pk.as_ref(),
+                                            cfg.bridge_minter.as_ref(),
+                                        ) {
                                             // Convert Substrate native amount (u64) to ERC20 wei amount using decimals
                                             let n_dec = cfg.bridge_substrate_decimals as i32;
                                             let e_dec = cfg.bridge_erc20_decimals as i32;
@@ -120,14 +122,14 @@ pub fn maybe_spawn(spawn: SpawnTaskHandle, client: Arc<Client>, cfg: RelayerConf
                                             // Call L1 BridgeMinter via foundry cast
                                             let mut cmd = Command::new("cast");
                                             cmd.arg("send")
-                                                .arg(minter)
+                                                .arg(minter.as_str())
                                                 .arg("mintAndBridge(bytes32,address,uint256,uint32)")
                                                 .arg(&event_id_hex)
                                                 .arg(&to_hex)
                                                 .arg(amount_wei.to_string())
                                                 .arg(l2_gas.to_string())
-                                                .arg("--rpc-url").arg(l1_url)
-                                                .arg("--private-key").arg(pk)
+                                                .arg("--rpc-url").arg(l1_url.as_str())
+                                                .arg("--private-key").arg(pk.as_str())
                                                 .stdin(Stdio::null())
                                                 .stdout(Stdio::piped())
                                                 .stderr(Stdio::piped());
@@ -146,6 +148,8 @@ pub fn maybe_spawn(spawn: SpawnTaskHandle, client: Arc<Client>, cfg: RelayerConf
                                                     log::error!(target: "bridge", "Failed to spawn cast: {}", e);
                                                 }
                                             }
+                                        } else {
+                                            log::warn!(target: "bridge", "BRIDGE_L1_RPC, BRIDGE_PK, or BRIDGE_MINTER unset; skip event");
                                         }
                                     }
                                 }
