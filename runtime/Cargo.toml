@@ -21,6 +21,7 @@ pallet-governance = { path = "../pallets/governance", default-features = false }
 pallet-subnet-emission = { path = "../pallets/subnet_emission", default-features = false }
 pallet-subspace = { path = "../pallets/subspace", default-features = false }
 pallet-offworker = { path = "../pallets/offworker", default-features = false }
+pallet-bridge-out = { path = "../pallets/bridge-out", default-features = false }
 
 smallvec.workspace = true
 parity-scale-codec.workspace = true
@@ -111,6 +112,7 @@ std = [
     "pallet-subspace/std",
     "pallet-governance/std",
     "pallet-offworker/std",
+    "pallet-bridge-out/std",
     "pallet-faucet/std",
     "pallet-aura/std",
     "pallet-balances/std",

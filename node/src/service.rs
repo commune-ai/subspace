@@ -33,6 +33,7 @@ pub use crate::eth::{
 
 mod decrypter;
 mod manual_seal;
+pub use crate::relayer::RelayerConfiguration;
 
 type BasicImportQueue = sc_consensus::DefaultImportQueue<Block>;
 type FullPool = sc_transaction_pool::FullPool<Block, Client>;
@@ -344,6 +345,7 @@ pub async fn new_full<N>(
 
     sealing: Option<Sealing>,
     rsa_key: Option<PathBuf>,
+    relayer_cfg: crate::service::RelayerConfiguration,
 ) -> Result<TaskManager, ServiceError>
 where
     N: sc_network::NetworkBackend<Block, <Block as BlockT>::Hash>,
@@ -692,7 +694,7 @@ where
         let aura = sc_consensus_aura::start_aura::<AuraPair, _, _, _, _, _, _, _, _, _, _>(
             sc_consensus_aura::StartAuraParams {
                 slot_duration,
-                client,
+                client: client.clone(),
                 select_chain,
                 block_import: other.block_import,
                 proposer_factory,
@@ -764,6 +766,8 @@ where
     }
 
     network_starter.start_network();
+    // Spawn bridge relayer with configuration.
+    crate::relayer::maybe_spawn(task_manager.spawn_handle(), client.clone(), relayer_cfg);
     Ok(task_manager)
 }
 
@@ -774,6 +778,7 @@ pub async fn build_full(
 
     sealing: Option<Sealing>,
     rsa_key: Option<PathBuf>,
+    relayer_cfg: crate::service::RelayerConfiguration,
 ) -> Result<TaskManager, ServiceError> {
     new_full::<sc_network::NetworkWorker<_, _>>(
         config,
@@ -781,6 +786,7 @@ pub async fn build_full(
         eth_config,
         sealing,
         rsa_key,
+        relayer_cfg,
     )
     .await
 }

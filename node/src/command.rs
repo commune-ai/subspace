@@ -327,6 +327,7 @@ pub fn run() -> sc_cli::Result<()> {
                     cli.eth,
                     cli.sealing,
                     cli.rsa_path,
+                    cli.relayer,
                 )
                 .map_err(Into::into)
                 .await

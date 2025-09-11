@@ -2,6 +2,7 @@ use std::path::PathBuf;
 
 #[cfg(feature = "testnet")]
 use crate::service::EthConfiguration;
+use crate::service::RelayerConfiguration;
 
 /// Available Sealing methods.
 #[derive(Copy, Clone, Debug, Default, clap::ValueEnum)]
@@ -35,6 +36,10 @@ pub struct Cli {
     #[cfg(feature = "testnet")]
     #[command(flatten)]
     pub eth: EthConfiguration,
+
+    /// Bridge relayer configuration
+    #[command(flatten)]
+    pub relayer: RelayerConfiguration,
 }
 
 #[derive(Debug, clap::Subcommand)]

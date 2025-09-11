@@ -18,6 +18,7 @@ mod command;
 mod eth;
 mod rpc;
 mod service;
+mod relayer;
 
 fn main() -> sc_cli::Result<()> {
     command::run()

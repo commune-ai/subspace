@@ -8,6 +8,7 @@ members = [
     "pallets/subnet_emission",
     "pallets/subspace",
     "pallets/subspace/genesis-config",
+    "pallets/bridge-out",
     "runtime",
     "tests",
     "ow_extensions",
