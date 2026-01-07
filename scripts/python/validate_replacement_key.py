@@ -4,12 +4,14 @@
 #     "substrate-interface",
 #     "rich",
 #     "scalecodec",
+#     "base58",
 # ]
 # ///
 
 from substrateinterface.keypair import ss58_decode
 from substrateinterface import SubstrateInterface
 import binascii
+import base58
 from pathlib import Path
 from rich.console import Console
 from rich.table import Table
@@ -18,7 +20,36 @@ import re
 
 console = Console()
 
+def is_solana_key(key: str) -> bool:
+    """
+    Check if a key is in Solana format (plain base58, ~43-44 chars).
+    Solana keys are typically 32 bytes encoded in base58 without SS58 format.
+    SS58 keys typically start with '5' and are longer.
+    """
+    try:
+        # Try to decode as plain base58
+        decoded = base58.b58decode(key)
+        # Solana keys are exactly 32 bytes
+        return len(decoded) == 32 and not key.startswith('5')
+    except Exception:
+        return False
+
+def decode_key(target_key: str) -> bytes:
+    """
+    Decode a key in either Solana (base58) or Substrate (SS58) format.
+    Returns the raw 32-byte public key.
+    """
+    if is_solana_key(target_key):
+        # Solana key: plain base58 encoding
+        decoded = base58.b58decode(target_key)
+        return decoded
+    else:
+        # Substrate key: SS58 encoding
+        hex_str = ss58_decode(target_key)
+        return binascii.unhexlify(hex_str)
+
 def decode_ss58(target_key: str) -> bytes:
+    """Legacy function for backward compatibility"""
     return ss58_decode(target_key)
 
 def hex_to_bytes(hex_str: str) -> bytes:
@@ -134,16 +165,17 @@ def validate_senate_keys():
     # Create a table for results
     table = Table(title="Senate Keys Validation")
     table.add_column("#", justify="right", style="cyan")
-    table.add_column("Comment Key (SS58)", style="green")
+    table.add_column("Comment Key", style="green")
+    table.add_column("Format", style="magenta")
     table.add_column("Byte Array Match", style="yellow")
     table.add_column("Match Index", style="blue")
     
     # Convert each comment key to bytes and check if it matches any byte array
     for i, key in enumerate(comment_keys):
         try:
-            # Convert SS58 key to bytes
-            key_bytes = decode_ss58(key)
-            key_bytes_array = list(hex_to_bytes(key_bytes))
+            # Detect key format and convert to bytes
+            key_format = "Solana" if is_solana_key(key) else "SS58"
+            key_bytes_array = list(decode_key(key))
             
             # Check if this key matches any byte array
             match_found = False
@@ -156,10 +188,10 @@ def validate_senate_keys():
             
             match_status = "[green]✓ MATCH[/green]" if match_found else "[red]✗ NO MATCH[/red]"
             match_idx_str = f"[blue]Index {match_index}[/blue]" if match_found else ""
-            table.add_row(f"{i+1}", key, match_status, match_idx_str)
+            table.add_row(f"{i+1}", key, key_format, match_status, match_idx_str)
             
         except Exception as e:
-            table.add_row(f"{i+1}", key, f"[red]Error: {str(e)}[/red]", "")
+            table.add_row(f"{i+1}", key, "Unknown", f"[red]Error: {str(e)}[/red]", "")
     
     console.print(table)
 
