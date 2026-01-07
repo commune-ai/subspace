@@ -208,7 +208,7 @@ def print_custom_help():
     from rich.text import Text
     
     title = Text("Senate Keys Validator", style="bold cyan")
-    subtitle = Text("A tool to validate senate keys in migration code", style="italic yellow")
+    subtitle = Text("A tool to validate senate keys in migration code (supports SS58 and Solana formats)", style="italic yellow")
     
     usage = Text("\nUsage:", style="bold green")
     usage_cmd = Text("  uv run scripts/python/validate_replacement_key.py [OPTIONS]\n", style="blue")
@@ -231,7 +231,10 @@ def print_custom_help():
     for ex_desc, ex_cmd in examples:
         examples_text += f"  [bold yellow]{ex_desc:<30}[/bold yellow] [blue]{ex_cmd}[/blue]\n"
     
-    content = f"{title}\n{subtitle}\n{usage}{usage_cmd}{options_title}\n{options_text}{examples_title}\n{examples_text}"
+    note = Text("\nSupported Key Formats:", style="bold green")
+    formats = Text("  • SS58 (Substrate): Keys starting with '5' (e.g., 5H47pSknyzk4NM5LyE6Z...)\n  • Solana: Base58-encoded 32-byte keys (e.g., 7EqQdEULxWcraVx3mXKF...)", style="white")
+    
+    content = f"{title}\n{subtitle}\n{usage}{usage_cmd}{options_title}\n{options_text}{examples_title}\n{examples_text}{note}\n{formats}"
     panel = Panel(content, border_style="green", title="[bold white]Senate Keys Validator[/bold white]", subtitle="[italic]v1.0.0[/italic]")
     
     console.print(panel)
