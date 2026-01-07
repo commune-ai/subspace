@@ -4,12 +4,14 @@
 #     "substrate-interface",
 #     "rich",
 #     "scalecodec",
+#     "base58",
 # ]
 # ///
 
-from substrateinterface.keypair import ss58_decode
 from substrateinterface import SubstrateInterface
+from substrateinterface.keypair import ss58_decode
 import binascii
+import base58
 from pathlib import Path
 from rich.console import Console
 from rich.table import Table
@@ -18,8 +20,59 @@ import re
 
 console = Console()
 
+# NOTE: is_solana_key and decode_key functions are duplicated in both
+# validate_replacement_key.py and derive_senate_multisig.py to keep scripts
+# self-contained and independently executable without shared dependencies.
+
+def is_solana_key(key: str) -> bool:
+    """
+    Check if a key is in Solana format (plain base58, ~43-44 chars).
+    Solana keys are typically 32 bytes encoded in base58 without SS58 format.
+    SS58 keys typically start with '5' and are longer.
+    """
+    # First check if it looks like an SS58 key (starts with specific characters
+    # and has the typical length for SS58)
+    if key.startswith(('5', '1', 'F', 'H', 'G', 'K')) and len(key) > 45:
+        # Likely SS58 format
+        return False
+    
+    try:
+        # Try to decode as plain base58
+        decoded = base58.b58decode(key)
+        # Solana keys are exactly 32 bytes
+        if len(decoded) != 32:
+            return False
+        
+        # Additional check: try SS58 decoding
+        # If it successfully decodes as SS58, it's not a Solana key
+        try:
+            ss58_decode(key)
+            # Successfully decoded as SS58, so it's not a Solana key
+            return False
+        except Exception:
+            # Failed to decode as SS58, likely a Solana key
+            return True
+    except Exception:
+        return False
+
+def decode_key(target_key: str) -> bytes:
+    """
+    Decode a key in either Solana (base58) or Substrate (SS58) format.
+    Returns the raw 32-byte public key.
+    """
+    if is_solana_key(target_key):
+        # Solana key: plain base58 encoding
+        decoded = base58.b58decode(target_key)
+        return decoded
+    else:
+        # Substrate key: SS58 encoding
+        hex_str = ss58_decode(target_key)
+        return binascii.unhexlify(hex_str)
+
 def decode_ss58(target_key: str) -> bytes:
-    return ss58_decode(target_key)
+    """Legacy function for backward compatibility - now returns bytes"""
+    hex_str = ss58_decode(target_key)
+    return binascii.unhexlify(hex_str)
 
 def hex_to_bytes(hex_str: str) -> bytes:
     return binascii.unhexlify(hex_str)
@@ -134,16 +187,17 @@ def validate_senate_keys():
     # Create a table for results
     table = Table(title="Senate Keys Validation")
     table.add_column("#", justify="right", style="cyan")
-    table.add_column("Comment Key (SS58)", style="green")
+    table.add_column("Comment Key", style="green")
+    table.add_column("Format", style="magenta")
     table.add_column("Byte Array Match", style="yellow")
     table.add_column("Match Index", style="blue")
     
     # Convert each comment key to bytes and check if it matches any byte array
     for i, key in enumerate(comment_keys):
         try:
-            # Convert SS58 key to bytes
-            key_bytes = decode_ss58(key)
-            key_bytes_array = list(hex_to_bytes(key_bytes))
+            # Detect key format and convert to bytes
+            key_format = "Solana" if is_solana_key(key) else "SS58"
+            key_bytes_array = list(decode_key(key))
             
             # Check if this key matches any byte array
             match_found = False
@@ -156,10 +210,10 @@ def validate_senate_keys():
             
             match_status = "[green]✓ MATCH[/green]" if match_found else "[red]✗ NO MATCH[/red]"
             match_idx_str = f"[blue]Index {match_index}[/blue]" if match_found else ""
-            table.add_row(f"{i+1}", key, match_status, match_idx_str)
+            table.add_row(f"{i+1}", key, key_format, match_status, match_idx_str)
             
         except Exception as e:
-            table.add_row(f"{i+1}", key, f"[red]Error: {str(e)}[/red]", "")
+            table.add_row(f"{i+1}", key, "Unknown", f"[red]Error: {str(e)}[/red]", "")
     
     console.print(table)
 
@@ -176,7 +230,7 @@ def print_custom_help():
     from rich.text import Text
     
     title = Text("Senate Keys Validator", style="bold cyan")
-    subtitle = Text("A tool to validate senate keys in migration code", style="italic yellow")
+    subtitle = Text("A tool to validate senate keys in migration code (supports SS58 and Solana formats)", style="italic yellow")
     
     usage = Text("\nUsage:", style="bold green")
     usage_cmd = Text("  uv run scripts/python/validate_replacement_key.py [OPTIONS]\n", style="blue")
@@ -199,7 +253,10 @@ def print_custom_help():
     for ex_desc, ex_cmd in examples:
         examples_text += f"  [bold yellow]{ex_desc:<30}[/bold yellow] [blue]{ex_cmd}[/blue]\n"
     
-    content = f"{title}\n{subtitle}\n{usage}{usage_cmd}{options_title}\n{options_text}{examples_title}\n{examples_text}"
+    note = Text("\nSupported Key Formats:", style="bold green")
+    formats = Text("  • SS58 (Substrate): Keys starting with '5' (e.g., 5H47pSknyzk4NM5LyE6Z...)\n  • Solana: Base58-encoded 32-byte keys (e.g., 7EqQdEULxWcraVx3mXKF...)", style="white")
+    
+    content = f"{title}\n{subtitle}\n{usage}{usage_cmd}{options_title}\n{options_text}{examples_title}\n{examples_text}{note}\n{formats}"
     panel = Panel(content, border_style="green", title="[bold white]Senate Keys Validator[/bold white]", subtitle="[italic]v1.0.0[/italic]")
     
     console.print(panel)

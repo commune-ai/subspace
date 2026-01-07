@@ -3,14 +3,15 @@
 # dependencies = [
 #     "substrate-interface>=1.4.2",
 #     "rich",
-#     "scalecodec>=1.2.0"
+#     "scalecodec>=1.2.0",
+#     "base58",
 # ]
 # ///
 """
 Derive a multi-signature address from the provided senate keys.
 
 This script creates a multi-signature address from the specified senate keys
-with a configurable threshold.
+with a configurable threshold. Supports both Substrate SS58 and Solana base58 key formats.
 
 Usage:
     python derive_senate_multisig.py [--threshold THRESHOLD]
@@ -21,6 +22,7 @@ Example:
 
 import argparse
 import binascii
+import base58
 from substrateinterface import SubstrateInterface, Keypair
 from rich.console import Console
 from rich.table import Table
@@ -38,6 +40,54 @@ SENATE_KEYS = [
     "5DPSqGAAy5ze1JGuSJb68fFPKbDmXhfMqoNSHLFnJgUNTPaU", 
     "5HmjuwYGRXhxxbFz6EJBXpAyPKwRsQxFKdZQeLdTtg5UEudA"
 ]
+
+# NOTE: is_solana_key and decode_key_to_hex functions are duplicated in both
+# validate_replacement_key.py and derive_senate_multisig.py to keep scripts
+# self-contained and independently executable without shared dependencies.
+
+def is_solana_key(key: str) -> bool:
+    """
+    Check if a key is in Solana format (plain base58, ~43-44 chars).
+    Solana keys are typically 32 bytes encoded in base58 without SS58 format.
+    SS58 keys typically start with '5' and are longer.
+    """
+    # First check if it looks like an SS58 key (starts with specific characters
+    # and has the typical length for SS58)
+    if key.startswith(('5', '1', 'F', 'H', 'G', 'K')) and len(key) > 45:
+        # Likely SS58 format
+        return False
+    
+    try:
+        # Try to decode as plain base58
+        decoded = base58.b58decode(key)
+        # Solana keys are exactly 32 bytes
+        if len(decoded) != 32:
+            return False
+        
+        # Additional check: try SS58 decoding
+        # If it successfully decodes as SS58, it's not a Solana key
+        try:
+            ss58_decode(key)
+            # Successfully decoded as SS58, so it's not a Solana key
+            return False
+        except Exception:
+            # Failed to decode as SS58, likely a Solana key
+            return True
+    except Exception:
+        return False
+
+def decode_key_to_hex(key: str) -> str:
+    """
+    Decode a key in either Solana (base58) or Substrate (SS58) format.
+    Returns the hex-encoded 32-byte public key.
+    """
+    if is_solana_key(key):
+        # Solana key: plain base58 encoding
+        decoded = base58.b58decode(key)
+        return decoded.hex()
+    else:
+        # Substrate key: SS58 encoding
+        return ss58_decode(key)
 
 def derive_senate_multisig(threshold=4, node_url="wss://api.communeai.net", ss58_format=42):
     """
@@ -60,11 +110,11 @@ def derive_senate_multisig(threshold=4, node_url="wss://api.communeai.net", ss58
             raise ValueError(f"Threshold must be between 1 and {len(SENATE_KEYS)}")
             
         # Sort the public keys (required for deterministic multisig generation)
-        # First convert SS58 addresses to public keys
-        public_keys = [ss58_decode(address) for address in SENATE_KEYS]
+        # First convert addresses to public keys (hex format)
+        public_keys = [decode_key_to_hex(address) for address in SENATE_KEYS]
         # Sort the public keys
         sorted_public_keys = sorted(public_keys)
-        # Convert back to SS58 addresses
+        # Convert back to SS58 addresses for Substrate multisig
         sorted_addresses = [ss58_encode(pk, ss58_format=ss58_format) for pk in sorted_public_keys]
         
         # Generate the multisig address
