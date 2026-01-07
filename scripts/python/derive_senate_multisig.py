@@ -47,11 +47,28 @@ def is_solana_key(key: str) -> bool:
     Solana keys are typically 32 bytes encoded in base58 without SS58 format.
     SS58 keys typically start with '5' and are longer.
     """
+    # First check if it looks like an SS58 key (starts with specific characters
+    # and has the typical length for SS58)
+    if key.startswith(('5', '1', 'F', 'H', 'G', 'K')) and len(key) > 45:
+        # Likely SS58 format
+        return False
+    
     try:
         # Try to decode as plain base58
         decoded = base58.b58decode(key)
         # Solana keys are exactly 32 bytes
-        return len(decoded) == 32 and not key.startswith('5')
+        if len(decoded) != 32:
+            return False
+        
+        # Additional check: try SS58 decoding
+        # If it successfully decodes as SS58, it's not a Solana key
+        try:
+            ss58_decode(key)
+            # Successfully decoded as SS58, so it's not a Solana key
+            return False
+        except Exception:
+            # Failed to decode as SS58, likely a Solana key
+            return True
     except Exception:
         return False
 
