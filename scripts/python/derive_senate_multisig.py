@@ -41,6 +41,10 @@ SENATE_KEYS = [
     "5HmjuwYGRXhxxbFz6EJBXpAyPKwRsQxFKdZQeLdTtg5UEudA"
 ]
 
+# NOTE: is_solana_key and decode_key_to_hex functions are duplicated in both
+# validate_replacement_key.py and derive_senate_multisig.py to keep scripts
+# self-contained and independently executable without shared dependencies.
+
 def is_solana_key(key: str) -> bool:
     """
     Check if a key is in Solana format (plain base58, ~43-44 chars).

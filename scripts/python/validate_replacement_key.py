@@ -8,8 +8,8 @@
 # ]
 # ///
 
-from substrateinterface.keypair import ss58_decode
 from substrateinterface import SubstrateInterface
+from substrateinterface.keypair import ss58_decode
 import binascii
 import base58
 from pathlib import Path
@@ -19,6 +19,10 @@ from typing import List, Dict, Optional, Tuple, Union
 import re
 
 console = Console()
+
+# NOTE: is_solana_key and decode_key functions are duplicated in both
+# validate_replacement_key.py and derive_senate_multisig.py to keep scripts
+# self-contained and independently executable without shared dependencies.
 
 def is_solana_key(key: str) -> bool:
     """
@@ -42,7 +46,6 @@ def is_solana_key(key: str) -> bool:
         # Additional check: try SS58 decoding
         # If it successfully decodes as SS58, it's not a Solana key
         try:
-            from substrateinterface.keypair import ss58_decode
             ss58_decode(key)
             # Successfully decoded as SS58, so it's not a Solana key
             return False
